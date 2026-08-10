@@ -469,6 +469,25 @@ describe("World", () => {
       expect(user.parent).toBe(elevator);
     });
 
+    it("clears the call button of the floor the elevator is standing at", () => {
+      // The other half of the re-offer. `entrance_available` is what
+      // world.js:128 bound handleElevAvailability to, so the floor is
+      // reconsidered exactly as on a real arrival - not just the passengers.
+      // Solutions that track pending calls from buttonStates or from the
+      // button events see the call answered.
+      const world = createWorld({ spawnRate: 0.001, floorCount: 3, elevatorCount: 1 });
+      const elevInterface = at(world.elevatorInterfaces, 0);
+      at(world.elevators, 0).setFloorPosition(1);
+      elevInterface.goingUpIndicator(false);
+      const floor = at(world.floors, 1);
+      floor.pressUpButton();
+      expect(floor.buttonStates.up).toBe("activated");
+
+      elevInterface.goingUpIndicator(true);
+
+      expect(floor.buttonStates.up).toBe("");
+    });
+
     it("costs nothing when player code rewrites the indicators every frame", () => {
       // The re-offer is wired to indicatorstate_change, and every
       // entrance_available makes the world sweep every floor and every user
@@ -624,6 +643,47 @@ describe("World", () => {
       expect(floor.buttonStates.down).toBe("activated");
       expect(floor.buttonStates.up).toBe("activated");
     });
+
+    it("routes the re-press through button repressing, as any other call is", () => {
+      // The rest of the #110 claim: the re-press is a real call, so it reaches
+      // World.handleButtonRepressing and a suitable elevator standing at the
+      // floor is re-arrived by it. Same setup as above, plus a second elevator
+      // parked there that serves the direction the first one just stopped
+      // serving.
+      vi.spyOn(Math, "random").mockReturnValue(0);
+      const world = createWorld({
+        spawnRate: 0.001,
+        floorCount: 3,
+        elevatorCount: 2,
+        elevatorCapacities: [1, 4],
+      });
+      const full = at(world.elevators, 0);
+      const spare = at(world.elevators, 1);
+      const floor = at(world.floors, 1);
+      full.setFloorPosition(1);
+      // Kept off the floor until the passengers are in place, so their own
+      // call presses do not re-arrive it before the dispatch under test.
+      spare.setFloorPosition(2);
+      spare.goingDownIndicator = false;
+      full.userEntering({ weight: 70 });
+
+      const goingDown = new User(70);
+      goingDown.appearOnFloor(floor, 0);
+      const goingUp = new User(70);
+      goingUp.appearOnFloor(floor, 2);
+      world.users.push(goingDown, goingUp);
+
+      floor.on("down_button_pressed", () => {
+        full.goingUpIndicator = false;
+      });
+      spare.setFloorPosition(1);
+      expect(at(world.elevatorInterfaces, 1).destinationQueue).toEqual([]);
+
+      full.trigger("entrance_available", full);
+
+      expect(goingUp.parent).toBe(null);
+      expect(at(world.elevatorInterfaces, 1).destinationQueue).toEqual([1]);
+    });
   });
 
   describe("button repressing", () => {
@@ -697,6 +757,33 @@ describe("World", () => {
       world.init();
 
       expect(reported).toHaveBeenCalledWith(boom);
+    });
+
+    it("reports every failure of one dispatch, in handler order", () => {
+      // What per-handler isolation actually buys. WorldController pauses on
+      // the first usercode_error, so no *later* dispatch happens at all; the
+      // isolation only ever spans the dispatch that is already running. Within
+      // it, though, handlers after the thrower still run and each failure is
+      // reported separately.
+      const world = createWorld({ spawnRate: 0.001, floorCount: 3, elevatorCount: 1 });
+      const first = new Error("first");
+      const second = new Error("second");
+      const third = vi.fn();
+      const reported = vi.fn();
+      world.on("usercode_error", reported);
+      const facade = at(world.floorInterfaces, 0);
+      facade.on("up_button_pressed", () => {
+        throw first;
+      });
+      facade.on("up_button_pressed", () => {
+        throw second;
+      });
+      facade.on("up_button_pressed", third);
+
+      at(world.floors, 0).pressUpButton();
+
+      expect(reported.mock.calls).toEqual([[first], [second]]);
+      expect(third).toHaveBeenCalledTimes(1);
     });
   });
 

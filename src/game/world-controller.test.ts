@@ -329,6 +329,29 @@ describe("World controller", () => {
       expect(reported).toHaveBeenCalledWith(boom);
       log.mockRestore();
     });
+
+    it("pauses on the first error but still forwards the rest of the dispatch", () => {
+      // Observable.triggerSafe reports each failing handler separately, so one
+      // player-code dispatch can raise usercode_error several times with no
+      // frame in between. The first one pauses the simulation - that is the
+      // bound on what per-handler isolation buys - and the pause does not
+      // swallow the reports that follow it.
+      const first = new Error("first");
+      const second = new Error("second");
+      const reported = vi.fn();
+      controller.on("usercode_error", reported);
+      const log = vi.spyOn(console, "log").mockImplementation(() => undefined);
+
+      controller.start(fakeWorld, fakeCodeObj, frameRequester.register, true);
+      expect(controller.isPaused).toBe(false);
+      fakeWorld.emitUserCodeError(first);
+      const pausedAfterFirst = controller.isPaused;
+      fakeWorld.emitUserCodeError(second);
+
+      expect(pausedAfterFirst).toBe(true);
+      expect(reported.mock.calls).toEqual([[first], [second]]);
+      log.mockRestore();
+    });
   });
 
   describe("pause and time scale", () => {

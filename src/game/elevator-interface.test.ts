@@ -516,6 +516,31 @@ describe("Elevator interface", () => {
       elevInterface.checkDestinationQueue();
       expect(idle).not.toHaveBeenCalled();
     });
+
+    it("dwells and then idles when player code empties the queue mid-flight", () => {
+      // The second route into issues #92 and #105, named by the fix but never
+      // covered: `destinationQueue = []` assigned while the car is flying. The
+      // elevator still coasts to the floor it was already sent to, and that
+      // halt has no matching queue head, so the legacy handler ignored it -
+      // no one-second boarding dwell and no `idle`, ever.
+      const idle = vi.fn();
+      elevInterface.on("idle", idle);
+      elevInterface.goToFloor(3);
+      stepElevator(e, 0.3, 0.015);
+      expect(e.isMoving).toBe(true);
+
+      elevInterface.destinationQueue = [];
+      stepUntil(e, () => !e.isMoving);
+
+      expect(e.currentFloor).toBe(3);
+      expect(e.isOnAFloor()).toBe(true);
+      expect(e.isBusy()).toBe(true);
+      expect(idle).not.toHaveBeenCalled();
+
+      stepElevator(e, 1.1, 0.015);
+
+      expect(idle).toHaveBeenCalledTimes(1);
+    });
   });
 
   describe("idle re-entrancy", () => {
