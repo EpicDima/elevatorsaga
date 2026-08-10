@@ -218,7 +218,7 @@ better.
 - [#119](https://github.com/magwo/elevatorsaga/issues/119) — the editor no longer reindents code on
   paste, which used to mangle anything pasted in from an external editor.
 
-Two more, without upstream issues:
+Three more, without upstream issues:
 
 - `maxWaitTime` counted the walk-away animation of passengers who had already been delivered,
   inflating the statistic by a random 1–1.5 seconds per person. Delivered passengers are now
@@ -231,6 +231,14 @@ Two more, without upstream issues:
   list with `NaN` and killed the page before anything was drawn; `#timescale=abc` set the world's
   time scale to `NaN`, which froze the simulation with no way out short of editing the URL by hand.
   Both are validated and fall back to a default now.
+- `goToFloor(NaN)` — or `undefined`, or `"abc"`, or a typo that evaluated to an object — used to
+  queue `NaN` as a destination, and from there the elevator's position, its current floor and its
+  whole queue were `NaN` for the rest of the run. Nothing recovered it, and nothing said so: no
+  error, no pause, no hint, while every passenger it was carrying stayed stranded. A destination
+  that is not a floor number is now refused and reported through the same "problem with your code"
+  banner as any other mistake in a solution, and the same goes for a non-finite entry assigned
+  straight into `destinationQueue`. Anything that names a real floor still behaves exactly as it
+  did, in or out of range.
 
 ## Development
 
@@ -259,10 +267,14 @@ That is how the `src/ui` tests, `src/app/app.test.ts` and `src/page.test.ts` run
 cannot: does the thing that actually ships come up in a real browser? So they run against the
 **production build** — `npm run test:e2e` builds the site and serves `dist/` with `vite preview`
 before the first test — and they stay few on purpose. Between them they boot the page, play a
-challenge through to "Success!", check that a program survives a reload in `localStorage`, check
-that a broken program raises the error banner instead of failing silently, and load the help page.
-Behaviour is covered in depth by the Vitest suite; repeating it through a browser would only buy
-slower, flakier versions of tests that already exist.
+challenge through to "Success!", check that a program survives a reload in `localStorage`, that a
+pasted block keeps the indentation it arrived with, and that a program which will not compile or
+throws mid-simulation raises the error banner instead of failing silently; then that the help page
+and the licence notices are reachable from the footer, that the link preview points at an image
+that is really served, that both pages reflow onto a 320 px phone, and that the keyboard reaches
+the editor in one tab stop from the busiest challenge. Behaviour is covered in depth by the Vitest
+suite; repeating it through a browser would only buy slower, flakier versions of tests that already
+exist.
 
 ```sh
 npm run test:e2e                       # the whole suite
@@ -281,8 +293,9 @@ root of `dist/`, so the picture at the top of this file and the one in a link pr
 file.
 
 Before opening a pull request, run what CI runs: `npm run typecheck`, `npm run lint`,
-`npm run format:check`, `npm test`, `npm run build` and `npm run test:e2e`. CI executes the first
-five on Node 22 and Node 24 for every push to `master` and every pull request — only the two active
+`npm run format:check`, `npm test`, `npm run build` and `npm run test:e2e`. CI runs the same five
+checks — `npm run test:coverage` in place of `npm test`, which is the same suite plus a coverage
+report — on Node 22 and Node 24 for every push to `master` and every pull request — only the two active
 LTS lines are covered, since odd-numbered Node releases never become LTS — and runs the end-to-end
 tests alongside them in a job of their own, so a browser download never holds up the fast checks.
 

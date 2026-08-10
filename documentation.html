@@ -313,7 +313,11 @@ floor.offAll();</code></pre>
                   argument, the elevator will go to that floor directly, and then go to any other
                   queued floors. The request is dropped if the floor is already at the end of the
                   queue it would join: the back for a normal call, the front for a call with true.
-                  The same floor further along the queue is queued again.</small
+                  The same floor further along the queue is queued again. A floor number outside the
+                  building is clamped to the nearest real floor, but a value that is not a number at
+                  all — <span class="emphasis-color">NaN</span>,
+                  <span class="emphasis-color">undefined</span>, a string that does not parse — is
+                  refused and reported as an error in your code.</small
                 >
               </td>
               <td>
@@ -427,7 +431,9 @@ elevator.goToFloor(2); // Queued anyway -- queue: 2, 3, 2</code></pre>
                 <small
                   >The current destination queue, meaning the floor numbers the elevator is
                   scheduled to go to. Can be modified and emptied if desired. Note that you need to
-                  call checkDestinationQueue() for the change to take effect immediately.</small
+                  call checkDestinationQueue() for the change to take effect immediately. An entry
+                  that is not a floor number is dropped when the elevator reaches it, and reported
+                  as an error in your code.</small
                 >
               </td>
               <td>
