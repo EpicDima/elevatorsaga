@@ -11,7 +11,6 @@ export default tseslint.config(
       "dist/**",
       "coverage/**",
       "node_modules/**",
-      ".vite/**",
       "playwright-report/**",
       "test-results/**",
     ],
@@ -44,7 +43,7 @@ export default tseslint.config(
   },
   {
     // Config files run in Node.
-    files: ["*.config.ts", "*.config.js", "eslint.config.js"],
+    files: ["*.config.ts", "*.config.js"],
     languageOptions: {
       globals: { ...globals.node },
     },

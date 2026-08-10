@@ -1,9 +1,9 @@
 /**
  * Playwright configuration for the end-to-end smoke tests.
  *
- * These tests are deliberately few. The 691 Vitest tests already cover the
+ * These tests are deliberately few. The Vitest suite already covers the
  * simulation, the presenters and the editor in depth, in isolation and without
- * a browser; what they cannot cover is whether the *built* site boots at all —
+ * a browser; what it cannot cover is whether the *built* site boots at all —
  * whether the entry chunk, the two split editor chunks and the stylesheet
  * actually load and wire themselves together. That is what `e2e/` is for, and
  * why it stays a handful of journeys rather than a second suite.
