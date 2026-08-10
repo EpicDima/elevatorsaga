@@ -6,7 +6,7 @@
  */
 
 import type { ElevatorInterface } from "./elevator-interface.ts";
-import type { Floor } from "./floor.ts";
+import type { FloorInterface } from "./floor-interface.ts";
 import { Observable } from "./observable.ts";
 
 /**
@@ -20,17 +20,21 @@ export interface UserCodeObject {
    * Called once, when the challenge starts.
    *
    * @param elevators - The elevator facades.
-   * @param floors - The building's floors.
+   * @param floors - The floor facades.
    */
-  init(elevators: readonly ElevatorInterface[], floors: readonly Floor[]): void;
+  init(elevators: readonly ElevatorInterface[], floors: readonly FloorInterface[]): void;
   /**
    * Called once per animation frame.
    *
    * @param dt - Simulated seconds since the previous frame.
    * @param elevators - The elevator facades.
-   * @param floors - The building's floors.
+   * @param floors - The floor facades.
    */
-  update(dt: number, elevators: readonly ElevatorInterface[], floors: readonly Floor[]): void;
+  update(
+    dt: number,
+    elevators: readonly ElevatorInterface[],
+    floors: readonly FloorInterface[],
+  ): void;
 }
 
 /** The part of a world a {@link WorldController} drives. */
@@ -39,8 +43,8 @@ export interface ControllableWorld {
   challengeEnded: boolean;
   /** The elevator facades handed to player code. */
   readonly elevatorInterfaces: readonly ElevatorInterface[];
-  /** The building's floors. */
-  readonly floors: readonly Floor[];
+  /** The floor facades handed to player code. */
+  readonly floorInterfaces: readonly FloorInterface[];
   /**
    * Advances the simulation.
    *
@@ -124,7 +128,7 @@ export class WorldController extends Observable<WorldControllerEvents> {
           firstUpdate = false;
           // This logic prevents infite loops in usercode from breaking the page permanently - don't evaluate user code until game is unpaused.
           try {
-            codeObj.init(world.elevatorInterfaces, world.floors);
+            codeObj.init(world.elevatorInterfaces, world.floorInterfaces);
             world.init();
           } catch (e) {
             this.handleUserCodeError(e);
@@ -135,7 +139,7 @@ export class WorldController extends Observable<WorldControllerEvents> {
         let scaledDt = dt * 0.001 * this.timeScale;
         scaledDt = Math.min(scaledDt, this.#dtMax * 3 * this.timeScale); // Limit to prevent unhealthy substepping
         try {
-          codeObj.update(scaledDt, world.elevatorInterfaces, world.floors);
+          codeObj.update(scaledDt, world.elevatorInterfaces, world.floorInterfaces);
         } catch (e) {
           this.handleUserCodeError(e);
         }

@@ -10,6 +10,7 @@
 import { Elevator } from "./elevator.ts";
 import { ElevatorInterface } from "./elevator-interface.ts";
 import { Floor } from "./floor.ts";
+import { FloorInterface } from "./floor-interface.ts";
 import { randomInt } from "./math.ts";
 import { Observable } from "./observable.ts";
 import { User } from "./user.ts";
@@ -211,6 +212,8 @@ export class World extends Observable<WorldEvents> {
   readonly floorHeight: number;
   /** The building's floors, indexed by floor number. */
   floors: Floor[];
+  /** The facades handed to player code, parallel to {@link floors}. */
+  floorInterfaces: FloorInterface[];
   /** The building's elevators. */
   elevators: Elevator[];
   /** The facades handed to player code, parallel to {@link elevators}. */
@@ -284,6 +287,13 @@ export class World extends Observable<WorldEvents> {
         this.#handleButtonRepressing("down", pressedFloor);
       });
     }
+
+    // Built last, and once, so that the world's own floor handlers above still
+    // run before any player handler — the ordering the legacy code got for free
+    // by letting player code subscribe to the Floor itself from `init`, which
+    // happens after this constructor. Player code stores its handlers on these,
+    // so the same instances have to be handed over on every frame.
+    this.floorInterfaces = this.floors.map((f) => new FloorInterface(f, handleUserCodeError));
 
     this.#elapsedSinceSpawn = 1.001 / this.#spawnRate;
   }
@@ -444,6 +454,7 @@ export class World extends Observable<WorldEvents> {
       ...this.elevatorInterfaces,
       ...this.users,
       ...this.floors,
+      ...this.floorInterfaces,
     ]) {
       obj.offAll();
     }
@@ -455,6 +466,7 @@ export class World extends Observable<WorldEvents> {
     this.elevatorInterfaces = [];
     this.users = [];
     this.floors = [];
+    this.floorInterfaces = [];
   }
 
   /** Kicks the elevators off, which raises the initial `idle` events. */

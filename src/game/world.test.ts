@@ -494,6 +494,67 @@ describe("World", () => {
     });
   });
 
+  describe("floorInterfaces", () => {
+    it("builds one facade per floor and keeps the real floors to itself", () => {
+      // Issue #3: player code used to be handed the real Floor objects.
+      const world = createWorld({ spawnRate: 0.001, floorCount: 4, elevatorCount: 1 });
+      expect(world.floorInterfaces).toHaveLength(4);
+      expect(world.floorInterfaces.map((f) => f.floorNum())).toEqual([0, 1, 2, 3]);
+      for (const facade of world.floorInterfaces) {
+        expect(world.floors).not.toContain(facade);
+      }
+    });
+
+    it("reuses the same facades instead of rebuilding them every frame", () => {
+      // Player code stores handlers on these, so they have to be stable.
+      const world = createWorld({ spawnRate: 0.001, floorCount: 3, elevatorCount: 1 });
+      const before = [...world.floorInterfaces];
+      world.update(0.1);
+      world.update(0.1);
+      expect(world.floorInterfaces).toEqual(before);
+    });
+
+    it("forwards a floor's button presses to its facade", () => {
+      const world = createWorld({ spawnRate: 0.001, floorCount: 3, elevatorCount: 1 });
+      const pressed = vi.fn();
+      at(world.floorInterfaces, 1).on("up_button_pressed", pressed);
+
+      at(world.floors, 1).pressUpButton();
+
+      expect(pressed).toHaveBeenCalledWith(at(world.floorInterfaces, 1));
+    });
+
+    it("runs the world's own floor handlers before player code", () => {
+      // The world re-arrives a standing elevator on a button press. That has to
+      // have happened by the time player code sees the event, exactly as when
+      // player code registered directly on the Floor after the world did.
+      const world = createWorld({ spawnRate: 0.001, floorCount: 3, elevatorCount: 1 });
+      at(world.elevators, 0).setFloorPosition(1);
+      let queueWhenNotified: number[] = [];
+      at(world.floorInterfaces, 1).on("up_button_pressed", () => {
+        queueWhenNotified = [...at(world.elevatorInterfaces, 0).destinationQueue];
+      });
+
+      at(world.floors, 1).pressUpButton();
+
+      expect(queueWhenNotified).toEqual([1]);
+    });
+
+    it("routes exceptions thrown by facade handlers to usercode_error", () => {
+      const world = createWorld({ spawnRate: 0.001, floorCount: 3, elevatorCount: 1 });
+      const boom = new Error("boom");
+      const errors = vi.fn();
+      world.on("usercode_error", errors);
+      at(world.floorInterfaces, 1).on("up_button_pressed", () => {
+        throw boom;
+      });
+
+      at(world.floors, 1).pressUpButton();
+
+      expect(errors).toHaveBeenCalledWith(boom);
+    });
+  });
+
   describe("refused passengers", () => {
     it("keeps the call button lit when the indicators change mid-arrival", () => {
       // Issue #110. The world notifies the floor of an arriving elevator before
@@ -641,6 +702,7 @@ describe("World", () => {
       expect(world.elevatorInterfaces).toEqual([]);
       expect(world.users).toEqual([]);
       expect(world.floors).toEqual([]);
+      expect(world.floorInterfaces).toEqual([]);
     });
 
     it("gives each collection its own empty array", () => {
@@ -657,7 +719,10 @@ describe("World", () => {
       const elevatorInterface = at(world.elevatorInterfaces, 0);
       const buttonPressed = vi.fn();
       const idle = vi.fn();
+      const floorInterface = at(world.floorInterfaces, 0);
+      const facadePressed = vi.fn();
       floor.on("up_button_pressed", buttonPressed);
+      floorInterface.on("up_button_pressed", facadePressed);
       elevatorInterface.on("idle", idle);
 
       world.unWind();
@@ -665,6 +730,7 @@ describe("World", () => {
       elevatorInterface.checkDestinationQueue();
 
       expect(buttonPressed).not.toHaveBeenCalled();
+      expect(facadePressed).not.toHaveBeenCalled();
       expect(idle).not.toHaveBeenCalled();
     });
   });
@@ -690,7 +756,7 @@ describe("World", () => {
     // structurally in `world-controller.ts` to keep the two modules acyclic,
     // so nothing would otherwise check that `World` still fits it.
     const controllable: ControllableWorld = createWorld();
-    expect(controllable.floors).toHaveLength(4);
+    expect(controllable.floorInterfaces).toHaveLength(4);
     expect(controllable.challengeEnded).toBe(false);
   });
 });

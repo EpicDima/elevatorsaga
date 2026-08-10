@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createFrameRequester, type FrameRequester } from "./frame-requester.ts";
+import { createWorld } from "./world.ts";
 import {
   WorldController,
   createWorldController,
@@ -31,7 +32,7 @@ function createFakeWorld(): FakeWorld {
   return {
     challengeEnded: false,
     elevatorInterfaces: [],
-    floors: [],
+    floorInterfaces: [],
     update: vi.fn<(dt: number) => void>(),
     init: vi.fn<() => void>(),
     updateDisplayPositions: vi.fn<() => void>(),
@@ -136,16 +137,39 @@ describe("World controller", () => {
       expect(fakeCodeObj.update).toHaveBeenCalledTimes(2);
     });
 
-    it("passes the elevator interfaces and floors to player code", () => {
+    it("passes the elevator interfaces and floor interfaces to player code", () => {
       controller.start(fakeWorld, fakeCodeObj, frameRequester.register, true);
       frameRequester.trigger();
       frameRequester.trigger();
-      expect(fakeCodeObj.init).toHaveBeenCalledWith(fakeWorld.elevatorInterfaces, fakeWorld.floors);
+      expect(fakeCodeObj.init).toHaveBeenCalledWith(
+        fakeWorld.elevatorInterfaces,
+        fakeWorld.floorInterfaces,
+      );
       expect(fakeCodeObj.update).toHaveBeenCalledWith(
         0.01,
         fakeWorld.elevatorInterfaces,
-        fakeWorld.floors,
+        fakeWorld.floorInterfaces,
       );
+    });
+
+    it("never hands a real Floor to player code", () => {
+      // Issue #3: the controller used to forward world.floors straight through.
+      vi.spyOn(console, "log").mockImplementation(() => undefined);
+      const world = createWorld({ spawnRate: 0.001, floorCount: 3, elevatorCount: 1 });
+      const codeObj = createFakeCodeObj();
+
+      controller.start(world, codeObj, frameRequester.register, true);
+      frameRequester.trigger();
+      frameRequester.trigger();
+
+      const initFloors = codeObj.init.mock.calls[0]?.[1];
+      const updateFloors = codeObj.update.mock.calls[0]?.[2];
+      expect(initFloors).toHaveLength(3);
+      expect(initFloors).toBe(world.floorInterfaces);
+      expect(updateFloors).toBe(world.floorInterfaces);
+      for (const floor of world.floors) {
+        expect(initFloors).not.toContain(floor);
+      }
     });
 
     it("refreshes display positions and the stats display each frame", () => {
