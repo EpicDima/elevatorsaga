@@ -526,11 +526,16 @@ describe("World", () => {
 
     it("reuses the same facades instead of rebuilding them every frame", () => {
       // Player code stores handlers on these, so they have to be stable.
+      // Compared by identity: two facades over the same floor are structurally
+      // equal, so toEqual would pass even if the world rebuilt them all.
       const world = createWorld({ spawnRate: 0.001, floorCount: 3, elevatorCount: 1 });
       const before = [...world.floorInterfaces];
       world.update(0.1);
       world.update(0.1);
-      expect(world.floorInterfaces).toEqual(before);
+      expect(world.floorInterfaces).toHaveLength(before.length);
+      for (const [index, facade] of before.entries()) {
+        expect(world.floorInterfaces[index]).toBe(facade);
+      }
     });
 
     it("forwards a floor's button presses to its facade", () => {
