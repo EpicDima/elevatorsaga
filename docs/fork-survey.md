@@ -1,306 +1,426 @@
-# What other people built on top of Elevator Saga
+# Что люди сделали с Elevator Saga за 12 лет
 
-Surveyed **10 August 2026**. Upstream ([magwo/elevatorsaga](https://github.com/magwo/elevatorsaga))
-has had no commit since 21 November 2022 and has **352 forks**; the fork network is where most of
-the work since then happened, and almost none of it is linked from anywhere.
+Обзор собран **10 августа 2026 года**. В оригинальном репозитории
+([magwo/elevatorsaga](https://github.com/magwo/elevatorsaga)) нет коммитов с 21 ноября 2022 года, при
+этом у него **352 форка** — почти всё, что произошло с игрой после 2022-го, произошло именно там, и
+почти ни на что из этого нет ссылок откуда-либо.
 
-This is a shopping list, not an archive. Everything below is here because it is an idea we could
-take — a feature, a fix, or a lesson from someone who tried it and hit a wall.
+Это список покупок, а не архив. Всё, что ниже, попало сюда потому, что это можно взять себе:
+фича, починенный баг или урок от того, кто уже попробовал и упёрся в стену.
 
-## How this was gathered, and what it misses
+## Как это собиралось и чего здесь нет
 
-All 352 forks were listed through the GitHub API, then filtered: a fork whose last push is within a
-day or two of the moment it was created, with no stars and upstream's own file count, is somebody's
-saved solution. That left **57 candidates**, of which **29 were compared against upstream**
-(`compare/master...owner:branch`, which returns the exact commit count ahead and every commit
-message in one call). Of those, **18 are genuinely ahead**; the rest turned out to be zero-commit
-forks that had merely drifted behind. The top forks were then read directly — READMEs, diffs,
-`package.json` — over `raw.githubusercontent.com`.
+Все 352 форка получены через GitHub API и отфильтрованы: форк, у которого последний push отстоит на
+день-два от момента создания, без звёзд и с тем же числом файлов, что у оригинала, — это чьё-то
+сохранённое решение задачи. Осталось **57 кандидатов**, из них **29 сравнены с оригиналом** (запрос
+`compare/master...owner:branch` возвращает точное число коммитов впереди и все сообщения коммитов за
+один вызов). Из этих 29 **впереди оказались 18**, остальные — форки без собственных коммитов, просто
+отставшие. Верхушку списка потом читали напрямую: README, диффы, `package.json` — через
+`raw.githubusercontent.com`.
 
-Everything in the fork section was verified this way. **The remaining 28 candidates were not
-compared** (unauthenticated API is 60 requests an hour and this cost 33), and neither were the ~295
-forks the filter discarded — the filter is good but not perfect, so something could be hiding there.
+Всё в разделе про форки проверено именно так. **Оставшиеся 28 кандидатов не сравнивались**
+(неавторизованный API — 60 запросов в час, обзор съел 33), как и ~295 форков, отброшенных фильтром:
+фильтр хороший, но не идеальный, там ещё может что-то лежать.
 
-The sections after the fork list come from a separate web search across English, Russian, Chinese
-and Japanese sources. Claims there are marked with what was actually read.
+Разделы после списка форков собраны отдельным поиском по англо-, русско-, китае- и японоязычным
+источникам. Утверждения там помечены тем, что было реально прочитано.
 
-Everything examined is MIT, inheriting upstream's licence, with `LICENSE.txt` unmodified — so code
-can be lifted with attribution, not just reimplemented. The one exception is
-[2xh](https://github.com/2xh/elevatorsaga), which renamed the file to `LICENSE` and whose contents
-were not checked. Anything adopted from a fork should carry a line in our `LICENSE.txt` naming the
-author.
+Всё изученное — MIT, унаследованный от оригинала, с неизменённым `LICENSE.txt`: код можно брать с
+указанием авторства, а не только переписывать своими руками. Единственное исключение —
+[2xh](https://github.com/2xh/elevatorsaga), который переименовал файл в `LICENSE`, и его содержимое
+не проверялось. Всё, что мы возьмём из форка, должно получить строчку в нашем `LICENSE.txt` с именем
+автора.
 
-## Forks that are actually ahead of upstream
+## Форки, которые реально впереди оригинала
 
-Ordered by how much we would want what they have.
+По убыванию того, насколько нам это нужно.
 
-### Worth taking
+### Стоит взять
 
-**[avodonosov/elevatorsaga](https://github.com/avodonosov/elevatorsaga)** — 5 commits ahead ·
-[play](https://avodonosov.github.io/elevatorsaga/) ·
-[diff](https://github.com/magwo/elevatorsaga/compare/master...avodonosov:elevatorsaga:master)
+#### [avodonosov/elevatorsaga](https://github.com/avodonosov/elevatorsaga) — 5 коммитов впереди
 
-The single best idea in the entire fork network, and the smallest. Two things:
+[играть](https://avodonosov.github.io/elevatorsaga/) ·
+[дифф](https://github.com/magwo/elevatorsaga/compare/master...avodonosov:elevatorsaga:master)
 
-1. **Seeded replay.** Every run generates a seed, prints it to the console with the two ways to
-   replay it (`?seed=…` in the URL, or `window.GameSeed = "…"`) and the instruction to stop. So when
-   a solution fails a wait-time challenge you can run _the same building again_ instead of guessing.
-2. **The oldest-waiting passenger is drawn in red**, and passengers who are leaving are greyed out
-   harder. This is the answer to "why did my max-wait blow up" rendered directly into the picture.
+**Саммари:** сид прогона печатается в консоль и принимается из URL, так что упавший прогон можно
+повторить на том же самом здании; плюс дольше всех ждущий пассажир подсвечивается красным. Лучшая
+идея во всей сети форков и одна из самых дешёвых.
 
-Its README is also honest about the part that did not work: seeding `Math.random` was **not enough
-to make replays deterministic** — "in rare cases, the replay behaves differently than the original
-run", and the author guesses at animation timing. That is a warning worth heeding and a place where
-we are better positioned than they were: our simulation is stepped at a fixed `dtMax` with a
-substep loop, and the test suite already drives whole challenges under a seeded RNG reproducibly. A
-replay here needs the seed _and_ the frame timing, and we already have the machinery for the second
-half.
+Две вещи:
 
-_Cost:_ small. _Conflict with our fidelity contract:_ none — a seed and a colour do not change the
-simulation.
+1. **Воспроизведение по сиду.** Каждый прогон генерирует сид, печатает его в консоль вместе с двумя
+   способами повторить прогон (`?seed=…` в URL или `window.GameSeed = "…"`) и инструкцией
+   остановиться. Когда решение валит задание по времени ожидания, можно запустить _то же самое
+   здание_ ещё раз, а не гадать.
+2. **Дольше всех ждущий пассажир рисуется красным**, а уходящие пассажиры сильнее приглушены. Это
+   ответ на вопрос «почему у меня взлетело максимальное ожидание», нарисованный прямо в картинке.
 
-**[2xh/elevatorsaga](https://github.com/2xh/elevatorsaga)** — 19 commits ahead, self-versioned 1.8.0
-· [play](https://2xh.github.io/elevatorsaga/) ·
-[diff](https://github.com/magwo/elevatorsaga/compare/master...2xh:elevatorsaga:master)
+README этого форка честен насчёт того, что не получилось: сида для `Math.random` **не хватило для
+детерминированного воспроизведения** — «в редких случаях повтор ведёт себя иначе, чем оригинальный
+прогон», и автор грешит на тайминги анимации. Это предупреждение, которое стоит услышать, и место,
+где мы в лучшем положении: наша симуляция шагает фиксированным `dtMax` с внутренним циклом подшагов,
+а тесты уже прогоняют целые задания под сидированным ГПСЧ воспроизводимо. Повтору нужен сид _и_
+тайминг кадров — вторая половина у нас уже есть.
 
-The most feature-complete browser fork. Commit history covers destination dispatch mode, challenges
-rewritten to suit it, **floor heights that can vary**, a **worker**-based fitness run, "reduce
-updates when paused", and elevator speed changes with the spec suite updated to match. Its
-documentation page adds `getExactCurrentFloor()`, `getExactFutureFloorIfStopped()` ("the exact floor
-the elevator will stop at if it decelerates now"), `isApproachingFloor()`, `isFull()`, `isEmpty()`
-and `getMaxSpeed()`, plus ➕/➖ time-speed buttons, custom challenges with your own options, and
-right-click-Save to toggle autosave.
+_Цена:_ маленькая. _Конфликт с нашим контрактом верности оригиналу:_ никакого — сид и цвет не меняют
+симуляцию.
 
-_Worth taking:_ `getExactFutureFloorIfStopped()` and `isApproachingFloor()` are the two API gaps
-players hit constantly; the custom-challenge builder answers the most-repeated feature request
-below. Destination dispatch is a design decision rather than a patch — it is the one real-world
-elevator concept the original omits, and players ask for it, but it changes what the challenges
-mean.
+#### [2xh/elevatorsaga](https://github.com/2xh/elevatorsaga) — 19 коммитов впереди, своя версия 1.8.0
 
-_Conflict:_ the API additions are additive and safe. Changing elevator speed or floor heights is
-not: it would break score comparability with upstream, which we have so far kept.
+[играть](https://2xh.github.io/elevatorsaga/) ·
+[дифф](https://github.com/magwo/elevatorsaga/compare/master...2xh:elevatorsaga:master)
 
-**[jaredkrinke/elevatorsaga](https://github.com/jaredkrinke/elevatorsaga)** — 2 commits ahead,
-offered upstream as the still-open
-[PR #137](https://github.com/magwo/elevatorsaga/pull/137) · demo:
+**Саммари:** самый функциональный браузерный форк: destination dispatch, шесть дополнительных методов
+API, кнопки скорости, пользовательские задания через JSON и фитнес в воркере. Брать стоит не всё —
+часть меняет физику лифтов и ломает сравнимость результатов.
+
+По истории коммитов: режим destination dispatch, переписанные под него задания, **разная высота
+этажей**, фитнес-прогон в **воркере**, «меньше обновлений на паузе» и изменение скорости лифтов с
+обновлением спеков. Страница документации добавляет `getExactCurrentFloor()`,
+`getExactFutureFloorIfStopped()` («точный этаж, на котором лифт остановится, если начать тормозить
+сейчас»), `isApproachingFloor()`, `isFull()`, `isEmpty()` и `getMaxSpeed()`, плюс кнопки ➕/➖ для
+скорости времени, пользовательские задания и правый клик по Save для переключения автосохранения.
+
+**Как именно устроены пользовательские задания** (прочитано в `app.js`, `challenges.js`,
+`presenters.js`, `world.js`):
+
+- Открываете несуществующий номер задания — `app.startChallenge()` видит, что `challenges[i]` нет, и
+  показывает обычный `prompt()`: _«Challenge #N not found, input options in JSON format to create
+  one»_. Вы вводите JSON с опциями мира, он парсится и кладётся в массив заданий с условием
+  `requireNothing()`.
+- Опции берутся те же, что у конструктора мира: `floorCount`, `floorHeights` (массив, циклически по
+  этажам — отсюда «разная высота этажей»), `elevatorCount`, `elevatorCapacities`, `elevatorSpeeds`
+  (по умолчанию `[3]`), `startFloors` (по умолчанию `[0]`), `spawnRate` и `lobbyPossibility` (по
+  умолчанию 0.5 — в оригинале доля «из лобби» зашита намертво).
+- Чтобы получить заготовку для правки, есть правый клик по кнопке старт/стоп: он печатает
+  `Challenge #N options: {…}` текущего задания. Правый клик по Apply запускает фитнес-сьют и печатает
+  его опции и статистику.
+
+Ограничение, которое надо понимать: условие всегда `requireNothing()`, то есть пользовательское
+задание — это **песочница без цели**, живущая только в памяти вкладки (перезагрузка её теряет).
+Конструктора условий победы там нет. То есть «редактор заданий», о котором просят люди, здесь
+реализован ровно наполовину, зато десятью строчками.
+
+_Что брать:_ песочница с параметрами — самый дешёвый ответ на самый частый запрос (см. ниже), и она
+не требует никакого UI. Destination dispatch — это уже дизайнерское решение, а не патч: это
+единственная реальная лифтовая концепция, которой в оригинале нет, и её просят, но она меняет смысл
+заданий.
+
+_Что не брать без разговора:_ смена скорости лифтов и высоты этажей ломает сравнимость результатов с
+оригиналом, которую мы пока держим. Про `getExactFutureFloorIfStopped()` и `isApproachingFloor()` —
+см. отдельный разбор ниже.
+
+#### [jaredkrinke/elevatorsaga](https://github.com/jaredkrinke/elevatorsaga) — 2 коммита впереди
+
+Предложено оригиналу как до сих пор открытый
+[PR #137](https://github.com/magwo/elevatorsaga/pull/137) · демо:
 <https://jaredkrinke.github.io/elevatorsaga/>
 
-Swaps CodeMirror for Monaco and wires in TypeScript declarations, giving real autocomplete over the
-elevator API. This is the **most-requested feature in the whole survey** (see below) and it is
-already written, by the author of SIC-1. Upstream never merged it: "I realize this repository isn't
-being maintained, but I wanted to open a pull request here for visibility."
+**Саммари:** меняет CodeMirror на Monaco и добавляет TypeScript-декларации, то есть настоящий
+автокомплит по API лифтов — самая востребованная фича во всём обзоре, уже написанная. Ценна здесь не
+замена редактора, а декларации.
 
-_Cost for us:_ we deliberately moved to CodeMirror 6 and split it into its own chunk (~500 kB);
-Monaco is several times that and does not tree-shake. The valuable half is not the editor swap but
-**the type declarations** — shipping a first-party `.d.ts` for the player API would feed
-autocomplete in whatever editor we use, and would end the duplicated typing effort three separate
-people have already done independently ([Josef37's
-gist](https://gist.github.com/Josef37/e075b6a005a47d146c7e7ab9ed7ae893), filed as
-[#133](https://github.com/magwo/elevatorsaga/issues/133); [steinuil's
-gist](https://gist.github.com/steinuil/21b49b96eaaac4b792a0c69a7d82a4f9); `bekk/elevator-saga-ts`).
-We generate our facades from TypeScript already, so we are the one fork that can emit those
-declarations instead of hand-writing them.
+Автор — создатель SIC-1. Оригинал так и не смёржил: «Понимаю, что репозиторий не поддерживается, но
+открываю PR для видимости».
 
-### Worth reading before we build the same thing
+_Цена для нас:_ мы сознательно перешли на CodeMirror 6 и вынесли его в отдельный чанк (~500 КБ);
+Monaco в несколько раз тяжелее и не tree-shake-ится. Ценная половина — **типовые декларации**:
+первоклассный `.d.ts` для игрового API кормил бы автокомплит в любом редакторе и закрыл бы работу,
+которую три человека уже проделали независимо друг от друга ([гист
+Josef37](https://gist.github.com/Josef37/e075b6a005a47d146c7e7ab9ed7ae893), заведённый как
+[#133](https://github.com/magwo/elevatorsaga/issues/133); [гист
+steinuil](https://gist.github.com/steinuil/21b49b96eaaac4b792a0c69a7d82a4f9); `bekk/elevator-saga-ts`).
+Наши фасады уже написаны на TypeScript — мы единственный форк, который может эти декларации
+_генерировать_, а не писать руками.
 
-**[minimusubi/elevatorsaga](https://github.com/minimusubi/elevatorsaga)** — **64 commits ahead**,
-last pushed April 2025, default branch `main`
+### Стоит прочитать, прежде чем делать то же самое
 
-A parallel modernization, and the closest thing to a competitor to this repository: full TypeScript
-conversion, Monaco, lodash replaced with radashi, ESLint 9 + Prettier, CSS variables, Google
-Analytics removed, `Floor` → `FloorInterface` in user code, private emitter listeners, error
-catching in event handlers, HTML escaping in the error display. Same problems, solved independently
-— worth reading precisely because they made **different** calls: they took the breaking change we
-refused, changing the first argument of event handlers from a string to an `EmitterEvent` object and
-deprecating some events and methods, and they build with plain `tsc` plus a copy script rather than
-a bundler.
+#### [minimusubi/elevatorsaga](https://github.com/minimusubi/elevatorsaga) — **64 коммита впереди**
 
-_Verdict:_ nothing to lift wholesale, plenty to compare against. If we ever want a second opinion on
-a design decision in `src/game/observable.ts`, this is where to look.
+Последний push — апрель 2025, ветка по умолчанию `main`.
 
-**[chrismooredev/elevatorsaga](https://github.com/chrismooredev/elevatorsaga)** — 35 commits ahead
+**Саммари:** параллельная модернизация той же игры и ближайший конкурент этому репозиторию —
+те же задачи, решённые независимо и местами иначе; в частности, там приняли ломающее изменение,
+от которого мы отказались.
 
-Another TypeScript conversion, from 2020-ish, that went further in one direction we did not:
-**player code as an ES module** (an explicit breaking change in their history) and "make users'
-error call stack look better" — the second is directly relevant to a complaint people repeat about
-this game. Also Monaco, and stronger typing of the observable and its subclasses.
+Полный перевод на TypeScript, Monaco, lodash заменён на radashi, ESLint 9 + Prettier, CSS-переменные,
+выпилена Google Analytics, `Floor` → `FloorInterface` в пользовательском коде, приватные слушатели
+эмиттера, перехват ошибок в обработчиках событий, экранирование HTML в выводе ошибок.
 
-**[cornacchia/elevatorsaga-blockly](https://github.com/cornacchia/elevatorsaga-blockly)** — 12
-commits ahead, ~300 files changed
+**Ломающее изменение, которое они приняли, а мы — нет:** коммит
+`refactor!(Emitter): first argument of event handlers changed from string to EmitterEvent` — первым
+аргументом обработчика события вместо строки с именем события теперь приходит объект `EmitterEvent`;
+плюс отдельным пунктом «deprecate some events/methods». Любое чужое решение, написанное за 12 лет
+для оригинального API, после такого нужно править. Мы этот аргумент оставили строкой ровно ради того,
+чтобы старые решения из вики и с гитхаба продолжали запускаться без изменений. Собирается их проект
+голым `tsc` плюс скрипт копирования, без сборщика.
 
-The game rebuilt around [Blockly](https://developers.google.com/blockly): drag-and-drop blocks
-instead of typing JavaScript, plus a written manual, a **debug exercise**, and explanation text.
-Clearly built for teaching. Not something to merge, but the strongest evidence in the survey that
-the game gets used in classrooms — and the "debug exercise" idea (hand the player a broken solution
-and ask them to fix it) is a genuinely good challenge format that costs us nothing structurally.
+_Вывод:_ целиком брать нечего, сравнивать — есть с чем. Если понадобится второе мнение по решению в
+`src/game/observable.ts`, смотреть надо сюда.
 
-**[DiscoElevator/elevatorsaga](https://github.com/DiscoElevator/elevatorsaga)** — 39 commits ahead
+#### [chrismooredev/elevatorsaga](https://github.com/chrismooredev/elevatorsaga) — 35 коммитов впереди
 
-Went the multiplayer route: a game server, user accounts with token relogin, per-user code storage
-and a **rating**. Also restructured into `src/`, added a Webpack-era `npm run dev`/`build`, and
-shipped a **Russian** `documentation_RU.html`. Worth reading for what a leaderboard implies, and as
-a caution: it is the heaviest fork here and the least likely to still run.
+**Саммари:** ещё один перевод на TypeScript, зашедший дальше нас в одну сторону — код игрока как
+ES-модуль — и сделавший то, на что люди жалуются: нормальный стек ошибки пользовательского кода.
 
-**[didil/gowasm-elevatorsaga](https://github.com/didil/gowasm-elevatorsaga)** — 16 commits ahead, 15
-stars (the most-starred fork) · [play](https://didil.github.io/gowasm-elevatorsaga/)
+Примерно 2020 год. Переход на ES-модуль для пользовательского кода помечен в истории как явное
+ломающее изменение; вторая интересная строчка — «make users' error call stack look better». Плюс
+Monaco и более строгие типы для обсервабла и его наследников.
 
-Solutions written in **Go**, compiled to WASM by a server-side Docker build, cached by hash, then
-loaded into the page. The build service is not worth copying; the interesting half is the proof that
-the engine can be driven across a language boundary, and the JS↔WASM shim that does it.
+#### [cornacchia/elevatorsaga-blockly](https://github.com/cornacchia/elevatorsaga-blockly) — 12 коммитов, ~300 файлов
 
-**[mostafa-hz/elevatorsaga](https://github.com/mostafa-hz/elevatorsaga)** — 12 commits ahead
+**Саммари:** игра, перестроенная вокруг Blockly — блоки вместо кода, учебник и «упражнение на отладку»;
+доказательство, что игру используют в классах.
 
-Reinforcement-learning agents playing the game in the browser (`agents.js`, model import/export,
-reward-function tuning, exploration control). Together with
-[ednussi/ElevatorSaga](https://github.com/ednussi/ElevatorSaga) (a Python re-simulation used for
-Q-learning, DQN and multi-agent experiments) it is the second independent request for the same
-thing: **a deterministic headless runner** you can point a bot at and score over many seeds. We are
-one small entry point away from having that — the fitness suite already runs challenges headless.
+[Blockly](https://developers.google.com/blockly) — drag-and-drop блоки вместо написания JavaScript,
+плюс написанное руководство, **упражнение на отладку** и пояснительные тексты. Явно сделано для
+преподавания. Мёржить нечего, но идея «упражнения на отладку» — дать игроку сломанное решение и
+попросить починить — отличный формат задания, который нам не стоит структурно ничего.
 
-**[WebCabin/elevatorsaga](https://github.com/WebCabin/elevatorsaga)** — 6 commits ahead
+#### [DiscoElevator/elevatorsaga](https://github.com/DiscoElevator/elevatorsaga) — 39 коммитов впереди
 
-Replaced the code editor entirely with [wcPlay](https://github.com/WebCabin/wcPlay), a visual
-node-graph editor. Same instinct as the Blockly fork, different decade.
+**Саммари:** мультиплеерная ветка — сервер, аккаунты, хранение кода и рейтинг, плюс русская
+документация; полезно как разведка того, что влечёт за собой таблица лидеров.
 
-### Localization, and what it tells us
+Игровой сервер, учётные записи с релогином по токену, хранение кода на пользователя и **рейтинг**.
+Плюс переезд в `src/`, вебпаковые `npm run dev`/`build` и **русский** `documentation_RU.html`. Самый
+тяжёлый форк в обзоре и наименее вероятно до сих пор запускающийся — читать как предостережение.
 
-Three independent translation efforts, none aware of each other, all forced to fork the whole game
-because there is no i18n seam:
+#### [didil/gowasm-elevatorsaga](https://github.com/didil/gowasm-elevatorsaga) — 16 коммитов, 15 звёзд
 
-- **[shoheihagiwara/elevatorsaga](https://github.com/shoheihagiwara/elevatorsaga)** — 14 commits, a
-  Japanese `documentation_ja.html`, itself merged from two other people's branches
-  (`recuraki/document_ja`, plus PRs from `yukicode` and `codyfet`). Published at
+Самый популярный форк · [играть](https://didil.github.io/gowasm-elevatorsaga/)
+
+**Саммари:** решения пишутся на Go, компилируются в WASM серверной сборкой в Docker и подгружаются в
+страницу; ценна не сборка, а доказательство, что движок можно водить из другого языка.
+
+Результат сборки кэшируется по хешу. Сервис сборки копировать не стоит; интересна прослойка JS↔WASM,
+которая связывает движок с чужим рантаймом.
+
+#### [mostafa-hz/elevatorsaga](https://github.com/mostafa-hz/elevatorsaga) — 12 коммитов впереди
+
+**Саммари:** агенты обучения с подкреплением, играющие прямо в браузере; вместе с ednussi — второй
+независимый запрос на детерминированный headless-прогон, до которого нам один экспорт.
+
+`agents.js`, импорт/экспорт модели, настройка функции награды, управление исследованием. Вместе с
+[ednussi/ElevatorSaga](https://github.com/ednussi/ElevatorSaga) (пересимуляция на Python для
+Q-learning, DQN и мультиагентных экспериментов) это второй независимый запрос на одно и то же:
+**детерминированный headless-раннер**, на который можно натравить бота и посчитать результат по
+многим сидам. У нас фитнес-сьют уже гоняет задания без UI — не хватает точки входа.
+
+#### [WebCabin/elevatorsaga](https://github.com/WebCabin/elevatorsaga) — 6 коммитов впереди
+
+**Саммари:** редактор кода целиком заменён на визуальный редактор графа узлов.
+
+[wcPlay](https://github.com/WebCabin/wcPlay) вместо CodeMirror. Тот же инстинкт, что у форка с
+Blockly, только другого десятилетия.
+
+### Локализации и что из них следует
+
+**Саммари:** три независимые попытки перевода, ни одна не знала о других, и каждой пришлось форкать
+игру целиком, потому что шва для i18n нет.
+
+- **[shoheihagiwara/elevatorsaga](https://github.com/shoheihagiwara/elevatorsaga)** — 14 коммитов,
+  японский `documentation_ja.html`, сам по себе смёрженный из веток двух других людей
+  (`recuraki/document_ja` плюс PR от `yukicode` и `codyfet`). Опубликовано на
   <https://shoheihagiwara.github.io/elevatorsaga/documentation_ja.html>.
-- **[Double-oxygeN/elevatorsaga](https://double-oxygen.net/elevator-saga/)** — a fully Japanese UI
-  and docs based on 1.6.5. _(Read: the hosted page.)_
-- **[gamesedu/elevatorsaga-gr](https://github.com/gamesedu/elevatorsaga-gr)** — 13 commits, Greek,
-  and something more interesting alongside it: **read-only lines in the starter code**, iterated over
-  four commits until only the first line was locked. That is a teaching affordance — hand out a
-  skeleton the student cannot break.
+- **[Double-oxygeN/elevatorsaga](https://double-oxygen.net/elevator-saga/)** — полностью японский
+  интерфейс и документация на базе 1.6.5. _(Прочитано: сама страница.)_
+- **[gamesedu/elevatorsaga-gr](https://github.com/gamesedu/elevatorsaga-gr)** — 13 коммитов,
+  греческий, и рядом кое-что поинтереснее: **строки стартового кода, недоступные для правки**,
+  доведённые за четыре коммита до состояния «заблокирована только первая строка». Это
+  преподавательский приём: выдать скелет, который ученик не сломает.
 
-The lesson is not any one translation; it is that **an i18n hook would collect community
-translations**, and that the fork tax for wanting one today is the entire repository.
+Урок не в конкретном переводе, а в том, что **крючок для i18n собрал бы переводы сообщества**, а
+сегодня цена желания перевести игру — форк всего репозитория.
 
-### Noted for completeness
+### Упомянуто для полноты
 
-- **[raux/elevatorsaga](https://github.com/raux/elevatorsaga)** — 4 commits: Python and Java ports
-  with a NiceGUI-based strategy visualization.
-- **[codeskyca/elevatorsaga](https://github.com/codeskyca/elevatorsaga)** — 5 commits, pushed
-  February 2026 (the most recently active fork found): "updated challenge", "upgraded checking
-  algorithm". Small, unread beyond commit subjects.
-- **[VyunSergey/elevatorsaga](https://github.com/VyunSergey/elevatorsaga)** — 5 commits: a
-  collection of other people's published solutions plus `alg_stats.txt` comparing them. Useful as a
-  ready-made benchmark corpus if we ever want to score algorithms against each other.
-- **[AbdellaToronto/elevatorsaga](https://github.com/AbdellaToronto/elevatorsaga)** — 3 commits,
-  RxJS added to `index.html`, first challenge only.
-- **[ejrv/Codelemate](https://github.com/ejrv/Codelemate)** — 4 commits, `index.html` only; a
-  rebrand.
-- **[David-McEwen/elevatorsaga](https://github.com/David-McEwen/elevatorsaga)** — 1 commit, styling
-  for embedding the game in another page.
+- **[raux/elevatorsaga](https://github.com/raux/elevatorsaga)** — 4 коммита: порты на Python и Java с
+  визуализацией стратегий на NiceGUI.
+- **[codeskyca/elevatorsaga](https://github.com/codeskyca/elevatorsaga)** — 5 коммитов, push в
+  феврале 2026 (самый свежий из найденных форков): «updated challenge», «upgraded checking
+  algorithm». Дальше тем коммитов не читалось.
+- **[VyunSergey/elevatorsaga](https://github.com/VyunSergey/elevatorsaga)** — 5 коммитов: коллекция
+  чужих опубликованных решений плюс `alg_stats.txt` с их сравнением. Готовый корпус для бенчмарка,
+  если мы когда-нибудь захотим сравнивать алгоритмы между собой.
+- **[AbdellaToronto/elevatorsaga](https://github.com/AbdellaToronto/elevatorsaga)** — 3 коммита, RxJS
+  подключён в `index.html`, только первое задание.
+- **[ejrv/Codelemate](https://github.com/ejrv/Codelemate)** — 4 коммита, только `index.html`;
+  ребрендинг.
+- **[David-McEwen/elevatorsaga](https://github.com/David-McEwen/elevatorsaga)** — 1 коммит, стили для
+  встраивания игры в чужую страницу.
 
-## Derivatives outside the fork network
+## Производные вне сети форков
 
-From the web search. Read means the page was opened.
+Из веб-поиска. «Прочитано» значит, что страница открывалась.
 
 - **[zgca-forge/Elevator](https://zgca-forge.github.io/Elevator/index.html)** (`pip install
-elevator-py`) — a real Python re-engine with a client/server HTTP API, and two things the browser
-  game lacks: **energy-consumption tracking with per-elevator rates**, and physics-based
-  acceleration. An energy or moves-style secondary metric gives a challenge a second axis to
-  optimise without new mechanics. _(Read: docs index.)_
-- **[Cargo Dispatch](https://matthuggins.com/lab/cargo-dispatch)** (Show HN, March 2026,
-  [thread](https://news.ycombinator.com/item?id=47302772)) — the closest living analogue: write
-  TypeScript to control warehouse robots, five levels, a 0.5×/1×/2×/4× speed selector, a split
-  Edit/Run mode and a live per-robot status panel. No replay, no seeds, no sharing, no level editor,
-  and it does not credit Elevator Saga. The Edit/Run split and the live status panel are cheap wins.
-  _(Read: the game page.)_
-- **[Coding Lift](https://habr.com/ru/articles/843708/)** — a Russian indie taking the same premise
-  with a fictional compiler; plans to show **how happy the passengers are** rather than raw seconds.
-  The top comment on the article is "don't build your own, use Elevator Saga". _(Read: comments.)_
-- **[avanderw.co.za/elevator-saga](https://avanderw.co.za/elevator-saga/)** — a verbatim mirror of
-  1.6.5. Nothing to take. _(Read.)_
+elevator-py`) — **Саммари:** настоящий движок на Python с HTTP-API клиент/сервер и двумя вещами,
+  которых нет в браузерной игре: **учёт энергопотребления** с расходом на лифт и физическое
+  ускорение. Энергия или ходы как вторая метрика дают заданию вторую ось оптимизации без новых
+  механик. _(Прочитано: индекс документации.)_
+- **[Cargo Dispatch](https://matthuggins.com/lab/cargo-dispatch)** (Show HN, март 2026,
+  [тред](https://news.ycombinator.com/item?id=47302772)) — **Саммари:** ближайший живой аналог: тот же
+  жанр на TypeScript про складских роботов; у них дешёвые выигрыши — раздельные режимы Edit/Run и
+  живая панель статуса каждого робота. Пять уровней, переключатель скорости 0.5×/1×/2×/4×. Нет
+  повторов, сидов, шаринга и редактора уровней, и Elevator Saga там не упомянута. _(Прочитано:
+  страница игры.)_
+- **[Coding Lift](https://habr.com/ru/articles/843708/)** — **Саммари:** русская инди-игра с той же
+  посылкой и вымышленным компилятором; собирается показывать **насколько пассажиры довольны**, а не
+  сухие секунды. Верхний комментарий под статьёй — «не делай своё, играй в Elevator Saga».
+  _(Прочитано: комментарии.)_
+- **[avanderw.co.za/elevator-saga](https://avanderw.co.za/elevator-saga/)** — **Саммари:** дословное
+  зеркало 1.6.5, брать нечего. _(Прочитано.)_
 
-## Complaints and bugs people hit in the wild
+## На что жалуются и что ломается у людей
 
-With where we stand on each. Ours are stated from this repository; theirs are linked.
+С нашим положением по каждому пункту. Наша часть — про этот репозиторий, чужая — по ссылкам.
 
-| What people report                                                                                                                                                                                                         | Us                                                                                                                                                                                                                                                                                                                   |
-| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Passengers won't board an elevator that stops for them en route** — [#124](https://github.com/magwo/elevatorsaga/issues/124), and [larschdk on HN](https://news.ycombinator.com/item?id=27487111)                        | Fixed, with tests. See the `#59/#74/#98/#124` entry in the README.                                                                                                                                                                                                                                                   |
-| **magwo himself: "the additional-people-not-getting-on is kind of an architectural problem with the game"** — [HN, 2015](https://news.ycombinator.com/item?id=8929314)                                                     | This is the root of that family. Our re-offer on indicator change plus the boarding dwell covers the reported cases.                                                                                                                                                                                                 |
-| **Two free moves per elevator at the start** — [avereveard on HN](https://news.ycombinator.com/item?id=8929314), upstream [#117](https://github.com/magwo/elevatorsaga/issues/117)                                         | Fixed; `moveCount` starts at 0, pinned by tests.                                                                                                                                                                                                                                                                     |
-| **Passengers don't re-press the call button** — [#110](https://github.com/magwo/elevatorsaga/issues/110)                                                                                                                   | Fixed, with tests.                                                                                                                                                                                                                                                                                                   |
-| **Syntax errors are swallowed by the logging catch** — [juloo](https://news.ycombinator.com/item?id=27487111), [Lobsters](https://lobste.rs/s/w1dac5/), [mschaef](https://news.ycombinator.com/item?id=37306262)           | We surface compile and runtime failures in an error banner and have e2e tests for both. Whether the _message_ is good enough is worth a look.                                                                                                                                                                        |
-| **`world.transportedCounter = 999999` in `init` wins any challenge** — [benwaffle 2015](https://news.ycombinator.com/item?id=8933287), [a2h 2022](https://news.ycombinator.com/item?id=33273543)                           | **Still true here**: `src/app/app.ts:216` puts the world on `window` (as `legacy-1.x:app.js:169` did) and player code runs in global scope. Deliberate — it is the debugging hook people use from the console, and this is a single-player game — but it is the thing to close first if a leaderboard is ever added. |
-| **`checkDestinationQueue()` after mutating the queue is "awfully redundant"** — Ideka, and [swyx: "the docs need a lot of work"](https://news.ycombinator.com/item?id=33249988)                                            | Documented, not changed. Making it implicit is a real option.                                                                                                                                                                                                                                                        |
-| **Only the last elevator responds to my handlers** — [#111](https://github.com/magwo/elevatorsaga/issues/111), duplicated by [#138](https://github.com/magwo/elevatorsaga/issues/138)                                      | Reported twice by different people, which usually means either a real bug or a documentation failure. Unverified against our engine — worth a test.                                                                                                                                                                  |
-| **Level 6 is winnable by starving everyone above the ground floor** — [pavel_lishin](https://news.ycombinator.com/item?id=8929314)                                                                                         | Unverified. Challenge 6 has no max-wait bound, so probably still true.                                                                                                                                                                                                                                               |
-| **The difficulty cliff forces a rewrite, and you're not told which passenger blew the limit** — [SamBam](https://news.ycombinator.com/item?id=27487111), upstream [#135](https://github.com/magwo/elevatorsaga/issues/135) | Open. avodonosov's red highlight is the cheapest answer.                                                                                                                                                                                                                                                             |
+| Что сообщают                                                                                                                                                                                                          | У нас                                                                                                                                                                                                                                                                      |
+| --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Пассажиры не заходят в лифт, который остановился по пути** — [#124](https://github.com/magwo/elevatorsaga/issues/124), [larschdk на HN](https://news.ycombinator.com/item?id=27487111)                              | Починено, с тестами. См. пункт `#59/#74/#98/#124` в README.                                                                                                                                                                                                                |
+| **Сам magwo: «то, что дополнительные люди не заходят, — архитектурная проблема игры»** — [HN, 2015](https://news.ycombinator.com/item?id=8929314)                                                                     | Это корень всего семейства. Наше повторное предложение места при смене индикатора плюс задержка на посадку закрывают описанные случаи.                                                                                                                                     |
+| **Два бесплатных хода на лифт в начале** — [avereveard на HN](https://news.ycombinator.com/item?id=8929314), [#117](https://github.com/magwo/elevatorsaga/issues/117)                                                 | Починено; `moveCount` начинается с 0, закреплено тестами.                                                                                                                                                                                                                  |
+| **Пассажиры не нажимают кнопку вызова повторно** — [#110](https://github.com/magwo/elevatorsaga/issues/110)                                                                                                           | Починено, с тестами.                                                                                                                                                                                                                                                       |
+| **Синтаксические ошибки проглатываются catch'ем логгера** — [juloo](https://news.ycombinator.com/item?id=27487111), [Lobsters](https://lobste.rs/s/w1dac5/), [mschaef](https://news.ycombinator.com/item?id=37306262) | Ошибки компиляции и рантайма показываем в баннере, на обе есть e2e-тесты. Достаточно ли хорош сам _текст_ — отдельный вопрос, стоит посмотреть.                                                                                                                            |
+| **`world.transportedCounter = 999999` в `init` выигрывает любое задание** — [benwaffle, 2015](https://news.ycombinator.com/item?id=8933287), [a2h, 2022](https://news.ycombinator.com/item?id=33273543)               | **До сих пор работает и у нас**: `src/app/app.ts:216` кладёт мир на `window` (как `legacy-1.x:app.js:169`), а код игрока исполняется в глобальной области. Сделано намеренно — это тот самый отладочный крючок из консоли. Разбор вариантов починки — в следующем разделе. |
+| **`checkDestinationQueue()` после правки очереди «ужасно избыточен»** — Ideka, [swyx: «документации нужно много работы»](https://news.ycombinator.com/item?id=33249988)                                               | Задокументировано, не изменено. Сделать вызов неявным — реальный вариант.                                                                                                                                                                                                  |
+| **«На мои обработчики отвечает только последний лифт»** — [#111](https://github.com/magwo/elevatorsaga/issues/111), дубль [#138](https://github.com/magwo/elevatorsaga/issues/138)                                    | Сообщено дважды разными людьми — обычно это либо настоящий баг, либо провал документации. На нашем движке не проверено, стоит теста.                                                                                                                                       |
+| **Уровень 6 проходится, если морить голодом всех выше первого этажа** — [pavel_lishin](https://news.ycombinator.com/item?id=8929314)                                                                                  | Не проверено. У шестого задания нет ограничения на максимальное ожидание, так что, скорее всего, да.                                                                                                                                                                       |
+| **Обрыв сложности заставляет переписывать всё, и не говорят, какой пассажир вышел за лимит** — [SamBam](https://news.ycombinator.com/item?id=27487111), [#135](https://github.com/magwo/elevatorsaga/issues/135)      | Открыто. Красная подсветка от avodonosov — самый дешёвый ответ.                                                                                                                                                                                                            |
 
-All links in this table were read via the HN Algolia API or the issue pages themselves, except
+Все ссылки в таблице прочитаны через Algolia API HN или на страницах самих issue, кроме
 [#111](https://github.com/magwo/elevatorsaga/issues/111)/[#138](https://github.com/magwo/elevatorsaga/issues/138),
-known only from titles and state.
+которые известны только по заголовкам и статусу.
 
-## What people keep asking for
+## Два разбора, ради которых стоило копать
 
-Ranked by how many independent times it came up.
+### `window.world` и читерство: что вообще можно сделать
 
-1. **Autocomplete and types in the editor** — [#133](https://github.com/magwo/elevatorsaga/issues/133),
-   [PR #137](https://github.com/magwo/elevatorsaga/pull/137), three independent `.d.ts` efforts,
-   plus requests on [Lobsters](https://lobste.rs/s/w1dac5/) and
-   [HN](https://news.ycombinator.com/item?id=37306262). The clearest single win.
-2. **Real error reporting** — line numbers, highlighting, unswallowed stack traces.
-3. **More levels, and custom ones** — upstream
-   [#114](https://github.com/magwo/elevatorsaga/issues/114); magwo in 2015: "especially I would
-   appreciate help with adding more challenges… for a good difficulty curve". Built already by 2xh.
-4. **Realistic traffic profiles instead of uniform random spawns** — joelthelion on HN, where
-   **magwo confirmed there is unused code for spawn distribution patterns**. Morning up-peak and
-   evening down-peak would also be what makes destination dispatch interesting.
-5. **Restart on demand, and time-speed control** — shipped by 2xh and by Cargo Dispatch.
-6. **A hall of fame of ranked algorithms** — [zxcvbn4038](https://news.ycombinator.com/item?id=33249988).
-   Note the tension with the `transportedCounter` row above.
-7. **Destination dispatch / a floor selector outside the car** —
+**Саммари:** дыру можно сузить парой дешёвых приёмов, но закрыть её по-настоящему нельзя, не убрав
+отладку из консоли или не унеся код игрока в песочницу. Пока игра одиночная, цена лечения выше цены
+болезни; вопрос станет настоящим ровно в тот день, когда появится таблица лидеров.
+
+Что именно происходит: `src/app/app.ts:216` кладёт объект мира в `window.world`, а код игрока
+исполняется через косвенный `eval`, то есть в глобальной области. Значит, из `init()` виден весь граф
+симуляции — счётчики, лифты, пассажиры.
+
+Варианты, от дешёвого к честному:
+
+1. **Сделать счётчики геттерами поверх приватных полей.** `transportedCounter`, `avgWaitTime`,
+   `maxWaitTime` перестанут присваиваться (в strict-коде — TypeError, в обычном — молча ничего).
+   Правка маленькая, чтение из консоли сохраняется. Но это лежачий полицейский: `window.world.users`
+   и `window.world.elevators` — настоящие объекты симуляции, а не фасады, и через них цели всё равно
+   достижимы.
+2. **Убрать `window.world` совсем.** Дыру закрывает: фасады `elevators`/`floors` держат ссылку на
+   лифт в приватном поле, доступа к миру из них нет. Цена — уходит отладка из консоли, которой
+   пользуются решения из вики и половина баг-репортов; у нас это даже закреплено тестом
+   `src/app/app.test.ts:121`.
+3. **Унести код игрока в Worker или iframe.** Единственный настоящий ответ: тогда недостижим не
+   только мир, но и DOM (иначе можно просто дорисовать себе победу). Цена — своя: `console.log` в
+   коде игрока и отладчик браузера работают уже не так прямо, а это то, чем в игре реально
+   пользуются.
+
+Вывод: пока результаты никуда не отправляются, вариант 1 покупает мало, вариант 3 стоит дорого. Держим
+как есть и знаем цену; если появится зал славы — сначала пункт 3, потом всё остальное.
+
+### `getExactFutureFloorIfStopped()` и `isApproachingFloor()`: не станет ли слишком легко
+
+**Саммари:** сложность игры живёт в диспетчеризации, а не в кинематике, поэтому «слишком легко» не
+станет — но задания с ограничением по ожиданию просядут заметно, а публичный метод про точный этаж
+остановки навсегда прибивает нашу внутреннюю физику к API. Разумный компромисс — дать точную позицию
+и оставить предсказание игроку.
+
+Подробно:
+
+- **`isApproachingFloor(n)` почти ничего не даёт.** Направление и текущий этаж уже есть
+  (`destinationDirection()`, `currentFloor()`), метод — сахар поверх сравнения. Брать безопасно.
+- **`getExactFutureFloorIfStopped()` даёт много.** Сегодня игрок не может посчитать тормозной путь:
+  кривая разгона и торможения — внутренняя деталь движка, её нельзя вывести из публичного API, можно
+  только измерить эмпирически. Метод превращает «подобрать по пути» из эвристики в точный расчёт, а
+  именно на этом сыплются задания с максимальным ожиданием. Это не убирает главную задачу — кому из
+  лифтов ехать на какой вызов и в каком порядке, — но снимает целый класс промахов.
+- **Главная цена не в сложности, а в контракте.** Публичный метод, возвращающий точный этаж
+  остановки, фиксирует нашу физику: любая правка сглаживания движения после этого — ломающее
+  изменение для чужих решений. У нас есть обязательство по поведенческой совместимости с оригиналом,
+  и добровольно расширять его на детали кинематики не хочется.
+
+Практический вывод: если брать, то `getExactCurrentFloor()` (точная позиция — безвредна и полезна для
+диагностики) и, возможно, `isFull()`/`isEmpty()`. Предсказание этажа остановки — либо не брать, либо
+давать явно как «продвинутый» метод с оговоркой, что он зависит от версии движка.
+
+## Что просят снова и снова
+
+По числу независимых упоминаний.
+
+1. **Автокомплит и типы в редакторе** — [#133](https://github.com/magwo/elevatorsaga/issues/133),
+   [PR #137](https://github.com/magwo/elevatorsaga/pull/137), три независимых `.d.ts`, плюс просьбы на
+   [Lobsters](https://lobste.rs/s/w1dac5/) и [HN](https://news.ycombinator.com/item?id=37306262).
+   Самый очевидный выигрыш.
+
+   Кстати, о **Monaco**, который для этого берут в трёх форках: это редактор кода, вынутый из VS Code
+   и опубликованный отдельным пакетом, — тот самый компонент, в котором вы редактируете код в VS Code,
+   вместе с его подсказками. Главное его свойство здесь в том, что он умеет запускать
+   TypeScript-сервис в вебворкере: если подсунуть `.d.ts` с игровым API, получаются настоящие
+   автодополнение, всплывающие подсказки по типам и подчёркивание ошибок до запуска, а не подсветка
+   синтаксиса. Плата — вес: он в разы тяжелее нашего CodeMirror 6 (~500 КБ отдельным чанком), не
+   tree-shake-ится, тянет свои воркеры и заметно сложнее в сборке. Поэтому ценное здесь — декларации
+   API, а не сам редактор: их можно скормить и автодополнению CodeMirror.
+
+2. **Нормальный вывод ошибок** — номера строк, подсветка, непроглоченные стеки.
+3. **Больше уровней, и свои собственные** — [#114](https://github.com/magwo/elevatorsaga/issues/114);
+   magwo в 2015-м: «особенно я был бы рад помощи с добавлением заданий… ради хорошей кривой
+   сложности». У 2xh это уже сделано наполовину (см. выше).
+4. **Реалистичные профили трафика вместо равномерно случайных появлений** — joelthelion на HN, где
+   **magwo подтвердил, что в коде есть неиспользованные распределения появления пассажиров**. Утренний
+   поток вверх и вечерний вниз — заодно то, ради чего destination dispatch вообще интересен.
+5. **Рестарт по требованию и управление скоростью времени** — есть у 2xh и в Cargo Dispatch.
+6. **Зал славы с ранжированием алгоритмов** —
+   [zxcvbn4038](https://news.ycombinator.com/item?id=33249988). Обратите внимание на противоречие со
+   строкой про `transportedCounter` выше.
+7. **Destination dispatch — выбор этажа снаружи кабины** —
    [paxys](https://news.ycombinator.com/item?id=33249988).
-8. **Better diagnostics about why you failed** — upstream
-   [#135](https://github.com/magwo/elevatorsaga/issues/135); CobrastanJorji wanted each elevator's
-   planned stops and ETAs visualised.
-9. **`idle` should also fire when a button is pressed** —
+8. **Понятная диагностика провала** — [#135](https://github.com/magwo/elevatorsaga/issues/135);
+   CobrastanJorji хотел видеть запланированные остановки каждого лифта и расчётное время прибытия.
+9. **`idle` должен срабатывать и при нажатии кнопки** —
    [pepijndevos](https://news.ycombinator.com/item?id=8929314).
-10. **A "this car is full" affordance** — [curmudgeon22](https://news.ycombinator.com/item?id=33249988);
-    2xh's `isFull()` is half of it.
-11. **Solutions in any language, scored on CPU and memory too** — wezm on Lobsters; the Go/WASM fork
-    is the only partial answer.
-12. **A responsive layout** — asked for in 2015 by someone teaching from a projector. Done here.
+10. **Признак «кабина полна»** — [curmudgeon22](https://news.ycombinator.com/item?id=33249988);
+    `isFull()` у 2xh — половина ответа.
+11. **Решения на любом языке, со счётом ещё и по CPU и памяти** — wezm на Lobsters; форк с Go/WASM —
+    единственный частичный ответ.
+12. **Адаптивная вёрстка** — просили ещё в 2015-м те, кто преподавал с проектора. У нас сделано.
 
-## Ideas from adjacent games
+## Идеи из соседних игр
 
-- **Zachtronics-style score histograms instead of a global leaderboard.** A per-challenge
-  distribution of average wait or move count with your own marker on it gives competition without
-  creating a cheat target — which matters given the row above. Friend-only boards were their
-  escape hatch for trusted competition.
-- **Opus Magnum's looping GIF export.** The shareable artifact for a solution is an animation of it
-  running, not a URL.
-- **[SIC-1](https://jaredkrinke.itch.io/sic-1/devlog)** — breakpoints, save slots, per-puzzle stats,
-  an in-game reference manual, and one forum thread per puzzle. Same author as the Monaco PR.
-- **Screeps room replay** — a tick scrubber with deep-linkable ticks, and the thing their players
-  then asked for: an **event-coloured scrollbar**, so you can find the interesting tick instead of
-  scrubbing blindly. For us that is a mark where a passenger crossed the wait threshold.
-- **CodinGame replays** — a replay file that carries everything the bot wrote plus the referee's
-  per-turn input, and a standing request for "replay in the same conditions". Seeded runs turn "it
-  failed once out of five" into something debuggable.
+- **Гистограммы результатов вместо глобальной таблицы лидеров, как у Zachtronics.** Распределение
+  среднего ожидания или числа ходов по заданию с отметкой «вы здесь» даёт соревнование, не создавая
+  мишени для читерства — что важно с учётом строки про `transportedCounter`. Их запасной выход для
+  доверенного соревнования — таблицы только среди друзей.
+- **Экспорт зацикленной GIF-ки, как в Opus Magnum.** Артефакт, которым делятся, — это анимация
+  работающего решения, а не ссылка.
+- **[SIC-1](https://jaredkrinke.itch.io/sic-1/devlog)** — точки останова, слоты сохранений,
+  статистика по задаче, встроенный справочник и по форумной ветке на задачу. Тот же автор, что у PR с
+  Monaco.
+- **Повтор комнаты в Screeps** — ползунок по тикам со ссылками на конкретный тик и то, что игроки
+  попросили следом: **скроллбар, раскрашенный по событиям**, чтобы находить интересный тик, а не
+  скроллить вслепую. У нас это была бы отметка там, где пассажир перешёл порог ожидания.
+- **Повторы CodinGame** — файл повтора, который несёт всё, что вывел бот, плюс вход от рефери по
+  ходам, и постоянная просьба «повторить в тех же условиях». Сидированные прогоны превращают «упало
+  один раз из пяти» в то, что можно отлаживать.
 
-## Dead ends — do not chase these again
+## Тупики — сюда больше не ходить
 
-- **"The Elevator Saga" on thecasecentre.org** is a business-school case study about paying for an
-  elevator in a Budapest apartment block. Name collision only.
-- **[onlyred/elevator_saga](https://github.com/onlyred/elevator_saga)** — a three-file Python toy,
-  abandoned.
-- **Chinese sources**: only mirrors, CSDN/OSCHINA reposts and solution walkthroughs. No extended
-  version or translation found, despite searching 汉化 / 增加关卡 / 重写. One CSDN post refused the
-  connection.
-- **Reddit** is unfetchable from this environment; treat r/programming and r/javascript as
-  **uncovered**, not empty. The [MetaFilter thread](https://www.metafilter.com/146807/) returns 403.
-- **No Rust port** was found.
+- **«The Elevator Saga» на thecasecentre.org** — бизнес-кейс про оплату лифта в будапештском доме.
+  Совпадение названий.
+- **[onlyred/elevator_saga](https://github.com/onlyred/elevator_saga)** — трёхфайловая игрушка на
+  Python, заброшена.
+- **Китайские источники**: только зеркала, репосты на CSDN/OSCHINA и разборы решений. Ни расширенной
+  версии, ни перевода не нашлось, при поиске по 汉化 / 增加关卡 / 重写. Один пост на CSDN отказал в
+  соединении.
+- **Reddit** из этого окружения не читается: r/programming и r/javascript считать **непокрытыми**, а
+  не пустыми. [Тред на MetaFilter](https://www.metafilter.com/146807/) отдаёт 403.
+- **Порта на Rust** не найдено.
 - **`MR-Stan`, `Zarel`, `jeffersonhwang`, `robertleeplummerjr`, `runofthemillgeek`, `nivoset`,
-  `koalazak`, `rasata`, `lowenhere`, `dominikgoss`, `Endika`** — compared, and behind or level with
-  upstream with no commits of their own. Their large repository size is vendored `libs/`, not new
-  work.
+  `koalazak`, `rasata`, `lowenhere`, `dominikgoss`, `Endika`** — сравнены, собственных коммитов нет,
+  отстают или вровень с оригиналом. Их большой размер репозитория — это вендоренные `libs/`, а не
+  новая работа.
