@@ -9,6 +9,7 @@ import { createElement, queryAll, requireElement } from "./dom.ts";
 import {
   clearAll,
   clearCodeStatus,
+  containsFocus,
   describeError,
   formatTimeScale,
   FULLSCREEN_CLASS,
@@ -267,6 +268,64 @@ describe("presentChallenge", () => {
 
       expect(document.activeElement).toBe(elsewhere);
     });
+
+    it("takes focus when the caller reports the teardown destroyed it", () => {
+      // The app empties the feedback overlay and the building before drawing
+      // the bar, so a "Next challenge" link that had focus is already gone --
+      // and with it any way for the bar to notice.
+      const { parent, options } = mount();
+      document.body.focus();
+
+      presentChallenge(parent, { ...options, focusWasDestroyed: true });
+
+      const startStop = requireElement(".startstop", parent);
+      expect(document.activeElement).toBe(startStop);
+      expect(startStop.textContent).toBe("Start");
+    });
+  });
+});
+
+describe("containsFocus", () => {
+  /**
+   * Attaches a container holding one button to the document.
+   *
+   * @returns The container and the button inside it.
+   */
+  function mountContainer(): { container: HTMLElement; button: HTMLElement } {
+    const button = createElement("button");
+    const container = createElement("div", { children: [button] });
+    document.body.append(container);
+    return { container, button };
+  }
+
+  it("reports focus held inside a container", () => {
+    const { container, button } = mountContainer();
+    button.focus();
+    expect(containsFocus([container])).toBe(true);
+  });
+
+  it("is false when focus is somewhere else entirely", () => {
+    const { container } = mountContainer();
+    const elsewhere = createElement("button");
+    document.body.append(elsewhere);
+    elsewhere.focus();
+    expect(containsFocus([container])).toBe(false);
+  });
+
+  it("ignores focus on a container itself, which survives being emptied", () => {
+    // .world carries tabindex="0" so the building can be scrolled by keyboard;
+    // emptying its contents does not disturb the focus on it.
+    const { container } = mountContainer();
+    container.setAttribute("tabindex", "0");
+    container.focus();
+    expect(containsFocus([container])).toBe(false);
+  });
+
+  it("is false for an empty list, and for a container outside the document", () => {
+    const { button } = mountContainer();
+    button.focus();
+    expect(containsFocus([])).toBe(false);
+    expect(containsFocus([createElement("div")])).toBe(false);
   });
 });
 

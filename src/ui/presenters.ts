@@ -46,6 +46,27 @@ export function clearAll(elements: readonly Element[]): void {
 }
 
 /**
+ * Whether the focused element sits inside one of these containers.
+ *
+ * Asked immediately *before* a teardown, so the caller can tell that emptying
+ * those containers is about to delete the focused element and drop focus back
+ * to `<body>`. Once the node is gone the question can no longer be answered:
+ * `document.activeElement` is already `<body>` by then.
+ *
+ * A container that is itself focused does not count — it survives being
+ * emptied, and so does the focus on it.
+ *
+ * @param elements - Containers that are about to be emptied.
+ * @returns Whether focus is inside any of them.
+ */
+export function containsFocus(elements: readonly Element[]): boolean {
+  const active = document.activeElement;
+  return (
+    active !== null && elements.some((element) => element !== active && element.contains(active))
+  );
+}
+
+/**
  * Reflects a lit/unlit button state in both the class and the ARIA state.
  *
  * @param button - The call or floor button.
@@ -114,6 +135,15 @@ export interface ChallengePresenterOptions {
   readonly onTimeScaleIncrease: () => void;
   /** Called when the `-` button is pressed. */
   readonly onTimeScaleDecrease: () => void;
+  /**
+   * Whether the caller has already destroyed the focused element.
+   *
+   * Set by the app when the teardown that precedes this render emptied a
+   * container focus was inside — the end-of-challenge overlay, or the building.
+   * The bar cannot detect that for itself: by the time it runs, focus has
+   * already fallen back to `<body>`. See {@link containsFocus}.
+   */
+  readonly focusWasDestroyed?: boolean;
 }
 
 /** A rendered challenge bar. */
@@ -167,10 +197,15 @@ export function presentChallenge(
   // and false for the initial render and for a rebuild triggered from the
   // editor (Ctrl-Enter), where stealing focus out of the editor would be worse
   // than doing nothing.
+  //
+  // The same question about the regions torn down *before* this render — the
+  // feedback overlay holding the "Next challenge" link, and the building — can
+  // only be answered by the caller, which is why it may say so explicitly.
   const restoreFocus =
-    document.activeElement !== null &&
-    parent.contains(document.activeElement) &&
-    parent !== document.activeElement;
+    options.focusWasDestroyed === true ||
+    (document.activeElement !== null &&
+      parent.contains(document.activeElement) &&
+      parent !== document.activeElement);
 
   parent.innerHTML = challengeTemplate({
     num: options.challengeNum,

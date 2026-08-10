@@ -201,6 +201,54 @@ describe("App challenge outcome", () => {
   });
 });
 
+describe("App focus", () => {
+  it("hands focus to the start button when the next-challenge link is taken", () => {
+    // Activating the link navigates, which starts the next challenge, which
+    // empties the overlay the link is in. The anchor is deleted under the
+    // player's feet and focus falls back to <body>, so whoever just asked for
+    // the next challenge is dropped at the top of the page instead of arriving
+    // at it.
+    const { app, elements } = setUp();
+    app.handleRoute(...routeFor("#challenge=2"));
+    app.world?.trigger("stats_changed");
+    const link = requireElement(".feedback a", elements.feedback);
+    link.focus();
+    expect(document.activeElement).toBe(link);
+
+    // What the router does once the link's hash navigation arrives.
+    app.handleRoute(...routeFor("#challenge=3"));
+
+    const startStop = requireElement(".startstop", elements.challenge);
+    expect(document.activeElement).toBe(startStop);
+    // Focused after it has its label, so it is not announced unnamed.
+    expect(startStop.textContent).toBe("Start");
+  });
+
+  it("hands focus to the start button when the building it was in is torn down", () => {
+    const { app, elements } = setUp();
+    app.startChallenge(0);
+    requireElement(".floor button.up", elements.world).focus();
+
+    app.startChallenge(1);
+
+    expect(document.activeElement).toBe(requireElement(".startstop", elements.challenge));
+  });
+
+  it("leaves focus alone when the challenge is restarted from the editor", () => {
+    // Ctrl-Enter applies the program, which restarts the challenge. Pulling
+    // focus out of the editor on every apply would be worse than the bug.
+    const { app, editor } = setUp();
+    app.startChallenge(0);
+    const elsewhere = createElement("textarea");
+    document.body.append(elsewhere);
+    elsewhere.focus();
+
+    editor.trigger("apply_code");
+
+    expect(document.activeElement).toBe(elsewhere);
+  });
+});
+
 describe("App start/stop", () => {
   it("pauses and resumes a running challenge", () => {
     const { app, worldController, elements } = setUp();

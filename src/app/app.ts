@@ -13,6 +13,7 @@ import type { CodeEditor } from "../ui/editor.ts";
 import {
   clearAll,
   clearCodeStatus,
+  containsFocus,
   presentChallenge,
   presentCodeStatus,
   presentFeedback,
@@ -214,6 +215,14 @@ export class App {
     this.world = world;
     window.world = world;
 
+    // Both of these regions can hold the focused element when a challenge
+    // starts: the "Next challenge" link lives in the feedback overlay, and the
+    // call and in-car buttons live in the building. Emptying them deletes it,
+    // and focus falls back to <body> -- so a keyboard or screen-reader player
+    // who takes the offered link is dropped at the top of the page instead of
+    // arriving at the challenge they just asked for. Asked before the teardown,
+    // because afterwards there is nothing left to ask about.
+    const focusWasDestroyed = containsFocus([this.#elements.world, this.#elements.feedback]);
     clearAll([this.#elements.world, this.#elements.feedback]);
     presentStats(this.#elements.stats, world);
     this.#challengePresenter = presentChallenge(this.#elements.challenge, {
@@ -221,6 +230,7 @@ export class App {
       description: challenge.condition.description,
       world,
       worldController: this.worldController,
+      focusWasDestroyed,
       onStartStop: () => {
         this.startStopOrRestart();
       },
