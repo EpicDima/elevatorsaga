@@ -347,6 +347,32 @@ describe("Elevator interface", () => {
       expect(elevInterface.destinationQueue).toEqual([]);
       expect(e.currentFloor).toBe(3);
     });
+
+    it("idles exactly one second after emptying the queue at a floor", () => {
+      // Regression guard for the timing of the normal completion path, which
+      // the stop()/#92 fix must leave alone.
+      const stepSize = 0.015;
+      let elapsed = 0.0;
+      let arrivedAt = Number.NaN;
+      let idleAt = Number.NaN;
+      elevInterface.on("stopped_at_floor", () => {
+        arrivedAt = elapsed;
+      });
+      elevInterface.on("idle", () => {
+        idleAt = elapsed;
+      });
+
+      elevInterface.goToFloor(2);
+      while (elapsed < 12.0 && Number.isNaN(idleAt)) {
+        elapsed += stepSize;
+        e.update(stepSize);
+        e.updateElevatorMovement(stepSize);
+      }
+
+      expect(arrivedAt).not.toBeNaN();
+      expect(idleAt - arrivedAt).toBeGreaterThan(1.0);
+      expect(idleAt - arrivedAt).toBeLessThanOrEqual(1.0 + stepSize);
+    });
   });
 
   describe("stop", () => {
@@ -365,6 +391,43 @@ describe("Elevator interface", () => {
       elevInterface.stop();
 
       expect(e.getDestinationFloor()).toBeCloseTo(futureFloor, 10);
+    });
+
+    it("emits idle once the elevator has coasted to a halt", () => {
+      // Issue #92: the legacy `stopped` handler only did anything when the
+      // queue head matched the stop position, so after stop() emptied the queue
+      // nothing ever re-checked it and the elevator sat there with no `idle`.
+      const idle = vi.fn();
+      elevInterface.on("idle", idle);
+      elevInterface.goToFloor(3);
+      stepElevator(e, 0.3, 0.015);
+      expect(e.isMoving).toBe(true);
+
+      elevInterface.stop();
+      stepElevator(e, 5.0, 0.015);
+
+      expect(e.isMoving).toBe(false);
+      expect(e.isOnAFloor()).toBe(false);
+      expect(elevInterface.destinationQueue).toEqual([]);
+      expect(idle).toHaveBeenCalledTimes(1);
+    });
+
+    it("waits the boarding second before idling when it halts on a floor", () => {
+      // Issue #105: the same gap skipped the one-second dwell, so an elevator
+      // could leave again while passengers were still walking in.
+      const idle = vi.fn();
+      elevInterface.on("idle", idle);
+
+      elevInterface.stop();
+      stepElevator(e, 0.5, 0.015);
+
+      expect(e.isOnAFloor()).toBe(true);
+      expect(e.isBusy()).toBe(true);
+      expect(idle).not.toHaveBeenCalled();
+
+      stepElevator(e, 0.6, 0.015);
+
+      expect(idle).toHaveBeenCalledTimes(1);
     });
 
     it("leaves a busy elevator alone", () => {

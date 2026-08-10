@@ -105,13 +105,18 @@ export class ElevatorInterface extends Observable<ElevatorInterfaceEvents> {
       ) {
         // Reached the destination, so remove element at front of queue
         this.destinationQueue = this.destinationQueue.slice(1);
-        if (elevator.isOnAFloor()) {
-          elevator.wait(WAIT_AT_FLOOR_SECONDS, () => {
-            this.checkDestinationQueue();
-          });
-        } else {
+      }
+      // The legacy handler did all of the below only when the head matched, so
+      // an elevator that halted for any other reason — after stop(), or after
+      // player code emptied the queue mid-flight — was never re-checked: no
+      // `idle`, and no boarding dwell either (upstream issues #92 and #105).
+      // Popping is conditional; carrying on is not.
+      if (elevator.isOnAFloor()) {
+        elevator.wait(WAIT_AT_FLOOR_SECONDS, () => {
           this.checkDestinationQueue();
-        }
+        });
+      } else {
+        this.checkDestinationQueue();
       }
     });
 
