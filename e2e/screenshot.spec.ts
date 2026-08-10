@@ -15,8 +15,14 @@ import { expect, test } from "@playwright/test";
 
 import { statistic, statisticValue } from "./game-page.ts";
 
-/** Where the README expects to find it. */
-const OUTPUT_PATH = "images/screenshot.png";
+/**
+ * Where the README expects to find it.
+ *
+ * Under `public/` rather than beside it, because the same picture is the site's
+ * `og:image`: Vite copies everything in `public/` to the root of `dist/`, so one
+ * file serves both the README and the link preview.
+ */
+const OUTPUT_PATH = "public/images/screenshot.png";
 
 /**
  * Passengers to deliver before the picture is taken.

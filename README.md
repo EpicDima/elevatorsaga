@@ -4,7 +4,7 @@
 
 ![Challenge 5 in progress: four elevators carrying people between six floors, passengers waiting on
 the landings, the statistics panel counting them, and the JavaScript program driving it all in the
-editor below](images/screenshot.png)
+editor below](public/images/screenshot.png)
 
 Elevator Saga is a programming game. You are given a building, a few elevators and a stream of
 impatient people, and the only control you have is a small JavaScript program: an object with an
@@ -60,7 +60,7 @@ GitHub Pages project sub-path, without further configuration.
 | `npm run test:watch`    | Runs the suite in watch mode                                  |
 | `npm run test:coverage` | Runs the suite and writes a V8 coverage report to `coverage/` |
 | `npm run test:e2e`      | Runs the Playwright smoke tests against the built site        |
-| `npm run screenshot`    | Recaptures `images/screenshot.png` from the running game      |
+| `npm run screenshot`    | Recaptures `public/images/screenshot.png` from the game       |
 | `npm run lint`          | ESLint over the repository                                    |
 | `npm run lint:fix`      | ESLint with `--fix`                                           |
 | `npm run format`        | Rewrites files with Prettier                                  |
@@ -274,8 +274,11 @@ npx playwright show-report             # the report from the last run
 Chromium has to be present the first time: `npx playwright install chromium`. The two runners cannot
 see each other's files — Vitest collects `src/**/*.test.ts`, Playwright collects `e2e/**/*.spec.ts`.
 
-`images/screenshot.png` is captured by `e2e/screenshot.spec.ts`, which is deliberately excluded from
-the suite and run on its own with `npm run screenshot`; nothing in CI rewrites it.
+`public/images/screenshot.png` is captured by `e2e/screenshot.spec.ts`, which is deliberately
+excluded from the suite and run on its own with `npm run screenshot`; nothing in CI rewrites it. It
+lives under `public/` because it is also the site's `og:image`: Vite copies that directory to the
+root of `dist/`, so the picture at the top of this file and the one in a link preview are the same
+file.
 
 Before opening a pull request, run what CI runs: `npm run typecheck`, `npm run lint`,
 `npm run format:check`, `npm test`, `npm run build` and `npm run test:e2e`. CI executes the first

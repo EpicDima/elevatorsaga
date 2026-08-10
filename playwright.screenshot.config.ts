@@ -1,5 +1,5 @@
 /**
- * Playwright configuration for refreshing `images/screenshot.png`.
+ * Playwright configuration for refreshing `public/images/screenshot.png`.
  *
  * The capture needs everything the smoke suite needs — a Chromium and the built
  * site on a server — so it reuses that configuration wholesale and only swaps

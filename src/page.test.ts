@@ -1,4 +1,7 @@
 // @vitest-environment jsdom
+import { existsSync, readFileSync } from "node:fs";
+import { join } from "node:path";
+
 import { describe, expect, it } from "vitest";
 
 import packageJson from "../package.json";
@@ -30,6 +33,36 @@ function iconShape(icon: Element): Record<string, string | null> {
     transform: path?.getAttribute("transform") ?? null,
     d: path?.getAttribute("d") ?? null,
   };
+}
+
+/**
+ * The repository root.
+ *
+ * This file runs under jsdom, where `import.meta.url` is an `http:` URL for the
+ * benefit of the DOM and no use at all to `node:fs`. Vitest runs from the
+ * project root, so the working directory is the one thing that does point here.
+ */
+const ROOT = process.cwd();
+
+/**
+ * The tab icon, read from `public/`.
+ *
+ * Read from disk rather than imported: files under `public/` are copied by the
+ * build rather than bundled, so importing one is the mistake this test exists
+ * to catch, not the way to reach it.
+ */
+const faviconSource = readFileSync(join(ROOT, "public/favicon.svg"), "utf8");
+
+/**
+ * The content of a `<meta>` tag, whichever attribute names it.
+ *
+ * @param document - The parsed page.
+ * @param name - The `property` or `name` the tag carries.
+ * @returns Its `content`, or null if the page has no such tag.
+ */
+function metaContent(document: Document, name: string): string | null {
+  const meta = document.querySelector(`meta[property="${name}"], meta[name="${name}"]`);
+  return meta?.getAttribute("content") ?? null;
 }
 
 /** Anything loaded from another origin, which the rewrite got rid of. */
@@ -140,6 +173,36 @@ describe("index.html", () => {
     expect(page.querySelector(`[id="${target}"]`)).toBe(page.querySelector(".code"));
   });
 
+  it("names a favicon, drawn here rather than borrowed", () => {
+    // There was none at all, so every tab showed the browser's blank-page
+    // glyph. The mark is original artwork: the twelve Font Awesome outlines in
+    // src/ui/icons.ts were the shorter route, but they are OFL-licensed, and a
+    // site's own identity is not a good thing to owe attribution for.
+    const icon = page.querySelector("link[rel='icon']");
+    expect(icon?.getAttribute("type")).toBe("image/svg+xml");
+    expect(icon?.getAttribute("href")).toBe("/favicon.svg");
+    expect(faviconSource).toContain("<svg");
+  });
+
+  it("describes itself well enough to paste into a chat", () => {
+    // Open Graph, so a pasted link becomes a card with the game in it instead
+    // of a bare URL. The title and description are not restated here -- a
+    // preview that disagrees with the page is its own kind of wrong.
+    expect(metaContent(page, "og:type")).toBe("website");
+    expect(metaContent(page, "og:title")).toBe(page.title);
+    expect(metaContent(page, "og:description")).toBe(metaContent(page, "description"));
+    expect(metaContent(page, "og:image:alt")).toBeTruthy();
+    expect(metaContent(page, "twitter:card")).toBe("summary_large_image");
+
+    // The image is the screenshot the README uses, kept in `public/` so that
+    // one file serves both. Site-relative, because Vite rewrites a leading
+    // slash to `base` and this build has to run from any directory; a card
+    // with a broken image in it is worse than no card, so check it is there.
+    const image = metaContent(page, "og:image") ?? "";
+    expect(image).toMatch(/^\/[^/]/);
+    expect(existsSync(join(ROOT, "public", image))).toBe(true);
+  });
+
   it("marks the shortcut keys the editor binds as Mod-", () => {
     // Mod- is Command on Apple platforms, so the shipped "Ctrl" is wrong there
     // and src/ui/shortcuts.ts rewrites these two at load.
@@ -198,6 +261,15 @@ describe("documentation.html", () => {
     expect(docs.querySelector("#docs")).not.toBeNull();
     const targets = [...page.querySelectorAll("a")].map((link) => link.getAttribute("href"));
     expect(targets).toContain("documentation.html#docs");
+  });
+
+  it("shows the same favicon as the game", () => {
+    // Two entry points, one site: a tab that changes its icon when you follow
+    // the Help link reads as a different site.
+    const icon = docs.querySelector("link[rel='icon']");
+    expect(icon?.getAttribute("href")).toBe(
+      page.querySelector("link[rel='icon']")?.getAttribute("href"),
+    );
   });
 
   it("links back to the game", () => {

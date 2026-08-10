@@ -1,0 +1,19 @@
+<!--
+  The tab icon: an elevator car in its shaft, drawn in the game's own three
+  colours -- the dark building (#333), the teal car (#4f8686) and the pale
+  accent (#f1f2d8) that splits its doors.
+
+  Original artwork, deliberately. The twelve Font Awesome outlines in
+  src/ui/icons.ts would have been the quicker answer, but they carry the SIL
+  Open Font License, and a mark that stands for the site is not something to
+  owe attribution for. Nothing here is copied from anywhere.
+
+  Three rectangles is all of it: at 16px, detail is noise. The doors read as an
+  elevator at that size, which is the only size that matters.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="Elevator Saga">
+  <title>Elevator Saga</title>
+  <rect width="32" height="32" rx="4" fill="#333333" />
+  <rect x="6" y="4" width="20" height="24" rx="1.5" fill="#4f8686" />
+  <rect x="15" y="4" width="2" height="24" fill="#f1f2d8" />
+</svg>
