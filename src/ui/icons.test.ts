@@ -2,37 +2,64 @@
 
 import { describe, expect, it } from "vitest";
 
+import fontAwesome from "./fontawesome-glyphs.json";
 import { createIcon, ICON_ASCENT, ICON_EM_UNITS, ICONS, iconMarkup, iconWidthEm } from "./icons.ts";
 import type { IconName } from "./icons.ts";
 
-/** Every `fa-*` glyph the legacy markup used, by its Font Awesome name. */
-const LEGACY_GLYPHS: readonly IconName[] = [
-  "arrow-circle-down",
-  "arrow-circle-up",
-  "caret-right",
-  "child",
-  "female",
-  "male",
-  "minus",
-  "minus-square",
-  "plus",
-  "plus-square",
-  "repeat",
-  "warning",
-];
+/**
+ * Every `fa-*` glyph the legacy markup used, with the codepoint that class
+ * resolved to in `font-awesome-4.1-1.0/css/font-awesome.css`.
+ *
+ * `fa-warning` is an alias of `fa-exclamation-triangle`; both are U+F071.
+ */
+const LEGACY_GLYPHS: Readonly<Record<IconName, string>> = {
+  "arrow-circle-down": "U+F0AB",
+  "arrow-circle-up": "U+F0AA",
+  "caret-right": "U+F0DA",
+  child: "U+F1AE",
+  female: "U+F182",
+  male: "U+F183",
+  minus: "U+F068",
+  "minus-square": "U+F146",
+  plus: "U+F067",
+  "plus-square": "U+F0FE",
+  repeat: "U+F01E",
+  warning: "U+F071",
+};
+
+/** The icon names, in the order the fixture and the icon set agree on. */
+const ICON_NAMES = Object.keys(LEGACY_GLYPHS) as IconName[];
 
 describe("ICONS", () => {
   it("covers exactly the glyphs the legacy markup used", () => {
-    expect(Object.keys(ICONS).toSorted()).toEqual([...LEGACY_GLYPHS].toSorted());
+    expect(Object.keys(ICONS).toSorted()).toEqual(ICON_NAMES.toSorted());
   });
 
-  it("has a plausible outline and advance for every icon", () => {
-    for (const [name, definition] of Object.entries(ICONS)) {
-      expect(definition.advance, name).toBeGreaterThan(0);
-      expect(definition.advance, name).toBeLessThanOrEqual(ICON_EM_UNITS);
-      expect(definition.path, name).toMatch(/^M[\d\s.-]/);
-      expect(definition.path, name).toMatch(/z$/);
+  // Every one of these outlines is copied verbatim from the Font Awesome 4.1
+  // webfont, and nothing in the game reads that webfont at runtime any more, so
+  // nothing else would notice if an outline were swapped for another, truncated
+  // or nudged: the icons would simply be wrong, and every other test would keep
+  // passing. src/ui/fontawesome-glyphs.json is a copy of the twelve glyphs
+  // taken from the font itself (not from ICONS, which would make this
+  // circular), and this is the assertion that holds ICONS to it.
+  it("reproduces the Font Awesome 4.1 outlines exactly", () => {
+    expect(Object.keys(fontAwesome.glyphs).toSorted()).toEqual(ICON_NAMES.toSorted());
+    for (const name of ICON_NAMES) {
+      const glyph = fontAwesome.glyphs[name];
+      expect(ICONS[name].path, name).toBe(glyph.path);
+      expect(ICONS[name].advance, name).toBe(glyph.advance);
     }
+  });
+
+  it("took each glyph from the codepoint the legacy fa-* class resolved to", () => {
+    for (const [name, codepoint] of Object.entries(LEGACY_GLYPHS)) {
+      expect(fontAwesome.glyphs[name as IconName].codepoint, name).toBe(codepoint);
+    }
+  });
+
+  it("uses the font's own metrics", () => {
+    expect(ICON_EM_UNITS).toBe(fontAwesome.unitsPerEm);
+    expect(ICON_ASCENT).toBe(fontAwesome.ascent);
   });
 });
 
@@ -78,7 +105,7 @@ describe("createIcon", () => {
 
 describe("iconMarkup", () => {
   it("parses into the same element createIcon builds", () => {
-    for (const name of LEGACY_GLYPHS) {
+    for (const name of ICON_NAMES) {
       const template = document.createElement("template");
       template.innerHTML = iconMarkup(name, "extra");
       const parsed = template.content.firstElementChild;
