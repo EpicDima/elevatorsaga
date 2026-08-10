@@ -25,7 +25,7 @@ import packageJson from "./package.json" with { type: "json" };
  * Reading the terms out of `node_modules` at build time cannot drift: the
  * notice describes the tree the bundle was built from, and a package that ships
  * no licence text at all stops the build instead of quietly vanishing from the
- * list. The cost is the ~70 lines below, and no new dependency.
+ * list. The cost is the hundred-odd lines below, and no new dependency.
  */
 const LICENSES_FILE = "licenses.txt";
 
@@ -114,10 +114,10 @@ function section(title: string, body: string): string {
  * @returns The whole notice, ready to serve as `text/plain`.
  */
 function renderLicenses(): string {
-  // Seventeen of the eighteen bundled packages are MIT and most of those differ
-  // only in the copyright line, so packages whose licence text is byte-identical
-  // share one copy of it. Reproducing each notice once, against the list of
-  // packages it covers, is what MIT asks for and is a third of the length.
+  // Nearly all of the bundled packages are MIT, and most of those differ only in
+  // the copyright line, so packages whose licence text is byte-identical share
+  // one copy of it. Reproducing each notice once, against the list of packages
+  // it covers, is what MIT asks for and is a third of the length.
   const byText = new Map<string, string[]>();
   for (const { name, version, license } of runtimeDependencies()) {
     const entry = `${name} ${version}${license === undefined ? "" : ` (${license})`}`;
