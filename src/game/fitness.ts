@@ -108,6 +108,14 @@ export const fitnessChallenges: readonly FitnessChallenge[] = [
 ];
 
 /**
+ * Largest simulated step the world is advanced by at once, in seconds.
+ *
+ * The same value `app.js:142` gives the real game's controller, so the
+ * benchmark simulates the same physics the player is scored on.
+ */
+const SIMULATION_STEP_SECONDS = 1.0 / 60.0;
+
+/**
  * Reads an array element that is known to exist.
  *
  * @param arr - Array to read.
@@ -136,10 +144,6 @@ function stringifyError(value: unknown): string {
 /**
  * Runs one scenario headlessly and reports its metrics.
  *
- * Note that `stepSize` is used both as the controller's largest simulated step
- * *and* as the frame requester's step in milliseconds, so the substepping limit
- * is effectively disabled. Preserved from the original.
- *
  * @param challenge - The scenario to run.
  * @param codeObj - The player's code object.
  * @param stepSize - Milliseconds per simulated frame.
@@ -152,7 +156,10 @@ export function calculateFitness(
   stepSize: number,
   stepsToSimulate: number,
 ): FitnessResult {
-  const controller = createWorldController(stepSize);
+  // The controller takes seconds; the frame requester takes milliseconds. The
+  // legacy code passed stepSize to both (fitness.js:17,22), so the substepping
+  // limit was three orders of magnitude too large and never engaged.
+  const controller = createWorldController(SIMULATION_STEP_SECONDS);
   const result: FitnessResult = {};
 
   const world = createWorld(challenge.options);

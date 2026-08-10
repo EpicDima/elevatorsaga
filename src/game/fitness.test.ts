@@ -125,6 +125,53 @@ describe("calculateFitness", () => {
     expect(result.transportedCount).toBe(0);
   });
 
+  it("caps a long frame at the substepping limit", () => {
+    // The controller's dtMax is a number of simulated *seconds*, but
+    // calculateFitness handed it stepSize, which is milliseconds. With the
+    // shipped 1000/60 that made the limit 16.7 simulated seconds instead of
+    // 0.0167, so the clamp that exists to stop one long frame being swallowed
+    // whole never engaged.
+    const dts: number[] = [];
+    const codeObj: UserCodeObject = {
+      init(): void {
+        // Nothing.
+      },
+      update(dt): void {
+        dts.push(dt);
+      },
+    };
+
+    calculateFitness(challenge, codeObj, 1000.0, 3);
+
+    // One second of real time per frame, clamped to three times the step.
+    expect(dts.length).toBeGreaterThan(0);
+    for (const dt of dts) {
+      expect(dt).toBeCloseTo(3.0 / 60.0, 12);
+    }
+  });
+
+  it("advances by exactly one step per frame at the suite's own step size", () => {
+    // Pins the numbers the benchmark actually runs with: at 1000/60 ms per
+    // frame the clamp is inert and every frame is one whole simulation step, so
+    // the fix above leaves published scores untouched.
+    const dts: number[] = [];
+    const codeObj: UserCodeObject = {
+      init(): void {
+        // Nothing.
+      },
+      update(dt): void {
+        dts.push(dt);
+      },
+    };
+
+    calculateFitness(challenge, codeObj, 1000.0 / 60.0, 5);
+
+    expect(dts.length).toBeGreaterThan(0);
+    for (const dt of dts) {
+      expect(dt).toBeCloseTo(1.0 / 60.0, 12);
+    }
+  });
+
   it("stops simulating as soon as the code throws", () => {
     const boom = new Error("boom");
     let updateCalls = 0;
