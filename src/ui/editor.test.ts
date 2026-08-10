@@ -45,6 +45,20 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
+describe("storage keys", () => {
+  it("are exactly the keys the legacy game wrote", () => {
+    // These two strings are an on-disk compatibility contract with the browser
+    // of every player who has ever played: their program is under this exact
+    // key in their own localStorage, and the game only finds it again if the
+    // key never changes. Renaming either constant compiles, and every test
+    // that goes through the constant keeps passing, while silently destroying
+    // the saved program of every existing player — so the literals are pinned
+    // here. Do not "fix" these to match a constant; change nothing at all.
+    expect(CODE_STORAGE_KEY).toBe("elevatorCrushCode_v5");
+    expect(BACKUP_STORAGE_KEY).toBe("develevateBackupCode");
+  });
+});
+
 describe("CodeEditor storage", () => {
   it("starts a new player off with the default program", () => {
     const { view } = setUp();

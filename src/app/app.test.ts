@@ -367,6 +367,16 @@ describe("App code status", () => {
   });
 });
 
+describe("TIME_SCALE_STORAGE_KEY", () => {
+  it("is exactly the key the legacy game wrote", () => {
+    // An on-disk compatibility contract with the browser of every player who
+    // has ever played: renaming the constant compiles, and every test that
+    // goes through the constant keeps passing, while quietly forgetting the
+    // speed they had chosen. The literal is pinned here on purpose.
+    expect(TIME_SCALE_STORAGE_KEY).toBe("elevatorTimeScale");
+  });
+});
+
 describe("readStoredTimeScale", () => {
   it("reads back what the app stored", () => {
     const storage = new MemoryStorage();
