@@ -77,6 +77,17 @@ export class ElevatorInterface extends Observable<ElevatorInterfaceEvents> {
   readonly #errorHandler: ElevatorInterfaceErrorHandler;
 
   /**
+   * Whether an `idle` dispatch from this interface is currently on the stack.
+   *
+   * `documentation.html` tells players to clear {@link destinationQueue} and
+   * call {@link checkDestinationQueue} from inside their `idle` handler, which
+   * lands straight back in the empty-queue branch. Legacy riot happened to
+   * absorb that through its per-handler `busy` flag; this guard does the same
+   * job without riot's defect of leaving a throwing handler disabled forever.
+   */
+  #idleInFlight = false;
+
+  /**
    * @param elevator - The elevator this facade wraps.
    * @param floorCount - Number of floors, used to clamp requested destinations.
    * @param errorHandler - Receives anything a player-code handler throws.
@@ -139,13 +150,24 @@ export class ElevatorInterface extends Observable<ElevatorInterfaceEvents> {
    *
    * Only needs to be called explicitly after modifying {@link destinationQueue}
    * by hand. Does nothing while the elevator is waiting at a floor.
+   *
+   * Calling this from inside an `idle` handler is supported and documented; the
+   * nested call will not raise `idle` a second time.
    */
   checkDestinationQueue(): void {
     if (!this.#elevator.isBusy()) {
       if (this.destinationQueue.length > 0) {
         this.#elevator.goToFloor(firstOrNaN(this.destinationQueue));
-      } else {
-        this.#tryTrigger("idle");
+      } else if (!this.#idleInFlight) {
+        this.#idleInFlight = true;
+        try {
+          this.#tryTrigger("idle");
+        } finally {
+          // Cleared in a `finally` so an exception escaping the dispatch cannot
+          // wedge the flag on and kill `idle` for the rest of the challenge —
+          // which is exactly how riot's `fn.busy` broke (upstream issue #88).
+          this.#idleInFlight = false;
+        }
       }
     }
   }

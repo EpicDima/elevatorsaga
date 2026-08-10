@@ -346,4 +346,65 @@ describe("Elevator interface", () => {
       expect(idle).not.toHaveBeenCalled();
     });
   });
+
+  describe("idle re-entrancy", () => {
+    it("emits idle once for the documented clear-and-recheck idiom", () => {
+      // documentation.html tells players to write exactly this inside an idle
+      // handler. Without a re-entrancy guard it recurses until the stack
+      // overflows, and the RangeError ends up in the error handler.
+      const idle = vi.fn(() => {
+        elevInterface.destinationQueue = [];
+        elevInterface.checkDestinationQueue();
+      });
+      elevInterface.on("idle", idle);
+
+      elevInterface.checkDestinationQueue();
+
+      expect(idle).toHaveBeenCalledTimes(1);
+      expect(errorHandler).not.toHaveBeenCalled();
+    });
+
+    it("still starts a destination queued from inside the idle handler", () => {
+      const idle = vi.fn(() => {
+        elevInterface.destinationQueue = [];
+        elevInterface.checkDestinationQueue();
+        elevInterface.goToFloor(3);
+      });
+      elevInterface.on("idle", idle);
+
+      elevInterface.checkDestinationQueue();
+
+      expect(idle).toHaveBeenCalledTimes(1);
+      expect(elevInterface.destinationQueue).toEqual([3]);
+      expect(e.destinationY).toBe(e.getYPosOfFloor(3));
+      expect(errorHandler).not.toHaveBeenCalled();
+    });
+
+    it("clears the guard so idle can fire again on a later check", () => {
+      const idle = vi.fn(() => {
+        elevInterface.checkDestinationQueue();
+      });
+      elevInterface.on("idle", idle);
+
+      elevInterface.checkDestinationQueue();
+      elevInterface.checkDestinationQueue();
+
+      expect(idle).toHaveBeenCalledTimes(2);
+    });
+
+    it("clears the guard even when the idle handler throws", () => {
+      const boom = new Error("boom");
+      const idle = vi.fn(() => {
+        throw boom;
+      });
+      elevInterface.on("idle", idle);
+
+      elevInterface.checkDestinationQueue();
+      elevInterface.checkDestinationQueue();
+
+      expect(idle).toHaveBeenCalledTimes(2);
+      expect(errorHandler).toHaveBeenNthCalledWith(1, boom);
+      expect(errorHandler).toHaveBeenNthCalledWith(2, boom);
+    });
+  });
 });
