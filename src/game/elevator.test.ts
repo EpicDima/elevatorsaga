@@ -418,6 +418,78 @@ describe("Elevator object", () => {
       e.trigger("change:goingDownIndicator", false);
       expect(changed).toHaveBeenNthCalledWith(2, { up: false, down: false });
     });
+
+    it("re-offers boarding when an indicator changes while parked at a floor", () => {
+      // Issues #59, #74, #98, #124: boarding is otherwise only ever offered
+      // from handleDestinationArrival, so a passenger the indicators refused is
+      // never reconsidered once the elevator has come to rest.
+      const entranceAvailable = vi.fn();
+      e.on("entrance_available", entranceAvailable);
+
+      e.goingUpIndicator = false;
+      e.trigger("change:goingUpIndicator", false);
+
+      expect(entranceAvailable).toHaveBeenCalledTimes(1);
+      expect(entranceAvailable).toHaveBeenCalledWith(e);
+    });
+
+    it("emits no other arrival event when an indicator changes", () => {
+      const stopped = vi.fn();
+      const stoppedAtFloor = vi.fn();
+      const exitAvailable = vi.fn();
+      const floorButtonsChanged = vi.fn();
+      e.on("stopped", stopped);
+      e.on("stopped_at_floor", stoppedAtFloor);
+      e.on("exit_available", exitAvailable);
+      e.on("floor_buttons_changed", floorButtonsChanged);
+
+      e.goingUpIndicator = false;
+      e.trigger("change:goingUpIndicator", false);
+
+      expect(stopped).not.toHaveBeenCalled();
+      expect(stoppedAtFloor).not.toHaveBeenCalled();
+      expect(exitAvailable).not.toHaveBeenCalled();
+      expect(floorButtonsChanged).not.toHaveBeenCalled();
+      expect(e.moveCount).toBe(0);
+    });
+
+    it("does not re-offer boarding while the elevator is moving", () => {
+      const entranceAvailable = vi.fn();
+      e.goToFloor(3);
+      stepElevator(e, 0.3, 0.015);
+      e.on("entrance_available", entranceAvailable);
+
+      e.goingUpIndicator = false;
+      e.trigger("change:goingUpIndicator", false);
+
+      expect(entranceAvailable).not.toHaveBeenCalled();
+    });
+
+    it("does not re-offer boarding when stopped between floors", () => {
+      const entranceAvailable = vi.fn();
+      e.goToFloor(1.5);
+      stepElevator(e, 10.0, 0.015);
+      expect(e.isMoving).toBe(false);
+      e.on("entrance_available", entranceAvailable);
+
+      e.goingUpIndicator = false;
+      e.trigger("change:goingUpIndicator", false);
+
+      expect(entranceAvailable).not.toHaveBeenCalled();
+    });
+
+    it("does not re-offer boarding when the elevator is full", () => {
+      const entranceAvailable = vi.fn();
+      for (let i = 0; i < e.maxUsers; i++) {
+        e.userEntering(passenger(70));
+      }
+      e.on("entrance_available", entranceAvailable);
+
+      e.goingUpIndicator = false;
+      e.trigger("change:goingUpIndicator", false);
+
+      expect(entranceAvailable).not.toHaveBeenCalled();
+    });
   });
 
   describe("arrival", () => {

@@ -1,5 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import type { Elevator } from "./elevator.ts";
+import type { ElevatorInterface } from "./elevator-interface.ts";
 import { at } from "./test-helpers.ts";
 import type { User } from "./user.ts";
 import type { ControllableWorld } from "./world-controller.ts";
@@ -359,6 +361,68 @@ describe("World", () => {
       world.update(0.1);
 
       expect(at(spawned, 0).parent).toBe(at(world.elevators, 0));
+    });
+  });
+
+  describe("indicator changes", () => {
+    /**
+     * Builds a world whose lone elevator is parked at floor 0 with only the
+     * down indicator lit, and one passenger waiting there to travel up.
+     *
+     * @returns The world, its elevator, its facade and the waiting passenger.
+     */
+    function createWorldWithRefusedUser(): {
+      world: World;
+      elevator: Elevator;
+      elevInterface: ElevatorInterface;
+      user: User;
+    } {
+      vi.spyOn(Math, "random").mockReturnValue(0);
+      const world = createWorld({ spawnRate: 0.5, floorCount: 3, elevatorCount: 1 });
+      const elevator = at(world.elevators, 0);
+      const elevInterface = at(world.elevatorInterfaces, 0);
+      elevInterface.goingUpIndicator(false);
+      const spawned = collectUsers(world);
+      world.update(0.1);
+      return { world, elevator, elevInterface, user: at(spawned, 0) };
+    }
+
+    it("picks up a refused passenger once the matching indicator is lit", () => {
+      // Issues #59, #74, #98, #124: the elevator stands empty at the
+      // passenger's floor with the wrong indicator lit, so it never takes them.
+      const { elevator, elevInterface, user } = createWorldWithRefusedUser();
+      expect(user.currentFloor).toBe(0);
+      expect(user.destinationFloor).toBe(1);
+      expect(user.parent).toBe(null);
+
+      elevInterface.goingUpIndicator(true);
+
+      expect(user.parent).toBe(elevator);
+    });
+
+    it("leaves the statistics and the destination queue untouched", () => {
+      const { world, elevator, elevInterface } = createWorldWithRefusedUser();
+      const elevatorMoveCount = elevator.moveCount;
+      const worldMoveCount = world.moveCount;
+      const stopped = vi.fn();
+      const stoppedAtFloor = vi.fn();
+      const floorButtonsChanged = vi.fn();
+      elevator.on("stopped", stopped);
+      elevator.on("stopped_at_floor", stoppedAtFloor);
+      elevator.on("floor_buttons_changed", floorButtonsChanged);
+
+      elevInterface.goingUpIndicator(true);
+      // Short enough that the boarding passenger has not walked in yet, so any
+      // event seen here came from the indicator flip.
+      world.update(0.05);
+
+      expect(elevator.moveCount).toBe(elevatorMoveCount);
+      expect(world.moveCount).toBe(worldMoveCount);
+      expect(elevInterface.destinationQueue).toEqual([]);
+      expect(elevator.isMoving).toBe(false);
+      expect(stopped).not.toHaveBeenCalled();
+      expect(stoppedAtFloor).not.toHaveBeenCalled();
+      expect(floorButtonsChanged).not.toHaveBeenCalled();
     });
   });
 

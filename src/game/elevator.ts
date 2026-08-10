@@ -166,6 +166,18 @@ export class Elevator extends Movable<ElevatorEvents> {
         down: this.goingDownIndicator,
       });
     });
+
+    // Boarding is otherwise only ever offered from handleDestinationArrival, so
+    // a passenger the indicators turned away when the car arrived would never
+    // be reconsidered, however the player changed the indicators afterwards
+    // (issues #59, #74, #98, #124). Re-offering the entrance — and nothing else
+    // — leaves the destination queue, the move counts and the arrival events
+    // exactly as they were.
+    this.on("indicatorstate_change", () => {
+      if (!this.isMoving && this.isOnAFloor() && !this.isFull()) {
+        this.trigger("entrance_available", this);
+      }
+    });
   }
 
   /**
