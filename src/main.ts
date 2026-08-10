@@ -25,6 +25,7 @@ import { createWorldController } from "./game/world-controller.ts";
 import { requireElement } from "./ui/dom.ts";
 import { CodeEditor, codeMirrorView } from "./ui/editor.ts";
 import { labelModifierKeys } from "./ui/shortcuts.ts";
+import { presentVersion } from "./ui/version.ts";
 
 declare global {
   interface Window {
@@ -49,6 +50,7 @@ const MAX_STEP_SECONDS = 1.0 / 60.0;
  */
 function main(): void {
   labelModifierKeys(document, navigator.userAgent);
+  presentVersion();
 
   const editor = new CodeEditor(codeMirrorView(requireElement(".code")));
   const saveMessage = requireElement("#save_message");

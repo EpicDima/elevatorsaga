@@ -1,9 +1,11 @@
 // @vitest-environment jsdom
 import { describe, expect, it } from "vitest";
 
+import packageJson from "../package.json";
 import docsSource from "../documentation.html?raw";
 import pageSource from "../index.html?raw";
 import { createIcon } from "./ui/icons.ts";
+import { presentVersion, VERSION_SELECTOR } from "./ui/version.ts";
 
 /** The page shell, parsed as the browser would parse it. */
 const page = new DOMParser().parseFromString(pageSource, "text/html");
@@ -138,6 +140,20 @@ describe("index.html", () => {
   it("no longer loads anything from a third party", () => {
     expect(thirdPartyResources(page)).toEqual([]);
     expect(page.documentElement.innerHTML).not.toContain("google-analytics");
+  });
+
+  it("shows the version from package.json in the footer", () => {
+    // The footer used to carry a hand-written copy of the version, which had
+    // to be bumped in step with package.json and silently disagreed with it
+    // whenever it was not. The slot is empty in the source now and filled from
+    // the constant Vite substitutes at build time.
+    const footer = new DOMParser().parseFromString(pageSource, "text/html");
+    expect(footer.querySelector(VERSION_SELECTOR)?.textContent).toBe("");
+
+    presentVersion(footer);
+
+    expect(footer.querySelector(VERSION_SELECTOR)?.textContent).toBe(packageJson.version);
+    expect(packageJson.version).toMatch(/^\d+\.\d+\.\d+/);
   });
 
   it("links to the documentation page", () => {
