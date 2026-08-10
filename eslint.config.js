@@ -50,6 +50,14 @@ export default tseslint.config(
     },
   },
   {
+    // Simulation event maps must be `type` aliases, not interfaces: only type
+    // aliases get the implicit index signature required to satisfy the
+    // `EventArgsMap` (`Record<string, readonly unknown[]>`) constraint of
+    // `Observable<E>`.
+    files: ["src/game/**/*.ts"],
+    rules: { "@typescript-eslint/consistent-type-definitions": "off" },
+  },
+  {
     // Config files run in Node.
     files: ["*.config.ts", "*.config.js", "eslint.config.js"],
     languageOptions: {
