@@ -105,6 +105,22 @@ describe("createElevators", () => {
     expect(elevator.getYPosOfFloor(0)).toBe((6 - 1) * 40);
     expect(elevator.getYPosOfFloor(5)).toBe(0);
   });
+
+  it("parks the elevators without counting that as a move", () => {
+    // Issues #117 and #20: sliding the elevator into its shaft before placing
+    // it on floor 0 made the very first state change look like a floor change,
+    // so every elevator was born having already "moved" once.
+    const elevators = createElevators(3, 4, 50);
+    expect(elevators.map((e) => e.moveCount)).toEqual([0, 0, 0]);
+  });
+
+  it("puts the elevators at the bottom floor's y position", () => {
+    // Pins the geometry, so the ordering fix above cannot quietly move an
+    // elevator: y is the bottom floor of a 4 floor, 50 unit building.
+    const elevators = createElevators(2, 4, 50);
+    expect(elevators.map((e) => e.y)).toEqual([150, 150]);
+    expect(elevators.map((e) => e.x)).toEqual([200.0, 200.0 + 20 + 40]);
+  });
 });
 
 describe("createRandomUser", () => {
@@ -269,6 +285,15 @@ describe("World", () => {
       world.update(0.1);
       world.update(0.1);
       expect(statsChanged).toHaveBeenCalledTimes(3);
+    });
+
+    it("reports no elevator moves before anything has moved", () => {
+      // Issues #117 and #20: `moveCount` is what the "elevator moves" challenges
+      // are scored on, so a world whose elevators have not gone anywhere had to
+      // report zero. It reported one move per elevator on the first frame.
+      const world = createWorld({ spawnRate: 0.001, floorCount: 4, elevatorCount: 2 });
+      world.update(0.1);
+      expect(world.moveCount).toBe(0);
     });
 
     it("sums the move counts of all elevators", () => {

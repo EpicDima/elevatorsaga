@@ -130,9 +130,22 @@ export function createElevators(
       capacities[i % capacities.length],
     );
 
+    // Park on the bottom floor first, then slide into the shaft.
+    //
+    // The legacy order was the other way round (world.js:22-23), and every
+    // position change runs handleNewState: the horizontal move was evaluated
+    // while the car was still at y = 0, which rounds to the *top* floor, so the
+    // elevator was recorded as having changed floor before the simulation had
+    // even started. Every elevator was therefore born with moveCount === 1,
+    // inflating the score the "move the elevators as little as possible"
+    // challenges are judged on (upstream issues #117 and #20).
+    //
+    // setFloorPosition assigns currentFloor itself before moving, so doing it
+    // first makes the snap a no-op for the move counter. The final x and y are
+    // unchanged; only the intermediate state the counter saw is.
+    elevator.setFloorPosition(0);
     // Move to right x position
     elevator.moveTo(currentX, null);
-    elevator.setFloorPosition(0);
     elevator.updateDisplayPosition();
     currentX += ELEVATOR_SPACING + elevator.width;
     return elevator;
