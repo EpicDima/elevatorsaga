@@ -135,6 +135,12 @@ export class Elevator extends Movable<ElevatorEvents> {
    */
   #arrivalInFlight = false;
 
+  /** Indicator state as of the last `indicatorstate_change`. */
+  #announcedIndicators: IndicatorState = {
+    up: this.goingUpIndicator,
+    down: this.goingDownIndicator,
+  };
+
   /**
    * @param speedFloorsPerSec - Top speed expressed in floors per second.
    * @param floorCount - Number of floors in the world.
@@ -168,7 +174,20 @@ export class Elevator extends Movable<ElevatorEvents> {
       this.handleNewState();
     });
 
+    // Only on an actual change: `indicatorstate_change` re-offers boarding,
+    // which makes the world sweep every floor and every user. Player code that
+    // assigns the indicators once per frame — the obvious way to implement
+    // directional service — would otherwise pay for that sweep every frame.
     this.on("change:goingUpIndicator change:goingDownIndicator", () => {
+      if (
+        this.goingUpIndicator === this.#announcedIndicators.up &&
+        this.goingDownIndicator === this.#announcedIndicators.down
+      ) {
+        return;
+      }
+      this.#announcedIndicators = { up: this.goingUpIndicator, down: this.goingDownIndicator };
+      // A fresh object per dispatch: the bookkeeping copy above is never handed
+      // to a subscriber.
       this.trigger("indicatorstate_change", {
         up: this.goingUpIndicator,
         down: this.goingDownIndicator,

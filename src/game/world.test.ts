@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { Elevator } from "./elevator.ts";
 import type { ElevatorInterface } from "./elevator-interface.ts";
+import { Floor } from "./floor.ts";
 import { at } from "./test-helpers.ts";
 import { User } from "./user.ts";
 import type { ControllableWorld } from "./world-controller.ts";
@@ -466,6 +467,24 @@ describe("World", () => {
       elevInterface.goingUpIndicator(true);
 
       expect(user.parent).toBe(elevator);
+    });
+
+    it("costs nothing when player code rewrites the indicators every frame", () => {
+      // The re-offer is wired to indicatorstate_change, and every
+      // entrance_available makes the world sweep every floor and every user
+      // looking for someone to board. Player code that simply assigns the
+      // indicators once per frame - the obvious way to write directional
+      // service - used to pay for a full sweep on each of those frames.
+      const { world, elevInterface } = createWorldWithRefusedUser();
+      const sweep = vi.spyOn(Floor.prototype, "elevatorAvailable");
+
+      for (let frame = 0; frame < 100; frame++) {
+        elevInterface.goingUpIndicator(false);
+        elevInterface.goingDownIndicator(true);
+        world.update(1.0 / 60.0);
+      }
+
+      expect(sweep).not.toHaveBeenCalled();
     });
 
     it("leaves the statistics and the destination queue untouched", () => {

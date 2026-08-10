@@ -260,6 +260,38 @@ describe("Elevator interface", () => {
     expect(indicatorChange).toHaveBeenCalledWith({ up: false, down: true });
   });
 
+  it("emits nothing when an indicator is written its current value", () => {
+    // Setting the indicators unconditionally every frame is the obvious way to
+    // write directional service, and it used to raise change:goingUpIndicator
+    // (and therefore indicatorstate_change, and therefore a re-offer of
+    // boarding, and therefore a whole floor/user availability sweep in the
+    // world) on every one of those writes.
+    const indicatorChange = vi.fn();
+    const upChange = vi.fn();
+    e.on("indicatorstate_change", indicatorChange);
+    e.on("change:goingUpIndicator", upChange);
+
+    for (let i = 0; i < 10; i++) {
+      elevInterface.goingUpIndicator(false);
+    }
+
+    expect(e.goingUpIndicator).toBe(false);
+    expect(upChange).toHaveBeenCalledTimes(1);
+    expect(indicatorChange).toHaveBeenCalledTimes(1);
+  });
+
+  it("still emits on every real indicator change", () => {
+    const indicatorChange = vi.fn();
+    e.on("indicatorstate_change", indicatorChange);
+
+    for (let i = 0; i < 5; i++) {
+      elevInterface.goingUpIndicator(false);
+      elevInterface.goingUpIndicator(true);
+    }
+
+    expect(indicatorChange).toHaveBeenCalledTimes(10);
+  });
+
   it("normalizes load factor", () => {
     for (let i = 0; i < 20; i++) {
       e.userEntering({ weight: 55 + i });

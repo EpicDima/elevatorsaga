@@ -419,6 +419,17 @@ describe("Elevator object", () => {
       expect(changed).toHaveBeenNthCalledWith(2, { up: false, down: false });
     });
 
+    it("emits no indicatorstate_change when neither indicator actually moved", () => {
+      const changed = vi.fn();
+      e.on("indicatorstate_change", changed);
+
+      // Both indicators start lit, so these announce nothing.
+      e.trigger("change:goingUpIndicator", true);
+      e.trigger("change:goingDownIndicator", true);
+
+      expect(changed).not.toHaveBeenCalled();
+    });
+
     it("re-offers boarding when an indicator changes while parked at a floor", () => {
       // Issues #59, #74, #98, #124: boarding is otherwise only ever offered
       // from handleDestinationArrival, so a passenger the indicators refused is

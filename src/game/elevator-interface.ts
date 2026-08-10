@@ -295,8 +295,13 @@ export class ElevatorInterface extends Observable<ElevatorInterfaceEvents> {
     if (value !== undefined) {
       // Player code is untyped and may pass any truthy/falsy value.
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-conversion -- preserves the legacy `val ? true : false` coercion
-      this.#elevator.goingUpIndicator = Boolean(value);
-      this.#elevator.trigger("change:goingUpIndicator", this.#elevator.goingUpIndicator);
+      const next = Boolean(value);
+      // Only announce a real change; see the note on the elevator's own
+      // change: handler.
+      if (next !== this.#elevator.goingUpIndicator) {
+        this.#elevator.goingUpIndicator = next;
+        this.#elevator.trigger("change:goingUpIndicator", next);
+      }
       return this;
     }
     return this.#elevator.goingUpIndicator;
@@ -313,8 +318,11 @@ export class ElevatorInterface extends Observable<ElevatorInterfaceEvents> {
   goingDownIndicator(value?: boolean): boolean | this {
     if (value !== undefined) {
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-conversion -- preserves the legacy `val ? true : false` coercion
-      this.#elevator.goingDownIndicator = Boolean(value);
-      this.#elevator.trigger("change:goingDownIndicator", this.#elevator.goingDownIndicator);
+      const next = Boolean(value);
+      if (next !== this.#elevator.goingDownIndicator) {
+        this.#elevator.goingDownIndicator = next;
+        this.#elevator.trigger("change:goingDownIndicator", next);
+      }
       return this;
     }
     return this.#elevator.goingDownIndicator;
