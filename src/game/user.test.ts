@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { Elevator } from "./elevator.ts";
 import { Floor } from "./floor.ts";
-import { timeForwarder } from "./test-helpers.ts";
+import { at, timeForwarder } from "./test-helpers.ts";
 import { User } from "./user.ts";
 
 const FLOOR_COUNT = 4;
@@ -154,6 +154,47 @@ describe("User.elevatorAvailable", () => {
 
     expect(user.parent).toBe(null);
     expect(floor.buttonStates.up).toBe("activated");
+  });
+
+  it("re-presses the call button when the elevator will not serve their direction", () => {
+    // Issue #110 ("Passengers not rehitting button"): documentation.html says
+    // of both up_button_pressed and down_button_pressed that "passengers will
+    // press the button again if they fail to enter an elevator", but only the
+    // full-elevator path did so. The floor is notified of the arriving elevator
+    // before its waiting passengers are, so an elevator whose indicators change
+    // in between - which player code does from floor button handlers - clears
+    // the call button and then turns the passenger away, leaving the floor
+    // looking as though nobody is waiting there.
+    const floor = currentFloor();
+    floor.elevatorAvailable(elevator);
+    expect(floor.buttonStates.up).toBe("");
+    elevator.goingUpIndicator = false;
+    const upPressed = vi.fn();
+    floor.on("up_button_pressed", upPressed);
+
+    user.elevatorAvailable(elevator, floor);
+
+    expect(user.parent).toBe(null);
+    expect(floor.buttonStates.up).toBe("activated");
+    expect(upPressed).toHaveBeenCalledTimes(1);
+  });
+
+  it("re-presses the down button for a refused passenger travelling down", () => {
+    // The mirror of the case above: the passenger's direction decides which
+    // button is pressed, exactly as on their first arrival at the floor.
+    const topFloor = at(floors, FLOOR_COUNT - 1);
+    const downUser = new User(70);
+    downUser.appearOnFloor(topFloor, 0);
+    elevator.setFloorPosition(FLOOR_COUNT - 1);
+    topFloor.elevatorAvailable(elevator);
+    expect(topFloor.buttonStates.down).toBe("");
+    elevator.goingDownIndicator = false;
+
+    downUser.elevatorAvailable(elevator, topFloor);
+
+    expect(downUser.parent).toBe(null);
+    expect(topFloor.buttonStates.down).toBe("activated");
+    expect(topFloor.buttonStates.up).toBe("");
   });
 
   it("ignores the offer while already walking into an elevator", () => {

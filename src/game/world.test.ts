@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Elevator } from "./elevator.ts";
 import type { ElevatorInterface } from "./elevator-interface.ts";
 import { at } from "./test-helpers.ts";
-import type { User } from "./user.ts";
+import { User } from "./user.ts";
 import type { ControllableWorld } from "./world-controller.ts";
 import {
   World,
@@ -491,6 +491,53 @@ describe("World", () => {
       expect(stopped).not.toHaveBeenCalled();
       expect(stoppedAtFloor).not.toHaveBeenCalled();
       expect(floorButtonsChanged).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("refused passengers", () => {
+    it("keeps the call button lit when the indicators change mid-arrival", () => {
+      // Issue #110. The world notifies the floor of an arriving elevator before
+      // it notifies the passengers standing on it, and the floor clears every
+      // call button the elevator's indicators currently advertise. Player code
+      // routinely retargets an elevator from a floor button handler, and those
+      // handlers fire from inside this very dispatch - here, from the re-press
+      // of a passenger who could not fit. The passengers offered after that
+      // point see the new indicators, and the one whose direction is no longer
+      // served was turned away without pressing their button again, leaving the
+      // floor looking as though nobody was waiting on it.
+      vi.spyOn(Math, "random").mockReturnValue(0);
+      const world = createWorld({
+        spawnRate: 0.001,
+        floorCount: 3,
+        elevatorCount: 1,
+        elevatorCapacities: [1],
+      });
+      const elevator = at(world.elevators, 0);
+      const floor = at(world.floors, 1);
+      elevator.setFloorPosition(1);
+      elevator.userEntering({ weight: 70 });
+
+      // Two passengers on floor 1 heading in opposite directions.
+      const goingDown = new User(70);
+      goingDown.appearOnFloor(floor, 0);
+      const goingUp = new User(70);
+      goingUp.appearOnFloor(floor, 2);
+      world.users.push(goingDown, goingUp);
+
+      // Typical player code: retarget the elevator when a call comes in.
+      floor.on("down_button_pressed", () => {
+        elevator.goingUpIndicator = false;
+      });
+
+      elevator.trigger("entrance_available", elevator);
+
+      // The full elevator turned the first passenger away and they re-pressed,
+      // which switched the elevator to down only; the second was then refused
+      // for direction with their button already cleared.
+      expect(goingDown.parent).toBe(null);
+      expect(goingUp.parent).toBe(null);
+      expect(floor.buttonStates.down).toBe("activated");
+      expect(floor.buttonStates.up).toBe("activated");
     });
   });
 

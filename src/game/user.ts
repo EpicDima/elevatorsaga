@@ -124,8 +124,8 @@ export class User extends Movable<UserEvents> {
    * Reacts to an elevator opening its doors on this passenger's floor.
    *
    * Passengers that are done, already riding, or mid-animation ignore the
-   * offer, as do passengers the elevator's indicators say it will not serve.
-   * A passenger who cannot fit presses the call button again.
+   * offer. A passenger the elevator's indicators say it will not serve, and a
+   * passenger who cannot fit, both press the call button again.
    *
    * @param elevator - The elevator that just became available.
    * @param floor - The floor the elevator is standing at.
@@ -136,7 +136,19 @@ export class User extends Movable<UserEvents> {
     }
 
     if (!elevator.isSuitableForTravelBetween(this.currentFloor, this.destinationFloor)) {
-      // Not suitable for travel - don't use this elevator
+      // Not suitable for travel - don't use this elevator.
+      //
+      // Press the call button again first. documentation.html promises, for
+      // both up_button_pressed and down_button_pressed, that "passengers will
+      // press the button again if they fail to enter an elevator", but the
+      // legacy code only did so on the full-elevator path below (upstream issue
+      // #110). The world notifies a floor of an arriving elevator before it
+      // notifies the passengers standing on it, and the floor clears every
+      // button the elevator's indicators advertise, so a passenger turned away
+      // here could be left standing at a floor whose call button had gone dark.
+      // Pressing an already lit button emits nothing, so this is free whenever
+      // the call is still registered.
+      this.pressFloorButton(floor);
       return;
     }
 
