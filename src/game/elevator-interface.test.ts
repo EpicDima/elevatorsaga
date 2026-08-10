@@ -43,6 +43,80 @@ describe("Elevator interface", () => {
     elevInterface = new ElevatorInterface(e, FLOOR_COUNT, errorHandler);
   });
 
+  it("exposes exactly the documented surface and nothing else", () => {
+    // `triggerSafe` is this rewrite's own method and reached player code only
+    // as an inheritance side effect. Its second parameter is the error
+    // *reporter*, so `elevator.triggerSafe("idle")` sends a handler's exception
+    // to `report(undefined, error)`, where the TypeError that follows is
+    // swallowed to console.error and never reaches handleUserCodeError - the
+    // player's code fails and the game says nothing. It also exposes the
+    // re-entrancy guard, so a triggerSafe of an in-flight event is a silent
+    // no-op. `trigger` stays: interfaces.js:6 published it.
+    const exposed = new Set<string>();
+    for (
+      let proto: object | null = elevInterface;
+      proto !== null && proto !== Object.prototype;
+      proto = Object.getPrototypeOf(proto) as object | null
+    ) {
+      for (const key of Object.getOwnPropertyNames(proto)) {
+        exposed.add(key);
+      }
+    }
+    exposed.delete("constructor");
+
+    expect([...exposed].sort()).toEqual([
+      "checkDestinationQueue",
+      "currentFloor",
+      "destinationDirection",
+      "destinationQueue",
+      "getFirstPressedFloor",
+      "getPressedFloors",
+      "goToFloor",
+      "goingDownIndicator",
+      "goingUpIndicator",
+      "loadFactor",
+      "maxPassengerCount",
+      "off",
+      "offAll",
+      "on",
+      "once",
+      "stop",
+      "trigger",
+    ]);
+    for (const forbidden of ["triggerSafe"]) {
+      expect(exposed.has(forbidden)).toBe(false);
+    }
+    expect(elevInterface).not.toBe(e);
+  });
+
+  it("forwards the whole emitter surface to the emitter it holds", () => {
+    // The facade delegates instead of inheriting, so each of these has to be
+    // wired by hand and each returns the facade, not the emitter behind it.
+    const once = vi.fn();
+    const removed = vi.fn();
+    const kept = vi.fn();
+    const dropped = vi.fn();
+    expect(elevInterface.once("stopped_at_floor", once)).toBe(elevInterface);
+    expect(elevInterface.on("stopped_at_floor", removed)).toBe(elevInterface);
+    expect(elevInterface.on("stopped_at_floor", kept)).toBe(elevInterface);
+    expect(elevInterface.off("stopped_at_floor", removed)).toBe(elevInterface);
+
+    expect(elevInterface.trigger("stopped_at_floor", 1)).toBe(elevInterface);
+    elevInterface.trigger("stopped_at_floor", 2);
+
+    expect(once).toHaveBeenCalledTimes(1);
+    expect(removed).not.toHaveBeenCalled();
+    expect(kept).toHaveBeenCalledTimes(2);
+
+    elevInterface.on("idle", dropped);
+    expect(elevInterface.offAll()).toBe(elevInterface);
+    elevInterface.checkDestinationQueue();
+    e.trigger("stopped_at_floor", 3);
+
+    expect(dropped).not.toHaveBeenCalled();
+    expect(kept).toHaveBeenCalledTimes(2);
+  });
+
   describe("events", () => {
     it("propagates stopped_at_floor event", () => {
       const someHandler = vi.fn();
@@ -657,7 +731,7 @@ describe("Elevator interface", () => {
     });
 
     it("absorbs player code re-triggering the event it is handling", () => {
-      // `trigger` is published surface on this facade (interfaces.js:5 wrapped
+      // `trigger` is published surface on this facade (interfaces.js:6 wrapped
       // it in `riot.observable`), so player code really does write this. Run
       // against the legacy engine the same program idles once and logs no
       // error, because riot's `fn.busy` (libs/riot.js:43-48) refused the nested

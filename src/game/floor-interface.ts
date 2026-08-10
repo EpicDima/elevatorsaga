@@ -11,10 +11,11 @@
  * The surface is exactly `floorNum()`, `level`, `buttonStates` and
  * `on`/`off`/`once`. The emitter is held rather than inherited from, so the
  * dispatch side of it — `trigger`, `triggerSafe`, `offAll` — is not reachable
- * from player code either. That is the difference from `ElevatorInterface`,
- * which legitimately inherits its emitter: the legacy elevator facade really
- * was a `riot.observable(obj)` (interfaces.js:6), so `trigger` was part of its
- * published surface and solutions may be using it.
+ * from player code either. {@link "./elevator-interface.ts"!ElevatorInterface}
+ * holds its emitter the same way, but does publish `trigger` and `offAll`: the
+ * legacy elevator facade really was a `riot.observable(obj)`
+ * (`interfaces.js:6`), so those were part of its surface and solutions may be
+ * using them.
  *
  * `level` and `buttonStates` are undocumented but were readable on the old
  * object and are used by published solutions, so they are kept —

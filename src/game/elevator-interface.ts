@@ -8,11 +8,28 @@
  * It hides the actual elevator object behind a more robust facade, while also
  * exposing relevant events, and providing some helper queue functions that
  * allow programming without async logic.
+ *
+ * The emitter is held rather than inherited from, so the surface is exactly the
+ * legacy one: the documented methods plus `on`/`once`/`off`/`offAll` and
+ * `trigger`, which the legacy `riot.observable(obj)` (`interfaces.js:6`)
+ * published. `triggerSafe` is not part of it. That method is this rewrite's
+ * own, and inheriting it would hand player code a dispatch whose second
+ * argument is the *error reporter*: `elevator.triggerSafe("idle")` would route
+ * a handler's exception through `report(undefined, error)`, where the resulting
+ * TypeError is logged to the console and never reaches `handleUserCodeError` —
+ * the player's code fails and the "problem with your code" banner never
+ * appears.
  */
 
 import type { Elevator, ElevatorDirection } from "./elevator.ts";
 import { epsilonEquals, limitNumber } from "./math.ts";
-import { PlayerObservable, type EventName } from "./observable.ts";
+import {
+  PlayerObservable,
+  type EventHandler,
+  type EventName,
+  type EventNameSpec,
+  type HandlerFor,
+} from "./observable.ts";
 
 /** Direction an elevator is heading, as reported to player code. */
 export type DestinationDirection = ElevatorDirection | "stopped";
@@ -62,7 +79,7 @@ function lastOrNaN(arr: readonly number[]): number {
 }
 
 /** The elevator API exposed to player code. */
-export class ElevatorInterface extends PlayerObservable<ElevatorInterfaceEvents> {
+export class ElevatorInterface {
   /**
    * Floor numbers the elevator is scheduled to visit.
    *
@@ -75,6 +92,13 @@ export class ElevatorInterface extends PlayerObservable<ElevatorInterfaceEvents>
   readonly #elevator: Elevator;
   readonly #floorCount: number;
   readonly #errorHandler: ElevatorInterfaceErrorHandler;
+  /**
+   * Player subscriptions.
+   *
+   * Dispatches with this facade as the receiver, so a `function` handler's
+   * `this` is the facade, exactly as when it inherited the emitter.
+   */
+  readonly #events = new PlayerObservable<ElevatorInterfaceEvents>(this);
 
   /**
    * @param elevator - The elevator this facade wraps.
@@ -82,7 +106,6 @@ export class ElevatorInterface extends PlayerObservable<ElevatorInterfaceEvents>
    * @param errorHandler - Receives anything a player-code handler throws.
    */
   constructor(elevator: Elevator, floorCount: number, errorHandler: ElevatorInterfaceErrorHandler) {
-    super();
     this.#elevator = elevator;
     this.#floorCount = floorCount;
     this.#errorHandler = errorHandler;
@@ -135,7 +158,87 @@ export class ElevatorInterface extends PlayerObservable<ElevatorInterfaceEvents>
     event: K,
     ...args: ElevatorInterfaceEvents[K]
   ): void {
-    this.triggerSafe(event, this.#errorHandler, ...args);
+    this.#events.triggerSafe(event, this.#errorHandler, ...args);
+  }
+
+  /**
+   * Registers a handler for one event, or for several space separated events.
+   *
+   * @param events - Event name, or names separated by single spaces.
+   * @param handler - Called, in registration order, on every matching event.
+   * @returns This facade, for chaining.
+   */
+  on<S extends EventNameSpec<ElevatorInterfaceEvents>>(
+    events: S,
+    handler: HandlerFor<S, ElevatorInterfaceEvents>,
+  ): this {
+    this.#events.on(events, handler);
+    return this;
+  }
+
+  /**
+   * Registers a handler to run at most once.
+   *
+   * @param event - Single event name.
+   * @param handler - Called on the next occurrence of `event`.
+   * @returns This facade, for chaining.
+   */
+  once<K extends EventName<ElevatorInterfaceEvents>>(
+    event: K,
+    handler: EventHandler<ElevatorInterfaceEvents[K]>,
+  ): this {
+    this.#events.once(event, handler);
+    return this;
+  }
+
+  /**
+   * Unregisters handlers.
+   *
+   * @param events - Event name, or names separated by single spaces.
+   * @param handler - When given, only this exact function is unregistered;
+   * when omitted, every handler of each listed event is.
+   * @returns This facade, for chaining.
+   */
+  off<S extends EventNameSpec<ElevatorInterfaceEvents>>(
+    events: S,
+    handler?: HandlerFor<S, ElevatorInterfaceEvents>,
+  ): this {
+    this.#events.off(events, handler);
+    return this;
+  }
+
+  /**
+   * Removes every handler for every event.
+   *
+   * Kept because the legacy facade published it and `World.unWind` uses it to
+   * tear the facade down.
+   *
+   * @returns This facade, for chaining.
+   */
+  offAll(): this {
+    this.#events.offAll();
+    return this;
+  }
+
+  /**
+   * Emits an event to the handlers player code registered.
+   *
+   * Published because the legacy facade was a `riot.observable(obj)`
+   * (`interfaces.js:6`) and solutions may raise their own events with it. It is
+   * the guarded dispatch, so re-triggering the event being handled is refused
+   * rather than recursing; a handler that throws still throws out of here, as
+   * it did through riot.
+   *
+   * @param event - Event to emit.
+   * @param args - Arguments for that event.
+   * @returns This facade, for chaining.
+   */
+  trigger<K extends EventName<ElevatorInterfaceEvents>>(
+    event: K,
+    ...args: ElevatorInterfaceEvents[K]
+  ): this {
+    this.#events.trigger(event, ...args);
+    return this;
   }
 
   /**
