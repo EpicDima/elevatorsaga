@@ -92,6 +92,33 @@ describe("Elevator interface", () => {
       expect(someHandler).toHaveBeenCalled();
     });
 
+    it("calls handlers with the interface as `this`", () => {
+      // Legacy riot dispatched with `fn.apply(el, ...)` (libs/riot.js:45), and
+      // the elevator interface *was* `el`.
+      const seen: unknown[] = [];
+      elevInterface.on("stopped_at_floor", function (this: unknown): void {
+        seen.push(this);
+      });
+
+      e.trigger("stopped_at_floor", 1);
+
+      expect(seen).toHaveLength(1);
+      expect(seen[0]).toBe(elevInterface);
+    });
+
+    it("supports the legacy `function () { this.goToFloor(0); }` idiom", () => {
+      // A working legacy solution: `this` inside the handler is the elevator.
+      e.setFloorPosition(2);
+      elevInterface.on("idle", function (this: ElevatorInterface): void {
+        this.goToFloor(0);
+      });
+
+      elevInterface.checkDestinationQueue();
+
+      expect(elevInterface.destinationQueue).toEqual([0]);
+      expect(errorHandler).not.toHaveBeenCalled();
+    });
+
     it("routes exceptions thrown by player handlers to the error handler", () => {
       const boom = new Error("boom");
       elevInterface.on("stopped_at_floor", () => {

@@ -256,3 +256,20 @@ describe("Movable.wait", () => {
     expect(m.isBusy()).toBe(false);
   });
 });
+
+describe("Movable events", () => {
+  it("calls handlers with the movable as `this`", () => {
+    // `unobservable`, the emitter behind Movable, dispatched with
+    // `fn.call(this, ...)` too (libs/unobservable.js:96-97).
+    const m = new Movable();
+    const seen: unknown[] = [];
+    m.on("new_state", function (this: unknown): void {
+      seen.push(this);
+    });
+
+    m.moveTo(1.0, 2.0);
+
+    expect(seen).toHaveLength(1);
+    expect(seen[0]).toBe(m);
+  });
+});

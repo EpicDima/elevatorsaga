@@ -16,6 +16,11 @@
  *    before it is reached is *not* invoked, and no handler is skipped.
  * 3. `once` handlers run exactly once and are removed before invocation.
  * 4. Re-entrant {@link Observable.trigger} calls from inside a handler work.
+ * 5. Handlers are invoked with the emitter as their `this`, so the documented
+ *    `elevator.on("idle", function () { this.goToFloor(0); })` idiom works.
+ *    Both legacy emitters did this (`libs/riot.js:45` dispatched with
+ *    `fn.apply(el, args)`, `libs/unobservable.js:96-97` with `fn.call(this, …)`).
+ *    Arrow handlers are unaffected: they keep their defining scope's `this`.
  *
  * Three legacy quirks are deliberately dropped:
  *
@@ -260,16 +265,30 @@ export class Observable<E extends EventArgsMap> {
         this.#removeEntry(event, entry);
       }
       if (onError === null) {
-        entry.handler(...args);
+        this.#invoke(entry.handler, args);
         continue;
       }
       try {
-        entry.handler(...args);
+        this.#invoke(entry.handler, args);
       } catch (e) {
         onError(e);
       }
     }
     return this;
+  }
+
+  /**
+   * Invokes one handler with this emitter as its `this`.
+   *
+   * `Reflect.apply` rather than `handler.call(...)` because the erased handler
+   * type takes a `readonly unknown[]` rest parameter, which `strictBindCallApply`
+   * refuses to match against `call`'s `A extends any[]`.
+   *
+   * @param handler - Handler to invoke.
+   * @param args - Arguments forwarded to it.
+   */
+  #invoke(handler: ErasedHandler, args: readonly unknown[]): void {
+    Reflect.apply(handler, this, args);
   }
 
   #add(events: string, handler: ErasedHandler, once: boolean): void {

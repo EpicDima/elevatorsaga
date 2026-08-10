@@ -98,6 +98,21 @@ describe("FloorInterface", () => {
       expect(seen[0]).not.toBe(floor.buttonStates);
     });
 
+    it("calls handlers with the facade as `this`", () => {
+      // Legacy riot dispatched with `fn.apply(el, ...)` (libs/riot.js:45), and
+      // player code was handed the emitter itself.
+      const seen: unknown[] = [];
+      floorInterface.on("up_button_pressed", function (this: unknown): void {
+        seen.push(this);
+      });
+
+      floor.pressUpButton();
+
+      expect(seen).toHaveLength(1);
+      expect(seen[0]).toBe(floorInterface);
+      expect(seen[0]).not.toBe(floor);
+    });
+
     it("supports the documented space separated registration", () => {
       const pressed = vi.fn();
       floorInterface.on("down_button_pressed up_button_pressed", pressed);

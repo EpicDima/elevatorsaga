@@ -450,6 +450,73 @@ describe("Observable re-entrancy", () => {
   });
 });
 
+describe("Observable handler receiver", () => {
+  it("calls handlers with the emitter as `this`, as riot did", () => {
+    // libs/riot.js:45 dispatched with `fn.apply(el, ...)`, so the legacy idiom
+    // `elevators[0].on("idle", function() { this.goToFloor(0); })` worked.
+    const emitter = makeEmitter();
+    const seen: unknown[] = [];
+    emitter.on("idle", function (this: unknown): void {
+      seen.push(this);
+    });
+
+    emitter.trigger("idle");
+
+    expect(seen).toHaveLength(1);
+    expect(seen[0]).toBe(emitter);
+  });
+
+  it("uses the same receiver for triggerSafe", () => {
+    const emitter = makeEmitter();
+    const seen: unknown[] = [];
+    emitter.on("idle", function (this: unknown): void {
+      seen.push(this);
+    });
+
+    emitter.triggerSafe("idle", vi.fn());
+
+    expect(seen).toHaveLength(1);
+    expect(seen[0]).toBe(emitter);
+  });
+
+  it("leaves arrow functions bound to their defining scope", () => {
+    const emitter = makeEmitter();
+    const owner = {
+      seen: null as unknown,
+      listen(e: Observable<TestEvents>): void {
+        e.on("idle", () => {
+          this.seen = this;
+        });
+      },
+    };
+    owner.listen(emitter);
+
+    emitter.trigger("idle");
+
+    expect(owner.seen).toBe(owner);
+  });
+
+  it("never hands a handler the emitter's internal bookkeeping", () => {
+    // The dispatch used to invoke `entry.handler(...)`, which made `this` the
+    // internal handler record `{handler, once, removed}`: player code was given
+    // a live internal object, and writing `this.removed = true` from a handler
+    // silently unregistered it from every later dispatch.
+    const emitter = makeEmitter();
+    const later = vi.fn();
+    const selfDestructing = vi.fn(function (this: Record<string, unknown>): void {
+      this["removed"] = true;
+    });
+    emitter.on("idle", selfDestructing);
+    emitter.on("idle", later);
+
+    emitter.trigger("idle");
+    emitter.trigger("idle");
+
+    expect(selfDestructing).toHaveBeenCalledTimes(2);
+    expect(later).toHaveBeenCalledTimes(2);
+  });
+});
+
 describe("Observable.triggerSafe", () => {
   it("invokes every handler with the triggered arguments", () => {
     const emitter = makeEmitter();
