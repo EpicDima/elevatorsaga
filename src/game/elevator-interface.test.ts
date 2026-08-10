@@ -83,7 +83,22 @@ describe("Elevator interface", () => {
       "stop",
       "trigger",
     ]);
-    for (const forbidden of ["triggerSafe"]) {
+    for (const forbidden of [
+      // This rewrite's own dispatch, and the reason for the test.
+      "triggerSafe",
+      // The real Elevator behind the facade, which player code must not reach.
+      "userEntering",
+      "userExiting",
+      "setFloorPosition",
+      "updateElevatorMovement",
+      "pressFloorButton",
+      "isFull",
+      "isBusy",
+      "wait",
+      "moveTo",
+      "y",
+      "destinationY",
+    ]) {
       expect(exposed.has(forbidden)).toBe(false);
     }
     expect(elevInterface).not.toBe(e);
