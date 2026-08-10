@@ -3,10 +3,32 @@ import { describe, expect, it } from "vitest";
 
 import docsSource from "../documentation.html?raw";
 import pageSource from "../index.html?raw";
+import { createIcon } from "./ui/icons.ts";
 
 /** The page shell, parsed as the browser would parse it. */
 const page = new DOMParser().parseFromString(pageSource, "text/html");
 const docs = new DOMParser().parseFromString(docsSource, "text/html");
+
+/**
+ * Everything about an inline icon that has to match, whitespace aside.
+ *
+ * @param icon - An `svg.icon` element, hand-written or built by `createIcon`.
+ * @returns The attributes that decide what is drawn.
+ */
+function iconShape(icon: Element): Record<string, string | null> {
+  const path = icon.querySelector("path");
+  return {
+    class: icon.getAttribute("class"),
+    viewBox: icon.getAttribute("viewBox"),
+    width: icon.getAttribute("width"),
+    height: icon.getAttribute("height"),
+    fill: icon.getAttribute("fill"),
+    ariaHidden: icon.getAttribute("aria-hidden"),
+    focusable: icon.getAttribute("focusable"),
+    transform: path?.getAttribute("transform") ?? null,
+    d: path?.getAttribute("d") ?? null,
+  };
+}
 
 /** Anything loaded from another origin, which the rewrite got rid of. */
 function thirdPartyResources(document: Document): Element[] {
@@ -58,6 +80,23 @@ describe("index.html", () => {
     const container = page.querySelector(".feedbackcontainer");
     expect(container?.getAttribute("role")).toBe("status");
     expect(container?.textContent).toBe("");
+  });
+
+  it("lets a keyboard reach the building, which scrolls sideways", () => {
+    // .world is a horizontal scroll container, and a scroll container that
+    // cannot take focus cannot be scrolled without a mouse. Being in the tab
+    // order in turn obliges it to have a role and an accessible name.
+    const world = page.querySelector(".world");
+    expect(world?.getAttribute("tabindex")).toBe("0");
+    expect(world?.getAttribute("role")).toBe("region");
+    expect(world?.getAttribute("aria-label")).toBeTruthy();
+  });
+
+  it("marks the shortcut keys the editor binds as Mod-", () => {
+    // Mod- is Command on Apple platforms, so the shipped "Ctrl" is wrong there
+    // and src/ui/shortcuts.ts rewrites these two at load.
+    const modKeys = [...page.querySelectorAll(".hint kbd[data-mod-key]")];
+    expect(modKeys.map((key) => key.textContent)).toEqual(["Ctrl", "Ctrl"]);
   });
 
   it("has one landmark of each kind, and a single top-level heading", () => {
@@ -117,5 +156,21 @@ describe("documentation.html", () => {
     expect(thirdPartyResources(docs)).toEqual([]);
     expect(docs.documentElement.innerHTML).not.toContain("google-analytics");
     expect(docs.documentElement.innerHTML).not.toContain("highlight");
+  });
+
+  it("draws the same plus and minus icons the challenge bar draws", () => {
+    // The page is static, so the two icons in "How to play" are written out by
+    // hand instead of built by createIcon. Nothing else would notice them
+    // drifting from src/ui/icons.ts -- or from each other, the plus and the
+    // minus being one character apart in the path data.
+    expect([...docs.querySelectorAll(".icon")].map(iconShape)).toEqual([
+      iconShape(createIcon("plus", "emphasis-color")),
+      iconShape(createIcon("minus", "emphasis-color")),
+    ]);
+  });
+
+  it("marks the shortcut keys the editor binds as Mod-", () => {
+    const modKeys = [...docs.querySelectorAll("kbd[data-mod-key]")];
+    expect(modKeys.map((key) => key.textContent)).toEqual(["Ctrl", "Ctrl"]);
   });
 });

@@ -1,11 +1,10 @@
 // @vitest-environment jsdom
 
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 
 import {
   clearChildren,
   createElement,
-  listen,
   query,
   queryAll,
   requireElement,
@@ -104,20 +103,5 @@ describe("setTransformPos", () => {
     setTransformPos(element, 1, 2);
     const style = element.getAttribute("style") ?? "";
     expect(style).not.toMatch(/-webkit-|-moz-|-ms-|-khtml-/);
-  });
-});
-
-describe("listen", () => {
-  it("returns an unsubscribe function", () => {
-    const button = createElement("button");
-    const handler = vi.fn();
-    const unsubscribe = listen(button, "click", handler);
-
-    button.dispatchEvent(new Event("click"));
-    expect(handler).toHaveBeenCalledTimes(1);
-
-    unsubscribe();
-    button.dispatchEvent(new Event("click"));
-    expect(handler).toHaveBeenCalledTimes(1);
   });
 });

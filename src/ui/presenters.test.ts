@@ -37,12 +37,21 @@ function statsContainer(): HTMLElement {
   return container;
 }
 
-/** A world with predictable statistics. */
+/**
+ * A world with predictable statistics.
+ *
+ * Every value is chosen so that its formatter has to round it, and to round it
+ * *up*, since rounding down is what truncation looks like too. `61.4` and
+ * `0.1953125` used to sit here: the first is not a number `toFixed(0)` can get
+ * wrong, and the second is a binary-exact `25 / 128` that `toPrecision(3)`
+ * cannot get wrong either.
+ */
 function worldWithStats(): World {
   const world = createWorld({ floorCount: 3, elevatorCount: 1 });
   world.transportedCounter = 12;
-  world.elapsedTime = 61.4;
-  world.transportedPerSec = 0.195_312_5;
+  world.elapsedTime = 60.7;
+  // The quotient the simulation would have computed, 0.1976935...
+  world.transportedPerSec = world.transportedCounter / world.elapsedTime;
   world.avgWaitTime = 3.25;
   world.maxWaitTime = 11.06;
   world.moveCount = 7;
@@ -71,7 +80,7 @@ describe("presentStats", () => {
 
     expect(requireElement(".transportedcounter", container).textContent).toBe("12");
     expect(requireElement(".elapsedtime", container).textContent).toBe("61s");
-    expect(requireElement(".transportedpersec", container).textContent).toBe("0.195");
+    expect(requireElement(".transportedpersec", container).textContent).toBe("0.198");
     expect(requireElement(".avgwaittime", container).textContent).toBe("3.3s");
     expect(requireElement(".maxwaittime", container).textContent).toBe("11.1s");
     expect(requireElement(".movecount", container).textContent).toBe("7");

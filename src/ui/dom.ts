@@ -130,27 +130,3 @@ export function setClass(element: Element, className: string, present: boolean):
 export function setTransformPos(element: HTMLElement | SVGElement, x: number, y: number): void {
   element.style.transform = `translate3d(${String(x)}px, ${String(y)}px, 0)`;
 }
-
-/**
- * Subscribes to an event and returns the matching unsubscribe function.
- *
- * Pairing the two up at the call site is what keeps listener registration
- * symmetric; the legacy `app.js` leaked listeners precisely because it had no
- * such pairing.
- *
- * @param target - Event target to listen on.
- * @param type - Event name.
- * @param listener - Handler to register.
- * @returns A function that removes the listener again.
- */
-export function listen<K extends keyof GlobalEventHandlersEventMap>(
-  target: EventTarget,
-  type: K,
-  listener: (event: GlobalEventHandlersEventMap[K]) => void,
-): () => void {
-  const handler = listener as EventListener;
-  target.addEventListener(type, handler);
-  return () => {
-    target.removeEventListener(type, handler);
-  };
-}
