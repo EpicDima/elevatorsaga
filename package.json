@@ -1,17 +1,37 @@
 {
   "name": "elevator-saga",
   "version": "2.0.0",
-  "private": false,
-  "license": "MIT",
-  "type": "module",
   "description": "Elevator Saga - the elevator programming game. Write JavaScript to transport people efficiently.",
+  "keywords": [
+    "elevator",
+    "elevator-saga",
+    "programming-game",
+    "game",
+    "puzzle",
+    "javascript",
+    "typescript",
+    "browser-game",
+    "simulation",
+    "learning"
+  ],
+  "homepage": "https://github.com/EpicDima/elevatorsaga#readme",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/EpicDima/elevatorsaga.git"
   },
-  "homepage": "https://github.com/EpicDima/elevatorsaga",
   "bugs": {
     "url": "https://github.com/EpicDima/elevatorsaga/issues"
+  },
+  "license": "MIT",
+  "author": "Magnus Wolffelt (https://github.com/magwo)",
+  "contributors": [
+    "EpicDima (https://github.com/EpicDima)",
+    "The Elevator Saga contributors (https://github.com/magwo/elevatorsaga/graphs/contributors)"
+  ],
+  "type": "module",
+  "private": true,
+  "engines": {
+    "node": ">=22"
   },
   "scripts": {
     "dev": "vite",
@@ -46,8 +66,5 @@
     "typescript-eslint": "^8.66.0",
     "vite": "^8.2.1",
     "vitest": "^4.1.10"
-  },
-  "engines": {
-    "node": ">=22"
   }
 }
