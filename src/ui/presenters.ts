@@ -123,6 +123,24 @@ export interface ChallengePresenter {
 }
 
 /**
+ * Renders a time scale the way the challenge bar shows it.
+ *
+ * The legacy `timeScale.toFixed(0) + "x"` was fine for the whole numbers the
+ * buttons produce and a lie for anything else: `#timescale=0.5` read `1x`, and
+ * `#timescale=0.1` read `0x`, which says the simulation is stopped when it is
+ * running at a tenth speed. Whole speeds still render as `1x` and `40x` — not
+ * `1.0x` — and fractional ones render as themselves.
+ *
+ * @param timeScale - The multiplier the simulation is running at.
+ * @returns The label, e.g. `"2x"`, `"0.25x"`.
+ */
+export function formatTimeScale(timeScale: number): string {
+  // Rounding first keeps float noise (0.1 + 0.2 and friends) out of the label
+  // without padding whole numbers with a decimal point the way toFixed does.
+  return `${String(Math.round(timeScale * 1000) / 1000)}x`;
+}
+
+/**
  * Draws the challenge bar and wires up its controls.
  *
  * The legacy version re-rendered the whole bar — and re-bound all three click
@@ -174,7 +192,7 @@ export function presentChallenge(
 
   const presenter: ChallengePresenter = {
     update(): void {
-      timeScaleValue.textContent = `${options.worldController.timeScale.toFixed(0)}x`;
+      timeScaleValue.textContent = formatTimeScale(options.worldController.timeScale);
       if (options.world.challengeEnded) {
         startStop.replaceChildren(createIcon("repeat"), " Restart");
       } else {

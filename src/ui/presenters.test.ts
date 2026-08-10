@@ -10,6 +10,7 @@ import {
   clearAll,
   clearCodeStatus,
   describeError,
+  formatTimeScale,
   FULLSCREEN_CLASS,
   presentChallenge,
   presentCodeStatus,
@@ -91,6 +92,37 @@ describe("presentStats", () => {
     expect(() => {
       presentStats(container, worldWithStats());
     }).toThrow("Missing required element: .transportedcounter");
+  });
+});
+
+describe("formatTimeScale", () => {
+  it.each([
+    // The speeds the +/- buttons produce, which must not gain a decimal point.
+    [1, "1x"],
+    [2, "2x"],
+    [3, "3x"],
+    [5, "5x"],
+    [8, "8x"],
+    [13, "13x"],
+    [21, "21x"],
+    [34, "34x"],
+    [40, "40x"],
+    [63, "63x"],
+    [64, "64x"],
+    // The slow half of the runnable range, which toFixed(0) misreported: 0.5
+    // showed as "1x" and 0.1 as "0x", i.e. as a stopped simulation.
+    [0.5, "0.5x"],
+    [0.25, "0.25x"],
+    [0.1, "0.1x"],
+    // Anything else a hand-written #timescale= can ask for.
+    [0.7, "0.7x"],
+    [1.618, "1.618x"],
+  ])("renders %s as %s", (timeScale, expected) => {
+    expect(formatTimeScale(timeScale)).toBe(expected);
+  });
+
+  it("does not leak binary floating-point noise into the label", () => {
+    expect(formatTimeScale(0.1 + 0.2)).toBe("0.3x");
   });
 });
 
