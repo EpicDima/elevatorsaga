@@ -617,6 +617,38 @@ describe("Observable.triggerSafe", () => {
     expect(onError).toHaveBeenCalledWith(boom);
   });
 
+  it("keeps dispatching when the error handler itself throws", () => {
+    // The reporter escaped the dispatch and took the remaining handlers with
+    // it - exactly the failure triggerSafe exists to prevent, one level up.
+    // Reporters here end in a usercode_error dispatch, so anything subscribed
+    // to that is on this path.
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const emitter = makeEmitter();
+    const boom = new Error("boom");
+    const second = vi.fn(() => {
+      throw boom;
+    });
+    const third = vi.fn();
+    const onError = vi.fn(() => {
+      throw new Error("the reporter is broken too");
+    });
+    emitter.on("idle", () => {
+      throw boom;
+    });
+    emitter.on("idle", second);
+    emitter.on("idle", third);
+
+    expect(() => {
+      emitter.triggerSafe("idle", onError);
+    }).not.toThrow();
+
+    expect(second).toHaveBeenCalledTimes(1);
+    expect(third).toHaveBeenCalledTimes(1);
+    expect(onError).toHaveBeenCalledTimes(2);
+    expect(consoleError).toHaveBeenCalledTimes(2);
+    consoleError.mockRestore();
+  });
+
   it("reports every error, in handler order", () => {
     const emitter = makeEmitter();
     const first = new Error("first");

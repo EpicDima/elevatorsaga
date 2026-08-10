@@ -113,6 +113,30 @@ function splitEventNames(events: string): string[] {
 }
 
 /**
+ * Hands one handler's exception to the reporter, containing the reporter.
+ *
+ * A reporter that throws would otherwise escape the dispatch and take the
+ * remaining handlers with it — the very failure `triggerSafe` exists to
+ * prevent, reintroduced one level up. The reporters in this game end in a
+ * `usercode_error` dispatch, so anything subscribed to that (the world
+ * controller, and through it the UI) is on this path.
+ *
+ * A throwing reporter is a bug in the game rather than in player code, so the
+ * secondary failure is logged rather than swallowed silently. The original
+ * handler exception is not lost: it is what was being reported.
+ *
+ * @param onError - The reporter to call.
+ * @param error - What the handler threw.
+ */
+function report(onError: (e: unknown) => void, error: unknown): void {
+  try {
+    onError(error);
+  } catch (secondary) {
+    console.error("Event error handler threw while reporting", error, secondary);
+  }
+}
+
+/**
  * Minimal, fully typed event emitter.
  *
  * @typeParam E - Map of event name to the arguments its handlers receive.
@@ -229,6 +253,9 @@ export class Observable<E extends EventArgsMap> {
    * in one try/catch, so the first player handler to throw silently killed
    * every handler after it (upstream issues #88, #83, #27).
    *
+   * `onError` is itself contained: a reporter that throws does not abort the
+   * dispatch either.
+   *
    * @param event - Event name to dispatch.
    * @param onError - Receives whatever a handler throws, once per failure, in
    * handler order.
@@ -270,7 +297,7 @@ export class Observable<E extends EventArgsMap> {
       try {
         this.#invoke(entry.handler, args);
       } catch (e) {
-        onError(e);
+        report(onError, e);
       }
     }
     return this;
