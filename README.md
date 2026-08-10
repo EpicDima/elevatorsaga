@@ -274,9 +274,8 @@ git show legacy-1.x:libs/riot.js
 ### Deploying
 
 `.github/workflows/deploy.yml` builds the site and publishes it with the official GitHub Pages
-actions, but it is **manual only** — run it from the Actions tab. The repository is still published
-by hand with `autopublish.sh`, which merges `master` into a `gh-pages` branch, and an automatic
-workflow would overwrite the live site without warning.
+actions, but it is **manual only** — run it from the Actions tab. Pages has to be pointed at Actions
+in the repository settings before a push trigger would publish anything.
 
 To make it automatic instead:
 
@@ -291,8 +290,6 @@ To make it automatic instead:
        branches: [master]
      workflow_dispatch:
    ```
-
-3. Retire `autopublish.sh` and the `gh-pages` branch, so exactly one thing writes to the site.
 
 ## Credits and licence
 

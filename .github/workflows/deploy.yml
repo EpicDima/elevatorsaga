@@ -2,10 +2,9 @@ name: Deploy to GitHub Pages
 
 # Manual only, deliberately.
 #
-# The repository is still published by hand with `autopublish.sh`, which merges
-# master into the `gh-pages` branch. If this workflow also fired on every push
-# the two would fight over the live site, so it has to be asked for explicitly:
-# Actions -> "Deploy to GitHub Pages" -> "Run workflow".
+# Pages has to be pointed at Actions in the repository settings before a push
+# trigger would publish anything, so until someone does that this workflow has
+# to be asked for: Actions -> "Deploy to GitHub Pages" -> "Run workflow".
 #
 # To make it automatic instead:
 #   1. Settings -> Pages -> Build and deployment -> Source: switch from "Deploy
@@ -14,8 +13,6 @@ name: Deploy to GitHub Pages
 #   2. Add a push trigger below, next to `workflow_dispatch:`:
 #        push:
 #          branches: [master]
-#   3. Retire `autopublish.sh` and the `gh-pages` branch, so there is exactly
-#      one thing writing to the site.
 on:
   workflow_dispatch:
 
