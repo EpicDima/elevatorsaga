@@ -1,8 +1,12 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 
+import { challenges } from "./challenges.ts";
 import { Elevator, type ElevatorDirection, type ElevatorPassenger } from "./elevator.ts";
-import { MovableBusyError } from "./movable.ts";
-import { assertWithinRange, timeForwarder } from "./test-helpers.ts";
+import { createFrameRequester } from "./frame-requester.ts";
+import { MovableBusyError, type MovableTask } from "./movable.ts";
+import { assertWithinRange, at, timeForwarder } from "./test-helpers.ts";
+import { createWorld, type WorldOptions } from "./world.ts";
+import { createWorldController, type UserCodeObject } from "./world-controller.ts";
 
 const FLOOR_COUNT = 4;
 const FLOOR_HEIGHT = 44;
@@ -18,6 +22,217 @@ function stepElevator(e: Elevator, dt: number, stepSize: number): void {
 /** A stand-in for `User`, which only needs a weight to affect the load factor. */
 function passenger(weight: number): ElevatorPassenger {
   return { weight };
+}
+
+/** Simulated seconds per frame, as the real game and the fitness suite run it. */
+const SWEEP_STEP_SECONDS = 1.0 / 60.0;
+
+/** Frames each sweep run simulates: half a minute of game time. */
+const SWEEP_FRAMES = 1800;
+
+/**
+ * A deterministic stand-in for `Math.random` (mulberry32).
+ *
+ * The sweep below is evidence, so it has to be reproducible: a seed that trips
+ * the invariant must trip it again on the next run, on any machine.
+ *
+ * @param seed - Chooses the stream.
+ * @returns A generator of values in `[0, 1)`.
+ */
+function seededRandom(seed: number): () => number {
+  let state = seed >>> 0;
+  return (): number => {
+    state = (state + 0x6d2b79f5) >>> 0;
+    let t = state;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+/** What one sweep saw, summed over every elevator of every run. */
+interface SweepTotals {
+  /** Movement steps that found an elevator busy. */
+  busySteps: number;
+  /** Times an elevator went from having no task to having one. */
+  taskStarts: number;
+  /** Velocities recorded where the invariant says there can be none. */
+  violations: number[];
+}
+
+/**
+ * Records the velocity an elevator has whenever it is handed a task.
+ *
+ * Hooks the property rather than {@link Elevator.wait}, so it catches every
+ * assignment to `currentTask` whatever set it — including any path added later.
+ *
+ * @param elevator - The elevator to watch.
+ * @param onBusyStart - Called with the velocity at the moment it becomes busy.
+ */
+function watchTaskStarts(elevator: Elevator, onBusyStart: (velocityY: number) => void): void {
+  let task: MovableTask | null = elevator.currentTask;
+  Object.defineProperty(elevator, "currentTask", {
+    configurable: true,
+    get: (): MovableTask | null => task,
+    set: (value: MovableTask | null): void => {
+      if (task === null && value !== null) {
+        onBusyStart(elevator.velocityY);
+      }
+      task = value;
+    },
+  });
+}
+
+/**
+ * Plays one challenge with one program, recording what the busy check saw.
+ *
+ * @param options - The challenge's world options.
+ * @param codeObj - The player program to drive it with.
+ * @param totals - Accumulator the run adds its observations to.
+ * @returns Anything the player program threw.
+ */
+function sweepChallenge(
+  options: WorldOptions,
+  codeObj: UserCodeObject,
+  totals: SweepTotals,
+): unknown[] {
+  const world = createWorld(options);
+  for (const elevator of world.elevators) {
+    watchTaskStarts(elevator, (velocityY) => {
+      totals.taskStarts++;
+      if (velocityY !== 0) {
+        totals.violations.push(velocityY);
+      }
+    });
+    const move = elevator.updateElevatorMovement.bind(elevator);
+    elevator.updateElevatorMovement = (dt: number): void => {
+      if (elevator.isBusy()) {
+        totals.busySteps++;
+        if (elevator.velocityY !== 0) {
+          totals.violations.push(elevator.velocityY);
+        }
+      }
+      move(dt);
+    };
+  }
+  const errors: unknown[] = [];
+  const controller = createWorldController(SWEEP_STEP_SECONDS);
+  controller.on("usercode_error", (e) => {
+    errors.push(e);
+  });
+  const frameRequester = createFrameRequester(1000.0 * SWEEP_STEP_SECONDS);
+  controller.start(world, codeObj, frameRequester.register, true);
+  for (let frame = 0; frame < SWEEP_FRAMES && !controller.isPaused; frame++) {
+    frameRequester.trigger();
+  }
+  return errors;
+}
+
+/** The obvious first solution: visit every floor, over and over. */
+function roundRobinProgram(): UserCodeObject {
+  return {
+    init(elevators, floors): void {
+      for (const elevator of elevators) {
+        elevator.on("idle", () => {
+          for (let floorNum = 0; floorNum < floors.length; floorNum++) {
+            elevator.goToFloor(floorNum);
+          }
+        });
+      }
+    },
+    update(): void {
+      // Nothing.
+    },
+  };
+}
+
+/**
+ * Directional service, rewriting the indicators on every frame.
+ *
+ * This is the program that exercises the indicator re-offer: every indicator
+ * change can hand a standing car a boarding dwell from outside the arrival
+ * sequence.
+ *
+ * @returns The program.
+ */
+function directionalProgram(): UserCodeObject {
+  return {
+    init(elevators, floors): void {
+      for (const floor of floors) {
+        floor.on("up_button_pressed down_button_pressed", () => {
+          at(elevators, floor.floorNum() % elevators.length).goToFloor(floor.floorNum());
+        });
+      }
+      for (const elevator of elevators) {
+        elevator.on("floor_button_pressed", (floorNum) => {
+          elevator.goToFloor(floorNum);
+        });
+        elevator.on("idle", () => {
+          elevator.goToFloor(0);
+        });
+      }
+    },
+    update(_dt, elevators): void {
+      for (const elevator of elevators) {
+        const direction = elevator.destinationDirection();
+        elevator.goingUpIndicator(direction !== "down");
+        elevator.goingDownIndicator(direction !== "up");
+      }
+    },
+  };
+}
+
+/**
+ * A deliberately hostile program: stops mid-flight, jumps the queue, and
+ * flips the indicators at random.
+ *
+ * @param random - The seeded stream its decisions are drawn from.
+ * @returns The program.
+ */
+function erraticProgram(random: () => number): UserCodeObject {
+  return {
+    init(elevators, floors): void {
+      for (const floor of floors) {
+        floor.on("up_button_pressed down_button_pressed", () => {
+          at(elevators, Math.floor(random() * elevators.length)).goToFloor(
+            floor.floorNum(),
+            random() < 0.5,
+          );
+        });
+      }
+      for (const elevator of elevators) {
+        elevator.on("floor_button_pressed", (floorNum) => {
+          elevator.goToFloor(floorNum, random() < 0.3);
+        });
+        elevator.on("passing_floor", (floorNum) => {
+          if (random() < 0.05) {
+            elevator.stop();
+          } else if (random() < 0.1) {
+            elevator.goToFloor(floorNum, true);
+          }
+        });
+        elevator.on("stopped_at_floor", (floorNum) => {
+          if (random() < 0.2) {
+            elevator.goToFloor(floorNum, true);
+          }
+        });
+        elevator.on("idle", () => {
+          elevator.goToFloor(Math.floor(random() * floors.length));
+        });
+      }
+    },
+    update(_dt, elevators): void {
+      for (const elevator of elevators) {
+        if (random() < 0.02) {
+          elevator.goingUpIndicator(random() < 0.5);
+          elevator.goingDownIndicator(random() < 0.5);
+        }
+        if (random() < 0.005) {
+          elevator.stop();
+        }
+      }
+    },
+  };
 }
 
 describe("Elevator object", () => {
@@ -742,5 +957,72 @@ describe("Elevator object", () => {
       expect(e.previousTruncFutureFloorIfStopped).toBe(3);
       expect(passing).not.toHaveBeenCalled();
     });
+  });
+});
+
+/**
+ * The invariant behind the early return at the top of `updateElevatorMovement`,
+ * which the legacy code wondered aloud about (`legacy-1.x:elevator.js:86`).
+ */
+describe("a busy elevator is always a stopped elevator", () => {
+  it("never has a velocity when the movement step skips it, in any challenge", () => {
+    // Every shipped challenge, three seeds and three programs: the naive first
+    // solution, one that rewrites the indicators every frame, and one that
+    // stops mid-flight and jumps the queue at random. Between them they reach
+    // both callers of the dwell — arrival and the indicator re-offer — a few
+    // thousand times.
+    const totals: SweepTotals = { busySteps: 0, taskStarts: 0, violations: [] };
+    for (const challenge of challenges) {
+      for (const seed of [1, 2, 3]) {
+        const random = seededRandom(seed);
+        const mock = vi.spyOn(Math, "random").mockImplementation(random);
+        try {
+          for (const program of [
+            roundRobinProgram(),
+            directionalProgram(),
+            erraticProgram(random),
+          ]) {
+            expect(sweepChallenge(challenge.options, program, totals)).toEqual([]);
+          }
+        } finally {
+          mock.mockRestore();
+        }
+      }
+    }
+
+    expect(totals.violations).toEqual([]);
+    // And the sweep really did exercise the paths it claims to.
+    expect(totals.taskStarts).toBeGreaterThan(1000);
+    expect(totals.busySteps).toBeGreaterThan(10000);
+  });
+
+  it("would be caught freezing mid-flight, and would hold its speed if it did", () => {
+    // The counter-example the sweep never produces, constructed by hand: this
+    // is what the early return does with a velocity, and why the invariant is
+    // worth stating. The car neither drifts nor slows — the whole integration
+    // step is skipped — and it resumes at exactly the speed it froze at.
+    const e = new Elevator(1.5, FLOOR_COUNT, FLOOR_HEIGHT);
+    e.setFloorPosition(0);
+    e.goToFloor(3);
+    stepElevator(e, 0.2, 0.015);
+
+    const frozenY = e.y;
+    const frozenVelocity = e.velocityY;
+    expect(frozenVelocity).not.toBe(0);
+
+    e.wait(1.0);
+    const seen: number[] = [];
+    timeForwarder(0.5, 0.015, (step) => {
+      e.update(step);
+      if (e.isBusy()) {
+        seen.push(e.velocityY);
+      }
+      e.updateElevatorMovement(step);
+    });
+
+    expect(seen.length).toBeGreaterThan(0);
+    expect(seen.every((velocityY) => velocityY === frozenVelocity)).toBe(true);
+    expect(e.y).toBe(frozenY);
+    expect(e.velocityY).toBe(frozenVelocity);
   });
 });
