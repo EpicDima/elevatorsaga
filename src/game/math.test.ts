@@ -1,11 +1,16 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import {
+  DEFAULT_INTERPOLATOR,
   EPSILON,
   accelerationNeededToAchieveChangeDistance,
+  coolInterpolate,
   distanceNeededToAchieveSpeed,
   epsilonEquals,
   limitNumber,
+  linearInterpolate,
+  powInterpolate,
+  randomInt,
 } from "./math.ts";
 
 describe("limitNumber", () => {
@@ -119,5 +124,91 @@ describe("accelerationNeededToAchieveChangeDistance", () => {
     const acceleration = accelerationNeededToAchieveChangeDistance(u, v, distance);
 
     expect(epsilonEquals(acceleration, a)).toBe(true);
+  });
+});
+
+describe("linearInterpolate", () => {
+  it("returns the endpoints at x = 0 and x = 1", () => {
+    expect(linearInterpolate(2, 10, 0)).toBe(2);
+    expect(linearInterpolate(2, 10, 1)).toBe(10);
+  });
+
+  it("returns the midpoint at x = 0.5", () => {
+    expect(linearInterpolate(2, 10, 0.5)).toBe(6);
+  });
+
+  it("extrapolates outside [0, 1]", () => {
+    expect(linearInterpolate(0, 10, 2)).toBe(20);
+    expect(linearInterpolate(0, 10, -1)).toBe(-10);
+  });
+
+  it("works with a descending range", () => {
+    expect(linearInterpolate(10, 2, 0.25)).toBe(8);
+  });
+});
+
+describe("powInterpolate", () => {
+  it("returns the endpoints at x = 0 and x = 1", () => {
+    expect(powInterpolate(2, 10, 0, 1.3)).toBe(2);
+    expect(powInterpolate(2, 10, 1, 1.3)).toBe(10);
+  });
+
+  it("is symmetric around the midpoint", () => {
+    expect(powInterpolate(0, 1, 0.5, 1.3)).toBeCloseTo(0.5, 12);
+  });
+
+  it("degenerates to linear interpolation for a = 1", () => {
+    expect(powInterpolate(0, 10, 0.25, 1)).toBeCloseTo(2.5, 12);
+    expect(powInterpolate(0, 10, 0.75, 1)).toBeCloseTo(7.5, 12);
+  });
+
+  it("eases in for a > 1", () => {
+    // A steeper exponent keeps the value closer to value0 early on.
+    expect(powInterpolate(0, 1, 0.25, 1.3)).toBeLessThan(0.25);
+    expect(powInterpolate(0, 1, 0.75, 1.3)).toBeGreaterThan(0.75);
+  });
+});
+
+describe("coolInterpolate", () => {
+  it("is powInterpolate with the legacy exponent 1.3", () => {
+    for (const x of [0, 0.1, 0.25, 0.5, 0.75, 0.9, 1]) {
+      expect(coolInterpolate(3, 17, x)).toBe(powInterpolate(3, 17, x, 1.3));
+    }
+  });
+
+  it("is the default interpolator", () => {
+    expect(DEFAULT_INTERPOLATOR).toBe(coolInterpolate);
+  });
+});
+
+describe("randomInt", () => {
+  it("is inclusive on both ends", () => {
+    const seen = new Set<number>();
+    for (let i = 0; i < 2000; i++) {
+      seen.add(randomInt(0, 2));
+    }
+    expect([...seen].sort((a, b) => a - b)).toEqual([0, 1, 2]);
+  });
+
+  it("only ever returns values inside the range", () => {
+    for (let i = 0; i < 2000; i++) {
+      const value = randomInt(55, 100);
+      expect(value).toBeGreaterThanOrEqual(55);
+      expect(value).toBeLessThanOrEqual(100);
+      expect(Number.isInteger(value)).toBe(true);
+    }
+  });
+
+  it("returns the only possible value for a single-value range", () => {
+    expect(randomInt(7, 7)).toBe(7);
+  });
+
+  it("maps the extremes of Math.random to min and max", () => {
+    const random = vi.spyOn(Math, "random");
+    random.mockReturnValue(0);
+    expect(randomInt(0, 40)).toBe(0);
+    random.mockReturnValue(0.9999999999);
+    expect(randomInt(0, 40)).toBe(40);
+    random.mockRestore();
   });
 });

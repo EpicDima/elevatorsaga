@@ -81,3 +81,69 @@ export function accelerationNeededToAchieveChangeDistance(
   // v² = u² + 2a * d
   return 0.5 * ((Math.pow(targetSpeed, 2) - Math.pow(currentSpeed, 2)) / distance);
 }
+
+/**
+ * Blends two values according to a progress factor `x` in `[0, 1]`, returning
+ * `value0` at `0` and `value1` at `1`.
+ */
+export type Interpolator = (value0: number, value1: number, x: number) => number;
+
+/**
+ * Straight-line interpolation between `value0` and `value1`.
+ *
+ * @param value0 - Value at `x === 0`.
+ * @param value1 - Value at `x === 1`.
+ * @param x - Progress in `[0, 1]`.
+ * @returns `value0 + (value1 - value0) * x`.
+ */
+export function linearInterpolate(value0: number, value1: number, x: number): number {
+  return value0 + (value1 - value0) * x;
+}
+
+/**
+ * Sigmoid-ish interpolation whose steepness is controlled by `a`.
+ *
+ * Ported verbatim from `movable.js`; `a > 1` eases in and out around the
+ * midpoint, and the endpoints degenerate to `value0` / `value1`.
+ *
+ * @param value0 - Value at `x === 0`.
+ * @param value1 - Value at `x === 1`.
+ * @param x - Progress in `[0, 1]`.
+ * @param a - Steepness exponent.
+ * @returns The interpolated value.
+ */
+export function powInterpolate(value0: number, value1: number, x: number, a: number): number {
+  return value0 + ((value1 - value0) * Math.pow(x, a)) / (Math.pow(x, a) + Math.pow(1 - x, a));
+}
+
+/**
+ * The interpolation used for elevator and passenger animations.
+ *
+ * {@link powInterpolate} with the legacy exponent `1.3`.
+ *
+ * @param value0 - Value at `x === 0`.
+ * @param value1 - Value at `x === 1`.
+ * @param x - Progress in `[0, 1]`.
+ * @returns The interpolated value.
+ */
+export function coolInterpolate(value0: number, value1: number, x: number): number {
+  return powInterpolate(value0, value1, x, 1.3);
+}
+
+/** Interpolator used by {@link "./movable.ts"!Movable.moveToOverTime} when none is given. */
+export const DEFAULT_INTERPOLATOR: Interpolator = coolInterpolate;
+
+/**
+ * Random integer in the inclusive range `[min, max]`.
+ *
+ * Replaces the bundled lodash 2/3 `_.random`, which is inclusive on both ends
+ * (`_.random(n)` is `randomInt(0, n)`). Keeping the distribution identical
+ * matters because it drives passenger spawning.
+ *
+ * @param min - Lowest value that can be returned.
+ * @param max - Highest value that can be returned.
+ * @returns An integer in `[min, max]`.
+ */
+export function randomInt(min: number, max: number): number {
+  return min + Math.floor(Math.random() * (max - min + 1));
+}
