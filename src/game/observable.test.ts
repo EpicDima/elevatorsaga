@@ -106,20 +106,76 @@ describe("Observable space-separated event names", () => {
     emitter.trigger("down_button_pressed", 2);
 
     expect(handler).toHaveBeenCalledTimes(2);
-    expect(handler).toHaveBeenNthCalledWith(1, 1);
-    expect(handler).toHaveBeenNthCalledWith(2, 2);
+    expect(handler).toHaveBeenNthCalledWith(1, "up_button_pressed", 1);
+    expect(handler).toHaveBeenNthCalledWith(2, "down_button_pressed", 2);
   });
 
-  it("does not prepend the event name for multi-name registrations", () => {
-    // Legacy riot set `fn.typed = pos > 0` and called such handlers as
-    // `fn(eventName, ...args)`. That behaviour is deliberately dropped.
+  it("prepends the event name for multi-name registrations", () => {
+    // Legacy riot set `fn.typed = pos > 0` while scanning the names
+    // (`libs/riot.js:11`) and dispatched with
+    // `fn.apply(el, fn.typed ? [name].concat(args) : args)` (`libs/riot.js:45`);
+    // unobservable set `fn.typed = count > 1` (`libs/unobservable.js:49`) and
+    // branched the same way (`libs/unobservable.js:96`). Upstream issue #1
+    // confirms it is intentional, and #33 and #42 rely on it.
     const emitter = makeEmitter();
     const handler = vi.fn();
     emitter.on("up_button_pressed down_button_pressed", handler);
 
     emitter.trigger("up_button_pressed", 7);
 
-    expect(handler).toHaveBeenCalledWith(7);
+    expect(handler).toHaveBeenCalledWith("up_button_pressed", 7);
+  });
+
+  it("prepends the name ahead of every argument of the event that fired", () => {
+    // The documented `stopped_at_floor passing_floor` pairing: the two events
+    // carry different argument counts, and each handler call is the name
+    // followed by that event's own arguments.
+    const emitter = makeEmitter();
+    const calls: unknown[][] = [];
+    emitter.on("up_button_pressed passing_floor", (...args: unknown[]) => {
+      calls.push(args);
+    });
+
+    emitter.trigger("passing_floor", 1, "up");
+    emitter.trigger("up_button_pressed", 2);
+
+    expect(calls).toEqual([
+      ["passing_floor", 1, "up"],
+      ["up_button_pressed", 2],
+    ]);
+  });
+
+  it("leaves single-name registrations completely unaffected", () => {
+    // Legacy prepended only when the registration listed more than one name, so
+    // the ordinary one-event registration must see exactly the event's own
+    // arguments — including when the same function is also registered for
+    // several events.
+    const emitter = makeEmitter();
+    const handler = vi.fn();
+    emitter.on("passing_floor", handler);
+    emitter.on("up_button_pressed down_button_pressed", handler);
+    emitter.once("idle", handler);
+
+    emitter.trigger("passing_floor", 4, "down");
+    emitter.trigger("idle");
+
+    expect(handler).toHaveBeenNthCalledWith(1, 4, "down");
+    expect(handler).toHaveBeenNthCalledWith(2);
+  });
+
+  it("prepends for a multi-name once registration too", () => {
+    // `once`/`one` take a single name, but `off`-less legacy code could still
+    // reach the multi-name path through `on`; a `once` entry carries the same
+    // flag, so the two mechanisms do not interfere.
+    const emitter = makeEmitter();
+    const handler = vi.fn();
+    emitter.on("idle up_button_pressed", handler);
+    emitter.once("idle", handler);
+
+    emitter.trigger("idle");
+
+    expect(handler).toHaveBeenNthCalledWith(1, "idle");
+    expect(handler).toHaveBeenNthCalledWith(2);
   });
 
   it("tolerates repeated whitespace between names", () => {
@@ -131,6 +187,7 @@ describe("Observable space-separated event names", () => {
     emitter.trigger("down_button_pressed", 2);
 
     expect(handler).toHaveBeenCalledTimes(2);
+    expect(handler).toHaveBeenNthCalledWith(1, "up_button_pressed", 1);
   });
 
   it("unregisters from every listed event", () => {

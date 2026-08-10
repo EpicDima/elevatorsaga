@@ -22,13 +22,17 @@
  *    Both legacy emitters did this (`libs/riot.js:45` dispatched with
  *    `fn.apply(el, args)`, `libs/unobservable.js:96-97` with `fn.call(this, …)`).
  *    Arrow handlers are unaffected: they keep their defining scope's `this`.
+ * 6. A handler registered for *more than one* event name receives the name of
+ *    the event that fired as its first argument, ahead of that event's own
+ *    arguments. Both legacy emitters did this — riot set `fn.typed = pos > 0`
+ *    while scanning the names (`libs/riot.js:11`) and dispatched with
+ *    `fn.apply(el, fn.typed ? [name].concat(args) : args)` (`libs/riot.js:45`);
+ *    unobservable set `fn.typed = count > 1` (`libs/unobservable.js:49`) and
+ *    branched the same way (`libs/unobservable.js:96`). Single-name
+ *    registrations are untouched, then and now.
  *
- * Three legacy quirks are deliberately dropped:
+ * Two legacy quirks are deliberately dropped:
  *
- * - riot prepended the event name as the first handler argument whenever a
- *   handler was registered for more than one name (`fn.typed = pos > 0`). That
- *   was undocumented and confusing; callers now pass the distinguishing value
- *   explicitly instead.
  * - riot's `fn.busy` re-entrancy guard, which silently skipped a handler that
  *   was re-triggered from within itself. `unobservable` never had it, and it is
  *   the cause of upstream issue #88: a handler that throws never clears `busy`
@@ -102,11 +106,25 @@ export type OffEventSpec<E extends EventArgsMap> = EventNameSpec<E> | AllEvents;
 /** The event names an `on`/`off` argument resolves to, filtered to known events. */
 type NamesOf<S extends string, E extends EventArgsMap> = Extract<SplitEventNames<S>, EventName<E>>;
 
+/** Whether an event spec lists more than one name. */
+type IsMultiName<S extends string> = S extends `${string} ${string}` ? true : false;
+
 /**
- * Handler type accepted for a (possibly multi-name) event spec: it must be
- * callable with the arguments of every listed event.
+ * Handler type accepted for a (possibly multi-name) event spec.
+ *
+ * A single-name spec is typed exactly: the handler takes that event's own
+ * arguments. A multi-name spec has the event name prepended at dispatch, so the
+ * first parameter is precisely typed as the union of the names listed, and the
+ * rest are left open — the tuples that follow differ per event, and spelling
+ * that out as a union of tuples would force every such handler to declare
+ * parameters for the *longest* of them. `never[]` accepts a handler that
+ * declares whatever it likes after the name, and lets one that declares nothing
+ * stay concise.
  */
-export type HandlerFor<S extends string, E extends EventArgsMap> = EventHandler<E[NamesOf<S, E>]>;
+export type HandlerFor<S extends string, E extends EventArgsMap> =
+  IsMultiName<S> extends true
+    ? (eventName: NamesOf<S, E>, ...args: never[]) => void
+    : EventHandler<E[NamesOf<S, E>]>;
 
 /** Internal, type-erased handler shape. */
 type ErasedHandler = (...args: readonly unknown[]) => void;
@@ -114,6 +132,19 @@ type ErasedHandler = (...args: readonly unknown[]) => void;
 interface HandlerEntry {
   readonly handler: ErasedHandler;
   readonly once: boolean;
+  /**
+   * Registered for more than one event name, so the dispatch prepends the name
+   * of the event that fired — riot's and unobservable's `fn.typed`.
+   *
+   * Legacy stored that flag on the handler *function*, which made it global to
+   * every registration of that function on every emitter: registering the same
+   * function for a single event afterwards silently un-typed its earlier
+   * multi-name registrations, and registering it for several events afterwards
+   * silently typed its earlier single-name ones. This is per registration
+   * instead, which is what the flag was always meant to express and what keeps
+   * "a single-name registration is never affected" true.
+   */
+  readonly typed: boolean;
   /**
    * Set when the entry is unregistered. A dispatch iterates over a snapshot of
    * the handler list, so it consults this flag to skip entries that were
@@ -347,12 +378,16 @@ export class Observable<E extends EventArgsMap> {
       if (entry.once) {
         this.#removeEntry(event, entry);
       }
+      // Legacy: `fn.apply(el, fn.typed ? [name].concat(args) : args)`
+      // (`libs/riot.js:45`). The array is only built for the multi-name case,
+      // so single-name dispatches allocate nothing extra.
+      const handlerArgs = entry.typed ? [event, ...args] : args;
       if (onError === null) {
-        this.#invoke(entry.handler, args);
+        this.#invoke(entry.handler, handlerArgs);
         continue;
       }
       try {
-        this.#invoke(entry.handler, args);
+        this.#invoke(entry.handler, handlerArgs);
       } catch (e) {
         report(onError, e);
       }
@@ -375,13 +410,17 @@ export class Observable<E extends EventArgsMap> {
   }
 
   #add(events: string, handler: ErasedHandler, once: boolean): void {
-    for (const name of splitEventNames(events)) {
+    const names = splitEventNames(events);
+    // riot's `fn.typed = pos > 0` and unobservable's `fn.typed = count > 1`
+    // both amount to "this registration listed more than one name".
+    const typed = names.length > 1;
+    for (const name of names) {
       let entries = this.#handlers.get(name);
       if (entries === undefined) {
         entries = [];
         this.#handlers.set(name, entries);
       }
-      entries.push({ handler, once, removed: false });
+      entries.push({ handler, once, typed, removed: false });
     }
   }
 

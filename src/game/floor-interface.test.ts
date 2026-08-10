@@ -135,6 +135,11 @@ describe("FloorInterface", () => {
       floor.pressDownButton();
 
       expect(pressed).toHaveBeenCalledTimes(2);
+      // The legacy floors were riot observables (`floor.js:3`), and riot
+      // prepended the name of the event that fired whenever the registration
+      // listed more than one (`libs/riot.js:11`, `libs/riot.js:45`).
+      expect(pressed).toHaveBeenNthCalledWith(1, "up_button_pressed", floorInterface);
+      expect(pressed).toHaveBeenNthCalledWith(2, "down_button_pressed", floorInterface);
     });
 
     it("supports off and once", () => {

@@ -155,6 +155,36 @@ describe("Elevator interface", () => {
       expect(someHandler).toHaveBeenCalledWith(1, "up");
     });
 
+    it("prepends the event name when one handler covers several events", () => {
+      // Upstream issue #1: magwo confirms the legacy behaviour is intentional,
+      // and #33 and #42 are written against it. The legacy facade was a
+      // `riot.observable(obj)` (`interfaces.js:6`), and riot dispatched with
+      // `fn.apply(el, fn.typed ? [name].concat(args) : args)` (`libs/riot.js:45`)
+      // whenever the registration listed more than one name (`libs/riot.js:11`).
+      const calls: unknown[][] = [];
+      elevInterface.on("stopped_at_floor passing_floor", (...args: unknown[]) => {
+        calls.push(args);
+      });
+
+      e.trigger("passing_floor", 1, "up");
+      e.trigger("stopped_at_floor", 2);
+
+      expect(calls).toEqual([
+        ["passing_floor", 1, "up"],
+        ["stopped_at_floor", 2],
+      ]);
+      expect(errorHandler).not.toHaveBeenCalled();
+    });
+
+    it("leaves a single-event registration free of the event name", () => {
+      const single = vi.fn();
+      elevInterface.on("passing_floor", single);
+
+      e.trigger("passing_floor", 1, "up");
+
+      expect(single).toHaveBeenCalledWith(1, "up");
+    });
+
     it("does not propagate stopped event", () => {
       const someHandler = vi.fn();
       // @ts-expect-error -- `stopped` is deliberately not part of the player API
