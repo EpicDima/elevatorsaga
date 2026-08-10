@@ -1,58 +1,15 @@
 /**
  * The handful of DOM helpers the presentation layer needs, replacing jQuery.
  *
- * The legacy UI pulled in all of jQuery 2.1 for element creation, class
- * toggling, `find`, `empty` and click binding. Those are one-liners on the
- * modern DOM, so they live here instead and the dependency is gone.
- */
-
-/** Options accepted by {@link createElement}. */
-export interface CreateElementOptions {
-  /** Value for the `class` attribute. */
-  className?: string;
-  /** Text content; set with `textContent`, so it is never parsed as markup. */
-  text?: string;
-  /** Attributes to set verbatim. */
-  attrs?: Readonly<Record<string, string>>;
-  /** Inline styles to set, keyed by CSS property name. */
-  style?: Readonly<Record<string, string>>;
-  /** Nodes to append. */
-  children?: readonly (Node | string)[];
-}
-
-/**
- * Creates an element.
+ * The legacy UI pulled in all of jQuery 2.1 for class toggling, `find`, `empty`
+ * and click binding. Those are one-liners on the modern DOM, so they live here
+ * instead and the dependency is gone.
  *
- * @param tag - Tag name to create.
- * @param options - Class, text, attributes, inline styles and children.
- * @returns The new, detached element.
+ * Element *creation* is not among them: the view is built from the escaping
+ * templates in `templates.ts`, and the icons from `document.createElementNS`.
+ * The small `createElement` helper the unit tests build page fragments with is
+ * in `test-helpers.ts`, with the rest of the test-only code.
  */
-export function createElement<K extends keyof HTMLElementTagNameMap>(
-  tag: K,
-  options: CreateElementOptions = {},
-): HTMLElementTagNameMap[K] {
-  const element = document.createElement(tag);
-  if (options.className !== undefined) {
-    element.className = options.className;
-  }
-  if (options.text !== undefined) {
-    element.textContent = options.text;
-  }
-  if (options.attrs !== undefined) {
-    for (const [name, value] of Object.entries(options.attrs)) {
-      element.setAttribute(name, value);
-    }
-  }
-  if (options.style !== undefined) {
-    for (const [property, value] of Object.entries(options.style)) {
-      element.style.setProperty(property, value);
-    }
-  }
-  if (options.children !== undefined) {
-    element.append(...options.children);
-  }
-  return element;
-}
 
 /**
  * Finds the first matching element.

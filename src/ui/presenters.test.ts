@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { User } from "../game/user.ts";
 import { createWorld } from "../game/world.ts";
 import type { World } from "../game/world.ts";
-import { createElement, queryAll, requireElement } from "./dom.ts";
+import { queryAll, requireElement } from "./dom.ts";
 import {
   clearAll,
   clearCodeStatus,
@@ -21,6 +21,7 @@ import {
   setDemoFullscreen,
 } from "./presenters.ts";
 import type { ChallengePresenterOptions } from "./presenters.ts";
+import { createElement } from "./test-helpers.ts";
 
 /** Builds the `.statscontainer` markup the page shell provides. */
 function statsContainer(): HTMLElement {

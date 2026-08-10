@@ -4,50 +4,16 @@ import { beforeEach, describe, expect, it } from "vitest";
 
 import {
   clearChildren,
-  createElement,
   query,
   queryAll,
   requireElement,
   setClass,
   setTransformPos,
 } from "./dom.ts";
+import { createElement } from "./test-helpers.ts";
 
 beforeEach(() => {
   document.body.replaceChildren();
-});
-
-describe("createElement", () => {
-  it("creates a bare element when given no options", () => {
-    const element = createElement("div");
-    expect(element.tagName).toBe("DIV");
-    expect(element.outerHTML).toBe("<div></div>");
-  });
-
-  it("applies class, text, attributes and inline styles", () => {
-    const element = createElement("span", {
-      className: "key emphasis-color",
-      text: "Transported",
-      attrs: { title: "How many people arrived" },
-      style: { top: "20px" },
-    });
-    expect(element.className).toBe("key emphasis-color");
-    expect(element.textContent).toBe("Transported");
-    expect(element.getAttribute("title")).toBe("How many people arrived");
-    expect(element.style.top).toBe("20px");
-  });
-
-  it("sets text without parsing it as markup", () => {
-    const element = createElement("div", { text: "<script>boom()</script>" });
-    expect(element.children).toHaveLength(0);
-    expect(element.textContent).toBe("<script>boom()</script>");
-  });
-
-  it("appends element and string children in order", () => {
-    const element = createElement("div", {
-      children: [createElement("b", { text: "a" }), "b"],
-    });
-    expect(element.innerHTML).toBe("<b>a</b>b");
-  });
 });
 
 describe("query / requireElement / queryAll", () => {

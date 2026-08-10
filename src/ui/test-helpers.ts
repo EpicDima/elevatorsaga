@@ -6,6 +6,45 @@
 
 import type { TextEditorHandlers, TextEditorView } from "./editor.ts";
 
+/** Options accepted by {@link createElement}. */
+export interface CreateElementOptions {
+  /** Value for the `class` attribute. */
+  className?: string;
+  /** Text content; set with `textContent`, so it is never parsed as markup. */
+  text?: string;
+  /** Nodes to append. */
+  children?: readonly (Node | string)[];
+}
+
+/**
+ * Builds a detached element.
+ *
+ * A test-only convenience: the game itself never creates elements this way. It
+ * renders from the escaping templates in `templates.ts`, so this exists purely
+ * to stand up the fragments of page shell that the presenter and application
+ * tests draw into, without a string of HTML per test.
+ *
+ * @param tag - Tag name to create.
+ * @param options - Class, text and children.
+ * @returns The new, detached element.
+ */
+export function createElement<K extends keyof HTMLElementTagNameMap>(
+  tag: K,
+  options: CreateElementOptions = {},
+): HTMLElementTagNameMap[K] {
+  const element = document.createElement(tag);
+  if (options.className !== undefined) {
+    element.className = options.className;
+  }
+  if (options.text !== undefined) {
+    element.textContent = options.text;
+  }
+  if (options.children !== undefined) {
+    element.append(...options.children);
+  }
+  return element;
+}
+
 /**
  * A `Storage` backed by a map.
  *
