@@ -11,7 +11,9 @@
  * (https://fontawesome.com). Font Awesome 4 icon outlines are licensed under the
  * SIL OFL 1.1 (https://scripts.sil.org/OFL); the same artwork as shipped in Font
  * Awesome Free 5 and later is licensed under CC BY 4.0
- * (https://creativecommons.org/licenses/by/4.0/). See README.md.
+ * (https://creativecommons.org/licenses/by/4.0/), which is not the licence this
+ * artwork arrives under. See `fontawesome-license.txt` for the full text and
+ * `fontawesome-glyphs.json` for which glyph came from which codepoint.
  *
  * Coordinate system: font outlines are y-up with the baseline at y = 0. Each
  * icon is emitted with a `viewBox` of `0 0 <advance> {@link ICON_EM_UNITS}` and

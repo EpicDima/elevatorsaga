@@ -292,10 +292,14 @@ TypeScript modernization of that work.
 The project is released under the MIT Licence, copyright © 2015 Magnus Wolffelt — see
 [LICENSE.txt](LICENSE.txt) for the full text.
 
-The interface icons in `src/ui/icons.ts` are traced from [Font Awesome](https://fontawesome.com/)
-Free 4.1, by Dave Gandy. The icon artwork is licensed under
-[CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) and the underlying font under the
-[SIL OFL 1.1](https://scripts.sil.org/OFL).
+The twelve interface icons in `src/ui/icons.ts` are the glyph outlines of
+[Font Awesome](https://fontawesome.com/) 4.1.0 by Dave Gandy, copied verbatim from the SVG
+webfont the legacy game shipped. Font Awesome 4 is licensed
+`Font: SIL OFL 1.1, CSS: MIT License`; only the font artwork is used here, so the
+[SIL OFL 1.1](https://scripts.sil.org/OFL) applies. The full licence text and the upstream
+copyright notice are in [src/ui/fontawesome-license.txt](src/ui/fontawesome-license.txt), and
+[src/ui/fontawesome-glyphs.json](src/ui/fontawesome-glyphs.json) records which glyph came from
+which codepoint.
 
 The interface font is [Oswald](https://fonts.google.com/specimen/Oswald), licensed under the
 [SIL OFL 1.1](https://scripts.sil.org/OFL) and self-hosted via
