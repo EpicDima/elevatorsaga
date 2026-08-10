@@ -328,8 +328,13 @@ Elevator Saga was created by [Magnus Wolffelt](https://github.com/magwo) and its
 [contributors](https://github.com/magwo/elevatorsaga/graphs/contributors). This repository is a
 TypeScript modernization of that work.
 
-The project is released under the MIT Licence, copyright © 2015 Magnus Wolffelt — see
-[LICENSE.txt](LICENSE.txt) for the full text.
+The project is released under the MIT Licence — copyright © 2015 Magnus Wolffelt for the original
+game, © 2026 EpicDima for this rewrite. See [LICENSE.txt](LICENSE.txt) for the full text.
+
+The code editor is [CodeMirror 6](https://codemirror.net/) by Marijn Haverbeke and contributors,
+with its [Lezer](https://lezer.codemirror.net/) parser for JavaScript, both licensed under the
+[MIT Licence](https://github.com/codemirror/dev/blob/main/LICENSE). Together they are around 500 kB
+of the built bundle — most of what the browser downloads.
 
 The twelve interface icons in `src/ui/icons.ts` are the glyph outlines of
 [Font Awesome](https://fontawesome.com/) 4.1.0 by Dave Gandy, copied verbatim from the SVG
@@ -340,6 +345,13 @@ copyright notice are in [src/ui/fontawesome-license.txt](src/ui/fontawesome-lice
 [src/ui/fontawesome-glyphs.json](src/ui/fontawesome-glyphs.json) records which glyph came from
 which codepoint.
 
-The interface font is [Oswald](https://fonts.google.com/specimen/Oswald), licensed under the
-[SIL OFL 1.1](https://scripts.sil.org/OFL) and self-hosted via
-[Fontsource](https://fontsource.org/).
+The interface font is [Oswald](https://fonts.google.com/specimen/Oswald), copyright © 2016 The
+Oswald Project Authors, licensed under the [SIL OFL 1.1](https://scripts.sil.org/OFL) and
+self-hosted via [Fontsource](https://fontsource.org/) — which is why four `.woff`/`.woff2` files
+are copied into `dist/assets/` by a build.
+
+None of this stays in the repository only. `npm run build` collects the licence of every runtime
+dependency out of `node_modules`, adds the game's own and the Font Awesome notice, and writes the
+lot to `dist/licenses.txt`, which the footer of both pages links to. The generator is the
+`licenseNotices` plugin at the top of [vite.config.ts](vite.config.ts); add a dependency and its
+terms appear in the next build without anyone having to remember.
