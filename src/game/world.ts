@@ -447,10 +447,10 @@ export class World extends Observable<WorldEvents> {
 
   /** Tears the world down, dropping every event subscription. */
   unWind(): void {
-    // The floor facades are not in this list: they deliberately have no
-    // `offAll` to expose to player code, and they hear nothing once the floor
-    // they forward from has dropped its own subscriptions. They are discarded
-    // with the world a few lines below.
+    // The floor facades are not in this list, even though they do publish
+    // `offAll`: they hear nothing once the floor they forward from has dropped
+    // its own subscriptions, which happens below. They are discarded with the
+    // world a few lines further down.
     for (const obj of [
       ...this.elevators,
       ...this.elevatorInterfaces,

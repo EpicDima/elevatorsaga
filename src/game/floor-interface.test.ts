@@ -36,7 +36,15 @@ describe("FloorInterface", () => {
     }
     exposed.delete("constructor");
 
-    expect([...exposed].sort()).toEqual(["buttonStates", "floorNum", "level", "off", "on", "once"]);
+    expect([...exposed].sort()).toEqual([
+      "buttonStates",
+      "floorNum",
+      "level",
+      "off",
+      "offAll",
+      "on",
+      "once",
+    ]);
     for (const forbidden of [
       "yPosition",
       "getSpawnPosY",
@@ -45,7 +53,6 @@ describe("FloorInterface", () => {
       "pressDownButton",
       "trigger",
       "triggerSafe",
-      "offAll",
     ]) {
       expect(exposed.has(forbidden)).toBe(false);
     }
@@ -184,7 +191,7 @@ describe("FloorInterface", () => {
       expect(upPressed).not.toHaveBeenCalled();
     });
 
-    it("drops handlers on request without exposing offAll", () => {
+    it("drops every handler of a named event on request", () => {
       const upPressed = vi.fn();
       floorInterface.on("up_button_pressed", upPressed);
 
@@ -192,6 +199,30 @@ describe("FloorInterface", () => {
       floor.pressUpButton();
 
       expect(upPressed).not.toHaveBeenCalled();
+    });
+
+    it("drops every player handler on offAll, and forwards again afterwards", () => {
+      // The legacy floors were riot observables (`floor.js:3`) handed straight
+      // to player code (`world.js:239`), so `floor.off("*")` — riot's
+      // unregister-everything wildcard (`libs/riot.js:18`) — worked on them.
+      const dropped = vi.fn();
+      floorInterface.on("up_button_pressed", dropped);
+      floorInterface.on("buttonstate_change", dropped);
+
+      expect(floorInterface.offAll()).toBe(floorInterface);
+      floor.pressUpButton();
+
+      expect(dropped).not.toHaveBeenCalled();
+
+      // The forwarding is registered on the floor, not on the facade's own
+      // emitter, so it survives: unlike riot's shared callback map, this cannot
+      // leave a player deaf to floor events for the rest of the run.
+      const later = vi.fn();
+      floorInterface.on("down_button_pressed", later);
+      floor.pressDownButton();
+
+      expect(later).toHaveBeenCalledTimes(1);
+      expect(later).toHaveBeenCalledWith(floorInterface);
     });
   });
 });

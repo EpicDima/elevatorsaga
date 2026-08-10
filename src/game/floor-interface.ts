@@ -9,13 +9,14 @@
  * them (upstream issue #3).
  *
  * The surface is exactly `floorNum()`, `level`, `buttonStates` and
- * `on`/`off`/`once`. The emitter is held rather than inherited from, so the
- * dispatch side of it — `trigger`, `triggerSafe`, `offAll` — is not reachable
- * from player code either. {@link "./elevator-interface.ts"!ElevatorInterface}
- * holds its emitter the same way, but does publish `trigger` and `offAll`: the
- * legacy elevator facade really was a `riot.observable(obj)`
- * (`interfaces.js:6`), so those were part of its surface and solutions may be
- * using them.
+ * `on`/`off`/`once`/`offAll`. The emitter is held rather than inherited from,
+ * so the dispatch side of it — `trigger`, `triggerSafe` — is not reachable from
+ * player code. {@link "./elevator-interface.ts"!ElevatorInterface} holds its
+ * emitter the same way, but does publish `trigger` as well: the legacy elevator
+ * facade really was a `riot.observable(obj)` (`interfaces.js:6`), so that was
+ * part of its surface and solutions may be using it. The legacy floors were
+ * `riot.observable` too (`floor.js:3`) and were handed to player code as they
+ * were, so the unregister side is theirs by the same argument.
  *
  * `level` and `buttonStates` are undocumented but were readable on the old
  * object and are used by published solutions, so they are kept —
@@ -147,6 +148,32 @@ export class FloorInterface {
     handler?: HandlerFor<S, FloorInterfaceEvents>,
   ): this {
     this.#events.off(events, handler);
+    return this;
+  }
+
+  /**
+   * Removes every handler player code registered on this floor.
+   *
+   * Replaces the legacy `floor.off("*")`, which really was reachable: `asFloor`
+   * built each floor as a `riot.observable(obj)` (`floor.js:3`), `world.js:75`
+   * put those very objects in `world.floors`, and the world controller passed
+   * that array straight to `codeObj.init` and `codeObj.update` (`world.js:239`,
+   * `world.js:248`). `"*"` was riot's unregister-everything wildcard
+   * (`libs/riot.js:18`), and `world.unWind` used it on the floors itself
+   * (`world.js:201-204`).
+   *
+   * Only the player's own subscriptions go. The forwarding that makes this
+   * facade work is registered on the real floor's emitter rather than on this
+   * one, so it is untouched here — a player calling this keeps receiving floor
+   * events on every handler registered afterwards, instead of silently going
+   * deaf for the rest of the run. That is a deliberate improvement on riot,
+   * where `off("*")` cleared one shared callback map and so tore out the
+   * world's own `handleButtonRepressing` subscription along with the player's.
+   *
+   * @returns This facade, for chaining.
+   */
+  offAll(): this {
+    this.#events.offAll();
     return this;
   }
 
