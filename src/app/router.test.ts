@@ -1,9 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import type { SandboxOptions } from "../game/challenges.ts";
 import {
   createParamsUrl,
   parseQuery,
   resolveRoute,
+  SANDBOX_CHALLENGE,
   startRouter,
   type RouteQuery,
   type RouterTarget,
@@ -58,7 +60,12 @@ class FakeTarget implements RouterTarget {
 }
 
 beforeEach(() => {
-  vi.spyOn(console, "warn").mockImplementation(() => undefined);
+  // Cleared as well as silenced: the spy outlives the spec that installed it,
+  // so the ones that assert on what was warned would otherwise see the whole
+  // file's warnings.
+  vi.spyOn(console, "warn")
+    .mockImplementation(() => undefined)
+    .mockClear();
 });
 
 describe("parseQuery", () => {
@@ -112,6 +119,7 @@ describe("resolveRoute defaults", () => {
   it("starts the first challenge, paused, at the default speed", () => {
     expect(route("")).toEqual({
       challengeIndex: 0,
+      sandbox: null,
       autoStart: false,
       timeScale: DEFAULT_TIME_SCALE,
       devTest: false,
@@ -122,6 +130,7 @@ describe("resolveRoute defaults", () => {
   it("reads every parameter the game supports", () => {
     expect(route("#challenge=4,autostart=true,timescale=8,devtest=true,fullscreen=true")).toEqual({
       challengeIndex: 3,
+      sandbox: null,
       autoStart: true,
       timeScale: 8,
       devTest: true,
@@ -155,6 +164,230 @@ describe("resolveRoute challenge validation", () => {
     for (const hash of ["#challenge=0", "#challenge=-3", "#challenge=19", "#challenge=1e9"]) {
       expect(route(hash).challengeIndex, hash).toBe(0);
     }
+  });
+});
+
+describe("resolveRoute sandbox selection", () => {
+  it("is off unless the url asks for it", () => {
+    expect(route("").sandbox).toBeNull();
+    expect(route("#challenge=4").sandbox).toBeNull();
+  });
+
+  it("ignores sandbox parameters while a numbered challenge is being played", () => {
+    // They are carried across a jump by the challenge bar's navigation row,
+    // which rewrites `challenge` and keeps everything else. Inert here, and
+    // still there if the player goes back to the sandbox.
+    const params = route("#challenge=4,floors=50,elevators=9,spawnrate=7");
+    expect(params.sandbox).toBeNull();
+    expect(params.challengeIndex).toBe(3);
+  });
+
+  it("plays the sandbox for challenge=sandbox, in any casing", () => {
+    for (const hash of ["#challenge=sandbox", "#challenge=Sandbox", "#challenge=SANDBOX"]) {
+      expect(route(hash).sandbox, hash).not.toBeNull();
+    }
+  });
+
+  it("does not complain that the sandbox is not a challenge number", () => {
+    route("#challenge=sandbox");
+    expect(console.warn).not.toHaveBeenCalled();
+  });
+
+  it("is not selected by something that merely looks like it", () => {
+    expect(route("#challenge=sandboxes").sandbox).toBeNull();
+    expect(route("#challenge=sandboxes").challengeIndex).toBe(0);
+  });
+
+  it("starts a building known to be playable when no parameters are given", () => {
+    // Challenge 4's shape, so that a bare #challenge=sandbox is something to
+    // watch rather than something degenerate.
+    expect(route("#challenge=sandbox").sandbox).toEqual({
+      floorCount: 8,
+      elevatorCount: 2,
+      elevatorCapacities: [4],
+      spawnRate: 0.6,
+    });
+  });
+
+  it("reads every sandbox parameter", () => {
+    expect(
+      route("#challenge=sandbox,floors=20,elevators=3,capacities=6-9,spawnrate=1.5").sandbox,
+    ).toEqual({
+      floorCount: 20,
+      elevatorCount: 3,
+      elevatorCapacities: [6, 9],
+      spawnRate: 1.5,
+    });
+  });
+
+  it("keeps the rest of the url working alongside it", () => {
+    const params = route("#challenge=sandbox,floors=12,timescale=8,autostart,fullscreen");
+    expect(params.sandbox?.floorCount).toBe(12);
+    expect(params.timeScale).toBe(8);
+    expect(params.autoStart).toBe(true);
+    expect(params.fullscreen).toBe(true);
+  });
+});
+
+describe("resolveRoute sandbox validation", () => {
+  /**
+   * Resolves a sandbox hash, which always names a building.
+   *
+   * @param hash - The sandbox parameters, without the `challenge=sandbox`.
+   * @returns The building the route asks for.
+   */
+  function sandbox(hash: string): SandboxOptions {
+    const params = route(`#challenge=${SANDBOX_CHALLENGE},${hash}`);
+    if (params.sandbox === null) {
+      throw new Error(`Expected ${hash} to resolve a sandbox`);
+    }
+    return params.sandbox;
+  }
+
+  it("falls back for a floor count that is not a whole number", () => {
+    // 8.5 is refused rather than rounded: quietly playing a building the player
+    // did not ask for is how an afternoon disappears into a debugger.
+    for (const value of ["abc", "", "NaN", "Infinity", "8.5", "8px"]) {
+      expect(sandbox(`floors=${value}`).floorCount, value).toBe(8);
+    }
+    expect(console.warn).toHaveBeenCalled();
+  });
+
+  it("clamps a floor count the page cannot draw", () => {
+    // A single floor makes spawnUserRandomly draw randomInt(1, 0), which is 1 —
+    // a destination floor that does not exist, so nobody is ever delivered.
+    expect(sandbox("floors=1").floorCount).toBe(2);
+    expect(sandbox("floors=0").floorCount).toBe(2);
+    expect(sandbox("floors=-20").floorCount).toBe(2);
+    // 50px a floor and one in-car button per floor per elevator: 100000 floors
+    // is millions of elements and a tab that never draws a frame.
+    expect(sandbox("floors=100000").floorCount).toBe(60);
+    expect(sandbox("floors=1e9").floorCount).toBe(60);
+  });
+
+  it("falls back for an elevator count that is not a whole number", () => {
+    for (const value of ["abc", "", "NaN", "2.5"]) {
+      expect(sandbox(`elevators=${value}`).elevatorCount, value).toBe(2);
+    }
+  });
+
+  it("clamps an elevator count that would not fit in the building", () => {
+    expect(sandbox("elevators=0").elevatorCount).toBe(1);
+    expect(sandbox("elevators=-4").elevatorCount).toBe(1);
+    // Twelve cars at the default capacity end at x=900 in a 938px building.
+    expect(sandbox("elevators=13").elevatorCount).toBe(12);
+    expect(sandbox("elevators=100000").elevatorCount).toBe(12);
+  });
+
+  it("keeps only the elevators that fit once the capacities widen them", () => {
+    // A car is drawn `capacity * 10` wide, on a 20px gap, from x=200 in a 938px
+    // building — so the ceiling of twelve only holds at the default capacity.
+    // Clamping the two numbers apart would accept elevators=12,capacities=30
+    // and draw ten of the twelve cars through the wall, where .worldtrack clips
+    // them: simulated, controllable from player code, and invisible.
+    expect(sandbox("elevators=12,capacities=30").elevatorCount).toBe(2);
+    expect(sandbox("elevators=12,capacities=5").elevatorCount).toBe(10);
+    // Mixed widths are measured car by car, not by the widest of them: four
+    // alternating 300px and 10px cars end at x=880, the fifth would end at 1200.
+    expect(sandbox("elevators=5,capacities=30-1").elevatorCount).toBe(4);
+    expect(console.warn).toHaveBeenCalledWith(
+      "Sandbox elevators 12 do not fit the building at these capacities, using 2 instead",
+    );
+  });
+
+  it("leaves an elevator count alone when the cars do fit", () => {
+    expect(sandbox("elevators=12").elevatorCount).toBe(12);
+    expect(sandbox("elevators=2,capacities=30").elevatorCount).toBe(2);
+    expect(console.warn).not.toHaveBeenCalled();
+  });
+
+  it("reads one capacity or a whole cycle of them", () => {
+    expect(sandbox("capacities=6").elevatorCapacities).toEqual([6]);
+    expect(sandbox("elevators=3,capacities=6-9-2").elevatorCapacities).toEqual([6, 9, 2]);
+    // Fewer capacities than cars is the cycling case the world supports, and is
+    // left exactly as written.
+    expect(sandbox("elevators=5,capacities=6-9").elevatorCapacities).toEqual([6, 9]);
+  });
+
+  it("rejects the whole capacity list when one entry is unreadable", () => {
+    // Dropping the bad entry would slide every capacity after it onto a
+    // different elevator, and the bar would still report it as what was asked
+    // for.
+    for (const value of ["abc", "", "6-abc", "6-", "-6", "6--9"]) {
+      expect(sandbox(`capacities=${value}`).elevatorCapacities, value).toEqual([4]);
+    }
+  });
+
+  it("clamps a capacity to a car that can exist and can be drawn", () => {
+    // Zero is the value Elevator reads as "unset" and silently turns into 4.
+    expect(sandbox("capacities=0-31").elevatorCapacities).toEqual([1, 30]);
+  });
+
+  it("keeps only as many capacities as there are elevators", () => {
+    // The world reads capacities[i % capacities.length] once per car, so entries
+    // past the last car never reach one — but the challenge bar prints the list
+    // it is given, so leaving them in would describe a building that does not
+    // exist.
+    expect(sandbox("elevators=1,capacities=6-9").elevatorCapacities).toEqual([6]);
+    expect(sandbox("elevators=3,capacities=6-9-2-7-8").elevatorCapacities).toEqual([6, 9, 2]);
+    expect(console.warn).toHaveBeenCalledWith(
+      "Sandbox capacities lists 2 cars for 1 elevator, keeping the first 1",
+    );
+  });
+
+  it("stops parsing a capacity list long before it can slow the page down", () => {
+    // Cut to the twelve-elevator ceiling before clamping, so a hash listing
+    // thousands of cars costs thousands of Number calls and not thousands of
+    // console warnings; the real elevator count then cuts it again.
+    const long = `capacities=${Array.from({ length: 40 }, () => "99").join("-")}`;
+    expect(sandbox(`elevators=12,${long}`).elevatorCapacities).toHaveLength(2);
+    expect(vi.mocked(console.warn).mock.calls).toHaveLength(
+      // One for the 40 entries, twelve clamping 99 to 30, one for the ten cars
+      // of capacity 30 that do not fit, one for the capacities they took with
+      // them.
+      1 + 12 + 1 + 1,
+    );
+  });
+
+  it("falls back for a spawn rate that is not a number", () => {
+    for (const value of ["abc", "", "NaN", "Infinity"]) {
+      expect(sandbox(`spawnrate=${value}`).spawnRate, value).toBe(0.6);
+    }
+  });
+
+  it("never lets the spawn rate freeze or empty the world", () => {
+    // World.update runs `while (elapsedSinceSpawn > 1 / spawnRate)` and
+    // subtracts `1 / spawnRate` each time round. A negative rate makes that
+    // subtraction an addition, so the loop never terminates and the tab hangs
+    // on the very first frame; zero divides to Infinity and nobody ever
+    // appears. Both are exactly the class of bug this module exists for.
+    expect(sandbox("spawnrate=-1").spawnRate).toBe(0.01);
+    expect(sandbox("spawnrate=0").spawnRate).toBe(0.01);
+    expect(sandbox("spawnrate=100000").spawnRate).toBe(10);
+  });
+
+  it("accepts a fractional spawn rate, which is the interesting range", () => {
+    expect(sandbox("spawnrate=0.25").spawnRate).toBe(0.25);
+    expect(sandbox("spawnrate=1.9").spawnRate).toBe(1.9);
+  });
+
+  it("warns about everything it had to change", () => {
+    sandbox("floors=100000,elevators=0,capacities=99,spawnrate=-1");
+    expect(vi.mocked(console.warn).mock.calls.map(([message]) => String(message))).toEqual([
+      "Sandbox floors 100000 is outside 2-60, using 60 instead",
+      "Sandbox elevators 0 is outside 1-12, using 1 instead",
+      "Sandbox capacity 99 is outside 1-30, using 30 instead",
+      "Sandbox spawnrate -1 is outside 0.01-10, using 0.01 instead",
+    ]);
+  });
+
+  it("survives a hash that is nothing but rubbish", () => {
+    expect(sandbox("floors=<script>,elevators=%%%,capacities=!,spawnrate=,")).toEqual({
+      floorCount: 8,
+      elevatorCount: 2,
+      elevatorCapacities: [4],
+      spawnRate: 0.6,
+    });
   });
 });
 

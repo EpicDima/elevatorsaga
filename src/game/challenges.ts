@@ -156,6 +156,89 @@ export function requireDemo(): ChallengeCondition {
   };
 }
 
+/**
+ * The building a sandbox run is played in.
+ *
+ * Every value is already validated: the sandbox is configured from the location
+ * hash, so the range checking happens in `src/app/router.ts` and what arrives
+ * here is something the simulation can run. The fields are deliberately the
+ * subset of {@link WorldOptions} the sandbox lets the player choose, spelled out
+ * one by one rather than derived from it, so that an option added to the world
+ * is opted into here on purpose rather than silently exposed to the URL.
+ */
+export interface SandboxOptions {
+  /** Number of floors in the building. */
+  readonly floorCount: number;
+  /** Number of elevators. */
+  readonly elevatorCount: number;
+  /** Per-elevator capacities, cycled when shorter than the elevator count. */
+  readonly elevatorCapacities: readonly number[];
+  /** Passengers spawned per second. */
+  readonly spawnRate: number;
+}
+
+/**
+ * Wraps a value in the emphasis markup the challenge bar paints numbers with.
+ *
+ * @param value - The number to emphasise.
+ * @returns The markup, ready to interpolate into a description.
+ */
+function emphasise(value: number): string {
+  return `<span class='emphasis-color'>${String(value)}</span>`;
+}
+
+/**
+ * A condition that never resolves, and that reads back the building it is in.
+ *
+ * The sandbox has no goal — that is the whole point of it — so this is
+ * {@link requireDemo} with a description that earns its place: the parameters
+ * come from the URL, which is off screen while the game is being played, so the
+ * challenge bar is the only place the player can see what they actually asked
+ * for. A hash that was silently clamped (`floors=1000` becoming 60) says so
+ * here, not just in the console.
+ *
+ * @param options - The building the run is playing in.
+ * @returns The condition.
+ */
+export function requireSandbox(options: SandboxOptions): ChallengeCondition {
+  const elevators = options.elevatorCount === 1 ? "elevator" : "elevators";
+  const capacities = options.elevatorCapacities.map((capacity) => emphasise(capacity)).join(", ");
+  const capacityLabel = options.elevatorCapacities.length === 1 ? "capacity" : "capacities";
+  return {
+    description:
+      `Sandbox: ${emphasise(options.floorCount)} floors, ` +
+      `${emphasise(options.elevatorCount)} ${elevators} of ${capacityLabel} ${capacities}, ` +
+      `${emphasise(options.spawnRate)} people per second. No goal, so the run never ends`,
+    evaluate(): boolean | null {
+      return null;
+    },
+  };
+}
+
+/**
+ * Builds the goal-less challenge the sandbox route plays.
+ *
+ * Not a member of {@link challenges}: it has no fixed shape to be listed with,
+ * since its world is whatever the URL asks for, and it is not a station on the
+ * progression the numbered challenges form.
+ *
+ * @param options - The building to play in, already validated.
+ * @returns The challenge.
+ */
+export function createSandboxChallenge(options: SandboxOptions): Challenge {
+  return {
+    // Copied field by field rather than spread, so that an option added to
+    // WorldOptions has to be opted into here before the URL can reach it.
+    options: {
+      floorCount: options.floorCount,
+      elevatorCount: options.elevatorCount,
+      elevatorCapacities: [...options.elevatorCapacities],
+      spawnRate: options.spawnRate,
+    },
+    condition: requireSandbox(options),
+  };
+}
+
 /** Every challenge, in the order they are played. */
 export const challenges: readonly Challenge[] = [
   {

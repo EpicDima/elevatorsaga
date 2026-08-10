@@ -18,8 +18,15 @@
  *
  * Everything is parsed and validated here instead, and anything unusable falls
  * back to a default.
+ *
+ * The sandbox — `#challenge=sandbox`, plus `floors`, `elevators`, `capacities`
+ * and `spawnrate` — is the reason that promise has to be kept for more than two
+ * parameters: it is a whole world description written by hand into a URL that
+ * is meant to be shared. {@link SANDBOX_LIMITS} says what each of them may be
+ * and why.
  */
 
+import type { SandboxOptions } from "../game/challenges.ts";
 import { clampTimeScale } from "./time-scale.ts";
 
 /** Raw `key=value` pairs from the location hash, in the order they appeared. */
@@ -27,8 +34,20 @@ export type RouteQuery = ReadonlyMap<string, string>;
 
 /** The validated parameters a route resolves to. */
 export interface RouteParams {
-  /** Zero-based index into the challenge list. */
+  /**
+   * Zero-based index into the challenge list.
+   *
+   * Meaningless while {@link sandbox} is set: the sandbox is not in the list.
+   */
   readonly challengeIndex: number;
+  /**
+   * The building the sandbox was asked for, or `null` for a numbered challenge.
+   *
+   * Set when `challenge=sandbox`, which is why it displaces
+   * {@link challengeIndex} rather than sitting beside it: the URL names one
+   * thing to play, and this is the other thing it can name.
+   */
+  readonly sandbox: SandboxOptions | null;
   /** Whether the simulation should start without waiting for the Start button. */
   readonly autoStart: boolean;
   /** Simulation speed multiplier. */
@@ -111,6 +130,116 @@ function readFlag(query: RouteQuery, key: string): boolean {
 }
 
 /**
+ * The `challenge` value that asks for the sandbox instead of a numbered
+ * challenge.
+ *
+ * The sandbox reuses the `challenge` key rather than adding a `sandbox` flag of
+ * its own, because that key is the one the challenge bar's navigation row
+ * overwrites: every entry in the row is `createParamsUrl(query, { challenge: n
+ * })`, so following one leaves the sandbox by construction, while the sandbox's
+ * own parameters ride along in the hash, inert, and are still there if the
+ * player comes back. Two keys — a `sandbox` flag *and* a `challenge` number —
+ * would leave the row producing URLs that name both.
+ */
+export const SANDBOX_CHALLENGE = "sandbox";
+
+/** The accepted range of a sandbox parameter, and what unusable input becomes. */
+interface SandboxRange {
+  /** Smallest value the simulation is allowed to run with. */
+  readonly min: number;
+  /** Largest value the simulation is allowed to run with. */
+  readonly max: number;
+  /** Used when the parameter is absent or cannot be read as a number. */
+  readonly fallback: number;
+}
+
+/**
+ * What the sandbox parameters are allowed to be.
+ *
+ * A hash is something anybody can hand-write, so every bound here is either a
+ * value the simulation cannot survive or a value the page cannot draw:
+ *
+ * - **Floors.** Below two, `spawnUserRandomly` draws `randomInt(1, floorCount -
+ *   1)`, which returns `1` for a one-floor building — a destination that does
+ *   not exist, so every passenger waits forever for an elevator that can never
+ *   arrive. The ceiling is the page: the building is drawn at a fixed 50px per
+ *   floor with no scaling, so 60 floors is already a 3000px column, about three
+ *   screens, and it is nearly three times the tallest shipped challenge (21).
+ *   It also bounds the DOM, since every elevator carries one in-car button per
+ *   floor: 60 floors and 12 cars is ~900 elements, where `floors=100000` would
+ *   be several million and lock the tab up before the first frame.
+ * - **Elevators.** At least one, or nobody is ever transported. At most twelve,
+ *   which is what fits at the default capacity: the cars are laid out left to
+ *   right from x=200 across a building 938px wide, so twelve 40px cars on a
+ *   60px pitch end at x=900 and the thirteenth would be drawn through the wall.
+ *   Wider cars fit fewer, so this is only the ceiling — {@link fitElevatorCount}
+ *   lowers it once the capacities are known.
+ * - **Capacity.** At least one seat, or the car cannot carry anyone; `0` is
+ *   also the value `Elevator` reads as "unset" and silently turns into 4. At
+ *   most 30, three times the largest shipped car: a car is drawn `capacity *
+ *   10` pixels wide, so 30 is 300px, a third of the building, and two of them
+ *   are as much as fits side by side — which is exactly what a `capacities=30`
+ *   sandbox is then given, however many elevators it asked for.
+ * - **Spawn rate.** The floor is not cosmetic. `World.update` runs `while
+ *   (elapsedSinceSpawn > 1 / spawnRate)` and subtracts `1 / spawnRate` each
+ *   time round, so a negative rate *adds* on every iteration and the loop never
+ *   terminates — `#spawnrate=-1` would hang the tab on the first frame, exactly
+ *   the class of bug this module exists to prevent — while `0` divides to
+ *   `Infinity` and nobody ever appears. The ceiling is that passengers only
+ *   leave the world when they are delivered: at 10 per second, more than three
+ *   times the busiest shipped challenge, an unsolved building already grows
+ *   without bound, and at 64x time scale that is 640 new DOM nodes per second
+ *   of wall clock.
+ *
+ * The fallbacks are challenge 4's building — eight floors, two cars, capacity
+ * four, 0.6 passengers a second — so a bare `#challenge=sandbox` starts
+ * something known to be playable rather than something degenerate.
+ */
+const SANDBOX_LIMITS = {
+  /** Floors in the building; `floors` in the URL. */
+  floorCount: { min: 2, max: 60, fallback: 8 },
+  /** Elevators serving them; `elevators` in the URL. */
+  elevatorCount: { min: 1, max: 12, fallback: 2 },
+  /** Passengers one car can hold; `capacities` in the URL. */
+  elevatorCapacity: { min: 1, max: 30, fallback: 4 },
+  /** Passengers appearing per simulated second; `spawnrate` in the URL. */
+  spawnRate: { min: 0.01, max: 10, fallback: 0.6 },
+} as const satisfies Record<string, SandboxRange>;
+
+/**
+ * Separates the per-elevator capacities in `capacities=4-10`.
+ *
+ * Not a comma: commas separate the `key=value` pairs of the hash itself, so a
+ * comma-separated list would be parsed as three parameters named `capacities`,
+ * `10` and `6`. A hyphen also makes a negative capacity unwriteable — `-4`
+ * splits into an empty entry and a `4` — which is one less way to ask for a car
+ * that cannot exist.
+ */
+const CAPACITY_SEPARATOR = "-";
+
+/**
+ * The geometry a sandbox building has to fit its elevators into.
+ *
+ * Mirrored rather than imported, because none of the three numbers is reachable
+ * from here: `src/game/world.ts` keeps `FIRST_ELEVATOR_X` and `ELEVATOR_SPACING`
+ * private, `Elevator` derives its width from its capacity inside its own
+ * constructor, and the building's width is a CSS custom property. The sources
+ * are named on each field so they can be checked by hand; the failure mode if
+ * one of them moves is a sandbox that accepts a building slightly too wide, not
+ * one that cannot run.
+ */
+const ELEVATOR_LAYOUT = {
+  /** `--building-width` in `src/styles/style.css`: the shafts' drawing area. */
+  buildingWidth: 938,
+  /** `FIRST_ELEVATOR_X` in `src/game/world.ts`: x of the leftmost shaft. */
+  firstElevatorX: 200,
+  /** `ELEVATOR_SPACING` in `src/game/world.ts`: the gap between two shafts. */
+  spacing: 20,
+  /** `Elevator.width = maxUsers * 10`: how much width one seat adds to a car. */
+  widthPerCapacity: 10,
+} as const;
+
+/**
  * Validates the raw parameters of a route.
  *
  * @param query - The parsed parameters.
@@ -118,13 +247,252 @@ function readFlag(query: RouteQuery, key: string): boolean {
  * @returns Parameters that are always safe to act on.
  */
 export function resolveRoute(query: RouteQuery, context: RouteContext): RouteParams {
+  const challenge = query.get("challenge");
+  const sandbox = isSandboxRoute(challenge) ? resolveSandboxOptions(query) : null;
   return {
-    challengeIndex: resolveChallengeIndex(query.get("challenge"), context.challengeCount),
+    // Resolved, and so warned about, only when it is the one being played: a
+    // sandbox URL never names a challenge number, and complaining that
+    // "sandbox" is not one would be noise.
+    challengeIndex: sandbox === null ? resolveChallengeIndex(challenge, context.challengeCount) : 0,
+    sandbox,
     autoStart: readFlag(query, "autostart"),
     timeScale: resolveTimeScale(query.get("timescale"), context.defaultTimeScale),
     devTest: readFlag(query, "devtest"),
     fullscreen: readFlag(query, "fullscreen"),
   };
+}
+
+/**
+ * Whether a `challenge` parameter asks for the sandbox.
+ *
+ * @param value - The raw parameter, if it was present.
+ * @returns Whether it names the sandbox, in any casing.
+ */
+function isSandboxRoute(value: string | undefined): boolean {
+  return value?.trim().toLowerCase() === SANDBOX_CHALLENGE;
+}
+
+/**
+ * Reads the building a sandbox URL asks for.
+ *
+ * @param query - The parsed parameters.
+ * @returns A building the simulation can run and the page can draw.
+ */
+function resolveSandboxOptions(query: RouteQuery): SandboxOptions {
+  // Read in the order the parameters are written in the URL, so the warnings
+  // come out in that order too. The elevator count and the capacities are the
+  // one pair that cannot be resolved apart: how many cars fit depends on how
+  // wide the capacities make them, and which capacities are ever used depends
+  // on how many cars there are.
+  const floorCount = resolveSandboxInteger(
+    query.get("floors"),
+    "floors",
+    SANDBOX_LIMITS.floorCount,
+  );
+  const requestedElevators = resolveSandboxInteger(
+    query.get("elevators"),
+    "elevators",
+    SANDBOX_LIMITS.elevatorCount,
+  );
+  const capacities = resolveElevatorCapacities(query.get("capacities"));
+  const elevatorCount = fitElevatorCount(requestedElevators, capacities);
+  return {
+    floorCount,
+    elevatorCount,
+    elevatorCapacities: trimCapacities(capacities, elevatorCount),
+    spawnRate: resolveSandboxNumber(query.get("spawnrate"), "spawnrate", SANDBOX_LIMITS.spawnRate),
+  };
+}
+
+/**
+ * Reduces an elevator count to the cars the building can actually hold.
+ *
+ * The shafts are laid out left to right from a fixed x, with no wrapping and no
+ * scaling, and a car is as wide as its capacity — so how many fit is a question
+ * about both parameters at once. Twelve fit at the default capacity of four;
+ * only two fit at a capacity of thirty. Clamping the two independently would
+ * accept `elevators=12,capacities=30`, whose cars are drawn straight through the
+ * building's wall and off the edge of `.worldtrack`, which clips them: the
+ * player would be given elevators that are simulated and controllable from their
+ * program but cannot be seen.
+ *
+ * @param requested - The elevator count from the URL, already inside its range.
+ * @param capacities - The capacities the world will cycle over the cars.
+ * @returns How many of those cars fit, at least one.
+ */
+function fitElevatorCount(requested: number, capacities: readonly number[]): number {
+  const { buildingWidth, firstElevatorX, spacing, widthPerCapacity } = ELEVATOR_LAYOUT;
+  let x = firstElevatorX;
+  let fitted = 0;
+  while (fitted < requested) {
+    const capacity = capacities[fitted % capacities.length];
+    if (capacity === undefined) {
+      // Unreachable: resolveElevatorCapacities never returns an empty list, and
+      // the modulo is what the world itself indexes with. The check is here
+      // because the index signature says otherwise, and stopping is the safe
+      // reading of "there is no car to measure".
+      break;
+    }
+    const width = capacity * widthPerCapacity;
+    if (x + width > buildingWidth) {
+      break;
+    }
+    x += width + spacing;
+    fitted += 1;
+  }
+  // The widest car allowed is 300px against 738px of room, so the first one
+  // always fits and this floor never bites today. It is here so that widening
+  // the capacity ceiling later cannot quietly produce a building with no
+  // elevators in it at all, which the world would run and nobody could play.
+  const count = Math.max(fitted, 1);
+  if (count !== requested) {
+    console.warn(
+      `Sandbox elevators ${String(requested)} do not fit the building at these capacities, using ${String(count)} instead`,
+    );
+  }
+  return count;
+}
+
+/**
+ * Drops the capacities that no elevator will be given.
+ *
+ * The world reads `capacities[i % capacities.length]` once per car, so entries
+ * past the last car are never read and the building is the same with or without
+ * them. The challenge bar is what makes them worth removing: it prints the list
+ * it is handed, so `elevators=1,capacities=6-9` would otherwise be described as
+ * one elevator "of capacities 6, 9" when the only car built has a capacity of
+ * six.
+ *
+ * @param capacities - The capacities the URL asked for.
+ * @param elevatorCount - How many cars the building will have.
+ * @returns The capacities that reach a car.
+ */
+function trimCapacities(capacities: readonly number[], elevatorCount: number): number[] {
+  if (capacities.length <= elevatorCount) {
+    return [...capacities];
+  }
+  const elevators = elevatorCount === 1 ? "elevator" : "elevators";
+  console.warn(
+    `Sandbox capacities lists ${String(capacities.length)} cars for ${String(elevatorCount)} ${elevators}, keeping the first ${String(elevatorCount)}`,
+  );
+  return capacities.slice(0, elevatorCount);
+}
+
+/**
+ * Brings a sandbox parameter inside the range the simulation can run.
+ *
+ * @param value - The parsed, finite value.
+ * @param name - The parameter's name in the URL, for the warning.
+ * @param range - The accepted range.
+ * @returns The value, clamped into the range.
+ */
+function clampSandboxValue(value: number, name: string, range: SandboxRange): number {
+  const clamped = Math.min(Math.max(value, range.min), range.max);
+  if (clamped !== value) {
+    console.warn(
+      `Sandbox ${name} ${String(value)} is outside ${String(range.min)}-${String(range.max)}, using ${String(clamped)} instead`,
+    );
+  }
+  return clamped;
+}
+
+/**
+ * Turns a sandbox parameter into a whole number inside its range.
+ *
+ * Fractions are refused rather than rounded: `floors=8.5` is a typo, and
+ * quietly playing eight floors is how a player ends up debugging their program
+ * against a building they did not ask for.
+ *
+ * @param value - The raw parameter, if it was present.
+ * @param name - The parameter's name in the URL, for the warning.
+ * @param range - The accepted range and the fallback.
+ * @returns A whole number inside the range.
+ */
+function resolveSandboxInteger(
+  value: string | undefined,
+  name: string,
+  range: SandboxRange,
+): number {
+  if (value === undefined) {
+    return range.fallback;
+  }
+  // Number, not parseInt: parseInt reads "12abc" as 12 and stops at the "e" of
+  // "1e9", so it takes junk and silently truncates exponents. Number refuses
+  // the junk and reads the exponent, along with the other unambiguous forms
+  // JavaScript understands -- "1e3", "0x10", " 8 " -- which are then clamped
+  // like anything else. The empty string is refused explicitly, because
+  // Number("") is 0 rather than NaN.
+  const parsed = value.trim() === "" ? Number.NaN : Number(value);
+  if (!Number.isInteger(parsed)) {
+    console.warn(`Invalid ${name} "${value}", using ${String(range.fallback)} instead`);
+    return range.fallback;
+  }
+  return clampSandboxValue(parsed, name, range);
+}
+
+/**
+ * Turns a sandbox parameter into a finite number inside its range.
+ *
+ * @param value - The raw parameter, if it was present.
+ * @param name - The parameter's name in the URL, for the warning.
+ * @param range - The accepted range and the fallback.
+ * @returns A finite number inside the range.
+ */
+function resolveSandboxNumber(
+  value: string | undefined,
+  name: string,
+  range: SandboxRange,
+): number {
+  if (value === undefined) {
+    return range.fallback;
+  }
+  const parsed = value.trim() === "" ? Number.NaN : Number(value);
+  if (!Number.isFinite(parsed)) {
+    console.warn(`Invalid ${name} "${value}", using ${String(range.fallback)} instead`);
+    return range.fallback;
+  }
+  return clampSandboxValue(parsed, name, range);
+}
+
+/**
+ * Turns a `capacities` parameter into the list the world cycles over its cars.
+ *
+ * One bad entry rejects the whole list rather than being dropped: dropping it
+ * would shift every capacity after it onto a different elevator, so the player
+ * would get a building that is wrong in a way the description still reports as
+ * what they asked for.
+ *
+ * The list is cut down to the elevator ceiling before anything is clamped, so
+ * that a hash listing ten thousand cars costs ten thousand `Number` calls and
+ * not ten thousand console warnings. {@link trimCapacities} cuts it again once
+ * the real elevator count is known.
+ *
+ * @param value - The raw parameter, if it was present.
+ * @returns At least one capacity, each inside the accepted range.
+ */
+function resolveElevatorCapacities(value: string | undefined): number[] {
+  const { fallback, min, max } = SANDBOX_LIMITS.elevatorCapacity;
+  if (value === undefined) {
+    return [fallback];
+  }
+  const parsed: number[] = [];
+  for (const part of value.split(CAPACITY_SEPARATOR)) {
+    const capacity = part.trim() === "" ? Number.NaN : Number(part);
+    if (!Number.isInteger(capacity)) {
+      console.warn(`Invalid capacities "${value}", using ${String(fallback)} instead`);
+      return [fallback];
+    }
+    parsed.push(capacity);
+  }
+  const ceiling = SANDBOX_LIMITS.elevatorCount.max;
+  if (parsed.length > ceiling) {
+    console.warn(
+      `Sandbox capacities lists ${String(parsed.length)} cars, but at most ${String(ceiling)} elevators can exist, keeping the first ${String(ceiling)}`,
+    );
+  }
+  return parsed
+    .slice(0, ceiling)
+    .map((capacity) => clampSandboxValue(capacity, "capacity", { min, max, fallback }));
 }
 
 /**

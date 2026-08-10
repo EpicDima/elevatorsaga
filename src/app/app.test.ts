@@ -276,6 +276,139 @@ describe("App challenge navigation", () => {
   });
 });
 
+describe("App sandbox", () => {
+  it("builds the building the url describes", () => {
+    const { app } = setUp();
+    app.handleRoute(...routeFor("#challenge=sandbox,floors=20,elevators=3,capacities=6-9"));
+
+    expect(app.isPlayingSandbox).toBe(true);
+    expect(app.world?.floors).toHaveLength(20);
+    // Three cars over a two-entry cycle: 6, 9, and 6 again.
+    expect(app.world?.elevators.map((elevator) => elevator.maxUsers)).toEqual([6, 9, 6]);
+  });
+
+  it("spawns passengers at the rate the url asked for", () => {
+    // The spawn rate is not readable off the world, so it is measured. The
+    // world starts one spawn interval behind (1.001 / spawnRate), so a first
+    // second at 2/s is three passengers and at 0.5/s is one.
+    const fast = setUp().app;
+    fast.handleRoute(...routeFor("#challenge=sandbox,spawnrate=2"));
+    fast.world?.update(1.0);
+    expect(fast.world?.users).toHaveLength(3);
+
+    const slow = setUp().app;
+    slow.handleRoute(...routeFor("#challenge=sandbox,spawnrate=0.5"));
+    slow.world?.update(1.0);
+    expect(slow.world?.users).toHaveLength(1);
+  });
+
+  it("titles the bar with the parameters in effect, and not as a challenge", () => {
+    const { app, elements } = setUp();
+    app.handleRoute(...routeFor("#challenge=sandbox,floors=20,elevators=3,spawnrate=1.5"));
+
+    const title = requireElement(".challengetitle", elements.challenge);
+    expect(title.textContent).toBe(
+      "Sandbox: 20 floors, 3 elevators of capacity 4, 1.5 people per second. " +
+        "No goal, so the run never ends",
+    );
+    // There is no twentieth challenge to send anybody to.
+    expect(title.textContent).not.toContain("Challenge #");
+  });
+
+  it("shows the clamped parameters, not the ones the url asked for", () => {
+    const { app, elements } = setUp();
+    app.handleRoute(...routeFor("#challenge=sandbox,floors=100000"));
+
+    expect(requireElement(".challengetitle", elements.challenge).textContent).toContain(
+      "Sandbox: 60 floors",
+    );
+    expect(app.world?.floors).toHaveLength(60);
+  });
+
+  it("never ends, however long the run goes on", () => {
+    const { app, elements } = setUp();
+    app.handleRoute(...routeFor("#challenge=sandbox,floors=3,spawnrate=2"));
+    const world = app.world;
+
+    for (let i = 0; i < 50; i += 1) {
+      world?.update(1.0);
+    }
+    world?.trigger("stats_changed");
+
+    // Fifty simulated seconds with no program running at all: nobody has been
+    // delivered and the first passenger has been waiting almost the whole time,
+    // which is a loss under every condition in the challenge list, and longer
+    // than the time limit of all but the last of them. This is the state a
+    // condition would have resolved in if the sandbox had one.
+    expect(world?.elapsedTime).toBeGreaterThanOrEqual(50);
+    expect(world?.transportedCounter).toBe(0);
+    expect(world?.maxWaitTime).toBeGreaterThan(40);
+    expect(world?.challengeEnded).toBe(false);
+    expect(elements.feedback.innerHTML).toBe("");
+  });
+
+  it("leaves every challenge reachable, and marks none of them as current", () => {
+    const { app, elements } = setUp();
+    app.handleRoute(...routeFor("#challenge=sandbox,floors=20"));
+
+    const entries = queryAll(".challengelink", elements.challenge);
+    expect(entries).toHaveLength(3);
+    expect(entries.map((entry) => entry.getAttribute("aria-current"))).toEqual([null, null, null]);
+  });
+
+  it("carries the sandbox parameters into a jump, and out of the sandbox", () => {
+    // Deliberate: `challenge` is the one key the row rewrites, so following an
+    // entry leaves the sandbox by construction, while the building the player
+    // configured stays in the hash, inert, and is still there on the way back.
+    const { app, elements } = setUp();
+    app.handleRoute(...routeFor("#challenge=sandbox,floors=20,timescale=8"));
+
+    expect(
+      requireElement('[aria-label="Challenge 2"]', elements.challenge).getAttribute("href"),
+    ).toBe("#challenge=2,floors=20,timescale=8");
+  });
+
+  it("stops being the sandbox once a numbered challenge is started", () => {
+    const { app, elements } = setUp();
+    app.handleRoute(...routeFor("#challenge=sandbox,floors=20"));
+    app.handleRoute(...routeFor("#challenge=2,floors=20"));
+
+    expect(app.isPlayingSandbox).toBe(false);
+    expect(app.world?.floors).toHaveLength(4);
+    expect(requireElement(".challengetitle", elements.challenge).textContent).toBe(
+      "Challenge #2: Challenge two",
+    );
+  });
+
+  it("stays in the sandbox when the program is applied", () => {
+    // startChallenge(currentChallengeIndex) was what "run this again" used to
+    // mean, and it would drop a sandbox player back onto a numbered challenge
+    // -- losing the building they had just configured -- on every Ctrl-Enter.
+    const { app, editor, elements } = setUp();
+    app.handleRoute(...routeFor("#challenge=sandbox,floors=20"));
+
+    editor.trigger("apply_code");
+
+    expect(app.isPlayingSandbox).toBe(true);
+    expect(app.world?.floors).toHaveLength(20);
+    expect(requireElement(".challengetitle", elements.challenge).textContent).toContain("Sandbox:");
+    expect(app.worldController.isPaused).toBe(false);
+  });
+
+  it("stays in the sandbox when the world is restarted from the bar", () => {
+    const { app, elements } = setUp();
+    app.handleRoute(...routeFor("#challenge=sandbox,floors=20"));
+    // Only reachable once the world has been torn down; the sandbox itself
+    // never ends.
+    app.world?.unWind();
+
+    requireElement(".startstop", elements.challenge).click();
+
+    expect(app.isPlayingSandbox).toBe(true);
+    expect(app.world?.floors).toHaveLength(20);
+  });
+});
+
 describe("App focus", () => {
   it("hands focus to the start button when the next-challenge link is taken", () => {
     // Activating the link navigates, which starts the next challenge, which

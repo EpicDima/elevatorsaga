@@ -5,7 +5,8 @@
  * Ported from the `$(function() { ... })` block of the legacy `app.js`.
  */
 
-import type { Challenge } from "../game/challenges.ts";
+import { createSandboxChallenge } from "../game/challenges.ts";
+import type { Challenge, SandboxOptions } from "../game/challenges.ts";
 import { createWorld } from "../game/world.ts";
 import type { World } from "../game/world.ts";
 import type { AnimationFrameRequester, WorldController } from "../game/world-controller.ts";
@@ -65,6 +66,20 @@ const NO_OP_CODE = {
   update: (): void => undefined,
 };
 
+/** The challenge bar's title, which a sandbox run rewrites once the bar is drawn. */
+const CHALLENGE_TITLE_SELECTOR = ".challengetitle";
+
+/**
+ * The number the sandbox is drawn with before its title is rewritten.
+ *
+ * The bar's template renders `Challenge #{num}:` in front of every description,
+ * and the sandbox is not challenge anything. It is given a number no challenge
+ * can have — they are one-based, and the router refuses `#challenge=0` — so
+ * that if the rewrite below ever fails to find the title, what shows is
+ * obviously not an invitation to type `#challenge=0` into the address bar.
+ */
+const SANDBOX_CHALLENGE_NUM = 0;
+
 /** The page regions the app draws into. */
 export interface AppElements {
   /** The challenge bar. */
@@ -123,7 +138,13 @@ export class App {
   readonly worldController: WorldController;
   /** The world currently being played, once a challenge has started. */
   world: World | undefined = undefined;
-  /** Index of the challenge currently being played. */
+  /**
+   * Index of the challenge currently being played.
+   *
+   * Left where it was while the sandbox is running, since the sandbox is not in
+   * the list: it says which numbered challenge a restart would return to, not
+   * what is on screen. {@link isPlayingSandbox} is what distinguishes the two.
+   */
   currentChallengeIndex = 0;
 
   readonly #elements: AppElements;
@@ -133,6 +154,8 @@ export class App {
   #challengePresenter: ChallengePresenter | undefined = undefined;
   /** The parameters of the URL the current challenge was started from. */
   #query: RouteQuery = new Map<string, string>();
+  /** The building the sandbox is running, or `undefined` for a challenge. */
+  #sandbox: SandboxOptions | undefined = undefined;
 
   /**
    * @param options - The page regions, the editor, the controller and the
@@ -164,7 +187,7 @@ export class App {
     });
 
     this.#editor.on("apply_code", () => {
-      this.startChallenge(this.currentChallengeIndex, true);
+      this.#restart(true);
     });
     this.#editor.on("code_success", () => {
       clearCodeStatus(this.#elements.codeStatus);
@@ -190,10 +213,21 @@ export class App {
    * rather than numbered, and the row says so instead of offering a "challenge"
    * that can never be completed.
    *
-   * @param challengeIndex - The challenge about to be drawn, marked as current.
+   * The sandbox gets no entry of its own, and that is deliberate. The row is
+   * the fixed progression through the game; the sandbox is not a station on it
+   * and has no address to link to — its URL is whatever the player wrote, and
+   * an entry pointing at "the sandbox" would have to invent parameters or
+   * silently reuse whatever happened to be in the hash. Numbering it would make
+   * it look like a twentieth challenge, which it is not. So while the sandbox
+   * runs, the row still lists every challenge, with none of them marked
+   * current: it is the way *out* of the sandbox, and the row saying "you are
+   * not on any of these" is exactly right.
+   *
+   * @param challengeIndex - The challenge about to be drawn, marked as current,
+   * or `null` when what is being drawn is not in the list.
    * @returns One entry per challenge, in playing order.
    */
-  #challengeLinks(challengeIndex: number): readonly ChallengeLinkData[] {
+  #challengeLinks(challengeIndex: number | null): readonly ChallengeLinkData[] {
     const lastIndex = this.challenges.length - 1;
     return this.challenges.map((_challenge, index) => ({
       num: index + 1,
@@ -212,10 +246,35 @@ export class App {
     }
   }
 
+  /** Whether what is on screen is the sandbox rather than a numbered challenge. */
+  get isPlayingSandbox(): boolean {
+    return this.#sandbox !== undefined;
+  }
+
+  /**
+   * Starts whatever is currently on screen again, from the beginning.
+   *
+   * Both callers — the Restart button and the editor's "apply code" — mean "run
+   * this again", and until the sandbox existed the only thing that could be on
+   * screen was `challenges[currentChallengeIndex]`. Restarting through the
+   * index would now throw a sandbox player back onto a numbered challenge, and
+   * with it the building they had configured.
+   *
+   * @param autoStart - Whether to run without waiting for the Start button.
+   */
+  #restart(autoStart = false): void {
+    const sandbox = this.#sandbox;
+    if (sandbox === undefined) {
+      this.startChallenge(this.currentChallengeIndex, autoStart);
+    } else {
+      this.startSandbox(sandbox, autoStart);
+    }
+  }
+
   /** Starts, pauses or restarts the simulation, depending on where it is. */
   startStopOrRestart(): void {
     if (this.world?.challengeEnded === true) {
-      this.startChallenge(this.currentChallengeIndex);
+      this.#restart();
     } else {
       this.worldController.setPaused(!this.worldController.isPaused);
     }
@@ -234,7 +293,11 @@ export class App {
     }
     setDemoFullscreen(params.fullscreen);
     this.worldController.setTimeScale(params.timeScale);
-    this.startChallenge(params.challengeIndex, params.autoStart);
+    if (params.sandbox === null) {
+      this.startChallenge(params.challengeIndex, params.autoStart);
+    } else {
+      this.startSandbox(params.sandbox, params.autoStart);
+    }
   }
 
   /**
@@ -248,9 +311,38 @@ export class App {
     if (challenge === undefined) {
       throw new RangeError(`No challenge with index ${String(challengeIndex)}`);
     }
-
-    this.world?.unWind();
+    this.#sandbox = undefined;
     this.currentChallengeIndex = challengeIndex;
+    this.#startRun(challenge, challengeIndex, autoStart);
+  }
+
+  /**
+   * Tears the current challenge down and starts a sandbox run in its place.
+   *
+   * The building comes from the URL, so it is bookmarkable and shareable, and
+   * nothing about the run is remembered anywhere else: coming back to the same
+   * link is coming back to the same building.
+   *
+   * @param options - The building to play in, already validated by the router.
+   * @param autoStart - Whether to run without waiting for the Start button.
+   */
+  startSandbox(options: SandboxOptions, autoStart = false): void {
+    this.#sandbox = options;
+    this.#startRun(createSandboxChallenge(options), null, autoStart);
+  }
+
+  /**
+   * Builds a world for a challenge, draws it, and hands it to the controller.
+   *
+   * @param challenge - What to play: one of {@link challenges}, or the sandbox
+   * challenge the URL just described.
+   * @param challengeIndex - Its index in {@link challenges}, or `null` for the
+   * sandbox, which is not in the list and so is neither numbered in the bar nor
+   * marked in the navigation row nor followed by a "next challenge" link.
+   * @param autoStart - Whether to run without waiting for the Start button.
+   */
+  #startRun(challenge: Challenge, challengeIndex: number | null, autoStart: boolean): void {
+    this.world?.unWind();
     const world = createWorld(challenge.options);
     this.world = world;
     window.world = world;
@@ -266,7 +358,7 @@ export class App {
     clearAll([this.#elements.world, this.#elements.feedback]);
     presentStats(this.#elements.stats, world);
     this.#challengePresenter = presentChallenge(this.#elements.challenge, {
-      challengeNum: challengeIndex + 1,
+      challengeNum: challengeIndex === null ? SANDBOX_CHALLENGE_NUM : challengeIndex + 1,
       description: challenge.condition.description,
       challengeLinks: this.#challengeLinks(challengeIndex),
       world,
@@ -282,6 +374,9 @@ export class App {
         this.worldController.setTimeScale(decreasedTimeScale(this.worldController.timeScale));
       },
     });
+    if (challengeIndex === null) {
+      this.#retitleAsSandbox(challenge.condition.description);
+    }
     presentWorld(this.#elements.world, world);
 
     world.on("stats_changed", () => {
@@ -295,8 +390,10 @@ export class App {
         presentFeedback(this.#elements.feedback, {
           title: "Success!",
           message: "Challenge completed",
+          // No link after the last challenge, and none for the sandbox, which
+          // cannot get here at all: its condition never resolves.
           url:
-            challengeIndex + 1 < this.challenges.length
+            challengeIndex !== null && challengeIndex + 1 < this.challenges.length
               ? createParamsUrl(this.#query, { challenge: challengeIndex + 2 })
               : "",
         });
@@ -316,5 +413,31 @@ export class App {
       this.#requestAnimationFrame,
       autoStart,
     );
+  }
+
+  /**
+   * Replaces the challenge bar's title with the sandbox's own.
+   *
+   * The bar is a shared template that writes `Challenge #N: ` in front of every
+   * description, which is right for the nineteen entries in the list and a lie
+   * for the sandbox: there is no challenge N to go to, and a player reading it
+   * would reasonably try. The description already names the building in full,
+   * and it stands on its own — it begins "Sandbox:" — so the prefix is dropped
+   * rather than given a number that means nothing.
+   *
+   * Done here, after the render, rather than by templating a different title,
+   * because the sandbox is the only caller that needs it and the bar's markup
+   * is not this module's to change. Missing the title is not fatal: what shows
+   * then is the description behind {@link SANDBOX_CHALLENGE_NUM}, which is
+   * wrong but readable, and a blank bar would be worse.
+   *
+   * @param description - The sandbox description, containing markup built in
+   * `src/game/challenges.ts` and never from player input.
+   */
+  #retitleAsSandbox(description: string): void {
+    const title = this.#elements.challenge.querySelector(CHALLENGE_TITLE_SELECTOR);
+    if (title !== null) {
+      title.innerHTML = description;
+    }
   }
 }
