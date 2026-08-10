@@ -260,6 +260,17 @@ Before opening a pull request, run what CI runs: `npm run typecheck`, `npm run l
 for every push to `master` and every pull request; only the two active LTS lines are covered,
 since odd-numbered Node releases never become LTS.
 
+### The original implementation
+
+Comments throughout `src/` cite the code they were ported from by `file:line` — `libs/riot.js:40-42`,
+`world.js:22-23`, `interfaces.js:6`. Those files were deleted in 2.0, so the citations point at the
+tag `legacy-1.x` (commit `e0c55bf`), the last revision before the modernization, where the originals
+sit unchanged:
+
+```sh
+git show legacy-1.x:libs/riot.js
+```
+
 ### Deploying
 
 `.github/workflows/deploy.yml` builds the site and publishes it with the official GitHub Pages
