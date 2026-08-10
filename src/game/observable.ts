@@ -14,20 +14,32 @@
  *    register (or unregister) the handler for every listed name.
  * 2. Removing a handler in the middle of a dispatch is safe: a handler removed
  *    before it is reached is *not* invoked, and no handler is skipped.
- * 3. Handlers added during a dispatch do not run for the in-flight event.
- * 4. `once` handlers run exactly once and are removed before invocation.
- * 5. Re-entrant {@link Observable.trigger} calls from inside a handler work.
+ * 3. `once` handlers run exactly once and are removed before invocation.
+ * 4. Re-entrant {@link Observable.trigger} calls from inside a handler work.
  *
- * Two legacy quirks are deliberately dropped:
+ * Three legacy quirks are deliberately dropped:
  *
  * - riot prepended the event name as the first handler argument whenever a
  *   handler was registered for more than one name (`fn.typed = pos > 0`). That
  *   was undocumented and confusing; callers now pass the distinguishing value
  *   explicitly instead.
  * - riot's `fn.busy` re-entrancy guard, which silently skipped a handler that
- *   was re-triggered from within itself. `unobservable` never had it, and the
- *   objects that dispatch re-entrantly (`Movable` subclasses) used
- *   `unobservable`.
+ *   was re-triggered from within itself. `unobservable` never had it, and it is
+ *   the cause of upstream issue #88: a handler that throws never clears `busy`
+ *   and is dead for the rest of the run. Where re-entrancy actually has to be
+ *   contained — `ElevatorInterface.checkDestinationQueue`, which is riot-backed
+ *   and is the one dispatch player code re-enters — the guard lives at that
+ *   call site, scoped to the one event and cleared in a `finally`.
+ * - a *live* handler list during dispatch. Both legacy emitters iterated the
+ *   array they were still appending to (`libs/riot.js:41`;
+ *   `libs/unobservable.js:94`, whose loop condition carries the comment
+ *   `// Note: len can change during iteration`), so a handler registered from
+ *   inside a dispatch *did* run for the event already in flight — and a handler
+ *   that re-registered itself could livelock. {@link Observable.trigger}
+ *   iterates a snapshot instead, matching the DOM `EventTarget` model, so the
+ *   set of handlers for one event is fixed the moment it is dispatched and the
+ *   dispatch always terminates. Nothing in the simulation registers handlers
+ *   from inside a dispatch, so this divergence is not observable in play.
  */
 
 /**
@@ -188,7 +200,8 @@ export class Observable<E extends EventArgsMap> {
    * Invokes every handler of `event`, in registration order.
    *
    * Iteration runs over a snapshot, so handlers added during the dispatch do
-   * not run for this event, and handlers removed during the dispatch are
+   * not run for this event (a deliberate divergence from the legacy emitters,
+   * which iterated a live array), and handlers removed during the dispatch are
    * skipped even if they had not been reached yet.
    *
    * @param event - Event name to dispatch.

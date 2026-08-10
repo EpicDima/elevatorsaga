@@ -332,7 +332,12 @@ describe("Observable mutation during dispatch", () => {
     expect(later).not.toHaveBeenCalled();
   });
 
-  it("does not invoke a handler added during the dispatch for the in-flight event", () => {
+  it("diverges from legacy: a handler added during a dispatch skips the in-flight event", () => {
+    // Deliberate divergence. Both legacy emitters iterated a live array
+    // (libs/riot.js:41; libs/unobservable.js:94, "len can change during
+    // iteration"), so a handler registered mid-dispatch *did* run for the event
+    // already in flight. Snapshot iteration matches the DOM EventTarget model
+    // and cannot livelock; see the module docblock.
     const emitter = makeEmitter();
     const added = vi.fn();
     emitter.on("idle", () => {
@@ -359,7 +364,9 @@ describe("Observable mutation during dispatch", () => {
     expect(first).toHaveBeenCalledTimes(1);
   });
 
-  it("re-adding a removed handler during a dispatch does not re-run it for that event", () => {
+  it("diverges from legacy: re-adding a removed handler mid-dispatch does not re-run it", () => {
+    // Same divergence as above, and the reason it is the safer default: with a
+    // live array this handler would have re-appended itself forever.
     const emitter = makeEmitter();
     let calls = 0;
     const handler = (): void => {
@@ -393,7 +400,11 @@ describe("Observable re-entrancy", () => {
     expect(order).toEqual(["outer:start", "inner", "outer:end"]);
   });
 
-  it("supports re-triggering the same event from inside a handler", () => {
+  it("supports re-triggering the same event from inside a handler, as unobservable did", () => {
+    // Matches `unobservable`, which had no re-entrancy guard. riot would have
+    // stopped after the first call, because `fn.busy` was still set on the
+    // handler that did the re-triggering. Emitters are not the place for that
+    // guard; ElevatorInterface carries its own, scoped to `idle`.
     const emitter = makeEmitter();
     const seen: number[] = [];
     emitter.on("up_button_pressed", (floor) => {
