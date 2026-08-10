@@ -1,0 +1,310 @@
+// @vitest-environment jsdom
+
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+import { DEFAULT_CODE, DEV_TEST_CODE } from "./default-code.ts";
+import {
+  AUTOSAVE_DELAY_MS,
+  BACKUP_STORAGE_KEY,
+  CODE_STORAGE_KEY,
+  CodeEditor,
+  codeMirrorView,
+} from "./editor.ts";
+import type { TextEditorHandlers, TextEditorView } from "./editor.ts";
+
+/**
+ * A `Storage` backed by a map.
+ *
+ * The test environment does not provide a usable `localStorage`, and an
+ * explicit store makes the assertions about *which* keys are written clearer.
+ */
+class MemoryStorage implements Storage {
+  readonly #entries = new Map<string, string>();
+
+  get length(): number {
+    return this.#entries.size;
+  }
+
+  clear(): void {
+    this.#entries.clear();
+  }
+
+  getItem(key: string): string | null {
+    return this.#entries.get(key) ?? null;
+  }
+
+  key(index: number): string | null {
+    return [...this.#entries.keys()][index] ?? null;
+  }
+
+  removeItem(key: string): void {
+    this.#entries.delete(key);
+  }
+
+  setItem(key: string, value: string): void {
+    this.#entries.set(key, value);
+  }
+}
+
+/** A text editing surface that records the handlers it was given. */
+class FakeView implements TextEditorView {
+  value = "";
+  focusCount = 0;
+  readonly handlers: TextEditorHandlers;
+
+  /**
+   * @param handlers - Handlers raised by {@link FakeView.type}.
+   */
+  constructor(handlers: TextEditorHandlers) {
+    this.handlers = handlers;
+  }
+
+  getValue(): string {
+    return this.value;
+  }
+
+  setValue(value: string): void {
+    this.value = value;
+  }
+
+  focus(): void {
+    this.focusCount += 1;
+  }
+
+  /**
+   * Simulates the player editing the document.
+   *
+   * @param value - The new document.
+   */
+  type(value: string): void {
+    this.value = value;
+    this.handlers.onChange();
+  }
+}
+
+/**
+ * Builds an editor over a fake view and hands both back.
+ *
+ * @param storage - Where the editor should persist the program.
+ * @returns The editor and the view it is driving.
+ */
+function setUp(storage: Storage = new MemoryStorage()): {
+  editor: CodeEditor;
+  view: FakeView;
+  storage: Storage;
+} {
+  let view: FakeView | undefined;
+  const editor = new CodeEditor(
+    (handlers) => {
+      view = new FakeView(handlers);
+      return view;
+    },
+    { storage },
+  );
+  if (view === undefined) {
+    throw new Error("The editor did not build its view");
+  }
+  return { editor, view, storage };
+}
+
+beforeEach(() => {
+  vi.useFakeTimers();
+});
+
+afterEach(() => {
+  vi.useRealTimers();
+});
+
+describe("CodeEditor storage", () => {
+  it("starts a new player off with the default program", () => {
+    const { view } = setUp();
+    expect(view.getValue()).toBe(DEFAULT_CODE);
+  });
+
+  it("restores the program from the v5 key players already have", () => {
+    const storage = new MemoryStorage();
+    storage.setItem(CODE_STORAGE_KEY, "{ init: function() {} }");
+    const { view } = setUp(storage);
+    expect(view.getValue()).toBe("{ init: function() {} }");
+  });
+
+  it("saves under the v5 key and announces when it did", () => {
+    const { editor, view, storage } = setUp();
+    const saved = vi.fn();
+    const changed = vi.fn();
+    editor.on("saved", saved);
+    editor.on("change", changed);
+
+    view.value = "// mine";
+    editor.save();
+
+    expect(storage.getItem(CODE_STORAGE_KEY)).toBe("// mine");
+    expect(saved).toHaveBeenCalledTimes(1);
+    expect(saved.mock.calls[0]?.[0]).toBeInstanceOf(Date);
+    expect(changed).toHaveBeenCalledTimes(1);
+  });
+
+  it("autosaves once, a second after the typing stops", () => {
+    const { editor, view, storage } = setUp();
+    const changed = vi.fn();
+    editor.on("change", changed);
+
+    view.type("a");
+    view.type("ab");
+    vi.advanceTimersByTime(AUTOSAVE_DELAY_MS - 1);
+    expect(storage.getItem(CODE_STORAGE_KEY)).toBeNull();
+
+    vi.advanceTimersByTime(1);
+    expect(storage.getItem(CODE_STORAGE_KEY)).toBe("ab");
+    expect(changed).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not autosave again after an explicit save", () => {
+    const { editor, view } = setUp();
+    const changed = vi.fn();
+    editor.on("change", changed);
+
+    view.type("a");
+    editor.save();
+    vi.advanceTimersByTime(AUTOSAVE_DELAY_MS * 2);
+
+    expect(changed).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps working when the browser refuses storage", () => {
+    // Safari in private mode throws from both getItem and setItem.
+    const denied = (): never => {
+      throw new Error("denied");
+    };
+    const storage: Storage = {
+      get length(): number {
+        return denied();
+      },
+      clear: denied,
+      getItem: denied,
+      key: denied,
+      removeItem: denied,
+      setItem: denied,
+    };
+    const { editor, view } = setUp(storage);
+    const saved = vi.fn();
+    editor.on("saved", saved);
+
+    expect(view.getValue()).toBe(DEFAULT_CODE);
+    expect(() => {
+      editor.save();
+    }).not.toThrow();
+    expect(saved).not.toHaveBeenCalled();
+  });
+});
+
+describe("CodeEditor reset", () => {
+  it("backs the program up before replacing it, and can bring it back", () => {
+    const { editor, view, storage } = setUp();
+    view.value = "// worth keeping";
+
+    editor.reset();
+    expect(view.getValue()).toBe(DEFAULT_CODE);
+    expect(storage.getItem(BACKUP_STORAGE_KEY)).toBe("// worth keeping");
+
+    editor.undoReset();
+    expect(view.getValue()).toBe("// worth keeping");
+  });
+
+  it("undoes to an empty document when there is no backup", () => {
+    const { editor, view } = setUp();
+    editor.undoReset();
+    expect(view.getValue()).toBe("");
+  });
+
+  it("loads the reference solution for devtest", () => {
+    const { editor, view } = setUp();
+    editor.setDevTestCode();
+    expect(view.getValue()).toBe(DEV_TEST_CODE);
+  });
+});
+
+describe("CodeEditor compilation", () => {
+  it("compiles the program and reports success", () => {
+    const { editor, view } = setUp();
+    const success = vi.fn();
+    editor.on("code_success", success);
+    view.value = "{ init: function() {}, update: function() {} }";
+
+    const codeObj = editor.getCodeObj();
+
+    expect(typeof codeObj?.init).toBe("function");
+    expect(success).toHaveBeenCalledTimes(1);
+  });
+
+  it("reports a program that does not compile, without throwing", () => {
+    const { editor, view } = setUp();
+    const failure = vi.fn();
+    editor.on("usercode_error", failure);
+    view.value = "{ this is not javascript";
+
+    expect(editor.getCodeObj()).toBeNull();
+    expect(failure).toHaveBeenCalledTimes(1);
+  });
+
+  it("compiles the default program every player starts with", () => {
+    const { editor } = setUp();
+    expect(editor.getCodeObj()).not.toBeNull();
+  });
+
+  it("compiles the devtest program", () => {
+    const { editor } = setUp();
+    editor.setDevTestCode();
+    expect(editor.getCodeObj()).not.toBeNull();
+  });
+});
+
+describe("CodeEditor events", () => {
+  it("passes an in-editor apply on to its listeners", () => {
+    const { editor, view } = setUp();
+    const apply = vi.fn();
+    editor.on("apply_code", apply);
+
+    view.handlers.onApply();
+
+    expect(apply).toHaveBeenCalledTimes(1);
+  });
+
+  it("saves when the view asks it to", () => {
+    const { editor, view, storage } = setUp();
+    view.value = "// via shortcut";
+    view.handlers.onSave();
+    expect(storage.getItem(CODE_STORAGE_KEY)).toBe("// via shortcut");
+    expect(editor.getCode()).toBe("// via shortcut");
+  });
+
+  it("forwards focus to the view", () => {
+    const { editor, view } = setUp();
+    editor.focus();
+    expect(view.focusCount).toBe(1);
+  });
+});
+
+describe("codeMirrorView", () => {
+  it("mounts an editor that round-trips the document", () => {
+    vi.useRealTimers();
+    const parent = document.createElement("div");
+    document.body.append(parent);
+    const changes = vi.fn();
+
+    const view = codeMirrorView(parent)({
+      onChange: changes,
+      onApply: vi.fn(),
+      onSave: vi.fn(),
+    });
+    view.setValue("var a = 1;\n");
+
+    expect(view.getValue()).toBe("var a = 1;\n");
+    expect(changes).toHaveBeenCalled();
+    expect(parent.querySelector(".cm-editor")).not.toBeNull();
+    expect(parent.querySelector(".cm-content")?.getAttribute("aria-label")).toBe(
+      "Elevator program",
+    );
+    expect(parent.querySelector<HTMLElement>(".cm-editor")?.tabIndex).toBe(-1);
+  });
+});
