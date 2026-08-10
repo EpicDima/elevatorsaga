@@ -104,6 +104,55 @@ describe("Elevator interface", () => {
       expect(errorHandler).toHaveBeenCalledWith(boom);
     });
 
+    it("keeps running the remaining handlers of an event after one throws", () => {
+      // Issue #88 (also #83, #27): the legacy tryTrigger wrapped the whole
+      // dispatch in one try/catch, so the first handler to throw silently
+      // killed every handler registered after it.
+      const boom = new Error("boom");
+      const second = vi.fn();
+      const third = vi.fn();
+      elevInterface.on("stopped_at_floor", () => {
+        throw boom;
+      });
+      elevInterface.on("stopped_at_floor", second);
+      elevInterface.on("stopped_at_floor", third);
+
+      e.trigger("stopped_at_floor", 1);
+
+      expect(second).toHaveBeenCalledTimes(1);
+      expect(third).toHaveBeenCalledTimes(1);
+      expect(errorHandler).toHaveBeenCalledTimes(1);
+      expect(errorHandler).toHaveBeenCalledWith(boom);
+    });
+
+    it("runs a handler that threw again on the next dispatch", () => {
+      const throwing = vi.fn(() => {
+        throw new Error("boom");
+      });
+      elevInterface.on("stopped_at_floor", throwing);
+
+      e.trigger("stopped_at_floor", 1);
+      e.trigger("stopped_at_floor", 2);
+
+      expect(throwing).toHaveBeenCalledTimes(2);
+      expect(errorHandler).toHaveBeenCalledTimes(2);
+    });
+
+    it("keeps running the remaining idle handlers after one throws", () => {
+      const boom = new Error("boom");
+      const second = vi.fn();
+      elevInterface.on("idle", () => {
+        throw boom;
+      });
+      elevInterface.on("idle", second);
+
+      elevInterface.checkDestinationQueue();
+
+      expect(second).toHaveBeenCalledTimes(1);
+      expect(errorHandler).toHaveBeenCalledTimes(1);
+      expect(errorHandler).toHaveBeenCalledWith(boom);
+    });
+
     it("routes exceptions thrown by idle handlers", () => {
       const boom = new Error("boom");
       elevInterface.on("idle", () => {

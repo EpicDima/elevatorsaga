@@ -77,18 +77,16 @@ export class Floor extends Observable<FloorEvents> {
    * Emits an event, diverting handler exceptions to the error handler.
    *
    * Floor events reach player code, which must not be able to break the
-   * simulation by throwing.
+   * simulation by throwing. Errors are isolated per handler, so one player
+   * handler throwing does not stop the others from running (upstream issues
+   * #88, #83, #27).
    *
    * @param event - Event to emit.
    * @param args - Arguments for that event.
    */
   // TODO: Ideally the floor should have a facade where tryTrigger is done
   #tryTrigger<K extends EventName<FloorEvents>>(event: K, ...args: FloorEvents[K]): void {
-    try {
-      this.trigger(event, ...args);
-    } catch (e) {
-      this.#errorHandler(e);
-    }
+    this.triggerSafe(event, this.#errorHandler, ...args);
   }
 
   /** Lights the up call button, emitting nothing if it was already lit. */

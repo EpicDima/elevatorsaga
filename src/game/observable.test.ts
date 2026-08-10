@@ -436,8 +436,8 @@ describe("Observable re-entrancy", () => {
   });
 
   it("propagates a throwing handler and skips the remaining handlers", () => {
-    // Floor and ElevatorInterface rely on this: they wrap trigger in a
-    // try/catch that routes user-code exceptions to an error handler.
+    // Plain `trigger` has no error handling at all. Dispatches that reach
+    // player code use `triggerSafe` instead.
     const emitter = makeEmitter();
     const never = vi.fn();
     emitter.on("idle", () => {
@@ -447,5 +447,111 @@ describe("Observable re-entrancy", () => {
 
     expect(() => emitter.trigger("idle")).toThrow("user code blew up");
     expect(never).not.toHaveBeenCalled();
+  });
+});
+
+describe("Observable.triggerSafe", () => {
+  it("invokes every handler with the triggered arguments", () => {
+    const emitter = makeEmitter();
+    const handler = vi.fn();
+    const onError = vi.fn();
+    emitter.on("passing_floor", handler);
+
+    emitter.triggerSafe("passing_floor", onError, 2, "down");
+
+    expect(handler).toHaveBeenCalledWith(2, "down");
+    expect(onError).not.toHaveBeenCalled();
+  });
+
+  it("runs the remaining handlers after one throws", () => {
+    const emitter = makeEmitter();
+    const boom = new Error("boom");
+    const second = vi.fn();
+    const third = vi.fn();
+    const onError = vi.fn();
+    emitter.on("idle", () => {
+      throw boom;
+    });
+    emitter.on("idle", second);
+    emitter.on("idle", third);
+
+    emitter.triggerSafe("idle", onError);
+
+    expect(second).toHaveBeenCalledTimes(1);
+    expect(third).toHaveBeenCalledTimes(1);
+    expect(onError).toHaveBeenCalledTimes(1);
+    expect(onError).toHaveBeenCalledWith(boom);
+  });
+
+  it("reports every error, in handler order", () => {
+    const emitter = makeEmitter();
+    const first = new Error("first");
+    const second = new Error("second");
+    const onError = vi.fn();
+    emitter.on("idle", () => {
+      throw first;
+    });
+    emitter.on("idle", () => {
+      throw second;
+    });
+
+    emitter.triggerSafe("idle", onError);
+
+    expect(onError).toHaveBeenNthCalledWith(1, first);
+    expect(onError).toHaveBeenNthCalledWith(2, second);
+  });
+
+  it("leaves a throwing handler registered for later dispatches", () => {
+    const emitter = makeEmitter();
+    const throwing = vi.fn(() => {
+      throw new Error("boom");
+    });
+    const onError = vi.fn();
+    emitter.on("idle", throwing);
+
+    emitter.triggerSafe("idle", onError);
+    emitter.triggerSafe("idle", onError);
+
+    expect(throwing).toHaveBeenCalledTimes(2);
+    expect(onError).toHaveBeenCalledTimes(2);
+  });
+
+  it("removes a once handler that throws", () => {
+    const emitter = makeEmitter();
+    const throwing = vi.fn(() => {
+      throw new Error("boom");
+    });
+    const onError = vi.fn();
+    emitter.once("idle", throwing);
+
+    emitter.triggerSafe("idle", onError);
+    emitter.triggerSafe("idle", onError);
+
+    expect(throwing).toHaveBeenCalledTimes(1);
+    expect(onError).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps the mutation-during-dispatch rules of trigger", () => {
+    const emitter = makeEmitter();
+    const later = vi.fn();
+    const added = vi.fn();
+    const onError = vi.fn();
+    emitter.on("idle", () => {
+      emitter.off("idle", later);
+      emitter.on("idle", added);
+    });
+    emitter.on("idle", later);
+
+    emitter.triggerSafe("idle", onError);
+
+    expect(later).not.toHaveBeenCalled();
+    expect(added).not.toHaveBeenCalled();
+  });
+
+  it("is a no-op when the event has no handlers, and returns itself", () => {
+    const emitter = makeEmitter();
+    const onError = vi.fn();
+    expect(emitter.triggerSafe("idle", onError)).toBe(emitter);
+    expect(onError).not.toHaveBeenCalled();
   });
 });

@@ -209,6 +209,45 @@ export class Observable<E extends EventArgsMap> {
    * @returns This emitter, for chaining.
    */
   trigger<K extends EventName<E>>(event: K, ...args: E[K]): this {
+    return this.#dispatch(event, args, null);
+  }
+
+  /**
+   * Invokes every handler of `event`, isolating each one's exceptions.
+   *
+   * Same dispatch rules as {@link Observable.trigger}, except that a handler
+   * which throws does not abort the dispatch: its exception goes to `onError`
+   * and the remaining handlers still run. Handlers are never disabled by
+   * throwing, so the same handler runs again on the next dispatch.
+   *
+   * Used for every dispatch that reaches player code. The legacy emitters had
+   * no equivalent: `interfaces.js` and `floor.js` wrapped the whole `trigger`
+   * in one try/catch, so the first player handler to throw silently killed
+   * every handler after it (upstream issues #88, #83, #27).
+   *
+   * @param event - Event name to dispatch.
+   * @param onError - Receives whatever a handler throws, once per failure, in
+   * handler order.
+   * @param args - Arguments forwarded to each handler.
+   * @returns This emitter, for chaining.
+   */
+  triggerSafe<K extends EventName<E>>(
+    event: K,
+    onError: (e: unknown) => void,
+    ...args: E[K]
+  ): this {
+    return this.#dispatch(event, args, onError);
+  }
+
+  /**
+   * Shared dispatch loop behind {@link trigger} and {@link triggerSafe}.
+   *
+   * @param event - Event name to dispatch.
+   * @param args - Arguments forwarded to each handler.
+   * @param onError - Receives handler exceptions; `null` lets them propagate.
+   * @returns This emitter, for chaining.
+   */
+  #dispatch(event: string, args: readonly unknown[], onError: ((e: unknown) => void) | null): this {
     const entries = this.#handlers.get(event);
     if (entries === undefined || entries.length === 0) {
       return this;
@@ -220,7 +259,15 @@ export class Observable<E extends EventArgsMap> {
       if (entry.once) {
         this.#removeEntry(event, entry);
       }
-      entry.handler(...args);
+      if (onError === null) {
+        entry.handler(...args);
+        continue;
+      }
+      try {
+        entry.handler(...args);
+      } catch (e) {
+        onError(e);
+      }
     }
     return this;
   }

@@ -187,6 +187,41 @@ describe("Floor", () => {
       expect(upPressed).toHaveBeenCalledTimes(1);
     });
 
+    it("keeps running the remaining handlers of an event after one throws", () => {
+      // Issue #88 (also #83, #27): the legacy tryTrigger wrapped the whole
+      // dispatch in one try/catch, so the first handler to throw silently
+      // killed every handler registered after it.
+      const boom = new Error("boom");
+      const second = vi.fn();
+      const third = vi.fn();
+      floor.on("up_button_pressed", () => {
+        throw boom;
+      });
+      floor.on("up_button_pressed", second);
+      floor.on("up_button_pressed", third);
+
+      floor.pressUpButton();
+
+      expect(second).toHaveBeenCalledTimes(1);
+      expect(third).toHaveBeenCalledTimes(1);
+      expect(errorHandler).toHaveBeenCalledTimes(1);
+      expect(errorHandler).toHaveBeenCalledWith(boom);
+    });
+
+    it("runs a handler that threw again on the next dispatch", () => {
+      const throwing = vi.fn(() => {
+        throw new Error("boom");
+      });
+      floor.on("up_button_pressed", throwing);
+
+      floor.pressUpButton();
+      floor.elevatorAvailable(indicators(true, true));
+      floor.pressUpButton();
+
+      expect(throwing).toHaveBeenCalledTimes(2);
+      expect(errorHandler).toHaveBeenCalledTimes(2);
+    });
+
     it("routes exceptions thrown while clearing buttons", () => {
       floor.pressUpButton();
       const boom = new Error("boom");

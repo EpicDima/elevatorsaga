@@ -131,6 +131,9 @@ export class ElevatorInterface extends Observable<ElevatorInterfaceEvents> {
   /**
    * Emits an event, diverting handler exceptions to the error handler.
    *
+   * Errors are isolated per handler, so one player handler throwing does not
+   * stop the others from running (upstream issues #88, #83, #27).
+   *
    * @param event - Event to emit.
    * @param args - Arguments for that event.
    */
@@ -138,11 +141,7 @@ export class ElevatorInterface extends Observable<ElevatorInterfaceEvents> {
     event: K,
     ...args: ElevatorInterfaceEvents[K]
   ): void {
-    try {
-      this.trigger(event, ...args);
-    } catch (e) {
-      this.#errorHandler(e);
-    }
+    this.triggerSafe(event, this.#errorHandler, ...args);
   }
 
   /**
