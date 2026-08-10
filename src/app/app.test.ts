@@ -77,8 +77,8 @@ function setUp(code: string = INERT_CODE): Harness {
   const storage = new MemoryStorage();
   let view: FakeTextEditorView | undefined;
   const editor = new CodeEditor(
-    (handlers) => {
-      view = new FakeTextEditorView(handlers);
+    (handlers, initialValue) => {
+      view = new FakeTextEditorView(handlers, initialValue);
       return view;
     },
     { storage },

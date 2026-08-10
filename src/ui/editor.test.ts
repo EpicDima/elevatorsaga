@@ -25,8 +25,8 @@ function setUp(storage: Storage = new MemoryStorage()): {
 } {
   let view: FakeTextEditorView | undefined;
   const editor = new CodeEditor(
-    (handlers) => {
-      view = new FakeTextEditorView(handlers);
+    (handlers, initialValue) => {
+      view = new FakeTextEditorView(handlers, initialValue);
       return view;
     },
     { storage },
@@ -215,6 +215,63 @@ describe("CodeEditor events", () => {
   });
 });
 
+describe("CodeEditor over a real editing surface", () => {
+  /**
+   * Mounts a CodeMirror-backed editor over a storage holding `code`.
+   *
+   * @param code - The program already in storage, if any.
+   * @returns The editor, its storage and a spy on writes to that storage.
+   */
+  function mount(code?: string): {
+    editor: CodeEditor;
+    storage: MemoryStorage;
+    setItem: ReturnType<typeof vi.spyOn<Storage, "setItem">>;
+  } {
+    const parent = document.createElement("div");
+    document.body.append(parent);
+    const storage = new MemoryStorage();
+    if (code !== undefined) {
+      storage.setItem(CODE_STORAGE_KEY, code);
+    }
+    const setItem = vi.spyOn(storage, "setItem");
+    return { editor: new CodeEditor(codeMirrorView(parent), { storage }), storage, setItem };
+  }
+
+  it("does not save, or announce a save, just for having been built", () => {
+    // Regression: CodeMirror 6 dispatches a document change for the initial
+    // document, so populating the editor after wiring the change listener
+    // scheduled an autosave. One second after every single page load the
+    // player was told "Code saved ..." and their storage was rewritten,
+    // unasked. The legacy game populated the editor first and only then
+    // registered its autosaver (app.js:50-55, :77-81).
+    const { editor, setItem } = mount("// the program the player left behind");
+    // Wired exactly as src/main.ts wires #save_message.
+    const saveMessage = document.createElement("span");
+    editor.on("saved", (savedAt) => {
+      saveMessage.textContent = `Code saved ${savedAt.toTimeString()}`;
+    });
+
+    vi.advanceTimersByTime(AUTOSAVE_DELAY_MS * 5);
+
+    expect(setItem).not.toHaveBeenCalled();
+    expect(saveMessage.textContent).toBe("");
+    expect(editor.getCode()).toBe("// the program the player left behind");
+  });
+
+  it("still autosaves a document change that follows", () => {
+    const { editor, storage, setItem } = mount();
+    const saved = vi.fn();
+    editor.on("saved", saved);
+
+    editor.setCode("// edited");
+    vi.advanceTimersByTime(AUTOSAVE_DELAY_MS);
+
+    expect(setItem).toHaveBeenCalledTimes(1);
+    expect(storage.getItem(CODE_STORAGE_KEY)).toBe("// edited");
+    expect(saved).toHaveBeenCalledTimes(1);
+  });
+});
+
 describe("codeMirrorView", () => {
   it("mounts an editor that round-trips the document", () => {
     vi.useRealTimers();
@@ -222,11 +279,17 @@ describe("codeMirrorView", () => {
     document.body.append(parent);
     const changes = vi.fn();
 
-    const view = codeMirrorView(parent)({
-      onChange: changes,
-      onApply: vi.fn(),
-      onSave: vi.fn(),
-    });
+    const view = codeMirrorView(parent)(
+      {
+        onChange: changes,
+        onApply: vi.fn(),
+        onSave: vi.fn(),
+      },
+      "// start\n",
+    );
+    expect(view.getValue()).toBe("// start\n");
+    expect(changes).not.toHaveBeenCalled();
+
     view.setValue("var a = 1;\n");
 
     expect(view.getValue()).toBe("var a = 1;\n");

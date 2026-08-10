@@ -72,14 +72,30 @@ export interface TextEditorHandlers {
 export interface TextEditorView {
   /** Returns the whole document. */
   getValue: () => string;
-  /** Replaces the whole document. */
+  /**
+   * Replaces the whole document.
+   *
+   * This is a document change like any other, so the surface raises
+   * {@link TextEditorHandlers.onChange} for it — replacing the program from
+   * "Reset", "Undo reset" or `#devtest` autosaves, as it did in the legacy
+   * game. The document the surface is *built* with does not, which is why it is
+   * passed to the factory instead of being assigned afterwards.
+   */
   setValue: (value: string) => void;
   /** Puts the caret back in the editor. */
   focus: () => void;
 }
 
-/** Builds an editing surface bound to the given handlers. */
-export type TextEditorViewFactory = (handlers: TextEditorHandlers) => TextEditorView;
+/**
+ * Builds an editing surface bound to the given handlers.
+ *
+ * @param handlers - Callbacks the surface raises.
+ * @param initialValue - The document the surface starts with.
+ */
+export type TextEditorViewFactory = (
+  handlers: TextEditorHandlers,
+  initialValue: string,
+) => TextEditorView;
 
 /** Options accepted by {@link CodeEditor}. */
 export interface CodeEditorOptions {
@@ -138,20 +154,29 @@ export class CodeEditor extends Observable<CodeEditorEvents> {
   constructor(createView: TextEditorViewFactory, options: CodeEditorOptions = {}) {
     super();
     this.#storage = options.storage ?? localStorage;
-    this.#view = createView({
-      onChange: () => {
-        this.#scheduleSave();
-      },
-      onApply: () => {
-        this.trigger("apply_code");
-      },
-      onSave: () => {
-        this.save();
-      },
-    });
-
+    // The stored program is handed to the surface as the document it is built
+    // with, never assigned to it afterwards. Assigning it is a document change,
+    // which schedules an autosave: the legacy game avoided that by calling
+    // `cm.setValue()` before registering the change handler (app.js:50-55, then
+    // :77-81), and without the same care every page load wrote to storage and
+    // announced "Code saved …" a second later, unasked. Building the document
+    // in also keeps it out of the undo history, so the first Ctrl+Z cannot wipe
+    // the program the player arrived with.
     const existingCode = readStorage(this.#storage, CODE_STORAGE_KEY);
-    this.#view.setValue(existingCode === null || existingCode === "" ? DEFAULT_CODE : existingCode);
+    this.#view = createView(
+      {
+        onChange: () => {
+          this.#scheduleSave();
+        },
+        onApply: () => {
+          this.trigger("apply_code");
+        },
+        onSave: () => {
+          this.save();
+        },
+      },
+      existingCode === null || existingCode === "" ? DEFAULT_CODE : existingCode,
+    );
   }
 
   /**
@@ -235,9 +260,10 @@ export class CodeEditor extends Observable<CodeEditorEvents> {
  * @returns A factory that mounts the editor and returns the surface.
  */
 export function codeMirrorView(parent: HTMLElement): TextEditorViewFactory {
-  return (handlers: TextEditorHandlers): TextEditorView => {
+  return (handlers: TextEditorHandlers, initialValue: string): TextEditorView => {
     const view = new EditorView({
       parent,
+      doc: initialValue,
       extensions: [
         basicSetup,
         javascript(),

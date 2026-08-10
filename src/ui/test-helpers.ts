@@ -42,7 +42,7 @@ export class MemoryStorage implements Storage {
 
 /** A text editing surface that keeps its document in a string. */
 export class FakeTextEditorView implements TextEditorView {
-  /** The current document. */
+  /** The current document. Assigning it does not count as an edit. */
   value = "";
   /** How often the caret has been put back in the editor. */
   focusCount = 0;
@@ -51,17 +51,26 @@ export class FakeTextEditorView implements TextEditorView {
 
   /**
    * @param handlers - Handlers raised by {@link FakeTextEditorView.type}.
+   * @param initialValue - The document the surface is built with, which — as in
+   * CodeMirror — is not a document *change* and so raises nothing.
    */
-  constructor(handlers: TextEditorHandlers) {
+  constructor(handlers: TextEditorHandlers, initialValue = "") {
     this.handlers = handlers;
+    this.value = initialValue;
   }
 
   getValue(): string {
     return this.value;
   }
 
+  /**
+   * Replaces the document, raising `onChange` as a real editing surface does.
+   *
+   * @param value - The new document.
+   */
   setValue(value: string): void {
     this.value = value;
+    this.handlers.onChange();
   }
 
   focus(): void {
