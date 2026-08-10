@@ -94,7 +94,6 @@ export class Floor extends Observable<FloorEvents> {
    * @param event - Event to emit.
    * @param args - Arguments for that event.
    */
-  // TODO: Ideally the floor should have a facade where tryTrigger is done
   #tryTrigger<K extends EventName<FloorEvents>>(event: K, ...args: FloorEvents[K]): void {
     this.triggerSafe(event, this.#errorHandler, ...args);
   }
