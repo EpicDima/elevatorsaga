@@ -1,0 +1,497 @@
+/**
+ * Русский каталог / the Russian catalogue.
+ *
+ * Typed as `MessageCatalogue<"ru">`, so it is checked against the English one
+ * key by key: a missing message is a compile error, an invented one is a
+ * compile error, and a counted message that forgets `few` or `many` is a
+ * compile error too. `catalogue.test.ts` adds what the type system cannot see —
+ * that the `{placeholders}` match, that no plain key smuggles in markup, and
+ * that the code in the `.code` blocks is byte for byte the English code with
+ * only its comments translated.
+ *
+ * ## Glossary
+ *
+ * Fixed vocabulary; the same English word is the same Russian word everywhere.
+ * The first eight were given with the task, the rest are chosen here and
+ * written down so the next translator does not have to guess:
+ *
+ * | English            | Русский              |
+ * | ------------------ | -------------------- |
+ * | elevator           | лифт                 |
+ * | floor              | этаж                 |
+ * | challenge          | задание              |
+ * | user, passenger    | пассажир             |
+ * | load factor        | загрузка             |
+ * | destination queue  | очередь этажей       |
+ * | wait time          | время ожидания       |
+ * | transported        | перевезено           |
+ * | building           | здание               |
+ * | code, program      | код, программа       |
+ * | editor             | редактор             |
+ * | event              | событие              |
+ * | listener, handler  | обработчик           |
+ * | to trigger (event) | срабатывать          |
+ * | to register (on)   | подписать            |
+ * | to remove (off)    | снять                |
+ * | elevator move      | перемещение лифта    |
+ * | indicator          | индикатор            |
+ * | callback           | колбэк               |
+ * | fitness            | эффективность        |
+ * | scenario           | сценарий             |
+ * | worker             | воркер               |
+ * | sandbox            | песочница            |
+ * | local storage      | локальное хранилище  |
+ * | developer tools    | инструменты разработчика |
+ * | simulation speed   | скорость симуляции   |
+ *
+ * ## Rules followed here
+ *
+ * - **Code is never translated.** Method names, event names, signatures,
+ *   property names and literal values stay exactly as player code spells them:
+ *   `goToFloor`, `"up_button_pressed"`, `"stopped"`, `init`, `update`. Only
+ *   prose, labels and the comments inside example code are Russian. Where a
+ *   literal string value is quoted, it keeps its ASCII quotes — `"up"` is a
+ *   value, not a quotation.
+ * - **Typography.** «Ёлочки» for quotation, em dash with spaces around it — like
+ *   this — and ё written wherever it belongs. The non-breaking space between a
+ *   number and its unit comes from `Intl` (see `formatNumber`), not from here.
+ * - **Register.** Buttons are short and imperative: Старт, Пауза, Заново.
+ *   Challenge descriptions speak to the player directly — «Перевезите…» — with
+ *   no bureaucratic nouns («осуществите транспортировку» is exactly what this
+ *   file is written to avoid).
+ * - **Numerals.** The counted phrases are grammatical in the sentence they are
+ *   built into, which is not always the dictionary form. Nominative would be
+ *   1 пассажир, 2 пассажира, 5 пассажиров, 1,5 пассажира; after «Перевезите»
+ *   the noun is in the accusative, and for an animate noun that means
+ *   1 пассажира, 2 пассажира, 5 пассажиров. Seconds appear in two cases and so
+ *   need two entries: «за 30 секунд» (accusative) and «дольше 30 секунд»
+ *   (genitive), which differ in the singular — «за 21 секунду» against «дольше
+ *   21 секунды».
+ */
+
+import type { MessageCatalogue } from "./catalogue.ts";
+
+/** Every message the game can show, in Russian. */
+export const RU_MESSAGES: MessageCatalogue<"ru"> = {
+  // ------------------------------------------------------------------- игра
+
+  "page.title": "Elevator Saga — игра про программирование лифтов",
+  "page.description":
+    "Elevator Saga — игра про программирование: напишите на JavaScript программу, которая эффективно возит пассажиров.",
+  "page.imageAlt":
+    "Четыре лифта возят пассажиров между шестью этажами, а ниже, в редакторе, — управляющая ими программа на JavaScript.",
+  "page.skipLink": "Перейти к редактору кода",
+  "page.brand": "Elevator Saga",
+  "page.tagline": "Игра про программирование лифтов",
+  "page.nav.label": "Справка и документация",
+  "page.nav.help": "Справка",
+  "page.nav.documentation": "Документация",
+  "page.nav.wiki": "Вики и решения",
+  "page.noscript":
+    "Похоже, ваш браузер не поддерживает JavaScript. На этой странице — игра про программирование, которая на JavaScript и написана.",
+  "page.world.label": "Здание",
+  "page.stats.label": "Статистика симуляции",
+  "page.stats.transported": "Перевезено",
+  "page.stats.elapsedTime": "Прошло времени",
+  "page.stats.transportedPerSec": "Перевезено/с",
+  "page.stats.avgWaitTime": "Сред. время ожидания",
+  "page.stats.maxWaitTime": "Макс. время ожидания",
+  "page.stats.moves": "Перемещения",
+  "page.stats.movesTitle": "Сколько этажей в сумме проехали лифты",
+  "page.hint.html":
+    "В редакторе: <kbd data-mod-key>Ctrl</kbd>+<kbd>Enter</kbd> применяет программу. <kbd data-mod-key>Ctrl</kbd>+<kbd>S</kbd> сохраняет её. <kbd>Tab</kbd> добавляет отступ. <kbd>Esc</kbd> убирает фокус из редактора.",
+  "page.button.reset": "Сбросить",
+  "page.button.undoReset": "Вернуть код",
+  "page.button.save": "Сохранить",
+  "page.button.apply": "Применить",
+  "page.helpNote.html":
+    'Не разобрались? Откройте страницу <a href="documentation.html">справки и документации по API</a>',
+  "page.footer.credits": "Сделали Magnus Wolffelt и другие участники",
+  "page.footer.version": "Версия",
+  "page.footer.source.html":
+    '<a href="https://github.com/EpicDima/elevatorsaga">Исходный код</a> на GitHub, форк <a href="https://github.com/magwo/elevatorsaga">оригинала</a>',
+  "page.footer.licences.html":
+    '<a href="licenses.txt">Лицензии</a> игры и всего, что входит в её сборку',
+
+  // ----------------------------------------------------------------- здание
+
+  "game.floor.callUp": "Вызвать лифт вверх с этажа {floor}",
+  "game.floor.callDown": "Вызвать лифт вниз с этажа {floor}",
+  "game.elevator.label": "Лифт {number}",
+  "game.elevator.floorButton": "Ехать на этаж {floor}",
+  "game.challenge.title.html": "Задание №{number}: {description}",
+  "game.timeScale.decrease": "Уменьшить скорость симуляции",
+  "game.timeScale.increase": "Увеличить скорость симуляции",
+  "game.timeScale.value": "{value}×",
+  "game.button.start": "Старт",
+  "game.button.pause": "Пауза",
+  "game.button.restart": "Заново",
+  "game.feedback.success.title": "Получилось!",
+  "game.feedback.success.message": "Задание выполнено",
+  "game.feedback.failure.title": "Задание провалено",
+  "game.feedback.failure.message": "Может быть, программу стоит доработать?",
+  "game.feedback.next": "Следующее задание",
+  "game.codeStatus": "С вашим кодом что-то не так:",
+
+  // --------------------------------------------------------------- редактор
+
+  "editor.label": "Программа для лифтов",
+  "editor.saved": "Код сохранён в {time}",
+  "editor.confirmReset": "Точно сбросить код до стандартной реализации?",
+  "editor.confirmUndoReset": "Вернуть код, который был до сброса?",
+  "editor.defaultCode.code": `{
+    init: function(elevators, floors) {
+        var elevator = elevators[0]; // Возьмём первый лифт
+
+        // Как только лифт освободится (в очереди не осталось этажей)...
+        elevator.on("idle", function() {
+            // ...поедем по всем этажам (или мы про какой-то забыли?)
+            elevator.goToFloor(0);
+            elevator.goToFloor(1);
+        });
+    },
+    update: function(dt, elevators, floors) {
+        // Обычно здесь ничего делать не нужно
+    }
+}`,
+
+  // ---------------------------------------------------------------- задания
+
+  "challenge.transportWithinTime.html": "Перевезите {people} за {time} или быстрее",
+  "challenge.transportWithMaxWait.html":
+    "Перевезите {people}, и пусть никто не ждёт дольше {waitTime}",
+  "challenge.transportWithinTimeWithMaxWait.html":
+    "Перевезите {people} за {time} или быстрее, и пусть никто не ждёт дольше {waitTime}",
+  "challenge.transportWithinMoves.html": "Перевезите {people}, уложившись в {moves}",
+  "challenge.demo": "Бесконечная демонстрация",
+  // Винительный падеж после «Перевезите»; у одушевлённого существительного он
+  // совпадает с родительным: 1 пассажира, 5 пассажиров.
+  "challenge.people.html": {
+    one: "<span class='emphasis-color'>{count}</span> пассажира",
+    few: "<span class='emphasis-color'>{count}</span> пассажира",
+    many: "<span class='emphasis-color'>{count}</span> пассажиров",
+    other: "<span class='emphasis-color'>{count}</span> пассажира",
+  },
+  // Винительный падеж после «за»: за 21 секунду, за 23 секунды, за 30 секунд.
+  "challenge.timeLimit.html": {
+    one: "<span class='emphasis-color'>{count}</span> секунду",
+    few: "<span class='emphasis-color'>{count}</span> секунды",
+    many: "<span class='emphasis-color'>{count}</span> секунд",
+    other: "<span class='emphasis-color'>{count}</span> секунды",
+  },
+  // Родительный падеж после «дольше»: дольше 21 секунды, дольше 30 секунд.
+  "challenge.waitLimit.html": {
+    one: "<span class='emphasis-color'>{count}</span> секунды",
+    few: "<span class='emphasis-color'>{count}</span> секунд",
+    many: "<span class='emphasis-color'>{count}</span> секунд",
+    other: "<span class='emphasis-color'>{count}</span> секунды",
+  },
+  "challenge.moveLimit.html": {
+    one: "<span class='emphasis-color'>{count}</span> перемещение лифта",
+    few: "<span class='emphasis-color'>{count}</span> перемещения лифта",
+    many: "<span class='emphasis-color'>{count}</span> перемещений лифта",
+    other: "<span class='emphasis-color'>{count}</span> перемещения лифта",
+  },
+  "challenge.sandbox.html":
+    "Песочница: {floors}, {elevators} {capacityLabel} {capacities}, {spawnRate}. Цели нет, поэтому симуляция никогда не закончится",
+  "challenge.sandbox.floors.html": {
+    one: "<span class='emphasis-color'>{count}</span> этаж",
+    few: "<span class='emphasis-color'>{count}</span> этажа",
+    many: "<span class='emphasis-color'>{count}</span> этажей",
+    other: "<span class='emphasis-color'>{count}</span> этажа",
+  },
+  "challenge.sandbox.elevators.html": {
+    one: "<span class='emphasis-color'>{count}</span> лифт",
+    few: "<span class='emphasis-color'>{count}</span> лифта",
+    many: "<span class='emphasis-color'>{count}</span> лифтов",
+    other: "<span class='emphasis-color'>{count}</span> лифта",
+  },
+  // Русскому здесь ничего склонять не нужно: «вместимостью» одинаково подходит
+  // и одному лифту, и списку из четырёх. Форма всё равно нужна во всех четырёх
+  // категориях — этого требует тип, и это честнее, чем делать вид, что счёт
+  // здесь ни при чём.
+  "challenge.sandbox.capacityLabel": {
+    one: "вместимостью",
+    few: "вместимостью",
+    many: "вместимостью",
+    other: "вместимостью",
+  },
+  "challenge.sandbox.spawnRate.html": {
+    one: "<span class='emphasis-color'>{count}</span> пассажир в секунду",
+    few: "<span class='emphasis-color'>{count}</span> пассажира в секунду",
+    many: "<span class='emphasis-color'>{count}</span> пассажиров в секунду",
+    other: "<span class='emphasis-color'>{count}</span> пассажира в секунду",
+  },
+
+  // ------------------------------------------------------ подсказки в редакторе
+
+  "completion.events.on":
+    "Подписать обработчик. Несколько имён событий через пробел подписывают его сразу на все, и тогда первым аргументом ему приходит имя сработавшего события.",
+  "completion.events.once":
+    "Подписать обработчик, который сработает не больше одного раза и будет снят. Принимает одно имя события.",
+  "completion.events.one":
+    "Старое имя для once — то самое, что было в оригинальной игре. Ведёт себя так же и тоже принимает одно имя события.",
+  "completion.events.off":
+    'Снять обработчики. Если передать функцию, снимется только она; если не передавать — все обработчики названных событий. Единственное имя "*" снимает обработчики всех событий.',
+  "completion.events.offAll":
+    "Снять все обработчики, которые подписали вы, на все события этого лифта или этажа. Обработчики, нужные самой игре, живут отдельно, так что объект продолжает работать.",
+  "completion.elevator.goToFloor":
+    "Поставить в очередь поездку на указанный этаж. Если вторым аргументом передать true, лифт поедет туда сразу, а уже потом — по остальным этажам из очереди.",
+  "completion.elevator.stop":
+    "Очистить очередь этажей и остановить лифт, если он едет. Учтите, что лифт, скорее всего, встанет не на этаже, так что пассажиры не выйдут.",
+  "completion.elevator.currentFloor":
+    "Возвращает этаж, на котором лифт сейчас находится. Это округлённое число, и оно не означает, что лифт стоит.",
+  "completion.elevator.goingUpIndicator":
+    "Возвращает или задаёт индикатор движения вверх — от него зависит, как поведут себя пассажиры при остановке на этаже.",
+  "completion.elevator.goingDownIndicator":
+    "Возвращает или задаёт индикатор движения вниз — от него зависит, как поведут себя пассажиры при остановке на этаже.",
+  "completion.elevator.maxPassengerCount":
+    "Возвращает, сколько пассажиров помещается в лифт одновременно.",
+  "completion.elevator.loadFactor":
+    "Возвращает загрузку лифта: 0 — пустой, 1 — полный. Зависит от веса пассажиров, а он разный, так что мера неточная.",
+  "completion.elevator.isFull":
+    "Возвращает, занято ли в лифте каждое место. Пользуйтесь этим, а не сравнением загрузки с 1: вес пассажиров разный, поэтому у полностью набитого лифта загрузка в среднем всего около 0,775.",
+  "completion.elevator.isEmpty":
+    "Возвращает, пуст ли лифт. Это не противоположность isFull: лифт с одним пассажиром из четырёх не подходит ни под то, ни под другое.",
+  "completion.elevator.destinationDirection":
+    "Возвращает направление, в котором лифт собирается ехать.",
+  "completion.elevator.isApproachingFloor":
+    "Возвращает, едет ли лифт к указанному этажу и не проехал ли его. Учитывается только направление движения, так что этаж дальше по пути тоже считается приближающимся, даже если лифт остановится раньше.",
+  "completion.elevator.destinationQueue":
+    "Текущая очередь этажей — номера этажей, на которые лифт собирается заехать. Её можно менять и очищать. После изменения нужно вызвать checkDestinationQueue(), чтобы оно подействовало сразу.",
+  "completion.elevator.checkDestinationQueue":
+    "Проверяет очередь этажей на новые пункты назначения. Вызывать это нужно, только если вы меняли очередь вручную.",
+  "completion.elevator.getPressedFloors": "Возвращает массив номеров нажатых этажей.",
+  "completion.floor.floorNum": "Возвращает номер этажа.",
+  "completion.elevator.event.idle": "Срабатывает, когда лифт выполнил все задачи и ничем не занят.",
+  "completion.elevator.event.floorButtonPressed":
+    "Срабатывает, когда пассажир нажал кнопку внутри лифта.",
+  "completion.elevator.event.passingFloor":
+    'Срабатывает незадолго до того, как лифт проедет мимо этажа. Удобный момент, чтобы решить, останавливаться ли на нём. Для конечного этажа это событие не срабатывает. Направление — "up" или "down".',
+  "completion.elevator.event.stoppedAtFloor": "Срабатывает, когда лифт приехал на этаж.",
+  "completion.floor.event.upButtonPressed":
+    "Срабатывает, когда на этаже нажали кнопку вызова вверх. Учтите, что пассажиры нажмут её снова, если не смогли зайти в лифт.",
+  "completion.floor.event.downButtonPressed":
+    "Срабатывает, когда на этаже нажали кнопку вызова вниз. Учтите, что пассажиры нажмут её снова, если не смогли зайти в лифт.",
+  "completion.floor.event.buttonStateChange":
+    "Одна из кнопок вызова на этаже загорелась или погасла.",
+  "completion.global.skeleton":
+    "Ваш код должен объявлять объект, в котором есть хотя бы две функции — init и update.",
+  "completion.global.init":
+    "Вызывается в начале задания. Обычно основную часть кода пишут здесь: настраивают обработчики событий и логику.",
+  "completion.global.update":
+    "Вызывается многократно по ходу задания. dt — сколько игровых секунд прошло с прошлого вызова update.",
+  "completion.initSkeleton.code": `init: function(elevators, floors) {
+    // Делайте что-нибудь с лифтами и этажами — и то и другое массивы объектов
+}`,
+  "completion.updateSkeleton.code": `update: function(dt, elevators, floors) {
+    // Ещё что-нибудь с лифтами и этажами
+}`,
+
+  // ------------------------------------------------------ оценка эффективности
+
+  "fitness.measuring": "Считаем эффективность…",
+  "fitness.results": "Эффективность, среднее время ожидания: {results}",
+  "fitness.result": "{scenario}: {value}",
+  "fitness.unknownValue": "?",
+  "fitness.error": "Не удалось посчитать эффективность из-за ошибки: {error}",
+  "fitness.workerTimeout":
+    "Воркер оценки эффективности не закончил работу за {seconds} и был остановлен. Нет ли в вашей программе бесконечного цикла?",
+  "fitness.workerFailed": "Воркер оценки эффективности завершился с ошибкой",
+  "fitness.scenario.small": "Маленький сценарий",
+  "fitness.scenario.medium": "Средний сценарий",
+  "fitness.scenario.large": "Большой сценарий",
+
+  // ---------------------------------------------------------------- ошибки
+
+  "error.code.noInit": "В коде должна быть функция init",
+  "error.code.noUpdate": "В коде должна быть функция update",
+  "error.elevator.notAFloor":
+    "elevator.{method} вызван с аргументом {value}, а это не номер этажа. Нужно конечное число, а этажи в этом здании — от 0 до {topFloor}.",
+  "error.elevator.queueNotAFloor":
+    "В elevator.destinationQueue попало {value}, а это не номер этажа. Запись отброшена, чтобы лифт продолжал работать; destinationQueue принимает конечные числа, а этажи в этом здании — от 0 до {topFloor}.",
+  "error.value.array": "массив",
+  "error.value.object": "объект",
+  "error.movable.busy": "Объект занят — воспользуйтесь колбэком",
+  "error.thrown.emptyString": "Брошена пустая строка",
+  "error.thrown.noMessage": "Брошен {kind} без сообщения",
+  "error.thrown.keys": "{kind} с ключами: {keys}",
+
+  // ------------------------------------------------------- справка: страница
+
+  "docs.page.title": "Elevator Saga — справка и документация по API",
+  "docs.page.description": "Справка и документация по API для Elevator Saga.",
+  "docs.page.tagline": "Справка и документация по API",
+  "docs.nav.label": "Игра",
+  "docs.nav.back": "Вернуться к игре",
+
+  // ----------------------------------------------------------- справка: игра
+
+  "docs.about.heading": "Об игре",
+  "docs.about.p1.html":
+    'Это игра про программирование!<br /> Ваша задача — управлять движением лифтов, написав программу на <a href="https://developer.mozilla.org/ru/docs/Web/JavaScript/Guide">JavaScript</a>.',
+  "docs.about.p2.html":
+    "Цель — возить пассажиров как можно эффективнее.<br /> Чем лучше это получается, тем дальше вы продвигаетесь по всё более сложным заданиям.<br /> Пройти все задания под силу только по-настоящему хорошим программам.",
+  "docs.play.heading": "Как играть",
+  "docs.play.apply.html":
+    'Напишите код в поле под игровым полем и нажмите кнопку <span class="emphasis-color">Применить</span>, чтобы начать задание.<br /> Скорость времени можно увеличивать и уменьшать кнопками {increase} и {decrease}.',
+  "docs.play.shortcuts.html":
+    "В редакторе <kbd data-mod-key>Ctrl</kbd>+<kbd>Enter</kbd> применяет программу и перезапускает задание, <kbd data-mod-key>Ctrl</kbd>+<kbd>S</kbd> сохраняет её, <kbd>Tab</kbd> добавляет отступ, а <kbd>Esc</kbd> убирает фокус из редактора.",
+  "docs.play.debugging.html":
+    'Если в программе ошибка, попробуйте разобраться с ней через инструменты разработчика в браузере. Чтобы начать с чистого листа, нажмите кнопку <span class="emphasis-color">Сбросить</span>: код вернётся к рабочей, но совсем простой реализации.<br /> Если у вас есть любимый текстовый редактор, например <a href="https://www.sublimetext.com/">Sublime Text</a>, пишите код в нём и вставляйте в редактор игры.<br /> Код сам сохраняется в локальном хранилище браузера, так что не переживайте — он не пропадёт, если вы случайно закроете вкладку.',
+
+  // ---------------------------------------------------------- справка: основы
+
+  "docs.basics.heading": "Основы",
+  "docs.basics.declare.html":
+    'Ваш код должен объявлять объект, в котором есть хотя бы две функции — <span class="emphasis-color">init</span> и <span class="emphasis-color">update</span>. Вот так:',
+  "docs.basics.example.code": `{
+    init: function(elevators, floors) {
+        // Делайте что-нибудь с лифтами и этажами — и то и другое массивы объектов
+    },
+    update: function(dt, elevators, floors) {
+        // Ещё что-нибудь с лифтами и этажами
+        // dt — сколько игровых секунд прошло с прошлого вызова update
+    }
+}`,
+  "docs.basics.called.html":
+    'Эти функции игра вызывает по ходу задания.<br /> <span class="emphasis-color">init</span> вызывается в начале задания, а <span class="emphasis-color">update</span> — многократно, пока оно идёт.',
+  "docs.basics.initPurpose.html":
+    'Обычно основную часть кода пишут в функции <span class="emphasis-color">init</span>: там настраивают обработчики событий и логику.',
+  "docs.basics.noLibraries.html":
+    'Раньше игра подключала jQuery и lodash, поэтому в старых решениях с вики часто встречаются <span class="emphasis-color">$</span> и <span class="emphasis-color">_</span>. Ни та ни другая библиотека больше не подключается, и вашей программе они недоступны: решение с ними упадёт с ошибкой <span class="emphasis-color">_ is not defined</span>. Всё, ради чего они здесь были нужны, — <span class="emphasis-color">_.filter</span>, <span class="emphasis-color">_.map</span>, <span class="emphasis-color">_.each</span>, <span class="emphasis-color">_.min</span> и им подобные — давно есть у самих массивов (<span class="emphasis-color">filter</span>, <span class="emphasis-color">map</span>, <span class="emphasis-color">forEach</span>, <span class="emphasis-color">Math.min</span>) в любом браузере, который потянет эту игру.',
+
+  // -------------------------------------------------------- справка: примеры
+
+  "docs.examples.heading": "Примеры кода",
+  "docs.examples.control.heading": "Как управлять лифтом",
+  "docs.examples.goToFloor":
+    "Отправить лифт на этаж 1 после всех остальных дел, если они есть. Если этот этаж уже стоит в том конце очереди, куда его собирались добавить, запрос отбрасывается — так что повторные просьбы про один и тот же этаж не копятся. Это единственный случай, когда запрос отбрасывается: этаж, стоящий где-то в середине очереди, добавится ещё раз.",
+  "docs.examples.currentFloor":
+    "Вызов currentFloor возвращает этаж, на котором лифт сейчас находится. Учтите, что это округлённое число и оно не означает, что лифт стоит.",
+  "docs.examples.events.heading": "Как слушать события",
+  "docs.examples.events.intro.html":
+    'События можно слушать — например, остановку на этаже или нажатие кнопки. И лифты, и этажи понимают <span class="emphasis-color">on</span>, <span class="emphasis-color">once</span>, <span class="emphasis-color">one</span>, <span class="emphasis-color">off</span> и <span class="emphasis-color">offAll</span>; что делает каждый из них, написано ниже, в разделе <a href="#events">методы событий</a>.',
+  "docs.examples.idle":
+    'Слушаем событие "idle": лифт присылает его, когда очередь задач опустела и делать ему нечего. В этом примере мы отправляем лифт на этаж 0.',
+  "docs.examples.floorButtonPressed":
+    'Слушаем событие "floor_button_pressed": оно приходит, когда пассажир нажал кнопку внутри лифта. Значит, он хочет попасть на этот этаж.',
+  "docs.examples.upButtonPressed":
+    'Слушаем событие "up_button_pressed": оно приходит, когда пассажир нажал кнопку вызова вверх на этаже, где он ждёт. Значит, он хочет уехать на другой этаж. Обработчику передаётся этаж, на котором нажали кнопку.',
+
+  // ---------------------------------------------------------- справка: API
+
+  "docs.api.heading": "Документация по API",
+  "docs.table.method": "Метод",
+  "docs.table.property": "Свойство",
+  "docs.table.event": "Событие",
+  "docs.table.type": "Тип",
+  "docs.table.explanation": "Описание",
+  "docs.table.example": "Пример",
+
+  "docs.api.events.heading": "Методы событий",
+  "docs.api.events.intro":
+    "Каждый лифт и каждый этаж — источник событий, и вот какие методы он вам для этого даёт. Все они возвращают объект, у которого были вызваны, так что вызовы можно собирать в цепочку.",
+  "docs.api.events.on":
+    "Подписать обработчик. Обработчики вызываются в порядке подписки, и одну и ту же функцию можно подписать несколько раз. Несколько имён событий через пробел подписывают один обработчик сразу на все; если имён больше одного, первым аргументом обработчику приходит имя сработавшего события, а за ним — аргументы самого события.",
+  "docs.api.events.once":
+    "Подписать обработчик, который сработает не больше одного раза и будет снят. Снимается он до вызова, поэтому то же событие, вызванное изнутри него, второй раз его не запустит. Принимает одно имя события.",
+  "docs.api.events.one.html":
+    'Старое имя для <span class="emphasis-color">once</span> — то самое, что было в оригинальной игре. Ведёт себя так же и тоже принимает одно имя события.',
+  "docs.api.events.off.html":
+    'Снять обработчики. Если передать функцию, снимется только она, как бы она ни была подписана; если не передавать — снимутся все обработчики названных событий. Имена можно перечислять через пробел, как в <span class="emphasis-color">on</span>, а единственное имя <span class="emphasis-color">"*"</span> снимает обработчики всех событий сразу — функция, переданная вместе со звёздочкой, игнорируется. Нужна ссылка на подписанную функцию, поэтому анонимную функцию, объявленную прямо в вызове, снять нельзя.',
+  "docs.api.events.off.example.code": `function goHome() { elevator.goToFloor(0); }
+elevator.on("idle", goHome);
+elevator.off("idle", goHome); // Только этот
+elevator.off("idle"); // Все обработчики idle
+elevator.off("*"); // Все обработчики всех событий`,
+  "docs.api.events.offAll.html":
+    'Снять все обработчики, которые подписали <em>вы</em>, на все события этого лифта или этажа. Обработчики, нужные самой игре, живут отдельно, так что объект продолжает работать — и всё, что вы подпишете потом, снова будет срабатывать. Это <span class="emphasis-color">off("*")</span> под собственным именем.',
+  "docs.api.events.outro.html":
+    'Снимать обработчики обычно не нужно: при перезапуске задания лифты и этажи выбрасываются, а ваш <span class="emphasis-color">init</span> вызывается заново уже на новых. Снятие пригодится, когда обработчик должен действовать только какое-то время.',
+
+  "docs.api.elevator.heading": "Объект лифта",
+  "docs.api.elevator.goToFloor.html":
+    'Поставить в очередь поездку лифта на указанный этаж. Если вторым аргументом передать true, лифт поедет туда сразу, а уже потом — по остальным этажам из очереди. Запрос отбрасывается, если этаж уже стоит в том конце очереди, куда он попал бы: в хвосте при обычном вызове и в голове при вызове с true. Тот же этаж дальше по очереди добавится ещё раз. Номер этажа за пределами здания подтягивается к ближайшему настоящему этажу, а вот значение, которое числом не является вовсе — <span class="emphasis-color">NaN</span>, <span class="emphasis-color">undefined</span>, строка, которая в число не разбирается, — не принимается и показывается как ошибка в вашем коде.',
+  "docs.api.elevator.goToFloor.example.code": `elevator.goToFloor(3); // Поехать после всего остального — очередь: 3
+elevator.goToFloor(2, true); // Поехать раньше всего остального — очередь: 2, 3
+elevator.goToFloor(3); // Отброшено: 3 уже последний
+elevator.goToFloor(2, true); // Отброшено: 2 уже первый
+elevator.goToFloor(2); // Всё равно добавится — очередь: 2, 3, 2`,
+  "docs.api.elevator.stop":
+    "Очистить очередь этажей и остановить лифт, если он едет. Обычно останавливать лифты не нужно — это на случай продвинутых решений, которые перестраивают маршрут на ходу. И учтите, что лифт, скорее всего, встанет не на этаже, так что пассажиры не выйдут.",
+  "docs.api.elevator.currentFloor": "Возвращает этаж, на котором лифт сейчас находится.",
+  "docs.api.elevator.currentFloor.example.code": `if(elevator.currentFloor() === 0) {
+    // Сделать что-нибудь особенное?
+}`,
+  "docs.api.elevator.goingUpIndicator":
+    "Возвращает или задаёт индикатор движения вверх — от него зависит, как поведут себя пассажиры при остановке на этаже.",
+  "docs.api.elevator.goingDownIndicator":
+    "Возвращает или задаёт индикатор движения вниз — от него зависит, как поведут себя пассажиры при остановке на этаже.",
+  "docs.api.elevator.maxPassengerCount":
+    "Возвращает, сколько пассажиров помещается в лифт одновременно.",
+  "docs.api.elevator.maxPassengerCount.example.code": `if(elevator.maxPassengerCount() > 5) {
+    // Приспособить этот лифт под что-то особенное — он большой
+}`,
+  "docs.api.elevator.loadFactor":
+    "Возвращает загрузку лифта: 0 — пустой, 1 — полный. Зависит от веса пассажиров, а он разный, так что мера неточная.",
+  "docs.api.elevator.loadFactor.example.code": `if(elevator.loadFactor() < 0.4) {
+    // Может, взять этот лифт — он ещё не полный?
+}`,
+  "docs.api.elevator.isFull":
+    "Возвращает, занято ли в лифте каждое место. Пользуйтесь этим, а не сравнением загрузки с 1: вес пассажиров разный, поэтому у полностью набитого лифта загрузка в среднем всего около 0,775. Тот, кто только начал заходить, уже считается — место он занял.",
+  "docs.api.elevator.isFull.example.code": `if(!elevator.isFull()) {
+    // Может, подобрать кого-нибудь по пути?
+}`,
+  "docs.api.elevator.isEmpty":
+    "Возвращает, пуст ли лифт. Это не противоположность isFull: лифт с одним пассажиром из четырёх не подходит ни под то, ни под другое.",
+  "docs.api.elevator.isEmpty.example.code": `if(elevator.isEmpty()) {
+    // Никого на борту — поехать ждать туда, где будет полезнее?
+}`,
+  "docs.api.elevator.isApproachingFloor":
+    "Возвращает, едет ли лифт к указанному этажу и не проехал ли его. Учитывается только направление движения, так что этаж дальше по пути тоже считается приближающимся, даже если лифт остановится раньше. Это та же проверка, которую делает сама игра перед событием passing_floor, так что этаж, про который она ответила «нет», это событие уже не поднимет. Стоящий лифт не приближается ни к чему, и тот, что уже приехал на нужный этаж, — тоже. Номер этажа за пределами здания подтягивается к ближайшему настоящему этажу, а значение, которое числом не является вовсе — в том числе забытый аргумент, — не принимается и показывается как ошибка в вашем коде, как и в goToFloor.",
+  "docs.api.elevator.isApproachingFloor.example.code": `if(elevator.isApproachingFloor(2)) {
+    // Может, остановиться и забрать тех, кто там ждёт?
+}`,
+  "docs.api.elevator.destinationDirection":
+    'Возвращает направление, в котором лифт собирается ехать. Возможные значения — "up", "down" и "stopped".',
+  "docs.api.elevator.destinationQueue":
+    "Текущая очередь этажей — номера этажей, на которые лифт собирается заехать. Её можно менять и очищать. Учтите, что после изменения нужно вызвать checkDestinationQueue(), чтобы оно подействовало сразу. Запись, которая номером этажа не является, отбрасывается, когда лифт до неё доходит, и показывается как ошибка в вашем коде.",
+  "docs.api.elevator.checkDestinationQueue":
+    "Проверяет очередь этажей на новые пункты назначения. Вызывать это нужно, только если вы меняли очередь вручную.",
+  "docs.api.elevator.getPressedFloors": "Возвращает массив номеров нажатых этажей.",
+  "docs.api.elevator.getPressedFloors.example.code": `if(elevator.getPressedFloors().length > 0) {
+    // Может, сначала заехать на один из выбранных этажей?
+}`,
+  "docs.api.elevator.idle": "Срабатывает, когда лифт выполнил все задачи и ничем не занят.",
+  "docs.api.elevator.floorButtonPressed": "Срабатывает, когда пассажир нажал кнопку внутри лифта.",
+  "docs.api.elevator.floorButtonPressed.example.code": `elevator.on("floor_button_pressed", function(floorNum) {
+    // Может, отправить лифт на этот этаж?
+})`,
+  "docs.api.elevator.passingFloor":
+    'Срабатывает незадолго до того, как лифт проедет мимо этажа. Удобный момент, чтобы решить, останавливаться ли на нём. Учтите, что для конечного этажа это событие не срабатывает. Направление — "up" или "down".',
+  "docs.api.elevator.stoppedAtFloor": "Срабатывает, когда лифт приехал на этаж.",
+  "docs.api.elevator.stoppedAtFloor.example.code": `elevator.on("stopped_at_floor", function(floorNum) {
+    // Может, решить, куда ехать дальше?
+})`,
+
+  "docs.api.floor.heading": "Объект этажа",
+  "docs.api.floor.floorNum": "Возвращает номер этажа.",
+  "docs.api.floor.upButtonPressed":
+    "Срабатывает, когда на этаже нажали кнопку вызова вверх. Учтите, что пассажиры нажмут её снова, если не смогли зайти в лифт. Обработчику передаётся этаж, на котором нажали кнопку.",
+  "docs.api.floor.upButtonPressed.example.code": `floor.on("up_button_pressed", function(floor) {
+    // Может, отправить сюда какой-нибудь лифт?
+})`,
+  "docs.api.floor.downButtonPressed":
+    "Срабатывает, когда на этаже нажали кнопку вызова вниз. Учтите, что пассажиры нажмут её снова, если не смогли зайти в лифт. Обработчику передаётся этаж, на котором нажали кнопку.",
+  "docs.api.floor.downButtonPressed.example.code": `floor.on("down_button_pressed", function(floor) {
+    // Может, отправить сюда какой-нибудь лифт?
+})`,
+  "docs.api.floor.buttonStateChange.html":
+    'Срабатывает, когда одна из кнопок вызова на этаже загорелась или погасла. Обработчику передаётся состояние обеих кнопок: объект со свойствами <span class="emphasis-color">up</span> и <span class="emphasis-color">down</span>, каждое из которых — либо <span class="emphasis-color">"activated"</span>, либо пустая строка. Это снимок на момент события, так что сохранённый объект о более поздних нажатиях не расскажет.',
+  "docs.api.floor.buttonStateChange.example.code": `floor.on("buttonstate_change", function(buttonStates) {
+    if(buttonStates.up === "" && buttonStates.down === "") {
+        // Здесь больше никто не ждёт?
+    }
+})`,
+};
