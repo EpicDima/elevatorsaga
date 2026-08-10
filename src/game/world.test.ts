@@ -679,6 +679,74 @@ describe("World", () => {
       expect(goingUp.parent).toBe(null);
       expect(at(world.elevatorInterfaces, 1).destinationQueue).toEqual([1]);
     });
+
+    it("dispatches the re-press even though it nests inside the call that caused it", () => {
+      // Floor is an Observable, not a PlayerObservable, so it has no
+      // re-entrancy guard - deliberately, and this is the path that needs it to
+      // stay that way. The nested dispatch here carries the same event name and
+      // the same floor as the one still in flight, so a per-event guard would
+      // swallow it exactly.
+      //
+      // The chain: a down call arrives; player code answers it by lighting the
+      // down indicator; that re-offers the entrance (38e7390); the first
+      // passenger fills the capacity-1 car; the second cannot fit and presses
+      // the button again, from inside the outer down_button_pressed.
+      //
+      // What a guard would cost is the nested World.handleButtonRepressing.
+      // It re-offers nothing here - the car is full - but it draws a
+      // randomInt(0, elevatorCount - 1) before it looks, and dropping a draw
+      // shifts every later value out of the shared Math.random stream. The
+      // world spawns passengers, weights, floors and elevator slots from that
+      // same stream, so a run would silently stop matching the legacy one.
+      const random = vi.spyOn(Math, "random").mockReturnValue(0);
+      const world = createWorld({
+        spawnRate: 0.001,
+        floorCount: 3,
+        elevatorCount: 1,
+        elevatorCapacities: [1],
+      });
+      const elevator = at(world.elevators, 0);
+      const elevInterface = at(world.elevatorInterfaces, 0);
+      const floor = at(world.floors, 1);
+      elevator.setFloorPosition(1);
+      elevInterface.goingUpIndicator(false);
+      elevInterface.goingDownIndicator(false);
+
+      // Two passengers on floor 1, both heading down; the first in the world's
+      // list is the one who gets the single seat.
+      const first = new User(70);
+      const second = new User(70);
+      world.users.push(first, second);
+      first.appearOnFloor(floor, 0);
+      second.appearOnFloor(floor, 0);
+      // Clear the call the way an arriving elevator would, so the press below
+      // is a fresh one that really dispatches.
+      floor.elevatorAvailable({ goingUpIndicator: false, goingDownIndicator: true });
+      expect(floor.buttonStates.down).toBe("");
+
+      // Typical player code: serve the direction that was called for.
+      const seen: unknown[] = [];
+      at(world.floorInterfaces, 1).on("down_button_pressed", (pressed) => {
+        seen.push(pressed);
+        elevInterface.goingDownIndicator(true);
+      });
+
+      random.mockClear();
+      floor.pressDownButton();
+
+      expect(first.parent).toBe(elevator);
+      expect(second.parent).toBe(null);
+      expect(floor.buttonStates.down).toBe("activated");
+      // One draw for each handleButtonRepressing - the outer one and the
+      // nested one - plus one for the boarding slot and one for the slot scan
+      // that finds the car full. Guarding Floor would leave three.
+      expect(random).toHaveBeenCalledTimes(4);
+      // Player code still sees the call once: the facade the event is forwarded
+      // to is a PlayerObservable, and its guard absorbs the nested forward.
+      // That is the split - the world's own handler runs, the player's does
+      // not - and it is why the guard cannot simply be moved down onto Floor.
+      expect(seen).toEqual([at(world.floorInterfaces, 1)]);
+    });
   });
 
   describe("button repressing", () => {

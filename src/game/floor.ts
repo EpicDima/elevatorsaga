@@ -81,6 +81,16 @@ export class Floor extends Observable<FloorEvents> {
    * handler throwing does not stop the others from running (upstream issues
    * #88, #83, #27).
    *
+   * A plain {@link Observable}, deliberately, so this dispatch has no
+   * re-entrancy guard. A floor really does raise the same event from inside
+   * itself — a passenger refused by a full car presses the button again while
+   * `*_button_pressed` is still in flight — and `World.handleButtonRepressing`
+   * has to run for the nested call as it does for any other, not least because
+   * it draws from the shared `Math.random` stream before it decides there is
+   * nothing to do. Player code is still protected: the events are forwarded to
+   * a {@link "./floor-interface.ts"!FloorInterface}, whose emitter is a
+   * {@link PlayerObservable} and does refuse the nested forward.
+   *
    * @param event - Event to emit.
    * @param args - Arguments for that event.
    */
