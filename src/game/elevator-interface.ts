@@ -204,8 +204,8 @@ export class ElevatorInterface {
    * Holds the car at the floor long enough for passengers to walk in or out,
    * then takes the next destination.
    *
-   * The legacy `elevator.wait(1, ...)` of `interfaces.js:29`, kept at one
-   * second because that is what a passenger's walk-in takes (`user.js:70`).
+   * The legacy `elevator.wait(1, ...)` of `interfaces.js:64`, kept at one
+   * second because that is what a passenger's walk-in takes (`user.js:67`).
    *
    * Any dwell already running is discarded rather than left to finish: the
    * second caller is a passenger who has *just* started boarding, so the time

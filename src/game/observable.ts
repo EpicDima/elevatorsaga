@@ -92,7 +92,7 @@ export type EventNameSpec<E extends EventArgsMap> =
 /**
  * riot's and unobservable's wildcard: unregister everything.
  *
- * `libs/riot.js:18` and `libs/unobservable.js:52` both opened `off` with
+ * `libs/riot.js:18` and `libs/unobservable.js:53` both opened `off` with
  * `if (events === "*") callbacks = {}`, before the handler argument was even
  * looked at.
  */
@@ -232,7 +232,7 @@ export class Observable<E extends EventArgsMap> {
    * Legacy spelling of {@link Observable.once}.
    *
    * Both legacy emitters published `one` (`libs/riot.js:33`,
-   * `libs/unobservable.js:83`) and neither published `once`, so this is the
+   * `libs/unobservable.js:84`) and neither published `once`, so this is the
    * name every solution written against the old game uses. Without it,
    * `elevator.one("idle", fn)` is a `TypeError`.
    *
@@ -255,7 +255,7 @@ export class Observable<E extends EventArgsMap> {
    *
    * @param events - Event name, names separated by single spaces, or `"*"` for
    * every event. The wildcard is riot's (`libs/riot.js:18`) and unobservable's
-   * (`libs/unobservable.js:52`); upstream issue #97 ("Unbind events?") was
+   * (`libs/unobservable.js:53`); upstream issue #97 ("Unbind events?") was
    * answered with `elevator.off('*')`, so solutions do use that spelling. Both
    * emitters tested for it before looking at `handler`, so a handler passed
    * alongside the wildcard is ignored rather than narrowing what is removed.

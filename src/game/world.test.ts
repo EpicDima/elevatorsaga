@@ -504,9 +504,9 @@ describe("World", () => {
     it("stays put while a passenger the re-offer let in is still walking in", () => {
       // Upstream issue #105 ("Elevator moves while passengers enter"). Every
       // legacy boarding path was covered by the one second dwell the facade
-      // installs from `stopped` (`interfaces.js:29`, `elevator.wait(1, ...)`),
+      // installs from `stopped` (`interfaces.js:64`, `elevator.wait(1, ...)`),
       // which outlasts the one second a passenger takes to walk in
-      // (`user.js:70`). The re-offer is a boarding path the legacy code did not
+      // (`user.js:67`). The re-offer is a boarding path the legacy code did not
       // have, so without its own dwell the car can accept a passenger and drive
       // off in the very same frame, dragging them through the shaft.
       const { world, elevator, elevInterface, user } = createWorldWithRefusedUser();

@@ -262,7 +262,7 @@ describe("Observable.off", () => {
   });
 
   it('off("*") removes handlers for every event', () => {
-    // riot (`libs/riot.js:18`) and unobservable (`libs/unobservable.js:52`)
+    // riot (`libs/riot.js:18`) and unobservable (`libs/unobservable.js:53`)
     // both opened `off` with `if (events === "*") callbacks = {}`, and upstream
     // issue #97 ("Unbind events?") was answered with `elevator.off('*')`. A
     // literal lookup of the name "*" finds nothing and returns successfully, so
@@ -381,7 +381,7 @@ describe("Observable.once", () => {
 describe("Observable.one", () => {
   it("is the legacy spelling of once", () => {
     // Both legacy emitters published `one` and neither published `once`
-    // (`libs/riot.js:33`, `libs/unobservable.js:83`), so this is the name every
+    // (`libs/riot.js:33`, `libs/unobservable.js:84`), so this is the name every
     // solution written against the old game uses. Without it, the call is a
     // TypeError.
     const emitter = makeEmitter();
