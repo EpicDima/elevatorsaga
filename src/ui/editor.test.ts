@@ -1,7 +1,10 @@
 // @vitest-environment jsdom
 
+import { CompletionContext } from "@codemirror/autocomplete";
+import { EditorView } from "@codemirror/view";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { playerApiCompletionSource } from "./completions.ts";
 import { DEFAULT_CODE, DEV_TEST_CODE } from "./default-code.ts";
 import {
   AUTOSAVE_DELAY_MS,
@@ -313,5 +316,51 @@ describe("codeMirrorView", () => {
       "Elevator program",
     );
     expect(parent.querySelector<HTMLElement>(".cm-editor")?.tabIndex).toBe(-1);
+  });
+
+  it("offers the player API from the editor's own completion sources", () => {
+    // The completions themselves are `completions.test.ts`'s business; what
+    // this pins is the wiring, which is easy to get wrong in a way nothing else
+    // notices: registered on the wrong language, or through
+    // `autocompletion({override})`, the popup either never appears or appears
+    // with the language's own keywords and locals thrown out.
+    vi.useRealTimers();
+    const parent = document.createElement("div");
+    document.body.append(parent);
+
+    codeMirrorView(parent)(
+      { onChange: vi.fn(), onApply: vi.fn(), onSave: vi.fn() },
+      "var elevator = elevators[0];\n",
+    );
+
+    const view = EditorView.findFromDOM(parent);
+    expect(view).not.toBeNull();
+    const sources = view?.state.languageDataAt<unknown>("autocomplete", 1) ?? [];
+    expect(sources).toContain(playerApiCompletionSource);
+    // The JavaScript language's own sources are still there beside ours.
+    expect(sources.length).toBeGreaterThan(1);
+  });
+
+  it("completes a member deep in a real document, at the right offset", () => {
+    // `completions.test.ts` works in line coordinates; this is the one thing it
+    // cannot check, that the source turns them back into document offsets. Get
+    // that wrong and the popup inserts over the wrong text.
+    vi.useRealTimers();
+    const parent = document.createElement("div");
+    document.body.append(parent);
+
+    codeMirrorView(parent)(
+      { onChange: vi.fn(), onApply: vi.fn(), onSave: vi.fn() },
+      "{\n    init: function(elevators, floors) {\n        elevators[0].goT",
+    );
+    const state = EditorView.findFromDOM(parent)?.state;
+    if (state === undefined) {
+      throw new Error("The editor did not mount");
+    }
+
+    const result = playerApiCompletionSource(new CompletionContext(state, state.doc.length, false));
+
+    expect(result?.from).toBe(state.doc.length - "goT".length);
+    expect(result?.options.map((option) => option.label)).toContain("goToFloor");
   });
 });

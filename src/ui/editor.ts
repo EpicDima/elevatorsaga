@@ -15,7 +15,7 @@
  * text alone, which is what players expect.
  */
 
-import { javascript } from "@codemirror/lang-javascript";
+import { javascript, javascriptLanguage } from "@codemirror/lang-javascript";
 import { indentUnit } from "@codemirror/language";
 import { EditorState, Prec } from "@codemirror/state";
 import { EditorView, keymap } from "@codemirror/view";
@@ -24,6 +24,7 @@ import { basicSetup } from "codemirror";
 import { Observable } from "../game/observable.ts";
 import { getCodeObjFromCode } from "../game/user-code.ts";
 import type { UserCodeObject } from "../game/user-code.ts";
+import { playerApiCompletionSource } from "./completions.ts";
 import { DEFAULT_CODE, DEV_TEST_CODE } from "./default-code.ts";
 
 /**
@@ -267,6 +268,16 @@ export function codeMirrorView(parent: HTMLElement): TextEditorViewFactory {
       extensions: [
         basicSetup,
         javascript(),
+        // The player API in the completion popup, so the method names are in
+        // the editor rather than only in the other tab. Registered as one more
+        // of the JavaScript language's completion sources rather than through
+        // `autocompletion({override})`, which would replace the language's own
+        // sources: keywords, snippets and the identifiers already in the
+        // player's program stay. `basicSetup` has already turned completion on,
+        // with CodeMirror's defaults — Ctrl-Space, and while typing — and the
+        // source itself is what keeps that from being noisy, by offering
+        // nothing outside the three contexts described in `completions.ts`.
+        javascriptLanguage.data.of({ autocomplete: playerApiCompletionSource }),
         indentUnit.of(INDENT),
         EditorState.tabSize.of(INDENT.length),
         EditorView.contentAttributes.of({ "aria-label": "Elevator program" }),
