@@ -9,7 +9,8 @@ them rather than with the retired font. src/ui/fontawesome-glyphs.json records
 exactly which glyphs were taken and which codepoints they came from.
 
 The notice shipped with the vendored release, verbatim from
-font-awesome-4.1-1.0/css/font-awesome.css:
+legacy-1.x:font-awesome-4.1-1.0/css/font-awesome.css, which `git show` will
+print:
 
     /*!
      *  Font Awesome 4.1.0 by @davegandy - http://fontawesome.io - @fontawesome
