@@ -137,6 +137,23 @@ export function presentChallenge(
   parent: HTMLElement,
   options: ChallengePresenterOptions,
 ): ChallengePresenter {
+  // Pressing Restart makes the app start the challenge again, which rebuilds
+  // this bar and so destroys the very button that was just pressed. Focus then
+  // falls back to <body>, and a keyboard player who pressed Space on Restart is
+  // returned to the top of the page and has to tab all the way back in. If the
+  // rebuild is pulling the floor out from under the focused element like that,
+  // put focus back on the button that replaced it.
+  //
+  // The test is deliberately "was focus inside this bar", not a flag from the
+  // caller: it is true exactly when the rebuild destroyed the focused element,
+  // and false for the initial render and for a rebuild triggered from the
+  // editor (Ctrl-Enter), where stealing focus out of the editor would be worse
+  // than doing nothing.
+  const restoreFocus =
+    document.activeElement !== null &&
+    parent.contains(document.activeElement) &&
+    parent !== document.activeElement;
+
   parent.innerHTML = challengeTemplate({
     num: options.challengeNum,
     description: options.description,
@@ -165,7 +182,12 @@ export function presentChallenge(
       }
     },
   };
+  // After update(), so the button already has its label when it takes focus and
+  // a screen reader announces "Start" rather than an unnamed button.
   presenter.update();
+  if (restoreFocus) {
+    startStop.focus();
+  }
   return presenter;
 }
 

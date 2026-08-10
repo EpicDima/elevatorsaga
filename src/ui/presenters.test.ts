@@ -171,6 +171,62 @@ describe("presentChallenge", () => {
     expect(requireElement(".timescale_value", parent).textContent).toBe("4x");
     expect(options.onStartStop).toHaveBeenCalledTimes(1);
   });
+
+  describe("focus", () => {
+    /**
+     * Draws a challenge bar inside the document, where focus can be moved.
+     *
+     * @param overrides - Callbacks and data to replace the defaults with.
+     * @returns The parent element and the options it was drawn from.
+     */
+    function mount(overrides: Partial<ChallengePresenterOptions> = {}): {
+      parent: HTMLElement;
+      options: ChallengePresenterOptions;
+    } {
+      const { parent, options } = setUp(overrides);
+      document.body.append(parent);
+      return { parent, options };
+    }
+
+    it("puts focus back on the button a rebuild destroyed", () => {
+      // Pressing Restart restarts the challenge, which rebuilds this bar and
+      // deletes the button that was pressed. Focus used to fall back to <body>,
+      // dropping a keyboard player at the top of the page mid-game.
+      const { parent, options } = mount({ world: { challengeEnded: true } });
+      presentChallenge(parent, options);
+      requireElement(".startstop", parent).focus();
+
+      presentChallenge(parent, { ...options, world: { challengeEnded: false } });
+
+      const startStop = requireElement(".startstop", parent);
+      expect(document.activeElement).toBe(startStop);
+      // Focused after the label is written, so it is not announced unnamed.
+      expect(startStop.textContent).toBe("Start");
+    });
+
+    it("does not grab focus on the first render", () => {
+      const { parent, options } = mount();
+      document.body.focus();
+
+      presentChallenge(parent, options);
+
+      expect(document.activeElement).not.toBe(requireElement(".startstop", parent));
+    });
+
+    it("leaves focus alone when the rebuild came from outside the bar", () => {
+      // Applying code with Ctrl-Enter also restarts the challenge. Yanking
+      // focus out of the editor every time would be worse than the bug.
+      const { parent, options } = mount();
+      presentChallenge(parent, options);
+      const elsewhere = document.createElement("textarea");
+      document.body.append(elsewhere);
+      elsewhere.focus();
+
+      presentChallenge(parent, options);
+
+      expect(document.activeElement).toBe(elsewhere);
+    });
+  });
 });
 
 describe("presentFeedback", () => {
