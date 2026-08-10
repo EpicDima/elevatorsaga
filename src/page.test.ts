@@ -125,6 +125,21 @@ describe("index.html", () => {
     expect(world?.getAttribute("aria-label")).toBeTruthy();
   });
 
+  it("offers a way past the building, before anything else in the tab order", () => {
+    // WCAG 2.4.1. The building is between the top of the page and the editor,
+    // and nearly everything in it takes focus; the editor is what the page is
+    // for. The skip link has to come first in the document to be the first stop.
+    const skipLink = page.querySelector(".skip-link");
+    expect(skipLink).not.toBeNull();
+    expect(page.querySelector("a[href], button, [tabindex]")).toBe(skipLink);
+
+    // And it has to name something real: src/main.ts intercepts the click and
+    // focuses CodeMirror instead, but the href is the fallback and the reason
+    // the link is a link.
+    const target = (skipLink?.getAttribute("href") ?? "").slice(1);
+    expect(page.querySelector(`[id="${target}"]`)).toBe(page.querySelector(".code"));
+  });
+
   it("marks the shortcut keys the editor binds as Mod-", () => {
     // Mod- is Command on Apple platforms, so the shipped "Ctrl" is wrong there
     // and src/ui/shortcuts.ts rewrites these two at load.

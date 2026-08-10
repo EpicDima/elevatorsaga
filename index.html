@@ -11,6 +11,14 @@
     <script type="module" src="/src/main.ts"></script>
   </head>
   <body>
+    <!--
+      The first thing the keyboard reaches, and the only thing before the
+      building. src/main.ts intercepts it and puts the focus inside CodeMirror,
+      which is where the target `<div>` only holds; the `href` is what keeps the
+      link a link, and what the browser falls back to.
+    -->
+    <a class="skip-link" href="#code">Skip to the code editor</a>
+
     <div class="container">
       <header class="header">
         <h1>Elevator Saga <em class="emphasis-color">The elevator programming game</em></h1>
@@ -75,7 +83,7 @@
 
         <div class="codestatus" aria-live="polite"></div>
         <!-- CodeMirror mounts here; see src/ui/editor.ts. -->
-        <div class="code"></div>
+        <div class="code" id="code"></div>
         <!--
           data-mod-key marks the keys the editor binds as `Mod-`, which is
           Command on Apple platforms; src/ui/shortcuts.ts relabels them.

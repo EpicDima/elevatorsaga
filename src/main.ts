@@ -84,6 +84,16 @@ function main(): void {
     editor.trigger("apply_code");
   });
 
+  // The skip link. Two things have to be taken off the browser: the focus,
+  // which belongs inside CodeMirror rather than on the `<div>` it mounts into,
+  // and the navigation -- the hash is the router's, so following `#code` would
+  // throw away `challenge=` and `timescale=` and restart the player on the
+  // first challenge. The `href` stays for the sake of being a real link.
+  requireElement(".skip-link").addEventListener("click", (event) => {
+    event.preventDefault();
+    editor.focus();
+  });
+
   const app = new App({
     elements: {
       challenge: requireElement(".challenge"),
