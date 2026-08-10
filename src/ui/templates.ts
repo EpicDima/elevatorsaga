@@ -206,6 +206,12 @@ export interface FeedbackTemplateData {
 /**
  * The overlay shown when a challenge is won or lost.
  *
+ * The live region is the enclosing `.feedbackcontainer` in `index.html`, not
+ * this overlay. A live region has to be in the document *before* the text
+ * appears inside it for the announcement to be made: a screen reader that only
+ * meets `role="status"` at the moment the element is inserted, already
+ * populated, generally says nothing at all.
+ *
  * @param data - Headline, message and next-challenge link.
  * @returns The overlay markup.
  */
@@ -214,7 +220,7 @@ export function feedbackTemplate(data: FeedbackTemplateData): string {
     data.url === ""
       ? ""
       : markup`<a href="${data.url}" class="emphasis-color">Next challenge ${raw(iconMarkup("caret-right", "blink"))}</a>`;
-  return markup`<div class="feedback" role="status"><h2 class="emphasis-color">${data.title}</h2><p class="emphasis-color">${data.message}</p>${raw(link)}</div>`;
+  return markup`<div class="feedback"><h2 class="emphasis-color">${data.title}</h2><p class="emphasis-color">${data.message}</p>${raw(link)}</div>`;
 }
 
 /**

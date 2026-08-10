@@ -184,6 +184,18 @@ describe("feedbackTemplate", () => {
     expect(feedback.querySelector("script")).toBeNull();
     expect(feedback.querySelector("a")?.getAttribute("href")).toBe(`#a="><script>x</script>`);
   });
+
+  it("leaves the live region to the container it is inserted into", () => {
+    // The overlay is created already populated and then inserted, and a
+    // role="status" that a screen reader first meets in that state is normally
+    // not announced. The live region is the .feedbackcontainer in index.html,
+    // which is in the document from the start; see the page test.
+    const feedback = renderElement(
+      feedbackTemplate({ title: "Success!", message: "Well done", url: "" }),
+    );
+    expect(feedback.getAttribute("role")).toBeNull();
+    expect(feedback.querySelector("[role], [aria-live]")).toBeNull();
+  });
 });
 
 describe("codeStatusTemplate", () => {

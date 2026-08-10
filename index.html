@@ -34,7 +34,13 @@
 
         <div class="world">
           <div class="worldtrack">
-            <div class="feedbackcontainer"></div>
+            <!--
+              The live region is this container, which is always in the
+              document, not the .feedback overlay that presentFeedback puts
+              inside it: a role="status" that arrives already populated is
+              usually not announced.
+            -->
+            <div class="feedbackcontainer" role="status"></div>
             <div class="innerworld"></div>
             <div class="statscontainer" role="group" aria-label="Simulation statistics">
               <div class="stat">
