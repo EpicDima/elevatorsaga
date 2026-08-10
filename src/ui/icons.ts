@@ -1,0 +1,154 @@
+/**
+ * The inline SVG icon set, replacing the Font Awesome 4.1 webfont.
+ *
+ * The legacy markup used twelve glyphs from the bundled `font-awesome-4.1-1.0`
+ * webfont (`.eot`/`.svg`/`.ttf`/`.woff`). Shipping an entire icon font — plus a
+ * render-blocking stylesheet — for twelve glyphs is a lot of bytes, so the
+ * outlines are inlined here and the font is dropped.
+ *
+ * Attribution: the path data below is copied verbatim from the glyph outlines in
+ * `font-awesome-4.1-1.0/fonts/fontawesome-webfont.svg` by Dave Gandy
+ * (https://fontawesome.com). Font Awesome 4 icon outlines are licensed under the
+ * SIL OFL 1.1 (https://scripts.sil.org/OFL); the same artwork as shipped in Font
+ * Awesome Free 5 and later is licensed under CC BY 4.0
+ * (https://creativecommons.org/licenses/by/4.0/). See README.md.
+ *
+ * Coordinate system: font outlines are y-up with the baseline at y = 0. Each
+ * icon is emitted with a `viewBox` of `0 0 <advance> {@link ICON_EM_UNITS}` and
+ * its path is flipped into SVG's y-down space by translating down to the ascent
+ * and mirroring. Drawing an icon at `height: 1em` with the advance-derived width
+ * therefore reproduces the metrics the webfont glyph had at the same font size.
+ */
+
+/** SVG namespace, needed because icons are built with `createElementNS`. */
+const SVG_NS = "http://www.w3.org/2000/svg";
+
+/** Font units per em in the Font Awesome 4 outlines. */
+export const ICON_EM_UNITS = 1792;
+
+/** Distance from the baseline to the top of the em box, in font units. */
+export const ICON_ASCENT = 1536;
+
+/** Transform that flips a y-up font outline into SVG's y-down space. */
+const FLIP_TRANSFORM = `translate(0 ${String(ICON_ASCENT)}) scale(1 -1)`;
+
+/** One icon: its horizontal advance in font units and its outline. */
+export interface IconDefinition {
+  /** Horizontal advance in font units; drives the rendered width. */
+  readonly advance: number;
+  /** Outline path data, in y-up font units. */
+  readonly path: string;
+}
+
+/** Every icon the game draws, keyed by the legacy `fa-*` class suffix. */
+export const ICONS = {
+  "arrow-circle-down": {
+    advance: 1536,
+    path: "M0 640q0 209 103 385.5t279.5 279.5t385.5 103t385.5 -103t279.5 -279.5t103 -385.5t-103 -385.5t-279.5 -279.5t-385.5 -103t-385.5 103t-279.5 279.5t-103 385.5zM252 639q0 -27 18 -45l362 -362l91 -91q18 -18 45 -18t45 18l91 91l362 362q18 18 18 45t-18 45l-91 91 q-18 18 -45 18t-45 -18l-189 -189v502q0 26 -19 45t-45 19h-128q-26 0 -45 -19t-19 -45v-502l-189 189q-19 19 -45 19t-45 -19l-91 -91q-18 -18 -18 -45z",
+  },
+  "arrow-circle-up": {
+    advance: 1536,
+    path: "M0 640q0 209 103 385.5t279.5 279.5t385.5 103t385.5 -103t279.5 -279.5t103 -385.5t-103 -385.5t-279.5 -279.5t-385.5 -103t-385.5 103t-279.5 279.5t-103 385.5zM252 641q0 -27 18 -45l91 -91q18 -18 45 -18t45 18l189 189v-502q0 -26 19 -45t45 -19h128q26 0 45 19 t19 45v502l189 -189q19 -19 45 -19t45 19l91 91q18 18 18 45t-18 45l-362 362l-91 91q-18 18 -45 18t-45 -18l-91 -91l-362 -362q-18 -18 -18 -45z",
+  },
+  "caret-right": {
+    advance: 640,
+    path: "M0 192v896q0 26 19 45t45 19t45 -19l448 -448q19 -19 19 -45t-19 -45l-448 -448q-19 -19 -45 -19t-45 19t-19 45z",
+  },
+  child: {
+    advance: 1280,
+    path: "M64 1056q0 40 28 68t68 28t68 -28l228 -228h368l228 228q28 28 68 28t68 -28t28 -68t-28 -68l-292 -292v-824q0 -46 -33 -79t-79 -33t-79 33t-33 79v384h-64v-384q0 -46 -33 -79t-79 -33t-79 33t-33 79v824l-292 292q-28 28 -28 68zM416 1152q0 93 65.5 158.5t158.5 65.5 t158.5 -65.5t65.5 -158.5t-65.5 -158.5t-158.5 -65.5t-158.5 65.5t-65.5 158.5z",
+  },
+  female: {
+    advance: 1280,
+    path: "M0 480q0 29 16 53l256 384q73 107 176 107h384q103 0 176 -107l256 -384q16 -24 16 -53q0 -40 -28 -68t-68 -28q-51 0 -80 43l-227 341h-45v-132l247 -411q9 -15 9 -33q0 -26 -19 -45t-45 -19h-192v-272q0 -46 -33 -79t-79 -33h-160q-46 0 -79 33t-33 79v272h-192 q-26 0 -45 19t-19 45q0 18 9 33l247 411v132h-45l-227 -341q-29 -43 -80 -43q-40 0 -68 28t-28 68zM416 1280q0 93 65.5 158.5t158.5 65.5t158.5 -65.5t65.5 -158.5t-65.5 -158.5t-158.5 -65.5t-158.5 65.5t-65.5 158.5z",
+  },
+  male: {
+    advance: 1024,
+    path: "M0 416v416q0 80 56 136t136 56h640q80 0 136 -56t56 -136v-416q0 -40 -28 -68t-68 -28t-68 28t-28 68v352h-64v-912q0 -46 -33 -79t-79 -33t-79 33t-33 79v464h-64v-464q0 -46 -33 -79t-79 -33t-79 33t-33 79v912h-64v-352q0 -40 -28 -68t-68 -28t-68 28t-28 68z M288 1280q0 93 65.5 158.5t158.5 65.5t158.5 -65.5t65.5 -158.5t-65.5 -158.5t-158.5 -65.5t-158.5 65.5t-65.5 158.5z",
+  },
+  minus: {
+    advance: 1408,
+    path: "M0 608v192q0 40 28 68t68 28h1216q40 0 68 -28t28 -68v-192q0 -40 -28 -68t-68 -28h-1216q-40 0 -68 28t-28 68z",
+  },
+  "minus-square": {
+    advance: 1536,
+    path: "M0 160v960q0 119 84.5 203.5t203.5 84.5h960q119 0 203.5 -84.5t84.5 -203.5v-960q0 -119 -84.5 -203.5t-203.5 -84.5h-960q-119 0 -203.5 84.5t-84.5 203.5zM256 576q0 -26 19 -45t45 -19h896q26 0 45 19t19 45v128q0 26 -19 45t-45 19h-896q-26 0 -45 -19t-19 -45v-128 z",
+  },
+  plus: {
+    advance: 1408,
+    path: "M0 608v192q0 40 28 68t68 28h416v416q0 40 28 68t68 28h192q40 0 68 -28t28 -68v-416h416q40 0 68 -28t28 -68v-192q0 -40 -28 -68t-68 -28h-416v-416q0 -40 -28 -68t-68 -28h-192q-40 0 -68 28t-28 68v416h-416q-40 0 -68 28t-28 68z",
+  },
+  "plus-square": {
+    advance: 1536,
+    path: "M0 160v960q0 119 84.5 203.5t203.5 84.5h960q119 0 203.5 -84.5t84.5 -203.5v-960q0 -119 -84.5 -203.5t-203.5 -84.5h-960q-119 0 -203.5 84.5t-84.5 203.5zM256 576q0 -26 19 -45t45 -19h320v-320q0 -26 19 -45t45 -19h128q26 0 45 19t19 45v320h320q26 0 45 19t19 45 v128q0 26 -19 45t-45 19h-320v320q0 26 -19 45t-45 19h-128q-26 0 -45 -19t-19 -45v-320h-320q-26 0 -45 -19t-19 -45v-128z",
+  },
+  repeat: {
+    advance: 1536,
+    path: "M0 640q0 156 61 298t164 245t245 164t298 61q147 0 284.5 -55.5t244.5 -156.5l130 129q29 31 70 14q39 -17 39 -59v-448q0 -26 -19 -45t-45 -19h-448q-42 0 -59 40q-17 39 14 69l138 138q-148 137 -349 137q-104 0 -198.5 -40.5t-163.5 -109.5t-109.5 -163.5 t-40.5 -198.5t40.5 -198.5t109.5 -163.5t163.5 -109.5t198.5 -40.5q119 0 225 52t179 147q7 10 23 12q14 0 25 -9l137 -138q9 -8 9.5 -20.5t-7.5 -22.5q-109 -132 -264 -204.5t-327 -72.5q-156 0 -298 61t-245 164t-164 245t-61 298z",
+  },
+  warning: {
+    advance: 1792,
+    path: "M16 61l768 1408q17 31 47 49t65 18t65 -18t47 -49l768 -1408q35 -63 -2 -126q-17 -29 -46.5 -46t-63.5 -17h-1536q-34 0 -63.5 17t-46.5 46q-37 63 -2 126zM752 992l17 -457q0 -10 10 -16.5t24 -6.5h185q14 0 23.5 6.5t10.5 16.5l18 459q0 12 -10 19q-13 11 -24 11h-220 q-11 0 -24 -11q-10 -7 -10 -21zM768 161q0 -14 9.5 -23.5t22.5 -9.5h192q13 0 22.5 9.5t9.5 23.5v190q0 14 -9.5 23.5t-22.5 9.5h-192q-13 0 -22.5 -9.5t-9.5 -23.5v-190z",
+  },
+} as const satisfies Record<string, IconDefinition>;
+
+/** Name of an icon in {@link ICONS}; matches the legacy `fa-*` class suffix. */
+export type IconName = keyof typeof ICONS;
+
+/**
+ * Rendered width of an icon, in `em`, matching the webfont glyph advance.
+ *
+ * @param name - Icon to measure.
+ * @returns The width as a CSS `em` length, rounded to four decimals.
+ */
+export function iconWidthEm(name: IconName): string {
+  return `${(ICONS[name].advance / ICON_EM_UNITS).toFixed(4)}em`;
+}
+
+/**
+ * Builds an icon element.
+ *
+ * Icons are decorative: they are hidden from assistive technology and kept out
+ * of the tab order, because every control that carries one also carries either
+ * visible text or an `aria-label`.
+ *
+ * @param name - Icon to draw.
+ * @param className - Extra classes to add alongside `icon`.
+ * @returns A detached `<svg>` element that takes its colour from `currentColor`.
+ */
+export function createIcon(name: IconName, className?: string): SVGSVGElement {
+  const { advance, path } = ICONS[name];
+  const svg = document.createElementNS(SVG_NS, "svg");
+  svg.setAttribute("class", className === undefined ? "icon" : `icon ${className}`);
+  svg.setAttribute("viewBox", `0 0 ${String(advance)} ${String(ICON_EM_UNITS)}`);
+  svg.setAttribute("width", iconWidthEm(name));
+  svg.setAttribute("height", "1em");
+  svg.setAttribute("fill", "currentColor");
+  svg.setAttribute("aria-hidden", "true");
+  svg.setAttribute("focusable", "false");
+  const pathEl = document.createElementNS(SVG_NS, "path");
+  pathEl.setAttribute("transform", FLIP_TRANSFORM);
+  pathEl.setAttribute("d", path);
+  svg.append(pathEl);
+  return svg;
+}
+
+/**
+ * Markup for an icon, for embedding in a template literal.
+ *
+ * The result is trusted markup: it is built only from this module's constants
+ * and the caller-supplied class name, never from player input.
+ *
+ * @param name - Icon to draw.
+ * @param className - Extra classes to add alongside `icon`.
+ * @returns The `<svg>` markup.
+ */
+export function iconMarkup(name: IconName, className?: string): string {
+  const { advance, path } = ICONS[name];
+  const classes = className === undefined ? "icon" : `icon ${className}`;
+  return (
+    `<svg class="${classes}" viewBox="0 0 ${String(advance)} ${String(ICON_EM_UNITS)}"` +
+    ` width="${iconWidthEm(name)}" height="1em" fill="currentColor" aria-hidden="true"` +
+    ` focusable="false"><path transform="${FLIP_TRANSFORM}" d="${path}"/></svg>`
+  );
+}
