@@ -8,6 +8,8 @@ import type { World } from "../game/world.ts";
 import { createElement, queryAll, requireElement } from "./dom.ts";
 import {
   clearAll,
+  clearCodeStatus,
+  describeError,
   FULLSCREEN_CLASS,
   presentChallenge,
   presentCodeStatus,
@@ -310,6 +312,87 @@ describe("presentWorld", () => {
   });
 });
 
+describe("describeError", () => {
+  // Player code can throw literally anything, and whatever it throws is all
+  // the player has to go on. None of these may come out as "[object Object]".
+  it.each([
+    ["a string", "plain string failure", "plain string failure"],
+    ["a number", 42, "42"],
+    ["null", null, "null"],
+    ["undefined", undefined, "undefined"],
+    ["a boolean", false, "false"],
+    ["an empty string", "", "Thrown empty string"],
+  ])("describes %s", (_name, thrown, expected) => {
+    expect(describeError(thrown)).toBe(expected);
+  });
+
+  it("prefers the stack of an Error subclass", () => {
+    class ElevatorStuck extends Error {}
+    const error = new ElevatorStuck("stuck between floors");
+    error.stack = "ElevatorStuck: stuck between floors\n    at update";
+    expect(describeError(error)).toBe(error.stack);
+  });
+
+  it("falls back to an Error that has no stack", () => {
+    const error = new Error("boom");
+    error.stack = "";
+    expect(describeError(error)).toBe("Error: boom");
+  });
+
+  it("uses a thrown object's own toString", () => {
+    // What the legacy banner did: the object reached riot.render, which
+    // concatenated it and so called its toString.
+    expect(describeError({ toString: (): string => "ElevatorError: doors stuck" })).toBe(
+      "ElevatorError: doors stuck",
+    );
+  });
+
+  it("uses the message of an object that has one but no stack", () => {
+    expect(describeError({ message: "no stack here" })).toBe("no stack here");
+  });
+
+  it("survives an object whose toString throws", () => {
+    const error = {
+      floor: 3,
+      toString: (): string => {
+        throw new Error("not today");
+      },
+    };
+    expect(describeError(error)).toBe('Object {"floor":3}');
+  });
+
+  it("survives an object whose stack and message getters throw", () => {
+    const error = {
+      get stack(): string {
+        throw new Error("no stack for you");
+      },
+      get message(): string {
+        throw new Error("no message either");
+      },
+    };
+    expect(describeError(error)).toBe("Object with keys: stack, message");
+  });
+
+  it("describes a bare object structurally rather than as [object Object]", () => {
+    expect(describeError({ code: "E_STUCK", floor: 3 })).toBe(
+      'Object {"code":"E_STUCK","floor":3}',
+    );
+    expect(describeError({})).toBe("Thrown Object with no message");
+    // An array does have a useful string conversion of its own.
+    expect(describeError([1, 2])).toBe("1,2");
+    expect(describeError([{ floor: 3 }])).toBe('Array [{"floor":3}]');
+  });
+
+  it("survives a circular object and one with a null prototype", () => {
+    const circular: Record<string, unknown> = { floor: 3 };
+    circular["self"] = circular;
+    expect(describeError(circular)).toBe("Object with keys: floor, self");
+
+    const bare = Object.assign(Object.create(null) as object, { floor: 3 });
+    expect(describeError(bare)).toBe('Object {"floor":3}');
+  });
+});
+
 describe("presentCodeStatus", () => {
   it("shows the stack of a thrown error as text, never as markup", () => {
     const parent = createElement("div", { className: "codestatus" });
@@ -323,16 +406,26 @@ describe("presentCodeStatus", () => {
     expect(message.children).toHaveLength(0);
   });
 
-  it("falls back to stringifying values without a stack", () => {
+  it("replaces any previous banner", () => {
     const parent = createElement("div", { className: "codestatus" });
-    presentCodeStatus(parent, "plain string failure");
-    expect(requireElement(".errormessage", parent).textContent).toBe("plain string failure");
+    presentCodeStatus(parent, new Error("first"));
+    presentCodeStatus(parent, "second");
+    expect(parent.children).toHaveLength(1);
+    expect(requireElement(".errormessage", parent).textContent).toBe("second");
   });
 
-  it("clears the banner when there is no error", () => {
+  it("draws a banner even for a thrown undefined", () => {
+    const parent = createElement("div", { className: "codestatus" });
+    presentCodeStatus(parent, undefined);
+    expect(requireElement(".errormessage", parent).textContent).toBe("undefined");
+  });
+});
+
+describe("clearCodeStatus", () => {
+  it("clears the banner", () => {
     const parent = createElement("div", { className: "codestatus" });
     presentCodeStatus(parent, new Error("boom"));
-    presentCodeStatus(parent);
+    clearCodeStatus(parent);
     expect(parent.innerHTML).toBe("");
   });
 });

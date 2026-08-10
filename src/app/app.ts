@@ -12,6 +12,7 @@ import type { AnimationFrameRequester, WorldController } from "../game/world-con
 import type { CodeEditor } from "../ui/editor.ts";
 import {
   clearAll,
+  clearCodeStatus,
   presentChallenge,
   presentCodeStatus,
   presentFeedback,
@@ -154,7 +155,7 @@ export class App {
       this.startChallenge(this.currentChallengeIndex, true);
     });
     this.#editor.on("code_success", () => {
-      presentCodeStatus(this.#elements.codeStatus);
+      clearCodeStatus(this.#elements.codeStatus);
     });
     this.#editor.on("usercode_error", (error) => {
       presentCodeStatus(this.#elements.codeStatus, error);
