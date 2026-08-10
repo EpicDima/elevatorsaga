@@ -74,6 +74,9 @@ describe("Elevator interface", () => {
       "goToFloor",
       "goingDownIndicator",
       "goingUpIndicator",
+      "isApproachingFloor",
+      "isEmpty",
+      "isFull",
       "loadFactor",
       "maxPassengerCount",
       "off",
@@ -93,12 +96,15 @@ describe("Elevator interface", () => {
       "setFloorPosition",
       "updateElevatorMovement",
       "pressFloorButton",
-      "isFull",
       "isBusy",
       "wait",
       "moveTo",
       "y",
       "destinationY",
+      // Read-only too, and still not published: an answer computed from the
+      // braking curve would make this port's kinematics part of the player API.
+      "getExactFutureFloorIfStopped",
+      "getExactCurrentFloor",
     ]) {
       expect(exposed.has(forbidden)).toBe(false);
     }
@@ -383,6 +389,189 @@ describe("Elevator interface", () => {
     });
   });
 
+  describe("isApproachingFloor", () => {
+    /** Calls the method the way untyped player code does: past the signature. */
+    function looseIsApproachingFloor(value: unknown): boolean {
+      return (
+        elevInterface as unknown as { isApproachingFloor(floorNum: unknown): boolean }
+      ).isApproachingFloor(value);
+    }
+
+    it("is true for the floors ahead while going up", () => {
+      elevInterface.goToFloor(3);
+      stepElevator(e, 0.1, 0.015);
+
+      expect(elevInterface.isApproachingFloor(1)).toBe(true);
+      expect(elevInterface.isApproachingFloor(3)).toBe(true);
+    });
+
+    it("is true for the floors ahead while going down", () => {
+      e.setFloorPosition(3);
+      elevInterface.goToFloor(0);
+      stepElevator(e, 0.1, 0.015);
+
+      expect(elevInterface.isApproachingFloor(2)).toBe(true);
+      expect(elevInterface.isApproachingFloor(0)).toBe(true);
+    });
+
+    it("is false for every floor while the car stands still", () => {
+      for (let floorNum = 0; floorNum < FLOOR_COUNT; floorNum++) {
+        expect(elevInterface.isApproachingFloor(floorNum)).toBe(false);
+      }
+
+      elevInterface.goToFloor(2);
+      stepUntil(e, () => !e.isMoving);
+      expect(e.currentFloor).toBe(2);
+
+      for (let floorNum = 0; floorNum < FLOOR_COUNT; floorNum++) {
+        expect(elevInterface.isApproachingFloor(floorNum)).toBe(false);
+      }
+    });
+
+    it("is false for a floor the car has already passed", () => {
+      elevInterface.goToFloor(3);
+      stepUntil(e, () => e.getExactCurrentFloor() > 1.5);
+
+      expect(elevInterface.isApproachingFloor(1)).toBe(false);
+      expect(elevInterface.isApproachingFloor(2)).toBe(true);
+    });
+
+    it("stays true for the floor the car is arriving at until it gets there", () => {
+      elevInterface.goToFloor(2);
+      // currentFloor() rounds, so it reads 2 from halfway up; the floor itself
+      // is still ahead of the car at that point.
+      stepUntil(e, () => e.currentFloor === 2);
+
+      expect(elevInterface.currentFloor()).toBe(2);
+      expect(e.getExactCurrentFloor()).toBeLessThan(2);
+      expect(elevInterface.isApproachingFloor(2)).toBe(true);
+
+      stepUntil(e, () => !e.isMoving);
+
+      expect(e.getExactCurrentFloor()).toBe(2);
+      expect(elevInterface.isApproachingFloor(2)).toBe(false);
+    });
+
+    it("looks at the direction of travel, not at where the car will stop", () => {
+      // A floor past the destination counts, exactly as it does for
+      // passing_floor, which is raised for floors the car merely travels over.
+      elevInterface.goToFloor(1);
+      stepElevator(e, 0.1, 0.015);
+
+      expect(e.getDestinationFloor()).toBe(1);
+      expect(elevInterface.isApproachingFloor(3)).toBe(true);
+    });
+
+    it("agrees with passing_floor about which floors have been passed", () => {
+      // The engine guards every passing_floor with this same predicate
+      // (`legacy-1.x:elevator.js:251`), which is why it is forwarded rather
+      // than reimplemented: player code and the event cannot disagree.
+      const seen: [floorNum: number, approaching: boolean][] = [];
+      elevInterface.on("passing_floor", (floorNum) => {
+        seen.push([floorNum, elevInterface.isApproachingFloor(floorNum)]);
+      });
+
+      elevInterface.goToFloor(3);
+      stepElevator(e, 10.0, 0.015);
+
+      expect(seen).toEqual([
+        [1, true],
+        [2, true],
+      ]);
+      expect(elevInterface.isApproachingFloor(1)).toBe(false);
+      expect(elevInterface.isApproachingFloor(2)).toBe(false);
+    });
+
+    it("coerces a string floor number, as untyped player code may pass one", () => {
+      elevInterface.goToFloor(3);
+      stepElevator(e, 0.1, 0.015);
+
+      expect(looseIsApproachingFloor("2")).toBe(true);
+      expect(looseIsApproachingFloor("0")).toBe(false);
+    });
+
+    it("accepts a position between floors, as goToFloor does", () => {
+      elevInterface.goToFloor(3);
+      stepUntil(e, () => e.getExactCurrentFloor() > 1.5);
+
+      expect(elevInterface.isApproachingFloor(1.6)).toBe(true);
+      expect(elevInterface.isApproachingFloor(1.4)).toBe(false);
+    });
+
+    it("clamps a floor outside the building, as goToFloor does", () => {
+      // One reading of a floor number across the whole facade: 99 means the top
+      // floor here just as it does for goToFloor.
+      elevInterface.goToFloor(3);
+      stepElevator(e, 0.1, 0.015);
+
+      expect(elevInterface.isApproachingFloor(99)).toBe(true);
+      expect(elevInterface.isApproachingFloor(FLOOR_COUNT - 1)).toBe(true);
+      expect(elevInterface.isApproachingFloor(-5)).toBe(false);
+      expect(elevInterface.isApproachingFloor(0)).toBe(false);
+    });
+
+    it("clamps the same way for a car heading down", () => {
+      e.setFloorPosition(3);
+      elevInterface.goToFloor(0);
+      stepElevator(e, 0.1, 0.015);
+
+      expect(elevInterface.isApproachingFloor(-5)).toBe(true);
+      expect(elevInterface.isApproachingFloor(99)).toBe(false);
+    });
+
+    describe("arguments that are not floor numbers", () => {
+      const notFloorNumbers: readonly (readonly [call: string, value: unknown, named: string])[] = [
+        ["isApproachingFloor()", undefined, "undefined"],
+        ["isApproachingFloor(NaN)", Number.NaN, "NaN"],
+        ['isApproachingFloor("abc")', "abc", '"abc"'],
+        ["isApproachingFloor({})", {}, "an object"],
+        ["isApproachingFloor(Infinity)", Number.POSITIVE_INFINITY, "Infinity"],
+      ];
+
+      for (const [call, value, named] of notFloorNumbers) {
+        it(`refuses ${call} instead of answering a silent false`, () => {
+          // `false` is indistinguishable from a genuine "that floor is behind
+          // us", so the typo would never surface. goToFloor refuses exactly
+          // these values, and this throw travels the same way.
+          elevInterface.goToFloor(3);
+          stepElevator(e, 0.1, 0.015);
+
+          expect(() => looseIsApproachingFloor(value)).toThrow(TypeError);
+          expect(() => looseIsApproachingFloor(value)).toThrow("elevator.isApproachingFloor");
+          expect(() => looseIsApproachingFloor(value)).toThrow(named);
+        });
+      }
+
+      it("reports the refusal through the player's own error path", () => {
+        // How it actually reaches a player: an exception out of a handler goes
+        // to the reporter, which in a real world is `World`'s own
+        // handleUserCodeError and ends in the paused game and the "problem with
+        // your code" banner.
+        elevInterface.on("idle", () => {
+          looseIsApproachingFloor(undefined);
+        });
+
+        elevInterface.checkDestinationQueue();
+
+        expect(errorHandler).toHaveBeenCalledTimes(1);
+        const reported: unknown = errorHandler.mock.calls[0]?.[0];
+        expect(reported).toBeInstanceOf(TypeError);
+        expect((reported as Error).message).toContain("elevator.isApproachingFloor");
+      });
+
+      it("leaves the elevator running after refusing one", () => {
+        elevInterface.goToFloor(2);
+        expect(() => looseIsApproachingFloor(Number.NaN)).toThrow(TypeError);
+
+        stepElevator(e, 20.0, 0.015);
+
+        expect(e.currentFloor).toBe(2);
+        expect(e.y).toBe(e.getYPosOfFloor(2));
+        expect(elevInterface.destinationQueue).toEqual([]);
+      });
+    });
+  });
+
   it("stores going up and going down properties", () => {
     expect(e.goingUpIndicator).toBe(true);
     expect(e.goingDownIndicator).toBe(true);
@@ -453,6 +642,42 @@ describe("Elevator interface", () => {
     const load = elevInterface.loadFactor();
     expect(load).toBeGreaterThanOrEqual(0);
     expect(load).toBeLessThanOrEqual(1);
+  });
+
+  describe("occupancy", () => {
+    it("reports empty, then neither, then full as passengers take slots", () => {
+      const passengers = Array.from({ length: e.maxUsers }, (_unused, i) => ({ weight: 60 + i }));
+
+      expect(elevInterface.isEmpty()).toBe(true);
+      expect(elevInterface.isFull()).toBe(false);
+
+      for (const passenger of passengers) {
+        expect(elevInterface.isFull()).toBe(false);
+        e.userEntering(passenger);
+        expect(elevInterface.isEmpty()).toBe(false);
+      }
+
+      expect(elevInterface.isFull()).toBe(true);
+
+      for (const passenger of passengers) {
+        e.userExiting(passenger);
+      }
+
+      expect(elevInterface.isEmpty()).toBe(true);
+      expect(elevInterface.isFull()).toBe(false);
+    });
+
+    it("answers full where loadFactor cannot", () => {
+      // The whole reason for exposing it. Passenger weights are a random 55 to
+      // 100 against the nominal 100 per slot, so a full car reads well under 1
+      // and a player thresholding loadFactor is guessing where "full" is.
+      for (let i = 0; i < e.maxUsers; i++) {
+        e.userEntering({ weight: 55 });
+      }
+
+      expect(elevInterface.isFull()).toBe(true);
+      expect(elevInterface.loadFactor()).toBeCloseTo(0.55, 10);
+    });
   });
 
   it("doesnt raise unexpected events when told to stop when passing floor", () => {

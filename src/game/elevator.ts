@@ -583,6 +583,12 @@ export class Elevator extends Movable<ElevatorEvents> {
   /**
    * Whether the car is currently moving toward a floor.
    *
+   * Also the engine's definition of "not passed yet": {@link handleNewState}
+   * guards every `passing_floor` event with it, so a floor the car has already
+   * crossed — for which the sign of `elevToFloor` has flipped — is never
+   * announced. `ElevatorInterface.isApproachingFloor` hands this to player code
+   * unchanged, which is what keeps the two in agreement.
+   *
    * @param floorNum - Floor to test.
    * @returns `true` when moving and the floor lies ahead.
    */

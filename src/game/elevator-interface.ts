@@ -4,6 +4,11 @@
  * Ported from the legacy `interfaces.js`. This is the game's public API, so
  * every method name, arity and return value here is a compatibility contract
  * with every solution people have already written — see `documentation.html`.
+ * The contract runs one way: nothing legacy published may change, while a
+ * read-only query over state the engine already keeps — `isFull`, `isEmpty`
+ * and `isApproachingFloor` — can be added, because no existing solution can
+ * notice a method it never called, and none of them can make the simulation do
+ * anything it would not have done anyway.
  *
  * It hides the actual elevator object behind a more robust facade, while also
  * exposing relevant events, and providing some helper queue functions that
@@ -399,6 +404,39 @@ export class ElevatorInterface {
   }
 
   /**
+   * Turns a floor number player code supplied into one of this building's.
+   *
+   * The single policy behind every method here that takes a floor, so that the
+   * same mistake gets the same answer wherever it is made: coerce, refuse what
+   * is not a finite number, then clamp what is left into the building.
+   *
+   * The order matters. `limitNumber` is the legacy
+   * `Math.min(max, Math.max(num, min))` (`legacy-1.x:base.js:11`), which has a
+   * floor to offer every real number, `Infinity` included, but passes `NaN`
+   * straight through — so a clamp on its own would hand `NaN` back as if it
+   * were a floor.
+   *
+   * @param method - Name of the calling method, for the error message.
+   * @param floorNum - Whatever player code passed. Coerced with `Number()`
+   * because player code is untyped and may pass a string.
+   * @returns The floor, clamped to `0`..`floorCount - 1`; fractional values are
+   * kept, since a position between floors is one the simulation can work with.
+   * @throws {TypeError} When `floorNum` is not a finite number, and so has no
+   * floor to be clamped to.
+   */
+  #toFloorNumber(method: string, floorNum: number): number {
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-conversion -- player code is untyped JS and does pass strings here
+    const requested = Number(floorNum);
+    if (!Number.isFinite(requested)) {
+      throw new TypeError(
+        `elevator.${method} was called with ${describeFloorArgument(floorNum)}, which is not a floor number. ` +
+          `It takes a finite number, and this building has floors 0 to ${String(this.#floorCount - 1)}.`,
+      );
+    }
+    return limitNumber(requested, 0, this.#floorCount - 1);
+  }
+
+  /**
    * Queues a floor to travel to.
    *
    * A request equal to the adjacent end of the queue is dropped, so repeatedly
@@ -428,15 +466,7 @@ export class ElevatorInterface {
    * floor to be clamped to.
    */
   goToFloor(floorNum: number, forceNow?: boolean): void {
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-conversion -- player code is untyped JS and does pass strings here
-    const requested = Number(floorNum);
-    if (!Number.isFinite(requested)) {
-      throw new TypeError(
-        `elevator.goToFloor was called with ${describeFloorArgument(floorNum)}, which is not a floor number. ` +
-          `It takes a finite number, and this building has floors 0 to ${String(this.#floorCount - 1)}.`,
-      );
-    }
-    const floor = limitNumber(requested, 0, this.#floorCount - 1);
+    const floor = this.#toFloorNumber("goToFloor", floorNum);
     // Player code is untyped, so `forceNow` keeps the legacy truthiness test.
     const immediate = Boolean(forceNow);
     // Auto-prevent immediately duplicate destinations
@@ -517,6 +547,36 @@ export class ElevatorInterface {
   }
 
   /**
+   * Whether every passenger slot is taken.
+   *
+   * The dependable "nobody else fits" test, which {@link loadFactor} cannot be:
+   * passengers weigh a random 55 to 100 against the nominal 100 per slot
+   * (`world.ts`), so a full car reads about 0.775 on average and essentially
+   * never reaches 1. A passenger counts from the moment they start walking in,
+   * because that is when they take their slot.
+   *
+   * Present on the elevator since `legacy-1.x:elevator.js:221`, and asked for by
+   * players ever since; only the facade was missing.
+   *
+   * @returns `true` when no slot is free.
+   */
+  isFull(): boolean {
+    return this.#elevator.isFull();
+  }
+
+  /**
+   * Whether the elevator is carrying nobody.
+   *
+   * Not the negation of {@link isFull}: a car with one passenger of four is
+   * neither full nor empty. `legacy-1.x:elevator.js:225`.
+   *
+   * @returns `true` when every slot is free.
+   */
+  isEmpty(): boolean {
+    return this.#elevator.isEmpty();
+  }
+
+  /**
    * The direction the elevator is currently going to move toward.
    *
    * @returns `"up"`, `"down"` or `"stopped"`.
@@ -527,6 +587,43 @@ export class ElevatorInterface {
     }
     // y grows downward, so a destination below the car means going down.
     return this.#elevator.destinationY > this.#elevator.y ? "down" : "up";
+  }
+
+  /**
+   * Whether the elevator is moving toward a floor it has not passed yet.
+   *
+   * The elevator's own predicate (`legacy-1.x:elevator.js:206`), which is
+   * exactly the test `Elevator.handleNewState` puts in front of every
+   * `passing_floor` event (`legacy-1.x:elevator.js:251`): a floor is only ever
+   * announced as being passed while this holds for it. So player code and the
+   * engine share one notion of "passed", rather than this method inventing a
+   * second one that could disagree with the event.
+   *
+   * It is the car's *current* position that decides, not the position it would
+   * coast to if it braked now. `getExactFutureFloorIfStopped` stays behind the
+   * facade deliberately: an answer derived from it would depend on the braking
+   * curve, and publishing that would freeze this port's kinematics into the
+   * player API, which the behavioural-compatibility contract does not ask for.
+   *
+   * Only the direction of travel is considered, not the destination — a floor
+   * further along the way the car is going counts as approaching even when the
+   * car is going to stop before it, just as it does for `passing_floor`, which
+   * is raised for floors the car merely happens to travel over. A car standing
+   * still approaches nothing, so this is `false` for every floor between
+   * arriving somewhere and setting off again.
+   *
+   * @param floorNum - Floor to ask about, treated exactly as {@link goToFloor}
+   * treats a destination: coerced with `Number()`, and clamped into the
+   * building, so a floor above the roof asks about the top floor.
+   * @returns `true` when the car is moving and that floor is still ahead of it.
+   * @throws {TypeError} When `floorNum` is not a finite number — a missing
+   * argument included. Answering `false` would be indistinguishable from a
+   * genuine "no", and the mistake would be invisible; the throw reaches the
+   * player as the paused game and the "problem with your code" banner, the same
+   * way {@link goToFloor} reports it.
+   */
+  isApproachingFloor(floorNum: number): boolean {
+    return this.#elevator.isApproachingFloor(this.#toFloorNumber("isApproachingFloor", floorNum));
   }
 
   /**

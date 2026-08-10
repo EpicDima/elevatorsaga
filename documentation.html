@@ -414,6 +414,38 @@ elevator.goToFloor(2); // Queued anyway -- queue: 2, 3, 2</code></pre>
               </td>
             </tr>
             <tr>
+              <td>isFull</td>
+              <td>function</td>
+              <td>
+                <small
+                  >Gets whether every spot in the elevator is taken. Use this rather than comparing
+                  loadFactor to 1 - passenger weights vary, so a completely full elevator only reads
+                  about 0.775 on average. Someone who has started walking in counts, since they have
+                  taken their spot already.</small
+                >
+              </td>
+              <td>
+                <pre><code>if(!elevator.isFull()) {
+    // Maybe pick someone up on the way?
+}</code></pre>
+              </td>
+            </tr>
+            <tr>
+              <td>isEmpty</td>
+              <td>function</td>
+              <td>
+                <small
+                  >Gets whether the elevator is carrying nobody at all. Not the opposite of isFull -
+                  an elevator with one passenger out of four is neither.</small
+                >
+              </td>
+              <td>
+                <pre><code>if(elevator.isEmpty()) {
+    // Nobody on board - go wait somewhere useful?
+}</code></pre>
+              </td>
+            </tr>
+            <tr>
               <td>destinationDirection</td>
               <td>function</td>
               <td>
@@ -423,6 +455,28 @@ elevator.goToFloor(2); // Queued anyway -- queue: 2, 3, 2</code></pre>
                 >
               </td>
               <td></td>
+            </tr>
+            <tr>
+              <td>isApproachingFloor</td>
+              <td>function</td>
+              <td>
+                <small
+                  >Gets whether the elevator is moving toward the given floor and has not passed it
+                  yet. Only the direction of travel counts, so a floor further along that way is
+                  approaching too, even if the elevator is going to stop before it. It is the same
+                  test the game itself makes before triggering passing_floor, so a floor this says
+                  no to can no longer raise that event. An elevator standing still is approaching
+                  nothing, and neither is one that has arrived at the floor you ask about. A floor
+                  number outside the building is clamped to the nearest real floor, and a value that
+                  is not a number at all - including a forgotten argument - is refused and reported
+                  as an error in your code, just like goToFloor.</small
+                >
+              </td>
+              <td>
+                <pre><code>if(elevator.isApproachingFloor(2)) {
+    // Maybe stop and pick up whoever is waiting there?
+}</code></pre>
+              </td>
             </tr>
             <tr>
               <td>destinationQueue</td>
