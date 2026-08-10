@@ -1,10 +1,11 @@
 {
   "$comment": [
     "Reference copy of the twelve Font Awesome 4.1.0 glyph outlines that src/ui/icons.ts",
-    "inlines, extracted from the SVG webfont vendored in this repository at",
+    "inlines, extracted from the SVG webfont this repository vendored at",
     "font-awesome-4.1-1.0/fonts/fontawesome-webfont.svg (Font Awesome 4.1.0 by Dave Gandy,",
-    "https://fontawesome.com). That directory is on its way out, so this file is the lasting",
-    "record of what the artwork is and where it came from; src/ui/icons.test.ts asserts that",
+    "https://fontawesome.com). That directory is gone as of version 2.0 and lives on at the",
+    "legacy-1.x tag, so this file is the lasting record of what the artwork is and where it",
+    "came from; src/ui/icons.test.ts asserts that",
     "ICONS still matches it exactly, which is what stops an icon being swapped, truncated or",
     "silently redrawn.",
     "Each `codepoint` is the one the legacy `fa-*` class resolved to in the vendored",
