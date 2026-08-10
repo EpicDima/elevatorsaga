@@ -16,7 +16,7 @@
  */
 
 import type { Floor, FloorButtonStates } from "./floor.ts";
-import { Observable, type EventName } from "./observable.ts";
+import { PlayerObservable, type EventName } from "./observable.ts";
 
 /** Events a {@link FloorInterface} exposes to player code. */
 export type FloorInterfaceEvents = {
@@ -32,7 +32,7 @@ export type FloorInterfaceEvents = {
 export type FloorInterfaceErrorHandler = (e: unknown) => void;
 
 /** The floor API exposed to player code. */
-export class FloorInterface extends Observable<FloorInterfaceEvents> {
+export class FloorInterface extends PlayerObservable<FloorInterfaceEvents> {
   /**
    * Floor number, counting up from 0 at the bottom.
    *

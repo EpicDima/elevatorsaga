@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { Observable } from "./observable.ts";
+import { Observable, PlayerObservable } from "./observable.ts";
 
 type TestEvents = {
   up_button_pressed: [floor: number];
@@ -403,8 +403,9 @@ describe("Observable re-entrancy", () => {
   it("supports re-triggering the same event from inside a handler, as unobservable did", () => {
     // Matches `unobservable`, which had no re-entrancy guard. riot would have
     // stopped after the first call, because `fn.busy` was still set on the
-    // handler that did the re-triggering. Emitters are not the place for that
-    // guard; ElevatorInterface carries its own, scoped to `idle`.
+    // handler that did the re-triggering. This is how the simulation talks to
+    // itself, so it stays unguarded; the player-facing dispatch is guarded by
+    // PlayerObservable below.
     const emitter = makeEmitter();
     const seen: number[] = [];
     emitter.on("up_button_pressed", (floor) => {
@@ -447,6 +448,72 @@ describe("Observable re-entrancy", () => {
 
     expect(() => emitter.trigger("idle")).toThrow("user code blew up");
     expect(never).not.toHaveBeenCalled();
+  });
+});
+
+describe("PlayerObservable", () => {
+  it("refuses to re-enter a triggerSafe dispatch of the same event", () => {
+    const emitter = new PlayerObservable<TestEvents>();
+    const seen: number[] = [];
+    const onError = vi.fn();
+    emitter.on("up_button_pressed", (floor) => {
+      seen.push(floor);
+      if (floor < 3) {
+        emitter.triggerSafe("up_button_pressed", onError, floor + 1);
+      }
+    });
+
+    emitter.triggerSafe("up_button_pressed", onError, 1);
+
+    expect(seen).toEqual([1]);
+    expect(onError).not.toHaveBeenCalled();
+  });
+
+  it("guards only the event in flight, so other events still nest", () => {
+    const emitter = new PlayerObservable<TestEvents>();
+    const onError = vi.fn();
+    const order: string[] = [];
+    emitter.on("up_button_pressed", () => {
+      order.push("outer:start");
+      emitter.triggerSafe("idle", onError);
+      order.push("outer:end");
+    });
+    emitter.on("idle", () => order.push("inner"));
+
+    emitter.triggerSafe("up_button_pressed", onError, 1);
+
+    expect(order).toEqual(["outer:start", "inner", "outer:end"]);
+  });
+
+  it("clears the marker after the dispatch, including after a throw", () => {
+    const emitter = new PlayerObservable<TestEvents>();
+    const onError = vi.fn();
+    const handler = vi.fn(() => {
+      throw new Error("boom");
+    });
+    emitter.on("idle", handler);
+
+    emitter.triggerSafe("idle", onError);
+    emitter.triggerSafe("idle", onError);
+
+    expect(handler).toHaveBeenCalledTimes(2);
+  });
+
+  it("leaves plain trigger unguarded, so the simulation can still nest", () => {
+    // Only the error-isolating dispatch is the player's; `trigger` is how the
+    // simulation talks to itself.
+    const emitter = new PlayerObservable<TestEvents>();
+    const seen: number[] = [];
+    emitter.on("up_button_pressed", (floor) => {
+      seen.push(floor);
+      if (floor < 3) {
+        emitter.trigger("up_button_pressed", floor + 1);
+      }
+    });
+
+    emitter.trigger("up_button_pressed", 1);
+
+    expect(seen).toEqual([1, 2, 3]);
   });
 });
 

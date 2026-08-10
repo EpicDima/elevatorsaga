@@ -154,6 +154,18 @@ describe("FloorInterface", () => {
       expect(second).toHaveBeenCalledTimes(1);
     });
 
+    it("refuses to re-enter a dispatch of the event already in flight", () => {
+      const upPressed = vi.fn(() => {
+        floor.trigger("up_button_pressed", floor);
+      });
+      floorInterface.on("up_button_pressed", upPressed);
+
+      floor.pressUpButton();
+
+      expect(upPressed).toHaveBeenCalledTimes(1);
+      expect(errorHandler).not.toHaveBeenCalled();
+    });
+
     it("stops forwarding once its subscriptions are dropped", () => {
       const upPressed = vi.fn();
       floorInterface.on("up_button_pressed", upPressed);

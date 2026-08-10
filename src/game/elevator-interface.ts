@@ -12,7 +12,7 @@
 
 import type { Elevator, ElevatorDirection } from "./elevator.ts";
 import { epsilonEquals, limitNumber } from "./math.ts";
-import { Observable, type EventName } from "./observable.ts";
+import { PlayerObservable, type EventName } from "./observable.ts";
 
 /** Direction an elevator is heading, as reported to player code. */
 export type DestinationDirection = ElevatorDirection | "stopped";
@@ -62,7 +62,7 @@ function lastOrNaN(arr: readonly number[]): number {
 }
 
 /** The elevator API exposed to player code. */
-export class ElevatorInterface extends Observable<ElevatorInterfaceEvents> {
+export class ElevatorInterface extends PlayerObservable<ElevatorInterfaceEvents> {
   /**
    * Floor numbers the elevator is scheduled to visit.
    *
@@ -75,17 +75,6 @@ export class ElevatorInterface extends Observable<ElevatorInterfaceEvents> {
   readonly #elevator: Elevator;
   readonly #floorCount: number;
   readonly #errorHandler: ElevatorInterfaceErrorHandler;
-
-  /**
-   * Whether an `idle` dispatch from this interface is currently on the stack.
-   *
-   * `documentation.html` tells players to clear {@link destinationQueue} and
-   * call {@link checkDestinationQueue} from inside their `idle` handler, which
-   * lands straight back in the empty-queue branch. Legacy riot happened to
-   * absorb that through its per-handler `busy` flag; this guard does the same
-   * job without riot's defect of leaving a throwing handler disabled forever.
-   */
-  #idleInFlight = false;
 
   /**
    * @param elevator - The elevator this facade wraps.
@@ -155,23 +144,18 @@ export class ElevatorInterface extends Observable<ElevatorInterfaceEvents> {
    * Only needs to be called explicitly after modifying {@link destinationQueue}
    * by hand. Does nothing while the elevator is waiting at a floor.
    *
-   * Calling this from inside an `idle` handler is supported and documented; the
-   * nested call will not raise `idle` a second time.
+   * Calling this from inside an `idle` handler is supported and documented —
+   * `documentation.html` tells players to clear {@link destinationQueue} and
+   * call this, which lands straight back in the empty-queue branch. The nested
+   * call will not raise `idle` a second time, because `PlayerObservable`
+   * refuses to re-enter a dispatch that is already in flight.
    */
   checkDestinationQueue(): void {
     if (!this.#elevator.isBusy()) {
       if (this.destinationQueue.length > 0) {
         this.#elevator.goToFloor(firstOrNaN(this.destinationQueue));
-      } else if (!this.#idleInFlight) {
-        this.#idleInFlight = true;
-        try {
-          this.#tryTrigger("idle");
-        } finally {
-          // Cleared in a `finally` so an exception escaping the dispatch cannot
-          // wedge the flag on and kill `idle` for the rest of the challenge —
-          // which is exactly how riot's `fn.busy` broke (upstream issue #88).
-          this.#idleInFlight = false;
-        }
+      } else {
+        this.#tryTrigger("idle");
       }
     }
   }

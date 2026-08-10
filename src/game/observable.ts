@@ -31,10 +31,9 @@
  * - riot's `fn.busy` re-entrancy guard, which silently skipped a handler that
  *   was re-triggered from within itself. `unobservable` never had it, and it is
  *   the cause of upstream issue #88: a handler that throws never clears `busy`
- *   and is dead for the rest of the run. Where re-entrancy actually has to be
- *   contained — `ElevatorInterface.checkDestinationQueue`, which is riot-backed
- *   and is the one dispatch player code re-enters — the guard lives at that
- *   call site, scoped to the one event and cleared in a `finally`.
+ *   and is dead for the rest of the run. {@link Observable} therefore has no
+ *   guard at all; {@link PlayerObservable} reinstates a per-event one, cleared
+ *   in a `finally`, for the two facades player code subscribes to.
  * - a *live* handler list during dispatch. Both legacy emitters iterated the
  *   array they were still appending to (`libs/riot.js:41`;
  *   `libs/unobservable.js:94`, whose loop condition carries the comment
@@ -314,6 +313,60 @@ export class Observable<E extends EventArgsMap> {
     }
     if (entries.length === 0) {
       this.#handlers.delete(name);
+    }
+  }
+}
+
+/**
+ * Emitter for the facades player code subscribes to.
+ *
+ * Adds one thing to {@link Observable}: {@link PlayerObservable.triggerSafe}
+ * refuses to re-enter a dispatch of an event already in flight on this emitter.
+ * Player code re-triggering the event it is handling is a common mistake — the
+ * documented `idle` idiom does it by accident — and without a guard it recurses
+ * until the stack overflows, which surfaces as a `usercode_error` and pauses the
+ * game. riot, which backed these facades, absorbed it.
+ *
+ * The guard is per event *name*, where riot's `fn.busy` was per handler
+ * *function*. That is a deliberate simplification: the outcome is the same for
+ * the case that actually happens (a handler re-triggering its own event runs
+ * once), it needs no bookkeeping on the handler objects, and "one dispatch of
+ * an event at a time, per emitter" is a rule that can be stated in one line.
+ * What it gives up is riot's ability to still run the *other* handlers of a
+ * re-triggered event.
+ *
+ * Only the error-isolating dispatch is guarded. {@link Observable.trigger} is
+ * how the simulation talks to itself and is left free to nest, and the guard is
+ * cleared in a `finally` so a throwing handler cannot wedge an event off
+ * permanently — riot's defect in upstream issue #88.
+ *
+ * @typeParam E - Map of event name to the arguments its handlers receive.
+ */
+export class PlayerObservable<E extends EventArgsMap> extends Observable<E> {
+  readonly #inFlight = new Set<string>();
+
+  /**
+   * Invokes every handler of `event`, isolating exceptions and refusing to
+   * re-enter a dispatch of `event` that is already running on this emitter.
+   *
+   * @param event - Event name to dispatch.
+   * @param onError - Receives whatever a handler throws.
+   * @param args - Arguments forwarded to each handler.
+   * @returns This emitter, for chaining.
+   */
+  override triggerSafe<K extends EventName<E>>(
+    event: K,
+    onError: (e: unknown) => void,
+    ...args: E[K]
+  ): this {
+    if (this.#inFlight.has(event)) {
+      return this;
+    }
+    this.#inFlight.add(event);
+    try {
+      return super.triggerSafe(event, onError, ...args);
+    } finally {
+      this.#inFlight.delete(event);
     }
   }
 }

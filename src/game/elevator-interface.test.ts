@@ -578,4 +578,57 @@ describe("Elevator interface", () => {
       expect(errorHandler).toHaveBeenNthCalledWith(2, boom);
     });
   });
+
+  describe("event re-entrancy", () => {
+    it("refuses to re-enter a dispatch of the event already in flight", () => {
+      // `idle` was guarded by hand; every other player-facing event was not, so
+      // a handler that re-triggered its own event recursed 2397 deep until the
+      // stack overflowed. The RangeError came back as a usercode_error, which
+      // pauses the game. Legacy riot ran such a handler exactly once.
+      const stoppedAtFloor = vi.fn(() => {
+        e.trigger("stopped_at_floor", 1);
+      });
+      elevInterface.on("stopped_at_floor", stoppedAtFloor);
+
+      e.trigger("stopped_at_floor", 1);
+
+      expect(stoppedAtFloor).toHaveBeenCalledTimes(1);
+      expect(errorHandler).not.toHaveBeenCalled();
+    });
+
+    it("still nests a dispatch of a different event", () => {
+      // The guard is per event name, not a blanket "no dispatch inside a
+      // dispatch": one player event legitimately leads to another.
+      const seen: string[] = [];
+      elevInterface.on("stopped_at_floor", () => {
+        seen.push("stopped_at_floor");
+        e.trigger("floor_button_pressed", 2);
+        seen.push("after");
+      });
+      elevInterface.on("floor_button_pressed", () => {
+        seen.push("floor_button_pressed");
+      });
+
+      e.trigger("stopped_at_floor", 1);
+
+      expect(seen).toEqual(["stopped_at_floor", "floor_button_pressed", "after"]);
+      expect(errorHandler).not.toHaveBeenCalled();
+    });
+
+    it("clears the marker when a handler throws", () => {
+      // riot's fn.busy was never cleared on a throw, so a handler that threw
+      // once was dead for the rest of the run (upstream issue #88).
+      const boom = new Error("boom");
+      const stoppedAtFloor = vi.fn(() => {
+        throw boom;
+      });
+      elevInterface.on("stopped_at_floor", stoppedAtFloor);
+
+      e.trigger("stopped_at_floor", 1);
+      e.trigger("stopped_at_floor", 1);
+
+      expect(stoppedAtFloor).toHaveBeenCalledTimes(2);
+      expect(errorHandler).toHaveBeenNthCalledWith(2, boom);
+    });
+  });
 });
