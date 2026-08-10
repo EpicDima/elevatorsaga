@@ -24,6 +24,25 @@ export function timeForwarder(dt: number, stepSize: number, fn: (dt: number) => 
 }
 
 /**
+ * Reads an array element the test knows is there.
+ *
+ * Works around `noUncheckedIndexedAccess` without a non-null assertion, which
+ * the lint configuration forbids.
+ *
+ * @param arr - Array to read.
+ * @param index - Index to read.
+ * @returns The element at `index`.
+ * @throws When there is no element at `index`.
+ */
+export function at<T>(arr: readonly T[], index: number): T {
+  const value = arr[index];
+  if (value === undefined) {
+    throw new Error(`Expected an element at index ${String(index)}`);
+  }
+  return value;
+}
+
+/**
  * Asserts `value` lies within an inclusive range.
  *
  * Replacement for the Jasmine-only `toBeWithinRange` matcher used by the legacy
