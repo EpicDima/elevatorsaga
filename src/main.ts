@@ -24,6 +24,7 @@ import type { FitnessSuiteResult } from "./game/fitness.ts";
 import { createWorldController } from "./game/world-controller.ts";
 import { requireElement } from "./ui/dom.ts";
 import { CodeEditor, codeMirrorView } from "./ui/editor.ts";
+import { labelModifierKeys } from "./ui/shortcuts.ts";
 
 declare global {
   interface Window {
@@ -47,6 +48,8 @@ const MAX_STEP_SECONDS = 1.0 / 60.0;
  * Builds the game and starts it.
  */
 function main(): void {
+  labelModifierKeys(document, navigator.userAgent);
+
   const editor = new CodeEditor(codeMirrorView(requireElement(".code")));
   const saveMessage = requireElement("#save_message");
   const fitnessMessage = requireElement("#fitness_message");

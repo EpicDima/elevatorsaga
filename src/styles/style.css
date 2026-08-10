@@ -321,7 +321,12 @@ button[disabled] {
   font-size: 12px;
 }
 
-.hint kbd {
+/*
+ * Both pages name keys with <kbd>, so the rule is not scoped to .hint: the
+ * documentation page used to get the browser default, which is a monospace
+ * family unrelated to the editor's.
+ */
+kbd {
   font: inherit;
   font-family: var(--font-mono);
 }

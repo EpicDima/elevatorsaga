@@ -32,7 +32,13 @@
         <!-- The challenge bar, the building and the banner are drawn by src/ui/presenters.ts. -->
         <div class="challenge"></div>
 
-        <div class="world">
+        <!--
+          The building is wider than the page on a narrow window and .world
+          scrolls horizontally to reach it. A scroll container is only
+          reachable by keyboard if it can take focus, so it is in the tab
+          order, and something in the tab order needs a role and a name.
+        -->
+        <div class="world" tabindex="0" role="region" aria-label="Building">
           <div class="worldtrack">
             <!--
               The live region is this container, which is always in the
@@ -70,11 +76,14 @@
         <div class="codestatus" aria-live="polite"></div>
         <!-- CodeMirror mounts here; see src/ui/editor.ts. -->
         <div class="code"></div>
+        <!--
+          data-mod-key marks the keys the editor binds as `Mod-`, which is
+          Command on Apple platforms; src/ui/shortcuts.ts relabels them.
+        -->
         <p class="hint">
-          In the editor: <kbd>Ctrl</kbd>+<kbd>Enter</kbd> applies your program. <kbd>Ctrl</kbd>+<kbd
-            >S</kbd
-          >
-          saves it. <kbd>Tab</kbd> indents. <kbd>Esc</kbd> moves the focus back out.
+          In the editor: <kbd data-mod-key>Ctrl</kbd>+<kbd>Enter</kbd> applies your program.
+          <kbd data-mod-key>Ctrl</kbd>+<kbd>S</kbd> saves it. <kbd>Tab</kbd> indents.
+          <kbd>Esc</kbd> moves the focus back out.
         </p>
         <div class="codebuttons">
           <div>
