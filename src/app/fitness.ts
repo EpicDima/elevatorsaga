@@ -22,7 +22,7 @@ import type { FitnessWorkerRequest } from "./fitness-worker.ts";
  * Deliberately lower than the worker's count: fewer runs average worse, but the
  * page is frozen for the whole time, so it has to stay short.
  */
-export const FALLBACK_RUN_COUNT = 2;
+const FALLBACK_RUN_COUNT = 2;
 
 /**
  * How long the worker is given before it is written off, in milliseconds.
@@ -34,7 +34,7 @@ export const FALLBACK_RUN_COUNT = 2;
  * strands another worker. Generous enough that a merely slow program still
  * reports, since the whole suite is several seconds of simulation.
  */
-export const WORKER_TIMEOUT_MS = 60_000;
+const WORKER_TIMEOUT_MS = 60_000;
 
 /** The part of a `Worker` the benchmark uses. */
 export interface FitnessWorkerLike {
@@ -64,7 +64,7 @@ export type FitnessWorkerFactory = () => FitnessWorkerLike;
  *
  * @returns The worker.
  */
-export function createFitnessWorker(): FitnessWorkerLike {
+function createFitnessWorker(): FitnessWorkerLike {
   return new Worker(new URL("./fitness-worker.ts", import.meta.url), { type: "module" });
 }
 

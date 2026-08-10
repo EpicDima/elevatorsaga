@@ -35,7 +35,7 @@ export const ICON_ASCENT = 1536;
 const FLIP_TRANSFORM = `translate(0 ${String(ICON_ASCENT)}) scale(1 -1)`;
 
 /** One icon: its horizontal advance in font units and its outline. */
-export interface IconDefinition {
+interface IconDefinition {
   /** Horizontal advance in font units; drives the rendered width. */
   readonly advance: number;
   /** Outline path data, in y-up font units. */

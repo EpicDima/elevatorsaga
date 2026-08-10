@@ -19,7 +19,7 @@ import { requireElement } from "./dom.ts";
 declare const __APP_VERSION__: string;
 
 /** The version this build was made from, e.g. `"2.0.0"`. */
-export const APP_VERSION: string = __APP_VERSION__;
+const APP_VERSION: string = __APP_VERSION__;
 
 /** Where the footer keeps its version slot. */
 export const VERSION_SELECTOR = ".appversion";
