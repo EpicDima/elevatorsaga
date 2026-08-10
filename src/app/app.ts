@@ -33,6 +33,16 @@ declare global {
      *
      * A long-standing debugging hook: the wiki's solutions and half the bug
      * reports poke at `world` from the browser console, so it stays.
+     *
+     * It also hands the simulation to the player's program, which runs in
+     * global scope, so `world.transportedCounter = 999999` in `init` wins any
+     * challenge. That has been known since 2015 and is left open on purpose:
+     * nothing is scored outside this browser tab, and the half-measures --
+     * read-only counters, a write-blocking proxy -- only cost debuggability
+     * while leaving `world.users` and `world.elevators` reachable. Closing it
+     * for real means running the player's code in a worker or an iframe, which
+     * is worth doing on the day a scoreboard exists and not before. The
+     * options and their prices are laid out in `docs/fork-survey.md`.
      */
     world: World | undefined;
   }
