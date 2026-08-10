@@ -16,13 +16,17 @@ export const EPSILON = 1e-8;
 /**
  * Clamps `num` into the inclusive range `[min, max]`.
  *
- * Mirrors the legacy `Math.min(max, Math.max(num, min))`, which means `max`
- * wins when the range is inverted (`min > max`).
+ * Mirrors the legacy `Math.min(max, Math.max(num, min))`
+ * (`legacy-1.x:base.js:11`), which means `max` wins when the range is inverted
+ * (`min > max`), and that `NaN` comes back out unchanged: it compares false
+ * against both bounds, so neither `Math.max` nor `Math.min` replaces it. Every
+ * caller that takes its argument from player code has to say what it does with
+ * that on its own.
  *
  * @param num - Value to clamp.
  * @param min - Lower bound.
  * @param max - Upper bound.
- * @returns `num` clamped to the range.
+ * @returns `num` clamped to the range, or `NaN` when `num` is `NaN`.
  */
 export function limitNumber(num: number, min: number, max: number): number {
   return Math.min(max, Math.max(num, min));

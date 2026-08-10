@@ -588,6 +588,175 @@ describe("Elevator interface", () => {
     });
   });
 
+  describe("destinations that are not floor numbers", () => {
+    // Everything untyped player code plausibly passes by mistake that
+    // `Number()` turns into `NaN`. `limitNumber` is the legacy
+    // `Math.min(max, Math.max(num, min))` (`legacy-1.x:base.js:11`), which hands
+    // `NaN` straight back, so `legacy-1.x:interfaces.js:28` queued it as a
+    // destination: from there the car's `y`, its `currentFloor` and the head of
+    // the queue are all `NaN`, and nothing recovers it.
+    const notFloorNumbers: readonly (readonly [call: string, value: unknown, named: string])[] = [
+      ["goToFloor(NaN)", Number.NaN, "NaN"],
+      ["goToFloor(undefined)", undefined, "undefined"],
+      ['goToFloor("abc")', "abc", '"abc"'],
+      ["goToFloor({})", {}, "an object"],
+    ];
+
+    /** Calls `goToFloor` the way untyped player code does: past the signature. */
+    function looseGoToFloor(value: unknown, forceNow?: boolean): void {
+      (
+        elevInterface as unknown as { goToFloor(floorNum: unknown, forceNow?: boolean): void }
+      ).goToFloor(value, forceNow);
+    }
+
+    /**
+     * The single value the error handler was given.
+     *
+     * @returns Whatever was reported, as an `Error`.
+     */
+    function soleReport(): Error {
+      expect(errorHandler).toHaveBeenCalledTimes(1);
+      const reported: unknown = errorHandler.mock.calls[0]?.[0];
+      expect(reported).toBeInstanceOf(TypeError);
+      return reported as Error;
+    }
+
+    for (const [call, value, named] of notFloorNumbers) {
+      it(`refuses ${call} instead of queueing a destination that cannot be reached`, () => {
+        expect(() => {
+          looseGoToFloor(value);
+        }).toThrow(TypeError);
+        expect(() => {
+          looseGoToFloor(value, true);
+        }).toThrow(TypeError);
+
+        expect(elevInterface.destinationQueue).toEqual([]);
+        expect(e.destinationY).toBe(e.getYPosOfFloor(0));
+        expect(e.isMoving).toBe(false);
+      });
+
+      it(`reports ${call} from a handler to the error handler, naming both`, () => {
+        // The route player code actually takes: a handler's exception goes to
+        // the reporter `triggerSafe` was given, which in a real world is
+        // `World`'s own `handleUserCodeError` and ends in the paused game and
+        // the "problem with your code" banner.
+        elevInterface.on("idle", () => {
+          looseGoToFloor(value);
+        });
+
+        elevInterface.checkDestinationQueue();
+
+        expect(soleReport().message).toContain("elevator.goToFloor");
+        expect(soleReport().message).toContain(named);
+      });
+    }
+
+    it("refuses an infinite floor too, which used to clamp to an end of the range", () => {
+      // The one input this moves. `Math.min(max, Math.max(Infinity, 0))` is
+      // `max`, so `goToFloor(Infinity)` did queue the top floor. It is still
+      // not a floor number, and admitting it would leave the same mistake with
+      // two outcomes: `destinationQueue = [Infinity]` is never clamped, and
+      // `getYPosOfFloor` turns it into an infinite `destinationY`.
+      expect(() => {
+        elevInterface.goToFloor(Number.POSITIVE_INFINITY);
+      }).toThrow(TypeError);
+      expect(() => {
+        elevInterface.goToFloor(Number.NEGATIVE_INFINITY);
+      }).toThrow(TypeError);
+      expect(elevInterface.destinationQueue).toEqual([]);
+    });
+
+    it("leaves the elevator usable after refusing one", () => {
+      // The whole point of refusing. A bricked car ignored `stop()`, an
+      // emptied queue and every later `goToFloor` alike.
+      expect(() => {
+        looseGoToFloor(Number.NaN);
+      }).toThrow(TypeError);
+
+      elevInterface.goToFloor(2);
+      stepElevator(e, 20.0, 0.015);
+
+      expect(e.currentFloor).toBe(2);
+      expect(e.y).toBe(e.getYPosOfFloor(2));
+      expect(elevInterface.destinationQueue).toEqual([]);
+    });
+
+    it("drops one a hand-assigned queue brought in, and keeps the rest", () => {
+      // `destinationQueue` is documented as directly assignable, and that path
+      // never reaches `goToFloor` at all.
+      elevInterface.destinationQueue = [Number.NaN, 2];
+
+      elevInterface.checkDestinationQueue();
+
+      expect(elevInterface.destinationQueue).toEqual([2]);
+      expect(e.destinationY).toBe(e.getYPosOfFloor(2));
+      expect(soleReport().message).toContain("elevator.destinationQueue");
+      expect(soleReport().message).toContain("NaN");
+    });
+
+    it("never throws out of checkDestinationQueue, which the engine calls too", () => {
+      // `World.init` and both of the facade's own arrival paths call this. An
+      // exception here would take the simulation down rather than the player's
+      // code, so this path reports and carries on instead.
+      const idle = vi.fn();
+      elevInterface.on("idle", idle);
+      elevInterface.destinationQueue = [Number.NaN];
+
+      expect(() => {
+        elevInterface.checkDestinationQueue();
+      }).not.toThrow();
+
+      expect(elevInterface.destinationQueue).toEqual([]);
+      expect(idle).toHaveBeenCalledTimes(1);
+      expect(e.isMoving).toBe(false);
+      expect(e.y).toBe(e.getYPosOfFloor(0));
+    });
+
+    it("keeps the elevator usable after dropping one", () => {
+      elevInterface.destinationQueue = [Number.NaN];
+      elevInterface.checkDestinationQueue();
+
+      elevInterface.goToFloor(2);
+      stepElevator(e, 20.0, 0.015);
+
+      expect(e.currentFloor).toBe(2);
+      expect(e.y).toBe(e.getYPosOfFloor(2));
+    });
+
+    it("reports a dropped destination once per facade, not once per frame", () => {
+      for (let frame = 0; frame < 60; frame++) {
+        elevInterface.destinationQueue = [Number.NaN];
+        elevInterface.checkDestinationQueue();
+      }
+
+      expect(errorHandler).toHaveBeenCalledTimes(1);
+
+      // A new world builds new facades, so restarting the challenge with the
+      // same mistake in it is still told about it.
+      const restarted = new Elevator(1.5, FLOOR_COUNT, FLOOR_HEIGHT);
+      restarted.setFloorPosition(0);
+      const restartedInterface = new ElevatorInterface(restarted, FLOOR_COUNT, errorHandler);
+      restartedInterface.destinationQueue = [Number.NaN];
+      restartedInterface.checkDestinationQueue();
+
+      expect(errorHandler).toHaveBeenCalledTimes(2);
+    });
+
+    it("leaves a finite destination outside the building exactly where it was", () => {
+      // Only what the simulation cannot compute is dropped. The legacy code
+      // handed the head of the queue over unclamped as well
+      // (`legacy-1.x:interfaces.js:19`), and a floor above the roof is still a
+      // position: the car simply drives past the end of the shaft.
+      elevInterface.destinationQueue = [99];
+
+      elevInterface.checkDestinationQueue();
+
+      expect(elevInterface.destinationQueue).toEqual([99]);
+      expect(e.destinationY).toBe(e.getYPosOfFloor(99));
+      expect(errorHandler).not.toHaveBeenCalled();
+    });
+  });
+
   describe("stop", () => {
     it("empties the destination queue", () => {
       elevInterface.goToFloor(2);

@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createFrameRequester, type FrameRequester } from "./frame-requester.ts";
+import { at } from "./test-helpers.ts";
 import { createWorld } from "./world.ts";
 import {
   WorldController,
@@ -350,6 +351,101 @@ describe("World controller", () => {
       expect(pausedAfterFirst).toBe(true);
       expect(reported.mock.calls).toEqual([[first], [second]]);
       log.mockRestore();
+    });
+
+    describe("a floor number that is not a number", () => {
+      // `ElevatorInterface.goToFloor` throws on one rather than queueing a
+      // destination the car can never arrive at, and nothing inside the facade
+      // catches that. These are the checks that it lands somewhere: the facade
+      // is only ever called from player code, and each of the three ways player
+      // code runs is wrapped - `codeObj.init` and `codeObj.update` by the
+      // try/catch blocks in `start`, and every player event handler by the
+      // per-handler isolation `triggerSafe` gives it, which arrives here as the
+      // world's own `usercode_error`.
+
+      /**
+       * Runs a real world for two frames and reports what came back.
+       *
+       * @param codeObj - The player program to drive it with.
+       * @returns Whatever the controller reported.
+       */
+      function runTwoFrames(codeObj: UserCodeObject): ReturnType<typeof vi.fn> {
+        const world = createWorld({ spawnRate: 0.001, floorCount: 3, elevatorCount: 1 });
+        const reported = vi.fn();
+        controller.on("usercode_error", reported);
+        const log = vi.spyOn(console, "log").mockImplementation(() => undefined);
+        controller.start(world, codeObj, frameRequester.register, true);
+        frameRequester.trigger();
+        frameRequester.trigger();
+        log.mockRestore();
+        return reported;
+      }
+
+      it("pauses and reports one asked for from init", () => {
+        const reported = runTwoFrames({
+          init(elevators): void {
+            at(elevators, 0).goToFloor(Number.NaN);
+          },
+          update(): void {
+            // Nothing.
+          },
+        });
+
+        expect(controller.isPaused).toBe(true);
+        expect(reported).toHaveBeenCalledTimes(1);
+        expect(reported.mock.calls[0]?.[0]).toBeInstanceOf(TypeError);
+      });
+
+      it("pauses and reports one asked for from update", () => {
+        const reported = runTwoFrames({
+          init(): void {
+            // Nothing.
+          },
+          update(_dt, elevators): void {
+            at(elevators, 0).goToFloor(Number.NaN);
+          },
+        });
+
+        expect(controller.isPaused).toBe(true);
+        expect(reported).toHaveBeenCalledTimes(1);
+        expect(reported.mock.calls[0]?.[0]).toBeInstanceOf(TypeError);
+      });
+
+      it("pauses and reports one asked for from an event handler", () => {
+        const reported = runTwoFrames({
+          init(elevators): void {
+            const elevator = at(elevators, 0);
+            elevator.on("idle", () => {
+              elevator.goToFloor(Number.NaN);
+            });
+          },
+          update(): void {
+            // Nothing.
+          },
+        });
+
+        expect(controller.isPaused).toBe(true);
+        expect(reported).toHaveBeenCalledTimes(1);
+        expect(reported.mock.calls[0]?.[0]).toBeInstanceOf(TypeError);
+      });
+
+      it("pauses and reports one a hand-assigned destinationQueue brought in", () => {
+        // That path cannot throw - the engine calls `checkDestinationQueue`
+        // too - so it reports through the world instead, and the elevator is
+        // still there to be used afterwards.
+        const reported = runTwoFrames({
+          init(elevators): void {
+            at(elevators, 0).destinationQueue = [Number.NaN];
+          },
+          update(): void {
+            // Nothing.
+          },
+        });
+
+        expect(controller.isPaused).toBe(true);
+        expect(reported).toHaveBeenCalledTimes(1);
+        expect(reported.mock.calls[0]?.[0]).toBeInstanceOf(TypeError);
+      });
     });
   });
 

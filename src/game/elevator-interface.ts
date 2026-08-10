@@ -79,6 +79,31 @@ function lastOrNaN(arr: readonly number[]): number {
   return arr[arr.length - 1] ?? Number.NaN;
 }
 
+/**
+ * Renders a value player code supplied, for an error message.
+ *
+ * `String()` rather than a template literal, so a symbol describes itself
+ * instead of throwing on the way into the message. The two shapes `String()`
+ * renders uselessly are spelled out: an object comes out as `[object Object]`
+ * and an array as its bare comma separated contents, neither of which tells
+ * anyone what they passed.
+ *
+ * @param value - The value player code supplied.
+ * @returns A short description of it.
+ */
+function describeFloorArgument(value: unknown): string {
+  if (typeof value === "string") {
+    return JSON.stringify(value);
+  }
+  if (Array.isArray(value)) {
+    return "an array";
+  }
+  if (typeof value === "object" && value !== null) {
+    return "an object";
+  }
+  return String(value);
+}
+
 /** The elevator API exposed to player code. */
 export class ElevatorInterface {
   /**
@@ -93,6 +118,12 @@ export class ElevatorInterface {
   readonly #elevator: Elevator;
   readonly #floorCount: number;
   readonly #errorHandler: ElevatorInterfaceErrorHandler;
+  /**
+   * Whether this facade has already reported a destination it had to drop from
+   * a hand-assigned {@link destinationQueue}. See
+   * {@link ElevatorInterface.checkDestinationQueue}.
+   */
+  #reportedDroppedDestination = false;
   /**
    * Player subscriptions.
    *
@@ -304,9 +335,17 @@ export class ElevatorInterface {
    * call this, which lands straight back in the empty-queue branch. The nested
    * call will not raise `idle` a second time, because `PlayerObservable`
    * refuses to re-enter a dispatch that is already in flight.
+   *
+   * Any non-finite entry in {@link destinationQueue} is dropped first, and
+   * reported once; see the private `#dropUnreachableDestinations` below. This
+   * method cannot throw the way {@link goToFloor} does, because the engine
+   * calls it too — from `World.init`, and from the arrival and dwell paths —
+   * where an exception would take the simulation down rather than the player's
+   * code.
    */
   checkDestinationQueue(): void {
     if (!this.#elevator.isBusy()) {
+      this.#dropUnreachableDestinations();
       if (this.destinationQueue.length > 0) {
         this.#elevator.goToFloor(firstOrNaN(this.destinationQueue));
       } else {
@@ -316,19 +355,88 @@ export class ElevatorInterface {
   }
 
   /**
+   * Removes destinations the elevator could never reach, and says so once.
+   *
+   * {@link goToFloor} refuses a non-finite floor outright, but
+   * {@link destinationQueue} is documented as directly assignable and this is
+   * the path that assignment takes: the head of the queue goes to the elevator
+   * unexamined, so a `NaN` in it becomes the car's `destinationY`, and from
+   * there `y`, `currentFloor` and the queue head are `NaN` for good. Nothing
+   * recovers a car in that state — not `stop()`, not emptying the queue, not a
+   * later `goToFloor` — so the entry is dropped before it can do it.
+   *
+   * Only non-finite entries go. A finite one outside the building is left
+   * exactly where it was: `legacy-1.x:interfaces.js:19` handed the queue head
+   * over unclamped as well, an out-of-range floor merely sends the car past the
+   * end of the shaft, and it is still a position the simulation can compute.
+   *
+   * Reported at most once per facade, not once per call: the queue is
+   * re-checked on arrival, after every dwell and from player code's own
+   * `update`, so an unguarded report is a report per frame. Per facade rather
+   * than the module-level, never-reset flag behind the deprecation notice in
+   * `Elevator.getFirstPressedFloor`, because a new world builds new facades:
+   * restarting the challenge with the same mistake still gets told about it,
+   * which matters here in a way it does not for a notice that only prints.
+   */
+  #dropUnreachableDestinations(): void {
+    const offenderIndex = this.destinationQueue.findIndex((floorNum) => !Number.isFinite(floorNum));
+    if (offenderIndex < 0) {
+      return;
+    }
+    const offender = this.destinationQueue[offenderIndex];
+    this.destinationQueue = this.destinationQueue.filter((floorNum) => Number.isFinite(floorNum));
+    if (this.#reportedDroppedDestination) {
+      return;
+    }
+    this.#reportedDroppedDestination = true;
+    this.#errorHandler(
+      new TypeError(
+        `elevator.destinationQueue contained ${describeFloorArgument(offender)}, which is not a floor number. ` +
+          `The entry was dropped so the elevator keeps running; destinationQueue takes finite numbers, ` +
+          `and this building has floors 0 to ${String(this.#floorCount - 1)}.`,
+      ),
+    );
+  }
+
+  /**
    * Queues a floor to travel to.
    *
    * A request equal to the adjacent end of the queue is dropped, so repeatedly
    * asking for the same floor does not pile up.
    *
-   * @param floorNum - Destination floor; clamped into the valid range. Coerced
+   * A destination that is not a finite number is refused rather than queued.
+   * `limitNumber` is the legacy `Math.min(max, Math.max(num, min))`
+   * (`legacy-1.x:base.js:11`), which has a floor to offer every real number,
+   * `Infinity` included, but passes `NaN` straight through — so
+   * `elevator.goToFloor(undefined)` used to queue `NaN`, and the car's `y`,
+   * `currentFloor` and queue head were `NaN` for the rest of the run, with no
+   * error, no pause and no way back. `legacy-1.x:interfaces.js:28` did the same
+   * thing, but a single typo turning an elevator into a silent brick is not a
+   * behaviour worth being faithful to, and no working solution passes one. This
+   * method is only ever called by player code, apart from the re-offer in
+   * `World.#handleButtonRepressing`, which passes a floor's own level; so the
+   * throw lands in the `try`/`catch` around `codeObj.init` and `codeObj.update`
+   * in `WorldController.start`, or in the one `triggerSafe` puts around each
+   * player handler, and reaches the player as a paused game and the "problem
+   * with your code" banner, like any other mistake in their code.
+   *
+   * @param floorNum - Destination floor, clamped into the valid range. Coerced
    * with `Number()` because player code is untyped and may pass a string.
    * @param forceNow - Put the floor at the front of the queue instead of the
    * back.
+   * @throws {TypeError} When `floorNum` is not a finite number, and so has no
+   * floor to be clamped to.
    */
   goToFloor(floorNum: number, forceNow?: boolean): void {
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-conversion -- player code is untyped JS and does pass strings here
-    const floor = limitNumber(Number(floorNum), 0, this.#floorCount - 1);
+    const requested = Number(floorNum);
+    if (!Number.isFinite(requested)) {
+      throw new TypeError(
+        `elevator.goToFloor was called with ${describeFloorArgument(floorNum)}, which is not a floor number. ` +
+          `It takes a finite number, and this building has floors 0 to ${String(this.#floorCount - 1)}.`,
+      );
+    }
+    const floor = limitNumber(requested, 0, this.#floorCount - 1);
     // Player code is untyped, so `forceNow` keeps the legacy truthiness test.
     const immediate = Boolean(forceNow);
     // Auto-prevent immediately duplicate destinations
