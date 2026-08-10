@@ -346,8 +346,16 @@ button[disabled] {
   margin-inline-start: 5px;
 }
 
+/*
+ * Reset/Undo on one side, Save/Apply on the other. The two groups need about
+ * 400px between them, so on a 320px screen the row has to be allowed to fall
+ * into two lines -- without `wrap` it pushed the whole page 25px wider than the
+ * screen, which is the two-dimensional scrolling WCAG 1.4.10 is about. There is
+ * room for both groups from roughly 420px up, and the rule costs nothing there.
+ */
 .codebuttons {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 10px;
@@ -355,6 +363,7 @@ button[disabled] {
 
 .codebuttons div {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 5px;
 }
@@ -748,5 +757,54 @@ pre code {
   .help p,
   dl dd {
     max-inline-size: 100%;
+  }
+
+  /*
+   * The API tables are the one thing on either page that will not fit a phone.
+   * Their columns are pinned to the legacy pixel widths above, which add up to
+   * 430-520px before the example column has taken anything at all: the widest
+   * table drew at 983px and the document at 993px on a 320px screen, so the
+   * whole page had to be read by panning in two directions, which is what WCAG
+   * 1.4.10 is about.
+   *
+   * Fixed layout is what shrinks them. Releasing the widths on its own changed
+   * nothing, because automatic layout will not draw a cell narrower than its
+   * longest unbreakable line and the cells are full of code:
+   * `elevator.on("floor_button_pressed", function(floorNum) { ... });` alone
+   * asks for 588px. Under fixed layout the columns divide the width they are
+   * given and the content has to live inside them, hence the two rules after:
+   * a name as long as `checkDestinationQueue` wraps rather than leaning into
+   * the next column, and an example wraps rather than putting its tail behind
+   * a horizontal scrollbar inside a page that has no room to show one.
+   *
+   * Four columns at 320px is cramped whatever is done to it -- that is the
+   * width, not the rule -- but nothing is hidden and nothing needs panning.
+   */
+  .doctable {
+    inline-size: 100%;
+    table-layout: fixed;
+  }
+
+  .doccol-name,
+  .doccol-type,
+  .doccol-explanation,
+  .doccol-explanation-wide {
+    inline-size: auto;
+  }
+
+  .doctable td:first-child {
+    overflow-wrap: anywhere;
+  }
+
+  /*
+   * Every code sample on the page, in the tables and in the prose alike. At
+   * this width a line of the API's own example code is wider than the screen,
+   * so `overflow-x` on the block would answer a page that pans sideways with a
+   * sample that pans sideways instead. Wrapping is the one form in which the
+   * whole line can be seen at once.
+   */
+  pre code {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
   }
 }
