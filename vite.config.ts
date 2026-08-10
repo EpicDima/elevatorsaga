@@ -1,8 +1,187 @@
+import { readdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
+
+import type { Plugin } from "vite";
 import { defineConfig } from "vitest/config";
 
 import packageJson from "./package.json" with { type: "json" };
 
+/**
+ * The notice file the build emits beside the two pages, linked from the footer
+ * of both.
+ *
+ * `dist/` is what players are actually served, and it carries MIT-licensed code
+ * (CodeMirror and its Lezer parser, ~500 kB of the bundle), an OFL-licensed
+ * font (Oswald, four binaries copied verbatim into `dist/assets/`) and
+ * OFL-licensed artwork (the Font Awesome 4 outlines inlined by
+ * `src/ui/icons.ts`). MIT asks for its notice to travel with substantial
+ * portions of the software; OFL asks for the copyright notice and licence to be
+ * bundled with the font software. Neither obligation is met by a licence file
+ * that only exists in the repository, so the build has to put one in `dist/`.
+ *
+ * Generated rather than committed. A hand-written file under `public/` would be
+ * simpler, but it would silently start lying the first time a dependency is
+ * added, removed or relicensed, and nothing in the repository would catch it.
+ * Reading the terms out of `node_modules` at build time cannot drift: the
+ * notice describes the tree the bundle was built from, and a package that ships
+ * no licence text at all stops the build instead of quietly vanishing from the
+ * list. The cost is the ~70 lines below, and no new dependency.
+ */
+const LICENSES_FILE = "licenses.txt";
+
+/** Separator between one set of terms and the next. */
+const RULE = "-".repeat(78);
+
+/** The `package.json` fields of an installed dependency that the notice needs. */
+interface DependencyManifest {
+  readonly name: string;
+  readonly version: string;
+  readonly license?: string;
+  readonly dependencies?: Record<string, string>;
+}
+
+/**
+ * Reads an installed package's manifest.
+ *
+ * Paths are relative to the Vite root, which is this directory (see `root`
+ * below); npm flattens `node_modules`, so every package sits directly under it.
+ *
+ * @param name - Package name, e.g. `@codemirror/view`.
+ * @returns Its manifest.
+ */
+function readManifest(name: string): DependencyManifest {
+  return JSON.parse(
+    readFileSync(join("node_modules", name, "package.json"), "utf8"),
+  ) as DependencyManifest;
+}
+
+/**
+ * Every package that reaches the browser: the runtime dependencies, and theirs.
+ *
+ * `devDependencies` are deliberately not walked. They build, check and test the
+ * site; no part of them is copied into it, so nothing about them is distributed
+ * and no notice is owed. (Worth re-checking if a dynamic `import()` ever
+ * appears: that is what would make Vite inject its own preload helper into a
+ * chunk. Today nothing in `dist/` comes from a devDependency.)
+ *
+ * @returns The manifests, by name.
+ */
+function runtimeDependencies(): DependencyManifest[] {
+  const found = new Map<string, DependencyManifest>();
+  const visit = (name: string): void => {
+    if (found.has(name)) return;
+    const manifest = readManifest(name);
+    found.set(name, manifest);
+    for (const dependency of Object.keys(manifest.dependencies ?? {})) visit(dependency);
+  };
+  for (const name of Object.keys(packageJson.dependencies)) visit(name);
+  return [...found.values()].sort((left, right) => left.name.localeCompare(right.name));
+}
+
+/**
+ * The licence text a package ships.
+ *
+ * @param name - Package name.
+ * @returns The contents of its `LICENSE` file.
+ * @throws If it ships none, leaving nothing to reproduce.
+ */
+function readLicenseText(name: string): string {
+  const directory = join("node_modules", name);
+  const file = readdirSync(directory).find((entry) => /^licen[cs]e/i.test(entry));
+  if (file === undefined) {
+    throw new Error(
+      `${name} ships no licence file, so ${LICENSES_FILE} cannot reproduce its terms. ` +
+        "Add them to vite.config.ts by hand, or drop the dependency.",
+    );
+  }
+  return readFileSync(join(directory, file), "utf8").trim();
+}
+
+/**
+ * One titled block of the notice file, underlined the way the rest of it is.
+ *
+ * @param title - The heading.
+ * @param body - Whatever goes under it.
+ * @returns The block.
+ */
+function section(title: string, body: string): string {
+  return `${title}\n${"=".repeat(title.length)}\n\n${body.trim()}\n`;
+}
+
+/**
+ * Builds {@link LICENSES_FILE}.
+ *
+ * @returns The whole notice, ready to serve as `text/plain`.
+ */
+function renderLicenses(): string {
+  // Seventeen of the eighteen bundled packages are MIT and most of those differ
+  // only in the copyright line, so packages whose licence text is byte-identical
+  // share one copy of it. Reproducing each notice once, against the list of
+  // packages it covers, is what MIT asks for and is a third of the length.
+  const byText = new Map<string, string[]>();
+  for (const { name, version, license } of runtimeDependencies()) {
+    const entry = `${name} ${version}${license === undefined ? "" : ` (${license})`}`;
+    const text = readLicenseText(name);
+    const grouped = byText.get(text);
+    if (grouped === undefined) byText.set(text, [entry]);
+    else grouped.push(entry);
+  }
+  const packages = [...byText].map(
+    ([text, entries]) => `${RULE}\n${entries.join("\n")}\n${RULE}\n\n${text}`,
+  );
+
+  return [
+    section(
+      "Elevator Saga: licences",
+      `Everything this site is made of and the terms it comes under: the game
+itself, the icon artwork, the interface font and the code editor. Written by
+the build from the dependency tree it built with, so it describes this build
+and no other.
+
+Development tooling -- Vite, TypeScript, Vitest, ESLint, Playwright -- is not
+listed. It builds and checks the site; none of it is copied into what is
+served from here.
+
+Source: ${packageJson.homepage.replace(/#.*$/, "")}`,
+    ),
+    section("Elevator Saga", readFileSync("LICENSE.txt", "utf8")),
+    // Already carries its own heading, in the same style.
+    readFileSync("src/ui/fontawesome-license.txt", "utf8").trim() + "\n",
+    section(
+      "Bundled packages",
+      `The editor is CodeMirror 6 and the interface font is Oswald. Both, and the
+packages they depend on in turn, are installed from npm and end up inside the
+JavaScript, CSS and font files this site serves. Packages that ship identical
+terms are listed together, above the one copy of them.
+
+${packages.join("\n\n")}`,
+    ),
+  ].join("\n\n");
+}
+
+/**
+ * Puts {@link LICENSES_FILE} in the build output, and serves the same bytes
+ * from the dev server so the footer link is never dead.
+ *
+ * @returns The plugin.
+ */
+function licenseNotices(): Plugin {
+  return {
+    name: "elevator-saga-license-notices",
+    generateBundle() {
+      this.emitFile({ type: "asset", fileName: LICENSES_FILE, source: renderLicenses() });
+    },
+    configureServer(server) {
+      server.middlewares.use(`/${LICENSES_FILE}`, (_request, response) => {
+        response.setHeader("Content-Type", "text/plain; charset=utf-8");
+        response.end(renderLicenses());
+      });
+    },
+  };
+}
+
 export default defineConfig({
+  plugins: [licenseNotices()],
   // package.json is the only place the version is written down; src/ui/version.ts
   // reads it from here and puts it in the footer. This is a compile-time
   // substitution, so it reaches the built bundle and the test run alike.

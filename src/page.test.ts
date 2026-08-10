@@ -160,6 +160,15 @@ describe("index.html", () => {
     const targets = [...page.querySelectorAll("a")].map((link) => link.getAttribute("href"));
     expect(targets).toContain("documentation.html");
   });
+
+  it("links to the licence notices the build emits", () => {
+    // MIT wants its notice to travel with the software and OFL wants the font
+    // licence bundled with the font, so `dist/` carries `licenses.txt` (emitted
+    // by vite.config.ts). A notice nobody can reach is not a notice: the link
+    // is what makes it one, so it is asserted here rather than left to chance.
+    const targets = [...page.querySelectorAll("a")].map((link) => link.getAttribute("href"));
+    expect(targets).toContain("licenses.txt");
+  });
 });
 
 describe("documentation.html", () => {
@@ -179,6 +188,11 @@ describe("documentation.html", () => {
   it("links back to the game", () => {
     const targets = [...docs.querySelectorAll("a")].map((link) => link.getAttribute("href"));
     expect(targets).toContain("index.html");
+  });
+
+  it("links to the licence notices as well, being served from the same place", () => {
+    const targets = [...docs.querySelectorAll("a")].map((link) => link.getAttribute("href"));
+    expect(targets).toContain("licenses.txt");
   });
 
   it("has one landmark of each kind, and a single top-level heading", () => {
