@@ -30,6 +30,7 @@ import {
   type EventName,
   type EventNameSpec,
   type HandlerFor,
+  type OffEventSpec,
 } from "./observable.ts";
 
 /** Events a {@link FloorInterface} exposes to player code. */
@@ -138,12 +139,15 @@ export class FloorInterface {
   /**
    * Unregisters handlers.
    *
-   * @param events - Event name, or names separated by single spaces.
+   * @param events - Event name, names separated by single spaces, or `"*"` for
+   * every event; see {@link FloorInterface.offAll} for why the wildcard is part
+   * of this facade's surface.
    * @param handler - When given, only this exact function is unregistered;
-   * when omitted, every handler of each listed event is.
+   * when omitted, every handler of each listed event is. Ignored for `"*"`, as
+   * it was by riot.
    * @returns This facade, for chaining.
    */
-  off<S extends EventNameSpec<FloorInterfaceEvents>>(
+  off<S extends OffEventSpec<FloorInterfaceEvents>>(
     events: S,
     handler?: HandlerFor<S, FloorInterfaceEvents>,
   ): this {
@@ -154,13 +158,14 @@ export class FloorInterface {
   /**
    * Removes every handler player code registered on this floor.
    *
-   * Replaces the legacy `floor.off("*")`, which really was reachable: `asFloor`
-   * built each floor as a `riot.observable(obj)` (`floor.js:3`), `world.js:75`
-   * put those very objects in `world.floors`, and the world controller passed
-   * that array straight to `codeObj.init` and `codeObj.update` (`world.js:239`,
-   * `world.js:248`). `"*"` was riot's unregister-everything wildcard
-   * (`libs/riot.js:18`), and `world.unWind` used it on the floors itself
-   * (`world.js:201-204`).
+   * The named spelling of the legacy `floor.off("*")`, which really was
+   * reachable: `asFloor` built each floor as a `riot.observable(obj)`
+   * (`floor.js:3`), `world.js:75` put those very objects in `world.floors`, and
+   * the world controller passed that array straight to `codeObj.init` and
+   * `codeObj.update` (`world.js:239`, `world.js:248`). `"*"` was riot's
+   * unregister-everything wildcard (`libs/riot.js:18`), and `world.unWind` used
+   * it on the floors itself (`world.js:201-204`). {@link FloorInterface.off}
+   * still accepts that spelling and routes it here.
    *
    * Only the player's own subscriptions go. The forwarding that makes this
    * facade work is registered on the real floor's emitter rather than on this

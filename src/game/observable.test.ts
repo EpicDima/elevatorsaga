@@ -204,6 +204,54 @@ describe("Observable.off", () => {
     expect(() => emitter.off("idle")).not.toThrow();
   });
 
+  it('off("*") removes handlers for every event', () => {
+    // riot (`libs/riot.js:18`) and unobservable (`libs/unobservable.js:52`)
+    // both opened `off` with `if (events === "*") callbacks = {}`, and upstream
+    // issue #97 ("Unbind events?") was answered with `elevator.off('*')`. A
+    // literal lookup of the name "*" finds nothing and returns successfully, so
+    // getting this wrong leaks every handler with no error and no output.
+    const emitter = makeEmitter();
+    const up = vi.fn();
+    const idle = vi.fn();
+    emitter.on("up_button_pressed", up);
+    emitter.on("idle", idle);
+
+    expect(emitter.off("*")).toBe(emitter);
+    emitter.trigger("up_button_pressed", 1);
+    emitter.trigger("idle");
+
+    expect(up).not.toHaveBeenCalled();
+    expect(idle).not.toHaveBeenCalled();
+  });
+
+  it('off("*", handler) ignores the handler and still removes everything', () => {
+    // Both legacy emitters tested for the wildcard before they looked at `fn`.
+    const emitter = makeEmitter();
+    const named = vi.fn();
+    const other = vi.fn();
+    emitter.on("idle", named);
+    emitter.on("idle", other);
+
+    emitter.off("*", named);
+    emitter.trigger("idle");
+
+    expect(named).not.toHaveBeenCalled();
+    expect(other).not.toHaveBeenCalled();
+  });
+
+  it('does not call a later handler removed via off("*") during the dispatch', () => {
+    const emitter = makeEmitter();
+    const later = vi.fn();
+    emitter.on("idle", () => {
+      emitter.off("*");
+    });
+    emitter.on("idle", later);
+
+    emitter.trigger("idle");
+
+    expect(later).not.toHaveBeenCalled();
+  });
+
   it("offAll removes handlers for every event", () => {
     const emitter = makeEmitter();
     const up = vi.fn();

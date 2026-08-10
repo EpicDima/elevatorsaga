@@ -181,6 +181,26 @@ describe("Elevator interface", () => {
       expect(someHandler).toHaveBeenCalled();
     });
 
+    it('unregisters every handler on off("*")', () => {
+      // The accepted answer to upstream issue #97 ("Unbind events?") is
+      // `elevator.off('*')`, and the legacy facade was a `riot.observable(obj)`
+      // (`interfaces.js:6`), whose `off` cleared the whole callback map for
+      // that argument (`libs/riot.js:18`). Looking up an event literally named
+      // "*" finds nothing and returns successfully, so a regression here leaks
+      // every handler silently.
+      const stopped = vi.fn();
+      const idle = vi.fn();
+      elevInterface.on("stopped_at_floor", stopped);
+      elevInterface.on("idle", idle);
+
+      expect(elevInterface.off("*")).toBe(elevInterface);
+      e.trigger("stopped_at_floor", 1);
+      elevInterface.checkDestinationQueue();
+
+      expect(stopped).not.toHaveBeenCalled();
+      expect(idle).not.toHaveBeenCalled();
+    });
+
     it("calls handlers with the interface as `this`", () => {
       // Legacy riot dispatched with `fn.apply(el, ...)` (libs/riot.js:45), and
       // the elevator interface *was* `el`.

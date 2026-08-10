@@ -29,6 +29,7 @@ import {
   type EventName,
   type EventNameSpec,
   type HandlerFor,
+  type OffEventSpec,
 } from "./observable.ts";
 
 /** Direction an elevator is heading, as reported to player code. */
@@ -194,12 +195,17 @@ export class ElevatorInterface {
   /**
    * Unregisters handlers.
    *
-   * @param events - Event name, or names separated by single spaces.
+   * @param events - Event name, names separated by single spaces, or `"*"` for
+   * every event. The legacy facade was a `riot.observable(obj)`
+   * (`interfaces.js:6`), so `"*"` was its unregister-everything wildcard
+   * (`libs/riot.js:18`) — and the accepted answer to upstream issue #97
+   * ("Unbind events?") was exactly `elevator.off('*')`.
    * @param handler - When given, only this exact function is unregistered;
-   * when omitted, every handler of each listed event is.
+   * when omitted, every handler of each listed event is. Ignored for `"*"`,
+   * as it was by riot.
    * @returns This facade, for chaining.
    */
-  off<S extends EventNameSpec<ElevatorInterfaceEvents>>(
+  off<S extends OffEventSpec<ElevatorInterfaceEvents>>(
     events: S,
     handler?: HandlerFor<S, ElevatorInterfaceEvents>,
   ): this {
@@ -210,8 +216,8 @@ export class ElevatorInterface {
   /**
    * Removes every handler for every event.
    *
-   * Kept because the legacy facade published it and `World.unWind` uses it to
-   * tear the facade down.
+   * The named spelling of `off("*")`. Kept because the legacy facade published
+   * it and `World.unWind` uses it to tear the facade down.
    *
    * @returns This facade, for chaining.
    */

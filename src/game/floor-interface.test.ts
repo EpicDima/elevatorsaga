@@ -224,5 +224,18 @@ describe("FloorInterface", () => {
       expect(later).toHaveBeenCalledTimes(1);
       expect(later).toHaveBeenCalledWith(floorInterface);
     });
+
+    it('drops every player handler on off("*") too', () => {
+      // The spelling published solutions actually use, and the one the accepted
+      // answer to upstream issue #97 gives. It must not be a silent no-op.
+      const dropped = vi.fn();
+      floorInterface.on("up_button_pressed", dropped);
+      floorInterface.on("buttonstate_change", dropped);
+
+      expect(floorInterface.off("*")).toBe(floorInterface);
+      floor.pressUpButton();
+
+      expect(dropped).not.toHaveBeenCalled();
+    });
   });
 });

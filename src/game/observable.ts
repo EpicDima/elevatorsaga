@@ -85,6 +85,20 @@ export type EventNameSpec<E extends EventArgsMap> =
   | `${EventName<E>} ${EventName<E>}`
   | `${EventName<E>} ${EventName<E>} ${EventName<E>}`;
 
+/**
+ * riot's and unobservable's wildcard: unregister everything.
+ *
+ * `libs/riot.js:18` and `libs/unobservable.js:52` both opened `off` with
+ * `if (events === "*") callbacks = {}`, before the handler argument was even
+ * looked at.
+ */
+export type AllEvents = "*";
+
+/**
+ * What {@link Observable.off} accepts: an event name spec, or {@link AllEvents}.
+ */
+export type OffEventSpec<E extends EventArgsMap> = EventNameSpec<E> | AllEvents;
+
 /** The event names an `on`/`off` argument resolves to, filtered to known events. */
 type NamesOf<S extends string, E extends EventArgsMap> = Extract<SplitEventNames<S>, EventName<E>>;
 
@@ -186,13 +200,21 @@ export class Observable<E extends EventArgsMap> {
   /**
    * Unregisters handlers.
    *
-   * @param events - Event name, or names separated by single spaces.
+   * @param events - Event name, names separated by single spaces, or `"*"` for
+   * every event. The wildcard is riot's (`libs/riot.js:18`) and unobservable's
+   * (`libs/unobservable.js:52`); upstream issue #97 ("Unbind events?") was
+   * answered with `elevator.off('*')`, so solutions do use that spelling. Both
+   * emitters tested for it before looking at `handler`, so a handler passed
+   * alongside the wildcard is ignored rather than narrowing what is removed.
    * @param handler - When given, only entries registered with this exact
    * function are removed (including `once` entries). When omitted, every
    * handler of each listed event is removed.
    * @returns This emitter, for chaining.
    */
-  off<S extends EventNameSpec<E>>(events: S, handler?: HandlerFor<S, E>): this {
+  off<S extends OffEventSpec<E>>(events: S, handler?: HandlerFor<S, E>): this {
+    if (events === ("*" satisfies AllEvents)) {
+      return this.offAll();
+    }
     for (const name of splitEventNames(events)) {
       const entries = this.#handlers.get(name);
       if (entries === undefined) {
@@ -222,7 +244,8 @@ export class Observable<E extends EventArgsMap> {
   /**
    * Removes every handler for every event.
    *
-   * Replaces the legacy `off("*")`.
+   * The named spelling of the legacy `off("*")`, which {@link Observable.off}
+   * still accepts and routes here.
    *
    * @returns This emitter, for chaining.
    */
