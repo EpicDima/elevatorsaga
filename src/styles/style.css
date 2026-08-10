@@ -22,22 +22,60 @@
  * makes it line up with the right-hand edge of the building.
  */
 
+/*
+ * Palette note (WCAG 1.4.3).
+ *
+ * Everything on the page sits on --color-page, whose relative luminance is
+ * 0.4998. No light colour can pass on it: white, the lightest there is, reaches
+ * 1.91:1, so anything readable against it has to be darker than it, not
+ * lighter. That is why the emphasis colour exists twice below rather than once.
+ * Measured against the real composited backgrounds in Chromium:
+ *
+ *   text     #555 -> #444 on the page    3.90:1 -> 5.10:1  (needs 4.5)
+ *   emphasis #f1f2d8 -> #33351f on page  1.68:1 -> 6.58:1  (needs 4.5)
+ *   emphasis #f1f2d8 kept on the world  11.09:1            (needs 4.5)
+ *   stats    #999 -> #9c9c9c on world    4.43:1 -> 4.60:1  (needs 4.5)
+ *   buttons  #333 on #777 -> on #9c9c9c  2.82:1 -> 4.60:1  (needs 4.5)
+ *
+ * The building itself is not in this list: the dim floor numbers and the unlit
+ * elevator indicators are painted at 15-30% white on purpose, and it is the lit
+ * state that carries the information (6.45:1 for a lit call button). Changing
+ * them would be a redesign of the building rather than a palette fix.
+ */
 :root {
   /* Palette */
   --color-page: #bfbd9f;
-  --color-text: #555;
+  --color-text: #444;
   --color-text-strong: #333;
   --color-link: #444;
+  /*
+   * Emphasis is the same accent in two values: pale where it sits on the dark
+   * building and its overlay, dark where it sits on the page. The pale one is
+   * the legacy #f1f2d8; the dark one is the same hue taken down until it clears
+   * 4.5:1 on the page, and it keeps the pale one as its text-shadow so the
+   * highlight is still part of the mark.
+   */
   --color-emphasis: #f1f2d8;
+  --color-emphasis-on-page: #33351f;
   --color-error: #d54;
   --color-focus: #333;
   --color-world: #333;
   --color-elevator: #4f8686;
   --color-lit: #33ff44;
-  --color-stats: #999;
+  --color-stats: #9c9c9c;
   --color-stats-rule: #444;
-  --color-control: #777;
+  --color-control: #9c9c9c;
   --color-control-border: #666;
+  /*
+   * Code surfaces: the editor and the examples on the help page. The legacy
+   * game loaded CodeMirror 5 with `theme: "solarized light"` (`app.js:9`,
+   * `index.html:9`), which is where these two values come from; the help page's
+   * <pre><code> has always used them. The rewrite to CodeMirror 6 dropped the
+   * theme, which left the editor transparent over the page and its unhighlighted
+   * text at `body`'s white -- 1.91:1 on the program the player is reading.
+   */
+  --color-code-page: #fdf6e3;
+  --color-code-text: #586e75;
 
   /* Geometry. The floor and elevator sizes mirror src/game/world.ts. */
   --shell-width: 1220px;
@@ -122,7 +160,20 @@ dl dd {
 
 /* -------------------------------------------------------------- Utilities */
 
+/*
+ * Emphasis on the page: dark text with the pale accent under it. The legacy
+ * rule was the other way round -- pale text with a dark shadow -- which is the
+ * one thing that cannot be made readable here, the page being too light for any
+ * light foreground to reach 4.5:1 against it. Inverting the pair keeps both
+ * colours and the raised look, and turns 1.68:1 into 6.58:1.
+ */
 .emphasis-color {
+  color: var(--color-emphasis-on-page);
+  text-shadow: 0 2px 0.4pt var(--color-emphasis);
+}
+
+/* On the dark overlay, where the pale accent reads as it always did. */
+.feedback .emphasis-color {
   color: var(--color-emphasis);
   text-shadow: 0 2px 0.4pt var(--color-text);
 }
@@ -354,11 +405,19 @@ kbd {
   white-space: pre-wrap;
 }
 
+/*
+ * The editor carries its own background and text colour rather than inheriting
+ * the page's: CodeMirror 6 ships no theme of its own beyond the syntax
+ * highlighting, so without these the program sits on the page colour in the
+ * white `body` inherits to the building.
+ */
 .cm-editor {
   block-size: var(--editor-height);
   margin-block: 10px;
   border: 1px solid var(--color-control-border);
   border-radius: 4px;
+  background-color: var(--color-code-page);
+  color: var(--color-code-text);
   overflow: hidden;
 }
 
@@ -608,8 +667,8 @@ pre code {
   display: block;
   padding: 8px;
   border-radius: 4px;
-  background-color: #fdf6e3;
-  color: #657b83;
+  background-color: var(--color-code-page);
+  color: var(--color-code-text);
   font: 13px/1.4 var(--font-mono);
   overflow-x: auto;
 }
