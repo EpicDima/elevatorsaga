@@ -1,1 +1,9 @@
 .DS_Store
+node_modules
+dist
+coverage
+.vite
+*.local
+.env*
+playwright-report
+test-results

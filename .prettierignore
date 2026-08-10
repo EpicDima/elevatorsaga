@@ -1,0 +1,34 @@
+node_modules
+dist
+coverage
+.vite
+playwright-report
+test-results
+package-lock.json
+
+# Third-party / vendored assets
+libs
+font-awesome-4.1-1.0
+images
+*.min.js
+
+# Legacy jasmine suite (incl. test/jasmine) — replaced by Vitest in a later stage.
+test
+
+# Legacy game sources — removed in a later modernization stage.
+/app.js
+/base.js
+/challenges.js
+/elevator.js
+/fitness.js
+/fitnessworker.js
+/floor.js
+/interfaces.js
+/movable.js
+/presenters.js
+/user.js
+/world.js
+/index.html
+/documentation.html
+/style.css
+/README.md
