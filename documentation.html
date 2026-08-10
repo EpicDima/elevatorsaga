@@ -112,6 +112,18 @@
           Normally you will put most of your code in the
           <span class="emphasis-color">init</span> function, to set up event listeners and logic.
         </p>
+        <p>
+          The game used to load jQuery and lodash, so older solutions you find on the wiki often
+          call <span class="emphasis-color">$</span> or <span class="emphasis-color">_</span>.
+          Neither is loaded any more and neither is in scope for your program: a solution that uses
+          them will fail with <span class="emphasis-color">_ is not defined</span>. Everything they
+          were used for here — <span class="emphasis-color">_.filter</span>,
+          <span class="emphasis-color">_.map</span>, <span class="emphasis-color">_.each</span>,
+          <span class="emphasis-color">_.min</span> and friends — is now a built-in array method
+          (<span class="emphasis-color">filter</span>, <span class="emphasis-color">map</span>,
+          <span class="emphasis-color">forEach</span>, <span class="emphasis-color">Math.min</span>)
+          in every browser that can run this game.
+        </p>
 
         <h2>Code examples</h2>
         <h3>How to control an elevator</h3>
@@ -120,8 +132,10 @@
             <pre><code>elevator.goToFloor(1);</code></pre>
           </dt>
           <dd>
-            Tell the elevator to move to floor 1 after completing other tasks, if any. Note that
-            this will have no effect if the elevator is already queued to go to that floor.
+            Tell the elevator to move to floor 1 after completing other tasks, if any. A request for
+            the floor already at the end of the queue that it would be added to is dropped, so
+            asking for the same floor over and over does not pile up. That is the only case that is
+            dropped: a floor that is somewhere else in the queue will be queued again.
           </dd>
           <dt>
             <pre><code>if(elevator.currentFloor() &gt; 2) { ... }</code></pre>
@@ -136,7 +150,10 @@
         <h3>Listening for events</h3>
         <p>
           It is possible to listen for events, like when stopping at a floor, or a button has been
-          pressed.
+          pressed. Elevators and floors both understand
+          <span class="emphasis-color">on</span>, <span class="emphasis-color">once</span> and
+          <span class="emphasis-color">off</span>; see <a href="#events">event methods</a> below for
+          what each of them does.
         </p>
         <dl>
           <dt>
@@ -164,6 +181,91 @@
         </dl>
 
         <h2 id="docs">API documentation</h2>
+
+        <h3 id="events">Event methods</h3>
+        <p>
+          Every elevator and every floor is an event emitter, and these are the methods it gives
+          you. They all return the object they were called on, so they can be chained.
+        </p>
+        <table class="doctable">
+          <colgroup>
+            <col class="doccol-name" />
+            <col class="doccol-explanation-wide" />
+            <col />
+          </colgroup>
+          <thead>
+            <tr>
+              <th scope="col">Method</th>
+              <th scope="col">Explanation</th>
+              <th scope="col">Example</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>on</td>
+              <td>
+                <small
+                  >Register a listener. Listeners run in the order they were registered, and the
+                  same function may be registered more than once. Several event names separated by
+                  spaces register the same listener for all of them.</small
+                >
+              </td>
+              <td>
+                <pre><code>elevator.on("idle", function() { ... });
+floor.on("up_button_pressed down_button_pressed", function() { ... });</code></pre>
+              </td>
+            </tr>
+            <tr>
+              <td>once</td>
+              <td>
+                <small
+                  >Register a listener that runs at most once and is then removed. It is removed
+                  before it runs, so triggering the same event from inside it will not run it again.
+                  Takes a single event name.</small
+                >
+              </td>
+              <td>
+                <pre><code>elevator.once("stopped_at_floor", function(floorNum) { ... });</code></pre>
+              </td>
+            </tr>
+            <tr>
+              <td>off</td>
+              <td>
+                <small
+                  >Remove listeners. With a function, removes just that function, however it was
+                  registered; without one, removes every listener of the named events. Accepts space
+                  separated names like <span class="emphasis-color">on</span> does. You need a
+                  reference to the function you registered, so an inline anonymous function cannot
+                  be removed.</small
+                >
+              </td>
+              <td>
+                <pre><code>function goHome() { elevator.goToFloor(0); }
+elevator.on("idle", goHome);
+elevator.off("idle", goHome); // Just this one
+elevator.off("idle"); // Every idle listener</code></pre>
+              </td>
+            </tr>
+            <tr>
+              <td>offAll</td>
+              <td>
+                <small
+                  >Remove every listener for every event on that elevator. Elevators only; floors do
+                  not have it.</small
+                >
+              </td>
+              <td>
+                <pre><code>elevator.offAll();</code></pre>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <p>
+          You rarely need to remove listeners: the elevators and floors are thrown away when a
+          challenge restarts, and your <span class="emphasis-color">init</span> is called afresh on
+          the new ones. Removing is useful when you want a listener to apply only for a while.
+        </p>
+
         <h3>Elevator object</h3>
         <table class="doctable">
           <colgroup>
@@ -188,12 +290,17 @@
                 <small
                   >Queue the elevator to go to specified floor number. If you specify true as second
                   argument, the elevator will go to that floor directly, and then go to any other
-                  queued floors.</small
+                  queued floors. The request is dropped if the floor is already at the end of the
+                  queue it would join: the back for a normal call, the front for a call with true.
+                  The same floor further along the queue is queued again.</small
                 >
               </td>
               <td>
-                <pre><code>elevator.goToFloor(3); // Do it after anything else
-elevator.goToFloor(2, true); // Do it before anything else</code></pre>
+                <pre><code>elevator.goToFloor(3); // Do it after anything else -- queue: 3
+elevator.goToFloor(2, true); // Do it before anything else -- queue: 2, 3
+elevator.goToFloor(3); // Dropped, 3 is already last
+elevator.goToFloor(2, true); // Dropped, 2 is already first
+elevator.goToFloor(2); // Queued anyway -- queue: 2, 3, 2</code></pre>
               </td>
             </tr>
             <tr>

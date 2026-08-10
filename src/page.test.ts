@@ -173,4 +173,14 @@ describe("documentation.html", () => {
     const modKeys = [...docs.querySelectorAll("kbd[data-mod-key]")];
     expect(modKeys.map((key) => key.textContent)).toEqual(["Ctrl", "Ctrl"]);
   });
+
+  it("resolves every link it makes to itself", () => {
+    const anchors = [...docs.querySelectorAll("a[href^='#']")].map((link) =>
+      link.getAttribute("href"),
+    );
+    expect(anchors.length).toBeGreaterThan(0);
+    for (const anchor of anchors) {
+      expect(docs.querySelector(`[id="${(anchor ?? "").slice(1)}"]`), anchor ?? "").not.toBeNull();
+    }
+  });
 });
