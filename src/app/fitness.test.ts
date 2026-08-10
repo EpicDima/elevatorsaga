@@ -112,6 +112,65 @@ describe("runFitnessSuite in a worker", () => {
 
     await expect(suite).resolves.toEqual(first);
   });
+
+  describe("when the player program never returns", () => {
+    beforeEach(() => {
+      vi.useFakeTimers();
+      return () => {
+        vi.useRealTimers();
+      };
+    });
+
+    it("gives up on the worker and stops it", async () => {
+      // A `while (true)` in update() posts no message and raises no error, so
+      // the promise used to hang and the worker used to spin a core until the
+      // tab was closed -- once per call, since nothing terminated it either.
+      const worker = new FakeWorker();
+
+      const suite = runFitnessSuite("while (true) {}", {
+        createWorker: () => worker,
+        timeoutMs: 1000,
+      });
+      await vi.advanceTimersByTimeAsync(1000);
+
+      await expect(suite).resolves.toEqual({
+        error:
+          "The fitness worker did not finish within 1s and was stopped. " +
+          "Does your program have a loop that never ends?",
+      });
+      expect(worker.terminateCount).toBe(1);
+      expect(worker.onmessage).toBeNull();
+      expect(worker.onerror).toBeNull();
+    });
+
+    it("waits for the whole timeout before giving up", async () => {
+      const worker = new FakeWorker();
+      const settled = vi.fn();
+
+      const suite = runFitnessSuite("code", { createWorker: () => worker, timeoutMs: 1000 });
+      void suite.then(settled);
+      await vi.advanceTimersByTimeAsync(999);
+
+      expect(settled).not.toHaveBeenCalled();
+      expect(worker.terminateCount).toBe(0);
+
+      await vi.advanceTimersByTimeAsync(1);
+      await suite;
+      expect(settled).toHaveBeenCalledTimes(1);
+    });
+
+    it("does not fire the timeout for a worker that answered in time", async () => {
+      const worker = new FakeWorker();
+      const results = [run("Small scenario", 3)];
+
+      const suite = runFitnessSuite("code", { createWorker: () => worker, timeoutMs: 1000 });
+      worker.reply(results);
+      await vi.advanceTimersByTimeAsync(5000);
+
+      await expect(suite).resolves.toEqual(results);
+      expect(worker.terminateCount).toBe(1);
+    });
+  });
 });
 
 describe("runFitnessSuite without a worker", () => {

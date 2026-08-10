@@ -24,6 +24,18 @@ import type { FitnessWorkerRequest } from "./fitness-worker.ts";
  */
 export const FALLBACK_RUN_COUNT = 2;
 
+/**
+ * How long the worker is given before it is written off, in milliseconds.
+ *
+ * A player program with a `while (true)` in it never returns, and a worker
+ * running one never posts a message and never raises an error either: it just
+ * spins a core forever. Without this the promise never settles, the page reads
+ * "Measuring fitness..." for the rest of the session, and every further call
+ * strands another worker. Generous enough that a merely slow program still
+ * reports, since the whole suite is several seconds of simulation.
+ */
+export const WORKER_TIMEOUT_MS = 60_000;
+
 /** The part of a `Worker` the benchmark uses. */
 export interface FitnessWorkerLike {
   /** Called with the suite results. */
@@ -62,6 +74,8 @@ export interface FitnessSuiteOptions {
   readonly preferWorker?: boolean;
   /** How to create the worker; defaults to {@link createFitnessWorker}. */
   readonly createWorker?: FitnessWorkerFactory;
+  /** How long to wait for the worker; defaults to {@link WORKER_TIMEOUT_MS}. */
+  readonly timeoutMs?: number;
 }
 
 /**
@@ -78,7 +92,7 @@ export function runFitnessSuite(
   if (options.preferWorker ?? true) {
     const worker = tryCreateWorker(options.createWorker ?? createFitnessWorker);
     if (worker !== null) {
-      return runInWorker(worker, codeStr);
+      return runInWorker(worker, codeStr, options.timeoutMs ?? WORKER_TIMEOUT_MS);
     }
   }
   return Promise.resolve(doFitnessSuite(codeStr, FALLBACK_RUN_COUNT));
@@ -104,16 +118,33 @@ function tryCreateWorker(createWorker: FitnessWorkerFactory): FitnessWorkerLike 
  *
  * @param worker - The worker to run in.
  * @param codeStr - The player's source.
- * @returns The averaged results, or an error report.
+ * @param timeoutMs - How long to wait before giving up on the worker.
+ * @returns The averaged results, or an error report. Always settles.
  */
-function runInWorker(worker: FitnessWorkerLike, codeStr: string): Promise<FitnessSuiteResult> {
+function runInWorker(
+  worker: FitnessWorkerLike,
+  codeStr: string,
+  timeoutMs: number,
+): Promise<FitnessSuiteResult> {
   return new Promise<FitnessSuiteResult>((resolve) => {
     const finish = (result: FitnessSuiteResult): void => {
+      clearTimeout(timer);
       worker.onmessage = null;
       worker.onerror = null;
       worker.terminate();
       resolve(result);
     };
+    // A program that never returns -- a `while (true)`, or an update() that
+    // loops -- posts nothing and raises nothing, so without a deadline the
+    // promise never settles: the page keeps saying "Measuring fitness...", and
+    // the worker keeps a core busy for as long as the tab is open.
+    const timer = setTimeout(() => {
+      finish({
+        error: `The fitness worker did not finish within ${String(
+          Math.round(timeoutMs / 1000),
+        )}s and was stopped. Does your program have a loop that never ends?`,
+      });
+    }, timeoutMs);
     worker.onmessage = (event): void => {
       finish(event.data);
     };
