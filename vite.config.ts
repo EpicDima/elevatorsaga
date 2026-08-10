@@ -200,10 +200,14 @@ export default defineConfig({
     // `rollupOptions` is a deprecated alias Vite 8 folds into this one
     // (`rolldownOptions ??= rollupOptions`), so only one of the two is ever read.
     rolldownOptions: {
-      // Two pages: the game and the help/API reference.
+      // The game, and the help/API reference in each of its languages. Every
+      // page needs its own entry: Vite only processes the HTML files named
+      // here, so one left out is simply absent from `dist/` -- and the link
+      // between the two reference pages would 404 in the built site.
       input: {
         index: "index.html",
         documentation: "documentation.html",
+        documentationRu: "documentation.ru.html",
       },
       output: {
         // The editor is ~92% of the bundle (CodeMirror and its Lezer parser,

@@ -6,6 +6,7 @@ import { describe, expect, it } from "vitest";
 
 import packageJson from "../package.json";
 import docsSource from "../documentation.html?raw";
+import docsRuSource from "../documentation.ru.html?raw";
 import pageSource from "../index.html?raw";
 import { Elevator } from "./game/elevator.ts";
 import { ElevatorInterface, type ElevatorInterfaceEvents } from "./game/elevator-interface.ts";
@@ -16,7 +17,6 @@ import { presentVersion, VERSION_SELECTOR } from "./ui/version.ts";
 
 /** The page shell, parsed as the browser would parse it. */
 const page = new DOMParser().parseFromString(pageSource, "text/html");
-const docs = new DOMParser().parseFromString(docsSource, "text/html");
 
 /**
  * Everything about an inline icon that has to match, whitespace aside.
@@ -241,6 +241,9 @@ describe("index.html", () => {
   it("links to the documentation page", () => {
     const targets = [...page.querySelectorAll("a")].map((link) => link.getAttribute("href"));
     expect(targets).toContain("documentation.html");
+    // The reference itself, not just the top of the help page. The anchor is
+    // asserted on the other side too, so neither half can move alone.
+    expect(targets).toContain("documentation.html#docs");
   });
 
   it("links to the licence notices the build emits", () => {
@@ -253,7 +256,94 @@ describe("index.html", () => {
   });
 });
 
-describe("documentation.html", () => {
+/**
+ * The reference page, in every language it is published in.
+ *
+ * `documentation.ru.html` is a translation of `documentation.html` and not a
+ * page of its own: same headings, same tables in the same order, same anchors,
+ * same examples, with only the prose and the comments inside the examples in
+ * Russian. Every check below therefore runs over both of them, and the parity
+ * block at the end is what holds them to being one document in two languages
+ * rather than two documents about the same subject.
+ */
+const TRANSLATIONS = {
+  en: "documentation.html",
+  ru: "documentation.ru.html",
+} as const;
+
+/** A language {@link TRANSLATIONS} publishes the reference page in. */
+type Language = keyof typeof TRANSLATIONS;
+
+/**
+ * One reference page, and the few things about reading it that its language
+ * decides.
+ *
+ * Only prose is translated, so only prose has to be described here: the `<h3>`
+ * a table sits under, and the first cell of its header row, which is what tells
+ * a property table apart from an event table. Everything the guard actually
+ * holds against the code — member names, event names, the calls inside the
+ * examples — is an identifier, and identifiers read the same on both pages.
+ */
+interface ReferencePage {
+  /** The file it lives in, which is also what names it in the test output. */
+  readonly file: string;
+  /** Its `lang` attribute, and its key in {@link TRANSLATIONS}. */
+  readonly language: Language;
+  /** Parsed the way the browser would parse it. */
+  readonly document: Document;
+  /** The `<h3>` headings the API tables sit under. */
+  readonly headings: Readonly<Record<"eventMethods" | "elevator" | "floor", string>>;
+  /** The first header cell of each kind of table. */
+  readonly columns: Readonly<Record<"method" | "property" | "event", string>>;
+}
+
+/** Every page {@link TRANSLATIONS} names, parsed and ready to be read. */
+const DOCUMENTATION_PAGES: readonly ReferencePage[] = [
+  {
+    file: TRANSLATIONS.en,
+    language: "en",
+    document: new DOMParser().parseFromString(docsSource, "text/html"),
+    headings: {
+      eventMethods: "Event methods",
+      elevator: "Elevator object",
+      floor: "Floor object",
+    },
+    columns: { method: "Method", property: "Property", event: "Event" },
+  },
+  {
+    file: TRANSLATIONS.ru,
+    language: "ru",
+    document: new DOMParser().parseFromString(docsRuSource, "text/html"),
+    headings: {
+      eventMethods: "Методы событий",
+      elevator: "Объект лифта",
+      floor: "Объект этажа",
+    },
+    columns: { method: "Метод", property: "Свойство", event: "Событие" },
+  },
+];
+
+/**
+ * The reference page written in one language.
+ *
+ * @param language - Which one.
+ * @returns Its entry in {@link DOCUMENTATION_PAGES}.
+ * @throws If there is no such page, which {@link TRANSLATIONS} rules out.
+ */
+function pageIn(language: Language): ReferencePage {
+  const found = DOCUMENTATION_PAGES.find((candidate) => candidate.language === language);
+  if (found === undefined) {
+    throw new Error(`No reference page in ${language}`);
+  }
+  return found;
+}
+
+/** The build configuration, as text; see "is an entry point of the build". */
+const viteConfigSource = readFileSync(join(ROOT, "vite.config.ts"), "utf8");
+
+describe.each(DOCUMENTATION_PAGES)("$file", (reference) => {
+  const docs = reference.document;
+
   it("is a module entry, with no other scripts", () => {
     const scripts = [...docs.querySelectorAll("script")];
     expect(scripts.map((script) => [script.type, script.getAttribute("src")])).toEqual([
@@ -263,8 +353,64 @@ describe("documentation.html", () => {
 
   it("keeps the #docs anchor the game links to", () => {
     expect(docs.querySelector("#docs")).not.toBeNull();
-    const targets = [...page.querySelectorAll("a")].map((link) => link.getAttribute("href"));
-    expect(targets).toContain("documentation.html#docs");
+  });
+
+  it("declares the language it is written in", () => {
+    expect(docs.documentElement.getAttribute("lang")).toBe(reference.language);
+  });
+
+  it("names every language it exists in, its own included", () => {
+    // Both pages list both versions, each including itself: that is what lets
+    // a crawler arriving at either one see the pair, and it means neither page
+    // has a different set of alternates to keep up to date.
+    const alternates = [...docs.querySelectorAll("link[rel='alternate']")].map((link) => [
+      link.getAttribute("hreflang"),
+      link.getAttribute("href"),
+    ]);
+    expect(alternates).toEqual(Object.entries(TRANSLATIONS));
+
+    // Each of them marked `vite-ignore`, which is what stops the build from
+    // resolving it. Vite reads the `href` of every `<link>` as an asset
+    // reference without looking at `rel`, so an unmarked alternate has a
+    // second, hashed copy of the page emitted into `dist/assets/` and is
+    // rewritten to point at that: in the built site the two versions would
+    // advertise each other at URLs nothing else links to.
+    for (const link of docs.querySelectorAll("link[rel='alternate']")) {
+      expect(link.hasAttribute("vite-ignore"), link.outerHTML).toBe(true);
+    }
+  });
+
+  it("offers a reader a visible way to the other language", () => {
+    // The `<link>`s above are for machines. Someone who cannot read the page
+    // in front of them needs something to click, and it is named in the
+    // language it leads to -- "Русский", not "Russian" -- because that is the
+    // word they can be relied on to recognise.
+    for (const [language, file] of Object.entries(TRANSLATIONS)) {
+      if (file === reference.file) {
+        continue;
+      }
+      const link = [...docs.querySelectorAll("header a")].find(
+        (candidate) => candidate.getAttribute("href") === file,
+      );
+      expect(link?.textContent.trim(), file).toBeTruthy();
+      expect(link?.getAttribute("lang"), file).toBe(language);
+      expect(link?.getAttribute("hreflang"), file).toBe(language);
+    }
+  });
+
+  it("is an entry point of the build", () => {
+    // Vite only processes the HTML files named in `rolldownOptions.input`, so
+    // a page left out of it is simply absent from `dist/`, and the link
+    // between the two versions is a 404 in the built site while working
+    // perfectly in the dev server. Matched as text rather than imported: the
+    // config drags in Vite's plugin types, and `input` is a three-way union
+    // that a single assertion would have to narrow for no gain. Matched as a
+    // whole entry rather than as a substring, so that a filename mentioned in
+    // a comment -- an entry commented out being exactly how a page goes
+    // missing -- does not pass for one that is built.
+    expect(viteConfigSource).toMatch(
+      new RegExp(String.raw`^\s+\w+: "${reference.file.replaceAll(".", "\\.")}",$`, "m"),
+    );
   });
 
   it("shows the same favicon as the game", () => {
@@ -301,6 +447,12 @@ describe("documentation.html", () => {
       // Column widths moved from `width` attributes to `<col>` classes.
       expect(table.querySelector("colgroup")).not.toBeNull();
       expect(table.querySelector("[width]")).toBeNull();
+      // Every other check here reads the first cell of a row and stops, so a
+      // row that lost one -- the easiest thing to drop while translating a
+      // wall of `<td>`s -- would go unnoticed while rendering misaligned.
+      for (const row of table.querySelectorAll("tbody tr")) {
+        expect(row.querySelectorAll("td"), row.textContent.trim()).toHaveLength(headerCells.length);
+      }
     }
   });
 
@@ -343,11 +495,12 @@ describe("documentation.html", () => {
  * The API reference is a flat run of headings and tables rather than nested
  * sections, so a table belongs to the last heading before it.
  *
- * @param heading - The exact text of the `<h3>`.
+ * @param document - The page to read.
+ * @param heading - The exact text of the `<h3>`, in that page's language.
  * @returns The tables under it; empty when there is no such heading.
  */
-function tablesUnder(heading: string): Element[] {
-  const start = [...docs.querySelectorAll("h3")].find((node) => node.textContent === heading);
+function tablesUnder(document: Document, heading: string): Element[] {
+  const start = [...document.querySelectorAll("h3")].find((node) => node.textContent === heading);
   const tables: Element[] = [];
   for (
     let node = start?.nextElementSibling ?? null;
@@ -364,13 +517,14 @@ function tablesUnder(heading: string): Element[] {
 /**
  * The names in the first column of one of a heading's tables.
  *
+ * @param reference - The page to read.
  * @param heading - The `<h3>` the table sits under.
  * @param column - What its first header cell says, which is what tells the
  * property table of a section apart from the event table.
  * @returns The first-column text of every body row, in the order documented.
  */
-function documentedNames(heading: string, column: string): string[] {
-  const table = tablesUnder(heading).find(
+function documentedNames(reference: ReferencePage, heading: string, column: string): string[] {
+  const table = tablesUnder(reference.document, heading).find(
     (candidate) => candidate.querySelector("thead th")?.textContent.trim() === column,
   );
   return [...(table?.querySelectorAll("tbody tr") ?? [])].map(
@@ -378,29 +532,65 @@ function documentedNames(heading: string, column: string): string[] {
   );
 }
 
-/** The methods every elevator and every floor publishes alike. */
-const DOCUMENTED_EVENT_METHODS = documentedNames("Event methods", "Method");
+/** What one reference page says the two facades give player code. */
+interface DocumentedApi {
+  /** The methods every elevator and every floor publishes alike. */
+  readonly eventMethods: readonly string[];
+  /** What the elevator property table lists, event methods aside. */
+  readonly elevatorProperties: readonly string[];
+  /** What the floor property table lists, event methods aside. */
+  readonly floorProperties: readonly string[];
+  /** Everything the page says an elevator handed to player code can do. */
+  readonly elevatorMembers: readonly string[];
+  /** Everything the page says a floor handed to player code can do. */
+  readonly floorMembers: readonly string[];
+  /** The event names the page tells players to subscribe an elevator to. */
+  readonly elevatorEvents: readonly string[];
+  /** The event names the page tells players to subscribe a floor to. */
+  readonly floorEvents: readonly string[];
+}
 
-/** What the "Elevator object" property table lists, event methods aside. */
-const DOCUMENTED_ELEVATOR_PROPERTIES = documentedNames("Elevator object", "Property");
+/**
+ * Reads the API tables of one page.
+ *
+ * @param reference - The page.
+ * @returns Everything it promises player code, in the order it promises it.
+ */
+function documentedApi(reference: ReferencePage): DocumentedApi {
+  const { headings, columns } = reference;
+  const eventMethods = documentedNames(reference, headings.eventMethods, columns.method);
+  const elevatorProperties = documentedNames(reference, headings.elevator, columns.property);
+  const floorProperties = documentedNames(reference, headings.floor, columns.property);
+  return {
+    eventMethods,
+    elevatorProperties,
+    floorProperties,
+    // The event methods sit in their own table because both facades have them.
+    elevatorMembers: [...elevatorProperties, ...eventMethods],
+    floorMembers: [...floorProperties, ...eventMethods],
+    elevatorEvents: documentedNames(reference, headings.elevator, columns.event),
+    floorEvents: documentedNames(reference, headings.floor, columns.event),
+  };
+}
 
-/** What the "Floor object" property table lists, event methods aside. */
-const DOCUMENTED_FLOOR_PROPERTIES = documentedNames("Floor object", "Property");
-
-/** Everything the page says an elevator handed to player code can do. */
-const DOCUMENTED_ELEVATOR_MEMBERS = [
-  ...DOCUMENTED_ELEVATOR_PROPERTIES,
-  ...DOCUMENTED_EVENT_METHODS,
-];
-
-/** Everything the page says a floor handed to player code can do. */
-const DOCUMENTED_FLOOR_MEMBERS = [...DOCUMENTED_FLOOR_PROPERTIES, ...DOCUMENTED_EVENT_METHODS];
-
-/** The event names the page tells players to subscribe an elevator to. */
-const DOCUMENTED_ELEVATOR_EVENTS = documentedNames("Elevator object", "Event");
-
-/** The event names the page tells players to subscribe a floor to. */
-const DOCUMENTED_FLOOR_EVENTS = documentedNames("Floor object", "Event");
+/**
+ * The HTML comments a page's source carries, in document order.
+ *
+ * They are part of the page the way a code comment is part of the code: the
+ * reasons the undocumented facade members are undocumented are written nowhere
+ * else in the file, and are what the next person to read the table finds.
+ *
+ * @param document - The page.
+ * @returns The text of each comment.
+ */
+function sourceNoteTexts(document: Document): string[] {
+  const walker = document.createTreeWalker(document.documentElement, NodeFilter.SHOW_COMMENT);
+  const notes: string[] = [];
+  for (let node = walker.nextNode(); node !== null; node = walker.nextNode()) {
+    notes.push(node.textContent ?? "");
+  }
+  return notes;
+}
 
 /**
  * Every name player code can reach on a facade.
@@ -431,14 +621,15 @@ function exposedNames(facade: object): Set<string> {
 }
 
 /**
- * Elevator members `documentation.html` leaves out on purpose, and why.
+ * Elevator members the reference pages leave out on purpose, and why.
  *
  * Anything reachable on the facade and neither documented nor listed here fails
  * the tests below, so a member added to `ElevatorInterface` cannot quietly stay
  * unwritten-down: whoever adds it has to either give it a table row or say here
  * why players are not told about it. The same reasons are repeated as an HTML
- * comment in the table the member is missing from, for the benefit of anyone
- * reading the page's source rather than this file.
+ * comment in the table the member is missing from — in each translation of it,
+ * since the pages are checked against this list one by one — for the benefit of
+ * anyone reading a page's source rather than this file.
  */
 const UNDOCUMENTED_ELEVATOR_MEMBERS: Readonly<Record<string, string>> = {
   trigger:
@@ -447,7 +638,7 @@ const UNDOCUMENTED_ELEVATOR_MEMBERS: Readonly<Record<string, string>> = {
     "Deprecated: warns on the console and is scheduled for removal. getPressedFloors is the supported way to ask.",
 };
 
-/** Floor members `documentation.html` leaves out on purpose; see above. */
+/** Floor members the reference pages leave out on purpose; see above. */
 const UNDOCUMENTED_FLOOR_MEMBERS: Readonly<Record<string, string>> = {
   level: "floorNum() is the supported spelling of the same number; kept only for old solutions.",
   buttonStates:
@@ -503,103 +694,251 @@ function checkDocumentedEvents(
   ).toEqual([]);
 }
 
-describe("documentation.html, against the facades player code is handed", () => {
-  /**
-   * A live elevator facade, built the way `elevator-interface.test.ts` does.
-   *
-   * @returns The facade.
-   */
-  function elevatorFacade(): ElevatorInterface {
-    return new ElevatorInterface(new Elevator(1.5, 4, 40), 4, () => undefined);
-  }
+/**
+ * A live elevator facade, built the way `elevator-interface.test.ts` does.
+ *
+ * @returns The facade.
+ */
+function elevatorFacade(): ElevatorInterface {
+  return new ElevatorInterface(new Elevator(1.5, 4, 40), 4, () => undefined);
+}
 
-  /**
-   * A live floor facade, built the way `floor-interface.test.ts` does.
-   *
-   * @returns The facade.
-   */
-  function floorFacade(): FloorInterface {
-    return new FloorInterface(new Floor(2, 100, () => undefined), () => undefined);
-  }
+/**
+ * A live floor facade, built the way `floor-interface.test.ts` does.
+ *
+ * @returns The facade.
+ */
+function floorFacade(): FloorInterface {
+  return new FloorInterface(new Floor(2, 100, () => undefined), () => undefined);
+}
 
-  it("reads the tables it means to check", () => {
-    // Every check below is a set difference, and a set difference against an
-    // empty set passes quietly. A page restructured out from under the scraper
-    // has to fail here rather than silently stop testing anything.
-    expect(DOCUMENTED_EVENT_METHODS).toEqual(["on", "once", "one", "off", "offAll"]);
-    expect(DOCUMENTED_FLOOR_PROPERTIES).toEqual(["floorNum"]);
-    expect(DOCUMENTED_ELEVATOR_PROPERTIES.length).toBeGreaterThan(10);
-    expect(DOCUMENTED_ELEVATOR_EVENTS.length).toBeGreaterThan(0);
-    expect(DOCUMENTED_FLOOR_EVENTS.length).toBeGreaterThan(0);
+describe.each(DOCUMENTATION_PAGES)(
+  "$file, against the facades player code is handed",
+  (reference) => {
+    const docs = reference.document;
+    const documented = documentedApi(reference);
+
+    it("reads the tables it means to check", () => {
+      // Every check below is a set difference, and a set difference against an
+      // empty set passes quietly. A page restructured out from under the scraper
+      // has to fail here rather than silently stop testing anything -- and a
+      // translation that translated a heading without saying so here would
+      // otherwise read as a page with no API in it at all.
+      expect(documented.eventMethods).toEqual(["on", "once", "one", "off", "offAll"]);
+      expect(documented.floorProperties).toEqual(["floorNum"]);
+      expect(documented.elevatorProperties.length).toBeGreaterThan(10);
+      expect(documented.elevatorEvents.length).toBeGreaterThan(0);
+      expect(documented.floorEvents.length).toBeGreaterThan(0);
+    });
+
+    it("documents every member the elevator facade has", () => {
+      const named = new Set(documented.elevatorMembers);
+      const undocumented = [...exposedNames(elevatorFacade())].filter(
+        (name) => !named.has(name) && !Object.hasOwn(UNDOCUMENTED_ELEVATOR_MEMBERS, name),
+      );
+      // Failing here means ElevatorInterface grew a member this page does not
+      // mention. Give it a row in the elevator table, taking the wording from its
+      // JSDoc, or list it in UNDOCUMENTED_ELEVATOR_MEMBERS with the reason and
+      // repeat that reason in the table's HTML comment.
+      expect(undocumented).toEqual([]);
+    });
+
+    it("documents every member the floor facade has", () => {
+      const named = new Set(documented.floorMembers);
+      const undocumented = [...exposedNames(floorFacade())].filter(
+        (name) => !named.has(name) && !Object.hasOwn(UNDOCUMENTED_FLOOR_MEMBERS, name),
+      );
+      expect(undocumented).toEqual([]);
+    });
+
+    it("documents nothing the facades do not have", () => {
+      // The other direction: a member that was renamed or removed would otherwise
+      // stay on the page, and a player following it writes code that throws. It
+      // also catches a translator who translated an identifier: a Russian word in
+      // the first column is a member no facade has.
+      const elevator = exposedNames(elevatorFacade());
+      expect(documented.elevatorMembers.filter((name) => !elevator.has(name))).toEqual([]);
+      const floor = exposedNames(floorFacade());
+      expect(documented.floorMembers.filter((name) => !floor.has(name))).toEqual([]);
+    });
+
+    it("says in its own source why each undocumented member is left out", () => {
+      // The lists above are the machine-readable half of the omissions; the
+      // HTML comment in the table each member is missing from is the half a
+      // maintainer actually meets, and the only place the reasoning is
+      // written down for someone reading the page rather than this file.
+      // Without this, a translation could drop the comment from one page and
+      // keep the count right by adding a trivial one somewhere else.
+      const notes = sourceNoteTexts(docs).join("\n");
+      for (const name of [
+        ...Object.keys(UNDOCUMENTED_ELEVATOR_MEMBERS),
+        ...Object.keys(UNDOCUMENTED_FLOOR_MEMBERS),
+      ]) {
+        expect(notes, name).toContain(name);
+      }
+    });
+
+    it("keeps the omissions honest", () => {
+      // A member that stops existing should take its excuse with it, and one that
+      // gets documented after all should lose it.
+      const elevator = exposedNames(elevatorFacade());
+      const elevatorOmissions = Object.keys(UNDOCUMENTED_ELEVATOR_MEMBERS);
+      expect(elevatorOmissions.filter((name) => !elevator.has(name))).toEqual([]);
+      expect(elevatorOmissions.filter((name) => documented.elevatorMembers.includes(name))).toEqual(
+        [],
+      );
+
+      const floor = exposedNames(floorFacade());
+      const floorOmissions = Object.keys(UNDOCUMENTED_FLOOR_MEMBERS);
+      expect(floorOmissions.filter((name) => !floor.has(name))).toEqual([]);
+      expect(floorOmissions.filter((name) => documented.floorMembers.includes(name))).toEqual([]);
+    });
+
+    it("names exactly the events the elevator facade raises", () => {
+      checkDocumentedEvents(documented.elevatorEvents, ELEVATOR_EVENT_DECISIONS);
+    });
+
+    it("names exactly the events the floor facade raises", () => {
+      checkDocumentedEvents(documented.floorEvents, FLOOR_EVENT_DECISIONS);
+    });
+
+    it("subscribes to real events in every example it prints", () => {
+      // The tables are not the only place event names appear: "Listening for
+      // events" and the "Event methods" examples spell them out too, and a name
+      // that is wrong there is wrong in the code a player copies.
+      const real = new Set([
+        ...Object.keys(ELEVATOR_EVENT_DECISIONS),
+        ...Object.keys(FLOOR_EVENT_DECISIONS),
+      ]);
+      const calls = [...docs.querySelectorAll("code")].flatMap((code) => [
+        ...code.textContent.matchAll(/\.(?:on|once|one|off)\("([\w ]+)"/g),
+      ]);
+      expect(calls.length).toBeGreaterThan(0);
+      // Space separated names subscribe to all of them, so each is checked.
+      const unknown = calls
+        .flatMap((call) => (call[1] ?? "").split(" "))
+        .filter((n) => !real.has(n));
+      expect(unknown).toEqual([]);
+    });
+  },
+);
+
+/**
+ * The example code of one page, comments removed.
+ *
+ * Only the comments in an example are translated; the code around them is what
+ * a player copies into the editor and has to be the same in every language. The
+ * examples on this page have no `//` inside a string literal, so taking the
+ * rest of the line off at the first one is enough to leave exactly the code.
+ *
+ * @param example - The text of one `<pre><code>` block.
+ * @returns The same block with every comment and the space before it gone.
+ */
+function codeOnly(example: string): string {
+  return example
+    .split("\n")
+    .map((line) => line.replace(/\/\/.*$/, "").trimEnd())
+    .join("\n");
+}
+
+/**
+ * Every example a page prints, in document order.
+ *
+ * @param document - The page.
+ * @returns The text of each `<pre><code>` block.
+ */
+function examples(document: Document): string[] {
+  return [...document.querySelectorAll("pre code")].map((code) => code.textContent);
+}
+
+/**
+ * The `id`s a page defines, in document order.
+ *
+ * @param document - The page.
+ * @returns Every `id`, which is every place a link can point at.
+ */
+function anchors(document: Document): string[] {
+  return [...document.querySelectorAll("[id]")].map((element) => element.id);
+}
+
+/**
+ * How a page is built, ignoring every word in it.
+ *
+ * @param document - The page.
+ * @returns The heading levels of the reference, in order, and the size of each
+ * table under them as `columns x rows`.
+ */
+function outline(document: Document): string[] {
+  return [
+    ...[...document.querySelectorAll("main h2, main h3")].map((heading) => heading.tagName),
+    ...[...document.querySelectorAll("table.doctable")].map(
+      (table) =>
+        `${String(table.querySelectorAll("thead th").length)}x${String(table.querySelectorAll("tbody tr").length)}`,
+    ),
+  ];
+}
+
+describe("documentation.html and documentation.ru.html, as one document in two languages", () => {
+  const english = pageIn("en");
+  const russian = pageIn("ru");
+
+  it("documents the same members, in the same order", () => {
+    // The facade checks above run over each page on its own, and each of them
+    // passes for a page that documents a subset. This is what makes a method
+    // added to one page and not the other a failure rather than a slow drift.
+    const left = documentedApi(english);
+    const right = documentedApi(russian);
+    expect(right.eventMethods).toEqual(left.eventMethods);
+    expect(right.elevatorProperties).toEqual(left.elevatorProperties);
+    expect(right.floorProperties).toEqual(left.floorProperties);
   });
 
-  it("documents every member the elevator facade has", () => {
-    const documented = new Set(DOCUMENTED_ELEVATOR_MEMBERS);
-    const undocumented = [...exposedNames(elevatorFacade())].filter(
-      (name) => !documented.has(name) && !Object.hasOwn(UNDOCUMENTED_ELEVATOR_MEMBERS, name),
+  it("documents the same events, in the same order", () => {
+    const left = documentedApi(english);
+    const right = documentedApi(russian);
+    expect(right.elevatorEvents).toEqual(left.elevatorEvents);
+    expect(right.floorEvents).toEqual(left.floorEvents);
+  });
+
+  it("offers the same anchors, and the same links to them", () => {
+    // A reader following a link from one language has to land in the same place
+    // in the other, and `index.html` links straight into #docs.
+    expect(anchors(russian.document)).toEqual(anchors(english.document));
+    const internalLinks = (document: Document): (string | null)[] =>
+      [...document.querySelectorAll("a[href^='#']")].map((link) => link.getAttribute("href"));
+    expect(internalLinks(russian.document)).toEqual(internalLinks(english.document));
+  });
+
+  it("prints the same examples, translated only in their comments", () => {
+    const left = examples(english.document);
+    const right = examples(russian.document);
+    expect(right).toHaveLength(left.length);
+    expect(right.map(codeOnly)).toEqual(left.map(codeOnly));
+    // And the comments really are translated, block by block: a block with a
+    // comment in it that came through byte for byte is one nobody has read.
+    // Checked one at a time, because comparing the two lists as a whole is
+    // satisfied by a single translated block out of thirty-two.
+    expect(left.filter((block) => block.includes("//")).length).toBeGreaterThan(0);
+    right.forEach((block, index) => {
+      const original = left[index] ?? "";
+      if (original.includes("//")) {
+        expect(block, original).not.toBe(original);
+      }
+    });
+  });
+
+  it("is built the same way, table for table", () => {
+    expect(outline(russian.document)).toEqual(outline(english.document));
+  });
+
+  it("carries the same notes in its source", () => {
+    // The reasons the four undocumented facade members are undocumented live in
+    // HTML comments, one per table, and are as much part of the page as its
+    // prose. Counting them is crude -- what each one has to say is checked
+    // against the facades above -- but it is the difference between a
+    // translation that dropped them and one that did not.
+    expect(sourceNoteTexts(russian.document)).toHaveLength(
+      sourceNoteTexts(english.document).length,
     );
-    // Failing here means ElevatorInterface grew a member this page does not
-    // mention. Give it a row in the "Elevator object" table, taking the wording
-    // from its JSDoc, or list it in UNDOCUMENTED_ELEVATOR_MEMBERS with the
-    // reason and repeat that reason in the table's HTML comment.
-    expect(undocumented).toEqual([]);
-  });
-
-  it("documents every member the floor facade has", () => {
-    const documented = new Set(DOCUMENTED_FLOOR_MEMBERS);
-    const undocumented = [...exposedNames(floorFacade())].filter(
-      (name) => !documented.has(name) && !Object.hasOwn(UNDOCUMENTED_FLOOR_MEMBERS, name),
-    );
-    expect(undocumented).toEqual([]);
-  });
-
-  it("documents nothing the facades do not have", () => {
-    // The other direction: a member that was renamed or removed would otherwise
-    // stay on the page, and a player following it writes code that throws.
-    const elevator = exposedNames(elevatorFacade());
-    expect(DOCUMENTED_ELEVATOR_MEMBERS.filter((name) => !elevator.has(name))).toEqual([]);
-    const floor = exposedNames(floorFacade());
-    expect(DOCUMENTED_FLOOR_MEMBERS.filter((name) => !floor.has(name))).toEqual([]);
-  });
-
-  it("keeps the omissions honest", () => {
-    // A member that stops existing should take its excuse with it, and one that
-    // gets documented after all should lose it.
-    const elevator = exposedNames(elevatorFacade());
-    const elevatorOmissions = Object.keys(UNDOCUMENTED_ELEVATOR_MEMBERS);
-    expect(elevatorOmissions.filter((name) => !elevator.has(name))).toEqual([]);
-    expect(elevatorOmissions.filter((name) => DOCUMENTED_ELEVATOR_MEMBERS.includes(name))).toEqual(
-      [],
-    );
-
-    const floor = exposedNames(floorFacade());
-    const floorOmissions = Object.keys(UNDOCUMENTED_FLOOR_MEMBERS);
-    expect(floorOmissions.filter((name) => !floor.has(name))).toEqual([]);
-    expect(floorOmissions.filter((name) => DOCUMENTED_FLOOR_MEMBERS.includes(name))).toEqual([]);
-  });
-
-  it("names exactly the events the elevator facade raises", () => {
-    checkDocumentedEvents(DOCUMENTED_ELEVATOR_EVENTS, ELEVATOR_EVENT_DECISIONS);
-  });
-
-  it("names exactly the events the floor facade raises", () => {
-    checkDocumentedEvents(DOCUMENTED_FLOOR_EVENTS, FLOOR_EVENT_DECISIONS);
-  });
-
-  it("subscribes to real events in every example it prints", () => {
-    // The tables are not the only place event names appear: "Listening for
-    // events" and the "Event methods" examples spell them out too, and a name
-    // that is wrong there is wrong in the code a player copies.
-    const real = new Set([
-      ...Object.keys(ELEVATOR_EVENT_DECISIONS),
-      ...Object.keys(FLOOR_EVENT_DECISIONS),
-    ]);
-    const calls = [...docs.querySelectorAll("code")].flatMap((code) => [
-      ...code.textContent.matchAll(/\.(?:on|once|one|off)\("([\w ]+)"/g),
-    ]);
-    expect(calls.length).toBeGreaterThan(0);
-    // Space separated names subscribe to all of them, so each is checked.
-    const unknown = calls.flatMap((call) => (call[1] ?? "").split(" ")).filter((n) => !real.has(n));
-    expect(unknown).toEqual([]);
   });
 });

@@ -6,6 +6,18 @@
     <title>Elevator Saga - help and API documentation</title>
     <meta name="description" content="Help and API documentation for Elevator Saga." />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <!--
+      This page in both languages. Each version lists both, itself included, so
+      the pair is visible whichever one is reached first; src/page.test.ts keeps
+      the two of them pointing at each other.
+
+      `vite-ignore` because Vite treats every `<link href>` as an asset to
+      resolve without looking at `rel`. Without it the build copies both pages
+      into `dist/assets/` under hashed names and rewrites these two hrefs to
+      point at the copies, which is a second, unlinked site.
+    -->
+    <link rel="alternate" hreflang="en" href="documentation.html" vite-ignore />
+    <link rel="alternate" hreflang="ru" href="documentation.ru.html" vite-ignore />
     <script type="module" src="/src/docs.ts"></script>
   </head>
   <body>
@@ -14,6 +26,9 @@
         <h1>Elevator Saga <em class="emphasis-color">Help and API documentation</em></h1>
         <nav aria-label="Game">
           <a href="index.html">Back to the game</a>
+          <!-- Named in the language it leads to, which is how a reader who
+          needs it recognises it. -->
+          <a href="documentation.ru.html" lang="ru" hreflang="ru">Русский</a>
         </nav>
       </header>
 
