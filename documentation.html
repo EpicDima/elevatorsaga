@@ -173,12 +173,12 @@
             inside the elevator. This indicates that the passenger wants to go to that floor.
           </dd>
           <dt>
-            <pre><code>floor.on("up_button_pressed", function() { ... } );</code></pre>
+            <pre><code>floor.on("up_button_pressed", function(floor) { ... } );</code></pre>
           </dt>
           <dd>
             Listen for the "up_button_pressed" event, issued when a passenger pressed the up button
             on the floor they are waiting on. This indicates that the passenger wants to go to
-            another floor.
+            another floor. The handler is passed the floor the button was pressed on.
           </dd>
         </dl>
 
@@ -518,6 +518,21 @@ elevator.checkDestinationQueue();</code></pre>
 }</code></pre>
               </td>
             </tr>
+            <!--
+              Two more members are reachable on the elevator object and are left
+              out of this table on purpose; src/page.test.ts holds the omissions
+              so that neither can be forgotten about.
+
+              `trigger` only exists because the legacy facade was a riot
+              observable and solutions may already call it. Raising the game's
+              own events from player code is not something to recommend to
+              someone reading this page for the first time.
+
+              `getFirstPressedFloor` is deprecated: it warns on the console and
+              is scheduled for removal (src/game/elevator.ts). Documenting it
+              now would be advertising an API that is on its way out;
+              getPressedFloors above is the supported way to ask.
+            -->
           </tbody>
         </table>
 
@@ -608,6 +623,18 @@ elevator.checkDestinationQueue();</code></pre>
                 <pre><code>if(floor.floorNum() &gt; 3) { ... }</code></pre>
               </td>
             </tr>
+            <!--
+              The floor object also carries `level` and `buttonStates`, left out
+              of this table on purpose; src/page.test.ts holds the omissions.
+
+              Both are kept on the facade only because they were readable on the
+              legacy floor object and published solutions use them
+              (src/game/floor-interface.ts). `level` is the same number
+              floorNum() returns, and offering two spellings of one value as
+              equally supported helps nobody. `buttonStates` is better watched
+              through the buttonstate_change event below than polled, and that
+              event is where its shape is written down.
+            -->
           </tbody>
         </table>
 
@@ -630,11 +657,12 @@ elevator.checkDestinationQueue();</code></pre>
               <td>
                 <small
                   >Triggered when someone has pressed the up button at a floor. Note that passengers
-                  will press the button again if they fail to enter an elevator.</small
+                  will press the button again if they fail to enter an elevator. The handler is
+                  passed the floor the button was pressed on.</small
                 >
               </td>
               <td>
-                <pre><code>floor.on("up_button_pressed", function() {
+                <pre><code>floor.on("up_button_pressed", function(floor) {
     // Maybe tell an elevator to go to this floor?
 })</code></pre>
               </td>
@@ -644,12 +672,34 @@ elevator.checkDestinationQueue();</code></pre>
               <td>
                 <small
                   >Triggered when someone has pressed the down button at a floor. Note that
-                  passengers will press the button again if they fail to enter an elevator.</small
+                  passengers will press the button again if they fail to enter an elevator. The
+                  handler is passed the floor the button was pressed on.</small
                 >
               </td>
               <td>
-                <pre><code>floor.on("down_button_pressed", function() {
+                <pre><code>floor.on("down_button_pressed", function(floor) {
     // Maybe tell an elevator to go to this floor?
+})</code></pre>
+              </td>
+            </tr>
+            <tr>
+              <td>buttonstate_change</td>
+              <td>
+                <small
+                  >Triggered when either call button at a floor was lit or cleared. The handler is
+                  passed the state of both buttons: an object with an
+                  <span class="emphasis-color">up</span> and a
+                  <span class="emphasis-color">down</span> property, each either
+                  <span class="emphasis-color">"activated"</span> or the empty string. It is a
+                  snapshot taken when the event fired, so holding on to it will not show you later
+                  presses.</small
+                >
+              </td>
+              <td>
+                <pre><code>floor.on("buttonstate_change", function(buttonStates) {
+    if(buttonStates.up === "" &amp;&amp; buttonStates.down === "") {
+        // Nobody is waiting here any more?
+    }
 })</code></pre>
               </td>
             </tr>

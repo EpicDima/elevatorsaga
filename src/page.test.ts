@@ -7,6 +7,10 @@ import { describe, expect, it } from "vitest";
 import packageJson from "../package.json";
 import docsSource from "../documentation.html?raw";
 import pageSource from "../index.html?raw";
+import { Elevator } from "./game/elevator.ts";
+import { ElevatorInterface, type ElevatorInterfaceEvents } from "./game/elevator-interface.ts";
+import { Floor } from "./game/floor.ts";
+import { FloorInterface, type FloorInterfaceEvents } from "./game/floor-interface.ts";
 import { createIcon } from "./ui/icons.ts";
 import { presentVersion, VERSION_SELECTOR } from "./ui/version.ts";
 
@@ -330,5 +334,272 @@ describe("documentation.html", () => {
     for (const anchor of anchors) {
       expect(docs.querySelector(`[id="${(anchor ?? "").slice(1)}"]`), anchor ?? "").not.toBeNull();
     }
+  });
+});
+
+/**
+ * The `doctable`s that belong to one `<h3>`, in document order.
+ *
+ * The API reference is a flat run of headings and tables rather than nested
+ * sections, so a table belongs to the last heading before it.
+ *
+ * @param heading - The exact text of the `<h3>`.
+ * @returns The tables under it; empty when there is no such heading.
+ */
+function tablesUnder(heading: string): Element[] {
+  const start = [...docs.querySelectorAll("h3")].find((node) => node.textContent === heading);
+  const tables: Element[] = [];
+  for (
+    let node = start?.nextElementSibling ?? null;
+    node !== null && !/^H[1-6]$/.test(node.tagName);
+    node = node.nextElementSibling
+  ) {
+    if (node.matches("table.doctable")) {
+      tables.push(node);
+    }
+  }
+  return tables;
+}
+
+/**
+ * The names in the first column of one of a heading's tables.
+ *
+ * @param heading - The `<h3>` the table sits under.
+ * @param column - What its first header cell says, which is what tells the
+ * property table of a section apart from the event table.
+ * @returns The first-column text of every body row, in the order documented.
+ */
+function documentedNames(heading: string, column: string): string[] {
+  const table = tablesUnder(heading).find(
+    (candidate) => candidate.querySelector("thead th")?.textContent.trim() === column,
+  );
+  return [...(table?.querySelectorAll("tbody tr") ?? [])].map(
+    (row) => row.querySelector("td")?.textContent.trim() ?? "",
+  );
+}
+
+/** The methods every elevator and every floor publishes alike. */
+const DOCUMENTED_EVENT_METHODS = documentedNames("Event methods", "Method");
+
+/** What the "Elevator object" property table lists, event methods aside. */
+const DOCUMENTED_ELEVATOR_PROPERTIES = documentedNames("Elevator object", "Property");
+
+/** What the "Floor object" property table lists, event methods aside. */
+const DOCUMENTED_FLOOR_PROPERTIES = documentedNames("Floor object", "Property");
+
+/** Everything the page says an elevator handed to player code can do. */
+const DOCUMENTED_ELEVATOR_MEMBERS = [
+  ...DOCUMENTED_ELEVATOR_PROPERTIES,
+  ...DOCUMENTED_EVENT_METHODS,
+];
+
+/** Everything the page says a floor handed to player code can do. */
+const DOCUMENTED_FLOOR_MEMBERS = [...DOCUMENTED_FLOOR_PROPERTIES, ...DOCUMENTED_EVENT_METHODS];
+
+/** The event names the page tells players to subscribe an elevator to. */
+const DOCUMENTED_ELEVATOR_EVENTS = documentedNames("Elevator object", "Event");
+
+/** The event names the page tells players to subscribe a floor to. */
+const DOCUMENTED_FLOOR_EVENTS = documentedNames("Floor object", "Event");
+
+/**
+ * Every name player code can reach on a facade.
+ *
+ * The same walk `completions.test.ts`, `elevator-interface.test.ts` and
+ * `floor-interface.test.ts` use to pin their surface: own properties first,
+ * then up the prototype chain, so instance fields like `destinationQueue` are
+ * counted alongside the methods. `getOwnPropertyNames` reads the descriptors,
+ * so a getter such as the floor's `buttonStates` is found without being
+ * invoked.
+ *
+ * @param facade - An instance of the facade.
+ * @returns Its property names.
+ */
+function exposedNames(facade: object): Set<string> {
+  const exposed = new Set<string>();
+  for (
+    let proto: object | null = facade;
+    proto !== null && proto !== Object.prototype;
+    proto = Object.getPrototypeOf(proto) as object | null
+  ) {
+    for (const key of Object.getOwnPropertyNames(proto)) {
+      exposed.add(key);
+    }
+  }
+  exposed.delete("constructor");
+  return exposed;
+}
+
+/**
+ * Elevator members `documentation.html` leaves out on purpose, and why.
+ *
+ * Anything reachable on the facade and neither documented nor listed here fails
+ * the tests below, so a member added to `ElevatorInterface` cannot quietly stay
+ * unwritten-down: whoever adds it has to either give it a table row or say here
+ * why players are not told about it. The same reasons are repeated as an HTML
+ * comment in the table the member is missing from, for the benefit of anyone
+ * reading the page's source rather than this file.
+ */
+const UNDOCUMENTED_ELEVATOR_MEMBERS: Readonly<Record<string, string>> = {
+  trigger:
+    "Only reachable because the legacy facade was a riot observable. Raising the game's own events from player code is not something to recommend.",
+  getFirstPressedFloor:
+    "Deprecated: warns on the console and is scheduled for removal. getPressedFloors is the supported way to ask.",
+};
+
+/** Floor members `documentation.html` leaves out on purpose; see above. */
+const UNDOCUMENTED_FLOOR_MEMBERS: Readonly<Record<string, string>> = {
+  level: "floorNum() is the supported spelling of the same number; kept only for old solutions.",
+  buttonStates:
+    "Better watched through the documented buttonstate_change event than polled; kept only for old solutions.",
+};
+
+/**
+ * Every event an elevator raises, and why the page leaves it out; `null` for
+ * the ones it documents.
+ *
+ * Keyed by the facade's own event map, so an event added to
+ * `ElevatorInterface` does not compile here until somebody has decided whether
+ * players are told about it. That is the compile-time half of the guard; the
+ * runtime half is {@link checkDocumentedEvents}.
+ */
+const ELEVATOR_EVENT_DECISIONS: Readonly<Record<keyof ElevatorInterfaceEvents, string | null>> = {
+  idle: null,
+  floor_button_pressed: null,
+  passing_floor: null,
+  stopped_at_floor: null,
+};
+
+/** Every event a floor raises; see {@link ELEVATOR_EVENT_DECISIONS}. */
+const FLOOR_EVENT_DECISIONS: Readonly<Record<keyof FloorInterfaceEvents, string | null>> = {
+  up_button_pressed: null,
+  down_button_pressed: null,
+  buttonstate_change: null,
+};
+
+/**
+ * Checks one facade's event names against the page, in both directions.
+ *
+ * @param documented - The event names scraped out of the page.
+ * @param decisions - Every event the facade really raises, and why the page
+ * leaves it out.
+ */
+function checkDocumentedEvents(
+  documented: readonly string[],
+  decisions: Readonly<Record<string, string | null>>,
+): void {
+  const names = new Set(documented);
+  const decided = Object.entries(decisions);
+  // Documented but not raised: a typo in the table, or an event since renamed.
+  // Players would be subscribing handlers that can never run.
+  expect(documented.filter((name) => !Object.hasOwn(decisions, name))).toEqual([]);
+  // Raised and meant to be documented, but missing from the table.
+  expect(
+    decided.filter(([name, reason]) => reason === null && !names.has(name)).map(([name]) => name),
+  ).toEqual([]);
+  // Left out on purpose, and then documented anyway: the excuse is stale.
+  expect(
+    decided.filter(([name, reason]) => reason !== null && names.has(name)).map(([name]) => name),
+  ).toEqual([]);
+}
+
+describe("documentation.html, against the facades player code is handed", () => {
+  /**
+   * A live elevator facade, built the way `elevator-interface.test.ts` does.
+   *
+   * @returns The facade.
+   */
+  function elevatorFacade(): ElevatorInterface {
+    return new ElevatorInterface(new Elevator(1.5, 4, 40), 4, () => undefined);
+  }
+
+  /**
+   * A live floor facade, built the way `floor-interface.test.ts` does.
+   *
+   * @returns The facade.
+   */
+  function floorFacade(): FloorInterface {
+    return new FloorInterface(new Floor(2, 100, () => undefined), () => undefined);
+  }
+
+  it("reads the tables it means to check", () => {
+    // Every check below is a set difference, and a set difference against an
+    // empty set passes quietly. A page restructured out from under the scraper
+    // has to fail here rather than silently stop testing anything.
+    expect(DOCUMENTED_EVENT_METHODS).toEqual(["on", "once", "one", "off", "offAll"]);
+    expect(DOCUMENTED_FLOOR_PROPERTIES).toEqual(["floorNum"]);
+    expect(DOCUMENTED_ELEVATOR_PROPERTIES.length).toBeGreaterThan(10);
+    expect(DOCUMENTED_ELEVATOR_EVENTS.length).toBeGreaterThan(0);
+    expect(DOCUMENTED_FLOOR_EVENTS.length).toBeGreaterThan(0);
+  });
+
+  it("documents every member the elevator facade has", () => {
+    const documented = new Set(DOCUMENTED_ELEVATOR_MEMBERS);
+    const undocumented = [...exposedNames(elevatorFacade())].filter(
+      (name) => !documented.has(name) && !Object.hasOwn(UNDOCUMENTED_ELEVATOR_MEMBERS, name),
+    );
+    // Failing here means ElevatorInterface grew a member this page does not
+    // mention. Give it a row in the "Elevator object" table, taking the wording
+    // from its JSDoc, or list it in UNDOCUMENTED_ELEVATOR_MEMBERS with the
+    // reason and repeat that reason in the table's HTML comment.
+    expect(undocumented).toEqual([]);
+  });
+
+  it("documents every member the floor facade has", () => {
+    const documented = new Set(DOCUMENTED_FLOOR_MEMBERS);
+    const undocumented = [...exposedNames(floorFacade())].filter(
+      (name) => !documented.has(name) && !Object.hasOwn(UNDOCUMENTED_FLOOR_MEMBERS, name),
+    );
+    expect(undocumented).toEqual([]);
+  });
+
+  it("documents nothing the facades do not have", () => {
+    // The other direction: a member that was renamed or removed would otherwise
+    // stay on the page, and a player following it writes code that throws.
+    const elevator = exposedNames(elevatorFacade());
+    expect(DOCUMENTED_ELEVATOR_MEMBERS.filter((name) => !elevator.has(name))).toEqual([]);
+    const floor = exposedNames(floorFacade());
+    expect(DOCUMENTED_FLOOR_MEMBERS.filter((name) => !floor.has(name))).toEqual([]);
+  });
+
+  it("keeps the omissions honest", () => {
+    // A member that stops existing should take its excuse with it, and one that
+    // gets documented after all should lose it.
+    const elevator = exposedNames(elevatorFacade());
+    const elevatorOmissions = Object.keys(UNDOCUMENTED_ELEVATOR_MEMBERS);
+    expect(elevatorOmissions.filter((name) => !elevator.has(name))).toEqual([]);
+    expect(elevatorOmissions.filter((name) => DOCUMENTED_ELEVATOR_MEMBERS.includes(name))).toEqual(
+      [],
+    );
+
+    const floor = exposedNames(floorFacade());
+    const floorOmissions = Object.keys(UNDOCUMENTED_FLOOR_MEMBERS);
+    expect(floorOmissions.filter((name) => !floor.has(name))).toEqual([]);
+    expect(floorOmissions.filter((name) => DOCUMENTED_FLOOR_MEMBERS.includes(name))).toEqual([]);
+  });
+
+  it("names exactly the events the elevator facade raises", () => {
+    checkDocumentedEvents(DOCUMENTED_ELEVATOR_EVENTS, ELEVATOR_EVENT_DECISIONS);
+  });
+
+  it("names exactly the events the floor facade raises", () => {
+    checkDocumentedEvents(DOCUMENTED_FLOOR_EVENTS, FLOOR_EVENT_DECISIONS);
+  });
+
+  it("subscribes to real events in every example it prints", () => {
+    // The tables are not the only place event names appear: "Listening for
+    // events" and the "Event methods" examples spell them out too, and a name
+    // that is wrong there is wrong in the code a player copies.
+    const real = new Set([
+      ...Object.keys(ELEVATOR_EVENT_DECISIONS),
+      ...Object.keys(FLOOR_EVENT_DECISIONS),
+    ]);
+    const calls = [...docs.querySelectorAll("code")].flatMap((code) => [
+      ...code.textContent.matchAll(/\.(?:on|once|one|off)\("([\w ]+)"/g),
+    ]);
+    expect(calls.length).toBeGreaterThan(0);
+    // Space separated names subscribe to all of them, so each is checked.
+    const unknown = calls.flatMap((call) => (call[1] ?? "").split(" ")).filter((n) => !real.has(n));
+    expect(unknown).toEqual([]);
   });
 });
