@@ -311,6 +311,49 @@ describe("World", () => {
       expect(world.maxWaitTime).toBeCloseTo(1.0, 10);
     });
 
+    it("stops extending the longest wait once a passenger has been delivered", () => {
+      // A delivered passenger spends another 1 to 1.5 simulated seconds walking
+      // off to the right before the world drops them, and stays in world.users
+      // for all of it. Those seconds were still being folded into maxWaitTime
+      // every frame, so the worst wait the player is scored on included time
+      // spent walking away after the journey had already ended.
+      const world = createWorld({ spawnRate: 0.5, floorCount: 2, elevatorCount: 1 });
+      const spawned = collectUsers(world);
+      world.update(0.1);
+      world.update(1.0);
+
+      // What User.handleExit does on arrival: flag the walk-off and announce it.
+      const user = at(spawned, 0);
+      user.done = true;
+      user.trigger("exited_elevator", at(world.elevators, 0));
+      expect(world.maxWaitTime).toBeCloseTo(1.0, 10);
+
+      world.update(1.0);
+
+      expect(world.users).toContain(user);
+      expect(world.maxWaitTime).toBeCloseTo(1.0, 10);
+    });
+
+    it("still extends the longest wait for passengers who are still waiting", () => {
+      // Guards the fix above from over-reaching: only the delivered passenger is
+      // excluded, everyone still in the building keeps accruing wait time.
+      const world = createWorld({ spawnRate: 1, floorCount: 2, elevatorCount: 1 });
+      const spawned = collectUsers(world);
+      world.update(0.1);
+      world.update(1.0);
+      const delivered = at(spawned, 0);
+      delivered.done = true;
+      delivered.trigger("exited_elevator", at(world.elevators, 0));
+
+      world.update(1.0);
+
+      expect(world.users.length).toBeGreaterThan(1);
+      // The second passenger appeared at t = 1.1 and is still waiting at 2.1.
+      expect(world.maxWaitTime).toBeCloseTo(1.0, 10);
+      world.update(1.0);
+      expect(world.maxWaitTime).toBeCloseTo(2.0, 10);
+    });
+
     it("drops users that have flagged themselves for removal", () => {
       const world = createWorld({ spawnRate: 0.5 });
       const spawned = collectUsers(world);

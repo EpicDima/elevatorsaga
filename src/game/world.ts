@@ -404,7 +404,16 @@ export class World extends Observable<WorldEvents> {
     for (let i = 0, len = users.length; i < len; ++i) {
       const u = requireAt(users, i, "user");
       u.update(dt);
-      this.maxWaitTime = Math.max(this.maxWaitTime, this.elapsedTime - u.spawnTimestamp);
+      // A delivered passenger stays in this list for another 1 to 1.5 seconds
+      // while they walk off to the right, and the legacy loop kept extending
+      // their wait for every frame of that animation — so the worst wait the
+      // player is scored on included time spent after the journey had already
+      // ended, and grew by a random amount that depended on the walk-off speed.
+      // Their real wait was already recorded, exactly once, by the
+      // `exited_elevator` handler in registerUser.
+      if (!u.done) {
+        this.maxWaitTime = Math.max(this.maxWaitTime, this.elapsedTime - u.spawnTimestamp);
+      }
     }
 
     for (let i = users.length - 1; i >= 0; i--) {
