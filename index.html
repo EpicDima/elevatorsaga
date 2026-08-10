@@ -91,7 +91,15 @@
             <button type="button" id="button_resetundo">Undo reset</button>
           </div>
           <div>
-            <span id="fitness_message"></span>
+            <!--
+              Both of these are written asynchronously, and neither is next to
+              whatever the reader is looking at: the fitness benchmark says it
+              has started and then, seconds later, reports its result from a
+              worker, and the editor confirms a save. They announce themselves;
+              the building and the statistics, which change every frame,
+              deliberately do not.
+            -->
+            <span id="fitness_message" aria-live="polite"></span>
             <span id="save_message" aria-live="polite"></span>
             <button type="button" id="button_save">Save</button>
             <button type="button" id="button_apply">Apply</button>

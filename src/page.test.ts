@@ -82,6 +82,37 @@ describe("index.html", () => {
     expect(container?.textContent).toBe("");
   });
 
+  it.each([
+    // The fitness benchmark says it has started and then, seconds later,
+    // reports its result from a worker (src/main.ts).
+    "#fitness_message",
+    // The editor confirms a save (src/main.ts).
+    "#save_message",
+    // The simulation reports whatever the player's program threw, at any point
+    // during a run (src/ui/presenters.ts).
+    ".codestatus",
+  ])("announces %s, which is written asynchronously", (selector) => {
+    const element = page.querySelector(selector);
+    expect(element?.getAttribute("aria-live")).toBe("polite");
+    // A live region has to be in the document before the text appears inside
+    // it; one that arrives already populated is generally not announced.
+    expect(element?.textContent).toBe("");
+  });
+
+  it.each([".world", ".innerworld", ".statscontainer", ".challenge"])(
+    "leaves %s out of the live regions",
+    (selector) => {
+      // The building and the statistics change every frame, and the challenge
+      // bar changes under the player's own hands. Announcing any of them would
+      // bury the messages that do need announcing under continuous noise.
+      const element = page.querySelector(selector);
+      expect(element).not.toBeNull();
+      expect(element?.getAttribute("aria-live")).toBeNull();
+      expect(element?.getAttribute("role")).not.toBe("status");
+      expect(element?.getAttribute("role")).not.toBe("alert");
+    },
+  );
+
   it("lets a keyboard reach the building, which scrolls sideways", () => {
     // .world is a horizontal scroll container, and a scroll container that
     // cannot take focus cannot be scrolled without a mouse. Being in the tab
