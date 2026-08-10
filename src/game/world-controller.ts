@@ -143,14 +143,23 @@ export class WorldController extends Observable<WorldControllerEvents> {
         } catch (e) {
           this.handleUserCodeError(e);
         }
+        // Substep the frame. The remainder is reduced by the step actually
+        // taken, and the final step absorbs whatever is left, so the frame
+        // advances the world by exactly scaledDt.
+        //
+        // The epsilon is what stops a degenerate final substep: frame times
+        // are accumulated in floating point, so a frame that should be a whole
+        // number of steps routinely leaves a few 1e-18 behind. Charging that
+        // residue as its own world.update() is not a rounding difference — it
+        // is an entire extra world tick, re-running arrival snapping and the
+        // statistics recalculation.
+        const dtEpsilon = this.#dtMax * 1e-9;
+        let remaining = scaledDt;
         // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- world.update() can end the challenge mid-loop, which defeats the narrowing above
-        while (scaledDt > 0.0 && !world.challengeEnded) {
-          const thisDt = Math.min(this.#dtMax, scaledDt);
+        while (remaining > dtEpsilon && !world.challengeEnded) {
+          const thisDt = remaining - this.#dtMax <= dtEpsilon ? remaining : this.#dtMax;
           world.update(thisDt);
-          // Note: the remaining time is reduced by the full dtMax rather than
-          // by the step actually taken, so a final partial step is charged as a
-          // whole one. Preserved from the original.
-          scaledDt -= this.#dtMax;
+          remaining -= thisDt;
         }
         world.updateDisplayPositions();
         world.trigger("stats_display_changed"); // TODO: Trigger less often for performance reasons etc

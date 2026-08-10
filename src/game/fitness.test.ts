@@ -11,6 +11,7 @@ import {
   type FitnessRun,
 } from "./fitness.ts";
 import { at } from "./test-helpers.ts";
+import { World } from "./world.ts";
 import type { UserCodeObject } from "./world-controller.ts";
 
 const options: FitnessChallengeOptions = {
@@ -150,11 +151,16 @@ describe("calculateFitness", () => {
     }
   });
 
-  it("advances by exactly one step per frame at the suite's own step size", () => {
+  it("advances the world exactly once per frame at the suite's own step size", () => {
     // Pins the numbers the benchmark actually runs with: at 1000/60 ms per
-    // frame the clamp is inert and every frame is one whole simulation step, so
-    // the fix above leaves published scores untouched.
+    // frame the clamp is inert and every frame is one whole simulation step.
+    //
+    // This used to assert only the dt handed to player code, which is why it
+    // stayed green while the substep loop was quietly taking a second,
+    // ~7e-18 second world.update() on most frames — a whole extra world tick,
+    // re-running arrival snapping and the statistics recalculation.
     const dts: number[] = [];
+    const worldUpdate = vi.spyOn(World.prototype, "update");
     const codeObj: UserCodeObject = {
       init(): void {
         // Nothing.
@@ -164,12 +170,23 @@ describe("calculateFitness", () => {
       },
     };
 
-    calculateFitness(challenge, codeObj, 1000.0 / 60.0, 5);
+    calculateFitness(challenge, codeObj, 1000.0 / 60.0, 21);
 
-    expect(dts.length).toBeGreaterThan(0);
+    // 21 frames, the first of which only records the timestamp.
+    expect(dts).toHaveLength(20);
     for (const dt of dts) {
       expect(dt).toBeCloseTo(1.0 / 60.0, 12);
     }
+
+    const steps = worldUpdate.mock.calls.map((call) => call[0]);
+    expect(steps).toHaveLength(dts.length);
+    for (const step of steps) {
+      expect(step).toBeCloseTo(1.0 / 60.0, 12);
+    }
+    expect(steps.reduce((a, b) => a + b, 0)).toBeCloseTo(
+      dts.reduce((a, b) => a + b, 0),
+      12,
+    );
   });
 
   it("stops simulating as soon as the code throws", () => {

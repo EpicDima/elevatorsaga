@@ -211,6 +211,47 @@ describe("World controller", () => {
       expect(steps.reduce((a, b) => a + b, 0)).toBeCloseTo(dtMax * 3, 10);
     });
 
+    it("does not take a degenerate extra substep at the end of a frame", () => {
+      // The frame requester accumulates `currentT += timeStep` in floating
+      // point, so at the fitness suite's own 1000/60 ms per frame most frames
+      // land a few 1e-18 above one whole dtMax. The loop used to subtract the
+      // full dtMax rather than the step it had just taken, so that residue
+      // stayed above zero and bought a second world.update() of ~7e-18 — an
+      // entire extra world tick, not a rounding difference. 12 of these 20
+      // frames were double-stepped.
+      const dtMax = 1.0 / 60.0;
+      const stepController = createWorldController(dtMax);
+      const requester = createFrameRequester(1000.0 / 60.0);
+      stepController.start(fakeWorld, fakeCodeObj, requester.register, true);
+      for (let i = 0; i < 21; i++) {
+        requester.trigger();
+      }
+
+      const steps = fakeWorld.update.mock.calls.map((call) => call[0]);
+      // The first frame only records lastT, so 21 frames are 20 updates.
+      expect(steps).toHaveLength(20);
+      for (const step of steps) {
+        expect(step).toBeGreaterThan(dtMax * 0.5);
+      }
+      expect(steps.reduce((a, b) => a + b, 0)).toBeCloseTo(20.0 * dtMax, 12);
+    });
+
+    it("splits a frame a hair over a whole multiple of dtMax into that many steps", () => {
+      // 50 ms per frame is exactly three steps of 1/60 s, but only in decimal:
+      // in binary the scaled delta lands 6.9e-18 above 3 * dtMax, which used to
+      // buy a fourth substep of 6.9e-18.
+      const dtMax = 1.0 / 60.0;
+      const stepController = createWorldController(dtMax);
+      const requester = createFrameRequester(50.0);
+      stepController.start(fakeWorld, fakeCodeObj, requester.register, true);
+      requester.trigger();
+      requester.trigger();
+
+      const steps = fakeWorld.update.mock.calls.map((call) => call[0]);
+      expect(steps).toHaveLength(3);
+      expect(steps.reduce((a, b) => a + b, 0)).toBe(0.05);
+    });
+
     it("stops substepping as soon as the challenge ends", () => {
       const dtMax = 0.25;
       const stepController = createWorldController(dtMax);
