@@ -321,6 +321,35 @@ describe("Observable.once", () => {
   });
 });
 
+describe("Observable.one", () => {
+  it("is the legacy spelling of once", () => {
+    // Both legacy emitters published `one` and neither published `once`
+    // (`libs/riot.js:33`, `libs/unobservable.js:83`), so this is the name every
+    // solution written against the old game uses. Without it, the call is a
+    // TypeError.
+    const emitter = makeEmitter();
+    const handler = vi.fn();
+
+    expect(emitter.one("passing_floor", handler)).toBe(emitter);
+    emitter.trigger("passing_floor", 1, "up");
+    emitter.trigger("passing_floor", 2, "down");
+
+    expect(handler).toHaveBeenCalledTimes(1);
+    expect(handler).toHaveBeenCalledWith(1, "up");
+  });
+
+  it("can be unregistered before it fires, like any other handler", () => {
+    const emitter = makeEmitter();
+    const handler = vi.fn();
+    emitter.one("idle", handler);
+
+    emitter.off("idle", handler);
+    emitter.trigger("idle");
+
+    expect(handler).not.toHaveBeenCalled();
+  });
+});
+
 describe("Observable mutation during dispatch", () => {
   it("lets a handler remove itself without skipping the next handler", () => {
     // This is what User.handleExit does: it calls

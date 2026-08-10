@@ -80,6 +80,7 @@ describe("Elevator interface", () => {
       "offAll",
       "on",
       "once",
+      "one",
       "stop",
       "trigger",
     ]);
@@ -179,6 +180,20 @@ describe("Elevator interface", () => {
       e.y = 21;
       e.trigger("stopped", e.y);
       expect(someHandler).toHaveBeenCalled();
+    });
+
+    it("supports the legacy one() spelling of once()", () => {
+      // riot published `one`, not `once` (`libs/riot.js:33`), and the legacy
+      // facade was a `riot.observable(obj)` (`interfaces.js:6`), so
+      // `elevator.one("idle", fn)` is what existing solutions call.
+      const handler = vi.fn();
+
+      expect(elevInterface.one("stopped_at_floor", handler)).toBe(elevInterface);
+      e.trigger("stopped_at_floor", 1);
+      e.trigger("stopped_at_floor", 2);
+
+      expect(handler).toHaveBeenCalledTimes(1);
+      expect(handler).toHaveBeenCalledWith(1);
     });
 
     it('unregisters every handler on off("*")', () => {

@@ -9,14 +9,15 @@
  * them (upstream issue #3).
  *
  * The surface is exactly `floorNum()`, `level`, `buttonStates` and
- * `on`/`off`/`once`/`offAll`. The emitter is held rather than inherited from,
- * so the dispatch side of it — `trigger`, `triggerSafe` — is not reachable from
- * player code. {@link "./elevator-interface.ts"!ElevatorInterface} holds its
- * emitter the same way, but does publish `trigger` as well: the legacy elevator
- * facade really was a `riot.observable(obj)` (`interfaces.js:6`), so that was
- * part of its surface and solutions may be using it. The legacy floors were
- * `riot.observable` too (`floor.js:3`) and were handed to player code as they
- * were, so the unregister side is theirs by the same argument.
+ * `on`/`off`/`once`/`one`/`offAll`. The emitter is held rather than inherited
+ * from, so the dispatch side of it — `trigger`, `triggerSafe` — is not
+ * reachable from player code. {@link "./elevator-interface.ts"!ElevatorInterface}
+ * holds its emitter the same way, but does publish `trigger` as well: the
+ * legacy elevator facade really was a `riot.observable(obj)`
+ * (`interfaces.js:6`), so that was part of its surface and solutions may be
+ * using it. The legacy floors were `riot.observable` too (`floor.js:3`) and
+ * were handed to player code as they were, so the unregister side is theirs by
+ * the same argument.
  *
  * `level` and `buttonStates` are undocumented but were readable on the old
  * object and are used by published solutions, so they are kept —
@@ -134,6 +135,24 @@ export class FloorInterface {
   ): this {
     this.#events.once(event, handler);
     return this;
+  }
+
+  /**
+   * Legacy spelling of {@link FloorInterface.once}.
+   *
+   * The legacy floors were `riot.observable` objects (`floor.js:3`) handed
+   * straight to player code (`world.js:239`), and riot published `one` rather
+   * than `once` (`libs/riot.js:33`).
+   *
+   * @param event - Single event name.
+   * @param handler - Called on the next occurrence of `event`.
+   * @returns This facade, for chaining.
+   */
+  one<K extends EventName<FloorInterfaceEvents>>(
+    event: K,
+    handler: EventHandler<FloorInterfaceEvents[K]>,
+  ): this {
+    return this.once(event, handler);
   }
 
   /**

@@ -10,7 +10,7 @@
  * allow programming without async logic.
  *
  * The emitter is held rather than inherited from, so the surface is exactly the
- * legacy one: the documented methods plus `on`/`once`/`off`/`offAll` and
+ * legacy one: the documented methods plus `on`/`once`/`one`/`off`/`offAll` and
  * `trigger`, which the legacy `riot.observable(obj)` (`interfaces.js:6`)
  * published. `triggerSafe` is not part of it. That method is this rewrite's
  * own, and inheriting it would hand player code a dispatch whose second
@@ -190,6 +190,24 @@ export class ElevatorInterface {
   ): this {
     this.#events.once(event, handler);
     return this;
+  }
+
+  /**
+   * Legacy spelling of {@link ElevatorInterface.once}.
+   *
+   * The legacy facade was a `riot.observable(obj)` (`interfaces.js:6`), and
+   * riot published `one` rather than `once` (`libs/riot.js:33`), so this is the
+   * name existing solutions call.
+   *
+   * @param event - Single event name.
+   * @param handler - Called on the next occurrence of `event`.
+   * @returns This facade, for chaining.
+   */
+  one<K extends EventName<ElevatorInterfaceEvents>>(
+    event: K,
+    handler: EventHandler<ElevatorInterfaceEvents[K]>,
+  ): this {
+    return this.once(event, handler);
   }
 
   /**

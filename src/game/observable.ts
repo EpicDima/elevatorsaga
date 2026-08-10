@@ -198,6 +198,28 @@ export class Observable<E extends EventArgsMap> {
   }
 
   /**
+   * Legacy spelling of {@link Observable.once}.
+   *
+   * Both legacy emitters published `one` (`libs/riot.js:33`,
+   * `libs/unobservable.js:83`) and neither published `once`, so this is the
+   * name every solution written against the old game uses. Without it,
+   * `elevator.one("idle", fn)` is a `TypeError`.
+   *
+   * Like the legacy method, it takes a single event name — riot's own comment
+   * says "only single event supported". It is an alias, not a reimplementation,
+   * so it inherits `once`'s removal *before* invocation rather than riot's
+   * removal after it; that difference only shows when the handler re-triggers
+   * its own event, where the legacy order recursed and this one does not.
+   *
+   * @param event - Single event name.
+   * @param handler - Called on the next trigger of `event`.
+   * @returns This emitter, for chaining.
+   */
+  one<K extends EventName<E>>(event: K, handler: EventHandler<E[K]>): this {
+    return this.once(event, handler);
+  }
+
+  /**
    * Unregisters handlers.
    *
    * @param events - Event name, names separated by single spaces, or `"*"` for

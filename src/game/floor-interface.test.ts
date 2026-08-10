@@ -44,6 +44,7 @@ describe("FloorInterface", () => {
       "offAll",
       "on",
       "once",
+      "one",
     ]);
     for (const forbidden of [
       "yPosition",
@@ -223,6 +224,21 @@ describe("FloorInterface", () => {
 
       expect(later).toHaveBeenCalledTimes(1);
       expect(later).toHaveBeenCalledWith(floorInterface);
+    });
+
+    it("supports the legacy one() spelling of once()", () => {
+      // The legacy floors were riot observables (`floor.js:3`) handed straight
+      // to player code, and riot published `one`, not `once`
+      // (`libs/riot.js:33`).
+      const handler = vi.fn();
+
+      expect(floorInterface.one("up_button_pressed", handler)).toBe(floorInterface);
+      floor.pressUpButton();
+      floor.elevatorAvailable({ goingUpIndicator: true, goingDownIndicator: true });
+      floor.pressUpButton();
+
+      expect(handler).toHaveBeenCalledTimes(1);
+      expect(handler).toHaveBeenCalledWith(floorInterface);
     });
 
     it('drops every player handler on off("*") too', () => {
