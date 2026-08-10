@@ -28,7 +28,6 @@ test
 /presenters.js
 /user.js
 /world.js
-/index.html
-/documentation.html
-/style.css
-/README.md
+
+# index.html, documentation.html and the stylesheet were rewritten in place for
+# Vite, so they are formatted like the rest of the sources now.

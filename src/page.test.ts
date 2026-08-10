@@ -1,10 +1,19 @@
 // @vitest-environment jsdom
 import { describe, expect, it } from "vitest";
 
+import docsSource from "../documentation.html?raw";
 import pageSource from "../index.html?raw";
 
 /** The page shell, parsed as the browser would parse it. */
 const page = new DOMParser().parseFromString(pageSource, "text/html");
+const docs = new DOMParser().parseFromString(docsSource, "text/html");
+
+/** Anything loaded from another origin, which the rewrite got rid of. */
+function thirdPartyResources(document: Document): Element[] {
+  return [...document.querySelectorAll("link[href], script[src], img[src]")].filter((node) =>
+    /^(https?:)?\/\//.test(node.getAttribute("href") ?? node.getAttribute("src") ?? ""),
+  );
+}
 
 describe("index.html", () => {
   it("is a module entry, with no other scripts", () => {
@@ -48,10 +57,56 @@ describe("index.html", () => {
   });
 
   it("no longer loads anything from a third party", () => {
-    const remote = [...page.querySelectorAll("link[href], script[src], img[src]")].filter((node) =>
-      /^(https?:)?\/\//.test(node.getAttribute("href") ?? node.getAttribute("src") ?? ""),
-    );
-    expect(remote).toEqual([]);
+    expect(thirdPartyResources(page)).toEqual([]);
     expect(page.documentElement.innerHTML).not.toContain("google-analytics");
+  });
+
+  it("links to the documentation page", () => {
+    const targets = [...page.querySelectorAll("a")].map((link) => link.getAttribute("href"));
+    expect(targets).toContain("documentation.html");
+  });
+});
+
+describe("documentation.html", () => {
+  it("is a module entry, with no other scripts", () => {
+    const scripts = [...docs.querySelectorAll("script")];
+    expect(scripts.map((script) => [script.type, script.getAttribute("src")])).toEqual([
+      ["module", "/src/docs.ts"],
+    ]);
+  });
+
+  it("keeps the #docs anchor the game links to", () => {
+    expect(docs.querySelector("#docs")).not.toBeNull();
+    const targets = [...page.querySelectorAll("a")].map((link) => link.getAttribute("href"));
+    expect(targets).toContain("documentation.html#docs");
+  });
+
+  it("links back to the game", () => {
+    const targets = [...docs.querySelectorAll("a")].map((link) => link.getAttribute("href"));
+    expect(targets).toContain("index.html");
+  });
+
+  it("has one landmark of each kind, and a single top-level heading", () => {
+    expect(docs.querySelectorAll("header, main, footer")).toHaveLength(3);
+    expect(docs.querySelectorAll("h1")).toHaveLength(1);
+  });
+
+  it("gives every table a row-wrapped header with scoped columns", () => {
+    const tables = [...docs.querySelectorAll("table.doctable")];
+    expect(tables.length).toBeGreaterThan(0);
+    for (const table of tables) {
+      const headerCells = [...table.querySelectorAll("thead tr th")];
+      expect(headerCells.length).toBeGreaterThan(0);
+      expect(headerCells.every((cell) => cell.getAttribute("scope") === "col")).toBe(true);
+      // Column widths moved from `width` attributes to `<col>` classes.
+      expect(table.querySelector("colgroup")).not.toBeNull();
+      expect(table.querySelector("[width]")).toBeNull();
+    }
+  });
+
+  it("no longer loads anything from a third party", () => {
+    expect(thirdPartyResources(docs)).toEqual([]);
+    expect(docs.documentElement.innerHTML).not.toContain("google-analytics");
+    expect(docs.documentElement.innerHTML).not.toContain("highlight");
   });
 });

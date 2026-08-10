@@ -10,6 +10,13 @@ export default defineConfig({
     target: "es2022",
     sourcemap: true,
     emptyOutDir: true,
+    rollupOptions: {
+      // Two pages: the game and the help/API reference.
+      input: {
+        index: "index.html",
+        documentation: "documentation.html",
+      },
+    },
   },
   // The fitness benchmark runs in a module worker (src/app/fitness-worker.ts),
   // so worker chunks are emitted as ES modules rather than the default IIFE.

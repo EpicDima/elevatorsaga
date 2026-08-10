@@ -634,6 +634,27 @@ pre code {
   margin-block: 0;
 }
 
+/*
+ * Column widths used to live in `width` attributes on the `<th>` elements,
+ * which are not valid HTML any more. The values are the legacy ones; the
+ * unnamed example column keeps taking whatever is left.
+ */
+.doccol-name {
+  inline-size: 150px;
+}
+
+.doccol-type {
+  inline-size: 90px;
+}
+
+.doccol-explanation {
+  inline-size: 190px;
+}
+
+.doccol-explanation-wide {
+  inline-size: 280px;
+}
+
 /* ----------------------------------------------------------- Narrow screens */
 
 @media (max-width: 1260px) {
