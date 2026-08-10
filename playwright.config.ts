@@ -70,6 +70,13 @@ export default defineConfig({
     url: BASE_URL,
     // A cold `tsc --noEmit` plus a Vite build takes a while on a cold cache.
     timeout: 180_000,
-    reuseExistingServer: !isCI,
+    // Never reuse a server that happens to be listening, not even locally.
+    // Reuse skips the `npm run build` in front of it, so a `vite preview` left
+    // over from an earlier session silently turns every run into a test of
+    // whatever `dist/` already held -- which is the one thing this suite exists
+    // to rule out. It has already happened here. Building costs a couple of
+    // seconds; with `--strictPort`, a squatting server now fails the run loudly
+    // instead of quietly answering for the build.
+    reuseExistingServer: false,
   },
 });
