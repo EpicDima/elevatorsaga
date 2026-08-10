@@ -50,6 +50,15 @@ export default tseslint.config(
     },
   },
   {
+    // End-to-end tests drive a browser from Node, and the callbacks they hand
+    // to `page.evaluate` are evaluated inside the page, so both sets of globals
+    // are legitimately in scope in one file.
+    files: ["e2e/**/*.ts"],
+    languageOptions: {
+      globals: { ...globals.node, ...globals.browser },
+    },
+  },
+  {
     // Plain JS config files are not covered by the typed project service.
     files: ["**/*.js"],
     extends: [tseslint.configs.disableTypeChecked],

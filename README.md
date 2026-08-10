@@ -55,6 +55,8 @@ GitHub Pages project sub-path, without further configuration.
 | `npm test`              | Runs the Vitest suite once                                    |
 | `npm run test:watch`    | Runs the suite in watch mode                                  |
 | `npm run test:coverage` | Runs the suite and writes a V8 coverage report to `coverage/` |
+| `npm run test:e2e`      | Runs the Playwright smoke tests against the built site        |
+| `npm run screenshot`    | Recaptures `images/screenshot.png` from the running game      |
 | `npm run lint`          | ESLint over the repository                                    |
 | `npm run lint:fix`      | ESLint with `--fix`                                           |
 | `npm run format`        | Rewrites files with Prettier                                  |
@@ -255,10 +257,35 @@ per file with a docblock on the very first line:
 
 That is how the `src/ui` tests, `src/app/app.test.ts` and `src/page.test.ts` run.
 
+### End-to-end tests
+
+`e2e/` holds a handful of Playwright smoke tests. They exist to answer one question the unit tests
+cannot: does the thing that actually ships come up in a real browser? So they run against the
+**production build** — `npm run test:e2e` builds the site and serves `dist/` with `vite preview`
+before the first test — and they stay few on purpose. Between them they boot the page, play a
+challenge through to "Success!", check that a program survives a reload in `localStorage`, check
+that a broken program raises the error banner instead of failing silently, and load the help page.
+Behaviour is covered in depth by the Vitest suite; repeating it through a browser would only buy
+slower, flakier versions of tests that already exist.
+
+```sh
+npm run test:e2e                       # the whole suite
+npx playwright test e2e/game.spec.ts   # ...one file
+npx playwright test --ui               # ...interactively
+npx playwright show-report             # the report from the last run
+```
+
+Chromium has to be present the first time: `npx playwright install chromium`. The two runners cannot
+see each other's files — Vitest collects `src/**/*.test.ts`, Playwright collects `e2e/**/*.spec.ts`.
+
+`images/screenshot.png` is captured by `e2e/screenshot.spec.ts`, which is deliberately excluded from
+the suite and run on its own with `npm run screenshot`; nothing in CI rewrites it.
+
 Before opening a pull request, run what CI runs: `npm run typecheck`, `npm run lint`,
-`npm run format:check`, `npm test` and `npm run build`. CI executes all five on Node 22 and Node 24
-for every push to `master` and every pull request; only the two active LTS lines are covered,
-since odd-numbered Node releases never become LTS.
+`npm run format:check`, `npm test`, `npm run build` and `npm run test:e2e`. CI executes the first
+five on Node 22 and Node 24 for every push to `master` and every pull request — only the two active
+LTS lines are covered, since odd-numbered Node releases never become LTS — and runs the end-to-end
+tests alongside them in a job of their own, so a browser download never holds up the fast checks.
 
 ### The original implementation
 
