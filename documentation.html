@@ -151,9 +151,10 @@
         <p>
           It is possible to listen for events, like when stopping at a floor, or a button has been
           pressed. Elevators and floors both understand
-          <span class="emphasis-color">on</span>, <span class="emphasis-color">once</span> and
-          <span class="emphasis-color">off</span>; see <a href="#events">event methods</a> below for
-          what each of them does.
+          <span class="emphasis-color">on</span>, <span class="emphasis-color">once</span>,
+          <span class="emphasis-color">one</span>, <span class="emphasis-color">off</span> and
+          <span class="emphasis-color">offAll</span>; see <a href="#events">event methods</a> below
+          for what each of them does.
         </p>
         <dl>
           <dt>
@@ -207,12 +208,14 @@
                 <small
                   >Register a listener. Listeners run in the order they were registered, and the
                   same function may be registered more than once. Several event names separated by
-                  spaces register the same listener for all of them.</small
+                  spaces register the same listener for all of them; when you name more than one,
+                  the listener is called with the name of the event that fired as its first
+                  argument, ahead of that event's own arguments.</small
                 >
               </td>
               <td>
                 <pre><code>elevator.on("idle", function() { ... });
-floor.on("up_button_pressed down_button_pressed", function() { ... });</code></pre>
+floor.on("up_button_pressed down_button_pressed", function(eventName) { ... });</code></pre>
               </td>
             </tr>
             <tr>
@@ -229,33 +232,50 @@ floor.on("up_button_pressed down_button_pressed", function() { ... });</code></p
               </td>
             </tr>
             <tr>
+              <td>one</td>
+              <td>
+                <small
+                  >The older name for <span class="emphasis-color">once</span>, and the one the
+                  original game gave you. Same behaviour, single event name as well.</small
+                >
+              </td>
+              <td>
+                <pre><code>elevator.one("stopped_at_floor", function(floorNum) { ... });</code></pre>
+              </td>
+            </tr>
+            <tr>
               <td>off</td>
               <td>
                 <small
                   >Remove listeners. With a function, removes just that function, however it was
                   registered; without one, removes every listener of the named events. Accepts space
-                  separated names like <span class="emphasis-color">on</span> does. You need a
-                  reference to the function you registered, so an inline anonymous function cannot
-                  be removed.</small
+                  separated names like <span class="emphasis-color">on</span> does, and the single
+                  name <span class="emphasis-color">"*"</span> for every event at once — a function
+                  passed alongside the star is ignored. You need a reference to the function you
+                  registered, so an inline anonymous function cannot be removed.</small
                 >
               </td>
               <td>
                 <pre><code>function goHome() { elevator.goToFloor(0); }
 elevator.on("idle", goHome);
 elevator.off("idle", goHome); // Just this one
-elevator.off("idle"); // Every idle listener</code></pre>
+elevator.off("idle"); // Every idle listener
+elevator.off("*"); // Every listener, of every event</code></pre>
               </td>
             </tr>
             <tr>
               <td>offAll</td>
               <td>
                 <small
-                  >Remove every listener for every event on that elevator. Elevators only; floors do
-                  not have it.</small
+                  >Remove every listener <em>you</em> registered, for every event, on that elevator
+                  or floor. The listeners the game itself needs are separate, so the object keeps
+                  working — anything you register afterwards still fires. This is
+                  <span class="emphasis-color">off("*")</span> with a name of its own.</small
                 >
               </td>
               <td>
-                <pre><code>elevator.offAll();</code></pre>
+                <pre><code>elevator.offAll();
+floor.offAll();</code></pre>
               </td>
             </tr>
           </tbody>
