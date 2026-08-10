@@ -86,6 +86,16 @@ export type ElevatorEvents = {
 const DEFAULT_MAX_USERS = 4;
 
 /**
+ * Whether the {@link Elevator.getFirstPressedFloor} deprecation notice has been
+ * printed.
+ *
+ * Module level rather than per elevator, and never reset: the warning is
+ * addressed to whoever is writing the solution, and it says the same thing for
+ * every elevator and every restart of the challenge.
+ */
+let firstPressedFloorWarned = false;
+
+/**
  * An elevator car: physics, buttons, indicators and passenger slots.
  *
  * `y` grows downward, so floor 0 has the *largest* y and a positive
@@ -437,11 +447,21 @@ export class Elevator extends Movable<ElevatorEvents> {
   /**
    * Lowest pressed floor button.
    *
+   * Warns once, not once per call: this is the kind of method player code calls
+   * from `update`, which runs on every frame, so warning unconditionally buries
+   * the console — including any `console.log` the player is debugging with —
+   * under some sixty identical lines a second.
+   *
    * @deprecated Undocumented legacy API, scheduled for removal.
    * @returns The lowest pressed floor, or `0` when nothing is pressed.
    */
   getFirstPressedFloor(): number {
-    console.warn("You are using a deprecated feature scheduled for removal: getFirstPressedFloor");
+    if (!firstPressedFloorWarned) {
+      firstPressedFloorWarned = true;
+      console.warn(
+        "You are using a deprecated feature scheduled for removal: getFirstPressedFloor",
+      );
+    }
     for (let i = 0; i < this.buttonStates.length; i++) {
       if (this.buttonStates[i] === true) {
         return i;

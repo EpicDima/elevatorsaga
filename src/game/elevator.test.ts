@@ -323,12 +323,25 @@ describe("Elevator object", () => {
   // the shipped API surface and must keep behaving as it always did.
   /* eslint-disable @typescript-eslint/no-deprecated */
   describe("getFirstPressedFloor", () => {
-    it("returns the lowest pressed floor and warns about deprecation", () => {
-      const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
-      e.pressFloorButton(3);
-      e.pressFloorButton(1);
+    /**
+     * Loads a fresh copy of the module, so the once-per-session warning has not
+     * been used up by whatever else ran first.
+     *
+     * @returns The `Elevator` class of a newly evaluated module instance.
+     */
+    async function freshElevatorClass(): Promise<typeof Elevator> {
+      vi.resetModules();
+      return (await import("./elevator.ts")).Elevator;
+    }
 
-      expect(e.getFirstPressedFloor()).toBe(1);
+    it("returns the lowest pressed floor and warns about deprecation", async () => {
+      const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+      const FreshElevator = await freshElevatorClass();
+      const fresh = new FreshElevator(1.5, FLOOR_COUNT, FLOOR_HEIGHT);
+      fresh.pressFloorButton(3);
+      fresh.pressFloorButton(1);
+
+      expect(fresh.getFirstPressedFloor()).toBe(1);
       expect(warn).toHaveBeenCalledWith(
         "You are using a deprecated feature scheduled for removal: getFirstPressedFloor",
       );
@@ -338,6 +351,33 @@ describe("Elevator object", () => {
     it("returns 0 when nothing is pressed", () => {
       const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
       expect(e.getFirstPressedFloor()).toBe(0);
+      warn.mockRestore();
+    });
+
+    it("warns once per session, not once per call", async () => {
+      // Player code calls this from update(), which runs about sixty times a
+      // second: warning on every call floods the console the player is
+      // debugging in, and the notice says the same thing every time.
+      const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+      const FreshElevator = await freshElevatorClass();
+      const first = new FreshElevator(1.5, FLOOR_COUNT, FLOOR_HEIGHT);
+      const second = new FreshElevator(1.5, FLOOR_COUNT, FLOOR_HEIGHT);
+
+      for (let frame = 0; frame < 120; frame++) {
+        first.getFirstPressedFloor();
+        second.getFirstPressedFloor();
+      }
+
+      expect(warn).toHaveBeenCalledTimes(1);
+      warn.mockRestore();
+    });
+
+    it("still answers correctly after the notice has been spent", () => {
+      const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+      e.getFirstPressedFloor();
+      e.pressFloorButton(2);
+
+      expect(e.getFirstPressedFloor()).toBe(2);
       warn.mockRestore();
     });
   });
