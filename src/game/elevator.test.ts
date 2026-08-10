@@ -478,6 +478,46 @@ describe("Elevator object", () => {
       expect(entranceAvailable).not.toHaveBeenCalled();
     });
 
+    it("does not re-offer boarding from inside the arrival sequence", () => {
+      // isMoving is cleared before handleDestinationArrival runs, so an
+      // indicator flip from a stopped_at_floor handler used to satisfy the
+      // re-offer guard and fire entrance_available *before* exit_available -
+      // boarding offered before the passengers on board had a chance to get
+      // off, which is exactly what the comment above the arrival events says
+      // must not happen. The arrival sequence emits its own entrance_available
+      // moments later, with the new indicator state already in effect.
+      const seen: string[] = [];
+      e.on("stopped_at_floor", () => {
+        seen.push("stopped_at_floor");
+        e.goingUpIndicator = false;
+        e.trigger("change:goingUpIndicator", false);
+      });
+      e.on("exit_available", () => {
+        seen.push("exit_available");
+      });
+      e.on("entrance_available", () => {
+        seen.push("entrance_available");
+      });
+
+      e.goToFloor(2);
+      stepElevator(e, 10.0, 0.015);
+
+      expect(seen).toEqual(["stopped_at_floor", "exit_available", "entrance_available"]);
+    });
+
+    it("re-offers boarding for an indicator flip made after the arrival sequence", () => {
+      // The suppression above is scoped to the sequence, not to the stop.
+      const entranceAvailable = vi.fn();
+      e.goToFloor(2);
+      stepElevator(e, 10.0, 0.015);
+      e.on("entrance_available", entranceAvailable);
+
+      e.goingUpIndicator = false;
+      e.trigger("change:goingUpIndicator", false);
+
+      expect(entranceAvailable).toHaveBeenCalledTimes(1);
+    });
+
     it("does not re-offer boarding when the elevator is full", () => {
       const entranceAvailable = vi.fn();
       for (let i = 0; i < e.maxUsers; i++) {

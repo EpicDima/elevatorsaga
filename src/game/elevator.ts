@@ -128,6 +128,14 @@ export class Elevator extends Movable<ElevatorEvents> {
   removed = false;
 
   /**
+   * Whether {@link Elevator.handleDestinationArrival} is still emitting.
+   *
+   * Read by the `indicatorstate_change` handler, which must not slip an extra
+   * boarding offer into the middle of the arrival sequence.
+   */
+  #arrivalInFlight = false;
+
+  /**
    * @param speedFloorsPerSec - Top speed expressed in floors per second.
    * @param floorCount - Number of floors in the world.
    * @param floorHeight - Height of one floor in world units.
@@ -173,7 +181,16 @@ export class Elevator extends Movable<ElevatorEvents> {
     // (issues #59, #74, #98, #124). Re-offering the entrance — and nothing else
     // — leaves the destination queue, the move counts and the arrival events
     // exactly as they were.
+    //
+    // Not while the arrival sequence is still running, though: isMoving is
+    // cleared before it starts, so an indicator flip from a stopped_at_floor
+    // handler would otherwise offer boarding before exit_available had let the
+    // passengers on board off. The sequence emits its own entrance_available
+    // in the right place, with the new indicator state already in effect.
     this.on("indicatorstate_change", () => {
+      if (this.#arrivalInFlight) {
+        return;
+      }
       if (!this.isMoving && this.isOnAFloor() && !this.isFull()) {
         this.trigger("entrance_available", this);
       }
@@ -322,16 +339,21 @@ export class Elevator extends Movable<ElevatorEvents> {
 
   /** Emits the arrival events, letting passengers out before letting new ones in. */
   handleDestinationArrival(): void {
-    this.trigger("stopped", this.getExactCurrentFloor());
+    this.#arrivalInFlight = true;
+    try {
+      this.trigger("stopped", this.getExactCurrentFloor());
 
-    if (this.isOnAFloor()) {
-      this.buttonStates[this.currentFloor] = false;
-      this.trigger("floor_buttons_changed", this.buttonStates, this.currentFloor);
-      this.trigger("stopped_at_floor", this.currentFloor);
-      // Need to allow users to get off first, so that new ones
-      // can enter on the same floor
-      this.trigger("exit_available", this.currentFloor, this);
-      this.trigger("entrance_available", this);
+      if (this.isOnAFloor()) {
+        this.buttonStates[this.currentFloor] = false;
+        this.trigger("floor_buttons_changed", this.buttonStates, this.currentFloor);
+        this.trigger("stopped_at_floor", this.currentFloor);
+        // Need to allow users to get off first, so that new ones
+        // can enter on the same floor
+        this.trigger("exit_available", this.currentFloor, this);
+        this.trigger("entrance_available", this);
+      }
+    } finally {
+      this.#arrivalInFlight = false;
     }
   }
 
