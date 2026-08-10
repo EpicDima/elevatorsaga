@@ -359,12 +359,20 @@ export class Observable<E extends EventArgsMap> {
 /**
  * Emitter for the facades player code subscribes to.
  *
- * Adds one thing to {@link Observable}: {@link PlayerObservable.triggerSafe}
- * refuses to re-enter a dispatch of an event already in flight on this emitter.
- * Player code re-triggering the event it is handling is a common mistake — the
- * documented `idle` idiom does it by accident — and without a guard it recurses
- * until the stack overflows, which surfaces as a `usercode_error` and pauses the
- * game. riot, which backed these facades, absorbed it.
+ * Adds one thing to {@link Observable}: a dispatch of an event already in
+ * flight on this emitter is refused. Player code re-triggering the event it is
+ * handling is a common mistake — the documented `idle` idiom does it by
+ * accident — and without a guard it recurses until the stack overflows, which
+ * surfaces as a `usercode_error` and pauses the game. riot, which backed these
+ * facades, absorbed it (`libs/riot.js:43-48`).
+ *
+ * Both dispatch methods are guarded, and they share one in-flight set per event
+ * name, so nesting either inside the other is refused as well. Guarding only
+ * {@link Observable.triggerSafe} would have left the whole guard bypassable:
+ * `trigger` is published surface on the elevator facade — the legacy one really
+ * was a `riot.observable(obj)` (`interfaces.js:5`) — so player code can call it,
+ * and a `trigger` from inside a `triggerSafe` handler would have been a plain
+ * unguarded recursion that ends in a paused game.
  *
  * The guard is per event *name*, where riot's `fn.busy` was per handler
  * *function*. That is a deliberate simplification: the outcome is the same for
@@ -374,15 +382,30 @@ export class Observable<E extends EventArgsMap> {
  * What it gives up is riot's ability to still run the *other* handlers of a
  * re-triggered event.
  *
- * Only the error-isolating dispatch is guarded. {@link Observable.trigger} is
- * how the simulation talks to itself and is left free to nest, and the guard is
- * cleared in a `finally` so a throwing handler cannot wedge an event off
- * permanently — riot's defect in upstream issue #88.
+ * The guard is cleared in a `finally`, so a throwing handler cannot wedge an
+ * event off permanently — riot's defect in upstream issue #88. `trigger` still
+ * lets that exception out, and `triggerSafe` still routes it to its reporter;
+ * only the nesting changes.
+ *
+ * {@link Observable} itself stays unguarded: it is how the simulation talks to
+ * itself, and it nests same-event dispatches on purpose.
  *
  * @typeParam E - Map of event name to the arguments its handlers receive.
  */
 export class PlayerObservable<E extends EventArgsMap> extends Observable<E> {
   readonly #inFlight = new Set<string>();
+
+  /**
+   * Invokes every handler of `event`, refusing to re-enter a dispatch of
+   * `event` that is already running on this emitter.
+   *
+   * @param event - Event name to dispatch.
+   * @param args - Arguments forwarded to each handler.
+   * @returns This emitter, for chaining.
+   */
+  override trigger<K extends EventName<E>>(event: K, ...args: E[K]): this {
+    return this.#guard(event, () => super.trigger(event, ...args));
+  }
 
   /**
    * Invokes every handler of `event`, isolating exceptions and refusing to
@@ -398,12 +421,27 @@ export class PlayerObservable<E extends EventArgsMap> extends Observable<E> {
     onError: (e: unknown) => void,
     ...args: E[K]
   ): this {
+    return this.#guard(event, () => super.triggerSafe(event, onError, ...args));
+  }
+
+  /**
+   * Runs one dispatch unless that event is already being dispatched.
+   *
+   * Shared by both dispatch methods so that the in-flight set is one set, not
+   * one per method: an event is in flight regardless of which method put it
+   * there.
+   *
+   * @param event - Event name being dispatched.
+   * @param dispatch - Performs the dispatch.
+   * @returns This emitter, for chaining, whether or not the dispatch ran.
+   */
+  #guard(event: string, dispatch: () => this): this {
     if (this.#inFlight.has(event)) {
       return this;
     }
     this.#inFlight.add(event);
     try {
-      return super.triggerSafe(event, onError, ...args);
+      return dispatch();
     } finally {
       this.#inFlight.delete(event);
     }

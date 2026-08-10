@@ -499,9 +499,10 @@ describe("PlayerObservable", () => {
     expect(handler).toHaveBeenCalledTimes(2);
   });
 
-  it("leaves plain trigger unguarded, so the simulation can still nest", () => {
-    // Only the error-isolating dispatch is the player's; `trigger` is how the
-    // simulation talks to itself.
+  it("refuses to re-enter a trigger dispatch of the same event", () => {
+    // `trigger` is published on the elevator facade (interfaces.js:5 made it a
+    // `riot.observable`), so player code reaches it and the guard has to cover
+    // it too. riot's own `fn.busy` (libs/riot.js:43-48) is what absorbed this.
     const emitter = new PlayerObservable<TestEvents>();
     const seen: number[] = [];
     emitter.on("up_button_pressed", (floor) => {
@@ -513,7 +514,89 @@ describe("PlayerObservable", () => {
 
     emitter.trigger("up_button_pressed", 1);
 
-    expect(seen).toEqual([1, 2, 3]);
+    expect(seen).toEqual([1]);
+  });
+
+  it("refuses a trigger nested inside a triggerSafe of the same event", () => {
+    // The two methods share one in-flight set, so neither is an escape hatch
+    // out of the other. This is the shape that actually reaches players: the
+    // engine dispatches with triggerSafe and the handler calls trigger.
+    const emitter = new PlayerObservable<TestEvents>();
+    const onError = vi.fn();
+    const seen: number[] = [];
+    emitter.on("up_button_pressed", (floor) => {
+      seen.push(floor);
+      if (floor < 3) {
+        emitter.trigger("up_button_pressed", floor + 1);
+      }
+    });
+
+    emitter.triggerSafe("up_button_pressed", onError, 1);
+
+    expect(seen).toEqual([1]);
+    expect(onError).not.toHaveBeenCalled();
+  });
+
+  it("refuses a triggerSafe nested inside a trigger of the same event", () => {
+    const emitter = new PlayerObservable<TestEvents>();
+    const onError = vi.fn();
+    const seen: number[] = [];
+    emitter.on("up_button_pressed", (floor) => {
+      seen.push(floor);
+      if (floor < 3) {
+        emitter.triggerSafe("up_button_pressed", onError, floor + 1);
+      }
+    });
+
+    emitter.trigger("up_button_pressed", 1);
+
+    expect(seen).toEqual([1]);
+    expect(onError).not.toHaveBeenCalled();
+  });
+
+  it("guards only the event in flight, so trigger still nests other events", () => {
+    const emitter = new PlayerObservable<TestEvents>();
+    const order: string[] = [];
+    emitter.on("up_button_pressed", () => {
+      order.push("outer:start");
+      emitter.trigger("idle");
+      order.push("outer:end");
+    });
+    emitter.on("idle", () => order.push("inner"));
+
+    emitter.trigger("up_button_pressed", 1);
+
+    expect(order).toEqual(["outer:start", "inner", "outer:end"]);
+  });
+
+  it("clears the marker after a trigger whose handler threw", () => {
+    // `trigger` lets the exception out, so the guard has to be released on the
+    // way past it — riot's `fn.busy` was not, and the handler was dead for the
+    // rest of the run (upstream issue #88).
+    const emitter = new PlayerObservable<TestEvents>();
+    const handler = vi.fn(() => {
+      throw new Error("boom");
+    });
+    emitter.on("idle", handler);
+
+    expect(() => emitter.trigger("idle")).toThrow("boom");
+    expect(() => emitter.trigger("idle")).toThrow("boom");
+
+    expect(handler).toHaveBeenCalledTimes(2);
+  });
+
+  it("still returns itself from a refused dispatch, for chaining", () => {
+    const emitter = new PlayerObservable<TestEvents>();
+    const onError = vi.fn();
+    const seen: unknown[] = [];
+    emitter.on("idle", () => {
+      seen.push(emitter.trigger("idle"));
+      seen.push(emitter.triggerSafe("idle", onError));
+    });
+
+    emitter.trigger("idle");
+
+    expect(seen).toEqual([emitter, emitter]);
   });
 });
 

@@ -655,5 +655,81 @@ describe("Elevator interface", () => {
       expect(stoppedAtFloor).toHaveBeenCalledTimes(2);
       expect(errorHandler).toHaveBeenNthCalledWith(2, boom);
     });
+
+    it("absorbs player code re-triggering the event it is handling", () => {
+      // `trigger` is published surface on this facade (interfaces.js:5 wrapped
+      // it in `riot.observable`), so player code really does write this. Run
+      // against the legacy engine the same program idles once and logs no
+      // error, because riot's `fn.busy` (libs/riot.js:43-48) refused the nested
+      // call; unguarded it recurses until the stack overflows and the
+      // RangeError arrives as a usercode_error, which pauses the game.
+      let calls = 0;
+      elevInterface.on("idle", () => {
+        calls++;
+        if (calls < 100000) {
+          elevInterface.trigger("idle");
+        }
+      });
+
+      expect(() => {
+        elevInterface.trigger("idle");
+      }).not.toThrow();
+
+      expect(calls).toBe(1);
+      expect(errorHandler).not.toHaveBeenCalled();
+    });
+
+    it("absorbs it when the engine started the dispatch, not the player", () => {
+      // The engine dispatches with triggerSafe and player code answers with
+      // trigger. Both have to consult the same in-flight set, or the guard has
+      // an escape hatch on exactly the path the player is on.
+      let calls = 0;
+      elevInterface.on("idle", () => {
+        calls++;
+        if (calls < 100000) {
+          elevInterface.trigger("idle");
+        }
+      });
+
+      // checkDestinationQueue's empty-queue branch, i.e. how `idle` really
+      // arrives.
+      expect(() => {
+        elevInterface.checkDestinationQueue();
+      }).not.toThrow();
+
+      expect(calls).toBe(1);
+      expect(errorHandler).not.toHaveBeenCalled();
+    });
+
+    it("absorbs a player trigger of an engine event already in flight", () => {
+      let calls = 0;
+      elevInterface.on("stopped_at_floor", () => {
+        calls++;
+        if (calls < 100000) {
+          elevInterface.trigger("stopped_at_floor", 1);
+        }
+      });
+
+      expect(() => {
+        e.trigger("stopped_at_floor", 1);
+      }).not.toThrow();
+
+      expect(calls).toBe(1);
+      expect(errorHandler).not.toHaveBeenCalled();
+    });
+
+    it("lets player code trigger a different event from a handler", () => {
+      // The guard is per event name, so the facade still dispatches events
+      // player code raises by hand — the only reason `trigger` is published.
+      const floorButtonPressed = vi.fn();
+      elevInterface.on("floor_button_pressed", floorButtonPressed);
+      elevInterface.on("idle", () => {
+        elevInterface.trigger("floor_button_pressed", 2);
+      });
+
+      elevInterface.checkDestinationQueue();
+
+      expect(floorButtonPressed).toHaveBeenCalledWith(2);
+    });
   });
 });
