@@ -1,378 +1,667 @@
+/*
+ * Elevator Saga stylesheet.
+ *
+ * Moved here from the repository root so Vite can process it as an asset of the
+ * entry module. The look is unchanged; what changed is how it is expressed:
+ *
+ * - the palette and the geometry of the building are custom properties, so the
+ *   numbers that must agree with `src/game/world.ts` are stated once;
+ * - vendor prefixes are gone (`user-select`, `animation`, `@keyframes`);
+ * - logical properties replace their physical equivalents;
+ * - the shell is `max-inline-size` + `margin-inline: auto` rather than a fixed
+ *   1220px, while the world itself keeps its exact pixel geometry and scrolls
+ *   horizontally inside its frame when the viewport is too narrow;
+ * - buttons are reset to nothing and the two chromed groups opt back in, because
+ *   the controls that used to be `<i>` elements are real buttons now;
+ * - icons are inline SVG (`src/ui/icons.ts`), so what used to be glyph colour is
+ *   `fill: currentColor` and what used to be `text-shadow` is `drop-shadow`.
+ *
+ * Note that `box-sizing` is deliberately left at `content-box`: the floors
+ * (49px + 1px border) and the elevators (46px + 2px border) rely on borders
+ * adding to the box, and the statistics panel's 240px + 2 * 20px padding is what
+ * makes it line up with the right-hand edge of the building.
+ */
 
+:root {
+  /* Palette */
+  --color-page: #bfbd9f;
+  --color-text: #555;
+  --color-text-strong: #333;
+  --color-link: #444;
+  --color-emphasis: #f1f2d8;
+  --color-error: #d54;
+  --color-focus: #333;
+  --color-world: #333;
+  --color-elevator: #4f8686;
+  --color-lit: #33ff44;
+  --color-stats: #999;
+  --color-stats-rule: #444;
+  --color-control: #777;
+  --color-control-border: #666;
 
-html, body {
-    background-color: #BFBD9F;
-    color: white;
-    margin: 0;
-    padding: 0;
+  /* Geometry. The floor and elevator sizes mirror src/game/world.ts. */
+  --shell-width: 1220px;
+  --shell-gutter: 0px;
+  --world-width: 1220px;
+  --building-width: 938px;
+  --floor-height: 50px;
+  --elevator-height: 50px;
+  --elevator-border: 2px;
+  --stats-width: 240px;
+  --stats-padding: 20px;
+  --stats-row-height: 10px;
+  --stats-row-pitch: 20px;
+  --editor-height: 320px;
+
+  --font-ui: Oswald, Arial, Helvetica, sans-serif;
+  --font-body: Arial, Helvetica, sans-serif;
+  --font-mono: Consolas, Monaco, monospace;
+}
+
+/* ---------------------------------------------------------------- Document */
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background-color: var(--color-page);
+  color: white;
 }
 
 body {
-    font-family: Oswald, Arial, Helvetica, sans-serif;
-}
-h1, h2, h3, h4, h5 {
-    margin-top: 0.4em;
-    margin-bottom: 0.3em;
+  font-family: var(--font-ui);
 }
 
-h1, h2, h3, h4, h5, p {
-    color: #555;
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  margin-block: 0.4em 0.3em;
+  color: var(--color-text);
 }
 
-.emphasis-color {
-    color: #F1F2D8;
-    text-shadow: 0 2px 0.4pt #555;
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-weight: normal;
 }
 
-.error-color {
-    color: #d54;
+p {
+  color: var(--color-text);
 }
 
 a {
-    color: #444;
-    font-weight: bold;
-    text-decoration: none;
-}
-a:hover {
-    text-decoration: underline;
+  color: var(--color-link);
+  font-weight: bold;
+  text-decoration: none;
 }
 
-h2, h3, h4, h5 {
-    font-weight: normal;
+a:hover {
+  text-decoration: underline;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
 }
 
 dl {
-    color: #555;
+  color: var(--color-text);
 }
+
 dl dd {
-    font: 15px Arial, Helvetica, sans-serif;
-    margin-bottom: 1em;
-    margin-left: 1em;
-    width: 40%;
+  margin-block-end: 1em;
+  margin-inline-start: 1em;
+  font: 15px var(--font-body);
+  max-inline-size: 40%;
 }
 
+/* -------------------------------------------------------------- Utilities */
 
-.container {
-    width: 1220px;
-    margin: 0 auto;
-    padding: 20px 0 40px 0;
-    background-color: #BFBD9F;
+.emphasis-color {
+  color: var(--color-emphasis);
+  text-shadow: 0 2px 0.4pt var(--color-text);
+}
+
+.error-color {
+  color: var(--color-error);
 }
 
 .unselectable {
-    -webkit-touch-callout: none;
-    -webkit-user-select: none;
-    -khtml-user-select: none;
-    -moz-user-select: none;
-    -ms-user-select: none;
-    user-select: none;
+  user-select: none;
 }
 
-button {
-    height: 30px;
-    line-height: 16px;
-    font-size: 16px;
-    font-weight: bold;
-    padding-left: 10px;
-    padding-right: 10px;
-    color: #333;
-    background-color: #777;
-    text-shadow: 0 0 3px #aaa;
-    border: 1px solid #666;
-    border-radius: 5px;
-    margin-right: 5px;
+.invisible {
+  visibility: hidden;
 }
 
-button.right {
-    margin-left: 5px;
-    margin-right: 0;
+.faded {
+  opacity: 0.4;
+}
+
+.left {
+  float: left;
+}
+
+.right {
+  float: right;
 }
 
 .blink {
   animation: blink 0.5s steps(3, start) infinite;
-  -webkit-animation: blink 0.5s steps(3, start) infinite;
 }
+
 @keyframes blink {
-  to { visibility: hidden; }
-}
-@-webkit-keyframes blink {
-  to { visibility: hidden; }
-}
-
-.invisible {
+  to {
     visibility: hidden;
+  }
 }
 
-.faded {
-    opacity: 0.4;
+@media (prefers-reduced-motion: reduce) {
+  .blink {
+    animation: none;
+  }
 }
 
-#save_message, #fitness_message {
-    color: #555;
-    font-size: 12px;
-    line-height: 30px;
-    margin: 0 20px;
+/*
+ * Icons are inline SVG sized in `em`, so they scale with the surrounding text
+ * exactly as the webfont glyphs did. The baseline offset is the Font Awesome
+ * descent, 256 of 1792 units per em.
+ */
+.icon {
+  display: inline-block;
+  block-size: 1em;
+  vertical-align: -0.143em;
+  fill: currentColor;
 }
 
+/* ------------------------------------------------------------------- Shell */
 
-.left {
-    float: left;
+.container {
+  box-sizing: border-box;
+  max-inline-size: calc(var(--shell-width) + 2 * var(--shell-gutter));
+  margin-inline: auto;
+  padding: 20px var(--shell-gutter) 40px;
+  background-color: var(--color-page);
 }
 
-.right {
-    float: right;
+.container.narrow {
+  --shell-width: 960px;
 }
 
 .header {
-    height: 60px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 15px;
+  min-block-size: 60px;
 }
 
 .header h1 {
-    line-height: 50px;
-    margin: 0;
-    padding: 0;
+  margin: 0;
+  padding: 0;
+  line-height: 50px;
 }
 
-.header a {
-    display: inline-block;
-    margin-left: 15px;
-    font-size: 20px;
-    line-height: 50px;
-    padding: 0 4px;
+.header nav {
+  display: flex;
+  gap: 15px;
 }
 
+.header nav a {
+  padding-inline: 4px;
+  font-size: 20px;
+  line-height: 50px;
+}
 
-.timescale_decrease, .timescale_increase {
-    padding: 4px;
-    line-height: 20px;
-    cursor: pointer;
+/* --------------------------------------------------------- Challenge bar */
+
+.challenge {
+  display: flow-root;
+  block-size: 40px;
+}
+
+.challengetitle {
+  margin-block: 0.4em 0.3em;
+  font-size: 1.17em;
+  font-weight: normal;
+}
+
+.timescale {
+  margin-block: 0.4em 0.3em;
+  font-size: 1.17em;
+  color: var(--color-text);
+}
+
+.timescale button {
+  padding: 4px;
+  line-height: 20px;
 }
 
 .timescale_increase {
-    margin-right: 10px;
+  margin-inline-end: 10px;
 }
 
+.timescale_value {
+  display: inline-block;
+  inline-size: 22px;
+  text-align: center;
+}
+
+/* ------------------------------------------------------------------ Buttons */
+
+/*
+ * Buttons are reset to nothing: most of them replace elements that used to be
+ * non-interactive `<i>` glyphs, and must not pick up any button chrome. The two
+ * groups that are meant to look like buttons opt in below.
+ */
+button {
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: inherit;
+  cursor: pointer;
+}
+
+button[disabled] {
+  cursor: default;
+}
+
+.startstop,
+.codebuttons button {
+  block-size: 30px;
+  padding-inline: 10px;
+  border: 1px solid var(--color-control-border);
+  border-radius: 5px;
+  background-color: var(--color-control);
+  color: var(--color-text-strong);
+  font-size: 16px;
+  font-weight: bold;
+  line-height: 16px;
+  text-shadow: 0 0 3px #aaa;
+}
+
+.startstop {
+  /* Wide enough for "Pause", "Start" and the "Restart" icon plus label. */
+  inline-size: 110px;
+  margin-inline-start: 5px;
+}
+
+.codebuttons {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.codebuttons div {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+#save_message,
+#fitness_message {
+  margin-inline: 20px;
+  color: var(--color-text);
+  font-size: 12px;
+  line-height: 30px;
+}
+
+.hint {
+  margin-block: 4px;
+  font-size: 12px;
+}
+
+.hint kbd {
+  font: inherit;
+  font-family: var(--font-mono);
+}
+
+.helpnote {
+  margin-block-start: 20px;
+  font-size: 1.17em;
+}
+
+/* ------------------------------------------------------------------- Editor */
 
 .codestatus {
-    padding-top: 10px;
+  padding-block-start: 10px;
 }
 
-.CodeMirror {
-    font: 14px Consolas, Monaco, monospace;
-    width: 1220px;
-    margin: 10px auto;
-    height: 320px;
+/*
+ * The banner used to be an `<h5>` whose `display` was toggled; it is a paragraph
+ * that is present only when there is something to say. The metrics are the ones
+ * the heading had. `pre-wrap` replaces the legacy newline-to-`<br>` rewriting of
+ * the stack trace, which had to treat player-authored text as markup.
+ */
+.codestatus .error {
+  margin-block: 0.4em 0.3em;
+  font-size: 0.83em;
+  white-space: pre-wrap;
 }
 
+.cm-editor {
+  block-size: var(--editor-height);
+  margin-block: 10px;
+  border: 1px solid var(--color-control-border);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.cm-editor .cm-scroller {
+  font: 14px/1.4 var(--font-mono);
+}
+
+.cm-editor.cm-focused {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+/* -------------------------------------------------------------------- World */
+
+/*
+ * The building has a fixed pixel geometry that the simulation depends on, so it
+ * never shrinks: the frame scrolls instead. `.worldtrack` is the fixed-size
+ * surface everything is positioned against, and it clips the oversized feedback
+ * overlay the way `.world` used to.
+ */
 .world {
-    position: relative;
-    width: 1220px;
-    background-color: #333;
-    padding: 0;
-    overflow: hidden;
+  --color-focus: var(--color-emphasis);
+
+  background-color: var(--color-world);
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.worldtrack {
+  position: relative;
+  inline-size: var(--world-width);
+  overflow: hidden;
 }
 
 .innerworld {
-    position: relative;
-    height: 100%;
-    width: 938px;
-    border-right: 1px solid black;
-    border-left: 1px solid black;
-    font-family: Arial, Helvetica, sans-serif;
+  position: relative;
+  inline-size: var(--building-width);
+  border-inline: 1px solid black;
+  font-family: var(--font-body);
 }
-
-.statscontainer {
-    font: 12px Consolas, Monaco, monospace;
-    line-height: 10px;
-    color: #999;
-    position: absolute;
-    top: 0;
-    right: 0px;
-    width: 240px;
-    height: 200px;
-    padding: 20px;
-    z-index: 1;
-}
-
-.statscontainer div {
-    border-bottom: 1px solid #444;
-}
-
-.statscontainer div, .statscontainer span {
-    position: absolute;
-    display: block;
-    width: 240px;
-    height: 10px;
-}
-
-.statscontainer .value {
-    text-align: right;
-}
-
 
 .feedbackcontainer {
-    position: absolute;
+  position: absolute;
 }
 
 .feedback {
-    position: absolute;
-    width: 1280px;
-    height: 2000px;
-    padding-top: 20px;
-    line-height: 20px;
-    text-align: center;
-    background-color: rgba(44,44,44, 0.6);
-    z-index: 5;
-    overflow: hidden;
+  position: absolute;
+  inline-size: 1280px;
+  block-size: 2000px;
+  padding-block-start: 20px;
+  line-height: 20px;
+  text-align: center;
+  background-color: rgb(44 44 44 / 60%);
+  overflow: hidden;
+  z-index: 5;
 }
 
 .movable {
-    position: absolute;
-    top: 0;
-    left: 0;
-    display: block;
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: block;
 }
 
 .user {
-    color: white;
-    text-shadow: 0 1px 3px black;
-    z-index: 2;
-}
-
-.user.happy {
-}
-
-.user.frustrated {
-    color: yellow;
-}
-
-.user.disappointed {
-    color: red;
+  color: white;
+  filter: drop-shadow(0 1px 3px black);
+  z-index: 2;
 }
 
 .user.leaving {
-    color: #eee;
+  color: #eee;
 }
 
+/* --------------------------------------------------------------- Statistics */
+
+.statscontainer {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-end: 0;
+  inline-size: var(--stats-width);
+  block-size: 200px;
+  padding: var(--stats-padding);
+  font: 12px var(--font-mono);
+  line-height: var(--stats-row-height);
+  color: var(--color-stats);
+  z-index: 1;
+}
+
+/*
+ * Rows used to be absolutely positioned at hard-coded offsets written into the
+ * markup. They are ordinary blocks now; the height, the rule and the gap add up
+ * to the same 20px pitch, and the panel's padding puts the first row where it
+ * was.
+ */
+.statscontainer .stat {
+  display: flex;
+  justify-content: space-between;
+  block-size: var(--stats-row-height);
+  margin-block-end: calc(var(--stats-row-pitch) - var(--stats-row-height) - 1px);
+  border-block-end: 1px solid var(--color-stats-rule);
+}
+
+/* ---------------------------------------------------------------- Elevators */
+
 .elevator {
-    background-color: #4F8686;
-    border: 2px solid white;
-    height: 46px;
-    z-index: 1;
+  block-size: calc(var(--elevator-height) - 2 * var(--elevator-border));
+  border: var(--elevator-border) solid white;
+  background-color: var(--color-elevator);
+  z-index: 1;
 }
 
 .elevator .directionindicator {
-    position: absolute;
-    font-size: 10px;
-    top: 3px;
+  position: absolute;
+  inset-block-start: 3px;
+  font-size: 10px;
 }
 
-.elevator .directionindicator.directionindicatorup {
-    left: 2px;
+.elevator .directionindicatorup {
+  inset-inline-start: 2px;
 }
 
-.elevator .directionindicator.directionindicatordown {
-    right: 2px;
+.elevator .directionindicatordown {
+  inset-inline-end: 2px;
 }
 
-.elevator .directionindicator .fa{
-    color: rgba(255, 255, 255, 0.2);
+.elevator .directionindicator .icon {
+  color: rgb(255 255 255 / 20%);
 }
 
-.elevator .directionindicator .fa.activated{
-    color: #33ff44;
+.elevator .directionindicator .icon.activated {
+  color: var(--color-lit);
 }
 
 .elevator .floorindicator {
-    display: inline-block;
-    position: absolute;
-    width: 100%;
-    font-size: 15px;
-    text-align: center;
-    color: rgba(255, 255, 255, 0.3);
+  position: absolute;
+  display: inline-block;
+  inline-size: 100%;
+  font-size: 15px;
+  text-align: center;
+  color: rgb(255 255 255 / 30%);
 }
-
 
 .elevator .buttonindicator {
-    display: inline-block;
-    position: absolute;
-    top: 15px;
-    width: 95%;
-    text-align: center;
-    font-size: 8px;
-    line-height: 8px;
-    color: rgba(255, 255, 255, 0.3);
-}
-.elevator .buttonpress {
-    cursor: pointer;
-    margin: 0;
-    display: inline-block;
-}
-.elevator .buttonpress.activated {
-    color: #33ff44;
+  position: absolute;
+  display: inline-block;
+  inset-block-start: 15px;
+  inline-size: 95%;
+  font-size: 8px;
+  line-height: 8px;
+  text-align: center;
+  color: rgb(255 255 255 / 30%);
 }
 
+.elevator .buttonpress {
+  display: inline-block;
+}
+
+.elevator .buttonpress.activated {
+  color: var(--color-lit);
+}
+
+/* ------------------------------------------------------------------- Floors */
+
 .floor {
-    position: absolute;
-    width: 100%;
-    height: 49px;
-    background-color: rgba(255, 255, 255, 0.1);
-    background: linear-gradient(rgba(255,255,255,0.1), rgba(255,255,255,0.2), rgba(255,255,255,0.24), rgba(255,255,255,0.1)); /* Standard syntax */
-    border-bottom: 1px solid #333;
+  position: absolute;
+  inline-size: 100%;
+  block-size: calc(var(--floor-height) - 1px);
+  border-block-end: 1px solid var(--color-world);
+  background: linear-gradient(
+    rgb(255 255 255 / 10%),
+    rgb(255 255 255 / 20%),
+    rgb(255 255 255 / 24%),
+    rgb(255 255 255 / 10%)
+  );
 }
 
 .floor .buttonindicator {
-    cursor: pointer;
-    line-height: 50px;
-    padding-left: 50px;
-    color: rgba(255, 255, 255, 0.2);
+  padding-inline-start: 50px;
+  line-height: var(--floor-height);
+  color: rgb(255 255 255 / 20%);
 }
+
 .floor .buttonindicator .activated {
-    color: rgba(55, 255, 55, 1.0);
+  color: rgb(55 255 55);
 }
 
 .floor .floornumber {
-    position: absolute;
-    color: rgba(255, 255, 255, 0.15);
-    font-size: 32px;
-    line-height: 50px;
-    padding-left: 10px;
+  position: absolute;
+  padding-inline-start: 10px;
+  font-size: 32px;
+  line-height: var(--floor-height);
+  color: rgb(255 255 255 / 15%);
 }
 
+/* --------------------------------------------------------- Fullscreen demo */
 
-.footer {
-    margin-top: 20px;
+/*
+ * `#fullscreen` used to write inline styles that could never be taken back off.
+ * Everything except the world is hidden rather than removed, so the world keeps
+ * the vertical position it has in the normal layout.
+ */
+.fullscreen-demo,
+.fullscreen-demo body {
+  inline-size: 100%;
+  margin: 0;
+  padding: 0;
 }
-.footer h4 {
-    font-size: 13px;
+
+.fullscreen-demo .container {
+  inline-size: 100%;
+  max-inline-size: none;
+  margin: 0;
+  padding: 0;
 }
+
+.fullscreen-demo .container > *:not(main),
+.fullscreen-demo main > *:not(.world) {
+  visibility: hidden;
+}
+
+/* --------------------------------------------------------- Help and footer */
 
 .help {
-    margin-top: 20px;
-    margin-bottom: 30px;
+  margin-block: 20px 30px;
 }
 
 .help p {
-    max-width: 75%;
+  max-inline-size: 75%;
+}
+
+.footer {
+  margin-block-start: 20px;
+}
+
+/* The footer's three lines used to be `<h4>` elements, for their size only. */
+.footer p {
+  margin-block: 0.4em 0.3em;
+  font-size: 13px;
+}
+
+pre {
+  margin-block: 0.5em;
+}
+
+pre code {
+  display: block;
+  padding: 8px;
+  border-radius: 4px;
+  background-color: #fdf6e3;
+  color: #657b83;
+  font: 13px/1.4 var(--font-mono);
+  overflow-x: auto;
 }
 
 .doctable {
-    margin-top: 10px;
-    margin-bottom: 20px;
-    color: #555;
-    border: none;
+  margin-block: 10px 20px;
+  border: none;
+  color: var(--color-text);
 }
 
-.doctable th, .doctable td  {
-    text-align: left;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+.doctable th,
+.doctable td {
+  text-align: start;
+  border-block-end: 1px solid rgb(0 0 0 / 10%);
 }
 
 .doctable tr td:first-child {
-    padding-right: 5px;
-    color: #333;
+  padding-inline-end: 5px;
+  color: var(--color-text-strong);
 }
 
 .doctable td {
-    font: 13px Consolas, Monaco, monospace;
+  font: 13px var(--font-mono);
+}
+
+.doctable td pre {
+  margin-block: 0;
+}
+
+/* ----------------------------------------------------------- Narrow screens */
+
+@media (max-width: 1260px) {
+  :root {
+    --shell-gutter: 10px;
+  }
+}
+
+@media (max-width: 760px) {
+  :root {
+    --editor-height: 240px;
+  }
+
+  .header {
+    min-block-size: 0;
+  }
+
+  .header h1 {
+    font-size: 1.6em;
+    line-height: 1.3;
+  }
+
+  .header nav a {
+    line-height: 1.6;
+  }
+
+  .help p,
+  dl dd {
+    max-inline-size: 100%;
+  }
 }

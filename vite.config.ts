@@ -11,6 +11,11 @@ export default defineConfig({
     sourcemap: true,
     emptyOutDir: true,
   },
+  // The fitness benchmark runs in a module worker (src/app/fitness-worker.ts),
+  // so worker chunks are emitted as ES modules rather than the default IIFE.
+  worker: {
+    format: "es",
+  },
   test: {
     // Node is the default environment; simulation/domain code needs no DOM.
     // Files that need a DOM opt in per-file with a `// @vitest-environment jsdom`
