@@ -121,19 +121,6 @@ Nothing else from the simulation is global either — the old build leaked `Elev
 `World`, `challenges`, `limitNumber` and friends into the global scope, and all of it is
 module-scoped now.
 
-**Multi-event handlers no longer get the event name.** Registering one handler for several
-space-separated events still works, but riot used to prepend the name as an extra first argument
-whenever it did. The new emitter (`src/game/observable.ts`) does not, so a handler receives exactly
-the arguments the documentation lists for each event:
-
-```js
-// Before: (eventName, floorNum, direction)
-// Now:    (floorNum, direction) — and floor_button_pressed passes no direction
-elevator.on("floor_button_pressed passing_floor", function (floorNum, direction) { ... });
-```
-
-If you relied on the name to tell the events apart, register two handlers instead.
-
 **Floors are facades now, not the real thing.** `init(elevators, floors)` and
 `update(dt, elevators, floors)` are handed `FloorInterface` objects. The whole surface, defined in
 `src/game/floor-interface.ts`, is:
@@ -142,34 +129,33 @@ If you relied on the name to tell the events apart, register two handlers instea
 - `level` — the same number as a property; undocumented, but kept because published solutions use it
 - `buttonStates` — a read-only `{ up, down }` **snapshot**, rebuilt on every read, so assigning to
   it or mutating it no longer clears the building's call buttons
-- `on` / `off` / `once` for `up_button_pressed`, `down_button_pressed` and `buttonstate_change`
+- `on` / `off` / `once` / `one` / `offAll` for `up_button_pressed`, `down_button_pressed` and
+  `buttonstate_change`
 
 Everything else the old `Floor` object exposed — `yPosition`, `getSpawnPosY`, `elevatorAvailable`,
 `pressUpButton`, `pressDownButton`, `trigger` — is unreachable. The `up_button_pressed` and
 `down_button_pressed` handlers are also passed the facade rather than the internal floor. This
 closes upstream issue [#3](https://github.com/magwo/elevatorsaga/issues/3).
 
-**`off("*")` is gone; use `offAll()`.** riot treated `"*"` as a wildcard when unregistering. The
-replacement is an explicit `offAll()` method on the emitter. `off("event")` and
-`off("event", handler)` are unchanged, and both still accept space-separated names.
+**The event emitter is a rewrite; the surface solutions use is not.** `src/game/observable.ts`
+replaces riot's `riot.observable` and the near-copy of it in `unobservable.js`. Everything player
+code was written against still works, including the parts the old game never documented:
 
-**`one()` is now `once()`.** riot gave every observable a `one()` for single-shot handlers; the
-method is named `once()`. It was never documented, but it worked, so solutions in the wild use it.
-
-**`this` inside an event handler is no longer the elevator.** riot invoked handlers with
-`fn.apply(el, args)`. The new emitter calls `handler(...args)` with no receiver, and module code is
-strict, so in a `function` handler `this` is now `undefined`:
-
-```js
-// Used to work, now throws:
-elevator.on("idle", function () {
-  this.goToFloor(0);
-});
-// Write this instead:
-elevator.on("idle", () => {
-  elevator.goToFloor(0);
-});
-```
+- `this` inside a `function` handler is still the elevator or floor the handler was registered on,
+  so `elevator.on("idle", function () { this.goToFloor(0); })` behaves as it always did. Handlers
+  are invoked with the facade as their receiver, which is what riot's `fn.apply(el, args)` did.
+- A handler registered for several space-separated events is still passed the name of the event
+  that fired as an extra first argument:
+  `elevator.on("floor_button_pressed passing_floor", function (eventName, floorNum, direction) { ... })`.
+  A registration that names a single event is unaffected.
+- `off("*")` still unregisters everything, and a handler passed alongside the wildcard is still
+  ignored. `offAll()` is the named spelling of the same thing, and both exist on floors as well as
+  elevators. `off("event")` and `off("event", handler)` are unchanged, and accept space-separated
+  names.
+- `one()` still registers a single-shot handler. It is an alias of `once()` and, like riot's, takes
+  a single event name. The one difference is the order of removal and invocation: the handler comes
+  off before it runs rather than after, so re-triggering the same event from inside it does not
+  recurse.
 
 **A handler registered during a dispatch no longer runs for the event in flight.** Both old
 emitters iterated the live handler array; the new one iterates a snapshot, matching how DOM
@@ -217,7 +203,9 @@ better.
 - [#92](https://github.com/magwo/elevatorsaga/issues/92) — `stop()` eventually emits `idle`. It
   previously left the elevator parked with no event and no way to notice.
 - [#105](https://github.com/magwo/elevatorsaga/issues/105) — the one-second boarding dwell is no
-  longer skipped on the paths that halt an elevator without reaching the head of its queue.
+  longer skipped on the paths that halt an elevator without reaching the head of its queue, and it
+  now covers the re-offer as well, so an elevator can no longer accept a passenger and drive off in
+  the same frame.
 - [#117](https://github.com/magwo/elevatorsaga/issues/117) /
   [#20](https://github.com/magwo/elevatorsaga/issues/20) — elevators no longer start the challenge
   with `moveCount === 1`. Their initial placement was being counted as a move, which quietly taxed
@@ -234,7 +222,11 @@ Two more, without upstream issues:
 
 - `maxWaitTime` counted the walk-away animation of passengers who had already been delivered,
   inflating the statistic by a random 1–1.5 seconds per person. Delivered passengers are now
-  excluded, which makes the wait-time challenges both easier and deterministic.
+  excluded, which makes the statistic deterministic and the wait-time challenges — 8, 9, 11 to 15
+  and 18 — marginally easier than the same challenges upstream. **A score from here is not
+  comparable with a score from [play.elevatorsaga.com](https://play.elevatorsaga.com/)**, and a
+  solution posted on the upstream wiki that cleared one of them by a fraction of a second may not
+  be doing the same work here that it did there.
 - A malformed `#challenge` or `#timescale` used to be fatal. `#challenge=abc` indexed the challenge
   list with `NaN` and killed the page before anything was drawn; `#timescale=abc` set the world's
   time scale to `NaN`, which froze the simulation with no way out short of editing the URL by hand.
@@ -290,6 +282,17 @@ Before opening a pull request, run what CI runs: `npm run typecheck`, `npm run l
 five on Node 22 and Node 24 for every push to `master` and every pull request — only the two active
 LTS lines are covered, since odd-numbered Node releases never become LTS — and runs the end-to-end
 tests alongside them in a job of their own, so a browser download never holds up the fast checks.
+
+### Why TypeScript is held at 6
+
+`package.json` pins `typescript` to `^6.0.3` even though npm's `latest` is 7.x. It is
+`typescript-eslint` that decides this: 8.66 declares `typescript: ">=4.8.4 <6.1.0"` as a peer
+dependency, and the lint configuration here is `strictTypeChecked` plus `stylisticTypeChecked` —
+rules that ask the compiler about types rather than reading the syntax tree, and so run against
+whatever compiler API that package was built for. Moving to 7 fails the install outright on npm's
+peer resolution, and forcing it past that would leave the type-aware half of `npm run lint`
+running against an API its own dependency does not claim to support. The pin comes off when
+typescript-eslint ships a release that widens the range.
 
 ### The original implementation
 
