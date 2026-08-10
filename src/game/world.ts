@@ -245,7 +245,6 @@ export class World extends Observable<WorldEvents> {
    */
   constructor(options: WorldOptions = {}) {
     super();
-    console.log("Creating world with options", options);
     this.floorHeight = options.floorHeight ?? DEFAULT_OPTIONS.floorHeight;
     this.#floorCount = options.floorCount ?? DEFAULT_OPTIONS.floorCount;
     this.#spawnRate = options.spawnRate ?? DEFAULT_OPTIONS.spawnRate;
@@ -448,7 +447,6 @@ export class World extends Observable<WorldEvents> {
 
   /** Tears the world down, dropping every event subscription. */
   unWind(): void {
-    console.log("Unwinding", this);
     // The floor facades are not in this list: they deliberately have no
     // `offAll` to expose to player code, and they hear nothing once the floor
     // they forward from has dropped its own subscriptions. They are discarded

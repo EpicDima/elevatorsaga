@@ -223,7 +223,6 @@ export function doFitnessSuite(codeStr: string, runCount: number): FitnessSuiteR
   } catch (e) {
     return { error: stringifyError(e) };
   }
-  console.log("Fitness testing code", codeObj);
   let error: unknown = null;
 
   const testruns: FitnessRun[][] = [];

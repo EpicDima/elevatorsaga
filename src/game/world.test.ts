@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { Elevator } from "./elevator.ts";
 import type { ElevatorInterface } from "./elevator-interface.ts";
@@ -46,11 +46,6 @@ function createWorldWithWaitingUser(): { world: World; user: User } {
   world.update(0.1);
   return { world, user: at(spawned, 0) };
 }
-
-// The world logs on creation and teardown; keep the test output readable.
-beforeEach(() => {
-  vi.spyOn(console, "log").mockImplementation(() => undefined);
-});
 
 afterEach(() => {
   vi.restoreAllMocks();

@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   calculateFitness,
@@ -38,11 +38,6 @@ function inertCodeObj(): UserCodeObject {
     },
   };
 }
-
-// The world and the suite both log; keep the test output readable.
-beforeEach(() => {
-  vi.spyOn(console, "log").mockImplementation(() => undefined);
-});
 
 afterEach(() => {
   vi.restoreAllMocks();

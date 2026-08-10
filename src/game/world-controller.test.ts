@@ -154,7 +154,6 @@ describe("World controller", () => {
 
     it("never hands a real Floor to player code", () => {
       // Issue #3: the controller used to forward world.floors straight through.
-      vi.spyOn(console, "log").mockImplementation(() => undefined);
       const world = createWorld({ spawnRate: 0.001, floorCount: 3, elevatorCount: 1 });
       const codeObj = createFakeCodeObj();
 
