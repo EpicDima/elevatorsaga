@@ -21,6 +21,7 @@ import {
   setDemoFullscreen,
 } from "./presenters.ts";
 import type { ChallengePresenterOptions } from "./presenters.ts";
+import type { ChallengeLinkData } from "./templates.ts";
 import { createElement } from "./test-helpers.ts";
 
 /** Builds the `.statscontainer` markup the page shell provides. */
@@ -138,6 +139,14 @@ describe("formatTimeScale", () => {
 });
 
 describe("presentChallenge", () => {
+  /** Four challenges, the third being played and the last being the demo. */
+  const CHALLENGE_LINKS: readonly ChallengeLinkData[] = [1, 2, 3, 4].map((num) => ({
+    num,
+    url: `#challenge=${String(num)},timescale=8`,
+    current: num === 3,
+    demo: num === 4,
+  }));
+
   /**
    * Assembles challenge options over a mutable world/controller pair.
    *
@@ -152,6 +161,7 @@ describe("presentChallenge", () => {
     const options: ChallengePresenterOptions = {
       challengeNum: 3,
       description: "Transport <span class='emphasis-color'>15</span> people",
+      challengeLinks: CHALLENGE_LINKS,
       world: { challengeEnded: false },
       worldController: { isPaused: true, timeScale: 2 },
       onStartStop: vi.fn(),
@@ -199,6 +209,37 @@ describe("presentChallenge", () => {
     expect(options.onStartStop).toHaveBeenCalledTimes(1);
     expect(options.onTimeScaleIncrease).toHaveBeenCalledTimes(1);
     expect(options.onTimeScaleDecrease).toHaveBeenCalledTimes(1);
+  });
+
+  it("draws a link to every challenge, marking the one being played", () => {
+    const { parent, options } = setUp();
+    presentChallenge(parent, options);
+
+    const entries = queryAll(".challengelink", parent);
+    expect(entries.map((entry) => entry.getAttribute("href"))).toEqual([
+      "#challenge=1,timescale=8",
+      "#challenge=2,timescale=8",
+      "#challenge=3,timescale=8",
+      "#challenge=4,timescale=8",
+    ]);
+    expect(entries.map((entry) => entry.getAttribute("aria-current"))).toEqual([
+      null,
+      null,
+      "page",
+      null,
+    ]);
+  });
+
+  it("leaves the links to navigate on their own", () => {
+    // Nothing is bound to them: they are hash URLs, and the router is already
+    // listening for the hash. That is what keeps the browser's own affordances
+    // — open in a new tab, copy the address — working.
+    const { parent, options } = setUp();
+    presentChallenge(parent, options);
+
+    const entries = queryAll(".challengelink", parent);
+    expect(entries.every((entry) => entry.tagName === "A")).toBe(true);
+    expect(entries.every((entry) => entry.getAttribute("href") !== "")).toBe(true);
   });
 
   it("binds its listeners once, however often it is updated", () => {
@@ -268,6 +309,33 @@ describe("presentChallenge", () => {
       presentChallenge(parent, options);
 
       expect(document.activeElement).toBe(elsewhere);
+    });
+
+    it("keeps focus in the navigation row when a challenge is taken from it", () => {
+      // Pressing "Challenge 1" starts that challenge, which rebuilds the bar and
+      // deletes the link that was pressed. Landing on the start button would at
+      // least not be <body>, but it strands a keyboard player who was working
+      // along the row; the entry that replaced the one they pressed is where
+      // they were.
+      const { parent, options } = mount();
+      presentChallenge(parent, options);
+      queryAll(".challengelink", parent)[0]?.focus();
+
+      presentChallenge(parent, {
+        ...options,
+        challengeNum: 1,
+        challengeLinks: options.challengeLinks.map((link) => ({
+          ...link,
+          current: link.num === 1,
+        })),
+      });
+
+      const first = queryAll(".challengelink", parent)[0];
+      expect(document.activeElement).toBe(first);
+      // And it is the challenge that is now being played, so a screen reader
+      // announces the arrival rather than a link to somewhere else.
+      expect(first?.getAttribute("aria-current")).toBe("page");
+      expect(document.activeElement).not.toBe(requireElement(".startstop", parent));
     });
 
     it("takes focus when the caller reports the teardown destroyed it", () => {

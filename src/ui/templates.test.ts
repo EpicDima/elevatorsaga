@@ -16,6 +16,7 @@ import {
   renderFragment,
   userTemplate,
 } from "./templates.ts";
+import type { ChallengeLinkData } from "./templates.ts";
 
 describe("escapeHtml", () => {
   it("escapes every character that could break out of markup", () => {
@@ -139,9 +140,29 @@ describe("userTemplate", () => {
 });
 
 describe("challengeTemplate", () => {
+  /**
+   * The navigation row's data for a list of challenges ending in the demo.
+   *
+   * @param count - How many challenges there are, the last being the demo.
+   * @param currentNum - The one-based challenge to mark as being played.
+   * @returns One entry per challenge.
+   */
+  function links(count: number, currentNum = 1): ChallengeLinkData[] {
+    return Array.from({ length: count }, (_unused, index) => ({
+      num: index + 1,
+      url: `#challenge=${String(index + 1)},timescale=8`,
+      current: index + 1 === currentNum,
+      demo: index + 1 === count,
+    }));
+  }
+
   it("inserts the challenge description as markup", () => {
     const fragment = renderFragment(
-      challengeTemplate({ num: 3, description: "Transport <span class='x'>15</span> people" }),
+      challengeTemplate({
+        num: 3,
+        description: "Transport <span class='x'>15</span> people",
+        links: links(4, 3),
+      }),
     );
     const title = fragment.querySelector(".challengetitle");
     expect(title?.textContent).toBe("Challenge #3: Transport 15 people");
@@ -149,7 +170,7 @@ describe("challengeTemplate", () => {
   });
 
   it("makes the time-scale controls real, labelled buttons", () => {
-    const fragment = renderFragment(challengeTemplate({ num: 1, description: "x" }));
+    const fragment = renderFragment(challengeTemplate({ num: 1, description: "x", links: [] }));
     expect(fragment.querySelector("button.timescale_decrease")?.getAttribute("aria-label")).toBe(
       "Decrease simulation speed",
     );
@@ -157,6 +178,93 @@ describe("challengeTemplate", () => {
       "Increase simulation speed",
     );
     expect(fragment.querySelector("button.startstop")).not.toBeNull();
+  });
+
+  it("gives every challenge a link of its own, the last one being the demo", () => {
+    // Reaching challenge 12 used to mean either winning eleven challenges or
+    // typing #challenge=12 into the address bar.
+    const fragment = renderFragment(
+      challengeTemplate({ num: 1, description: "x", links: links(19) }),
+    );
+    const entries = [...fragment.querySelectorAll("a.challengelink")];
+
+    expect(entries).toHaveLength(19);
+    expect(entries.map((entry) => entry.textContent)).toEqual([
+      ...Array.from({ length: 18 }, (_unused, index) => String(index + 1)),
+      "Demo",
+    ]);
+    expect(entries.at(-1)?.getAttribute("href")).toBe("#challenge=19,timescale=8");
+  });
+
+  it("names the links for a screen reader rather than leaving them as digits", () => {
+    const fragment = renderFragment(
+      challengeTemplate({ num: 1, description: "x", links: links(3) }),
+    );
+    const entries = [...fragment.querySelectorAll("a.challengelink")];
+
+    expect(entries.map((entry) => entry.getAttribute("aria-label"))).toEqual([
+      "Challenge 1",
+      "Challenge 2",
+      "Demo",
+    ]);
+    // WCAG 2.5.3: whatever is on screen has to be part of the spoken name, so
+    // speech input can still reach the control by what it says.
+    for (const entry of entries) {
+      expect(entry.getAttribute("aria-label")).toContain(entry.textContent);
+    }
+  });
+
+  it("marks the challenge being played, and only that one", () => {
+    const fragment = renderFragment(
+      challengeTemplate({ num: 2, description: "x", links: links(4, 2) }),
+    );
+    const marked = [...fragment.querySelectorAll("a.challengelink[aria-current]")];
+
+    expect(marked).toHaveLength(1);
+    expect(marked[0]?.getAttribute("aria-current")).toBe("page");
+    expect(marked[0]?.getAttribute("aria-label")).toBe("Challenge 2");
+  });
+
+  it("wraps the row in a named landmark holding a list", () => {
+    const fragment = renderFragment(
+      challengeTemplate({ num: 1, description: "x", links: links(3) }),
+    );
+    const nav = fragment.querySelector("nav.challengenav");
+
+    expect(nav?.getAttribute("aria-label")).toBe("Challenges");
+    // A list, so a screen reader says how many challenges there are before
+    // reading them out.
+    expect(nav?.querySelectorAll("ul > li > a.challengelink")).toHaveLength(3);
+  });
+
+  it("puts the row after the controls that were already in the bar", () => {
+    // The start and time-scale buttons keep the tab positions they have always
+    // had; the nineteen new stops come after them.
+    const fragment = renderFragment(
+      challengeTemplate({ num: 1, description: "x", links: links(3) }),
+    );
+    const focusable = [...fragment.querySelectorAll("button, a")];
+
+    expect(focusable.slice(0, 3).map((element) => element.className)).toEqual([
+      "right startstop unselectable",
+      "timescale_decrease unselectable",
+      "timescale_increase unselectable",
+    ]);
+    expect(focusable.slice(3).every((element) => element.tagName === "A")).toBe(true);
+  });
+
+  it("escapes a link url rebuilt from the location hash", () => {
+    const hostile = `#challenge=1,evil="><script>x</script>`;
+    const fragment = renderFragment(
+      challengeTemplate({
+        num: 1,
+        description: "x",
+        links: [{ num: 1, url: hostile, current: false, demo: false }],
+      }),
+    );
+
+    expect(fragment.querySelector("script")).toBeNull();
+    expect(fragment.querySelector("a.challengelink")?.getAttribute("href")).toBe(hostile);
   });
 });
 

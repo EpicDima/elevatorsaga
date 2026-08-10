@@ -165,6 +165,50 @@ export function userTemplate(displayType: UserDisplayType, leaving: boolean): st
   return iconMarkup(displayType, leaving ? "movable user leaving" : "movable user");
 }
 
+/** One entry of the challenge bar's navigation row. */
+export interface ChallengeLinkData {
+  /** One-based challenge number, exactly as it appears in the URL. */
+  readonly num: number;
+  /**
+   * Where the entry goes.
+   *
+   * A whole hash URL rather than a challenge number, because it has to carry
+   * the rest of the parameters with it; the app builds it with
+   * `createParamsUrl`.
+   */
+  readonly url: string;
+  /** Whether this is the challenge being played. */
+  readonly current: boolean;
+  /** Whether this entry is the endless demo rather than a numbered challenge. */
+  readonly demo: boolean;
+}
+
+/**
+ * One entry of the challenge navigation row.
+ *
+ * The visible label is the bare number: nineteen of these have to fit across a
+ * phone. The accessible name is not, because "7" on its own says nothing about
+ * where the link goes, and a screen reader reading the row out would produce
+ * nineteen unrelated digits. The visible text is contained in the accessible
+ * name, which is what WCAG 2.5.3 asks of a control whose two names differ — and
+ * what lets speech input reach it by the label on screen.
+ *
+ * `aria-current` marks the entry being played for assistive technology; the
+ * stylesheet marks the same entry for everyone else off the same attribute, so
+ * the two cannot drift apart. `page` is the value rather than `true` because
+ * each entry is a real link to a real URL, and following one replaces what the
+ * page is showing.
+ *
+ * @param link - Where the entry goes, and whether it is the current one.
+ * @returns The list-item markup.
+ */
+function challengeLinkTemplate(link: ChallengeLinkData): string {
+  const label = link.demo ? "Demo" : String(link.num);
+  const name = link.demo ? "Demo" : `Challenge ${String(link.num)}`;
+  const current = link.current ? raw(` aria-current="page"`) : raw("");
+  return markup`<li><a class="challengelink" href="${link.url}" aria-label="${name}"${current}>${label}</a></li>`;
+}
+
 /** Everything the challenge bar needs in order to render itself. */
 export interface ChallengeTemplateData {
   /** One-based challenge number. */
@@ -177,20 +221,34 @@ export interface ChallengeTemplateData {
    * from player input, so it is inserted verbatim.
    */
   readonly description: string;
+  /** Every challenge, in order, for the navigation row. */
+  readonly links: readonly ChallengeLinkData[];
 }
 
 /**
- * The challenge bar: requirement text, time-scale controls and start button.
+ * The challenge bar: requirement text, time-scale controls, start button and a
+ * link to every challenge.
  *
  * The time-scale controls used to be a `<h3>` wrapping two clickable `<i>`
  * elements. They are a plain container with real buttons now; `.timescale`
  * carries the heading's former metrics so the bar looks the same.
  *
- * @param data - The challenge number and requirement.
+ * The navigation row comes last, so the three controls that were already there
+ * keep the tab positions they have always had. It is a `<nav>` around a list:
+ * the landmark gives it a name and a way to be jumped to, and the list tells a
+ * screen reader up front how many challenges there are — the one thing the row
+ * is for. Real links rather than buttons, so the browser's own affordances
+ * (open in a new tab, copy the address, the status bar) all work; navigation is
+ * the hash change the router already listens for, so nothing has to be wired to
+ * them at all.
+ *
+ * @param data - The challenge number, the requirement and the whole challenge
+ * list.
  * @returns The challenge bar markup.
  */
 export function challengeTemplate(data: ChallengeTemplateData): string {
-  return markup`<div class="left"><h2 class="challengetitle">Challenge #${data.num}: ${raw(data.description)}</h2></div><button type="button" class="right startstop unselectable"></button><div class="right timescale"><button type="button" class="timescale_decrease unselectable" aria-label="Decrease simulation speed">${raw(iconMarkup("minus-square"))}</button> <span class="emphasis-color timescale_value"></span> <button type="button" class="timescale_increase unselectable" aria-label="Increase simulation speed">${raw(iconMarkup("plus-square"))}</button></div>`;
+  const links = data.links.map((link) => challengeLinkTemplate(link)).join("");
+  return markup`<div class="left"><h2 class="challengetitle">Challenge #${data.num}: ${raw(data.description)}</h2></div><button type="button" class="right startstop unselectable"></button><div class="right timescale"><button type="button" class="timescale_decrease unselectable" aria-label="Decrease simulation speed">${raw(iconMarkup("minus-square"))}</button> <span class="emphasis-color timescale_value"></span> <button type="button" class="timescale_increase unselectable" aria-label="Increase simulation speed">${raw(iconMarkup("plus-square"))}</button></div><nav class="challengenav" aria-label="Challenges"><ul>${raw(links)}</ul></nav>`;
 }
 
 /** Everything the end-of-challenge overlay needs in order to render itself. */

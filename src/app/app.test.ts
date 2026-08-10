@@ -10,7 +10,7 @@ import { CodeEditor } from "../ui/editor.ts";
 import { createElement, FakeTextEditorView, MemoryStorage } from "../ui/test-helpers.ts";
 import { App, TIME_SCALE_STORAGE_KEY, readStoredTimeScale } from "./app.ts";
 import type { AppElements } from "./app.ts";
-import { parseQuery, resolveRoute } from "./router.ts";
+import { parseQuery, resolveRoute, startRouter } from "./router.ts";
 import { DEFAULT_TIME_SCALE } from "./time-scale.ts";
 
 /** A program that compiles and does nothing. */
@@ -201,6 +201,81 @@ describe("App challenge outcome", () => {
   });
 });
 
+describe("App challenge navigation", () => {
+  it("puts a link to every challenge in the bar, marking the one being played", () => {
+    const { app, elements } = setUp();
+    app.handleRoute(...routeFor("#challenge=2"));
+
+    const entries = queryAll(".challengelink", elements.challenge);
+    expect(entries.map((entry) => entry.getAttribute("aria-label"))).toEqual([
+      "Challenge 1",
+      "Challenge 2",
+      // The last challenge is the endless demo, which is labelled rather than
+      // numbered; here that is the third of the test list.
+      "Demo",
+    ]);
+    expect(entries.map((entry) => entry.getAttribute("aria-current"))).toEqual([
+      null,
+      "page",
+      null,
+    ]);
+  });
+
+  it("keeps the rest of the url when jumping to another challenge", () => {
+    // The one implementation of this feature in the wild assigns the whole
+    // location hash, so taking a jump throws away the speed and the autostart
+    // the player arrived with. Every entry is built from the current
+    // parameters instead.
+    const { app, elements } = setUp();
+    app.handleRoute(...routeFor("#challenge=1,timescale=8,autostart=true"));
+
+    expect(
+      queryAll(".challengelink", elements.challenge).map((entry) => entry.getAttribute("href")),
+    ).toEqual([
+      "#challenge=1,timescale=8,autostart=true",
+      "#challenge=2,timescale=8,autostart=true",
+      "#challenge=3,timescale=8,autostart=true",
+    ]);
+  });
+
+  it("carries an unknown parameter across a jump as well", () => {
+    // parseQuery keeps keys it does not understand, and createParamsUrl round
+    // trips them, so a link someone hand-wrote survives being navigated from.
+    const { app, elements } = setUp();
+    app.handleRoute(...routeFor("#challenge=1,fullscreen,somethingelse=7"));
+
+    expect(
+      requireElement('[aria-label="Challenge 2"]', elements.challenge).getAttribute("href"),
+    ).toBe("#challenge=2,fullscreen=,somethingelse=7");
+  });
+
+  it("starts the challenge a link names when it is clicked", async () => {
+    // The whole way round: the anchor navigates, the router hears the hash
+    // change and the app starts the challenge it names.
+    const { app, elements } = setUp();
+    window.location.hash = "#challenge=1,timescale=8";
+    const stopRouter = startRouter(
+      (params, query) => {
+        app.handleRoute(params, query);
+      },
+      { challengeCount: CHALLENGES.length, defaultTimeScale: () => DEFAULT_TIME_SCALE },
+    );
+
+    try {
+      requireElement('[aria-label="Challenge 2"]', elements.challenge).click();
+
+      await vi.waitFor(() => {
+        expect(app.currentChallengeIndex).toBe(1);
+      });
+      expect(window.location.hash).toBe("#challenge=2,timescale=8");
+      expect(app.worldController.timeScale).toBe(8);
+    } finally {
+      stopRouter();
+      window.location.hash = "";
+    }
+  });
+});
+
 describe("App focus", () => {
   it("hands focus to the start button when the next-challenge link is taken", () => {
     // Activating the link navigates, which starts the next challenge, which
@@ -222,6 +297,22 @@ describe("App focus", () => {
     expect(document.activeElement).toBe(startStop);
     // Focused after it has its label, so it is not announced unnamed.
     expect(startStop.textContent).toBe("Start");
+  });
+
+  it("keeps focus in the navigation row when a challenge is taken from it", () => {
+    // Tabbing to "Challenge 2" and pressing it rebuilds the bar under the
+    // player's feet, exactly as the next-challenge link does. They stay where
+    // they were: on the entry that replaced the one they pressed, which is now
+    // the current challenge.
+    const { app, elements } = setUp();
+    app.handleRoute(...routeFor("#challenge=1"));
+    requireElement('[aria-label="Challenge 2"]', elements.challenge).focus();
+
+    app.handleRoute(...routeFor("#challenge=2"));
+
+    const entry = requireElement('[aria-label="Challenge 2"]', elements.challenge);
+    expect(document.activeElement).toBe(entry);
+    expect(entry.getAttribute("aria-current")).toBe("page");
   });
 
   it("hands focus to the start button when the building it was in is torn down", () => {

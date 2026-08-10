@@ -29,10 +29,13 @@ import {
   renderElement,
   userTemplate,
 } from "./templates.ts";
-import type { UserDisplayType } from "./templates.ts";
+import type { ChallengeLinkData, UserDisplayType } from "./templates.ts";
 
 /** Class on `<html>` that hides everything except the world. */
 export const FULLSCREEN_CLASS = "fullscreen-demo";
+
+/** Selector matching the links of the challenge bar's navigation row. */
+const CHALLENGE_LINK_SELECTOR = ".challengelink";
 
 /**
  * Empties several containers.
@@ -125,6 +128,14 @@ export interface ChallengePresenterOptions {
   readonly challengeNum: number;
   /** The challenge requirement; contains markup from `src/game/challenges.ts`. */
   readonly description: string;
+  /**
+   * One entry per challenge for the navigation row, in playing order.
+   *
+   * Built by the app, which is where the current URL parameters live: every
+   * entry has to keep them, so that jumping to a challenge does not silently
+   * throw away the speed or the autostart the player arrived with.
+   */
+  readonly challengeLinks: readonly ChallengeLinkData[];
   /** The world being played, consulted for `challengeEnded`. */
   readonly world: Pick<World, "challengeEnded">;
   /** The controller being driven, consulted for `isPaused` and `timeScale`. */
@@ -207,9 +218,20 @@ export function presentChallenge(
       parent.contains(document.activeElement) &&
       parent !== document.activeElement);
 
+  // Taking a link out of the navigation row destroys the focused element for
+  // the same reason Restart does, and the start button is the wrong landing
+  // place for it: a player working through the row with the keyboard has to be
+  // able to carry on down it. The row is rebuilt entry for entry, so the entry
+  // that replaces the one that was pressed is the one in the same position —
+  // which is also the one now marked as current.
+  const focusedLinkIndex = queryAll(CHALLENGE_LINK_SELECTOR, parent).findIndex(
+    (link) => link === document.activeElement,
+  );
+
   parent.innerHTML = challengeTemplate({
     num: options.challengeNum,
     description: options.description,
+    links: options.challengeLinks,
   });
 
   const startStop = requireElement(".startstop", parent);
@@ -238,7 +260,10 @@ export function presentChallenge(
   // After update(), so the button already has its label when it takes focus and
   // a screen reader announces "Start" rather than an unnamed button.
   presenter.update();
-  if (restoreFocus) {
+  const focusedLink = queryAll(CHALLENGE_LINK_SELECTOR, parent)[focusedLinkIndex];
+  if (focusedLink !== undefined) {
+    focusedLink.focus();
+  } else if (restoreFocus) {
     startStop.focus();
   }
   return presenter;

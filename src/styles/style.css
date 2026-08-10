@@ -304,9 +304,15 @@ dl dd {
 
 /* --------------------------------------------------------- Challenge bar */
 
+/*
+ * The bar was a fixed 40px, which was exactly the title line it held. It now
+ * has a second line under the floats -- the row of challenge links -- and that
+ * row has to be allowed to grow: on a phone nineteen entries wrap onto three or
+ * four lines, and a fixed height would leave them lying over the building.
+ */
 .challenge {
   display: flow-root;
-  block-size: 40px;
+  min-block-size: 40px;
 }
 
 .challengetitle {
@@ -334,6 +340,78 @@ dl dd {
   display: inline-block;
   inline-size: 22px;
   text-align: center;
+}
+
+/*
+ * Quick navigation between challenges.
+ *
+ * `clear` puts the row under the floated title and controls above it, which is
+ * the one thing `flow-root` on the bar does not do on its own.
+ */
+.challengenav {
+  clear: both;
+  padding-block: 2px 8px;
+}
+
+/*
+ * A wrapping flex row, not a fixed grid: nineteen entries fit one line at the
+ * shell's full width and fall into three or four at 320px, where the
+ * alternative -- a row that will not wrap -- is a page that has to be read by
+ * panning sideways (WCAG 1.4.10).
+ */
+.challengenav ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/*
+ * The chrome is the start button's, so the row reads as part of the same bar.
+ * The box is 30x28 including its border, which clears the 24x24 minimum for a
+ * pointer target (WCAG 2.5.8) with the gap between entries on top of it.
+ */
+.challengelink {
+  display: block;
+  min-inline-size: 16px;
+  padding: 4px 6px;
+  border: 1px solid var(--color-control-border);
+  border-radius: 5px;
+  background-color: var(--color-control);
+  color: var(--color-text-strong);
+  font-size: 14px;
+  line-height: 18px;
+  text-align: center;
+  text-shadow: 0 0 3px #aaa;
+}
+
+/*
+ * `a:hover` underlines by default, which would collide with the underline that
+ * marks the current challenge below; the border does the hovering instead.
+ */
+.challengelink:hover {
+  border-color: var(--color-text-strong);
+  text-decoration: none;
+}
+
+/*
+ * The challenge being played. Driven by the same `aria-current` the screen
+ * reader is, so the two cannot drift apart.
+ *
+ * The fill is the accent inverted -- 10.9:1, the same pair the feedback overlay
+ * uses -- and the underline is there so the mark is not carried by colour alone
+ * (WCAG 1.4.1). It is also what survives forced-colours mode, where the system
+ * replaces the fill and the text colour but leaves the decoration.
+ */
+.challengelink[aria-current] {
+  border-color: var(--color-emphasis-on-page);
+  background-color: var(--color-emphasis-on-page);
+  color: var(--color-emphasis);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  text-shadow: none;
 }
 
 /* ------------------------------------------------------------------ Buttons */

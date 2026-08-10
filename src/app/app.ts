@@ -22,6 +22,7 @@ import {
   setDemoFullscreen,
 } from "../ui/presenters.ts";
 import type { ChallengePresenter } from "../ui/presenters.ts";
+import type { ChallengeLinkData } from "../ui/templates.ts";
 import { createParamsUrl } from "./router.ts";
 import type { RouteParams, RouteQuery } from "./router.ts";
 import { clampTimeScale, decreasedTimeScale, increasedTimeScale } from "./time-scale.ts";
@@ -173,6 +174,35 @@ export class App {
     });
   }
 
+  /**
+   * The navigation row of the challenge bar: one entry per challenge.
+   *
+   * Every entry is built with {@link createParamsUrl} from the parameters the
+   * current challenge was started with, exactly as the next-challenge link is.
+   * That is the whole point of the row: assigning `location.hash` outright --
+   * which is how this feature is usually written -- would drop `timescale`,
+   * `autostart`, `devtest` and anything else the URL is carrying, so a player
+   * who had chosen 8x speed would silently lose it by jumping to another
+   * challenge.
+   *
+   * The last challenge is the endless demo (`requireDemo` in
+   * `src/game/challenges.ts`): it has no win condition, so it is labelled
+   * rather than numbered, and the row says so instead of offering a "challenge"
+   * that can never be completed.
+   *
+   * @param challengeIndex - The challenge about to be drawn, marked as current.
+   * @returns One entry per challenge, in playing order.
+   */
+  #challengeLinks(challengeIndex: number): readonly ChallengeLinkData[] {
+    const lastIndex = this.challenges.length - 1;
+    return this.challenges.map((_challenge, index) => ({
+      num: index + 1,
+      url: createParamsUrl(this.#query, { challenge: index + 1 }),
+      current: index === challengeIndex,
+      demo: index === lastIndex,
+    }));
+  }
+
   /** Remembers the current time scale for the next visit. */
   #storeTimeScale(): void {
     try {
@@ -238,6 +268,7 @@ export class App {
     this.#challengePresenter = presentChallenge(this.#elements.challenge, {
       challengeNum: challengeIndex + 1,
       description: challenge.condition.description,
+      challengeLinks: this.#challengeLinks(challengeIndex),
       world,
       worldController: this.worldController,
       focusWasDestroyed,
