@@ -370,7 +370,7 @@ export class Observable<E extends EventArgsMap> {
  * name, so nesting either inside the other is refused as well. Guarding only
  * {@link Observable.triggerSafe} would have left the whole guard bypassable:
  * `trigger` is published surface on the elevator facade — the legacy one really
- * was a `riot.observable(obj)` (`interfaces.js:5`) — so player code can call it,
+ * was a `riot.observable(obj)` (`interfaces.js:6`) — so player code can call it,
  * and a `trigger` from inside a `triggerSafe` handler would have been a plain
  * unguarded recursion that ends in a paused game.
  *

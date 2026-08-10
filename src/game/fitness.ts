@@ -5,8 +5,9 @@
  * Ported from the logic half of the legacy `fitness.js`. The web-worker wiring
  * that used to live here (`fitnessSuite` and `fitnessworker.js`) is now
  * `src/app/fitness.ts` and `src/app/fitness-worker.ts`; {@link doFitnessSuite}
- * is called from both (`src/app/fitness-worker.ts:25` inside the worker, and
- * `src/app/fitness.ts:84` on the main thread when a worker cannot be spawned).
+ * is called from both — from `self.onmessage` in `src/app/fitness-worker.ts`
+ * inside the worker, and from `runFitnessSuite` in `src/app/fitness.ts` on the
+ * main thread when a worker cannot be spawned.
  */
 
 import type { ChallengeCondition } from "./challenges.ts";

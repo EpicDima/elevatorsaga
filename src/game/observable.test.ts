@@ -500,7 +500,7 @@ describe("PlayerObservable", () => {
   });
 
   it("refuses to re-enter a trigger dispatch of the same event", () => {
-    // `trigger` is published on the elevator facade (interfaces.js:5 made it a
+    // `trigger` is published on the elevator facade (interfaces.js:6 made it a
     // `riot.observable`), so player code reaches it and the guard has to cover
     // it too. riot's own `fn.busy` (libs/riot.js:43-48) is what absorbed this.
     const emitter = new PlayerObservable<TestEvents>();
