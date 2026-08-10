@@ -13,6 +13,12 @@ import { Floor } from "./floor.ts";
 import { FloorInterface } from "./floor-interface.ts";
 import { randomInt } from "./math.ts";
 import { Observable } from "./observable.ts";
+import {
+  createRandomSource,
+  generateRandomSeed,
+  type RandomSeed,
+  type RandomSource,
+} from "./random.ts";
 import { User } from "./user.ts";
 
 /** Options a challenge may set on the world it runs in. */
@@ -156,14 +162,20 @@ export function createElevators(
 /**
  * Creates a passenger with a random weight and appearance.
  *
+ * Draws weight, then the child roll, then the gender roll, in that order and
+ * over those ranges — the order `legacy-1.x:world.js:32-36` drew them in. The
+ * order is part of what a seed reproduces, so it may not be rearranged even
+ * where it reads better.
+ *
+ * @param random - Stream to draw from; the world hands over its own.
  * @returns The new passenger, not yet placed on a floor.
  */
-export function createRandomUser(): User {
-  const weight = randomInt(55, 100);
-  const user = new User(weight);
-  if (randomInt(0, CHILD_ODDS) === 0) {
+export function createRandomUser(random: RandomSource): User {
+  const weight = randomInt(55, 100, random);
+  const user = new User(weight, random);
+  if (randomInt(0, CHILD_ODDS, random) === 0) {
     user.displayType = "child";
-  } else if (randomInt(0, 1) === 0) {
+  } else if (randomInt(0, 1, random) === 0) {
     user.displayType = "female";
   } else {
     user.displayType = "male";
@@ -177,27 +189,35 @@ export function createRandomUser(): User {
  * Half of all passengers start in the lobby and travel up; the rest usually
  * head back down to the lobby.
  *
+ * The draws happen in the order `legacy-1.x:world.js:46-55` made them — spawn
+ * offset, "start in the lobby?", origin floor, then the destination — and the
+ * short-circuit in the origin line means a passenger who starts in the lobby
+ * costs one draw fewer than one who does not. That is load-bearing for replay,
+ * so it stays exactly as it is.
+ *
  * @param floorCount - Number of floors in the building.
  * @param _floorHeight - Unused; part of the legacy signature.
  * @param floors - The building's floors, indexed by floor number.
+ * @param random - Stream to draw from; the world hands over its own.
  * @returns The new passenger, already waiting for an elevator.
  */
 export function spawnUserRandomly(
   floorCount: number,
   _floorHeight: number,
   floors: readonly Floor[],
+  random: RandomSource,
 ): User {
-  const user = createRandomUser();
-  user.moveTo(105 + randomInt(0, 40), 0);
-  const currentFloor = randomInt(0, 1) === 0 ? 0 : randomInt(0, floorCount - 1);
+  const user = createRandomUser(random);
+  user.moveTo(105 + randomInt(0, 40, random), 0);
+  const currentFloor = randomInt(0, 1, random) === 0 ? 0 : randomInt(0, floorCount - 1, random);
   let destinationFloor: number;
   if (currentFloor === 0) {
     // Definitely going up
-    destinationFloor = randomInt(1, floorCount - 1);
+    destinationFloor = randomInt(1, floorCount - 1, random);
   } else {
     // Usually going down, but sometimes not
-    if (randomInt(0, NON_LOBBY_DESTINATION_ODDS) === 0) {
-      destinationFloor = (currentFloor + randomInt(1, floorCount - 1)) % floorCount;
+    if (randomInt(0, NON_LOBBY_DESTINATION_ODDS, random) === 0) {
+      destinationFloor = (currentFloor + randomInt(1, floorCount - 1, random)) % floorCount;
     } else {
       destinationFloor = 0;
     }
@@ -210,6 +230,17 @@ export function spawnUserRandomly(
 export class World extends Observable<WorldEvents> {
   /** Height of one floor in world units. */
   readonly floorHeight: number;
+  /**
+   * Seed this world's randomness was built from, or `null` when a ready-made
+   * stream was injected instead.
+   *
+   * Recorded even when nobody asked for a particular one, because the run worth
+   * repeating is almost always one that has already happened: print this and
+   * pass it back to {@link createWorld} to get the same run again. `null` only
+   * happens when a caller — in practice a test — supplied its own
+   * {@link RandomSource}, which it can reproduce by construction.
+   */
+  readonly seed: RandomSeed | null;
   /** The building's floors, indexed by floor number. */
   floors: Floor[];
   /** The facades handed to player code, parallel to {@link floors}. */
@@ -238,13 +269,29 @@ export class World extends Observable<WorldEvents> {
 
   readonly #floorCount: number;
   readonly #spawnRate: number;
+  readonly #random: RandomSource;
   #elapsedSinceSpawn: number;
 
   /**
    * @param options - Challenge options; missing values take the defaults.
+   * @param random - Either a seed to build this world's stream from, or a
+   * ready-made stream. A seed is what callers want: it is recorded on
+   * {@link seed} and replays the run. A stream is for tests that need to pin
+   * individual draws rather than a whole run. Defaults to a freshly generated
+   * seed, so that even a run nobody seeded can be repeated afterwards.
    */
-  constructor(options: WorldOptions = {}) {
+  constructor(
+    options: WorldOptions = {},
+    random: RandomSeed | RandomSource = generateRandomSeed(),
+  ) {
     super();
+    if (typeof random === "function") {
+      this.seed = null;
+      this.#random = random;
+    } else {
+      this.seed = random;
+      this.#random = createRandomSource(random);
+    }
     this.floorHeight = options.floorHeight ?? DEFAULT_OPTIONS.floorHeight;
     this.#floorCount = options.floorCount ?? DEFAULT_OPTIONS.floorCount;
     this.#spawnRate = options.spawnRate ?? DEFAULT_OPTIONS.spawnRate;
@@ -370,7 +417,7 @@ export class World extends Observable<WorldEvents> {
   #handleButtonRepressing(direction: "up" | "down", floor: Floor): void {
     // Need randomize iteration order or we'll tend to fill upp first elevator
     const len = this.elevators.length;
-    const offset = randomInt(0, len - 1);
+    const offset = randomInt(0, len - 1, this.#random);
     for (let i = 0; i < len; ++i) {
       const elevIndex = (i + offset) % len;
       const elevator = requireAt(this.elevators, elevIndex, "elevator");
@@ -407,7 +454,9 @@ export class World extends Observable<WorldEvents> {
     this.#elapsedSinceSpawn += dt;
     while (this.#elapsedSinceSpawn > 1.0 / this.#spawnRate) {
       this.#elapsedSinceSpawn -= 1.0 / this.#spawnRate;
-      this.#registerUser(spawnUserRandomly(this.#floorCount, this.floorHeight, this.floors));
+      this.#registerUser(
+        spawnUserRandomly(this.#floorCount, this.floorHeight, this.floors, this.#random),
+      );
     }
 
     // Use regular for loops for performance and memory friendlyness
@@ -490,8 +539,11 @@ export class World extends Observable<WorldEvents> {
  * Creates a world for a challenge.
  *
  * @param options - Challenge options; missing values take the defaults.
+ * @param random - Seed to replay a run from, or a ready-made stream for tests.
+ * Omit it for a fresh run; the seed that gets generated is recorded on
+ * {@link World.seed}, so the run stays repeatable afterwards.
  * @returns The new world.
  */
-export function createWorld(options: WorldOptions = {}): World {
-  return new World(options);
+export function createWorld(options: WorldOptions = {}, random?: RandomSeed | RandomSource): World {
+  return new World(options, random);
 }

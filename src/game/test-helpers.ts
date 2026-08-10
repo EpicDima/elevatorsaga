@@ -4,6 +4,32 @@
  * Not part of the game bundle; excluded from coverage in `vite.config.ts`.
  */
 
+import type { RandomSource } from "./random.ts";
+
+/**
+ * A {@link RandomSource} that hands out exactly the values it was given.
+ *
+ * The clearer replacement for chains of `vi.spyOn(Math, "random")` with
+ * `mockReturnValueOnce`: the values are what the code under test will see, in
+ * order, and running off the end is a test bug rather than a silent `NaN`. Use
+ * it to steer a single decision; a whole run is better pinned with a seed.
+ *
+ * @param values - The values to return, in order.
+ * @returns A source that yields them one per call.
+ * @throws When called more times than there are values.
+ */
+export function scriptedRandom(values: readonly number[]): RandomSource {
+  let index = 0;
+  return (): number => {
+    const value = values[index];
+    if (value === undefined) {
+      throw new Error(`Scripted random source exhausted after ${String(values.length)} draws`);
+    }
+    index++;
+    return value;
+  };
+}
+
 /**
  * Steps a simulation forward in fixed increments.
  *

@@ -12,6 +12,7 @@
 
 import type { ChallengeCondition } from "./challenges.ts";
 import { createFrameRequester } from "./frame-requester.ts";
+import type { RandomSeed } from "./random.ts";
 import { getCodeObjFromCode } from "./user-code.ts";
 import { createWorld, type WorldOptions } from "./world.ts";
 import { createWorldController, type UserCodeObject } from "./world-controller.ts";
@@ -150,6 +151,11 @@ function stringifyError(value: unknown): string {
  * @param codeObj - The player's code object.
  * @param stepSize - Milliseconds per simulated frame.
  * @param stepsToSimulate - Number of frames to run, at most.
+ * @param seed - Seed for the world's randomness. Omitted, each call gets a
+ * fresh one, which is what {@link doFitnessSuite} wants: it averages several
+ * runs, and repeating one identical run would say nothing. Supply one to
+ * benchmark two solutions against the very same passengers, or to look at a
+ * score that came out surprising a second time.
  * @returns The metrics, or an object carrying the error the code threw.
  */
 export function calculateFitness(
@@ -157,6 +163,7 @@ export function calculateFitness(
   codeObj: UserCodeObject,
   stepSize: number,
   stepsToSimulate: number,
+  seed?: RandomSeed,
 ): FitnessResult {
   // The controller takes seconds; the frame requester takes milliseconds. The
   // legacy code passed stepSize to both (fitness.js:17,22), so the substepping
@@ -164,7 +171,7 @@ export function calculateFitness(
   const controller = createWorldController(SIMULATION_STEP_SECONDS);
   const result: FitnessResult = {};
 
-  const world = createWorld(challenge.options);
+  const world = createWorld(challenge.options, seed);
   const frameRequester = createFrameRequester(stepSize);
 
   controller.on("usercode_error", (e) => {

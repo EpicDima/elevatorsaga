@@ -86,8 +86,10 @@ export class Floor extends Observable<FloorEvents> {
    * itself — a passenger refused by a full car presses the button again while
    * `*_button_pressed` is still in flight — and `World.handleButtonRepressing`
    * has to run for the nested call as it does for any other, not least because
-   * it draws from the shared `Math.random` stream before it decides there is
-   * nothing to do. Player code is still protected: the events are forwarded to
+   * it draws from the world's {@link "./random.ts"!RandomSource} before it
+   * decides there is nothing to do. Swallowing that call would drop a draw and
+   * shift every later one, so the same seed would stop replaying the same run.
+   * Player code is still protected: the events are forwarded to
    * a {@link "./floor-interface.ts"!FloorInterface}, whose emitter is a
    * {@link PlayerObservable} and does refuse the nested forward.
    *

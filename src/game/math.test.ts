@@ -12,6 +12,7 @@ import {
   powInterpolate,
   randomInt,
 } from "./math.ts";
+import { createRandomSource } from "./random.ts";
 
 describe("limitNumber", () => {
   it("returns the value untouched when it is inside the range", () => {
@@ -183,16 +184,18 @@ describe("coolInterpolate", () => {
 
 describe("randomInt", () => {
   it("is inclusive on both ends", () => {
+    const random = createRandomSource("randomInt");
     const seen = new Set<number>();
     for (let i = 0; i < 2000; i++) {
-      seen.add(randomInt(0, 2));
+      seen.add(randomInt(0, 2, random));
     }
     expect([...seen].sort((a, b) => a - b)).toEqual([0, 1, 2]);
   });
 
   it("only ever returns values inside the range", () => {
+    const random = createRandomSource("randomInt");
     for (let i = 0; i < 2000; i++) {
-      const value = randomInt(55, 100);
+      const value = randomInt(55, 100, random);
       expect(value).toBeGreaterThanOrEqual(55);
       expect(value).toBeLessThanOrEqual(100);
       expect(Number.isInteger(value)).toBe(true);
@@ -200,15 +203,34 @@ describe("randomInt", () => {
   });
 
   it("returns the only possible value for a single-value range", () => {
-    expect(randomInt(7, 7)).toBe(7);
+    expect(randomInt(7, 7, createRandomSource("randomInt"))).toBe(7);
   });
 
-  it("maps the extremes of Math.random to min and max", () => {
-    const random = vi.spyOn(Math, "random");
-    random.mockReturnValue(0);
-    expect(randomInt(0, 40)).toBe(0);
-    random.mockReturnValue(0.9999999999);
-    expect(randomInt(0, 40)).toBe(40);
-    random.mockRestore();
+  it("maps the extremes of its source to min and max", () => {
+    expect(randomInt(0, 40, () => 0)).toBe(0);
+    expect(randomInt(0, 40, () => 0.9999999999)).toBe(40);
+  });
+
+  it("spreads a uniform source evenly over the range", () => {
+    // The distribution is the whole contract, since it is all a legacy run
+    // could ever have observed of `Math.random`. A source sweeping [0, 1) has
+    // to land the same number of times on each of the eleven values of the
+    // one-in-eleven roll that decides where a passenger above the lobby goes.
+    const draws = 11 * 500;
+    const counts = new Map<number, number>();
+    for (let i = 0; i < draws; i++) {
+      const value = randomInt(0, 10, () => i / draws);
+      counts.set(value, (counts.get(value) ?? 0) + 1);
+    }
+    expect([...counts.keys()].sort((a, b) => a - b)).toEqual([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+    expect([...counts.values()]).toEqual(Array.from({ length: 11 }, () => 500));
+  });
+
+  it("falls back to Math.random when no source is given", () => {
+    // The default is what keeps the call sites that have no source threaded to
+    // them yet - `Elevator.userEntering` - behaving exactly as before.
+    vi.spyOn(Math, "random").mockReturnValue(0.5);
+    expect(randomInt(0, 10)).toBe(5);
+    vi.restoreAllMocks();
   });
 });

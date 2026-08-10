@@ -10,6 +10,7 @@ import type { Elevator } from "./elevator.ts";
 import type { Floor } from "./floor.ts";
 import { linearInterpolate } from "./math.ts";
 import { Movable } from "./movable.ts";
+import { systemRandom, type RandomSource } from "./random.ts";
 
 /** How a passenger is drawn. Assigned by the world when spawning. */
 export type UserDisplayType = "child" | "female" | "male";
@@ -52,12 +53,20 @@ export class User extends Movable<UserEvents> {
   /** Subscription to the current elevator's `exit_available`, while riding. */
   exitAvailableHandler: ExitAvailableHandler | null = null;
 
+  /** Stream the walk-off duration is drawn from. */
+  readonly #random: RandomSource;
+
   /**
    * @param weight - Passenger weight, used for the elevator load factor.
+   * @param random - Stream to draw the walk-off duration from. The world hands
+   * over its own seeded source, so that when the passenger leaves the world is
+   * part of a replayable run; the unseeded default is only for callers that
+   * build a passenger outside a world.
    */
-  constructor(weight: number) {
+  constructor(weight: number, random: RandomSource = systemRandom) {
     super();
     this.weight = weight;
+    this.#random = random;
   }
 
   /**
@@ -108,7 +117,10 @@ export class User extends Movable<UserEvents> {
       this.emitMovable("new_state", this);
       this.emitMovable("new_display_state", this);
 
-      this.moveToOverTime(destination, null, 1 + Math.random() * 0.5, linearInterpolate, () => {
+      // One to one and a half seconds to walk off, exactly as `user.js:41`
+      // drew it — only the stream it is drawn from is the caller's choice now.
+      const walkOffDuration = 1 + this.#random() * 0.5;
+      this.moveToOverTime(destination, null, walkOffDuration, linearInterpolate, () => {
         this.removeMe = true;
         this.trigger("removed");
         this.offAll();

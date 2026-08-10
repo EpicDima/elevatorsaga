@@ -2,7 +2,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { Elevator } from "./elevator.ts";
 import { Floor } from "./floor.ts";
-import { at, timeForwarder } from "./test-helpers.ts";
+import type { RandomSource } from "./random.ts";
+import { assertWithinRange, at, timeForwarder } from "./test-helpers.ts";
 import { User } from "./user.ts";
 
 const FLOOR_COUNT = 4;
@@ -318,5 +319,72 @@ describe("User exit", () => {
 
     expect(user.removeMe).toBe(true);
     expect(user.x).toBeCloseTo(xOnExit + 100, 10);
+  });
+});
+
+describe("User walk-off duration", () => {
+  /** Step size the walk-off is measured with, in simulated seconds. */
+  const MEASURE_STEP = 0.01;
+
+  /**
+   * Delivers a passenger to floor 2 and times their walk off to the right.
+   *
+   * @param random - Stream the passenger draws the duration from; omitted, the
+   * passenger falls back to its own.
+   * @returns Simulated seconds between stepping out and being removable,
+   * rounded up to a whole step.
+   */
+  function measureWalkOff(random?: RandomSource): number {
+    const floors = makeFloors();
+    const elevator = new Elevator(2.6, FLOOR_COUNT, FLOOR_HEIGHT);
+    elevator.setFloorPosition(0);
+    const user = new User(70, random);
+    const floor = at(floors, 0);
+    user.appearOnFloor(floor, 2);
+    user.elevatorAvailable(elevator, floor);
+    step(2.0, 0.05, user, elevator);
+    elevator.goToFloor(2);
+
+    for (let i = 0; i < 10000 && !user.done; i++) {
+      elevator.update(MEASURE_STEP);
+      elevator.updateElevatorMovement(MEASURE_STEP);
+      user.update(MEASURE_STEP);
+    }
+    expect(user.done).toBe(true);
+    // The frame the passenger stepped out on also advanced the walk by a step.
+    let walkOff = MEASURE_STEP;
+    for (let i = 0; i < 10000 && !user.removeMe; i++) {
+      user.update(MEASURE_STEP);
+      walkOff += MEASURE_STEP;
+    }
+    expect(user.removeMe).toBe(true);
+    return walkOff;
+  }
+
+  it("draws the duration from the source it was given", () => {
+    // `legacy-1.x:user.js:41` spends `1 + Math.random() * 0.5` seconds walking
+    // off, and the passenger stays in `world.users` for all of it - so this
+    // draw decides when the world drops them, and has to come from the world's
+    // seeded stream rather than the global one for a run to replay.
+    assertWithinRange(
+      measureWalkOff(() => 0),
+      1.0,
+      1.0 + MEASURE_STEP,
+      "for a source at zero",
+    );
+    assertWithinRange(
+      measureWalkOff(() => 0.8),
+      1.4,
+      1.4 + MEASURE_STEP,
+      "for a source at 0.8",
+    );
+  });
+
+  it("still walks off for one to one and a half seconds without a source", () => {
+    // The distribution is unchanged for a passenger built outside a world,
+    // which is the only way the default is ever reached.
+    for (let i = 0; i < 20; i++) {
+      assertWithinRange(measureWalkOff(), 1.0, 1.5 + MEASURE_STEP, "for the default source");
+    }
   });
 });

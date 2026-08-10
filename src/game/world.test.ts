@@ -3,7 +3,13 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import type { Elevator } from "./elevator.ts";
 import type { ElevatorInterface } from "./elevator-interface.ts";
 import { Floor } from "./floor.ts";
-import { at } from "./test-helpers.ts";
+import {
+  createRandomSource,
+  generateRandomSeed,
+  type RandomSeed,
+  type RandomSource,
+} from "./random.ts";
+import { at, scriptedRandom } from "./test-helpers.ts";
 import { User } from "./user.ts";
 import type { ControllableWorld } from "./world-controller.ts";
 import {
@@ -30,17 +36,42 @@ function collectUsers(world: World): User[] {
 }
 
 /**
+ * A stream stuck at zero, which sends every draw to the bottom of its range.
+ *
+ * For a spawn that means the lightest passenger, starting in the lobby and
+ * heading for floor 1.
+ */
+const ALWAYS_ZERO: RandomSource = () => 0;
+
+/**
+ * Wraps a stream so the test can see what was taken from it.
+ *
+ * @param random - Stream to wrap.
+ * @returns The wrapper and the list it appends every drawn value to.
+ */
+function recordDraws(random: RandomSource): { random: RandomSource; values: number[] } {
+  const values: number[] = [];
+  return {
+    random: (): number => {
+      const value = random();
+      values.push(value);
+      return value;
+    },
+    values,
+  };
+}
+
+/**
  * Builds a world with exactly one user waiting on floor 0.
  *
- * `Math.random` is pinned so the spawn lands on floor 0 heading up, and the
- * elevator is parked at the top so it neither re-arrives nor picks the user up
- * on its own.
+ * The world's randomness is pinned to zero so the spawn lands on floor 0
+ * heading up, and the elevator is parked at the top so it neither re-arrives
+ * nor picks the user up on its own.
  *
  * @returns The world and its lone user.
  */
 function createWorldWithWaitingUser(): { world: World; user: User } {
-  vi.spyOn(Math, "random").mockReturnValue(0);
-  const world = createWorld({ spawnRate: 0.5, floorCount: 3, elevatorCount: 1 });
+  const world = createWorld({ spawnRate: 0.5, floorCount: 3, elevatorCount: 1 }, ALWAYS_ZERO);
   at(world.elevators, 0).setFloorPosition(2);
   const spawned = collectUsers(world);
   world.update(0.1);
@@ -121,8 +152,9 @@ describe("createElevators", () => {
 
 describe("createRandomUser", () => {
   it("gives every user a weight between 55 and 100 and an appearance", () => {
+    const random = createRandomSource("createRandomUser");
     for (let i = 0; i < 200; ++i) {
-      const user = createRandomUser();
+      const user = createRandomUser(random);
       expect(user.weight).toBeGreaterThanOrEqual(55);
       expect(user.weight).toBeLessThanOrEqual(100);
       expect(["child", "female", "male"]).toContain(user.displayType);
@@ -130,25 +162,36 @@ describe("createRandomUser", () => {
   });
 
   it("makes a child when the one-in-41 roll comes up", () => {
-    vi.spyOn(Math, "random").mockReturnValue(0);
-    const user = createRandomUser();
+    const user = createRandomUser(ALWAYS_ZERO);
     expect(user.weight).toBe(55);
     expect(user.displayType).toBe("child");
   });
 
   it("makes a female when the child roll misses and the gender roll is 0", () => {
-    vi.spyOn(Math, "random")
-      .mockReturnValueOnce(0) // weight
-      .mockReturnValueOnce(0.5) // child roll: misses
-      .mockReturnValueOnce(0); // gender roll
-    expect(createRandomUser().displayType).toBe("female");
+    const random = scriptedRandom([
+      0, // weight
+      0.5, // child roll: misses
+      0, // gender roll
+    ]);
+    expect(createRandomUser(random).displayType).toBe("female");
   });
 
   it("makes a male otherwise", () => {
-    vi.spyOn(Math, "random").mockReturnValue(0.99);
-    const user = createRandomUser();
+    const user = createRandomUser(() => 0.99);
     expect(user.weight).toBe(100);
     expect(user.displayType).toBe("male");
+  });
+
+  it("draws weight, then the child roll, then the gender roll, and nothing else", () => {
+    // The number of draws and their order are part of what a seed reproduces,
+    // so they are pinned rather than left to a reading of the function.
+    // `legacy-1.x:world.js:32-36` drew them this way; each value below is one
+    // only its own consumer reacts to, so a reordering shows up in the result.
+    const draws = recordDraws(scriptedRandom([0.99, 0.5, 0]));
+    const user = createRandomUser(draws.random);
+    expect(draws.values).toEqual([0.99, 0.5, 0]);
+    expect(user.weight).toBe(100);
+    expect(user.displayType).toBe("female");
   });
 });
 
@@ -156,8 +199,9 @@ describe("spawnUserRandomly", () => {
   it("always picks a real floor and a destination that is somewhere else", () => {
     const floorCount = 5;
     const floors = createFloors(floorCount, 50, () => undefined);
+    const random = createRandomSource("spawnUserRandomly");
     for (let i = 0; i < 500; ++i) {
-      const user = spawnUserRandomly(floorCount, 50, floors);
+      const user = spawnUserRandomly(floorCount, 50, floors, random);
       expect(user.currentFloor).toBeGreaterThanOrEqual(0);
       expect(user.currentFloor).toBeLessThan(floorCount);
       expect(user.destinationFloor).toBeGreaterThanOrEqual(0);
@@ -167,9 +211,8 @@ describe("spawnUserRandomly", () => {
   });
 
   it("puts the user on their floor and presses the matching call button", () => {
-    vi.spyOn(Math, "random").mockReturnValue(0);
     const floors = createFloors(3, 50, () => undefined);
-    const user = spawnUserRandomly(3, 50, floors);
+    const user = spawnUserRandomly(3, 50, floors, ALWAYS_ZERO);
 
     expect(user.currentFloor).toBe(0);
     expect(user.destinationFloor).toBe(1);
@@ -180,20 +223,37 @@ describe("spawnUserRandomly", () => {
   });
 
   it("sends users above the lobby down to it by default", () => {
-    vi.spyOn(Math, "random")
-      .mockReturnValueOnce(0) // weight
-      .mockReturnValueOnce(0.5) // child roll
-      .mockReturnValueOnce(0.5) // gender roll
-      .mockReturnValueOnce(0) // spawn x offset
-      .mockReturnValueOnce(0.9) // "start in the lobby?" roll: no
-      .mockReturnValueOnce(0.9) // floor roll
-      .mockReturnValueOnce(0.5); // "not going to the lobby?" roll: no
+    const random = scriptedRandom([
+      0, // weight
+      0.5, // child roll
+      0.5, // gender roll
+      0, // spawn x offset
+      0.9, // "start in the lobby?" roll: no
+      0.9, // floor roll
+      0.5, // "not going to the lobby?" roll: no
+    ]);
     const floors = createFloors(3, 50, () => undefined);
-    const user = spawnUserRandomly(3, 50, floors);
+    const user = spawnUserRandomly(3, 50, floors, random);
 
     expect(user.currentFloor).toBe(2);
     expect(user.destinationFloor).toBe(0);
     expect(at(floors, 2).buttonStates.down).toBe("activated");
+  });
+
+  it("spends one draw fewer on a passenger who starts in the lobby", () => {
+    // The short-circuit in `legacy-1.x:world.js:47`: the origin floor is only
+    // drawn for a passenger who is not starting in the lobby. How many draws a
+    // spawn costs decides what every later spawn of the same run sees, so it is
+    // pinned here rather than inferred.
+    const floors = createFloors(3, 50, () => undefined);
+
+    const fromLobby = recordDraws(scriptedRandom([0, 0.5, 0.5, 0, 0 /* lobby */, 0.5]));
+    expect(spawnUserRandomly(3, 50, floors, fromLobby.random).currentFloor).toBe(0);
+    expect(fromLobby.values).toHaveLength(6);
+
+    const fromAbove = recordDraws(scriptedRandom([0, 0.5, 0.5, 0, 0.9 /* not lobby */, 0.9, 0.5]));
+    expect(spawnUserRandomly(3, 50, floors, fromAbove.random).currentFloor).toBe(2);
+    expect(fromAbove.values).toHaveLength(7);
   });
 });
 
@@ -418,8 +478,7 @@ describe("World", () => {
     it("lets a user board an elevator already parked at their floor", () => {
       // The user's own call button press re-arrives the idle elevator standing
       // at floor 0, so they board within the very update that spawned them.
-      vi.spyOn(Math, "random").mockReturnValue(0);
-      const world = createWorld({ spawnRate: 0.5, floorCount: 3, elevatorCount: 1 });
+      const world = createWorld({ spawnRate: 0.5, floorCount: 3, elevatorCount: 1 }, ALWAYS_ZERO);
       const spawned = collectUsers(world);
 
       world.update(0.1);
@@ -441,8 +500,7 @@ describe("World", () => {
       elevInterface: ElevatorInterface;
       user: User;
     } {
-      vi.spyOn(Math, "random").mockReturnValue(0);
-      const world = createWorld({ spawnRate: 0.5, floorCount: 3, elevatorCount: 1 });
+      const world = createWorld({ spawnRate: 0.5, floorCount: 3, elevatorCount: 1 }, ALWAYS_ZERO);
       const elevator = at(world.elevators, 0);
       const elevInterface = at(world.elevatorInterfaces, 0);
       elevInterface.goingUpIndicator(false);
@@ -639,13 +697,15 @@ describe("World", () => {
       // point see the new indicators, and the one whose direction is no longer
       // served was turned away without pressing their button again, leaving the
       // floor looking as though nobody was waiting on it.
-      vi.spyOn(Math, "random").mockReturnValue(0);
-      const world = createWorld({
-        spawnRate: 0.001,
-        floorCount: 3,
-        elevatorCount: 1,
-        elevatorCapacities: [1],
-      });
+      const world = createWorld(
+        {
+          spawnRate: 0.001,
+          floorCount: 3,
+          elevatorCount: 1,
+          elevatorCapacities: [1],
+        },
+        ALWAYS_ZERO,
+      );
       const elevator = at(world.elevators, 0);
       const floor = at(world.floors, 1);
       elevator.setFloorPosition(1);
@@ -680,13 +740,15 @@ describe("World", () => {
       // floor is re-arrived by it. Same setup as above, plus a second elevator
       // parked there that serves the direction the first one just stopped
       // serving.
-      vi.spyOn(Math, "random").mockReturnValue(0);
-      const world = createWorld({
-        spawnRate: 0.001,
-        floorCount: 3,
-        elevatorCount: 2,
-        elevatorCapacities: [1, 4],
-      });
+      const world = createWorld(
+        {
+          spawnRate: 0.001,
+          floorCount: 3,
+          elevatorCount: 2,
+          elevatorCapacities: [1, 4],
+        },
+        ALWAYS_ZERO,
+      );
       const full = at(world.elevators, 0);
       const spare = at(world.elevators, 1);
       const floor = at(world.floors, 1);
@@ -730,16 +792,19 @@ describe("World", () => {
       // What a guard would cost is the nested World.handleButtonRepressing.
       // It re-offers nothing here - the car is full - but it draws a
       // randomInt(0, elevatorCount - 1) before it looks, and dropping a draw
-      // shifts every later value out of the shared Math.random stream. The
-      // world spawns passengers, weights, floors and elevator slots from that
-      // same stream, so a run would silently stop matching the legacy one.
-      const random = vi.spyOn(Math, "random").mockReturnValue(0);
-      const world = createWorld({
-        spawnRate: 0.001,
-        floorCount: 3,
-        elevatorCount: 1,
-        elevatorCapacities: [1],
-      });
+      // shifts every later value out of the world's random stream. The world
+      // spawns its passengers, their weights and their floors from that same
+      // stream, so the same seed would stop replaying the same run.
+      const random = vi.fn(() => 0);
+      const world = createWorld(
+        {
+          spawnRate: 0.001,
+          floorCount: 3,
+          elevatorCount: 1,
+          elevatorCapacities: [1],
+        },
+        random,
+      );
       const elevator = at(world.elevators, 0);
       const elevInterface = at(world.elevatorInterfaces, 0);
       const floor = at(world.floors, 1);
@@ -773,9 +838,11 @@ describe("World", () => {
       expect(second.parent).toBe(null);
       expect(floor.buttonStates.down).toBe("activated");
       // One draw for each handleButtonRepressing - the outer one and the
-      // nested one - plus one for the boarding slot and one for the slot scan
-      // that finds the car full. Guarding Floor would leave three.
-      expect(random).toHaveBeenCalledTimes(4);
+      // nested one. Guarding Floor would leave one. The two elevator slot
+      // draws that boarding also makes are not in this count: Elevator has no
+      // source threaded to it yet and still uses the unseeded default, which is
+      // why they cannot perturb the world's own stream.
+      expect(random).toHaveBeenCalledTimes(2);
       // Player code still sees the call once: the facade the event is forwarded
       // to is a PlayerObservable, and its guard absorbs the nested forward.
       // That is the split - the world's own handler runs, the player's does
@@ -917,7 +984,7 @@ describe("World", () => {
     it("gives each collection its own empty array", () => {
       const world = createWorld();
       world.unWind();
-      world.users.push(createRandomUser());
+      world.users.push(createRandomUser(ALWAYS_ZERO));
       expect(world.floors).toHaveLength(0);
       expect(world.elevators).toHaveLength(0);
     });
@@ -967,5 +1034,161 @@ describe("World", () => {
     const controllable: ControllableWorld = createWorld();
     expect(controllable.floorInterfaces).toHaveLength(4);
     expect(controllable.challengeEnded).toBe(false);
+  });
+});
+
+/** One passenger's arrival, as anything watching the world can see it. */
+interface SpawnTrace {
+  /** World time the passenger appeared at. */
+  spawnTimestamp: number;
+  /** Floor they appeared on. */
+  currentFloor: number;
+  /** Floor they asked for. */
+  destinationFloor: number;
+  /** Their weight. */
+  weight: number;
+  /** How they are drawn. */
+  displayType: string | undefined;
+}
+
+/** The statistics a run ended on. */
+interface RunStats {
+  /** Passengers delivered. */
+  transportedCounter: number;
+  /** Passengers delivered per simulated second. */
+  transportedPerSec: number;
+  /** Mean wait time of delivered passengers. */
+  avgWaitTime: number;
+  /** Longest anybody waited. */
+  maxWaitTime: number;
+  /** Total floor changes across all elevators. */
+  moveCount: number;
+}
+
+/** Everything an observer of a whole run can see of it. */
+interface RunTrace {
+  /** Every passenger the run spawned, in order. */
+  spawns: SpawnTrace[];
+  /** The statistics the run ended on. */
+  stats: RunStats;
+  /** How many passengers were still in the building at the end. */
+  usersLeft: number;
+}
+
+/** Simulated seconds per frame, as the real game and the fitness suite run it. */
+const TRACE_STEP_SECONDS = 1.0 / 60.0;
+
+/** Frames a traced run simulates: one minute of game time. */
+const TRACE_FRAMES = 3600;
+
+/**
+ * Runs a world for a fixed minute and records what an observer would see.
+ *
+ * The elevators are driven by the simplest strategy that actually delivers
+ * anybody - sweep up, wrap at the top - so the trace covers boarding, exits and
+ * the statistics as well as the spawns themselves. Nothing in it reads a
+ * position, which is what the elevator's own unseeded slot draw decides.
+ *
+ * @param random - Seed or stream to build the world with.
+ * @returns The trace, and the world it came from.
+ */
+function traceRun(random?: RandomSeed | RandomSource): { trace: RunTrace; world: World } {
+  const floorCount = 4;
+  const world = createWorld({ floorCount, elevatorCount: 2, spawnRate: 1.2 }, random);
+  const spawns: SpawnTrace[] = [];
+  world.on("new_user", (user) => {
+    spawns.push({
+      spawnTimestamp: user.spawnTimestamp,
+      currentFloor: user.currentFloor,
+      destinationFloor: user.destinationFloor,
+      weight: user.weight,
+      displayType: user.displayType,
+    });
+  });
+  for (const elevatorInterface of world.elevatorInterfaces) {
+    elevatorInterface.on("idle", () => {
+      elevatorInterface.goToFloor((elevatorInterface.currentFloor() + 1) % floorCount);
+    });
+  }
+  world.init();
+  for (let frame = 0; frame < TRACE_FRAMES; frame++) {
+    world.update(TRACE_STEP_SECONDS);
+  }
+  return {
+    world,
+    trace: {
+      spawns,
+      stats: {
+        transportedCounter: world.transportedCounter,
+        transportedPerSec: world.transportedPerSec,
+        avgWaitTime: world.avgWaitTime,
+        maxWaitTime: world.maxWaitTime,
+        moveCount: world.moveCount,
+      },
+      usersLeft: world.users.length,
+    },
+  };
+}
+
+describe("seeded runs", () => {
+  it("replays a run exactly from the same seed", () => {
+    // The whole point of the exercise: a failed run, a surprising score or a
+    // divergence from the legacy engine can be looked at again.
+    const first = traceRun("rush-hour").trace;
+    const second = traceRun("rush-hour").trace;
+
+    expect(first.spawns.length).toBeGreaterThan(50);
+    expect(first.stats.transportedCounter).toBeGreaterThan(10);
+    expect(second).toEqual(first);
+  });
+
+  it("gives different seeds different runs", () => {
+    const first = traceRun("rush-hour").trace;
+    const other = traceRun("quiet-afternoon").trace;
+
+    expect(other.spawns).not.toEqual(first.spawns);
+    expect(other.stats).not.toEqual(first.stats);
+  });
+
+  it("makes a run nobody seeded replayable after the fact", () => {
+    // A run is only ever known to be worth repeating once it has gone wrong, so
+    // an unseeded world still records the seed it generated for itself.
+    const original = traceRun();
+    const seed = original.world.seed;
+    if (seed === null) {
+      throw new Error("an unseeded world must still record the seed it generated");
+    }
+    expect(typeof seed).toBe("number");
+
+    expect(traceRun(seed).trace).toEqual(original.trace);
+  });
+
+  it("records the seed it was handed, whatever its shape", () => {
+    expect(createWorld({}, "issue-61").seed).toBe("issue-61");
+    expect(createWorld({}, 1234).seed).toBe(1234);
+  });
+
+  it("treats a number and its string form as the same seed", () => {
+    // Seeds are hashed from their string form, so a seed that made the round
+    // trip through a URL or an input field still replays its run.
+    expect(traceRun(1234).trace).toEqual(traceRun("1234").trace);
+  });
+
+  it("reports no seed when a ready-made stream was injected", () => {
+    // Nothing to record, and nothing to hide: whoever built the stream can
+    // rebuild it. Only tests do this.
+    expect(createWorld({}, ALWAYS_ZERO).seed).toBeNull();
+  });
+
+  it("generates a fresh seed for every unseeded world", () => {
+    const seeds = new Set(Array.from({ length: 50 }, () => createWorld().seed));
+    expect(seeds.size).toBe(50);
+  });
+
+  it("draws its generated seeds from the whole 32 bit range", () => {
+    const seed = generateRandomSeed();
+    expect(Number.isInteger(seed)).toBe(true);
+    expect(seed).toBeGreaterThanOrEqual(0);
+    expect(seed).toBeLessThan(2 ** 32);
   });
 });

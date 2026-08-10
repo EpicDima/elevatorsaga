@@ -39,6 +39,28 @@ function inertCodeObj(): UserCodeObject {
   };
 }
 
+/**
+ * Player code that sweeps the lone elevator up and down, so that the scenario
+ * actually delivers somebody and its metrics say something.
+ *
+ * @returns A code object that drives the elevators.
+ */
+function drivingCodeObj(): UserCodeObject {
+  return {
+    init(elevators): void {
+      const elevator = at(elevators, 0);
+      elevator.on("idle", () => {
+        elevator.goToFloor(0);
+        elevator.goToFloor(1);
+        elevator.goToFloor(2);
+      });
+    },
+    update(): void {
+      // Nothing.
+    },
+  };
+}
+
 afterEach(() => {
   vi.restoreAllMocks();
 });
@@ -84,24 +106,31 @@ describe("calculateFitness", () => {
   });
 
   it("delivers passengers when the code actually drives the elevators", () => {
-    const codeObj: UserCodeObject = {
-      init(elevators): void {
-        const elevator = at(elevators, 0);
-        elevator.on("idle", () => {
-          elevator.goToFloor(0);
-          elevator.goToFloor(1);
-          elevator.goToFloor(2);
-        });
-      },
-      update(): void {
-        // Nothing.
-      },
-    };
-
-    const result = calculateFitness(challenge, codeObj, 1000.0 / 60.0, 3000);
+    const result = calculateFitness(challenge, drivingCodeObj(), 1000.0 / 60.0, 3000);
 
     expect(result.error).toBeUndefined();
     expect(result.transportedCount).toBeGreaterThan(0);
+  });
+
+  it("scores the same code against the same passengers when given a seed", () => {
+    // What a seed is for here: two solutions can be compared over identical
+    // traffic, and a score that came out surprising can be looked at again.
+    const codeObj = drivingCodeObj();
+
+    const first = calculateFitness(challenge, codeObj, 1000.0 / 60.0, 3000, "fitness-seed");
+    const second = calculateFitness(challenge, codeObj, 1000.0 / 60.0, 3000, "fitness-seed");
+
+    expect(first.transportedCount).toBeGreaterThan(0);
+    expect(second).toEqual(first);
+  });
+
+  it("gives a different seed a different score", () => {
+    const codeObj = drivingCodeObj();
+
+    const first = calculateFitness(challenge, codeObj, 1000.0 / 60.0, 3000, "fitness-seed");
+    const other = calculateFitness(challenge, codeObj, 1000.0 / 60.0, 3000, "other-seed");
+
+    expect(other).not.toEqual(first);
   });
 
   it("records the error when the code throws", () => {

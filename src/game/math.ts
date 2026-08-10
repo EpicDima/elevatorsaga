@@ -5,6 +5,8 @@
  * modernized simulation reproduces the original physics bit-for-bit.
  */
 
+import { systemRandom, type RandomSource } from "./random.ts";
+
 /**
  * Tolerance used for floating point comparisons throughout the simulation.
  *
@@ -144,10 +146,17 @@ export const DEFAULT_INTERPOLATOR: Interpolator = coolInterpolate;
  * (`_.random(n)` is `randomInt(0, n)`). Keeping the distribution identical
  * matters because it drives passenger spawning.
  *
+ * The arithmetic is unchanged; only where the underlying `[0, 1)` value comes
+ * from is now the caller's choice, so that a whole run can be replayed from a
+ * seed (see {@link "./random.ts"!RandomSource}).
+ *
  * @param min - Lowest value that can be returned.
  * @param max - Highest value that can be returned.
+ * @param random - Stream to draw from. Defaults to the unseeded
+ * {@link systemRandom} for the call sites that have no source threaded to them
+ * yet; anything inside a {@link "./world.ts"!World} is given the world's own.
  * @returns An integer in `[min, max]`.
  */
-export function randomInt(min: number, max: number): number {
-  return min + Math.floor(Math.random() * (max - min + 1));
+export function randomInt(min: number, max: number, random: RandomSource = systemRandom): number {
+  return min + Math.floor(random() * (max - min + 1));
 }
