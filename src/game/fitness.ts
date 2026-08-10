@@ -3,9 +3,10 @@
  * drawing anything and averages the results.
  *
  * Ported from the logic half of the legacy `fitness.js`. The web-worker wiring
- * (`fitnessSuite` and `fitnessworker.js`) is intentionally left behind for the
- * UI stage; note that the only call site in `app.js` is commented out, so this
- * code is currently unreachable from the game.
+ * that used to live here (`fitnessSuite` and `fitnessworker.js`) is now
+ * `src/app/fitness.ts` and `src/app/fitness-worker.ts`; {@link doFitnessSuite}
+ * is called from both (`src/app/fitness-worker.ts:25` inside the worker, and
+ * `src/app/fitness.ts:84` on the main thread when a worker cannot be spawned).
  */
 
 import type { ChallengeCondition } from "./challenges.ts";

@@ -334,7 +334,7 @@ describe("Observable mutation during dispatch", () => {
 
   it("diverges from legacy: a handler added during a dispatch skips the in-flight event", () => {
     // Deliberate divergence. Both legacy emitters iterated a live array
-    // (libs/riot.js:41; libs/unobservable.js:94, "len can change during
+    // (libs/riot.js:40-42; libs/unobservable.js:94, "len can change during
     // iteration"), so a handler registered mid-dispatch *did* run for the event
     // already in flight. Snapshot iteration matches the DOM EventTarget model
     // and cannot livelock; see the module docblock.

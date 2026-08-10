@@ -171,7 +171,6 @@ export class ElevatorInterface extends PlayerObservable<ElevatorInterfaceEvents>
    * @param forceNow - Put the floor at the front of the queue instead of the
    * back.
    */
-  // TODO: Write tests for this queueing logic
   goToFloor(floorNum: number, forceNow?: boolean): void {
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-conversion -- player code is untyped JS and does pass strings here
     const floor = limitNumber(Number(floorNum), 0, this.#floorCount - 1);

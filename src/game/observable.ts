@@ -35,7 +35,7 @@
  *   guard at all; {@link PlayerObservable} reinstates a per-event one, cleared
  *   in a `finally`, for the two facades player code subscribes to.
  * - a *live* handler list during dispatch. Both legacy emitters iterated the
- *   array they were still appending to (`libs/riot.js:41`;
+ *   array they were still appending to (`libs/riot.js:40-42`;
  *   `libs/unobservable.js:94`, whose loop condition carries the comment
  *   `// Note: len can change during iteration`), so a handler registered from
  *   inside a dispatch *did* run for the event already in flight — and a handler
