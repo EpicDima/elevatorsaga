@@ -16,6 +16,7 @@ import {
   randomInt,
 } from "./math.ts";
 import { Movable, type WorldPosition } from "./movable.ts";
+import { systemRandom, type RandomSource } from "./random.ts";
 
 /** Direction reported by the `passing_floor` event. */
 export type ElevatorDirection = "up" | "down";
@@ -159,20 +160,29 @@ export class Elevator extends Movable<ElevatorEvents> {
     down: this.goingDownIndicator,
   };
 
+  /** Stream {@link userEntering} draws its starting slot from. */
+  readonly #random: RandomSource;
+
   /**
    * @param speedFloorsPerSec - Top speed expressed in floors per second.
    * @param floorCount - Number of floors in the world.
    * @param floorHeight - Height of one floor in world units.
    * @param maxUsers - Passenger capacity; falsy values fall back to 4, as in
    * the legacy `maxUsers || 4`.
+   * @param random - Stream the boarding slot is drawn from. A world hands over
+   * the stream it derives from its seed for exactly this, so that a replay
+   * stands every passenger where they stood before; the unseeded default is
+   * only for callers that build an elevator outside a world.
    */
   constructor(
     speedFloorsPerSec: number,
     floorCount: number,
     floorHeight: number,
     maxUsers?: number,
+    random: RandomSource = systemRandom,
   ) {
     super();
+    this.#random = random;
     this.ACCELERATION = floorHeight * 2.1;
     this.DECELERATION = floorHeight * 2.6;
     this.MAXSPEED = floorHeight * speedFloorsPerSec;
@@ -250,13 +260,22 @@ export class Elevator extends Movable<ElevatorEvents> {
    * Assigns a free slot to a boarding passenger.
    *
    * The scan starts at a random slot so passengers do not all pile into the
-   * same corner of the car.
+   * same corner of the car. Which slot that is decides nothing but where the
+   * passenger is drawn: the load factor sums integer weights, `isFull` and
+   * `isEmpty` count occupants, and `userExiting` frees whichever slot the
+   * passenger took, so every answer the car gives is the same whichever free
+   * slot it hands out. It is drawn from a stream all the same, because a replay
+   * that reproduces the run but redraws the passengers is a poor replay.
+   *
+   * The draw happens before the scan, and happens even when the car turns out
+   * to be full, exactly as it always has: how many values a boarding attempt
+   * takes decides what every later attempt of the same run sees.
    *
    * @param user - Passenger boarding the elevator.
    * @returns The slot position, or `false` when the car is full.
    */
   userEntering(user: ElevatorPassenger): WorldPosition | false {
-    const randomOffset = randomInt(0, this.userSlots.length - 1);
+    const randomOffset = randomInt(0, this.userSlots.length - 1, this.#random);
     for (let i = 0; i < this.userSlots.length; i++) {
       const slot = this.userSlots[(i + randomOffset) % this.userSlots.length];
       if (slot?.user === null) {

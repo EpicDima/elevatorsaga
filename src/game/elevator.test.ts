@@ -4,7 +4,7 @@ import { challenges } from "./challenges.ts";
 import { Elevator, type ElevatorDirection, type ElevatorPassenger } from "./elevator.ts";
 import { createFrameRequester } from "./frame-requester.ts";
 import { MovableBusyError, type MovableTask } from "./movable.ts";
-import { assertWithinRange, at, timeForwarder } from "./test-helpers.ts";
+import { assertWithinRange, at, scriptedRandom, timeForwarder } from "./test-helpers.ts";
 import { createWorld, type WorldOptions } from "./world.ts";
 import { createWorldController, type UserCodeObject } from "./world-controller.ts";
 
@@ -623,10 +623,44 @@ describe("Elevator object", () => {
     });
 
     it("uses a randomised starting slot but always finds the free one", () => {
+      // An elevator built without a source falls back to the unseeded one, so
+      // that a caller outside a world - in practice a test - does not have to
+      // supply a stream it does not care about.
       const randomSpy = vi.spyOn(Math, "random").mockReturnValue(0.99);
       const first = e.userEntering(passenger(70));
       expect(first).toEqual(e.userSlots[e.maxUsers - 1]?.pos);
       randomSpy.mockRestore();
+    });
+
+    it("draws the starting slot from the stream it was handed", () => {
+      // A world hands over the stream it derives from its seed, so replaying a
+      // run stands every passenger back where they stood rather than shuffling
+      // them around a car that is otherwise identical. The values below are the
+      // top and the bottom of the offset's range, so the first scan starts on
+      // the last slot and the second on the first.
+      const global = vi.spyOn(Math, "random");
+      const seeded = new Elevator(1.5, FLOOR_COUNT, FLOOR_HEIGHT, 4, scriptedRandom([0.99, 0]));
+
+      expect(seeded.userEntering(passenger(70))).toEqual(at(seeded.userSlots, 3).pos);
+      expect(seeded.userEntering(passenger(70))).toEqual(at(seeded.userSlots, 0).pos);
+      expect(global).not.toHaveBeenCalled();
+      global.mockRestore();
+    });
+
+    it("spends exactly one value per boarding attempt, a full car included", () => {
+      // What a boarding costs is what keeps a replay aligned with the run it is
+      // replaying, so it is pinned rather than left to a reading of the loop.
+      // The attempt that finds no free slot is the interesting one: it boards
+      // nobody and still draws, because the offset is picked before the scan.
+      const random = vi.fn(() => 0.5);
+      const small = new Elevator(1.5, FLOOR_COUNT, FLOOR_HEIGHT, 2, random);
+
+      expect(small.userEntering(passenger(70))).not.toBe(false);
+      expect(small.userEntering(passenger(70))).not.toBe(false);
+      expect(random).toHaveBeenCalledTimes(2);
+
+      expect(small.userEntering(passenger(70))).toBe(false);
+      expect(random).toHaveBeenCalledTimes(3);
     });
 
     it("frees the slot when a passenger leaves", () => {

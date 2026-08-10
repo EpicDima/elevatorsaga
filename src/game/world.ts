@@ -15,6 +15,7 @@ import { randomInt } from "./math.ts";
 import { Observable } from "./observable.ts";
 import {
   createRandomSource,
+  deriveRandomSource,
   generateRandomSeed,
   type RandomSeed,
   type RandomSource,
@@ -74,6 +75,32 @@ const CHILD_ODDS = 40;
 const NON_LOBBY_DESTINATION_ODDS = 10;
 
 /**
+ * Label of the stream the elevators pick boarding slots from.
+ *
+ * A stream of its own, derived from the world's seed rather than taken from the
+ * world's own, and that separation is the whole point. Which slot a boarding
+ * passenger is put in decides nothing but where they are drawn (see
+ * {@link Elevator.userEntering}), so it is the kind of draw that gets added,
+ * dropped or moved as the rendering changes — and every such change would
+ * shift the spawns of every run if the two shared a stream, quietly rewriting
+ * what the seeds people have already written down replay. Deriving keeps the
+ * boarding slots replayable without letting them near the sequence the
+ * simulation is built on.
+ */
+const BOARDING_SLOT_STREAM = "boarding-slots";
+
+/**
+ * Seed the boarding-slot stream is derived from when the world has none.
+ *
+ * Only worlds handed a ready-made {@link RandomSource} — in practice tests —
+ * have no seed of their own to derive from, and they all share this one stream
+ * as a result. That costs nothing: the injected stream is the one such a caller
+ * cares about, it is the one the slots must stay out of, and the slots stay
+ * reproducible either way.
+ */
+const UNSEEDED_BOARDING_SLOT_SEED = "injected-stream";
+
+/**
  * Reads an array element that is known to exist.
  *
  * The simulation indexes floors and elevators by numbers it derived from their
@@ -119,6 +146,11 @@ export function createFloors(
  * @param floorCount - Number of floors they serve.
  * @param floorHeight - Height of one floor in world units.
  * @param elevatorCapacities - Capacities, cycled if shorter than the count.
+ * @param random - Stream every elevator picks its boarding slots from; the
+ * world hands over the one it derives for that (see
+ * {@link BOARDING_SLOT_STREAM}). Omitting it leaves the elevators on the
+ * unseeded default, which only a caller building elevators outside a world
+ * should want.
  * @returns The elevators, already positioned at floor 0.
  */
 export function createElevators(
@@ -126,6 +158,7 @@ export function createElevators(
   floorCount: number,
   floorHeight: number,
   elevatorCapacities?: readonly number[],
+  random?: RandomSource,
 ): Elevator[] {
   const capacities = elevatorCapacities ?? DEFAULT_ELEVATOR_CAPACITIES;
   let currentX = FIRST_ELEVATOR_X;
@@ -135,6 +168,7 @@ export function createElevators(
       floorCount,
       floorHeight,
       capacities[i % capacities.length],
+      random,
     );
 
     // Park on the bottom floor first, then slide into the shaft.
@@ -236,9 +270,11 @@ export class World extends Observable<WorldEvents> {
    *
    * Recorded even when nobody asked for a particular one, because the run worth
    * repeating is almost always one that has already happened: print this and
-   * pass it back to {@link createWorld} to get the same run again. `null` only
-   * happens when a caller — in practice a test — supplied its own
-   * {@link RandomSource}, which it can reproduce by construction.
+   * pass it back to {@link createWorld} to get the same run again. One seed is
+   * enough for the whole run because every stream the world builds comes from
+   * it, the elevators' boarding slots included. `null` only happens when a
+   * caller — in practice a test — supplied its own {@link RandomSource}, which
+   * it can reproduce by construction.
    */
   readonly seed: RandomSeed | null;
   /** The building's floors, indexed by floor number. */
@@ -269,16 +305,29 @@ export class World extends Observable<WorldEvents> {
 
   readonly #floorCount: number;
   readonly #spawnRate: number;
+  /**
+   * The stream the simulation itself runs on: spawns, the time a delivered
+   * passenger takes to walk off, and the elevator the button-repressing sweep
+   * starts at.
+   *
+   * Not the only stream a seed drives — the elevators get their own for
+   * boarding slots (see {@link BOARDING_SLOT_STREAM}) — but the only one whose
+   * draws decide what happens, and therefore the one whose sequence a seed's
+   * meaning rests on.
+   */
   readonly #random: RandomSource;
   #elapsedSinceSpawn: number;
 
   /**
    * @param options - Challenge options; missing values take the defaults.
-   * @param random - Either a seed to build this world's stream from, or a
+   * @param random - Either a seed to build this world's streams from, or a
    * ready-made stream. A seed is what callers want: it is recorded on
    * {@link seed} and replays the run. A stream is for tests that need to pin
-   * individual draws rather than a whole run. Defaults to a freshly generated
-   * seed, so that even a run nobody seeded can be repeated afterwards.
+   * individual draws rather than a whole run, and it becomes the simulation's
+   * stream alone — the elevators still get a derived stream of their own, so
+   * that a pinned sequence stays a sequence of the draws the simulation makes.
+   * Defaults to a freshly generated seed, so that even a run nobody seeded can
+   * be repeated afterwards.
    */
   constructor(
     options: WorldOptions = {},
@@ -307,6 +356,7 @@ export class World extends Observable<WorldEvents> {
       this.#floorCount,
       this.floorHeight,
       options.elevatorCapacities,
+      deriveRandomSource(this.seed ?? UNSEEDED_BOARDING_SLOT_SEED, BOARDING_SLOT_STREAM),
     );
     this.elevatorInterfaces = this.elevators.map(
       (e) => new ElevatorInterface(e, this.#floorCount, handleUserCodeError),

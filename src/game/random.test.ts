@@ -1,6 +1,11 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { createRandomSource, generateRandomSeed, systemRandom } from "./random.ts";
+import {
+  createRandomSource,
+  deriveRandomSource,
+  generateRandomSeed,
+  systemRandom,
+} from "./random.ts";
 import type { RandomSeed, RandomSource } from "./random.ts";
 
 /** Draws enough values to say something about a stream. */
@@ -104,6 +109,66 @@ describe("createRandomSource", () => {
   it("never touches the global Math.random", () => {
     const global = vi.spyOn(Math, "random");
     take(createRandomSource("isolated"), 100);
+    expect(global).not.toHaveBeenCalled();
+  });
+});
+
+describe("deriveRandomSource", () => {
+  it("gives the same seed and label the same stream", () => {
+    // The whole reason a derived stream is worth having: it is replayable from
+    // the seed the run as a whole is replayed from.
+    expect(take(deriveRandomSource("seed", "slots"), 1000)).toEqual(
+      take(deriveRandomSource("seed", "slots"), 1000),
+    );
+  });
+
+  it("runs beside the seed's own stream rather than inside it", () => {
+    // The property the split exists for. That neither stream can consume the
+    // other's values follows from each keeping its own state; what is checked
+    // here is that they do not hand out the same ones either, so that a run's
+    // two streams stay tellable apart. The seed is fixed, so this is a fact
+    // about these two streams rather than a coin toss made on every run.
+    const base = take(createRandomSource("seed"), 200);
+    const derived = take(deriveRandomSource("seed", "slots"), 200);
+    expect(derived).not.toEqual(base);
+    expect(derived.filter((value) => base.includes(value))).toEqual([]);
+  });
+
+  it("gives two labels under one seed two unrelated streams", () => {
+    const slots = take(deriveRandomSource("seed", "slots"), 200);
+    const other = take(deriveRandomSource("seed", "weather"), 200);
+    expect(slots.filter((value) => other.includes(value))).toEqual([]);
+  });
+
+  it("gives two seeds under one label two unrelated streams", () => {
+    // The half that makes the derived stream part of the run rather than a
+    // constant: without the seed reaching the hash, every world would stand its
+    // passengers in the same corners, and the tests above would not notice.
+    const first = take(deriveRandomSource("seed", "slots"), 200);
+    const second = take(deriveRandomSource("other-seed", "slots"), 200);
+    expect(first.filter((value) => second.includes(value))).toEqual([]);
+  });
+
+  it("keeps the label and the seed from running together", () => {
+    // Concatenated without a separator these two would hash the same string
+    // and hand back one stream, so a seed could collide with a label a later
+    // version of the engine adds.
+    expect(take(deriveRandomSource("b", "a"), 100)).not.toEqual(
+      take(deriveRandomSource("", "ab"), 100),
+    );
+  });
+
+  it("treats a number seed and its string form alike", () => {
+    // Same reason as for the base stream: a seed survives a trip through a URL
+    // or an input field, and every stream it drives has to survive with it.
+    expect(take(deriveRandomSource(4711, "slots"), 100)).toEqual(
+      take(deriveRandomSource("4711", "slots"), 100),
+    );
+  });
+
+  it("never touches the global Math.random", () => {
+    const global = vi.spyOn(Math, "random");
+    take(deriveRandomSource("isolated", "slots"), 100);
     expect(global).not.toHaveBeenCalled();
   });
 });

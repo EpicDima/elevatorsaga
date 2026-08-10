@@ -148,6 +148,20 @@ describe("createElevators", () => {
     expect(elevators.map((e) => e.y)).toEqual([150, 150]);
     expect(elevators.map((e) => e.x)).toEqual([200.0, 200.0 + 20 + 40]);
   });
+
+  it("hands every elevator the stream their boarding slots come from", () => {
+    // Without it they would fall back to the unseeded default and a replay
+    // would put its passengers in different corners of the same cars. The
+    // value sits at the top of the offset's range, so each scan starts on the
+    // last slot - and the unseeded default is watched as well, since one car in
+    // four would land on that slot by chance anyway.
+    const global = vi.spyOn(Math, "random");
+    const elevators = createElevators(2, 4, 50, [4], () => 0.99);
+    for (const elevator of elevators) {
+      expect(elevator.userEntering({ weight: 70 })).toEqual(at(elevator.userSlots, 3).pos);
+    }
+    expect(global).not.toHaveBeenCalled();
+  });
 });
 
 describe("createRandomUser", () => {
@@ -839,9 +853,9 @@ describe("World", () => {
       expect(floor.buttonStates.down).toBe("activated");
       // One draw for each handleButtonRepressing - the outer one and the
       // nested one. Guarding Floor would leave one. The two elevator slot
-      // draws that boarding also makes are not in this count: Elevator has no
-      // source threaded to it yet and still uses the unseeded default, which is
-      // why they cannot perturb the world's own stream.
+      // draws that boarding also makes are not in this count: the elevators
+      // draw those from the stream the world derives for boarding slots, never
+      // from this one, which is why they cannot perturb it.
       expect(random).toHaveBeenCalledTimes(2);
       // Player code still sees the call once: the facade the event is forwarded
       // to is a PlayerObservable, and its guard absorbs the nested forward.
@@ -1069,6 +1083,14 @@ interface RunStats {
 interface RunTrace {
   /** Every passenger the run spawned, in order. */
   spawns: SpawnTrace[];
+  /**
+   * The slot every boarding passenger was put in, in boarding order.
+   *
+   * Recorded as `<elevator index>:<slot index>`. The one thing in the trace the
+   * elevators' own stream decides, and the only way to see that stream at all
+   * from outside: nothing else the simulation reports changes with it.
+   */
+  boardingSlots: string[];
   /** The statistics the run ended on. */
   stats: RunStats;
   /** How many passengers were still in the building at the end. */
@@ -1086,8 +1108,9 @@ const TRACE_FRAMES = 3600;
  *
  * The elevators are driven by the simplest strategy that actually delivers
  * anybody - sweep up, wrap at the top - so the trace covers boarding, exits and
- * the statistics as well as the spawns themselves. Nothing in it reads a
- * position, which is what the elevator's own unseeded slot draw decides.
+ * the statistics as well as the spawns themselves, and the slot each passenger
+ * ends up in on top of that: the two streams a seed drives are both visible
+ * here, which is what lets one seed be held to reproducing the whole run.
  *
  * @param random - Seed or stream to build the world with.
  * @returns The trace, and the world it came from.
@@ -1096,6 +1119,7 @@ function traceRun(random?: RandomSeed | RandomSource): { trace: RunTrace; world:
   const floorCount = 4;
   const world = createWorld({ floorCount, elevatorCount: 2, spawnRate: 1.2 }, random);
   const spawns: SpawnTrace[] = [];
+  const boardingSlots: string[] = [];
   world.on("new_user", (user) => {
     spawns.push({
       spawnTimestamp: user.spawnTimestamp,
@@ -1103,6 +1127,10 @@ function traceRun(random?: RandomSeed | RandomSource): { trace: RunTrace; world:
       destinationFloor: user.destinationFloor,
       weight: user.weight,
       displayType: user.displayType,
+    });
+    user.on("entered_elevator", (elevator) => {
+      const slot = elevator.userSlots.findIndex((occupied) => occupied.user === user);
+      boardingSlots.push(`${String(world.elevators.indexOf(elevator))}:${String(slot)}`);
     });
   });
   for (const elevatorInterface of world.elevatorInterfaces) {
@@ -1118,6 +1146,7 @@ function traceRun(random?: RandomSeed | RandomSource): { trace: RunTrace; world:
     world,
     trace: {
       spawns,
+      boardingSlots,
       stats: {
         transportedCounter: world.transportedCounter,
         transportedPerSec: world.transportedPerSec,
@@ -1148,6 +1177,60 @@ describe("seeded runs", () => {
 
     expect(other.spawns).not.toEqual(first.spawns);
     expect(other.stats).not.toEqual(first.stats);
+    expect(other.boardingSlots).not.toEqual(first.boardingSlots);
+  });
+
+  it("stands every passenger in the same slot on a replay of the same seed", () => {
+    // The last draw in the engine that a seed did not account for. It decides
+    // nothing but where a passenger is drawn inside the car, so nothing else in
+    // the trace moves when it changes - which is exactly why it needs saying
+    // separately that it, too, comes back the same.
+    const first = traceRun("rush-hour").trace.boardingSlots;
+    const second = traceRun("rush-hour").trace.boardingSlots;
+
+    expect(first.length).toBeGreaterThan(20);
+    // Otherwise a car that always handed out slot 0 would pass this untouched.
+    expect(new Set(first).size).toBeGreaterThan(2);
+    expect(second).toEqual(first);
+  });
+
+  it("reaches the unseeded Math.random nowhere once it has its seed", () => {
+    // The guarantee with the caveat gone: a seeded run makes every draw it
+    // makes from a stream the seed determines, so there is nothing left in it
+    // for a replay to get wrong. Worth stating as a whole-run property rather
+    // than trusting to the absence of a call, because a new call site is
+    // exactly the kind of thing that gets added without anybody noticing.
+    const global = vi.spyOn(Math, "random").mockReturnValue(0);
+    const trace = traceRun("rush-hour").trace;
+
+    expect(trace.spawns.length).toBeGreaterThan(50);
+    expect(trace.boardingSlots.length).toBeGreaterThan(20);
+    expect(global).not.toHaveBeenCalled();
+  });
+
+  it("keeps boarding out of the stream the simulation runs on", () => {
+    // Why the elevators get a stream of their own rather than the world's: the
+    // world spawns its passengers from its stream, so a slot draw landing in it
+    // would shift every later spawn, and every seed anybody has already written
+    // down would quietly start replaying a different run. Boarding is also the
+    // kind of draw that comes and goes as the rendering changes, which is
+    // precisely what must never reach that sequence.
+    const random = vi.fn(() => 0);
+    const world = createWorld({ floorCount: 3, elevatorCount: 1 }, random);
+    const elevator = at(world.elevators, 0);
+    const user = new User(70, random);
+    world.users.push(user);
+    user.appearOnFloor(at(world.floors, 1), 2);
+    elevator.setFloorPosition(1);
+
+    random.mockClear();
+    const global = vi.spyOn(Math, "random");
+    elevator.trigger("entrance_available", elevator);
+
+    // The passenger did board, so a slot was drawn - from neither of these.
+    expect(user.parent).toBe(elevator);
+    expect(random).not.toHaveBeenCalled();
+    expect(global).not.toHaveBeenCalled();
   });
 
   it("makes a run nobody seeded replayable after the fact", () => {
