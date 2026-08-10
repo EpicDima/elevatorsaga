@@ -152,9 +152,11 @@ export const DEFAULT_INTERPOLATOR: Interpolator = coolInterpolate;
  *
  * @param min - Lowest value that can be returned.
  * @param max - Highest value that can be returned.
- * @param random - Stream to draw from. Defaults to the unseeded
- * {@link systemRandom} for the call sites that have no source threaded to them
- * yet; anything inside a {@link "./world.ts"!World} is given the world's own.
+ * @param random - Stream to draw from. Every call site inside a
+ * {@link "./world.ts"!World} is handed one: the simulation draws from the
+ * world's own stream, and boarding slots from a stream derived from the same
+ * seed. The default is the unseeded {@link systemRandom}, which now serves only
+ * callers outside a world.
  * @returns An integer in `[min, max]`.
  */
 export function randomInt(min: number, max: number, random: RandomSource = systemRandom): number {

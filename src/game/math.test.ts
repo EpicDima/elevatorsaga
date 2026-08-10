@@ -227,8 +227,9 @@ describe("randomInt", () => {
   });
 
   it("falls back to Math.random when no source is given", () => {
-    // The default is what keeps the call sites that have no source threaded to
-    // them yet - `Elevator.userEntering` - behaving exactly as before.
+    // Nothing reachable from a running world relies on this any more: the
+    // default is what keeps `randomInt` usable outside one, and what a caller
+    // that forgets a source falls back to.
     vi.spyOn(Math, "random").mockReturnValue(0.5);
     expect(randomInt(0, 10)).toBe(5);
     vi.restoreAllMocks();
