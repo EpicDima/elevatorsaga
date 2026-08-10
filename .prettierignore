@@ -4,30 +4,6 @@ coverage
 .vite
 playwright-report
 test-results
+
+# npm owns this file's formatting; rewriting it would churn the lockfile.
 package-lock.json
-
-# Third-party / vendored assets
-libs
-font-awesome-4.1-1.0
-images
-*.min.js
-
-# Legacy jasmine suite (incl. test/jasmine) — replaced by Vitest in a later stage.
-test
-
-# Legacy game sources — removed in a later modernization stage.
-/app.js
-/base.js
-/challenges.js
-/elevator.js
-/fitness.js
-/fitnessworker.js
-/floor.js
-/interfaces.js
-/movable.js
-/presenters.js
-/user.js
-/world.js
-
-# index.html, documentation.html and the stylesheet were rewritten in place for
-# Vite, so they are formatted like the rest of the sources now.

@@ -5,8 +5,8 @@ import prettier from "eslint-config-prettier";
 
 export default tseslint.config(
   {
-    // Build output, vendored code, and the legacy game sources that a later
-    // modernization stage deletes outright.
+    // Build output and generated reports. Everything else in the tree is
+    // first-party and gets linted.
     ignores: [
       "dist/**",
       "coverage/**",
@@ -14,21 +14,6 @@ export default tseslint.config(
       ".vite/**",
       "playwright-report/**",
       "test-results/**",
-      "libs/**",
-      "font-awesome-4.1-1.0/**",
-      "test/**",
-      "app.js",
-      "base.js",
-      "challenges.js",
-      "elevator.js",
-      "fitness.js",
-      "fitnessworker.js",
-      "floor.js",
-      "interfaces.js",
-      "movable.js",
-      "presenters.js",
-      "user.js",
-      "world.js",
     ],
   },
   js.configs.recommended,
