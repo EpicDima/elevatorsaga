@@ -19,9 +19,11 @@ describe("FloorInterface", () => {
     expect(floorInterface.level).toBe(2);
   });
 
-  it("hides the floor's internals from player code", () => {
+  it("exposes exactly the documented surface and nothing else", () => {
     // Issue #3: the real Floor was handed straight to player code, exposing
     // yPosition, getSpawnPosY, elevatorAvailable, pressUpButton and trigger.
+    // The emitter is held rather than inherited from, so its dispatch side is
+    // not reachable either.
     const exposed = new Set<string>();
     for (
       let proto: object | null = floorInterface;
@@ -32,17 +34,21 @@ describe("FloorInterface", () => {
         exposed.add(key);
       }
     }
+    exposed.delete("constructor");
+
+    expect([...exposed].sort()).toEqual(["buttonStates", "floorNum", "level", "off", "on", "once"]);
     for (const forbidden of [
       "yPosition",
       "getSpawnPosY",
       "elevatorAvailable",
       "pressUpButton",
       "pressDownButton",
+      "trigger",
+      "triggerSafe",
+      "offAll",
     ]) {
       expect(exposed.has(forbidden)).toBe(false);
     }
-    // The Observable members it does inherit only reach its own subscribers,
-    // exactly as on ElevatorInterface.
     expect(floorInterface).not.toBe(floor);
   });
 
@@ -166,11 +172,23 @@ describe("FloorInterface", () => {
       expect(errorHandler).not.toHaveBeenCalled();
     });
 
-    it("stops forwarding once its subscriptions are dropped", () => {
+    it("stops forwarding once the floor's subscriptions are dropped", () => {
+      // How World.unWind tears the facades down: it drops the floor's
+      // subscriptions, which includes the forwarding this facade registered.
       const upPressed = vi.fn();
       floorInterface.on("up_button_pressed", upPressed);
 
-      floorInterface.offAll();
+      floor.offAll();
+      floor.pressUpButton();
+
+      expect(upPressed).not.toHaveBeenCalled();
+    });
+
+    it("drops handlers on request without exposing offAll", () => {
+      const upPressed = vi.fn();
+      floorInterface.on("up_button_pressed", upPressed);
+
+      floorInterface.off("up_button_pressed");
       floor.pressUpButton();
 
       expect(upPressed).not.toHaveBeenCalled();

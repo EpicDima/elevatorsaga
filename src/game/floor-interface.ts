@@ -8,15 +8,27 @@
  * `buttonStates` object, and could corrupt the simulation by touching any of
  * them (upstream issue #3).
  *
- * Only the documented surface is exposed: `floorNum()`, plus `on`/`off`/`once`
- * for the `up_button_pressed` and `down_button_pressed` events. `level` and
- * `buttonStates` are undocumented but were readable on the old object and are
- * used by published solutions, so they are kept — `buttonStates` as a snapshot
- * rather than the floor's own mutable object.
+ * The surface is exactly `floorNum()`, `level`, `buttonStates` and
+ * `on`/`off`/`once`. The emitter is held rather than inherited from, so the
+ * dispatch side of it — `trigger`, `triggerSafe`, `offAll` — is not reachable
+ * from player code either. That is the difference from `ElevatorInterface`,
+ * which legitimately inherits its emitter: the legacy elevator facade really
+ * was a `riot.observable(obj)` (interfaces.js:6), so `trigger` was part of its
+ * published surface and solutions may be using it.
+ *
+ * `level` and `buttonStates` are undocumented but were readable on the old
+ * object and are used by published solutions, so they are kept —
+ * `buttonStates` as a snapshot rather than the floor's own mutable object.
  */
 
 import type { Floor, FloorButtonStates } from "./floor.ts";
-import { PlayerObservable, type EventName } from "./observable.ts";
+import {
+  PlayerObservable,
+  type EventHandler,
+  type EventName,
+  type EventNameSpec,
+  type HandlerFor,
+} from "./observable.ts";
 
 /** Events a {@link FloorInterface} exposes to player code. */
 export type FloorInterfaceEvents = {
@@ -32,7 +44,7 @@ export type FloorInterfaceEvents = {
 export type FloorInterfaceErrorHandler = (e: unknown) => void;
 
 /** The floor API exposed to player code. */
-export class FloorInterface extends PlayerObservable<FloorInterfaceEvents> {
+export class FloorInterface {
   /**
    * Floor number, counting up from 0 at the bottom.
    *
@@ -42,13 +54,19 @@ export class FloorInterface extends PlayerObservable<FloorInterfaceEvents> {
 
   readonly #floor: Floor;
   readonly #errorHandler: FloorInterfaceErrorHandler;
+  /**
+   * Player subscriptions.
+   *
+   * Dispatches with this facade as the receiver, so a `function` handler's
+   * `this` is the facade — never this emitter, and never the real floor.
+   */
+  readonly #events = new PlayerObservable<FloorInterfaceEvents>(this);
 
   /**
    * @param floor - The floor this facade wraps.
    * @param errorHandler - Receives anything a player-code handler throws.
    */
   constructor(floor: Floor, errorHandler: FloorInterfaceErrorHandler) {
-    super();
     this.#floor = floor;
     this.level = floor.level;
     this.#errorHandler = errorHandler;
@@ -82,7 +100,53 @@ export class FloorInterface extends PlayerObservable<FloorInterfaceEvents> {
     event: K,
     ...args: FloorInterfaceEvents[K]
   ): void {
-    this.triggerSafe(event, this.#errorHandler, ...args);
+    this.#events.triggerSafe(event, this.#errorHandler, ...args);
+  }
+
+  /**
+   * Registers a handler for one event, or for several space separated events.
+   *
+   * @param events - Event name, or names separated by single spaces.
+   * @param handler - Called, in registration order, on every matching event.
+   * @returns This facade, for chaining.
+   */
+  on<S extends EventNameSpec<FloorInterfaceEvents>>(
+    events: S,
+    handler: HandlerFor<S, FloorInterfaceEvents>,
+  ): this {
+    this.#events.on(events, handler);
+    return this;
+  }
+
+  /**
+   * Registers a handler to run at most once.
+   *
+   * @param event - Single event name.
+   * @param handler - Called on the next occurrence of `event`.
+   * @returns This facade, for chaining.
+   */
+  once<K extends EventName<FloorInterfaceEvents>>(
+    event: K,
+    handler: EventHandler<FloorInterfaceEvents[K]>,
+  ): this {
+    this.#events.once(event, handler);
+    return this;
+  }
+
+  /**
+   * Unregisters handlers.
+   *
+   * @param events - Event name, or names separated by single spaces.
+   * @param handler - When given, only this exact function is unregistered;
+   * when omitted, every handler of each listed event is.
+   * @returns This facade, for chaining.
+   */
+  off<S extends EventNameSpec<FloorInterfaceEvents>>(
+    events: S,
+    handler?: HandlerFor<S, FloorInterfaceEvents>,
+  ): this {
+    this.#events.off(events, handler);
+    return this;
   }
 
   /**

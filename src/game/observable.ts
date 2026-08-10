@@ -16,7 +16,8 @@
  *    before it is reached is *not* invoked, and no handler is skipped.
  * 3. `once` handlers run exactly once and are removed before invocation.
  * 4. Re-entrant {@link Observable.trigger} calls from inside a handler work.
- * 5. Handlers are invoked with the emitter as their `this`, so the documented
+ * 5. Handlers are invoked with the emitter (or, for an emitter held by
+ *    composition, the object that owns it) as their `this`, so the documented
  *    `elevator.on("idle", function () { this.goToFloor(0); })` idiom works.
  *    Both legacy emitters did this (`libs/riot.js:45` dispatched with
  *    `fn.apply(el, args)`, `libs/unobservable.js:96-97` with `fn.call(this, …)`).
@@ -91,7 +92,7 @@ type NamesOf<S extends string, E extends EventArgsMap> = Extract<SplitEventNames
  * Handler type accepted for a (possibly multi-name) event spec: it must be
  * callable with the arguments of every listed event.
  */
-type HandlerFor<S extends string, E extends EventArgsMap> = EventHandler<E[NamesOf<S, E>]>;
+export type HandlerFor<S extends string, E extends EventArgsMap> = EventHandler<E[NamesOf<S, E>]>;
 
 /** Internal, type-erased handler shape. */
 type ErasedHandler = (...args: readonly unknown[]) => void;
@@ -143,6 +144,17 @@ function report(onError: (e: unknown) => void, error: unknown): void {
  */
 export class Observable<E extends EventArgsMap> {
   readonly #handlers = new Map<string, HandlerEntry[]>();
+  readonly #receiver: object;
+
+  /**
+   * @param receiver - Object handlers are invoked with as their `this`.
+   * Defaults to the emitter itself, which is what every subclass wants. An
+   * emitter held by composition rather than inherited from passes the object
+   * that owns it, so player code still sees the thing it subscribed to.
+   */
+  constructor(receiver?: object) {
+    this.#receiver = receiver ?? this;
+  }
 
   /**
    * Registers `handler` for one event, or for several space separated events.
@@ -304,7 +316,7 @@ export class Observable<E extends EventArgsMap> {
   }
 
   /**
-   * Invokes one handler with this emitter as its `this`.
+   * Invokes one handler with the receiver as its `this`.
    *
    * `Reflect.apply` rather than `handler.call(...)` because the erased handler
    * type takes a `readonly unknown[]` rest parameter, which `strictBindCallApply`
@@ -314,7 +326,7 @@ export class Observable<E extends EventArgsMap> {
    * @param args - Arguments forwarded to it.
    */
   #invoke(handler: ErasedHandler, args: readonly unknown[]): void {
-    Reflect.apply(handler, this, args);
+    Reflect.apply(handler, this.#receiver, args);
   }
 
   #add(events: string, handler: ErasedHandler, once: boolean): void {
