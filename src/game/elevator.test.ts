@@ -529,6 +529,37 @@ describe("Elevator object", () => {
       expect(entranceAvailable).toHaveBeenCalledTimes(1);
     });
 
+    it("announces boarding when the re-offer actually fills a slot", () => {
+      // Upstream issue #105: whoever decides when the car may leave has to know
+      // that a passenger is mid-walk-in, and the re-offer is a boarding path
+      // the arrival sequence knows nothing about.
+      const seen: string[] = [];
+      e.on("entrance_available", (elevator) => {
+        seen.push("entrance_available");
+        elevator.userEntering(passenger(70));
+      });
+      e.on("boarding_started", () => {
+        seen.push("boarding_started");
+      });
+
+      e.goingUpIndicator = false;
+      e.trigger("change:goingUpIndicator", false);
+
+      expect(seen).toEqual(["entrance_available", "boarding_started"]);
+    });
+
+    it("stays silent when the re-offer boards nobody", () => {
+      // What keeps the re-offer free for player code that rewrites the
+      // indicators every frame: no boarder, no dwell, no delay.
+      const boardingStarted = vi.fn();
+      e.on("boarding_started", boardingStarted);
+
+      e.goingUpIndicator = false;
+      e.trigger("change:goingUpIndicator", false);
+
+      expect(boardingStarted).not.toHaveBeenCalled();
+    });
+
     it("does not re-offer boarding when the elevator is full", () => {
       const entranceAvailable = vi.fn();
       for (let i = 0; i < e.maxUsers; i++) {
@@ -575,6 +606,24 @@ describe("Elevator object", () => {
         "entrance_available",
       ]);
       expect(e.getPressedFloors()).toEqual([]);
+    });
+
+    it("announces boarding on arrival too, after entrance_available", () => {
+      // The same signal from both boarding paths, so the facade's dwell has one
+      // rule to follow rather than two.
+      const seen: string[] = [];
+      e.on("entrance_available", (elevator) => {
+        seen.push("entrance_available");
+        elevator.userEntering(passenger(70));
+      });
+      e.on("boarding_started", () => {
+        seen.push("boarding_started");
+      });
+
+      e.goToFloor(2);
+      stepElevator(e, 10.0, 0.015);
+
+      expect(seen).toEqual(["entrance_available", "boarding_started"]);
     });
 
     it("emits only stopped when halting between floors", () => {

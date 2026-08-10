@@ -501,6 +501,41 @@ describe("World", () => {
       expect(sweep).not.toHaveBeenCalled();
     });
 
+    it("stays put while a passenger the re-offer let in is still walking in", () => {
+      // Upstream issue #105 ("Elevator moves while passengers enter"). Every
+      // legacy boarding path was covered by the one second dwell the facade
+      // installs from `stopped` (`interfaces.js:29`, `elevator.wait(1, ...)`),
+      // which outlasts the one second a passenger takes to walk in
+      // (`user.js:70`). The re-offer is a boarding path the legacy code did not
+      // have, so without its own dwell the car can accept a passenger and drive
+      // off in the very same frame, dragging them through the shaft.
+      const { world, elevator, elevInterface, user } = createWorldWithRefusedUser();
+      const parkedY = elevator.y;
+
+      elevInterface.goingUpIndicator(true);
+      expect(user.parent).toBe(elevator);
+      expect(user.isBusy()).toBe(true);
+      // The player's update() would typically ask for the next floor in the
+      // same frame that flipped the indicator.
+      elevInterface.goToFloor(2);
+
+      world.update(1.0 / 60.0);
+      expect(elevator.y).toBe(parkedY);
+
+      for (let frame = 0; frame < 120 && user.isBusy(); frame++) {
+        world.update(1.0 / 60.0);
+        if (user.isBusy()) {
+          expect(elevator.y).toBe(parkedY);
+        }
+      }
+
+      // The dwell is a delay, not a cancellation: the queued trip still happens.
+      expect(user.isBusy()).toBe(false);
+      expect(user.parent).toBe(elevator);
+      world.update(1.0 / 60.0);
+      expect(elevator.isMoving).toBe(true);
+    });
+
     it("leaves the statistics and the destination queue untouched", () => {
       const { world, elevator, elevInterface } = createWorldWithRefusedUser();
       const elevatorMoveCount = elevator.moveCount;

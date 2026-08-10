@@ -125,12 +125,19 @@ export class ElevatorInterface {
       // `idle`, and no boarding dwell either (upstream issues #92 and #105).
       // Popping is conditional; carrying on is not.
       if (elevator.isOnAFloor()) {
-        elevator.wait(WAIT_AT_FLOOR_SECONDS, () => {
-          this.checkDestinationQueue();
-        });
+        this.#waitAtFloor();
       } else {
         this.checkDestinationQueue();
       }
+    });
+
+    // A boarding offer that was taken outside the arrival sequence — the
+    // indicator re-offer added for issue #59 — gets the same dwell, otherwise
+    // the car can accept a passenger and drive away in the same frame, with
+    // them still walking in (upstream issue #105, which the legacy code was
+    // free of only because arrival was its one and only boarding path).
+    elevator.on("boarding_started", () => {
+      this.#waitAtFloor();
     });
 
     elevator.on("passing_floor", (floorNum, direction) => {
@@ -160,6 +167,27 @@ export class ElevatorInterface {
     ...args: ElevatorInterfaceEvents[K]
   ): void {
     this.#events.triggerSafe(event, this.#errorHandler, ...args);
+  }
+
+  /**
+   * Holds the car at the floor long enough for passengers to walk in or out,
+   * then takes the next destination.
+   *
+   * The legacy `elevator.wait(1, ...)` of `interfaces.js:29`, kept at one
+   * second because that is what a passenger's walk-in takes (`user.js:70`).
+   *
+   * Any dwell already running is discarded rather than left to finish: the
+   * second caller is a passenger who has *just* started boarding, so the time
+   * already served is not time they were given, and `wait` refuses to run on a
+   * busy movable anyway. Restarting is free on the arrival path, where the two
+   * calls happen in the same frame with no simulated time in between, so the
+   * car leaves exactly when it always did.
+   */
+  #waitAtFloor(): void {
+    this.#elevator.currentTask = null;
+    this.#elevator.wait(WAIT_AT_FLOOR_SECONDS, () => {
+      this.checkDestinationQueue();
+    });
   }
 
   /**

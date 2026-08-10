@@ -64,6 +64,14 @@ export type ElevatorEvents = {
   exit_available: [floorNum: number, elevator: Elevator];
   /** Passengers waiting on this floor may board now. */
   entrance_available: [elevator: Elevator];
+  /**
+   * A boarding offer was taken: at least one passenger started walking in.
+   *
+   * Raised right after the `entrance_available` that filled the slot, while the
+   * passenger is still mid-walk-in, so that whoever decides when the car may
+   * leave can hold it for as long as boarding takes.
+   */
+  boarding_started: [elevator: Elevator];
   /** The elevator is about to pass a floor without stopping. */
   passing_floor: [floorNum: number, direction: ElevatorDirection];
   /** One of the indicator lamps changed. */
@@ -211,7 +219,7 @@ export class Elevator extends Movable<ElevatorEvents> {
         return;
       }
       if (!this.isMoving && this.isOnAFloor() && !this.isFull()) {
-        this.trigger("entrance_available", this);
+        this.#offerEntrance();
       }
     });
   }
@@ -369,11 +377,48 @@ export class Elevator extends Movable<ElevatorEvents> {
         // Need to allow users to get off first, so that new ones
         // can enter on the same floor
         this.trigger("exit_available", this.currentFloor, this);
-        this.trigger("entrance_available", this);
+        this.#offerEntrance();
       }
     } finally {
       this.#arrivalInFlight = false;
     }
+  }
+
+  /**
+   * Offers boarding, and says so when the offer was taken.
+   *
+   * Every boarding runs inside the `entrance_available` dispatch: the world
+   * hands the elevator to each waiting passenger, and a passenger who boards
+   * takes a slot before starting their walk-in animation. So comparing the
+   * occupied slots either side of the dispatch is an exact test of "did anybody
+   * just start boarding", without the elevator having to know anything about
+   * passengers.
+   *
+   * The `boarding_started` event carries no cost when nobody boards, which is
+   * what keeps the indicator re-offer free for player code that rewrites the
+   * indicators every frame.
+   */
+  #offerEntrance(): void {
+    const occupiedBefore = this.#occupiedSlotCount();
+    this.trigger("entrance_available", this);
+    if (this.#occupiedSlotCount() > occupiedBefore) {
+      this.trigger("boarding_started", this);
+    }
+  }
+
+  /**
+   * Number of slots with a passenger in them.
+   *
+   * @returns The count of occupied slots.
+   */
+  #occupiedSlotCount(): number {
+    let count = 0;
+    for (const slot of this.userSlots) {
+      if (slot.user !== null) {
+        count++;
+      }
+    }
+    return count;
   }
 
   /**

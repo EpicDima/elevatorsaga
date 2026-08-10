@@ -697,6 +697,49 @@ describe("Elevator interface", () => {
     });
   });
 
+  describe("boarding dwell", () => {
+    it("holds the car for a second when boarding starts away from an arrival", () => {
+      // Upstream issue #105. The dwell used to be installed only from `stopped`,
+      // so the boarding path added for issue #59 - the indicator re-offer, which
+      // fires while the car is already standing still - had nothing holding the
+      // car while the passenger walked in.
+      elevInterface.destinationQueue = [3];
+
+      e.trigger("boarding_started", e);
+
+      expect(e.isBusy()).toBe(true);
+      stepElevator(e, 0.9, 0.015);
+      expect(e.isMoving).toBe(false);
+      expect(e.destinationY).toBe(e.getYPosOfFloor(0));
+
+      // A delay, not a cancellation: the queue is taken as soon as it expires.
+      stepElevator(e, 0.2, 0.015);
+      expect(e.isMoving).toBe(true);
+      expect(e.destinationY).toBe(e.getYPosOfFloor(3));
+    });
+
+    it("restarts a dwell already running instead of failing on the busy car", () => {
+      // `wait` throws MovableBusyError on a busy movable, and boarding can begin
+      // in the middle of a dwell: the arrival sequence itself does it, and so
+      // does an indicator flip made while the car is still standing at a floor.
+      // The passenger who just stepped in gets a full second either way.
+      elevInterface.goToFloor(2);
+      stepUntil(e, () => !e.isMoving);
+      expect(e.isBusy()).toBe(true);
+      stepElevator(e, 0.6, 0.015);
+
+      expect(() => {
+        e.trigger("boarding_started", e);
+      }).not.toThrow();
+
+      stepElevator(e, 0.9, 0.015);
+      expect(e.isBusy()).toBe(true);
+      stepElevator(e, 0.2, 0.015);
+      expect(e.isBusy()).toBe(false);
+      expect(errorHandler).not.toHaveBeenCalled();
+    });
+  });
+
   describe("idle re-entrancy", () => {
     it("emits idle once for the documented clear-and-recheck idiom", () => {
       // documentation.html tells players to write exactly this inside an idle
