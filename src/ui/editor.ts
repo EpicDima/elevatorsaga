@@ -546,10 +546,45 @@ export class CodeEditor extends Observable<CodeEditorEvents> {
     this.#write(this.#buffer.codeKey, code);
   }
 
-  /** Backs the program up and replaces it with the buffer's starter program. */
-  reset(): void {
-    this.#write(this.#buffer.backupKey, this.getCode());
+  /**
+   * Backs the program up and replaces it with the buffer's starter program.
+   *
+   * @returns Whether the program was replaced. `false` means the store is
+   * holding a program it would not take a copy of, and the reset was refused
+   * rather than carried out — see below.
+   */
+  reset(): boolean {
+    const code = this.getCode();
+    if (code === "" || code === this.#buffer.starterCode) {
+      // There is nothing here to lose, and the backup slot is worth more than a
+      // copy of it. Two Resets in a row used to leave the backup holding the
+      // starter program, and "Undo reset" bringing back the skeleton is the
+      // same as bringing back nothing; worse with an emptied editor in between,
+      // where the backup became "" and the guard in `undoReset` then made the
+      // one button that could have recovered the program do nothing at all.
+      this.setCode(this.#buffer.starterCode);
+      return true;
+    }
+    if (
+      !this.#write(this.#buffer.backupKey, code) &&
+      // Deliberately not `#read`: the question is what the *store* is holding,
+      // and `#read` would answer out of this page's own memory. A store that
+      // keeps nothing for anybody — a private window — has nothing to lose
+      // here, and refusing to reset there would break the button for a whole
+      // class of players to protect a program the store never had.
+      readStorage(this.#storage, this.#buffer.codeKey) !== null
+    ) {
+      // The store took the program and will not take a copy of it, which is
+      // what a quota looks like from in here: a new key does not fit, while
+      // overwriting an old one with something shorter still succeeds. Carrying
+      // on would replace the program with the starter and the autosave a second
+      // later would write *that* over the stored program — successfully, being
+      // smaller — and announce "Code saved ...". An afternoon's work, gone with
+      // nothing anywhere to bring it back from. Refusing keeps every copy.
+      return false;
+    }
     this.setCode(this.#buffer.starterCode);
+    return true;
   }
 
   /**

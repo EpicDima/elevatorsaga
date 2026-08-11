@@ -120,6 +120,44 @@ function fullStorage(entries: Readonly<Record<string, string>> = {}): Storage {
   };
 }
 
+/**
+ * A `Storage` with room for the keys it already has and not one more.
+ *
+ * What a real quota does, rather than what the crude version of it does: the
+ * budget is a number of bytes, so overwriting an existing key with something no
+ * longer keeps working long after a *new* key has stopped fitting. That
+ * asymmetry is the whole hazard — a failed backup followed by a successful
+ * overwrite of the program it was meant to protect.
+ *
+ * @param entries - What the store is already holding.
+ * @returns The crowded store.
+ */
+function crowdedStorage(entries: Readonly<Record<string, string>> = {}): Storage {
+  const storage = new MemoryStorage();
+  for (const [key, value] of Object.entries(entries)) {
+    storage.setItem(key, value);
+  }
+  return {
+    get length(): number {
+      return storage.length;
+    },
+    clear: () => {
+      storage.clear();
+    },
+    getItem: (key: string) => storage.getItem(key),
+    key: (index: number) => storage.key(index),
+    removeItem: (key: string) => {
+      storage.removeItem(key);
+    },
+    setItem: (key: string, value: string) => {
+      if (storage.getItem(key) === null) {
+        throw new Error("QuotaExceededError");
+      }
+      storage.setItem(key, value);
+    },
+  };
+}
+
 beforeEach(() => {
   vi.useFakeTimers();
 });
@@ -553,10 +591,89 @@ describe("CodeEditor reset", () => {
     expect(storage.getItem(BACKUP_STORAGE_KEY)).toBeNull();
   });
 
+  it("keeps the first backup when Reset is pressed a second time", () => {
+    // Reset asks for confirmation, so a second press is a real possibility --
+    // the dialog dismissed twice, or a player making sure. Backing the starter
+    // program up over the first backup would mean "Undo reset" brings back the
+    // skeleton, which is the same as bringing back nothing, and the program the
+    // first Reset replaced is then in no copy anywhere.
+    const { editor, view, storage } = setUp();
+    view.type("// worth keeping");
+
+    editor.reset();
+    editor.reset();
+
+    expect(storage.getItem(BACKUP_STORAGE_KEY)).toBe("// worth keeping");
+    editor.undoReset();
+    expect(view.getValue()).toBe("// worth keeping");
+  });
+
+  it("keeps the backup when Reset follows an emptied editor", () => {
+    // The same slot, lost the other way: select-all, delete, Reset. An empty
+    // backup is one `undoReset` refuses to restore, so writing it would leave
+    // the recovery button doing nothing at all -- the worst version of this,
+    // because the player is looking straight at the thing that should help.
+    const { editor, view, storage } = setUp();
+    view.type("// worth keeping");
+    editor.reset();
+
+    view.type("");
+    editor.reset();
+
+    expect(storage.getItem(BACKUP_STORAGE_KEY)).toBe("// worth keeping");
+    editor.undoReset();
+    expect(view.getValue()).toBe("// worth keeping");
+  });
+
+  it("refuses to reset a program the store will not take a copy of", () => {
+    // A quota is a byte budget, and a *new* key is what stops fitting first
+    // while overwriting an old one with something shorter still succeeds. So
+    // the backup silently fails, the starter program takes the screen, and the
+    // autosave a second later writes it over the stored program -- successfully
+    // -- and announces "Code saved ...". The program is then in no copy
+    // anywhere. Resetting is worth nothing next to that; refusing is free.
+    const program = "// an afternoon of work";
+    const storage = crowdedStorage({ [CODE_STORAGE_KEY]: program });
+    const { editor, view } = setUp(storage);
+    const saved = vi.fn();
+    editor.on("saved", saved);
+
+    expect(editor.reset()).toBe(false);
+
+    expect(view.getValue()).toBe(program);
+    vi.advanceTimersByTime(AUTOSAVE_DELAY_MS * 2);
+    expect(storage.getItem(CODE_STORAGE_KEY)).toBe(program);
+    expect(saved).not.toHaveBeenCalled();
+  });
+
+  it("resets anyway when the store is holding nothing to lose", () => {
+    // The other side of that refusal, and the reason it is not simply "reset
+    // fails when the backup fails". In a private window every write is refused
+    // and the store holds nothing for anybody, so there is no stored program a
+    // reset could destroy -- and a Reset button that never works for a whole
+    // class of players would be protecting nothing.
+    const { editor, view } = setUp(deniedStorage());
+    view.type("// worth keeping");
+    // Long enough for the autosave to have tried and failed, which is what puts
+    // the program in this page's own memory of what it has written. Asking that
+    // memory whether the program is stored would answer yes and refuse the
+    // reset; the question is what the store is holding, and it is holding
+    // nothing.
+    vi.advanceTimersByTime(AUTOSAVE_DELAY_MS);
+
+    expect(editor.reset()).toBe(true);
+
+    expect(view.getValue()).toBe(DEFAULT_CODE);
+    // Recoverable for as long as the tab lives, which is as long as anything
+    // can be promised when nothing can be stored.
+    editor.undoReset();
+    expect(view.getValue()).toBe("// worth keeping");
+  });
+
   it("does not empty the editor undoing a reset of an empty program", () => {
-    // Resetting an empty document backs up an empty document, and restoring
-    // that would clear the program the player has written since. Nothing worth
-    // bringing back was lost when it was backed up.
+    // An empty program is not backed up at all -- there is nothing in it to
+    // bring back -- and restoring an empty backup would clear the program the
+    // player has written since.
     const { editor, view } = setUp();
     view.type("");
     editor.reset();
