@@ -118,6 +118,17 @@ export interface RouteContext {
  * `#fullscreen` now works. The legacy regexp required a value, which meant the
  * bare forms people wrote (`#autostart`, `#devtest`) silently did nothing.
  *
+ * Whitespace around a key or a value is dropped, so `#challenge=4, seed=abc`
+ * and `#seed = abc` parse as they look. No browser can hand this function
+ * either of those: U+0020 is in the URL Standard's fragment percent-encode set,
+ * so every path into `location.hash` — typing, pasting, assigning, following an
+ * anchor — writes `%20` instead, which {@link SEED_PATTERN} then refuses on
+ * purpose. The leniency is for the callers that are not a browser: a hash
+ * assembled in code, one that has already been through `decodeURIComponent`,
+ * one written by hand in a test. It lives here rather than in each resolver so
+ * that the format has one whitespace rule instead of one per parameter, and so
+ * that no resolver has to explain a `trim` of its own.
+ *
  * @param hash - The location hash, with or without its leading `#`.
  * @returns The parsed pairs, in order, keyed by the lower-cased name.
  */
@@ -130,8 +141,8 @@ export function parseQuery(hash: string): RouteQuery {
       continue;
     }
     const separator = trimmed.indexOf("=");
-    const key = separator === -1 ? trimmed : trimmed.slice(0, separator);
-    const value = separator === -1 ? "" : trimmed.slice(separator + 1);
+    const key = (separator === -1 ? trimmed : trimmed.slice(0, separator)).trim();
+    const value = separator === -1 ? "" : trimmed.slice(separator + 1).trim();
     if (key !== "") {
       query.set(key.toLowerCase(), value);
     }
@@ -367,10 +378,14 @@ const SEED_PATTERN = /^[\w.-]+$/;
  * working, and makes the round trip exact: what the player typed is what the
  * world records is what the link in the bar offers back.
  *
- * The value is trimmed first because the hash format loses edge whitespace
- * asymmetrically — {@link parseQuery} trims each segment, so `#seed=5 ` arrives
- * as `5` while `#seed= 5` arrives as ` 5` — and two URLs that look the same must
- * not name two runs.
+ * Taken exactly as {@link parseQuery} hands it over. It used to be trimmed
+ * here, and the reason given was that a URL written with a trailing space
+ * reaches `location.hash` with the space still in it. That does not happen:
+ * U+0020 is in the fragment percent-encode set, so a browser writes `%20`
+ * instead, whichever way the URL was navigated to — which is the same fact
+ * {@link SEED_PATTERN} is built on, and the two comments could not both be
+ * true. What whitespace tolerance the format has belongs to `parseQuery`, which
+ * has it for every parameter and can say honestly who it is for.
  *
  * Anything unusable is refused and replaced by a fresh seed rather than
  * repaired, for the reason `floors=8.5` is refused rather than rounded: a seed
@@ -385,12 +400,11 @@ function resolveSeed(value: string | undefined): string | null {
   if (value === undefined) {
     return null;
   }
-  const seed = value.trim();
-  if (seed === "" || seed.length > SEED_MAX_LENGTH || !SEED_PATTERN.test(seed)) {
+  if (value === "" || value.length > SEED_MAX_LENGTH || !SEED_PATTERN.test(value)) {
     console.warn(`Invalid seed "${value}", using a fresh one instead`);
     return null;
   }
-  return seed;
+  return value;
 }
 
 /**

@@ -104,6 +104,17 @@ describe("parseQuery", () => {
     expect(parseQuery("#FULLSCREEN").get("fullscreen")).toBe("");
   });
 
+  it("ignores whitespace around a key and around a value", () => {
+    // The format's whitespace rule, in one place, so no resolver needs a trim of
+    // its own. A browser cannot produce any of this -- it percent-encodes a
+    // space in a fragment -- so the leniency is for hashes assembled in code,
+    // decoded before they arrive, or written by hand.
+    expect([...parseQuery("#challenge=4, seed = abc ")]).toEqual([
+      ["challenge", "4"],
+      ["seed", "abc"],
+    ]);
+  });
+
   it("holds one entry per key, whatever mixture of capitals wrote them", () => {
     // #SEED=abc was neither read as a seed nor dropped, so it rode along into
     // every URL built afterwards -- next to the seed that was read.
@@ -484,11 +495,14 @@ describe("resolveRoute seed validation", () => {
     expect(route("#seed=rush_hour.2").seed).toBe("rush_hour.2");
   });
 
-  it("trims a seed, so two urls that look alike name one run", () => {
-    // parseQuery loses edge whitespace asymmetrically: it trims each segment,
-    // so "#seed=5 " arrives as "5" while "#seed= 5" arrives as " 5".
+  it("reads a seed the same whichever side the space is on", () => {
+    // parseQuery drops whitespace around every value, so two hashes that look
+    // alike name one passenger stream. No browser can deliver either of these:
+    // it would send the space as %20, which is refused just below -- and that
+    // refusal, not this leniency, is what a player pasting a spaced URL meets.
     expect(route("#seed= 5").seed).toBe("5");
     expect(route("#seed=5 ").seed).toBe("5");
+    expect(route("#seed=%205").seed).toBeNull();
   });
 
   it("refuses a seed that could not survive the address bar", () => {
