@@ -600,6 +600,27 @@ describe("App seed", () => {
     );
   });
 
+  it("gives both seed links an address even when the url is empty", () => {
+    // A first visit has no hash at all. "Everything you are carrying, minus the
+    // seed" is then nothing at all, and a hash can only spell that `#` -- which
+    // navigates, but is also the fragment meaning "the top of this document",
+    // so the browser scrolls there on the way out of a pinned run. Both links
+    // name the challenge, so neither ever degenerates to one.
+    const { app, elements } = setUp();
+    app.handleRoute(...routeFor(""));
+    const seed = String(app.world?.seed);
+
+    expect(requireElement(".seedlink", elements.challenge).getAttribute("href")).toBe(
+      `#challenge=1,seed=${seed}`,
+    );
+
+    app.handleRoute(...routeFor("#seed=issue-61"));
+
+    expect(requireElement(".seednewdraw", elements.challenge).getAttribute("href")).toBe(
+      "#challenge=1",
+    );
+  });
+
   it("prints the seed and a whole url at every start", () => {
     // The affordance that matters most: nobody knows a run is worth repeating
     // until it has already gone wrong, and by then this line is the only record

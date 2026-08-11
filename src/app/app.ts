@@ -292,10 +292,12 @@ export class App {
    * happened.
    *
    * @param world - The run that has just been built.
+   * @param challengeIndex - Its index in {@link challenges}, or `null` for the
+   * sandbox, which the URL addresses by its building instead.
    * @returns Its seed, the URL that starts another run from it and the URL that
    * stops pinning it, or `null` when it has no seed to offer.
    */
-  #seedLink(world: World): SeedLinkData | null {
+  #seedLink(world: World, challengeIndex: number | null): SeedLinkData | null {
     if (world.seed === null) {
       // Only reachable when a caller handed the world a ready-made random
       // stream, which the app never does; a test that does gets no seed line
@@ -303,10 +305,20 @@ export class App {
       return null;
     }
     const seed = String(world.seed);
+    // Both links name the challenge, as every other link this class builds
+    // does, and here it is load-bearing rather than tidy. A first visit has no
+    // hash at all, so "everything you are carrying, minus the seed" is nothing
+    // at all, and a hash cannot spell that except as a bare `#`. That does work
+    // — the hash changes, so a fresh run is drawn — but `#` is also the
+    // fragment meaning "the top of this document", so the browser scrolls there
+    // on the way out of a pinned run. Naming the challenge makes it an address.
+    // Where the URL already carries a challenge, which is every route the game
+    // writes itself, this replaces it with the same value and changes nothing.
+    const at = challengeIndex === null ? {} : { challenge: challengeIndex + 1 };
     return {
       seed,
-      url: createParamsUrl(this.#query, { seed }),
-      newDrawUrl: this.#seed === null ? null : createParamsUrl(this.#query, { seed: null }),
+      url: createParamsUrl(this.#query, { ...at, seed }),
+      newDrawUrl: this.#seed === null ? null : createParamsUrl(this.#query, { ...at, seed: null }),
     };
   }
 
@@ -447,7 +459,7 @@ export class App {
     const world = createWorld(challenge.options, this.#seed ?? undefined);
     this.world = world;
     window.world = world;
-    const seed = this.#seedLink(world);
+    const seed = this.#seedLink(world, challengeIndex);
     if (seed !== null) {
       // Printed at every start, because nobody knows a run is worth repeating
       // until it has already gone wrong -- by which time the only record of what
