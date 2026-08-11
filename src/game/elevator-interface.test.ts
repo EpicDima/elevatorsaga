@@ -1002,6 +1002,21 @@ describe("Elevator interface", () => {
       );
     });
 
+    it("names an object as one, in the queue message as well", () => {
+      // The other half of the pair, and the other of the two sentences it gets
+      // composed into: `String({})` is "[object Object]", and the queue
+      // complaint is a different frame from goToFloor's, so a phrase that only
+      // reads correctly in one of them would not be caught by the test above.
+      elevInterface.destinationQueue = [{ floor: 2 } as unknown as number];
+      elevInterface.checkDestinationQueue();
+
+      expect(soleReport().message).toBe(
+        "elevator.destinationQueue contained an object, which is not a floor number. " +
+          "The entry was dropped so the elevator keeps running; destinationQueue takes " +
+          "finite numbers, and this building has floors 0 to 3.",
+      );
+    });
+
     it("refuses in the language the page is in, composed phrase and all", () => {
       // Both halves have to move together: the sentence comes from one key and
       // the words "an array" from another, so a wiring that translated only the
