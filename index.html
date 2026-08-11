@@ -3,10 +3,19 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Elevator Saga - the elevator programming game</title>
+    <!--
+      data-i18n names the message an element's words come from, and
+      data-i18n-attr the messages its attributes come from; src/ui/localise-page.ts
+      applies both at start-up and again whenever the language changes. The
+      English written out below is what a reader without JavaScript, and every
+      crawler, gets to see, and src/ui/localise-page.test.ts checks that it is
+      still word for word the English message it names.
+    -->
+    <title data-i18n="page.title">Elevator Saga - the elevator programming game</title>
     <meta
       name="description"
       content="Elevator Saga is a programming game: write JavaScript to transport people efficiently."
+      data-i18n-attr="content:page.description"
     />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 
@@ -24,15 +33,21 @@
       the leading slash to the base at build time.
     -->
     <meta property="og:type" content="website" />
-    <meta property="og:title" content="Elevator Saga - the elevator programming game" />
+    <meta
+      property="og:title"
+      content="Elevator Saga - the elevator programming game"
+      data-i18n-attr="content:page.title"
+    />
     <meta
       property="og:description"
       content="Elevator Saga is a programming game: write JavaScript to transport people efficiently."
+      data-i18n-attr="content:page.description"
     />
     <meta property="og:image" content="/images/screenshot.png" />
     <meta
       property="og:image:alt"
       content="Four elevators carrying people between six floors, with the JavaScript program driving them in the editor below."
+      data-i18n-attr="content:page.imageAlt"
     />
     <meta name="twitter:card" content="summary_large_image" />
 
@@ -45,18 +60,31 @@
       which is where the target `<div>` only holds; the `href` is what keeps the
       link a link, and what the browser falls back to.
     -->
-    <a class="skip-link" href="#code">Skip to the code editor</a>
+    <a class="skip-link" href="#code" data-i18n="page.skipLink">Skip to the code editor</a>
 
     <div class="container">
       <header class="header">
-        <h1>Elevator Saga <em class="emphasis-color">The elevator programming game</em></h1>
-        <nav aria-label="Help and reference">
-          <a href="documentation.html">Help</a>
-          <a href="documentation.html#docs">Documentation</a>
-          <a href="https://github.com/magwo/elevatorsaga/wiki/">Wiki &amp; Solutions</a>
+        <h1>
+          <span data-i18n="page.brand">Elevator Saga</span>
+          <em class="emphasis-color" data-i18n="page.tagline">The elevator programming game</em>
+        </h1>
+        <nav aria-label="Help and reference" data-i18n-attr="aria-label:page.nav.label">
+          <a href="documentation.html" data-i18n="page.nav.help">Help</a>
+          <a href="documentation.html#docs" data-i18n="page.nav.documentation">Documentation</a>
+          <a href="https://github.com/magwo/elevatorsaga/wiki/" data-i18n="page.nav.wiki"
+            >Wiki &amp; Solutions</a
+          >
         </nav>
       </header>
 
+      <!--
+        The one piece of the page that cannot be localised at run time, and the
+        one that does not need to be: when scripting is enabled a browser parses
+        the children of <noscript> as text, so there is no element here to write
+        a message into, and when scripting is disabled there is nothing to write
+        it with. page.noscript is in the catalogue for the day the build renders
+        this file per language.
+      -->
       <noscript>
         <p>
           Your browser does not appear to support JavaScript. This page contains a browser-based
@@ -74,7 +102,13 @@
           reachable by keyboard if it can take focus, so it is in the tab
           order, and something in the tab order needs a role and a name.
         -->
-        <div class="world" tabindex="0" role="region" aria-label="Building">
+        <div
+          class="world"
+          tabindex="0"
+          role="region"
+          aria-label="Building"
+          data-i18n-attr="aria-label:page.world.label"
+        >
           <div class="worldtrack">
             <!--
               The live region is this container, which is always in the
@@ -84,24 +118,38 @@
             -->
             <div class="feedbackcontainer" role="status"></div>
             <div class="innerworld"></div>
-            <div class="statscontainer" role="group" aria-label="Simulation statistics">
+            <div
+              class="statscontainer"
+              role="group"
+              aria-label="Simulation statistics"
+              data-i18n-attr="aria-label:page.stats.label"
+            >
               <div class="stat">
-                <span class="key">Transported</span><span class="value transportedcounter"></span>
+                <span class="key" data-i18n="page.stats.transported">Transported</span
+                ><span class="value transportedcounter"></span>
               </div>
               <div class="stat">
-                <span class="key">Elapsed time</span><span class="value elapsedtime"></span>
+                <span class="key" data-i18n="page.stats.elapsedTime">Elapsed time</span
+                ><span class="value elapsedtime"></span>
               </div>
               <div class="stat">
-                <span class="key">Transported/s</span><span class="value transportedpersec"></span>
+                <span class="key" data-i18n="page.stats.transportedPerSec">Transported/s</span
+                ><span class="value transportedpersec"></span>
               </div>
               <div class="stat">
-                <span class="key">Avg waiting time</span><span class="value avgwaittime"></span>
+                <span class="key" data-i18n="page.stats.avgWaitTime">Avg waiting time</span
+                ><span class="value avgwaittime"></span>
               </div>
               <div class="stat">
-                <span class="key">Max waiting time</span><span class="value maxwaittime"></span>
+                <span class="key" data-i18n="page.stats.maxWaitTime">Max waiting time</span
+                ><span class="value maxwaittime"></span>
               </div>
               <div class="stat">
-                <span class="key" title="Number of floors that have been travelled by elevators"
+                <span
+                  class="key"
+                  title="Number of floors that have been travelled by elevators"
+                  data-i18n="page.stats.moves"
+                  data-i18n-attr="title:page.stats.movesTitle"
                   >Moves</span
                 ><span class="value movecount"></span>
               </div>
@@ -116,15 +164,17 @@
           data-mod-key marks the keys the editor binds as `Mod-`, which is
           Command on Apple platforms; src/ui/shortcuts.ts relabels them.
         -->
-        <p class="hint">
+        <p class="hint" data-i18n="page.hint.html">
           In the editor: <kbd data-mod-key>Ctrl</kbd>+<kbd>Enter</kbd> applies your program.
           <kbd data-mod-key>Ctrl</kbd>+<kbd>S</kbd> saves it. <kbd>Tab</kbd> indents.
           <kbd>Esc</kbd> moves the focus back out.
         </p>
         <div class="codebuttons">
           <div>
-            <button type="button" id="button_reset">Reset</button>
-            <button type="button" id="button_resetundo">Undo reset</button>
+            <button type="button" id="button_reset" data-i18n="page.button.reset">Reset</button>
+            <button type="button" id="button_resetundo" data-i18n="page.button.undoReset">
+              Undo reset
+            </button>
           </div>
           <div>
             <!--
@@ -137,26 +187,35 @@
             -->
             <span id="fitness_message" aria-live="polite"></span>
             <span id="save_message" aria-live="polite"></span>
-            <button type="button" id="button_save">Save</button>
-            <button type="button" id="button_apply">Apply</button>
+            <button type="button" id="button_save" data-i18n="page.button.save">Save</button>
+            <button type="button" id="button_apply" data-i18n="page.button.apply">Apply</button>
           </div>
         </div>
       </main>
 
-      <p class="helpnote">
+      <p class="helpnote" data-i18n="page.helpNote.html">
         Confused? Open the <a href="documentation.html">Help and API documentation</a> page
       </p>
 
       <footer class="footer">
-        <p>Made by Magnus Wolffelt and contributors</p>
-        <!-- Filled by src/ui/version.ts, from the version in package.json. -->
-        <p>Version <span class="emphasis-color appversion"></span></p>
+        <p data-i18n="page.footer.credits">Made by Magnus Wolffelt and contributors</p>
+        <!--
+          The word is a message and the number is not: the version comes from
+          package.json, and src/ui/version.ts writes it into the empty span. They
+          are two elements so that localising the one cannot wipe out the other.
+        -->
         <p>
+          <span data-i18n="page.footer.version">Version</span>
+          <span class="emphasis-color appversion"></span>
+        </p>
+        <p data-i18n="page.footer.source.html">
           <a href="https://github.com/EpicDima/elevatorsaga">Source code</a> on GitHub, forked from
           <a href="https://github.com/magwo/elevatorsaga">the original</a>
         </p>
         <!-- Written into dist/ by the build; see LICENSES_FILE in vite.config.ts. -->
-        <p><a href="licenses.txt">Licences</a> for the game and everything it bundles</p>
+        <p data-i18n="page.footer.licences.html">
+          <a href="licenses.txt">Licences</a> for the game and everything it bundles
+        </p>
       </footer>
     </div>
   </body>
