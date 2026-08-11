@@ -830,10 +830,16 @@ export interface RouterOptions {
  * refused is deleted from the URL, because a hash that goes on naming something
  * nobody is playing is a hash that gets bookmarked, pasted into a chat and
  * reported as a bug in the game: `#challenge=abc` starts the first challenge,
- * and the URL should say the first challenge. Every deleted key resolved to
- * exactly what its absence resolves to — that is what being refused means, see
- * {@link RouteParams.refusedKeys} — so the rewrite cannot change the route it is
- * correcting, which is what makes it safe to do without routing again.
+ * and the URL should stop saying `abc`. It is deleted rather than rewritten to
+ * `challenge=1`, so `#challenge=abc,timescale=8` becomes `#timescale=8` and
+ * `#challenge=abc` on its own becomes an empty hash. Absence is how this hash
+ * spells the first challenge, and a correction that invented a value would be
+ * putting a choice into the address bar that the player never made — the next
+ * thing they copied out of it would carry that choice with it. Every deleted key
+ * resolved to exactly what its absence resolves to — that is what being refused
+ * means, see {@link RouteParams.refusedKeys} — so the rewrite cannot change the
+ * route it is correcting, which is what makes it safe to do without routing
+ * again.
  *
  * The handler is handed the corrected parameters rather than the ones that were
  * written, so that everything built from them is clean as well. The challenge
