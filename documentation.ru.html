@@ -131,13 +131,17 @@
           Раньше игра подключала jQuery и lodash, поэтому в старых решениях с вики часто встречаются
           <span class="emphasis-color">$</span> и <span class="emphasis-color">_</span>. Ни та ни
           другая библиотека больше не подключается, и вашей программе они недоступны: решение с ними
-          упадёт с ошибкой <span class="emphasis-color">_ is not defined</span>. Всё, ради чего они
-          здесь были нужны, — <span class="emphasis-color">_.filter</span>,
-          <span class="emphasis-color">_.map</span>, <span class="emphasis-color">_.each</span>,
-          <span class="emphasis-color">_.min</span> и им подобные — теперь встроено в сам язык
-          (<span class="emphasis-color">filter</span>, <span class="emphasis-color">map</span>,
-          <span class="emphasis-color">forEach</span>, <span class="emphasis-color">Math.min</span>)
-          и работает в любом браузере, который потянет эту игру.
+          упадёт с ошибкой <span class="emphasis-color">_ is not defined</span>. Почти всё, ради
+          чего они здесь были нужны, — <span class="emphasis-color">_.filter</span>,
+          <span class="emphasis-color">_.map</span>, <span class="emphasis-color">_.each</span> и им
+          подобные — есть у самих массивов (<span class="emphasis-color">filter</span>,
+          <span class="emphasis-color">map</span>, <span class="emphasis-color">forEach</span>) в
+          любом браузере, который потянет эту игру. Исключение —
+          <span class="emphasis-color">_.min</span> и <span class="emphasis-color">_.max</span>:
+          <span class="emphasis-color">Math.min</span> методом массива не является и принимает
+          аргументы по одному, а не массивом, поэтому вместо
+          <span class="emphasis-color">_.min(floorNums)</span> придётся писать
+          <span class="emphasis-color">Math.min(...floorNums)</span>.
         </p>
 
         <h2>Примеры кода</h2>
@@ -496,9 +500,11 @@ elevator.goToFloor(2); // Всё равно добавится — очеред�
                 <small
                   >Текущая очередь этажей — номера этажей, на которые лифт собирается заехать. Её
                   можно менять и очищать. Учтите, что после изменения нужно вызвать
-                  checkDestinationQueue(), чтобы оно подействовало сразу. Запись, которая номером
-                  этажа не является, отбрасывается, когда лифт до неё доходит, и игра сообщает об
-                  ошибке в вашем коде.</small
+                  checkDestinationQueue(), чтобы оно подействовало сразу. При ближайшей проверке
+                  очереди все записи, которые конечными числами не являются, отбрасываются разом, а
+                  игра сообщает об ошибке в вашем коде, называя только первую такую запись, — и
+                  только один раз для каждого лифта. Конечный номер этажа за пределами здания
+                  остаётся на месте: лифт просто уедет за край шахты.</small
                 >
               </td>
               <td>

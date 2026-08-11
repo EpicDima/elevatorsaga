@@ -132,13 +132,17 @@
           The game used to load jQuery and lodash, so older solutions you find on the wiki often
           call <span class="emphasis-color">$</span> or <span class="emphasis-color">_</span>.
           Neither is loaded any more and neither is in scope for your program: a solution that uses
-          them will fail with <span class="emphasis-color">_ is not defined</span>. Everything they
-          were used for here — <span class="emphasis-color">_.filter</span>,
-          <span class="emphasis-color">_.map</span>, <span class="emphasis-color">_.each</span>,
-          <span class="emphasis-color">_.min</span> and friends — is now a built-in array method
-          (<span class="emphasis-color">filter</span>, <span class="emphasis-color">map</span>,
-          <span class="emphasis-color">forEach</span>, <span class="emphasis-color">Math.min</span>)
-          in every browser that can run this game.
+          them will fail with <span class="emphasis-color">_ is not defined</span>. Most of what
+          they were used for here — <span class="emphasis-color">_.filter</span>,
+          <span class="emphasis-color">_.map</span>, <span class="emphasis-color">_.each</span> and
+          friends — is a built-in array method (<span class="emphasis-color">filter</span>,
+          <span class="emphasis-color">map</span>, <span class="emphasis-color">forEach</span>) in
+          every browser that can run this game. <span class="emphasis-color">_.min</span> and
+          <span class="emphasis-color">_.max</span> are the exception:
+          <span class="emphasis-color">Math.min</span> is not an array method, and it takes its
+          arguments one at a time rather than an array, so
+          <span class="emphasis-color">_.min(floorNums)</span> has to become
+          <span class="emphasis-color">Math.min(...floorNums)</span>.
         </p>
 
         <h2>Code examples</h2>
@@ -500,9 +504,12 @@ elevator.goToFloor(2); // Queued anyway -- queue: 2, 3, 2</code></pre>
                 <small
                   >The current destination queue, meaning the floor numbers the elevator is
                   scheduled to go to. Can be modified and emptied if desired. Note that you need to
-                  call checkDestinationQueue() for the change to take effect immediately. An entry
-                  that is not a floor number is dropped when the elevator reaches it, and reported
-                  as an error in your code.</small
+                  call checkDestinationQueue() for the change to take effect immediately. The next
+                  time the queue is checked, every entry in it that is not a finite number is
+                  dropped in one pass, and the first of them is reported as an error in your code -
+                  only the first, and only once per elevator. A finite floor number outside the
+                  building is left where it is, and sends the elevator past the end of the
+                  shaft.</small
                 >
               </td>
               <td>
