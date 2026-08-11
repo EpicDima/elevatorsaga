@@ -1394,6 +1394,41 @@ function completionEntry(key: MessageKey): ApiCompletion {
   return found;
 }
 
+/**
+ * The words of a message, a closing full stop dropped.
+ *
+ * The popup prints the opening sentences of a table cell and stops before the
+ * detail a hovering box has no room for, so the two texts run together
+ * identically until the shorter one ends in a full stop where the longer one
+ * carries on with a comma or a dash. That one character is the only difference
+ * worth forgiving, and taking it off both is enough to forgive it.
+ *
+ * @param value - The message.
+ * @returns Its words, ready to be looked for inside another message's.
+ */
+function shortenable(value: string): string {
+  return textOf(value).replace(/\.$/u, "");
+}
+
+/**
+ * The popup lines that say it in the popup's own words.
+ *
+ * Everything else the popup shows is a stretch of a reference page, and is held
+ * to the page's translation of it. These say the same thing more briefly than
+ * any cell does, so `src/ui/completions.ts` pins their English and nothing at
+ * all pins their Russian. The list is here so that a line joining it is a
+ * decision somebody made rather than a check that quietly stopped applying.
+ */
+const POPUP_ONLY_WORDING: readonly MessageKey[] = [
+  "completion.events.on",
+  "completion.events.once",
+  "completion.events.off",
+  "completion.elevator.stop",
+  "completion.floor.event.buttonStateChange",
+  "completion.global.init",
+  "completion.global.update",
+];
+
 describe("src/i18n, against the editor it also speaks for", () => {
   it("gives the popup exactly what src/ui/completions.ts says", () => {
     // The completion popup has no page for a reviewer to read, so its English
@@ -1455,6 +1490,44 @@ describe("src/i18n, against the editor it also speaks for", () => {
         );
       }
     }
+  });
+
+  it("translates a sentence the popup borrows the way the page translates it", () => {
+    // The rule above only reaches a popup line whose English is a whole cell,
+    // word for word. Most of them are a cell cut short instead, and those had
+    // nothing holding their Russian: `src/ui/completions.ts` is English, and
+    // the pages do not print the popup. So take the English cut as given -- one
+    // text inside the other -- and require the Russian to be cut the same way.
+    const printed = DOCS_KEYS.filter((key) => !key.endsWith(".code"));
+    const ownWords: MessageKey[] = [];
+    for (const spoken of COMPLETION_KEYS.filter((key) => !key.endsWith(".code"))) {
+      const popup = shortenable(message("en", spoken));
+      let borrowed = false;
+      for (const source of printed) {
+        const page = shortenable(message("en", source));
+        // Anything shorter than a sentence turns up in too many places to mean
+        // a borrowing: a heading would pair with half the table.
+        if (Math.min(popup.length, page.length) < 30) {
+          continue;
+        }
+        const where = `${spoken}, beside ${source}`;
+        if (popup.length <= page.length && page.includes(popup)) {
+          borrowed = true;
+          expect(shortenable(message("ru", source)), where).toContain(
+            shortenable(message("ru", spoken)),
+          );
+        } else if (page.length < popup.length && popup.includes(page)) {
+          borrowed = true;
+          expect(shortenable(message("ru", spoken)), where).toContain(
+            shortenable(message("ru", source)),
+          );
+        }
+      }
+      if (!borrowed) {
+        ownWords.push(spoken);
+      }
+    }
+    expect(ownWords).toEqual([...POPUP_ONLY_WORDING]);
   });
 
   it("has a placeholder only where the page prints a picture instead of a word", () => {
