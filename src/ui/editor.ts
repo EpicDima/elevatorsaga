@@ -48,12 +48,18 @@ export const BACKUP_STORAGE_KEY = "develevateBackupCode";
  * this fork invents therefore lives under the fork's own prefix, as
  * {@link BACKUP_STORAGE_KEY} already does.
  *
- * The task number is part of the key — one key per task, not one key holding
- * all eight — so that a player who left task 3 half-written finds their own
- * attempt when they come back, "start over" is an operation on exactly one
+ * The task's identifier is part of the key — one key per task, not one key
+ * holding all eight — so that a player who left task 3 half-written finds their
+ * own attempt when they come back, "start over" is an operation on exactly one
  * task, and an entry that somehow becomes unreadable cannot take the other
  * seven down with it. Not exported: which keys exist, and how they are spelled,
  * is the editor's business alone.
+ *
+ * The identifier is the task's own `id` and goes in whole, which spells
+ * `develevateTutorialCode_tutorial-3` and repeats the word. The repetition is
+ * the cheaper half of the trade: the id is opaque here, and trimming a prefix
+ * off it would be this file assuming a shape that `TutorialTask.id` explicitly
+ * does not promise to keep.
  */
 const TUTORIAL_CODE_KEY_PREFIX = "develevateTutorialCode_";
 
@@ -231,23 +237,36 @@ const PLAYER_BUFFER: EditorBuffer = {
 /**
  * Describes the buffer of one learning-track task.
  *
- * @param task - The task's number, counting from one.
+ * Keyed by the task's stable identifier rather than by its position in the
+ * track, because the position is the one thing about a task that is expected to
+ * change. `TutorialTask.id` in `src/game/tutorial.ts` says so itself, and the
+ * program a player left half-written is precisely "a task surviving being
+ * written down": key it by position and the day a ninth task is inserted at
+ * number two, everybody's attempt at task 2 is handed to whoever opens the new
+ * one, and the attempts at 3 through 8 all shift by one. Nothing warns anyone —
+ * the text is still there, it is simply filed under somebody else's task.
+ *
+ * The identifier is taken as an opaque string. This file cannot check it
+ * against the task table without importing the track it is meant to know
+ * nothing about; what it can do is refuse the one value that is nobody's task
+ * and would still spell a real key, and let the caller's own lookup — which
+ * must already have found the starter program below — answer the rest.
+ *
+ * @param taskId - The task's stable identifier, such as `tutorial-3`.
  * @param starterCode - The program the task hands the player to complete.
  * @returns The buffer for that task.
- * @throws RangeError When `task` is not a positive whole number. The number
- * comes from a URL the player can type by hand, and a `NaN` or `-1` slipping
- * through would spell one shared key that several malformed routes would then
- * pour their text into.
+ * @throws RangeError When `taskId` has no visible characters. Identifiers reach
+ * the game from a URL the player can type by hand, and an empty one spells the
+ * bare prefix — one shared key that every malformed route would pour its text
+ * into.
  */
-function tutorialBuffer(task: number, starterCode: string): EditorBuffer {
-  // Safe rather than merely whole: `1e21` is an integer to JavaScript and
-  // spells the key `develevateTutorialCode_1e+21`, which is nobody's task.
-  if (!Number.isSafeInteger(task) || task < 1) {
-    throw new RangeError(`Tutorial task must be a positive whole number, got ${String(task)}`);
+function tutorialBuffer(taskId: string, starterCode: string): EditorBuffer {
+  if (taskId.trim() === "") {
+    throw new RangeError(`Tutorial task id must not be blank, got ${JSON.stringify(taskId)}`);
   }
   return {
-    codeKey: `${TUTORIAL_CODE_KEY_PREFIX}${String(task)}`,
-    backupKey: `${TUTORIAL_BACKUP_KEY_PREFIX}${String(task)}`,
+    codeKey: `${TUTORIAL_CODE_KEY_PREFIX}${taskId}`,
+    backupKey: `${TUTORIAL_BACKUP_KEY_PREFIX}${taskId}`,
     starterCode,
     writesStarterOnOpen: true,
   };
@@ -432,14 +451,15 @@ export class CodeEditor extends Observable<CodeEditorEvents> {
    * player's key together with a task's starter program, and the player's
    * program is gone. There is no such call to make here.
    *
-   * @param task - The task's number, counting from one.
+   * @param taskId - The task's stable identifier, as `TutorialTask.id` spells
+   * it; the same string the route names, so nothing has to be derived.
    * @param starterCode - The program the task starts from, used only when the
    * task has nothing stored yet. Also what {@link CodeEditor.reset} restores
    * while the task is open, so passing the text in the player's current
    * language keeps "start over" in that language.
    */
-  openTutorialBuffer(task: number, starterCode: string): void {
-    this.#openBuffer(tutorialBuffer(task, starterCode));
+  openTutorialBuffer(taskId: string, starterCode: string): void {
+    this.#openBuffer(tutorialBuffer(taskId, starterCode));
   }
 
   /**
