@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { setLocale, DEFAULT_LOCALE } from "../i18n/index.ts";
 import {
   calculateFitness,
   doFitnessSuite,
@@ -120,6 +121,7 @@ function propertyOf(result: Record<string, number>, property: string): number {
 
 afterEach(() => {
   vi.restoreAllMocks();
+  setLocale(DEFAULT_LOCALE);
 });
 
 describe("requireNothing", () => {
@@ -139,10 +141,34 @@ describe("requireNothing", () => {
 
 describe("fitnessChallenges", () => {
   it("keeps the three legacy scenarios", () => {
-    expect(fitnessChallenges.map((c) => c.options.description)).toEqual([
+    expect(fitnessChallenges().map((c) => c.options.description)).toEqual([
       "Small scenario",
       "Medium scenario",
       "Large scenario",
+    ]);
+  });
+
+  it("keeps the same three buildings whatever they are called", () => {
+    // The names are messages; the floor counts, elevator counts and spawn rates
+    // are the benchmark itself, and a report scored in one language has to be
+    // comparable with a report scored in another.
+    const english = fitnessChallenges().map((c) => ({ ...c.options, description: "" }));
+    setLocale("ru");
+    const russian = fitnessChallenges().map((c) => ({ ...c.options, description: "" }));
+
+    expect(russian).toEqual(english);
+  });
+
+  it("names its scenarios in the language asked for, not the one it was imported in", () => {
+    // The trap this function exists to avoid: as a module constant the three
+    // names were rendered when the module was first imported, which is before
+    // anything has chosen a locale, so every report would have been English.
+    setLocale("ru");
+
+    expect(fitnessChallenges().map((c) => c.options.description)).toEqual([
+      "Маленький сценарий",
+      "Средний сценарий",
+      "Большой сценарий",
     ]);
   });
 });
@@ -364,6 +390,18 @@ describe("doFitnessSuite", () => {
     expect("error" in result).toBe(true);
   });
 
+  it("reports the error in the language the suite is running in", () => {
+    // Which is why the worker is told the locale rather than sending scenario
+    // identifiers home: this string is `String()` of whatever was thrown, so
+    // there is no identifier to send in its place, and it is rendered here --
+    // wherever "here" happens to be -- or not at all.
+    setLocale("ru");
+
+    expect(doFitnessSuite("{update: function() {}}")).toEqual({
+      error: "Error: В коде должна быть функция init",
+    });
+  });
+
   it("scores the same program the same way twice", () => {
     // The whole point of naming the seeds. Unseeded, the benchmark handed back
     // different numbers for the same program on every invocation, so a change
@@ -395,7 +433,7 @@ describe("doFitnessSuite", () => {
     const second = expectRuns(doFitnessSuite(SWEEPING_PROGRAM, [202]));
     const both = expectRuns(doFitnessSuite(SWEEPING_PROGRAM, [101, 202]));
 
-    expect(both).toHaveLength(fitnessChallenges.length);
+    expect(both).toHaveLength(fitnessChallenges().length);
     for (const [index, run] of both.entries()) {
       const firstResult = at(first, index).result;
       const secondResult = at(second, index).result;

@@ -14,6 +14,7 @@
  */
 
 import { doFitnessSuite, fitnessSeeds, type FitnessSuiteResult } from "../game/fitness.ts";
+import { getLocale, quantity, seconds, t, type Quantity } from "../i18n/index.ts";
 import type { FitnessWorkerRequest } from "./fitness-worker.ts";
 
 /**
@@ -53,9 +54,9 @@ export interface FitnessWorkerLike {
   /** Called when the worker itself fails. */
   onerror: ((event: ErrorEvent) => void) | null;
   /**
-   * Sends the player's source to the worker.
+   * Sends the player's source to the worker, with the language to report in.
    *
-   * @param message - The source to benchmark.
+   * @param message - The source to benchmark, and the active locale.
    */
   postMessage(message: FitnessWorkerRequest): void;
   /** Shuts the worker down. */
@@ -150,9 +151,10 @@ function runInWorker(
     // the worker keeps a core busy for as long as the tab is open.
     const timer = setTimeout(() => {
       finish({
-        error: `The fitness worker did not finish within ${String(
-          Math.round(timeoutMs / 1000),
-        )}s and was stopped. Does your program have a loop that never ends?`,
+        // Rendered on this side, not in the worker: a worker that has not
+        // answered in a minute is one that is never going to, so there is
+        // nobody there to ask for the sentence.
+        error: t("fitness.workerTimeout", { seconds: seconds(Math.round(timeoutMs / 1000)) }),
       });
     }, timeoutMs);
     worker.onmessage = (event): void => {
@@ -164,7 +166,12 @@ function runInWorker(
     worker.onerror = (event): void => {
       finish({ error: describeWorkerError(event) });
     };
-    worker.postMessage(codeStr);
+    // The locale travels with the source because the worker is a second module
+    // instance and cannot see the one this page set; see the note on
+    // {@link "./fitness-worker.ts"!FitnessWorkerRequest} for why the language
+    // goes out with the request rather than the scenario names coming back as
+    // identifiers.
+    worker.postMessage({ code: codeStr, locale: getLocale() });
   });
 }
 
@@ -175,7 +182,37 @@ function runInWorker(
  * @returns The message to report.
  */
 function describeWorkerError(event: ErrorEvent): string {
-  return event.message === "" ? "The fitness worker failed" : event.message;
+  return event.message === "" ? t("fitness.workerFailed") : event.message;
+}
+
+/**
+ * An average wait time, as the report prints it.
+ *
+ * Three significant digits, which is what `toPrecision(3)` gave and what this
+ * has to keep giving: 12.3456 is `12.3s` and 7 is `7.00s`, in English, exactly
+ * as before. {@link "../i18n/index.ts"!seconds} is the obvious helper and is not
+ * usable here, because it fixes the number of *decimals* rather than of
+ * significant digits, so it would round 7 to `7.0s` and change a number on
+ * screen — the one thing routing this through the catalogue is not allowed to
+ * do. The unit options are its, so English still gets a bare `s` and Russian
+ * gets ` с` with the non-breaking space its typography asks for.
+ *
+ * A wait time above 999 seconds does move: `toPrecision(3)` rendered it as
+ * `1.23e+3s`, and `Intl` renders `1,230s`. Exponential notation in a wait time
+ * was not a deliberate format, and no benchmark scenario runs long enough to
+ * produce one.
+ *
+ * @param waitTime - The averaged wait time, in seconds.
+ * @returns The number and its unit, ready to be interpolated into a message.
+ */
+function waitTimeQuantity(waitTime: number): Quantity {
+  return quantity(waitTime, {
+    style: "unit",
+    unit: "second",
+    unitDisplay: "narrow",
+    minimumSignificantDigits: 3,
+    maximumSignificantDigits: 3,
+  });
 }
 
 /**
@@ -185,19 +222,25 @@ function describeWorkerError(event: ErrorEvent): string {
  * scenario descriptions are data and the error is whatever the player's program
  * threw.
  *
+ * Both of those arrive already in the player's language \u2014 the scenario names
+ * and the error alike are rendered wherever the suite ran, which is the worker
+ * for a real report and this thread for the fallback. Only the frame around
+ * them is put on here.
+ *
  * @param results - What {@link runFitnessSuite} resolved with.
  * @returns The message to display.
  */
 export function describeFitnessResults(results: FitnessSuiteResult): string {
   if (!Array.isArray(results)) {
-    return `Could not compute fitness due to error: ${results.error}`;
+    return t("fitness.error", { error: results.error });
   }
   const waitTimes = results.map((run) => {
     const avgWaitTime = run.result["avgWaitTime"];
-    const value = avgWaitTime === undefined ? "?" : `${avgWaitTime.toPrecision(3)}s`;
-    return `${run.options.description}: ${value}`;
+    const value =
+      avgWaitTime === undefined ? t("fitness.unknownValue") : waitTimeQuantity(avgWaitTime);
+    return t("fitness.result", { scenario: run.options.description, value });
   });
   // Non-breaking spaces, as in the legacy `&nbsp&nbsp&nbsp` separator, so the
   // columns survive HTML whitespace collapsing.
-  return `Fitness avg wait times: ${waitTimes.join("\u00a0\u00a0\u00a0")}`;
+  return t("fitness.results", { results: waitTimes.join("\u00a0\u00a0\u00a0") });
 }

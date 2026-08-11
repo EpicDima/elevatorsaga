@@ -11,9 +11,12 @@
 
 import { doFitnessSuite } from "../game/fitness.ts";
 import type { FitnessSuiteResult } from "../game/fitness.ts";
+import { setLocale } from "../i18n/index.ts";
+import type { Locale } from "../i18n/index.ts";
 
 /**
- * What the host sends the worker: the source the player typed, and nothing else.
+ * What the host sends the worker: the source the player typed, and the language
+ * to report in.
  *
  * In particular not the seed list. This file names no seeds at all: it leaves
  * `doFitnessSuite` to fall back on its default, which is the `fitnessSeeds`
@@ -28,16 +31,50 @@ import type { FitnessSuiteResult } from "../game/fitness.ts";
  * The one caller that does choose its own seeds is `runFitnessSuite`'s
  * main-thread fallback, which runs a prefix of that same list — and it runs
  * `doFitnessSuite` directly, with no boundary to carry them across.
+ *
+ * The locale is here for the opposite reason: it is state the worker cannot
+ * discover and has to be told. A worker is a second module instance, with its
+ * own copy of `src/i18n/index.ts` and its own active locale, and nothing the
+ * page does to the one on the main thread reaches it — so without this field the
+ * worker reports in whatever the module defaults to, which is English, however
+ * the rest of the interface is written.
+ *
+ * The alternative was to send scenario identifiers back and translate on the
+ * main thread, and it is the tidier contract: the reply would be locale-free
+ * data, and the only place that renders it would be the only place that knows
+ * the language. It is rejected because it can fix half of what the worker says
+ * and not the other half. The scenario names are the half that has identifiers;
+ * the rest is {@link "../game/fitness.ts"!FitnessSuiteResult}'s `error`, which
+ * is `String()` of whatever the player's program threw — a `SyntaxError` from
+ * the engine, a message from `getCodeObjFromCode`, one of the elevator facade's
+ * complaints — and an arbitrary string has no identifier to send back in place
+ * of it. Translating at the boundary would therefore leave `runFitnessSuite`
+ * answering in two languages depending on which of its paths ran: the worker
+ * would report a Russian page's error in English, while the main-thread
+ * fallback, which runs inside the page's own module instance, reported the same
+ * error in Russian. A player cannot tell which path ran, so the two have to
+ * agree, and telling the worker the locale is what makes them.
  */
-export type FitnessWorkerRequest = string;
+export interface FitnessWorkerRequest {
+  /** The source the player typed. */
+  readonly code: string;
+  /** The language the page is in, and so the language to report in. */
+  readonly locale: Locale;
+}
 
 /** What the worker sends back. */
 export type FitnessWorkerResponse = FitnessSuiteResult;
 
 self.onmessage = (event: MessageEvent<FitnessWorkerRequest>): void => {
+  // Before the suite runs, because the scenario names and any error message are
+  // rendered while it runs. Per request rather than once at import time:
+  // nothing is imported with a locale in hand, and a worker that outlived one
+  // request -- if a caller ever pools them -- could well be asked again after
+  // the player changed language.
+  setLocale(event.data.locale);
   // One argument, deliberately: with no seed list the default applies, which is
   // `fitnessSeeds`, so the report a player sees is the one that constant
   // describes. Passing anything here would quietly score the game on something
   // else, which is what the test in fitness.test.ts is there to catch.
-  self.postMessage(doFitnessSuite(event.data));
+  self.postMessage(doFitnessSuite(event.data.code));
 };

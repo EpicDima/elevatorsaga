@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   doFitnessSuite,
@@ -6,8 +6,15 @@ import {
   type AveragedFitnessRun,
   type FitnessSuiteResult,
 } from "../game/fitness.ts";
+import { setLocale, DEFAULT_LOCALE } from "../i18n/index.ts";
 import { describeFitnessResults, runFitnessSuite, type FitnessWorkerLike } from "./fitness.ts";
 import type { FitnessWorkerRequest, FitnessWorkerResponse } from "./fitness-worker.ts";
+
+/** The space Russian typography wants between a number and its unit. */
+const NBSP = "\u00a0";
+
+/** Three of them, which is what the report puts between one scenario and the next. */
+const COLUMN_GAP = "\u00a0\u00a0\u00a0";
 
 /**
  * A program that actually drives the elevators, as source rather than an object.
@@ -35,11 +42,11 @@ class FakeWorker implements FitnessWorkerLike {
   onmessage: ((event: MessageEvent<FitnessSuiteResult>) => void) | null = null;
   onerror: ((event: ErrorEvent) => void) | null = null;
   /** Everything that was posted to this worker. */
-  readonly posted: string[] = [];
+  readonly posted: FitnessWorkerRequest[] = [];
   /** How often the worker was shut down. */
   terminateCount = 0;
 
-  postMessage(message: string): void {
+  postMessage(message: FitnessWorkerRequest): void {
     this.posted.push(message);
   }
 
@@ -85,16 +92,40 @@ beforeEach(() => {
   vi.spyOn(console, "warn").mockImplementation(() => undefined);
 });
 
+afterEach(() => {
+  // The worker sets the locale on the module instance it runs in, and under
+  // Vitest that instance is this file's own -- so a test that drives the worker
+  // entry point leaves the language it asked for behind unless this puts it
+  // back.
+  setLocale(DEFAULT_LOCALE);
+});
+
 describe("runFitnessSuite in a worker", () => {
   it("hands the player code to the worker and resolves with its answer", async () => {
     const worker = new FakeWorker();
     const results = [run("Small scenario", 12.5)];
 
     const suite = runFitnessSuite("var x = 1;", { createWorker: () => worker });
-    expect(worker.posted).toEqual(["var x = 1;"]);
+    expect(worker.posted).toEqual([{ code: "var x = 1;", locale: "en" }]);
     worker.reply(results);
 
     await expect(suite).resolves.toEqual(results);
+  });
+
+  it("tells the worker which language to report in", async () => {
+    // A worker is a second module instance with its own active locale, and
+    // nothing this page does to its own reaches it. Without this the report
+    // would name its scenarios -- and quote the player's own error -- in
+    // English on a Russian page, while the main-thread fallback of the very
+    // same function answered in Russian.
+    const worker = new FakeWorker();
+    setLocale("ru");
+
+    const suite = runFitnessSuite("var x = 1;", { createWorker: () => worker });
+    expect(worker.posted).toEqual([{ code: "var x = 1;", locale: "ru" }]);
+    worker.reply([]);
+
+    await suite;
   });
 
   it("shuts the worker down once the result is in", async () => {
@@ -168,6 +199,26 @@ describe("runFitnessSuite in a worker", () => {
       expect(worker.terminateCount).toBe(1);
       expect(worker.onmessage).toBeNull();
       expect(worker.onerror).toBeNull();
+    });
+
+    it("gives up in the language the page is in", async () => {
+      // The one sentence in the report that is not the worker's to write: a
+      // worker that has not answered in a minute is one that never will, so
+      // this side has to say it, in this side's language.
+      const worker = new FakeWorker();
+      setLocale("ru");
+
+      const suite = runFitnessSuite("while (true) {}", {
+        createWorker: () => worker,
+        timeoutMs: 1000,
+      });
+      await vi.advanceTimersByTimeAsync(1000);
+
+      await expect(suite).resolves.toEqual({
+        error:
+          `Воркер оценки эффективности не закончил работу за 1${NBSP}с и был остановлен. ` +
+          "Нет ли в вашей программе бесконечного цикла?",
+      });
     });
 
     it("waits for the whole timeout before giving up", async () => {
@@ -260,13 +311,52 @@ describe("the fitness worker entry point", () => {
     vi.stubGlobal("self", workerSelf);
     try {
       await import("./fitness-worker.ts");
-      workerSelf.onmessage?.({ data: DRIVING_PROGRAM } as MessageEvent<FitnessWorkerRequest>);
+      workerSelf.onmessage?.({
+        data: { code: DRIVING_PROGRAM, locale: "en" },
+      } as MessageEvent<FitnessWorkerRequest>);
     } finally {
       // Globals outlive the test; `vi.restoreAllMocks` does not undo a stub.
       vi.unstubAllGlobals();
     }
 
     expect(posted).toEqual([doFitnessSuite(DRIVING_PROGRAM, [...fitnessSeeds])]);
+  });
+
+  it("answers in the language the request asked for", async () => {
+    // The whole point of putting a locale in the request. A worker is a second
+    // module instance: its `src/i18n` is not the page's, its active locale
+    // starts at the default however the page is written, and nothing the page
+    // does reaches it. `vi.resetModules()` below stands in for that -- the
+    // module graph the import pulls in is a fresh one, with its own untouched
+    // locale -- and it is also what makes the import run the module body again
+    // rather than serving the registry copy the test above already loaded,
+    // which is where `self.onmessage` is assigned.
+    const posted: FitnessWorkerResponse[] = [];
+    const workerSelf = {
+      onmessage: null as ((event: MessageEvent<FitnessWorkerRequest>) => void) | null,
+      postMessage: (message: FitnessWorkerResponse): void => {
+        posted.push(message);
+      },
+    };
+
+    vi.resetModules();
+    vi.stubGlobal("self", workerSelf);
+    try {
+      await import("./fitness-worker.ts");
+      // A program with no init function, so the suite gives up before it
+      // simulates anything: what is under test is which language the answer
+      // comes back in, and a real benchmark run costs seconds.
+      workerSelf.onmessage?.({
+        data: { code: "var x = 1;", locale: "ru" },
+      } as MessageEvent<FitnessWorkerRequest>);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+
+    // Not merely a Russian scenario name: this is the player's own error, which
+    // has no identifier to send home in place of it, and is the half that
+    // translating the reply on the main thread could not have reached.
+    expect(posted).toEqual([{ error: "Error: В коде должна быть функция init" }]);
   });
 });
 
@@ -286,6 +376,31 @@ describe("describeFitnessResults", () => {
   it("reports the error instead when the suite failed", () => {
     expect(describeFitnessResults({ error: "TypeError: nope" })).toBe(
       "Could not compute fitness due to error: TypeError: nope",
+    );
+  });
+
+  it("keeps three significant digits, which is what the line has always shown", () => {
+    // The reason the wait time is not put through the `seconds` helper: that
+    // one fixes decimals rather than significant digits, and would print these
+    // as `0.1s` and `0.0s`, losing the difference between them.
+    expect(describeFitnessResults([run("A", 0.05), run("B", 0)])).toBe(
+      `Fitness avg wait times: A: 0.0500s${COLUMN_GAP}B: 0.00s`,
+    );
+  });
+
+  it("writes the numbers and the frame the way the page's language does", () => {
+    // The scenario names arrive already rendered -- whichever thread ran the
+    // suite rendered them -- so they are passed through as data; the frame and
+    // the numbers are this side's, and both move. Note the space Russian puts
+    // before the unit: it is a non-breaking one, so a wait time cannot be split
+    // across a line break.
+    setLocale("ru");
+
+    expect(
+      describeFitnessResults([run("Маленький сценарий", 12.3456), run("Большой сценарий")]),
+    ).toBe(
+      `Эффективность, среднее время ожидания: Маленький сценарий: 12,3${NBSP}с` +
+        `${COLUMN_GAP}Большой сценарий: ?`,
     );
   });
 });

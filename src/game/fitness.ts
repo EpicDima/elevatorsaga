@@ -10,6 +10,7 @@
  * main thread when a worker cannot be spawned.
  */
 
+import { t } from "../i18n/index.ts";
 import type { ChallengeCondition } from "./challenges.ts";
 import { createFrameRequester } from "./frame-requester.ts";
 import type { RandomSeed } from "./random.ts";
@@ -19,7 +20,13 @@ import { createWorldController, type UserCodeObject } from "./world-controller.t
 
 /** World options for a fitness scenario, with a label for the report. */
 export interface FitnessChallengeOptions extends WorldOptions {
-  /** Scenario name shown in the results. */
+  /**
+   * Scenario name shown in the results, already rendered.
+   *
+   * Text rather than a message key, because it is rendered where the suite runs
+   * and not where its report is printed: see {@link fitnessChallenges} and the
+   * note on `FitnessWorkerRequest` in `src/app/fitness-worker.ts`.
+   */
   description: string;
 }
 
@@ -82,33 +89,59 @@ export function requireNothing(): ChallengeCondition {
   };
 }
 
-/** The scenarios every benchmark run goes through. */
-export const fitnessChallenges: readonly FitnessChallenge[] = [
-  {
-    options: { description: "Small scenario", floorCount: 4, elevatorCount: 2, spawnRate: 0.6 },
-    condition: requireNothing(),
-  },
-  {
-    options: {
-      description: "Medium scenario",
-      floorCount: 6,
-      elevatorCount: 3,
-      spawnRate: 1.5,
-      elevatorCapacities: [5],
+/**
+ * The scenarios every benchmark run goes through.
+ *
+ * A function rather than the constant this was, because the three names are
+ * messages and a constant renders them when this module is imported — before
+ * `main.ts` has a body to run, and so before anything has chosen a locale. The
+ * buildings themselves have not moved: the floor counts, elevator counts and
+ * spawn rates below are the same three scenarios the benchmark has always used,
+ * and they are still written out in one readable place. Only the moment the
+ * names are rendered has changed, from import time to the start of a suite, by
+ * which time {@link "../i18n/index.ts"!setLocale} has run — on the main thread
+ * from the page's start-up, and inside the worker from the locale its request
+ * carries.
+ *
+ * The name is deliberately the constant's: what other modules mean when they
+ * refer to this is the list of buildings, which is unchanged, and only the way
+ * it is obtained has moved.
+ *
+ * @returns The three scenarios, in the order the report lists them.
+ */
+export function fitnessChallenges(): readonly FitnessChallenge[] {
+  return [
+    {
+      options: {
+        description: t("fitness.scenario.small"),
+        floorCount: 4,
+        elevatorCount: 2,
+        spawnRate: 0.6,
+      },
+      condition: requireNothing(),
     },
-    condition: requireNothing(),
-  },
-  {
-    options: {
-      description: "Large scenario",
-      floorCount: 18,
-      elevatorCount: 6,
-      spawnRate: 1.9,
-      elevatorCapacities: [8],
+    {
+      options: {
+        description: t("fitness.scenario.medium"),
+        floorCount: 6,
+        elevatorCount: 3,
+        spawnRate: 1.5,
+        elevatorCapacities: [5],
+      },
+      condition: requireNothing(),
     },
-    condition: requireNothing(),
-  },
-];
+    {
+      options: {
+        description: t("fitness.scenario.large"),
+        floorCount: 18,
+        elevatorCount: 6,
+        spawnRate: 1.9,
+        elevatorCapacities: [8],
+      },
+      condition: requireNothing(),
+    },
+  ];
+}
 
 /**
  * The buildings every benchmark run is scored on, one world per seed.
@@ -127,7 +160,7 @@ export const fitnessChallenges: readonly FitnessChallenge[] = [
  * comparing two scores has to be able to read which buildings they were compared
  * on, and someone who suspects the list of flattering one strategy has to be
  * able to change it in one obvious place — the same reason
- * {@link fitnessChallenges} is a visible constant.
+ * {@link fitnessChallenges} spells its three buildings out.
  *
  * The values themselves are arbitrary and are meant to be. What matters is that
  * there are several of them, so one unlucky building cannot decide a score, and
@@ -252,7 +285,7 @@ export function makeAverageResult(results: readonly FitnessRun[]): AveragedFitne
  *
  * The legacy suite took a number of runs and left every world unseeded, so the
  * scenario list was walked `runCount` times over a building nobody could name
- * afterwards — a fresh one per scenario, `runCount * fitnessChallenges.length` of
+ * afterwards — a fresh one per scenario, `runCount` times the scenario count of
  * them in all, none of them repeatable. The count is now the seed list's length: it
  * still averages several runs, but which runs is written down, so re-running the
  * same program reproduces the same numbers and two programs can be held against
@@ -282,10 +315,16 @@ export function doFitnessSuite(
   }
   let error: unknown = null;
 
+  // Once, not once per seed: every run has to be scored on the same three
+  // buildings, and `makeAverageResult` keeps the options object of the first
+  // run it is given, so the report would otherwise name its scenarios from an
+  // object built during a different pass over the same list.
+  const challenges = fitnessChallenges();
+
   const testruns: FitnessRun[][] = [];
   for (const seed of seeds) {
     const results: FitnessRun[] = [];
-    for (const challenge of fitnessChallenges) {
+    for (const challenge of challenges) {
       // Every scenario of one run takes the same seed, which does not make the
       // three the same run over again: each draws that one stream against its
       // own floor count and spawn rate, so the same values become different
