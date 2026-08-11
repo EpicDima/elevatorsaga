@@ -13,7 +13,7 @@
  * the rest of it.
  */
 
-import { decimal, format, t } from "../i18n/index.ts";
+import { decimal, exact, format, t } from "../i18n/index.ts";
 import type { WorldOptions } from "./world.ts";
 
 /** The statistics a challenge condition inspects. */
@@ -238,7 +238,7 @@ export interface SandboxOptions {
  * @returns The markup, ready to interpolate into a description.
  */
 function emphasise(value: number): string {
-  return `<span class='emphasis-color'>${format(value)}</span>`;
+  return `<span class='emphasis-color'>${format(exact(value))}</span>`;
 }
 
 /**
@@ -257,9 +257,14 @@ function emphasise(value: number): string {
 export function requireSandbox(options: SandboxOptions): ChallengeCondition {
   return {
     get description(): string {
+      // Every number here came out of the address bar, so every one of them is
+      // `exact`: the default three decimals would round `spawnrate=0.0625` to
+      // `0.063` and `9.9999` to `10`, and this line is the only place a sandbox
+      // player can check what they are running. The built-in challenges above
+      // need none of it -- their numbers are integer literals in this file.
       return t("challenge.sandbox.html", {
-        floors: t("challenge.sandbox.floors.html", { count: options.floorCount }),
-        elevators: t("challenge.sandbox.elevators.html", { count: options.elevatorCount }),
+        floors: t("challenge.sandbox.floors.html", { count: exact(options.floorCount) }),
+        elevators: t("challenge.sandbox.elevators.html", { count: exact(options.elevatorCount) }),
         // Counted by how many capacities were listed, not by how many cars
         // there are: the label introduces the list that follows it, and a
         // building of four elevators cycling one capacity has one to show.
@@ -270,7 +275,7 @@ export function requireSandbox(options: SandboxOptions): ChallengeCondition {
         // differently would want `Intl.ListFormat` here, which is one line and
         // is not worth writing before there is a locale that needs it.
         capacities: options.elevatorCapacities.map((capacity) => emphasise(capacity)).join(", "),
-        spawnRate: t("challenge.sandbox.spawnRate.html", { count: options.spawnRate }),
+        spawnRate: t("challenge.sandbox.spawnRate.html", { count: exact(options.spawnRate) }),
       });
     },
     evaluate(): boolean | null {

@@ -144,6 +144,36 @@ export function decimal(value: number, fractionDigits: number): Quantity {
 }
 
 /**
+ * The most decimals `Intl.NumberFormat` will accept.
+ *
+ * Past the seventeen significant digits a double can carry, so asking for it is
+ * asking for everything the number has.
+ */
+const MAX_FRACTION_DIGITS = 20;
+
+/**
+ * A number shown with every digit it has, however many that is.
+ *
+ * `Intl.NumberFormat` defaults to three decimals, which is right for prose and
+ * wrong for a number the player typed. The sandbox is configured from the
+ * address bar and the challenge bar is the only place its parameters can be
+ * read back, so a rate of `0.0625` rounded to `0.063` on the way to the screen
+ * is the bar reporting a building the player is not running. Worse,
+ * `spawnrate=9.9999` would print `10`, which is also what `spawnrate=100000`
+ * prints after clamping — two different runs, one line of text.
+ *
+ * The digits that come out are the shortest that identify the number, the same
+ * ones `String` would write, only with the locale's decimal separator. Nothing
+ * is padded: an integer stays an integer.
+ *
+ * @param value - The number.
+ * @returns The quantity.
+ */
+export function exact(value: number): Quantity {
+  return quantity(value, { maximumFractionDigits: MAX_FRACTION_DIGITS });
+}
+
+/**
  * A duration in seconds, shown with its unit.
  *
  * `60s` in English — the same string the game has always printed — and `60 с`

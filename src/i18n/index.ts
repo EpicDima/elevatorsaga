@@ -331,6 +331,7 @@ export {
 export { EN_MESSAGES } from "./en.ts";
 export {
   decimal,
+  exact,
   formatNumber,
   formatTimeOfDay,
   formatValue,

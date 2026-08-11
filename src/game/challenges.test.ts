@@ -184,6 +184,23 @@ describe("Challenge requirements", () => {
       );
     });
 
+    it("reports a spawn rate to the last digit it was given", () => {
+      // The router accepts any finite rate in [0.01, 10] and does not round it,
+      // so all three of these are live URLs. `Intl.NumberFormat` shows three
+      // decimals unless told otherwise, which would print 0.063 and 10 -- and
+      // 10 is what a rate clamped down from 100000 prints, so two runs nothing
+      // alike would be described by one line.
+      expect(requireSandbox({ ...SANDBOX, spawnRate: 0.0625 }).description).toContain(
+        "<span class='emphasis-color'>0.0625</span> people per second",
+      );
+      expect(requireSandbox({ ...SANDBOX, spawnRate: 9.9999 }).description).toContain(
+        "<span class='emphasis-color'>9.9999</span> people per second",
+      );
+      expect(requireSandbox({ ...SANDBOX, spawnRate: 1.0004 }).description).toContain(
+        "<span class='emphasis-color'>1.0004</span> people per second",
+      );
+    });
+
     it("reports a spawn rate the router clamped, not the one that was asked for", () => {
       // The whole point of putting the numbers in the bar: a hash that said
       // spawnrate=100000 runs at 10, and this is where the player finds out.
@@ -269,10 +286,13 @@ describe("the language a description comes out in", () => {
     );
   });
 
-  it("agrees each sandbox parameter with the number in front of it", () => {
+  it("agrees the sandbox nouns that decline with the numbers in front of them", () => {
     // The sentence the router's numbers land in, assembled out of five
-    // separately counted pieces: 20 этажей, 2 лифта, one capacity so
-    // "вместимостью", and a rate that is written 1,5 here and 1.5 in English.
+    // separately counted pieces: 20 этажей, 2 лифта, and a rate written 1,5
+    // here and 1.5 in English. The fifth, «вместимостью», is the same word in
+    // all four Russian forms, so nothing on this line can catch it being
+    // counted wrongly -- the English spec above, where the label is "of
+    // capacity" or "of capacities", is what does that.
     setLocale("ru");
 
     expect(requireSandbox(SANDBOX).description).toBe(
@@ -281,6 +301,20 @@ describe("the language a description comes out in", () => {
         "<span class='emphasis-color'>4</span>, " +
         "<span class='emphasis-color'>1,5</span> пассажира в секунду. " +
         "Цели нет, поэтому симуляция никогда не закончится",
+    );
+  });
+
+  it("counts the noun by the digits the rate is printed with", () => {
+    // A rate of 1.0004 is «1,0004 пассажира», not «1 пассажир». Rounding it to
+    // three decimals would print «1» and, worse, would then be right to say
+    // «пассажир» -- the sentence would be grammatical and about another run.
+    setLocale("ru");
+
+    expect(requireSandbox({ ...SANDBOX, spawnRate: 1.0004 }).description).toContain(
+      "<span class='emphasis-color'>1,0004</span> пассажира в секунду",
+    );
+    expect(requireSandbox({ ...SANDBOX, spawnRate: 1 }).description).toContain(
+      "<span class='emphasis-color'>1</span> пассажир в секунду",
     );
   });
 

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   decimal,
+  exact,
   formatNumber,
   formatTimeOfDay,
   formatValue,
@@ -96,6 +97,27 @@ describe("quantity helpers", () => {
     expect(formatValue("en", decimal(1.4732, 1))).toBe("1.5");
     expect(formatValue("ru", decimal(1.4732, 1))).toBe("1,5");
     expect(formatValue("en", decimal(12, 0))).toBe("12");
+  });
+
+  it("keeps every digit of a number somebody typed", () => {
+    // The default is three decimals, which quietly rewrites the two numbers
+    // below. They reach the screen from the address bar, where the player put
+    // them, and a bar that rounds them is describing a different run.
+    expect(formatValue("en", exact(0.0625))).toBe("0.0625");
+    expect(formatValue("en", exact(9.9999))).toBe("9.9999");
+    expect(formatValue("ru", exact(0.0625))).toBe("0,0625");
+    // Nothing is padded on the way: an integer is still an integer, and a
+    // thousand is still grouped.
+    expect(formatValue("en", exact(8))).toBe("8");
+    expect(formatValue("en", exact(2675))).toBe("2,675");
+  });
+
+  it("chooses the plural form the digits it will print deserve", () => {
+    // 1,0004 is not «1 пассажир»: what makes a Russian noun singular here is
+    // the digits on screen, and asking for all of them changes which they are.
+    expect(selectPlural("ru", exact(1.0004))).toBe("other");
+    expect(selectPlural("ru", 1.0004)).toBe("one");
+    expect(selectPlural("ru", exact(1))).toBe("one");
   });
 
   it("renders durations with their unit", () => {
