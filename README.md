@@ -17,14 +17,40 @@ You play in the browser. Type your program in the editor next to the building, p
 (or <kbd>Ctrl</kbd>+<kbd>Enter</kbd>) to restart the challenge with it, and watch. Your code is
 saved to `localStorage` as you go, so closing the tab does not lose it. The full API — every method,
 property and event on the elevator and floor objects, with examples — is in
-[documentation.html](documentation.html), which is served alongside the game.
+[documentation.html](documentation.html), which is served alongside the game
+([in Russian](documentation.ru.html)).
 
 This is a modernized fork of [Magnus Wolffelt's original](https://github.com/magwo/elevatorsaga),
-which is still playable at [play.elevatorsaga.com](https://play.elevatorsaga.com/). The game itself
-is unchanged; the code underneath is not. jQuery, lodash, riot and CodeMirror 5 are gone, the
-simulation is TypeScript with unit tests, and a pile of long-standing bugs are fixed. If you are
-bringing a solution over from the original, read
+which is still playable at [play.elevatorsaga.com](https://play.elevatorsaga.com/). The challenges,
+the physics and the scoring are unchanged; the code underneath is not. jQuery, lodash, riot and
+CodeMirror 5 are gone, the simulation is TypeScript with unit tests, and a pile of long-standing
+bugs are fixed. If you are bringing a solution over from the original, read
 [Breaking changes for player code](#breaking-changes-for-player-code) first.
+
+## What this fork adds
+
+Everything here is additive: no challenge got easier or harder, and a program written for the
+original is scored by the same rules.
+
+- **A jump list for the challenges.** Every challenge is a link in the bar above the building, so
+  reaching challenge 12 no longer means either winning eleven of them or hand-editing the address
+  bar. The one being played is marked, and the last entry is the endless demo.
+- **Repeatable runs.** Every run is built from a seed, which is printed to the console as it starts
+  and shown in the bar as a link back to the same building. Following the link, or writing
+  `#seed=…` yourself, gives the same building and the same passengers to every restart — enough to
+  compare two programs on one problem instead of on two different ones. It does not make a run
+  frame-for-frame identical: the browser decides how long a frame is.
+- **A sandbox building.** `#challenge=sandbox` takes `floors`, `elevators`, `capacities` and
+  `spawnrate`, so you can build the case your program is failing on rather than looking for a
+  shipped challenge that resembles it. See [URL parameters](#url-parameters).
+- **Three more methods on the elevator.** `isFull()`, `isEmpty()` and `isApproachingFloor(n)` —
+  the three checks nearly every published solution had already written by hand out of `loadFactor`
+  and `destinationQueue`.
+- **Autocompletion in the editor.** The elevator and floor API is offered as you type, and on
+  <kbd>Ctrl</kbd>+<kbd>Space</kbd>, with the same one-line descriptions the reference page uses.
+  It is added to the JavaScript language's own completions rather than replacing them, so keywords
+  and the identifiers already in your program are still there.
+- **A Russian API reference**, at [documentation.ru.html](documentation.ru.html).
 
 ## Quick start
 
@@ -36,12 +62,13 @@ npm run dev
 ```
 
 Then open <http://localhost:5173/>. The help and API page is at
-<http://localhost:5173/documentation.html>. The dev server hot-reloads on save.
+<http://localhost:5173/documentation.html>, and in Russian at
+<http://localhost:5173/documentation.ru.html>. The dev server hot-reloads on save.
 
 To produce the static site and check it locally:
 
 ```sh
-npm run build     # emits dist/index.html and dist/documentation.html
+npm run build     # emits dist/index.html and the two documentation pages
 npm run preview   # serves dist/ at http://localhost:4173/
 ```
 
@@ -53,7 +80,7 @@ GitHub Pages project sub-path, without further configuration.
 | Script                  | What it does                                                  |
 | ----------------------- | ------------------------------------------------------------- |
 | `npm run dev`           | Vite dev server with hot module replacement                   |
-| `npm run build`         | Typechecks, then builds the two pages into `dist/`            |
+| `npm run build`         | Typechecks, then builds the three pages into `dist/`          |
 | `npm run preview`       | Serves the built `dist/` for a final look before deploying    |
 | `npm run typecheck`     | `tsc --noEmit` over the whole project                         |
 | `npm test`              | Runs the Vitest suite once                                    |
@@ -74,9 +101,10 @@ src/
             the event emitter, and the facades handed to player code
   ui/       DOM presenters, markup templates, inline SVG icons, CodeMirror editor
   app/      hash router, challenge orchestration, fitness benchmark worker
+  i18n/     message catalogue, locale detection, plural and number formatting
   styles/   the single stylesheet
   main.ts   entry point: wires the three layers together and starts the router
-  docs.ts   entry point for documentation.html (styles and font only)
+  docs.ts   entry point for the documentation pages (styles and font only)
 ```
 
 The layering rule is one-directional and worth keeping: **`src/game` never touches the DOM.** It
@@ -93,17 +121,60 @@ Everything after the `#` is a comma-separated list of `key=value` pairs, for exa
 "next challenge" link. Anything malformed falls back to a sane default with a console warning
 rather than breaking the page.
 
-| Parameter      | Effect                                                                                                |
-| -------------- | ----------------------------------------------------------------------------------------------------- |
-| `#challenge=N` | Starts challenge `N`, counting from 1. Out of range, non-numeric or missing values start challenge 1. |
-| `#autostart`   | Starts the simulation immediately instead of waiting for the Start button.                            |
-| `#timescale=X` | Simulation speed multiplier. Clamped to `0.1`–`64`; defaults to `2`. Fractions such as `1.5` work.    |
-| `#devtest`     | Loads the built-in reference solution into the editor, replacing what is there.                       |
-| `#fullscreen`  | Hides everything except the building.                                                                 |
+| Parameter            | Effect                                                                                                |
+| -------------------- | ----------------------------------------------------------------------------------------------------- |
+| `#challenge=N`       | Starts challenge `N`, counting from 1. Out of range, non-numeric or missing values start challenge 1. |
+| `#challenge=sandbox` | Starts a building of your own instead of a numbered challenge. See below.                             |
+| `#autostart`         | Starts the simulation immediately instead of waiting for the Start button.                            |
+| `#timescale=X`       | Simulation speed multiplier. Clamped to `0.1`–`64`; defaults to `2`. Fractions such as `1.5` work.    |
+| `#seed=S`            | Pins the seed the building and the passenger stream are generated from. See below.                    |
+| `#devtest`           | Loads the built-in reference solution into the editor, replacing what is there.                       |
+| `#fullscreen`        | Hides everything except the building.                                                                 |
 
 The three flags — `autostart`, `devtest` and `fullscreen` — are on when present and off when
 explicitly set to `false` (`#autostart=false`). Bare flags now work: in the original, `#fullscreen`
 without a value was silently ignored because the parser's regexp demanded one.
+
+### Seeds
+
+Every run draws its passengers from a seeded generator, and prints its seed to the console as it
+starts. Put that seed back in the URL and the same building with the same people arriving at the
+same times comes back — from the Restart button, from <kbd>Ctrl</kbd>+<kbd>Enter</kbd> and from a
+reload alike. A URL with no `seed` draws a fresh one on every one of them, which is deliberate: a
+run you cannot get away from is not what you want when you are stuck on a challenge, and the seed
+of the run you _do_ want is one click away in the bar.
+
+What a seed fixes is the building and the passenger stream, not the run. Frame lengths come from
+the browser, so your program is asked to decide at slightly different moments each time and two
+interactive runs of one seed still diverge. Only the headless paths — the fitness benchmark and the
+test suite, which drive the clock themselves — repeat a run step for step.
+
+A seed is a string of at most 64 characters from `A-Z a-z 0-9 _ . -`, so `#seed=issue-61` is as
+valid as `#seed=1234567890`. It is never read as a number: `0123` and `123` are different seeds,
+because a URL that quietly replays something other than what it says is worse than one that does
+not work. Anything outside that set is refused with a console warning and a fresh seed, since the
+browser would percent-encode it in `location.hash` and the shared URL would name a different
+building than the one that was shared.
+
+### Sandbox
+
+`#challenge=sandbox` replaces the numbered challenge with a building you specify. It has no success
+condition — nothing to win, and nothing to fail — so it is for reproducing a case and watching what
+your program does with it.
+
+| Parameter          | Effect                                                            | Range   | Default |
+| ------------------ | ----------------------------------------------------------------- | ------- | ------- |
+| `floors=N`         | Floors in the building                                            | 2–60    | 8       |
+| `elevators=N`      | Elevators serving them                                            | 1–12    | 2       |
+| `capacities=A-B-C` | Passengers each car holds, cycled over the cars; hyphen-separated | 1–30    | 4       |
+| `spawnrate=X`      | Passengers appearing per simulated second                         | 0.01–10 | 0.6     |
+
+The defaults are challenge 4's building, so a bare `#challenge=sandbox` starts something known to
+be playable. Every bound is either a value the simulation cannot survive or one the page cannot
+draw — a one-floor building sends passengers to a floor that does not exist, and cars are drawn ten
+pixels per unit of capacity, so how many elevators fit depends on how wide the capacities make
+them. Values outside a range are clamped and warned about; values that are not numbers fall back.
+`capacities` uses hyphens rather than commas because a comma already separates hash parameters.
 
 ## Breaking changes for player code
 
@@ -177,7 +248,9 @@ writable array.
 `destinationQueue`, `currentFloor`, `loadFactor`, `maxPassengerCount`, `destinationDirection`,
 `getPressedFloors`, `getFirstPressedFloor`, `goingUpIndicator`, `goingDownIndicator` and the
 `idle` / `floor_button_pressed` / `passing_floor` / `stopped_at_floor` events all keep their names,
-arities and payloads.
+arities and payloads. `isFull()`, `isEmpty()` and `isApproachingFloor(n)` are additions — they are
+the only part of the player API the original does not have, so a solution that uses them is one you
+cannot take back to [play.elevatorsaga.com](https://play.elevatorsaga.com/).
 
 **Your saved code survives.** The editor still reads and writes the same `localStorage` key,
 `elevatorCrushCode_v5`, and the reset backup still uses `develevateBackupCode`. Open the modernized
