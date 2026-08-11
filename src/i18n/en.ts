@@ -171,6 +171,13 @@ export const EN_MESSAGES = {
     one: "<span class='emphasis-color'>{count}</span> second",
     other: "<span class='emphasis-color'>{count}</span> seconds",
   },
+  // `one` here can never print, and stays anyway. Both places that build this
+  // phrase (src/game/challenges.ts) pass `decimal(maxWaitTime, 1)`, and a number
+  // written with a tenth is `other` in English as much as in Russian: the
+  // fifteen-second limit reads "more than 15.0 seconds", and a one-second limit
+  // would read "1.0 seconds" rather than "1 second". The form is kept because
+  // the key is a plural message like the ones around it -- a limit that stopped
+  // being written with a decimal would need it back, and it is one word.
   "challenge.waitLimit.html": {
     one: "<span class='emphasis-color'>{count}</span> second",
     other: "<span class='emphasis-color'>{count}</span> seconds",
