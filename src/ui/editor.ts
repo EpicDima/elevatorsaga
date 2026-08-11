@@ -297,6 +297,18 @@ export class CodeEditor extends Observable<CodeEditorEvents> {
    * exactly the private windows it is supposed to survive.
    */
   readonly #session = new Map<string, string>();
+  /**
+   * Whether the document has changed since this buffer was last written.
+   *
+   * The editor writes on the way out of a buffer, and it must write *only* on
+   * the way out of a buffer somebody edited. A second tab left open on the same
+   * game holds an older program on screen and does not know it: the moment its
+   * player clicks into a task, an unconditional write would put that stale
+   * program into storage over the afternoon's work the first tab saved there.
+   * Before there were buffers there was nothing to leave, so an idle tab wrote
+   * nothing until somebody typed in it, and that is the property being kept.
+   */
+  #unsavedEdits = false;
   #autosaveTimer: ReturnType<typeof setTimeout> | undefined = undefined;
 
   /**
@@ -319,6 +331,7 @@ export class CodeEditor extends Observable<CodeEditorEvents> {
     this.#view = createView(
       {
         onChange: () => {
+          this.#unsavedEdits = true;
           this.#scheduleSave();
         },
         onApply: () => {
@@ -348,9 +361,14 @@ export class CodeEditor extends Observable<CodeEditorEvents> {
    * Drops a queued autosave.
    *
    * Anything that has just put the buffer's text into storage itself must do
-   * this, or the countdown started by the keystroke before it fires afterwards
-   * — and a countdown that outlives a buffer switch writes the text now on
-   * screen into whichever buffer is on screen when it goes off.
+   * this, or the countdown started by the keystroke before it fires afterwards.
+   * Across a buffer switch that is worse than redundant: by the time it goes
+   * off the buffer on screen is the next one, so it writes that buffer's own
+   * text back over itself and announces "Code saved ..." for a save nobody
+   * asked for — and it is only the writing-back-over-itself that keeps it from
+   * being one task's work under another task's key, which is a property of the
+   * switch having stored the new text a moment earlier, not of the countdown
+   * being harmless.
    */
   #cancelSave(): void {
     clearTimeout(this.#autosaveTimer);
@@ -423,6 +441,10 @@ export class CodeEditor extends Observable<CodeEditorEvents> {
   /** Writes the program to storage and announces the change. */
   save(): void {
     this.#cancelSave();
+    // Cleared whether or not the store takes it: `#write` remembers every key
+    // it has written for as long as the page lives, so the text is not lost
+    // either way, and a store that refused this write will refuse the next one.
+    this.#unsavedEdits = false;
     // Announced only when it reached the store: after a refused write the
     // program is safe for as long as the tab is open and no longer, and
     // "Code saved ..." would be promising the player their next visit.
@@ -501,10 +523,13 @@ export class CodeEditor extends Observable<CodeEditorEvents> {
     } else {
       this.#swapDocument(stored);
     }
-    // A surface that treats the swap as an edit has queued an autosave of text
-    // that is already stored. Letting it run would tell the player "Code saved
-    // ..." for a save they did not ask for — the same unasked announcement the
-    // constructor goes out of its way to avoid.
+    // The document on screen is not the player's typing any more, and nothing
+    // in it is waiting to be written: it came out of storage, or it was just
+    // put there. A surface that treats the swap as an edit has queued an
+    // autosave of it, which would tell the player "Code saved ..." for a save
+    // they did not ask for — the same unasked announcement the constructor
+    // goes out of its way to avoid.
+    this.#unsavedEdits = false;
     this.#cancelSave();
     // The program in the editor is a different program now, even though nobody
     // typed: listeners that describe the editor's contents, such as the fitness
@@ -527,12 +552,19 @@ export class CodeEditor extends Observable<CodeEditorEvents> {
   }
 
   /**
-   * Writes the text on screen back to the buffer it belongs to.
+   * Writes the text on screen back to the buffer it belongs to, if it is
+   * text the player has changed.
    *
    * Deliberately silent, unlike {@link CodeEditor.save}: this is bookkeeping on
-   * the way out of a buffer, not a save the player asked for.
+   * the way out of a buffer, not a save the player asked for. And deliberately
+   * nothing at all when nobody has typed, which is the difference between a
+   * second tab sitting idle and a second tab quietly overwriting the first
+   * tab's work the moment its player clicks a link.
    */
   #flush(): void {
+    if (!this.#unsavedEdits) {
+      return;
+    }
     const code = this.getCode();
     const stored = this.#read(this.#buffer.codeKey);
     if ((stored === null || stored === "") && code === this.#buffer.starterCode) {

@@ -346,6 +346,58 @@ describe("CodeEditor buffers", () => {
     expect(view.getValue()).toBe("// the program I care about");
   });
 
+  it("does not write a buffer nobody edited over another tab's work", () => {
+    // Two tabs, one store. The second was opened before the afternoon's work
+    // happened in the first and still shows the older program, with no way to
+    // know. Before there were buffers an idle tab wrote nothing until somebody
+    // typed in it, and one click on a task link must not be what changes that:
+    // writing the screen back on the way out of a buffer is right for text the
+    // player changed and is somebody else's work destroyed for text they never
+    // touched.
+    const storage = new MemoryStorage();
+    storage.setItem(CODE_STORAGE_KEY, "// version 1");
+    const setItem = vi.spyOn(storage, "setItem");
+    const idleTab = setUp(storage);
+    const workingTab = setUp(storage);
+
+    workingTab.view.type("// version 2, an afternoon of work");
+    workingTab.editor.save();
+    idleTab.editor.openTutorialBuffer("tutorial-1", "// task 1");
+
+    expect(storage.getItem(CODE_STORAGE_KEY)).toBe("// version 2, an afternoon of work");
+    // Nor is the idle tab holding a stale copy in its own memory of what it has
+    // written: coming back to the player's buffer shows the other tab's work.
+    idleTab.editor.openPlayerBuffer();
+    expect(idleTab.view.getValue()).toBe("// version 2, an afternoon of work");
+
+    // The working tab leaving its buffer does not write it a second time
+    // either. It was written a moment ago and nothing has changed since; the
+    // key is touched once, by the save the player asked for.
+    workingTab.editor.openTutorialBuffer("tutorial-1", "// task 1");
+    expect(setItem.mock.calls.filter(([key]) => key === CODE_STORAGE_KEY)).toHaveLength(1);
+  });
+
+  it("stops counting the text as edited the moment the buffer is left", () => {
+    // "There is typing here that has not been written" is a fact about the
+    // buffer on screen, and a switch hands the screen to another buffer. Left
+    // standing, the *next* switch writes a buffer nobody has typed in -- the
+    // same stale write that costs the other tab its work, one buffer along.
+    const storage = new MemoryStorage();
+    const setItem = vi.spyOn(storage, "setItem");
+    const { editor, view } = setUp(storage);
+    view.type("// my own program");
+
+    editor.openTutorialBuffer("tutorial-1", "// task 1");
+    const writesSoFar = setItem.mock.calls.length;
+    editor.openTutorialBuffer("tutorial-2", "// task 2");
+
+    // Task 2's own key, holding the starter it was just opened on, and nothing
+    // else: task 1 was read, looked at and left alone.
+    expect(setItem.mock.calls.slice(writesSoFar).map(([key]) => key)).toEqual([
+      "develevateTutorialCode_tutorial-2",
+    ]);
+  });
+
   it("does not let a countdown started in one buffer go off in the next", () => {
     // The autosave is debounced by a second, so a switch always happens with a
     // write pending. It must land in the buffer whose text it is, and once.
@@ -919,12 +971,13 @@ describe("CodeEditor over a real editing surface", () => {
     expect(editor.getCode()).toBe("// the program the player left behind");
 
     vi.advanceTimersByTime(AUTOSAVE_DELAY_MS * 2);
-    // The player's key is written once, on the way out of the player's buffer,
-    // and with the player's own program. Asserting the whole list of writes and
-    // not just the value left behind is deliberate: the damage this test exists
-    // to catch is a write of the wrong text, which a later correct write would
-    // paper over by the time the run ends.
-    expect(playerWrites(setItem)).toEqual(["// the program the player left behind"]);
+    // Nothing was ever written to the player's key: the player never typed in
+    // that buffer, and leaving a buffer nobody edited writes nowhere. Asserting
+    // the whole list of writes and not just the value left behind is
+    // deliberate — the damage this test exists to catch is a write of the wrong
+    // text, which a later correct write would paper over by the time the run
+    // ends.
+    expect(playerWrites(setItem)).toEqual([]);
     expect(storage.getItem("develevateTutorialCode_tutorial-1")).toBe(
       "// task 1 skeleton\n// my attempt",
     );
@@ -950,7 +1003,7 @@ describe("CodeEditor over a real editing surface", () => {
     expect(storage.getItem("develevateTutorialCode_tutorial-2")).toBe(
       "// task 2 skeleton\n// halfway through",
     );
-    expect(playerWrites(setItem)).toEqual(["// the program the player left behind"]);
+    expect(playerWrites(setItem)).toEqual([]);
     expect(editor.getCode()).toBe("// the program the player left behind");
     // Leaving a buffer is not something the player asked to have saved, so the
     // "Code saved ..." line stays as it was.
