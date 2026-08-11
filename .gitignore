@@ -9,3 +9,8 @@ test-results
 
 # Local editor/assistant state, including scratch worktrees.
 .claude
+
+# Throwaway measuring and smoke scripts. Named `*.tmp.*` so one pattern covers
+# git, eslint and prettier alike; see the note in eslint.config.js for why they
+# cannot simply live in /tmp.
+*.tmp.*

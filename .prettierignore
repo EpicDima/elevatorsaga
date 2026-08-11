@@ -6,3 +6,7 @@ test-results
 
 # npm owns this file's formatting; rewriting it would churn the lockfile.
 package-lock.json
+
+# Scratch. See the note in eslint.config.js: a throwaway script has to sit in
+# the repo root to resolve node_modules, and formatting one is beside the point.
+*.tmp.*

@@ -5,14 +5,25 @@ import prettier from "eslint-config-prettier";
 
 export default tseslint.config(
   {
-    // Build output and generated reports. Everything else in the tree is
-    // first-party and gets linted.
+    // Build output, generated reports, and scratch. Everything else in the tree
+    // is first-party and gets linted.
+    //
+    // `*.tmp.*` is the scratch convention. A throwaway measuring script has to
+    // sit in the repo root to resolve `@playwright/test` and the rest of
+    // `node_modules`, so it cannot live in `/tmp` the way scratch is supposed
+    // to — and while it sits there, `npx eslint .` fails on a file nobody
+    // intends to keep, because it is outside `tsconfig.json` and the type-aware
+    // rules refuse to run on it. That failure is indistinguishable from a real
+    // one at a glance, and it lands on whoever runs the gate next rather than
+    // on whoever left the file.
     ignores: [
       "dist/**",
       "coverage/**",
       "node_modules/**",
       "playwright-report/**",
       "test-results/**",
+      "*.tmp.*",
+      "**/*.tmp.*",
     ],
   },
   js.configs.recommended,
