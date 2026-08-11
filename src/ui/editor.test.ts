@@ -371,6 +371,23 @@ describe("CodeEditor buffers", () => {
     expect(storage.getItem(CODE_STORAGE_KEY)).toBe("// typed a second ago");
   });
 
+  it("does not claim the player's key for a program they typed and took back", () => {
+    // Typed and undone is not the same as written. The editor knows an edit
+    // happened, and one did, but what is on screen is the program every
+    // untouched install starts with, and storage saying nothing already says
+    // exactly that. Writing it would claim the player's own key on their
+    // behalf, and an install nobody has written a program in would start
+    // looking like a played one.
+    const { editor, view, storage } = setUp();
+    view.type("// second thoughts");
+    view.type(DEFAULT_CODE);
+
+    editor.openTutorialBuffer("tutorial-1", "// task 1");
+    vi.advanceTimersByTime(AUTOSAVE_DELAY_MS * 2);
+
+    expect(storage.getItem(CODE_STORAGE_KEY)).toBeNull();
+  });
+
   it("hands every buffer back its own text, in both directions", () => {
     const { editor, view } = setUp();
     view.type("// my own program");
@@ -1031,6 +1048,38 @@ describe("CodeEditor over a real editing surface", () => {
     expect(setItem).toHaveBeenCalledTimes(1);
     expect(storage.getItem(CODE_STORAGE_KEY)).toBe("// edited");
     expect(saved).toHaveBeenCalledTimes(1);
+  });
+
+  it("hands a real editing surface its own text back, in both directions", () => {
+    // The round trip over the surface that ships, not only over the fake. The
+    // fake cannot get a swap wrong in the way that matters: CodeMirror's swap
+    // builds a whole new state, which is the one operation in this file that
+    // raises no change event, and everything the editor does about writing text
+    // back hangs off change events.
+    const { editor, storage, parent } = mount("// the program the player left behind");
+
+    editor.openTutorialBuffer("tutorial-1", "// task 1 skeleton");
+    typeLine(parent, "\n// my attempt at task 1");
+    editor.openPlayerBuffer();
+    expect(editor.getCode()).toBe("// the program the player left behind");
+
+    editor.openTutorialBuffer("tutorial-1", "// task 1 skeleton");
+    expect(editor.getCode()).toBe("// task 1 skeleton\n// my attempt at task 1");
+
+    editor.openPlayerBuffer();
+    typeLine(parent, "\n// and a line of my own");
+    editor.openTutorialBuffer("tutorial-1", "// task 1 skeleton");
+    editor.openPlayerBuffer();
+    expect(editor.getCode()).toBe("// the program the player left behind\n// and a line of my own");
+
+    // And every buffer's own text is where the next visit will look for it.
+    vi.advanceTimersByTime(AUTOSAVE_DELAY_MS * 2);
+    expect(storage.getItem(CODE_STORAGE_KEY)).toBe(
+      "// the program the player left behind\n// and a line of my own",
+    );
+    expect(storage.getItem("develevateTutorialCode_tutorial-1")).toBe(
+      "// task 1 skeleton\n// my attempt at task 1",
+    );
   });
 
   it("cannot be undone across a buffer switch", () => {

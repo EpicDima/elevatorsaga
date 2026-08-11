@@ -631,11 +631,13 @@ export class CodeEditor extends Observable<CodeEditorEvents> {
     const code = this.getCode();
     const stored = this.#read(this.#buffer.codeKey);
     if (stored.state !== "text" && code === this.#buffer.starterCode) {
-      // Storage already says exactly this: an empty entry is read back as the
-      // buffer's starter program. Writing it anyway would be the one way a walk
-      // through the learning track could create the player's own key for a
-      // player who has never typed a character, and an untouched install would
-      // start looking like a played one.
+      // Storage already says exactly this: an entry with nothing in it is read
+      // back as the buffer's starter program. What the guard is for, now that
+      // an untouched buffer is not written at all, is the player who typed a
+      // character and deleted it again before clicking away — the flag says
+      // they edited, and they did, but the program is the one they started
+      // with. Writing it would create the player's own key on their behalf and
+      // make an untouched install start looking like a played one.
       return;
     }
     this.#write(this.#buffer.codeKey, code);
