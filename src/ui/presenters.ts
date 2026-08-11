@@ -17,14 +17,7 @@ import type { Floor } from "../game/floor.ts";
 import type { User } from "../game/user.ts";
 import type { World } from "../game/world.ts";
 import type { WorldController } from "../game/world-controller.ts";
-import {
-  clearChildren,
-  query,
-  queryAll,
-  requireElement,
-  setClass,
-  setTransformPos,
-} from "./dom.ts";
+import { clearChildren, queryAll, requireElement, setClass, setTransformPos } from "./dom.ts";
 import { createIcon } from "./icons.ts";
 import {
   challengeTemplate,
@@ -44,8 +37,14 @@ export const FULLSCREEN_CLASS = "fullscreen-demo";
 /** Selector matching the links of the challenge bar's navigation row. */
 const CHALLENGE_LINK_SELECTOR = ".challengelink";
 
-/** Selector matching the challenge bar's seed link. */
-const SEED_LINK_SELECTOR = ".seedlink";
+/**
+ * Selector matching the controls of the challenge bar's seed line.
+ *
+ * Written as "whatever the line offers" rather than by class, because what it
+ * offers changes with the run: the seed's own link while the run can still be
+ * pinned, and `new draw` in its place once it is.
+ */
+const SEED_CONTROL_SELECTOR = ".challengeseed a";
 
 /**
  * Empties several containers.
@@ -246,13 +245,20 @@ export function presentChallenge(
     (link) => link === document.activeElement,
   );
 
-  // The seed link is the one other thing in the bar a player can be standing on
-  // when it rebuilds, and following it *always* rebuilds: it pins the seed in
-  // the hash, which restarts the run. It is not in the row, so it needs asking
-  // about separately -- and it must not fall through to the start button, which
-  // would put a keyboard player one press away from restarting again.
-  const seedWasFocused =
-    document.activeElement !== null && query(SEED_LINK_SELECTOR, parent) === document.activeElement;
+  // The seed line is the one other thing in the bar a player can be standing on
+  // when it rebuilds, and following either of its links *always* rebuilds: both
+  // change the hash, which restarts the run. It is not in the row, so it needs
+  // asking about separately -- and it must not fall through to the start button,
+  // which would put a keyboard player one press away from restarting again.
+  //
+  // Restored by position, like the row and for the same reason: the link that
+  // replaces the one that was followed is not the same link. Pinning a run
+  // turns the seed's link into "new draw", and taking the pin back out turns it
+  // back, so the control that lands where the player was standing is the one
+  // they should still be standing on.
+  const focusedSeedIndex = queryAll(SEED_CONTROL_SELECTOR, parent).findIndex(
+    (control) => control === document.activeElement,
+  );
 
   parent.innerHTML = challengeTemplate({
     num: options.challengeNum,
@@ -288,11 +294,11 @@ export function presentChallenge(
   // a screen reader announces "Start" rather than an unnamed button.
   presenter.update();
   const focusedLink = queryAll(CHALLENGE_LINK_SELECTOR, parent)[focusedLinkIndex];
-  const seedLink = seedWasFocused ? query(SEED_LINK_SELECTOR, parent) : null;
+  const focusedSeedControl = queryAll(SEED_CONTROL_SELECTOR, parent)[focusedSeedIndex];
   if (focusedLink !== undefined) {
     focusedLink.focus();
-  } else if (seedLink !== null) {
-    seedLink.focus();
+  } else if (focusedSeedControl !== undefined) {
+    focusedSeedControl.focus();
   } else if (restoreFocus) {
     startStop.focus();
   }

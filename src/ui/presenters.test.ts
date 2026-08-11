@@ -151,7 +151,11 @@ describe("presentChallenge", () => {
   const SEED: SeedLinkData = {
     seed: "1234567890",
     url: "#challenge=3,timescale=8,seed=1234567890",
+    newDrawUrl: null,
   };
+
+  /** The same run once the URL pins its seed, and the URL that unpins it. */
+  const PINNED_SEED: SeedLinkData = { ...SEED, newDrawUrl: "#challenge=3,timescale=8" };
 
   /**
    * Assembles challenge options over a mutable world/controller pair.
@@ -256,6 +260,16 @@ describe("presentChallenge", () => {
     const seedLink = requireElement(".seedlink", parent);
     expect(seedLink.textContent).toBe("1234567890");
     expect(seedLink.getAttribute("href")).toBe("#challenge=3,timescale=8,seed=1234567890");
+  });
+
+  it("draws the way out of a pinned run in place of the way in", () => {
+    const { parent, options } = setUp({ seed: PINNED_SEED });
+    presentChallenge(parent, options);
+
+    expect(parent.querySelector(".seedlink")).toBeNull();
+    expect(requireElement(".seednewdraw", parent).getAttribute("href")).toBe(
+      "#challenge=3,timescale=8",
+    );
   });
 
   it("draws no seed line when the run has no seed", () => {
@@ -371,6 +385,30 @@ describe("presentChallenge", () => {
       requireElement(".seedlink", parent).focus();
 
       presentChallenge(parent, options);
+
+      expect(document.activeElement).toBe(requireElement(".seedlink", parent));
+    });
+
+    it("keeps focus on the seed line when pinning replaces the link that was followed", () => {
+      // Following the seed pins it, and the rebuilt line offers "new draw"
+      // where the seed's own link used to be. The player pressed something in
+      // that position and is still standing in that position, exactly as they
+      // would be in the navigation row.
+      const { parent, options } = mount();
+      presentChallenge(parent, options);
+      requireElement(".seedlink", parent).focus();
+
+      presentChallenge(parent, { ...options, seed: PINNED_SEED });
+
+      expect(document.activeElement).toBe(requireElement(".seednewdraw", parent));
+    });
+
+    it("keeps focus on the seed line when a new draw puts the seed's link back", () => {
+      const { parent, options } = mount({ seed: PINNED_SEED });
+      presentChallenge(parent, options);
+      requireElement(".seednewdraw", parent).focus();
+
+      presentChallenge(parent, { ...options, seed: SEED });
 
       expect(document.activeElement).toBe(requireElement(".seedlink", parent));
     });

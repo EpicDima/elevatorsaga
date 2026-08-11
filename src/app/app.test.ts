@@ -562,20 +562,23 @@ describe("App seed", () => {
   });
 
   it("replaces the seed in the url rather than adding a second one", () => {
-    const { app, elements } = setUp();
+    const { app } = setUp();
     app.handleRoute(...routeFor("#challenge=2,seed=issue-61"));
 
-    expect(requireElement(".seedlink", elements.challenge).getAttribute("href")).toBe(
-      "#challenge=2,seed=issue-61",
-    );
+    // The bar does not offer to pin a run the URL already pins, so what carries
+    // the address of a pinned run is the line printed as it starts -- and it has
+    // to name the seed once, not twice.
+    const printed = String(vi.mocked(console.log).mock.calls[0]?.[0]);
+    expect(printed).toContain("#challenge=2,seed=issue-61");
+    expect(printed.match(/seed=/g)).toHaveLength(1);
   });
 
   it("leaves a pinned seed behind when the row jumps to another challenge", () => {
     // A seed was drawn for one building and means nothing in another, so the row
-    // carries the speed and everything else but not this. It is also the way out
-    // of a pinned run: the row's entry for the challenge being played is a fresh
-    // draw of it, which is the only reason a player who once followed the seed
-    // link is not stuck with it forever.
+    // carries the speed and everything else but not this. What the row is not is
+    // the way out of a pinned run: it has no entry for the sandbox, and pressing
+    // the challenge already being played is not a move anybody would find. That
+    // is the seed line's "new draw", below.
     const { app, elements } = setUp();
     app.handleRoute(...routeFor("#challenge=1,timescale=8,seed=issue-61"));
 
@@ -587,12 +590,13 @@ describe("App seed", () => {
     ).toBe("#challenge=1,timescale=8");
   });
 
-  it("offers the seed of a sandbox run as well", () => {
+  it("offers the seed of a sandbox run as well, building and all", () => {
     const { app, elements } = setUp();
-    app.handleRoute(...routeFor("#challenge=sandbox,floors=20,seed=issue-61"));
+    app.handleRoute(...routeFor("#challenge=sandbox,floors=20"));
+    const seed = String(app.world?.seed);
 
     expect(requireElement(".seedlink", elements.challenge).getAttribute("href")).toBe(
-      "#challenge=sandbox,floors=20,seed=issue-61",
+      `#challenge=sandbox,floors=20,seed=${seed}`,
     );
   });
 
@@ -656,10 +660,91 @@ describe("App seed", () => {
         expect(window.location.hash).toBe(`#challenge=1,seed=${seed}`);
       });
       expect(app.world?.seed).toBe(seed);
-      // And what it now offers is the URL it is already at, so a second visit
-      // is the same seed again rather than another draw.
+      // And what it offers now is the way back out, since the way in is the URL
+      // the player is already at.
+      expect(elements.challenge.querySelector(".seedlink")).toBeNull();
+      expect(requireElement(".seednewdraw", elements.challenge).getAttribute("href")).toBe(
+        "#challenge=1",
+      );
+    } finally {
+      stopRouter();
+      window.location.hash = "";
+    }
+  });
+
+  it("offers no way out of a run nothing has pinned", () => {
+    // There would be nowhere for it to go: the URL without a seed is the one
+    // the player is already at, so the link would fire no hashchange and do
+    // nothing at all.
+    const { app, elements } = setUp();
+    app.handleRoute(...routeFor("#challenge=2,timescale=8"));
+
+    expect(elements.challenge.querySelector(".seednewdraw")).toBeNull();
+    expect(requireElement(".seedlink", elements.challenge)).not.toBeNull();
+  });
+
+  it("offers a way back to a fresh draw once the url pins the seed", () => {
+    // The counterweight to pinning being one click: unpinning is one click too,
+    // and neither of them needs the address bar.
+    const { app, elements } = setUp();
+    app.handleRoute(...routeFor("#challenge=2,timescale=8,seed=issue-61"));
+
+    expect(requireElement(".seednewdraw", elements.challenge).getAttribute("href")).toBe(
+      "#challenge=2,timescale=8",
+    );
+  });
+
+  it("keeps the sandbox building when the pin is taken back out", () => {
+    // The case the navigation row cannot answer at all: it has no entry for the
+    // sandbox, so every entry it offers leaves the building behind.
+    const { app, elements } = setUp();
+    app.handleRoute(...routeFor("#challenge=sandbox,floors=20,seed=issue-61"));
+
+    expect(requireElement(".seednewdraw", elements.challenge).getAttribute("href")).toBe(
+      "#challenge=sandbox,floors=20",
+    );
+  });
+
+  it("treats a seed the router refused as no pin at all", () => {
+    // A browser percent-encodes the space in "#seed=rush hour", so the router
+    // refuses it and draws a fresh one. Nothing is pinned, so there is nothing
+    // to unpin -- and the refused text must not follow the player around the
+    // bar, re-warning on arrival at every link it reaches.
+    const { app, elements } = setUp();
+    app.handleRoute(...routeFor("#challenge=1,seed=rush hour"));
+    const seed = String(app.world?.seed);
+
+    expect(elements.challenge.querySelector(".seednewdraw")).toBeNull();
+    expect(requireElement(".seedlink", elements.challenge).getAttribute("href")).toBe(
+      `#challenge=1,seed=${seed}`,
+    );
+    const hrefs = queryAll("a", elements.challenge).map((link) => link.getAttribute("href") ?? "");
+    expect(hrefs.filter((href) => href.includes("rush"))).toEqual([]);
+  });
+
+  it("draws again from a new seed when the way out is followed", async () => {
+    // The whole way back: the anchor navigates to the URL without the seed, the
+    // router hears it, and the app draws a run nobody chose.
+    const { app, elements } = setUp();
+    window.location.hash = "#challenge=1,seed=issue-61";
+    const stopRouter = startRouter(
+      (params, query) => {
+        app.handleRoute(params, query);
+      },
+      { challengeCount: CHALLENGES.length, defaultTimeScale: () => DEFAULT_TIME_SCALE },
+    );
+
+    try {
+      expect(app.world?.seed).toBe("issue-61");
+      requireElement(".seednewdraw", elements.challenge).click();
+
+      await vi.waitFor(() => {
+        expect(window.location.hash).toBe("#challenge=1");
+      });
+      expect(app.world?.seed).not.toBe("issue-61");
+      // And the line offers to pin what it drew, so the round trip closes.
       expect(requireElement(".seedlink", elements.challenge).getAttribute("href")).toBe(
-        `#challenge=1,seed=${seed}`,
+        `#challenge=1,seed=${String(app.world?.seed)}`,
       );
     } finally {
       stopRouter();

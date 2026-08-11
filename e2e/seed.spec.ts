@@ -11,8 +11,14 @@
 
 import { expect, test } from "@playwright/test";
 
-/** The seed shown in the challenge bar. */
+/** The seed shown in the challenge bar, while following it still pins the run. */
 const SEED_LINK = ".seedlink";
+
+/** The seed shown in the challenge bar once the URL pins it, as plain text. */
+const SEED_VALUE = ".seedvalue";
+
+/** The way back out of a pinned run. */
+const NEW_DRAW_LINK = ".seednewdraw";
 
 test("pins the run a player is looking at, and replays it on reload", async ({ page }) => {
   const pageErrors: string[] = [];
@@ -32,21 +38,40 @@ test("pins the run a player is looking at, and replays it on reload", async ({ p
   await seedLink.click();
   await expect(page).toHaveURL(new RegExp(`#challenge=4,timescale=8,seed=${seed}$`));
 
-  // The run that started is the one that was on screen, and the bar now offers
-  // the URL it is already at -- so a second click is the same building again
-  // rather than another draw.
-  await expect(page.locator(SEED_LINK)).toHaveText(seed);
-  await expect(page.locator(SEED_LINK)).toHaveAttribute(
-    "href",
-    `#challenge=4,timescale=8,seed=${seed}`,
-  );
+  // The run that started is the one that was on screen. What the bar offers now
+  // is the way back out: following the seed again would go where the page
+  // already is, so the seed is text and the link beside it undoes the pin.
+  await expect(page.locator(SEED_VALUE)).toHaveText(seed);
+  await expect(page.locator(SEED_LINK)).toHaveCount(0);
+  await expect(page.locator(NEW_DRAW_LINK)).toHaveAttribute("href", "#challenge=4,timescale=8");
 
   // A reload is the case the feature exists for: the player comes back to the
   // building they were failing on rather than to a fresh one.
   await page.reload();
-  await expect(page.locator(SEED_LINK)).toHaveText(seed);
+  await expect(page.locator(SEED_VALUE)).toHaveText(seed);
 
   expect(pageErrors).toEqual([]);
+});
+
+test("lets a pinned run go back to a fresh draw, and back again", async ({ page }) => {
+  // The other half of the one-way door: pinning costs one click, so unpinning
+  // has to, or the address bar is the only way out of the run a player pinned.
+  await page.goto("/#challenge=4,timescale=8,seed=issue-61");
+  await expect(page.locator(SEED_VALUE)).toHaveText("issue-61");
+
+  await page.locator(NEW_DRAW_LINK).click();
+
+  await expect(page).toHaveURL(/#challenge=4,timescale=8$/);
+  const drawn = await page.locator(SEED_LINK).innerText();
+  expect(drawn).not.toBe("issue-61");
+  // The speed the player chose came along, exactly as it does through the
+  // navigation row.
+  await expect(page.locator(".timescale_value")).toHaveText("8x");
+
+  // And the browser's own way back reaches the pinned run again, because every
+  // one of these moves is a real navigation.
+  await page.goBack();
+  await expect(page.locator(SEED_VALUE)).toHaveText("issue-61");
 });
 
 test("gives an unpinned run a fresh building on every reload", async ({ page }) => {

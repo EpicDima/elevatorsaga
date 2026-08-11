@@ -436,8 +436,18 @@ dl dd {
  * 14px as the challenge numbers it shares a line with, because text small enough
  * to disappear is text nobody can transcribe, and the point of the thing is that
  * it gets read out and typed back.
+ *
+ * A flex row rather than a run of inline text, because the line carries two
+ * separate things -- the seed, and the one link that acts on it -- and a word
+ * space is not enough to tell a seed from what follows it. Wrapping is on: at
+ * 320px they do not always fit beside each other, and a line that will not wrap
+ * is a page that has to be read by panning sideways (WCAG 1.4.10).
  */
 .challengeseed {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 8px;
   margin: 0;
   padding-block: 2px 8px;
   font-size: 14px;
@@ -446,11 +456,21 @@ dl dd {
 
 /*
  * The seed itself, which is the part that has to be read character by character.
- * The monospace face is what tells a 1 from an l and a 0 from an O; underlining
- * it marks it as the link it is without borrowing the row's chrome.
+ * The monospace face is what tells a 1 from an l and a 0 from an O -- and it is
+ * on the seed whether or not it is a link, since a pinned run's seed is plain
+ * text and gets transcribed just the same.
  */
-.seedlink {
+.seedlink,
+.seedvalue {
   font-family: var(--font-mono);
+}
+
+/*
+ * Underlining marks the line's link as a link without borrowing the row's
+ * chrome, whichever of the two it is.
+ */
+.seedlink,
+.seednewdraw {
   text-decoration: underline;
   text-underline-offset: 2px;
 }

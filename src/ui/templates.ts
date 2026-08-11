@@ -209,7 +209,7 @@ function challengeLinkTemplate(link: ChallengeLinkData): string {
   return markup`<li><a class="challengelink" href="${link.url}" aria-label="${name}"${current}>${label}</a></li>`;
 }
 
-/** The seed of the run in progress, and where a link back to it goes. */
+/** The seed of the run in progress, and where the line's link goes. */
 export interface SeedLinkData {
   /** The seed itself, exactly as it appears in the URL. */
   readonly seed: string;
@@ -220,8 +220,22 @@ export interface SeedLinkData {
    * entry is: the app builds it with `createParamsUrl`, so the challenge, the
    * speed and anything else the player arrived with ride along. The building has
    * to ride along, since a seed means nothing without one.
+   *
+   * Given even when the URL already pins this seed, where the line no longer
+   * offers it: it is still the run's address, and the console prints it as such
+   * at every start.
    */
   readonly url: string;
+  /**
+   * A hash URL that starts the same challenge with no seed pinned, or `null`
+   * when the URL pins none and there is nothing to take out.
+   *
+   * The pair is exclusive on purpose, and the line renders one link or the
+   * other. Offering both would mean offering one that goes where the player
+   * already is: with nothing pinned, the URL without a seed is the current one,
+   * and with a seed pinned, the URL with it is.
+   */
+  readonly newDrawUrl: string | null;
 }
 
 /**
@@ -251,28 +265,51 @@ const SEED_EXPLANATION =
   "browser, so the run around them is never quite the same twice.";
 
 /**
- * The seed of the run in progress, as a link that starts it again.
+ * The seed of the run in progress, and the one thing worth doing about it.
  *
  * A real link, like the navigation row and for the same reasons: the browser's
  * own affordances are the feature here — "copy link address" is how a player
  * hands the building to somebody else, and the status bar shows where it goes
- * without anything having to be clicked. Following it pins the seed in the
- * address bar, which restarts the run from that seed; a player who is already on
- * a pinned seed is already at that URL, and following it does nothing, which is
- * the honest answer.
+ * without anything having to be clicked.
+ *
+ * Which link it is depends on where the run came from, because a URL can only be
+ * in one of two states and each has exactly one useful move out of it:
+ *
+ * - Nothing pinned. The seed itself is the link, and following it writes the
+ *   seed into the address, so restarting brings these passengers back.
+ * - Pinned. Following that link again would go where the player already is, so
+ *   the seed is plain text and the link beside it is `new draw`, which takes the
+ *   seed back out of the address. Without it, one click into a pinned run is a
+ *   one-way door: the Restart button, Ctrl-Enter and a reload all keep the pin,
+ *   and the address bar is the only way back out — which is the state
+ *   {@link "../app/app.ts"!App.handleRoute} explains at length that this game
+ *   refuses to create. The navigation row is not that way out either: it drops
+ *   the seed, but it has no entry for the sandbox, and "press the challenge you
+ *   are already on" is not a move any interface can expect to be found.
+ *
+ * Keeping the seed a link in both states was the alternative, and it was
+ * rejected because the honest name for it would have been "go where you already
+ * are": it fires no `hashchange`, so nothing at all happens, while its name
+ * promises another run. The seed stays selectable text either way, and a pinned
+ * run's address bar already holds the URL that "copy link address" would.
  *
  * The visible text is the bare seed, because that is the token that gets
  * transcribed, and it is contained in the accessible name (WCAG 2.5.3) — which
  * has to say more, since "1234567890, link" describes nothing. What the name
  * does not do is promise the run back: it says another run from this seed, and
- * {@link SEED_EXPLANATION} says how far that goes.
+ * {@link SEED_EXPLANATION} says how far that goes. The same rule holds the other
+ * way round: `new draw` is two words on screen and two words inside the name.
  *
- * @param data - The seed and the URL that starts another run from it.
+ * @param data - The seed, the URL that starts another run from it, and the URL
+ * that stops pinning it.
  * @returns The seed line's markup.
  */
 function seedTemplate(data: SeedLinkData): string {
-  const name = `Seed ${data.seed}: start another run from this seed`;
-  return markup`<p class="challengeseed"><span class="seedlabel" title="${SEED_EXPLANATION}">Seed</span> <a class="seedlink" href="${data.url}" aria-label="${name}">${data.seed}</a></p>`;
+  const action =
+    data.newDrawUrl === null
+      ? markup`<a class="seedlink" href="${data.url}" aria-label="Seed ${data.seed}: start another run from this seed">${data.seed}</a>`
+      : markup`<span class="seedvalue">${data.seed}</span> <a class="seednewdraw" href="${data.newDrawUrl}" aria-label="Seed ${data.seed}: new draw, start again without it">new draw</a>`;
+  return markup`<p class="challengeseed"><span class="seedlabel" title="${SEED_EXPLANATION}">Seed</span> ${raw(action)}</p>`;
 }
 
 /** Everything the challenge bar needs in order to render itself. */

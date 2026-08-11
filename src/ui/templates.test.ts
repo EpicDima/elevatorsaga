@@ -140,8 +140,15 @@ describe("userTemplate", () => {
 });
 
 describe("challengeTemplate", () => {
-  /** A seeded run, and the URL that starts another run from its seed. */
-  const SEED: SeedLinkData = { seed: "1234567890", url: "#challenge=1,seed=1234567890" };
+  /** A run nobody pinned, and the URL that starts another run from its seed. */
+  const SEED: SeedLinkData = {
+    seed: "1234567890",
+    url: "#challenge=1,seed=1234567890",
+    newDrawUrl: null,
+  };
+
+  /** The same run once its seed is pinned, and the URL that unpins it. */
+  const PINNED_SEED: SeedLinkData = { ...SEED, newDrawUrl: "#challenge=1" };
 
   /**
    * The navigation row's data for a list of challenges ending in the demo.
@@ -314,6 +321,51 @@ describe("challengeTemplate", () => {
       expect(explanation).toContain("never quite the same twice");
     });
 
+    it("offers a way out of a pinned run, in place of the offer to pin it", () => {
+      // One click pins a run; without this, nothing in the interface takes it
+      // back, and the Restart button, Ctrl-Enter and a reload all keep the pin.
+      const fragment = bar({ num: 1, description: "x", links: links(3) }, PINNED_SEED);
+      const newDraw = fragment.querySelector("a.seednewdraw");
+
+      expect(newDraw?.textContent).toBe("new draw");
+      expect(newDraw?.getAttribute("href")).toBe("#challenge=1");
+      expect(newDraw?.getAttribute("aria-label")).toBe(
+        "Seed 1234567890: new draw, start again without it",
+      );
+      // WCAG 2.5.3 again: two words on screen, the same two inside the name.
+      expect(newDraw?.getAttribute("aria-label")).toContain(newDraw?.textContent);
+    });
+
+    it("stops offering to pin a run the url already pins", () => {
+      // Following that link would go where the player already is: no
+      // hashchange, no restart, nothing at all -- while its name promises
+      // another run.
+      const fragment = bar({ num: 1, description: "x", links: links(3) }, PINNED_SEED);
+
+      expect(fragment.querySelector("a.seedlink")).toBeNull();
+      // The seed is still there to be read and transcribed, just not to be
+      // followed.
+      expect(fragment.querySelector(".seedvalue")?.textContent).toBe("1234567890");
+      expect(fragment.querySelector(".challengeseed")?.textContent).toBe(
+        "Seed 1234567890 new draw",
+      );
+    });
+
+    it("offers exactly one link either way, and it always goes somewhere", () => {
+      for (const [state, seed] of [
+        ["unpinned", SEED],
+        ["pinned", PINNED_SEED],
+      ] as const) {
+        const line = bar({ num: 1, description: "x", links: links(3) }, seed).querySelector(
+          ".challengeseed",
+        );
+        const anchors = [...(line?.querySelectorAll("a") ?? [])];
+
+        expect(anchors, state).toHaveLength(1);
+        expect(anchors[0]?.getAttribute("href"), state).not.toBe("");
+      }
+    });
+
     it("leaves the line out entirely when the run has no seed", () => {
       const fragment = bar({ num: 1, description: "x", links: links(3) });
       expect(fragment.querySelector(".challengeseed")).toBeNull();
@@ -330,10 +382,24 @@ describe("challengeTemplate", () => {
 
     it("escapes a seed url rebuilt from the location hash", () => {
       const hostile = `#seed=1,evil="><script>x</script>`;
-      const fragment = bar({ num: 1, description: "x", links: [] }, { seed: "1", url: hostile });
+      const fragment = bar(
+        { num: 1, description: "x", links: [] },
+        { seed: "1", url: hostile, newDrawUrl: null },
+      );
 
       expect(fragment.querySelector("script")).toBeNull();
       expect(fragment.querySelector("a.seedlink")?.getAttribute("href")).toBe(hostile);
+    });
+
+    it("escapes the new-draw url too", () => {
+      const hostile = `#evil="><script>x</script>`;
+      const fragment = bar(
+        { num: 1, description: "x", links: [] },
+        { seed: "1", url: "#seed=1", newDrawUrl: hostile },
+      );
+
+      expect(fragment.querySelector("script")).toBeNull();
+      expect(fragment.querySelector("a.seednewdraw")?.getAttribute("href")).toBe(hostile);
     });
   });
 });

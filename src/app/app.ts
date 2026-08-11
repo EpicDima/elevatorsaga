@@ -231,9 +231,16 @@ export class App {
    *
    * `seed` is the exception, and is dropped: it was drawn for the building being
    * left, so carrying it into another challenge would pin a run nobody has
-   * played, and would leave a player who once followed the seed link unable to
-   * reach a fresh draw anywhere in the interface. Dropping it here makes the row
-   * the way out: the entry for the current challenge is a new draw of it.
+   * played. The rule the row follows is that what the player is carrying are
+   * *preferences* — the speed, the autostart, the sandbox building they may come
+   * back to — and a seed is not one. It names a single run, and naming a run
+   * that has not been played yet is meaningless.
+   *
+   * Dropping it here is not the way back out of a pinned run, though it does
+   * mean the row cannot pin what it did not draw. The way out is the seed line's
+   * own `new draw` link ({@link #seedLink}), because the row has none to offer
+   * the sandbox — it has no entry for it — and "press the challenge you are
+   * already on" is not a move any interface can expect to be found.
    *
    * The last challenge is the endless demo (`requireDemo` in
    * `src/game/challenges.ts`): it has no win condition, so it is labelled
@@ -274,12 +281,19 @@ export class App {
    *
    * Built with {@link createParamsUrl}, so the challenge, the speed, the sandbox
    * building and every unknown key survive into the link, exactly as they do in
-   * the navigation row. Unlike the row, this link *adds* the seed: it is the one
-   * link in the interface whose job is to pin one.
+   * the navigation row. Unlike the row, these are the two links in the interface
+   * whose job is the seed itself: one adds it, one takes it away.
+   *
+   * The `new draw` URL is offered only when the route pins a seed, which is the
+   * only state it goes anywhere from — and it is {@link #seed}, the seed the
+   * router accepted, that decides. A seed the router refused (`#seed=rush hour`,
+   * which a browser percent-encodes on the way in) leaves the run unpinned and
+   * the line offering to pin the seed that was actually drawn, which is what
+   * happened.
    *
    * @param world - The run that has just been built.
-   * @returns Its seed and the URL that starts another run from it, or `null`
-   * when it has no seed to offer.
+   * @returns Its seed, the URL that starts another run from it and the URL that
+   * stops pinning it, or `null` when it has no seed to offer.
    */
   #seedLink(world: World): SeedLinkData | null {
     if (world.seed === null) {
@@ -289,7 +303,11 @@ export class App {
       return null;
     }
     const seed = String(world.seed);
-    return { seed, url: createParamsUrl(this.#query, { seed }) };
+    return {
+      seed,
+      url: createParamsUrl(this.#query, { seed }),
+      newDrawUrl: this.#seed === null ? null : createParamsUrl(this.#query, { seed: null }),
+    };
   }
 
   /** Remembers the current time scale for the next visit. */
@@ -356,6 +374,11 @@ export class App {
    * after the fact costs one click on the seed in the bar, and every run prints
    * its seed as it starts, so the case that matters — the run that has already
    * gone wrong — stays recoverable.
+   *
+   * What makes that trade honest is that the click undoes: a pinned run's seed
+   * line offers `new draw`, which is the same URL without the seed. Whichever
+   * state the player is in, one click in the bar reaches the other, and neither
+   * needs the address bar.
    *
    * @param params - The validated route parameters.
    * @param query - The raw parameters, kept for the next-challenge link.
