@@ -68,6 +68,14 @@ const FIRST_ELEVATOR_X = 200.0;
 /** Horizontal gap between elevator shafts. */
 const ELEVATOR_SPACING = 20;
 
+/**
+ * Rate a world falls back to when what it was handed is not a rate at all.
+ *
+ * Zero: nobody ever arrives. See {@link resolveSpawnRate} for why that is the
+ * answer, and why it is not an invented one.
+ */
+const NO_ARRIVALS_SPAWN_RATE = 0;
+
 /** One in this many spawned passengers is drawn as a child. */
 const CHILD_ODDS = 40;
 
@@ -260,6 +268,77 @@ export function spawnUserRandomly(
   return user;
 }
 
+/**
+ * Turns a requested spawn rate into one the spawn loop can finish running.
+ *
+ * That loop is `while (elapsedSinceSpawn > 1 / spawnRate)`, subtracting
+ * `1 / spawnRate` each time round, and it only ever ends while that interval is
+ * a positive number. A negative rate makes the interval negative, so every
+ * iteration *adds* to the accumulator it is racing and the condition can never
+ * go false. An infinite rate makes the interval zero — `1 / Infinity` is `+0`,
+ * `1 / -Infinity` is `-0` — so the subtraction does not move the accumulator at
+ * all and the condition never goes false either. Both spin inside a single
+ * synchronous simulation step, so there is no exception, no stack and no next
+ * frame: the tab stops dead and the game merely looks frozen.
+ *
+ * Everything that is not a positive finite rate therefore becomes zero, "nobody
+ * arrives". That is a request the simulation can actually honour, and not an
+ * invented one: it is what a rate of `0` already did, since the interval is then
+ * `Infinity` and no accumulated time is ever greater than it, and it is the only
+ * reading of "minus two passengers a second" that does not make a number up.
+ * Clamping to a small positive rate instead — the sandbox's floor is 0.01 (see
+ * `SANDBOX_LIMITS` in src/app/router.ts) — would spawn traffic nobody asked for,
+ * with no value less arbitrary than any other.
+ *
+ * `NaN` cannot hang today, because no comparison against it is true and the loop
+ * is skipped, but it goes the same way here. "No comparison is true" is a
+ * fragile thing for termination to rest on if the condition is ever rewritten,
+ * and one rule covering every value that is not a rate is easier to keep true
+ * than two.
+ *
+ * What this does *not* promise is that every finite positive rate terminates
+ * quickly. Past roughly 1e18 the interval is smaller than half an ulp of the
+ * accumulated time, so the subtraction rounds to no change and the loop spins
+ * again; below that but still absurd, it terminates only after spawning more
+ * passengers than memory holds. Neither is rescuable by resolving the rate: both
+ * would need a *ceiling* on it, and capping a rate that is a rate would change
+ * the spawn timing of a legitimate value to defend against one no caller in this
+ * game can reach (challenges are constants and the sandbox stops at 10).
+ *
+ * Reported with a single `console.warn`, rather than thrown or swallowed.
+ * Throwing would abort `createWorld`, which the app calls while starting a run
+ * (`#startRun` in src/app/app.ts), so one bad option would leave the page with
+ * no building at all — where the house rule for a value the engine cannot use is
+ * to keep the simulation running and say so once (`#dropUnreachableDestinations`
+ * in src/game/elevator-interface.ts). That pattern reports through
+ * `usercode_error`, which is not available here: nothing has subscribed to the
+ * world during its own constructor, and the rate comes from the challenge
+ * options rather than from the player's program, so blaming player code would
+ * name the wrong author. That leaves the console, where
+ * `Elevator.getFirstPressedFloor` already puts its once-only notice. Swallowing
+ * it would be smaller still, but a building in which nobody ever appears is
+ * indistinguishable from a broken game, and this is the one line that says which
+ * it is.
+ *
+ * @param spawnRate - Passengers per second the world was asked for.
+ * @returns `spawnRate` when it is a positive finite number, and
+ * {@link NO_ARRIVALS_SPAWN_RATE} otherwise. A rate of exactly `0` passes through
+ * unremarked — it is a coherent thing to ask for, and it already gets what it
+ * asked for.
+ */
+function resolveSpawnRate(spawnRate: number): number {
+  if (Number.isFinite(spawnRate) && spawnRate > 0) {
+    return spawnRate;
+  }
+  if (spawnRate !== 0) {
+    console.warn(
+      `World was created with a spawnRate of ${String(spawnRate)}, which is not a number of passengers ` +
+        `per second. Nobody will arrive; spawnRate takes a positive number.`,
+    );
+  }
+  return NO_ARRIVALS_SPAWN_RATE;
+}
+
 /** A running simulation of one building. */
 export class World extends Observable<WorldEvents> {
   /** Height of one floor in world units. */
@@ -304,6 +383,15 @@ export class World extends Observable<WorldEvents> {
   challengeEnded = false;
 
   readonly #floorCount: number;
+  /**
+   * Passengers per second, as {@link resolveSpawnRate} left it: either a
+   * positive finite number or {@link NO_ARRIVALS_SPAWN_RATE}.
+   *
+   * Private and readonly, which is what lets the check happen once here rather
+   * than on every frame — nothing outside this file can reach the field, and
+   * nothing inside it assigns the field again, so a rate the constructor
+   * accepted is the rate {@link update} divides by for the life of the world.
+   */
   readonly #spawnRate: number;
   /**
    * The stream the simulation itself runs on: spawns, the time a delivered
@@ -343,7 +431,7 @@ export class World extends Observable<WorldEvents> {
     }
     this.floorHeight = options.floorHeight ?? DEFAULT_OPTIONS.floorHeight;
     this.#floorCount = options.floorCount ?? DEFAULT_OPTIONS.floorCount;
-    this.#spawnRate = options.spawnRate ?? DEFAULT_OPTIONS.spawnRate;
+    this.#spawnRate = resolveSpawnRate(options.spawnRate ?? DEFAULT_OPTIONS.spawnRate);
     const elevatorCount = options.elevatorCount ?? DEFAULT_OPTIONS.elevatorCount;
 
     const handleUserCodeError = (e: unknown): void => {
@@ -502,6 +590,9 @@ export class World extends Observable<WorldEvents> {
   update(dt: number): void {
     this.elapsedTime += dt;
     this.#elapsedSinceSpawn += dt;
+    // Divides without checking, and may: resolveSpawnRate has already ruled out
+    // every value of #spawnRate that would stop this loop from terminating, and
+    // the field cannot change afterwards.
     while (this.#elapsedSinceSpawn > 1.0 / this.#spawnRate) {
       this.#elapsedSinceSpawn -= 1.0 / this.#spawnRate;
       this.#registerUser(

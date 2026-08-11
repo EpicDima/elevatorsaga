@@ -61,6 +61,71 @@ function recordDraws(random: RandomSource): { random: RandomSource; values: numb
   };
 }
 
+/** Spawns one update() may make before the test calls the loop runaway. */
+const RUNAWAY_SPAWN_LIMIT = 10_000;
+
+/**
+ * Advances a world whose spawn loop might not terminate, failing if it does not.
+ *
+ * A runaway spawn loop is a synchronous `while` inside one call, so vitest's
+ * per-test timeout cannot interrupt it: a regression would wedge the entire test
+ * run with no output rather than fail one test, which is the worst way for a
+ * guard against hanging to report that it has stopped working. The world
+ * dispatches `new_user` with `trigger`, which lets a handler's exception
+ * propagate, so throwing from one is the only lever a test has to break out of
+ * that loop from the inside.
+ *
+ * The limit is far above any legitimate frame here: the highest rate these tests
+ * use is a few hundred passengers a second over steps of a few seconds.
+ *
+ * @param world - World to advance.
+ * @param dt - Simulated seconds to advance by.
+ * @throws {Error} When one update spawns more than {@link RUNAWAY_SPAWN_LIMIT}.
+ */
+function updateWithoutRunawaySpawning(world: World, dt: number): void {
+  let spawns = 0;
+  const countSpawn = (): void => {
+    spawns += 1;
+    if (spawns > RUNAWAY_SPAWN_LIMIT) {
+      throw new Error(
+        `Spawn loop did not terminate: over ${String(RUNAWAY_SPAWN_LIMIT)} passengers in one update`,
+      );
+    }
+  };
+  world.on("new_user", countSpawn);
+  try {
+    world.update(dt);
+  } finally {
+    world.off("new_user", countSpawn);
+  }
+}
+
+/**
+ * Counts the spawns the unguarded spawn loop made, frame by frame.
+ *
+ * A transcription of `World.update`'s arithmetic as it stood before the rate was
+ * resolved at construction, the `1.001 / spawnRate` head start included, so that
+ * the guarded engine can be held against the exact sequence of doubles it used
+ * to produce. Any drift in the timing of a rate the guard passes through shows
+ * up as a different count on the frame it first happens.
+ *
+ * @param spawnRate - Passengers per second.
+ * @param steps - Simulated seconds each frame advances by.
+ * @returns The running spawn total after each frame.
+ */
+function unguardedSpawnCounts(spawnRate: number, steps: readonly number[]): number[] {
+  let elapsedSinceSpawn = 1.001 / spawnRate;
+  let spawns = 0;
+  return steps.map((dt) => {
+    elapsedSinceSpawn += dt;
+    while (elapsedSinceSpawn > 1.0 / spawnRate) {
+      elapsedSinceSpawn -= 1.0 / spawnRate;
+      spawns += 1;
+    }
+    return spawns;
+  });
+}
+
 /**
  * Builds a world with exactly one user waiting on floor 0.
  *
@@ -336,6 +401,113 @@ describe("World", () => {
       const spawned = collectUsers(world);
       world.update(0.1);
       expect(at(spawned, 0).spawnTimestamp).toBeCloseTo(0.1, 10);
+    });
+
+    describe("a rate that is not a rate", () => {
+      // The spawn loop subtracts `1 / spawnRate` until the accumulated time is
+      // no longer greater than it, which only ends while that interval is a
+      // positive number: a negative rate makes it negative, so every iteration
+      // moves the accumulator further from the threshold, and an infinite rate
+      // makes it zero, so the accumulator does not move at all. Either way one
+      // call to update() never returns, and since that is a plain synchronous
+      // loop there is no error, no stack and no next frame -- the tab freezes
+      // and the game merely looks broken.
+
+      it("does not hang, and spawns nobody, for a negative rate", () => {
+        const world = createWorld({ spawnRate: -2 }, "negative-rate");
+        const spawned = collectUsers(world);
+
+        updateWithoutRunawaySpawning(world, 10);
+
+        expect(spawned).toEqual([]);
+        expect(world.users).toEqual([]);
+      });
+
+      it("spawns nobody for a rate of zero, which is what zero asks for", () => {
+        const world = createWorld({ spawnRate: 0 }, "zero-rate");
+        const spawned = collectUsers(world);
+
+        updateWithoutRunawaySpawning(world, 10);
+
+        expect(spawned).toEqual([]);
+      });
+
+      it("does not hang, and spawns nobody, for a NaN rate", () => {
+        const world = createWorld({ spawnRate: Number.NaN }, "nan-rate");
+        const spawned = collectUsers(world);
+
+        updateWithoutRunawaySpawning(world, 10);
+
+        expect(spawned).toEqual([]);
+      });
+
+      it.each([Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY])(
+        "does not hang, and spawns nobody, for a rate of %s",
+        (spawnRate) => {
+          // Positive but unrunnable, and the one case a `spawnRate > 0` test
+          // would have let through: `1 / Infinity` is `+0` and `1 / -Infinity`
+          // is `-0`, so the subtraction leaves the accumulator exactly where it
+          // was and the loop never reaches its own exit.
+          const world = createWorld({ spawnRate }, "infinite-rate");
+          const spawned = collectUsers(world);
+
+          updateWithoutRunawaySpawning(world, 10);
+
+          expect(spawned).toEqual([]);
+        },
+      );
+
+      it("keeps going, and says so once, rather than throwing", () => {
+        // The house rule for a value the engine cannot use: report it and carry
+        // on. Throwing from the constructor would abort createWorld, and the
+        // app calls that while starting a run, so a single bad option would
+        // leave the page with no building at all.
+        const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+
+        const world = createWorld({ spawnRate: -2, floorCount: 3, elevatorCount: 1 }, "reported");
+        // Through the bounded helper like every other test here: this one runs
+        // a rate that used to hang too, so a regression must fail it rather
+        // than take the test run down with it.
+        updateWithoutRunawaySpawning(world, 0.1);
+
+        expect(warn).toHaveBeenCalledTimes(1);
+        // Names the value, so the reader of the console knows which option to
+        // go and look at rather than only that something was wrong.
+        expect(String(warn.mock.calls[0]?.[0])).toContain("-2");
+        expect(world.elapsedTime).toBeCloseTo(0.1, 10);
+      });
+
+      it("stays quiet about a rate of zero", () => {
+        // Zero is a coherent request -- an empty building is a thing a test or
+        // a demo may well want -- and it already gets exactly what it asked
+        // for, so there is nothing to report.
+        const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+
+        createWorld({ spawnRate: 0 });
+
+        expect(warn).not.toHaveBeenCalled();
+      });
+    });
+
+    it("leaves the spawn timing of every positive rate exactly as it was", () => {
+      // The point of the guard is that it changes nothing for a rate that is
+      // one. Held against a transcription of the unguarded loop rather than
+      // against counts worked out by hand, so the comparison is over the exact
+      // float arithmetic -- including the 1.001 head start and the accumulator
+      // that carries across frames -- and not over a rounded idea of it.
+      const steps = [0.1, 1.8, 0.2, 5.0, ...Array.from({ length: 120 }, () => 1.0 / 60.0)];
+
+      for (const spawnRate of [0.001, 0.01, 0.5, 0.6, 1, 1.9, 3, 10, 123.456]) {
+        const world = createWorld({ spawnRate, floorCount: 3, elevatorCount: 1 }, "timing");
+        const spawned = collectUsers(world);
+
+        const counts = steps.map((dt) => {
+          world.update(dt);
+          return spawned.length;
+        });
+
+        expect(counts).toEqual(unguardedSpawnCounts(spawnRate, steps));
+      }
     });
   });
 
