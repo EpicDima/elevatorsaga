@@ -419,9 +419,17 @@ export interface ChallengeTemplateData {
  * the status bar) all work; navigation is the hash change the router already
  * listens for, so nothing has to be wired to them at all.
  *
- * The seed shares that second line rather than taking a third: it is a debugging
- * aid, and the bar sits directly above the building, where every pixel it grows
- * pushes the game down the page. It stays outside the `<nav>` — it is not a
+ * The seed takes a line of its own below that row. Letting it ride up beside the
+ * links wherever it fitted is the cheaper layout, and the bar has every reason
+ * to want the cheaper one: the building's top edge is the bar's bottom edge, so
+ * every pixel the bar grows pushes the game down the page, and the seed is only
+ * a debugging aid. It was traded away because the line carries a disclosure. A
+ * line that shares a row is as wide as whatever is left over, so opening the
+ * disclosure widened it past what was left, dropped it under the links, and
+ * carried the summary the player had just clicked out from under the pointer
+ * that clicked it. A line of its own has no room left to lose, so the summary
+ * now stays where it was opened at every width the panel fits beside it; the
+ * height is what that cost. The seed stays outside the `<nav>` — it is not a
  * challenge, and counting it among them would make the landmark lie about how
  * many there are.
  *
