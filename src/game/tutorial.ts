@@ -15,9 +15,11 @@
  * here asserts it; `tutorial-solutions.test.ts` replays both programs of every
  * task on ten seeds and requires the verdict each was measured to reach — the
  * loss and the win everywhere save one recorded seed of task 5, where no wait
- * limit can buy both. Every number below was chosen against that measurement,
- * and the entries whose numbers differ from `docs/tutorial-plan.md` say which
- * number moved and what forced it.
+ * limit can buy both. Ten seeds say whether a task works and cannot say how
+ * often, so the three tasks whose numbers turn on that are counted over four
+ * hundred in `tutorial-sweep.test.ts`. Every number below was chosen against
+ * those measurements, and the entries whose numbers differ from
+ * `docs/tutorial-plan.md` say which number moved and what forced it.
  *
  * A {@link TutorialTask} is structurally a {@link "./challenges.ts"!Challenge}:
  * `options` and `condition` are named and typed to match, so a task can be
@@ -605,6 +607,15 @@ export const tutorialTasks: readonly TutorialTask[] = [
     // — widens it by no longer being challenge 1. Measured, not assumed: the
     // answer wins on all ten seeds, and `tutorial-solutions.test.ts` holds this
     // one task to a smaller margin than the rest and says why.
+    //
+    // On four hundred seeds it wins 399. The one it loses is t165, where 14 are
+    // out by the 60-second bar and the fifteenth arrives some ten seconds later.
+    // That number is challenge 1's, not this task's, and it must not be tuned
+    // away: `tutorial-sweep.test.ts` plays the same answer over the same four
+    // hundred seeds in the building and against the bar read out of
+    // `challenges.ts`, loses the same single seed, and pins both counts at
+    // exactly 399 — because anything that lifts this task to 400 does it by
+    // making the graduation task no longer the game's own first challenge.
     //
     // The answer is task 7's program, unchanged and deliberately so. Task 8 asks
     // for nothing new; what it measures is whether the player can now write, on
