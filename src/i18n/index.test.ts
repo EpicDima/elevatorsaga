@@ -5,6 +5,7 @@ import { htmlLang, isLocale, DEFAULT_LOCALE, LOCALES } from "./locale.ts";
 import { RU_MESSAGES } from "./ru.ts";
 import {
   format,
+  formatList,
   formatTime,
   getLocale,
   isLocaleLoaded,
@@ -168,6 +169,15 @@ describe("the active locale", () => {
     expect(format(seconds(60))).toBe(`60${NBSP}с`);
     expect(format(2675)).toBe(`2${NBSP}675`);
     expect(format(decimal(1.5, 1))).toBe("1,5");
+  });
+
+  it("carries into the punctuation between listed items", () => {
+    // A locale that has not been loaded renders in English, so this also says
+    // the switch has to be complete: half a Russian sentence joined by "and"
+    // is the failure a bare ", " was chosen to avoid in the first place.
+    expect(formatList(["6", "9"])).toBe("6 and 9");
+    setLocale("ru");
+    expect(formatList(["6", "9"])).toBe("6 и 9");
   });
 
   it("carries into times of day", () => {

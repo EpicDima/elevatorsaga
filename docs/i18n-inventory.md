@@ -360,7 +360,7 @@ can drift apart with nothing to notice. That is task #61.
 | `challenge.sandbox.floors.html`                 | src/game/challenges.ts:266 | <span class='emphasis-color'>{count}</span> floors                                                          | plural (one, other); markup; takes `{count}`                                                                                            |
 | `challenge.sandbox.elevators.html`              | src/game/challenges.ts:267 | <span class='emphasis-color'>{count}</span> elevators                                                       | plural (one, other); markup; takes `{count}`                                                                                            |
 | `challenge.sandbox.capacityLabel`               | src/game/challenges.ts:271 | capacities                                                                                                  | plural (one, other)                                                                                                                     |
-| `challenge.sandbox.spawnRate.html`              | src/game/challenges.ts:278 | <span class='emphasis-color'>{count}</span> people per second                                               | plural (one, other); markup; takes `{count}`; one English form for both categories, preserving today's `1 people per second`            |
+| `challenge.sandbox.spawnRate.html`              | src/game/challenges.ts:282 | <span class='emphasis-color'>{count}</span> people per second                                               | plural (one, other); markup; takes `{count}`; one English form for both categories, preserving today's `1 people per second`            |
 
 ### src/ui/completions.ts — 32 strings, none wired (#60)
 
@@ -499,7 +499,7 @@ than a proposal.
    four sits inside a `get description()` on the condition object, which is what keeps the
    sentence out of the import-time trap; see below.
 
-2. **`1 people per second`.** The sandbox description at `src/game/challenges.ts:278`
+2. **`1 people per second`.** The sandbox description at `src/game/challenges.ts:282`
    pluralises floors and elevators but not the spawn rate, so a rate of exactly 1 reads
    `1 people per second` today. `challenge.sandbox.spawnRate.html` reproduces that by
    giving both English categories the same text; Russian declines it properly. Fixing the
@@ -549,7 +549,7 @@ Two ordering traps. Both were sprung once, and both are fixed, but the second ha
 wiring can spring them again:
 
 - **Modules that build their strings at import time run before this.** `challenges` at
-  `src/game/challenges.ts:312` is still a module constant, and that is now safe, because
+  `src/game/challenges.ts:316` is still a module constant, and that is now safe, because
   what it holds are condition objects whose `description` is a `get description()` getter
   rather than a rendered string — the sentence is built when the challenge bar asks for it,
   in whatever language is active by then. That is the shape this fix took, rather than the

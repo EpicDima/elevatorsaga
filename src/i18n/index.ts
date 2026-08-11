@@ -62,7 +62,15 @@ import {
   type MessageKey,
 } from "./catalogue.ts";
 import { EN_MESSAGES } from "./en.ts";
-import { formatTimeOfDay, formatValue, type ParamValue } from "./format.ts";
+// `formatListIn` is `format.ts`'s `formatList` under the name this module gives
+// anything that takes its locale outright, as `translateIn` does. The export
+// below is the one callers want: the same thing for the locale on screen.
+import {
+  formatList as formatListIn,
+  formatTimeOfDay,
+  formatValue,
+  type ParamValue,
+} from "./format.ts";
 import { DEFAULT_LOCALE, type Locale } from "./locale.ts";
 
 /**
@@ -303,6 +311,22 @@ export function format(value: ParamValue): string {
  */
 export function formatTime(when: Date): string {
   return formatTimeOfDay(renderingLocale(), when);
+}
+
+/**
+ * A list of already-rendered items, in the active locale.
+ *
+ * For the one thing a message cannot hold: a list whose length is not known
+ * until it is drawn. A catalogue entry is a sentence, and a sentence cannot
+ * loop, so the loop happens at the call site and the punctuation between the
+ * items has to come from somewhere — here, rather than from a `", "` that
+ * would be English pretending to be universal.
+ *
+ * @param items - The items, already rendered.
+ * @returns The list, punctuated as a reader of the active locale expects.
+ */
+export function formatList(items: readonly string[]): string {
+  return formatListIn(renderingLocale(), items);
 }
 
 export {

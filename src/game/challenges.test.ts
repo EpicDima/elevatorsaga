@@ -173,7 +173,12 @@ describe("Challenge requirements", () => {
 
     it("lists every capacity, because the world cycles them over the cars", () => {
       expect(requireSandbox({ ...SANDBOX, elevatorCapacities: [6, 9] }).description).toContain(
-        "of capacities <span class='emphasis-color'>6</span>, " +
+        "of capacities <span class='emphasis-color'>6</span> and " +
+          "<span class='emphasis-color'>9</span>",
+      );
+      expect(requireSandbox({ ...SANDBOX, elevatorCapacities: [4, 6, 9] }).description).toContain(
+        "of capacities <span class='emphasis-color'>4</span>, " +
+          "<span class='emphasis-color'>6</span>, and " +
           "<span class='emphasis-color'>9</span>",
       );
     });
@@ -301,6 +306,21 @@ describe("the language a description comes out in", () => {
         "<span class='emphasis-color'>4</span>, " +
         "<span class='emphasis-color'>1,5</span> пассажира в секунду. " +
         "Цели нет, поэтому симуляция никогда не закончится",
+    );
+  });
+
+  it("separates the capacities with a word rather than a comma", () => {
+    // Russian writes decimals with a comma, so «вместимостью 6, 9» is also how
+    // six point nine is written -- in a sentence that goes on to say «1,5
+    // пассажира в секунду», which is the same punctuation meaning the other
+    // thing two words later. The conjunction is not decoration here; it is what
+    // makes the number of elevators in the building readable.
+    setLocale("ru");
+
+    expect(requireSandbox({ ...SANDBOX, elevatorCapacities: [6, 9] }).description).toContain(
+      "вместимостью <span class='emphasis-color'>6</span> и " +
+        "<span class='emphasis-color'>9</span>, " +
+        "<span class='emphasis-color'>1,5</span> пассажира в секунду",
     );
   });
 

@@ -54,6 +54,9 @@ const numberFormatters = new Map<string, Intl.NumberFormat>();
 /** Cached plural rules, keyed the same way. */
 const pluralRules = new Map<string, Intl.PluralRules>();
 
+/** Cached list formatters, keyed by locale alone; they take no options here. */
+const listFormatters = new Map<Locale, Intl.ListFormat>();
+
 /**
  * Cache key for a locale and a set of formatter options.
  *
@@ -112,6 +115,22 @@ function pluralRulesFor(locale: Locale, options: Intl.NumberFormatOptions): Intl
   const rules = new Intl.PluralRules(locale, options);
   pluralRules.set(key, rules);
   return rules;
+}
+
+/**
+ * A list formatter, from the cache or newly built.
+ *
+ * @param locale - The locale to punctuate for.
+ * @returns The formatter.
+ */
+function listFormatter(locale: Locale): Intl.ListFormat {
+  const cached = listFormatters.get(locale);
+  if (cached !== undefined) {
+    return cached;
+  }
+  const formatter = new Intl.ListFormat(locale);
+  listFormatters.set(locale, formatter);
+  return formatter;
 }
 
 /**
@@ -232,6 +251,29 @@ export function formatValue(locale: Locale, value: ParamValue): string {
     return formatNumber(locale, value);
   }
   return formatNumber(locale, value.value, value.format ?? {});
+}
+
+/**
+ * A list of already-rendered items, punctuated the way the locale punctuates one.
+ *
+ * "6 and 9" in English, «6 и 9» in Russian, and a comma before the conjunction
+ * once there are three. The conjunction is the point rather than the polish:
+ * Russian writes decimals with a comma, so a comma-separated list of numbers is
+ * ambiguous in the one place this is used. «вместимостью 6, 9» is also how six
+ * point nine is spelled, and the sentence it sits in goes on to say «1,5
+ * пассажира в секунду», which puts three commas in a row doing two different
+ * jobs. A list that ends in a word cannot be read as a number.
+ *
+ * Items are strings rather than numbers because they arrive already rendered,
+ * markup and all: the caller has had {@link formatNumber} over each of them and
+ * wrapped the result in the span the challenge bar paints numbers with.
+ *
+ * @param locale - The locale whose punctuation applies.
+ * @param items - The items, already rendered.
+ * @returns The list; empty for no items, the item itself for one.
+ */
+export function formatList(locale: Locale, items: readonly string[]): string {
+  return listFormatter(locale).format(items);
 }
 
 /**

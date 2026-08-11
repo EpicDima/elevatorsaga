@@ -13,7 +13,7 @@
  * the rest of it.
  */
 
-import { decimal, exact, format, t } from "../i18n/index.ts";
+import { decimal, exact, format, formatList, t } from "../i18n/index.ts";
 import type { WorldOptions } from "./world.ts";
 
 /** The statistics a challenge condition inspects. */
@@ -271,10 +271,14 @@ export function requireSandbox(options: SandboxOptions): ChallengeCondition {
         capacityLabel: t("challenge.sandbox.capacityLabel", {
           count: options.elevatorCapacities.length,
         }),
-        // Comma-space, in both languages so far. A locale that lists things
-        // differently would want `Intl.ListFormat` here, which is one line and
-        // is not worth writing before there is a locale that needs it.
-        capacities: options.elevatorCapacities.map((capacity) => emphasise(capacity)).join(", "),
+        // Punctuated by the locale rather than joined with `", "`. Russian
+        // writes decimals with a comma, and this sentence is made of numbers:
+        // «вместимостью 6, 9, 1,5 пассажира в секунду» hands a reader three
+        // commas doing two different jobs, and «6, 9» is also how six point
+        // nine is written. The conjunction the locale supplies — «6 и 9»,
+        // "6 and 9" — cannot be read as one number, and reads better in
+        // English too.
+        capacities: formatList(options.elevatorCapacities.map((capacity) => emphasise(capacity))),
         spawnRate: t("challenge.sandbox.spawnRate.html", { count: exact(options.spawnRate) }),
       });
     },

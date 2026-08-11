@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   decimal,
   exact,
+  formatList,
   formatNumber,
   formatTimeOfDay,
   formatValue,
@@ -145,6 +146,39 @@ describe("formatValue", () => {
 
   it("renders a bare number for the locale", () => {
     expect(formatValue("ru", 2675)).toBe(`2${NBSP}675`);
+  });
+});
+
+describe("formatList", () => {
+  it("ends a Russian list with a word, so a comma cannot be read as a decimal", () => {
+    // The reason this function exists. «6, 9» is how six point nine is written
+    // in Russian, so a list joined with ", " is ambiguous exactly where the
+    // sandbox uses it -- and the sentence around it goes on to say «1,5».
+    expect(formatList("ru", ["6", "9"])).toBe("6 и 9");
+    expect(formatList("ru", ["4", "5", "6"])).toBe("4, 5 и 6");
+  });
+
+  it("ends an English list with a word too", () => {
+    expect(formatList("en", ["6", "9"])).toBe("6 and 9");
+    expect(formatList("en", ["4", "5", "6"])).toBe("4, 5, and 6");
+  });
+
+  it("adds nothing to a list with nothing to separate", () => {
+    // The sandbox's ordinary case: one capacity, cycled over every car. It has
+    // to come out as the bare number, with no punctuation waiting for a second
+    // item that is not coming.
+    for (const locale of LOCALES) {
+      expect(formatList(locale, ["4"]), locale).toBe("4");
+      expect(formatList(locale, []), locale).toBe("");
+    }
+  });
+
+  it("leaves the items exactly as they were handed over", () => {
+    // They arrive already rendered, markup and all, and this is the last thing
+    // between them and the page.
+    expect(formatList("en", ["<span class='emphasis-color'>6</span>", "<b>9</b>"])).toBe(
+      "<span class='emphasis-color'>6</span> and <b>9</b>",
+    );
   });
 });
 
