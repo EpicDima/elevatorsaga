@@ -475,6 +475,38 @@ dl dd {
   text-underline-offset: 2px;
 }
 
+/*
+ * The disclosure that explains what a seed does and does not bring back.
+ *
+ * The marker and the open/closed behaviour are the browser's own; all this adds
+ * is where the panel goes. Closed, the summary is another item on the seed's
+ * line and costs no height at all. Open, `flex-basis: 100%` wraps it onto a line
+ * of its own inside the seed line, so the sentence is laid out across the width
+ * the line has rather than in the narrow column left beside the seed.
+ *
+ * The pointer cursor is the one thing the UA does not supply: `<summary>` is a
+ * control, and it is the only one on this line that does not already look like
+ * a link.
+ */
+.seedhelp[open] {
+  flex-basis: 100%;
+}
+
+.seedhelp > summary {
+  cursor: pointer;
+}
+
+/*
+ * A measure rather than the full width: at a desk the bar is a thousand pixels
+ * wide, and a line of prose that long is read by losing your place in it. The
+ * margin goes because the line's own flex `gap` already spaces it, and a `<p>`
+ * arrives with one.
+ */
+.seedcaveat {
+  max-inline-size: 62ch;
+  margin: 0;
+}
+
 /* ------------------------------------------------------------------ Buttons */
 
 /*

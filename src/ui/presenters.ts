@@ -17,7 +17,14 @@ import type { Floor } from "../game/floor.ts";
 import type { User } from "../game/user.ts";
 import type { World } from "../game/world.ts";
 import type { WorldController } from "../game/world-controller.ts";
-import { clearChildren, queryAll, requireElement, setClass, setTransformPos } from "./dom.ts";
+import {
+  clearChildren,
+  query,
+  queryAll,
+  requireElement,
+  setClass,
+  setTransformPos,
+} from "./dom.ts";
 import { createIcon } from "./icons.ts";
 import {
   challengeTemplate,
@@ -42,9 +49,13 @@ const CHALLENGE_LINK_SELECTOR = ".challengelink";
  *
  * Written as "whatever the line offers" rather than by class, because what it
  * offers changes with the run: the seed's own link while the run can still be
- * pinned, and `new draw` in its place once it is.
+ * pinned, `new draw` in its place once it is, and the disclosure that explains
+ * what a seed does either way.
  */
-const SEED_CONTROL_SELECTOR = ".challengeseed a";
+const SEED_CONTROL_SELECTOR = ".challengeseed a, .challengeseed summary";
+
+/** Selector matching the seed line's disclosure. */
+const SEED_HELP_SELECTOR = ".seedhelp";
 
 /**
  * Empties several containers.
@@ -255,10 +266,21 @@ export function presentChallenge(
   // replaces the one that was followed is not the same link. Pinning a run
   // turns the seed's link into "new draw", and taking the pin back out turns it
   // back, so the control that lands where the player was standing is the one
-  // they should still be standing on.
+  // they should still be standing on. The line's disclosure is in the same list
+  // -- it starts no run itself, but a rebuild started from anywhere else deletes
+  // it just as thoroughly while a player is reading it.
   const focusedSeedIndex = queryAll(SEED_CONTROL_SELECTOR, parent).findIndex(
     (control) => control === document.activeElement,
   );
+
+  // Whether the caveat about what a seed does was open. It is markup like the
+  // rest of the bar, so a rebuild would otherwise close it -- and every restart
+  // rebuilds, which would mean a player who wanted the explanation in front of
+  // them while they tried the thing it explains could not keep it there. `open`
+  // is the state of a disclosure, not the state of the run, so it is carried
+  // across by hand; nothing else in the bar has any state to lose.
+  const openedHelp = query(SEED_HELP_SELECTOR, parent);
+  const helpWasOpen = openedHelp instanceof HTMLDetailsElement && openedHelp.open;
 
   parent.innerHTML = challengeTemplate({
     num: options.challengeNum,
@@ -266,6 +288,11 @@ export function presentChallenge(
     links: options.challengeLinks,
     seed: options.seed,
   });
+
+  const rebuiltHelp = query(SEED_HELP_SELECTOR, parent);
+  if (helpWasOpen && rebuiltHelp instanceof HTMLDetailsElement) {
+    rebuiltHelp.open = true;
+  }
 
   const startStop = requireElement(".startstop", parent);
   const timeScaleValue = requireElement(".timescale_value", parent);

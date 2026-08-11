@@ -20,6 +20,10 @@ const SEED_VALUE = ".seedvalue";
 /** The way back out of a pinned run. */
 const NEW_DRAW_LINK = ".seednewdraw";
 
+/** The disclosure that explains what a seed does, and the sentence inside it. */
+const HELP_SUMMARY = ".seedhelp > summary";
+const CAVEAT = ".seedcaveat";
+
 test("pins the run a player is looking at, and replays it on reload", async ({ page }) => {
   const pageErrors: string[] = [];
   page.on("pageerror", (error) => pageErrors.push(error.message));
@@ -72,6 +76,41 @@ test("lets a pinned run go back to a fresh draw, and back again", async ({ page 
   // one of these moves is a real navigation.
   await page.goBack();
   await expect(page.locator(SEED_VALUE)).toHaveText("issue-61");
+});
+
+test("opens the caveat from the keyboard, on a phone-sized screen", async ({ page }) => {
+  // The sentence about what a seed does and does not bring back used to be a
+  // `title` attribute, which is to say a mouse-only tooltip. This is the path it
+  // was missing: no pointer at all, and the narrowest screen WCAG 1.4.10 names.
+  await page.setViewportSize({ width: 320, height: 800 });
+  await page.goto("/#challenge=4");
+
+  await expect(page.locator(CAVEAT)).toBeHidden();
+
+  // Reached by tabbing from the seed rather than focused directly: "can be
+  // focused" and "is in the tab order" are different questions, and it was the
+  // second one that had no answer before.
+  await page.locator(SEED_LINK).focus();
+  await page.keyboard.press("Tab");
+  await expect(page.locator(HELP_SUMMARY)).toBeFocused();
+  await page.keyboard.press("Enter");
+  await expect(page.locator(CAVEAT)).toBeVisible();
+  await expect(page.locator(CAVEAT)).toContainText("never quite the same twice");
+
+  // Open, it is a whole sentence of prose in a control strip; if it will not
+  // wrap into 320px the page has to be read by panning sideways.
+  const overflow = await page.evaluate(() => {
+    const root = document.documentElement;
+    return root.scrollWidth - root.clientWidth;
+  });
+  expect(overflow).toBeLessThanOrEqual(0);
+
+  // The bar is rebuilt from scratch whenever a run starts, and pinning the seed
+  // starts one. An explanation that closes itself while the player is reading it
+  // is one they have to open again to finish the sentence.
+  await page.locator(SEED_LINK).click();
+  await expect(page.locator(NEW_DRAW_LINK)).toBeVisible();
+  await expect(page.locator(CAVEAT)).toBeVisible();
 });
 
 test("gives an unpinned run a fresh building on every reload", async ({ page }) => {

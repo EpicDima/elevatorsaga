@@ -272,6 +272,32 @@ describe("presentChallenge", () => {
     );
   });
 
+  it("keeps the caveat open across the rebuilds a run is made of", () => {
+    // Every restart rebuilds this bar from markup, so a disclosure the player
+    // opened would close itself on each one -- and the caveat is most wanted
+    // exactly while they are restarting to see how far a seed goes.
+    const { parent, options } = setUp();
+    presentChallenge(parent, options);
+    const help = requireElement(".seedhelp", parent);
+    expect(help).toBeInstanceOf(HTMLDetailsElement);
+    if (help instanceof HTMLDetailsElement) {
+      help.open = true;
+    }
+
+    presentChallenge(parent, options);
+
+    expect(requireElement(".seedhelp", parent).hasAttribute("open")).toBe(true);
+  });
+
+  it("leaves a closed caveat closed", () => {
+    const { parent, options } = setUp();
+    presentChallenge(parent, options);
+
+    presentChallenge(parent, options);
+
+    expect(requireElement(".seedhelp", parent).hasAttribute("open")).toBe(false);
+  });
+
   it("draws no seed line when the run has no seed", () => {
     const { parent, options } = setUp({ seed: null });
     presentChallenge(parent, options);
@@ -411,6 +437,20 @@ describe("presentChallenge", () => {
       presentChallenge(parent, { ...options, seed: SEED });
 
       expect(document.activeElement).toBe(requireElement(".seedlink", parent));
+    });
+
+    it("keeps focus on the caveat when something else rebuilds the bar", () => {
+      // Reading the explanation is not itself a restart, but anything else can
+      // be one -- the editor's Ctrl-Enter, a challenge finishing -- and a
+      // keyboard player who was standing on the disclosure should still be
+      // standing on it rather than on the start button.
+      const { parent, options } = mount();
+      presentChallenge(parent, options);
+      requireElement(".seedhelp summary", parent).focus();
+
+      presentChallenge(parent, options);
+
+      expect(document.activeElement).toBe(requireElement(".seedhelp summary", parent));
     });
 
     it("falls back to the start button when the rebuild has no seed to return to", () => {

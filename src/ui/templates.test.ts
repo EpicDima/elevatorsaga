@@ -180,6 +180,25 @@ describe("challengeTemplate", () => {
     return renderFragment(challengeTemplate({ ...data, seed }));
   }
 
+  /**
+   * What the seed line says, with its disclosure left out.
+   *
+   * The caveat inside the disclosure is a whole sentence of prose, and it is
+   * checked on its own; folding it into these assertions would bury the thing
+   * they are about. What is left is the line a player reads at a glance.
+   *
+   * @param fragment - A rendered challenge bar.
+   * @returns The text of `.challengeseed` without the disclosure's, trimmed.
+   */
+  function seedLineText(fragment: DocumentFragment): string {
+    const line = fragment.querySelector(".challengeseed")?.cloneNode(true);
+    if (!(line instanceof HTMLElement)) {
+      return "";
+    }
+    line.querySelector(".seedhelp")?.remove();
+    return line.textContent.trim();
+  }
+
   it("inserts the challenge description as markup", () => {
     const fragment = bar({
       num: 3,
@@ -256,15 +275,18 @@ describe("challengeTemplate", () => {
     // had; the nineteen new stops come after them, and the seed -- which is a
     // debugging aid rather than part of the game -- comes last of all.
     const fragment = bar({ num: 1, description: "x", links: links(3) }, SEED);
-    const focusable = [...fragment.querySelectorAll("button, a")];
+    // `<summary>` is focusable and in the tab order without a tabindex, which is
+    // the whole reason the caveat lives in one, so it counts as a stop here.
+    const focusable = [...fragment.querySelectorAll("button, a, summary")];
 
     expect(focusable.slice(0, 3).map((element) => element.className)).toEqual([
       "right startstop unselectable",
       "timescale_decrease unselectable",
       "timescale_increase unselectable",
     ]);
-    expect(focusable.slice(3).every((element) => element.tagName === "A")).toBe(true);
-    expect(focusable.at(-1)?.className).toBe("seedlink");
+    expect(focusable.slice(3, -1).every((element) => element.tagName === "A")).toBe(true);
+    expect(focusable.at(-2)?.className).toBe("seedlink");
+    expect(focusable.at(-1)?.tagName).toBe("SUMMARY");
   });
 
   it("escapes a link url rebuilt from the location hash", () => {
@@ -299,7 +321,7 @@ describe("challengeTemplate", () => {
         "Seed 1234567890: start another run from this seed",
       );
       expect(seedLink?.getAttribute("aria-label")).toContain(seedLink?.textContent);
-      expect(fragment.querySelector(".challengeseed")?.textContent).toBe("Seed 1234567890");
+      expect(seedLineText(fragment)).toBe("Seed 1234567890");
     });
 
     it("promises the passengers, and stops short of promising the run", () => {
@@ -307,9 +329,9 @@ describe("challengeTemplate", () => {
       // point of the affordance. It cannot bring the run: dt comes from
       // requestAnimationFrame, so the cars stand somewhere else as each of them
       // appears and the player's program is asked at different moments.
-      const explanation = bar({ num: 1, description: "x", links: links(3) }, SEED)
-        .querySelector(".seedlabel")
-        ?.getAttribute("title");
+      const explanation = bar({ num: 1, description: "x", links: links(3) }, SEED).querySelector(
+        ".seedcaveat",
+      )?.textContent;
 
       expect(explanation).toBe(
         "The same seed brings the same passengers, in the same order. Frame timing comes from " +
@@ -319,6 +341,41 @@ describe("challengeTemplate", () => {
       // The caveat is the whole point of the second sentence, so it may not go
       // missing while the promise in front of it stays.
       expect(explanation).toContain("never quite the same twice");
+    });
+
+    it("puts the caveat somewhere a keyboard and a screen reader can reach it", () => {
+      // It used to be a title attribute on a <span>: a tooltip, which is to say
+      // mouse-only. A touch screen never shows one, a <span> cannot be focused,
+      // and screen readers announce title on non-interactive elements
+      // inconsistently -- so the sentence that keeps the rest of the line honest
+      // reached only the players who happened to hover over the right word.
+      const fragment = bar({ num: 1, description: "x", links: links(3) }, SEED);
+      const help = fragment.querySelector(".seedhelp");
+
+      // A native disclosure: focusable, in the tab order, operated by Enter and
+      // Space, and announced with its expanded state, none of which is wired up
+      // here because the element already does all of it.
+      expect(help?.tagName).toBe("DETAILS");
+      expect(help?.querySelector("summary")?.textContent).toBe("what a seed does");
+      expect(help?.querySelector(".seedcaveat")?.textContent).toContain("The same seed brings");
+      // Closed to begin with: the bar sits on top of the building, and a line it
+      // always spends is a line the game is pushed down by.
+      expect(help?.hasAttribute("open")).toBe(false);
+      // And the tooltip is gone rather than kept alongside, so the same words
+      // are not announced from two places.
+      expect(fragment.querySelector("[title]")).toBeNull();
+    });
+
+    it("keeps the disclosure inside the seed line the parser would have ejected it from", () => {
+      // <details> is one of the tags that closes an open <p>, and the bar is
+      // written into the document with innerHTML -- so as long as the line is a
+      // <p>, the disclosure ends up a sibling of it and the layout comes apart.
+      const line = bar({ num: 1, description: "x", links: links(3) }, SEED).querySelector(
+        ".challengeseed",
+      );
+
+      expect(line?.tagName).toBe("DIV");
+      expect(line?.querySelector(".seedhelp")).not.toBeNull();
     });
 
     it("offers a way out of a pinned run, in place of the offer to pin it", () => {
@@ -346,9 +403,7 @@ describe("challengeTemplate", () => {
       // The seed is still there to be read and transcribed, just not to be
       // followed.
       expect(fragment.querySelector(".seedvalue")?.textContent).toBe("1234567890");
-      expect(fragment.querySelector(".challengeseed")?.textContent).toBe(
-        "Seed 1234567890 new draw",
-      );
+      expect(seedLineText(fragment)).toBe("Seed 1234567890 new draw");
     });
 
     it("offers exactly one link either way, and it always goes somewhere", () => {

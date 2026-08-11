@@ -297,8 +297,14 @@ const SEED_EXPLANATION =
  * transcribed, and it is contained in the accessible name (WCAG 2.5.3) — which
  * has to say more, since "1234567890, link" describes nothing. What the name
  * does not do is promise the run back: it says another run from this seed, and
- * {@link SEED_EXPLANATION} says how far that goes. The same rule holds the other
- * way round: `new draw` is two words on screen and two words inside the name.
+ * {@link seedHelpTemplate} carries {@link SEED_EXPLANATION}, which says how far
+ * that goes. The same rule holds the other way round: `new draw` is two words on
+ * screen and two words inside the name.
+ *
+ * A `<div>` rather than the `<p>` this used to be, and not as a matter of taste:
+ * `<details>` is one of the tags the HTML parser closes an open `<p>` on, so the
+ * disclosure would be parsed out of the line and left as a sibling of it — the
+ * bar is written into the document with `innerHTML`, which is the real parser.
  *
  * @param data - The seed, the URL that starts another run from it, and the URL
  * that stops pinning it.
@@ -309,7 +315,48 @@ function seedTemplate(data: SeedLinkData): string {
     data.newDrawUrl === null
       ? markup`<a class="seedlink" href="${data.url}" aria-label="Seed ${data.seed}: start another run from this seed">${data.seed}</a>`
       : markup`<span class="seedvalue">${data.seed}</span> <a class="seednewdraw" href="${data.newDrawUrl}" aria-label="Seed ${data.seed}: new draw, start again without it">new draw</a>`;
-  return markup`<p class="challengeseed"><span class="seedlabel" title="${SEED_EXPLANATION}">Seed</span> ${raw(action)}</p>`;
+  return markup`<div class="challengeseed"><span class="seedlabel">Seed</span> ${raw(action)} ${raw(seedHelpTemplate())}</div>`;
+}
+
+/**
+ * {@link SEED_EXPLANATION}, as something a player can actually open.
+ *
+ * It used to be a `title` attribute on the word "Seed", which delivered it to a
+ * mouse and to nothing else: `title` never appears on a touch screen, a `<span>`
+ * cannot be focused so a keyboard cannot reach it either, and screen readers
+ * announce `title` on a non-interactive element inconsistently at best — several
+ * ignore it outright, and the ones that read it need the pointer to be resting
+ * on the word. The caveat is the sentence that keeps the rest of the line
+ * honest, and it was the least reachable string in the feature.
+ *
+ * A native `<details>` instead, because the disclosure this needs is exactly the
+ * one the browser already implements: the `<summary>` is focusable and in the
+ * tab order with no `tabindex`, Enter and Space open it, and it is announced as
+ * a disclosure with its expanded state without a single ARIA attribute — where a
+ * hand-rolled `aria-expanded` button would be four lines of wiring in
+ * {@link "./presenters.ts"!presentChallenge} for the same result, on markup that
+ * is rebuilt from scratch on every run.
+ *
+ * Closed by default, and the summary sits on the seed's own line while it is:
+ * the bar stands directly above the building, so a line it always spends is a
+ * line the game is pushed down by, and a player who has read the caveat once
+ * does not need it in front of them for the rest of the evening.
+ *
+ * Alternatives that were rejected:
+ *
+ * - Printing the sentence into the bar unconditionally. It is a paragraph of
+ *   prose in a control strip, and at 320px it is three lines of it.
+ * - Keeping the `title` alongside the disclosure. The same words would then be
+ *   announced from two places, and a tooltip that only some players ever see is
+ *   what made this defect hard to notice in the first place.
+ * - A `title` on the `<summary>`, which is focusable. Firefox and Chrome do not
+ *   show a tooltip for keyboard focus, only for hover, so it would have fixed
+ *   nothing for the players it is missing.
+ *
+ * @returns The disclosure's markup.
+ */
+function seedHelpTemplate(): string {
+  return markup`<details class="seedhelp"><summary>what a seed does</summary><p class="seedcaveat">${SEED_EXPLANATION}</p></details>`;
 }
 
 /** Everything the challenge bar needs in order to render itself. */
