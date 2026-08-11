@@ -1154,6 +1154,7 @@ const PARAGRAPHS: readonly MessageKey[] = [
   "docs.basics.initPurpose.html",
   "docs.basics.noLibraries.html",
   "docs.examples.events.intro.html",
+  "docs.examples.events.perElevator.html",
   "docs.api.events.intro",
   "docs.api.events.outro.html",
 ];

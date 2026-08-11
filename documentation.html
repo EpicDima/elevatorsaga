@@ -216,6 +216,27 @@
             another floor. The handler is passed the floor the button was pressed on.
           </dd>
         </dl>
+        <p>
+          Every elevator has its own events, so a handler registered on one elevator only ever hears
+          that elevator: a building with four of them needs the handler registered four times, and
+          <span class="emphasis-color">elevators.forEach(function(elevator) { ... })</span> is the
+          short way to write that. If everything your handlers do seems to happen to the last
+          elevator instead, the loop that registered them is the place to look, not the elevators.
+          <span class="emphasis-color"
+            >for (var i = 0; i &lt; elevators.length; i++) { var elevator = elevators[i];
+            elevator.on("idle", function() { elevator.goToFloor(0); }); }</span
+          >
+          registers each handler on the right elevator, but
+          <span class="emphasis-color">var</span> gives the whole function a single
+          <span class="emphasis-color">elevator</span> binding, and every handler runs later, after
+          the loop has finished — by then that one binding holds the elevator the loop ended on, and
+          that is the elevator all of them drive. <span class="emphasis-color">let</span> and
+          <span class="emphasis-color">const</span> give each iteration a binding of its own, so
+          <span class="emphasis-color">for (const elevator of elevators)</span> and
+          <span class="emphasis-color">forEach</span> do what the
+          <span class="emphasis-color">var</span> version looks like it does. Floors work the same
+          way, and so does anything else a handler closes over in a loop.
+        </p>
 
         <h2 id="docs">API documentation</h2>
 
