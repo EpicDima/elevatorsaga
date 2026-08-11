@@ -24,6 +24,12 @@
  * parameters: it is a whole world description written by hand into a URL that
  * is meant to be shared. {@link SANDBOX_LIMITS} says what each of them may be
  * and why.
+ *
+ * `seed` is the other half of a shared building: it pins the passengers the way
+ * the sandbox parameters pin the shafts, and it is the one parameter that has to
+ * come back out of the address bar byte for byte, since a seed that changed on
+ * the way through is a seed that replays something else. {@link SEED_PATTERN}
+ * says what survives that trip.
  */
 
 import type { SandboxOptions } from "../game/challenges.ts";
@@ -56,6 +62,14 @@ export interface RouteParams {
   readonly devTest: boolean;
   /** Whether to hide everything except the world. */
   readonly fullscreen: boolean;
+  /**
+   * The seed the world's building and passengers are built from, or `null` when
+   * the URL pins none and the world should draw its own.
+   *
+   * The URL is the only thing that pins a seed, which is what makes the two
+   * restart paths agree: see {@link "./app.ts"!App.handleRoute}.
+   */
+  readonly seed: string | null;
 }
 
 /** Everything {@link resolveRoute} needs besides the URL itself. */
@@ -259,7 +273,75 @@ export function resolveRoute(query: RouteQuery, context: RouteContext): RoutePar
     timeScale: resolveTimeScale(query.get("timescale"), context.defaultTimeScale),
     devTest: readFlag(query, "devtest"),
     fullscreen: readFlag(query, "fullscreen"),
+    seed: resolveSeed(query.get("seed")),
   };
+}
+
+/**
+ * How long a `seed` may be.
+ *
+ * Not the generator's limit — {@link "../game/random.ts"!createRandomSource}
+ * hashes a seed of any length in one pass — but the page's. The seed rides in
+ * the hash, and every entry of the challenge bar's navigation row is that hash
+ * with `challenge` rewritten, so whatever is written here is written into the
+ * document some twenty times over. Sixty-four characters is room for a generated
+ * seed (ten digits), a UUID (thirty-six) or a label somebody can read down a
+ * phone line, and far too few to bloat the bar.
+ */
+const SEED_MAX_LENGTH = 64;
+
+/**
+ * What a `seed` may contain: ASCII letters, digits, `.`, `-` and `_`.
+ *
+ * Narrow because the seed has to survive a round trip through the address bar
+ * unchanged, and only an ASCII token does. A browser percent-encodes everything
+ * else on its way into `location.hash` — a space becomes `%20` and a non-Latin
+ * letter three bytes of `%xx` — so `#seed=rush hour` would come back as
+ * `rush%20hour`, hash to something else entirely, and hand back a *different*
+ * building to the player who shared the link. A comma cannot get here at all:
+ * {@link parseQuery} splits on it. What is left still spells every generated
+ * seed and every label worth typing.
+ */
+const SEED_PATTERN = /^[\w.-]+$/;
+
+/**
+ * Turns a `seed` parameter into something a run can be rebuilt from.
+ *
+ * Kept as the string the URL was written with, and never converted to a number
+ * even though {@link "../game/random.ts"!RandomSeed} accepts both.
+ * `createRandomSource` hashes `String(seed)`, so `5` and `"5"` are the same
+ * stream and the conversion would buy nothing — while `Number` would quietly
+ * rewrite what the URL says: `0123`, `1e3` and `0x10` would each replay a run
+ * other than the one they name, `1e400` would become `Infinity`, and `abc` a
+ * `NaN` that stringifies straight back into a seed nobody wrote. Staying a
+ * string also keeps the human-readable labels `RandomSeed` documents (`issue-61`)
+ * working, and makes the round trip exact: what the player typed is what the
+ * world records is what the replay link prints back.
+ *
+ * The value is trimmed first because the hash format loses edge whitespace
+ * asymmetrically — {@link parseQuery} trims each segment, so `#seed=5 ` arrives
+ * as `5` while `#seed= 5` arrives as ` 5` — and two URLs that look the same must
+ * not name two runs.
+ *
+ * Anything unusable is refused and replaced by a fresh seed rather than
+ * repaired, for the reason `floors=8.5` is refused rather than rounded: a seed
+ * is the one run it names or it is not that run at all, and quietly playing a
+ * neighbouring one is how a player ends up debugging against a building nobody
+ * can reproduce.
+ *
+ * @param value - The raw parameter, if it was present.
+ * @returns The seed, or `null` to let the world draw its own.
+ */
+function resolveSeed(value: string | undefined): string | null {
+  if (value === undefined) {
+    return null;
+  }
+  const seed = value.trim();
+  if (seed === "" || seed.length > SEED_MAX_LENGTH || !SEED_PATTERN.test(seed)) {
+    console.warn(`Invalid seed "${value}", using a fresh one instead`);
+    return null;
+  }
+  return seed;
 }
 
 /**

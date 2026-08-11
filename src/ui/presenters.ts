@@ -17,7 +17,14 @@ import type { Floor } from "../game/floor.ts";
 import type { User } from "../game/user.ts";
 import type { World } from "../game/world.ts";
 import type { WorldController } from "../game/world-controller.ts";
-import { clearChildren, queryAll, requireElement, setClass, setTransformPos } from "./dom.ts";
+import {
+  clearChildren,
+  query,
+  queryAll,
+  requireElement,
+  setClass,
+  setTransformPos,
+} from "./dom.ts";
 import { createIcon } from "./icons.ts";
 import {
   challengeTemplate,
@@ -29,13 +36,16 @@ import {
   renderElement,
   userTemplate,
 } from "./templates.ts";
-import type { ChallengeLinkData, UserDisplayType } from "./templates.ts";
+import type { ChallengeLinkData, SeedLinkData, UserDisplayType } from "./templates.ts";
 
 /** Class on `<html>` that hides everything except the world. */
 export const FULLSCREEN_CLASS = "fullscreen-demo";
 
 /** Selector matching the links of the challenge bar's navigation row. */
 const CHALLENGE_LINK_SELECTOR = ".challengelink";
+
+/** Selector matching the challenge bar's seed link. */
+const SEED_LINK_SELECTOR = ".seedlink";
 
 /**
  * Empties several containers.
@@ -136,6 +146,14 @@ export interface ChallengePresenterOptions {
    * throw away the speed or the autostart the player arrived with.
    */
   readonly challengeLinks: readonly ChallengeLinkData[];
+  /**
+   * The seed of the run in progress, or `null` when there is none to show.
+   *
+   * Built by the app for the same reason the navigation row is: the URL it links
+   * to is the current one with `seed` written into it, and only the app knows
+   * what the current one is.
+   */
+  readonly seed: SeedLinkData | null;
   /** The world being played, consulted for `challengeEnded`. */
   readonly world: Pick<World, "challengeEnded">;
   /** The controller being driven, consulted for `isPaused` and `timeScale`. */
@@ -228,10 +246,19 @@ export function presentChallenge(
     (link) => link === document.activeElement,
   );
 
+  // The seed link is the one other thing in the bar a player can be standing on
+  // when it rebuilds, and following it *always* rebuilds: it pins the seed in
+  // the hash, which restarts the run. It is not in the row, so it needs asking
+  // about separately -- and it must not fall through to the start button, which
+  // would put a keyboard player one press away from restarting again.
+  const seedWasFocused =
+    document.activeElement !== null && query(SEED_LINK_SELECTOR, parent) === document.activeElement;
+
   parent.innerHTML = challengeTemplate({
     num: options.challengeNum,
     description: options.description,
     links: options.challengeLinks,
+    seed: options.seed,
   });
 
   const startStop = requireElement(".startstop", parent);
@@ -261,8 +288,11 @@ export function presentChallenge(
   // a screen reader announces "Start" rather than an unnamed button.
   presenter.update();
   const focusedLink = queryAll(CHALLENGE_LINK_SELECTOR, parent)[focusedLinkIndex];
+  const seedLink = seedWasFocused ? query(SEED_LINK_SELECTOR, parent) : null;
   if (focusedLink !== undefined) {
     focusedLink.focus();
+  } else if (seedLink !== null) {
+    seedLink.focus();
   } else if (restoreFocus) {
     startStop.focus();
   }

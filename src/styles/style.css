@@ -343,13 +343,27 @@ dl dd {
 }
 
 /*
- * Quick navigation between challenges.
+ * The bar's second line: the challenge row, and the seed at the far end of it.
  *
- * `clear` puts the row under the floated title and controls above it, which is
+ * `clear` puts the line under the floated title and controls above it, which is
  * the one thing `flow-root` on the bar does not do on its own.
+ *
+ * A flex row so the seed costs no height at all on a wide window, and wraps onto
+ * a line of its own when the challenge row needs the whole width. `baseline`
+ * rather than `center`, so the seed sits on the same line as the numbers beside
+ * it instead of floating in the middle of their boxes.
  */
-.challengenav {
+.challengefooter {
   clear: both;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0 12px;
+}
+
+/* Quick navigation between challenges. */
+.challengenav {
   padding-block: 2px 8px;
 }
 
@@ -412,6 +426,33 @@ dl dd {
   text-decoration: underline;
   text-underline-offset: 2px;
   text-shadow: none;
+}
+
+/*
+ * The seed of the run in progress.
+ *
+ * Deliberately plain: no border, no fill, nothing that would make a debugging
+ * aid look like one of the controls the game is played with. It is the same
+ * 14px as the challenge numbers it shares a line with, because text small enough
+ * to disappear is text nobody can transcribe, and the point of the thing is that
+ * it gets read out and typed back.
+ */
+.challengeseed {
+  margin: 0;
+  padding-block: 2px 8px;
+  font-size: 14px;
+  line-height: 18px;
+}
+
+/*
+ * The seed itself, which is the part that has to be read character by character.
+ * The monospace face is what tells a 1 from an l and a 0 from an O; underlining
+ * it marks it as the link it is without borrowing the row's chrome.
+ */
+.seedlink {
+  font-family: var(--font-mono);
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }
 
 /* ------------------------------------------------------------------ Buttons */

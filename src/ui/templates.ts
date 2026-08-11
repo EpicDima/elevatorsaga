@@ -209,6 +209,59 @@ function challengeLinkTemplate(link: ChallengeLinkData): string {
   return markup`<li><a class="challengelink" href="${link.url}" aria-label="${name}"${current}>${label}</a></li>`;
 }
 
+/** The seed of the run in progress, and where a link back to it goes. */
+export interface SeedLinkData {
+  /** The seed itself, exactly as it appears in the URL. */
+  readonly seed: string;
+  /**
+   * A hash URL that starts the same building and passengers.
+   *
+   * The whole hash rather than the seed alone, for the reason every navigation
+   * entry is: the app builds it with `createParamsUrl`, so the challenge, the
+   * speed and anything else the player arrived with ride along.
+   */
+  readonly url: string;
+}
+
+/**
+ * What the seed line says about what a seed does and does not fix.
+ *
+ * Kept truthful on purpose. A seed rebuilds the building and the passenger
+ * stream, and nothing else: `src/game/world-controller.ts` takes its `dt` from
+ * `requestAnimationFrame` timestamps, so two interactive runs of one seed are
+ * fed different frame lengths, the player's program is asked to decide at
+ * different moments, and the two diverge. Only the headless paths — the fitness
+ * suite and the tests, which drive the clock themselves — repeat a run exactly.
+ * "Replay this run" would be the natural thing to write here and would be a
+ * promise the browser cannot keep.
+ */
+const SEED_EXPLANATION =
+  "The same seed gives the same building and the same passengers. " +
+  "Frame timing comes from the browser, so the run itself is never identical.";
+
+/**
+ * The seed of the run in progress, as a link that starts it again.
+ *
+ * A real link, like the navigation row and for the same reasons: the browser's
+ * own affordances are the feature here — "copy link address" is how a player
+ * hands the building to somebody else, and the status bar shows where it goes
+ * without anything having to be clicked. Following it pins the seed in the
+ * address bar, which restarts the run on the same building; a player who is
+ * already on a pinned seed is already at that URL, and following it does
+ * nothing, which is the honest answer.
+ *
+ * The visible text is the bare seed, because that is the token that gets
+ * transcribed, and it is contained in the accessible name (WCAG 2.5.3) — which
+ * has to say more, since "1234567890, link" describes nothing.
+ *
+ * @param data - The seed and the URL that replays it.
+ * @returns The seed line's markup.
+ */
+function seedTemplate(data: SeedLinkData): string {
+  const name = `Seed ${data.seed}: start the same building and passengers again`;
+  return markup`<p class="challengeseed"><span class="seedlabel" title="${SEED_EXPLANATION}">Seed</span> <a class="seedlink" href="${data.url}" aria-label="${name}">${data.seed}</a></p>`;
+}
+
 /** Everything the challenge bar needs in order to render itself. */
 export interface ChallengeTemplateData {
   /** One-based challenge number. */
@@ -223,6 +276,14 @@ export interface ChallengeTemplateData {
   readonly description: string;
   /** Every challenge, in order, for the navigation row. */
   readonly links: readonly ChallengeLinkData[];
+  /**
+   * The seed of the run in progress, or `null` to leave the line out.
+   *
+   * `null` only happens when the world was handed a ready-made random stream
+   * instead of a seed, which in practice means a test: there is then no seed to
+   * offer and nothing that could be linked to.
+   */
+  readonly seed: SeedLinkData | null;
 }
 
 /**
@@ -242,13 +303,20 @@ export interface ChallengeTemplateData {
  * the hash change the router already listens for, so nothing has to be wired to
  * them at all.
  *
- * @param data - The challenge number, the requirement and the whole challenge
- * list.
+ * The seed shares that second line rather than taking a third: it is a debugging
+ * aid, and the bar sits directly above the building, where every pixel it grows
+ * pushes the game down the page. It stays outside the `<nav>` — it is not a
+ * challenge, and counting it among them would make the landmark lie about how
+ * many there are.
+ *
+ * @param data - The challenge number, the requirement, the whole challenge list
+ * and the seed of the run in progress.
  * @returns The challenge bar markup.
  */
 export function challengeTemplate(data: ChallengeTemplateData): string {
   const links = data.links.map((link) => challengeLinkTemplate(link)).join("");
-  return markup`<div class="left"><h2 class="challengetitle">Challenge #${data.num}: ${raw(data.description)}</h2></div><button type="button" class="right startstop unselectable"></button><div class="right timescale"><button type="button" class="timescale_decrease unselectable" aria-label="Decrease simulation speed">${raw(iconMarkup("minus-square"))}</button> <span class="emphasis-color timescale_value"></span> <button type="button" class="timescale_increase unselectable" aria-label="Increase simulation speed">${raw(iconMarkup("plus-square"))}</button></div><nav class="challengenav" aria-label="Challenges"><ul>${raw(links)}</ul></nav>`;
+  const seed = data.seed === null ? "" : seedTemplate(data.seed);
+  return markup`<div class="left"><h2 class="challengetitle">Challenge #${data.num}: ${raw(data.description)}</h2></div><button type="button" class="right startstop unselectable"></button><div class="right timescale"><button type="button" class="timescale_decrease unselectable" aria-label="Decrease simulation speed">${raw(iconMarkup("minus-square"))}</button> <span class="emphasis-color timescale_value"></span> <button type="button" class="timescale_increase unselectable" aria-label="Increase simulation speed">${raw(iconMarkup("plus-square"))}</button></div><div class="challengefooter"><nav class="challengenav" aria-label="Challenges"><ul>${raw(links)}</ul></nav>${raw(seed)}</div>`;
 }
 
 /** Everything the end-of-challenge overlay needs in order to render itself. */

@@ -23,7 +23,7 @@ import {
   setDemoFullscreen,
 } from "../ui/presenters.ts";
 import type { ChallengePresenter } from "../ui/presenters.ts";
-import type { ChallengeLinkData } from "../ui/templates.ts";
+import type { ChallengeLinkData, SeedLinkData } from "../ui/templates.ts";
 import { createParamsUrl } from "./router.ts";
 import type { RouteParams, RouteQuery } from "./router.ts";
 import { clampTimeScale, decreasedTimeScale, increasedTimeScale } from "./time-scale.ts";
@@ -79,6 +79,20 @@ const CHALLENGE_TITLE_SELECTOR = ".challengetitle";
  * obviously not an invitation to type `#challenge=0` into the address bar.
  */
 const SANDBOX_CHALLENGE_NUM = 0;
+
+/**
+ * Turns the hash URL of a run into one that can be pasted somewhere else.
+ *
+ * The bar's link stays relative, because that is what a link in a page should
+ * be and the browser resolves it when the player copies the address. The console
+ * cannot copy anything, so what it prints has to be complete on its own.
+ *
+ * @param hash - A hash URL, as {@link createParamsUrl} builds them.
+ * @returns The same URL, resolved against the page.
+ */
+function absoluteUrl(hash: string): string {
+  return new URL(hash, window.location.href).href;
+}
 
 /** The page regions the app draws into. */
 export interface AppElements {
@@ -156,6 +170,13 @@ export class App {
   #query: RouteQuery = new Map<string, string>();
   /** The building the sandbox is running, or `undefined` for a challenge. */
   #sandbox: SandboxOptions | undefined = undefined;
+  /**
+   * The seed every run is built from, or `null` to let each draw its own.
+   *
+   * Read from the URL and from nowhere else, which is the whole of the restart
+   * rule: see {@link handleRoute}.
+   */
+  #seed: string | null = null;
 
   /**
    * @param options - The page regions, the editor, the controller and the
@@ -237,6 +258,32 @@ export class App {
     }));
   }
 
+  /**
+   * The seed of a run, and the URL that starts the same building again.
+   *
+   * Read off the world rather than from {@link #seed}, so that the run whose
+   * seed nobody chose — the overwhelmingly common one — is offered as readily as
+   * the pinned one. That is the case the affordance exists for: the seed only
+   * becomes interesting once the run has gone wrong.
+   *
+   * Built with {@link createParamsUrl}, so the challenge, the speed, the sandbox
+   * building and every unknown key survive into the link, exactly as they do in
+   * the navigation row.
+   *
+   * @param world - The run that has just been built.
+   * @returns Its seed and replay URL, or `null` when it has no seed to offer.
+   */
+  #seedLink(world: World): SeedLinkData | null {
+    if (world.seed === null) {
+      // Only reachable when a caller handed the world a ready-made random
+      // stream, which the app never does; a test that does gets no seed line
+      // rather than a link that replays nothing.
+      return null;
+    }
+    const seed = String(world.seed);
+    return { seed, url: createParamsUrl(this.#query, { seed }) };
+  }
+
   /** Remembers the current time scale for the next visit. */
   #storeTimeScale(): void {
     try {
@@ -283,11 +330,29 @@ export class App {
   /**
    * Acts on a route: applies its options and starts the challenge it names.
    *
+   * The URL also decides, alone, whether starting again repeats the building. A
+   * `seed` in the hash pins one and nothing else does, so `#seed=…` gives the
+   * same building and the same passengers from the Restart button, from
+   * Ctrl-Enter and from a reload alike, while a URL without one draws a fresh
+   * seed on every one of them.
+   *
+   * The tempting alternative — remembering the seed the last run generated and
+   * reusing it on Restart, but not on reload — was rejected twice over. It would
+   * strand a player who is stuck on a challenge with the same passenger stream
+   * however often they restart, and no way back to another draw short of editing
+   * the address bar. And it would make the two ways of saying "again" mean
+   * different things from one URL, which is exactly the kind of hidden state
+   * this app keeps out of the game: the hash is what is being played. Pinning
+   * after the fact costs one click on the seed in the bar, and every run prints
+   * its seed as it starts, so the case that matters — the run that has already
+   * gone wrong — stays recoverable.
+   *
    * @param params - The validated route parameters.
    * @param query - The raw parameters, kept for the next-challenge link.
    */
   handleRoute(params: RouteParams, query: RouteQuery): void {
     this.#query = query;
+    this.#seed = params.seed;
     if (params.devTest) {
       this.#editor.setDevTestCode();
     }
@@ -343,9 +408,21 @@ export class App {
    */
   #startRun(challenge: Challenge, challengeIndex: number | null, autoStart: boolean): void {
     this.world?.unWind();
-    const world = createWorld(challenge.options);
+    // `undefined`, not `null`: the world generates a seed of its own when it is
+    // given none, and records it either way, which is what makes an unpinned run
+    // repeatable after the fact.
+    const world = createWorld(challenge.options, this.#seed ?? undefined);
     this.world = world;
     window.world = world;
+    const seed = this.#seedLink(world);
+    if (seed !== null) {
+      // Printed at every start, because nobody knows a run is worth repeating
+      // until it has already gone wrong -- by which time the only record of what
+      // it was is this line.
+      console.log(
+        `Seed ${seed.seed} — the same building and passengers, though not an identical run: ${absoluteUrl(seed.url)}`,
+      );
+    }
 
     // Both of these regions can hold the focused element when a challenge
     // starts: the "Next challenge" link lives in the feedback overlay, and the
@@ -361,6 +438,7 @@ export class App {
       challengeNum: challengeIndex === null ? SANDBOX_CHALLENGE_NUM : challengeIndex + 1,
       description: challenge.condition.description,
       challengeLinks: this.#challengeLinks(challengeIndex),
+      seed,
       world,
       worldController: this.worldController,
       focusWasDestroyed,

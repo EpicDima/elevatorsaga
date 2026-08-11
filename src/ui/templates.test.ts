@@ -16,7 +16,7 @@ import {
   renderFragment,
   userTemplate,
 } from "./templates.ts";
-import type { ChallengeLinkData } from "./templates.ts";
+import type { ChallengeLinkData, ChallengeTemplateData, SeedLinkData } from "./templates.ts";
 
 describe("escapeHtml", () => {
   it("escapes every character that could break out of markup", () => {
@@ -140,6 +140,9 @@ describe("userTemplate", () => {
 });
 
 describe("challengeTemplate", () => {
+  /** A seeded run, and the URL that starts the same building again. */
+  const SEED: SeedLinkData = { seed: "1234567890", url: "#challenge=1,seed=1234567890" };
+
   /**
    * The navigation row's data for a list of challenges ending in the demo.
    *
@@ -156,21 +159,33 @@ describe("challengeTemplate", () => {
     }));
   }
 
+  /**
+   * Renders a bar, with no seed line unless the test is about one.
+   *
+   * @param data - The challenge number, the requirement and the row.
+   * @param seed - The seed of the run in progress, if it has one.
+   * @returns The rendered bar.
+   */
+  function bar(
+    data: Omit<ChallengeTemplateData, "seed">,
+    seed: SeedLinkData | null = null,
+  ): DocumentFragment {
+    return renderFragment(challengeTemplate({ ...data, seed }));
+  }
+
   it("inserts the challenge description as markup", () => {
-    const fragment = renderFragment(
-      challengeTemplate({
-        num: 3,
-        description: "Transport <span class='x'>15</span> people",
-        links: links(4, 3),
-      }),
-    );
+    const fragment = bar({
+      num: 3,
+      description: "Transport <span class='x'>15</span> people",
+      links: links(4, 3),
+    });
     const title = fragment.querySelector(".challengetitle");
     expect(title?.textContent).toBe("Challenge #3: Transport 15 people");
     expect(title?.querySelector(".x")?.textContent).toBe("15");
   });
 
   it("makes the time-scale controls real, labelled buttons", () => {
-    const fragment = renderFragment(challengeTemplate({ num: 1, description: "x", links: [] }));
+    const fragment = bar({ num: 1, description: "x", links: [] });
     expect(fragment.querySelector("button.timescale_decrease")?.getAttribute("aria-label")).toBe(
       "Decrease simulation speed",
     );
@@ -183,9 +198,7 @@ describe("challengeTemplate", () => {
   it("gives every challenge a link of its own, the last one being the demo", () => {
     // Reaching challenge 12 used to mean either winning eleven challenges or
     // typing #challenge=12 into the address bar.
-    const fragment = renderFragment(
-      challengeTemplate({ num: 1, description: "x", links: links(19) }),
-    );
+    const fragment = bar({ num: 1, description: "x", links: links(19) });
     const entries = [...fragment.querySelectorAll("a.challengelink")];
 
     expect(entries).toHaveLength(19);
@@ -197,9 +210,7 @@ describe("challengeTemplate", () => {
   });
 
   it("names the links for a screen reader rather than leaving them as digits", () => {
-    const fragment = renderFragment(
-      challengeTemplate({ num: 1, description: "x", links: links(3) }),
-    );
+    const fragment = bar({ num: 1, description: "x", links: links(3) });
     const entries = [...fragment.querySelectorAll("a.challengelink")];
 
     expect(entries.map((entry) => entry.getAttribute("aria-label"))).toEqual([
@@ -215,9 +226,7 @@ describe("challengeTemplate", () => {
   });
 
   it("marks the challenge being played, and only that one", () => {
-    const fragment = renderFragment(
-      challengeTemplate({ num: 2, description: "x", links: links(4, 2) }),
-    );
+    const fragment = bar({ num: 2, description: "x", links: links(4, 2) });
     const marked = [...fragment.querySelectorAll("a.challengelink[aria-current]")];
 
     expect(marked).toHaveLength(1);
@@ -226,9 +235,7 @@ describe("challengeTemplate", () => {
   });
 
   it("wraps the row in a named landmark holding a list", () => {
-    const fragment = renderFragment(
-      challengeTemplate({ num: 1, description: "x", links: links(3) }),
-    );
+    const fragment = bar({ num: 1, description: "x", links: links(3) });
     const nav = fragment.querySelector("nav.challengenav");
 
     expect(nav?.getAttribute("aria-label")).toBe("Challenges");
@@ -239,10 +246,9 @@ describe("challengeTemplate", () => {
 
   it("puts the row after the controls that were already in the bar", () => {
     // The start and time-scale buttons keep the tab positions they have always
-    // had; the nineteen new stops come after them.
-    const fragment = renderFragment(
-      challengeTemplate({ num: 1, description: "x", links: links(3) }),
-    );
+    // had; the nineteen new stops come after them, and the seed -- which is a
+    // debugging aid rather than part of the game -- comes last of all.
+    const fragment = bar({ num: 1, description: "x", links: links(3) }, SEED);
     const focusable = [...fragment.querySelectorAll("button, a")];
 
     expect(focusable.slice(0, 3).map((element) => element.className)).toEqual([
@@ -251,20 +257,81 @@ describe("challengeTemplate", () => {
       "timescale_increase unselectable",
     ]);
     expect(focusable.slice(3).every((element) => element.tagName === "A")).toBe(true);
+    expect(focusable.at(-1)?.className).toBe("seedlink");
   });
 
   it("escapes a link url rebuilt from the location hash", () => {
     const hostile = `#challenge=1,evil="><script>x</script>`;
-    const fragment = renderFragment(
-      challengeTemplate({
-        num: 1,
-        description: "x",
-        links: [{ num: 1, url: hostile, current: false, demo: false }],
-      }),
-    );
+    const fragment = bar({
+      num: 1,
+      description: "x",
+      links: [{ num: 1, url: hostile, current: false, demo: false }],
+    });
 
     expect(fragment.querySelector("script")).toBeNull();
     expect(fragment.querySelector("a.challengelink")?.getAttribute("href")).toBe(hostile);
+  });
+
+  describe("seed line", () => {
+    it("shows the seed as a link to the run's own url", () => {
+      const seedLink = bar({ num: 1, description: "x", links: links(3) }, SEED).querySelector(
+        "a.seedlink",
+      );
+
+      expect(seedLink?.textContent).toBe("1234567890");
+      expect(seedLink?.getAttribute("href")).toBe("#challenge=1,seed=1234567890");
+    });
+
+    it("says what the link does, and keeps the seed in what it says", () => {
+      const fragment = bar({ num: 1, description: "x", links: links(3) }, SEED);
+      const seedLink = fragment.querySelector("a.seedlink");
+
+      // "1234567890, link" describes nothing, so the name says more -- and
+      // WCAG 2.5.3 asks that what is on screen be part of what is spoken.
+      expect(seedLink?.getAttribute("aria-label")).toBe(
+        "Seed 1234567890: start the same building and passengers again",
+      );
+      expect(seedLink?.getAttribute("aria-label")).toContain(seedLink?.textContent);
+      expect(fragment.querySelector(".challengeseed")?.textContent).toBe("Seed 1234567890");
+    });
+
+    it("promises the building and the passengers, and not an identical run", () => {
+      // A seed rebuilds the building and the passenger stream. It cannot make
+      // an interactive run repeat: the controller's dt comes from
+      // requestAnimationFrame, so the frames fall differently every time and
+      // the player's program is asked to decide at different moments.
+      const explanation = bar({ num: 1, description: "x", links: links(3) }, SEED)
+        .querySelector(".seedlabel")
+        ?.getAttribute("title");
+
+      expect(explanation).toBe(
+        "The same seed gives the same building and the same passengers. " +
+          "Frame timing comes from the browser, so the run itself is never identical.",
+      );
+      expect(explanation).not.toMatch(/replay|exact/i);
+    });
+
+    it("leaves the line out entirely when the run has no seed", () => {
+      const fragment = bar({ num: 1, description: "x", links: links(3) });
+      expect(fragment.querySelector(".challengeseed")).toBeNull();
+      expect(fragment.querySelector("a.seedlink")).toBeNull();
+    });
+
+    it("keeps the seed out of the challenge landmark", () => {
+      // The row's list is what tells a screen reader how many challenges there
+      // are; a seed counted among them would make that number a lie.
+      const fragment = bar({ num: 1, description: "x", links: links(3) }, SEED);
+      expect(fragment.querySelector("nav.challengenav .seedlink")).toBeNull();
+      expect(fragment.querySelectorAll("nav.challengenav li")).toHaveLength(3);
+    });
+
+    it("escapes a seed url rebuilt from the location hash", () => {
+      const hostile = `#seed=1,evil="><script>x</script>`;
+      const fragment = bar({ num: 1, description: "x", links: [] }, { seed: "1", url: hostile });
+
+      expect(fragment.querySelector("script")).toBeNull();
+      expect(fragment.querySelector("a.seedlink")?.getAttribute("href")).toBe(hostile);
+    });
   });
 });
 

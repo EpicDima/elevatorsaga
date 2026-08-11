@@ -101,8 +101,15 @@ function setUp(code: string = INERT_CODE): Harness {
 }
 
 beforeEach(() => {
-  vi.spyOn(console, "warn").mockImplementation(() => undefined);
-  vi.spyOn(console, "log").mockImplementation(() => undefined);
+  // Cleared as well as silenced: a spy outlives the spec that installed it, so
+  // the specs that assert on what was printed would otherwise see the whole
+  // file's output.
+  vi.spyOn(console, "warn")
+    .mockImplementation(() => undefined)
+    .mockClear();
+  vi.spyOn(console, "log")
+    .mockImplementation(() => undefined)
+    .mockClear();
 });
 
 describe("App.startChallenge", () => {
@@ -406,6 +413,216 @@ describe("App sandbox", () => {
 
     expect(app.isPlayingSandbox).toBe(true);
     expect(app.world?.floors).toHaveLength(20);
+  });
+});
+
+describe("App seed", () => {
+  /**
+   * The passengers a run produces, in the order they appeared.
+   *
+   * The thing a seed actually promises: who turns up, from where, heading
+   * where. Read off a world that has been driven forward by hand, since the
+   * spawns are what the seed's own stream decides.
+   *
+   * @param app - The app whose world to run and read.
+   * @param seconds - How many simulated seconds to run for.
+   * @returns One entry per passenger, as `from>to`.
+   */
+  function passengerStream(app: App, seconds: number): string[] {
+    for (let i = 0; i < seconds; i += 1) {
+      app.world?.update(1.0);
+    }
+    return (app.world?.users ?? []).map(
+      (user) => `${String(user.currentFloor)}>${String(user.destinationFloor)}`,
+    );
+  }
+
+  it("builds the world from the seed the url pins", () => {
+    const { app } = setUp();
+    app.handleRoute(...routeFor("#challenge=1,seed=issue-61"));
+    expect(app.world?.seed).toBe("issue-61");
+  });
+
+  it("draws a seed of its own when the url pins none, and records it", () => {
+    const { app } = setUp();
+    app.handleRoute(...routeFor("#challenge=1"));
+    expect(typeof app.world?.seed).toBe("number");
+  });
+
+  it("gives the same building and passengers to two runs of one seed", () => {
+    // The promise the whole feature rests on, end to end: the same URL twice,
+    // and the same people appearing on the same floors wanting the same
+    // destinations.
+    const first = setUp().app;
+    first.handleRoute(...routeFor("#challenge=sandbox,floors=8,spawnrate=2,seed=issue-61"));
+    const second = setUp().app;
+    second.handleRoute(...routeFor("#challenge=sandbox,floors=8,spawnrate=2,seed=issue-61"));
+
+    const stream = passengerStream(first, 10);
+    expect(stream.length).toBeGreaterThan(15);
+    expect(passengerStream(second, 10)).toEqual(stream);
+  });
+
+  it("gives two unseeded runs different passengers", () => {
+    const first = setUp().app;
+    first.handleRoute(...routeFor("#challenge=sandbox,floors=8,spawnrate=2"));
+    const second = setUp().app;
+    second.handleRoute(...routeFor("#challenge=sandbox,floors=8,spawnrate=2"));
+
+    expect(first.world?.seed).not.toBe(second.world?.seed);
+    expect(passengerStream(second, 10)).not.toEqual(passengerStream(first, 10));
+  });
+
+  it("restarts a pinned run on the same building, however it is restarted", () => {
+    // The reason somebody writes #seed= into the address bar at all: the
+    // Restart button and Ctrl-Enter both have to give back the building they
+    // were comparing programs on.
+    const { app, editor, elements } = setUp();
+    app.handleRoute(...routeFor("#challenge=3,seed=issue-61"));
+
+    app.world?.trigger("stats_changed");
+    requireElement(".startstop", elements.challenge).click();
+    expect(app.world?.seed).toBe("issue-61");
+
+    editor.trigger("apply_code");
+    expect(app.world?.seed).toBe("issue-61");
+  });
+
+  it("draws a fresh seed on every restart when the url pins none", () => {
+    // Deliberate, and the counterpart of the rule above: reusing the last
+    // generated seed would leave a player who is stuck on a challenge stuck on
+    // one passenger stream, with no way to another draw short of editing the
+    // address bar. The seed of every run is printed, so pinning after the fact
+    // is a click away.
+    const { app, elements } = setUp();
+    app.handleRoute(...routeFor("#challenge=3"));
+    const first = app.world?.seed;
+
+    app.world?.trigger("stats_changed");
+    requireElement(".startstop", elements.challenge).click();
+
+    expect(app.world?.seed).not.toBe(first);
+  });
+
+  it("keeps the pinned seed when another challenge is started", () => {
+    const { app } = setUp();
+    app.handleRoute(...routeFor("#challenge=1,seed=issue-61"));
+    app.handleRoute(...routeFor("#challenge=2,seed=issue-61"));
+    expect(app.world?.seed).toBe("issue-61");
+  });
+
+  it("stops pinning as soon as the url stops asking", () => {
+    const { app } = setUp();
+    app.handleRoute(...routeFor("#challenge=1,seed=issue-61"));
+    app.handleRoute(...routeFor("#challenge=1"));
+    expect(app.world?.seed).not.toBe("issue-61");
+  });
+
+  it("offers the seed of the run in the bar, keeping the rest of the url", () => {
+    const { app, elements } = setUp();
+    app.handleRoute(...routeFor("#challenge=2,timescale=8"));
+    const seed = String(app.world?.seed);
+
+    const link = requireElement(".seedlink", elements.challenge);
+    expect(link.textContent).toBe(seed);
+    expect(link.getAttribute("href")).toBe(`#challenge=2,timescale=8,seed=${seed}`);
+  });
+
+  it("replaces the seed in the url rather than adding a second one", () => {
+    const { app, elements } = setUp();
+    app.handleRoute(...routeFor("#challenge=2,seed=issue-61"));
+
+    expect(requireElement(".seedlink", elements.challenge).getAttribute("href")).toBe(
+      "#challenge=2,seed=issue-61",
+    );
+  });
+
+  it("carries a pinned seed into a jump to another challenge", () => {
+    const { app, elements } = setUp();
+    app.handleRoute(...routeFor("#challenge=1,seed=issue-61"));
+
+    expect(
+      requireElement('[aria-label="Challenge 2"]', elements.challenge).getAttribute("href"),
+    ).toBe("#challenge=2,seed=issue-61");
+  });
+
+  it("offers the seed of a sandbox run as well", () => {
+    const { app, elements } = setUp();
+    app.handleRoute(...routeFor("#challenge=sandbox,floors=20,seed=issue-61"));
+
+    expect(requireElement(".seedlink", elements.challenge).getAttribute("href")).toBe(
+      "#challenge=sandbox,floors=20,seed=issue-61",
+    );
+  });
+
+  it("prints the seed and a whole url at every start", () => {
+    // The affordance that matters most: nobody knows a run is worth repeating
+    // until it has already gone wrong, and by then this line is the only record
+    // of what it was.
+    const { app } = setUp();
+    app.handleRoute(...routeFor("#challenge=1,seed=issue-61"));
+
+    expect(console.log).toHaveBeenCalledWith(
+      `Seed issue-61 — the same building and passengers, though not an identical run: ` +
+        `${window.location.origin}/#challenge=1,seed=issue-61`,
+    );
+  });
+
+  it("says nothing about replaying a run exactly, because it cannot", () => {
+    // The controller takes its dt from requestAnimationFrame timestamps, so two
+    // interactive runs of one seed are fed different frames and the player's
+    // program is asked to decide at different moments. Only the headless paths
+    // -- the fitness suite and these tests -- repeat a run step for step.
+    const { app } = setUp();
+    app.handleRoute(...routeFor("#challenge=1,seed=issue-61"));
+
+    const printed = vi.mocked(console.log).mock.calls.map(([message]) => String(message));
+    expect(printed).toHaveLength(1);
+    expect(printed[0]).toContain("not an identical run");
+    expect(printed[0]).not.toMatch(/exact/i);
+  });
+
+  it("prints a fresh line for every run, including a restart", () => {
+    const { app, elements } = setUp();
+    app.handleRoute(...routeFor("#challenge=3"));
+    vi.mocked(console.log).mockClear();
+
+    app.world?.trigger("stats_changed");
+    requireElement(".startstop", elements.challenge).click();
+
+    expect(console.log).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(console.log).mock.calls[0]?.[0]).toContain(String(app.world?.seed));
+  });
+
+  it("pins the seed of the run when the link in the bar is followed", async () => {
+    // The whole way round: the anchor navigates, the router hears the hash
+    // change, and the app rebuilds the world on the seed that was on screen.
+    const { app, elements } = setUp();
+    window.location.hash = "#challenge=1";
+    const stopRouter = startRouter(
+      (params, query) => {
+        app.handleRoute(params, query);
+      },
+      { challengeCount: CHALLENGES.length, defaultTimeScale: () => DEFAULT_TIME_SCALE },
+    );
+
+    try {
+      const seed = String(app.world?.seed);
+      requireElement(".seedlink", elements.challenge).click();
+
+      await vi.waitFor(() => {
+        expect(window.location.hash).toBe(`#challenge=1,seed=${seed}`);
+      });
+      expect(app.world?.seed).toBe(seed);
+      // And what it now offers is the URL it is already at, so a second visit
+      // is the same building again rather than another draw.
+      expect(requireElement(".seedlink", elements.challenge).getAttribute("href")).toBe(
+        `#challenge=1,seed=${seed}`,
+      );
+    } finally {
+      stopRouter();
+      window.location.hash = "";
+    }
   });
 });
 

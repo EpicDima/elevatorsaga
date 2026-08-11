@@ -21,7 +21,7 @@ import {
   setDemoFullscreen,
 } from "./presenters.ts";
 import type { ChallengePresenterOptions } from "./presenters.ts";
-import type { ChallengeLinkData } from "./templates.ts";
+import type { ChallengeLinkData, SeedLinkData } from "./templates.ts";
 import { createElement } from "./test-helpers.ts";
 
 /** Builds the `.statscontainer` markup the page shell provides. */
@@ -147,6 +147,12 @@ describe("presentChallenge", () => {
     demo: num === 4,
   }));
 
+  /** The seed of the run being drawn, and the URL that starts it again. */
+  const SEED: SeedLinkData = {
+    seed: "1234567890",
+    url: "#challenge=3,timescale=8,seed=1234567890",
+  };
+
   /**
    * Assembles challenge options over a mutable world/controller pair.
    *
@@ -162,6 +168,7 @@ describe("presentChallenge", () => {
       challengeNum: 3,
       description: "Transport <span class='emphasis-color'>15</span> people",
       challengeLinks: CHALLENGE_LINKS,
+      seed: SEED,
       world: { challengeEnded: false },
       worldController: { isPaused: true, timeScale: 2 },
       onStartStop: vi.fn(),
@@ -240,6 +247,22 @@ describe("presentChallenge", () => {
     const entries = queryAll(".challengelink", parent);
     expect(entries.every((entry) => entry.tagName === "A")).toBe(true);
     expect(entries.every((entry) => entry.getAttribute("href") !== "")).toBe(true);
+  });
+
+  it("draws the seed of the run as a link back to it", () => {
+    const { parent, options } = setUp();
+    presentChallenge(parent, options);
+
+    const seedLink = requireElement(".seedlink", parent);
+    expect(seedLink.textContent).toBe("1234567890");
+    expect(seedLink.getAttribute("href")).toBe("#challenge=3,timescale=8,seed=1234567890");
+  });
+
+  it("draws no seed line when the run has no seed", () => {
+    const { parent, options } = setUp({ seed: null });
+    presentChallenge(parent, options);
+
+    expect(parent.querySelector(".challengeseed")).toBeNull();
   });
 
   it("binds its listeners once, however often it is updated", () => {
@@ -336,6 +359,30 @@ describe("presentChallenge", () => {
       // announces the arrival rather than a link to somewhere else.
       expect(first?.getAttribute("aria-current")).toBe("page");
       expect(document.activeElement).not.toBe(requireElement(".startstop", parent));
+    });
+
+    it("keeps focus on the seed when following it rebuilds the bar", () => {
+      // Following the seed pins it in the hash, which restarts the run and
+      // rebuilds this bar -- so the link that was pressed is deleted every
+      // time. Landing on the start button would leave a keyboard player one
+      // press away from restarting again, having asked for no such thing.
+      const { parent, options } = mount();
+      presentChallenge(parent, options);
+      requireElement(".seedlink", parent).focus();
+
+      presentChallenge(parent, options);
+
+      expect(document.activeElement).toBe(requireElement(".seedlink", parent));
+    });
+
+    it("falls back to the start button when the rebuild has no seed to return to", () => {
+      const { parent, options } = mount();
+      presentChallenge(parent, options);
+      requireElement(".seedlink", parent).focus();
+
+      presentChallenge(parent, { ...options, seed: null });
+
+      expect(document.activeElement).toBe(requireElement(".startstop", parent));
     });
 
     it("takes focus when the caller reports the teardown destroyed it", () => {

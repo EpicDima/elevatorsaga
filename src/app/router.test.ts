@@ -124,17 +124,21 @@ describe("resolveRoute defaults", () => {
       timeScale: DEFAULT_TIME_SCALE,
       devTest: false,
       fullscreen: false,
+      seed: null,
     });
   });
 
   it("reads every parameter the game supports", () => {
-    expect(route("#challenge=4,autostart=true,timescale=8,devtest=true,fullscreen=true")).toEqual({
+    expect(
+      route("#challenge=4,autostart=true,timescale=8,devtest=true,fullscreen=true,seed=abc"),
+    ).toEqual({
       challengeIndex: 3,
       sandbox: null,
       autoStart: true,
       timeScale: 8,
       devTest: true,
       fullscreen: true,
+      seed: "abc",
     });
   });
 
@@ -388,6 +392,65 @@ describe("resolveRoute sandbox validation", () => {
       elevatorCapacities: [4],
       spawnRate: 0.6,
     });
+  });
+});
+
+describe("resolveRoute seed validation", () => {
+  it("pins nothing unless the url asks for it", () => {
+    expect(route("").seed).toBeNull();
+    expect(route("#challenge=4").seed).toBeNull();
+  });
+
+  it("keeps a numeric seed as the string the url spells it with", () => {
+    // Never converted to a number, although RandomSeed accepts one:
+    // createRandomSource hashes String(seed), so the two are the same stream,
+    // while Number would read 0123 as 123 and 1e3 as 1000 -- three URLs
+    // collapsing onto two runs, none of which say what they replay.
+    expect(route("#seed=1234567890").seed).toBe("1234567890");
+    expect(route("#seed=0123").seed).toBe("0123");
+    expect(route("#seed=1e3").seed).toBe("1e3");
+  });
+
+  it("accepts a label somebody can read out", () => {
+    expect(route("#seed=issue-61").seed).toBe("issue-61");
+    expect(route("#seed=rush_hour.2").seed).toBe("rush_hour.2");
+  });
+
+  it("trims a seed, so two urls that look alike name one run", () => {
+    // parseQuery loses edge whitespace asymmetrically: it trims each segment,
+    // so "#seed=5 " arrives as "5" while "#seed= 5" arrives as " 5".
+    expect(route("#seed= 5").seed).toBe("5");
+    expect(route("#seed=5 ").seed).toBe("5");
+  });
+
+  it("refuses a seed that could not survive the address bar", () => {
+    // A browser percent-encodes anything outside the ASCII token set on its way
+    // into location.hash, so "#seed=rush hour" comes back as "rush%20hour" and
+    // hashes to a different building than the one that was shared.
+    for (const hash of ["#seed=rush hour", "#seed=привет", "#seed=a/b", "#seed=100%"]) {
+      expect(route(hash).seed, hash).toBeNull();
+    }
+  });
+
+  it("refuses an empty seed and a seed too long to carry", () => {
+    // The seed rides in every entry of the navigation row, so it is written
+    // into the page some twenty times over.
+    expect(route("#seed").seed).toBeNull();
+    expect(route("#seed=").seed).toBeNull();
+    expect(route(`#seed=${"9".repeat(64)}`).seed).toBe("9".repeat(64));
+    expect(route(`#seed=${"9".repeat(65)}`).seed).toBeNull();
+  });
+
+  it("says what it refused and what it did instead", () => {
+    route("#seed=rush hour");
+    expect(console.warn).toHaveBeenCalledWith(
+      `Invalid seed "rush hour", using a fresh one instead`,
+    );
+  });
+
+  it("does not complain about a seed it accepted", () => {
+    route("#seed=issue-61");
+    expect(console.warn).not.toHaveBeenCalled();
   });
 });
 
