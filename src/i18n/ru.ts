@@ -45,11 +45,17 @@
  * | simulation speed   | скорость симуляции   |
  * | seed               | сид                  |
  * | run                | прогон               |
- * | new draw           | новый розыгрыш       |
+ * | new draw           | новый сид            |
  *
  * «Сид» rather than «зерно»: it is what Russian-speaking players of every game
- * that has one already call it, and the word they will search for. «Розыгрыш» is
- * the lottery sense of «draw», which is the sense the English has.
+ * that has one already call it, and the word they will search for.
+ *
+ * English "new draw" keeps a lottery metaphor that Russian has no noun for.
+ * «Розыгрыш» is a prize draw, a sporting fixture or a practical joke, and never
+ * the act of drawing a fresh random value; «жеребьёвка» is the drawing of lots
+ * between named participants, which is not this either. So the Russian names the
+ * outcome instead of the metaphor — «новый сид» — which is also what the link
+ * actually produces, and loses nothing a player needed.
  *
  * ## Rules followed here
  *
@@ -132,12 +138,12 @@ export const RU_MESSAGES: MessageCatalogue<"ru"> = {
   "game.challenge.nav.link": "Задание {number}",
   "game.challenge.nav.demo": "Демо",
   "game.seed.label": "Сид",
-  "game.seed.link": "Сид {seed}: начать другой прогон с этим сидом",
-  "game.seed.newDraw": "новый розыгрыш",
-  "game.seed.newDrawLink": "Сид {seed}: новый розыгрыш, начать заново без него",
+  "game.seed.link": "Сид {seed}: начать ещё один прогон с этим сидом",
+  "game.seed.newDraw": "новый сид",
+  "game.seed.newDrawLink": "Сид {seed}: новый сид, начать заново без прежнего",
   "game.seed.helpSummary": "что задаёт сид",
   "game.seed.explanation":
-    "Один и тот же сид приводит тех же пассажиров и в том же порядке. Когда придёт очередной кадр, решает браузер, поэтому сам прогон вокруг них никогда не повторяется в точности.",
+    "Один и тот же сид приводит тех же пассажиров и в том же порядке. А вот когда придёт очередной кадр, решает браузер, поэтому всё остальное в прогоне каждый раз складывается немного иначе.",
   "game.timeScale.decrease": "Уменьшить скорость симуляции",
   "game.timeScale.increase": "Увеличить скорость симуляции",
   "game.timeScale.value": "{value}×",
