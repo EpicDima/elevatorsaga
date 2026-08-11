@@ -91,6 +91,17 @@ export type CodeEditorEvents = {
   apply_code: [];
   /** The program was written to storage. */
   saved: [savedAt: Date];
+  /**
+   * The store refused a write. The text is in this page and nowhere else.
+   *
+   * Raised for every refused write, including the ones the player did not ask
+   * for, because the fact is the same one every time: nothing typed since is
+   * going to survive the tab being closed. An interface that shows when a
+   * program was last saved owes the player this too — a line that says "Code
+   * saved 14:32" and nothing else while every write fails is worse than no line
+   * at all, and the editor is the only thing here that knows.
+   */
+  storage_refused: [];
 };
 
 /** Callbacks a {@link TextEditorView} raises. */
@@ -161,20 +172,50 @@ export interface CodeEditorOptions {
 }
 
 /**
- * Reads a key from storage, treating an unavailable store as an empty one.
+ * What a store said when it was asked for a program.
+ *
+ * Three answers rather than two, and a shape the compiler makes callers open
+ * before they can read the text. "There is nothing here" and "I will not tell
+ * you" used to arrive as the same `null`, and the difference decides whether it
+ * is safe to write: a store with nothing in it wants the task's starting point
+ * written into it, and a store that would not answer may be holding an
+ * afternoon's work that the same write would destroy.
+ *
+ * `"empty"` covers a missing key and a key holding `""` alike. An entry emptied
+ * by hand, or by a write that ran out of room mid-string, is no more use than a
+ * missing one, and every caller here treated the two the same way — one rule in
+ * one place is one rule that cannot be applied inconsistently.
+ */
+type StoredText =
+  | { readonly state: "text"; readonly text: string }
+  | { readonly state: "empty" }
+  | { readonly state: "unreadable" };
+
+/**
+ * Classifies what a store handed back.
+ *
+ * @param value - What `getItem` returned.
+ * @returns The text, or the fact that there is none.
+ */
+function storedText(value: string | null): StoredText {
+  return value === null || value === "" ? { state: "empty" } : { state: "text", text: value };
+}
+
+/**
+ * Reads a key from storage, saying so when the store would not answer.
  *
  * Safari in private mode throws from `localStorage.getItem`, and a player whose
  * browser refuses storage should still be able to play.
  *
  * @param storage - The store to read.
  * @param key - The key to read.
- * @returns The stored value, or `null`.
+ * @returns What the store had, or the fact that it would not say.
  */
-function readStorage(storage: Storage, key: string): string | null {
+function readStorage(storage: Storage, key: string): StoredText {
   try {
-    return storage.getItem(key);
+    return storedText(storage.getItem(key));
   } catch {
-    return null;
+    return { state: "unreadable" };
   }
 }
 
@@ -328,6 +369,8 @@ export class CodeEditor extends Observable<CodeEditorEvents> {
     // in also keeps it out of the undo history, so the first Ctrl+Z cannot wipe
     // the program the player arrived with.
     const existingCode = this.#read(this.#buffer.codeKey);
+    const initialCode =
+      existingCode.state === "text" ? existingCode.text : this.#buffer.starterCode;
     this.#view = createView(
       {
         onChange: () => {
@@ -341,7 +384,7 @@ export class CodeEditor extends Observable<CodeEditorEvents> {
           this.save();
         },
       },
-      existingCode === null || existingCode === "" ? this.#buffer.starterCode : existingCode,
+      initialCode,
     );
   }
 
@@ -387,12 +430,25 @@ export class CodeEditor extends Observable<CodeEditorEvents> {
    * @param key - The key to read.
    * @returns The text, or `null` when neither remembers any.
    */
-  #read(key: string): string | null {
-    return this.#session.get(key) ?? readStorage(this.#storage, key);
+  #read(key: string): StoredText {
+    const remembered = this.#session.get(key);
+    return remembered === undefined ? readStorage(this.#storage, key) : storedText(remembered);
   }
 
   /**
-   * Writes a key, to this session as well as to the store.
+   * Writes a key, to this session as well as to the store, and says so when the
+   * store refuses.
+   *
+   * Every write in this class comes through here, and the announcement is made
+   * here rather than left to the caller on purpose. A refused write used to be
+   * a `boolean` that four callers could each forget to look at, and three of
+   * them did; TypeScript has no way to insist that a returned value is read, so
+   * "remember to check" is all such a design can offer, and it is the kind of
+   * promise that holds until the fifth caller is written. What cannot be
+   * forgotten is what happens by itself: the failure is announced from the one
+   * place every write already goes through, whether or not the caller looks at
+   * the answer. The answer is still returned, for the two callers that must
+   * *act* on it rather than merely report it.
    *
    * @param key - The key to write.
    * @param value - The text to keep.
@@ -400,7 +456,11 @@ export class CodeEditor extends Observable<CodeEditorEvents> {
    */
   #write(key: string, value: string): boolean {
     this.#session.set(key, value);
-    return writeStorage(this.#storage, key, value);
+    if (writeStorage(this.#storage, key, value)) {
+      return true;
+    }
+    this.trigger("storage_refused");
+    return false;
   }
 
   /** The current program text. */
@@ -509,19 +569,22 @@ export class CodeEditor extends Observable<CodeEditorEvents> {
     this.#flush();
     this.#buffer = next;
     const stored = this.#read(next.codeKey);
-    // An empty entry counts as no entry, as it does when the editor is built:
-    // the alternative is opening a task on a blank page with no way back to its
-    // starting point except deleting the entry by hand.
-    if (stored === null || stored === "") {
-      if (next.writesStarterOnOpen) {
+    if (stored.state === "text") {
+      this.#swapDocument(stored.text);
+    } else {
+      // Nothing to show but the starting point. Whether it may also be *written*
+      // depends on which kind of nothing this is: an empty entry is a task
+      // nobody has started, while a store that would not answer may be holding
+      // an attempt this write would destroy — and destroy invisibly, since the
+      // player is looking at a skeleton and has no way to know their work was
+      // ever there. Showing the skeleton is unavoidable; storing it is not.
+      if (stored.state === "empty" && next.writesStarterOnOpen) {
         // Stored right away rather than left to the first autosave, so that the
         // task the player is looking at is the task they come back to even if
         // they close the tab without typing a character.
         this.#write(next.codeKey, next.starterCode);
       }
       this.#swapDocument(next.starterCode);
-    } else {
-      this.#swapDocument(stored);
     }
     // The document on screen is not the player's typing any more, and nothing
     // in it is waiting to be written: it came out of storage, or it was just
@@ -567,7 +630,7 @@ export class CodeEditor extends Observable<CodeEditorEvents> {
     }
     const code = this.getCode();
     const stored = this.#read(this.#buffer.codeKey);
-    if ((stored === null || stored === "") && code === this.#buffer.starterCode) {
+    if (stored.state !== "text" && code === this.#buffer.starterCode) {
       // Storage already says exactly this: an empty entry is read back as the
       // buffer's starter program. Writing it anyway would be the one way a walk
       // through the learning track could create the player's own key for a
@@ -604,7 +667,7 @@ export class CodeEditor extends Observable<CodeEditorEvents> {
       // keeps nothing for anybody — a private window — has nothing to lose
       // here, and refusing to reset there would break the button for a whole
       // class of players to protect a program the store never had.
-      readStorage(this.#storage, this.#buffer.codeKey) !== null
+      readStorage(this.#storage, this.#buffer.codeKey).state === "text"
     ) {
       // The store took the program and will not take a copy of it, which is
       // what a quota looks like from in here: a new key does not fit, while
@@ -632,10 +695,10 @@ export class CodeEditor extends Observable<CodeEditorEvents> {
    */
   undoReset(): void {
     const backup = this.#read(this.#buffer.backupKey);
-    if (backup === null || backup === "") {
+    if (backup.state !== "text") {
       return;
     }
-    this.setCode(backup);
+    this.setCode(backup.text);
   }
 
   /** Puts the caret back in the editing surface. */

@@ -158,6 +158,48 @@ function crowdedStorage(entries: Readonly<Record<string, string>> = {}): Storage
   };
 }
 
+/**
+ * A `Storage` that is holding text and will not say what it is.
+ *
+ * `getItem` throwing while `setItem` works is what a store looks like when the
+ * page is not allowed to read it — blocked site data, a `SecurityError` — and
+ * it is the case where "the store said nothing" and "the store has nothing" are
+ * different facts about somebody's afternoon.
+ *
+ * @param entries - What the store is holding, out of sight.
+ * @returns The store, and a way for the test to see what is really in it.
+ */
+function unreadableStorage(entries: Readonly<Record<string, string>> = {}): {
+  storage: Storage;
+  kept: MemoryStorage;
+} {
+  const kept = new MemoryStorage();
+  for (const [key, value] of Object.entries(entries)) {
+    kept.setItem(key, value);
+  }
+  return {
+    kept,
+    storage: {
+      get length(): number {
+        return kept.length;
+      },
+      clear: () => {
+        kept.clear();
+      },
+      getItem: (): never => {
+        throw new Error("SecurityError");
+      },
+      key: (index: number) => kept.key(index),
+      removeItem: (key: string) => {
+        kept.removeItem(key);
+      },
+      setItem: (key: string, value: string) => {
+        kept.setItem(key, value);
+      },
+    },
+  };
+}
+
 beforeEach(() => {
   vi.useFakeTimers();
 });
@@ -234,6 +276,36 @@ describe("CodeEditor storage", () => {
     vi.advanceTimersByTime(AUTOSAVE_DELAY_MS * 2);
 
     expect(changed).toHaveBeenCalledTimes(1);
+  });
+
+  it("says out loud that a write was refused", () => {
+    // Every refused write announces itself, from the one place all writes go
+    // through. A player whose quota filled up mid-session otherwise has a
+    // "Code saved 14:32" line on screen, no reason to doubt it, and nothing
+    // written since — the failure is silent exactly when it costs the most.
+    const { editor, view } = setUp(fullStorage());
+    const refused = vi.fn();
+    const saved = vi.fn();
+    editor.on("storage_refused", refused);
+    editor.on("saved", saved);
+
+    view.type("// typed with nowhere to keep it");
+    vi.advanceTimersByTime(AUTOSAVE_DELAY_MS);
+
+    expect(refused).toHaveBeenCalledTimes(1);
+    expect(saved).not.toHaveBeenCalled();
+  });
+
+  it("says nothing of the sort when the store takes it", () => {
+    const { editor, view } = setUp();
+    const refused = vi.fn();
+    editor.on("storage_refused", refused);
+
+    view.type("// mine");
+    vi.advanceTimersByTime(AUTOSAVE_DELAY_MS);
+    editor.save();
+
+    expect(refused).not.toHaveBeenCalled();
   });
 
   it("keeps working when the browser refuses storage", () => {
@@ -522,6 +594,25 @@ describe("CodeEditor buffers", () => {
 
     editor.openTutorialBuffer("tutorial-2", "// task 2 skeleton");
     expect(view.getValue()).toBe("// my attempt at the old task 2");
+  });
+
+  it("does not put a task's starting point over an attempt it could not read", () => {
+    // "The store has nothing" and "the store would not say" arrive as the same
+    // silence and mean opposite things. Read as "nothing", a store that has
+    // simply refused to answer gets the skeleton written into it, over an
+    // attempt that was there all along — and the player, looking at a skeleton,
+    // has no way to know anything was lost. The skeleton on screen is
+    // unavoidable; nothing can show text nobody is allowed to read. Storing it
+    // is not.
+    const { storage, kept } = unreadableStorage({
+      "develevateTutorialCode_tutorial-1": "// three evenings of work",
+    });
+    const { editor, view } = setUp(storage);
+
+    editor.openTutorialBuffer("tutorial-1", "// task 1 skeleton");
+
+    expect(view.getValue()).toBe("// task 1 skeleton");
+    expect(kept.getItem("develevateTutorialCode_tutorial-1")).toBe("// three evenings of work");
   });
 
   it("opens a task whose stored attempt was emptied on its starting point", () => {
