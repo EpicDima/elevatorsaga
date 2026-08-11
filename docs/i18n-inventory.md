@@ -30,7 +30,7 @@ plural message the wrong number of forms is a compile error, not a runtime surpr
 | `src/i18n/en.ts`        | `EN_MESSAGES` — the reference locale                                                                                                                           |
 | `src/i18n/ru.ts`        | `RU_MESSAGES` — the Russian catalogue, with its glossary at the top                                                                                            |
 | `src/i18n/detect.ts`    | `resolveLocale`, `browserLocaleSources`, `localeFromQuery`, `readStoredLocale`, `storeLocale`, `localeFromLanguages`, `LOCALE_QUERY_KEY`, `LOCALE_STORAGE_KEY` |
-| `src/i18n/index.ts`     | `t`, `translateIn`, `getLocale`, `setLocale`, `format`, `formatTime`, `CATALOGUES`                                                                             |
+| `src/i18n/index.ts`     | `t`, `translateIn`, `getLocale`, `setLocale`, `loadLocale`, `isLocaleLoaded`, `format`, `formatTime`, `CATALOGUE_LOADERS`                                      |
 
 Calling it looks like this:
 
@@ -501,12 +501,21 @@ before repeating the mistake in the half that is still to do:
   in. Anything else that ends up in a worker needs the same treatment — a worker inherits
   nothing from the page that spawned it.
 
-One cost to plan around before wiring more: importing both catalogues statically put every
-Russian string into the main bundle and into the worker bundle, more than doubling the
-first and quadrupling the second, to serve seventeen keys nobody could yet read. Splitting
-the catalogues so a locale is fetched when it is chosen is in flight; check where it landed
-before adding imports, because the page shell and `documentation.html` are 111 more keys
-and would multiply the same mistake.
+A third trap, already sprung and already fixed, which the rest of the wiring has to keep
+fixed: **a static import of a catalogue puts it in every chunk that reaches a `t()`.** Both
+catalogues imported statically cost 42.75 kB in the entry chunk and 42.31 kB in the fitness
+worker — which draws nothing — to serve seventeen keys. Every catalogue but English is now
+fetched by `loadLocale`, and English stays bundled because it is the fallback that keeps
+`t` synchronous. So:
+
+- **Do not `import { RU_MESSAGES }`,** and do not re-export it from a module the page
+  imports. `src/i18n/index.ts` deliberately re-exports English only. The two test files
+  that want a catalogue as data import `./ru.ts` directly, which reaches no bundle.
+- **`await loadLocale(locale)` before `setLocale(locale)`** wherever a redraw follows.
+  `setLocale` alone starts the fetch but does not wait, so the interface stays English
+  until it lands.
+- A message asked for before its catalogue arrives renders in English, whole — never a raw
+  key, and never an English sentence with Russian decimal commas in it.
 
 `#lang=ru` needs nothing from `src/app/router.ts`: `parseQuery` keeps unknown keys and
 round-trips them into the next-challenge link, so the language survives finishing a
@@ -667,7 +676,10 @@ One file, plus two lines that the compiler demands anyway:
    guess fails a test rather than mistranslating a count.
 3. Write `src/i18n/<code>.ts` as `MessageCatalogue<"<code>">`. Every missing key, every
    extra key and every missing plural form is a compile error.
-4. Register it in `CATALOGUES` in `src/i18n/index.ts`.
+4. Register it in `CATALOGUE_LOADERS` in `src/i18n/index.ts`, as a one-line loader that
+   `await import()`s the file and files it in the catalogue slot for that locale. Writing
+   the locale's key out literally is what keeps it type-checked; a generic index would not
+   be.
 
 The tests in `src/i18n/catalogue.test.ts` then check the new catalogue for key parity,
 placeholder parity, markup that matches the English structure, and example code that is
