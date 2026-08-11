@@ -58,10 +58,14 @@ export class User extends Movable<UserEvents> {
 
   /**
    * @param weight - Passenger weight, used for the elevator load factor.
-   * @param random - Stream to draw the walk-off duration from. The world hands
-   * over its own seeded source, so that when the passenger leaves the world is
-   * part of a replayable run; the unseeded default is only for callers that
-   * build a passenger outside a world.
+   * @param random - Stream to draw the walk-off duration from. A world hands
+   * over the stream it derives from its seed for exactly this, so that the
+   * durations are replayable without being able to disturb anything else: the
+   * draw is taken the moment the passenger is delivered, which is a moment the
+   * elevators — and so the frame clock — decide, and a draw like that inside
+   * the world's spawn stream shifts every later spawn (see
+   * `WALK_OFF_STREAM` in src/game/world.ts). The unseeded default is only for
+   * callers that build a passenger outside a world.
    */
   constructor(weight: number, random: RandomSource = systemRandom) {
     super();

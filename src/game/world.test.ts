@@ -985,12 +985,19 @@ describe("World", () => {
       // passenger fills the capacity-1 car; the second cannot fit and presses
       // the button again, from inside the outer down_button_pressed.
       //
-      // What a guard would cost is the nested World.handleButtonRepressing.
-      // It re-offers nothing here - the car is full - but it draws a
-      // randomInt(0, elevatorCount - 1) before it looks, and dropping a draw
-      // shifts every later value out of the world's random stream. The world
-      // spawns its passengers, their weights and their floors from that same
-      // stream, so the same seed would stop replaying the same run.
+      // What a guard would cost is the nested World.handleButtonRepressing,
+      // which is the whole mechanism by which a passenger who was turned away
+      // gets a standing car re-offered to them. It re-offers nothing in this
+      // particular case - the car is full - but the dispatch has to reach the
+      // world's handler all the same, so the count below is of dispatches, not
+      // of outcomes.
+      //
+      // It used to be counted off the world's stream instead, because the
+      // handler draws a randomInt(0, elevatorCount - 1) before it looks and a
+      // dropped draw would shift every later spawn. That draw now comes from
+      // the world's derived button-repress stream, so the second assertion is
+      // the one that says so: the press storm below takes nothing at all from
+      // the stream the passengers come out of.
       const random = vi.fn(() => 0);
       const world = createWorld(
         {
@@ -1027,18 +1034,27 @@ describe("World", () => {
         elevInterface.goingDownIndicator(true);
       });
 
+      // Counted off the Floor rather than off a facade: this is the event the
+      // world's own handler is subscribed to, so one dispatch here is one
+      // handleButtonRepressing.
+      let dispatches = 0;
+      floor.on("down_button_pressed", () => {
+        dispatches++;
+      });
+
       random.mockClear();
       floor.pressDownButton();
 
       expect(first.parent).toBe(elevator);
       expect(second.parent).toBe(null);
       expect(floor.buttonStates.down).toBe("activated");
-      // One draw for each handleButtonRepressing - the outer one and the
-      // nested one. Guarding Floor would leave one. The two elevator slot
-      // draws that boarding also makes are not in this count: the elevators
-      // draw those from the stream the world derives for boarding slots, never
-      // from this one, which is why they cannot perturb it.
-      expect(random).toHaveBeenCalledTimes(2);
+      // One dispatch for each handleButtonRepressing - the outer one and the
+      // nested one. Guarding Floor would leave one.
+      expect(dispatches).toBe(2);
+      // And neither of them, nor the two boarding slots the same press storm
+      // draws, came out of the world's own stream. That is what makes the
+      // count above a question about dispatching rather than about replay.
+      expect(random).not.toHaveBeenCalled();
       // Player code still sees the call once: the facade the event is forwarded
       // to is a PlayerObservable, and its guard absorbs the nested forward.
       // That is the split - the world's own handler runs, the player's does
@@ -1411,6 +1427,93 @@ describe("seeded runs", () => {
 
     // The passenger did board, so a slot was drawn - from neither of these.
     expect(user.parent).toBe(elevator);
+    expect(random).not.toHaveBeenCalled();
+    expect(global).not.toHaveBeenCalled();
+  });
+
+  it("keeps button repressing out of the stream the simulation runs on", () => {
+    // The same argument as boarding slots, for the offset the re-offer sweep
+    // starts at. A press happens when a passenger a car turned away tries
+    // again, which is a moment the elevators decide and the frame clock moves,
+    // so a draw taken here used to walk the spawn stream forward by an amount
+    // that depended on how the frames fell.
+    const random = vi.fn(() => 0);
+    const world = createWorld({ floorCount: 3, elevatorCount: 2, spawnRate: 0.001 }, random);
+    for (const elevator of world.elevators) {
+      elevator.setFloorPosition(1);
+    }
+
+    random.mockClear();
+    const global = vi.spyOn(Math, "random");
+    at(world.floors, 1).pressUpButton();
+
+    // The sweep ran and re-offered the floor, so an offset was drawn - from
+    // neither of these.
+    expect(world.elevatorInterfaces.some((e) => e.destinationQueue.length > 0)).toBe(true);
+    expect(random).not.toHaveBeenCalled();
+    expect(global).not.toHaveBeenCalled();
+  });
+
+  it("draws the re-offered elevator from a stream the seed reproduces", () => {
+    // The other half: keeping the offset out of the spawn stream would be no
+    // improvement if it stopped being replayable on the way out. Four cars all
+    // standing at the pressed floor and all willing to take it, so the one that
+    // ends up with the destination is exactly the offset the sweep drew.
+    const chooseElevator = (seed: RandomSeed): number => {
+      const world = createWorld({ floorCount: 3, elevatorCount: 4, spawnRate: 0.001 }, seed);
+      for (const elevator of world.elevators) {
+        elevator.setFloorPosition(1);
+      }
+      at(world.floors, 1).pressUpButton();
+      return world.elevatorInterfaces.findIndex((e) => e.destinationQueue.length > 0);
+    };
+    const seeds: readonly RandomSeed[] = [1, 2, 3, 4, 5, 6, 7, 8];
+
+    const chosen = seeds.map(chooseElevator);
+
+    // Every press was answered, the answer really is drawn rather than always
+    // the first car, and asking the same seeds again gives the same answers.
+    expect(chosen).not.toContain(-1);
+    expect(new Set(chosen).size).toBeGreaterThan(1);
+    expect(seeds.map(chooseElevator)).toEqual(chosen);
+  });
+
+  it("keeps a delivered passenger's walk-off out of the stream that spawned them", () => {
+    // The third of the three, and the one that fires latest: the duration is
+    // drawn when a passenger steps out, which needs the player's program to
+    // have sent a car to the right floor and the car to have braked onto it.
+    // Nothing in a run is further from being decided by the seed alone.
+    const floorCount = 3;
+    const random = vi.fn(createRandomSource("walk-off-isolation"));
+    // A rate this low spawns exactly one passenger, on the first frame - the
+    // accumulator starts one thousandth of an interval past the threshold - and
+    // then nobody for the next thousand seconds, so any draw seen after the
+    // first frame is a draw the delivery made.
+    const world = createWorld({ floorCount, elevatorCount: 1, spawnRate: 0.001 }, random);
+    let delivered = 0;
+    world.on("new_user", (user) => {
+      user.on("exited_elevator", () => {
+        delivered++;
+      });
+    });
+    for (const elevatorInterface of world.elevatorInterfaces) {
+      elevatorInterface.on("idle", () => {
+        elevatorInterface.goToFloor((elevatorInterface.currentFloor() + 1) % floorCount);
+      });
+    }
+    world.init();
+    world.update(TRACE_STEP_SECONDS);
+    expect(world.users).toHaveLength(1);
+
+    random.mockClear();
+    const global = vi.spyOn(Math, "random");
+    for (let frame = 0; frame < TRACE_FRAMES && delivered === 0; frame++) {
+      world.update(TRACE_STEP_SECONDS);
+    }
+
+    // The walk-off duration is drawn inside the same update that delivered
+    // them, so by the time the loop stops the draw has been taken.
+    expect(delivered).toBe(1);
     expect(random).not.toHaveBeenCalled();
     expect(global).not.toHaveBeenCalled();
   });

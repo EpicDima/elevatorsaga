@@ -85,10 +85,14 @@ export class Floor extends Observable<FloorEvents> {
    * re-entrancy guard. A floor really does raise the same event from inside
    * itself — a passenger refused by a full car presses the button again while
    * `*_button_pressed` is still in flight — and `World.handleButtonRepressing`
-   * has to run for the nested call as it does for any other, not least because
-   * it draws from the world's {@link "./random.ts"!RandomSource} before it
-   * decides there is nothing to do. Swallowing that call would drop a draw and
-   * shift every later one, so the same seed would stop replaying the same run.
+   * has to run for the nested call as it does for any other, because the whole
+   * point of the nested press is to have a standing car re-offered to the
+   * passenger who was turned away. It also draws from a
+   * {@link "./random.ts"!RandomSource} before it decides there is nothing to
+   * do; that stream is the world's derived button-repress one rather than its
+   * spawn stream (see `BUTTON_REPRESS_STREAM` in src/game/world.ts), so
+   * swallowing the call would change which car got re-offered but could no
+   * longer move the passengers a seed replays.
    * Player code is still protected: the events are forwarded to
    * a {@link "./floor-interface.ts"!FloorInterface}, whose emitter is a
    * {@link PlayerObservable} and does refuse the nested forward.
