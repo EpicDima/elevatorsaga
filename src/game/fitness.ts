@@ -1,6 +1,6 @@
 /**
- * Headless benchmark suite: runs player code through a few scenarios without
- * drawing anything and averages the results.
+ * Headless benchmark suite: runs player code through a few scenarios on a fixed
+ * list of seeds, without drawing anything, and averages the results.
  *
  * Ported from the logic half of the legacy `fitness.js`. The web-worker wiring
  * that used to live here (`fitnessSuite` and `fitnessworker.js`) is now
@@ -57,7 +57,7 @@ export interface FitnessRun {
   readonly result: FitnessResult;
 }
 
-/** One scenario's outcome, averaged over several runs. */
+/** One scenario's outcome, averaged over every seed the suite ran it on. */
 export interface AveragedFitnessRun {
   /** The scenario that produced it. */
   readonly options: FitnessChallengeOptions;
@@ -111,6 +111,33 @@ export const fitnessChallenges: readonly FitnessChallenge[] = [
 ];
 
 /**
+ * The buildings every benchmark run is scored on, one world per seed.
+ *
+ * The benchmark used to leave every world unseeded, so the same program scored
+ * differently on every invocation and two programs could not be told apart from
+ * a luckier draw. Naming the seeds fixes both: a report is reproducible, and two
+ * programs measured against this list met the same passengers, arriving at the
+ * same second, on the same floors.
+ *
+ * Written out here rather than generated, and exported rather than kept private,
+ * because a number nobody can see is a number nobody can check: someone
+ * comparing two scores has to be able to read which buildings they were compared
+ * on, and someone who suspects the list of flattering one strategy has to be
+ * able to change it in one obvious place — the same reason
+ * {@link fitnessChallenges} is a visible constant.
+ *
+ * The values themselves are arbitrary and are meant to be. What matters is that
+ * there are several of them, so one unlucky building cannot decide a score, and
+ * that they never change on their own. Nor do they need to be spread out:
+ * {@link "./random.ts"!createRandomSource} hashes a seed before use, so `1` and
+ * `2` start unrelated streams rather than neighbouring ones.
+ *
+ * Six of them, which is what the worker used to run, so the report still costs
+ * the same handful of seconds it always did.
+ */
+export const fitnessSeeds: readonly RandomSeed[] = [1, 2, 3, 4, 5, 6];
+
+/**
  * Largest simulated step the world is advanced by at once, in seconds.
  *
  * The same value `app.js:142` gives the real game's controller, so the
@@ -151,11 +178,12 @@ function stringifyError(value: unknown): string {
  * @param codeObj - The player's code object.
  * @param stepSize - Milliseconds per simulated frame.
  * @param stepsToSimulate - Number of frames to run, at most.
- * @param seed - Seed for the world's randomness. Omitted, each call gets a
- * fresh one, which is what {@link doFitnessSuite} wants: it averages several
- * runs, and repeating one identical run would say nothing. Supply one to
- * benchmark two solutions against the very same passengers, or to look at a
- * score that came out surprising a second time.
+ * @param seed - Seed for the world's randomness, which is what makes two
+ * measurements of the same program comparable: the same seed is the same
+ * passengers, arriving at the same second, on the same floors.
+ * {@link doFitnessSuite} passes one from {@link fitnessSeeds} for every run it
+ * makes. Omitted, the world generates its own, and the run is then reproducible
+ * only after the fact, from the seed it recorded on `world.seed`.
  * @returns The metrics, or an object carrying the error the code threw.
  */
 export function calculateFitness(
@@ -216,15 +244,31 @@ export function makeAverageResult(results: readonly FitnessRun[]): AveragedFitne
 }
 
 /**
- * Benchmarks player code over every scenario, `runCount` times each.
+ * Benchmarks player code over every scenario, once per seed.
+ *
+ * The legacy suite took a number of runs and left every world unseeded, so the
+ * scenario list was walked `runCount` times over `runCount` different buildings
+ * that nobody could name afterwards. The count is now the seed list's length: it
+ * still averages several runs, but which runs is written down, so re-running the
+ * same program reproduces the same numbers and two programs can be held against
+ * the same buildings.
  *
  * @param codeStr - The source the player typed.
- * @param runCount - How many times to run the whole scenario list.
+ * @param seeds - One world seed per run of the scenario list; the results are
+ * averaged over all of them. Defaults to {@link fitnessSeeds}, which is what
+ * both callers use, and is a parameter so that a caller who wants a shorter
+ * report (see `FALLBACK_SEED_COUNT` in src/app/fitness.ts) or a second opinion
+ * on other buildings can ask for one without editing the constant everyone else
+ * is being scored against.
  * @returns The averaged results, or an object carrying the error message.
- * @throws {RangeError} When `runCount` is less than one; the legacy code threw
- * a `TypeError` from the same spot.
+ * @throws {RangeError} When `seeds` is empty, since there is then nothing to
+ * average; the legacy code threw a `TypeError` from the same spot for a
+ * `runCount` below one.
  */
-export function doFitnessSuite(codeStr: string, runCount: number): FitnessSuiteResult {
+export function doFitnessSuite(
+  codeStr: string,
+  seeds: readonly RandomSeed[] = fitnessSeeds,
+): FitnessSuiteResult {
   let codeObj: UserCodeObject;
   try {
     codeObj = getCodeObjFromCode(codeStr);
@@ -234,10 +278,16 @@ export function doFitnessSuite(codeStr: string, runCount: number): FitnessSuiteR
   let error: unknown = null;
 
   const testruns: FitnessRun[][] = [];
-  for (let run = 0; run < runCount; run++) {
+  for (const seed of seeds) {
     const results: FitnessRun[] = [];
     for (const challenge of fitnessChallenges) {
-      const fitness = calculateFitness(challenge, codeObj, 1000.0 / 60.0, 12000);
+      // Every scenario of one run takes the same seed, and the three do not
+      // therefore repeat one another: each draws that one stream against its own
+      // floor count and spawn rate, so the same values become different
+      // passengers heading for different floors, and more or fewer of them. One
+      // seed per run is also what makes a report quotable -- "seed 3" names a
+      // whole row of the results rather than one cell of it.
+      const fitness = calculateFitness(challenge, codeObj, 1000.0 / 60.0, 12000, seed);
       // The legacy code kept iterating the remaining scenarios after a failure
       // and only bailed out afterwards; that is preserved, as is the
       // truthiness test, which ignores a falsy thrown value.

@@ -13,16 +13,21 @@
  * worker per call.
  */
 
-import { doFitnessSuite, type FitnessSuiteResult } from "../game/fitness.ts";
+import { doFitnessSuite, fitnessSeeds, type FitnessSuiteResult } from "../game/fitness.ts";
 import type { FitnessWorkerRequest } from "./fitness-worker.ts";
 
 /**
- * Runs of the whole scenario list when the suite has to run on the main thread.
+ * Seeds the suite is run on when it has to run on the main thread.
  *
- * Deliberately lower than the worker's count: fewer runs average worse, but the
+ * Deliberately fewer than the worker's: fewer buildings average worse, but the
  * page is frozen for the whole time, so it has to stay short.
+ *
+ * The first few of {@link fitnessSeeds} rather than seeds of its own, so that a
+ * fallback report is a subset of the full one instead of a second, differently
+ * scored thing that happens to be printed in the same place. It is still exactly
+ * reproducible, and still says which buildings it measured.
  */
-const FALLBACK_RUN_COUNT = 2;
+const FALLBACK_SEED_COUNT = 2;
 
 /**
  * How long the worker is given before it is written off, in milliseconds.
@@ -95,7 +100,7 @@ export function runFitnessSuite(
       return runInWorker(worker, codeStr, options.timeoutMs ?? WORKER_TIMEOUT_MS);
     }
   }
-  return Promise.resolve(doFitnessSuite(codeStr, FALLBACK_RUN_COUNT));
+  return Promise.resolve(doFitnessSuite(codeStr, fitnessSeeds.slice(0, FALLBACK_SEED_COUNT)));
 }
 
 /**

@@ -4,11 +4,14 @@ import {
   calculateFitness,
   doFitnessSuite,
   fitnessChallenges,
+  fitnessSeeds,
   makeAverageResult,
   requireNothing,
+  type AveragedFitnessRun,
   type FitnessChallenge,
   type FitnessChallengeOptions,
   type FitnessRun,
+  type FitnessSuiteResult,
 } from "./fitness.ts";
 import { at } from "./test-helpers.ts";
 import { World } from "./world.ts";
@@ -59,6 +62,60 @@ function drivingCodeObj(): UserCodeObject {
       // Nothing.
     },
   };
+}
+
+/**
+ * Player source that sweeps every elevator through the whole building.
+ *
+ * A *string*, because {@link doFitnessSuite} compiles what the player typed, and
+ * a driving program rather than an inert one because the metrics of a program
+ * that never moves a car are all zero whatever building it is put in — which
+ * would make every comparison below trivially true.
+ */
+const SWEEPING_PROGRAM = `{
+  init: function (elevators, floors) {
+    elevators.forEach(function (elevator) {
+      elevator.on("idle", function () {
+        for (var floor = 0; floor < floors.length; floor++) {
+          elevator.goToFloor(floor);
+        }
+      });
+    });
+  },
+  update: function (dt, elevators, floors) {}
+}`;
+
+/**
+ * Reads the averaged runs out of a suite result, failing if it errored.
+ *
+ * Narrows the union, so a test can index the results without a cast; a suite
+ * that reports an error where a test expected numbers has failed regardless of
+ * what the assertion after it would have said.
+ *
+ * @param result - What the suite reported.
+ * @returns The averaged runs.
+ */
+function expectRuns(result: FitnessSuiteResult): AveragedFitnessRun[] {
+  if (!Array.isArray(result)) {
+    throw new Error(`Fitness suite failed: ${result.error}`);
+  }
+  return result;
+}
+
+/**
+ * Reads an averaged metric that the scenario is expected to have reported.
+ *
+ * @param result - One scenario's averaged metrics.
+ * @param property - The metric to read.
+ * @returns Its value.
+ * @throws {Error} When the scenario reported no such metric.
+ */
+function propertyOf(result: Record<string, number>, property: string): number {
+  const value = result[property];
+  if (value === undefined) {
+    throw new Error(`Averaged result has no ${property}`);
+  }
+  return value;
 }
 
 afterEach(() => {
@@ -286,14 +343,78 @@ describe("makeAverageResult", () => {
   });
 });
 
+describe("fitnessSeeds", () => {
+  it("names several distinct buildings", () => {
+    // More than one, or a single unlucky building decides the score; and no
+    // repeats, since a seed listed twice spends a run re-measuring a building
+    // that has already been measured and then counts it twice in the average.
+    expect(fitnessSeeds.length).toBeGreaterThan(1);
+    expect(new Set(fitnessSeeds).size).toBe(fitnessSeeds.length);
+  });
+});
+
 describe("doFitnessSuite", () => {
   it("reports code that does not compile as an error", () => {
-    const result = doFitnessSuite("{update: function() {}}", 1);
+    const result = doFitnessSuite("{update: function() {}}");
     expect(result).toEqual({ error: "Error: Code must contain an init function" });
   });
 
   it("reports a syntax error as an error", () => {
-    const result = doFitnessSuite("{init: function(} }", 1);
+    const result = doFitnessSuite("{init: function(} }");
     expect("error" in result).toBe(true);
+  });
+
+  it("scores the same program the same way twice", () => {
+    // The whole point of naming the seeds. Unseeded, the benchmark handed back
+    // different numbers for the same program on every invocation, so a change
+    // that made a program better and a change that made it luckier looked
+    // exactly alike.
+    const first = doFitnessSuite(SWEEPING_PROGRAM, [101, 102]);
+    const second = doFitnessSuite(SWEEPING_PROGRAM, [101, 102]);
+
+    expect(expectRuns(first)[0]?.result["avgWaitTime"]).toBeGreaterThan(0);
+    expect(second).toEqual(first);
+  });
+
+  it("scores it differently on different buildings", () => {
+    // The other half of the same claim: the numbers follow the seed list, so
+    // they are reproducible because the buildings are pinned and not because
+    // the benchmark has stopped being sensitive to which buildings it ran.
+    const first = doFitnessSuite(SWEEPING_PROGRAM, [101]);
+    const other = doFitnessSuite(SWEEPING_PROGRAM, [202]);
+
+    expect(other).not.toEqual(first);
+  });
+
+  it("averages over every seed rather than reporting the last one", () => {
+    // A list of two, scored one at a time and then together: every averaged
+    // property of the pair has to be the mean of the two singles. Reporting
+    // only the last run -- the shape of mistake this guards against -- would
+    // equal the second and differ from the first, and both are checked here.
+    const first = expectRuns(doFitnessSuite(SWEEPING_PROGRAM, [101]));
+    const second = expectRuns(doFitnessSuite(SWEEPING_PROGRAM, [202]));
+    const both = expectRuns(doFitnessSuite(SWEEPING_PROGRAM, [101, 202]));
+
+    expect(both).toHaveLength(fitnessChallenges.length);
+    for (const [index, run] of both.entries()) {
+      const firstResult = at(first, index).result;
+      const secondResult = at(second, index).result;
+      expect(run.options.description).toBe(at(first, index).options.description);
+      for (const [property, value] of Object.entries(run.result)) {
+        const mean = (propertyOf(firstResult, property) + propertyOf(secondResult, property)) / 2;
+        expect(value).toBeCloseTo(mean, 12);
+      }
+      expect(run.result).not.toEqual(secondResult);
+      expect(run.result).not.toEqual(firstResult);
+    }
+  });
+
+  it("runs the shipped seed list when it is given none", () => {
+    // The path the worker takes: it posts nothing but the player's source, so
+    // whether the report a player sees is reproducible rests entirely on the
+    // default being the constant everyone can read.
+    const shipped = doFitnessSuite(SWEEPING_PROGRAM, [...fitnessSeeds]);
+
+    expect(doFitnessSuite(SWEEPING_PROGRAM)).toEqual(shipped);
   });
 });

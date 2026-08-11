@@ -1,6 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { AveragedFitnessRun, FitnessSuiteResult } from "../game/fitness.ts";
+import {
+  doFitnessSuite,
+  fitnessSeeds,
+  type AveragedFitnessRun,
+  type FitnessSuiteResult,
+} from "../game/fitness.ts";
 import { describeFitnessResults, runFitnessSuite, type FitnessWorkerLike } from "./fitness.ts";
 
 /** A worker stand-in whose replies the test drives. */
@@ -193,6 +198,31 @@ describe("runFitnessSuite without a worker", () => {
     await runFitnessSuite("{}", { preferWorker: false, createWorker });
 
     expect(createWorker).not.toHaveBeenCalled();
+  });
+
+  it("scores the fallback on the first of the shipped seeds", async () => {
+    // The fallback runs fewer buildings than the worker, because it freezes the
+    // page while it does -- but it takes them off the front of the same list
+    // rather than choosing its own, so its report is a subset of the full one
+    // and is reproducible in the same way. This pins both the prefix and the
+    // count it stops at, which is a deliberate choice rather than a detail.
+    const program = `{
+      init: function (elevators, floors) {
+        elevators.forEach(function (elevator) {
+          elevator.on("idle", function () {
+            for (var floor = 0; floor < floors.length; floor++) {
+              elevator.goToFloor(floor);
+            }
+          });
+        });
+      },
+      update: function (dt, elevators, floors) {}
+    }`;
+
+    const fallback = await runFitnessSuite(program, { preferWorker: false });
+
+    expect(fallback).toEqual(doFitnessSuite(program, fitnessSeeds.slice(0, 2)));
+    expect(fallback).not.toEqual(doFitnessSuite(program, fitnessSeeds.slice(0, 1)));
   });
 });
 
