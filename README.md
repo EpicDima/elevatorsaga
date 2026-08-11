@@ -291,7 +291,7 @@ better.
 - [#119](https://github.com/magwo/elevatorsaga/issues/119) — the editor no longer reindents code on
   paste, which used to mangle anything pasted in from an external editor.
 
-Three more, without upstream issues:
+Four more, without upstream issues:
 
 - `maxWaitTime` counted the walk-away animation of passengers who had already been delivered,
   inflating the statistic by a random 1–1.5 seconds per person. Delivered passengers are now
@@ -312,6 +312,14 @@ Three more, without upstream issues:
   banner as any other mistake in a solution, and the same goes for a non-finite entry assigned
   straight into `destinationQueue`. Anything that names a real floor still behaves exactly as it
   did, in or out of range.
+- A negative `spawnRate` froze the tab on the first frame. The spawn loop runs while the time since
+  the last arrival exceeds `1 / spawnRate`, and with a negative rate that threshold is negative:
+  every pass subtracted a negative number, so the clock ran backwards, the condition never became
+  false, and the loop went on creating passengers until the tab died. A rate that is not a positive
+  number is now read as "nobody arrives", reported once on the console. Nothing in the shipped
+  challenges asked for one, and `#spawnrate` in the URL is clamped before it gets this far — it was
+  reachable by building a `World` directly, which is what the challenge definitions and anyone
+  embedding the engine do.
 
 ## Development
 
