@@ -677,10 +677,18 @@ describe("App seed", () => {
       const seed = String(app.world?.seed);
       requireElement(".seedlink", elements.challenge).click();
 
+      // Waited on the world rather than on the hash, because the hash is the
+      // first half of the round trip and not the last: following the anchor
+      // rewrites it synchronously, and `hashchange` -- the event the router is
+      // listening for -- is dispatched after. A wait that ends at the hash can
+      // therefore end before the app has heard anything, and the assertion below
+      // catches the world still running on the number it drew at start-up rather
+      // than the string the URL now carries. Under load it did, about one run in
+      // three.
       await vi.waitFor(() => {
-        expect(window.location.hash).toBe(`#challenge=1,seed=${seed}`);
+        expect(app.world?.seed).toBe(seed);
       });
-      expect(app.world?.seed).toBe(seed);
+      expect(window.location.hash).toBe(`#challenge=1,seed=${seed}`);
       // And what it offers now is the way back out, since the way in is the URL
       // the player is already at.
       expect(elements.challenge.querySelector(".seedlink")).toBeNull();

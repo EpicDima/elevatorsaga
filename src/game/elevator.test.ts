@@ -999,36 +999,47 @@ describe("Elevator object", () => {
  * which the legacy code wondered aloud about (`legacy-1.x:elevator.js:86`).
  */
 describe("a busy elevator is always a stopped elevator", () => {
-  it("never has a velocity when the movement step skips it, in any challenge", () => {
-    // Every shipped challenge, three seeds and three programs: the naive first
-    // solution, one that rewrites the indicators every frame, and one that
-    // stops mid-flight and jumps the queue at random. Between them they reach
-    // both callers of the dwell — arrival and the indicator re-offer — a few
-    // thousand times.
-    const totals: SweepTotals = { busySteps: 0, taskStarts: 0, violations: [] };
-    for (const challenge of challenges) {
-      for (const seed of [1, 2, 3]) {
-        const random = seededRandom(seed);
-        const mock = vi.spyOn(Math, "random").mockImplementation(random);
-        try {
-          for (const program of [
-            roundRobinProgram(),
-            directionalProgram(),
-            erraticProgram(random),
-          ]) {
-            expect(sweepChallenge(challenge.options, program, totals)).toEqual([]);
+  // The timeout is raised because this test is the suite's one genuinely
+  // expensive computation and vitest runs the files in parallel: alone it takes
+  // about 0.7s, but sharing the machine with the other thirty-five files it has
+  // been measured at 5.7s, which walks straight through the 5s default. It was
+  // failing roughly one full run in three, always on the clock and never on an
+  // assertion. The default stays where it is for every other test, where five
+  // seconds really does mean something has gone wrong.
+  it(
+    "never has a velocity when the movement step skips it, in any challenge",
+    { timeout: 30_000 },
+    () => {
+      // Every shipped challenge, three seeds and three programs: the naive first
+      // solution, one that rewrites the indicators every frame, and one that
+      // stops mid-flight and jumps the queue at random. Between them they reach
+      // both callers of the dwell — arrival and the indicator re-offer — a few
+      // thousand times.
+      const totals: SweepTotals = { busySteps: 0, taskStarts: 0, violations: [] };
+      for (const challenge of challenges) {
+        for (const seed of [1, 2, 3]) {
+          const random = seededRandom(seed);
+          const mock = vi.spyOn(Math, "random").mockImplementation(random);
+          try {
+            for (const program of [
+              roundRobinProgram(),
+              directionalProgram(),
+              erraticProgram(random),
+            ]) {
+              expect(sweepChallenge(challenge.options, program, totals)).toEqual([]);
+            }
+          } finally {
+            mock.mockRestore();
           }
-        } finally {
-          mock.mockRestore();
         }
       }
-    }
 
-    expect(totals.violations).toEqual([]);
-    // And the sweep really did exercise the paths it claims to.
-    expect(totals.taskStarts).toBeGreaterThan(1000);
-    expect(totals.busySteps).toBeGreaterThan(10000);
-  });
+      expect(totals.violations).toEqual([]);
+      // And the sweep really did exercise the paths it claims to.
+      expect(totals.taskStarts).toBeGreaterThan(1000);
+      expect(totals.busySteps).toBeGreaterThan(10000);
+    },
+  );
 
   it("would be caught freezing mid-flight, and would hold its speed if it did", () => {
     // The counter-example the sweep never produces, constructed by hand: this
