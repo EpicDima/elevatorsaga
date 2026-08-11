@@ -12,6 +12,17 @@ import { Elevator } from "./game/elevator.ts";
 import { ElevatorInterface, type ElevatorInterfaceEvents } from "./game/elevator-interface.ts";
 import { Floor } from "./game/floor.ts";
 import { FloorInterface, type FloorInterfaceEvents } from "./game/floor-interface.ts";
+import type { MessageKey } from "./i18n/catalogue.ts";
+import { EN_MESSAGES } from "./i18n/en.ts";
+import { RU_MESSAGES } from "./i18n/ru.ts";
+import {
+  type ApiCompletion,
+  ELEVATOR_EVENTS,
+  ELEVATOR_MEMBERS,
+  FLOOR_EVENTS,
+  FLOOR_MEMBERS,
+  GLOBAL_COMPLETIONS,
+} from "./ui/completions.ts";
 import { createIcon } from "./ui/icons.ts";
 import { presentVersion, VERSION_SELECTOR } from "./ui/version.ts";
 
@@ -940,5 +951,518 @@ describe("documentation.html and documentation.ru.html, as one document in two l
     expect(sourceNoteTexts(russian.document)).toHaveLength(
       sourceNoteTexts(english.document).length,
     );
+  });
+});
+
+/**
+ * The message catalogue of every language a page is published in.
+ *
+ * Typed loosely on purpose: `MessageCatalogue<"en">` and `MessageCatalogue<"ru">`
+ * are different types -- their plural messages have different sets of forms --
+ * so indexing the union of the two by a key yields a union of values that every
+ * read below would have to narrow again. Nothing here cares which language it
+ * is holding, only what a key says in it.
+ */
+const CATALOGUES: Readonly<Record<Language, Readonly<Record<string, unknown>>>> = {
+  en: EN_MESSAGES,
+  ru: RU_MESSAGES,
+};
+
+/** Every message key the reference pages are answerable for. */
+const DOCS_KEYS: readonly MessageKey[] = Object.keys(EN_MESSAGES).filter((key): key is MessageKey =>
+  key.startsWith("docs."),
+);
+
+/** Every message key the completion popup is answerable for. */
+const COMPLETION_KEYS: readonly MessageKey[] = Object.keys(EN_MESSAGES).filter(
+  (key): key is MessageKey => key.startsWith("completion."),
+);
+
+/** A `{name}` the game fills in before anyone reads the message. */
+const PLACEHOLDER = /\{\w+\}/g;
+
+/**
+ * What one message says.
+ *
+ * @param language - The catalogue to read it from.
+ * @param key - The message.
+ * @returns Its value.
+ * @throws If it has plural forms. Nothing checked here counts anything, and a
+ * key that started to would otherwise be compared as "[object Object]" and
+ * quietly match nothing on the page.
+ */
+function message(language: Language, key: MessageKey): string {
+  const value = CATALOGUES[language][key];
+  if (typeof value !== "string") {
+    throw new Error(`${key} has plural forms, and nothing on the page prints one`);
+  }
+  return value;
+}
+
+/** Whitespace the way HTML collapses it, so that source wrapping stops counting. */
+function collapse(text: string): string {
+  return text.replace(/\s+/g, " ").trim();
+}
+
+/**
+ * Markup in the single form the browser agrees to.
+ *
+ * Parsed and serialised again, so that `<br />` against `<br>`, an attribute in
+ * single quotes against one in double, and a sentence wrapped across four
+ * source lines are not differences. What is left is the tags, their attributes
+ * and the words.
+ *
+ * @param html - Markup, from either side.
+ * @returns The same markup, comparable.
+ */
+function normalizeMarkup(html: string): string {
+  const holder = new DOMParser().parseFromString(`<body>${html}</body>`, "text/html");
+  return collapse(holder.body.innerHTML);
+}
+
+/**
+ * The words of a message, markup and placeholders gone.
+ *
+ * @param value - The message.
+ * @returns What is left to read.
+ */
+function textOf(value: string): string {
+  const holder = new DOMParser().parseFromString(
+    `<body>${value.replaceAll(PLACEHOLDER, "")}</body>`,
+    "text/html",
+  );
+  return collapse(holder.body.textContent);
+}
+
+/**
+ * Checks that a message and the place on the page it was lifted from agree.
+ *
+ * Compared as markup rather than as text: these values are what the page will
+ * be built from once the interface is wired through `src/i18n`, so an emphasis
+ * or a link that did not survive the copy is a real difference and not a matter
+ * of presentation.
+ *
+ * A message with a `{placeholder}` in it is the exception. The page has the
+ * thing itself where the message has only its name -- the two inline icons of
+ * "How to play" -- so there only the words around it can be compared.
+ *
+ * @param element - Where the page says it, or null if the page has nowhere.
+ * @param reference - The page.
+ * @param key - The message.
+ */
+function expectSays(element: Element | null, reference: ReferencePage, key: MessageKey): void {
+  expect(element, key).not.toBeNull();
+  const value = message(reference.language, key);
+  if (value.match(PLACEHOLDER) !== null) {
+    expect(textOf(value), key).toBe(collapse(element?.textContent ?? ""));
+    return;
+  }
+  expect(normalizeMarkup(value), key).toBe(normalizeMarkup(element?.innerHTML ?? ""));
+}
+
+/**
+ * Checks a run of elements against the messages that fill it.
+ *
+ * The page puts no ids on its paragraphs and no attribute ties one to a key --
+ * it is a static document, and marking it up for the convenience of a test
+ * would be the tail wagging the dog -- so a run of elements is matched against
+ * the run of keys that describes it. Count and order come with that: a
+ * paragraph added, dropped or moved fails here, where checking that each key
+ * turns up somewhere on the page would not.
+ *
+ * @param reference - The page.
+ * @param selector - What matches the run.
+ * @param keys - What it says, in order.
+ */
+function expectRun(reference: ReferencePage, selector: string, keys: readonly MessageKey[]): void {
+  const elements = [...reference.document.querySelectorAll(selector)];
+  expect(elements.length, selector).toBe(keys.length);
+  keys.forEach((key, index) => {
+    expectSays(elements[index] ?? null, reference, key);
+  });
+}
+
+/** The messages of the page shell, each checked where it belongs. */
+const SHELL_KEYS: readonly MessageKey[] = [
+  "docs.page.title",
+  "docs.page.description",
+  "docs.page.tagline",
+  "docs.nav.label",
+  "docs.nav.back",
+];
+
+/** The `<h2>`s of the reference, in the order the page prints them. */
+const SECTION_HEADINGS: readonly MessageKey[] = [
+  "docs.about.heading",
+  "docs.play.heading",
+  "docs.basics.heading",
+  "docs.examples.heading",
+  "docs.api.heading",
+];
+
+/** Its `<h3>`s, likewise. */
+const SUBSECTION_HEADINGS: readonly MessageKey[] = [
+  "docs.examples.control.heading",
+  "docs.examples.events.heading",
+  "docs.api.events.heading",
+  "docs.api.elevator.heading",
+  "docs.api.floor.heading",
+];
+
+/** Its prose, paragraph by paragraph. */
+const PARAGRAPHS: readonly MessageKey[] = [
+  "docs.about.p1.html",
+  "docs.about.p2.html",
+  "docs.play.apply.html",
+  "docs.play.shortcuts.html",
+  "docs.play.debugging.html",
+  "docs.basics.declare.html",
+  "docs.basics.called.html",
+  "docs.basics.initPurpose.html",
+  "docs.basics.noLibraries.html",
+  "docs.examples.events.intro.html",
+  "docs.api.events.intro",
+  "docs.api.events.outro.html",
+];
+
+/** What each worked example under "Code examples" is there to show. */
+const EXAMPLE_NOTES: readonly MessageKey[] = [
+  "docs.examples.goToFloor",
+  "docs.examples.currentFloor",
+  "docs.examples.idle",
+  "docs.examples.floorButtonPressed",
+  "docs.examples.upButtonPressed",
+];
+
+/** The column headings of each table, in the order the tables appear. */
+const TABLE_HEADINGS: readonly (readonly MessageKey[])[] = [
+  ["docs.table.method", "docs.table.explanation", "docs.table.example"],
+  ["docs.table.property", "docs.table.type", "docs.table.explanation", "docs.table.example"],
+  ["docs.table.event", "docs.table.explanation", "docs.table.example"],
+  ["docs.table.property", "docs.table.type", "docs.table.explanation", "docs.table.example"],
+  ["docs.table.event", "docs.table.explanation", "docs.table.example"],
+];
+
+/** Each section of the reference, and the key prefix that describes it. */
+const REFERENCE_SECTIONS: readonly {
+  readonly heading: keyof ReferencePage["headings"];
+  readonly prefix: string;
+}[] = [
+  { heading: "eventMethods", prefix: "docs.api.events." },
+  { heading: "elevator", prefix: "docs.api.elevator." },
+  { heading: "floor", prefix: "docs.api.floor." },
+];
+
+/**
+ * A name with the punctuation taken out of it.
+ *
+ * The tables and the catalogue spell the same name differently and neither
+ * spelling can be derived from the other: the page writes `buttonstate_change`
+ * where the key writes `buttonStateChange`, and camel-casing the first gives
+ * `buttonstateChange`. The letters are what the two of them agree on.
+ *
+ * @param name - Either spelling.
+ * @returns The letters of it.
+ */
+function flatten(name: string): string {
+  return name.replaceAll("_", "").toLowerCase();
+}
+
+/**
+ * The comment lines of an example, whatever they are indented by.
+ *
+ * @param code - The text of an example.
+ * @returns One entry per comment line, in order.
+ */
+function commentsIn(code: string): string[] {
+  return code
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => line.startsWith("//"));
+}
+
+/**
+ * The message that explains one documented member.
+ *
+ * @param prefix - The key prefix of the section it is documented in.
+ * @param name - What the first cell of its row says.
+ * @returns The key, with or without the `.html` that admits to markup.
+ * @throws If the catalogue has no message for that row, or more than one.
+ * Either way there is nothing to check the row against, which is not a thing to
+ * pass over quietly.
+ */
+function explanationKey(prefix: string, name: string): MessageKey {
+  const found = DOCS_KEYS.filter(
+    (key) =>
+      key.startsWith(prefix) &&
+      flatten(key.slice(prefix.length).replace(/\.html$/, "")) === flatten(name),
+  );
+  const [only] = found;
+  if (only === undefined || found.length > 1) {
+    throw new Error(`${prefix}* has ${String(found.length)} messages for ${name}`);
+  }
+  return only;
+}
+
+/** One row of a reference table, and the messages that fill it. */
+interface DocumentedRow {
+  /** The member or event named in its first cell. */
+  readonly name: string;
+  /** The message that explains it. */
+  readonly key: MessageKey;
+  /** The message its example is kept as, for the examples that are kept. */
+  readonly example: MessageKey | undefined;
+  /** The element holding the explanation, which is the cell's `<small>`. */
+  readonly explanation: Element | null;
+  /** The element holding the example, which is the cell's `<code>`. */
+  readonly code: Element | null;
+}
+
+/**
+ * Every row of the reference tables, tied to the messages that fill it.
+ *
+ * Tied by name rather than by position, so that a member documented in a
+ * different place in the table is still checked against its own message. The
+ * explanation is the last cell but one and the example the last: the property
+ * tables have a type column the event tables do not, and counting from the
+ * right sidesteps that without having to know which table this is.
+ *
+ * @param reference - The page to read.
+ * @returns One entry per body row of every reference table.
+ */
+function documentedRows(reference: ReferencePage): DocumentedRow[] {
+  const rows: DocumentedRow[] = [];
+  for (const section of REFERENCE_SECTIONS) {
+    for (const table of tablesUnder(reference.document, reference.headings[section.heading])) {
+      for (const row of table.querySelectorAll("tbody tr")) {
+        const cells = [...row.querySelectorAll("td")];
+        const name = collapse(cells[0]?.textContent ?? "");
+        const key = explanationKey(section.prefix, name);
+        const example = `${key.replace(/\.html$/, "")}.example.code`;
+        rows.push({
+          name,
+          key,
+          example: DOCS_KEYS.find((candidate) => candidate === example),
+          explanation: cells.at(-2)?.querySelector("small") ?? null,
+          code: cells.at(-1)?.querySelector("code") ?? null,
+        });
+      }
+    }
+  }
+  return rows;
+}
+
+/**
+ * The reference pages are the reviewed copy; `src/i18n` is a copy of them.
+ *
+ * Every `docs.*` message was lifted from these pages word for word, and the
+ * interface will be wired through the catalogue rather than the HTML. Until it
+ * is, the page is what a reader sees and the catalogue is what nobody sees --
+ * which is exactly the arrangement in which one of them gets corrected and the
+ * other does not. That is not hypothetical: the review of the Russian page put
+ * a dozen corrections into `documentation.ru.html`, and every one of them
+ * stayed there while `ru.ts` went on saying the thing that had been corrected.
+ *
+ * So each message is held against the place it came from, and held to being the
+ * same text rather than merely similar text. That is only a fair rule because
+ * the keys are cut along the page's own seams -- a paragraph, a table cell, an
+ * example -- so no key holds half a sentence and nothing here has to settle for
+ * a weaker assertion.
+ */
+describe.each(DOCUMENTATION_PAGES)("src/i18n, against $file", (reference) => {
+  const docs = reference.document;
+
+  it("names itself in the words the catalogue has", () => {
+    expect(docs.title).toBe(message(reference.language, "docs.page.title"));
+    expect(metaContent(docs, "description")).toBe(
+      message(reference.language, "docs.page.description"),
+    );
+    expectSays(docs.querySelector("h1 em"), reference, "docs.page.tagline");
+    expectSays(docs.querySelector("header nav a[href='index.html']"), reference, "docs.nav.back");
+    expect(docs.querySelector("header nav")?.getAttribute("aria-label")).toBe(
+      message(reference.language, "docs.nav.label"),
+    );
+  });
+
+  it("prints the catalogue's prose, in the order the catalogue has it", () => {
+    expectRun(reference, "main h2", SECTION_HEADINGS);
+    expectRun(reference, "main h3", SUBSECTION_HEADINGS);
+    expectRun(reference, "main > p", PARAGRAPHS);
+    expectRun(reference, "main dl dd", EXAMPLE_NOTES);
+  });
+
+  it("heads its columns with the catalogue's words", () => {
+    const tables = [...docs.querySelectorAll("table.doctable")];
+    expect(tables).toHaveLength(TABLE_HEADINGS.length);
+    tables.forEach((table, index) => {
+      const cells = [...table.querySelectorAll("thead th")];
+      const keys = TABLE_HEADINGS[index] ?? [];
+      expect(cells.length, `table ${String(index)}`).toBe(keys.length);
+      keys.forEach((key, column) => {
+        expectSays(cells[column] ?? null, reference, key);
+      });
+    });
+  });
+
+  it("explains every member in the words the catalogue has", () => {
+    const rows = documentedRows(reference);
+    // A page whose tables the scraper cannot read would otherwise check nothing
+    // at all and say so by passing. The second count is the same rows reached
+    // the other way, so a table that drifted out from under its heading is a
+    // failure rather than a silent omission.
+    expect(rows.length).toBeGreaterThan(20);
+    expect(rows).toHaveLength(docs.querySelectorAll("table.doctable tbody tr").length);
+    for (const row of rows) {
+      expectSays(row.explanation, reference, row.key);
+    }
+  });
+
+  it("prints every example the catalogue keeps, byte for byte", () => {
+    expect(docs.querySelector("main > pre code")?.textContent).toBe(
+      message(reference.language, "docs.basics.example.code"),
+    );
+    for (const row of documentedRows(reference)) {
+      if (row.example !== undefined) {
+        expect(row.code?.textContent, row.example).toBe(message(reference.language, row.example));
+      }
+    }
+
+    // An example is in the catalogue exactly when it has a comment in it, since
+    // the comment is the only part of an example that gets translated. Held
+    // both ways round: a comment added to an example that has no key is a line
+    // of English that would stay English on the Russian page.
+    const commented = examples(docs).filter((block) => block.includes("//"));
+    const kept = DOCS_KEYS.filter((key) => key.endsWith(".code")).map((key) =>
+      message(reference.language, key),
+    );
+    expect([...commented].sort()).toEqual([...kept].sort());
+  });
+
+  it("leaves no docs.* message unchecked", () => {
+    // Every check above is a comparison the page has to satisfy; this is what
+    // makes sure the page has to satisfy one for each message. Without it a key
+    // could be corrected into nonsense as long as nothing on the page happened
+    // to be laid out to look for it.
+    const checked = new Set<string>([
+      ...SHELL_KEYS,
+      ...SECTION_HEADINGS,
+      ...SUBSECTION_HEADINGS,
+      ...PARAGRAPHS,
+      ...EXAMPLE_NOTES,
+      ...TABLE_HEADINGS.flat(),
+      "docs.basics.example.code",
+      ...documentedRows(reference).flatMap((row) =>
+        row.example === undefined ? [row.key] : [row.key, row.example],
+      ),
+    ]);
+    expect(DOCS_KEYS.filter((key) => !checked.has(key))).toEqual([]);
+  });
+});
+
+/** Where the popup's own English lives, by the key that translates it. */
+const COMPLETION_TABLES: Readonly<Record<string, readonly ApiCompletion[]>> = {
+  // The event methods are in both member lists, being what both facades have;
+  // either copy answers for `completion.events.*`.
+  events: ELEVATOR_MEMBERS,
+  elevator: ELEVATOR_MEMBERS,
+  "elevator.event": ELEVATOR_EVENTS,
+  floor: FLOOR_MEMBERS,
+  "floor.event": FLOOR_EVENTS,
+  global: GLOBAL_COMPLETIONS,
+};
+
+/**
+ * The popup entry a `completion.*` message is the text of.
+ *
+ * `completion.<owner>.<member>`, and `completion.<owner>.event.<member>` for an
+ * event name. The last segment is the entry's label, up to the spelling
+ * {@link flatten} irons out.
+ *
+ * @param key - The message.
+ * @returns The entry it belongs to.
+ * @throws If no entry has that label, which means the key outlived the popup
+ * entry it was written for.
+ */
+function completionEntry(key: MessageKey): ApiCompletion {
+  const path = key.slice("completion.".length);
+  const cut = path.lastIndexOf(".");
+  const entries = COMPLETION_TABLES[path.slice(0, cut)] ?? [];
+  const found = entries.find((entry) => flatten(entry.label) === flatten(path.slice(cut + 1)));
+  if (found === undefined) {
+    throw new Error(`No completion entry for ${key}`);
+  }
+  return found;
+}
+
+describe("src/i18n, against the editor it also speaks for", () => {
+  it("gives the popup exactly what src/ui/completions.ts says", () => {
+    // The completion popup has no page for a reviewer to read, so its English
+    // is checked against the table it is drawn from rather than against prose.
+    const spoken = COMPLETION_KEYS.filter((key) => !key.endsWith(".code"));
+    expect(spoken.length).toBeGreaterThan(20);
+    for (const key of spoken) {
+      expect(message("en", key), key).toBe(completionEntry(key).info);
+    }
+  });
+
+  it("hands the popup the skeleton the page prints", () => {
+    // The whole-program skeleton the popup inserts is the example under
+    // "Basics", which is why it has no key of its own; the two halves it can
+    // insert instead exist nowhere else and do.
+    const inserted = (label: string): string =>
+      GLOBAL_COMPLETIONS.find((candidate) => candidate.label === label)?.apply ?? "";
+    expect(inserted("skeleton")).toBe(message("en", "docs.basics.example.code"));
+    expect(inserted("init")).toBe(message("en", "completion.initSkeleton.code"));
+    expect(inserted("update")).toBe(message("en", "completion.updateSkeleton.code"));
+
+    // The halves are the whole one taken apart and re-indented, so in every
+    // language their comments are its comments. Nothing else ties the popup's
+    // translated skeleton to the page's, and a comment corrected in one of the
+    // two is exactly how they came apart.
+    for (const { language } of DOCUMENTATION_PAGES) {
+      const whole = commentsIn(message(language, "docs.basics.example.code"));
+      for (const half of [
+        "completion.initSkeleton.code",
+        "completion.updateSkeleton.code",
+      ] as const) {
+        for (const comment of commentsIn(message(language, half))) {
+          expect(whole, `${half} in ${language}`).toContain(comment);
+        }
+      }
+    }
+  });
+
+  it("says the same thing in every language wherever it says it twice in English", () => {
+    // The popup's lines are the page's lines: `completion.elevator.event.passingFloor`
+    // and `docs.api.elevator.passingFloor` are one sentence with two keys. A
+    // correction that lands on the page therefore has to land on the popup too,
+    // and this is what stops it from landing on only one of them -- which is
+    // the shape the Russian drift actually had.
+    const byEnglish = new Map<string, MessageKey[]>();
+    for (const key of [...DOCS_KEYS, ...COMPLETION_KEYS]) {
+      const english = message("en", key);
+      byEnglish.set(english, [...(byEnglish.get(english) ?? []), key]);
+    }
+    const shared = [...byEnglish.values()].filter((keys) => keys.length > 1);
+    expect(shared.length).toBeGreaterThan(5);
+    for (const [first, ...rest] of shared) {
+      if (first === undefined) {
+        continue;
+      }
+      for (const key of rest) {
+        expect(message("ru", key), `${key} says what ${first} says in English`).toBe(
+          message("ru", first),
+        );
+      }
+    }
+  });
+
+  it("has a placeholder only where the page prints a picture instead of a word", () => {
+    // {@link expectSays} compares the words around a placeholder rather than
+    // the markup, which is a weaker check; this is what keeps it to the one
+    // message that needs it.
+    expect(DOCS_KEYS.filter((key) => message("en", key).match(PLACEHOLDER) !== null)).toEqual([
+      "docs.play.apply.html",
+    ]);
   });
 });
