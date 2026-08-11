@@ -87,6 +87,7 @@ export const RU_MESSAGES: MessageCatalogue<"ru"> = {
   "page.nav.help": "Справка",
   "page.nav.documentation": "Документация",
   "page.nav.wiki": "Вики и решения",
+  "page.language.label": "Язык",
   "page.noscript":
     "Похоже, ваш браузер не поддерживает JavaScript. На этой странице — игра про программирование, которая на JavaScript и написана.",
   "page.world.label": "Здание",
@@ -105,7 +106,7 @@ export const RU_MESSAGES: MessageCatalogue<"ru"> = {
   "page.button.save": "Сохранить",
   "page.button.apply": "Применить",
   "page.helpNote.html":
-    'Не разобрались? Откройте страницу <a href="documentation.html">справки и документации по API</a>',
+    'Не разобрались? Откройте страницу <a href="documentation.ru.html">справки и документации по API</a>',
   "page.footer.credits": "Сделали Magnus Wolffelt и другие участники",
   "page.footer.version": "Версия",
   "page.footer.source.html":
@@ -120,6 +121,9 @@ export const RU_MESSAGES: MessageCatalogue<"ru"> = {
   "game.elevator.label": "Лифт {number}",
   "game.elevator.floorButton": "Ехать на этаж {floor}",
   "game.challenge.title.html": "Задание №{number}: {description}",
+  "game.challenge.nav.label": "Задания",
+  "game.challenge.nav.link": "Задание {number}",
+  "game.challenge.nav.demo": "Демо",
   "game.timeScale.decrease": "Уменьшить скорость симуляции",
   "game.timeScale.increase": "Увеличить скорость симуляции",
   "game.timeScale.value": "{value}×",

@@ -53,6 +53,10 @@ export const EN_MESSAGES = {
   "page.nav.help": "Help",
   "page.nav.documentation": "Documentation",
   "page.nav.wiki": "Wiki & Solutions",
+  // The picker's options are not here: a language is named in its own language,
+  // so that the reader who needs Русский can find it while the interface is
+  // still English. Those endonyms live in `LOCALE_NAMES`, in `./locale.ts`.
+  "page.language.label": "Language",
   "page.noscript":
     "Your browser does not appear to support JavaScript. This page contains a browser-based programming game implemented in JavaScript.",
   "page.world.label": "Building",
@@ -87,6 +91,12 @@ export const EN_MESSAGES = {
   "game.elevator.label": "Elevator {number}",
   "game.elevator.floorButton": "Go to floor {floor}",
   "game.challenge.title.html": "Challenge #{number}: {description}",
+  // The navigation row shows bare numbers, because nineteen entries have to fit
+  // across a phone; the name each one carries is what a screen reader announces
+  // in their place, so it has to say what the number means on its own.
+  "game.challenge.nav.label": "Challenges",
+  "game.challenge.nav.link": "Challenge {number}",
+  "game.challenge.nav.demo": "Demo",
   "game.timeScale.decrease": "Decrease simulation speed",
   "game.timeScale.increase": "Increase simulation speed",
   "game.timeScale.value": "{value}x",
