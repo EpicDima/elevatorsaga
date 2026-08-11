@@ -81,8 +81,16 @@ const EXTRA_SEEDS: readonly RandomSeed[] = [1, 2, 3, 4, 5, 6, "abc", "xyz", "42a
  * Three is not a derived number; it is roughly a fifth of the shortest budget
  * any task is judged on, which is enough that a physics change big enough to
  * cross it is a change somebody meant to make. The measured margins are far
- * wider — the tightest of the seven ordinary tasks clears by 6.6 seconds — so
- * this bound is a tripwire, not a target.
+ * wider — the tightest of the seven ordinary tasks is task 6, which clears by
+ * 11.33 seconds on seed 5, and task 7 is next at 11.75 on seed 4 — so this
+ * bound is a tripwire, not a target.
+ *
+ * It said 6.6 seconds until that was re-measured and found to belong to nothing
+ * in the file: it was task 5's worst margin back when its wait limit was 26
+ * (6.55 seconds on seed 3), and the limit moved to 37 without the sentence
+ * following it. Quoted with the task and the seed now, because a bare number
+ * here is exactly what went stale — a margin no longer attached to the run that
+ * produced it cannot be re-checked, only believed.
  */
 const MARGIN_SECONDS = 3.0;
 
