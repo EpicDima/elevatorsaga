@@ -547,11 +547,22 @@ export const tutorialTasks: readonly TutorialTask[] = [
     // rate reached exactly 25.0 s of wait with 11 delivered — the correct program
     // failing the task it is the answer to. Thinning the traffic separates the
     // two causes, which is the point: what should fail here is the lie, not the
-    // load. The window opens from (26.9, 35.9) to (16.7, 45.7), so the planned
-    // limit of 25 stands with the answer's worst wait at 16.7 s and the liar
-    // hitting 25 s with at most 11 of the 15 delivered.
+    // load.
+    //
+    // It did not thin them as far as ten seeds suggested. Those ten put the
+    // window at (16.7, 45.7) and the limit at 25; four hundred seeds nobody had
+    // fitted a threshold to show there is no window at all. The answer's worst
+    // wait is 25.07 s — seed u59, where the planned limit of 25 threw out the
+    // correct program with 14 of the 15 delivered — and the liar's best run
+    // gets all fifteen out having made nobody wait longer than 21.92 s (seed
+    // t199), so the liar's good runs are better than the answer's bad ones by
+    // three seconds. What the four hundred do show is a shelf: at every limit
+    // from 26 to 30 the answer wins all 400 and the liar wins 3, so the number
+    // is chosen inside it rather than at an edge, both edges being where a tail
+    // this thin is least trustworthy. 28 it is, and 400/400 on two further
+    // unseen sets agrees.
     options: { floorCount: 5, elevatorCount: 1, spawnRate: 0.25 },
-    condition: requireUserCountWithMaxWaitTime(15, 25),
+    condition: requireUserCountWithMaxWaitTime(15, 28),
     seed: "tutorial-6",
     startingCode: TASK_6_START,
     solutionCode: TASK_6_SOLUTION,
