@@ -343,8 +343,11 @@ const SEED_MAX_LENGTH = 64;
  * unchanged, and only an ASCII token does. A browser percent-encodes everything
  * else on its way into `location.hash` — a space becomes `%20` and a non-Latin
  * letter three bytes of `%xx` — so `#seed=rush hour` would come back as
- * `rush%20hour`, hash to something else entirely, and hand back a *different*
- * building to the player who shared the link. A comma cannot get here at all:
+ * `rush%20hour`, hash to something else entirely, and send *different people*
+ * into the building than the ones the link was shared for. Not a different
+ * building: floors, elevators and capacities come from the challenge number or
+ * the sandbox parameters, and the seed has no say in any of them — see
+ * {@link RouteParams.seed}. A comma cannot get here at all:
  * {@link parseQuery} splits on it. What is left still spells every generated
  * seed and every label worth typing.
  */
@@ -371,9 +374,9 @@ const SEED_PATTERN = /^[\w.-]+$/;
  *
  * Anything unusable is refused and replaced by a fresh seed rather than
  * repaired, for the reason `floors=8.5` is refused rather than rounded: a seed
- * is the one run it names or it is not that run at all, and quietly playing a
- * neighbouring one is how a player ends up debugging against a building nobody
- * can reproduce.
+ * is the one passenger stream it names or it is not that stream at all, and
+ * quietly playing a neighbouring one is how a player ends up debugging against
+ * a run nobody can reproduce.
  *
  * @param value - The raw parameter, if it was present.
  * @returns The seed, or `null` to let the world draw its own.

@@ -493,8 +493,10 @@ describe("resolveRoute seed validation", () => {
 
   it("refuses a seed that could not survive the address bar", () => {
     // A browser percent-encodes anything outside the ASCII token set on its way
-    // into location.hash, so "#seed=rush hour" comes back as "rush%20hour" and
-    // hashes to a different building than the one that was shared.
+    // into location.hash, so "#seed=rush hour" comes back as "rush%20hour",
+    // which hashes to a different stream and sends different people into the
+    // building than the ones the link was shared for. The building itself comes
+    // from the challenge number or the sandbox parameters, not from here.
     for (const hash of ["#seed=rush hour", "#seed=привет", "#seed=a/b", "#seed=100%"]) {
       expect(route(hash).seed, hash).toBeNull();
     }
