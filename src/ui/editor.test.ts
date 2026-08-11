@@ -13,7 +13,34 @@ import {
   CodeEditor,
   codeMirrorView,
 } from "./editor.ts";
+import type { TextReplacement } from "./editor.ts";
 import { FakeTextEditorView, MemoryStorage } from "./test-helpers.ts";
+
+/**
+ * The shared fake, taught the difference between an edit and a swap.
+ *
+ * {@link FakeTextEditorView} predates {@link TextReplacement} and raises
+ * `onChange` for every replacement, while the surface that ships raises nothing
+ * for a swap — it builds a new state, and a document a state is built with is
+ * not a document change. A fake that is wrong in that direction hides exactly
+ * the bugs this file is here to catch: an autosave the editor is supposed to
+ * cancel gets rescheduled by the fake's spurious `onChange` and cancelled
+ * again, so removing the cancellation breaks nothing that the fake can see.
+ *
+ * It belongs in `test-helpers.ts` beside the fake it corrects, but that file is
+ * shared with tests being written next door; this subclass is the version that
+ * only affects this file, and it should disappear into the shared fake once the
+ * dust settles.
+ */
+class SwapAwareView extends FakeTextEditorView {
+  override setValue(value: string, replacement: TextReplacement = "edit"): void {
+    if (replacement === "swap") {
+      this.value = value;
+      return;
+    }
+    super.setValue(value);
+  }
+}
 
 /**
  * Builds an editor over a fake view and hands both back.
@@ -29,7 +56,7 @@ function setUp(storage: Storage = new MemoryStorage()): {
   let view: FakeTextEditorView | undefined;
   const editor = new CodeEditor(
     (handlers, initialValue) => {
-      view = new FakeTextEditorView(handlers, initialValue);
+      view = new SwapAwareView(handlers, initialValue);
       return view;
     },
     { storage },
@@ -282,16 +309,29 @@ describe("CodeEditor buffers", () => {
   it("does not let a countdown started in one buffer go off in the next", () => {
     // The autosave is debounced by a second, so a switch always happens with a
     // write pending. It must land in the buffer whose text it is, and once.
-    const { editor, view, storage } = setUp();
+    const storage = new MemoryStorage();
+    const setItem = vi.spyOn(storage, "setItem");
+    const { editor, view } = setUp(storage);
+    const saved = vi.fn();
+    editor.on("saved", saved);
     editor.openTutorialBuffer(1, "// task 1");
     view.type("// typed in task 1");
 
     editor.openTutorialBuffer(2, "// task 2");
+    const writesBeforeTheCountdown = setItem.mock.calls.length;
     vi.advanceTimersByTime(AUTOSAVE_DELAY_MS * 2);
 
     expect(storage.getItem("develevateTutorialCode_1")).toBe("// typed in task 1");
     expect(storage.getItem("develevateTutorialCode_2")).toBe("// task 2");
     expect(view.getValue()).toBe("// task 2");
+    // Cancelled, not merely harmless. A countdown left running fires with the
+    // next task open; today it would write that task's own starter program back
+    // over itself, which looks like nothing, and announce "Code saved ..." for a
+    // save nobody asked for. The day the switch stops seeding storage up front
+    // it would be one task's work under the other's key instead, so what is
+    // pinned is that nothing at all happens a second after a switch.
+    expect(setItem.mock.calls.length).toBe(writesBeforeTheCountdown);
+    expect(saved).not.toHaveBeenCalled();
   });
 
   it("autosaves later typing into the buffer that is open", () => {
@@ -615,6 +655,46 @@ describe("CodeEditor over a real editing surface", () => {
   }
 
   /**
+   * Finds the editing surface the editor mounted.
+   *
+   * @param parent - The element the editor was mounted in.
+   * @returns The live view.
+   */
+  function viewIn(parent: HTMLElement): EditorView {
+    const view = EditorView.findFromDOM(parent);
+    if (view === null) {
+      throw new Error("The editor did not mount");
+    }
+    return view;
+  }
+
+  /**
+   * Adds a line to the end of the document, as typing there would.
+   *
+   * Through a dispatch on the live view rather than through `setCode`, because
+   * what these tests need is an ordinary edit of the kind the undo history
+   * records — the same thing a keystroke produces, and the thing a buffer
+   * switch must not be.
+   *
+   * @param parent - The element the editor was mounted in.
+   * @param line - The text to append.
+   */
+  function typeLine(parent: HTMLElement, line: string): void {
+    const view = viewIn(parent);
+    view.dispatch({ changes: { from: view.state.doc.length, insert: line } });
+  }
+
+  /**
+   * Everything ever written to the player's own key, in order.
+   *
+   * @param setItem - The spy on the storage the editor was given.
+   * @returns The programs written, oldest first.
+   */
+  function playerWrites(setItem: ReturnType<typeof vi.spyOn<Storage, "setItem">>): string[] {
+    return setItem.mock.calls.filter(([key]) => key === CODE_STORAGE_KEY).map(([, value]) => value);
+  }
+
+  /**
    * Presses the editor's own undo shortcut, as a player would.
    *
    * Through a keystroke rather than by calling `undo()` from
@@ -626,10 +706,7 @@ describe("CodeEditor over a real editing surface", () => {
    * @param parent - The element the editor was mounted in.
    */
   function pressUndo(parent: HTMLElement): void {
-    const view = EditorView.findFromDOM(parent);
-    if (view === null) {
-      throw new Error("The editor did not mount");
-    }
+    const view = viewIn(parent);
     // Both spellings of Mod, since only one of them is bound on any given
     // platform and jsdom is not the platform the player is on.
     for (const modifier of [{ ctrlKey: true }, { metaKey: true }]) {
@@ -682,21 +759,60 @@ describe("CodeEditor over a real editing surface", () => {
     // destroyed by a single keystroke, with no backup written, so "Undo reset"
     // could not bring it back either. Measured before the fix: undo applied,
     // document "// task 1 skeleton", storage the same a second later.
-    const { editor, storage, parent } = mount("// the program the player left behind");
+    //
+    // The line typed into the task is what gives the test its teeth. Undo can
+    // only reach back through a history that has something in it, so a switch
+    // made with nothing typed since the last one is undoable-in-principle and
+    // harmless-in-practice, and a test that never types passes under
+    // implementations that do let the history cross.
+    const { editor, storage, setItem, parent } = mount("// the program the player left behind");
 
     editor.openTutorialBuffer(1, "// task 1 skeleton");
     pressUndo(parent);
     pressUndo(parent);
     expect(editor.getCode()).toBe("// task 1 skeleton");
 
+    typeLine(parent, "\n// my attempt");
     editor.openPlayerBuffer();
     pressUndo(parent);
     pressUndo(parent);
     expect(editor.getCode()).toBe("// the program the player left behind");
 
     vi.advanceTimersByTime(AUTOSAVE_DELAY_MS * 2);
-    expect(storage.getItem(CODE_STORAGE_KEY)).toBe("// the program the player left behind");
-    expect(storage.getItem("develevateTutorialCode_1")).toBe("// task 1 skeleton");
+    // The player's key is written once, on the way out of the player's buffer,
+    // and with the player's own program. Asserting the whole list of writes and
+    // not just the value left behind is deliberate: the damage this test exists
+    // to catch is a write of the wrong text, which a later correct write would
+    // paper over by the time the run ends.
+    expect(playerWrites(setItem)).toEqual(["// the program the player left behind"]);
+    expect(storage.getItem("develevateTutorialCode_1")).toBe("// task 1 skeleton\n// my attempt");
+  });
+
+  it("saves a half-typed task into that task when the player leaves mid-countdown", () => {
+    // The autosave is debounced by a second, so a player who types and clicks
+    // straight through to the next task leaves with a countdown still running.
+    // It has to be cancelled at the switch and the text written where it was
+    // typed: left running, it fires with the next buffer open and writes one
+    // task's work under the other's key — and if the next buffer is the
+    // player's own, over the program they came back for.
+    const { editor, storage, setItem, parent } = mount("// the program the player left behind");
+    const saved = vi.fn();
+    editor.on("saved", saved);
+
+    editor.openTutorialBuffer(2, "// task 2 skeleton");
+    typeLine(parent, "\n// halfway through");
+    vi.advanceTimersByTime(AUTOSAVE_DELAY_MS - 1);
+    editor.openPlayerBuffer();
+    vi.advanceTimersByTime(AUTOSAVE_DELAY_MS * 2);
+
+    expect(storage.getItem("develevateTutorialCode_2")).toBe(
+      "// task 2 skeleton\n// halfway through",
+    );
+    expect(playerWrites(setItem)).toEqual(["// the program the player left behind"]);
+    expect(editor.getCode()).toBe("// the program the player left behind");
+    // Leaving a buffer is not something the player asked to have saved, so the
+    // "Code saved ..." line stays as it was.
+    expect(saved).not.toHaveBeenCalled();
   });
 
   it("still undoes the player's own typing within a buffer", () => {
@@ -705,12 +821,8 @@ describe("CodeEditor over a real editing surface", () => {
     // takes back the line they just wrote, in a tutorial task as anywhere else.
     const { editor, parent } = mount();
     editor.openTutorialBuffer(1, "// task 1 skeleton");
-    const view = EditorView.findFromDOM(parent);
-    if (view === null) {
-      throw new Error("The editor did not mount");
-    }
 
-    view.dispatch({ changes: { from: view.state.doc.length, insert: "\n// second thoughts" } });
+    typeLine(parent, "\n// second thoughts");
     expect(editor.getCode()).toBe("// task 1 skeleton\n// second thoughts");
     pressUndo(parent);
 

@@ -640,17 +640,27 @@ export function codeMirrorView(parent: HTMLElement): TextEditorViewFactory {
         if (replacement === "swap") {
           // A whole new state, which is the only way to be rid of the undo
           // history: `basicSetup` brings `history()` in, and CodeMirror offers
-          // no command that empties it. The two alternatives are both wrong
-          // rather than merely clumsy. Dispatching the swap with
-          // `Transaction.addToHistory.of(false)` keeps every step of the *old*
-          // buffer in the history, so undo either applies those changes to the
-          // new document — one buffer's text into another — or throws, since
-          // the document they were recorded against is no longer there.
-          // Reconfiguring a compartment holding `history()` would work, but the
-          // instance to reconfigure is inside `basicSetup`, out of reach.
-          // Building the state also means the swapped-in document is the one
-          // the state was *built* with, so it raises no `onChange`, exactly as
-          // at construction.
+          // no command that empties it.
+          //
+          // The alternative of dispatching the swap with
+          // `Transaction.addToHistory.of(false)` was measured, not assumed, and
+          // it does hold today: the old buffer's recorded changes are mapped
+          // through the replacement, and because the replacement covers the
+          // whole document they all map to nothing, so undo after a swap does
+          // nothing rather than pasting the old buffer's text in. It was
+          // rejected because that safety is an accident of the swap being a
+          // full-document replacement — the day it becomes a narrower change,
+          // to keep the scroll position or to animate, the mapped-away history
+          // comes back to life pointing at another buffer's program — and
+          // because it leaves the player an undo that is offered and silently
+          // does nothing. Dropping the history says what is true: the program
+          // they were editing is not on screen any more.
+          //
+          // Reconfiguring a compartment holding `history()` would also work,
+          // but the instance to reconfigure is inside `basicSetup`, out of
+          // reach. Building the state has one more property worth having: the
+          // swapped-in document is the document the state was *built* with, so
+          // it raises no `onChange`, exactly as at construction.
           view.setState(EditorState.create({ doc: value, extensions }));
           return;
         }
