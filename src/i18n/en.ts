@@ -328,6 +328,8 @@ export const EN_MESSAGES = {
   "docs.play.heading": "How to play",
   "docs.play.apply.html":
     'Enter your code in the input window below the game view, and press the <span class="emphasis-color">Apply</span> button to start the challenge.<br /> You can increase or decrease the speed of time by pressing the {increase} and {decrease} buttons.',
+  "docs.play.statistics.html":
+    'Beside the building is a panel that keeps score while a run is going. Most of it says what it is; <span class="emphasis-color">Moves</span> does not. It counts floors travelled: one move each time an elevator reaches the next floor, whether it stops there or carries straight on. Two of the challenges are judged on that number as well as on the people delivered, so on those a car that shuttles about empty can lose the run.',
   "docs.play.shortcuts.html":
     "Inside the editor, <kbd data-mod-key>Ctrl</kbd>+<kbd>Enter</kbd> applies your program and restarts the challenge, <kbd data-mod-key>Ctrl</kbd>+<kbd>S</kbd> saves it, <kbd>Tab</kbd> indents, and <kbd>Esc</kbd> moves the focus back out of the editor.",
   "docs.play.debugging.html":

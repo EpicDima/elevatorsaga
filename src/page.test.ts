@@ -163,6 +163,23 @@ describe("index.html", () => {
     },
   );
 
+  it("keeps its one tooltip from being the only copy of what it says", () => {
+    // A `title` is a mouse-only tooltip: it never opens for a keyboard or a
+    // touch screen, and on a plain `<span>` it is not an accessible description
+    // either, because a span has no role for one to hang off. The seed's caveat
+    // was one of these and became a `<details>`; this one is left where it is,
+    // because what it says is a paragraph of the documentation now as well, and
+    // a tooltip that repeats something is a shortcut to it rather than the only
+    // way to it. Asserted against the English catalogue because this page is
+    // the English one -- the Russian copy of the paragraph names the Russian
+    // word, and is checked against `documentation.ru.html` further down.
+    const titled = [...page.querySelectorAll("[title]")];
+    expect(titled.map((element) => element.className)).toEqual(["key"]);
+    const statistic = titled[0]?.textContent ?? "";
+    expect(statistic).not.toBe("");
+    expect(message("en", "docs.play.statistics.html")).toContain(statistic);
+  });
+
   it("lets a keyboard reach the building, which scrolls sideways", () => {
     // .world is a horizontal scroll container, and a scroll container that
     // cannot take focus cannot be scrolled without a mouse. Being in the tab
@@ -1114,6 +1131,7 @@ const PARAGRAPHS: readonly MessageKey[] = [
   "docs.about.p1.html",
   "docs.about.p2.html",
   "docs.play.apply.html",
+  "docs.play.statistics.html",
   "docs.play.shortcuts.html",
   "docs.play.debugging.html",
   "docs.basics.declare.html",
