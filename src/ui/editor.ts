@@ -669,6 +669,17 @@ export class CodeEditor extends Observable<CodeEditorEvents> {
       // keeps nothing for anybody — a private window — has nothing to lose
       // here, and refusing to reset there would break the button for a whole
       // class of players to protect a program the store never had.
+      //
+      // A store that will not answer reads is counted with them, though it may
+      // well be holding something. That was measured rather than assumed: when
+      // reads throw and writes are taken, the constructor has already shown the
+      // starting program, and the first keystroke's autosave overwrites the
+      // stored one — with no Reset anywhere in it. Refusing here would save
+      // nothing that typing does not destroy a second later, and there is no
+      // way from in here to tell that store apart from a private window, which
+      // throws from reads exactly the same way. What is left of the program in
+      // both cases is the copy `#write` kept in this page, which "Undo reset"
+      // reads back for as long as the tab is open.
       readStorage(this.#storage, this.#buffer.codeKey).state === "text"
     ) {
       // The store took the program and will not take a copy of it, which is
