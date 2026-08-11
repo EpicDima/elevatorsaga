@@ -475,6 +475,10 @@ function presentUser(parent: HTMLElement, user: User): void {
     if (user.done) {
       element.classList.add("leaving");
     }
+    // Toggled rather than added, because this one is handed on: the passenger
+    // who has waited longest changes as often as the elevators reach people,
+    // and the world emits this event on both of them when it does.
+    setClass(element, "waiting-longest", user.waitingLongest);
   });
   user.on("removed", () => {
     element.remove();

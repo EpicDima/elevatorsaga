@@ -623,6 +623,87 @@ describe("World", () => {
       expect(world.maxWaitTime).toBeCloseTo(2.0, 10);
     });
 
+    it("says which passenger the longest wait belongs to", () => {
+      // Upstream #135: the panel reports a longest wait and the player has no
+      // way to tell whose it is. `users` is in spawn order, so the answer is
+      // the first one still in the building -- and only that one.
+      const world = createWorld({ spawnRate: 1, floorCount: 2, elevatorCount: 1 });
+      const spawned = collectUsers(world);
+      world.update(0.1);
+      world.update(1.0);
+
+      expect(spawned.length).toBeGreaterThan(1);
+      expect(world.users.filter((user) => user.waitingLongest)).toEqual([at(spawned, 0)]);
+    });
+
+    it("hands the flag on when that passenger is delivered", () => {
+      // The wait the panel reports is the wait in progress, so the moment the
+      // worst of them steps out the mark has to move to whoever is now worst.
+      const world = createWorld({ spawnRate: 1, floorCount: 2, elevatorCount: 1 });
+      const spawned = collectUsers(world);
+      world.update(0.1);
+      world.update(1.0);
+      const delivered = at(spawned, 0);
+      delivered.done = true;
+      delivered.trigger("exited_elevator", at(world.elevators, 0));
+
+      world.update(1.0);
+
+      expect(delivered.waitingLongest).toBe(false);
+      expect(world.users).toContain(delivered);
+      expect(at(spawned, 1).waitingLongest).toBe(true);
+    });
+
+    it("marks nobody while everybody left in the world is walking off", () => {
+      // A delivered passenger stays in `users` for another second and a half,
+      // and their wait has stopped being reported, so nothing may be marked --
+      // not the last one to arrive, and not the last one to be marked either.
+      const world = createWorld({ spawnRate: 0.5, floorCount: 2, elevatorCount: 1 });
+      const spawned = collectUsers(world);
+      world.update(0.1);
+      world.update(1.0);
+      const only = at(spawned, 0);
+      expect(only.waitingLongest).toBe(true);
+
+      only.done = true;
+      only.trigger("exited_elevator", at(world.elevators, 0));
+      world.update(0.1);
+
+      expect(world.users).toContain(only);
+      expect(world.users.some((user) => user.waitingLongest)).toBe(false);
+    });
+
+    it("announces the handover, because the passengers it moves between are still", () => {
+      // The passenger who has waited longest is, by definition, the one least
+      // likely to be moving, and a presenter only redraws what announces
+      // itself. A handover must cost one announcement each way and no more,
+      // however many frames pass on either side of it.
+      const world = createWorld({ spawnRate: 1, floorCount: 2, elevatorCount: 1 });
+      const spawned = collectUsers(world);
+      world.update(0.1);
+      world.update(1.0);
+      const first = at(spawned, 0);
+      const second = at(spawned, 1);
+      const firstRedraws = vi.fn();
+      const secondRedraws = vi.fn();
+      first.on("new_display_state", firstRedraws);
+      second.on("new_display_state", secondRedraws);
+
+      world.update(1.0);
+      world.update(1.0);
+      expect(firstRedraws).not.toHaveBeenCalled();
+      expect(secondRedraws).not.toHaveBeenCalled();
+
+      first.done = true;
+      first.trigger("exited_elevator", at(world.elevators, 0));
+      world.update(1.0);
+
+      expect(firstRedraws).toHaveBeenCalledTimes(1);
+      expect(secondRedraws).toHaveBeenCalledTimes(1);
+      world.update(1.0);
+      expect(secondRedraws).toHaveBeenCalledTimes(1);
+    });
+
     it("drops users that have flagged themselves for removal", () => {
       const world = createWorld({ spawnRate: 0.5 });
       const spawned = collectUsers(world);

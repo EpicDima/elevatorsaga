@@ -47,6 +47,26 @@ describe("User class", () => {
     expect(u.destinationFloor).toBe(0);
     expect(u.done).toBe(false);
     expect(u.removeMe).toBe(false);
+    expect(u.waitingLongest).toBe(false);
+  });
+
+  it("announces a change of the longest-wait flag, and only a change", () => {
+    // The world sets this every frame with the same answer, so repeating
+    // itself has to be free; the passenger it is true of is standing still,
+    // so a change has to be announced or nothing would redraw them.
+    const u = new User(70);
+    const redraws = vi.fn();
+    u.on("new_display_state", redraws);
+
+    u.setWaitingLongest(true);
+    u.setWaitingLongest(true);
+    expect(u.waitingLongest).toBe(true);
+    expect(redraws).toHaveBeenCalledTimes(1);
+
+    u.setWaitingLongest(false);
+    u.setWaitingLongest(false);
+    expect(u.waitingLongest).toBe(false);
+    expect(redraws).toHaveBeenCalledTimes(2);
   });
 });
 

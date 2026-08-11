@@ -678,6 +678,22 @@ describe("presentWorld", () => {
     user.trigger("removed");
     expect(parent.querySelector(".user")).toBeNull();
   });
+
+  it("marks the passenger who has waited longest, and unmarks them again", () => {
+    // The class the stylesheet colours. It has to come off as well as go on:
+    // the world hands the title over rather than handing it out once.
+    const world = createWorld({ floorCount: 3, elevatorCount: 1 });
+    const parent = draw(world);
+    const user = new User(60);
+    world.trigger("new_user", user);
+    const element = requireElement(".user", parent);
+
+    user.setWaitingLongest(true);
+    expect(element.classList.contains("waiting-longest")).toBe(true);
+
+    user.setWaitingLongest(false);
+    expect(element.classList.contains("waiting-longest")).toBe(false);
+  });
 });
 
 describe("describeError", () => {

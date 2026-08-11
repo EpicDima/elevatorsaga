@@ -65,3 +65,39 @@ test("plays a challenge to completion when Start is pressed", async ({ page }) =
   await expect(page.getByRole("button", { name: /Restart/ })).toBeVisible();
   expect(await statisticValue(page, "Transported")).toBeGreaterThanOrEqual(15);
 });
+
+test("colours the passenger whose wait the statistics panel is reporting", async ({ page }) => {
+  // The chain behind "Max wait time" end to end: the world picks the passenger,
+  // the presenter puts a class on them, and the stylesheet turns that into a
+  // colour. Only the last of those three is out of reach of the unit tests, and
+  // it is the only one the player can see.
+  await page.goto("/#challenge=1,devtest,timescale=16");
+  await page.getByRole("button", { name: "Start" }).click();
+
+  // Both counts in one evaluation, because they are counted a frame apart
+  // otherwise and the frame in between delivers somebody. Exactly one is
+  // marked, never two: there is one longest wait, and the mark is handed from
+  // passenger to passenger rather than handed out.
+  await expect
+    .poll(
+      async () =>
+        page.evaluate(() => ({
+          inACrowd: document.querySelectorAll(".user").length > 1,
+          marked: document.querySelectorAll(".user.waiting-longest").length,
+        })),
+      { timeout: 30_000 },
+    )
+    .toEqual({ inACrowd: true, marked: 1 });
+
+  // Pausing before reading the colour, so that the assertion is not racing the
+  // end of the challenge: once the last passenger is delivered there is nothing
+  // marked to read a colour off, and the failure would be about the wrong thing.
+  await page.getByRole("button", { name: "Pause" }).click();
+  // Yellow rather than the white of everybody else. The value is measured at
+  // `.user.waiting-longest` in src/styles/style.css, against every surface a
+  // passenger is ever drawn on.
+  await expect(building(page).locator(".user.waiting-longest")).toHaveCSS(
+    "color",
+    "rgb(255, 255, 0)",
+  );
+});

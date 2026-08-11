@@ -58,6 +58,13 @@
   --color-emphasis: #f1f2d8;
   --color-emphasis-on-page: #33351f;
   --color-error: #d54;
+  /*
+   * The one passenger the game is pointing at, inside the building. It is not
+   * --color-error, which is what a message on the page is coloured: this mark
+   * has to survive three backgrounds at once and #d54 survives one of them.
+   * The measurements are with the rule that uses it, at `.user.waiting-longest`.
+   */
+  --color-attention: #ff0;
   --color-focus: #333;
   --color-world: #333;
   --color-elevator: #4f8686;
@@ -836,6 +843,47 @@ kbd {
 
 .user.leaving {
   color: #eee;
+}
+
+/*
+ * The passenger whose wait is the one the challenge is about to be lost on.
+ *
+ * Upstream #135 asked for this and it was never built: the panel on the right
+ * says the longest wait is 14.6 seconds, and the player has no way to tell
+ * which of thirty identical white figures that is, so it reports a problem it
+ * gives no way to look at. src/game/world.ts already measured that number
+ * every frame; it now remembers whose it is.
+ *
+ * A passenger is a graphical object rather than text, so the bar is WCAG
+ * 1.4.11's 3:1, and it has to be cleared against every surface a passenger is
+ * ever drawn on -- which is three surfaces, not one. They wait on a floor,
+ * whose band is --color-world under a white gradient running from 10% to 24%;
+ * they ride inside a car painted --color-elevator; and they walk off the right
+ * edge across the bare --color-world. The wait being counted here runs until
+ * they step out, so the marked passenger passes through all of it. Measured in
+ * Chromium against the composited colours:
+ *
+ *                              #333    #474747  #5c5c5c  #646464  #4f8686
+ *                              shaft   floor 10%    20%      24%      car
+ *   #ff0  --color-attention   11.77      8.65     6.23     5.51     3.84
+ *   #d54  --color-error        3.28      2.41     1.74     1.54     1.07
+ *   #fff  the other passengers 12.63     9.29     6.69     5.92     4.13
+ *
+ * Red is the colour this obviously wanted to be, and it is the one colour that
+ * cannot be used: on the lit part of a floor band -- which is exactly where a
+ * passenger stands while the wait being complained about accrues -- #d54 is at
+ * 1.54:1, and inside a car it is at 1.07:1 and simply gone. Yellow clears the
+ * bar everywhere with the car as its worst case, and being the furthest hue
+ * from white it is also the easiest to pick out of a row of white figures,
+ * which is the actual job. It is not --color-lit's green, which already means
+ * "this button is pressed" a few pixels away.
+ *
+ * Colour is not the only way to find this passenger: the number it belongs to
+ * is in the statistics panel, and the mark is a shortcut to it rather than the
+ * only telling of it (1.4.1).
+ */
+.user.waiting-longest {
+  color: var(--color-attention);
 }
 
 /* --------------------------------------------------------------- Statistics */

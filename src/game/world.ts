@@ -535,6 +535,14 @@ export class World extends Observable<WorldEvents> {
    */
   readonly #walkOffRandom: RandomSource;
   #elapsedSinceSpawn: number;
+  /**
+   * The passenger whose wait is the one still growing, or `null` for nobody.
+   *
+   * Remembered between frames only so that the handover can be an event rather
+   * than a poll: the passenger who loses the title has to hear about it as much
+   * as the one who gains it.
+   */
+  #longestWaitingUser: User | null = null;
 
   /**
    * @param options - Challenge options; missing values take the defaults.
@@ -653,6 +661,26 @@ export class World extends Observable<WorldEvents> {
   }
 
   /**
+   * Hands the "waiting longest" title from whoever held it to whoever holds it.
+   *
+   * Called once a frame with the answer the update loop just measured, so it is
+   * given the same passenger over and over and has to be cheap when nothing has
+   * changed: the identity check is what makes it so, and it is also what keeps
+   * the handover to two `new_display_state` events instead of two a frame.
+   *
+   * @param user - The passenger whose wait is now the longest, or `null` when
+   * nobody is waiting — every passenger delivered, or none spawned yet.
+   */
+  #setLongestWaitingUser(user: User | null): void {
+    if (this.#longestWaitingUser === user) {
+      return;
+    }
+    this.#longestWaitingUser?.setWaitingLongest(false);
+    this.#longestWaitingUser = user;
+    user?.setWaitingLongest(true);
+  }
+
+  /**
    * Offers an arriving elevator to the floor it stopped at and to its waiters.
    *
    * @param elevator - The elevator whose doors just opened.
@@ -748,6 +776,12 @@ export class World extends Observable<WorldEvents> {
       e.updateElevatorMovement(dt);
     }
     const users = this.users;
+    // Who the growing wait belongs to, decided in the same pass that measures
+    // it. Ties cannot arise in practice — `users` is in spawn order and no two
+    // passengers share a spawn time — and if they ever did, `>` keeps the one
+    // who arrived first, which is the one a player would point at.
+    let longestWait = -1;
+    let longestWaiter: User | null = null;
     for (let i = 0, len = users.length; i < len; ++i) {
       const u = requireAt(users, i, "user");
       u.update(dt);
@@ -759,9 +793,15 @@ export class World extends Observable<WorldEvents> {
       // Their real wait was already recorded, exactly once, by the
       // `exited_elevator` handler in registerUser.
       if (!u.done) {
-        this.maxWaitTime = Math.max(this.maxWaitTime, this.elapsedTime - u.spawnTimestamp);
+        const waited = this.elapsedTime - u.spawnTimestamp;
+        this.maxWaitTime = Math.max(this.maxWaitTime, waited);
+        if (waited > longestWait) {
+          longestWait = waited;
+          longestWaiter = u;
+        }
       }
     }
+    this.#setLongestWaitingUser(longestWaiter);
 
     for (let i = users.length - 1; i >= 0; i--) {
       const u = requireAt(users, i, "user");

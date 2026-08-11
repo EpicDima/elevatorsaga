@@ -50,6 +50,15 @@ export class User extends Movable<UserEvents> {
   displayType: UserDisplayType | undefined = undefined;
   /** World time at which the passenger appeared; assigned by the world. */
   spawnTimestamp = 0.0;
+  /**
+   * Whether this is the passenger who has been waiting longest right now.
+   *
+   * Set by the world, read by whatever is drawing. Nothing in the simulation
+   * looks at it: a passenger who knows they are being watched behaves exactly
+   * like one who does not, which is what keeps this a change to the picture
+   * rather than to the game.
+   */
+  waitingLongest = false;
   /** Subscription to the current elevator's `exit_available`, while riding. */
   exitAvailableHandler: ExitAvailableHandler | null = null;
 
@@ -71,6 +80,25 @@ export class User extends Movable<UserEvents> {
     super();
     this.weight = weight;
     this.#random = random;
+  }
+
+  /**
+   * Marks this passenger as the one waiting longest, or stops marking them.
+   *
+   * Emits `new_display_state` when the answer changes, because the passenger
+   * this is true of is usually standing perfectly still — that is rather the
+   * point of them — and a presenter that only redrew moving things would never
+   * hear about it. Emitting on a change rather than on every call keeps it to
+   * two events per handover, however many frames the handover survives.
+   *
+   * @param waitingLongest - Whether this is now the longest wait in the world.
+   */
+  setWaitingLongest(waitingLongest: boolean): void {
+    if (this.waitingLongest === waitingLongest) {
+      return;
+    }
+    this.waitingLongest = waitingLongest;
+    this.emitMovable("new_display_state", this);
   }
 
   /**
