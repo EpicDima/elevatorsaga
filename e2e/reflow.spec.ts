@@ -15,10 +15,19 @@
 
 import { expect, test } from "@playwright/test";
 
-/** The pages the build emits, by the path they are served from. */
+/**
+ * The pages the build emits, by the path they are served from.
+ *
+ * The translated page is measured separately rather than assumed to behave like
+ * the one it was translated from. Russian prose runs perceptibly longer than the
+ * English it renders — the words are longer and fewer of them break — so the
+ * page that fits is not evidence about the page beside it, and the table of API
+ * descriptions is exactly where that difference lands.
+ */
 const PAGES = [
   { name: "the game", path: "/" },
   { name: "the help page", path: "/documentation.html" },
+  { name: "the Russian help page", path: "/documentation.ru.html" },
 ] as const;
 
 /** Viewport widths a phone reader is likely to arrive with. */

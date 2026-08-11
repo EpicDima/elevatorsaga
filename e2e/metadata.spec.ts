@@ -22,7 +22,7 @@ async function fetchReference(page: Page, url: string): Promise<APIResponse> {
   return page.request.get(new URL(url, page.url()).toString());
 }
 
-for (const path of ["/", "/documentation.html"]) {
+for (const path of ["/", "/documentation.html", "/documentation.ru.html"]) {
   test(`serves the favicon ${path} asks for`, async ({ page }) => {
     await page.goto(path);
 
