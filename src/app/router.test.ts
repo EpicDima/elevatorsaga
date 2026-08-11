@@ -672,7 +672,14 @@ describe("resolveRoute tutorial validation", () => {
     });
   });
 
-  it("refuses the rest of the url on the track exactly as anywhere else", () => {
+  it("refuses an unusable value on the track exactly as anywhere else", () => {
+    // Named for what it still checks. It said "the rest of the url" until `seed`
+    // stopped being refused here for the reason it is refused everywhere else --
+    // `rush hour` is unusable, but on the track even a good seed goes, so this
+    // case no longer says anything about `seed` that is particular to the track.
+    // What it does say is that adding the track's own refusal did not disturb
+    // the ordinary ones, and that the two kinds arrive in one list in the order
+    // the URL wrote them.
     const params = route("#challenge=tutorial-3,timescale=fast,seed=rush hour");
     expect(params.tutorialIndex).toBe(2);
     expect(params.timeScale).toBe(DEFAULT_TIME_SCALE);
@@ -819,6 +826,27 @@ describe("resolveRoute seed on the learning track", () => {
     route("#challenge=tutorial-5,seed=42a");
     expect(console.warn).toHaveBeenCalledWith(
       `Ignoring seed "42a": a learning task plays its own pinned seed`,
+    );
+  });
+
+  it("refuses an empty seed on the track, which is written but says nothing", () => {
+    // `seed=` is present and unusable at once, and the two sides of the branch
+    // disagree about which of those matters: a challenge calls it invalid and
+    // draws a fresh one, the track says the task pins its own. Both refuse it,
+    // so the key leaves the URL either way and the outcomes are identical --
+    // only the sentence differs, and the track's is the more useful of the two,
+    // because "write a better seed" is advice a task cannot take.
+    //
+    // Pinned because the guard is `!== undefined` rather than a truthiness test,
+    // and truthiness is the spelling somebody reaches for first. It would let
+    // `seed=` through, leaving a key in the address bar that the run is not
+    // using, on the one route whose whole point is that the URL says what is
+    // being played.
+    const params = route("#challenge=tutorial-3,seed=");
+    expect(params.seed).toBeNull();
+    expect(params.refusedKeys).toEqual(["seed"]);
+    expect(console.warn).toHaveBeenCalledWith(
+      `Ignoring seed "": a learning task plays its own pinned seed`,
     );
   });
 

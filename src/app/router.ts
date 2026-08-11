@@ -570,11 +570,17 @@ function refuseSeedOnTrack(query: RouteQuery, refuse: Refuse): null {
 /**
  * Whether a `challenge` parameter asks for the sandbox.
  *
- * @param value - The raw parameter, if it was present.
+ * Case is folded and whitespace is not, because whitespace has already gone:
+ * {@link parseQuery} strips it from every key and every value as it reads them,
+ * which is the point of "ignores whitespace around a key and around a value"
+ * owning that rule alone. A `trim()` here would be a second answer to a question
+ * already settled, and an untested one — nothing can reach it to prove it works.
+ *
+ * @param value - The parsed parameter, if it was present.
  * @returns Whether it names the sandbox, in any casing.
  */
 function isSandboxRoute(value: string | undefined): boolean {
-  return value?.trim().toLowerCase() === SANDBOX_CHALLENGE;
+  return value?.toLowerCase() === SANDBOX_CHALLENGE;
 }
 
 /**
@@ -594,11 +600,13 @@ function isSandboxRoute(value: string | undefined): boolean {
  * resolver it guards can take the string it is handed instead of restating a
  * case this branch has already decided.
  *
- * @param value - The raw parameter, if it was present.
+ * @param value - The parsed parameter, if it was present. Already free of
+ * surrounding whitespace; see {@link isSandboxRoute} for why none is stripped
+ * again here.
  * @returns Whether it names a task of the track, in any casing.
  */
 function isTutorialRoute(value: string | undefined): value is string {
-  return value?.trim().toLowerCase().startsWith(TUTORIAL_CHALLENGE_PREFIX) === true;
+  return value?.toLowerCase().startsWith(TUTORIAL_CHALLENGE_PREFIX) === true;
 }
 
 /**
@@ -629,12 +637,13 @@ function isTutorialRoute(value: string | undefined): value is string {
  * where `tutorial-1` lands. {@link startRouter} then writes the first task's
  * address into the bar, because deleting the key would put them on a challenge.
  *
- * @param value - The raw parameter, already known to be spelled like a task.
+ * @param value - The parsed parameter, already known to be spelled like a task
+ * and already free of surrounding whitespace; see {@link isSandboxRoute}.
  * @param refuse - Records the key when the value cannot be used.
  * @returns A zero-based index into `tutorialTasks`; `0` for anything unusable.
  */
 function resolveTutorialIndex(value: string, refuse: Refuse): number {
-  const id = value.trim().toLowerCase();
+  const id = value.toLowerCase();
   const index = tutorialTasks.findIndex((task) => task.id === id);
   if (index === -1) {
     console.warn(`Invalid tutorial task "${value}", starting the first task instead`);
@@ -1065,6 +1074,18 @@ export function startRouter(onRoute: RouteHandler, options: RouterOptions): () =
     // The task being played when a task address was refused, and the only
     // spelling of it. `undefined` when the route is not on the learning track,
     // and unreachable when it is: the index came out of this table.
+    //
+    // Indexed rather than hard-coded to the first task, though today those are
+    // the same thing and no test can tell them apart: `resolveTutorialIndex` is
+    // the only thing that refuses a `challenge` on the track, and it refuses
+    // only in the branch where it has already fallen back to `0`. So a refused
+    // task address always means task one. Written generally anyway, because the
+    // day a task is refused for some reason other than being unspellable -- not
+    // yet unlocked, say, or withdrawn -- `tutorialTasks[0]` would quietly write
+    // the first task's address over whatever they were actually given, and the
+    // URL would go back to lying about the run. That is the failure this whole
+    // function exists to prevent, so it should not depend on which refusals
+    // happen to exist.
     const task = tutorialIndex === null ? undefined : tutorialTasks[tutorialIndex];
     const kept = new Map(query);
     for (const key of refusedKeys) {
