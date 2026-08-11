@@ -132,7 +132,15 @@ test("does not move the caveat's own control when it is opened", async ({ page }
   // Resized rather than navigated between the widths on purpose: the URL would
   // not change, so `goto` would not reload, and the disclosure would still be
   // open from the width before.
-  for (const width of [1280, 1024, 900, 768]) {
+  //
+  // The widths are the ones where the bar rearranges itself, because a control
+  // that holds still through a reflow is only worth asserting where a reflow
+  // happens; the list used to run 1280, 1024, 900, 768 and then jump straight to
+  // 320, which stepped over all of them. Measured on this challenge: the title
+  // takes a second line at 960px, the row of nineteen links takes a second line
+  // at 660px, and 640px is the narrowest window where the summary's box is still
+  // identical open and closed.
+  for (const width of [1280, 1024, 960, 900, 768, 700, 660, 640]) {
     await page.setViewportSize({ width, height: 900 });
     await expect(page.locator(CAVEAT)).toBeHidden();
 
@@ -149,16 +157,72 @@ test("does not move the caveat's own control when it is opened", async ({ page }
     await expect(page.locator(CAVEAT)).toBeHidden();
   }
 
-  // Below that the panel genuinely does not fit beside the seed, and wrapping
-  // onto the next line is the right answer rather than a defect -- but it is
-  // still the next line, and not the other side of the window.
+  // Below 640px the panel genuinely does not fit beside the seed, so the whole
+  // disclosure wraps and carries its summary along: this is the line reflowing
+  // rather than a control running away. It moves on both axes -- 21px down and
+  // 168.4px left, the same two numbers at every width from 620px to 320px -- and
+  // all three of the assertions below exist because the one that stood here
+  // compared `y` alone, which is a two-axis move reported as a one-axis one and
+  // would have passed with the control anywhere along the row.
   await page.setViewportSize({ width: 320, height: 800 });
-  const narrowBefore = await summary.boundingBox();
+
+  const seedLineGeometry = async (): Promise<{
+    left: number;
+    right: number;
+    top: number;
+    bottom: number;
+    lineLeft: number;
+  }> =>
+    page.evaluate(() => {
+      const control = document.querySelector(".seedhelp > summary");
+      const line = document.querySelector(".challengeseed");
+      if (control === null || line === null) {
+        throw new Error("The challenge bar has no seed disclosure to measure");
+      }
+      const box = control.getBoundingClientRect();
+      return {
+        left: box.left,
+        right: box.right,
+        top: box.top,
+        bottom: box.bottom,
+        lineLeft: line.getBoundingClientRect().left,
+      };
+    });
+
+  const narrowBefore = await seedLineGeometry();
   await summary.click();
   await expect(page.locator(CAVEAT)).toBeVisible();
-  const narrowAfter = await summary.boundingBox();
+  const narrowAfter = await seedLineGeometry();
 
-  expect(Math.abs((narrowAfter?.y ?? 0) - (narrowBefore?.y ?? 0))).toBeLessThanOrEqual(30);
+  // Down one line of the seed line's own text, and not down a screenful.
+  const dropped = narrowAfter.top - narrowBefore.top;
+  expect(dropped, "pixels down").toBeGreaterThan(0);
+  expect(dropped, "pixels down").toBeLessThanOrEqual(30);
+
+  // Across to the start of its own line, which is the only x worth naming: it is
+  // a place in the layout rather than a distance that would change with the
+  // length of the words in front of it. Asserted with the width it moved, so
+  // that "it wrapped" cannot be satisfied by a control that merely shuffled
+  // sideways and left half of itself where the pointer was.
+  expect(narrowAfter.left, "left edge").toBeCloseTo(narrowAfter.lineLeft, 1);
+  expect(narrowAfter.right, "right edge").toBeLessThanOrEqual(narrowBefore.left);
+
+  // What makes the move survivable, and the reason it is left alone: nothing
+  // follows the summary into the space. A second click, or one aimed at where
+  // the words had just been, lands on bare seed line rather than on a different
+  // control -- which is the difference between a dead click and a wrong one.
+  const leftBehind = await page.evaluate(
+    (point) =>
+      document
+        .elementFromPoint(point.x, point.y)
+        ?.closest("a, button, summary, input, select, textarea")
+        ?.tagName.toLowerCase() ?? null,
+    {
+      x: (narrowBefore.left + narrowBefore.right) / 2,
+      y: (narrowBefore.top + narrowBefore.bottom) / 2,
+    },
+  );
+  expect(leftBehind, "the control left under the pointer").toBeNull();
 });
 
 test("keeps every word of the seed line readable, in both of its states", async ({ page }) => {
