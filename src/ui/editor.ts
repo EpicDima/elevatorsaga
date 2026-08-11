@@ -97,6 +97,23 @@ export interface TextEditorHandlers {
   onSave: () => void;
 }
 
+/**
+ * What a {@link TextEditorView.setValue} call means for the editing history.
+ *
+ * `"edit"` — the new text is another state of the program on screen, reached
+ * by "Reset", "Undo reset" or `#devtest`. The player may undo their way back
+ * through it, as they could in the legacy game.
+ *
+ * `"swap"` — a different program takes the place of this one, because the
+ * editor moved to another buffer. The history of the old program has to go with
+ * it: undoing across a swap puts one buffer's program on screen while another
+ * buffer is open, and the autosave a second later writes it to that buffer's
+ * key. The player's own program can be destroyed that way in a single
+ * keystroke, which is what makes this a separate kind rather than a flag on
+ * the same one.
+ */
+export type TextReplacement = "edit" | "swap";
+
 /** The editing surface {@link CodeEditor} drives. */
 export interface TextEditorView {
   /** Returns the whole document. */
@@ -104,13 +121,18 @@ export interface TextEditorView {
   /**
    * Replaces the whole document.
    *
-   * This is a document change like any other, so the surface raises
+   * An `"edit"` is a document change like any other, so the surface raises
    * {@link TextEditorHandlers.onChange} for it — replacing the program from
    * "Reset", "Undo reset" or `#devtest` autosaves, as it did in the legacy
    * game. The document the surface is *built* with does not, which is why it is
-   * passed to the factory instead of being assigned afterwards.
+   * passed to the factory instead of being assigned afterwards; a `"swap"` is
+   * the same thing mid-life, and raises nothing either.
+   *
+   * @param value - The new document.
+   * @param replacement - What the new text has to do with the old; `"edit"`
+   * unless said otherwise.
    */
-  setValue: (value: string) => void;
+  setValue: (value: string, replacement?: TextReplacement) => void;
   /** Puts the caret back in the editor. */
   focus: () => void;
 }
@@ -218,7 +240,9 @@ const PLAYER_BUFFER: EditorBuffer = {
  * pour their text into.
  */
 function tutorialBuffer(task: number, starterCode: string): EditorBuffer {
-  if (!Number.isInteger(task) || task < 1) {
+  // Safe rather than merely whole: `1e21` is an integer to JavaScript and
+  // spells the key `develevateTutorialCode_1e+21`, which is nobody's task.
+  if (!Number.isSafeInteger(task) || task < 1) {
     throw new RangeError(`Tutorial task must be a positive whole number, got ${String(task)}`);
   }
   return {
@@ -237,6 +261,23 @@ export class CodeEditor extends Observable<CodeEditorEvents> {
   readonly #storage: Storage;
   /** The buffer on screen; every read and write of program text goes to it. */
   #buffer: EditorBuffer = PLAYER_BUFFER;
+  /**
+   * Every key this editor has written, kept for as long as the page lives.
+   *
+   * A store that refuses to be written to — a full quota, a private window —
+   * used to cost the player nothing, because the editor never replaced the
+   * document behind their back: what they could see was still there. With
+   * buffers it would cost them the program. Leaving a buffer would write
+   * nowhere, coming back would read nothing, and the starting program would
+   * take the screen, all without an error to show for it. Remembering the text
+   * in the page keeps a switch lossless for as long as the tab is open, which
+   * is as long as anything can be promised when nothing can be stored.
+   *
+   * The alternative — refusing to leave a buffer whose text could not be
+   * written — was rejected: it would jam the learning track completely in
+   * exactly the private windows it is supposed to survive.
+   */
+  readonly #session = new Map<string, string>();
   #autosaveTimer: ReturnType<typeof setTimeout> | undefined = undefined;
 
   /**
@@ -255,7 +296,7 @@ export class CodeEditor extends Observable<CodeEditorEvents> {
     // announced "Code saved …" a second later, unasked. Building the document
     // in also keeps it out of the undo history, so the first Ctrl+Z cannot wipe
     // the program the player arrived with.
-    const existingCode = readStorage(this.#storage, this.#buffer.codeKey);
+    const existingCode = this.#read(this.#buffer.codeKey);
     this.#view = createView(
       {
         onChange: () => {
@@ -297,6 +338,34 @@ export class CodeEditor extends Observable<CodeEditorEvents> {
     this.#autosaveTimer = undefined;
   }
 
+  /**
+   * Reads a key, from this session if this editor has written it.
+   *
+   * The session wins over the store rather than the other way round: the two
+   * agree whenever the store accepts writes, and when it does not, the session
+   * holds the newer text. Reading the store first would then hand back the last
+   * text that happened to fit, which is a stale program, not a missing one —
+   * the harder kind of loss to notice.
+   *
+   * @param key - The key to read.
+   * @returns The text, or `null` when neither remembers any.
+   */
+  #read(key: string): string | null {
+    return this.#session.get(key) ?? readStorage(this.#storage, key);
+  }
+
+  /**
+   * Writes a key, to this session as well as to the store.
+   *
+   * @param key - The key to write.
+   * @param value - The text to keep.
+   * @returns Whether the text reached the store, and so the next visit.
+   */
+  #write(key: string, value: string): boolean {
+    this.#session.set(key, value);
+    return writeStorage(this.#storage, key, value);
+  }
+
   /** The current program text. */
   getCode(): string {
     return this.#view.getValue();
@@ -335,7 +404,10 @@ export class CodeEditor extends Observable<CodeEditorEvents> {
   /** Writes the program to storage and announces the change. */
   save(): void {
     this.#cancelSave();
-    if (writeStorage(this.#storage, this.#buffer.codeKey, this.getCode())) {
+    // Announced only when it reached the store: after a refused write the
+    // program is safe for as long as the tab is open and no longer, and
+    // "Code saved ..." would be promising the player their next visit.
+    if (this.#write(this.#buffer.codeKey, this.getCode())) {
       this.trigger("saved", new Date());
     }
     this.trigger("change");
@@ -394,7 +466,7 @@ export class CodeEditor extends Observable<CodeEditorEvents> {
     // since the pending autosave is about to be cancelled.
     this.#flush();
     this.#buffer = next;
-    const stored = readStorage(this.#storage, next.codeKey);
+    const stored = this.#read(next.codeKey);
     // An empty entry counts as no entry, as it does when the editor is built:
     // the alternative is opening a task on a blank page with no way back to its
     // starting point except deleting the entry by hand.
@@ -403,21 +475,35 @@ export class CodeEditor extends Observable<CodeEditorEvents> {
         // Stored right away rather than left to the first autosave, so that the
         // task the player is looking at is the task they come back to even if
         // they close the tab without typing a character.
-        writeStorage(this.#storage, next.codeKey, next.starterCode);
+        this.#write(next.codeKey, next.starterCode);
       }
-      this.setCode(next.starterCode);
+      this.#swapDocument(next.starterCode);
     } else {
-      this.setCode(stored);
+      this.#swapDocument(stored);
     }
-    // Replacing the document is a document change, which has just queued an
-    // autosave of text that is already in storage. Letting it run would tell
-    // the player "Code saved ..." for a save they did not ask for — the same
-    // unasked announcement the constructor goes out of its way to avoid.
+    // A surface that treats the swap as an edit has queued an autosave of text
+    // that is already stored. Letting it run would tell the player "Code saved
+    // ..." for a save they did not ask for — the same unasked announcement the
+    // constructor goes out of its way to avoid.
     this.#cancelSave();
     // The program in the editor is a different program now, even though nobody
     // typed: listeners that describe the editor's contents, such as the fitness
     // measurement, are stale and say so themselves off this event.
     this.trigger("change");
+  }
+
+  /**
+   * Puts another buffer's program on screen in place of this one's.
+   *
+   * Never {@link CodeEditor.setCode}, which is an edit of the program on
+   * screen: an edit can be undone, and undoing across a buffer switch is how
+   * one buffer's program ends up on screen — and then, through the autosave, in
+   * another buffer's key.
+   *
+   * @param code - The program to show.
+   */
+  #swapDocument(code: string): void {
+    this.#view.setValue(code, "swap");
   }
 
   /**
@@ -427,9 +513,8 @@ export class CodeEditor extends Observable<CodeEditorEvents> {
    * the way out of a buffer, not a save the player asked for.
    */
   #flush(): void {
-    this.#cancelSave();
     const code = this.getCode();
-    const stored = readStorage(this.#storage, this.#buffer.codeKey);
+    const stored = this.#read(this.#buffer.codeKey);
     if ((stored === null || stored === "") && code === this.#buffer.starterCode) {
       // Storage already says exactly this: an empty entry is read back as the
       // buffer's starter program. Writing it anyway would be the one way a walk
@@ -438,12 +523,12 @@ export class CodeEditor extends Observable<CodeEditorEvents> {
       // start looking like a played one.
       return;
     }
-    writeStorage(this.#storage, this.#buffer.codeKey, code);
+    this.#write(this.#buffer.codeKey, code);
   }
 
   /** Backs the program up and replaces it with the buffer's starter program. */
   reset(): void {
-    writeStorage(this.#storage, this.#buffer.backupKey, this.getCode());
+    this.#write(this.#buffer.backupKey, this.getCode());
     this.setCode(this.#buffer.starterCode);
   }
 
@@ -459,7 +544,7 @@ export class CodeEditor extends Observable<CodeEditorEvents> {
    * never reset must not be the fastest way to lose an afternoon's work.
    */
   undoReset(): void {
-    const backup = readStorage(this.#storage, this.#buffer.backupKey);
+    const backup = this.#read(this.#buffer.backupKey);
     if (backup === null || backup === "") {
       return;
     }
@@ -480,79 +565,95 @@ export class CodeEditor extends Observable<CodeEditorEvents> {
  */
 export function codeMirrorView(parent: HTMLElement): TextEditorViewFactory {
   return (handlers: TextEditorHandlers, initialValue: string): TextEditorView => {
-    const view = new EditorView({
-      parent,
-      doc: initialValue,
-      extensions: [
-        basicSetup,
-        javascript(),
-        // The player API in the completion popup, so the method names are in
-        // the editor rather than only in the other tab. Registered as one more
-        // of the JavaScript language's completion sources rather than through
-        // `autocompletion({override})`, which would replace the language's own
-        // sources: keywords, snippets and the identifiers already in the
-        // player's program stay. `basicSetup` has already turned completion on,
-        // with CodeMirror's defaults — Ctrl-Space, and while typing — and the
-        // source itself is what keeps that from being noisy, by offering
-        // nothing outside the three contexts described in `completions.ts`.
-        javascriptLanguage.data.of({ autocomplete: playerApiCompletionSource }),
-        indentUnit.of(INDENT),
-        EditorState.tabSize.of(INDENT.length),
-        EditorView.contentAttributes.of({ "aria-label": "Elevator program" }),
-        // Ahead of the default keymap, which binds Mod-Enter itself.
-        Prec.highest(
-          keymap.of([
-            {
-              key: "Mod-Enter",
-              preventDefault: true,
-              run: () => {
-                handlers.onApply();
-                return true;
-              },
+    // Held in a variable rather than written into the constructor call because
+    // a swap builds a second state out of the same extensions; see `setValue`.
+    const extensions = [
+      basicSetup,
+      javascript(),
+      // The player API in the completion popup, so the method names are in
+      // the editor rather than only in the other tab. Registered as one more
+      // of the JavaScript language's completion sources rather than through
+      // `autocompletion({override})`, which would replace the language's own
+      // sources: keywords, snippets and the identifiers already in the
+      // player's program stay. `basicSetup` has already turned completion on,
+      // with CodeMirror's defaults — Ctrl-Space, and while typing — and the
+      // source itself is what keeps that from being noisy, by offering
+      // nothing outside the three contexts described in `completions.ts`.
+      javascriptLanguage.data.of({ autocomplete: playerApiCompletionSource }),
+      indentUnit.of(INDENT),
+      EditorState.tabSize.of(INDENT.length),
+      EditorView.contentAttributes.of({ "aria-label": "Elevator program" }),
+      // Ahead of the default keymap, which binds Mod-Enter itself.
+      Prec.highest(
+        keymap.of([
+          {
+            key: "Mod-Enter",
+            preventDefault: true,
+            run: () => {
+              handlers.onApply();
+              return true;
             },
-            {
-              key: "Mod-s",
-              preventDefault: true,
-              run: () => {
-                handlers.onSave();
-                return true;
-              },
+          },
+          {
+            key: "Mod-s",
+            preventDefault: true,
+            run: () => {
+              handlers.onSave();
+              return true;
             },
-            {
-              // The legacy Tab binding, which inserted spaces rather than
-              // moving focus. Escape is the way back out, see below.
-              key: "Tab",
-              preventDefault: true,
-              run: (target) => {
-                target.dispatch(target.state.replaceSelection(INDENT));
-                return true;
-              },
+          },
+          {
+            // The legacy Tab binding, which inserted spaces rather than
+            // moving focus. Escape is the way back out, see below.
+            key: "Tab",
+            preventDefault: true,
+            run: (target) => {
+              target.dispatch(target.state.replaceSelection(INDENT));
+              return true;
             },
-            {
-              // Tab is taken, so the editor would otherwise be a keyboard trap.
-              // Escape moves focus to the editor's own wrapper, from where Tab
-              // continues to the next control on the page.
-              key: "Escape",
-              preventDefault: true,
-              run: (target) => {
-                target.dom.focus();
-                return true;
-              },
+          },
+          {
+            // Tab is taken, so the editor would otherwise be a keyboard trap.
+            // Escape moves focus to the editor's own wrapper, from where Tab
+            // continues to the next control on the page.
+            key: "Escape",
+            preventDefault: true,
+            run: (target) => {
+              target.dom.focus();
+              return true;
             },
-          ]),
-        ),
-        EditorView.updateListener.of((update) => {
-          if (update.docChanged) {
-            handlers.onChange();
-          }
-        }),
-      ],
-    });
+          },
+        ]),
+      ),
+      EditorView.updateListener.of((update) => {
+        if (update.docChanged) {
+          handlers.onChange();
+        }
+      }),
+    ];
+    const view = new EditorView({ parent, doc: initialValue, extensions });
     view.dom.tabIndex = -1;
 
     return {
       getValue: () => view.state.doc.toString(),
-      setValue: (value: string) => {
+      setValue: (value: string, replacement: TextReplacement = "edit") => {
+        if (replacement === "swap") {
+          // A whole new state, which is the only way to be rid of the undo
+          // history: `basicSetup` brings `history()` in, and CodeMirror offers
+          // no command that empties it. The two alternatives are both wrong
+          // rather than merely clumsy. Dispatching the swap with
+          // `Transaction.addToHistory.of(false)` keeps every step of the *old*
+          // buffer in the history, so undo either applies those changes to the
+          // new document — one buffer's text into another — or throws, since
+          // the document they were recorded against is no longer there.
+          // Reconfiguring a compartment holding `history()` would work, but the
+          // instance to reconfigure is inside `basicSetup`, out of reach.
+          // Building the state also means the swapped-in document is the one
+          // the state was *built* with, so it raises no `onChange`, exactly as
+          // at construction.
+          view.setState(EditorState.create({ doc: value, extensions }));
+          return;
+        }
         view.dispatch({
           changes: { from: 0, to: view.state.doc.length, insert: value },
           selection: { anchor: 0 },

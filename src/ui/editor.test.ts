@@ -61,6 +61,38 @@ function deniedStorage(): Storage {
   };
 }
 
+/**
+ * A `Storage` that reads back but refuses every write, as a full quota does.
+ *
+ * The other half of the storage-failure story: a store that throws from
+ * `getItem` too can hold nothing and never could, while this one has been
+ * working all along and stops, which is when there is something to lose.
+ *
+ * @returns The full store, already holding `entries`.
+ */
+function fullStorage(entries: Readonly<Record<string, string>> = {}): Storage {
+  const storage = new MemoryStorage();
+  for (const [key, value] of Object.entries(entries)) {
+    storage.setItem(key, value);
+  }
+  return {
+    get length(): number {
+      return storage.length;
+    },
+    clear: () => {
+      storage.clear();
+    },
+    getItem: (key: string) => storage.getItem(key),
+    key: (index: number) => storage.key(index),
+    removeItem: (key: string) => {
+      storage.removeItem(key);
+    },
+    setItem: () => {
+      throw new Error("QuotaExceededError");
+    },
+  };
+}
+
 beforeEach(() => {
   vi.useFakeTimers();
 });
@@ -328,7 +360,7 @@ describe("CodeEditor buffers", () => {
     // zero must not spell a key that several malformed routes share.
     const { editor, view, storage } = setUp();
 
-    for (const task of [Number.NaN, 0, -1, 1.5]) {
+    for (const task of [Number.NaN, 0, -1, 1.5, 1e21]) {
       expect(() => {
         editor.openTutorialBuffer(task, "// task");
       }).toThrow(RangeError);
@@ -339,20 +371,61 @@ describe("CodeEditor buffers", () => {
     expect(storage.getItem("develevateTutorialCode_0")).toBeNull();
   });
 
+  it("opens a task whose stored attempt was emptied on its starting point", () => {
+    // An empty entry is no more use than a missing one, and a task that opens
+    // on a blank page has no way back to its own starting point.
+    const storage = new MemoryStorage();
+    storage.setItem("develevateTutorialCode_2", "");
+    const { editor, view } = setUp(storage);
+
+    editor.openTutorialBuffer(2, "// fill this in");
+
+    expect(view.getValue()).toBe("// fill this in");
+  });
+
   it("still switches buffers when the browser refuses storage", () => {
-    // Nothing can be kept, but the editor must stay usable: every task opens on
-    // its starter program instead of on an exception.
+    // Nothing can be kept past this page, but the editor must stay usable:
+    // every task opens on its starter program instead of on an exception.
     const { editor, view } = setUp(deniedStorage());
 
     expect(() => {
       editor.openTutorialBuffer(1, "// task 1");
     }).not.toThrow();
     expect(view.getValue()).toBe("// task 1");
-    view.type("// typed with nowhere to keep it");
     expect(() => {
       editor.openPlayerBuffer();
     }).not.toThrow();
     expect(view.getValue()).toBe(DEFAULT_CODE);
+  });
+
+  it("keeps a switch lossless for as long as the tab lives when nothing can be stored", () => {
+    // A store that has been working and stops — a full quota, or a private
+    // window — must not turn a buffer switch into a shredder: leaving writes
+    // nowhere, coming back reads nothing, and the starting program would take
+    // the screen. Whatever was typed is safe for as long as the page is open.
+    const { editor, view } = setUp(fullStorage({ [CODE_STORAGE_KEY]: "// yesterday's program" }));
+    view.type("// an afternoon of work");
+
+    editor.openTutorialBuffer(1, "// task 1");
+    view.type("// my task 1");
+    editor.openPlayerBuffer();
+    expect(view.getValue()).toBe("// an afternoon of work");
+
+    editor.openTutorialBuffer(1, "// task 1");
+    expect(view.getValue()).toBe("// my task 1");
+  });
+
+  it("says nothing was saved when nothing could be", () => {
+    // The in-page memory is not persistence, and "Code saved ..." would be
+    // promising the player a next visit that the store cannot honour.
+    const { editor, view } = setUp(fullStorage());
+    const saved = vi.fn();
+    editor.on("saved", saved);
+
+    view.type("// typed with nowhere to keep it");
+    vi.advanceTimersByTime(AUTOSAVE_DELAY_MS);
+
+    expect(saved).not.toHaveBeenCalled();
   });
 });
 
@@ -415,6 +488,20 @@ describe("CodeEditor reset", () => {
     expect(view.getValue()).toBe("// my task 1");
     expect(storage.getItem("develevateTutorialBackupCode_1")).toBe("// my task 1");
     expect(storage.getItem(BACKUP_STORAGE_KEY)).toBeNull();
+  });
+
+  it("does not empty the editor undoing a reset of an empty program", () => {
+    // Resetting an empty document backs up an empty document, and restoring
+    // that would clear the program the player has written since. Nothing worth
+    // bringing back was lost when it was backed up.
+    const { editor, view } = setUp();
+    view.type("");
+    editor.reset();
+    view.type("// written since");
+
+    editor.undoReset();
+
+    expect(view.getValue()).toBe("// written since");
   });
 
   it("never brings one buffer's backup back into another", () => {
@@ -510,6 +597,7 @@ describe("CodeEditor over a real editing surface", () => {
     editor: CodeEditor;
     storage: MemoryStorage;
     setItem: ReturnType<typeof vi.spyOn<Storage, "setItem">>;
+    parent: HTMLElement;
   } {
     const parent = document.createElement("div");
     document.body.append(parent);
@@ -518,7 +606,37 @@ describe("CodeEditor over a real editing surface", () => {
       storage.setItem(CODE_STORAGE_KEY, code);
     }
     const setItem = vi.spyOn(storage, "setItem");
-    return { editor: new CodeEditor(codeMirrorView(parent), { storage }), storage, setItem };
+    return {
+      editor: new CodeEditor(codeMirrorView(parent), { storage }),
+      storage,
+      setItem,
+      parent,
+    };
+  }
+
+  /**
+   * Presses the editor's own undo shortcut, as a player would.
+   *
+   * Through a keystroke rather than by calling `undo()` from
+   * `@codemirror/commands`, which is only in the tree as a dependency of
+   * `codemirror` and which the game itself never imports: what is worth pinning
+   * is that the key the player actually presses cannot reach across a buffer
+   * switch, whichever command `basicSetup` has bound to it.
+   *
+   * @param parent - The element the editor was mounted in.
+   */
+  function pressUndo(parent: HTMLElement): void {
+    const view = EditorView.findFromDOM(parent);
+    if (view === null) {
+      throw new Error("The editor did not mount");
+    }
+    // Both spellings of Mod, since only one of them is bound on any given
+    // platform and jsdom is not the platform the player is on.
+    for (const modifier of [{ ctrlKey: true }, { metaKey: true }]) {
+      view.contentDOM.dispatchEvent(
+        new KeyboardEvent("keydown", { key: "z", keyCode: 90, bubbles: true, ...modifier }),
+      );
+    }
   }
 
   it("does not save, or announce a save, just for having been built", () => {
@@ -553,6 +671,50 @@ describe("CodeEditor over a real editing surface", () => {
     expect(setItem).toHaveBeenCalledTimes(1);
     expect(storage.getItem(CODE_STORAGE_KEY)).toBe("// edited");
     expect(saved).toHaveBeenCalledTimes(1);
+  });
+
+  it("cannot be undone across a buffer switch", () => {
+    // Regression, and the worst one this file has seen: a buffer switch used to
+    // replace the document with an ordinary edit, which the undo history
+    // recorded like any other. One Ctrl+Z with the player's own buffer open
+    // then put a tutorial task's skeleton on screen, and the autosave a second
+    // later wrote it into `elevatorCrushCode_v5` — the player's program
+    // destroyed by a single keystroke, with no backup written, so "Undo reset"
+    // could not bring it back either. Measured before the fix: undo applied,
+    // document "// task 1 skeleton", storage the same a second later.
+    const { editor, storage, parent } = mount("// the program the player left behind");
+
+    editor.openTutorialBuffer(1, "// task 1 skeleton");
+    pressUndo(parent);
+    pressUndo(parent);
+    expect(editor.getCode()).toBe("// task 1 skeleton");
+
+    editor.openPlayerBuffer();
+    pressUndo(parent);
+    pressUndo(parent);
+    expect(editor.getCode()).toBe("// the program the player left behind");
+
+    vi.advanceTimersByTime(AUTOSAVE_DELAY_MS * 2);
+    expect(storage.getItem(CODE_STORAGE_KEY)).toBe("// the program the player left behind");
+    expect(storage.getItem("develevateTutorialCode_1")).toBe("// task 1 skeleton");
+  });
+
+  it("still undoes the player's own typing within a buffer", () => {
+    // The other half of the regression above: the cure is dropping the editing
+    // history at the switch, and it has to stop there. Undo is how a player
+    // takes back the line they just wrote, in a tutorial task as anywhere else.
+    const { editor, parent } = mount();
+    editor.openTutorialBuffer(1, "// task 1 skeleton");
+    const view = EditorView.findFromDOM(parent);
+    if (view === null) {
+      throw new Error("The editor did not mount");
+    }
+
+    view.dispatch({ changes: { from: view.state.doc.length, insert: "\n// second thoughts" } });
+    expect(editor.getCode()).toBe("// task 1 skeleton\n// second thoughts");
+    pressUndo(parent);
+
+    expect(editor.getCode()).toBe("// task 1 skeleton");
   });
 });
 
