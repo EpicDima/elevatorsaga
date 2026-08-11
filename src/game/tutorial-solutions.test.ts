@@ -1,6 +1,8 @@
 /**
  * The claim the whole learning track rests on, measured rather than asserted:
- * every task's starting code loses and every task's answer wins.
+ * every task's answer wins, and every task's starting code loses wherever a
+ * threshold exists that can make it lose — see {@link STARTING_CODE_WINS} for
+ * the one place none does.
  *
  * A task in {@link "./tutorial.ts"!tutorialTasks} is a promise about the
  * simulation — "this mistake cannot pass, this fix can" — and nothing but the
@@ -108,6 +110,29 @@ const TIGHT_MARGIN_TASK_IDS: ReadonlySet<string> = new Set(["tutorial-8"]);
  * spends it.
  */
 const ABSURD_SHIFT_SECONDS = 1000.0;
+
+/**
+ * Seeds on which a task's starting code is measured to *win*, by task.
+ *
+ * Task 5 is the only entry, and it is the only task that could have one: it is
+ * judged on waiting rather than on throughput, and on four hundred seeds the
+ * ranges overlap. The nine-floor sweep's best run delivers all fifteen having
+ * made nobody wait longer than 25.03 s, while the answer's worst makes somebody
+ * wait 35.88 s, so no wait limit both accepts every answer and rejects every
+ * sweep — the task's own entry in {@link "./tutorial.ts"!tutorialTasks} works
+ * through the numbers. Its limit of 37 is the end of that trade the track
+ * chose: never reject the answer, and let the sweep through on the seeds where
+ * it happens to do well. `42a` is such a seed — 15 delivered, worst wait
+ * 32.28 s — and the pinned seed, the only one anybody plays, is not.
+ *
+ * Recorded rather than tolerated, because `toBe(true)` here is as strict as the
+ * `toBe(false)` it replaces: if the sweep stops winning this seed, or starts
+ * winning another, this file says so and somebody looks at why. It serves the
+ * margin test too, since grace can only ever turn a loss into a win.
+ */
+const STARTING_CODE_WINS: ReadonlyMap<string, ReadonlySet<string>> = new Map([
+  ["tutorial-5", new Set(["42a"])],
+]);
 
 /** What one run came to. */
 interface RunOutcome {
@@ -269,6 +294,17 @@ function marginFor(task: TutorialTask): number {
 }
 
 /**
+ * The verdict the starting code was measured to reach on a seed.
+ *
+ * @param task - The task.
+ * @param seed - The seed being played.
+ * @returns `true` where the win is recorded in {@link STARTING_CODE_WINS}.
+ */
+function startingCodeWins(task: TutorialTask, seed: RandomSeed): boolean {
+  return STARTING_CODE_WINS.get(task.id)?.has(String(seed)) ?? false;
+}
+
+/**
  * A run, spelled out for a failure message.
  *
  * The numbers are the ones needed to retune the task without re-running
@@ -289,13 +325,17 @@ function describeRun(seed: RandomSeed, outcome: RunOutcome): string {
 
 for (const task of tutorialTasks) {
   describe(`Learning track task ${task.id}`, () => {
-    it("cannot be passed by the program the player is given", () => {
+    it("cannot be passed by the program the player is given, except where recorded", () => {
       for (const seed of seedsFor(task)) {
         const outcome = playTask(task, task.startingCode, seed, 0);
+        const recorded = startingCodeWins(task, seed);
         expect(
           outcome.verdict,
-          `${task.id} starting code unexpectedly won — ${describeRun(seed, outcome)}`,
-        ).toBe(false);
+          recorded
+            ? `${task.id} starting code no longer wins a seed it is recorded as winning, so ` +
+                `STARTING_CODE_WINS is out of date — ${describeRun(seed, outcome)}`
+            : `${task.id} starting code unexpectedly won — ${describeRun(seed, outcome)}`,
+        ).toBe(recorded);
       }
     });
 
@@ -309,18 +349,22 @@ for (const task of tutorialTasks) {
       }
     });
 
-    it("cannot be passed by the starting code even with seconds to spare", () => {
+    it("cannot be passed by the starting code with seconds to spare, except where recorded", () => {
       // The starting code losing by a hair would mean the task teaches by
       // accident: a slightly faster elevator, or a seed nobody measured, and the
       // mistake starts passing.
       const margin = marginFor(task);
       for (const seed of seedsFor(task)) {
         const outcome = playTask(task, task.startingCode, seed, -margin);
+        const recorded = startingCodeWins(task, seed);
         expect(
           outcome.verdict,
-          `${task.id} starting code won when given ${String(margin)}s of grace — ` +
-            describeRun(seed, outcome),
-        ).toBe(false);
+          recorded
+            ? `${task.id} starting code no longer wins a seed it is recorded as winning, and ` +
+                `grace cannot take a win away — ${describeRun(seed, outcome)}`
+            : `${task.id} starting code won when given ${String(margin)}s of grace — ` +
+                describeRun(seed, outcome),
+        ).toBe(recorded);
       }
     });
 

@@ -13,9 +13,11 @@
  * floors, spawn rate, threshold, seed — measured against the physics of
  * {@link "./world.ts"!World}. Nothing in a type system can hold it, so nothing
  * here asserts it; `tutorial-solutions.test.ts` replays both programs of every
- * task on ten seeds and requires the loss and the win. Every number below was
- * chosen against that measurement, and the entries whose numbers differ from
- * `docs/tutorial-plan.md` say which number moved and what forced it.
+ * task on ten seeds and requires the verdict each was measured to reach — the
+ * loss and the win everywhere save one recorded seed of task 5, where no wait
+ * limit can buy both. Every number below was chosen against that measurement,
+ * and the entries whose numbers differ from `docs/tutorial-plan.md` say which
+ * number moved and what forced it.
  *
  * A {@link TutorialTask} is structurally a {@link "./challenges.ts"!Challenge}:
  * `options` and `condition` are named and typed to match, so a task can be
@@ -506,19 +508,33 @@ export const tutorialTasks: readonly TutorialTask[] = [
   },
   {
     id: "tutorial-5",
-    // Nine floors and a 26-second wait limit, where the plan says ten floors and
-    // 28 seconds. On ten floors the answer's worst wait was 27.6 s against the
-    // planned limit of 28 — four tenths of a second of margin, i.e. none. The
-    // options were all measured: a limit of 32 on ten floors still left only
-    // 4.4 s; capacity changes did nothing at all, because at 0.2 passengers a
-    // second a four-person car is never the constraint; and dropping the rate to
-    // 0.15 worked but stretched the run past 110 simulated seconds, which is a
-    // long time to watch a car go to floors nobody is standing on. Nine floors
-    // is the fix that keeps the lesson (a sweep is still eight wasted stops)
-    // while opening the window to (19.4, 32.3): the answer's worst wait is
-    // 19.4 s and the sweep hits 26 s with at most 7 of the 15 delivered.
+    // Nine floors, where the plan says ten. On ten the answer's worst wait was
+    // 27.6 s against the planned limit of 28 — four tenths of a second of
+    // margin, i.e. none. The options were all measured: a limit of 32 on ten
+    // floors still left only 4.4 s; capacity changes did nothing at all, because
+    // at 0.2 passengers a second a four-person car is never the constraint; and
+    // dropping the rate to 0.15 worked but stretched the run past 110 simulated
+    // seconds, which is a long time to watch a car go to floors nobody is
+    // standing on. Nine floors is the fix that keeps the lesson, since a sweep
+    // is still eight wasted stops.
+    //
+    // The limit is 37, and it was 26 until four hundred seeds no threshold had
+    // been fitted to were run against it. 26 was a ten-seed number and it
+    // rejected the *answer* on 22 of those 400 — worst on seed t61, where the
+    // correct program is stopped at 7 of the 15 delivered. There is no limit
+    // that both accepts every answer and rejects every sweep, which is measured
+    // rather than feared: the answer's worst wait is 35.88 s (seed u59) and the
+    // sweep's best run delivers all 15 having made nobody wait longer than
+    // 25.03 s (seed t88), so the two ranges overlap by eleven seconds. Of what
+    // is left, 36 is the lowest limit the answer never loses to and it leaves
+    // 0.12 s, which is not margin; 37 leaves 1.12 s. It costs the sweep 76 wins
+    // in 400 where 26 cost it one, and that direction is the deliberate one: a
+    // player wrongly told their correct program failed has nothing left to try,
+    // while a player waved through meets the same lesson in challenge 1, where
+    // a sweep of the building will not carry them. `tutorial-solutions.test.ts`
+    // records the one seed of its own ten on which the sweep now wins.
     options: { floorCount: 9, elevatorCount: 1, spawnRate: 0.2 },
-    condition: requireUserCountWithMaxWaitTime(15, 26),
+    condition: requireUserCountWithMaxWaitTime(15, 37),
     seed: "tutorial-5",
     startingCode: TASK_5_START,
     solutionCode: TASK_5_SOLUTION,
