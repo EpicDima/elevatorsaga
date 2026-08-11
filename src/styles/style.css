@@ -442,6 +442,15 @@ dl dd {
  * space is not enough to tell a seed from what follows it. Wrapping is on: at
  * 320px they do not always fit beside each other, and a line that will not wrap
  * is a page that has to be read by panning sideways (WCAG 1.4.10).
+ *
+ * The colour is stated rather than inherited, and that is the whole reason this
+ * declaration exists: the line used to be a `<p>`, which the rule at the top of
+ * this file paints with `--color-text`, and it had to become a `<div>` to hold a
+ * `<details>` the parser would otherwise have thrown out of it. Everything on
+ * the line that is not a link -- the word "Seed", a pinned run's seed, the
+ * disclosure's own summary -- then fell back to the `color: white` on `<body>`,
+ * which is 1.91:1 on this page against the 4.5:1 WCAG 1.4.3 asks for. The
+ * characters that have to be transcribed are exactly the ones that went pale.
  */
 .challengeseed {
   display: flex;
@@ -450,6 +459,7 @@ dl dd {
   gap: 2px 8px;
   margin: 0;
   padding-block: 2px 8px;
+  color: var(--color-text);
   font-size: 14px;
   line-height: 18px;
 }
@@ -468,6 +478,12 @@ dl dd {
  * `anywhere` counts in the minimum size of a flex item, which is exactly the
  * measurement the line is laid out by; and rather than `break-all`, which would
  * split the ordinary ten-digit seed for no reason at all.
+ *
+ * In practice the wrapping is `.seedvalue`'s to need: a seed long enough to
+ * matter arrives from the URL, and a seed from the URL is a pinned one, which is
+ * the state where it is text rather than a link. Both are named because the two
+ * are the same characters in the same place and only ever swap over, and a rule
+ * that covered one of them would be read as a claim that the other cannot.
  */
 .seedlink,
 .seedvalue {

@@ -113,6 +113,68 @@ test("opens the caveat from the keyboard, on a phone-sized screen", async ({ pag
   await expect(page.locator(CAVEAT)).toBeVisible();
 });
 
+test("keeps every word of the seed line readable, in both of its states", async ({ page }) => {
+  // The seed line was a `<p>`, and `p` is one of the few selectors the
+  // stylesheet paints with `--color-text`; it had to become a `<div>` to hold
+  // the disclosure, and everything on it that is not a link fell back to the
+  // `color: white` on `<body>` -- 1.91:1 on this page, where WCAG 1.4.3 asks
+  // 4.5:1. The characters that went pale were the ones a player transcribes.
+  //
+  // Measured here rather than in `src/styles/style.test.ts`, which checks that
+  // the palette's pairs are legible but not which elements ask for them: this
+  // failure was an element quietly asking for neither.
+  const contrasts = async (): Promise<Record<string, number>> =>
+    page.evaluate(() => {
+      const channel = (value: number): number =>
+        value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
+      const luminance = (color: string): number => {
+        const [red = 0, green = 0, blue = 0] = [...color.matchAll(/\d+(?:\.\d+)?/g)].map((match) =>
+          Number(match[0]),
+        );
+        return (
+          0.2126 * channel(red / 255) + 0.7152 * channel(green / 255) + 0.0722 * channel(blue / 255)
+        );
+      };
+      const page_ = luminance(getComputedStyle(document.body).backgroundColor);
+      const measured: Record<string, number> = {};
+      for (const selector of [
+        ".seedlabel",
+        ".seedvalue",
+        ".seedlink",
+        ".seednewdraw",
+        ".seedhelp > summary",
+        ".seedcaveat",
+      ]) {
+        const element = document.querySelector(selector);
+        if (element === null) {
+          continue;
+        }
+        const text = luminance(getComputedStyle(element).color);
+        const [lighter, darker] = text > page_ ? [text, page_] : [page_, text];
+        measured[selector] = Math.round(((lighter + 0.05) / (darker + 0.05)) * 100) / 100;
+      }
+      return measured;
+    });
+
+  // Unpinned: the seed is a link, the label and the disclosure are not.
+  await page.goto("/#challenge=4");
+  await page.locator(HELP_SUMMARY).click();
+  const unpinned = await contrasts();
+  expect(Object.keys(unpinned)).toContain(".seedlink");
+  for (const [selector, ratio] of Object.entries(unpinned)) {
+    expect(ratio, selector).toBeGreaterThanOrEqual(4.5);
+  }
+
+  // Pinned: the same characters, now plain text, which is the state that failed.
+  await page.goto("/#challenge=4,seed=issue-61");
+  await page.locator(HELP_SUMMARY).click();
+  const pinned = await contrasts();
+  expect(Object.keys(pinned)).toContain(".seedvalue");
+  for (const [selector, ratio] of Object.entries(pinned)) {
+    expect(ratio, selector).toBeGreaterThanOrEqual(4.5);
+  }
+});
+
 test("gives an unpinned run a fresh building on every reload", async ({ page }) => {
   // The counterpart, and the reason the seed is not remembered on its own: a
   // player stuck on a challenge has to be able to get another draw without

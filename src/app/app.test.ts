@@ -706,12 +706,14 @@ describe("App seed", () => {
   });
 
   it("treats a seed the router refused as no pin at all", () => {
-    // A browser percent-encodes the space in "#seed=rush hour", so the router
-    // refuses it and draws a fresh one. Nothing is pinned, so there is nothing
-    // to unpin -- and the refused text must not follow the player around the
-    // bar, re-warning on arrival at every link it reaches.
+    // A browser percent-encodes the space in "#seed=rush hour", so what reaches
+    // the router is "rush%20hour" -- which is the form written here, because a
+    // fixture the app cannot be handed proves nothing about the app. The `%`
+    // fails SEED_PATTERN, the router draws a fresh seed, and nothing is pinned,
+    // so there is nothing to unpin -- and the refused text must not follow the
+    // player around the bar, re-warning on arrival at every link it reaches.
     const { app, elements } = setUp();
-    app.handleRoute(...routeFor("#challenge=1,seed=rush hour"));
+    app.handleRoute(...routeFor("#challenge=1,seed=rush%20hour"));
     const seed = String(app.world?.seed);
 
     expect(elements.challenge.querySelector(".seednewdraw")).toBeNull();
