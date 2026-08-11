@@ -308,14 +308,20 @@ dl dd {
  * button was written before the speed controls precisely so that it would be
  * drawn to the right of them. Tab therefore walked the bar right-to-left,
  * against the way it reads (WCAG 2.4.3, Focus Order). Flex in document order
- * puts the same boxes back in the same places -- measured, at nine widths from
- * 320px up, the title, the speed and the start button land on the pixel they
- * landed on before -- with the document now saying what it means, and
- * deliberately without `order` or `row-reverse`, either of which would let the
- * two orders come apart again. The one width that moved is around 600px, where
- * the floats used to leave the start button up on the title's line with the
- * speed stranded below it; the pair now wraps together, and the bar there is
- * 10px taller for it.
+ * puts the same boxes back in the same places, with the document now saying what
+ * it means, and deliberately without `order` or `row-reverse`, either of which
+ * would let the two orders come apart again.
+ *
+ * "The same places" is near enough to be worth saying and not exact, and the
+ * claim that stood here that it was exact is what a sweep disproved: over all
+ * nineteen challenges at every 20px from 320px to 940px, this bar is taller than
+ * the float bar in 21 of those 608 places, by at most 25.3px, and shorter in
+ * 164. Two things account for the difference. The floats used to leave the start
+ * button up on the title's line with the speed stranded below it, and the pair
+ * now wraps together, which is the arrangement this replaces the floats for. And
+ * the 15px gap below is width the floats never set aside, so this row runs out
+ * of room 13.2px of window before theirs did; `.challengetitle` is where that is
+ * paid for.
  *
  * `justify-content: flex-end` rather than `space-between`: the title takes the
  * slack (see `.challengetitle`), so the only line this can act on is the one the
@@ -339,12 +345,36 @@ dl dd {
 
 /*
  * The requirement, and the item that takes whatever width the controls do not.
- * The 20em basis is what decides when the bar becomes two lines: below it the
- * title, the speed and the start button no longer fit across, and the controls
- * wrap under the title rather than squeezing it to a column of single words.
+ *
+ * The basis is the narrowest the requirement may be squeezed to, and that is the
+ * only question it answers: flex breaks a line on base sizes and never on the
+ * size an item would settle at, so the number written here is the width below
+ * which the controls are sent to a line of their own. Everywhere above it the
+ * item grows past the basis to take whatever the controls leave.
+ *
+ * It was 20em, which is what challenge 1's title happens to measure (374.5px),
+ * so the narrowest the requirement could be and the width it would like were the
+ * same number, and the controls left the moment the longest requirement could no
+ * longer be shown whole. That is the expensive way round. Measured at 900px tall
+ * in Chromium: a line of its own for the controls costs the bar 40.1px, a second
+ * line for the requirement costs 25.3px, and the bar sits directly above the
+ * building, where every pixel it grows pushes the game down the page. At 14em
+ * the requirement gives way first, and the controls stay beside it down to a
+ * 510px window rather than a 620px one -- on challenge 19, whose title is only
+ * 209.9px, that is 40.1px of building recovered at every width from 510px to
+ * 610px, and on challenge 1 it is 14.8px. No challenge at any width is taller
+ * than 20em left it.
+ *
+ * Not lower than 14em, because the requirement is prose and has to stay
+ * readable: the break now lands where it still has 271.3px to lay out in, which
+ * is a sentence over two lines rather than the column of single words a basis of
+ * 0 would leave. 11em would carry challenge 19 down to 460px, but at 460px it
+ * leaves challenge 18's title 221.3px and that bar 12.2px taller than it is now,
+ * which is the point at which squeezing the requirement starts costing one
+ * challenge to pay for another.
  */
 .challengetitle {
-  flex: 1 1 20em;
+  flex: 1 1 14em;
   margin-block: 0.4em 0.3em;
   font-size: 1.17em;
   font-weight: normal;
@@ -354,10 +384,10 @@ dl dd {
  * What drives the run: the speed, and the button that starts and pauses it.
  *
  * They are one flex item of the bar rather than two so that they wrap as a pair.
- * Loose, the bar breaks between them somewhere around 600px -- wide enough for
- * the title and the speed but not the start button -- and the button lands alone
- * under the speed, reading as something unrelated to it at exactly the width
- * where there is least room to work out that it is not.
+ * Loose, the bar breaks between them at every width from 380px to 500px -- wide
+ * enough for the title and the speed but not the start button -- and the button
+ * lands alone under the speed, reading as something unrelated to it at exactly
+ * the width where there is least room to work out that it is not.
  *
  * The 15px gap is the distance the two stood apart under the floats, where it
  * was spelled as a trailing margin on the speed's `+` and a leading one on the
