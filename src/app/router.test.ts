@@ -170,6 +170,7 @@ describe("resolveRoute defaults", () => {
       devTest: false,
       fullscreen: false,
       seed: null,
+      refusedKeys: [],
     });
   });
 
@@ -184,6 +185,7 @@ describe("resolveRoute defaults", () => {
       devTest: true,
       fullscreen: true,
       seed: "abc",
+      refusedKeys: [],
     });
   });
 
@@ -471,6 +473,52 @@ describe("resolveRoute sandbox validation", () => {
       elevatorCapacities: [4],
       spawnRate: 0.6,
     });
+  });
+});
+
+describe("resolveRoute refusals", () => {
+  it("names nothing when the url asks for nothing", () => {
+    expect(route("").refusedKeys).toEqual([]);
+  });
+
+  it("names nothing when every value is usable", () => {
+    expect(route("#challenge=3,timescale=4,seed=issue-61").refusedKeys).toEqual([]);
+  });
+
+  it("names each key whose value it would not use", () => {
+    expect(route("#challenge=abc,timescale=fast,seed=rush hour").refusedKeys).toEqual([
+      "challenge",
+      "timescale",
+      "seed",
+    ]);
+  });
+
+  it("names the sandbox parameters it refused, and not the ones it clamped", () => {
+    // The distinction the whole list rests on. `floors=100000` still describes
+    // the building on screen -- it reads as sixty every time and the bar prints
+    // sixty -- so the url may go on saying it. `elevators=many` describes
+    // nothing.
+    expect(route("#challenge=sandbox,floors=100000,elevators=many").refusedKeys).toEqual([
+      "elevators",
+    ]);
+  });
+
+  it("does not name a key that was simply absent", () => {
+    // A refusal and an absence resolve to the same value, which is why the
+    // resolvers record this rather than a later pass working it out: from the
+    // outside, `#challenge=abc` and `#` are both challenge one.
+    expect(route("#challenge=abc").challengeIndex).toBe(route("").challengeIndex);
+    expect(route("").refusedKeys).toEqual([]);
+  });
+
+  it("refuses a key to exactly the value its absence would have given", () => {
+    // What makes dropping a refused key from the url a rewrite that changes no
+    // route. If this ever stops holding, correcting the address bar starts
+    // changing the run the player is watching.
+    const refused = route("#challenge=abc,timescale=fast,seed=rush hour,floors=none");
+    const absent = route("");
+    expect(refused.refusedKeys.length).toBeGreaterThan(0);
+    expect({ ...refused, refusedKeys: [] }).toEqual(absent);
   });
 });
 

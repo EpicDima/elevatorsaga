@@ -75,7 +75,40 @@ export interface RouteParams {
    * restart paths agree: see {@link "./app.ts"!App.handleRoute}.
    */
   readonly seed: string | null;
+  /**
+   * The keys the URL named and the router would not use, in the order they
+   * were read.
+   *
+   * Collected as the parameters are resolved rather than worked out afterwards,
+   * because a refusal and an absence resolve to the same value: `challenge=abc`
+   * and no `challenge` at all both mean the first challenge, and only the
+   * resolver knows which of the two it just saw.
+   *
+   * Every key in here resolved to exactly what its absence would have resolved
+   * to, which is what makes deleting it from the URL a rewrite that changes no
+   * route. {@link startRouter} is what does the deleting, and says why the
+   * address bar is corrected rather than left describing a run that is not
+   * being played.
+   *
+   * A value that was *clamped* is not in here. `floors=100000` still names the
+   * building on screen — it resolves to sixty floors every time it is read, and
+   * the bar prints sixty — whereas `seed=rush%20hour` names nothing and draws a
+   * different stranger on every reload.
+   */
+  readonly refusedKeys: readonly string[];
 }
+
+/**
+ * Records a parameter the router would not use, so the URL can stop naming it.
+ *
+ * Passed down to each resolver instead of having them return a richer result,
+ * because the resolvers are also what warn about a refusal: the two facts are
+ * recorded in the same place, and one cannot be forgotten while the other is
+ * remembered.
+ *
+ * @param key - The parameter's name in the URL.
+ */
+type Refuse = (key: string) => void;
 
 /** Everything {@link resolveRoute} needs besides the URL itself. */
 export interface RouteContext {
@@ -318,19 +351,25 @@ const ELEVATOR_LAYOUT = {
  * @returns Parameters that are always safe to act on.
  */
 export function resolveRoute(query: RouteQuery, context: RouteContext): RouteParams {
+  const refusedKeys: string[] = [];
+  const refuse: Refuse = (key) => {
+    refusedKeys.push(key);
+  };
   const challenge = query.get("challenge");
-  const sandbox = isSandboxRoute(challenge) ? resolveSandboxOptions(query) : null;
+  const sandbox = isSandboxRoute(challenge) ? resolveSandboxOptions(query, refuse) : null;
   return {
     // Resolved, and so warned about, only when it is the one being played: a
     // sandbox URL never names a challenge number, and complaining that
     // "sandbox" is not one would be noise.
-    challengeIndex: sandbox === null ? resolveChallengeIndex(challenge, context.challengeCount) : 0,
+    challengeIndex:
+      sandbox === null ? resolveChallengeIndex(challenge, context.challengeCount, refuse) : 0,
     sandbox,
     autoStart: readFlag(query, "autostart"),
-    timeScale: resolveTimeScale(query.get("timescale"), context.defaultTimeScale),
+    timeScale: resolveTimeScale(query.get("timescale"), context.defaultTimeScale, refuse),
     devTest: readFlag(query, "devtest"),
     fullscreen: readFlag(query, "fullscreen"),
-    seed: resolveSeed(query.get("seed")),
+    seed: resolveSeed(query.get("seed"), refuse),
+    refusedKeys,
   };
 }
 
@@ -394,14 +433,16 @@ const SEED_PATTERN = /^[\w.-]+$/;
  * a run nobody can reproduce.
  *
  * @param value - The raw parameter, if it was present.
+ * @param refuse - Records the key when the value cannot be used.
  * @returns The seed, or `null` to let the world draw its own.
  */
-function resolveSeed(value: string | undefined): string | null {
+function resolveSeed(value: string | undefined, refuse: Refuse): string | null {
   if (value === undefined) {
     return null;
   }
   if (value === "" || value.length > SEED_MAX_LENGTH || !SEED_PATTERN.test(value)) {
     console.warn(`Invalid seed "${value}", using a fresh one instead`);
+    refuse("seed");
     return null;
   }
   return value;
@@ -421,9 +462,10 @@ function isSandboxRoute(value: string | undefined): boolean {
  * Reads the building a sandbox URL asks for.
  *
  * @param query - The parsed parameters.
+ * @param refuse - Records each key whose value cannot be used.
  * @returns A building the simulation can run and the page can draw.
  */
-function resolveSandboxOptions(query: RouteQuery): SandboxOptions {
+function resolveSandboxOptions(query: RouteQuery, refuse: Refuse): SandboxOptions {
   // Read in the order the parameters are written in the URL, so the warnings
   // come out in that order too. The elevator count and the capacities are the
   // one pair that cannot be resolved apart: how many cars fit depends on how
@@ -433,19 +475,26 @@ function resolveSandboxOptions(query: RouteQuery): SandboxOptions {
     query.get("floors"),
     "floors",
     SANDBOX_LIMITS.floorCount,
+    refuse,
   );
   const requestedElevators = resolveSandboxInteger(
     query.get("elevators"),
     "elevators",
     SANDBOX_LIMITS.elevatorCount,
+    refuse,
   );
-  const capacities = resolveElevatorCapacities(query.get("capacities"));
+  const capacities = resolveElevatorCapacities(query.get("capacities"), refuse);
   const elevatorCount = fitElevatorCount(requestedElevators, capacities);
   return {
     floorCount,
     elevatorCount,
     elevatorCapacities: trimCapacities(capacities, elevatorCount),
-    spawnRate: resolveSandboxNumber(query.get("spawnrate"), "spawnrate", SANDBOX_LIMITS.spawnRate),
+    spawnRate: resolveSandboxNumber(
+      query.get("spawnrate"),
+      "spawnrate",
+      SANDBOX_LIMITS.spawnRate,
+      refuse,
+    ),
   };
 }
 
@@ -551,12 +600,14 @@ function clampSandboxValue(value: number, name: string, range: SandboxRange): nu
  * @param value - The raw parameter, if it was present.
  * @param name - The parameter's name in the URL, for the warning.
  * @param range - The accepted range and the fallback.
+ * @param refuse - Records the key when the value cannot be used.
  * @returns A whole number inside the range.
  */
 function resolveSandboxInteger(
   value: string | undefined,
   name: string,
   range: SandboxRange,
+  refuse: Refuse,
 ): number {
   if (value === undefined) {
     return range.fallback;
@@ -570,6 +621,7 @@ function resolveSandboxInteger(
   const parsed = value.trim() === "" ? Number.NaN : Number(value);
   if (!Number.isInteger(parsed)) {
     console.warn(`Invalid ${name} "${value}", using ${String(range.fallback)} instead`);
+    refuse(name);
     return range.fallback;
   }
   return clampSandboxValue(parsed, name, range);
@@ -581,12 +633,14 @@ function resolveSandboxInteger(
  * @param value - The raw parameter, if it was present.
  * @param name - The parameter's name in the URL, for the warning.
  * @param range - The accepted range and the fallback.
+ * @param refuse - Records the key when the value cannot be used.
  * @returns A finite number inside the range.
  */
 function resolveSandboxNumber(
   value: string | undefined,
   name: string,
   range: SandboxRange,
+  refuse: Refuse,
 ): number {
   if (value === undefined) {
     return range.fallback;
@@ -594,6 +648,7 @@ function resolveSandboxNumber(
   const parsed = value.trim() === "" ? Number.NaN : Number(value);
   if (!Number.isFinite(parsed)) {
     console.warn(`Invalid ${name} "${value}", using ${String(range.fallback)} instead`);
+    refuse(name);
     return range.fallback;
   }
   return clampSandboxValue(parsed, name, range);
@@ -613,9 +668,10 @@ function resolveSandboxNumber(
  * the real elevator count is known.
  *
  * @param value - The raw parameter, if it was present.
+ * @param refuse - Records the key when the value cannot be used.
  * @returns At least one capacity, each inside the accepted range.
  */
-function resolveElevatorCapacities(value: string | undefined): number[] {
+function resolveElevatorCapacities(value: string | undefined, refuse: Refuse): number[] {
   const { fallback, min, max } = SANDBOX_LIMITS.elevatorCapacity;
   if (value === undefined) {
     return [fallback];
@@ -625,6 +681,7 @@ function resolveElevatorCapacities(value: string | undefined): number[] {
     const capacity = part.trim() === "" ? Number.NaN : Number(part);
     if (!Number.isInteger(capacity)) {
       console.warn(`Invalid capacities "${value}", using ${String(fallback)} instead`);
+      refuse("capacities");
       return [fallback];
     }
     parsed.push(capacity);
@@ -658,15 +715,21 @@ function resolveElevatorCapacities(value: string | undefined): number[] {
  *
  * @param value - The raw parameter, if it was present.
  * @param challengeCount - How many challenges exist.
+ * @param refuse - Records the key when the value cannot be used.
  * @returns A valid zero-based index; `0` for anything unusable.
  */
-function resolveChallengeIndex(value: string | undefined, challengeCount: number): number {
+function resolveChallengeIndex(
+  value: string | undefined,
+  challengeCount: number,
+  refuse: Refuse,
+): number {
   if (value === undefined) {
     return 0;
   }
   const index = Number(value) - 1;
   if (!Number.isInteger(index) || index < 0 || index >= challengeCount) {
     console.warn(`Invalid challenge "${value}", starting the first challenge instead`);
+    refuse("challenge");
     return 0;
   }
   return index;
@@ -677,15 +740,21 @@ function resolveChallengeIndex(value: string | undefined, challengeCount: number
  *
  * @param value - The raw parameter, if it was present.
  * @param defaultTimeScale - The time scale to use when there is no parameter.
+ * @param refuse - Records the key when the value cannot be used.
  * @returns A finite, positive time scale.
  */
-function resolveTimeScale(value: string | undefined, defaultTimeScale: number): number {
+function resolveTimeScale(
+  value: string | undefined,
+  defaultTimeScale: number,
+  refuse: Refuse,
+): number {
   if (value === undefined) {
     return clampTimeScale(defaultTimeScale);
   }
   const timeScale = Number.parseFloat(value);
   if (!Number.isFinite(timeScale)) {
     console.warn(`Invalid timescale "${value}", using ${String(defaultTimeScale)} instead`);
+    refuse("timescale");
     return clampTimeScale(defaultTimeScale);
   }
   return clampTimeScale(timeScale);
