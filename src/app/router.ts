@@ -106,6 +106,11 @@ export interface RouteParams {
    *
    * The URL is the only thing that pins a seed, which is what makes the two
    * restart paths agree: see {@link "./app.ts"!App.handleRoute}.
+   *
+   * Always `null` while {@link tutorialIndex} is set, however far the URL goes
+   * to ask otherwise — a task plays the seed its own entry pins and no other.
+   * {@link resolveRoute} explains what a seed of the player's choosing would
+   * cost the track.
    */
   readonly seed: string | null;
   /**
@@ -435,7 +440,19 @@ export function resolveRoute(query: RouteQuery, context: RouteContext): RoutePar
     timeScale: resolveTimeScale(query.get("timescale"), context.defaultTimeScale, refuse),
     devTest: readFlag(query, "devtest"),
     fullscreen: readFlag(query, "fullscreen"),
-    seed: resolveSeed(query.get("seed"), refuse),
+    // A task plays the seed its own entry pins, so a seed on a task address is
+    // refused rather than honoured. The track teaches by letting a program fail
+    // in front of the player, and which program fails is a fact about the
+    // stream: task 5's starting sweep is measured winning on `42a`, and
+    // `STARTING_CODE_WINS` in `tutorial-solutions.test.ts` records it as
+    // survivable only because "the pinned seed, the only one anybody plays, is
+    // not" such a seed. `#challenge=tutorial-5,seed=42a` is that sentence
+    // stopped being true, and a player watching the broken program win learns
+    // the opposite of the lesson.
+    seed:
+      tutorialIndex === null
+        ? resolveSeed(query.get("seed"), refuse)
+        : refuseSeedOnTrack(query, refuse),
     refusedKeys,
   };
 }
@@ -513,6 +530,41 @@ function resolveSeed(value: string | undefined, refuse: Refuse): string | null {
     return null;
   }
   return value;
+}
+
+/**
+ * Drops a `seed` that arrived on a task address, and says so.
+ *
+ * Refused rather than resolved, because on the track a seed is not the player's
+ * to choose: each task pins one in {@link "../game/tutorial.ts"!tutorialTasks},
+ * and the tasks are only teachable because of it. A task shows a program
+ * failing and then the one change that fixes it, and whether the program fails
+ * is a property of the passenger stream, not of the program alone — task 5's
+ * starting sweep is measured delivering all fifteen inside the wait limit on
+ * seed `42a`, and on 76 of 400 seeds besides. Honouring `seed=` would let a
+ * player land, by choice or by a copied link, on a run where the broken program
+ * wins and the lesson reads backwards.
+ *
+ * The whole key is refused, so {@link startRouter} takes it back out of the
+ * address bar, which is the honest signal: the URL then says what is actually
+ * being played. This is the one refusal that is not about an unusable value —
+ * `seed=abc` is perfectly good everywhere else in the game, and the warning says
+ * where it went rather than that it was wrong.
+ *
+ * Silent when there is no `seed` at all, which is every ordinary visit to a
+ * task: there is nothing to tell the player about a key they did not write.
+ *
+ * @param query - The parsed hash, read only for `seed`.
+ * @param refuse - Records the key so the address bar loses it.
+ * @returns Always `null`; the task's own seed is applied downstream.
+ */
+function refuseSeedOnTrack(query: RouteQuery, refuse: Refuse): null {
+  const value = query.get("seed");
+  if (value !== undefined) {
+    console.warn(`Ignoring seed "${value}": a learning task plays its own pinned seed`);
+    refuse("seed");
+  }
+  return null;
 }
 
 /**

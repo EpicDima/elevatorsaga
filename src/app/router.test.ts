@@ -652,6 +652,9 @@ describe("resolveRoute tutorial validation", () => {
   });
 
   it("keeps the rest of the url working on the track", () => {
+    // Every parameter but one behaves on a task address exactly as it does on a
+    // challenge. `seed` is the exception, and it is refused rather than read --
+    // see "resolveRoute seed on the learning track" for what it would cost.
     expect(
       route(
         "#challenge=tutorial-3,seed=issue-61,timescale=8,autostart,devtest=true,fullscreen=true",
@@ -664,8 +667,8 @@ describe("resolveRoute tutorial validation", () => {
       timeScale: 8,
       devTest: true,
       fullscreen: true,
-      seed: "issue-61",
-      refusedKeys: [],
+      seed: null,
+      refusedKeys: ["seed"],
     });
   });
 
@@ -785,6 +788,61 @@ describe("resolveRoute seed validation", () => {
   it("does not complain about a seed it accepted", () => {
     route("#seed=issue-61");
     expect(console.warn).not.toHaveBeenCalled();
+  });
+});
+
+describe("resolveRoute seed on the learning track", () => {
+  it("refuses a seed on every task address, however good the seed is", () => {
+    // Not a validation failure: `issue-61` is accepted anywhere else in the
+    // game. On the track the seed is not the player's to choose, because which
+    // program fails is a property of the passenger stream and the tasks are
+    // built on a program failing.
+    for (const task of tutorialTasks) {
+      const hash = `#challenge=${task.id},seed=issue-61`;
+      expect(route(hash).seed, hash).toBeNull();
+      expect(route(hash).refusedKeys, hash).toContain("seed");
+    }
+  });
+
+  it("refuses the seed measured to make task 5's starting program win", () => {
+    // The concrete failure this exists to stop. STARTING_CODE_WINS in
+    // tutorial-solutions.test.ts records the nine-floor sweep delivering all
+    // fifteen inside the wait limit on `42a`, and calls that survivable because
+    // "the pinned seed, the only one anybody plays, is not" such a seed. This
+    // is what keeps that sentence true.
+    const params = route("#challenge=tutorial-5,seed=42a");
+    expect(params.seed).toBeNull();
+    expect(params.tutorialIndex).toBe(4);
+  });
+
+  it("says where the seed went rather than that it was wrong", () => {
+    route("#challenge=tutorial-5,seed=42a");
+    expect(console.warn).toHaveBeenCalledWith(
+      `Ignoring seed "42a": a learning task plays its own pinned seed`,
+    );
+  });
+
+  it("keeps quiet on a task address that names no seed", () => {
+    // Every ordinary visit to a task. There is nothing to tell a player about a
+    // key they did not write.
+    route("#challenge=tutorial-5");
+    expect(console.warn).not.toHaveBeenCalled();
+  });
+
+  it("leaves the seed alone on the routes it is the player's to choose", () => {
+    // The refusal is scoped to the track and nothing else: a misspelled task
+    // address is still the track, but a challenge and the sandbox are not.
+    expect(route("#challenge=4,seed=42a").seed).toBe("42a");
+    expect(route("#challenge=sandbox,seed=42a").seed).toBe("42a");
+    expect(route("#challenge=tutorial-9,seed=42a").seed).toBeNull();
+  });
+
+  it("refuses the seed to what its absence gives, so the url can drop it", () => {
+    // The invariant the whole refusedKeys list rests on, checked here because
+    // this refusal is the one that does not come from an unusable value.
+    const refused = route("#challenge=tutorial-5,seed=42a");
+    const absent = route("#challenge=tutorial-5");
+    expect({ ...refused, refusedKeys: [] }).toEqual(absent);
   });
 });
 
