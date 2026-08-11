@@ -10,6 +10,7 @@ import type { Challenge, SandboxOptions } from "../game/challenges.ts";
 import { createWorld } from "../game/world.ts";
 import type { World } from "../game/world.ts";
 import type { AnimationFrameRequester, WorldController } from "../game/world-controller.ts";
+import { t } from "../i18n/index.ts";
 import type { CodeEditor } from "../ui/editor.ts";
 import {
   clearAll,
@@ -511,8 +512,8 @@ export class App {
       this.worldController.setPaused(true);
       if (challengeStatus) {
         presentFeedback(this.#elements.feedback, {
-          title: "Success!",
-          message: "Challenge completed",
+          title: t("game.feedback.success.title"),
+          message: t("game.feedback.success.message"),
           // No link after the last challenge, and none for the sandbox, which
           // cannot get here at all: its condition never resolves. The seed is
           // dropped for the same reason the navigation row drops it: it belongs
@@ -524,8 +525,8 @@ export class App {
         });
       } else {
         presentFeedback(this.#elements.feedback, {
-          title: "Challenge failed",
-          message: "Maybe your program needs an improvement?",
+          title: t("game.feedback.failure.title"),
+          message: t("game.feedback.failure.message"),
           url: "",
         });
       }

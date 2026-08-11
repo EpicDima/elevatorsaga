@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
 
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 
+import { DEFAULT_LOCALE, setLocale } from "../i18n/index.ts";
 import {
   challengeTemplate,
   codeStatusTemplate,
@@ -519,5 +520,167 @@ describe("codeStatusTemplate", () => {
     expect(banner.className).toBe("error");
     expect(banner.querySelector(".error-color")).not.toBeNull();
     expect(banner.querySelector(".errormessage")?.textContent).toBe("");
+  });
+
+  it("keeps one space on each side of the sentence, whatever it says", () => {
+    // The icon, a space, the sentence, a space, the message the presenter
+    // writes. The catalogue entry ends at the colon, so both spaces belong to
+    // this template and neither may be lost in a translation.
+    expect(codeStatusTemplate()).toContain(
+      '</svg> There is a problem with your code: <span class="errormessage">',
+    );
+  });
+});
+
+describe("the language the building comes out in", () => {
+  afterEach(() => {
+    setLocale(DEFAULT_LOCALE);
+  });
+
+  /** A run nobody pinned, for the Russian seed line. */
+  const SEED: SeedLinkData = {
+    seed: "1234567890",
+    url: "#challenge=1,seed=1234567890",
+    newDrawUrl: null,
+  };
+
+  it("names the call buttons of a floor", () => {
+    setLocale("ru");
+    const floor = renderElement(floorTemplate(2, 150));
+
+    expect(floor.querySelector("button.up")?.getAttribute("aria-label")).toBe(
+      "Вызвать лифт вверх с этажа 2",
+    );
+    expect(floor.querySelector("button.down")?.getAttribute("aria-label")).toBe(
+      "Вызвать лифт вниз с этажа 2",
+    );
+  });
+
+  it("names a car and its floor buttons", () => {
+    setLocale("ru");
+
+    expect(renderElement(elevatorTemplate(40, 1)).getAttribute("aria-label")).toBe("Лифт 2");
+    expect(renderElement(elevatorButtonTemplate(7)).getAttribute("aria-label")).toBe(
+      "Ехать на этаж 7",
+    );
+  });
+
+  it("puts the challenge number where the Russian sentence wants it", () => {
+    // «Задание №3», not «Задание #3»: the number sign is a different character
+    // in Russian, which is why the whole title is one message rather than a
+    // number glued to a translated word.
+    setLocale("ru");
+    const fragment = renderFragment(
+      challengeTemplate({
+        num: 3,
+        description: "Перевезите <span class='emphasis-color'>15</span> пассажиров",
+        links: [],
+        seed: null,
+      }),
+    );
+
+    expect(fragment.querySelector(".challengetitle")?.textContent).toBe(
+      "Задание №3: Перевезите 15 пассажиров",
+    );
+  });
+
+  it("names the speed controls and the navigation row", () => {
+    setLocale("ru");
+    const fragment = renderFragment(
+      challengeTemplate({
+        num: 1,
+        description: "x",
+        links: [
+          { num: 1, url: "#challenge=1", current: true, demo: false },
+          { num: 2, url: "#challenge=2", current: false, demo: true },
+        ],
+        seed: null,
+      }),
+    );
+
+    expect(fragment.querySelector("button.timescale_decrease")?.getAttribute("aria-label")).toBe(
+      "Уменьшить скорость симуляции",
+    );
+    expect(fragment.querySelector("button.timescale_increase")?.getAttribute("aria-label")).toBe(
+      "Увеличить скорость симуляции",
+    );
+    expect(fragment.querySelector("nav.challengenav")?.getAttribute("aria-label")).toBe("Задания");
+    const entries = [...fragment.querySelectorAll("a.challengelink")];
+    expect(entries.map((entry) => entry.getAttribute("aria-label"))).toEqual(["Задание 1", "Демо"]);
+    // The demo's visible label is translated with its name, so the one entry
+    // that shows a word rather than a digit still satisfies WCAG 2.5.3.
+    expect(entries.map((entry) => entry.textContent)).toEqual(["1", "Демо"]);
+  });
+
+  it("translates the seed line without touching the seed itself", () => {
+    setLocale("ru");
+    const fragment = renderFragment(
+      challengeTemplate({ num: 1, description: "x", links: [], seed: SEED }),
+    );
+
+    expect(fragment.querySelector(".seedlabel")?.textContent).toBe("Сид");
+    const seedLink = fragment.querySelector("a.seedlink");
+    // The seed is a token to be transcribed, so it is interpolated as a string
+    // and never grouped or reformatted: 1 234 567 890 would be a different seed.
+    expect(seedLink?.textContent).toBe("1234567890");
+    expect(seedLink?.getAttribute("aria-label")).toBe(
+      "Сид 1234567890: начать ещё один прогон с этим сидом",
+    );
+  });
+
+  it("translates the new-draw link and keeps its label inside its name", () => {
+    setLocale("ru");
+    const newDraw = renderFragment(
+      challengeTemplate({
+        num: 1,
+        description: "x",
+        links: [],
+        seed: { ...SEED, newDrawUrl: "#challenge=1" },
+      }),
+    ).querySelector("a.seednewdraw");
+
+    expect(newDraw?.textContent).toBe("новый сид");
+    expect(newDraw?.getAttribute("aria-label")).toBe(
+      "Сид 1234567890: новый сид, начать заново без прежнего",
+    );
+    // WCAG 2.5.3 holds in every language, and this is the one string that is
+    // both a visible label and a fragment of its own accessible name.
+    expect(newDraw?.getAttribute("aria-label")).toContain(newDraw?.textContent);
+  });
+
+  it("translates the caveat about what a seed does", () => {
+    setLocale("ru");
+    const fragment = renderFragment(
+      challengeTemplate({ num: 1, description: "x", links: [], seed: SEED }),
+    );
+
+    expect(fragment.querySelector(".seedhelp summary")?.textContent).toBe("что задаёт сид");
+    expect(fragment.querySelector(".seedcaveat")?.textContent).toBe(
+      "Один и тот же сид приводит тех же пассажиров и в том же порядке. А вот когда придёт " +
+        "очередной кадр, решает браузер, поэтому всё остальное в прогоне каждый раз складывается " +
+        "немного иначе.",
+    );
+  });
+
+  it("translates the next-challenge link and the code banner", () => {
+    setLocale("ru");
+
+    expect(
+      renderElement(
+        feedbackTemplate({ title: "t", message: "m", url: "#challenge=4" }),
+      ).querySelector("a")?.textContent,
+    ).toBe("Следующее задание ");
+    expect(renderElement(codeStatusTemplate()).textContent).toBe(" С вашим кодом что-то не так: ");
+  });
+
+  it("is settled when a template runs, not when the module was loaded", () => {
+    // The trap this file's docblock is about: a `const` holding a translated
+    // string would be filled in at import time, when no catalogue but English
+    // has been loaded, and would stay English for the rest of the session.
+    expect(renderElement(elevatorTemplate(40, 0)).getAttribute("aria-label")).toBe("Elevator 1");
+
+    setLocale("ru");
+
+    expect(renderElement(elevatorTemplate(40, 0)).getAttribute("aria-label")).toBe("Лифт 1");
   });
 });

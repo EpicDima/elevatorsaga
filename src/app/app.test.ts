@@ -1,10 +1,11 @@
 // @vitest-environment jsdom
 
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { Challenge } from "../game/challenges.ts";
 import { createWorldController } from "../game/world-controller.ts";
 import type { WorldController } from "../game/world-controller.ts";
+import { DEFAULT_LOCALE, setLocale } from "../i18n/index.ts";
 import { queryAll, requireElement } from "../ui/dom.ts";
 import { CodeEditor } from "../ui/editor.ts";
 import { createElement, FakeTextEditorView, MemoryStorage } from "../ui/test-helpers.ts";
@@ -162,6 +163,12 @@ describe("App.startChallenge", () => {
 });
 
 describe("App challenge outcome", () => {
+  // Restored here rather than at the end of the test that switches, so that a
+  // failing assertion cannot leave the rest of the file running in Russian.
+  afterEach(() => {
+    setLocale(DEFAULT_LOCALE);
+  });
+
   it("stops the world and offers the next challenge on a win", () => {
     const { app, elements } = setUp();
     app.startChallenge(1);
@@ -183,6 +190,31 @@ describe("App challenge outcome", () => {
 
     expect(requireElement(".feedback h2", elements.feedback).textContent).toBe("Challenge failed");
     expect(elements.feedback.querySelector("a")).toBeNull();
+  });
+
+  it("says both outcomes in the language the overlay is drawn in", () => {
+    // The four words the app itself owns; everything else in the overlay comes
+    // from the templates. Read out of the catalogue when the challenge ends, so
+    // a player who switched language mid-run is told in the language they are
+    // now reading.
+    setLocale("ru");
+    const won = setUp();
+    won.app.startChallenge(1);
+    won.app.world?.trigger("stats_changed");
+    const lost = setUp();
+    lost.app.startChallenge(2);
+    lost.app.world?.trigger("stats_changed");
+
+    expect(requireElement(".feedback h2", won.elements.feedback).textContent).toBe("Получилось!");
+    expect(requireElement(".feedback p", won.elements.feedback).textContent).toBe(
+      "Задание выполнено",
+    );
+    expect(requireElement(".feedback h2", lost.elements.feedback).textContent).toBe(
+      "Задание провалено",
+    );
+    expect(requireElement(".feedback p", lost.elements.feedback).textContent).toBe(
+      "Может быть, программу стоит доработать?",
+    );
   });
 
   it("offers no next challenge after the last one", () => {

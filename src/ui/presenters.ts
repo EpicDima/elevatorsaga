@@ -17,6 +17,7 @@ import type { Floor } from "../game/floor.ts";
 import type { User } from "../game/user.ts";
 import type { World } from "../game/world.ts";
 import type { WorldController } from "../game/world-controller.ts";
+import { format, quantity, seconds, t } from "../i18n/index.ts";
 import {
   clearChildren,
   query,
@@ -118,7 +119,33 @@ function renderUser(displayType: UserDisplayType, leaving: boolean): SVGElement 
 }
 
 /**
+ * How the "transported per second" figure is rounded.
+ *
+ * Three significant digits, which is what `toPrecision(3)` gave this panel
+ * before and what it should keep giving: the quotient is a small fraction, and
+ * three digits of it is the difference between 0.198 and 0.2. Significant digits
+ * rather than decimal places for the same reason `toPrecision` was chosen
+ * originally — the figure spans two orders of magnitude over a run, and a fixed
+ * three decimals reads as 0.000 for the first few seconds of one.
+ *
+ * `toPrecision` also switches to exponential notation once the exponent reaches
+ * the precision, so 1230 came out as `1.23e+3`; `Intl` writes 1,230 instead.
+ * Nothing in this game delivers a thousand passengers a second, so the
+ * difference is theoretical, but the direction of it is the right one.
+ */
+const PER_SECOND_DIGITS: Intl.NumberFormatOptions = {
+  minimumSignificantDigits: 3,
+  maximumSignificantDigits: 3,
+};
+
+/**
  * Keeps the statistics panel in sync with a world.
+ *
+ * Every figure goes through `Intl` rather than `toFixed` and `String`, so a
+ * locale that writes decimals with a comma or groups thousands with a space
+ * does. In English the digits are exactly the ones the panel has always shown,
+ * with one deliberate exception: four figures and up are grouped, so a long
+ * run's elapsed time reads 2,675s rather than 2675s.
  *
  * @param parent - The `.statscontainer` element.
  * @param world - The world to report on.
@@ -132,12 +159,12 @@ export function presentStats(parent: HTMLElement, world: World): void {
   const moveCount = requireElement(".movecount", parent);
 
   world.on("stats_display_changed", () => {
-    transportedCounter.textContent = String(world.transportedCounter);
-    elapsedTime.textContent = `${world.elapsedTime.toFixed(0)}s`;
-    transportedPerSec.textContent = world.transportedPerSec.toPrecision(3);
-    avgWaitTime.textContent = `${world.avgWaitTime.toFixed(1)}s`;
-    maxWaitTime.textContent = `${world.maxWaitTime.toFixed(1)}s`;
-    moveCount.textContent = String(world.moveCount);
+    transportedCounter.textContent = format(world.transportedCounter);
+    elapsedTime.textContent = format(seconds(world.elapsedTime));
+    transportedPerSec.textContent = format(quantity(world.transportedPerSec, PER_SECOND_DIGITS));
+    avgWaitTime.textContent = format(seconds(world.avgWaitTime, 1));
+    maxWaitTime.textContent = format(seconds(world.maxWaitTime, 1));
+    moveCount.textContent = format(world.moveCount);
   });
   world.trigger("stats_display_changed");
 }
@@ -200,13 +227,18 @@ export interface ChallengePresenter {
  * running at a tenth speed. Whole speeds still render as `1x` and `40x` — not
  * `1.0x` — and fractional ones render as themselves.
  *
+ * The multiplication sign is part of the message rather than appended here,
+ * because it is not the same character everywhere: English writes the `x` this
+ * game has always written, and Russian typography wants `×`.
+ *
  * @param timeScale - The multiplier the simulation is running at.
- * @returns The label, e.g. `"2x"`, `"0.25x"`.
+ * @returns The label, e.g. `"2x"`, `"0.25x"`, or `"0,25×"` in Russian.
  */
 export function formatTimeScale(timeScale: number): string {
-  // Rounding first keeps float noise (0.1 + 0.2 and friends) out of the label
-  // without padding whole numbers with a decimal point the way toFixed does.
-  return `${String(Math.round(timeScale * 1000) / 1000)}x`;
+  // Rounding first keeps float noise (0.1 + 0.2 and friends) out of the label.
+  // `Intl` then prints the result without padding whole numbers with a decimal
+  // point the way toFixed does, since it is given no minimum fraction digits.
+  return t("game.timeScale.value", { value: Math.round(timeScale * 1000) / 1000 });
 }
 
 /**
@@ -311,9 +343,14 @@ export function presentChallenge(
     update(): void {
       timeScaleValue.textContent = formatTimeScale(options.worldController.timeScale);
       if (options.world.challengeEnded) {
-        startStop.replaceChildren(createIcon("repeat"), " Restart");
+        // The space belongs to this line rather than to the message: it is the
+        // gap between the icon and the word, which every language needs and no
+        // translator should have to remember to type.
+        startStop.replaceChildren(createIcon("repeat"), ` ${t("game.button.restart")}`);
       } else {
-        startStop.textContent = options.worldController.isPaused ? "Start" : "Pause";
+        startStop.textContent = options.worldController.isPaused
+          ? t("game.button.start")
+          : t("game.button.pause");
       }
     },
   };
@@ -539,9 +576,12 @@ function describeStructure(error: object): string {
     return `${kind} ${json}`;
   }
   const keys = Object.keys(error);
+  // `kind` and the key names are the player's own JavaScript, so they are
+  // interpolated rather than translated; only the sentence around them changes
+  // language.
   return keys.length === 0
-    ? `Thrown ${kind} with no message`
-    : `${kind} with keys: ${keys.join(", ")}`;
+    ? t("error.thrown.noMessage", { kind })
+    : t("error.thrown.keys", { kind, keys: keys.join(", ") });
 }
 
 /**
@@ -563,7 +603,7 @@ export function describeError(error: unknown): string {
     // Strings, numbers, booleans, symbols, `null` and `undefined` all stringify
     // to exactly what the player threw.
     const text = String(error);
-    return text === "" ? "Thrown empty string" : text;
+    return text === "" ? t("error.thrown.emptyString") : text;
   }
   return (
     stringProperty(error, "stack") ??

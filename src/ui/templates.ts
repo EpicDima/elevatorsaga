@@ -14,8 +14,19 @@
  * template literals as embedded HTML, and several of these templates are
  * whitespace sensitive (the in-car floor buttons sit flush against each other,
  * and the floor call buttons are separated by exactly one space).
+ *
+ * Every word these templates put on screen is asked for with `t` *inside* the
+ * function that renders it, never once at module scope. A `const` holding a
+ * translated string would be filled in while this module was first imported,
+ * which is before anything has had the chance to load a catalogue, so it would
+ * be English for the rest of the session however often the player changed
+ * language afterwards. The same reasoning is written out at length on
+ * {@link "../game/challenges.ts"!ChallengeCondition.description}, which is a
+ * getter for exactly this reason; here it costs nothing, because a template
+ * function is already called afresh for every render.
  */
 
+import { t } from "../i18n/index.ts";
 import { iconMarkup } from "./icons.ts";
 
 /** Markup that is inserted as-is, without escaping. */
@@ -123,8 +134,7 @@ export function renderElement(source: string): HTMLElement {
  * @returns The floor markup.
  */
 export function floorTemplate(level: number, yPosition: number): string {
-  const where = `floor ${String(level)}`;
-  return markup`<div class="floor" style="top: ${yPosition}px"><span class="floornumber" aria-hidden="true">${level}</span><span class="buttonindicator"><button type="button" class="up" aria-pressed="false" aria-label="Call an elevator going up from ${where}">${raw(iconMarkup("arrow-circle-up"))}</button> <button type="button" class="down" aria-pressed="false" aria-label="Call an elevator going down from ${where}">${raw(iconMarkup("arrow-circle-down"))}</button></span></div>`;
+  return markup`<div class="floor" style="top: ${yPosition}px"><span class="floornumber" aria-hidden="true">${level}</span><span class="buttonindicator"><button type="button" class="up" aria-pressed="false" aria-label="${t("game.floor.callUp", { floor: level })}">${raw(iconMarkup("arrow-circle-up"))}</button> <button type="button" class="down" aria-pressed="false" aria-label="${t("game.floor.callDown", { floor: level })}">${raw(iconMarkup("arrow-circle-down"))}</button></span></div>`;
 }
 
 /**
@@ -135,7 +145,7 @@ export function floorTemplate(level: number, yPosition: number): string {
  * @returns The elevator markup.
  */
 export function elevatorTemplate(width: number, index: number): string {
-  return markup`<div class="elevator movable" style="width: ${width}px" role="group" aria-label="Elevator ${index + 1}"><span class="directionindicator directionindicatorup">${raw(iconMarkup("arrow-circle-up", "up activated"))}</span><span class="floorindicator"><span></span></span><span class="directionindicator directionindicatordown">${raw(iconMarkup("arrow-circle-down", "down activated"))}</span><span class="buttonindicator"></span></div>`;
+  return markup`<div class="elevator movable" style="width: ${width}px" role="group" aria-label="${t("game.elevator.label", { number: index + 1 })}"><span class="directionindicator directionindicatorup">${raw(iconMarkup("arrow-circle-up", "up activated"))}</span><span class="floorindicator"><span></span></span><span class="directionindicator directionindicatordown">${raw(iconMarkup("arrow-circle-down", "down activated"))}</span><span class="buttonindicator"></span></div>`;
 }
 
 /**
@@ -148,7 +158,7 @@ export function elevatorTemplate(width: number, index: number): string {
  * @returns The button markup.
  */
 export function elevatorButtonTemplate(floorNum: number): string {
-  return markup`<button type="button" class="buttonpress" aria-pressed="false" aria-label="Go to floor ${floorNum}">${floorNum}</button>`;
+  return markup`<button type="button" class="buttonpress" aria-pressed="false" aria-label="${t("game.elevator.floorButton", { floor: floorNum })}">${floorNum}</button>`;
 }
 
 /** How a passenger is drawn; mirrors the simulation's `UserDisplayType`. */
@@ -203,8 +213,10 @@ export interface ChallengeLinkData {
  * @returns The list-item markup.
  */
 function challengeLinkTemplate(link: ChallengeLinkData): string {
-  const label = link.demo ? "Demo" : String(link.num);
-  const name = link.demo ? "Demo" : `Challenge ${String(link.num)}`;
+  const label = link.demo ? t("game.challenge.nav.demo") : String(link.num);
+  const name = link.demo
+    ? t("game.challenge.nav.demo")
+    : t("game.challenge.nav.link", { number: link.num });
   const current = link.current ? raw(` aria-current="page"`) : raw("");
   return markup`<li><a class="challengelink" href="${link.url}" aria-label="${name}"${current}>${label}</a></li>`;
 }
@@ -239,32 +251,6 @@ export interface SeedLinkData {
 }
 
 /**
- * What the seed line says about what a seed does and does not fix.
- *
- * Both halves are load-bearing, and each was measured rather than assumed.
- *
- * The passengers really do come back, and that is neither free nor old. Until
- * `e2cc0b5` the re-press offset in `src/game/world.ts` and the walk-off duration
- * in `src/game/user.ts` drew from the stream the passengers came from, at
- * moments the simulation's own dynamics decided — so a frame a microsecond
- * longer reordered the draws and everyone after that point was somebody else.
- * Those two have streams of their own now, and one seed brings one cast of
- * characters however the frames fall. That is what makes the affordance worth
- * having: comparing two programs means comparing them on the same people.
- *
- * The run does not come back. `dt` comes from `requestAnimationFrame` timestamps
- * in `src/game/world-controller.ts`, so the cars are in different places as each
- * passenger appears, the player's program is asked to decide at different
- * moments, and the outcome moves with them. Only the headless paths — the
- * fitness suite and the tests, which drive the clock themselves — repeat a run
- * step for step. "Replay this run" is the natural thing to write here and would
- * be a promise the browser cannot keep, so it is not made.
- */
-const SEED_EXPLANATION =
-  "The same seed brings the same passengers, in the same order. Frame timing comes from the " +
-  "browser, so the run around them is never quite the same twice.";
-
-/**
  * The seed of the run in progress, and the one thing worth doing about it.
  *
  * A real link, like the navigation row and for the same reasons: the browser's
@@ -297,9 +283,9 @@ const SEED_EXPLANATION =
  * transcribed, and it is contained in the accessible name (WCAG 2.5.3) — which
  * has to say more, since "1234567890, link" describes nothing. What the name
  * does not do is promise the run back: it says another run from this seed, and
- * {@link seedHelpTemplate} carries {@link SEED_EXPLANATION}, which says how far
- * that goes. The same rule holds the other way round: `new draw` is two words on
- * screen and two words inside the name.
+ * {@link seedHelpTemplate} carries the caveat, which says how far that goes. The
+ * same rule holds the other way round: `new draw` is two words on screen and two
+ * words inside the name, in whatever language the pair is read in.
  *
  * A `<div>` rather than the `<p>` this used to be, and not as a matter of taste:
  * `<details>` is one of the tags the HTML parser closes an open `<p>` on, so the
@@ -313,13 +299,34 @@ const SEED_EXPLANATION =
 function seedTemplate(data: SeedLinkData): string {
   const action =
     data.newDrawUrl === null
-      ? markup`<a class="seedlink" href="${data.url}" aria-label="Seed ${data.seed}: start another run from this seed">${data.seed}</a>`
-      : markup`<span class="seedvalue">${data.seed}</span> <a class="seednewdraw" href="${data.newDrawUrl}" aria-label="Seed ${data.seed}: new draw, start again without it">new draw</a>`;
-  return markup`<div class="challengeseed"><span class="seedlabel">Seed</span> ${raw(action)} ${raw(seedHelpTemplate())}</div>`;
+      ? markup`<a class="seedlink" href="${data.url}" aria-label="${t("game.seed.link", { seed: data.seed })}">${data.seed}</a>`
+      : markup`<span class="seedvalue">${data.seed}</span> <a class="seednewdraw" href="${data.newDrawUrl}" aria-label="${t("game.seed.newDrawLink", { seed: data.seed })}">${t("game.seed.newDraw")}</a>`;
+  return markup`<div class="challengeseed"><span class="seedlabel">${t("game.seed.label")}</span> ${raw(action)} ${raw(seedHelpTemplate())}</div>`;
 }
 
 /**
- * {@link SEED_EXPLANATION}, as something a player can actually open.
+ * What a seed does and does not fix, as something a player can actually open.
+ *
+ * The words are `game.seed.explanation` in the message catalogue, and both
+ * halves of them are load-bearing; each was measured rather than assumed, so a
+ * translation that drops one is dropping a finding.
+ *
+ * The passengers really do come back, and that is neither free nor old. Until
+ * `e2cc0b5` the re-press offset in `src/game/world.ts` and the walk-off duration
+ * in `src/game/user.ts` drew from the stream the passengers came from, at
+ * moments the simulation's own dynamics decided — so a frame a microsecond
+ * longer reordered the draws and everyone after that point was somebody else.
+ * Those two have streams of their own now, and one seed brings one cast of
+ * characters however the frames fall. That is what makes the affordance worth
+ * having: comparing two programs means comparing them on the same people.
+ *
+ * The run does not come back. `dt` comes from `requestAnimationFrame` timestamps
+ * in `src/game/world-controller.ts`, so the cars are in different places as each
+ * passenger appears, the player's program is asked to decide at different
+ * moments, and the outcome moves with them. Only the headless paths — the
+ * fitness suite and the tests, which drive the clock themselves — repeat a run
+ * step for step. "Replay this run" is the natural thing to write here and would
+ * be a promise the browser cannot keep, so it is not made.
  *
  * It used to be a `title` attribute on the word "Seed", which delivered it to a
  * mouse and to nothing else: `title` never appears on a touch screen, a `<span>`
@@ -356,7 +363,7 @@ function seedTemplate(data: SeedLinkData): string {
  * @returns The disclosure's markup.
  */
 function seedHelpTemplate(): string {
-  return markup`<details class="seedhelp"><summary>what a seed does</summary><p class="seedcaveat">${SEED_EXPLANATION}</p></details>`;
+  return markup`<details class="seedhelp"><summary>${t("game.seed.helpSummary")}</summary><p class="seedcaveat">${t("game.seed.explanation")}</p></details>`;
 }
 
 /** Everything the challenge bar needs in order to render itself. */
@@ -425,7 +432,14 @@ export interface ChallengeTemplateData {
 export function challengeTemplate(data: ChallengeTemplateData): string {
   const links = data.links.map((link) => challengeLinkTemplate(link)).join("");
   const seed = data.seed === null ? "" : seedTemplate(data.seed);
-  return markup`<h2 class="challengetitle">Challenge #${data.num}: ${raw(data.description)}</h2><div class="challengecontrols"><div class="timescale"><button type="button" class="timescale_decrease unselectable" aria-label="Decrease simulation speed">${raw(iconMarkup("minus-square"))}</button> <span class="emphasis-color timescale_value"></span> <button type="button" class="timescale_increase unselectable" aria-label="Increase simulation speed">${raw(iconMarkup("plus-square"))}</button></div><button type="button" class="startstop unselectable"></button></div><div class="challengefooter"><nav class="challengenav" aria-label="Challenges"><ul>${raw(links)}</ul></nav>${raw(seed)}</div>`;
+  // The title is one message rather than a sentence assembled here, because the
+  // requirement is inside it: Russian writes «Задание №3: ...», and a language
+  // that wanted the number after the requirement would have nowhere to put it if
+  // the order were fixed by this template. Both halves are trusted markup — the
+  // catalogue is this repository's own text, and the description comes from
+  // `src/game/challenges.ts` — so the assembled title goes in raw.
+  const title = t("game.challenge.title.html", { number: data.num, description: data.description });
+  return markup`<h2 class="challengetitle">${raw(title)}</h2><div class="challengecontrols"><div class="timescale"><button type="button" class="timescale_decrease unselectable" aria-label="${t("game.timeScale.decrease")}">${raw(iconMarkup("minus-square"))}</button> <span class="emphasis-color timescale_value"></span> <button type="button" class="timescale_increase unselectable" aria-label="${t("game.timeScale.increase")}">${raw(iconMarkup("plus-square"))}</button></div><button type="button" class="startstop unselectable"></button></div><div class="challengefooter"><nav class="challengenav" aria-label="${t("game.challenge.nav.label")}"><ul>${raw(links)}</ul></nav>${raw(seed)}</div>`;
 }
 
 /** Everything the end-of-challenge overlay needs in order to render itself. */
@@ -454,7 +468,7 @@ export function feedbackTemplate(data: FeedbackTemplateData): string {
   const link =
     data.url === ""
       ? ""
-      : markup`<a href="${data.url}" class="emphasis-color">Next challenge ${raw(iconMarkup("caret-right", "blink"))}</a>`;
+      : markup`<a href="${data.url}" class="emphasis-color">${t("game.feedback.next")} ${raw(iconMarkup("caret-right", "blink"))}</a>`;
   return markup`<div class="feedback"><h2 class="emphasis-color">${data.title}</h2><p class="emphasis-color">${data.message}</p>${raw(link)}</div>`;
 }
 
@@ -467,5 +481,5 @@ export function feedbackTemplate(data: FeedbackTemplateData): string {
  * @returns The banner markup, with an empty message slot.
  */
 export function codeStatusTemplate(): string {
-  return markup`<p class="error">${raw(iconMarkup("warning", "error-color"))} There is a problem with your code: <span class="errormessage"></span></p>`;
+  return markup`<p class="error">${raw(iconMarkup("warning", "error-color"))} ${t("game.codeStatus")} <span class="errormessage"></span></p>`;
 }

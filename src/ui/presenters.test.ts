@@ -1,10 +1,11 @@
 // @vitest-environment jsdom
 
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { User } from "../game/user.ts";
 import { createWorld } from "../game/world.ts";
 import type { World } from "../game/world.ts";
+import { DEFAULT_LOCALE, setLocale } from "../i18n/index.ts";
 import { queryAll, requireElement } from "./dom.ts";
 import {
   clearAll,
@@ -87,6 +88,23 @@ describe("presentStats", () => {
     expect(requireElement(".avgwaittime", container).textContent).toBe("3.3s");
     expect(requireElement(".maxwaittime", container).textContent).toBe("11.1s");
     expect(requireElement(".movecount", container).textContent).toBe("7");
+  });
+
+  it("groups the thousands a long run gets to", () => {
+    // The one thing the panel shows differently than it used to. `String` and
+    // `toFixed` wrote 2675s; every reader of English writes 2,675s, and every
+    // reader of Russian writes it with a space instead, which is the whole
+    // reason these figures go through `Intl` now.
+    const container = statsContainer();
+    const world = worldWithStats();
+    world.transportedCounter = 1234;
+    world.elapsedTime = 2675;
+    world.moveCount = 10000;
+    presentStats(container, world);
+
+    expect(requireElement(".transportedcounter", container).textContent).toBe("1,234");
+    expect(requireElement(".elapsedtime", container).textContent).toBe("2,675s");
+    expect(requireElement(".movecount", container).textContent).toBe("10,000");
   });
 
   it("keeps following the world", () => {
@@ -786,5 +804,110 @@ describe("setDemoFullscreen", () => {
     expect(document.documentElement.classList.contains(FULLSCREEN_CLASS)).toBe(true);
     setDemoFullscreen(false);
     expect(document.documentElement.classList.contains(FULLSCREEN_CLASS)).toBe(false);
+  });
+});
+
+describe("the language the interface comes out in", () => {
+  afterEach(() => {
+    setLocale(DEFAULT_LOCALE);
+  });
+
+  it("writes the statistics the way a reader of the locale writes numbers", () => {
+    // A decimal comma, a space instead of a comma between thousands, and the
+    // seconds abbreviated in Russian -- none of which `toFixed` and a glued-on
+    // "s" could ever have produced. The space before «с» is a non-breaking one,
+    // which is what keeps a figure and its unit on the same line; `Intl` puts an
+    // ordinary space there and `formatNumber` replaces it.
+    setLocale("ru");
+    const container = statsContainer();
+    presentStats(container, worldWithStats());
+
+    expect(requireElement(".transportedcounter", container).textContent).toBe("12");
+    expect(requireElement(".elapsedtime", container).textContent).toBe("61 с");
+    expect(requireElement(".transportedpersec", container).textContent).toBe("0,198");
+    expect(requireElement(".avgwaittime", container).textContent).toBe("3,3 с");
+    expect(requireElement(".maxwaittime", container).textContent).toBe("11,1 с");
+    expect(requireElement(".movecount", container).textContent).toBe("7");
+  });
+
+  it("groups thousands with a space rather than a comma", () => {
+    setLocale("ru");
+    const container = statsContainer();
+    const world = worldWithStats();
+    world.elapsedTime = 2675;
+    presentStats(container, world);
+
+    // U+00A0 again: Russian groups digits with a non-breaking space, and the
+    // one before «с» is the unit separator.
+    expect(requireElement(".elapsedtime", container).textContent).toBe("2 675 с");
+  });
+
+  it("writes the time scale with the multiplication sign Russian uses", () => {
+    setLocale("ru");
+
+    expect(formatTimeScale(2)).toBe("2×");
+    expect(formatTimeScale(0.5)).toBe("0,5×");
+  });
+
+  it("labels the start button in the language of the moment it is drawn", () => {
+    // The bar is rebuilt on every restart, so this is the label a player sees
+    // after switching language and letting the page redraw -- which is the
+    // contract `setLocale` asks its callers to keep.
+    const parent = createElement("div", { className: "challenge" });
+    const options: ChallengePresenterOptions = {
+      challengeNum: 3,
+      description: "Перевезите <span class='emphasis-color'>15</span> пассажиров",
+      challengeLinks: [],
+      seed: null,
+      world: { challengeEnded: false },
+      worldController: { isPaused: true, timeScale: 8 },
+      onStartStop: vi.fn(),
+      onTimeScaleIncrease: vi.fn(),
+      onTimeScaleDecrease: vi.fn(),
+    };
+    setLocale("ru");
+    const presenter = presentChallenge(parent, options);
+    const startStop = requireElement(".startstop", parent);
+
+    expect(requireElement(".challengetitle", parent).textContent).toBe(
+      "Задание №3: Перевезите 15 пассажиров",
+    );
+    expect(requireElement(".timescale_value", parent).textContent).toBe("8×");
+    expect(startStop.textContent).toBe("Старт");
+
+    options.worldController.isPaused = false;
+    presenter.update();
+    expect(startStop.textContent).toBe("Пауза");
+
+    options.world.challengeEnded = true;
+    presenter.update();
+    // The space in front is the gap between the icon and the word, and it is
+    // this file's job rather than the translator's.
+    expect(startStop.textContent).toBe(" Заново");
+  });
+
+  it("translates the sentence around a thrown value without translating the value", () => {
+    // `Object`, the property names and anything the player's own code produced
+    // are their JavaScript, and stay exactly as they wrote it.
+    setLocale("ru");
+    const circular: Record<string, unknown> = { floor: 3 };
+    circular["self"] = circular;
+
+    expect(describeError("")).toBe("Брошена пустая строка");
+    expect(describeError({})).toBe("Брошен Object без сообщения");
+    expect(describeError(circular)).toBe("Object с ключами: floor, self");
+    expect(describeError("TypeError: elevator.goToFloor is not a function")).toBe(
+      "TypeError: elevator.goToFloor is not a function",
+    );
+  });
+
+  it("puts the banner's sentence in the locale and the message beside it untouched", () => {
+    setLocale("ru");
+    const parent = createElement("div", { className: "codestatus" });
+    presentCodeStatus(parent, "Error: boom");
+
+    expect(requireElement(".error", parent).textContent).toBe(
+      " С вашим кодом что-то не так: Error: boom",
+    );
   });
 });
