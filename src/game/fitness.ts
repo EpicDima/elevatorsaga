@@ -98,10 +98,12 @@ export function requireNothing(): ChallengeCondition {
  * buildings themselves have not moved: the floor counts, elevator counts and
  * spawn rates below are the same three scenarios the benchmark has always used,
  * and they are still written out in one readable place. Only the moment the
- * names are rendered has changed, from import time to the start of a suite, by
- * which time {@link "../i18n/index.ts"!setLocale} has run — on the main thread
- * from the page's start-up, and inside the worker from the locale its request
- * carries.
+ * names are rendered has changed, from import time to the start of a suite,
+ * which is late enough for whoever chose a language to have chosen it: inside
+ * the worker that is the {@link "../i18n/index.ts"!setLocale} its request
+ * carries, and on the main thread it is whatever the page has set by then. As
+ * of this commit the page sets nothing and every suite is English, which is
+ * exactly the state a constant would have made permanent.
  *
  * The name is deliberately the constant's: what other modules mean when they
  * refer to this is the list of buildings, which is unchanged, and only the way

@@ -11,7 +11,7 @@
 
 import { doFitnessSuite } from "../game/fitness.ts";
 import type { FitnessSuiteResult } from "../game/fitness.ts";
-import { setLocale } from "../i18n/index.ts";
+import { isLocale, setLocale, DEFAULT_LOCALE } from "../i18n/index.ts";
 import type { Locale } from "../i18n/index.ts";
 
 /**
@@ -71,7 +71,17 @@ self.onmessage = (event: MessageEvent<FitnessWorkerRequest>): void => {
   // nothing is imported with a locale in hand, and a worker that outlived one
   // request -- if a caller ever pools them -- could well be asked again after
   // the player changed language.
-  setLocale(event.data.locale);
+  //
+  // Checked rather than trusted, because this is the one place in the module
+  // where a value arrives from outside the type system: a `postMessage` is
+  // structured-cloned data, and the sender may be a stale bundle posting the
+  // bare string this used to take, or the console. An unrecognised tag would
+  // otherwise reach `Intl` and throw out of `onmessage`, killing the worker --
+  // so the player would read a raw browser error where the report goes, for
+  // the sake of a field that only decides a language. Falling back to the
+  // default reports in English instead, which is the wrong language but a real
+  // answer.
+  setLocale(isLocale(event.data.locale) ? event.data.locale : DEFAULT_LOCALE);
   // One argument, deliberately: with no seed list the default applies, which is
   // `fitnessSeeds`, so the report a player sees is the one that constant
   // describes. Passing anything here would quietly score the game on something

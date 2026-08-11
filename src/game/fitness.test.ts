@@ -141,22 +141,40 @@ describe("requireNothing", () => {
 
 describe("fitnessChallenges", () => {
   it("keeps the three legacy scenarios", () => {
-    expect(fitnessChallenges().map((c) => c.options.description)).toEqual([
-      "Small scenario",
-      "Medium scenario",
-      "Large scenario",
+    // The buildings written out, not just their names: they are the benchmark
+    // itself, they are what makes two scores comparable, and now that this is a
+    // function rather than a constant they are rebuilt on every call.
+    expect(fitnessChallenges().map((c) => c.options)).toEqual([
+      { description: "Small scenario", floorCount: 4, elevatorCount: 2, spawnRate: 0.6 },
+      {
+        description: "Medium scenario",
+        floorCount: 6,
+        elevatorCount: 3,
+        spawnRate: 1.5,
+        elevatorCapacities: [5],
+      },
+      {
+        description: "Large scenario",
+        floorCount: 18,
+        elevatorCount: 6,
+        spawnRate: 1.9,
+        elevatorCapacities: [8],
+      },
     ]);
   });
 
-  it("keeps the same three buildings whatever they are called", () => {
-    // The names are messages; the floor counts, elevator counts and spawn rates
-    // are the benchmark itself, and a report scored in one language has to be
-    // comparable with a report scored in another.
-    const english = fitnessChallenges().map((c) => ({ ...c.options, description: "" }));
-    setLocale("ru");
-    const russian = fitnessChallenges().map((c) => ({ ...c.options, description: "" }));
+  it("changes only the names when the language changes", () => {
+    // A report scored in one language has to be comparable with a report scored
+    // in another, so the language may reach the descriptions and nothing else.
+    // What the buildings are is the test above's job; this one only holds one
+    // call against another, so a `t()` where a spawn rate goes would show up.
+    const buildings = (): unknown[] =>
+      fitnessChallenges().map((c) => ({ ...c.options, description: "" }));
+    const english = buildings();
 
-    expect(russian).toEqual(english);
+    setLocale("ru");
+
+    expect(buildings()).toEqual(english);
   });
 
   it("names its scenarios in the language asked for, not the one it was imported in", () => {

@@ -153,7 +153,9 @@ function runInWorker(
       finish({
         // Rendered on this side, not in the worker: a worker that has not
         // answered in a minute is one that is never going to, so there is
-        // nobody there to ask for the sentence.
+        // nobody there to ask for the sentence. A deadline of a thousand
+        // seconds or more now reads `1,000s` where it used to read `1000s`;
+        // the shipped one is sixty and only a test passes another.
         error: t("fitness.workerTimeout", { seconds: seconds(Math.round(timeoutMs / 1000)) }),
       });
     }, timeoutMs);
@@ -222,10 +224,16 @@ function waitTimeQuantity(waitTime: number): Quantity {
  * scenario descriptions are data and the error is whatever the player's program
  * threw.
  *
- * Both of those arrive already in the player's language \u2014 the scenario names
- * and the error alike are rendered wherever the suite ran, which is the worker
- * for a real report and this thread for the fallback. Only the frame around
- * them is put on here.
+ * Both of those arrive already in the player's language — the scenario names and
+ * the error alike are rendered wherever the suite ran, which is the worker for a
+ * real report and this thread for the fallback. Only the frame around them is put
+ * on here.
+ *
+ * Which means a language switch during a run leaves one line half-translated:
+ * the names were rendered at the locale the request went out with, and the frame
+ * at whichever is active when the answer comes back. Not worth carrying a locale
+ * home in the response to fix — a benchmark is a few seconds, a switch during one
+ * is rare, and the next run is written entirely in the new language.
  *
  * @param results - What {@link runFitnessSuite} resolved with.
  * @returns The message to display.

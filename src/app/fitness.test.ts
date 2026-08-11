@@ -93,10 +93,11 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  // The worker sets the locale on the module instance it runs in, and under
-  // Vitest that instance is this file's own -- so a test that drives the worker
-  // entry point leaves the language it asked for behind unless this puts it
-  // back.
+  // For the tests that set a language on this file's own module instance to see
+  // what the main thread does with it -- the locale is module state and would
+  // otherwise be inherited by every test after them. The worker tests are not
+  // why: those reset the module registry and set the language on a graph of
+  // their own, which is the point of them, and clean it up themselves.
   setLocale(DEFAULT_LOCALE);
 });
 
@@ -351,12 +352,47 @@ describe("the fitness worker entry point", () => {
       } as MessageEvent<FitnessWorkerRequest>);
     } finally {
       vi.unstubAllGlobals();
+      // And drop the fresh graph again. It is the copy that was just told to
+      // speak Russian, and leaving it in the registry would hand it to the next
+      // dynamic import in this file with its locale already set -- which no
+      // `setLocale` in an `afterEach` could put back, since the instance that
+      // `afterEach` holds is a different one.
+      vi.resetModules();
     }
 
     // Not merely a Russian scenario name: this is the player's own error, which
     // has no identifier to send home in place of it, and is the half that
     // translating the reply on the main thread could not have reached.
     expect(posted).toEqual([{ error: "Error: В коде должна быть функция init" }]);
+  });
+
+  it("falls back to the default language rather than dying on a locale it does not know", async () => {
+    // The request crosses a structured clone, so its type is a promise rather
+    // than a guarantee: a stale bundle posting the bare string this used to
+    // take, or a hand-written `postMessage`, gets here with no usable locale.
+    // Left unchecked that tag reaches `Intl`, throws out of `onmessage`, and
+    // the player reads a browser error where the fitness line goes.
+    const posted: FitnessWorkerResponse[] = [];
+    const workerSelf = {
+      onmessage: null as ((event: MessageEvent<FitnessWorkerRequest>) => void) | null,
+      postMessage: (message: FitnessWorkerResponse): void => {
+        posted.push(message);
+      },
+    };
+
+    vi.resetModules();
+    vi.stubGlobal("self", workerSelf);
+    try {
+      await import("./fitness-worker.ts");
+      workerSelf.onmessage?.({
+        data: { code: "var x = 1;", locale: "kl" },
+      } as unknown as MessageEvent<FitnessWorkerRequest>);
+    } finally {
+      vi.unstubAllGlobals();
+      vi.resetModules();
+    }
+
+    expect(posted).toEqual([{ error: "Error: Code must contain an init function" }]);
   });
 });
 
