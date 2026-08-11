@@ -272,8 +272,11 @@ export function spawnUserRandomly(
  * Turns a requested spawn rate into one the spawn loop can finish running.
  *
  * That loop is `while (elapsedSinceSpawn > 1 / spawnRate)`, subtracting
- * `1 / spawnRate` each time round, and it only ever ends while that interval is
- * a positive number. A negative rate makes the interval negative, so every
+ * `1 / spawnRate` each time round, so once it has started only a positive
+ * interval can bring it to an end: stopping means getting the accumulator back
+ * below the threshold, and only a positive subtrahend moves it that way. (An
+ * interval of `NaN` ends the loop too, by never letting it start — see below.)
+ * A negative rate makes the interval negative, so every
  * iteration *adds* to the accumulator it is racing and the condition can never
  * go false. An infinite rate makes the interval zero — `1 / Infinity` is `+0`,
  * `1 / -Infinity` is `-0` — so the subtraction does not move the accumulator at
@@ -297,13 +300,24 @@ export function spawnUserRandomly(
  * than two.
  *
  * What this does *not* promise is that every finite positive rate terminates
- * quickly. Past roughly 1e18 the interval is smaller than half an ulp of the
- * accumulated time, so the subtraction rounds to no change and the loop spins
- * again; below that but still absurd, it terminates only after spawning more
- * passengers than memory holds. Neither is rescuable by resolving the rate: both
- * would need a *ceiling* on it, and capping a rate that is a rate would change
- * the spawn timing of a legitimate value to defend against one no caller in this
- * game can reach (challenges are constants and the sandbox stops at 10).
+ * quickly. Past roughly 5.8e17 — at the game's `1 / 60` second step — the
+ * interval is under half an ulp of the accumulated time, so the subtraction
+ * rounds to no change and the loop spins for good; below that but still absurd,
+ * it ends only after spawning more passengers than memory holds. Neither is
+ * rescuable from here, because both need a *ceiling*, and every ceiling is a
+ * number this function would have to invent: low enough to be safe and it
+ * silently rewrites the timing of a rate that really is a rate, high enough to
+ * be uncontroversial and it still admits values that spin. Reading "not a rate"
+ * as "nobody arrives" invents nothing, which is why that half is worth doing
+ * here and this half is left written down instead.
+ *
+ * None of it is reachable from the app as it stands: the sandbox clamps its own
+ * parameter to [0.01, 10] before `createWorld` sees it and the shipped
+ * challenges are constants. The check lives in the engine anyway, because the
+ * app is one caller of `createWorld` among several — tests, the fitness suite,
+ * and whatever is written next — and because of how this particular mistake
+ * fails. There is no exception, no stack and no next frame to break in; the tab
+ * simply stops, which is a long way to walk back to a single wrong number.
  *
  * Reported with a single `console.warn`, rather than thrown or swallowed.
  * Throwing would abort `createWorld`, which the app calls while starting a run
@@ -324,7 +338,11 @@ export function spawnUserRandomly(
  * @returns `spawnRate` when it is a positive finite number, and
  * {@link NO_ARRIVALS_SPAWN_RATE} otherwise. A rate of exactly `0` passes through
  * unremarked — it is a coherent thing to ask for, and it already gets what it
- * asked for.
+ * asked for. Anything that is not a number at all, such as a `"2"` reaching an
+ * untyped caller, goes the way of the other non-rates rather than being coerced:
+ * `WorldOptions` is engine-internal and typed, unlike the player-facing API in
+ * src/game/elevator-interface.ts, which coerces precisely because everything it
+ * is handed comes from a program the compiler never saw.
  */
 function resolveSpawnRate(spawnRate: number): number {
   if (Number.isFinite(spawnRate) && spawnRate > 0) {
@@ -590,9 +608,11 @@ export class World extends Observable<WorldEvents> {
   update(dt: number): void {
     this.elapsedTime += dt;
     this.#elapsedSinceSpawn += dt;
-    // Divides without checking, and may: resolveSpawnRate has already ruled out
-    // every value of #spawnRate that would stop this loop from terminating, and
-    // the field cannot change afterwards.
+    // Divides without checking because resolveSpawnRate has already turned away
+    // every value that is not a positive finite rate, and the field cannot
+    // change afterwards. That is what it guarantees and all it guarantees: a
+    // positive rate absurd enough to outrun the accumulator still spins here,
+    // which resolveSpawnRate explains and deliberately does not cap.
     while (this.#elapsedSinceSpawn > 1.0 / this.#spawnRate) {
       this.#elapsedSinceSpawn -= 1.0 / this.#spawnRate;
       this.#registerUser(

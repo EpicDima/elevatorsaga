@@ -409,6 +409,16 @@ describe("doFitnessSuite", () => {
     }
   });
 
+  it("rejects an empty seed list instead of reporting an empty score", () => {
+    // There is nothing to average over no runs, and the honest answers are a
+    // throw or an empty result list; an empty list would reach
+    // describeFitnessResults and print "Fitness avg wait times:" with nothing
+    // after it, which reads like a program that scored badly rather than like a
+    // caller that asked for no measurement. This costs no simulation, so it is
+    // also the cheapest test in the file.
+    expect(() => doFitnessSuite(SWEEPING_PROGRAM, [])).toThrow(RangeError);
+  });
+
   it("runs the shipped seed list when it is given none", () => {
     // The path the worker takes: it posts nothing but the player's source, so
     // whether the report a player sees is reproducible rests entirely on the

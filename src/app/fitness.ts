@@ -22,10 +22,15 @@ import type { FitnessWorkerRequest } from "./fitness-worker.ts";
  * Deliberately fewer than the worker's: fewer buildings average worse, but the
  * page is frozen for the whole time, so it has to stay short.
  *
- * The first few of {@link fitnessSeeds} rather than seeds of its own, so that a
- * fallback report is a subset of the full one instead of a second, differently
- * scored thing that happens to be printed in the same place. It is still exactly
- * reproducible, and still says which buildings it measured.
+ * The first few of {@link fitnessSeeds} rather than seeds of its own, so that the
+ * buildings it measures are a subset of the full run's rather than a separate set
+ * nobody else uses. The number it prints is still not the worker's: an average
+ * over two of these seeds is a different number from an average over six, and
+ * {@link describeFitnessResults} prints both as the same line, so a fallback
+ * report is comparable with another fallback report and not with a worker one.
+ * Living with that is the trade the fallback already was — the alternative is
+ * freezing the page for the full suite — and taking the prefix at least keeps the
+ * two from disagreeing about which buildings exist.
  */
 const FALLBACK_SEED_COUNT = 2;
 

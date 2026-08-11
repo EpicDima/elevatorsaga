@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { Elevator } from "./elevator.ts";
 import type { ElevatorInterface } from "./elevator-interface.ts";
@@ -75,8 +75,9 @@ const RUNAWAY_SPAWN_LIMIT = 10_000;
  * propagate, so throwing from one is the only lever a test has to break out of
  * that loop from the inside.
  *
- * The limit is far above any legitimate frame here: the highest rate these tests
- * use is a few hundred passengers a second over steps of a few seconds.
+ * The limit is far above any legitimate frame these tests ask for: the busiest is
+ * 123.456 passengers a second over a five-second step, some six hundred spawns,
+ * and the rates this helper mainly exists for spawn nobody at all.
  *
  * @param world - World to advance.
  * @param dt - Simulated seconds to advance by.
@@ -413,6 +414,15 @@ describe("World", () => {
       // loop there is no error, no stack and no next frame -- the tab freezes
       // and the game merely looks broken.
 
+      // Every rate in this block that is not a rate is reported to the console
+      // by design, so the block silences it. The two tests that care about the
+      // warning assert on the mock; the rest have nothing to say about it, and
+      // leaving four warnings in the output of a passing suite only teaches the
+      // reader to skip past output that is sometimes worth reading.
+      beforeEach(() => {
+        vi.spyOn(console, "warn").mockImplementation(() => undefined);
+      });
+
       it("does not hang, and spawns nobody, for a negative rate", () => {
         const world = createWorld({ spawnRate: -2 }, "negative-rate");
         const spawned = collectUsers(world);
@@ -462,18 +472,16 @@ describe("World", () => {
         // on. Throwing from the constructor would abort createWorld, and the
         // app calls that while starting a run, so a single bad option would
         // leave the page with no building at all.
-        const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
-
         const world = createWorld({ spawnRate: -2, floorCount: 3, elevatorCount: 1 }, "reported");
         // Through the bounded helper like every other test here: this one runs
         // a rate that used to hang too, so a regression must fail it rather
         // than take the test run down with it.
         updateWithoutRunawaySpawning(world, 0.1);
 
-        expect(warn).toHaveBeenCalledTimes(1);
+        expect(console.warn).toHaveBeenCalledTimes(1);
         // Names the value, so the reader of the console knows which option to
         // go and look at rather than only that something was wrong.
-        expect(String(warn.mock.calls[0]?.[0])).toContain("-2");
+        expect(String(vi.mocked(console.warn).mock.calls[0]?.[0])).toContain("-2");
         expect(world.elapsedTime).toBeCloseTo(0.1, 10);
       });
 
@@ -481,11 +489,9 @@ describe("World", () => {
         // Zero is a coherent request -- an empty building is a thing a test or
         // a demo may well want -- and it already gets exactly what it asked
         // for, so there is nothing to report.
-        const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
-
         createWorld({ spawnRate: 0 });
 
-        expect(warn).not.toHaveBeenCalled();
+        expect(console.warn).not.toHaveBeenCalled();
       });
     });
 
@@ -501,8 +507,12 @@ describe("World", () => {
         const world = createWorld({ spawnRate, floorCount: 3, elevatorCount: 1 }, "timing");
         const spawned = collectUsers(world);
 
+        // Bounded like the tests above even though every rate here is one the
+        // loop finishes on, so that adding an extreme rate to the list -- the
+        // obvious next edit to this test -- fails it instead of wedging the
+        // whole run. Costs one handler registration per frame.
         const counts = steps.map((dt) => {
-          world.update(dt);
+          updateWithoutRunawaySpawning(world, dt);
           return spawned.length;
         });
 

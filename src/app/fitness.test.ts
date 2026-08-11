@@ -7,6 +7,28 @@ import {
   type FitnessSuiteResult,
 } from "../game/fitness.ts";
 import { describeFitnessResults, runFitnessSuite, type FitnessWorkerLike } from "./fitness.ts";
+import type { FitnessWorkerRequest, FitnessWorkerResponse } from "./fitness-worker.ts";
+
+/**
+ * A program that actually drives the elevators, as source rather than an object.
+ *
+ * The benchmark measures wait times, and code that never moves an elevator scores
+ * every seed identically -- nobody is ever delivered -- which would let a test
+ * about seeds pass without the seeds doing anything. This sweeps every elevator
+ * through every floor, so different traffic produces different numbers.
+ */
+const DRIVING_PROGRAM = `{
+  init: function (elevators, floors) {
+    elevators.forEach(function (elevator) {
+      elevator.on("idle", function () {
+        for (var floor = 0; floor < floors.length; floor++) {
+          elevator.goToFloor(floor);
+        }
+      });
+    });
+  },
+  update: function (dt, elevators, floors) {}
+}`;
 
 /** A worker stand-in whose replies the test drives. */
 class FakeWorker implements FitnessWorkerLike {
@@ -203,26 +225,48 @@ describe("runFitnessSuite without a worker", () => {
   it("scores the fallback on the first of the shipped seeds", async () => {
     // The fallback runs fewer buildings than the worker, because it freezes the
     // page while it does -- but it takes them off the front of the same list
-    // rather than choosing its own, so its report is a subset of the full one
-    // and is reproducible in the same way. This pins both the prefix and the
-    // count it stops at, which is a deliberate choice rather than a detail.
-    const program = `{
-      init: function (elevators, floors) {
-        elevators.forEach(function (elevator) {
-          elevator.on("idle", function () {
-            for (var floor = 0; floor < floors.length; floor++) {
-              elevator.goToFloor(floor);
-            }
-          });
-        });
+    // rather than choosing its own, so it measures a subset of the same
+    // buildings and is reproducible in the same way. This pins both the prefix
+    // and the count it stops at, which is a deliberate choice rather than a
+    // detail.
+    const fallback = await runFitnessSuite(DRIVING_PROGRAM, { preferWorker: false });
+
+    expect(fallback).toEqual(doFitnessSuite(DRIVING_PROGRAM, fitnessSeeds.slice(0, 2)));
+    expect(fallback).not.toEqual(doFitnessSuite(DRIVING_PROGRAM, fitnessSeeds.slice(0, 1)));
+    // Without this the assertion above would still hold if the shipped list were
+    // shortened to two, and the fallback would silently have become the whole
+    // suite -- the one thing it must not be, since it runs on the main thread.
+    expect(fitnessSeeds.length).toBeGreaterThan(2);
+  });
+});
+
+describe("the fitness worker entry point", () => {
+  it("scores the request on the shipped seeds and posts the result back", async () => {
+    // The path every report a player sees actually takes, and the only thing
+    // keeping it on the shipped seeds is that the worker passes none of its own.
+    // Nothing else can hold it to that: the module is pulled in by the bundler
+    // through `new URL(...)` and imported by no other source file, so a seed
+    // list quietly added here would change every score in the game and break
+    // no other test. Driven through a stand-in `self`, which is the whole of
+    // the environment the module touches.
+    const posted: FitnessWorkerResponse[] = [];
+    const workerSelf = {
+      onmessage: null as ((event: MessageEvent<FitnessWorkerRequest>) => void) | null,
+      postMessage: (message: FitnessWorkerResponse): void => {
+        posted.push(message);
       },
-      update: function (dt, elevators, floors) {}
-    }`;
+    };
 
-    const fallback = await runFitnessSuite(program, { preferWorker: false });
+    vi.stubGlobal("self", workerSelf);
+    try {
+      await import("./fitness-worker.ts");
+      workerSelf.onmessage?.({ data: DRIVING_PROGRAM } as MessageEvent<FitnessWorkerRequest>);
+    } finally {
+      // Globals outlive the test; `vi.restoreAllMocks` does not undo a stub.
+      vi.unstubAllGlobals();
+    }
 
-    expect(fallback).toEqual(doFitnessSuite(program, fitnessSeeds.slice(0, 2)));
-    expect(fallback).not.toEqual(doFitnessSuite(program, fitnessSeeds.slice(0, 1)));
+    expect(posted).toEqual([doFitnessSuite(DRIVING_PROGRAM, [...fitnessSeeds])]);
   });
 });
 

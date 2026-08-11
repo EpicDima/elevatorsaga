@@ -115,9 +115,12 @@ export const fitnessChallenges: readonly FitnessChallenge[] = [
  *
  * The benchmark used to leave every world unseeded, so the same program scored
  * differently on every invocation and two programs could not be told apart from
- * a luckier draw. Naming the seeds fixes both: a report is reproducible, and two
- * programs measured against this list met the same passengers, arriving at the
- * same second, on the same floors.
+ * a luckier draw. Naming the seeds fixes both: the buildings are reproducible,
+ * and two programs measured against this list met the same passengers, arriving
+ * at the same second, on the same floors. Reproducible *buildings* rather than
+ * reproducible scores, strictly — a program that calls `Math.random` itself
+ * decides differently on identical traffic, and nothing here can seed that — but
+ * the half that used to vary on its own no longer does.
  *
  * Written out here rather than generated, and exported rather than kept private,
  * because a number nobody can see is a number nobody can check: someone
@@ -132,8 +135,9 @@ export const fitnessChallenges: readonly FitnessChallenge[] = [
  * {@link "./random.ts"!createRandomSource} hashes a seed before use, so `1` and
  * `2` start unrelated streams rather than neighbouring ones.
  *
- * Six of them, which is what the worker used to run, so the report still costs
- * the same handful of seconds it always did.
+ * Six of them, which is exactly the run count the worker used to pass, so a
+ * report costs what it always did: this list is where that cost is decided, and
+ * lengthening it lengthens every benchmark the game runs.
  */
 export const fitnessSeeds: readonly RandomSeed[] = [1, 2, 3, 4, 5, 6];
 
@@ -247,8 +251,9 @@ export function makeAverageResult(results: readonly FitnessRun[]): AveragedFitne
  * Benchmarks player code over every scenario, once per seed.
  *
  * The legacy suite took a number of runs and left every world unseeded, so the
- * scenario list was walked `runCount` times over `runCount` different buildings
- * that nobody could name afterwards. The count is now the seed list's length: it
+ * scenario list was walked `runCount` times over a building nobody could name
+ * afterwards — a fresh one per scenario, `runCount * fitnessChallenges.length` of
+ * them in all, none of them repeatable. The count is now the seed list's length: it
  * still averages several runs, but which runs is written down, so re-running the
  * same program reproduces the same numbers and two programs can be held against
  * the same buildings.
@@ -281,10 +286,13 @@ export function doFitnessSuite(
   for (const seed of seeds) {
     const results: FitnessRun[] = [];
     for (const challenge of fitnessChallenges) {
-      // Every scenario of one run takes the same seed, and the three do not
-      // therefore repeat one another: each draws that one stream against its own
-      // floor count and spawn rate, so the same values become different
-      // passengers heading for different floors, and more or fewer of them. One
+      // Every scenario of one run takes the same seed, which does not make the
+      // three the same run over again: each draws that one stream against its
+      // own floor count and spawn rate, so the same values become different
+      // passengers heading for different floors, and more or fewer of them. It
+      // does correlate them -- three scenarios starting from an identical
+      // stream see related first arrivals -- which is a reason to average across
+      // seeds, as this does, rather than to read one scenario on its own. One
       // seed per run is also what makes a report quotable -- "seed 3" names a
       // whole row of the results rather than one cell of it.
       const fitness = calculateFitness(challenge, codeObj, 1000.0 / 60.0, 12000, seed);
