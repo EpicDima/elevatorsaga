@@ -3,8 +3,17 @@
  *
  * Ported from the legacy `challenges.js`. The descriptions contain the same
  * HTML markup as before because the view drops them straight into the page.
+ *
+ * They are built out of the message catalogue rather than written here, which is
+ * what a language other than English needs from them. Each is two messages deep:
+ * a sentence with holes in it, and a counted phrase for each hole. Russian is
+ * why — «Перевезите 23 пассажира» wants the accusative and «дольше 2,0 секунды»
+ * the genitive, so the same English word has to be a message of its own in each
+ * sentence it appears in, with its own plural forms. `src/i18n/format.ts` says
+ * the rest of it.
  */
 
+import { decimal, format, t } from "../i18n/index.ts";
 import type { WorldOptions } from "./world.ts";
 
 /** The statistics a challenge condition inspects. */
@@ -21,7 +30,19 @@ export interface ChallengeWorldStats {
 
 /** A win/lose condition attached to a challenge. */
 export interface ChallengeCondition {
-  /** Human-readable requirement; contains HTML markup. */
+  /**
+   * Human-readable requirement; contains HTML markup.
+   *
+   * Read afresh every time, and a getter on everything that implements it,
+   * because the words come out of the message catalogue and the locale outlives
+   * the object: {@link challenges} is a module-level constant, so a string
+   * computed there would be frozen in whichever language happened to be active
+   * when the module was first imported — English, always, since nothing has
+   * loaded a catalogue that early. A getter puts it in the language of the
+   * moment the bar was last drawn, which is exactly the contract
+   * {@link "../i18n/index.ts"!setLocale} asks callers to keep: change the
+   * locale, then redraw.
+   */
   readonly description: string;
   /**
    * Judges a world.
@@ -52,7 +73,12 @@ export function requireUserCountWithinTime(
   timeLimit: number,
 ): ChallengeCondition {
   return {
-    description: `Transport <span class='emphasis-color'>${String(userCount)}</span> people in <span class='emphasis-color'>${timeLimit.toFixed(0)}</span> seconds or less`,
+    get description(): string {
+      return t("challenge.transportWithinTime.html", {
+        people: t("challenge.people.html", { count: userCount }),
+        time: t("challenge.timeLimit.html", { count: timeLimit }),
+      });
+    },
     evaluate(world: ChallengeWorldStats): boolean | null {
       if (world.elapsedTime >= timeLimit || world.transportedCounter >= userCount) {
         return world.elapsedTime <= timeLimit && world.transportedCounter >= userCount;
@@ -75,7 +101,17 @@ export function requireUserCountWithMaxWaitTime(
   maxWaitTime: number,
 ): ChallengeCondition {
   return {
-    description: `Transport <span class='emphasis-color'>${String(userCount)}</span> people and let no one wait more than <span class='emphasis-color'>${maxWaitTime.toFixed(1)}</span> seconds`,
+    get description(): string {
+      return t("challenge.transportWithMaxWait.html", {
+        people: t("challenge.people.html", { count: userCount }),
+        // One decimal, as `toFixed(1)` gave it: 21 seconds is written "21.0",
+        // and in Russian "21,0" -- which is also why the digits and the number
+        // travel together. `21` is `one` there and `21,0` is `other`, so the
+        // form of «секунды» depends on a decision the formatter has not made
+        // yet unless the two are decided at once.
+        waitTime: t("challenge.waitLimit.html", { count: decimal(maxWaitTime, 1) }),
+      });
+    },
     evaluate(world: ChallengeWorldStats): boolean | null {
       if (world.maxWaitTime >= maxWaitTime || world.transportedCounter >= userCount) {
         return world.maxWaitTime <= maxWaitTime && world.transportedCounter >= userCount;
@@ -100,7 +136,13 @@ export function requireUserCountWithinTimeWithMaxWaitTime(
   maxWaitTime: number,
 ): ChallengeCondition {
   return {
-    description: `Transport <span class='emphasis-color'>${String(userCount)}</span> people in <span class='emphasis-color'>${timeLimit.toFixed(0)}</span> seconds or less and let no one wait more than <span class='emphasis-color'>${maxWaitTime.toFixed(1)}</span> seconds`,
+    get description(): string {
+      return t("challenge.transportWithinTimeWithMaxWait.html", {
+        people: t("challenge.people.html", { count: userCount }),
+        time: t("challenge.timeLimit.html", { count: timeLimit }),
+        waitTime: t("challenge.waitLimit.html", { count: decimal(maxWaitTime, 1) }),
+      });
+    },
     evaluate(world: ChallengeWorldStats): boolean | null {
       if (
         world.elapsedTime >= timeLimit ||
@@ -131,7 +173,12 @@ export function requireUserCountWithinMoves(
   moveLimit: number,
 ): ChallengeCondition {
   return {
-    description: `Transport <span class='emphasis-color'>${String(userCount)}</span> people using <span class='emphasis-color'>${String(moveLimit)}</span> elevator moves or less`,
+    get description(): string {
+      return t("challenge.transportWithinMoves.html", {
+        people: t("challenge.people.html", { count: userCount }),
+        moves: t("challenge.moveLimit.html", { count: moveLimit }),
+      });
+    },
     evaluate(world: ChallengeWorldStats): boolean | null {
       if (world.moveCount >= moveLimit || world.transportedCounter >= userCount) {
         return world.moveCount <= moveLimit && world.transportedCounter >= userCount;
@@ -149,7 +196,9 @@ export function requireUserCountWithinMoves(
  */
 export function requireDemo(): ChallengeCondition {
   return {
-    description: "Perpetual demo",
+    get description(): string {
+      return t("challenge.demo");
+    },
     evaluate(): boolean | null {
       return null;
     },
@@ -180,11 +229,16 @@ export interface SandboxOptions {
 /**
  * Wraps a value in the emphasis markup the challenge bar paints numbers with.
  *
+ * The one number in a description that no message of its own can carry: the
+ * capacities are a list of unknown length, and a catalogue entry holds a
+ * sentence rather than a loop. Everything else here is a counted phrase, which
+ * needs its noun agreed with the count and so has to be a message.
+ *
  * @param value - The number to emphasise.
  * @returns The markup, ready to interpolate into a description.
  */
 function emphasise(value: number): string {
-  return `<span class='emphasis-color'>${String(value)}</span>`;
+  return `<span class='emphasis-color'>${format(value)}</span>`;
 }
 
 /**
@@ -201,14 +255,24 @@ function emphasise(value: number): string {
  * @returns The condition.
  */
 export function requireSandbox(options: SandboxOptions): ChallengeCondition {
-  const elevators = options.elevatorCount === 1 ? "elevator" : "elevators";
-  const capacities = options.elevatorCapacities.map((capacity) => emphasise(capacity)).join(", ");
-  const capacityLabel = options.elevatorCapacities.length === 1 ? "capacity" : "capacities";
   return {
-    description:
-      `Sandbox: ${emphasise(options.floorCount)} floors, ` +
-      `${emphasise(options.elevatorCount)} ${elevators} of ${capacityLabel} ${capacities}, ` +
-      `${emphasise(options.spawnRate)} people per second. No goal, so the run never ends`,
+    get description(): string {
+      return t("challenge.sandbox.html", {
+        floors: t("challenge.sandbox.floors.html", { count: options.floorCount }),
+        elevators: t("challenge.sandbox.elevators.html", { count: options.elevatorCount }),
+        // Counted by how many capacities were listed, not by how many cars
+        // there are: the label introduces the list that follows it, and a
+        // building of four elevators cycling one capacity has one to show.
+        capacityLabel: t("challenge.sandbox.capacityLabel", {
+          count: options.elevatorCapacities.length,
+        }),
+        // Comma-space, in both languages so far. A locale that lists things
+        // differently would want `Intl.ListFormat` here, which is one line and
+        // is not worth writing before there is a locale that needs it.
+        capacities: options.elevatorCapacities.map((capacity) => emphasise(capacity)).join(", "),
+        spawnRate: t("challenge.sandbox.spawnRate.html", { count: options.spawnRate }),
+      });
+    },
     evaluate(): boolean | null {
       return null;
     },

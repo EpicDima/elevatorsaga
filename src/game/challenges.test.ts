@@ -1,5 +1,6 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
+import { DEFAULT_LOCALE, setLocale } from "../i18n/index.ts";
 import {
   challenges,
   createSandboxChallenge,
@@ -12,6 +13,7 @@ import {
   type ChallengeWorldStats,
   type SandboxOptions,
 } from "./challenges.ts";
+import { at } from "./test-helpers.ts";
 
 /** A world in which nothing at all has happened yet. */
 const NOTHING_HAPPENED: ChallengeWorldStats = {
@@ -120,11 +122,16 @@ describe("Challenge requirements", () => {
       expect(challengeReq.evaluate(fakeWorld)).toBe(false);
     });
 
-    it("describes itself", () => {
+    it("describes itself, grouping the digits of the numbers it is counting", () => {
+      // `2,675` rather than `2675`, because the numbers go through
+      // `Intl.NumberFormat` now and that is what it gives for English. The
+      // grouping is the improvement, not a side effect: these are quantities a
+      // player reads off the bar at a glance, and the same numbers come out as
+      // `2 675` in Russian.
       expect(requireUserCountWithinTimeWithMaxWaitTime(2675, 1800, 45).description).toBe(
-        "Transport <span class='emphasis-color'>2675</span> people in " +
-          "<span class='emphasis-color'>1800</span> seconds or less and let no one wait more than " +
-          "<span class='emphasis-color'>45.0</span> seconds",
+        "Transport <span class='emphasis-color'>2,675</span> people in " +
+          "<span class='emphasis-color'>1,800</span> seconds or less and let no one wait more " +
+          "than <span class='emphasis-color'>45.0</span> seconds",
       );
     });
   });
@@ -238,5 +245,55 @@ describe("challenges", () => {
 
   it("ends with the perpetual demo", () => {
     expect(challenges.at(-1)?.condition.description).toBe("Perpetual demo");
+  });
+});
+
+describe("the language a description comes out in", () => {
+  afterEach(() => {
+    setLocale(DEFAULT_LOCALE);
+  });
+
+  it("declines every noun the sentence counts", () => {
+    // Three numbers, three different endings, none of which an English
+    // template could have produced by gluing a word onto a number: 23
+    // пассажира, 30 секунд, 2,0 секунды. The wait time is the interesting one
+    // -- it is the same 2 as an integer would be, but written with a tenth it
+    // takes a different form of the noun, which is why the catalogue is handed
+    // the number together with the way it is spelled.
+    setLocale("ru");
+
+    expect(requireUserCountWithinTimeWithMaxWaitTime(23, 30, 2).description).toBe(
+      "Перевезите <span class='emphasis-color'>23</span> пассажира за " +
+        "<span class='emphasis-color'>30</span> секунд или быстрее, и пусть никто не ждёт " +
+        "дольше <span class='emphasis-color'>2,0</span> секунды",
+    );
+  });
+
+  it("agrees each sandbox parameter with the number in front of it", () => {
+    // The sentence the router's numbers land in, assembled out of five
+    // separately counted pieces: 20 этажей, 2 лифта, one capacity so
+    // "вместимостью", and a rate that is written 1,5 here and 1.5 in English.
+    setLocale("ru");
+
+    expect(requireSandbox(SANDBOX).description).toBe(
+      "Песочница: <span class='emphasis-color'>20</span> этажей, " +
+        "<span class='emphasis-color'>2</span> лифта вместимостью " +
+        "<span class='emphasis-color'>4</span>, " +
+        "<span class='emphasis-color'>1,5</span> пассажира в секунду. " +
+        "Цели нет, поэтому симуляция никогда не закончится",
+    );
+  });
+
+  it("is settled when the description is read, not when the module was loaded", () => {
+    // `challenges` is a module-level constant, built as the page loads and
+    // before anybody has chosen a language. A description computed there would
+    // be whatever was active at import time for the rest of the session, so
+    // every one of them is a getter -- and this is the spec that says so.
+    const challenge = at(challenges, 0);
+    expect(challenge.condition.description).toContain("Transport");
+
+    setLocale("ru");
+
+    expect(challenge.condition.description).toContain("Перевезите");
   });
 });
