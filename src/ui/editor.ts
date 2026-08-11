@@ -26,7 +26,7 @@ import { getCodeObjFromCode } from "../game/user-code.ts";
 import type { UserCodeObject } from "../game/user-code.ts";
 import { t } from "../i18n/index.ts";
 import { playerApiCompletionSource } from "./completions.ts";
-import { DEFAULT_CODE, DEV_TEST_CODE } from "./default-code.ts";
+import { DEV_TEST_CODE, defaultCode } from "./default-code.ts";
 
 /**
  * Where the player's program is kept between visits.
@@ -268,11 +268,23 @@ interface EditorBuffer {
   readonly writesStarterOnOpen: boolean;
 }
 
-/** The buffer holding the player's own program, which the editor opens with. */
+/**
+ * The buffer holding the player's own program, which the editor opens with.
+ *
+ * `starterCode` is a getter, not a value: the program is a translated string,
+ * and this object is built when the module is imported, which is before the
+ * player's locale has been resolved. Reading it per use is also what makes
+ * "is this still the starter program?" mean the right thing after a language
+ * change — the English program a player was handed is no longer what Reset
+ * would give them, so it counts as theirs and gets backed up rather than
+ * silently discarded.
+ */
 const PLAYER_BUFFER: EditorBuffer = {
   codeKey: CODE_STORAGE_KEY,
   backupKey: BACKUP_STORAGE_KEY,
-  starterCode: DEFAULT_CODE,
+  get starterCode(): string {
+    return defaultCode();
+  },
   writesStarterOnOpen: false,
 };
 

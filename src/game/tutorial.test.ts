@@ -132,10 +132,10 @@ function expectConditionIsReachable(task: TutorialTask): void {
  *
  * These strings are read far more often than they are run: they are the first
  * JavaScript most players see of this API, and they sit next to
- * {@link "../ui/default-code.ts"!DEFAULT_CODE} in the same editor. Four-space
- * indentation, spaces rather than tabs and no trailing blanks are what that file
- * establishes; a task that arrives formatted differently makes the track look
- * like it came from somewhere else.
+ * the program {@link "../ui/default-code.ts"!defaultCode} returns, in the same
+ * editor. Four-space indentation, spaces rather than tabs and no trailing blanks
+ * are what `editor.defaultCode.code` establishes; a task that arrives formatted
+ * differently makes the track look like it came from somewhere else.
  *
  * @param label - Identifies the program in failure messages.
  * @param code - The program.

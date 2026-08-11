@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { DEFAULT_LOCALE, setLocale } from "../i18n/index.ts";
 import { playerApiCompletionSource } from "./completions.ts";
-import { DEFAULT_CODE, DEV_TEST_CODE } from "./default-code.ts";
+import { DEV_TEST_CODE, defaultCode } from "./default-code.ts";
 import {
   AUTOSAVE_DELAY_MS,
   BACKUP_STORAGE_KEY,
@@ -226,7 +226,7 @@ describe("storage keys", () => {
 describe("CodeEditor storage", () => {
   it("starts a new player off with the default program", () => {
     const { view } = setUp();
-    expect(view.getValue()).toBe(DEFAULT_CODE);
+    expect(view.getValue()).toBe(defaultCode());
   });
 
   it("restores the program from the v5 key players already have", () => {
@@ -315,7 +315,7 @@ describe("CodeEditor storage", () => {
     const saved = vi.fn();
     editor.on("saved", saved);
 
-    expect(view.getValue()).toBe(DEFAULT_CODE);
+    expect(view.getValue()).toBe(defaultCode());
     expect(() => {
       editor.save();
     }).not.toThrow();
@@ -381,7 +381,7 @@ describe("CodeEditor buffers", () => {
     // looking like a played one.
     const { editor, view, storage } = setUp();
     view.type("// second thoughts");
-    view.type(DEFAULT_CODE);
+    view.type(defaultCode());
 
     editor.openTutorialBuffer("tutorial-1", "// task 1");
     vi.advanceTimersByTime(AUTOSAVE_DELAY_MS * 2);
@@ -413,7 +413,7 @@ describe("CodeEditor buffers", () => {
     editor.openTutorialBuffer("tutorial-2", "// task 2");
     editor.openPlayerBuffer();
 
-    expect(view.getValue()).toBe(DEFAULT_CODE);
+    expect(view.getValue()).toBe(defaultCode());
     // Nobody typed, so nothing claimed the player's key on their behalf: an
     // untouched install still looks untouched after a walk through the track.
     expect(storage.getItem(CODE_STORAGE_KEY)).toBeNull();
@@ -590,7 +590,7 @@ describe("CodeEditor buffers", () => {
       }).toThrow(RangeError);
     }
 
-    expect(view.getValue()).toBe(DEFAULT_CODE);
+    expect(view.getValue()).toBe(defaultCode());
     expect(storage.getItem("develevateTutorialCode_")).toBeNull();
     expect(storage.getItem("develevateTutorialCode_ ")).toBeNull();
   });
@@ -657,7 +657,7 @@ describe("CodeEditor buffers", () => {
     expect(() => {
       editor.openPlayerBuffer();
     }).not.toThrow();
-    expect(view.getValue()).toBe(DEFAULT_CODE);
+    expect(view.getValue()).toBe(defaultCode());
   });
 
   it("keeps a switch lossless for as long as the tab lives when nothing can be stored", () => {
@@ -697,7 +697,7 @@ describe("CodeEditor reset", () => {
     view.value = "// worth keeping";
 
     editor.reset();
-    expect(view.getValue()).toBe(DEFAULT_CODE);
+    expect(view.getValue()).toBe(defaultCode());
     expect(storage.getItem(BACKUP_STORAGE_KEY)).toBe("// worth keeping");
 
     editor.undoReset();
@@ -824,7 +824,7 @@ describe("CodeEditor reset", () => {
 
     expect(editor.reset()).toBe(true);
 
-    expect(view.getValue()).toBe(DEFAULT_CODE);
+    expect(view.getValue()).toBe(defaultCode());
     // Recoverable for as long as the tab lives, which is as long as anything
     // can be promised when nothing can be stored.
     editor.undoReset();
@@ -1263,4 +1263,41 @@ describe("codeMirrorView", () => {
       );
     });
   });
+});
+
+describe("the starting program", () => {
+  afterEach(() => {
+    setLocale(DEFAULT_LOCALE);
+  });
+
+  it("is the one in the catalogue for the language on screen", () => {
+    // `editor.defaultCode.code` sat in both catalogues, fully translated, with
+    // no caller: a Russian player was handed English comments in the first
+    // JavaScript they ever see of this API, next to a Help page walking through
+    // that same program in Russian.
+    setLocale("ru");
+    const { view } = setUp();
+
+    expect(view.getValue()).toContain("// Возьмём первый лифт");
+    expect(view.getValue()).not.toContain("// Let's use the first elevator");
+  });
+
+  it("follows the language, rather than the language it was imported in", () => {
+    // The reason `PLAYER_BUFFER.starterCode` is a getter. A module-scope
+    // constant is evaluated once, when this module is first imported, which is
+    // before anything has resolved the player's locale -- so it would answer
+    // English for the rest of the session no matter what the page says.
+    const { editor, view } = setUp();
+    expect(view.getValue()).toContain("// Let's use the first elevator");
+
+    setLocale("ru");
+    editor.reset();
+
+    expect(view.getValue()).toContain("// Возьмём первый лифт");
+  });
+
+  // That the two versions are the same program with only the comments
+  // translated is deliberately not asserted here. `catalogue.test.ts` already
+  // asserts it for every `.code` key in the catalogue, of which this is one,
+  // and a second copy would be a second thing to keep in step.
 });
