@@ -194,16 +194,18 @@ interface SandboxRange {
  *   10` pixels wide, so 30 is 300px, a third of the building, and two of them
  *   are as much as fits side by side — which is exactly what a `capacities=30`
  *   sandbox is then given, however many elevators it asked for.
- * - **Spawn rate.** The floor is not cosmetic. `World.update` runs `while
- *   (elapsedSinceSpawn > 1 / spawnRate)` and subtracts `1 / spawnRate` each
- *   time round, so a negative rate *adds* on every iteration and the loop never
- *   terminates — `#spawnrate=-1` would hang the tab on the first frame, exactly
- *   the class of bug this module exists to prevent — while `0` divides to
- *   `Infinity` and nobody ever appears. The ceiling is that passengers only
- *   leave the world when they are delivered: at 10 per second, more than three
- *   times the busiest shipped challenge, an unsolved building already grows
- *   without bound, and at 64x time scale that is 640 new DOM nodes per second
- *   of wall clock.
+ * - **Spawn rate.** The floor is not cosmetic, though it is no longer what
+ *   stands between `#spawnrate=-1` and a frozen tab: the
+ *   {@link "../game/world.ts"!World} constructor now refuses a rate the spawn
+ *   loop could not finish running and turns it into "nobody arrives". What the
+ *   floor is for here is that "nobody arrives" is a poor answer to give
+ *   somebody who asked for a busy building and mistyped the sign. Clamping is
+ *   the better one at this end, where the value is still something a person
+ *   typed into an address bar rather than a number the engine has to survive.
+ *   The ceiling is that passengers only leave the world when they are
+ *   delivered: at 10 per second, more than three times the busiest shipped
+ *   challenge, an unsolved building already grows without bound, and at 64x
+ *   time scale that is 640 new DOM nodes per second of wall clock.
  *
  * The fallbacks are challenge 4's building — eight floors, two cars, capacity
  * four, 0.6 passengers a second — so a bare `#challenge=sandbox` starts
