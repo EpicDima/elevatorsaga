@@ -104,7 +104,7 @@ export interface TutorialTask {
  */
 const TASK_1_START = `{
     init: function(elevators, floors) {
-        var elevator = elevators[0];
+        const elevator = elevators[0];
 
         elevator.on("idle", function() {
             // TODO: this building has two floors, and the elevator only visits one
@@ -118,7 +118,7 @@ const TASK_1_START = `{
 /** Task 1's answer: the missing floor, added. */
 const TASK_1_SOLUTION = `{
     init: function(elevators, floors) {
-        var elevator = elevators[0];
+        const elevator = elevators[0];
 
         elevator.on("idle", function() {
             elevator.goToFloor(0);
@@ -139,7 +139,7 @@ const TASK_1_SOLUTION = `{
  */
 const TASK_2_START = `{
     init: function(elevators, floors) {
-        var elevator = elevators[0];
+        const elevator = elevators[0];
 
         // TODO: send the elevator round all three floors, over and over
     },
@@ -150,7 +150,7 @@ const TASK_2_START = `{
 /** Task 2's answer: a round trip, restarted every time the car falls idle. */
 const TASK_2_SOLUTION = `{
     init: function(elevators, floors) {
-        var elevator = elevators[0];
+        const elevator = elevators[0];
 
         elevator.on("idle", function() {
             elevator.goToFloor(0);
@@ -172,7 +172,7 @@ const TASK_2_SOLUTION = `{
  */
 const TASK_3_START = `{
     init: function(elevators, floors) {
-        var elevator = elevators[0];
+        const elevator = elevators[0];
 
         elevator.on("idle", function() {
             elevator.goToFloor(0);
@@ -187,7 +187,7 @@ const TASK_3_START = `{
 /** Task 3's answer: listen to the buttons inside the car. */
 const TASK_3_SOLUTION = `{
     init: function(elevators, floors) {
-        var elevator = elevators[0];
+        const elevator = elevators[0];
 
         elevator.on("idle", function() {
             elevator.goToFloor(0);
@@ -212,7 +212,7 @@ const TASK_3_SOLUTION = `{
  */
 const TASK_4_START = `{
     init: function(elevators, floors) {
-        var elevator = elevators[0];
+        const elevator = elevators[0];
 
         // Somebody rewrote the round trip as a queue.
         elevator.on("idle", function() {
@@ -230,7 +230,7 @@ const TASK_4_START = `{
 /** Task 4's answer: tell the car to look at the queue it was handed. */
 const TASK_4_SOLUTION = `{
     init: function(elevators, floors) {
-        var elevator = elevators[0];
+        const elevator = elevators[0];
 
         elevator.on("idle", function() {
             elevator.destinationQueue = [0, 1, 2, 3];
@@ -256,7 +256,7 @@ const TASK_4_SOLUTION = `{
  */
 const TASK_5_START = `{
     init: function(elevators, floors) {
-        var elevator = elevators[0];
+        const elevator = elevators[0];
 
         elevator.on("idle", function() {
             elevator.destinationQueue = [0, 1, 2, 3, 4, 5, 6, 7, 8];
@@ -276,7 +276,7 @@ const TASK_5_START = `{
 /** Task 5's answer: go where somebody actually pressed a button. */
 const TASK_5_SOLUTION = `{
     init: function(elevators, floors) {
-        var elevator = elevators[0];
+        const elevator = elevators[0];
 
         elevator.on("floor_button_pressed", function(floorNum) {
             elevator.goToFloor(floorNum);
@@ -306,7 +306,7 @@ const TASK_5_SOLUTION = `{
  */
 const TASK_6_START = `{
     init: function(elevators, floors) {
-        var elevator = elevators[0];
+        const elevator = elevators[0];
 
         // Somebody decided to show the passengers which way the elevator is going.
         elevator.goingUpIndicator(true);
@@ -344,7 +344,7 @@ const TASK_6_START = `{
  */
 const TASK_6_SOLUTION = `{
     init: function(elevators, floors) {
-        var elevator = elevators[0];
+        const elevator = elevators[0];
 
         elevator.goingUpIndicator(true);
         elevator.goingDownIndicator(true);
@@ -376,7 +376,7 @@ const TASK_6_SOLUTION = `{
  */
 const TASK_7_START = `{
     init: function(elevators, floors) {
-        var elevator = elevators[0];
+        const elevator = elevators[0];
 
         elevator.on("floor_button_pressed", function(floorNum) {
             elevator.goToFloor(floorNum);
@@ -406,7 +406,7 @@ const TASK_7_START = `{
 const TASK_7_SOLUTION = `{
     init: function(elevators, floors) {
         function pickElevator() {
-            var best = elevators[0];
+            let best = elevators[0];
             elevators.forEach(function(elevator) {
                 if (elevator.loadFactor() < best.loadFactor()) {
                     best = elevator;

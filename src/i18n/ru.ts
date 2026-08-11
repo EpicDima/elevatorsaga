@@ -173,7 +173,7 @@ export const RU_MESSAGES: MessageCatalogue<"ru"> = {
   "editor.confirmUndoReset": "Вернуть код, который был до сброса?",
   "editor.defaultCode.code": `{
     init: function(elevators, floors) {
-        var elevator = elevators[0]; // Возьмём первый лифт
+        const elevator = elevators[0]; // Возьмём первый лифт
 
         // Как только лифт освободится (в очереди не осталось этажей)...
         elevator.on("idle", function() {

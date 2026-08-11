@@ -95,7 +95,7 @@
 ```js
 {
     init: function(elevators, floors) {
-        var elevator = elevators[0];
+        const elevator = elevators[0];
 
         elevator.on("idle", function () {
             // TODO: дом двухэтажный, а лифт ездит только на один из них
@@ -165,7 +165,7 @@
 ```js
 {
     init: function(elevators, floors) {
-        var elevator = elevators[0];
+        const elevator = elevators[0];
 
         // TODO: пусть лифт объезжает все три этажа, и так без конца
     },
@@ -227,7 +227,7 @@
 ```js
 {
     init: function(elevators, floors) {
-        var elevator = elevators[0];
+        const elevator = elevators[0];
 
         elevator.on("idle", function () {
             elevator.goToFloor(0);
@@ -296,7 +296,7 @@
 ```js
 {
     init: function(elevators, floors) {
-        var elevator = elevators[0];
+        const elevator = elevators[0];
 
         // Кто-то переписал объезд этажей через очередь целиком.
         elevator.on("idle", function () {
@@ -377,7 +377,7 @@
 ```js
 {
     init: function(elevators, floors) {
-        var elevator = elevators[0];
+        const elevator = elevators[0];
 
         elevator.on("idle", function () {
             elevator.destinationQueue = [0, 1, 2, 3, 4, 5, 6, 7, 8];
@@ -505,7 +505,7 @@ down_button_pressed", …)` — можно, но тогда первым арг�
 ```js
 {
     init: function(elevators, floors) {
-        var elevator = elevators[0];
+        const elevator = elevators[0];
 
         // Кто-то решил показывать пассажирам, куда едет лифт.
         elevator.goingUpIndicator(true);
@@ -612,7 +612,7 @@ down_button_pressed", …)` — можно, но тогда первым арг�
 | Сид     | `tutorial-7`                         |
 | Формат  | обобщить программу                   |
 
-Стартовый код — ответ задания 6 без индикаторов, целиком (`var elevator = elevators[0];` +
+Стартовый код — ответ задания 6 без индикаторов, целиком (`const elevator = elevators[0];` +
 обработчик кнопок кабины + подписка на этажи).
 
 **Что видно в здании.** Второй лифт не двигается ни разу за весь прогон — и при этом стоит **набитый**
@@ -641,7 +641,7 @@ down_button_pressed", …)` — можно, но тогда первым арг�
    <!-- prettier-ignore -->
    ```js
    function pickElevator() {
-       var best = elevators[0];
+       let best = elevators[0];
        elevators.forEach(function (elevator) {
            if (elevator.loadFactor() < best.loadFactor()) {
                best = elevator;

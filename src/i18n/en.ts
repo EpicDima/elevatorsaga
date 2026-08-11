@@ -136,7 +136,7 @@ export const EN_MESSAGES = {
   "editor.confirmUndoReset": "Do you want to bring back the code as before the last reset?",
   "editor.defaultCode.code": `{
     init: function(elevators, floors) {
-        var elevator = elevators[0]; // Let's use the first elevator
+        const elevator = elevators[0]; // Let's use the first elevator
 
         // Whenever the elevator is idle (has no more queued destinations) ...
         elevator.on("idle", function() {
