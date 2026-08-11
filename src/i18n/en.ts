@@ -67,7 +67,8 @@ export const EN_MESSAGES = {
   "page.stats.avgWaitTime": "Avg waiting time",
   "page.stats.maxWaitTime": "Max waiting time",
   "page.stats.moves": "Moves",
-  "page.stats.movesTitle": "Number of floors that have been travelled by elevators",
+  "page.stats.movesTitle":
+    "One move is counted each time a car crosses the halfway mark between one floor and the next",
   "page.hint.html":
     "In the editor: <kbd data-mod-key>Ctrl</kbd>+<kbd>Enter</kbd> applies your program. <kbd data-mod-key>Ctrl</kbd>+<kbd>S</kbd> saves it. <kbd>Tab</kbd> indents. <kbd>Esc</kbd> moves the focus back out.",
   "page.button.reset": "Reset",
@@ -329,7 +330,7 @@ export const EN_MESSAGES = {
   "docs.play.apply.html":
     'Enter your code in the input window below the game view, and press the <span class="emphasis-color">Apply</span> button to start the challenge.<br /> You can increase or decrease the speed of time by pressing the {increase} and {decrease} buttons.',
   "docs.play.statistics.html":
-    'Beside the building is a panel that keeps score while a run is going. Most of it says what it is; <span class="emphasis-color">Moves</span> does not. It counts floors travelled: one move each time an elevator reaches the next floor, whether it stops there or carries straight on. Two of the challenges are judged on that number as well as on the people delivered, so on those a car that shuttles about empty can lose the run.',
+    'Beside the building is a panel that keeps score while a run is going. Most of it says what it is; <span class="emphasis-color">Moves</span> does not. One move is counted each time a car crosses the halfway mark between one floor and the next, so a trip of three floors is three moves. A car that turns round mid-flight pays twice for the mark it crosses and re-crosses, and braking carries a car on across a mark it was turned back just short of. Two of the challenges are judged on that number, totalled over every car in the building, as well as on the people delivered, so on those a car that shuttles about empty can lose the run.',
   "docs.play.shortcuts.html":
     "Inside the editor, <kbd data-mod-key>Ctrl</kbd>+<kbd>Enter</kbd> applies your program and restarts the challenge, <kbd data-mod-key>Ctrl</kbd>+<kbd>S</kbd> saves it, <kbd>Tab</kbd> indents, and <kbd>Esc</kbd> moves the focus back out of the editor.",
   "docs.play.debugging.html":

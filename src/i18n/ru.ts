@@ -18,6 +18,7 @@
  * | English            | Русский              |
  * | ------------------ | -------------------- |
  * | elevator           | лифт                 |
+ * | car (elevator car) | кабина               |
  * | floor              | этаж                 |
  * | challenge          | задание              |
  * | user, passenger    | пассажир             |
@@ -33,7 +34,7 @@
  * | to trigger (event) | срабатывать          |
  * | to register (on)   | подписать            |
  * | to remove (off)    | снять                |
- * | elevator move      | перемещение лифта    |
+ * | elevator move      | перемещение          |
  * | indicator          | индикатор            |
  * | callback           | колбэк               |
  * | fitness            | эффективность        |
@@ -46,6 +47,12 @@
  * | seed               | сид                  |
  * | run                | прогон               |
  * | new draw           | новый сид            |
+ *
+ * «Кабина» is the moving box and «лифт» the thing player code holds a handle
+ * on, which is the distinction the English draws between "car" and "elevator" —
+ * it needs "car" because "elevator" is the API object. Russian could say «лифт»
+ * throughout and lose nothing a player needed, so the two are kept apart only
+ * where the English keeps them apart: the prose about a car's own movement.
  *
  * «Сид» rather than «зерно»: it is what Russian-speaking players of every game
  * that has one already call it, and the word they will search for.
@@ -111,7 +118,8 @@ export const RU_MESSAGES: MessageCatalogue<"ru"> = {
   "page.stats.avgWaitTime": "Сред. время ожидания",
   "page.stats.maxWaitTime": "Макс. время ожидания",
   "page.stats.moves": "Перемещения",
-  "page.stats.movesTitle": "Сколько этажей в сумме проехали лифты",
+  "page.stats.movesTitle":
+    "Перемещение засчитывается каждый раз, когда кабина проходит середину пути от одного этажа до соседнего",
   "page.hint.html":
     "В редакторе: <kbd data-mod-key>Ctrl</kbd>+<kbd>Enter</kbd> применяет программу. <kbd data-mod-key>Ctrl</kbd>+<kbd>S</kbd> сохраняет её. <kbd>Tab</kbd> добавляет отступ. <kbd>Esc</kbd> убирает фокус из редактора.",
   "page.button.reset": "Сбросить",
@@ -210,11 +218,17 @@ export const RU_MESSAGES: MessageCatalogue<"ru"> = {
     many: "<span class='emphasis-color'>{count}</span> секунд",
     other: "<span class='emphasis-color'>{count}</span> секунды",
   },
+  // Винительный падеж после «уложившись в»: в 21 перемещение, в 24 перемещения,
+  // в 60 перемещений. Слово «лифта» отсюда убрано: счётчик складывает
+  // перемещения всех кабин здания, а не одной, и в единственном числе оно
+  // приписывало общий лимит одному лифту — а лифтов в этих двух заданиях два и
+  // три. Панель, на которой игрок видит этот счёт, называет его тем же словом
+  // без уточнений — «Перемещения».
   "challenge.moveLimit.html": {
-    one: "<span class='emphasis-color'>{count}</span> перемещение лифта",
-    few: "<span class='emphasis-color'>{count}</span> перемещения лифта",
-    many: "<span class='emphasis-color'>{count}</span> перемещений лифта",
-    other: "<span class='emphasis-color'>{count}</span> перемещения лифта",
+    one: "<span class='emphasis-color'>{count}</span> перемещение",
+    few: "<span class='emphasis-color'>{count}</span> перемещения",
+    many: "<span class='emphasis-color'>{count}</span> перемещений",
+    other: "<span class='emphasis-color'>{count}</span> перемещения",
   },
   "challenge.sandbox.html":
     "Песочница: {floors}, {elevators} {capacityLabel} {capacities}, {spawnRate}. Цели нет, поэтому симуляция никогда не закончится",
@@ -369,7 +383,7 @@ export const RU_MESSAGES: MessageCatalogue<"ru"> = {
   "docs.play.apply.html":
     'Напишите код в окне под игровым полем и нажмите кнопку <span class="emphasis-color">Применить</span>, чтобы начать задание.<br /> Скорость времени можно увеличивать и уменьшать кнопками {increase} и {decrease}.',
   "docs.play.statistics.html":
-    'Рядом со зданием есть панель, которая ведёт счёт по ходу прогона. Почти всё в ней понятно по названию, а <span class="emphasis-color">Перемещения</span> — нет. Это пройденные этажи: по одному перемещению каждый раз, когда лифт доезжает до следующего этажа, останавливается он там или едет дальше. В двух заданиях оценивается не только число перевезённых пассажиров, но и число перемещений, так что там кабина, которая катается вхолостую, способна провалить прогон.',
+    'Рядом со зданием есть панель, которая ведёт счёт по ходу прогона. Почти всё в ней понятно по названию, а <span class="emphasis-color">Перемещения</span> — нет. Перемещение засчитывается каждый раз, когда кабина проходит середину пути от одного этажа до соседнего: проехать три этажа — это три перемещения. Кабина, повернувшая назад уже за серединой, проходит её дважды, и засчитываются оба раза; тормозит она не мгновенно, так что и поворот назад незадолго до середины обычно обходится в те же два. В двух заданиях оценивается не только число перевезённых пассажиров, но и число перемещений — одно на все лифты здания, — так что там кабина, которая катается вхолостую, способна провалить прогон.',
   "docs.play.shortcuts.html":
     "В редакторе <kbd data-mod-key>Ctrl</kbd>+<kbd>Enter</kbd> применяет программу и перезапускает задание, <kbd data-mod-key>Ctrl</kbd>+<kbd>S</kbd> сохраняет её, <kbd>Tab</kbd> добавляет отступ, а <kbd>Esc</kbd> убирает фокус из редактора.",
   "docs.play.debugging.html":

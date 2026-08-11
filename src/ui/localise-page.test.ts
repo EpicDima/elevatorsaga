@@ -248,7 +248,7 @@ describe("localisePage", () => {
         "Статистика симуляции",
       );
       expect(page.querySelector(".statscontainer .key[title]")?.getAttribute("title")).toBe(
-        "Сколько этажей в сумме проехали лифты",
+        "Перемещение засчитывается каждый раз, когда кабина проходит середину пути от одного этажа до соседнего",
       );
     });
 
@@ -360,7 +360,7 @@ describe("a page shell asking for something the catalogue cannot answer", () => 
     const element = scrap.querySelector("#both");
     expect(element?.getAttribute("aria-label")).toBe("Building");
     expect(element?.getAttribute("title")).toBe(
-      "Number of floors that have been travelled by elevators",
+      "One move is counted each time a car crosses the halfway mark between one floor and the next",
     );
     expect(console.warn).not.toHaveBeenCalled();
   });
