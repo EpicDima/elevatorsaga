@@ -180,6 +180,29 @@ describe("resolveRoute challenge validation", () => {
       expect(route(hash).challengeIndex, hash).toBe(0);
     }
   });
+
+  it("refuses a challenge number with anything else attached to it", () => {
+    // Number.parseInt reads as far as it understands and stops: "3abc" was
+    // challenge 3 and "3.5" was challenge 3, with nothing said about the rest of
+    // what the player had written. Number reads the whole string or nothing.
+    for (const value of ["3abc", "3.5", "3px", "0x"]) {
+      expect(route(`#challenge=${value}`).challengeIndex, value).toBe(0);
+      expect(console.warn).toHaveBeenCalledWith(
+        `Invalid challenge "${value}", starting the first challenge instead`,
+      );
+    }
+  });
+
+  it("refuses an exponent instead of landing on the first challenge by accident", () => {
+    // #challenge=1e9 reached challenge 1 before this, and looked like a refusal
+    // because the first challenge is where a refusal lands too -- but parseInt
+    // had read "1" and stopped at the "e", so nothing was refused and nothing
+    // was said. What makes it a refusal is the warning.
+    expect(route("#challenge=1e9").challengeIndex).toBe(0);
+    expect(console.warn).toHaveBeenCalledWith(
+      `Invalid challenge "1e9", starting the first challenge instead`,
+    );
+  });
 });
 
 describe("resolveRoute sandbox selection", () => {

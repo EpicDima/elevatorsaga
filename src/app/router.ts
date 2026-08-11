@@ -598,6 +598,19 @@ function resolveElevatorCapacities(value: string | undefined): number[] {
 /**
  * Turns a `challenge` parameter into an index that exists.
  *
+ * Read with `Number`, as every other number in the hash is, and not with
+ * `parseInt`. `parseInt` reads as far as it understands and stops without
+ * complaint, so `challenge=3abc` started challenge 3 and `challenge=1e9`
+ * started challenge 1 — and the second looked like a refusal, because the first
+ * challenge is also where a refusal lands. A refusal nobody can tell apart from
+ * a success is one nobody can act on: no warning was printed, and the URL went
+ * on saying something the game had not done. `Number` reads the whole string or
+ * nothing, so both are refused now, and said so.
+ *
+ * The empty string needs no guard of its own here, unlike in the sandbox
+ * resolvers: `Number("")` is `0`, and challenge zero does not exist, so the
+ * range check below refuses it along with everything else out of range.
+ *
  * @param value - The raw parameter, if it was present.
  * @param challengeCount - How many challenges exist.
  * @returns A valid zero-based index; `0` for anything unusable.
@@ -606,8 +619,7 @@ function resolveChallengeIndex(value: string | undefined, challengeCount: number
   if (value === undefined) {
     return 0;
   }
-  const challengeNum = Number.parseInt(value, 10);
-  const index = challengeNum - 1;
+  const index = Number(value) - 1;
   if (!Number.isInteger(index) || index < 0 || index >= challengeCount) {
     console.warn(`Invalid challenge "${value}", starting the first challenge instead`);
     return 0;
