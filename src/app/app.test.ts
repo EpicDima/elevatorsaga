@@ -1046,6 +1046,169 @@ describe("App code status", () => {
   });
 });
 
+describe("App.relocalise", () => {
+  // Same reason as the outcome specs above: a failed assertion must not leave
+  // the rest of the file in Russian.
+  afterEach(() => {
+    setLocale(DEFAULT_LOCALE);
+  });
+
+  it("rewrites the challenge bar in the language chosen part-way through a run", () => {
+    const { app, elements } = setUp();
+    app.startChallenge(0);
+    expect(requireElement(".challengetitle", elements.challenge).textContent).toBe(
+      "Challenge #1: Challenge one",
+    );
+
+    setLocale("ru");
+    app.relocalise();
+
+    // The description is the fixture's own markup and stays English; the
+    // sentence the game wraps it in, and every control beside it, do not.
+    expect(requireElement(".challengetitle", elements.challenge).textContent).toBe(
+      "Задание №1: Challenge one",
+    );
+    expect(requireElement(".startstop", elements.challenge).textContent).toBe("Старт");
+    expect(requireElement(".challengenav", elements.challenge).ariaLabel).toBe("Задания");
+  });
+
+  it("writes the statistics the way a reader of the new language writes numbers", () => {
+    // The labels beside these figures are shell and `localisePage` has already
+    // dealt with them. The figures themselves go through `Intl`, and they are
+    // written only when the world says they changed -- so if the language change
+    // did not make the world say so, they would sit here in English until the
+    // next tick of a paused clock, which may never come.
+    const { app, elements } = setUp();
+    app.startChallenge(0);
+    const world = app.world;
+    if (world === undefined) {
+      throw new Error("The challenge did not start");
+    }
+    world.transportedCounter = 1234;
+    world.elapsedTime = 2675;
+    world.trigger("stats_display_changed");
+    expect(requireElement(".elapsedtime", elements.stats).textContent).toBe("2,675s");
+
+    setLocale("ru");
+    app.relocalise();
+
+    // A non-breaking space between the thousands and before the unit, both of
+    // which `Intl` chooses and neither of which English has.
+    expect(requireElement(".elapsedtime", elements.stats).textContent).toBe("2 675 с");
+    expect(requireElement(".transportedcounter", elements.stats).textContent).toBe("1 234");
+  });
+
+  it("renames the building in place instead of drawing a second one", () => {
+    const { app, elements } = setUp();
+    app.startChallenge(0);
+    const floors = queryAll(".floor", elements.world);
+    const callUp = requireElement("button.up", floors[0] ?? elements.world);
+    const car = requireElement(".elevator", elements.world);
+    const carButton = queryAll(".elevator .buttonpress", elements.world)[1];
+
+    setLocale("ru");
+    app.relocalise();
+
+    expect(callUp.ariaLabel).toBe("Вызвать лифт вверх с этажа 0");
+    expect(car.ariaLabel).toBe("Лифт 1");
+    expect(carButton?.ariaLabel).toBe("Ехать на этаж 1");
+    // The same three floors and the same one car, and the very elements that
+    // were there before: `presentWorld` appends and subscribes, so a second call
+    // would leave six floors, two cars and two listeners behind every click.
+    expect(queryAll(".floor", elements.world)).toHaveLength(3);
+    expect(queryAll(".elevator", elements.world)).toHaveLength(1);
+    expect(requireElement(".elevator", elements.world)).toBe(car);
+  });
+
+  it("leaves the run in progress exactly where the player had it", () => {
+    // The whole reason this method exists rather than a call to
+    // `startChallenge`: the world, its clock, its score and its seed are the
+    // ones the player was playing, and the simulation is still paused or still
+    // running as they left it.
+    const { app, elements, worldController } = setUp();
+    app.handleRoute(...routeFor("#challenge=1,seed=issue-53,autostart=true"));
+    const world = app.world;
+    if (world === undefined) {
+      throw new Error("The challenge did not start");
+    }
+    world.elapsedTime = 42;
+    world.transportedCounter = 7;
+
+    setLocale("ru");
+    app.relocalise();
+
+    expect(app.world).toBe(world);
+    expect(world.elapsedTime).toBe(42);
+    expect(world.transportedCounter).toBe(7);
+    expect(world.challengeEnded).toBe(false);
+    expect(app.currentChallengeIndex).toBe(0);
+    expect(worldController.isPaused).toBe(false);
+    expect(requireElement(".seedvalue", elements.challenge).textContent).toBe("issue-53");
+  });
+
+  it("says the verdict again, in the new language, over one overlay", () => {
+    const { app, elements } = setUp();
+    app.startChallenge(1);
+    app.world?.trigger("stats_changed");
+    expect(requireElement(".feedback h2", elements.feedback).textContent).toBe("Success!");
+
+    setLocale("ru");
+    app.relocalise();
+
+    expect(queryAll(".feedback", elements.feedback)).toHaveLength(1);
+    expect(requireElement(".feedback h2", elements.feedback).textContent).toBe("Получилось!");
+    expect(requireElement(".feedback p", elements.feedback).textContent).toBe("Задание выполнено");
+    // Redrawn from the remembered outcome, so the way on is offered again too,
+    // and to the same challenge.
+    expect(requireElement(".feedback a", elements.feedback).getAttribute("href")).toBe(
+      "#challenge=3",
+    );
+  });
+
+  it("does not announce an outcome to a run that has not reached one", () => {
+    // The overlay is empty for the whole of a run, which is most of the time a
+    // language gets changed. Nothing may appear over the building.
+    const { app, elements } = setUp();
+    app.startChallenge(0);
+
+    setLocale("ru");
+    app.relocalise();
+
+    expect(elements.feedback.innerHTML).toBe("");
+  });
+
+  it("keeps the banner about a broken program, and the program's own words in it", () => {
+    const { app, elements } = setUp();
+    app.startChallenge(0);
+    app.worldController.trigger("usercode_error", new Error("boom"));
+
+    setLocale("ru");
+    app.relocalise();
+
+    expect(requireElement(".error", elements.codeStatus).textContent).toContain(
+      "С вашим кодом что-то не так",
+    );
+    // Whatever the player's program threw is their JavaScript and is shown back
+    // to them untouched.
+    expect(requireElement(".errormessage", elements.codeStatus).textContent).toContain("boom");
+  });
+
+  it("has nothing to redraw before a challenge has been started", () => {
+    // The language can be chosen on a page that has only just loaded, before
+    // any route has been handled.
+    const { app, elements } = setUp();
+
+    setLocale("ru");
+    expect(() => {
+      app.relocalise();
+    }).not.toThrow();
+
+    expect(elements.challenge.innerHTML).toBe("");
+    expect(elements.world.innerHTML).toBe("");
+    expect(elements.feedback.innerHTML).toBe("");
+  });
+});
+
 describe("TIME_SCALE_STORAGE_KEY", () => {
   it("is exactly the key the legacy game wrote", () => {
     // An on-disk compatibility contract with the browser of every player who

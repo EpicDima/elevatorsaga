@@ -21,6 +21,7 @@ import {
   presentFeedback,
   presentStats,
   presentWorld,
+  relabelWorld,
   setDemoFullscreen,
 } from "../ui/presenters.ts";
 import type { ChallengePresenter } from "../ui/presenters.ts";
@@ -178,6 +179,39 @@ export class App {
    * rule: see {@link handleRoute}.
    */
   #seed: string | null = null;
+  /**
+   * What is on screen, or `undefined` before the first run has started.
+   *
+   * The challenge rather than its description, because a description is a
+   * sentence in whatever language was active when it was asked for --
+   * `ChallengeCondition.description` is a getter for exactly that reason -- and
+   * {@link relocalise} has to be able to ask again. The index rides along
+   * because it is what tells the sandbox apart from the challenges without
+   * looking anything up, and it is `null` for the sandbox, which is not in the
+   * list. Distinct from {@link currentChallengeIndex}, which says where a
+   * restart would go rather than what is being played.
+   */
+  #run: { readonly challenge: Challenge; readonly challengeIndex: number | null } | undefined =
+    undefined;
+  /**
+   * Whether the run on screen was won, or `undefined` while it is still going.
+   *
+   * The outcome and not the words: the overlay's title and message are
+   * translated when they are drawn, so remembering what it said would mean
+   * redrawing it in the language it was first shown in. Cleared at the start of
+   * every run, alongside the overlay itself.
+   */
+  #outcome: boolean | undefined = undefined;
+  /**
+   * Whatever the player's program last threw, while the banner is showing it.
+   *
+   * Wrapped rather than held bare, because `throw undefined` is something player
+   * code can do and the banner has to show it like anything else -- so the
+   * wrapper is what distinguishes "no banner" from "a banner about `undefined`".
+   * Kept for {@link relocalise}: the sentence around the error is a message, and
+   * so is the description of a thrown object with nothing to say for itself.
+   */
+  #codeError: { readonly thrown: unknown } | undefined = undefined;
 
   /**
    * @param options - The page regions, the editor, the controller and the
@@ -212,9 +246,11 @@ export class App {
       this.#restart(true);
     });
     this.#editor.on("code_success", () => {
+      this.#codeError = undefined;
       clearCodeStatus(this.#elements.codeStatus);
     });
     this.#editor.on("usercode_error", (error) => {
+      this.#codeError = { thrown: error };
       presentCodeStatus(this.#elements.codeStatus, error);
     });
   }
@@ -479,12 +515,62 @@ export class App {
     // because afterwards there is nothing left to ask about.
     const focusWasDestroyed = containsFocus([this.#elements.world, this.#elements.feedback]);
     clearAll([this.#elements.world, this.#elements.feedback]);
+    this.#run = { challenge, challengeIndex };
+    this.#outcome = undefined;
     presentStats(this.#elements.stats, world);
+    this.#drawChallengeBar(world, focusWasDestroyed);
+    presentWorld(this.#elements.world, world);
+
+    world.on("stats_changed", () => {
+      const challengeStatus = challenge.condition.evaluate(world);
+      if (challengeStatus === null) {
+        return;
+      }
+      world.challengeEnded = true;
+      this.worldController.setPaused(true);
+      this.#showOutcome(challengeStatus);
+    });
+
+    const codeObj = this.#editor.getCodeObj();
+    this.worldController.start(
+      world,
+      codeObj ?? NO_OP_CODE,
+      this.#requestAnimationFrame,
+      autoStart,
+    );
+  }
+
+  /**
+   * Draws the challenge bar for whatever {@link #run} says is on screen.
+   *
+   * Its own method because it has two callers with nothing else in common: the
+   * start of a run, and a language change. Everything it feeds the bar is asked
+   * for again here rather than remembered from the last time — the description
+   * from the condition's getter, the navigation row from {@link #challengeLinks},
+   * the seed line from {@link #seedLink} — because each of those is a sentence
+   * in the active language, and a bar rebuilt from strings captured at the start
+   * of the run would come out in the language the run started in.
+   *
+   * Safe to call over an existing bar: the presenter replaces the markup
+   * wholesale, subscribes to nothing on the world, and carries the focused
+   * control and the seed disclosure's `open` state across for itself.
+   *
+   * @param world - The run being played; consulted for its seed and for
+   * `challengeEnded`, which decides whether the button says Start or Restart.
+   * @param focusWasDestroyed - Whether the caller has already deleted the
+   * focused element by emptying the building or the overlay.
+   */
+  #drawChallengeBar(world: World, focusWasDestroyed: boolean): void {
+    const run = this.#run;
+    if (run === undefined) {
+      return;
+    }
+    const { challenge, challengeIndex } = run;
     this.#challengePresenter = presentChallenge(this.#elements.challenge, {
       challengeNum: challengeIndex === null ? SANDBOX_CHALLENGE_NUM : challengeIndex + 1,
       description: challenge.condition.description,
       challengeLinks: this.#challengeLinks(challengeIndex),
-      seed,
+      seed: this.#seedLink(world, challengeIndex),
       world,
       worldController: this.worldController,
       focusWasDestroyed,
@@ -501,44 +587,90 @@ export class App {
     if (challengeIndex === null) {
       this.#retitleAsSandbox(challenge.condition.description);
     }
-    presentWorld(this.#elements.world, world);
+  }
 
-    world.on("stats_changed", () => {
-      const challengeStatus = challenge.condition.evaluate(world);
-      if (challengeStatus === null) {
-        return;
-      }
-      world.challengeEnded = true;
-      this.worldController.setPaused(true);
-      if (challengeStatus) {
-        presentFeedback(this.#elements.feedback, {
-          title: t("game.feedback.success.title"),
-          message: t("game.feedback.success.message"),
-          // No link after the last challenge, and none for the sandbox, which
-          // cannot get here at all: its condition never resolves. The seed is
-          // dropped for the same reason the navigation row drops it: it belongs
-          // to the building just completed, not to the next one.
-          url:
-            challengeIndex !== null && challengeIndex + 1 < this.challenges.length
-              ? createParamsUrl(this.#query, { challenge: challengeIndex + 2, seed: null })
-              : "",
-        });
-      } else {
-        presentFeedback(this.#elements.feedback, {
-          title: t("game.feedback.failure.title"),
-          message: t("game.feedback.failure.message"),
-          url: "",
-        });
-      }
+  /**
+   * Draws the end-of-challenge overlay, and remembers that it is showing.
+   *
+   * The outcome is the thing worth remembering; the three strings are worked out
+   * from it here, every time, so that {@link relocalise} can draw the same
+   * verdict again in another language. The presenter replaces the overlay's
+   * contents rather than appending, so calling this twice about one run leaves
+   * one overlay.
+   *
+   * @param won - Whether the challenge's condition was met.
+   */
+  #showOutcome(won: boolean): void {
+    this.#outcome = won;
+    const challengeIndex = this.#run?.challengeIndex ?? null;
+    presentFeedback(this.#elements.feedback, {
+      title: won ? t("game.feedback.success.title") : t("game.feedback.failure.title"),
+      message: won ? t("game.feedback.success.message") : t("game.feedback.failure.message"),
+      // No link after a failure, none after the last challenge, and none for the
+      // sandbox, which cannot get here at all: its condition never resolves. The
+      // seed is dropped for the same reason the navigation row drops it: it
+      // belongs to the building just completed, not to the next one.
+      url:
+        won && challengeIndex !== null && challengeIndex + 1 < this.challenges.length
+          ? createParamsUrl(this.#query, { challenge: challengeIndex + 2, seed: null })
+          : "",
     });
+  }
 
-    const codeObj = this.#editor.getCodeObj();
-    this.worldController.start(
-      world,
-      codeObj ?? NO_OP_CODE,
-      this.#requestAnimationFrame,
-      autoStart,
-    );
+  /**
+   * Puts everything the app has drawn into the language that is active now.
+   *
+   * Called when the language picker changes the language, after the catalogue
+   * has been fetched and after `localisePage` has rewritten the shell. The run
+   * in progress survives it: nothing here tears down a world, so the passengers,
+   * the clock, the score and the seed are the ones the player already had.
+   * Restarting would have been a great deal less code, and it is the one outcome
+   * this feature refuses -- losing a run because somebody changed a language is
+   * worse than any amount of it staying in the old one.
+   *
+   * The four regions and why each is done the way it is:
+   *
+   * - The challenge bar is rebuilt from scratch by {@link #drawChallengeBar},
+   *   which is cheap and correct: the bar subscribes to nothing.
+   * - The statistics *labels* are shell, and `localisePage` has already dealt
+   *   with them. The *figures* go through `Intl` in {@link presentStats}, so a
+   *   Russian reader wants `2 675 с` where an English one has `2,675s`, and they
+   *   are written only when the world says they changed. Re-triggering that
+   *   event redraws all six and adds no subscription; calling `presentStats`
+   *   again would add a second one, and the panel would be written twice per
+   *   frame for the rest of the run.
+   * - The building is renamed in place by {@link relabelWorld} rather than
+   *   redrawn, because {@link presentWorld} appends and subscribes per floor,
+   *   per car and per passenger. Nothing visible in it is a word.
+   * - The end-of-challenge overlay is drawn again from the remembered outcome,
+   *   if there is one.
+   *
+   * The banner about a failed program is drawn again too, since the sentence
+   * around the error is a message. What it wraps is not: an exception's own text
+   * is whatever the player's program produced, and it is shown again exactly as
+   * it was.
+   *
+   * Two lines in the page are left alone on purpose, and both report something
+   * that has already happened: the save confirmation next to the Save button and
+   * the fitness benchmark's result. Re-translating either would mean asserting
+   * in the new language that a thing happened at a time nobody recorded; both
+   * are rewritten by the next save and the next measurement. The editor's own
+   * accessible name is the third, and that one is a limitation rather than a
+   * choice -- CodeMirror is given it when the view is built.
+   */
+  relocalise(): void {
+    const world = this.world;
+    if (world !== undefined) {
+      this.#drawChallengeBar(world, false);
+      world.trigger("stats_display_changed");
+    }
+    relabelWorld(this.#elements.world);
+    if (this.#outcome !== undefined) {
+      this.#showOutcome(this.#outcome);
+    }
+    if (this.#codeError !== undefined) {
+      presentCodeStatus(this.#elements.codeStatus, this.#codeError.thrown);
+    }
   }
 
   /**

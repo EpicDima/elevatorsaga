@@ -301,6 +301,72 @@ dl dd {
   line-height: 50px;
 }
 
+/*
+ * The right-hand end of the header: the help links and the language picker.
+ *
+ * A wrapper rather than a third child of `.header`, because that row is laid
+ * out with `justify-content: space-between` -- which puts the first child at one
+ * end, the last at the other and everything else evenly between them, so a bare
+ * `<select>` would have taken the title's right-hand neighbour's place and left
+ * the links stranded in the middle of the row.
+ *
+ * `center` rather than the `baseline` the header itself uses: the links carry a
+ * 50px line box and the picker is a 30px control, so aligning their baselines
+ * hangs the picker off the bottom of the row. Centring costs nothing at the
+ * header's own alignment, which reads the wrapper's first item -- the links --
+ * exactly as it read them when they were the child.
+ *
+ * `wrap`, because the picker has to be allowed to fall under the links rather
+ * than push the page wider than the screen. Bisected in Chromium: the two share
+ * a row down to 477px and the picker takes a row of its own at 476px and below,
+ * where the links alone are already 347px against a 456px content box. The
+ * header measured 60px at 1280, 80.3px at 760 and 113.5px at 500 both before
+ * this control existed and after, and 158.5px at 420 and 190.5px at 360 and 320
+ * against 113.5px and 145.5px before -- the 45px being the control plus the row
+ * gap. Nothing overflows sideways at any width from 320px up, which is the part
+ * that would have been a defect rather than a cost.
+ *
+ * A phone paying a row for it is the trade this takes. The alternative is
+ * hiding the picker below some width, and the reader most likely to need a
+ * language other than the one the page guessed is exactly the reader who cannot
+ * be told to find a wider screen.
+ */
+.headertools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 15px;
+}
+
+/*
+ * The picker is dressed as the page's other controls (the Save/Apply row and
+ * the Start button): same border, same fill, same corner radius. `font` is
+ * inherited explicitly because form controls do not take the page's family on
+ * their own, and a `<select>` in the browser's default sans-serif beside a
+ * header set in Oswald is the one thing that would make it look bolted on.
+ */
+.languagepicker {
+  block-size: 30px;
+  padding-inline: 6px;
+  border: 1px solid var(--color-control-border);
+  border-radius: 5px;
+  background-color: var(--color-control);
+  color: var(--color-text-strong);
+  font: inherit;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+/*
+ * `index.html` ships the control with no options in it, because the list is
+ * built from `LOCALES` by `src/ui/language-picker.ts`. A reader with no
+ * JavaScript, and every crawler, would otherwise be shown an empty combo box
+ * that opens on nothing.
+ */
+.languagepicker:empty {
+  display: none;
+}
+
 /* --------------------------------------------------------- Challenge bar */
 
 /*

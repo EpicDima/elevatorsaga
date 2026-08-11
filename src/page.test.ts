@@ -24,6 +24,7 @@ import {
   floorMembers,
   globalCompletions,
 } from "./ui/completions.ts";
+import { DOCUMENTATION_LINK_ATTRIBUTE, documentationUrl } from "./ui/documentation-links.ts";
 import { createIcon } from "./ui/icons.ts";
 import { presentVersion, VERSION_SELECTOR } from "./ui/version.ts";
 
@@ -118,6 +119,8 @@ describe("index.html", () => {
     ".statscontainer .avgwaittime",
     ".statscontainer .maxwaittime",
     ".statscontainer .movecount",
+    // Filled and listened to by src/ui/language-picker.ts.
+    ".languagepicker",
     // The scrolling frame the world is drawn inside.
     ".world .worldtrack .innerworld",
   ])("provides %s", (selector) => {
@@ -288,6 +291,93 @@ describe("index.html", () => {
     // The reference itself, not just the top of the help page. The anchor is
     // asserted on the other side too, so neither half can move alone.
     expect(targets).toContain("documentation.html#docs");
+  });
+
+  it("offers the language as one labelled control a keyboard can operate", () => {
+    // A `<select>` rather than a row of links: one stop in the tab order instead
+    // of one per language, operable from the keyboard and on a touch screen
+    // without anything being written here, and it announces the language now in
+    // force as its own value -- which a row of links can only do with
+    // `aria-current` and a rule about which of them is not a link.
+    const picker = page.querySelector(".languagepicker");
+    expect(picker?.tagName).toBe("SELECT");
+    // Named through the same mechanism as the rest of the shell, so the label
+    // is translated by `localisePage` along with everything else. The English
+    // shipped in the attribute is held against the catalogue in
+    // `localise-page.test.ts`.
+    expect(picker?.getAttribute("data-i18n-attr")).toBe("aria-label:page.language.label");
+    expect(picker?.getAttribute("aria-label")).toBeTruthy();
+    // Outside the `<nav>`, which is named "Help and reference" and lists three
+    // places to read about the game; a language control is none of those.
+    expect(picker?.closest("nav")).toBeNull();
+  });
+
+  it("ships the language picker empty, with nothing to choose until the code runs", () => {
+    // The endonyms are built from `LOCALES` in src/ui/language-picker.ts, so
+    // adding a third language stays a one-line change and cannot leave a stale
+    // copy of the list here. Empty is also what the stylesheet's
+    // `.languagepicker:empty` hides: without JavaScript the control could not
+    // change anything, and an empty dropdown beside the help links is worse
+    // than none.
+    const picker = page.querySelector(".languagepicker");
+    expect(picker?.childNodes).toHaveLength(0);
+  });
+
+  it("marks every link into the reference so the code can retarget it", () => {
+    // The bug this closes: both header links pointed at `documentation.html` in
+    // every language, so a Russian player following Help landed on the English
+    // page while the help note two lines below it went to the Russian one.
+    const links = [...page.querySelectorAll(`[${DOCUMENTATION_LINK_ATTRIBUTE}]`)];
+    expect(links.map((link) => link.getAttribute("href"))).toEqual([
+      "documentation.html",
+      "documentation.html#docs",
+    ]);
+    // Every one of them, not just the two that exist today: a third link into
+    // the reference added without the attribute would go on stranding Russian
+    // readers, and nothing else would notice.
+    const intoDocs = [...page.querySelectorAll("a")].filter((link) =>
+      (link.getAttribute("href") ?? "").startsWith("documentation"),
+    );
+    // With one exception, and the reason it is one: the help note's link is
+    // written inside the message `page.helpNote.html`, so the translation
+    // chooses where it points -- the Russian note already points at
+    // documentation.ru.html -- and `localisePage` replaces that paragraph
+    // wholesale, any attribute in it included.
+    const insideAMessage = intoDocs.filter((link) => {
+      const parent = link.parentElement;
+      return parent !== null && parent.closest("[data-i18n]") !== null;
+    });
+    expect(insideAMessage.map((link) => link.textContent)).toEqual(["Help and API documentation"]);
+    expect(intoDocs.filter((link) => !insideAMessage.includes(link))).toEqual(links);
+  });
+
+  it("ships exactly what the code would write for English, anchors and all", () => {
+    // What the file holds is what a reader with no JavaScript follows, so the
+    // two have to agree; and the fragment has to name something real on the
+    // other side, in both languages, or the link lands at the top of a page the
+    // player was already looking at.
+    for (const link of page.querySelectorAll(`[${DOCUMENTATION_LINK_ATTRIBUTE}]`)) {
+      const fragment = link.getAttribute(DOCUMENTATION_LINK_ATTRIBUTE) ?? "";
+      expect(link.getAttribute("href"), fragment).toBe(documentationUrl("en", fragment));
+      if (fragment === "") {
+        continue;
+      }
+      for (const language of ["en", "ru"] as const) {
+        expect(
+          pageIn(language).document.querySelector(`[id="${fragment}"]`),
+          `${fragment} in ${TRANSLATIONS[language]}`,
+        ).not.toBeNull();
+      }
+    }
+  });
+
+  it("names a real file for every language the game is played in", () => {
+    // `documentationUrl` maps a locale to a page, and a page that is not in the
+    // repository is a 404 the moment somebody switches language.
+    for (const language of Object.keys(TRANSLATIONS) as Language[]) {
+      expect(documentationUrl(language), language).toBe(TRANSLATIONS[language]);
+      expect(existsSync(join(ROOT, TRANSLATIONS[language])), language).toBe(true);
+    }
   });
 
   it("links to the licence notices the build emits", () => {

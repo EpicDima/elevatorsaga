@@ -7,9 +7,13 @@ import {
   challengeTemplate,
   codeStatusTemplate,
   elevatorButtonTemplate,
+  elevatorFloorButtonLabel,
+  elevatorLabel,
   elevatorTemplate,
   escapeHtml,
   feedbackTemplate,
+  floorCallDownLabel,
+  floorCallUpLabel,
   floorTemplate,
   markup,
   raw,
@@ -123,6 +127,51 @@ describe("elevatorButtonTemplate", () => {
     const fragment = renderFragment(source);
     expect(fragment.childNodes).toHaveLength(2);
     expect(fragment.textContent).toBe("01");
+  });
+});
+
+describe("the four names a drawn building can be renamed from", () => {
+  afterEach(() => {
+    setLocale(DEFAULT_LOCALE);
+  });
+
+  it("hands the templates the very strings they write into the markup", () => {
+    // `relabelWorld` renames a building that is already on screen by calling
+    // these four, and the templates that drew it call the same four. Two copies
+    // of a message key, one in each path, is how a renamed message ends up
+    // renaming half a building; there is one copy, and this is the assertion
+    // that the templates still go through it.
+    const floor = renderElement(floorTemplate(2, 150));
+    expect(floor.querySelector("button.up")?.getAttribute("aria-label")).toBe(floorCallUpLabel(2));
+    expect(floor.querySelector("button.down")?.getAttribute("aria-label")).toBe(
+      floorCallDownLabel(2),
+    );
+    expect(renderElement(elevatorTemplate(40, 1)).getAttribute("aria-label")).toBe(
+      elevatorLabel(1),
+    );
+    expect(renderElement(elevatorButtonTemplate(7)).getAttribute("aria-label")).toBe(
+      elevatorFloorButtonLabel(7),
+    );
+  });
+
+  it("counts cars from one for the reader, from zero for the code", () => {
+    // The conversion lives in the helper so that neither caller can do it, or
+    // fail to do it, on its own: "Elevator 0" is not a car anybody can point at.
+    expect(elevatorLabel(0)).toBe("Elevator 1");
+    expect(elevatorLabel(3)).toBe("Elevator 4");
+  });
+
+  it("answers in the language active when it is asked, not when it was imported", () => {
+    // The whole point of a helper rather than a constant: the building outlives
+    // the language it was drawn in, and these are asked again to change it.
+    expect(floorCallUpLabel(2)).toBe("Call an elevator going up from floor 2");
+
+    setLocale("ru");
+
+    expect(floorCallUpLabel(2)).toBe("Вызвать лифт вверх с этажа 2");
+    expect(floorCallDownLabel(2)).toBe("Вызвать лифт вниз с этажа 2");
+    expect(elevatorLabel(1)).toBe("Лифт 2");
+    expect(elevatorFloorButtonLabel(7)).toBe("Ехать на этаж 7");
   });
 });
 

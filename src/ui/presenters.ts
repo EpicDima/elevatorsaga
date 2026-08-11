@@ -31,8 +31,12 @@ import {
   challengeTemplate,
   codeStatusTemplate,
   elevatorButtonTemplate,
+  elevatorFloorButtonLabel,
+  elevatorLabel,
   elevatorTemplate,
   feedbackTemplate,
+  floorCallDownLabel,
+  floorCallUpLabel,
   floorTemplate,
   renderElement,
   userTemplate,
@@ -57,6 +61,22 @@ const SEED_CONTROL_SELECTOR = ".challengeseed a, .challengeseed summary";
 
 /** Selector matching the seed line's disclosure. */
 const SEED_HELP_SELECTOR = ".seedhelp";
+
+/**
+ * Selectors for the parts of a drawn building.
+ *
+ * Constants rather than literals because two functions now look for the same
+ * elements: {@link presentWorld} draws them and {@link relabelWorld} finds them
+ * again to rename them. A class renamed in the template and in one of the two
+ * would leave the building silently unrenameable, which is the quietest possible
+ * failure — the labels are invisible to everyone who is not using a screen
+ * reader.
+ */
+const FLOOR_SELECTOR = ".floor";
+const CALL_UP_SELECTOR = "button.up";
+const CALL_DOWN_SELECTOR = "button.down";
+const ELEVATOR_SELECTOR = ".elevator";
+const FLOOR_BUTTON_SELECTOR = ".buttonpress";
 
 /**
  * Empties several containers.
@@ -397,8 +417,8 @@ export function presentFeedback(parent: HTMLElement, data: FeedbackData): void {
  */
 function presentFloor(floor: Floor): HTMLElement {
   const element = renderElement(floorTemplate(floor.level, floor.yPosition));
-  const up = requireElement("button.up", element);
-  const down = requireElement("button.down", element);
+  const up = requireElement(CALL_UP_SELECTOR, element);
+  const down = requireElement(CALL_DOWN_SELECTOR, element);
 
   floor.on("buttonstate_change", (buttonStates) => {
     setActivated(up, buttonStates.up !== "");
@@ -428,7 +448,7 @@ function presentElevator(elevator: Elevator, index: number): HTMLElement {
       renderElement(elevatorButtonTemplate(floorNum)),
     ),
   );
-  const buttons = queryAll(".buttonpress", buttonIndicator);
+  const buttons = queryAll(FLOOR_BUTTON_SELECTOR, buttonIndicator);
   const floorIndicator = requireElement(".floorindicator > span", element);
   const upIndicator = requireElement(".directionindicatorup .up", element);
   const downIndicator = requireElement(".directionindicatordown .down", element);
@@ -500,10 +520,10 @@ export function presentWorld(parent: HTMLElement, world: World): void {
   // the top one. `.invisible` keeps the layout (and so the spacing of the other
   // button) exactly as it is; `disabled` keeps the hidden control off the
   // keyboard's path.
-  const floorElements = queryAll(".floor", parent);
+  const floorElements = queryAll(FLOOR_SELECTOR, parent);
   for (const [selector, floorElement] of [
-    ["button.down", floorElements.at(0)],
-    ["button.up", floorElements.at(-1)],
+    [CALL_DOWN_SELECTOR, floorElements.at(0)],
+    [CALL_UP_SELECTOR, floorElements.at(-1)],
   ] as const) {
     if (floorElement === undefined) {
       continue;
@@ -518,6 +538,50 @@ export function presentWorld(parent: HTMLElement, world: World): void {
   world.on("new_user", (user) => {
     presentUser(parent, user);
   });
+}
+
+/**
+ * Renames a building that is already drawn, in the language active now.
+ *
+ * The building is the one region of the page that cannot be redrawn to change
+ * its language. {@link presentWorld} appends an element and subscribes to a
+ * simulation object for every floor, every car and every passenger, and none of
+ * that is undone until the world is torn down — so a second call would leave two
+ * buildings in the page, two `buttonstate_change` handlers on every floor and
+ * two of everything else, which is the defect
+ * {@link "../app/app.ts"!App}'s constructor comment describes from the legacy
+ * code. The alternative, starting the run again so it is drawn from scratch, is
+ * worse still: it throws away the run the player is in the middle of because
+ * they changed a language.
+ *
+ * Nothing visible is touched, because nothing visible is a word: a floor shows
+ * its number, a car shows the floor it is at, and an in-car button shows the
+ * floor it requests. What is in a language is the four accessible names — the
+ * only part of the building a screen reader has — and each of them is written
+ * from the same helper the template used, so the two paths cannot say different
+ * things about the same button.
+ *
+ * The numbers are taken from the positions of the drawn elements rather than
+ * from a world, which is what makes this safe to call on whatever happens to be
+ * on screen. It is the same arithmetic {@link presentWorld} did: floors are
+ * appended in `world.floors` order, where `createFloors` gives `floors[i]` level
+ * `i`; cars in `world.elevators` order; and in-car buttons in floor order within
+ * each car. `presenters.test.ts` holds the two paths to producing identical
+ * markup rather than leaving that to this comment.
+ *
+ * @param parent - The `.innerworld` element the building was drawn into.
+ */
+export function relabelWorld(parent: HTMLElement): void {
+  for (const [level, floor] of queryAll(FLOOR_SELECTOR, parent).entries()) {
+    requireElement(CALL_UP_SELECTOR, floor).setAttribute("aria-label", floorCallUpLabel(level));
+    requireElement(CALL_DOWN_SELECTOR, floor).setAttribute("aria-label", floorCallDownLabel(level));
+  }
+  for (const [index, elevator] of queryAll(ELEVATOR_SELECTOR, parent).entries()) {
+    elevator.setAttribute("aria-label", elevatorLabel(index));
+    for (const [floorNum, button] of queryAll(FLOOR_BUTTON_SELECTOR, elevator).entries()) {
+      button.setAttribute("aria-label", elevatorFloorButtonLabel(floorNum));
+    }
+  }
 }
 
 /** Matches the useless output of the default `Object.prototype.toString`. */

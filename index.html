@@ -68,13 +68,49 @@
           <span data-i18n="page.brand">Elevator Saga</span>
           <em class="emphasis-color" data-i18n="page.tagline">The elevator programming game</em>
         </h1>
-        <nav aria-label="Help and reference" data-i18n-attr="aria-label:page.nav.label">
-          <a href="documentation.html" data-i18n="page.nav.help">Help</a>
-          <a href="documentation.html#docs" data-i18n="page.nav.documentation">Documentation</a>
-          <a href="https://github.com/magwo/elevatorsaga/wiki/" data-i18n="page.nav.wiki"
-            >Wiki &amp; Solutions</a
-          >
-        </nav>
+        <!--
+          The links and the language picker share a wrapper because the header
+          is laid out with `justify-content: space-between`, which puts the
+          first child at one end and the last at the other: a third child would
+          have been placed in the middle of it, between the title and the links.
+          One wrapper keeps the header two things wide however many controls end
+          up on the right of it.
+        -->
+        <div class="headertools">
+          <!--
+            data-i18n-doc names the reference page's anchor, and
+            src/ui/documentation-links.ts turns it into a href in whatever
+            language the page is being read in. The English written out here is
+            what that produces for `en`, which is what a reader without
+            JavaScript follows.
+          -->
+          <nav aria-label="Help and reference" data-i18n-attr="aria-label:page.nav.label">
+            <a href="documentation.html" data-i18n="page.nav.help" data-i18n-doc="">Help</a>
+            <a
+              href="documentation.html#docs"
+              data-i18n="page.nav.documentation"
+              data-i18n-doc="docs"
+              >Documentation</a
+            >
+            <a href="https://github.com/magwo/elevatorsaga/wiki/" data-i18n="page.nav.wiki"
+              >Wiki &amp; Solutions</a
+            >
+          </nav>
+          <!--
+            Shipped empty: src/ui/language-picker.ts fills it from LOCALES, so a
+            third language is the one line src/i18n/locale.ts promises and no
+            edit at all here. The options are the languages' own names and are
+            never translated, so nothing about this control changes when the
+            language does except its label. The stylesheet hides it while it is
+            empty, which is the state a reader without JavaScript sees -- and
+            the state in which it would do nothing anyway.
+          -->
+          <select
+            class="languagepicker"
+            aria-label="Language"
+            data-i18n-attr="aria-label:page.language.label"
+          ></select>
+        </div>
       </header>
 
       <!--

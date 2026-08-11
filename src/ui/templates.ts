@@ -121,6 +121,73 @@ export function renderElement(source: string): HTMLElement {
 }
 
 /**
+ * The accessible name of a floor's "call an elevator going up" button.
+ *
+ * This and the three below it exist because the building is drawn once per run
+ * and has to be *renamed* without being redrawn. Everything else the game puts
+ * on screen is rebuilt when the language changes, but
+ * {@link "./presenters.ts"!presentWorld} appends an element and subscribes to a
+ * simulation object for every floor, every car and every passenger, so calling
+ * it a second time would leave two buildings in the page and two handlers on
+ * each event — and the only other way to get a fresh one is to throw away the
+ * run in progress.
+ *
+ * So {@link "./presenters.ts"!relabelWorld} rewrites these four names in place.
+ * The helpers are what keep it honest: a key spelled out both in a template and
+ * in the relabeller is a key that can be changed in one of them, and the
+ * building would then be renamed into a message that no longer exists — which
+ * `t` answers with the key itself. There is one place per name, and both paths
+ * call it.
+ *
+ * @param level - Floor number.
+ * @returns The button's accessible name.
+ */
+export function floorCallUpLabel(level: number): string {
+  return t("game.floor.callUp", { floor: level });
+}
+
+/**
+ * The accessible name of a floor's "call an elevator going down" button.
+ *
+ * See {@link floorCallUpLabel} for why this is a function rather than a string
+ * inside the template.
+ *
+ * @param level - Floor number.
+ * @returns The button's accessible name.
+ */
+export function floorCallDownLabel(level: number): string {
+  return t("game.floor.callDown", { floor: level });
+}
+
+/**
+ * The accessible name of one elevator car.
+ *
+ * See {@link floorCallUpLabel} for why this is a function rather than a string
+ * inside the template. The car is numbered from one for the reader while it is
+ * indexed from zero in the code, and that conversion lives here so that the
+ * relabeller cannot get it wrong on its own.
+ *
+ * @param index - Zero-based index of the car.
+ * @returns The group's accessible name.
+ */
+export function elevatorLabel(index: number): string {
+  return t("game.elevator.label", { number: index + 1 });
+}
+
+/**
+ * The accessible name of one in-car floor button.
+ *
+ * See {@link floorCallUpLabel} for why this is a function rather than a string
+ * inside the template.
+ *
+ * @param floorNum - Floor the button requests.
+ * @returns The button's accessible name.
+ */
+export function elevatorFloorButtonLabel(floorNum: number): string {
+  return t("game.elevator.floorButton", { floor: floorNum });
+}
+
+/**
  * One floor of the building, with its call buttons.
  *
  * The call buttons used to be clickable `<i>` elements, which put them out of
@@ -134,7 +201,7 @@ export function renderElement(source: string): HTMLElement {
  * @returns The floor markup.
  */
 export function floorTemplate(level: number, yPosition: number): string {
-  return markup`<div class="floor" style="top: ${yPosition}px"><span class="floornumber" aria-hidden="true">${level}</span><span class="buttonindicator"><button type="button" class="up" aria-pressed="false" aria-label="${t("game.floor.callUp", { floor: level })}">${raw(iconMarkup("arrow-circle-up"))}</button> <button type="button" class="down" aria-pressed="false" aria-label="${t("game.floor.callDown", { floor: level })}">${raw(iconMarkup("arrow-circle-down"))}</button></span></div>`;
+  return markup`<div class="floor" style="top: ${yPosition}px"><span class="floornumber" aria-hidden="true">${level}</span><span class="buttonindicator"><button type="button" class="up" aria-pressed="false" aria-label="${floorCallUpLabel(level)}">${raw(iconMarkup("arrow-circle-up"))}</button> <button type="button" class="down" aria-pressed="false" aria-label="${floorCallDownLabel(level)}">${raw(iconMarkup("arrow-circle-down"))}</button></span></div>`;
 }
 
 /**
@@ -145,7 +212,7 @@ export function floorTemplate(level: number, yPosition: number): string {
  * @returns The elevator markup.
  */
 export function elevatorTemplate(width: number, index: number): string {
-  return markup`<div class="elevator movable" style="width: ${width}px" role="group" aria-label="${t("game.elevator.label", { number: index + 1 })}"><span class="directionindicator directionindicatorup">${raw(iconMarkup("arrow-circle-up", "up activated"))}</span><span class="floorindicator"><span></span></span><span class="directionindicator directionindicatordown">${raw(iconMarkup("arrow-circle-down", "down activated"))}</span><span class="buttonindicator"></span></div>`;
+  return markup`<div class="elevator movable" style="width: ${width}px" role="group" aria-label="${elevatorLabel(index)}"><span class="directionindicator directionindicatorup">${raw(iconMarkup("arrow-circle-up", "up activated"))}</span><span class="floorindicator"><span></span></span><span class="directionindicator directionindicatordown">${raw(iconMarkup("arrow-circle-down", "down activated"))}</span><span class="buttonindicator"></span></div>`;
 }
 
 /**
@@ -158,7 +225,7 @@ export function elevatorTemplate(width: number, index: number): string {
  * @returns The button markup.
  */
 export function elevatorButtonTemplate(floorNum: number): string {
-  return markup`<button type="button" class="buttonpress" aria-pressed="false" aria-label="${t("game.elevator.floorButton", { floor: floorNum })}">${floorNum}</button>`;
+  return markup`<button type="button" class="buttonpress" aria-pressed="false" aria-label="${elevatorFloorButtonLabel(floorNum)}">${floorNum}</button>`;
 }
 
 /** How a passenger is drawn; mirrors the simulation's `UserDisplayType`. */

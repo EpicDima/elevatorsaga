@@ -25,6 +25,8 @@ import { createWorldController } from "./game/world-controller.ts";
 import { formatTime, t } from "./i18n/index.ts";
 import { requireElement } from "./ui/dom.ts";
 import { CodeEditor, codeMirrorView } from "./ui/editor.ts";
+import { presentLanguagePicker } from "./ui/language-picker.ts";
+import { localisePage } from "./ui/localise-page.ts";
 import { applyPreferredLocale } from "./ui/preferred-locale.ts";
 import { presentVersion } from "./ui/version.ts";
 
@@ -120,6 +122,25 @@ async function main(): Promise<void> {
     editor,
     worldController: createWorldController(MAX_STEP_SECONDS),
     challenges,
+  });
+
+  // Wired after the app exists, because changing the language has to redraw what
+  // the app has already drawn. The two halves of that are deliberately separate:
+  // `localisePage` rewrites the shell, which it does by re-reading the document,
+  // and `App.relocalise` rewrites the game -- the challenge bar, the statistics
+  // figures, the building's accessible names and the end-of-challenge overlay --
+  // without tearing down the run in progress.
+  const languagePicker = requireElement(".languagepicker");
+  if (!(languagePicker instanceof HTMLSelectElement)) {
+    throw new TypeError("Expected .languagepicker to be a <select>");
+  }
+  presentLanguagePicker({
+    select: languagePicker,
+    storage: localStorage,
+    redraw: () => {
+      localisePage(document, navigator.userAgent);
+      app.relocalise();
+    },
   });
 
   window.runFitnessSuite = async (codeStr = editor.getCode()): Promise<FitnessSuiteResult> => {

@@ -23,16 +23,20 @@
  * shown the English game and have it rewritten underneath them when the
  * catalogue lands. This waits.
  *
- * The deciding reason is that the game cannot be rewritten the way the shell
- * can. {@link localisePage} re-reads the document and may be called as often as
- * anyone likes, but the challenge bar, the building and the feedback overlay
- * each render their text through `t()` at the moment they are built, and the
- * only thing that builds them again is
- * {@link "../app/app.ts"!App.startChallenge}, which tears down the world and
- * starts the run from the beginning. So "draw now, re-localise later" is really
- * "draw now and re-localise the shell", leaving a Russian shell around an
- * English challenge bar — unless a player is thrown back to the start of a run
- * they had already begun because a fetch finished. Both are worse than a wait.
+ * "Draw now, re-localise later" is a real option, and it is the one the language
+ * picker takes: {@link localisePage} re-reads the document, and
+ * {@link "../app/app.ts"!App.relocalise} rebuilds the challenge bar, redraws the
+ * statistics, renames the building and redraws the overlay without touching the
+ * world. So the choice here is not between waiting and a page that cannot be
+ * fixed. It is between waiting and drawing the game twice.
+ *
+ * Waiting, because at start-up the second draw buys nothing. There is no run to
+ * protect yet — that is the whole of what the picker's redraw is for — and what
+ * a reader of another language would get for it is the game appearing in English
+ * and changing under them a moment later, at the exact moment they are reading
+ * the first challenge and looking for the Start button. The page they are
+ * looking at while they wait already says all of that in English, and it has
+ * said it since the HTML arrived.
  *
  * The wait is also small, and it is not spent in front of a blank page. English
  * is the default language and is in memory before any of this is evaluated, so
@@ -51,8 +55,7 @@
  * `#lang=ru` is the most deliberate of them, but the deliberation is that of
  * whoever wrote the link, not of whoever opened it. Remembering it would let one
  * click on somebody else's link decide the language of every later visit,
- * including the visits that ask for no language at all — and with no picker in
- * the interface yet, the only way back would be devtools. Nothing is lost inside
+ * including the visits that ask for no language at all. Nothing is lost inside
  * the session by not writing it: the router keeps parameters it does not
  * recognise, so `lang` rides along in every link the game builds and stays in
  * the address bar for as long as the reader is playing.
@@ -62,8 +65,11 @@
  * is a preference that should go on following the browser: freezing it on the
  * first visit would strand a reader who later changes their browser's language.
  *
- * That leaves the writing to the language picker, which is the one source that
- * is a choice, made in this browser, by the person looking at the page.
+ * That leaves the writing to `src/ui/language-picker.ts`, which is the one
+ * source that is a choice, made in this browser, by the person looking at the
+ * page — and it is the only place in the game that calls
+ * {@link "../i18n/index.ts"!storeLocale}. `preferred-locale.test.ts` holds this
+ * module to writing nothing at start-up, from any of the three.
  */
 
 import {
@@ -84,10 +90,10 @@ import { localisePage } from "./localise-page.ts";
  * app and the presenters draw afterwards renders through `t()` and is in the
  * active language without being told.
  *
- * The sources are read once and none of them is listened to. A `lang` that
- * changes while the page is open, like a language chosen from a control, is a
- * picker's business: it would have to redraw what is already on screen, which
- * is a decision about the run in progress rather than about start-up.
+ * The sources are read once and none of them is listened to. A language chosen
+ * while the page is open is `src/ui/language-picker.ts`'s business, because it
+ * has to redraw what is already on screen and leave the run in progress where it
+ * is — a decision about a game that is being played rather than about start-up.
  *
  * @param root - The document holding the shell.
  * @param userAgent - The browser's user agent string, for the modifier keys.

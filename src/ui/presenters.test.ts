@@ -19,6 +19,7 @@ import {
   presentFeedback,
   presentStats,
   presentWorld,
+  relabelWorld,
   setDemoFullscreen,
 } from "./presenters.ts";
 import type { ChallengePresenterOptions } from "./presenters.ts";
@@ -693,6 +694,125 @@ describe("presentWorld", () => {
 
     user.setWaitingLongest(false);
     expect(element.classList.contains("waiting-longest")).toBe(false);
+  });
+});
+
+describe("relabelWorld", () => {
+  afterEach(() => {
+    setLocale(DEFAULT_LOCALE);
+  });
+
+  /**
+   * Draws a world into a fresh `.innerworld`.
+   *
+   * A container per call, and never a second `presentWorld` into a container
+   * that already holds a building: the presenter appends and subscribes, so
+   * drawing twice into one parent is the very thing `relabelWorld` exists to
+   * avoid.
+   *
+   * @param world - The world to draw.
+   * @returns The container it was drawn into.
+   */
+  function draw(world: World): HTMLElement {
+    const parent = createElement("div", { className: "innerworld" });
+    document.body.append(parent);
+    presentWorld(parent, world);
+    return parent;
+  }
+
+  /**
+   * Every name assistive technology can read off a drawn building.
+   *
+   * In document order, which for a building is every floor's two call buttons
+   * and then every car followed by its in-car buttons -- so two of these lists
+   * compare position by position without either side saying which key produced
+   * which entry.
+   *
+   * @param parent - A container a building has been drawn into.
+   * @returns The `aria-label` of every element inside it that carries one.
+   */
+  function names(parent: HTMLElement): string[] {
+    return queryAll("[aria-label]", parent).map((element) => element.ariaLabel ?? "");
+  }
+
+  it("renames a drawn building into exactly the names a freshly drawn one is born with", () => {
+    // The test the two paths are held together by. `presentWorld` writes these
+    // names through the templates and `relabelWorld` writes them again over a
+    // building that is already on screen; if either one ever grows a label the
+    // other does not know about, or spells one differently, these two lists stop
+    // matching.
+    const drawnInEnglish = draw(createWorld({ floorCount: 3, elevatorCount: 2 }));
+    const english = names(drawnInEnglish);
+
+    setLocale("ru");
+    const drawnInRussian = draw(createWorld({ floorCount: 3, elevatorCount: 2 }));
+    relabelWorld(drawnInEnglish);
+
+    expect(names(drawnInEnglish)).toEqual(names(drawnInRussian));
+    // And not vacuously: a building with no labels at all, or a `setLocale` that
+    // did nothing, would satisfy the line above on its own.
+    expect(names(drawnInRussian)).toHaveLength(14);
+    expect(names(drawnInEnglish)).not.toEqual(english);
+    expect(english[0]).toBe("Call an elevator going up from floor 0");
+    expect(names(drawnInEnglish)[0]).toBe("Вызвать лифт вверх с этажа 0");
+  });
+
+  it("leaves the run in progress standing: the same elements, still wired, still lit", () => {
+    // A language change must cost the player nothing. The building is not drawn
+    // again, so every element a passenger is riding in or a click has lit is the
+    // one that was there before.
+    const world = createWorld({ floorCount: 3, elevatorCount: 1 });
+    const parent = draw(world);
+    const called = requireElement("button.up", queryAll(".floor", parent)[1] ?? parent);
+    const carButton = queryAll(".elevator .buttonpress", parent)[2];
+    called.click();
+    carButton?.click();
+    const elementsBefore = queryAll("*", parent);
+
+    setLocale("ru");
+    relabelWorld(parent);
+
+    // Identity, element by element: `toEqual` on nodes compares markup, and
+    // markup is exactly what a redraw would reproduce.
+    const elementsAfter = queryAll("*", parent);
+    expect(elementsAfter).toHaveLength(elementsBefore.length);
+    for (const [index, element] of elementsAfter.entries()) {
+      expect(element).toBe(elementsBefore[index]);
+    }
+    expect(requireElement("button.up", queryAll(".floor", parent)[1] ?? parent)).toBe(called);
+    expect(called.classList.contains("activated")).toBe(true);
+    expect(called.getAttribute("aria-pressed")).toBe("true");
+    expect(carButton?.classList.contains("activated")).toBe(true);
+    expect(world.floors[1]?.buttonStates.up).toBe("activated");
+    expect(world.elevators[0]?.buttonStates[2]).toBe(true);
+  });
+
+  it("keeps the buttons answering the world they were drawn from", () => {
+    // Renaming an element by hand is the kind of change that can quietly replace
+    // it. A click has to still reach the floor it was wired to afterwards.
+    const world = createWorld({ floorCount: 3, elevatorCount: 1 });
+    const parent = draw(world);
+
+    setLocale("ru");
+    relabelWorld(parent);
+    const up = requireElement("button.up", queryAll(".floor", parent)[1] ?? parent);
+    up.click();
+
+    expect(world.floors[1]?.buttonStates.up).toBe("activated");
+    expect(up.classList.contains("activated")).toBe(true);
+  });
+
+  it("has nothing to say to a container with no building in it", () => {
+    // The world container is empty between runs and while a challenge is being
+    // loaded, and a language can be chosen at either moment.
+    const parent = createElement("div", { className: "innerworld" });
+    document.body.append(parent);
+
+    setLocale("ru");
+    expect(() => {
+      relabelWorld(parent);
+    }).not.toThrow();
+    expect(parent.childElementCount).toBe(0);
   });
 });
 
