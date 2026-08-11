@@ -5,6 +5,66 @@
  * per-frame work in {@link World.update} is deliberately unchanged, including
  * recomputing `maxWaitTime` over every live passenger and recalculating the
  * statistics on every single frame.
+ *
+ * ## Every draw the simulation makes, and which stream each one comes from
+ *
+ * One seed drives four generators, and what decides where a draw belongs is a
+ * single question: can the *moment* it is taken move? The clock the browser
+ * hands {@link "./world-controller.ts"!WorldController} is a real
+ * `requestAnimationFrame` delta, so no two runs of one seed ever see the same
+ * sequence of step lengths, and anything that happens *because* a car reached a
+ * floor or a passenger reached a destination therefore happens at a slightly
+ * different point of every run. Such a draw cannot be stopped from moving. It
+ * can be stopped from moving anything else, by being given a generator of its
+ * own — which is what a seed's promise rests on, because a single shifting draw
+ * inside the spawn stream offsets every later spawn, and from there on the Nth
+ * passenger is a different person heading somewhere else.
+ *
+ * The audit, complete as of this file, in the order the draws were found:
+ *
+ * - **Spawning**, {@link spawnUserRandomly} from {@link World.update}: five to
+ *   eight draws per passenger, depending on which branches the draws themselves
+ *   take. Fires only when the spawn accumulator crosses `1 / spawnRate`, and
+ *   that accumulator is a sum of `dt` and nothing else, so no elevator and no
+ *   player program can add, drop or reorder a spawn. This is the sequence the
+ *   seed's promise is about, and it keeps the world's own stream — the point of
+ *   the exercise is to leave it alone.
+ * - **Button repressing**, `World.handleButtonRepressing`: one draw per emitted
+ *   floor-button press. A passenger a full or wrongly signposted car turns away
+ *   presses the button again, which is a moment the elevators decide. See
+ *   `BUTTON_REPRESS_STREAM`.
+ * - **Walking off**, {@link "./user.ts"!User.handleExit}: one draw per delivered
+ *   passenger. Delivery is a moment the elevators decide. See
+ *   `WALK_OFF_STREAM`.
+ * - **Boarding slots**, {@link "./elevator.ts"!Elevator.userEntering}: one draw
+ *   per boarding attempt. Boarding is a moment the elevators decide. See
+ *   `BOARDING_SLOT_STREAM`.
+ *
+ * Nothing else in the engine draws. `Floor` has no stream of its own,
+ * `FloorInterface` and `ElevatorInterface` forward events without deciding
+ * anything by chance, and {@link "./math.ts"!randomInt} only ever draws from
+ * whichever source its caller passed. The one remaining reach for
+ * `Math.random` is {@link "./random.ts"!generateRandomSeed}, which runs before a
+ * world exists.
+ *
+ * What the separation buys is precisely one thing: the spawn sequence. It does
+ * *not* make the other three reproduce per passenger, since their values are
+ * still handed out in the order the events happen and the frame clock moves
+ * that order. Two of them can be shrugged at — a boarding slot decides where a
+ * passenger is drawn inside the car, a walk-off duration how long the sprite
+ * takes to leave the screen, and swapping either between two passengers changes
+ * no statistic. The third cannot: the repress offset ends in a real
+ * `goToFloor` on a specific car, so it moves `moveCount` and the wait times,
+ * which are what challenges 6 to 15 are won and lost on. It is on its own
+ * stream because its moment shifts, not because it does not matter — and the
+ * distinction is worth keeping straight, because "it is only cosmetic" is the
+ * argument someone will one day use to add, drop or relocate that draw.
+ *
+ * So the honest statement of the promise is: one seed, one building, one
+ * passenger sequence, whatever the frame clock does — but not one run. The
+ * score a program earns on a seed still depends on the machine it ran on, as it
+ * already did from the floating-point integration in
+ * {@link "./elevator.ts"!Elevator.updateElevatorMovement} alone.
  */
 
 import { Elevator } from "./elevator.ts";
@@ -83,75 +143,42 @@ const CHILD_ODDS = 40;
 const NON_LOBBY_DESTINATION_ODDS = 10;
 
 /**
- * Every draw the simulation makes, and which stream each one has to come from.
+ * Label of the stream the elevators pick boarding slots from.
  *
- * One seed drives four generators, and what decides where a draw belongs is a
- * single question: can the *moment* it is taken move? The clock the browser
- * hands {@link "./world-controller.ts"!WorldController} is a real
- * `requestAnimationFrame` delta, so no two runs of one seed ever see the same
- * sequence of step lengths, and anything that happens *because* a car reached a
- * floor or a passenger reached a destination therefore happens at a slightly
- * different point of every run. Such a draw cannot be stopped from moving. It
- * can be stopped from moving anything else, by being given a generator of its
- * own — which is what a seed's promise rests on, because a single shifting draw
- * inside the spawn stream offsets every later spawn, and from there on the Nth
- * passenger is a different person heading somewhere else.
- *
- * The audit, complete as of this file, in the order the draws were found:
- *
- * - **Spawning**, {@link spawnUserRandomly} from {@link World.update}: up to
- *   seven draws per passenger. Taken only when the spawn accumulator crosses
- *   `1 / spawnRate`, and that accumulator is a sum of `dt` and nothing else, so
- *   no elevator and no player program can add, drop or reorder a spawn. This is
- *   the sequence the seed's promise is about, and it keeps the world's own
- *   stream — the point of the exercise is to leave it alone.
- * - **Button repressing**, `World.handleButtonRepressing`: one draw per emitted
- *   floor-button press. A passenger a full or wrongly signposted car turns away
- *   presses the button again, which is a moment the elevators decide.
- *   {@link BUTTON_REPRESS_STREAM}.
- * - **Walking off**, {@link "./user.ts"!User.handleExit}: one draw per delivered
- *   passenger. Delivery is a moment the elevators decide.
- *   {@link WALK_OFF_STREAM}.
- * - **Boarding slots**, {@link "./elevator.ts"!Elevator.userEntering}: one draw
- *   per boarding attempt. Boarding is a moment the elevators decide.
- *   {@link BOARDING_SLOT_STREAM}.
- *
- * Nothing else in the engine draws. `Floor` has no stream of its own,
- * `FloorInterface` and `ElevatorInterface` forward events without deciding
- * anything by chance, and {@link "./math.ts"!randomInt} only ever draws from
- * whichever source its caller passed. The one remaining reach for
- * `Math.random` is {@link "./random.ts"!generateRandomSeed}, which runs before a
- * world exists.
- *
- * What the separation does *not* buy is that a given passenger boards the same
- * slot or walks off over the same 1.2 seconds in two runs of one seed: those
- * values are still handed out in the order the events happen, which the frame
- * clock moves. It buys that neither can be felt by anybody else, and all three
- * are cosmetic — the slot decides where a passenger is drawn inside the car,
- * the walk-off duration how long the sprite takes to leave the screen, and the
- * repress offset which of several equally suitable cars is re-offered a floor.
+ * One of the three streams the file header's audit moves out of the world's
+ * own: the draw happens once per boarding attempt, and a boarding happens when
+ * a car the player sent somewhere opens its doors, which is a moment the frame
+ * clock moves. Which slot comes back decides nothing but where the passenger is
+ * drawn inside the car.
  */
 const BOARDING_SLOT_STREAM = "boarding-slots";
 
 /**
  * Label of the stream the button-repressing sweep picks its starting car from.
  *
- * See {@link BOARDING_SLOT_STREAM} for the audit this is one line of. The draw
- * happens once per floor-button press, and every press after the first arrival
- * is timed by the elevators: a passenger presses again when a car turns them
- * away, which happens a fraction of a second earlier or later depending on
- * where the frame boundaries fell. Sharing the spawn stream is exactly how the
- * spawns used to drift.
+ * One of the three streams the file header's audit moves out of the world's
+ * own: the draw happens once per floor-button press, and every press after the
+ * first is timed by the elevators — a passenger presses again when a car turns
+ * them away, a fraction of a second earlier or later depending on where the
+ * frame boundaries fell.
+ *
+ * Unlike the other two, what comes back is not cosmetic. The sweep ends in a
+ * real `goToFloor` on one particular car, so the offset moves `moveCount` and
+ * the wait times, and those are the numbers challenges are won and lost on. It
+ * is separated because its *moment* shifts, which is a different reason, and
+ * mixing the two up is how a draw like this ends up being moved "harmlessly".
  */
 const BUTTON_REPRESS_STREAM = "button-repress";
 
 /**
  * Label of the stream a delivered passenger's walk-off duration comes from.
  *
- * See {@link BOARDING_SLOT_STREAM} for the audit this is one line of. One draw
- * per delivery, and a delivery is the most timing-sensitive moment there is: it
- * needs a car to have been sent to the right floor by the player's program and
- * to have braked onto it, neither of which lands on the same frame twice.
+ * One of the three streams the file header's audit moves out of the world's
+ * own, and the one whose moment is furthest from the seed: the draw needs a car
+ * to have been sent to the right floor by the player's program and to have
+ * braked onto it, neither of which lands on the same frame twice. The duration
+ * decides only how long the sprite takes to leave the screen — the passenger's
+ * wait was recorded when they stepped out, in `World.registerUser`.
  */
 const WALK_OFF_STREAM = "walk-off";
 
@@ -269,15 +296,18 @@ export function createElevators(
  *
  * @param random - Stream to draw from; the world hands over its own.
  * @param walkOffRandom - Stream the passenger will draw their walk-off duration
- * from once they are delivered. A separate stream because that draw is taken at
- * a moment the elevators decide; see {@link BOARDING_SLOT_STREAM} for the whole
- * argument. Omitting it leaves the passenger on the unseeded default, which
- * only a caller building one outside a world should want — passing `random`
- * here would put a shifting draw back into the sequence this function's own
- * draws come from.
+ * from once they are delivered. A second stream because that draw is taken at a
+ * moment the elevators decide; see the file header's audit for the whole
+ * argument, and {@link WALK_OFF_STREAM} for the one the world passes. Required
+ * rather than defaulted, because a default is how a caller that meant to build
+ * a reproducible passenger ends up with a half-reproducible one and no
+ * complaint from the compiler; a caller that genuinely does not care can say so
+ * by passing {@link "./random.ts"!systemRandom}. Passing `random` itself is the
+ * one wrong answer — it puts a shifting draw back into the sequence this
+ * function's own draws come from.
  * @returns The new passenger, not yet placed on a floor.
  */
-export function createRandomUser(random: RandomSource, walkOffRandom?: RandomSource): User {
+export function createRandomUser(random: RandomSource, walkOffRandom: RandomSource): User {
   const weight = randomInt(55, 100, random);
   const user = new User(weight, walkOffRandom);
   if (randomInt(0, CHILD_ODDS, random) === 0) {
@@ -308,7 +338,7 @@ export function createRandomUser(random: RandomSource, walkOffRandom?: RandomSou
  * @param random - Stream to draw from; the world hands over its own.
  * @param walkOffRandom - Stream the passenger will draw their walk-off duration
  * from; passed straight to {@link createRandomUser}, which explains why it is
- * not `random`.
+ * neither `random` nor optional.
  * @returns The new passenger, already waiting for an elevator.
  */
 export function spawnUserRandomly(
@@ -316,7 +346,7 @@ export function spawnUserRandomly(
   _floorHeight: number,
   floors: readonly Floor[],
   random: RandomSource,
-  walkOffRandom?: RandomSource,
+  walkOffRandom: RandomSource,
 ): User {
   const user = createRandomUser(random, walkOffRandom);
   user.moveTo(105 + randomInt(0, 40, random), 0);
@@ -485,9 +515,9 @@ export class World extends Observable<WorldEvents> {
    *
    * The one sequence a seed's promise is made of: who turns up, from where,
    * heading where, in what order. It is kept to spawning alone because spawning
-   * is the only drawing the frame clock cannot move — see
-   * {@link BOARDING_SLOT_STREAM} for the audit of the three draws that were
-   * moved out of here and why each had to be.
+   * is the only drawing the frame clock cannot move — see the file header for
+   * the audit of the three draws that were moved out of here and why each had
+   * to be.
    */
   readonly #random: RandomSource;
   /**

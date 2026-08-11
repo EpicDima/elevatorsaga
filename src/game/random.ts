@@ -88,8 +88,9 @@ function hashSeed(seed: string): number {
  * single 32-bit word, so a seed is one number a player can read off the screen
  * and type back. Its period of 2^32 draws is five orders of magnitude more than
  * a full challenge run consumes — a 200 second run at the highest shipped spawn
- * rate is some 400 passengers, seven draws each — and its output quality is far
- * beyond what integer draws over ranges of a few dozen values can tell apart.
+ * rate is some 400 passengers, five to eight draws each — and its output
+ * quality is far beyond what integer draws over ranges of a few dozen values
+ * can tell apart.
  * sfc32 would offer a 128-bit state and a longer period, but wants four seed
  * words and buys nothing at this scale. mulberry32 is also already the
  * generator `elevator.test.ts` seeds its sweeps with, so the tree keeps one.

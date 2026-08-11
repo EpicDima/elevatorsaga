@@ -36,7 +36,7 @@ import { createWorld, type WorldOptions } from "./world.ts";
 /**
  * Largest step the world is advanced by at once.
  *
- * The value `src/app/app.ts` gives the real controller, so a frame longer than
+ * The value `src/main.ts` gives the real controller, so a frame longer than
  * this is substepped here exactly as it is in the browser.
  */
 const SIMULATION_STEP_SECONDS = 1.0 / 60.0;

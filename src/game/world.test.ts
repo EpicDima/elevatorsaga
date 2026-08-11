@@ -44,6 +44,19 @@ function collectUsers(world: World): User[] {
 const ALWAYS_ZERO: RandomSource = () => 0;
 
 /**
+ * A walk-off stream that fails the test if anybody draws from it.
+ *
+ * Every passenger built below is left standing on a floor, so none of them ever
+ * reaches a destination and none of them needs a walk-off duration. Handing
+ * them a stream that throws rather than a harmless one turns "the walk-off draw
+ * moved to spawn time" — which would put a timing-shiftable draw back into the
+ * sequence a seed replays — from an invisible change into a failing test.
+ */
+const WALK_OFF_UNUSED: RandomSource = () => {
+  throw new Error("A passenger drew a walk-off duration without having been delivered");
+};
+
+/**
  * Wraps a stream so the test can see what was taken from it.
  *
  * @param random - Stream to wrap.
@@ -234,7 +247,7 @@ describe("createRandomUser", () => {
   it("gives every user a weight between 55 and 100 and an appearance", () => {
     const random = createRandomSource("createRandomUser");
     for (let i = 0; i < 200; ++i) {
-      const user = createRandomUser(random);
+      const user = createRandomUser(random, WALK_OFF_UNUSED);
       expect(user.weight).toBeGreaterThanOrEqual(55);
       expect(user.weight).toBeLessThanOrEqual(100);
       expect(["child", "female", "male"]).toContain(user.displayType);
@@ -242,7 +255,7 @@ describe("createRandomUser", () => {
   });
 
   it("makes a child when the one-in-41 roll comes up", () => {
-    const user = createRandomUser(ALWAYS_ZERO);
+    const user = createRandomUser(ALWAYS_ZERO, WALK_OFF_UNUSED);
     expect(user.weight).toBe(55);
     expect(user.displayType).toBe("child");
   });
@@ -253,11 +266,11 @@ describe("createRandomUser", () => {
       0.5, // child roll: misses
       0, // gender roll
     ]);
-    expect(createRandomUser(random).displayType).toBe("female");
+    expect(createRandomUser(random, WALK_OFF_UNUSED).displayType).toBe("female");
   });
 
   it("makes a male otherwise", () => {
-    const user = createRandomUser(() => 0.99);
+    const user = createRandomUser(() => 0.99, WALK_OFF_UNUSED);
     expect(user.weight).toBe(100);
     expect(user.displayType).toBe("male");
   });
@@ -268,7 +281,7 @@ describe("createRandomUser", () => {
     // `legacy-1.x:world.js:32-36` drew them this way; each value below is one
     // only its own consumer reacts to, so a reordering shows up in the result.
     const draws = recordDraws(scriptedRandom([0.99, 0.5, 0]));
-    const user = createRandomUser(draws.random);
+    const user = createRandomUser(draws.random, WALK_OFF_UNUSED);
     expect(draws.values).toEqual([0.99, 0.5, 0]);
     expect(user.weight).toBe(100);
     expect(user.displayType).toBe("female");
@@ -281,7 +294,7 @@ describe("spawnUserRandomly", () => {
     const floors = createFloors(floorCount, 50, () => undefined);
     const random = createRandomSource("spawnUserRandomly");
     for (let i = 0; i < 500; ++i) {
-      const user = spawnUserRandomly(floorCount, 50, floors, random);
+      const user = spawnUserRandomly(floorCount, 50, floors, random, WALK_OFF_UNUSED);
       expect(user.currentFloor).toBeGreaterThanOrEqual(0);
       expect(user.currentFloor).toBeLessThan(floorCount);
       expect(user.destinationFloor).toBeGreaterThanOrEqual(0);
@@ -292,7 +305,7 @@ describe("spawnUserRandomly", () => {
 
   it("puts the user on their floor and presses the matching call button", () => {
     const floors = createFloors(3, 50, () => undefined);
-    const user = spawnUserRandomly(3, 50, floors, ALWAYS_ZERO);
+    const user = spawnUserRandomly(3, 50, floors, ALWAYS_ZERO, WALK_OFF_UNUSED);
 
     expect(user.currentFloor).toBe(0);
     expect(user.destinationFloor).toBe(1);
@@ -313,7 +326,7 @@ describe("spawnUserRandomly", () => {
       0.5, // "not going to the lobby?" roll: no
     ]);
     const floors = createFloors(3, 50, () => undefined);
-    const user = spawnUserRandomly(3, 50, floors, random);
+    const user = spawnUserRandomly(3, 50, floors, random, WALK_OFF_UNUSED);
 
     expect(user.currentFloor).toBe(2);
     expect(user.destinationFloor).toBe(0);
@@ -328,11 +341,15 @@ describe("spawnUserRandomly", () => {
     const floors = createFloors(3, 50, () => undefined);
 
     const fromLobby = recordDraws(scriptedRandom([0, 0.5, 0.5, 0, 0 /* lobby */, 0.5]));
-    expect(spawnUserRandomly(3, 50, floors, fromLobby.random).currentFloor).toBe(0);
+    expect(spawnUserRandomly(3, 50, floors, fromLobby.random, WALK_OFF_UNUSED).currentFloor).toBe(
+      0,
+    );
     expect(fromLobby.values).toHaveLength(6);
 
     const fromAbove = recordDraws(scriptedRandom([0, 0.5, 0.5, 0, 0.9 /* not lobby */, 0.9, 0.5]));
-    expect(spawnUserRandomly(3, 50, floors, fromAbove.random).currentFloor).toBe(2);
+    expect(spawnUserRandomly(3, 50, floors, fromAbove.random, WALK_OFF_UNUSED).currentFloor).toBe(
+      2,
+    );
     expect(fromAbove.values).toHaveLength(7);
   });
 });
@@ -1196,7 +1213,7 @@ describe("World", () => {
     it("gives each collection its own empty array", () => {
       const world = createWorld();
       world.unWind();
-      world.users.push(createRandomUser(ALWAYS_ZERO));
+      world.users.push(createRandomUser(ALWAYS_ZERO, WALK_OFF_UNUSED));
       expect(world.floors).toHaveLength(0);
       expect(world.elevators).toHaveLength(0);
     });

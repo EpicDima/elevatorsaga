@@ -153,10 +153,12 @@ export const DEFAULT_INTERPOLATOR: Interpolator = coolInterpolate;
  * @param min - Lowest value that can be returned.
  * @param max - Highest value that can be returned.
  * @param random - Stream to draw from. Every call site inside a
- * {@link "./world.ts"!World} is handed one: the simulation draws from the
- * world's own stream, and boarding slots from a stream derived from the same
- * seed. The default is the unseeded {@link systemRandom}, which now serves only
- * callers outside a world.
+ * {@link "./world.ts"!World} is handed one, and which one depends on whether
+ * the moment of the draw is fixed by the seed or moved by the frame clock:
+ * spawning uses the world's own stream, while boarding slots, button
+ * repressing and walk-off durations each use a separate stream derived from
+ * the same seed. `src/game/world.ts` opens with the audit. The default is the
+ * unseeded {@link systemRandom}, which now serves only callers outside a world.
  * @returns An integer in `[min, max]`.
  */
 export function randomInt(min: number, max: number, random: RandomSource = systemRandom): number {
