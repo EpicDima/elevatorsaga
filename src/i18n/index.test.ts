@@ -1,10 +1,19 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { EN_MESSAGES } from "./en.ts";
 import { decimal, seconds } from "./format.ts";
 import { htmlLang, isLocale, DEFAULT_LOCALE, LOCALES } from "./locale.ts";
 import { RU_MESSAGES } from "./ru.ts";
-import { format, formatTime, getLocale, setLocale, t, translateIn, CATALOGUES } from "./index.ts";
+import {
+  format,
+  formatTime,
+  getLocale,
+  isLocaleLoaded,
+  loadLocale,
+  setLocale,
+  t,
+  translateIn,
+  CATALOGUE_LOADERS,
+} from "./index.ts";
 
 /** The space Russian typography wants between a number and its unit. */
 const NBSP = "\u00a0";
@@ -13,11 +22,129 @@ afterEach(() => {
   setLocale(DEFAULT_LOCALE);
 });
 
-describe("CATALOGUES", () => {
-  it("has a catalogue for every locale the game claims to speak", () => {
-    expect(Object.keys(CATALOGUES).sort()).toEqual([...LOCALES].sort());
-    expect(CATALOGUES.en).toBe(EN_MESSAGES);
-    expect(CATALOGUES.ru).toBe(RU_MESSAGES);
+describe("CATALOGUE_LOADERS", () => {
+  it("has a loader for every locale the game claims to speak", () => {
+    expect(Object.keys(CATALOGUE_LOADERS).sort()).toEqual([...LOCALES].sort());
+  });
+
+  it("fetches the catalogue the translations are then rendered from", async () => {
+    // Not an identity check on a constant any more: the catalogue arrives when
+    // its chunk does, so what there is to check is that the one that arrives is
+    // the one in `ru.ts` -- rendered through `t`, which is the only way anyone
+    // reads it.
+    await loadLocale("ru");
+
+    expect(isLocaleLoaded("ru")).toBe(true);
+    expect(translateIn("ru", "game.button.start")).toBe(RU_MESSAGES["game.button.start"]);
+  });
+
+  it("has the default locale ready without loading anything", () => {
+    // The reason English is bundled rather than split: `t` is synchronous and
+    // is called from error paths, so something has to be renderable before any
+    // fetch has finished.
+    expect(isLocaleLoaded(DEFAULT_LOCALE)).toBe(true);
+  });
+});
+
+describe("a locale whose catalogue has not arrived yet", () => {
+  /**
+   * The i18n module with nothing but English loaded.
+   *
+   * A module graph of its own, because the Vitest setup file loads every
+   * catalogue into the one this file imported at the top -- which is what keeps
+   * the tests below, and in a dozen other files, able to name a language on one
+   * line and assert on the next. This is where the state those tests are spared
+   * is exercised on purpose.
+   *
+   * @returns A freshly evaluated `./index.ts`.
+   */
+  async function unloadedI18n(): Promise<typeof import("./index.ts")> {
+    vi.resetModules();
+    return await import("./index.ts");
+  }
+
+  afterEach(() => {
+    vi.doUnmock("./ru.ts");
+    // The fresh graph is the one that was just told to speak Russian; leaving
+    // it in the registry would hand it to the next dynamic import in this file.
+    vi.resetModules();
+  });
+
+  it("renders English rather than a raw key", async () => {
+    const i18n = await unloadedI18n();
+
+    i18n.setLocale("ru");
+
+    // The guarantee the whole design is for: whatever else is true, a player
+    // never reads `game.button.start`.
+    expect(i18n.isLocaleLoaded("ru")).toBe(false);
+    expect(i18n.t("game.button.start")).toBe("Start");
+    expect(i18n.translateIn("ru", "game.button.start")).toBe("Start");
+  });
+
+  it("keeps the numbers in the language the words came out in", async () => {
+    // Half a sentence in English and its decimal comma in Russian is a worse
+    // answer than a whole sentence in English, so formatting follows the
+    // catalogue rather than the choice.
+    const i18n = await unloadedI18n();
+
+    i18n.setLocale("ru");
+
+    expect(i18n.format(seconds(60))).toBe("60s");
+    expect(i18n.format(2675)).toBe("2,675");
+  });
+
+  it("still remembers what the player chose", async () => {
+    // Which is what the picker shows as selected, what a link carries and what
+    // the fitness worker is told -- none of which depend on the fetch.
+    const i18n = await unloadedI18n();
+
+    i18n.setLocale("ru");
+
+    expect(i18n.getLocale()).toBe("ru");
+  });
+
+  it("starts the fetch itself, so setting a locale is enough to get there", async () => {
+    const i18n = await unloadedI18n();
+
+    i18n.setLocale("ru");
+    // The same load `setLocale` started, not a second one.
+    await i18n.loadLocale("ru");
+
+    expect(i18n.t("game.button.start")).toBe("\u0421\u0442\u0430\u0440\u0442");
+    expect(i18n.format(seconds(60))).toBe(`60${NBSP}\u0441`);
+  });
+
+  it("fetches a catalogue once however many callers ask for it", async () => {
+    const i18n = await unloadedI18n();
+
+    const first = i18n.loadLocale("ru");
+
+    expect(i18n.loadLocale("ru")).toBe(first);
+    await first;
+    // And nothing to wait for once it is here.
+    expect(i18n.isLocaleLoaded("ru")).toBe(true);
+  });
+
+  it("stays in English when the catalogue cannot be fetched", async () => {
+    // A dropped response or a half-deployed build. The load resolves either
+    // way: a rejection here would travel to the fitness worker, which has no
+    // one to report it to and a player waiting on a benchmark.
+    vi.doMock("./ru.ts", () => {
+      throw new Error("Failed to fetch dynamically imported module");
+    });
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const i18n = await unloadedI18n();
+
+    const failed = i18n.loadLocale("ru");
+    await expect(failed).resolves.toBeUndefined();
+
+    i18n.setLocale("ru");
+    expect(i18n.t("game.button.start")).toBe("Start");
+    expect(warn).toHaveBeenCalled();
+    // And the language is not written off for the session: the next attempt is
+    // a new fetch rather than the failure served again from the cache.
+    expect(i18n.loadLocale("ru")).not.toBe(failed);
   });
 });
 

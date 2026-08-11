@@ -350,6 +350,15 @@ describe("the fitness worker entry point", () => {
       workerSelf.onmessage?.({
         data: { code: "var x = 1;", locale: "ru" },
       } as MessageEvent<FitnessWorkerRequest>);
+      // Inside the stub, and awaited, because a language other than the default
+      // is a chunk the worker has to fetch before it can name anything: this
+      // reply arrives a tick or two after the request rather than in it. The
+      // request above is the last thing that happens synchronously; everything
+      // this test is about happens in `loadLocale`'s wake, with `self` still
+      // standing in for the worker's own.
+      await vi.waitFor(() => {
+        expect(posted).toHaveLength(1);
+      });
     } finally {
       vi.unstubAllGlobals();
       // And drop the fresh graph again. It is the copy that was just told to

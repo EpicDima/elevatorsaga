@@ -27,9 +27,13 @@ export const LOCALES: readonly Locale[] = ["en", "ru"];
  *
  * Also the reference locale: its catalogue is the one every other catalogue is
  * type-checked against, so a key can never exist in a translation and be
- * missing from English.
+ * missing from English. And the fallback locale, which is why it is typed as
+ * the tag it is rather than widened to {@link Locale}: the code that renders
+ * with it renders `EN_MESSAGES`, a `MessageCatalogue<"en">` with English's two
+ * plural forms, and a `Locale` here would ask that catalogue to have every
+ * form of every language the game speaks.
  */
-export const DEFAULT_LOCALE: Locale = "en";
+export const DEFAULT_LOCALE = "en" satisfies Locale;
 
 /**
  * What each locale calls itself.
