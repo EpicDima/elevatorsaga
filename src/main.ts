@@ -22,6 +22,7 @@ import { DEFAULT_TIME_SCALE } from "./app/time-scale.ts";
 import { challenges } from "./game/challenges.ts";
 import type { FitnessSuiteResult } from "./game/fitness.ts";
 import { createWorldController } from "./game/world-controller.ts";
+import { formatTime, t } from "./i18n/index.ts";
 import { requireElement } from "./ui/dom.ts";
 import { CodeEditor, codeMirrorView } from "./ui/editor.ts";
 import { labelModifierKeys } from "./ui/shortcuts.ts";
@@ -57,7 +58,11 @@ function main(): void {
   const fitnessMessage = requireElement("#fitness_message");
 
   editor.on("saved", (savedAt) => {
-    saveMessage.textContent = `Code saved ${savedAt.toTimeString()}`;
+    // `Date.prototype.toTimeString` wrote "21:03:57 GMT+0300 (Moscow Standard
+    // Time)", which is a debugging format in one language pretending to be a
+    // timestamp in every other. `formatTime` is `Intl.DateTimeFormat` with
+    // `timeStyle: "medium"`, so the line now ends where a reader expects it to.
+    saveMessage.textContent = t("editor.saved", { time: formatTime(savedAt) });
   });
   editor.on("change", () => {
     // The measurement on show no longer describes the program in the editor.
@@ -69,13 +74,13 @@ function main(): void {
     editor.focus();
   });
   requireElement("#button_reset").addEventListener("click", () => {
-    if (window.confirm("Do you really want to reset to the default implementation?")) {
+    if (window.confirm(t("editor.confirmReset"))) {
       editor.reset();
     }
     editor.focus();
   });
   requireElement("#button_resetundo").addEventListener("click", () => {
-    if (window.confirm("Do you want to bring back the code as before the last reset?")) {
+    if (window.confirm(t("editor.confirmUndoReset"))) {
       editor.undoReset();
     }
     editor.focus();
@@ -109,7 +114,7 @@ function main(): void {
 
   window.runFitnessSuite = async (codeStr = editor.getCode()): Promise<FitnessSuiteResult> => {
     fitnessMessage.classList.add("faded");
-    fitnessMessage.textContent = "Measuring fitness...";
+    fitnessMessage.textContent = t("fitness.measuring");
     const results = await runFitnessSuite(codeStr);
     fitnessMessage.textContent = describeFitnessResults(results);
     fitnessMessage.classList.remove("faded");

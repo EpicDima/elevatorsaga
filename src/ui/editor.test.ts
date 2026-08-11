@@ -4,6 +4,7 @@ import { CompletionContext } from "@codemirror/autocomplete";
 import { EditorView } from "@codemirror/view";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { DEFAULT_LOCALE, setLocale } from "../i18n/index.ts";
 import { playerApiCompletionSource } from "./completions.ts";
 import { DEFAULT_CODE, DEV_TEST_CODE } from "./default-code.ts";
 import {
@@ -1238,5 +1239,28 @@ describe("codeMirrorView", () => {
 
     expect(result?.from).toBe(state.doc.length - "goT".length);
     expect(result?.options.map((option) => option.label)).toContain("goToFloor");
+  });
+
+  describe("the language the editing surface is named in", () => {
+    afterEach(() => {
+      setLocale(DEFAULT_LOCALE);
+    });
+
+    it("names the surface in the locale the editor was mounted in", () => {
+      // The one string the editor owns, and the only name the editing surface
+      // has: CodeMirror's content element is a `contenteditable` div with no
+      // label anywhere near it, so without this a screen reader announces the
+      // whole game as an unnamed edit box.
+      vi.useRealTimers();
+      const parent = document.createElement("div");
+      document.body.append(parent);
+      setLocale("ru");
+
+      codeMirrorView(parent)({ onChange: vi.fn(), onApply: vi.fn(), onSave: vi.fn() }, "");
+
+      expect(parent.querySelector(".cm-content")?.getAttribute("aria-label")).toBe(
+        "Программа для лифтов",
+      );
+    });
   });
 });

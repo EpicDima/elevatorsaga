@@ -24,6 +24,7 @@ import { basicSetup } from "codemirror";
 import { Observable } from "../game/observable.ts";
 import { getCodeObjFromCode } from "../game/user-code.ts";
 import type { UserCodeObject } from "../game/user-code.ts";
+import { t } from "../i18n/index.ts";
 import { playerApiCompletionSource } from "./completions.ts";
 import { DEFAULT_CODE, DEV_TEST_CODE } from "./default-code.ts";
 
@@ -745,7 +746,12 @@ export function codeMirrorView(parent: HTMLElement): TextEditorViewFactory {
       javascriptLanguage.data.of({ autocomplete: playerApiCompletionSource }),
       indentUnit.of(INDENT),
       EditorState.tabSize.of(INDENT.length),
-      EditorView.contentAttributes.of({ "aria-label": "Elevator program" }),
+      // Read here rather than at module scope, and read afresh on every mount:
+      // this factory runs once per editor, so an editor built after the player
+      // has changed language is named in that language. CodeMirror holds the
+      // attribute in its own state, so an editor already on screen keeps the
+      // name it was given until something rebuilds it.
+      EditorView.contentAttributes.of({ "aria-label": t("editor.label") }),
       // Ahead of the default keymap, which binds Mod-Enter itself.
       Prec.highest(
         keymap.of([
