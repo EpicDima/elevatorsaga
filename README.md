@@ -334,6 +334,21 @@ Four more, without upstream issues:
   reachable by building a `World` directly, which is what the challenge definitions and anyone
   embedding the engine do.
 
+### Reported, reproduced, and not a bug here
+
+- [#111](https://github.com/magwo/elevatorsaga/issues/111) /
+  [#138](https://github.com/magwo/elevatorsaga/issues/138) — "only the last elevator responds to my
+  handlers", filed by two people, which usually means either a real bug or a documentation failure.
+  It is the second, and it is written down rather than closed silently, because "cannot reproduce"
+  is a worse answer than "here is what you actually hit". Every elevator interface carries its own
+  emitter and dispatches with itself as `this`. Registering handlers with `forEach` on a
+  three-elevator building, each handler hears its own elevator, once each; registering the same
+  handlers in a `for` loop with `var`, all three of those events arrive at the third elevator.
+  `var` gives the whole function a single binding, so by the time any handler runs the variable
+  holds the elevator the loop finished on — `let` and `forEach` give each iteration its own.
+  `src/game/world-controller.test.ts` asserts the engine half of that, so nobody can ever repair the
+  simulation for a fault that is not in it.
+
 ## Development
 
 Tests are co-located with the code they cover: `src/game/elevator.ts` is tested by
