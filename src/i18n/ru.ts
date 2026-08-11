@@ -324,10 +324,19 @@ export const RU_MESSAGES: MessageCatalogue<"ru"> = {
 
   "error.code.noInit": "В коде должна быть функция init",
   "error.code.noUpdate": "В коде должна быть функция update",
+  // {value} is whatever the player passed, and both of these frames have to
+  // stay grammatical for every shape of it: a quoted string, NaN, undefined, or
+  // one of the two nouns below. So the verb agrees with the subject and never
+  // with {value}, and {value} lands in the accusative, which for an inanimate
+  // masculine noun is spelled like the nominative. That is what «содержит
+  // массив» and «получил объект» rely on. An earlier wording, «В
+  // elevator.destinationQueue попало {value}», did not: «попало» is neuter and
+  // «массив» is masculine, so the one sentence a player sees when they put an
+  // array in the queue was ungrammatical.
   "error.elevator.notAFloor":
-    "elevator.{method} вызван с аргументом {value}, а это не номер этажа. Нужно конечное число, а этажи в этом здании — от 0 до {topFloor}.",
+    "elevator.{method} получил {value} — это не номер этажа. Нужно конечное число, а этажи в этом здании — от 0 до {topFloor}.",
   "error.elevator.queueNotAFloor":
-    "В elevator.destinationQueue попало {value}, а это не номер этажа. Запись отброшена, чтобы лифт продолжал работать; destinationQueue принимает конечные числа, а этажи в этом здании — от 0 до {topFloor}.",
+    "elevator.destinationQueue содержит {value} — это не номер этажа. Запись отброшена, чтобы лифт продолжал работать; destinationQueue принимает конечные числа, а этажи в этом здании — от 0 до {topFloor}.",
   "error.value.array": "массив",
   "error.value.object": "объект",
   "error.movable.busy": "Объект занят — воспользуйтесь колбэком",

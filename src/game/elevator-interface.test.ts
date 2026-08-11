@@ -1027,16 +1027,20 @@ describe("Elevator interface", () => {
         looseGoToFloor([1, 2]);
       }).toThrow(
         new TypeError(
-          "elevator.goToFloor вызван с аргументом массив, а это не номер этажа. " +
+          "elevator.goToFloor получил массив — это не номер этажа. " +
             "Нужно конечное число, а этажи в этом здании — от 0 до 3.",
         ),
       );
 
-      elevInterface.destinationQueue = [Number.NaN, 2];
+      // An array rather than NaN, which is what the English case above uses:
+      // NaN is spelled the same in every case and gender, so it cannot show a
+      // frame that fails to agree with the noun dropped into it. «массив» can,
+      // and did — the previous wording put a neuter verb in front of it.
+      elevInterface.destinationQueue = [[1, 2] as unknown as number, 2];
       elevInterface.checkDestinationQueue();
 
       expect(soleReport().message).toBe(
-        "В elevator.destinationQueue попало NaN, а это не номер этажа. Запись отброшена, " +
+        "elevator.destinationQueue содержит массив — это не номер этажа. Запись отброшена, " +
           "чтобы лифт продолжал работать; destinationQueue принимает конечные числа, " +
           "а этажи в этом здании — от 0 до 3.",
       );
