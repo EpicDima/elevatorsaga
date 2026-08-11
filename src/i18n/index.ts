@@ -348,10 +348,11 @@ export {
 } from "./detect.ts";
 // English only. A re-export is a static import, and re-exporting the Russian
 // catalogue from the module every consumer goes through is precisely what put
-// it in the page's entry chunk and in the fitness worker. The two files that
-// want a catalogue as data -- `catalogue.test.ts` and `page.test.ts`, both
-// comparing the translations key by key -- import it from `./ru.ts` directly,
-// which is a test-only edge and reaches no bundle.
+// it in the page's entry chunk and in the fitness worker. The three files that
+// want a catalogue as data -- `catalogue.test.ts` and `page.test.ts` comparing
+// the translations key by key, and `index.test.ts` checking that the catalogue
+// `loadLocale` fetches is the one in `ru.ts` -- import it from `./ru.ts`
+// directly, which is a test-only edge and reaches no bundle.
 export { EN_MESSAGES } from "./en.ts";
 export {
   decimal,
