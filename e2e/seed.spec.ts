@@ -136,10 +136,13 @@ test("does not move the caveat's own control when it is opened", async ({ page }
   // The widths are the ones where the bar rearranges itself, because a control
   // that holds still through a reflow is only worth asserting where a reflow
   // happens; the list used to run 1280, 1024, 900, 768 and then jump straight to
-  // 320, which stepped over all of them. Measured on this challenge: the title
-  // takes a second line at 960px, the row of nineteen links takes a second line
-  // at 660px, and 640px is the narrowest window where the summary's box is still
-  // identical open and closed.
+  // 320, which stepped over all of them. Bisected to the pixel on this
+  // challenge: the title takes a second line below 964px, the row of nineteen
+  // links takes another below 679px, and 638px is the narrowest window where the
+  // summary's box is still identical open and closed. So 960 and 660 are each
+  // just inside a rearrangement, and 640 is sampled rather than 638 because the
+  // last two pixels before a reflow are worth leaving to whatever a font does
+  // differently on another machine.
   for (const width of [1280, 1024, 960, 900, 768, 700, 660, 640]) {
     await page.setViewportSize({ width, height: 900 });
     await expect(page.locator(CAVEAT)).toBeHidden();
@@ -157,10 +160,10 @@ test("does not move the caveat's own control when it is opened", async ({ page }
     await expect(page.locator(CAVEAT)).toBeHidden();
   }
 
-  // Below 640px the panel genuinely does not fit beside the seed, so the whole
+  // Below 638px the panel genuinely does not fit beside the seed, so the whole
   // disclosure wraps and carries its summary along: this is the line reflowing
   // rather than a control running away. It moves on both axes -- 21px down and
-  // 168.4px left, the same two numbers at every width from 620px to 320px -- and
+  // 168.39px left, the same two numbers at every width from 637px to 320px -- and
   // all three of the assertions below exist because the one that stood here
   // compared `y` alone, which is a two-axis move reported as a one-axis one and
   // would have passed with the control anywhere along the row.
