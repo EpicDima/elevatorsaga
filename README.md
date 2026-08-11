@@ -35,11 +35,12 @@ original is scored by the same rules.
 - **A jump list for the challenges.** Every challenge is a link in the bar above the building, so
   reaching challenge 12 no longer means either winning eleven of them or hand-editing the address
   bar. The one being played is marked, and the last entry is the endless demo.
-- **Repeatable runs.** Every run is built from a seed, which is printed to the console as it starts
-  and shown in the bar as a link back to the same building. Following the link, or writing
-  `#seed=…` yourself, gives the same building and the same passengers to every restart — enough to
-  compare two programs on one problem instead of on two different ones. It does not make a run
-  frame-for-frame identical: the browser decides how long a frame is.
+- **Repeatable runs.** Every run draws its passengers from a seed, which is shown in the bar and
+  printed to the console as the run starts. Following the seed link, or writing `#seed=…` yourself,
+  brings the same people back in the same order to every restart — enough to compare two programs
+  on one problem instead of on two different ones. A second link drops the seed again when you are
+  done with it. It does not make a run frame-for-frame identical: the browser decides how long a
+  frame is.
 - **A sandbox building.** `#challenge=sandbox` takes `floors`, `elevators`, `capacities` and
   `spawnrate`, so you can build the case your program is failing on rather than looking for a
   shipped challenge that resembles it. See [URL parameters](#url-parameters).
@@ -127,7 +128,7 @@ rather than breaking the page.
 | `#challenge=sandbox` | Starts a building of your own instead of a numbered challenge. See below.                             |
 | `#autostart`         | Starts the simulation immediately instead of waiting for the Start button.                            |
 | `#timescale=X`       | Simulation speed multiplier. Clamped to `0.1`–`64`; defaults to `2`. Fractions such as `1.5` work.    |
-| `#seed=S`            | Pins the seed the building and the passenger stream are generated from. See below.                    |
+| `#seed=S`            | Pins the seed the passenger stream is drawn from. Not the building. See below.                        |
 | `#devtest`           | Loads the built-in reference solution into the editor, replacing what is there.                       |
 | `#fullscreen`        | Hides everything except the building.                                                                 |
 
@@ -137,24 +138,36 @@ without a value was silently ignored because the parser's regexp demanded one.
 
 ### Seeds
 
-Every run draws its passengers from a seeded generator, and prints its seed to the console as it
-starts. Put that seed back in the URL and the same building with the same people arriving at the
-same times comes back — from the Restart button, from <kbd>Ctrl</kbd>+<kbd>Enter</kbd> and from a
-reload alike. A URL with no `seed` draws a fresh one on every one of them, which is deliberate: a
-run you cannot get away from is not what you want when you are stuck on a challenge, and the seed
-of the run you _do_ want is one click away in the bar.
+Every run draws its passengers from a seeded generator, and shows its seed in the bar above the
+building as well as printing it to the console. Put that seed back in the URL and the same people
+arriving in the same order come back — from the Restart button, from <kbd>Ctrl</kbd>+<kbd>Enter</kbd>
+and from a reload alike.
 
-What a seed fixes is the building and the passenger stream, not the run. Frame lengths come from
-the browser, so your program is asked to decide at slightly different moments each time and two
-interactive runs of one seed still diverge. Only the headless paths — the fitness benchmark and the
-test suite, which drive the clock themselves — repeat a run step for step.
+You do not have to type it. When the URL pins no seed, the seed in the bar is a link that pins the
+one currently running, so a run worth keeping is one click away after you have seen it. When the URL
+does pin one, the bar shows the value with a **new draw** link beside it, which drops the seed and
+starts again on fresh passengers. Both links name the challenge as well as the seed, so either one
+is a complete address you can paste at someone.
+
+A URL with no `seed` draws a fresh one on every restart, which is deliberate: a run you cannot get
+away from is not what you want when you are stuck on a challenge.
+
+**What a seed fixes is the passenger stream, and only that.** The building — how many floors, how
+many elevators, how large they are — comes from the challenge number or from the sandbox parameters,
+and the seed has no say in it. Two URLs with the same seed and different `challenge` values are two
+different buildings. Frame lengths come from the browser too, so your program is asked to decide at
+slightly different moments each time and two interactive runs of one seed still diverge in their
+timing. Only the headless paths — the fitness benchmark and the test suite, which drive the clock
+themselves — repeat a run step for step.
 
 A seed is a string of at most 64 characters from `A-Z a-z 0-9 _ . -`, so `#seed=issue-61` is as
 valid as `#seed=1234567890`. It is never read as a number: `0123` and `123` are different seeds,
 because a URL that quietly replays something other than what it says is worse than one that does
-not work. Anything outside that set is refused with a console warning and a fresh seed, since the
-browser would percent-encode it in `location.hash` and the shared URL would name a different
-building than the one that was shared.
+not work. The character set is narrow because the seed has to come back out of the address bar byte
+for byte: a space or a non-Latin letter is percent-encoded on the way in, so `#seed=rush hour` would
+return as `rush%20hour`, hash to something else and hand a different passenger stream to whoever
+followed the link. A comma cannot reach the parser at all — that is what separates one parameter
+from the next. Anything outside the set is refused with a console warning and a fresh seed.
 
 ### Sandbox
 
