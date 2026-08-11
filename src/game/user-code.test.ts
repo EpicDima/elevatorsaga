@@ -1,6 +1,11 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 
+import { setLocale, DEFAULT_LOCALE } from "../i18n/index.ts";
 import { getCodeObjFromCode } from "./user-code.ts";
+
+afterEach(() => {
+  setLocale(DEFAULT_LOCALE);
+});
 
 const testCode = "{init: function init() {}, update: function update() {}}";
 
@@ -73,5 +78,19 @@ describe("getCodeObjFromCode", () => {
 
   it("lets syntax errors through", () => {
     expect(() => getCodeObjFromCode("{init: function(} }")).toThrow(SyntaxError);
+  });
+
+  it("refuses in the language the page is in", () => {
+    // The player reads this in the code status bar, so it follows the locale
+    // rather than the module's import order: a message built once, when this
+    // module was first imported, would be English for everybody.
+    setLocale("ru");
+
+    expect(() => getCodeObjFromCode("{update: function update() {}}")).toThrow(
+      "В коде должна быть функция init",
+    );
+    expect(() => getCodeObjFromCode("{init: function init() {}}")).toThrow(
+      "В коде должна быть функция update",
+    );
   });
 });

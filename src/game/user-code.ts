@@ -4,6 +4,7 @@
  * Ported from `getCodeObjFromCode` in the legacy `base.js`.
  */
 
+import { t } from "../i18n/index.ts";
 import type { UserCodeObject } from "./world-controller.ts";
 
 export type { UserCodeObject } from "./world-controller.ts";
@@ -32,7 +33,12 @@ const evaluate: (src: string) => unknown = globalThis.eval;
  * @param code - The source the player typed.
  * @returns The compiled `{ init, update }` object.
  * @throws {Error} When the code has no `init` or no `update` function. The
- * legacy version threw bare strings; the messages are unchanged.
+ * legacy version threw bare strings; the English wording is unchanged, and the
+ * message is now taken from the catalogue, because it is not a diagnostic for
+ * whoever is reading a stack — it is what the code status bar puts in front of
+ * the player. Rendered here, at the moment of the throw, rather than held in a
+ * constant: a constant is filled in when this module is imported, which is
+ * before the page has chosen a locale.
  */
 export function getCodeObjFromCode(code: string): UserCodeObject {
   let source = code;
@@ -44,10 +50,10 @@ export function getCodeObjFromCode(code: string): UserCodeObject {
   // The legacy code read `obj.init` straight away, so a `null` or `undefined`
   // result threw a TypeError instead; both cases are rejected either way.
   if (typeof obj?.init !== "function") {
-    throw new Error("Code must contain an init function");
+    throw new Error(t("error.code.noInit"));
   }
   if (typeof obj.update !== "function") {
-    throw new Error("Code must contain an update function");
+    throw new Error(t("error.code.noUpdate"));
   }
   return obj as UserCodeObject;
 }

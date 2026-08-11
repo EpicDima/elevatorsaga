@@ -43,6 +43,13 @@
  * | local storage      | локальное хранилище  |
  * | developer tools    | инструменты разработчика |
  * | simulation speed   | скорость симуляции   |
+ * | seed               | сид                  |
+ * | run                | прогон               |
+ * | new draw           | новый розыгрыш       |
+ *
+ * «Сид» rather than «зерно»: it is what Russian-speaking players of every game
+ * that has one already call it, and the word they will search for. «Розыгрыш» is
+ * the lottery sense of «draw», which is the sense the English has.
  *
  * ## Rules followed here
  *
@@ -124,6 +131,13 @@ export const RU_MESSAGES: MessageCatalogue<"ru"> = {
   "game.challenge.nav.label": "Задания",
   "game.challenge.nav.link": "Задание {number}",
   "game.challenge.nav.demo": "Демо",
+  "game.seed.label": "Сид",
+  "game.seed.link": "Сид {seed}: начать другой прогон с этим сидом",
+  "game.seed.newDraw": "новый розыгрыш",
+  "game.seed.newDrawLink": "Сид {seed}: новый розыгрыш, начать заново без него",
+  "game.seed.helpSummary": "что задаёт сид",
+  "game.seed.explanation":
+    "Один и тот же сид приводит тех же пассажиров и в том же порядке. Когда придёт очередной кадр, решает браузер, поэтому сам прогон вокруг них никогда не повторяется в точности.",
   "game.timeScale.decrease": "Уменьшить скорость симуляции",
   "game.timeScale.increase": "Увеличить скорость симуляции",
   "game.timeScale.value": "{value}×",

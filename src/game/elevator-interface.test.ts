@@ -1,8 +1,13 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { setLocale, DEFAULT_LOCALE } from "../i18n/index.ts";
 import { Elevator } from "./elevator.ts";
 import { ElevatorInterface, type ElevatorInterfaceErrorHandler } from "./elevator-interface.ts";
 import { timeForwarder } from "./test-helpers.ts";
+
+afterEach(() => {
+  setLocale(DEFAULT_LOCALE);
+});
 
 const FLOOR_COUNT = 4;
 const FLOOR_HEIGHT = 40;
@@ -979,6 +984,47 @@ describe("Elevator interface", () => {
       expect(elevInterface.destinationQueue).toEqual([99]);
       expect(e.destinationY).toBe(e.getYPosOfFloor(99));
       expect(errorHandler).not.toHaveBeenCalled();
+    });
+
+    it("names an array as one rather than printing its contents", () => {
+      // `String([1, 2])` is "1,2", which reads like a pair of floor numbers
+      // rather than like the mistake it is. That phrase and the one for an
+      // object are the only prose in this description -- everything else is the
+      // value the player wrote, quoted back at them -- and they are the reason
+      // the catalogue has `error.value.array` and `error.value.object` at all.
+      expect(() => {
+        looseGoToFloor([1, 2]);
+      }).toThrow(
+        new TypeError(
+          "elevator.goToFloor was called with an array, which is not a floor number. " +
+            "It takes a finite number, and this building has floors 0 to 3.",
+        ),
+      );
+    });
+
+    it("refuses in the language the page is in, composed phrase and all", () => {
+      // Both halves have to move together: the sentence comes from one key and
+      // the words "an array" from another, so a wiring that translated only the
+      // sentence would produce a Russian complaint about "an array".
+      setLocale("ru");
+
+      expect(() => {
+        looseGoToFloor([1, 2]);
+      }).toThrow(
+        new TypeError(
+          "elevator.goToFloor вызван с аргументом массив, а это не номер этажа. " +
+            "Нужно конечное число, а этажи в этом здании — от 0 до 3.",
+        ),
+      );
+
+      elevInterface.destinationQueue = [Number.NaN, 2];
+      elevInterface.checkDestinationQueue();
+
+      expect(soleReport().message).toBe(
+        "В elevator.destinationQueue попало NaN, а это не номер этажа. Запись отброшена, " +
+          "чтобы лифт продолжал работать; destinationQueue принимает конечные числа, " +
+          "а этажи в этом здании — от 0 до 3.",
+      );
     });
   });
 

@@ -5,6 +5,7 @@
  * ES classes already throw when called without `new`.
  */
 
+import { t } from "../i18n/index.ts";
 import { DEFAULT_INTERPOLATOR, type Interpolator } from "./math.ts";
 import { Observable, type EventArgsMap, type EventName } from "./observable.ts";
 
@@ -32,13 +33,20 @@ export type MovableTask = (dt: number) => void;
  * The legacy code threw the object literal `{message, obj}`; a real `Error`
  * carries the same message and keeps the value throwable under lint rules that
  * (correctly) reject non-`Error` throws.
+ *
+ * The message is translated in the constructor, so it is the language the page
+ * was in when the mistake was made. A module constant would be quicker and
+ * would be wrong: it would be filled in when this module is imported, which is
+ * before the page has chosen a locale, and every player would read this one in
+ * English. Player code reaches it through `elevator.wait` and the movement
+ * helpers, so what it says ends up in the code status bar.
  */
 export class MovableBusyError extends Error {
   /** The movable that was already busy. */
   readonly movable: Movable;
 
   constructor(movable: Movable) {
-    super("Object is busy - you should use callback");
+    super(t("error.movable.busy"));
     this.name = "MovableBusyError";
     this.movable = movable;
   }

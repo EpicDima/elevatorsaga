@@ -97,6 +97,22 @@ export const EN_MESSAGES = {
   "game.challenge.nav.label": "Challenges",
   "game.challenge.nav.link": "Challenge {number}",
   "game.challenge.nav.demo": "Demo",
+  // The seed line, which is two lines really: a control that says what the run
+  // is, and a disclosure that says how far the promise goes. The seed itself is
+  // a placeholder rather than part of the sentence — it is the token a player
+  // transcribes, and it must read the same in every language.
+  //
+  // Both accessible names repeat the seed, because a name has to stand on its
+  // own (WCAG 2.5.3) and "1234567890, link" describes nothing. `newDraw` is the
+  // one string that is both the visible label and part of its own name, so a
+  // translation has to keep the two saying the same words.
+  "game.seed.label": "Seed",
+  "game.seed.link": "Seed {seed}: start another run from this seed",
+  "game.seed.newDraw": "new draw",
+  "game.seed.newDrawLink": "Seed {seed}: new draw, start again without it",
+  "game.seed.helpSummary": "what a seed does",
+  "game.seed.explanation":
+    "The same seed brings the same passengers, in the same order. Frame timing comes from the browser, so the run around them is never quite the same twice.",
   "game.timeScale.decrease": "Decrease simulation speed",
   "game.timeScale.increase": "Increase simulation speed",
   "game.timeScale.value": "{value}x",

@@ -26,6 +26,7 @@
  * appears.
  */
 
+import { t } from "../i18n/index.ts";
 import type { Elevator, ElevatorDirection } from "./elevator.ts";
 import { epsilonEquals, limitNumber } from "./math.ts";
 import {
@@ -93,6 +94,10 @@ function lastOrNaN(arr: readonly number[]): number {
  * and an array as its bare comma separated contents, neither of which tells
  * anyone what they passed.
  *
+ * Only those two are prose, and only they are translated. Everything else here
+ * is the value the player wrote, quoted back at them: `NaN`, `undefined`,
+ * `"abc"`. Translating those would be translating their program.
+ *
  * @param value - The value player code supplied.
  * @returns A short description of it.
  */
@@ -101,10 +106,10 @@ function describeFloorArgument(value: unknown): string {
     return JSON.stringify(value);
   }
   if (Array.isArray(value)) {
-    return "an array";
+    return t("error.value.array");
   }
   if (typeof value === "object" && value !== null) {
-    return "an object";
+    return t("error.value.object");
   }
   return String(value);
 }
@@ -396,9 +401,10 @@ export class ElevatorInterface {
     this.#reportedDroppedDestination = true;
     this.#errorHandler(
       new TypeError(
-        `elevator.destinationQueue contained ${describeFloorArgument(offender)}, which is not a floor number. ` +
-          `The entry was dropped so the elevator keeps running; destinationQueue takes finite numbers, ` +
-          `and this building has floors 0 to ${String(this.#floorCount - 1)}.`,
+        t("error.elevator.queueNotAFloor", {
+          value: describeFloorArgument(offender),
+          topFloor: this.#floorCount - 1,
+        }),
       ),
     );
   }
@@ -429,8 +435,11 @@ export class ElevatorInterface {
     const requested = Number(floorNum);
     if (!Number.isFinite(requested)) {
       throw new TypeError(
-        `elevator.${method} was called with ${describeFloorArgument(floorNum)}, which is not a floor number. ` +
-          `It takes a finite number, and this building has floors 0 to ${String(this.#floorCount - 1)}.`,
+        t("error.elevator.notAFloor", {
+          method,
+          value: describeFloorArgument(floorNum),
+          topFloor: this.#floorCount - 1,
+        }),
       );
     }
     return limitNumber(requested, 0, this.#floorCount - 1);

@@ -1,8 +1,13 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { setLocale, DEFAULT_LOCALE } from "../i18n/index.ts";
 import { linearInterpolate } from "./math.ts";
 import { Movable, MovableBusyError } from "./movable.ts";
 import { timeForwarder } from "./test-helpers.ts";
+
+afterEach(() => {
+  setLocale(DEFAULT_LOCALE);
+});
 
 describe("Movable class", () => {
   it("disallows incorrect creation", () => {
@@ -220,6 +225,26 @@ describe("Movable object", () => {
     expect(() => {
       m.wait(1);
     }).toThrow("Object is busy - you should use callback");
+
+    vi.mocked(console.error).mockRestore();
+  });
+
+  it("says so in the language the page is in", () => {
+    // Player code reaches this through `elevator.wait`, so it lands in the code
+    // status bar and has to follow the locale. The console line beside it stays
+    // English on purpose: that one is for whoever is reading a stack.
+    setLocale("ru");
+    const m = new Movable();
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
+    m.moveToOverTime(1.0, 1.0, 1.0);
+
+    expect(() => {
+      m.wait(1);
+    }).toThrow("Объект занят — воспользуйтесь колбэком");
+    expect(console.error).toHaveBeenCalledWith(
+      "Attempt to use movable while it was busy",
+      expect.anything(),
+    );
 
     vi.mocked(console.error).mockRestore();
   });
