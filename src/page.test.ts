@@ -2,7 +2,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 
 import packageJson from "../package.json";
 import docsSource from "../documentation.html?raw";
@@ -14,14 +14,15 @@ import { Floor } from "./game/floor.ts";
 import { FloorInterface, type FloorInterfaceEvents } from "./game/floor-interface.ts";
 import type { MessageKey } from "./i18n/catalogue.ts";
 import { EN_MESSAGES } from "./i18n/en.ts";
+import { setLocale, DEFAULT_LOCALE } from "./i18n/index.ts";
 import { RU_MESSAGES } from "./i18n/ru.ts";
 import {
   type ApiCompletion,
-  ELEVATOR_EVENTS,
-  ELEVATOR_MEMBERS,
-  FLOOR_EVENTS,
-  FLOOR_MEMBERS,
-  GLOBAL_COMPLETIONS,
+  elevatorEvents,
+  elevatorMembers,
+  floorEvents,
+  floorMembers,
+  globalCompletions,
 } from "./ui/completions.ts";
 import { createIcon } from "./ui/icons.ts";
 import { presentVersion, VERSION_SELECTOR } from "./ui/version.ts";
@@ -1393,17 +1394,29 @@ describe.each(DOCUMENTATION_PAGES)("src/i18n, against $file", (reference) => {
   });
 });
 
-/** Where the popup's own English lives, by the key that translates it. */
-const COMPLETION_TABLES: Readonly<Record<string, readonly ApiCompletion[]>> = {
-  // The event methods are in both member lists, being what both facades have;
-  // either copy answers for `completion.events.*`.
-  events: ELEVATOR_MEMBERS,
-  elevator: ELEVATOR_MEMBERS,
-  "elevator.event": ELEVATOR_EVENTS,
-  floor: FLOOR_MEMBERS,
-  "floor.event": FLOOR_EVENTS,
-  global: GLOBAL_COMPLETIONS,
-};
+/**
+ * The popup's tables as it would draw them right now, by the part of a
+ * `completion.*` key that names one.
+ *
+ * A function, because the tables are: they render from the catalogue for the
+ * language that is active when they are asked for, which is what lets the
+ * checks below read the same popup twice in two languages.
+ *
+ * @returns Each table under the key prefix that translates it.
+ */
+function completionTables(): Readonly<Record<string, readonly ApiCompletion[]>> {
+  const elevator = elevatorMembers();
+  return {
+    // The event methods are in both member lists, being what both facades have;
+    // either copy answers for `completion.events.*`.
+    events: elevator,
+    elevator,
+    "elevator.event": elevatorEvents(),
+    floor: floorMembers(),
+    "floor.event": floorEvents(),
+    global: globalCompletions(),
+  };
+}
 
 /**
  * The popup entry a `completion.*` message is the text of.
@@ -1413,14 +1426,15 @@ const COMPLETION_TABLES: Readonly<Record<string, readonly ApiCompletion[]>> = {
  * {@link flatten} irons out.
  *
  * @param key - The message.
- * @returns The entry it belongs to.
+ * @returns The entry it belongs to, as the popup would show it in the language
+ * that is active now.
  * @throws If no entry has that label, which means the key outlived the popup
  * entry it was written for.
  */
 function completionEntry(key: MessageKey): ApiCompletion {
   const path = key.slice("completion.".length);
   const cut = path.lastIndexOf(".");
-  const entries = COMPLETION_TABLES[path.slice(0, cut)] ?? [];
+  const entries = completionTables()[path.slice(0, cut)] ?? [];
   const found = entries.find((entry) => flatten(entry.label) === flatten(path.slice(cut + 1)));
   if (found === undefined) {
     throw new Error(`No completion entry for ${key}`);
@@ -1449,9 +1463,9 @@ function shortenable(value: string): string {
  *
  * Everything else the popup shows is a stretch of a reference page, and is held
  * to the page's translation of it. These say the same thing more briefly than
- * any cell does, so `src/ui/completions.ts` pins their English and nothing at
- * all pins their Russian. The list is here so that a line joining it is a
- * decision somebody made rather than a check that quietly stopped applying.
+ * any cell does, so nothing outside the catalogue holds them to anything. The
+ * list is here so that a line joining it is a decision somebody made rather
+ * than a check that quietly stopped applying.
  */
 const POPUP_ONLY_WORDING: readonly MessageKey[] = [
   "completion.events.on",
@@ -1464,13 +1478,27 @@ const POPUP_ONLY_WORDING: readonly MessageKey[] = [
 ];
 
 describe("src/i18n, against the editor it also speaks for", () => {
-  it("gives the popup exactly what src/ui/completions.ts says", () => {
-    // The completion popup has no page for a reviewer to read, so its English
-    // is checked against the table it is drawn from rather than against prose.
+  // Two of these read the popup in a named language, and the rest of the file
+  // reads catalogues directly and does not care; leaving the interface in the
+  // language it starts in is what keeps that true.
+  afterEach(() => {
+    setLocale(DEFAULT_LOCALE);
+  });
+
+  it("gives the popup exactly what it says, in every language", () => {
+    // The completion popup has no page for a reviewer to read, so this is what
+    // holds its text: every `completion.*` key belongs to an entry of the table
+    // its name points at, and that entry says what the catalogue says for the
+    // language on screen. In English it is also the record that routing the
+    // popup through the catalogue changed nothing a player can see -- these are
+    // the strings `src/ui/completions.ts` used to carry as literals.
     const spoken = COMPLETION_KEYS.filter((key) => !key.endsWith(".code"));
     expect(spoken.length).toBeGreaterThan(20);
-    for (const key of spoken) {
-      expect(message("en", key), key).toBe(completionEntry(key).info);
+    for (const { language } of DOCUMENTATION_PAGES) {
+      setLocale(language);
+      for (const key of spoken) {
+        expect(completionEntry(key).info, `${key} in ${language}`).toBe(message(language, key));
+      }
     }
   });
 
@@ -1479,10 +1507,15 @@ describe("src/i18n, against the editor it also speaks for", () => {
     // "Basics", which is why it has no key of its own; the two halves it can
     // insert instead exist nowhere else and do.
     const inserted = (label: string): string =>
-      GLOBAL_COMPLETIONS.find((candidate) => candidate.label === label)?.apply ?? "";
-    expect(inserted("skeleton")).toBe(message("en", "docs.basics.example.code"));
-    expect(inserted("init")).toBe(message("en", "completion.initSkeleton.code"));
-    expect(inserted("update")).toBe(message("en", "completion.updateSkeleton.code"));
+      globalCompletions().find((candidate) => candidate.label === label)?.apply ?? "";
+    for (const { language } of DOCUMENTATION_PAGES) {
+      setLocale(language);
+      expect(inserted("skeleton"), language).toBe(message(language, "docs.basics.example.code"));
+      expect(inserted("init"), language).toBe(message(language, "completion.initSkeleton.code"));
+      expect(inserted("update"), language).toBe(
+        message(language, "completion.updateSkeleton.code"),
+      );
+    }
 
     // The halves are the whole one taken apart and re-indented, so in every
     // language their comments are its comments. Nothing else ties the popup's

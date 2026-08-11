@@ -12,21 +12,41 @@
  * compile time, so this module can be unit tested in plain Node while the
  * widget wiring stays in `editor.ts`.
  *
- * Two rules keep the popup from drifting away from the game it describes.
- * Descriptions are copied from `documentation.html` and from the JSDoc on the
- * facades rather than written afresh: a popup that says something subtly
- * different from the documentation is worse than no popup. And the event tables
- * are keyed by the facades' own event maps, so an event added to
- * `ElevatorInterface` or `FloorInterface` does not compile until it has been
- * described here. Member names have no such compile-time anchor — they are
- * strings either way — so `completions.test.ts` checks them against the real
- * facades instead.
+ * Two rules keep the popup from drifting away from the game it describes. The
+ * prose is not written here at all: every `info` is a `completion.*` key, whose
+ * English is copied from `documentation.html` and from the JSDoc on the facades
+ * rather than written afresh, and `page.test.ts` holds the two in step — a
+ * popup that says something subtly different from the documentation is worse
+ * than no popup, in either language. And the event tables are keyed by the
+ * facades' own event maps, so an event added to `ElevatorInterface` or
+ * `FloorInterface` does not compile until it has been described here. Member
+ * names have no such compile-time anchor — they are strings either way — so
+ * `completions.test.ts` checks them against the real facades instead.
+ *
+ * ## Why the tables are functions
+ *
+ * {@link t} answers for the locale that is active when it is called, and this
+ * module is imported long before the player's language has been resolved. A
+ * module-scope constant holding rendered prose would therefore be English for
+ * the rest of the session whatever the page around it said. So the tables below
+ * hold keys, and {@link elevatorMembers} and its neighbours turn them into
+ * entries per call. The popup is rebuilt from scratch on every keystroke
+ * anyway, so that costs a few dozen lookups in a plain object and nothing has
+ * to be invalidated when the language changes. `challenges.ts` repairs the same
+ * fault with `get description()` and `default-code.ts` with a nullary function;
+ * this is the latter shape, for tables nobody holds a reference to.
+ *
+ * Only the prose moves. A `label` is an identifier the popup inserts into the
+ * player's program and a `detail` is that identifier's signature, so both stay
+ * English in every language: completing `goToFloor` into anything else would be
+ * suggesting code that does not exist.
  */
 
 import type { CompletionContext, CompletionResult } from "@codemirror/autocomplete";
 
 import type { ElevatorInterfaceEvents } from "../game/elevator-interface.ts";
 import type { FloorInterfaceEvents } from "../game/floor-interface.ts";
+import { t, type MessageKey } from "../i18n/index.ts";
 
 /** Icon the popup draws beside an entry; one of CodeMirror's own categories. */
 type ApiCompletionType = "method" | "property" | "constant" | "text";
@@ -51,6 +71,41 @@ export interface ApiCompletion {
   readonly apply?: string;
 }
 
+/**
+ * A message written for the popup.
+ *
+ * Narrower than {@link MessageKey} so that an entry cannot quietly start
+ * showing a line written for somewhere else on the page — and because every
+ * message under this prefix is a plain sentence, which is what lets the tables
+ * name one without also having to say what to interpolate into it.
+ */
+type CompletionMessageKey = Extract<MessageKey, `completion.${string}`>;
+
+/**
+ * One entry as this module stores it: the same thing with its text still keyed.
+ *
+ * The tables are written in this form and rendered by {@link rendered}, which
+ * is what defers every catalogue read to the moment the popup is built.
+ */
+interface KeyedCompletion {
+  /** As {@link ApiCompletion.label}; an identifier, so not translated. */
+  readonly label: string;
+  /** As {@link ApiCompletion.detail}; a signature, so not translated. */
+  readonly detail: string;
+  /** The message that says what this is, in the player's language. */
+  readonly info: CompletionMessageKey;
+  /** As {@link ApiCompletion.type}. */
+  readonly type: ApiCompletionType;
+  /**
+   * The message holding the text to insert, when it is not the label.
+   *
+   * `docs.basics.example.code` is admitted alongside the popup's own messages
+   * because the whole-program skeleton is the Help page's example under
+   * "Basics" — one text with one key, rather than two copies to keep in step.
+   */
+  readonly apply?: CompletionMessageKey | "docs.basics.example.code";
+}
+
 /** What {@link completionsFor} found for one position in the document. */
 export interface ApiCompletionResult {
   /**
@@ -63,39 +118,58 @@ export interface ApiCompletionResult {
 }
 
 /**
+ * A table of entries, in the language the player is reading right now.
+ *
+ * @param entries - The table, as it is written below.
+ * @returns The same entries with their text rendered from the catalogue.
+ */
+function rendered(entries: readonly KeyedCompletion[]): readonly ApiCompletion[] {
+  return entries.map(({ label, detail, info, type, apply }) => ({
+    label,
+    detail,
+    info: t(info),
+    type,
+    // Spread rather than `apply: apply && t(apply)`: `exactOptionalPropertyTypes`
+    // is on, so an entry that inserts its own label must not carry the key at
+    // all rather than carry it as `undefined`.
+    ...(apply === undefined ? {} : { apply: t(apply) }),
+  }));
+}
+
+/**
  * The event methods, which every elevator and every floor publishes alike.
  *
  * Wording from the "Event methods" table of `documentation.html`.
  */
-const EVENT_METHODS: readonly ApiCompletion[] = [
+const EVENT_METHODS: readonly KeyedCompletion[] = [
   {
     label: "on",
     detail: "on(events, handler)",
-    info: "Register a listener. Several event names separated by spaces register the same listener for all of them, and it is then called with the name of the event that fired as its first argument.",
+    info: "completion.events.on",
     type: "method",
   },
   {
     label: "once",
     detail: "once(event, handler)",
-    info: "Register a listener that runs at most once and is then removed. Takes a single event name.",
+    info: "completion.events.once",
     type: "method",
   },
   {
     label: "one",
     detail: "one(event, handler)",
-    info: "The older name for once, and the one the original game gave you. Same behaviour, single event name as well.",
+    info: "completion.events.one",
     type: "method",
   },
   {
     label: "off",
     detail: "off(events, handler)",
-    info: 'Remove listeners. With a function, removes just that function; without one, removes every listener of the named events. The single name "*" removes every listener of every event.',
+    info: "completion.events.off",
     type: "method",
   },
   {
     label: "offAll",
     detail: "offAll()",
-    info: "Remove every listener you registered, for every event, on that elevator or floor. The listeners the game itself needs are separate, so the object keeps working.",
+    info: "completion.events.offAll",
     type: "method",
   },
 ];
@@ -111,93 +185,102 @@ const EVENT_METHODS: readonly ApiCompletion[] = [
  * riot observable — player code raising the game's own events is not something
  * to suggest to someone who is looking for `goToFloor`.
  */
-export const ELEVATOR_MEMBERS: readonly ApiCompletion[] = [
+const ELEVATOR_MEMBERS: readonly KeyedCompletion[] = [
   {
     label: "goToFloor",
     detail: "goToFloor(floorNum, forceNow)",
-    info: "Queue the elevator to go to specified floor number. If you specify true as second argument, the elevator will go to that floor directly, and then go to any other queued floors.",
+    info: "completion.elevator.goToFloor",
     type: "method",
   },
   {
     label: "stop",
     detail: "stop()",
-    info: "Clear the destination queue and stop the elevator if it is moving. Note that the elevator will probably not stop at a floor, so passengers will not get out.",
+    info: "completion.elevator.stop",
     type: "method",
   },
   {
     label: "currentFloor",
     detail: "currentFloor() -> number",
-    info: "Gets the floor number that the elevator currently is on. Note that this is a rounded number and does not necessarily mean the elevator is in a stopped state.",
+    info: "completion.elevator.currentFloor",
     type: "method",
   },
   {
     label: "goingUpIndicator",
     detail: "goingUpIndicator(value)",
-    info: "Gets or sets the going up indicator, which will affect passenger behaviour when stopping at floors.",
+    info: "completion.elevator.goingUpIndicator",
     type: "method",
   },
   {
     label: "goingDownIndicator",
     detail: "goingDownIndicator(value)",
-    info: "Gets or sets the going down indicator, which will affect passenger behaviour when stopping at floors.",
+    info: "completion.elevator.goingDownIndicator",
     type: "method",
   },
   {
     label: "maxPassengerCount",
     detail: "maxPassengerCount() -> number",
-    info: "Gets the maximum number of passengers that can occupy the elevator at the same time.",
+    info: "completion.elevator.maxPassengerCount",
     type: "method",
   },
   {
     label: "loadFactor",
     detail: "loadFactor() -> number",
-    info: "Gets the load factor of the elevator. 0 means empty, 1 means full. Varies with passenger weights, which vary - not an exact measure.",
+    info: "completion.elevator.loadFactor",
     type: "method",
   },
   {
     label: "isFull",
     detail: "isFull() -> boolean",
-    info: "Gets whether every spot in the elevator is taken. Use this rather than comparing loadFactor to 1 - passenger weights vary, so a completely full elevator only reads about 0.775 on average.",
+    info: "completion.elevator.isFull",
     type: "method",
   },
   {
     label: "isEmpty",
     detail: "isEmpty() -> boolean",
-    info: "Gets whether the elevator is carrying nobody at all. Not the opposite of isFull - an elevator with one passenger out of four is neither.",
+    info: "completion.elevator.isEmpty",
     type: "method",
   },
   {
     label: "destinationDirection",
     detail: 'destinationDirection() -> "up" | "down" | "stopped"',
-    info: "Gets the direction the elevator is currently going to move toward.",
+    info: "completion.elevator.destinationDirection",
     type: "method",
   },
   {
     label: "isApproachingFloor",
     detail: "isApproachingFloor(floorNum) -> boolean",
-    info: "Gets whether the elevator is moving toward the given floor and has not passed it yet. Only the direction of travel counts, so a floor further along that way is approaching too, even if the elevator is going to stop before it.",
+    info: "completion.elevator.isApproachingFloor",
     type: "method",
   },
   {
     label: "destinationQueue",
     detail: "destinationQueue: number[]",
-    info: "The current destination queue, meaning the floor numbers the elevator is scheduled to go to. Can be modified and emptied if desired. Note that you need to call checkDestinationQueue() for the change to take effect immediately.",
+    info: "completion.elevator.destinationQueue",
     type: "property",
   },
   {
     label: "checkDestinationQueue",
     detail: "checkDestinationQueue()",
-    info: "Checks the destination queue for any new destinations to go to. Note that you only need to call this if you modify the destination queue explicitly.",
+    info: "completion.elevator.checkDestinationQueue",
     type: "method",
   },
   {
     label: "getPressedFloors",
     detail: "getPressedFloors() -> number[]",
-    info: "Gets the currently pressed floor numbers as an array.",
+    info: "completion.elevator.getPressedFloors",
     type: "method",
   },
   ...EVENT_METHODS,
 ];
+
+/**
+ * What an elevator gives player code, in the player's language.
+ *
+ * @returns The entries offered after `elevator.`.
+ */
+export function elevatorMembers(): readonly ApiCompletion[] {
+  return rendered(ELEVATOR_MEMBERS);
+}
 
 /**
  * What a floor gives player code.
@@ -209,22 +292,31 @@ export const ELEVATOR_MEMBERS: readonly ApiCompletion[] = [
  * of `level`, and a floor's buttons are better watched through
  * `buttonstate_change` than polled.
  */
-export const FLOOR_MEMBERS: readonly ApiCompletion[] = [
+const FLOOR_MEMBERS: readonly KeyedCompletion[] = [
   {
     label: "floorNum",
     detail: "floorNum() -> number",
-    info: "Gets the floor number of the floor object.",
+    info: "completion.floor.floorNum",
     type: "method",
   },
   ...EVENT_METHODS,
 ];
 
+/**
+ * What a floor gives player code, in the player's language.
+ *
+ * @returns The entries offered after `floor.`.
+ */
+export function floorMembers(): readonly ApiCompletion[] {
+  return rendered(FLOOR_MEMBERS);
+}
+
 /** The parameters a handler is called with, and what the event means. */
 interface EventDescription {
   /** The handler signature, shown dimmed after the event name. */
   readonly detail: string;
-  /** One line of prose. */
-  readonly info: string;
+  /** The message that says when the event fires. */
+  readonly info: CompletionMessageKey;
 }
 
 /**
@@ -237,19 +329,19 @@ interface EventDescription {
 const ELEVATOR_EVENT_DESCRIPTIONS: Record<keyof ElevatorInterfaceEvents, EventDescription> = {
   idle: {
     detail: "function()",
-    info: "Triggered when the elevator has completed all its tasks and is not doing anything.",
+    info: "completion.elevator.event.idle",
   },
   floor_button_pressed: {
     detail: "function(floorNum)",
-    info: "Triggered when a passenger has pressed a button inside the elevator.",
+    info: "completion.elevator.event.floorButtonPressed",
   },
   passing_floor: {
     detail: "function(floorNum, direction)",
-    info: 'Triggered slightly before the elevator will pass a floor. A good time to decide whether to stop at that floor. Note that this event is not triggered for the destination floor. Direction is either "up" or "down".',
+    info: "completion.elevator.event.passingFloor",
   },
   stopped_at_floor: {
     detail: "function(floorNum)",
-    info: "Triggered when the elevator has arrived at a floor.",
+    info: "completion.elevator.event.stoppedAtFloor",
   },
 };
 
@@ -263,27 +355,27 @@ const ELEVATOR_EVENT_DESCRIPTIONS: Record<keyof ElevatorInterfaceEvents, EventDe
 const FLOOR_EVENT_DESCRIPTIONS: Record<keyof FloorInterfaceEvents, EventDescription> = {
   up_button_pressed: {
     detail: "function(floor)",
-    info: "Triggered when someone has pressed the up button at a floor. Note that passengers will press the button again if they fail to enter an elevator.",
+    info: "completion.floor.event.upButtonPressed",
   },
   down_button_pressed: {
     detail: "function(floor)",
-    info: "Triggered when someone has pressed the down button at a floor. Note that passengers will press the button again if they fail to enter an elevator.",
+    info: "completion.floor.event.downButtonPressed",
   },
   buttonstate_change: {
     detail: "function(buttonStates)",
-    info: "Either call button was lit or cleared.",
+    info: "completion.floor.event.buttonStateChange",
   },
 };
 
 /**
- * Turns a table of event descriptions into completions.
+ * Turns a table of event descriptions into entries.
  *
  * @param descriptions - Descriptions, keyed by event name.
  * @returns One entry per event, in the order the table declares them.
  */
 function toEventCompletions(
   descriptions: Record<string, EventDescription>,
-): readonly ApiCompletion[] {
+): readonly KeyedCompletion[] {
   return Object.entries(descriptions).map(([label, { detail, info }]) => ({
     label,
     detail,
@@ -293,38 +385,30 @@ function toEventCompletions(
 }
 
 /** Event names an elevator's `on`, `once`, `one` and `off` accept. */
-export const ELEVATOR_EVENTS: readonly ApiCompletion[] = toEventCompletions(
-  ELEVATOR_EVENT_DESCRIPTIONS,
-);
-
-/** Event names a floor's `on`, `once`, `one` and `off` accept. */
-export const FLOOR_EVENTS: readonly ApiCompletion[] = toEventCompletions(FLOOR_EVENT_DESCRIPTIONS);
+const ELEVATOR_EVENTS: readonly KeyedCompletion[] = toEventCompletions(ELEVATOR_EVENT_DESCRIPTIONS);
 
 /**
- * The whole program, as `documentation.html` prints it under "Basics".
+ * Event names an elevator's `on`, `once`, `one` and `off` accept, described in
+ * the player's language.
  *
- * Indented with the four spaces the editor itself inserts (`INDENT` in
- * `editor.ts`), so an accepted skeleton matches what the player types next.
+ * @returns The entries offered inside an elevator's subscription call.
  */
-const SKELETON = `{
-    init: function(elevators, floors) {
-        // Do stuff with the elevators and floors, which are both arrays of objects
-    },
-    update: function(dt, elevators, floors) {
-        // Do more stuff with the elevators and floors
-        // dt is the number of game seconds that passed since the last time update was called
-    }
-}`;
+export function elevatorEvents(): readonly ApiCompletion[] {
+  return rendered(ELEVATOR_EVENTS);
+}
 
-/** One half of {@link SKELETON}, for a program that has lost only that half. */
-const INIT_SKELETON = `init: function(elevators, floors) {
-    // Do stuff with the elevators and floors, which are both arrays of objects
-}`;
+/** Event names a floor's `on`, `once`, `one` and `off` accept. */
+const FLOOR_EVENTS: readonly KeyedCompletion[] = toEventCompletions(FLOOR_EVENT_DESCRIPTIONS);
 
-/** The other half; see {@link INIT_SKELETON}. */
-const UPDATE_SKELETON = `update: function(dt, elevators, floors) {
-    // Do more stuff with the elevators and floors
-}`;
+/**
+ * Event names a floor's `on`, `once`, `one` and `off` accept, described in the
+ * player's language.
+ *
+ * @returns The entries offered inside a floor's subscription call.
+ */
+export function floorEvents(): readonly ApiCompletion[] {
+  return rendered(FLOOR_EVENTS);
+}
 
 /**
  * What is offered when the cursor is not on a member or an event name.
@@ -332,30 +416,49 @@ const UPDATE_SKELETON = `update: function(dt, elevators, floors) {
  * Only on an explicit request, never while typing: these insert several lines,
  * and a multi-line insertion that arrives uninvited is the kind of "help" that
  * makes people turn completion off.
+ *
+ * The whole program is `docs.basics.example.code`, which is the example
+ * `documentation.html` prints under "Basics" — one text with one key, so that
+ * the skeleton the popup inserts and the skeleton the Help page walks through
+ * cannot be corrected in one place and not the other. Its two halves, for a
+ * program that has lost only one of them, exist nowhere else and have keys of
+ * their own. All three are indented with the four spaces the editor itself
+ * inserts (`INDENT` in `editor.ts`), so an accepted skeleton matches what the
+ * player types next.
  */
-export const GLOBAL_COMPLETIONS: readonly ApiCompletion[] = [
+const GLOBAL_COMPLETIONS: readonly KeyedCompletion[] = [
   {
     label: "skeleton",
     detail: "{ init, update }",
-    info: "Your code must declare an object containing at least two functions called init and update.",
+    info: "completion.global.skeleton",
     type: "text",
-    apply: SKELETON,
+    apply: "docs.basics.example.code",
   },
   {
     label: "init",
     detail: "init: function(elevators, floors)",
-    info: "Called when the challenge starts. Normally you will put most of your code in here, to set up event listeners and logic.",
+    info: "completion.global.init",
     type: "property",
-    apply: INIT_SKELETON,
+    apply: "completion.initSkeleton.code",
   },
   {
     label: "update",
     detail: "update: function(dt, elevators, floors)",
-    info: "Called repeatedly during the challenge. dt is the number of game seconds that passed since the last time update was called.",
+    info: "completion.global.update",
     type: "property",
-    apply: UPDATE_SKELETON,
+    apply: "completion.updateSkeleton.code",
   },
 ];
+
+/**
+ * The program skeleton, with its comments in the player's language.
+ *
+ * @returns The entries offered for an explicit request outside any member
+ * access.
+ */
+export function globalCompletions(): readonly ApiCompletion[] {
+  return rendered(GLOBAL_COMPLETIONS);
+}
 
 /**
  * A subscription call with an unfinished event name in it, e.g.
@@ -424,9 +527,9 @@ function receiverKind(receiver: string, indexed: boolean): ReceiverKind {
 function membersFor(kind: ReceiverKind): readonly ApiCompletion[] | null {
   switch (kind) {
     case "elevator":
-      return ELEVATOR_MEMBERS;
+      return elevatorMembers();
     case "floor":
-      return FLOOR_MEMBERS;
+      return floorMembers();
     case "collection":
     case "unknown":
       return null;
@@ -447,11 +550,11 @@ function membersFor(kind: ReceiverKind): readonly ApiCompletion[] | null {
 function eventsFor(kind: ReceiverKind): readonly ApiCompletion[] | null {
   switch (kind) {
     case "elevator":
-      return ELEVATOR_EVENTS;
+      return elevatorEvents();
     case "floor":
-      return FLOOR_EVENTS;
+      return floorEvents();
     case "unknown":
-      return [...ELEVATOR_EVENTS, ...FLOOR_EVENTS];
+      return [...elevatorEvents(), ...floorEvents()];
     case "collection":
       return null;
   }
@@ -506,7 +609,7 @@ export function completionsFor(
     return null;
   }
   const typed = TRAILING_WORD.exec(lineBeforeCursor)?.[0] ?? "";
-  return { from: lineBeforeCursor.length - typed.length, options: GLOBAL_COMPLETIONS };
+  return { from: lineBeforeCursor.length - typed.length, options: globalCompletions() };
 }
 
 /**

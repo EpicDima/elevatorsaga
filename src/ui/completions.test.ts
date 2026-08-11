@@ -1,19 +1,27 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 
 import { Elevator } from "../game/elevator.ts";
 import { ElevatorInterface } from "../game/elevator-interface.ts";
 import { Floor } from "../game/floor.ts";
 import { FloorInterface } from "../game/floor-interface.ts";
 import { getCodeObjFromCode } from "../game/user-code.ts";
+import { setLocale, translateIn, DEFAULT_LOCALE, LOCALES, type Locale } from "../i18n/index.ts";
 import {
-  ELEVATOR_EVENTS,
-  ELEVATOR_MEMBERS,
-  FLOOR_EVENTS,
-  FLOOR_MEMBERS,
-  GLOBAL_COMPLETIONS,
   completionsFor,
+  elevatorEvents,
+  elevatorMembers,
+  floorEvents,
+  floorMembers,
+  globalCompletions,
   type ApiCompletion,
 } from "./completions.ts";
+
+// Every test below is entitled to a page in the default language, and several
+// of them change it. `test-setup.ts` has both catalogues in memory already, so
+// a switch takes effect on the next line rather than on the next tick.
+afterEach(() => {
+  setLocale(DEFAULT_LOCALE);
+});
 
 /**
  * The names offered for a cursor sitting at the end of `lineBeforeCursor`.
@@ -38,14 +46,31 @@ function fromFor(lineBeforeCursor: string, explicit = false): number | null {
   return completionsFor(lineBeforeCursor, explicit)?.from ?? null;
 }
 
-/** Every table, so the shape of an entry can be checked across all of them. */
-const EVERY_TABLE: readonly (readonly ApiCompletion[])[] = [
-  ELEVATOR_MEMBERS,
-  FLOOR_MEMBERS,
-  ELEVATOR_EVENTS,
-  FLOOR_EVENTS,
-  GLOBAL_COMPLETIONS,
-];
+/**
+ * Every table, so the shape of an entry can be checked across all of them.
+ *
+ * Built on demand rather than held in a constant, because the tables are: what
+ * they say depends on the language active when they are asked for, and a
+ * constant here would be a copy of one language frozen at import — the very
+ * thing the tests below are about.
+ *
+ * @returns The five tables the popup can draw from, in the active language.
+ */
+function everyTable(): readonly (readonly ApiCompletion[])[] {
+  return [elevatorMembers(), floorMembers(), elevatorEvents(), floorEvents(), globalCompletions()];
+}
+
+/**
+ * Every entry of every table, in one language.
+ *
+ * @param locale - The language to read them in; it stays active afterwards.
+ * @returns The entries, in a fixed order, so two languages can be compared
+ * entry by entry.
+ */
+function everyEntryIn(locale: Locale): readonly ApiCompletion[] {
+  setLocale(locale);
+  return everyTable().flat();
+}
 
 describe("member completions", () => {
   it("offers the elevator API after anything named like an elevator", () => {
@@ -127,14 +152,14 @@ describe("event completions", () => {
     // The call is already known to be a subscription, so someone who named
     // their variable `e` still gets the names they came for.
     expect(labelsFor('e.on("')).toEqual([
-      ...ELEVATOR_EVENTS.map((event) => event.label),
-      ...FLOOR_EVENTS.map((event) => event.label),
+      ...elevatorEvents().map((event) => event.label),
+      ...floorEvents().map((event) => event.label),
     ]);
   });
 
   it("completes the name the cursor is in, of several separated by spaces", () => {
     const line = 'floor.on("up_button_pressed down';
-    expect(labelsFor(line)).toEqual(FLOOR_EVENTS.map((event) => event.label));
+    expect(labelsFor(line)).toEqual(floorEvents().map((event) => event.label));
     expect(fromFor(line)).toBe(line.length - "down".length);
     expect(fromFor('floor.on("up_button_pressed ')).toBe('floor.on("up_button_pressed '.length);
   });
@@ -169,49 +194,143 @@ describe("the program skeleton", () => {
 
   it("inserts a program the game can actually run", () => {
     // The skeleton is what a player starting from nothing gets handed, so it
-    // has to satisfy the same compiler their own code does.
-    const skeleton = GLOBAL_COMPLETIONS.find((option) => option.label === "skeleton")?.apply;
-    expect(skeleton).toBeDefined();
-    const codeObj = getCodeObjFromCode(skeleton ?? "");
-    expect(typeof codeObj.init).toBe("function");
-    expect(typeof codeObj.update).toBe("function");
+    // has to satisfy the same compiler their own code does -- in every
+    // language, since what the catalogue translates in it are comments, and a
+    // translation that lost a `//` would be a program that does not parse.
+    for (const locale of LOCALES) {
+      setLocale(locale);
+      const skeleton = globalCompletions().find((option) => option.label === "skeleton")?.apply;
+      expect(skeleton, locale).toBeDefined();
+      const codeObj = getCodeObjFromCode(skeleton ?? "");
+      expect(typeof codeObj.init, locale).toBe("function");
+      expect(typeof codeObj.update, locale).toBe("function");
+    }
   });
 
   it("inserts the halves of that same skeleton on their own", () => {
-    const halves = GLOBAL_COMPLETIONS.filter((option) => option.label !== "skeleton");
-    expect(halves.map((option) => option.label)).toEqual(["init", "update"]);
-    const program = `{ ${halves.map((option) => option.apply ?? "").join(",\n")} }`;
-    const codeObj = getCodeObjFromCode(program);
-    expect(typeof codeObj.init).toBe("function");
-    expect(typeof codeObj.update).toBe("function");
+    for (const locale of LOCALES) {
+      setLocale(locale);
+      const halves = globalCompletions().filter((option) => option.label !== "skeleton");
+      expect(
+        halves.map((option) => option.label),
+        locale,
+      ).toEqual(["init", "update"]);
+      const program = `{ ${halves.map((option) => option.apply ?? "").join(",\n")} }`;
+      const codeObj = getCodeObjFromCode(program);
+      expect(typeof codeObj.init, locale).toBe("function");
+      expect(typeof codeObj.update, locale).toBe("function");
+    }
   });
 });
 
 describe("what every entry carries", () => {
   it("has a signature and a line of prose, which is the point of the popup", () => {
-    for (const table of EVERY_TABLE) {
-      expect(table.length).toBeGreaterThan(0);
-      for (const option of table) {
-        expect(option.label).not.toBe("");
-        expect(option.detail).not.toBe("");
-        expect(option.info.length).toBeGreaterThan(20);
+    // In every language: a key that reached the wrong catalogue, or a
+    // translation left empty, would leave an entry with nothing to say only in
+    // the language nobody testing this speaks.
+    for (const locale of LOCALES) {
+      setLocale(locale);
+      for (const table of everyTable()) {
+        expect(table.length, locale).toBeGreaterThan(0);
+        for (const option of table) {
+          expect(option.label, locale).not.toBe("");
+          expect(option.detail, locale).not.toBe("");
+          expect(option.info.length, `${option.label} in ${locale}`).toBeGreaterThan(20);
+        }
       }
     }
   });
 
   it("names each entry once per table", () => {
-    for (const table of EVERY_TABLE) {
+    for (const table of everyTable()) {
       const labels = table.map((option) => option.label);
       expect([...new Set(labels)]).toEqual(labels);
     }
   });
 
   it("mentions the method it describes in that method's signature", () => {
-    for (const table of [ELEVATOR_MEMBERS, FLOOR_MEMBERS]) {
+    for (const table of [elevatorMembers(), floorMembers()]) {
       for (const option of table) {
         expect(option.detail.startsWith(option.label)).toBe(true);
       }
     }
+  });
+});
+
+describe("the language the popup speaks", () => {
+  it("answers in the language chosen after this module was imported", () => {
+    // The import at the top of this file ran with English active, which is also
+    // how a page starts: `applyPreferredLocale` resolves the player's language
+    // later, and everything drawn after that is supposed to be in it. A table
+    // built at import time and kept -- a module-scope `const` -- would still be
+    // English here, which is the fault this codebase has had to repair twice.
+    const english = everyEntryIn("en");
+    const russian = everyEntryIn("ru");
+    expect(russian).toHaveLength(english.length);
+    for (const [index, entry] of russian.entries()) {
+      expect(entry.info, `${entry.label} is still English`).not.toBe(english[index]?.info);
+    }
+    // And it is not merely different text: it is what the Russian catalogue
+    // says, word for word, for the key that entry is written against.
+    expect(elevatorMembers().find((entry) => entry.label === "goToFloor")?.info).toBe(
+      translateIn("ru", "completion.elevator.goToFloor"),
+    );
+    expect(elevatorEvents().find((entry) => entry.label === "idle")?.info).toBe(
+      translateIn("ru", "completion.elevator.event.idle"),
+    );
+    expect(globalCompletions().find((entry) => entry.label === "skeleton")?.apply).toBe(
+      translateIn("ru", "docs.basics.example.code"),
+    );
+  });
+
+  it("says it again in English when the player switches back", () => {
+    // Forward is not enough. Anything that remembers what it rendered -- and
+    // English is the tempting thing not to remember, being the fallback -- is a
+    // language change nobody can undo, so the way back is checked against the
+    // catalogue rather than against whatever the popup said the first time.
+    const before = everyEntryIn("en");
+    everyEntryIn("ru");
+    expect(everyEntryIn("en")).toEqual(before);
+    expect(elevatorMembers().find((entry) => entry.label === "goToFloor")?.info).toBe(
+      translateIn("en", "completion.elevator.goToFloor"),
+    );
+    expect(globalCompletions().find((entry) => entry.label === "skeleton")?.apply).toBe(
+      translateIn("en", "docs.basics.example.code"),
+    );
+  });
+
+  it("leaves the names and the signatures alone in every language", () => {
+    // The popup completes real API names into a real program. Translating a
+    // label would insert code that does not exist, and translating a signature
+    // would describe parameters the game does not take.
+    const english = everyEntryIn("en");
+    for (const [index, entry] of everyEntryIn("ru").entries()) {
+      const same = english[index];
+      expect(entry.label).toBe(same?.label);
+      expect(entry.detail, entry.label).toBe(same?.detail);
+      expect(entry.type, entry.label).toBe(same?.type);
+    }
+  });
+
+  it("speaks it through the offer the editor actually makes", () => {
+    // The tables above are reached from `completionsFor` in three different
+    // ways, and it is that function the editor's completion source calls. A
+    // language that stopped at the table would be a popup still in English.
+    setLocale("ru");
+    const optionsFor = (line: string, explicit = false): readonly ApiCompletion[] =>
+      completionsFor(line, explicit)?.options ?? [];
+    expect(optionsFor("elevator.").find((option) => option.label === "goToFloor")?.info).toBe(
+      translateIn("ru", "completion.elevator.goToFloor"),
+    );
+    expect(optionsFor("floor.").find((option) => option.label === "floorNum")?.info).toBe(
+      translateIn("ru", "completion.floor.floorNum"),
+    );
+    expect(
+      optionsFor('floor.on("').find((option) => option.label === "up_button_pressed")?.info,
+    ).toBe(translateIn("ru", "completion.floor.event.upButtonPressed"));
+    expect(optionsFor("", true).find((option) => option.label === "init")?.info).toBe(
+      translateIn("ru", "completion.global.init"),
+    );
   });
 });
 
@@ -283,18 +402,19 @@ describe("agreement with the facades player code is handed", () => {
   }
 
   it("offers every member the elevator facade has", () => {
-    const offered = new Set(ELEVATOR_MEMBERS.map((option) => option.label));
+    const offered = new Set(elevatorMembers().map((option) => option.label));
     const undiscoverable = [...exposedNames(elevatorFacade())].filter(
       (name) => !offered.has(name) && !Object.hasOwn(OMITTED_ELEVATOR_MEMBERS, name),
     );
     // Failing here means ElevatorInterface grew a method the completion popup
     // does not know about. Describe it in ELEVATOR_MEMBERS, taking the wording
-    // from its JSDoc, or list it in OMITTED_ELEVATOR_MEMBERS with the reason.
+    // from its JSDoc into the catalogue, or list it in OMITTED_ELEVATOR_MEMBERS
+    // with the reason.
     expect(undiscoverable).toEqual([]);
   });
 
   it("offers every member the floor facade has", () => {
-    const offered = new Set(FLOOR_MEMBERS.map((option) => option.label));
+    const offered = new Set(floorMembers().map((option) => option.label));
     const undiscoverable = [...exposedNames(floorFacade())].filter(
       (name) => !offered.has(name) && !Object.hasOwn(OMITTED_FLOOR_MEMBERS, name),
     );
@@ -305,9 +425,9 @@ describe("agreement with the facades player code is handed", () => {
     // The other direction: a typo in a label, or a method that was renamed or
     // removed, would otherwise sit in the popup inserting code that throws.
     const elevator = exposedNames(elevatorFacade());
-    expect(ELEVATOR_MEMBERS.filter((option) => !elevator.has(option.label))).toEqual([]);
+    expect(elevatorMembers().filter((option) => !elevator.has(option.label))).toEqual([]);
     const floor = exposedNames(floorFacade());
-    expect(FLOOR_MEMBERS.filter((option) => !floor.has(option.label))).toEqual([]);
+    expect(floorMembers().filter((option) => !floor.has(option.label))).toEqual([]);
   });
 
   it("keeps the omissions honest", () => {
