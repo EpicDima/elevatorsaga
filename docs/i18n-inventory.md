@@ -5,7 +5,7 @@ still hardcoded. This is the checklist for wiring the catalogue into the page: n
 `src/i18n/` is called from anywhere yet, so today the file is a map of work to do rather
 than a record of work done.
 
-The catalogue holds **198 keys**, in two locales: `src/i18n/en.ts` is the reference — its
+The catalogue holds **208 keys**, in two locales: `src/i18n/en.ts` is the reference — its
 text is the English wording, extracted verbatim — and `src/i18n/ru.ts` is the Russian
 translation. The types make English the shape everything else is measured against: a
 Russian catalogue missing a key, carrying a key that English does not have, or giving a
@@ -65,9 +65,9 @@ Key names carry two suffixes that mean something:
 | -------------------------------- | ------- |
 | `documentation.html`             | 80      |
 | `src/ui/completions.ts`          | 32      |
-| `index.html`                     | 30      |
+| `index.html`                     | 31      |
+| `src/ui/templates.ts`            | 18      |
 | `src/game/challenges.ts`         | 14      |
-| `src/ui/templates.ts`            | 9       |
 | `src/ui/presenters.ts`           | 7       |
 | `src/app/fitness.ts`             | 7       |
 | `src/app/app.ts`                 | 4       |
@@ -78,44 +78,50 @@ Key names carry two suffixes that mean something:
 | `src/ui/editor.ts`               | 1       |
 | `src/ui/default-code.ts`         | 1       |
 | `src/game/movable.ts`            | 1       |
-| **Total**                        | **198** |
+| **Total**                        | **208** |
 
 ## The strings
 
-### index.html — 30 strings
+### index.html — 31 strings
 
-| Key                            | Where          | English                                                                                                         | Notes                                                                                                       |
-| ------------------------------ | -------------- | --------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| `page.title`                   | index.html:6   | Elevator Saga - the elevator programming game                                                                   |                                                                                                             |
-| `page.description`             | index.html:9   | Elevator Saga is a programming game: write JavaScript to transport people efficiently.                          |                                                                                                             |
-| `page.imageAlt`                | index.html:35  | Four elevators carrying people between six floors, with the JavaScript program driving them in the editor belo… |                                                                                                             |
-| `page.skipLink`                | index.html:48  | Skip to the code editor                                                                                         |                                                                                                             |
-| `page.brand`                   | index.html:52  | Elevator Saga                                                                                                   |                                                                                                             |
-| `page.tagline`                 | index.html:52  | The elevator programming game                                                                                   |                                                                                                             |
-| `page.nav.label`               | index.html:53  | Help and reference                                                                                              |                                                                                                             |
-| `page.nav.help`                | index.html:54  | Help                                                                                                            |                                                                                                             |
-| `page.nav.documentation`       | index.html:55  | Documentation                                                                                                   |                                                                                                             |
-| `page.nav.wiki`                | index.html:56  | Wiki & Solutions                                                                                                |                                                                                                             |
-| `page.noscript`                | index.html:62  | Your browser does not appear to support JavaScript. This page contains a browser-based programming game implem… |                                                                                                             |
-| `page.world.label`             | index.html:77  | Building                                                                                                        |                                                                                                             |
-| `page.stats.label`             | index.html:87  | Simulation statistics                                                                                           |                                                                                                             |
-| `page.stats.transported`       | index.html:89  | Transported                                                                                                     |                                                                                                             |
-| `page.stats.elapsedTime`       | index.html:92  | Elapsed time                                                                                                    |                                                                                                             |
-| `page.stats.transportedPerSec` | index.html:95  | Transported/s                                                                                                   |                                                                                                             |
-| `page.stats.avgWaitTime`       | index.html:98  | Avg waiting time                                                                                                |                                                                                                             |
-| `page.stats.maxWaitTime`       | index.html:101 | Max waiting time                                                                                                |                                                                                                             |
-| `page.stats.moves`             | index.html:105 | Moves                                                                                                           |                                                                                                             |
-| `page.stats.movesTitle`        | index.html:104 | Number of floors that have been travelled by elevators                                                          | `title` attribute on the same cell as `page.stats.moves`                                                    |
-| `page.hint.html`               | index.html:120 | In the editor: <kbd data-mod-key>Ctrl</kbd>+<kbd>Enter</kbd> applies your program. <kbd data-mod-key>Ctrl</kbd… | markup; `<kbd data-mod-key>` is rewritten at run time by `applyModKeyLabels`; re-apply after replacing this |
-| `page.button.reset`            | index.html:126 | Reset                                                                                                           |                                                                                                             |
-| `page.button.undoReset`        | index.html:127 | Undo reset                                                                                                      |                                                                                                             |
-| `page.button.save`             | index.html:140 | Save                                                                                                            |                                                                                                             |
-| `page.button.apply`            | index.html:141 | Apply                                                                                                           |                                                                                                             |
-| `page.helpNote.html`           | index.html:147 | Confused? Open the <a href="documentation.html">Help and API documentation</a> page                             | markup                                                                                                      |
-| `page.footer.credits`          | index.html:151 | Made by Magnus Wolffelt and contributors                                                                        |                                                                                                             |
-| `page.footer.version`          | index.html:153 | Version                                                                                                         |                                                                                                             |
-| `page.footer.source.html`      | index.html:155 | <a href="https://github.com/EpicDima/elevatorsaga">Source code</a> on GitHub, forked from <a href="https://git… | markup                                                                                                      |
-| `page.footer.licences.html`    | index.html:159 | <a href="licenses.txt">Licences</a> for the game and everything it bundles                                      | markup                                                                                                      |
+| Key                            | Where               | English                                                                                                         | Notes                                                                                                       |
+| ------------------------------ | ------------------- | --------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `page.title`                   | index.html:6        | Elevator Saga - the elevator programming game                                                                   |                                                                                                             |
+| `page.description`             | index.html:9        | Elevator Saga is a programming game: write JavaScript to transport people efficiently.                          |                                                                                                             |
+| `page.imageAlt`                | index.html:35       | Four elevators carrying people between six floors, with the JavaScript program driving them in the editor belo… |                                                                                                             |
+| `page.skipLink`                | index.html:48       | Skip to the code editor                                                                                         |                                                                                                             |
+| `page.brand`                   | index.html:52       | Elevator Saga                                                                                                   |                                                                                                             |
+| `page.tagline`                 | index.html:52       | The elevator programming game                                                                                   |                                                                                                             |
+| `page.nav.label`               | index.html:53       | Help and reference                                                                                              |                                                                                                             |
+| `page.nav.help`                | index.html:54       | Help                                                                                                            |                                                                                                             |
+| `page.nav.documentation`       | index.html:55       | Documentation                                                                                                   |                                                                                                             |
+| `page.nav.wiki`                | index.html:56       | Wiki & Solutions                                                                                                |                                                                                                             |
+| `page.noscript`                | index.html:62       | Your browser does not appear to support JavaScript. This page contains a browser-based programming game implem… |                                                                                                             |
+| `page.world.label`             | index.html:77       | Building                                                                                                        |                                                                                                             |
+| `page.stats.label`             | index.html:87       | Simulation statistics                                                                                           |                                                                                                             |
+| `page.stats.transported`       | index.html:89       | Transported                                                                                                     |                                                                                                             |
+| `page.stats.elapsedTime`       | index.html:92       | Elapsed time                                                                                                    |                                                                                                             |
+| `page.stats.transportedPerSec` | index.html:95       | Transported/s                                                                                                   |                                                                                                             |
+| `page.stats.avgWaitTime`       | index.html:98       | Avg waiting time                                                                                                |                                                                                                             |
+| `page.stats.maxWaitTime`       | index.html:101      | Max waiting time                                                                                                |                                                                                                             |
+| `page.stats.moves`             | index.html:105      | Moves                                                                                                           |                                                                                                             |
+| `page.stats.movesTitle`        | index.html:104      | Number of floors that have been travelled by elevators                                                          | `title` attribute on the same cell as `page.stats.moves`                                                    |
+| `page.hint.html`               | index.html:120      | In the editor: <kbd data-mod-key>Ctrl</kbd>+<kbd>Enter</kbd> applies your program. <kbd data-mod-key>Ctrl</kbd… | markup; `<kbd data-mod-key>` is rewritten at run time by `applyModKeyLabels`; re-apply after replacing this |
+| `page.button.reset`            | index.html:126      | Reset                                                                                                           |                                                                                                             |
+| `page.button.undoReset`        | index.html:127      | Undo reset                                                                                                      |                                                                                                             |
+| `page.button.save`             | index.html:140      | Save                                                                                                            |                                                                                                             |
+| `page.button.apply`            | index.html:141      | Apply                                                                                                           |                                                                                                             |
+| `page.helpNote.html`           | index.html:147      | Confused? Open the <a href="documentation.html">Help and API documentation</a> page                             | markup                                                                                                      |
+| `page.footer.credits`          | index.html:151      | Made by Magnus Wolffelt and contributors                                                                        |                                                                                                             |
+| `page.footer.version`          | index.html:153      | Version                                                                                                         |                                                                                                             |
+| `page.footer.source.html`      | index.html:155      | <a href="https://github.com/EpicDima/elevatorsaga">Source code</a> on GitHub, forked from <a href="https://git… | markup                                                                                                      |
+| `page.footer.licences.html`    | index.html:159      | <a href="licenses.txt">Licences</a> for the game and everything it bundles                                      | markup                                                                                                      |
+| `page.language.label`          | not yet in the page | Language                                                                                                        | the label of the picker the wiring agent adds; its options are `LOCALE_NAMES`, never translated             |
+
+`page.helpNote.html` is the one link the page shell cannot redirect for a reader, because the
+href lives inside the message. The Russian entry therefore points at `documentation.ru.html`
+rather than `documentation.html`; every other cross-page link is markup and belongs to
+whoever builds the nav.
 
 ### documentation.html — 80 strings
 
@@ -202,7 +208,7 @@ Key names carry two suffixes that mean something:
 | `docs.api.floor.buttonStateChange.html`             | documentation.html:699 | Triggered when either call button at a floor was lit or cleared. The handler is passed the state of both butto… | markup                                                 |
 | `docs.api.floor.buttonStateChange.example.code`     | documentation.html:710 | floor.on("buttonstate_change", function(buttonStates) {                                                         | code; only the comments are translated                 |
 
-### src/ui/templates.ts — 9 strings
+### src/ui/templates.ts — 18 strings
 
 | Key                         | Where                   | English                                        | Notes                                                                                        |
 | --------------------------- | ----------------------- | ---------------------------------------------- | -------------------------------------------------------------------------------------------- |
@@ -215,6 +221,27 @@ Key names carry two suffixes that mean something:
 | `game.timeScale.increase`   | src/ui/templates.ts:251 | Increase simulation speed                      |                                                                                              |
 | `game.feedback.next`        | src/ui/templates.ts:280 | Next challenge                                 |                                                                                              |
 | `game.codeStatus`           | src/ui/templates.ts:293 | There is a problem with your code:             |                                                                                              |
+
+Nine of these were added after the first pass over the file, when the challenge navigation
+row and the seed line landed. They are listed separately only because their notes are longer
+than the table above wants to be:
+
+| Key                        | Where                   | English                                                                                                                                                 | Notes                                                                                                        |
+| -------------------------- | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| `game.challenge.nav.label` | src/ui/templates.ts:416 | Challenges                                                                                                                                              | the `<nav>`'s accessible name                                                                                |
+| `game.challenge.nav.link`  | src/ui/templates.ts:207 | Challenge {number}                                                                                                                                      | takes `{number}`; the accessible name of an entry whose visible text is the bare digit                       |
+| `game.challenge.nav.demo`  | src/ui/templates.ts:206 | Demo                                                                                                                                                    | both the visible label and the accessible name of the endless-demo entry                                     |
+| `game.seed.label`          | src/ui/templates.ts:319 | Seed                                                                                                                                                    | the word before the number, not a control                                                                    |
+| `game.seed.link`           | src/ui/templates.ts:316 | Seed {seed}: start another run from this seed                                                                                                           | takes `{seed}`; accessible name of the seed when the URL does not pin it                                     |
+| `game.seed.newDraw`        | src/ui/templates.ts:317 | new draw                                                                                                                                                | visible label, and the same two words appear inside `game.seed.newDrawLink` — WCAG 2.5.3 requires they match |
+| `game.seed.newDrawLink`    | src/ui/templates.ts:317 | Seed {seed}: new draw, start again without it                                                                                                           | takes `{seed}`; accessible name of the control that unpins                                                   |
+| `game.seed.helpSummary`    | src/ui/templates.ts:359 | what a seed does                                                                                                                                        | the `<summary>` of the caveat disclosure                                                                     |
+| `game.seed.explanation`    | src/ui/templates.ts:263 | The same seed brings the same passengers, in the same order. Frame timing comes from the browser, so the run around them is never quite the same twice. | `SEED_EXPLANATION`; a paragraph, not a tooltip — it used to be a `title` attribute and no longer is          |
+
+The seed itself is a placeholder in both accessible names and never part of the sentence: it
+is the token a player transcribes in order to hand a building to somebody else, so it reads
+identically in every locale. Both names repeat it because an accessible name has to stand on
+its own — "1234567890, link" describes nothing.
 
 ### src/ui/presenters.ts — 7 strings
 
@@ -465,7 +492,7 @@ Two ordering traps:
 round-trips them into the next-challenge link, so the language survives finishing a
 challenge.
 
-### `index.html` — 30 strings
+### `index.html` — 31 strings
 
 Static markup, so the wiring needs a pass that walks the document once at start-up. Adding
 `data-i18n="page.button.save"` attributes and a single loop in `main.ts` keeps the markup
@@ -480,6 +507,16 @@ readable; explicit `requireElement` writes work too and are wordier.
 - **After replacing `page.hint.html`, run `applyModKeyLabels` again.** The `<kbd
 data-mod-key>` elements are rewritten to `⌘` at start-up, and writing new HTML into that
   paragraph throws the substitution away.
+- `page.language.label` has no element yet: the picker is the one piece of markup this
+  wiring adds rather than translates. It belongs in the header nav, whose accessible name is
+  already `page.nav.label`. Its options come from `LOCALE_NAMES` in `src/i18n/locale.ts` and
+  are never translated — a reader who needs Русский has to be able to find it while the
+  interface is still English. Choosing one should call `storeLocale` and then reload, or
+  re-render everything; a reload is honest here, since the challenge in progress is already
+  addressed by the URL and the editor's buffer is already in local storage.
+- The two nav links at `index.html:54-55` both point at `documentation.html`. In Russian
+  they should point at `documentation.ru.html`. The documentation pages already carry a link
+  to each other, so this is the only place the pairing is missing.
 
 ### `documentation.html` — 80 strings
 
@@ -487,13 +524,25 @@ The same mechanism, at four times the size, plus `<html lang>` at line 2. The `.
 blocks keep their code and change only their comments. See the overlap note below before
 starting.
 
-### `src/ui/templates.ts` — 9 strings
+### `src/ui/templates.ts` — 18 strings
 
-Lines 127, 138, 151, 251, 280, 293. Note that `markup` escapes its interpolations: a
-plain key is safe to interpolate directly, and an `.html` key must go through `raw()`.
-`floorTemplate` currently builds `floor ${level}` and drops it into two labels;
-`game.floor.callUp` and `game.floor.callDown` take `{floor}` as a number instead, so the
-local `where` disappears.
+Note that `markup` escapes its interpolations: a plain key is safe to interpolate directly,
+and an `.html` key must go through `raw()`. `floorTemplate` currently builds `floor ${level}`
+and drops it into two labels; `game.floor.callUp` and `game.floor.callDown` take `{floor}` as
+a number instead, so the local `where` disappears.
+
+The nine strings added since the first pass — the challenge navigation row and the seed line
+— have two constraints the rest do not:
+
+- `game.seed.newDraw` is both the visible label and two words inside `game.seed.newDrawLink`.
+  They have to keep saying the same thing in every locale (WCAG 2.5.3): a speech-input user
+  says what they can see. If a translation changes one, it changes both.
+- `SEED_EXPLANATION` at line 263 is a module constant. It is read inside
+  `seedHelpTemplate()`, which runs per render, so moving it to `t("game.seed.explanation")`
+  at the point of use is correct — but do not leave a `const SEED_EXPLANATION = t(...)` at
+  module scope, which would freeze English at import time. The same trap is described under
+  `src/game/challenges.ts` below, and it is the single most likely way for this wiring to
+  half-work.
 
 ### `src/ui/presenters.ts` — 7 strings
 
