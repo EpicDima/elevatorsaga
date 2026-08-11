@@ -33,6 +33,36 @@ const OUTPUT_PATH = "public/images/screenshot.png";
  */
 const TRANSPORTED_BEFORE_CAPTURE = 18;
 
+/**
+ * The seed the picture is drawn from.
+ *
+ * Pinned so that regenerating the image after a change to the look of the game
+ * shows the change and not a different game: without it every capture drew its
+ * own passengers, and the diff on a tracked PNG was a fresh crowd every time.
+ *
+ * What a seed pins is the cast: who walks in, when, and where they are going.
+ * It does not pin the run, and `seedHelpTemplate` in `src/ui/templates.ts` says
+ * why — `dt` comes from `requestAnimationFrame`, so the cars are elsewhere as
+ * each passenger appears and the outcome moves with them. That caveat holds
+ * here too; what makes the picture steady anyway is that a headless Chromium
+ * with nothing else to do delivers very regular frames. Six captures from this
+ * seed all came out at 27 transported in 24s at 1.13 a second and 68 moves,
+ * with the cars at floors 4, 2, 0 and 0 and the same passengers waiting on the
+ * same floors; the average wait read 7.5s or 7.4s and the worst 14.9s or 14.8s,
+ * which is the whole of the difference between them. Other seeds tried were not
+ * all this steady — `tower` landed on 23 transported once and 25 twice — so the
+ * steadiness is a property of the seed picked, not a promise of the mechanism,
+ * and a regenerated picture that differs in a car or two is the run wobbling
+ * rather than anything being wrong. The wall-clock "Code saved" line under the
+ * editor is the one part no seed reaches at all.
+ *
+ * Chosen over the others tried for the composition at 1280x1000: passengers
+ * left waiting on four of the six floors, cars caught at three different
+ * heights rather than parked in a row, and the one marked by `waiting-longest`
+ * near the middle of the frame, level with the "Max waiting time" it explains.
+ */
+const SEED = "office";
+
 test.describe("README screenshot", () => {
   // 1280 wide is the shell's own 1220px plus a margin, at a device pixel ratio
   // of 1: large enough to show the whole game, small enough to drop into a
@@ -42,7 +72,14 @@ test.describe("README screenshot", () => {
   test("captures the game mid-challenge", async ({ page }) => {
     // The reference solution, so the editor shows a real program rather than
     // the two-line starter, running the challenge the original screenshot used.
-    await page.goto("/#challenge=5,devtest,timescale=6,autostart");
+    await page.goto(`/#challenge=5,devtest,timescale=6,autostart,seed=${SEED}`);
+
+    // The seed took. A seed the router refuses is swapped for a fresh one with
+    // nothing but a console warning to show for it, and the picture would go
+    // quietly back to being a different game on every capture. The `new draw`
+    // link is the tell: it exists only when the route pins a seed, and its
+    // accessible name is the seed it would drop.
+    await expect(page.getByRole("link", { name: new RegExp(`^Seed ${SEED}\\b`) })).toBeVisible();
 
     await expect
       .poll(async () => statisticValue(page, "Transported"), { timeout: 60_000 })

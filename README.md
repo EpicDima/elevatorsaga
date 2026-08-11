@@ -3,8 +3,9 @@
 [![CI](https://github.com/EpicDima/elevatorsaga/actions/workflows/ci.yml/badge.svg)](https://github.com/EpicDima/elevatorsaga/actions/workflows/ci.yml)
 
 ![Challenge 5 in progress: four elevators carrying people between six floors, passengers waiting on
-the landings, the statistics panel counting them, and the JavaScript program driving it all in the
-editor below](public/images/screenshot.png)
+the landings, one of them marked yellow as the longest wait the panel is reporting, the statistics
+panel counting them, and the JavaScript program driving it all in the editor
+below](public/images/screenshot.png)
 
 Elevator Saga is a programming game. You are given a building, a few elevators and a stream of
 impatient people, and the only control you have is a small JavaScript program: an object with an
@@ -399,7 +400,8 @@ see each other's files — Vitest collects `src/**/*.test.ts`, Playwright collec
 excluded from the suite and run on its own with `npm run screenshot`; nothing in CI rewrites it. It
 lives under `public/` because it is also the site's `og:image`: Vite copies that directory to the
 root of `dist/`, so the picture at the top of this file and the one in a link preview are the same
-file.
+file. The run it captures is drawn from a pinned seed, so recapturing after a change to the look of
+the game shows that change rather than a fresh crowd; the spec says which seed and why.
 
 Before opening a pull request, run what CI runs: `npm run typecheck`, `npm run lint`,
 `npm run format:check`, `npm test`, `npm run build` and `npm run test:e2e`. CI runs the same five
