@@ -172,6 +172,48 @@ describe("World controller", () => {
       }
     });
 
+    it("gives every elevator its own events rather than the last one's", () => {
+      // Upstream issues #111 and #138: "only the last elevator responds to my
+      // handlers", reported by two different people, which usually means either
+      // a real bug or a documentation failure. It is the second. Each interface
+      // carries its own emitter and dispatches with itself as `this`, so a
+      // handler registered on the first elevator hears the first elevator --
+      // which is what the two assertions below are for.
+      //
+      // What the reporters hit is `var` in the loop that registers the
+      // handlers: `var` gives the whole function one binding, so by the time
+      // any handler runs, the variable holds the elevator the loop finished on
+      // and every handler acts on that one. `forEach` below, and `let`, give
+      // each iteration its own. This test exists so that nobody ever repairs
+      // the engine for a fault that is not in it.
+      const world = createWorld({ spawnRate: 0.001, floorCount: 3, elevatorCount: 3 }, "issue-111");
+      const heardBy: number[] = [];
+      const heardItself: boolean[] = [];
+      const codeObj: UserCodeObject = {
+        init(elevators) {
+          elevators.forEach((elevator, index) => {
+            elevator.on("idle", function (this: unknown) {
+              heardBy.push(index);
+              heardItself.push(this === elevator);
+            });
+          });
+        },
+        update() {
+          // Nothing to do per frame: the handlers registered above are what is
+          // under test, and leaving the elevators alone is what lets them go
+          // idle and fire.
+        },
+      };
+
+      controller.start(world, codeObj, frameRequester.register, true);
+      for (let frame = 0; frame < 200; frame++) {
+        frameRequester.trigger();
+      }
+
+      expect([...new Set(heardBy)].sort()).toEqual([0, 1, 2]);
+      expect(heardItself).not.toContain(false);
+    });
+
     it("refreshes display positions and the stats display each frame", () => {
       controller.start(fakeWorld, fakeCodeObj, frameRequester.register, true);
       frameRequester.trigger();
