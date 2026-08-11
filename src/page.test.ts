@@ -168,16 +168,31 @@ describe("index.html", () => {
     // touch screen, and on a plain `<span>` it is not an accessible description
     // either, because a span has no role for one to hang off. The seed's caveat
     // was one of these and became a `<details>`; this one is left where it is,
-    // because what it says is a paragraph of the documentation now as well, and
-    // a tooltip that repeats something is a shortcut to it rather than the only
-    // way to it. Asserted against the English catalogue because this page is
-    // the English one -- the Russian copy of the paragraph names the Russian
-    // word, and is checked against `documentation.ru.html` further down.
+    // because what it says is a sentence of the documentation now as well, and
+    // a tooltip that quotes something is a shortcut to it rather than the only
+    // way to it. So the tooltip is held to being text of that paragraph, word
+    // for word, which is what stops the two copies from ever saying different
+    // things about the same number.
+    //
+    // Read from the attribute rather than from the element's text, which is
+    // the visible label "Moves" and is in the paragraph whatever the tooltip
+    // claims -- the shape this test had while it looked like it was working.
+    // The length floor is the rest of that lesson: a word or two would turn up
+    // in a paragraph of prose by accident.
+    //
+    // That the attribute here and the English message are the same string is
+    // the drift check in `localise-page.test.ts`, and is not repeated. What is
+    // added is the other language: `localisePage` replaces this attribute with
+    // the Russian message, so the Russian tooltip has to quote the Russian
+    // paragraph the same way, or a correction lands on one language only.
     const titled = [...page.querySelectorAll("[title]")];
     expect(titled.map((element) => element.className)).toEqual(["key"]);
-    const statistic = titled[0]?.textContent ?? "";
-    expect(statistic).not.toBe("");
-    expect(message("en", "docs.play.statistics.html")).toContain(statistic);
+    const tooltip = titled[0]?.getAttribute("title") ?? "";
+    expect(tooltip.length).toBeGreaterThan(20);
+    expect(message("en", "docs.play.statistics.html")).toContain(tooltip);
+    expect(message("ru", "docs.play.statistics.html")).toContain(
+      message("ru", "page.stats.movesTitle"),
+    );
   });
 
   it("lets a keyboard reach the building, which scrolls sideways", () => {
