@@ -398,10 +398,10 @@ dl dd {
  * nineteen links is wide, but "wide" is not "wider than whatever is left over",
  * and on a short challenge list it would have ridden up beside the title.
  *
- * A flex row so the seed costs no height at all on a wide window, and wraps onto
- * a line of its own when the challenge row needs the whole width. `baseline`
- * rather than `center`, so the seed sits on the same line as the numbers beside
- * it instead of floating in the middle of their boxes.
+ * A flex row, so the row of links and the seed under it each take exactly the
+ * width they need. `baseline` rather than `center`, so anything that does end up
+ * beside the numbers sits on their line instead of floating in the middle of
+ * their boxes.
  */
 .challengefooter {
   flex-basis: 100%;
@@ -493,6 +493,15 @@ dl dd {
  * 320px they do not always fit beside each other, and a line that will not wrap
  * is a page that has to be read by panning sideways (WCAG 1.4.10).
  *
+ * A basis of the full width, so that it is a line under the challenge numbers
+ * rather than something that might fit beside them. It used to fit beside them,
+ * and opening the disclosure at the end of it is what showed why that was wrong:
+ * the panel widens this box, the widened box no longer fits next to nineteen
+ * challenge links, and the whole line dropped below them -- carrying the summary
+ * the player had just clicked 1119px to the left and 54px down, out from under
+ * the pointer that clicked it. What made that happen was the line's width being
+ * a function of what was open. A full-width basis is not.
+ *
  * The colour is stated rather than inherited, and that is the whole reason this
  * declaration exists: the line used to be a `<p>`, which the rule at the top of
  * this file paints with `--color-text`, and it had to become a `<div>` to hold a
@@ -503,6 +512,7 @@ dl dd {
  * characters that have to be transcribed are exactly the ones that went pale.
  */
 .challengeseed {
+  flex-basis: 100%;
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
@@ -554,21 +564,26 @@ dl dd {
 /*
  * The disclosure that explains what a seed does and does not bring back.
  *
- * The marker and the open/closed behaviour are the browser's own; all this adds
- * is where the panel goes. Closed, the summary is another item on the seed's
- * line and costs no height at all. Open, `flex-basis: 100%` wraps it onto a line
- * of its own inside the seed line, so the sentence is laid out across the width
- * the line has rather than in the narrow column left beside the seed.
+ * There is deliberately no rule here about where it goes. It used to have one --
+ * `[open] { flex-basis: 100% }`, to give the sentence the whole line to lay out
+ * across -- and that rule is what moved the summary out from under the pointer
+ * that had just clicked it: opening the panel changed which line the disclosure
+ * belonged on. Left alone, the panel takes the width it asks for where there is
+ * room for it and wraps onto its own line where there is not, and the summary
+ * stays put in every case but the narrowest, where it moves down one line rather
+ * than across the window.
  *
  * The pointer cursor is the one thing the UA does not supply: `<summary>` is a
  * control, and it is the only one on this line that does not already look like
  * a link.
+ *
+ * `fit-content` keeps the control the size of its words. A `<summary>` is a
+ * block, so open it stretches to whatever width the panel below it took -- 449px
+ * of it here, of which 101px had any writing on. The rest was a control that
+ * looked like empty bar and closed the panel when clicked.
  */
-.seedhelp[open] {
-  flex-basis: 100%;
-}
-
 .seedhelp > summary {
+  inline-size: fit-content;
   cursor: pointer;
 }
 

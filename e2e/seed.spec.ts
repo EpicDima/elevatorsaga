@@ -113,6 +113,54 @@ test("opens the caveat from the keyboard, on a phone-sized screen", async ({ pag
   await expect(page.locator(CAVEAT)).toBeVisible();
 });
 
+test("does not move the caveat's own control when it is opened", async ({ page }) => {
+  // A control that leaves the pointer that clicked it behind. The seed line
+  // shared the challenge row when it fitted, the panel widened the line, the
+  // widened line no longer fitted, and the whole thing dropped below nineteen
+  // challenge links -- carrying the summary 1119px to the left and 54px down at
+  // this width. A second click then landed on whatever had taken its place.
+  //
+  // Measured in a browser because that is where it lives: nothing in the markup
+  // says it, and the rule that caused it (`[open] { flex-basis: 100% }`) looked
+  // like it was about the panel.
+  // The busiest challenge, so the row of links is as wide as it ever gets: it
+  // is the row the seed line has to fit beside, and it is what it failed to fit
+  // beside once the panel was open.
+  await page.goto("/#challenge=18,seed=issue-61");
+  const summary = page.locator(HELP_SUMMARY);
+
+  // Resized rather than navigated between the widths on purpose: the URL would
+  // not change, so `goto` would not reload, and the disclosure would still be
+  // open from the width before.
+  for (const width of [1280, 1024, 900, 768]) {
+    await page.setViewportSize({ width, height: 900 });
+    await expect(page.locator(CAVEAT)).toBeHidden();
+
+    const before = await summary.boundingBox();
+    await summary.click();
+    await expect(page.locator(CAVEAT)).toBeVisible();
+
+    // The whole box, not just its corner: a `<summary>` is a block, so open it
+    // stretched to the width of the panel underneath it and turned several
+    // hundred pixels of empty bar into something that closed the panel again.
+    expect(await summary.boundingBox(), `${String(width)}px`).toEqual(before);
+
+    await summary.click();
+    await expect(page.locator(CAVEAT)).toBeHidden();
+  }
+
+  // Below that the panel genuinely does not fit beside the seed, and wrapping
+  // onto the next line is the right answer rather than a defect -- but it is
+  // still the next line, and not the other side of the window.
+  await page.setViewportSize({ width: 320, height: 800 });
+  const narrowBefore = await summary.boundingBox();
+  await summary.click();
+  await expect(page.locator(CAVEAT)).toBeVisible();
+  const narrowAfter = await summary.boundingBox();
+
+  expect(Math.abs((narrowAfter?.y ?? 0) - (narrowBefore?.y ?? 0))).toBeLessThanOrEqual(30);
+});
+
 test("keeps every word of the seed line readable, in both of its states", async ({ page }) => {
   // The seed line was a `<p>`, and `p` is one of the few selectors the
   // stylesheet paints with `--color-text`; it had to become a `<div>` to hold
