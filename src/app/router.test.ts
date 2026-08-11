@@ -28,6 +28,25 @@ function route(hash: string): ReturnType<typeof resolveRoute> {
 /** A window stand-in whose hash and events the test drives. */
 class FakeTarget implements RouterTarget {
   location = { hash: "" };
+  /** Every url the router has rewritten the address bar to, in order. */
+  readonly replaced: string[] = [];
+  /**
+   * The two things the router uses a real `History` for.
+   *
+   * `replaceState` moves the location as a browser's does, because that is the
+   * half the router reads back: it takes the hash it compares later from
+   * `location`, not from the url it just wrote, and a browser and this stand-in
+   * disagree about `"#"` — which resolves to a URL whose fragment is empty, so
+   * `location.hash` afterwards is `""`.
+   */
+  readonly history = {
+    state: null as unknown,
+    replaceState: (data: unknown, _unused: string, url: string): void => {
+      this.history.state = data;
+      this.location = { hash: url === "#" ? "" : url };
+      this.replaced.push(url);
+    },
+  };
   readonly #listeners = new Map<string, Set<() => void>>();
 
   addEventListener(type: "hashchange" | "popstate", listener: () => void): void {
@@ -686,6 +705,145 @@ describe("startRouter", () => {
 
     const query = onRoute.mock.calls[0]?.[1] as RouteQuery | undefined;
     expect(query?.get("mystery")).toBe("x");
+  });
+
+  it("takes a refused parameter out of the address bar", () => {
+    // The URL went on saying `challenge=abc` while challenge 1 was being
+    // played, which is the state a player bookmarks, pastes into a chat and
+    // reports as a bug in the game.
+    const target = new FakeTarget();
+    target.location = { hash: "#challenge=abc,timescale=8" };
+    const onRoute = vi.fn();
+
+    startRouter(onRoute, {
+      challengeCount: 18,
+      defaultTimeScale: () => DEFAULT_TIME_SCALE,
+      target,
+    });
+
+    expect(target.replaced).toEqual(["#timescale=8"]);
+    expect(target.location.hash).toBe("#timescale=8");
+    // Rewritten, not navigated to: `replaceState` is the only way onto this
+    // stand-in's location, and the correction routed nothing a second time.
+    expect(onRoute).toHaveBeenCalledTimes(1);
+  });
+
+  it("hands the handler what the address bar says now", () => {
+    // Not what it said. The challenge bar builds nineteen navigation links out
+    // of this query, so a refused key left in it would be written into every
+    // one of them and refused again on each.
+    const target = new FakeTarget();
+    target.location = { hash: "#challenge=2,seed=rush%20hour,mystery=x" };
+    const onRoute = vi.fn();
+
+    startRouter(onRoute, {
+      challengeCount: 18,
+      defaultTimeScale: () => DEFAULT_TIME_SCALE,
+      target,
+    });
+
+    const query = onRoute.mock.calls[0]?.[1] as RouteQuery | undefined;
+    expect(query?.has("seed")).toBe(false);
+    expect([...(query ?? [])]).toEqual([
+      ["challenge", "2"],
+      ["mystery", "x"],
+    ]);
+    // The route the corrected URL resolves to is the route that was played.
+    expect(onRoute.mock.calls[0]?.[0]).toMatchObject({ challengeIndex: 1, seed: null });
+  });
+
+  it("empties the hash when nothing in it survived", () => {
+    const target = new FakeTarget();
+    target.location = { hash: "#challenge=abc" };
+
+    startRouter(vi.fn(), {
+      challengeCount: 18,
+      defaultTimeScale: () => DEFAULT_TIME_SCALE,
+      target,
+    });
+
+    // A browser resolves "#" against the current URL and leaves the fragment
+    // empty, so what a later event will compare against is "" -- which is what
+    // the router has to have recorded, or the next navigation to this same URL
+    // looks like a repeat and is ignored.
+    expect(target.replaced).toEqual(["#"]);
+    expect(target.location.hash).toBe("");
+  });
+
+  it("leaves the state on the entry it rewrites", () => {
+    const target = new FakeTarget();
+    target.location = { hash: "#challenge=abc" };
+    target.history.state = { scroll: 12 };
+
+    startRouter(vi.fn(), {
+      challengeCount: 18,
+      defaultTimeScale: () => DEFAULT_TIME_SCALE,
+      target,
+    });
+
+    expect(target.history.state).toEqual({ scroll: 12 });
+  });
+
+  it.each([
+    // Nothing wrong with it.
+    "#challenge=3,timescale=8,seed=issue-61",
+    // An unknown key is kept on purpose: a later version's parameter, or the
+    // player's own. See parseQuery.
+    "#challenge=3,mystery=x",
+    // A clamped value still names the run on screen -- `floors=100000` resolves
+    // to sixty floors every time it is read, and the bar prints sixty -- so
+    // there is nothing to correct. Only a refusal is a URL describing something
+    // nobody is playing.
+    "#challenge=sandbox,floors=100000",
+  ])("leaves %s alone", (hash) => {
+    const target = new FakeTarget();
+    target.location = { hash };
+
+    startRouter(vi.fn(), {
+      challengeCount: 18,
+      defaultTimeScale: () => DEFAULT_TIME_SCALE,
+      target,
+    });
+
+    expect(target.replaced).toEqual([]);
+    expect(target.location.hash).toBe(hash);
+  });
+
+  it("corrects every navigation, not just the first", () => {
+    const target = new FakeTarget();
+    const onRoute = vi.fn();
+    startRouter(onRoute, {
+      challengeCount: 18,
+      defaultTimeScale: () => DEFAULT_TIME_SCALE,
+      target,
+    });
+
+    target.navigate("#challenge=4,timescale=fast");
+
+    expect(target.replaced).toEqual(["#challenge=4"]);
+    expect(onRoute).toHaveBeenCalledTimes(2);
+    expect(onRoute.mock.calls[1]?.[0]).toMatchObject({ challengeIndex: 3 });
+  });
+
+  it("routes again when the player comes back to a url it once corrected", () => {
+    // The correction moves the location without raising an event, so the hash
+    // the router remembers has to be the corrected one. Remembering the refused
+    // one instead would make a real navigation back to it look like a repeat.
+    const target = new FakeTarget();
+    const onRoute = vi.fn();
+    startRouter(onRoute, {
+      challengeCount: 18,
+      defaultTimeScale: () => DEFAULT_TIME_SCALE,
+      target,
+    });
+
+    target.navigate("#challenge=abc");
+    expect(target.location.hash).toBe("");
+
+    target.navigate("#challenge=abc");
+
+    expect(onRoute).toHaveBeenCalledTimes(3);
+    expect(target.replaced).toEqual(["#", "#"]);
   });
 
   it("unsubscribes everything when stopped", () => {

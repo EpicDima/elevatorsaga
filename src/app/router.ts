@@ -768,6 +768,27 @@ export interface RouterTarget {
   /** The location whose hash is routed on. */
   readonly location: { readonly hash: string };
   /**
+   * The session history the address bar is corrected through.
+   *
+   * `replaceState` and not an assignment to `location.hash`: the correction is
+   * not somewhere the player went, so it must not become an entry the Back
+   * button returns to — pressing Back would land on the URL that was just
+   * refused, be corrected again, and never get past it. It also fires neither
+   * `hashchange` nor `popstate`, so the correction cannot route a second time.
+   */
+  readonly history: {
+    /** Whatever the page has stored on the current entry. */
+    readonly state: unknown;
+    /**
+     * Rewrites the URL of the current history entry.
+     *
+     * @param data - State to leave on the entry.
+     * @param unused - The legacy title argument, which no browser reads.
+     * @param url - The new URL, resolved against the current one.
+     */
+    replaceState: (data: unknown, unused: string, url: string) => void;
+  };
+  /**
    * Subscribes to a navigation event.
    *
    * @param type - Event name.
@@ -805,6 +826,21 @@ export interface RouterOptions {
  * navigation, the second covers the history entries a browser restores without
  * firing `hashchange`.
  *
+ * It also corrects the address bar as it reads it. A parameter the router
+ * refused is deleted from the URL, because a hash that goes on naming something
+ * nobody is playing is a hash that gets bookmarked, pasted into a chat and
+ * reported as a bug in the game: `#challenge=abc` starts the first challenge,
+ * and the URL should say the first challenge. Every deleted key resolved to
+ * exactly what its absence resolves to — that is what being refused means, see
+ * {@link RouteParams.refusedKeys} — so the rewrite cannot change the route it is
+ * correcting, which is what makes it safe to do without routing again.
+ *
+ * The handler is handed the corrected parameters rather than the ones that were
+ * written, so that everything built from them is clean as well. The challenge
+ * bar builds nineteen navigation links out of this query; carrying
+ * `seed=rush%20hour` into all of them would mean a refusal, and its warning, on
+ * every one the player followed afterwards.
+ *
  * @param onRoute - Called with the resolved parameters for each route.
  * @param options - The challenge count, the default time scale and the window.
  * @returns A function that stops routing.
@@ -813,6 +849,34 @@ export function startRouter(onRoute: RouteHandler, options: RouterOptions): () =
   const target = options.target ?? window;
   let lastHash: string | null = null;
 
+  /**
+   * Takes the refused parameters out of the URL and out of the query.
+   *
+   * @param query - The parameters as the URL wrote them.
+   * @param refusedKeys - The ones the router would not use.
+   * @returns The parameters that survived, which the URL now names.
+   */
+  const correct = (query: RouteQuery, refusedKeys: readonly string[]): RouteQuery => {
+    if (refusedKeys.length === 0) {
+      return query;
+    }
+    const kept = new Map(query);
+    for (const key of refusedKeys) {
+      kept.delete(key);
+    }
+    // The entry's state is carried across rather than dropped: this is a
+    // correction to a URL and nothing else, and passing null here would quietly
+    // throw away anything the page had stored on the entry.
+    target.history.replaceState(target.history.state, "", createParamsUrl(kept));
+    // Read back rather than assumed. A hash with nothing left in it is written
+    // as "#", which a browser resolves to a URL with an empty fragment, so what
+    // `location.hash` says afterwards is "" — and lastHash has to be what the
+    // next event will be compared against, or the next navigation back to this
+    // URL is ignored as a repeat.
+    lastHash = target.location.hash;
+    return kept;
+  };
+
   const handleRoute = (force: boolean): void => {
     const hash = target.location.hash;
     if (!force && hash === lastHash) {
@@ -820,13 +884,11 @@ export function startRouter(onRoute: RouteHandler, options: RouterOptions): () =
     }
     lastHash = hash;
     const query = parseQuery(hash);
-    onRoute(
-      resolveRoute(query, {
-        challengeCount: options.challengeCount,
-        defaultTimeScale: options.defaultTimeScale(),
-      }),
-      query,
-    );
+    const params = resolveRoute(query, {
+      challengeCount: options.challengeCount,
+      defaultTimeScale: options.defaultTimeScale(),
+    });
+    onRoute(params, correct(query, params.refusedKeys));
   };
 
   const listener = (): void => {
