@@ -1,9 +1,18 @@
 # Localisation inventory
 
 Every string the game shows a player, the key it now has in `src/i18n/`, and where it is
-still hardcoded. This is the checklist for wiring the catalogue into the page: nothing in
-`src/i18n/` is called from anywhere yet, so today the file is a map of work to do rather
-than a record of work done.
+still hardcoded. This is the checklist for wiring the catalogue into the page — part map of
+work to do, part record of work done.
+
+**Wiring status.** Seventeen keys are live: the engine's error messages and the fitness
+benchmark's results now call `t` rather than carrying their English inline, in
+`src/app/fitness.ts`, `src/game/fitness.ts`, `src/game/user-code.ts`,
+`src/game/movable.ts` and `src/game/elevator-interface.ts`. The worker takes a locale with
+each request and calls `setLocale` on arrival, so a benchmark answers in the language it
+was asked in. The other 191 keys are still hardcoded at their call sites, and nothing yet
+calls `setLocale` from a page, so no player can choose a language: the switcher and the
+page shell are the next piece of work. Rows below are marked **wired** where the call site
+already reads from the catalogue.
 
 The catalogue holds **208 keys**, in two locales: `src/i18n/en.ts` is the reference — its
 text is the English wording, extracted verbatim — and `src/i18n/ru.ts` is the Russian
@@ -61,24 +70,24 @@ Key names carry two suffixes that mean something:
 
 ## Where the strings are
 
-| File                             | Strings |
-| -------------------------------- | ------- |
-| `documentation.html`             | 80      |
-| `src/ui/completions.ts`          | 32      |
-| `index.html`                     | 31      |
-| `src/ui/templates.ts`            | 18      |
-| `src/game/challenges.ts`         | 14      |
-| `src/ui/presenters.ts`           | 7       |
-| `src/app/fitness.ts`             | 7       |
-| `src/app/app.ts`                 | 4       |
-| `src/game/elevator-interface.ts` | 4       |
-| `src/main.ts`                    | 3       |
-| `src/game/fitness.ts`            | 3       |
-| `src/game/user-code.ts`          | 2       |
-| `src/ui/editor.ts`               | 1       |
-| `src/ui/default-code.ts`         | 1       |
-| `src/game/movable.ts`            | 1       |
-| **Total**                        | **208** |
+| File                             | Strings | Status       |
+| -------------------------------- | ------- | ------------ |
+| `documentation.html`             | 80      | hardcoded    |
+| `src/ui/completions.ts`          | 32      | hardcoded    |
+| `index.html`                     | 31      | hardcoded    |
+| `src/ui/templates.ts`            | 18      | hardcoded    |
+| `src/game/challenges.ts`         | 14      | hardcoded    |
+| `src/ui/presenters.ts`           | 7       | hardcoded    |
+| `src/app/fitness.ts`             | 7       | **wired**    |
+| `src/app/app.ts`                 | 4       | hardcoded    |
+| `src/game/elevator-interface.ts` | 4       | **wired**    |
+| `src/main.ts`                    | 3       | hardcoded    |
+| `src/game/fitness.ts`            | 3       | **wired**    |
+| `src/game/user-code.ts`          | 2       | **wired**    |
+| `src/ui/editor.ts`               | 1       | hardcoded    |
+| `src/ui/default-code.ts`         | 1       | hardcoded    |
+| `src/game/movable.ts`            | 1       | **wired**    |
+| **Total**                        | **208** | **17 wired** |
 
 ## The strings
 
@@ -472,21 +481,32 @@ or any browser told to block site data — falls through to the next source inst
 failing to start. `storeLocale(localStorage, locale)` is there for a language picker; it
 returns `false` rather than throwing when it cannot write.
 
-Two ordering traps:
+Two ordering traps. Both have already been sprung once, and the fixes are worth reading
+before repeating the mistake in the half that is still to do:
 
 - **Modules that build their strings at import time run before this.**
   `src/game/challenges.ts:243` builds `challenges` as a module constant, so every
   description is rendered the moment the module is imported — before `main.ts` has a body
-  to run. The same is true of the completion lists in `src/ui/completions.ts` and the
-  scenario descriptions in `src/game/fitness.ts:85`. Each needs to become a function
-  called after the locale is known (`createChallenges()`, `createCompletions()`), or its
-  descriptions need to be lazy.
+  to run. The same is true of the completion lists in `src/ui/completions.ts`. Each needs
+  to become a function called after the locale is known (`createChallenges()`,
+  `createCompletions()`), or its descriptions need to be lazy. The fitness scenarios were
+  exactly this shape and are now fixed: `fitnessChallenges` is a nullary function rather
+  than a constant, deliberately keeping the constant's name because what other modules
+  mean by it — the list of buildings — did not change.
 - **The fitness worker is a second module instance.** `src/app/fitness.ts` posts the
   player's source to `src/app/fitness-worker.ts`, and `doFitnessSuite` builds the run
   descriptions inside the worker, where the active locale is whatever that instance
-  defaults to — English. Either send the locale with `FitnessWorkerRequest` and
-  `setLocale` on arrival, or send scenario identifiers back and translate on the main
-  thread.
+  defaults to. Fixed by sending the locale with `FitnessWorkerRequest` and calling
+  `setLocale` on arrival; a test asserts the worker answers in the language it was asked
+  in. Anything else that ends up in a worker needs the same treatment — a worker inherits
+  nothing from the page that spawned it.
+
+One cost to plan around before wiring more: importing both catalogues statically put every
+Russian string into the main bundle and into the worker bundle, more than doubling the
+first and quadrupling the second, to serve seventeen keys nobody could yet read. Splitting
+the catalogues so a locale is fetched when it is chosen is in flight; check where it landed
+before adding imports, because the page shell and `documentation.html` are 111 more keys
+and would multiply the same mistake.
 
 `#lang=ru` needs nothing from `src/app/router.ts`: `parseQuery` keeps unknown keys and
 round-trips them into the next-challenge link, so the language survives finishing a
@@ -583,23 +603,32 @@ how the counted phrases compose, and the import-time trap above.
 
 Only the `info` prose is keyed; `label` and `detail` stay as they are.
 
-### `src/app/fitness.ts`, `src/game/fitness.ts` — 10 strings
+### Done — `src/app/fitness.ts`, `src/game/fitness.ts`, `src/game/user-code.ts`, `src/game/elevator-interface.ts`, `src/game/movable.ts`
 
-`fitness.ts:187` is the `?` shown when a scenario produced no average wait time, and
-`fitness.ts:188` the `{scenario}: {value}` line it goes into. The `s` suffix on
-`avgWaitTime.toPrecision(3)` at line 187 should become `format(seconds(...))` for the same
-reason as the statistics panel.
+All seventeen of these are wired; nothing here is outstanding. Kept as a section because
+two of the decisions taken in them apply to the rest of the wiring:
 
-### `src/game/user-code.ts`, `src/game/elevator-interface.ts`, `src/game/movable.ts`
-
-Six error messages the player reads in the code status bar. `error.value.array` and
-`error.value.object` are phrases that compose into `error.elevator.notAFloor` and
-`error.elevator.queueNotAFloor`.
+- The `?` shown when a scenario produced no average wait time, and the `{scenario}: {value}`
+  line it goes into, are separate keys rather than one string with a hole in it, so neither
+  locale has to make "?" agree with a sentence it did not write. The `s` suffix that used
+  to be appended to `avgWaitTime.toPrecision(3)` now goes through `format(seconds(...))`,
+  which is what puts the non-breaking space in `60 с`.
+- `error.value.array` and `error.value.object` are phrases that compose into
+  `error.elevator.notAFloor` and `error.elevator.queueNotAFloor`. Composing a sentence from
+  a noun chosen at run time is the pattern Russian punishes: the first draft of the frame
+  agreed with the interpolated noun instead of with the subject and read
+  «В elevator.destinationQueue попало массив», neuter verb against a masculine noun, which
+  a player could reach with `elevator.destinationQueue = [[1, 2]]`. Both frames now agree
+  with their own subject and let `{value}` land in a case that is spelled the same either
+  way. Prefer whole sentences per key; where composition is unavoidable, write the frame so
+  that no choice of insert can make it ungrammatical, and test it with an insert that has
+  gender — `NaN` is spelled identically in every case and gender, so it proves nothing.
 
 ## What changes on screen once this is wired
 
 Even in English, routing text through the catalogue changes four things. All four are
-improvements, and all four are visible:
+improvements, all four are visible, and the fourth has already arrived in the benchmark
+results:
 
 1. **Grouped thousands.** Challenge 18 asks for 2675 people and renders `2675` today;
    `Intl.NumberFormat` renders `2,675` in English and `2 675` in Russian.
