@@ -103,6 +103,9 @@ for (const { name, hash, open } of SEED_STATES) {
       const measurements = await page.evaluate(() => {
         const root = document.documentElement;
         const line = document.querySelector(".challengeseed");
+        if (line === null) {
+          throw new Error("The challenge bar has no seed line to measure");
+        }
         return {
           // The page, which is what the criterion is about: an unbreakable
           // 64-character seed is 548px of monospace, and before the line was
