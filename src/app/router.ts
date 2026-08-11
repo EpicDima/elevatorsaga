@@ -25,6 +25,12 @@
  * is meant to be shared. {@link SANDBOX_LIMITS} says what each of them may be
  * and why.
  *
+ * The learning track — `#challenge=tutorial-1` … `#challenge=tutorial-8` — is
+ * the third thing that one key can name, and the only one whose values are not
+ * invented here: they are the identifiers the tasks carry in
+ * {@link "../game/tutorial.ts"!tutorialTasks}. {@link resolveTutorialIndex}
+ * says what that buys and what a misspelled task address does instead.
+ *
  * `seed` is the other half of a shared building: the sandbox parameters pin the
  * shafts and `seed` pins who walks into them. It pins them for as long as the
  * two runs stay in step, which is not the whole run — `src/ui/templates.ts`
@@ -35,6 +41,23 @@
  */
 
 import type { SandboxOptions } from "../game/challenges.ts";
+// The one thing this module takes from `src/game/` as a value rather than a
+// type, and it is imported rather than handed in through {@link RouteContext}
+// because it is not a choice a caller makes: there is exactly one learning
+// track, and the addresses that open its tasks are the `id`s written in this
+// table. A count in the context would let a caller claim a number of tasks that
+// do not exist, and the ids cannot be passed through a context at all without
+// moving the table into one.
+//
+// The price is a cycle -- `game/tutorial.ts` -> `game/challenges.ts` ->
+// `i18n/index.ts` -> `i18n/detect.ts` -> back here for `parseQuery` -- which is
+// inert, because nothing on either side of it is read while a module is being
+// evaluated: every use is inside a function body. The other price is the entry
+// chunk, measured at 8.3 kB with this import and without it (0.9 kB of that
+// gzipped), and paid only until `app.ts` imports the table itself to play a
+// task. The fitness worker pays nothing -- the same chunk to the byte -- since
+// it reaches this module for `parseQuery` alone, and Rollup drops the rest.
+import { tutorialTasks } from "../game/tutorial.ts";
 import { clampTimeScale } from "./time-scale.ts";
 
 /** Raw `key=value` pairs from the location hash, in the order they appeared. */
@@ -45,7 +68,8 @@ export interface RouteParams {
   /**
    * Zero-based index into the challenge list.
    *
-   * Meaningless while {@link sandbox} is set: the sandbox is not in the list.
+   * Meaningless while {@link sandbox} or {@link tutorialIndex} is set: neither
+   * the sandbox nor a task of the learning track is in that list.
    */
   readonly challengeIndex: number;
   /**
@@ -56,6 +80,15 @@ export interface RouteParams {
    * thing to play, and this is the other thing it can name.
    */
   readonly sandbox: SandboxOptions | null;
+  /**
+   * The learning-track task asked for, or `null` for anything else.
+   *
+   * A zero-based index into {@link "../game/tutorial.ts"!tutorialTasks}, so
+   * `challenge=tutorial-3` is `2`. Set when `challenge` names a task, and never
+   * at the same time as {@link sandbox}: those are two of the three things one
+   * key can name, and no value spells both.
+   */
+  readonly tutorialIndex: number | null;
   /** Whether the simulation should start without waiting for the Start button. */
   readonly autoStart: boolean;
   /** Simulation speed multiplier. */
@@ -84,11 +117,15 @@ export interface RouteParams {
    * and no `challenge` at all both mean the first challenge, and only the
    * resolver knows which of the two it just saw.
    *
-   * Every key in here resolved to exactly what its absence would have resolved
-   * to, which is what makes deleting it from the URL a rewrite that changes no
-   * route. {@link startRouter} is what does the deleting, and says why the
-   * address bar is corrected rather than left describing a run that is not
-   * being played.
+   * Every key in here resolved to exactly what the corrected URL resolves to,
+   * which is what makes correcting the address bar a rewrite that changes no
+   * route. For all but one that means the key is simply deleted, since its
+   * absence and its refusal come to the same thing. The exception is a task
+   * address the router could not read: it lands on the first task of the
+   * learning track, which absence does not spell, so that key is rewritten
+   * rather than dropped. {@link startRouter} does both, and says why the
+   * address bar is corrected at all rather than left describing a run that is
+   * not being played.
    *
    * A value that was *clamped* is not in here. `floors=100000` still names the
    * building on screen — it resolves to sixty floors every time it is read, and
@@ -245,6 +282,28 @@ function readFlag(query: RouteQuery, key: string): boolean {
  */
 export const SANDBOX_CHALLENGE = "sandbox";
 
+/**
+ * What every `challenge` value that names a learning-track task starts with.
+ *
+ * The whole of the router's copy of how a task address is spelled. The rest is
+ * the table's: an address is accepted because it *is* the `id` of a task in
+ * {@link "../game/tutorial.ts"!tutorialTasks} — `tutorial-1` … `tutorial-8`
+ * today — and not because it matches a shape invented here.
+ *
+ * The prefix is what tells a mistyped task address from a challenge number, so
+ * that `tutorial-9` is a wrong address on the track rather than a wrong
+ * challenge, and lands where the player was heading. It is the one thing that
+ * has to stay in step with the ids by hand; `router.test.ts` checks that it
+ * does, because a task renamed out of this shape would become unreachable
+ * rather than merely oddly named.
+ *
+ * Reuses the `challenge` key for the same reason {@link SANDBOX_CHALLENGE}
+ * does: it is the key the challenge bar's navigation row overwrites, so every
+ * entry of that row is already the way out of the track, and no second key can
+ * be left behind naming a task nobody is playing.
+ */
+export const TUTORIAL_CHALLENGE_PREFIX = "tutorial-";
+
 /** The accepted range of a sandbox parameter, and what unusable input becomes. */
 interface SandboxRange {
   /** Smallest value the simulation is allowed to run with. */
@@ -356,14 +415,22 @@ export function resolveRoute(query: RouteQuery, context: RouteContext): RoutePar
     refusedKeys.push(key);
   };
   const challenge = query.get("challenge");
+  // Before resolveChallengeIndex, and the reason the two guards come first: it
+  // reads its value with `Number`, which makes "sandbox" and "tutorial-3" alike
+  // into NaN, i.e. into a refusal and challenge one. Whichever of the three the
+  // key names has to be decided before any of them is parsed as a number.
+  const tutorialIndex = isTutorialRoute(challenge) ? resolveTutorialIndex(challenge, refuse) : null;
   const sandbox = isSandboxRoute(challenge) ? resolveSandboxOptions(query, refuse) : null;
   return {
-    // Resolved, and so warned about, only when it is the one being played: a
-    // sandbox URL never names a challenge number, and complaining that
-    // "sandbox" is not one would be noise.
+    // Resolved, and so warned about, only when it is the one being played:
+    // neither a sandbox URL nor a task address names a challenge number, and
+    // complaining that "sandbox" or "tutorial-3" is not one would be noise.
     challengeIndex:
-      sandbox === null ? resolveChallengeIndex(challenge, context.challengeCount, refuse) : 0,
+      sandbox === null && tutorialIndex === null
+        ? resolveChallengeIndex(challenge, context.challengeCount, refuse)
+        : 0,
     sandbox,
+    tutorialIndex,
     autoStart: readFlag(query, "autostart"),
     timeScale: resolveTimeScale(query.get("timescale"), context.defaultTimeScale, refuse),
     devTest: readFlag(query, "devtest"),
@@ -456,6 +523,73 @@ function resolveSeed(value: string | undefined, refuse: Refuse): string | null {
  */
 function isSandboxRoute(value: string | undefined): boolean {
   return value?.trim().toLowerCase() === SANDBOX_CHALLENGE;
+}
+
+/**
+ * Whether a `challenge` parameter asks for a task of the learning track.
+ *
+ * True of every value spelled like a task address, not only of the eight that
+ * open a task: `tutorial-9` and `tutorial-` are answered by
+ * {@link resolveTutorialIndex}, which starts the track, rather than by
+ * {@link resolveChallengeIndex}, which would start challenge one.
+ *
+ * Folded exactly where {@link isSandboxRoute} folds "sandbox" — here, as the
+ * value is read, and not in {@link parseQuery} for every parameter at once — so
+ * `#CHALLENGE=TUTORIAL-3` opens task 3 while `seed=Abc` stays the stream it
+ * names.
+ *
+ * Narrows its argument rather than answering a plain `boolean`, so that the
+ * resolver it guards can take the string it is handed instead of restating a
+ * case this branch has already decided.
+ *
+ * @param value - The raw parameter, if it was present.
+ * @returns Whether it names a task of the track, in any casing.
+ */
+function isTutorialRoute(value: string | undefined): value is string {
+  return value?.trim().toLowerCase().startsWith(TUTORIAL_CHALLENGE_PREFIX) === true;
+}
+
+/**
+ * Turns a `challenge=tutorial-…` parameter into a task that exists.
+ *
+ * Matched against the `id` each task carries rather than parsed as a number,
+ * which is what {@link "../game/tutorial.ts"!TutorialTask.id} exists for: the
+ * position of a task in the table is the one thing about it expected to change,
+ * and an address resolved by position would hand somebody who bookmarked
+ * `tutorial-3` whichever task had since been inserted above it. That the ids
+ * happen to spell their positions today is a fact about the table, not a rule
+ * imposed here — and it is also where the eight comes from, since the addresses
+ * that work are exactly the entries there are.
+ *
+ * The match is exact, which is what decides the values a number would have read
+ * loosely. `tutorial-01` and `tutorial-1e0` are refused: both are ways of
+ * writing the number one, and neither is a way of writing the *name*
+ * `tutorial-1`. So are `tutorial-` and `tutorial- 1`, which `Number` reads as
+ * `0` and `1` — the two traps {@link resolveSandboxInteger} and
+ * {@link resolveChallengeIndex} guard against on the other side of this branch.
+ * A name is worth having precisely because it is compared and not computed, and
+ * a task the URL does not spell is a task the player did not ask for.
+ *
+ * Anything unreadable lands on the first task rather than the first challenge:
+ * somebody who wrote `tutorial-9` asked for the track, and where the track
+ * starts is the closest thing to what they asked for. The warning is what makes
+ * that a refusal rather than a silent success, since the first task is also
+ * where `tutorial-1` lands. {@link startRouter} then writes the first task's
+ * address into the bar, because deleting the key would put them on a challenge.
+ *
+ * @param value - The raw parameter, already known to be spelled like a task.
+ * @param refuse - Records the key when the value cannot be used.
+ * @returns A zero-based index into `tutorialTasks`; `0` for anything unusable.
+ */
+function resolveTutorialIndex(value: string, refuse: Refuse): number {
+  const id = value.trim().toLowerCase();
+  const index = tutorialTasks.findIndex((task) => task.id === id);
+  if (index === -1) {
+    console.warn(`Invalid tutorial task "${value}", starting the first task instead`);
+    refuse("challenge");
+    return 0;
+  }
+  return index;
 }
 
 /**
@@ -841,6 +975,15 @@ export interface RouterOptions {
  * route it is correcting, which is what makes it safe to do without routing
  * again.
  *
+ * A refused task address is the one key corrected by rewriting instead, and by
+ * that same rule rather than in spite of it: `#challenge=tutorial-9` is a wrong
+ * address on the learning track, so it starts the track's first task, and the
+ * only thing that spells that task is its own id. Absence spells the first
+ * challenge, which is somewhere else entirely, so deleting the key here would
+ * leave the bar describing a run nobody is watching and a reload would take the
+ * player to it. It becomes `challenge=tutorial-1`, which is not a choice
+ * invented for them: they chose the track, and this is where the track starts.
+ *
  * The handler is handed the corrected parameters rather than the ones that were
  * written, so that everything built from them is clean as well. The challenge
  * bar builds nineteen navigation links out of this query; carrying
@@ -859,16 +1002,28 @@ export function startRouter(onRoute: RouteHandler, options: RouterOptions): () =
    * Takes the refused parameters out of the URL and out of the query.
    *
    * @param query - The parameters as the URL wrote them.
-   * @param refusedKeys - The ones the router would not use.
+   * @param params - What the route resolved to, refusals included.
    * @returns The parameters that survived, which the URL now names.
    */
-  const correct = (query: RouteQuery, refusedKeys: readonly string[]): RouteQuery => {
+  const correct = (query: RouteQuery, params: RouteParams): RouteQuery => {
+    const { refusedKeys, tutorialIndex } = params;
     if (refusedKeys.length === 0) {
       return query;
     }
+    // The task being played when a task address was refused, and the only
+    // spelling of it. `undefined` when the route is not on the learning track,
+    // and unreachable when it is: the index came out of this table.
+    const task = tutorialIndex === null ? undefined : tutorialTasks[tutorialIndex];
     const kept = new Map(query);
     for (const key of refusedKeys) {
-      kept.delete(key);
+      if (key === "challenge" && task !== undefined) {
+        // Set rather than deleted and re-added, so the corrected URL still
+        // reads in the order it was written: a `Map` leaves a key it already
+        // has where it is.
+        kept.set(key, task.id);
+      } else {
+        kept.delete(key);
+      }
     }
     // The entry's state is carried across rather than dropped: this is a
     // correction to a URL and nothing else, and passing null here would quietly
@@ -894,7 +1049,7 @@ export function startRouter(onRoute: RouteHandler, options: RouterOptions): () =
       challengeCount: options.challengeCount,
       defaultTimeScale: options.defaultTimeScale(),
     });
-    onRoute(params, correct(query, params.refusedKeys));
+    onRoute(params, correct(query, params));
   };
 
   const listener = (): void => {

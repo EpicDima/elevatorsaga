@@ -1,12 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { SandboxOptions } from "../game/challenges.ts";
+import { tutorialTasks } from "../game/tutorial.ts";
 import {
   createParamsUrl,
   parseQuery,
   resolveRoute,
   SANDBOX_CHALLENGE,
   startRouter,
+  TUTORIAL_CHALLENGE_PREFIX,
+  type RouteParams,
   type RouteQuery,
   type RouterTarget,
 } from "./router.ts";
@@ -170,6 +173,27 @@ describe("createParamsUrl", () => {
     expect(createParamsUrl(parseQuery("#challenge=2"), { seed: null })).toBe("#challenge=2");
   });
 
+  it("round-trips a task address unchanged", () => {
+    // The track is written into the same key as everything else, so the link in
+    // the bar and the link in a chat message are the hash the player arrived on.
+    const hash = "#challenge=tutorial-3,timescale=8,autostart=true";
+    expect(createParamsUrl(parseQuery(hash))).toBe(hash);
+    expect(route(createParamsUrl(parseQuery(hash))).tutorialIndex).toBe(2);
+  });
+
+  it("takes a player on a task off the track when the navigation row rewrites the key", () => {
+    // Every entry of the row is `createParamsUrl(query, { challenge: index + 1,
+    // seed: null })` (src/app/app.ts), and `challenge` is the key a task
+    // address is written into -- so clicking challenge 5 from task 3 replaces
+    // the track rather than joining it. The row is the way out, and no separate
+    // "leave the track" link is needed to build one.
+    const query = parseQuery("#challenge=tutorial-3,timescale=8");
+    const url = createParamsUrl(query, { challenge: 5, seed: null });
+    expect(url).toBe("#challenge=5,timescale=8");
+    expect(route(url).tutorialIndex).toBeNull();
+    expect(route(url).challengeIndex).toBe(4);
+  });
+
   it("cannot build a url that names one parameter twice", () => {
     // The property the whole of the case folding exists for: whatever the
     // player wrote, an override replaces the parameter rather than joining it.
@@ -184,6 +208,7 @@ describe("resolveRoute defaults", () => {
     expect(route("")).toEqual({
       challengeIndex: 0,
       sandbox: null,
+      tutorialIndex: null,
       autoStart: false,
       timeScale: DEFAULT_TIME_SCALE,
       devTest: false,
@@ -199,6 +224,7 @@ describe("resolveRoute defaults", () => {
     ).toEqual({
       challengeIndex: 3,
       sandbox: null,
+      tutorialIndex: null,
       autoStart: true,
       timeScale: 8,
       devTest: true,
@@ -495,6 +521,163 @@ describe("resolveRoute sandbox validation", () => {
   });
 });
 
+describe("resolveRoute tutorial selection", () => {
+  it("is off unless the url asks for it", () => {
+    expect(route("").tutorialIndex).toBeNull();
+    expect(route("#challenge=4").tutorialIndex).toBeNull();
+    expect(route("#challenge=sandbox").tutorialIndex).toBeNull();
+  });
+
+  it("opens the task its address names, zero-based", () => {
+    // Spelled out rather than generated, because these eight strings are the
+    // promise: they are written down in docs/tutorial-plan.md and handed round
+    // in links, and a link somebody already shared has to keep working.
+    for (let number = 1; number <= 8; number += 1) {
+      const hash = `#challenge=tutorial-${String(number)}`;
+      expect(route(hash).tutorialIndex, hash).toBe(number - 1);
+    }
+    expect(console.warn).not.toHaveBeenCalled();
+  });
+
+  it("reaches every task in the table by the id it carries", () => {
+    // The router's whole grammar for the track is the table's ids, so a task
+    // renamed or moved takes its address with it instead of handing somebody's
+    // bookmark to a different task.
+    tutorialTasks.forEach((task, index) => {
+      expect(route(`#challenge=${task.id}`).tutorialIndex, task.id).toBe(index);
+    });
+    expect(console.warn).not.toHaveBeenCalled();
+  });
+
+  it("spells every task id the way it recognises one", () => {
+    // The prefix is the one thing about a task address the router states for
+    // itself, and it is what tells a mistyped one from a challenge number. A
+    // task renamed out of this shape would not be oddly named, it would be
+    // unreachable -- so the two are checked against each other here.
+    for (const task of tutorialTasks) {
+      expect(task.id.startsWith(TUTORIAL_CHALLENGE_PREFIX), task.id).toBe(true);
+    }
+  });
+
+  it("reads a task address however it is capitalised", () => {
+    // Folded where it is read, as `sandbox` is, and not for every value at once.
+    expect(route("#challenge=TUTORIAL-3").tutorialIndex).toBe(2);
+    expect(route("#CHALLENGE=Tutorial-3").tutorialIndex).toBe(2);
+    expect(console.warn).not.toHaveBeenCalled();
+  });
+
+  it("does not complain that a task address is not a challenge number", () => {
+    // resolveChallengeIndex would read `tutorial-3` as NaN and say so, which is
+    // noise about a number the player never wrote.
+    const params = route("#challenge=tutorial-3");
+    expect(params.refusedKeys).toEqual([]);
+    expect(console.warn).not.toHaveBeenCalled();
+  });
+
+  it("never resolves a task and a sandbox at once", () => {
+    // One key, three things it can name. Nothing spells two of them.
+    const task = route("#challenge=tutorial-3");
+    expect(task.tutorialIndex).toBe(2);
+    expect(task.sandbox).toBeNull();
+    const sandbox = route("#challenge=sandbox");
+    expect(sandbox.sandbox).not.toBeNull();
+    expect(sandbox.tutorialIndex).toBeNull();
+  });
+
+  it("ignores sandbox parameters while a task is being played", () => {
+    // Carried across by the navigation row, inert here, and still there if the
+    // player goes back to the sandbox -- exactly as on a numbered challenge.
+    const params = route("#challenge=tutorial-3,floors=50,elevators=9");
+    expect(params.tutorialIndex).toBe(2);
+    expect(params.sandbox).toBeNull();
+    expect(params.refusedKeys).toEqual([]);
+  });
+
+  it("is not selected by something that merely looks like it", () => {
+    // The prefix is exact, as `sandboxes` is not the sandbox: a value that is
+    // not a task address is a challenge number, and is refused as one.
+    for (const value of ["tutorial", "tutorials-1", "atutorial-1"]) {
+      const params = route(`#challenge=${value}`);
+      expect(params.tutorialIndex, value).toBeNull();
+      expect(params.challengeIndex, value).toBe(0);
+      expect(console.warn).toHaveBeenCalledWith(
+        `Invalid challenge "${value}", starting the first challenge instead`,
+      );
+    }
+  });
+});
+
+describe("resolveRoute tutorial validation", () => {
+  it("lands a wrong task address on the first task, not on the first challenge", () => {
+    // The player asked for the track, so the closest thing to what they asked
+    // for is where the track starts. Landing on challenge 1 would answer a
+    // question about the track with a challenge.
+    for (const value of [
+      "tutorial-0",
+      "tutorial-9",
+      "tutorial-abc",
+      "tutorial-",
+      "tutorial-1.5",
+      "tutorial--1",
+      "tutorial- 1",
+      "tutorial-<script>",
+    ]) {
+      const params = route(`#challenge=${value}`);
+      expect(params.tutorialIndex, value).toBe(0);
+      expect(params.refusedKeys, value).toEqual(["challenge"]);
+      expect(console.warn).toHaveBeenCalledWith(
+        `Invalid tutorial task "${value}", starting the first task instead`,
+      );
+    }
+  });
+
+  it("refuses the numbers Number() would have read for a name", () => {
+    // Deliberate, and the reason the addresses are compared rather than parsed:
+    // `01`, `1e0` and `1.0` are ways of writing the number one, and none of them
+    // is a way of writing the name `tutorial-1`. `Number` accepts all three --
+    // and reads `tutorial-` as 0 and `tutorial- 1` as 1 besides, the two traps
+    // resolveChallengeIndex and resolveSandboxInteger already document.
+    //
+    // Each still lands on the first task, which is where `tutorial-1` lands, so
+    // the warning and the refusal are the only things that tell the two apart:
+    // the same point #challenge=1e9 makes on the challenge side.
+    for (const value of ["tutorial-01", "tutorial-1e0", "tutorial-1.0", "tutorial-0x1"]) {
+      const params = route(`#challenge=${value}`);
+      expect(params.tutorialIndex, value).toBe(0);
+      expect(params.refusedKeys, value).toEqual(["challenge"]);
+      expect(console.warn).toHaveBeenCalledWith(
+        `Invalid tutorial task "${value}", starting the first task instead`,
+      );
+    }
+  });
+
+  it("keeps the rest of the url working on the track", () => {
+    expect(
+      route(
+        "#challenge=tutorial-3,seed=issue-61,timescale=8,autostart,devtest=true,fullscreen=true",
+      ),
+    ).toEqual({
+      challengeIndex: 0,
+      sandbox: null,
+      tutorialIndex: 2,
+      autoStart: true,
+      timeScale: 8,
+      devTest: true,
+      fullscreen: true,
+      seed: "issue-61",
+      refusedKeys: [],
+    });
+  });
+
+  it("refuses the rest of the url on the track exactly as anywhere else", () => {
+    const params = route("#challenge=tutorial-3,timescale=fast,seed=rush hour");
+    expect(params.tutorialIndex).toBe(2);
+    expect(params.timeScale).toBe(DEFAULT_TIME_SCALE);
+    expect(params.seed).toBeNull();
+    expect(params.refusedKeys).toEqual(["timescale", "seed"]);
+  });
+});
+
 describe("resolveRoute refusals", () => {
   it("names nothing when the url asks for nothing", () => {
     expect(route("").refusedKeys).toEqual([]);
@@ -752,6 +935,47 @@ describe("startRouter", () => {
     expect(onRoute.mock.calls[0]?.[0]).toMatchObject({ challengeIndex: 1, seed: null });
   });
 
+  it("corrects a wrong task address to the first task instead of dropping it", () => {
+    // Deleting the key would leave `#`, which is the first *challenge*: the bar
+    // would describe a run nobody is watching, and a reload would take the
+    // player to it. The first task has no spelling but its own id, and the
+    // player did choose the track, so the id is not a choice invented for them.
+    const target = new FakeTarget();
+    target.location = { hash: "#challenge=tutorial-9,timescale=8" };
+    const onRoute = vi.fn();
+
+    startRouter(onRoute, {
+      challengeCount: 18,
+      defaultTimeScale: () => DEFAULT_TIME_SCALE,
+      target,
+    });
+
+    // Rewritten where it stood, so the corrected url still reads in the order
+    // it was written.
+    expect(target.replaced).toEqual(["#challenge=tutorial-1,timescale=8"]);
+    expect(onRoute).toHaveBeenCalledTimes(1);
+    const params = onRoute.mock.calls[0]?.[0] as RouteParams | undefined;
+    const query = onRoute.mock.calls[0]?.[1] as RouteQuery | undefined;
+    expect(params).toMatchObject({ tutorialIndex: 0, refusedKeys: ["challenge"] });
+    expect(query?.get("challenge")).toBe("tutorial-1");
+    // The whole point of correcting: what the address bar says now resolves to
+    // the run that is on screen, refusals and all.
+    expect(route(target.location.hash)).toEqual({ ...params, refusedKeys: [] });
+  });
+
+  it("still deletes the other refusals it finds on the track", () => {
+    const target = new FakeTarget();
+    target.location = { hash: "#challenge=tutorial-9,seed=rush%20hour" };
+
+    startRouter(vi.fn(), {
+      challengeCount: 18,
+      defaultTimeScale: () => DEFAULT_TIME_SCALE,
+      target,
+    });
+
+    expect(target.replaced).toEqual(["#challenge=tutorial-1"]);
+  });
+
   it("empties the hash when nothing in it survived", () => {
     const target = new FakeTarget();
     target.location = { hash: "#challenge=abc" };
@@ -795,6 +1019,8 @@ describe("startRouter", () => {
     // there is nothing to correct. Only a refusal is a URL describing something
     // nobody is playing.
     "#challenge=sandbox,floors=100000",
+    // A task address that opens a task is a url that says what is running.
+    "#challenge=tutorial-3,timescale=8",
   ])("leaves %s alone", (hash) => {
     const target = new FakeTarget();
     target.location = { hash };
