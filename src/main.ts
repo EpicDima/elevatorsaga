@@ -25,7 +25,7 @@ import { createWorldController } from "./game/world-controller.ts";
 import { formatTime, t } from "./i18n/index.ts";
 import { requireElement } from "./ui/dom.ts";
 import { CodeEditor, codeMirrorView } from "./ui/editor.ts";
-import { localisePage } from "./ui/localise-page.ts";
+import { applyPreferredLocale } from "./ui/preferred-locale.ts";
 import { presentVersion } from "./ui/version.ts";
 
 declare global {
@@ -48,14 +48,19 @@ const MAX_STEP_SECONDS = 1.0 / 60.0;
 
 /**
  * Builds the game and starts it.
+ *
+ * @returns A promise that settles once the game is running.
  */
-function main(): void {
-  // Before anything is drawn, so that the shell and the game it frames are
-  // never in two languages at once. This also relabels the shortcut keys for
-  // the platform, which used to be a call of its own here: the hint is one of
-  // the messages the shell holds, so rewriting it and relabelling it belong
+async function main(): Promise<void> {
+  // Awaited, and before anything is drawn, so that the shell and the game it
+  // frames are never in two languages at once: for a reader of a language whose
+  // catalogue is fetched rather than bundled this is a round trip in front of
+  // the first frame, and `src/ui/preferred-locale.ts` is where that is weighed
+  // against the alternative. It also relabels the shortcut keys for the
+  // platform, which used to be a call of its own here: the hint is one of the
+  // messages the shell holds, so rewriting it and relabelling it belong
   // together and cannot be left in an order this file happens to get right.
-  localisePage(document, navigator.userAgent);
+  await applyPreferredLocale(document, navigator.userAgent);
   presentVersion();
 
   const editor = new CodeEditor(codeMirrorView(requireElement(".code")));
@@ -139,4 +144,9 @@ function main(): void {
   );
 }
 
-main();
+// Floating on purpose: an entry point has nobody above it to hand a promise to,
+// and this one is asynchronous only because the first thing it does is wait for
+// the reader's catalogue. Anything that throws afterwards surfaces as an
+// unhandled rejection, which is the same console entry a throw from the old
+// synchronous `main` produced.
+void main();
