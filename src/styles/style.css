@@ -459,10 +459,20 @@ dl dd {
  * The monospace face is what tells a 1 from an l and a 0 from an O -- and it is
  * on the seed whether or not it is a link, since a pinned run's seed is plain
  * text and gets transcribed just the same.
+ *
+ * A seed is whatever string the URL carries, not just the ten digits this game
+ * draws: `#seed=` accepts anything, and a shared link can hold a sentence run
+ * together or a 64-character hash. One unbreakable token that long is 548px of
+ * monospace, which pushed a 320px screen 228px sideways -- the whole page, not
+ * just the seed (WCAG 1.4.10). `anywhere` rather than `break-word` because only
+ * `anywhere` counts in the minimum size of a flex item, which is exactly the
+ * measurement the line is laid out by; and rather than `break-all`, which would
+ * split the ordinary ten-digit seed for no reason at all.
  */
 .seedlink,
 .seedvalue {
   font-family: var(--font-mono);
+  overflow-wrap: anywhere;
 }
 
 /*

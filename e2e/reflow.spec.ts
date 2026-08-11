@@ -59,3 +59,64 @@ for (const { name, path } of PAGES) {
     });
   }
 }
+
+/**
+ * A seed as long as a URL can carry one.
+ *
+ * `#seed=` takes whatever string is in the address, not the ten digits this game
+ * happens to draw, and a seed arrives by being pasted from somewhere else at
+ * least as often as it is drawn here. Sixty-four unbreakable characters is a
+ * hash, which is what a program that generates seeds tends to hand out.
+ */
+const LONG_SEED = "a".repeat(64);
+
+/**
+ * The states the challenge bar's seed line has, as the hashes that produce them.
+ *
+ * The line changes shape with the run rather than staying one width: it offers
+ * the seed as a link while nothing is pinned, offers "new draw" once something
+ * is, and holds a paragraph of prose whenever the player opens the explanation.
+ * The default state fitting says nothing about the other two, and it is the
+ * other two that carry the long text.
+ */
+const SEED_STATES = [
+  { name: "a run nothing has pinned", hash: "#challenge=4", open: false },
+  {
+    name: "a pinned run with a 64-character seed",
+    hash: `#challenge=4,seed=${LONG_SEED}`,
+    open: false,
+  },
+  { name: "that seed with the caveat open", hash: `#challenge=4,seed=${LONG_SEED}`, open: true },
+] as const;
+
+for (const { name, hash, open } of SEED_STATES) {
+  for (const width of WIDTHS) {
+    test(`the seed line fits a ${String(width)}px screen showing ${name}`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 800 });
+      await page.goto(`/${hash}`);
+      await expect(page.locator(".challengeseed")).toBeVisible();
+      if (open) {
+        await page.locator(".seedhelp > summary").click();
+        await expect(page.locator(".seedcaveat")).toBeVisible();
+      }
+
+      const measurements = await page.evaluate(() => {
+        const root = document.documentElement;
+        const line = document.querySelector(".challengeseed");
+        return {
+          // The page, which is what the criterion is about: an unbreakable
+          // 64-character seed is 548px of monospace, and before the line was
+          // allowed to break one it took the whole document sideways with it.
+          overflow: root.scrollWidth - root.clientWidth,
+          // And the line itself, so that "fits" cannot be satisfied by an
+          // ancestor quietly clipping the tail of the seed off the screen.
+          rightEdge: Math.round(line.getBoundingClientRect().right),
+          viewport: root.clientWidth,
+        };
+      });
+
+      expect(measurements.overflow).toBeLessThanOrEqual(0);
+      expect(measurements.rightEdge).toBeLessThanOrEqual(measurements.viewport);
+    });
+  }
+}
