@@ -437,18 +437,19 @@ describe("App seed", () => {
    * where. Read off a world that has been driven forward by hand, since the
    * spawns are what the seed's own stream decides.
    *
-   * Driven with a fixed step, which is deliberately *not* what a browser does:
-   * `dt` there comes from `requestAnimationFrame`. So this shows that one seed
-   * is one draw, and cannot show that two interactive runs of it see the same
-   * people -- which is why nothing the app says to the player claims they do.
+   * The step is a parameter because the browser's is not fixed -- `dt` there
+   * comes from `requestAnimationFrame` -- and the promise in the bar has to
+   * survive that, not merely a clock this file drives itself.
    *
    * @param app - The app whose world to run and read.
    * @param seconds - How many simulated seconds to run for.
+   * @param step - Simulated seconds per frame; a power of one half, so that the
+   * total is reached exactly whichever step is used.
    * @returns One entry per passenger, as `from>to`.
    */
-  function passengerStream(app: App, seconds: number): string[] {
-    for (let i = 0; i < seconds; i += 1) {
-      app.world?.update(1.0);
+  function passengerStream(app: App, seconds: number, step = 1.0): string[] {
+    for (let elapsed = 0; elapsed < seconds; elapsed += step) {
+      app.world?.update(step);
     }
     return (app.world?.users ?? []).map(
       (user) => `${String(user.currentFloor)}>${String(user.destinationFloor)}`,
@@ -467,26 +468,32 @@ describe("App seed", () => {
     expect(typeof app.world?.seed).toBe("number");
   });
 
-  it("starts two runs of one seed from the same draw", () => {
-    // The wiring the feature rests on: the same URL twice, the same seed reaches
-    // the world, and the same people come out of it.
+  it("brings one seed's passengers back whatever the frame length", () => {
+    // The promise the bar makes, tested the way the browser breaks it: two runs
+    // of one URL, fed frames of different lengths, and the same people appear in
+    // the same order, from the same floors, wanting the same destinations.
     //
-    // Both worlds are stepped by the same fixed clock, so this is the claim at
-    // its full width and no wider. Under a browser's frames it does not hold:
-    // `#handleButtonRepressing` in `src/game/world.ts` and the walk-off duration
-    // in `src/game/user.ts` draw from the stream the passengers come from, at
-    // moments the frame length decides, so two interactive runs of one seed are
-    // running with different people in them within seconds. Measured, not
-    // assumed. That is the whole reason the bar and the console say a seed is
-    // one draw rather than one cast of characters.
+    // Stepping both by the same clock would prove only that a PRNG is a PRNG.
+    // Varying it is what has teeth: before `e2cc0b5` this failed, because the
+    // re-press offset in `src/game/world.ts` and the walk-off duration in
+    // `src/game/user.ts` drew from the stream the passengers came from, at
+    // moments the frame length decided. If either goes back into it, this test
+    // is what says so.
+    //
+    // How many have arrived by a given second is not part of the promise -- the
+    // spawn accumulator crosses its threshold at frame boundaries -- so the two
+    // are compared as far as they both go.
     const first = setUp().app;
     first.handleRoute(...routeFor("#challenge=sandbox,floors=8,spawnrate=2,seed=issue-61"));
     const second = setUp().app;
     second.handleRoute(...routeFor("#challenge=sandbox,floors=8,spawnrate=2,seed=issue-61"));
 
-    const stream = passengerStream(first, 10);
-    expect(stream.length).toBeGreaterThan(15);
-    expect(passengerStream(second, 10)).toEqual(stream);
+    const slow = passengerStream(first, 10, 1.0);
+    const fast = passengerStream(second, 10, 0.25);
+    const shared = Math.min(slow.length, fast.length);
+
+    expect(shared).toBeGreaterThan(15);
+    expect(fast.slice(0, shared)).toEqual(slow.slice(0, shared));
   });
 
   it("gives two unseeded runs different passengers", () => {
@@ -597,26 +604,24 @@ describe("App seed", () => {
     app.handleRoute(...routeFor("#challenge=1,seed=issue-61"));
 
     expect(console.log).toHaveBeenCalledWith(
-      `Seed issue-61 — comes back to where this run started, though not to the run itself: ` +
+      `Seed issue-61 — the same passengers again, though never quite the same run: ` +
         `${window.location.origin}/#challenge=1,seed=issue-61`,
     );
   });
 
-  it("says nothing about repeating a run or its passengers, because it cannot", () => {
-    // The controller takes its dt from requestAnimationFrame timestamps, and the
-    // re-press offset in `src/game/world.ts` and the walk-off duration in
-    // `src/game/user.ts` share the stream the passengers are drawn from -- so
-    // two interactive runs of one seed are running with different people in them
-    // within seconds. The line may offer the starting point and no more. Only
-    // the headless paths -- the fitness suite and these tests -- repeat a run
-    // step for step.
+  it("offers the passengers back, and says the run is not, because it is not", () => {
+    // The controller takes its dt from requestAnimationFrame timestamps, so the
+    // cars stand somewhere else as each passenger appears and the player's
+    // program is asked to decide at different moments. The people repeat; what
+    // happens to them does not. Only the headless paths -- the fitness suite and
+    // these tests -- repeat a run step for step.
     const { app } = setUp();
     app.handleRoute(...routeFor("#challenge=1,seed=issue-61"));
 
     const printed = vi.mocked(console.log).mock.calls.map(([message]) => String(message));
     expect(printed).toHaveLength(1);
-    expect(printed[0]).toContain("not to the run itself");
-    expect(printed[0]).not.toMatch(/exact|identical|replay|same passengers/i);
+    expect(printed[0]).toContain("never quite the same run");
+    expect(printed[0]).not.toMatch(/exact|identical|replay/i);
   });
 
   it("prints a fresh line for every run, including a restart", () => {

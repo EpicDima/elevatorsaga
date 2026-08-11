@@ -295,25 +295,23 @@ describe("challengeTemplate", () => {
       expect(fragment.querySelector(".challengeseed")?.textContent).toBe("Seed 1234567890");
     });
 
-    it("promises the start of a run and no more of it than that", () => {
-      // A seed fixes where the random choices begin, and nothing after that: the
-      // re-press offset in world.ts and the walk-off duration in user.ts come
-      // out of the stream the passengers do, at moments the frame length
-      // decides, and dt comes from requestAnimationFrame. So the line may not
-      // promise the passengers, let alone the run.
+    it("promises the passengers, and stops short of promising the run", () => {
+      // The seed brings the same people in the same order, which is the whole
+      // point of the affordance. It cannot bring the run: dt comes from
+      // requestAnimationFrame, so the cars stand somewhere else as each of them
+      // appears and the player's program is asked at different moments.
       const explanation = bar({ num: 1, description: "x", links: links(3) }, SEED)
         .querySelector(".seedlabel")
         ?.getAttribute("title");
 
       expect(explanation).toBe(
-        "A seed decides the random choices a run starts from, so this link comes back to where " +
-          "this run started. Frame timing comes from the browser, so two runs of one seed drift " +
-          "apart as they go.",
+        "The same seed brings the same passengers, in the same order. Frame timing comes from " +
+          "the browser, so the run around them is never quite the same twice.",
       );
       expect(explanation).not.toMatch(/replay|exact|identical/i);
       // The caveat is the whole point of the second sentence, so it may not go
-      // missing while the offer in front of it stays.
-      expect(explanation).toContain("drift apart");
+      // missing while the promise in front of it stays.
+      expect(explanation).toContain("never quite the same twice");
     });
 
     it("leaves the line out entirely when the run has no seed", () => {

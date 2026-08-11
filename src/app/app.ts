@@ -338,12 +338,13 @@ export class App {
   /**
    * Acts on a route: applies its options and starts the challenge it names.
    *
-   * The URL also decides, alone, where a run's random choices begin again. A
-   * `seed` in the hash pins one and nothing else does, so `#seed=…` starts from
-   * the same draw at the Restart button, at Ctrl-Enter and at a reload alike,
-   * while a URL without one draws a fresh seed on every one of them. How far
-   * that carries into the run itself is the subject of `SEED_EXPLANATION` in
-   * `src/ui/templates.ts`, and the answer is: not as far as anyone would like.
+   * The URL also decides, alone, whether the same people walk in again. A `seed`
+   * in the hash pins one and nothing else does, so `#seed=…` brings the same
+   * passengers in the same order from the Restart button, from Ctrl-Enter and
+   * from a reload alike, while a URL without one draws a fresh seed on every one
+   * of them. How far that carries into the run itself is the subject of
+   * `SEED_EXPLANATION` in `src/ui/templates.ts`: the passengers, yes; the run
+   * they arrive into, no.
    *
    * The tempting alternative — remembering the seed the last run generated and
    * reusing it on Restart, but not on reload — was rejected twice over. It would
@@ -429,7 +430,7 @@ export class App {
       // until it has already gone wrong -- by which time the only record of what
       // it was is this line.
       console.log(
-        `Seed ${seed.seed} — comes back to where this run started, though not to the run itself: ${absoluteUrl(seed.url)}`,
+        `Seed ${seed.seed} — the same passengers again, though never quite the same run: ${absoluteUrl(seed.url)}`,
       );
     }
 

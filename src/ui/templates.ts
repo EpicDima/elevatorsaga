@@ -227,34 +227,28 @@ export interface SeedLinkData {
 /**
  * What the seed line says about what a seed does and does not fix.
  *
- * Kept truthful on purpose, and much narrower than the obvious wording. A seed
- * fixes where a run's random choices begin. It does not fix who turns up: one
- * stream serves three callers — `spawnUserRandomly` in `src/game/world.ts`, the
- * re-press offset in the same file, and the walk-off duration in
- * `src/game/user.ts` — and the last two are drawn at moments the simulation's
- * own dynamics decide. `dt` comes from `requestAnimationFrame` timestamps in
- * `src/game/world-controller.ts`, so a longer or shorter frame reorders those
- * draws and the passengers after them are different people. Measured, not
- * assumed: a microsecond per frame is enough to part two runs of one seed. Only
- * the headless paths — the fitness suite and the tests, which drive the clock
- * themselves — repeat a run step for step.
+ * Both halves are load-bearing, and each was measured rather than assumed.
  *
- * So "replay this run" is the natural thing to write here, and so is "the same
- * passengers"; both are promises the browser cannot keep, and neither is made.
- * "Where this run started" is what is left, and it is true.
+ * The passengers really do come back, and that is neither free nor old. Until
+ * `e2cc0b5` the re-press offset in `src/game/world.ts` and the walk-off duration
+ * in `src/game/user.ts` drew from the stream the passengers came from, at
+ * moments the simulation's own dynamics decided — so a frame a microsecond
+ * longer reordered the draws and everyone after that point was somebody else.
+ * Those two have streams of their own now, and one seed brings one cast of
+ * characters however the frames fall. That is what makes the affordance worth
+ * having: comparing two programs means comparing them on the same people.
  *
- * The narrowness is removable, and it belongs to the engine rather than to this
- * line: giving the re-press offset and the walk-off duration streams of their
- * own — `deriveRandomSource`, exactly as the boarding slots already do — would
- * take them out of the spawn stream and leave the Nth passenger the same person
- * however the frames fall. If that lands in `src/game/`, this sentence, the
- * console line in `src/app/app.ts` and the tests that pin them can promise the
- * passengers, which is the thing a player actually wants.
+ * The run does not come back. `dt` comes from `requestAnimationFrame` timestamps
+ * in `src/game/world-controller.ts`, so the cars are in different places as each
+ * passenger appears, the player's program is asked to decide at different
+ * moments, and the outcome moves with them. Only the headless paths — the
+ * fitness suite and the tests, which drive the clock themselves — repeat a run
+ * step for step. "Replay this run" is the natural thing to write here and would
+ * be a promise the browser cannot keep, so it is not made.
  */
 const SEED_EXPLANATION =
-  "A seed decides the random choices a run starts from, so this link comes back to where this " +
-  "run started. Frame timing comes from the browser, so two runs of one seed drift apart as " +
-  "they go.";
+  "The same seed brings the same passengers, in the same order. Frame timing comes from the " +
+  "browser, so the run around them is never quite the same twice.";
 
 /**
  * The seed of the run in progress, as a link that starts it again.
