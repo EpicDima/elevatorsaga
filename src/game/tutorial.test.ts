@@ -84,16 +84,25 @@ const NOTHING_HAPPENED: ChallengeWorldStats = {
  * Asserts a bar could be cleared by a program better than any that can exist.
  *
  * The bound is the spawn rate. Passengers appear one every `1 / spawnRate`
- * seconds, so at the moment the *k*th of them exists no program has delivered
- * more than *k*, and none has done it in less than `k / spawnRate` seconds. The
- * probe hands the condition exactly that trajectory, with a waiting time of
- * zero, which is a program that teleports each passenger the instant they
- * arrive. If even that loses, the task is arithmetically unwinnable and the
- * threshold is a typo.
+ * seconds, so no program has delivered more than *k* of them by the time the
+ * *k*th arrives. The probe hands the condition that trajectory — *k* delivered
+ * at `k / spawnRate` seconds, with a waiting time of zero — which is a program
+ * that teleports every passenger the instant they arrive. If even that loses,
+ * the task is arithmetically unwinnable and the threshold is a typo.
  *
- * Deliberately a loose bound: real deliveries cost travel time, so passing this
- * says only "not impossible", never "achievable". The achievable half is what
- * `tutorial-solutions.test.ts` measures by running the answer.
+ * Deliberately a loose bound, and loose in two directions. Real deliveries cost
+ * travel time, so passing says only "not impossible", never "achievable" — the
+ * achievable half is what `tutorial-solutions.test.ts` measures by running the
+ * answer. And the trajectory lags the engine by one spawn interval:
+ * {@link "./world.ts"!World} starts its spawn clock full, so the first
+ * passenger appears at once and the *k*th at about `(k - 1) / spawnRate`. Both
+ * errors point the same way — this probe can be too strict, never too lenient —
+ * which is the only direction a sanity check is allowed to be wrong in.
+ *
+ * Against a condition made of waiting time the zero is doing all the work, and
+ * the probe degenerates to "the required count is finite". That is deliberate:
+ * any non-zero wait it could assume would be a guess about how far the car has
+ * to drive, and a guess is the one thing a bound like this must not contain.
  *
  * @param task - The task whose condition is probed.
  */
@@ -176,7 +185,12 @@ describe("Learning track table", () => {
     // wrong so much as wasteful of the one thing that makes the measurements
     // independent: a physics change that happens to be kind to one stream would
     // then be kind to two tasks at once, and the suite would notice less.
-    const seeds = tutorialTasks.map((task) => task.seed);
+    //
+    // Compared as text because that is how a seed is consumed: every stream
+    // goes through `String(seed)` in {@link "./random.ts"!createRandomSource},
+    // so the number 1 and the string "1" are one passenger stream wearing two
+    // types, and a set of the raw values would count them as two.
+    const seeds = tutorialTasks.map((task) => String(task.seed));
     expect(new Set(seeds).size).toBe(seeds.length);
   });
 });

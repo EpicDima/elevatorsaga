@@ -87,8 +87,16 @@ export interface TutorialTask {
  *
  * The mistake is visible from the shape of the code alone — one `goToFloor`
  * where a two-floor building needs two — and it is fatal rather than merely
- * slow: a car that never moves never opens its doors, so it is not that the
- * building is served badly, it is that nobody is served at all.
+ * slow: nobody is served at all, on any seed, however long the run.
+ *
+ * What that looks like on screen is worth stating exactly, because it is not
+ * "an empty elevator standing still". {@link "./world.ts"!World} nudges a
+ * standing car when a waiting passenger presses the button again, which sends
+ * the car to the floor it is already on — doors open, people board. So the
+ * parked car fills up (load factor 0.73 by 30 s on the pinned seed) and then
+ * holds them there with `moveCount` at zero. A full elevator that delivers
+ * nobody is a better first lesson than an empty one, and it is what the player
+ * actually sees.
  */
 const TASK_1_START = `{
     init: function(elevators, floors) {
@@ -321,9 +329,14 @@ const TASK_6_START = `{
  * Task 6's answer: admit the car goes both ways.
  *
  * Both indicators lit is the honest statement of a program that has no notion
- * of direction, and it is what the game's own starter code does by default.
- * Turning them off entirely would work too; this is written the way the hints
- * explain it, as "say yes to everyone until you have something truer to say".
+ * of direction, and it is what a car is built with, so deleting the two lines
+ * is the same program and the same run — the hints offer that as the answer
+ * too. Switching them both *off* is emphatically not the same program, which is
+ * worth knowing before anyone writes that in a hint: a passenger boards only a
+ * car that admits it goes their way, so an unlit car is one nobody enters, and
+ * it delivers nobody at all on every seed measured. Written as two explicit
+ * `true`s because the lesson is what the indicators *say*, and "say yes to
+ * everyone until you have something truer to say" needs a line to point at.
  */
 const TASK_6_SOLUTION = `{
     init: function(elevators, floors) {
@@ -529,12 +542,22 @@ export const tutorialTasks: readonly TutorialTask[] = [
   },
   {
     id: "tutorial-7",
-    // 1.2 passengers a second over six floors: heavy enough that one car cannot
-    // keep up however cleverly it is driven, which is what makes "use the other
-    // elevator" the only available answer rather than one optimisation among
-    // several. The plan had already retuned this task once; the numbers still
-    // hold. Answer: 28 delivered by 48.3 s of 60 at worst. Starting code: 23 of
-    // the required 28 on its best seed, so the single car is not close.
+    // 1.2 passengers a second over six floors. The plan had already retuned
+    // this task once; the numbers still hold. Answer: 28 delivered by 48.3 s of
+    // 60 at worst. Starting code: 23 of the required 28 on its best seed, which
+    // is the number the threshold of 28 was placed above.
+    //
+    // What 28 does not do is *force* the lesson. Delete the hall-call block
+    // from the starting code and the one car left driving, wandering between
+    // cabin destinations, delivers up to 32 in the same 60 s and wins eight of
+    // the ten seeds including this one — a program strictly smaller than the
+    // one the player is handed, and one that never touches the second car.
+    // Requiring 33 would exclude every one-car program measured while the
+    // answer still wins on all ten seeds, its worst delivering 36. The bar is
+    // left at the plan's 28 anyway: what this table guarantees is that the
+    // given program loses and the shown answer wins, which holds either way,
+    // and how hard a task leans on its lesson is the curriculum's decision, not
+    // the harness's. Measured and reported rather than quietly retuned.
     options: { floorCount: 6, elevatorCount: 2, spawnRate: 1.2 },
     condition: requireUserCountWithinTime(28, 60),
     seed: "tutorial-7",
