@@ -391,14 +391,26 @@ export interface ChallengeTemplateData {
  * elements. They are a plain container with real buttons now; `.timescale`
  * carries the heading's former metrics so the bar looks the same.
  *
- * The navigation row comes last, so the three controls that were already there
- * keep the tab positions they have always had. It is a `<nav>` around a list:
- * the landmark gives it a name and a way to be jumped to, and the list tells a
- * screen reader up front how many challenges there are — the one thing the row
- * is for. Real links rather than buttons, so the browser's own affordances
- * (open in a new tab, copy the address, the status bar) all work; navigation is
- * the hash change the router already listens for, so nothing has to be wired to
- * them at all.
+ * Everything here is in the order it is read in: the requirement, the speed, the
+ * start button, then the row of challenges and the seed. That is not decoration.
+ * The bar used to be floats — `float: right` lays the *first* element out
+ * furthest right — so the start button was written before the speed controls and
+ * drawn after them, and Tab walked the bar backwards against the screen (WCAG
+ * 2.4.3). The stylesheet lays this out with flex in document order and has no
+ * `order` or `row-reverse` in it, so the two orders cannot come apart again.
+ *
+ * The speed and the start button share a container because they are what drives
+ * the run in progress, and because the bar becomes two lines somewhere around
+ * 600px: without it the start button falls under the speed on its own and the
+ * pair reads as two unrelated things at exactly the width where the reader has
+ * the least room to work out that they are not.
+ *
+ * The navigation row is a `<nav>` around a list: the landmark gives it a name
+ * and a way to be jumped to, and the list tells a screen reader up front how many
+ * challenges there are — the one thing the row is for. Real links rather than
+ * buttons, so the browser's own affordances (open in a new tab, copy the address,
+ * the status bar) all work; navigation is the hash change the router already
+ * listens for, so nothing has to be wired to them at all.
  *
  * The seed shares that second line rather than taking a third: it is a debugging
  * aid, and the bar sits directly above the building, where every pixel it grows
@@ -413,7 +425,7 @@ export interface ChallengeTemplateData {
 export function challengeTemplate(data: ChallengeTemplateData): string {
   const links = data.links.map((link) => challengeLinkTemplate(link)).join("");
   const seed = data.seed === null ? "" : seedTemplate(data.seed);
-  return markup`<div class="left"><h2 class="challengetitle">Challenge #${data.num}: ${raw(data.description)}</h2></div><button type="button" class="right startstop unselectable"></button><div class="right timescale"><button type="button" class="timescale_decrease unselectable" aria-label="Decrease simulation speed">${raw(iconMarkup("minus-square"))}</button> <span class="emphasis-color timescale_value"></span> <button type="button" class="timescale_increase unselectable" aria-label="Increase simulation speed">${raw(iconMarkup("plus-square"))}</button></div><div class="challengefooter"><nav class="challengenav" aria-label="Challenges"><ul>${raw(links)}</ul></nav>${raw(seed)}</div>`;
+  return markup`<h2 class="challengetitle">Challenge #${data.num}: ${raw(data.description)}</h2><div class="challengecontrols"><div class="timescale"><button type="button" class="timescale_decrease unselectable" aria-label="Decrease simulation speed">${raw(iconMarkup("minus-square"))}</button> <span class="emphasis-color timescale_value"></span> <button type="button" class="timescale_increase unselectable" aria-label="Increase simulation speed">${raw(iconMarkup("plus-square"))}</button></div><button type="button" class="startstop unselectable"></button></div><div class="challengefooter"><nav class="challengenav" aria-label="Challenges"><ul>${raw(links)}</ul></nav>${raw(seed)}</div>`;
 }
 
 /** Everything the end-of-challenge overlay needs in order to render itself. */

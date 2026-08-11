@@ -270,23 +270,39 @@ describe("challengeTemplate", () => {
     expect(nav?.querySelectorAll("ul > li > a.challengelink")).toHaveLength(3);
   });
 
-  it("puts the row after the controls that were already in the bar", () => {
-    // The start and time-scale buttons keep the tab positions they have always
-    // had; the nineteen new stops come after them, and the seed -- which is a
-    // debugging aid rather than part of the game -- comes last of all.
+  it("tabs through the bar in the order it is read in", () => {
+    // WCAG 2.4.3. The speed controls are drawn to the left of the start button,
+    // so they are written before it; the nineteen challenge stops come after
+    // both, and the seed -- a debugging aid rather than part of the game --
+    // comes last of all. The bar reached this order by losing the `float: right`
+    // that used to draw the first-written control furthest right, so a class
+    // name is asserted here and not just a tag: `right` coming back on any of
+    // these is the layout and the tab order coming apart again.
     const fragment = bar({ num: 1, description: "x", links: links(3) }, SEED);
     // `<summary>` is focusable and in the tab order without a tabindex, which is
     // the whole reason the caveat lives in one, so it counts as a stop here.
     const focusable = [...fragment.querySelectorAll("button, a, summary")];
 
     expect(focusable.slice(0, 3).map((element) => element.className)).toEqual([
-      "right startstop unselectable",
       "timescale_decrease unselectable",
       "timescale_increase unselectable",
+      "startstop unselectable",
     ]);
     expect(focusable.slice(3, -1).every((element) => element.tagName === "A")).toBe(true);
     expect(focusable.at(-2)?.className).toBe("seedlink");
     expect(focusable.at(-1)?.tagName).toBe("SUMMARY");
+  });
+
+  it("keeps the speed and the start button in one box", () => {
+    // Not decoration: the bar wraps somewhere around 600px, and loose in the
+    // row the start button falls under the speed on its own. One box, so the
+    // two things that drive the run wrap as the pair they are.
+    const controls = bar({ num: 1, description: "x", links: links(3) }).querySelector(
+      ".challengecontrols",
+    );
+
+    expect(controls?.querySelector(".timescale")).not.toBeNull();
+    expect(controls?.querySelector(".startstop")).not.toBeNull();
   });
 
   it("escapes a link url rebuilt from the location hash", () => {

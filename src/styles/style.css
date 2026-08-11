@@ -194,14 +194,6 @@ dl dd {
   opacity: 0.4;
 }
 
-.left {
-  float: left;
-}
-
-.right {
-  float: right;
-}
-
 .blink {
   animation: blink 0.5s steps(3, start) infinite;
 }
@@ -306,34 +298,88 @@ dl dd {
 
 /*
  * The bar was a fixed 40px, which was exactly the title line it held. It now
- * has a second line under the floats -- the row of challenge links -- and that
+ * has a second line under the first -- the row of challenge links -- and that
  * row has to be allowed to grow: on a phone nineteen entries wrap onto three or
  * four lines, and a fixed height would leave them lying over the building.
+ *
+ * A wrapping flex row, and the reason is the tab order rather than the look.
+ * This was `float: left` on the title and `float: right` on the two controls,
+ * and a float lays the *first* box out furthest from the content edge: the start
+ * button was written before the speed controls precisely so that it would be
+ * drawn to the right of them. Tab therefore walked the bar right-to-left,
+ * against the way it reads (WCAG 2.4.3, Focus Order). Flex in document order
+ * puts the same boxes back in the same places -- measured, at nine widths from
+ * 320px up, the title, the speed and the start button land on the pixel they
+ * landed on before -- with the document now saying what it means, and
+ * deliberately without `order` or `row-reverse`, either of which would let the
+ * two orders come apart again. The one width that moved is around 600px, where
+ * the floats used to leave the start button up on the title's line with the
+ * speed stranded below it; the pair now wraps together, and the bar there is
+ * 10px taller for it.
+ *
+ * `justify-content: flex-end` rather than `space-between`: the title takes the
+ * slack (see `.challengetitle`), so the only line this can act on is the one the
+ * controls fall onto when the title has taken the first, and there they belong
+ * at the end, under the start button they were beside a moment earlier.
+ *
+ * `align-items: baseline` is the other deliberate difference: a float hangs from
+ * the top of the block, which had the start button 7px above the requirement it
+ * sits beside. Aligned on the baseline the two now read as one line of text, and
+ * the bar is no taller for it -- 30px of button still fits inside the 40px the
+ * title line already reserved.
  */
 .challenge {
-  display: flow-root;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: flex-end;
+  gap: 0 15px;
   min-block-size: 40px;
 }
 
+/*
+ * The requirement, and the item that takes whatever width the controls do not.
+ * The 20em basis is what decides when the bar becomes two lines: below it the
+ * title, the speed and the start button no longer fit across, and the controls
+ * wrap under the title rather than squeezing it to a column of single words.
+ */
 .challengetitle {
+  flex: 1 1 20em;
   margin-block: 0.4em 0.3em;
   font-size: 1.17em;
   font-weight: normal;
+}
+
+/*
+ * What drives the run: the speed, and the button that starts and pauses it.
+ *
+ * They are one flex item of the bar rather than two so that they wrap as a pair.
+ * Loose, the bar breaks between them somewhere around 600px -- wide enough for
+ * the title and the speed but not the start button -- and the button lands alone
+ * under the speed, reading as something unrelated to it at exactly the width
+ * where there is least room to work out that it is not.
+ *
+ * The 15px gap is the distance the two stood apart under the floats, where it
+ * was spelled as a trailing margin on the speed's `+` and a leading one on the
+ * start button. Two boxes standing apart is a fact about the pair, so the pair
+ * says it, once.
+ */
+.challengecontrols {
+  display: flex;
+  align-items: baseline;
+  gap: 15px;
 }
 
 .timescale {
   margin-block: 0.4em 0.3em;
   font-size: 1.17em;
   color: var(--color-text);
+  white-space: nowrap;
 }
 
 .timescale button {
   padding: 4px;
   line-height: 20px;
-}
-
-.timescale_increase {
-  margin-inline-end: 10px;
 }
 
 .timescale_value {
@@ -345,8 +391,12 @@ dl dd {
 /*
  * The bar's second line: the challenge row, and the seed at the far end of it.
  *
- * `clear` puts the line under the floated title and controls above it, which is
- * the one thing `flow-root` on the bar does not do on its own.
+ * A basis of the full width is what makes it a second line: it is the fourth
+ * item of the bar's own flex row, and an item that asks for every pixel cannot
+ * share a line with the title and the controls, so it wraps under them. This is
+ * the one thing the bar's `flex-wrap` will not do on its own -- the row of
+ * nineteen links is wide, but "wide" is not "wider than whatever is left over",
+ * and on a short challenge list it would have ridden up beside the title.
  *
  * A flex row so the seed costs no height at all on a wide window, and wraps onto
  * a line of its own when the challenge row needs the whole width. `baseline`
@@ -354,7 +404,7 @@ dl dd {
  * it instead of floating in the middle of their boxes.
  */
 .challengefooter {
-  clear: both;
+  flex-basis: 100%;
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
@@ -572,7 +622,6 @@ button[disabled] {
 .startstop {
   /* Wide enough for "Pause", "Start" and the "Restart" icon plus label. */
   inline-size: 110px;
-  margin-inline-start: 5px;
 }
 
 /*
