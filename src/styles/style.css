@@ -319,16 +319,41 @@ dl dd {
  * it means, and deliberately without `order` or `row-reverse`, either of which
  * would let the two orders come apart again.
  *
- * "The same places" is near enough to be worth saying and not exact, and the
- * claim that stood here that it was exact is what a sweep disproved: over all
- * nineteen challenges at every 20px from 320px to 940px, this bar is taller than
- * the float bar in 21 of those 608 places, by at most 25.3px, and shorter in
- * 164. Two things account for the difference. The floats used to leave the start
- * button up on the title's line with the speed stranded below it, and the pair
- * now wraps together, which is the arrangement this replaces the floats for. And
- * the 15px gap below is width the floats never set aside, so this row runs out
- * of room 13.2px of window before theirs did; `.challengetitle` is where that is
- * paid for.
+ * "The same places" is near enough to be worth saying and not exact. Swept over
+ * all nineteen challenges at every 20px from 320px to 940px -- 608 measurements
+ * of this bar's height against the float bar's, in Chromium with the seed
+ * pinned -- this one is taller in 59 of them, shorter in 162 and identical to
+ * the pixel in 387. The claim that stood here that the two were exact was wrong,
+ * and so was the first repair of it, which said 21 taller by at most 25.3px: 21
+ * is the count over 320px to 900px, and 25.3px the worst of the cells it looked
+ * at rather than of the sweep.
+ *
+ * Three things account for the difference, and only two of them are this rule's
+ * doing. The floats used to leave the start button up on the title's line with
+ * the speed stranded below it, and the pair now wraps together, which is the
+ * arrangement this replaces the floats for. And the width the controls leave at
+ * is now a property of the bar instead of the challenge: a basis decides it (see
+ * `.challengetitle`), so they hold their place down to a 501px window on every
+ * one of the nineteen, where under the floats it was the title's own text that
+ * decided -- 345px on challenge 19, 510px on challenge 1, 522px on challenge 5,
+ * 853px on challenge 18. That is the whole shape of the difference: uniform
+ * where it used to vary, which is later than the floats managed on the long
+ * titles and earlier on the short ones. Challenge 19 is the short one, and its
+ * 40.1px between 440px and 500px is the worst cell in the sweep. The bar's own
+ * 15px column gap is part of that width and is width the floats never set aside;
+ * neutralise it and the controls hold on to 486px instead of 501px, so it costs
+ * 15px of window, the same 15px on every challenge.
+ *
+ * The third is not this bar's layout at all. Thirty-eight of the 59, which is
+ * every challenge at 920px and at 940px, are the seed line: it used to sit
+ * beside the row of challenge links whenever it fitted, and now always takes a
+ * line of its own, for the reason written at `.challengeseed`. That landed long
+ * after the floats went, and a sweep of two commits picks it up all the same.
+ * Over 320px to 900px, where the seed line dropped below the links in both, this
+ * bar is taller in 21 of 570 places and shorter in the same 162 -- of which 20
+ * are challenge 18, whose title is two characters longer here than there because
+ * its numbers gained thousands separators in between, and not a layout
+ * difference either.
  *
  * `justify-content: flex-end` rather than `space-between`: the title takes the
  * slack (see `.challengetitle`), so the only line this can act on is the one the
@@ -367,16 +392,21 @@ dl dd {
  * line for the requirement costs 25.3px, and the bar sits directly above the
  * building, where every pixel it grows pushes the game down the page. At 14em
  * the requirement gives way first, and the controls stay beside it down to a
- * 510px window rather than a 620px one -- on challenge 19, whose title is only
- * 209.9px, that is 40.1px of building recovered at every width from 510px to
- * 610px, and on challenge 1 it is 14.8px. No challenge at any width is taller
+ * 501px window rather than a 614px one -- on challenge 19, whose title is only
+ * 209.9px, that is 40.1px of building recovered at every width from 501px to
+ * 613px, and on challenge 1 it is 14.8px. No challenge at any width is taller
  * than 20em left it.
  *
+ * Every width here is bisected to the pixel rather than read off a sweep, which
+ * is what an earlier revision of this comment did: 510px, 620px and 460px are
+ * all the next multiple of ten above the width the layout actually changes at,
+ * and every figure derived from them was out by the same few pixels.
+ *
  * Not lower than 14em, because the requirement is prose and has to stay
- * readable: the break now lands where it still has 271.3px to lay out in, which
+ * readable: the break now lands where it still has 262.3px to lay out in, which
  * is a sentence over two lines rather than the column of single words a basis of
- * 0 would leave. 11em would carry challenge 19 down to 460px, but at 460px it
- * leaves challenge 18's title 221.3px and that bar 12.2px taller than it is now,
+ * 0 would leave. 11em would carry challenge 19 down to 445px, but at 445px it
+ * leaves challenge 18's title 206.3px and that bar 12.2px taller than it is now,
  * which is the point at which squeezing the requirement starts costing one
  * challenge to pay for another.
  */
