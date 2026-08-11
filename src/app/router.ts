@@ -25,11 +25,13 @@
  * is meant to be shared. {@link SANDBOX_LIMITS} says what each of them may be
  * and why.
  *
- * `seed` is the other half of a shared building: it pins the passengers the way
- * the sandbox parameters pin the shafts, and it is the one parameter that has to
- * come back out of the address bar byte for byte, since a seed that changed on
- * the way through is a seed that replays something else. {@link SEED_PATTERN}
- * says what survives that trip.
+ * `seed` is the other half of a shared building: the sandbox parameters pin the
+ * shafts and `seed` pins who walks into them. It pins them for as long as the
+ * two runs stay in step, which is not the whole run — `src/ui/templates.ts`
+ * spells out where they part company and why. It is also the one parameter that
+ * has to come back out of the address bar byte for byte, since a seed that
+ * changed on the way through draws somebody else. {@link SEED_PATTERN} says what
+ * survives that trip.
  */
 
 import type { SandboxOptions } from "../game/challenges.ts";
@@ -63,8 +65,11 @@ export interface RouteParams {
   /** Whether to hide everything except the world. */
   readonly fullscreen: boolean;
   /**
-   * The seed the world's building and passengers are built from, or `null` when
-   * the URL pins none and the world should draw its own.
+   * The seed the world draws its passengers from, or `null` when the URL pins
+   * none and the world should draw its own.
+   *
+   * Not the building: floors, elevators and capacities come from the challenge
+   * or the sandbox parameters, and the seed has no say in them.
    *
    * The URL is the only thing that pins a seed, which is what makes the two
    * restart paths agree: see {@link "./app.ts"!App.handleRoute}.
@@ -114,17 +119,28 @@ export function parseQuery(hash: string): RouteQuery {
 /**
  * Rebuilds a hash URL from a set of parameters and some overrides.
  *
+ * An override of `null` drops the parameter instead of setting it, which is how
+ * a link says "everything the player is carrying except this one". The seed is
+ * the parameter that needs it: it is drawn for one building, so carrying it into
+ * a link that changes the building would pin a run nobody has seen, and would
+ * leave a player who once followed the seed link with no way back to a fresh
+ * draw short of editing the address bar.
+ *
  * @param query - The parameters currently in the URL.
- * @param overrides - Parameters to add or replace.
+ * @param overrides - Parameters to add or replace; `null` removes one.
  * @returns The new hash, including its leading `#`.
  */
 export function createParamsUrl(
   query: RouteQuery,
-  overrides: Readonly<Record<string, string | number>> = {},
+  overrides: Readonly<Record<string, string | number | null>> = {},
 ): string {
   const merged = new Map(query);
   for (const [key, value] of Object.entries(overrides)) {
-    merged.set(key, String(value));
+    if (value === null) {
+      merged.delete(key);
+    } else {
+      merged.set(key, String(value));
+    }
   }
   return `#${[...merged].map(([key, value]) => `${key}=${value}`).join(",")}`;
 }
@@ -313,12 +329,12 @@ const SEED_PATTERN = /^[\w.-]+$/;
  * even though {@link "../game/random.ts"!RandomSeed} accepts both.
  * `createRandomSource` hashes `String(seed)`, so `5` and `"5"` are the same
  * stream and the conversion would buy nothing — while `Number` would quietly
- * rewrite what the URL says: `0123`, `1e3` and `0x10` would each replay a run
+ * rewrite what the URL says: `0123`, `1e3` and `0x10` would each draw a run
  * other than the one they name, `1e400` would become `Infinity`, and `abc` a
  * `NaN` that stringifies straight back into a seed nobody wrote. Staying a
  * string also keeps the human-readable labels `RandomSeed` documents (`issue-61`)
  * working, and makes the round trip exact: what the player typed is what the
- * world records is what the replay link prints back.
+ * world records is what the link in the bar offers back.
  *
  * The value is trimmed first because the hash format loses edge whitespace
  * asymmetrically — {@link parseQuery} trims each segment, so `#seed=5 ` arrives

@@ -113,6 +113,17 @@ describe("createParamsUrl", () => {
     createParamsUrl(query, { challenge: 9 });
     expect(query.get("challenge")).toBe("2");
   });
+
+  it("drops a parameter overridden with null, and keeps the rest", () => {
+    // How the navigation row says "everything the player is carrying except the
+    // seed", which belongs to the building being left rather than the next one.
+    const query = parseQuery("#challenge=2,timescale=8,seed=issue-61");
+    expect(createParamsUrl(query, { challenge: 3, seed: null })).toBe("#challenge=3,timescale=8");
+  });
+
+  it("says nothing about a parameter that was not there to drop", () => {
+    expect(createParamsUrl(parseQuery("#challenge=2"), { seed: null })).toBe("#challenge=2");
+  });
 });
 
 describe("resolveRoute defaults", () => {

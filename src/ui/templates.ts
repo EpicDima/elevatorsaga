@@ -214,11 +214,12 @@ export interface SeedLinkData {
   /** The seed itself, exactly as it appears in the URL. */
   readonly seed: string;
   /**
-   * A hash URL that starts the same building and passengers.
+   * A hash URL that starts another run from this seed.
    *
    * The whole hash rather than the seed alone, for the reason every navigation
    * entry is: the app builds it with `createParamsUrl`, so the challenge, the
-   * speed and anything else the player arrived with ride along.
+   * speed and anything else the player arrived with ride along. The building has
+   * to ride along, since a seed means nothing without one.
    */
   readonly url: string;
 }
@@ -226,18 +227,34 @@ export interface SeedLinkData {
 /**
  * What the seed line says about what a seed does and does not fix.
  *
- * Kept truthful on purpose. A seed rebuilds the building and the passenger
- * stream, and nothing else: `src/game/world-controller.ts` takes its `dt` from
- * `requestAnimationFrame` timestamps, so two interactive runs of one seed are
- * fed different frame lengths, the player's program is asked to decide at
- * different moments, and the two diverge. Only the headless paths — the fitness
- * suite and the tests, which drive the clock themselves — repeat a run exactly.
- * "Replay this run" would be the natural thing to write here and would be a
- * promise the browser cannot keep.
+ * Kept truthful on purpose, and much narrower than the obvious wording. A seed
+ * fixes where a run's random choices begin. It does not fix who turns up: one
+ * stream serves three callers — `spawnUserRandomly` in `src/game/world.ts`, the
+ * re-press offset in the same file, and the walk-off duration in
+ * `src/game/user.ts` — and the last two are drawn at moments the simulation's
+ * own dynamics decide. `dt` comes from `requestAnimationFrame` timestamps in
+ * `src/game/world-controller.ts`, so a longer or shorter frame reorders those
+ * draws and the passengers after them are different people. Measured, not
+ * assumed: a microsecond per frame is enough to part two runs of one seed. Only
+ * the headless paths — the fitness suite and the tests, which drive the clock
+ * themselves — repeat a run step for step.
+ *
+ * So "replay this run" is the natural thing to write here, and so is "the same
+ * passengers"; both are promises the browser cannot keep, and neither is made.
+ * "Where this run started" is what is left, and it is true.
+ *
+ * The narrowness is removable, and it belongs to the engine rather than to this
+ * line: giving the re-press offset and the walk-off duration streams of their
+ * own — `deriveRandomSource`, exactly as the boarding slots already do — would
+ * take them out of the spawn stream and leave the Nth passenger the same person
+ * however the frames fall. If that lands in `src/game/`, this sentence, the
+ * console line in `src/app/app.ts` and the tests that pin them can promise the
+ * passengers, which is the thing a player actually wants.
  */
 const SEED_EXPLANATION =
-  "The same seed gives the same building and the same passengers. " +
-  "Frame timing comes from the browser, so the run itself is never identical.";
+  "A seed decides the random choices a run starts from, so this link comes back to where this " +
+  "run started. Frame timing comes from the browser, so two runs of one seed drift apart as " +
+  "they go.";
 
 /**
  * The seed of the run in progress, as a link that starts it again.
@@ -246,19 +263,21 @@ const SEED_EXPLANATION =
  * own affordances are the feature here — "copy link address" is how a player
  * hands the building to somebody else, and the status bar shows where it goes
  * without anything having to be clicked. Following it pins the seed in the
- * address bar, which restarts the run on the same building; a player who is
- * already on a pinned seed is already at that URL, and following it does
- * nothing, which is the honest answer.
+ * address bar, which restarts the run from that seed; a player who is already on
+ * a pinned seed is already at that URL, and following it does nothing, which is
+ * the honest answer.
  *
  * The visible text is the bare seed, because that is the token that gets
  * transcribed, and it is contained in the accessible name (WCAG 2.5.3) — which
- * has to say more, since "1234567890, link" describes nothing.
+ * has to say more, since "1234567890, link" describes nothing. What the name
+ * does not do is promise the run back: it says another run from this seed, and
+ * {@link SEED_EXPLANATION} says how far that goes.
  *
- * @param data - The seed and the URL that replays it.
+ * @param data - The seed and the URL that starts another run from it.
  * @returns The seed line's markup.
  */
 function seedTemplate(data: SeedLinkData): string {
-  const name = `Seed ${data.seed}: start the same building and passengers again`;
+  const name = `Seed ${data.seed}: start another run from this seed`;
   return markup`<p class="challengeseed"><span class="seedlabel" title="${SEED_EXPLANATION}">Seed</span> <a class="seedlink" href="${data.url}" aria-label="${name}">${data.seed}</a></p>`;
 }
 

@@ -140,7 +140,7 @@ describe("userTemplate", () => {
 });
 
 describe("challengeTemplate", () => {
-  /** A seeded run, and the URL that starts the same building again. */
+  /** A seeded run, and the URL that starts another run from its seed. */
   const SEED: SeedLinkData = { seed: "1234567890", url: "#challenge=1,seed=1234567890" };
 
   /**
@@ -289,26 +289,31 @@ describe("challengeTemplate", () => {
       // "1234567890, link" describes nothing, so the name says more -- and
       // WCAG 2.5.3 asks that what is on screen be part of what is spoken.
       expect(seedLink?.getAttribute("aria-label")).toBe(
-        "Seed 1234567890: start the same building and passengers again",
+        "Seed 1234567890: start another run from this seed",
       );
       expect(seedLink?.getAttribute("aria-label")).toContain(seedLink?.textContent);
       expect(fragment.querySelector(".challengeseed")?.textContent).toBe("Seed 1234567890");
     });
 
-    it("promises the building and the passengers, and not an identical run", () => {
-      // A seed rebuilds the building and the passenger stream. It cannot make
-      // an interactive run repeat: the controller's dt comes from
-      // requestAnimationFrame, so the frames fall differently every time and
-      // the player's program is asked to decide at different moments.
+    it("promises the start of a run and no more of it than that", () => {
+      // A seed fixes where the random choices begin, and nothing after that: the
+      // re-press offset in world.ts and the walk-off duration in user.ts come
+      // out of the stream the passengers do, at moments the frame length
+      // decides, and dt comes from requestAnimationFrame. So the line may not
+      // promise the passengers, let alone the run.
       const explanation = bar({ num: 1, description: "x", links: links(3) }, SEED)
         .querySelector(".seedlabel")
         ?.getAttribute("title");
 
       expect(explanation).toBe(
-        "The same seed gives the same building and the same passengers. " +
-          "Frame timing comes from the browser, so the run itself is never identical.",
+        "A seed decides the random choices a run starts from, so this link comes back to where " +
+          "this run started. Frame timing comes from the browser, so two runs of one seed drift " +
+          "apart as they go.",
       );
-      expect(explanation).not.toMatch(/replay|exact/i);
+      expect(explanation).not.toMatch(/replay|exact|identical/i);
+      // The caveat is the whole point of the second sentence, so it may not go
+      // missing while the offer in front of it stays.
+      expect(explanation).toContain("drift apart");
     });
 
     it("leaves the line out entirely when the run has no seed", () => {

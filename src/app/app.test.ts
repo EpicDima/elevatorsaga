@@ -206,6 +206,19 @@ describe("App challenge outcome", () => {
       "#challenge=3,timescale=8,autostart=true",
     );
   });
+
+  it("leaves the seed of the challenge just won out of the link to the next", () => {
+    // Everything else the player is carrying rides along; the seed does not,
+    // because it was drawn for the building they have finished with.
+    const { app, elements } = setUp();
+    app.handleRoute(...routeFor("#challenge=2,timescale=8,seed=issue-61"));
+
+    app.world?.trigger("stats_changed");
+
+    expect(requireElement(".feedback a", elements.feedback).getAttribute("href")).toBe(
+      "#challenge=3,timescale=8",
+    );
+  });
 });
 
 describe("App challenge navigation", () => {
@@ -424,6 +437,11 @@ describe("App seed", () => {
    * where. Read off a world that has been driven forward by hand, since the
    * spawns are what the seed's own stream decides.
    *
+   * Driven with a fixed step, which is deliberately *not* what a browser does:
+   * `dt` there comes from `requestAnimationFrame`. So this shows that one seed
+   * is one draw, and cannot show that two interactive runs of it see the same
+   * people -- which is why nothing the app says to the player claims they do.
+   *
    * @param app - The app whose world to run and read.
    * @param seconds - How many simulated seconds to run for.
    * @returns One entry per passenger, as `from>to`.
@@ -449,10 +467,18 @@ describe("App seed", () => {
     expect(typeof app.world?.seed).toBe("number");
   });
 
-  it("gives the same building and passengers to two runs of one seed", () => {
-    // The promise the whole feature rests on, end to end: the same URL twice,
-    // and the same people appearing on the same floors wanting the same
-    // destinations.
+  it("starts two runs of one seed from the same draw", () => {
+    // The wiring the feature rests on: the same URL twice, the same seed reaches
+    // the world, and the same people come out of it.
+    //
+    // Both worlds are stepped by the same fixed clock, so this is the claim at
+    // its full width and no wider. Under a browser's frames it does not hold:
+    // `#handleButtonRepressing` in `src/game/world.ts` and the walk-off duration
+    // in `src/game/user.ts` draw from the stream the passengers come from, at
+    // moments the frame length decides, so two interactive runs of one seed are
+    // running with different people in them within seconds. Measured, not
+    // assumed. That is the whole reason the bar and the console say a seed is
+    // one draw rather than one cast of characters.
     const first = setUp().app;
     first.handleRoute(...routeFor("#challenge=sandbox,floors=8,spawnrate=2,seed=issue-61"));
     const second = setUp().app;
@@ -473,10 +499,10 @@ describe("App seed", () => {
     expect(passengerStream(second, 10)).not.toEqual(passengerStream(first, 10));
   });
 
-  it("restarts a pinned run on the same building, however it is restarted", () => {
+  it("restarts a pinned run on the same seed, however it is restarted", () => {
     // The reason somebody writes #seed= into the address bar at all: the
-    // Restart button and Ctrl-Enter both have to give back the building they
-    // were comparing programs on.
+    // Restart button and Ctrl-Enter both have to give back the run they were
+    // comparing programs on.
     const { app, editor, elements } = setUp();
     app.handleRoute(...routeFor("#challenge=3,seed=issue-61"));
 
@@ -537,13 +563,21 @@ describe("App seed", () => {
     );
   });
 
-  it("carries a pinned seed into a jump to another challenge", () => {
+  it("leaves a pinned seed behind when the row jumps to another challenge", () => {
+    // A seed was drawn for one building and means nothing in another, so the row
+    // carries the speed and everything else but not this. It is also the way out
+    // of a pinned run: the row's entry for the challenge being played is a fresh
+    // draw of it, which is the only reason a player who once followed the seed
+    // link is not stuck with it forever.
     const { app, elements } = setUp();
-    app.handleRoute(...routeFor("#challenge=1,seed=issue-61"));
+    app.handleRoute(...routeFor("#challenge=1,timescale=8,seed=issue-61"));
 
     expect(
       requireElement('[aria-label="Challenge 2"]', elements.challenge).getAttribute("href"),
-    ).toBe("#challenge=2,seed=issue-61");
+    ).toBe("#challenge=2,timescale=8");
+    expect(
+      requireElement('[aria-label="Challenge 1"]', elements.challenge).getAttribute("href"),
+    ).toBe("#challenge=1,timescale=8");
   });
 
   it("offers the seed of a sandbox run as well", () => {
@@ -563,23 +597,26 @@ describe("App seed", () => {
     app.handleRoute(...routeFor("#challenge=1,seed=issue-61"));
 
     expect(console.log).toHaveBeenCalledWith(
-      `Seed issue-61 — the same building and passengers, though not an identical run: ` +
+      `Seed issue-61 — comes back to where this run started, though not to the run itself: ` +
         `${window.location.origin}/#challenge=1,seed=issue-61`,
     );
   });
 
-  it("says nothing about replaying a run exactly, because it cannot", () => {
-    // The controller takes its dt from requestAnimationFrame timestamps, so two
-    // interactive runs of one seed are fed different frames and the player's
-    // program is asked to decide at different moments. Only the headless paths
-    // -- the fitness suite and these tests -- repeat a run step for step.
+  it("says nothing about repeating a run or its passengers, because it cannot", () => {
+    // The controller takes its dt from requestAnimationFrame timestamps, and the
+    // re-press offset in `src/game/world.ts` and the walk-off duration in
+    // `src/game/user.ts` share the stream the passengers are drawn from -- so
+    // two interactive runs of one seed are running with different people in them
+    // within seconds. The line may offer the starting point and no more. Only
+    // the headless paths -- the fitness suite and these tests -- repeat a run
+    // step for step.
     const { app } = setUp();
     app.handleRoute(...routeFor("#challenge=1,seed=issue-61"));
 
     const printed = vi.mocked(console.log).mock.calls.map(([message]) => String(message));
     expect(printed).toHaveLength(1);
-    expect(printed[0]).toContain("not an identical run");
-    expect(printed[0]).not.toMatch(/exact/i);
+    expect(printed[0]).toContain("not to the run itself");
+    expect(printed[0]).not.toMatch(/exact|identical|replay|same passengers/i);
   });
 
   it("prints a fresh line for every run, including a restart", () => {
@@ -615,7 +652,7 @@ describe("App seed", () => {
       });
       expect(app.world?.seed).toBe(seed);
       // And what it now offers is the URL it is already at, so a second visit
-      // is the same building again rather than another draw.
+      // is the same seed again rather than another draw.
       expect(requireElement(".seedlink", elements.challenge).getAttribute("href")).toBe(
         `#challenge=1,seed=${seed}`,
       );

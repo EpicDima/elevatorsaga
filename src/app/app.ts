@@ -229,6 +229,12 @@ export class App {
    * who had chosen 8x speed would silently lose it by jumping to another
    * challenge.
    *
+   * `seed` is the exception, and is dropped: it was drawn for the building being
+   * left, so carrying it into another challenge would pin a run nobody has
+   * played, and would leave a player who once followed the seed link unable to
+   * reach a fresh draw anywhere in the interface. Dropping it here makes the row
+   * the way out: the entry for the current challenge is a new draw of it.
+   *
    * The last challenge is the endless demo (`requireDemo` in
    * `src/game/challenges.ts`): it has no win condition, so it is labelled
    * rather than numbered, and the row says so instead of offering a "challenge"
@@ -252,14 +258,14 @@ export class App {
     const lastIndex = this.challenges.length - 1;
     return this.challenges.map((_challenge, index) => ({
       num: index + 1,
-      url: createParamsUrl(this.#query, { challenge: index + 1 }),
+      url: createParamsUrl(this.#query, { challenge: index + 1, seed: null }),
       current: index === challengeIndex,
       demo: index === lastIndex,
     }));
   }
 
   /**
-   * The seed of a run, and the URL that starts the same building again.
+   * The seed of a run, and the URL that starts another run from it.
    *
    * Read off the world rather than from {@link #seed}, so that the run whose
    * seed nobody chose — the overwhelmingly common one — is offered as readily as
@@ -268,16 +274,18 @@ export class App {
    *
    * Built with {@link createParamsUrl}, so the challenge, the speed, the sandbox
    * building and every unknown key survive into the link, exactly as they do in
-   * the navigation row.
+   * the navigation row. Unlike the row, this link *adds* the seed: it is the one
+   * link in the interface whose job is to pin one.
    *
    * @param world - The run that has just been built.
-   * @returns Its seed and replay URL, or `null` when it has no seed to offer.
+   * @returns Its seed and the URL that starts another run from it, or `null`
+   * when it has no seed to offer.
    */
   #seedLink(world: World): SeedLinkData | null {
     if (world.seed === null) {
       // Only reachable when a caller handed the world a ready-made random
       // stream, which the app never does; a test that does gets no seed line
-      // rather than a link that replays nothing.
+      // rather than a link with nothing to pin.
       return null;
     }
     const seed = String(world.seed);
@@ -330,11 +338,12 @@ export class App {
   /**
    * Acts on a route: applies its options and starts the challenge it names.
    *
-   * The URL also decides, alone, whether starting again repeats the building. A
-   * `seed` in the hash pins one and nothing else does, so `#seed=…` gives the
-   * same building and the same passengers from the Restart button, from
-   * Ctrl-Enter and from a reload alike, while a URL without one draws a fresh
-   * seed on every one of them.
+   * The URL also decides, alone, where a run's random choices begin again. A
+   * `seed` in the hash pins one and nothing else does, so `#seed=…` starts from
+   * the same draw at the Restart button, at Ctrl-Enter and at a reload alike,
+   * while a URL without one draws a fresh seed on every one of them. How far
+   * that carries into the run itself is the subject of `SEED_EXPLANATION` in
+   * `src/ui/templates.ts`, and the answer is: not as far as anyone would like.
    *
    * The tempting alternative — remembering the seed the last run generated and
    * reusing it on Restart, but not on reload — was rejected twice over. It would
@@ -420,7 +429,7 @@ export class App {
       // until it has already gone wrong -- by which time the only record of what
       // it was is this line.
       console.log(
-        `Seed ${seed.seed} — the same building and passengers, though not an identical run: ${absoluteUrl(seed.url)}`,
+        `Seed ${seed.seed} — comes back to where this run started, though not to the run itself: ${absoluteUrl(seed.url)}`,
       );
     }
 
@@ -469,10 +478,12 @@ export class App {
           title: "Success!",
           message: "Challenge completed",
           // No link after the last challenge, and none for the sandbox, which
-          // cannot get here at all: its condition never resolves.
+          // cannot get here at all: its condition never resolves. The seed is
+          // dropped for the same reason the navigation row drops it: it belongs
+          // to the building just completed, not to the next one.
           url:
             challengeIndex !== null && challengeIndex + 1 < this.challenges.length
-              ? createParamsUrl(this.#query, { challenge: challengeIndex + 2 })
+              ? createParamsUrl(this.#query, { challenge: challengeIndex + 2, seed: null })
               : "",
         });
       } else {
