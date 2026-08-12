@@ -836,6 +836,28 @@ describe("App learning track", () => {
     expect(view.getValue()).toBe("// my answer to task 4");
   });
 
+  it("hands the taken program to the editor the player comes back to", () => {
+    // The copy is only worth taking if it is the one waiting under the game's
+    // own editor afterwards. It was not: the write went straight to storage,
+    // around the copy the editor keeps of every key it has written this page,
+    // and that copy is what `openPlayerBuffer` reads first. A player who had
+    // saved anything at all before visiting the track got their old program
+    // back on leaving, and the next autosave wrote it over the taken one.
+    const { app, editor, storage, view } = setUp();
+    app.startChallenge(0);
+    view.type("// the program I came in with");
+    editor.save();
+
+    app.startTutorial(3);
+    view.type("// my answer to task 4");
+    expect(app.takeTutorialCode()).toBe(true);
+
+    app.leaveTutorial();
+
+    expect(view.getValue()).toBe("// my answer to task 4");
+    expect(storage.getItem(CODE_STORAGE_KEY)).toBe("// my answer to task 4");
+  });
+
   it("refuses a position that does not name a task", () => {
     // Symmetric with `startChallenge`: the router resolves a task address
     // against the same table, so this is only reachable from a caller that made

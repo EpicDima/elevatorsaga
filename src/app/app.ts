@@ -738,12 +738,17 @@ export class App {
   /**
    * Copies the program now in the editor into the player's own buffer.
    *
-   * Written straight to the player's key rather than by switching buffers,
-   * which is what keeps the player on the task. The button means "I want to keep
-   * this", not "I am done here": somebody who takes the answer to task 6 usually
-   * wants to go on reading task 6. The copy is waiting for them under the game's
-   * own editor whenever they leave, because that is the key
+   * Written to the player's key rather than by switching buffers, which is what
+   * keeps the player on the task. The button means "I want to keep this", not
+   * "I am done here": somebody who takes the answer to task 6 usually wants to
+   * go on reading task 6. The copy is waiting for them under the game's own
+   * editor whenever they leave, because that is the key
    * {@link CodeEditor.openPlayerBuffer} reads.
+   *
+   * Through {@link CodeEditor.writePlayerCode} rather than into `#storage` here,
+   * even though this class holds the same store: the editor reads its own copy
+   * of a key before the store's, so a write from outside it is a copy the editor
+   * does not have and will overwrite. See that method.
    *
    * Throws nothing when the store refuses the write, for the reason every other
    * write in this class swallows its own: the run the player is in is what
@@ -760,12 +765,7 @@ export class App {
    * @returns Whether the program was stored.
    */
   takeTutorialCode(): boolean {
-    try {
-      this.#storage.setItem(CODE_STORAGE_KEY, this.#editor.getCode());
-      return true;
-    } catch {
-      return false;
-    }
+    return this.#editor.writePlayerCode(this.#editor.getCode());
   }
 
   /**

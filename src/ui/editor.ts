@@ -611,6 +611,31 @@ export class CodeEditor extends Observable<CodeEditorEvents> {
   }
 
   /**
+   * Keeps `code` as the player's own program without putting it on screen.
+   *
+   * For the learning track's "take this program" button, which copies a task's
+   * program across while leaving the player on the task. Storing it through the
+   * editor rather than in the caller is not tidiness: this class reads the copy
+   * it keeps of every key it has written this page *before* it reads the store
+   * (see {@link CodeEditor.#read}), so a write that goes round it leaves the two
+   * disagreeing, with the store holding the taken program and the editor still
+   * believing the player's old one. {@link CodeEditor.openPlayerBuffer} would
+   * then put that old program back on screen the moment the player left the
+   * track, and the next save would write it over the copy they had just taken.
+   *
+   * Never while the player's own buffer is the one on screen: the text there
+   * would be the older program and would be flushed back over this on the way
+   * out. Nothing enforces that, because there is no such call to make — the
+   * button exists only while a task is open.
+   *
+   * @param code - The program to keep as the player's own.
+   * @returns Whether it reached the store, and so the player's next visit.
+   */
+  writePlayerCode(code: string): boolean {
+    return this.#write(PLAYER_BUFFER.codeKey, code);
+  }
+
+  /**
    * Shows one learning-track task's program, keeping whatever was on screen.
    *
    * The task's own attempt if there is one, otherwise `starterCode`. Callers
