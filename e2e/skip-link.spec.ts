@@ -3,16 +3,17 @@
  *
  * The editor is what the page is for, and it is behind everything the building
  * contains: the scroll container, and a button for every call and every floor.
- * On the eighteenth challenge that is 208 tab stops. The count is measured here
- * rather than asserted from the markup because most of those stops are drawn by
- * the presenters at run time and do not exist in `index.html` at all.
+ * On the eighteenth challenge that is 240 tab stops past the link, 208 of them
+ * buttons. The count is measured here rather than asserted from the markup
+ * because most of those stops are drawn by the presenters at run time and do
+ * not exist in `index.html` at all.
  */
 
 import { expect, test } from "@playwright/test";
 
 import { editor } from "./game-page.ts";
 
-/** The busiest challenge: 6 elevators, 21 floors, and a call button per floor. */
+/** The busiest challenge: 8 elevators, 21 floors, and a call button per floor. */
 const BUSIEST = "#challenge=18";
 
 test("reaches the editor in one tab stop, from the busiest challenge", async ({ page }) => {
@@ -53,6 +54,12 @@ test("saves a walk through the whole building", async ({ page }) => {
     stops += 1;
   }
 
-  expect(stops).toBeGreaterThan(100);
-  expect(stops).toBeLessThan(400);
+  // Exact, because a range records nothing: this file's own header claimed 208
+  // while the walk was 240, and bounds of 100 and 400 had nothing to say about
+  // it. 208 of the 240 are buttons -- eight cars of 21 floors, plus a call each
+  // way -- and the other 32 are the rest of the chrome above the building, the
+  // building's own scroll container, and the press that lands on the editor.
+  // Adding a challenge link, or anything else above the building, moves this by
+  // one, and then the number has to be looked at rather than guessed at.
+  expect(stops).toBe(240);
 });

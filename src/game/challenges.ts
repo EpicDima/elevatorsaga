@@ -435,7 +435,7 @@ export const challenges: readonly Challenge[] = [
     condition: requireUserCountWithinTimeWithMaxWaitTime(2675, 1800, 45),
   },
   {
-    // The building of the wait-limited challenge eleven places above, asked a
+    // The building of the wait-limited challenge four places above, asked a
     // second question. That one wanted 120 delivered with nobody taking more
     // than fourteen seconds, which a car-per-call program answers by running
     // cars nearly empty; this one leaves the wait limit slack enough for that
@@ -443,7 +443,7 @@ export const challenges: readonly Challenge[] = [
     // Measured over twenty seeds at a hundred delivered: sending the nearest
     // free car to each call costs 394 to 502 moves, plain collective control
     // costs 335 to 404 but lets a delivery reach 35.7 seconds, and collective
-    // control that stops taking passengers on aboard a car once it is half full
+    // control that stops taking passengers on board a car once it is half full
     // costs 316 to 412 with a worst delivery of 27.2. The limits are that last
     // program's worst seed with about a tenth in hand on each.
     options: { floorCount: 8, elevatorCount: 6, spawnRate: 0.9 },

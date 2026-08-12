@@ -505,10 +505,10 @@ typing `#devtest` into the address bar, and what it is for is checking that the 
 | `challenge.sandbox.capacityLabel`                | capacities                                                                                                  | plural (one, other); counted by how many capacities were listed, not by how many cars there are                                         |
 | `challenge.sandbox.spawnRate.html`               | `<span class='emphasis-color'>`{count}`</span>` people per second                                           | plural (one, other); markup; takes `{count}`; one English form for both categories, preserving today's `1 people per second`            |
 
-All six descriptions render through `t` inside a `get description()` on the condition object —
+All seven descriptions render through `t` inside a `get description()` on the condition object —
 `requireUserCountWithinTime`, `requireUserCountWithMaxWaitTime`,
-`requireUserCountWithinTimeWithMaxWaitTime`, `requireUserCountWithinMoves`, `requireDemo` and
-`requireSandbox`. A getter and not a constant, for the reason under _Rules the wiring has to
+`requireUserCountWithinTimeWithMaxWaitTime`, `requireUserCountWithinMoves`,
+`requireUserCountWithinMovesWithMaxWaitTime`, `requireDemo` and `requireSandbox`. A getter and not a constant, for the reason under _Rules the wiring has to
 keep_. The sandbox's numbers all go through `exact`, because they came out of the address bar and
 `Intl.NumberFormat`'s default is three _fraction_ digits, not three significant ones — the
 distinction does not matter for `spawnrate=0.0625`, which either way rounds to `0.063`, but it is

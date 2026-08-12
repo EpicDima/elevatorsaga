@@ -262,8 +262,10 @@ dl dd {
  * The building comes before the editor in the document and most of what it
  * contains can be focused: the scroll container itself, then a button for every
  * call and every floor inside it. Tabbing from the top of the page to the
- * editor is 7 stops on the first challenge and 208 on the eighteenth, and the
- * editor is what the page is for. WCAG 2.4.1 asks for a way past.
+ * editor is 40 stops on the first challenge and 241 on the eighteenth -- 31 of
+ * chrome, the scroll container, and then a button apiece, which on the
+ * eighteenth is 208 of them: eight cars of 21 floors, plus a call each way.
+ * The editor is what the page is for. WCAG 2.4.1 asks for a way past.
  *
  * Hidden by being moved off the top of the page rather than by `display: none`
  * or `visibility: hidden`, either of which would take it out of the tab order
@@ -438,10 +440,9 @@ dl dd {
  *
  * "The same places" is near enough to be worth saying and not exact. Swept over
  * all nineteen challenges there were then at every 20px from 320px to 940px --
- * 608 measurements
- * of this bar's height against the float bar's, in Chromium with the seed
- * pinned -- this one is taller in 59 of them, shorter in 162 and identical to
- * the pixel in 387. The claim that stood here that the two were exact was wrong,
+ * 608 measurements of this bar's height against the float bar's, in Chromium
+ * with the seed pinned -- this one is taller in 59 of them, shorter in 162 and
+ * identical to the pixel in 387. The claim that stood here that the two were exact was wrong,
  * and so was the first repair of it, which said 21 taller by at most 25.3px: 21
  * is the count over 320px to 900px, and 25.3px the worst of the cells it looked
  * at rather than of the sweep.
@@ -510,8 +511,8 @@ dl dd {
  * line for the requirement costs 25.3px, and the bar sits directly above the
  * building, where every pixel it grows pushes the game down the page. At 14em
  * the requirement gives way first, and the controls stay beside it down to a
- * 501px window rather than a 614px one -- on challenge 19, whose title is only
- * 209.9px, that is 40.1px of building recovered at every width from 501px to
+ * 501px window rather than a 614px one -- on the demo, whose title is only
+ * 212px, that is 40.1px of building recovered at every width from 501px to
  * 613px, and on challenge 1 it is 14.8px. No challenge at any width is taller
  * than 20em left it.
  *
@@ -523,7 +524,7 @@ dl dd {
  * Not lower than 14em, because the requirement is prose and has to stay
  * readable: the break now lands where it still has 262.3px to lay out in, which
  * is a sentence over two lines rather than the column of single words a basis of
- * 0 would leave. 11em would carry challenge 19 down to 445px, but at 445px it
+ * 0 would leave. 11em would carry the demo down to 445px, but at 445px it
  * leaves challenge 18's title 206.3px and that bar 12.2px taller than it is now,
  * which is the point at which squeezing the requirement starts costing one
  * challenge to pay for another.
