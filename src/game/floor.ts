@@ -94,8 +94,10 @@ export class Floor extends Observable<FloorEvents> {
    * swallowing the call would change which car got re-offered but could no
    * longer move the passengers a seed replays.
    * Player code is still protected: the events are forwarded to
-   * a {@link "./floor-interface.ts"!FloorInterface}, whose emitter is a
-   * {@link PlayerObservable} and does refuse the nested forward.
+   * a {@link "./floor-interface.ts"!FloorInterface}, which refuses the nested
+   * forward. It has to refuse it as a unit rather than leave it to the
+   * per-event-name guard on {@link PlayerObservable}, because the facade turns
+   * one press into two dispatches — see `FloorInterface.forwardCall`.
    *
    * @param event - Event to emit.
    * @param args - Arguments for that event.

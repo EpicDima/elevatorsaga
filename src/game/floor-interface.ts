@@ -84,6 +84,13 @@ export class FloorInterface {
    * `this` is the facade — never this emitter, and never the real floor.
    */
   readonly #events = new PlayerObservable<FloorInterfaceEvents>(this);
+  /**
+   * Directions whose call is being delivered right now.
+   *
+   * Keeps each specific/general pair atomic against a nested press; see
+   * {@link FloorInterface.forwardCall}.
+   */
+  readonly #callsInFlight = new Set<"up" | "down">();
 
   /**
    * @param floor - The floor this facade wraps.
@@ -110,17 +117,50 @@ export class FloorInterface {
     // Specific first because that is the one that was already being delivered.
     // A solution written before this event existed sees exactly the sequence it
     // always saw, with a new dispatch appended to it rather than pushed in
-    // front. The two dispatches are consecutive, not nested, so the emitter's
-    // in-flight guard — which is per event name — has nothing to refuse.
+    // front.
     floor.on("up_button_pressed", () => {
-      this.#tryTrigger("up_button_pressed", this);
-      this.#tryTrigger("hall_button_pressed", "up", this);
+      this.#forwardCall("up");
     });
 
     floor.on("down_button_pressed", () => {
-      this.#tryTrigger("down_button_pressed", this);
-      this.#tryTrigger("hall_button_pressed", "down", this);
+      this.#forwardCall("down");
     });
+  }
+
+  /**
+   * Delivers one call as the specific event and then the general one.
+   *
+   * The pair is dispatched under a single in-flight mark so that it is
+   * delivered whole or not at all. Without that, a nested press splits it: the
+   * floor itself has no re-entrancy guard on purpose (see {@link Floor}), a
+   * passenger refused by a full car really does press again while
+   * `*_button_pressed` is still being dispatched, and the emitter's own guard is
+   * per event name. So the nested specific event would be refused as already in
+   * flight while the nested general one sailed through — a
+   * `hall_button_pressed` with no button event before it, which is precisely
+   * what this class documents cannot happen. Reached from a handler of the
+   * general event it fails the other way round, delivering the specific event
+   * and swallowing the general one.
+   *
+   * Marked per direction rather than once for both, because the two directions
+   * are two independent calls: a handler that presses the *other* button must
+   * still be heard, exactly as it was before this event existed. Only a repress
+   * of the button already in flight is dropped, which is the behaviour the
+   * specific event has always had.
+   *
+   * @param direction - Which call button was pressed.
+   */
+  #forwardCall(direction: "up" | "down"): void {
+    if (this.#callsInFlight.has(direction)) {
+      return;
+    }
+    this.#callsInFlight.add(direction);
+    try {
+      this.#tryTrigger(`${direction}_button_pressed`, this);
+      this.#tryTrigger("hall_button_pressed", direction, this);
+    } finally {
+      this.#callsInFlight.delete(direction);
+    }
   }
 
   /**

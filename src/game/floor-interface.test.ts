@@ -395,6 +395,84 @@ describe("FloorInterface", () => {
         expect(pressed).toHaveBeenNthCalledWith(1, "up_button_pressed", floorInterface);
         expect(pressed).toHaveBeenNthCalledWith(2, "hall_button_pressed", "up", floorInterface);
       });
+
+      // A nested press is not a contrived case: `Floor` has no re-entrancy
+      // guard on purpose, and a passenger refused by a full car presses again
+      // while `*_button_pressed` is still in flight. The emitter's own guard is
+      // per event name, so before the pair was made atomic these two tests
+      // recorded ["down", "hall:down", "hall:down"] and
+      // ["down", "hall:down", "down"] respectively — a general event with no
+      // specific one before it, and a specific one with no general one after.
+      describe("when a handler presses the same button again", () => {
+        /** Registers all three handlers; `repressFrom` presses again, once. */
+        const recordPresses = (repressFrom: "down_button_pressed" | "hall_button_pressed") => {
+          const calls: string[] = [];
+          let repressed = false;
+          const repress = () => {
+            if (repressed) {
+              return;
+            }
+            repressed = true;
+            // Clearing first because a button that is already lit raises
+            // nothing, which would leave nothing nested to observe.
+            floor.buttonStates.down = "";
+            floor.pressDownButton();
+          };
+
+          floorInterface.on("down_button_pressed", () => {
+            calls.push("down");
+            if (repressFrom === "down_button_pressed") {
+              repress();
+            }
+          });
+          floorInterface.on("hall_button_pressed", (direction) => {
+            calls.push(`hall:${direction}`);
+            if (repressFrom === "hall_button_pressed") {
+              repress();
+            }
+          });
+
+          floor.pressDownButton();
+          return calls;
+        };
+
+        it("drops the repress whole, from the button's own handler", () => {
+          // The specific event alone behaved this way before the general one
+          // existed, and still does: the repress is refused as already in
+          // flight. What matters is that the general event is refused with it.
+          expect(recordPresses("down_button_pressed")).toEqual(["down", "hall:down"]);
+        });
+
+        it("drops the repress whole, from the general handler", () => {
+          expect(recordPresses("hall_button_pressed")).toEqual(["down", "hall:down"]);
+        });
+
+        it("still delivers a press of the other button", () => {
+          // The mark is per direction, so the two calls stay independent: a
+          // handler that presses the *other* button is heard exactly as it was
+          // before this event existed, and each general event still follows its
+          // own specific one.
+          const calls: string[] = [];
+          let pressedUp = false;
+          floorInterface.on("down_button_pressed", () => {
+            calls.push("down");
+            if (!pressedUp) {
+              pressedUp = true;
+              floor.pressUpButton();
+            }
+          });
+          floorInterface.on("up_button_pressed", () => {
+            calls.push("up");
+          });
+          floorInterface.on("hall_button_pressed", (direction) => {
+            calls.push(`hall:${direction}`);
+          });
+
+          floor.pressDownButton();
+
+          expect(calls).toEqual(["down", "up", "hall:up", "hall:down"]);
+        });
+      });
     });
   });
 });
