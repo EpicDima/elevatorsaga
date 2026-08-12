@@ -59,6 +59,43 @@ jobs:
       - name: Build
         run: npm run build
 
+      # Nothing else runs the benchmark as a command. `runBench` is tested with
+      # its streams handed to it, so the entry point, the real standard output
+      # and the type stripping Node does on a `.ts` file are exercised here or
+      # nowhere — on both LTS lines, because stripping is what running the
+      # command without a build step quietly rests on. The program logs on
+      # purpose: `--json` is only pipeable while a player's own output goes to
+      # standard error, and a test that hands `console` to the code under test
+      # cannot see that contract break.
+      - name: Score a program from the command line
+        run: |
+          cat > "$RUNNER_TEMP/program.js" <<'PROGRAM'
+          {
+            init: function (elevators, floors) {
+              console.log("this line belongs on standard error");
+              elevators.forEach(function (elevator) {
+                elevator.on("idle", function () {
+                  elevator.goToFloor(floors[floors.length - 1].floorNum());
+                  elevator.goToFloor(0);
+                });
+              });
+            },
+            update: function () {},
+          }
+          PROGRAM
+          npm run bench -- --help > /dev/null
+          node src/cli/bench.ts "$RUNNER_TEMP/program.js" --seeds 1 --json > "$RUNNER_TEMP/report.json"
+          node --input-type=module -e '
+            import { readFileSync } from "node:fs";
+
+            const report = JSON.parse(readFileSync(process.argv[1], "utf8"));
+            const scored = report.scenarios.filter((scenario) => scenario.result.transportedCount > 0);
+            if (scored.length === 0 || scored.length !== report.scenarios.length) {
+              throw new Error(`The command scored nothing: ${JSON.stringify(report)}`);
+            }
+            console.log(`Scored ${scored.length} buildings from the command line.`);
+          ' "$RUNNER_TEMP/report.json"
+
       # One leg is enough: the report does not depend on the Node version.
       - name: Upload coverage report
         if: matrix.node == '22'
