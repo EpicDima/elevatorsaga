@@ -43,11 +43,29 @@ function tags(text: string): readonly string[] {
   return [...text.matchAll(/<(\/?)([a-z]+)/g)].map((match) => `${match[1] ?? ""}${match[2] ?? ""}`);
 }
 
-/** An example code block with its `//` comments taken out. */
-function withoutComments(code: string): string {
+/**
+ * An example code block with every `//` comment emptied of its words.
+ *
+ * Emptied rather than removed, and that is the whole of what this helper is for.
+ * Removing a comment removes the evidence that it was there: strip `// …` off
+ * `elevator.goToFloor(0); // …` and what is left is the line the other locale
+ * has anyway, so a comment written into one language and not the other passed a
+ * comparison of the stripped text unseen. Only a comment on a line of its own
+ * was ever caught, and only incidentally — by the line it added.
+ *
+ * Keeping the two slashes where they stood makes the comparison one about the
+ * comments as well as the code: both locales must open a comment on the same
+ * line at the same column, or neither may. Nothing weakens, since the code
+ * either side of the slashes is compared exactly as before.
+ *
+ * @param code - An example program.
+ * @returns The same program with every comment reduced to the `//` that opened
+ * it.
+ */
+function withEmptiedComments(code: string): string {
   return code
     .split("\n")
-    .map((line) => line.replace(/\s*\/\/.*$/, ""))
+    .map((line) => line.replace(/\/\/.*$/, "//"))
     .join("\n");
 }
 
@@ -189,16 +207,23 @@ describe("accessible names", () => {
 });
 
 describe("example code", () => {
-  it("is the same code in every locale, comments aside", () => {
+  it("is the same code in every locale, with its comments in the same places", () => {
     // The rule the translation follows: prose is translated, code never is. An
     // example whose identifiers were translated would not run.
+    //
+    // Where the comments sit is part of the same statement rather than a second
+    // one. A translation that adds a remark of its own, or drops one it did not
+    // know what to do with, hands the two languages different programs — the
+    // Russian reader is shown a line the English reader is not, or told less
+    // than they were promised — and it does it without touching a line of code,
+    // which is exactly the edit a check on the code alone cannot see.
     for (const key of CODE_KEYS) {
       const english = entry("en", key);
       const russian = entry("ru", key);
       expect(typeof english).toBe("string");
       expect(typeof russian).toBe("string");
       if (typeof english === "string" && typeof russian === "string") {
-        expect(withoutComments(russian), key).toBe(withoutComments(english));
+        expect(withEmptiedComments(russian), key).toBe(withEmptiedComments(english));
       }
     }
   });
