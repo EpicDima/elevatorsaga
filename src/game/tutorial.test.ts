@@ -13,13 +13,30 @@
  * The one exception is {@link expectConditionIsReachable}, which does look at a
  * bar: not to judge a program, but to catch a threshold that no program could
  * ever meet because the passengers to satisfy it have not been born yet.
+ *
+ * Every check over a program is made in every language. The two programs of a
+ * task are messages — their `//` comments are written to the player, so they are
+ * translated, and only they are — which means a task hands out one program per
+ * locale and a suite that read the default one would be leaving the other
+ * unchecked. `src/i18n/catalogue.test.ts` holds the code identical across
+ * locales; what is left to this file is that each of those programs still
+ * parses and is still written the way the track's programs are written, since a
+ * translated comment is a line like any other and can be too long, indented
+ * wrongly, or end a template literal early.
  */
 
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 
+import { DEFAULT_LOCALE, LOCALES, setLocale } from "../i18n/index.ts";
 import type { Challenge, ChallengeWorldStats } from "./challenges.ts";
 import { tutorialTasks, type TutorialTask } from "./tutorial.ts";
 import { getCodeObjFromCode } from "./user-code.ts";
+
+afterEach(() => {
+  // Every spec below that names a language leaves it named, and the table
+  // answers in whatever language was set last.
+  setLocale(DEFAULT_LOCALE);
+});
 
 /**
  * The buildings the rest of the game is willing to construct.
@@ -162,6 +179,25 @@ function expectPlayerCodeStyle(label: string, code: string): void {
   }
 }
 
+/**
+ * A program with its `//` comments taken out.
+ *
+ * The same reduction `src/i18n/catalogue.test.ts` makes, spelled again here
+ * rather than shared: that file asks whether two catalogue entries hold the same
+ * code, this one asks whether a *task* hands out the same code whichever
+ * language it is asked in, and a helper imported across that line would tie the
+ * two questions together for no gain.
+ *
+ * @param code - A player-facing program.
+ * @returns The same program with every comment stripped.
+ */
+function withoutComments(code: string): string {
+  return code
+    .split("\n")
+    .map((line) => line.replace(/\s*\/\/.*$/, ""))
+    .join("\n");
+}
+
 describe("Learning track table", () => {
   it("has the eight tasks the track is built around", () => {
     expect(tutorialTasks).toHaveLength(8);
@@ -192,6 +228,20 @@ describe("Learning track table", () => {
     // types, and a set of the raw values would count them as two.
     const seeds = tutorialTasks.map((task) => String(task.seed));
     expect(new Set(seeds).size).toBe(seeds.length);
+  });
+
+  it("answers the last task with the one before it, in every language", () => {
+    // Task 8 asks for nothing new, so its answer is task 7's, word for word.
+    // The two are separate messages rather than one shared string, which is
+    // deliberate: every task owning the same eight keys is what lets
+    // `docs/i18n-inventory.md` cover the track by a shape and a translator meet
+    // no exception. What a copy costs is drift, and this is what pays for it —
+    // in both languages, since a comment added to one of them would part them
+    // just as surely as a changed line.
+    for (const locale of LOCALES) {
+      setLocale(locale);
+      expect(tutorialTasks.at(-1)?.solutionCode, locale).toBe(tutorialTasks.at(-2)?.solutionCode);
+    }
   });
 });
 
@@ -255,20 +305,64 @@ for (const task of tutorialTasks) {
       expect(task.startingCode).not.toBe(task.solutionCode);
     });
 
-    it("hands the player two programs that run", () => {
-      for (const [label, code] of [
-        ["starting code", task.startingCode],
-        ["solution", task.solutionCode],
-      ] as const) {
-        const codeObj = getCodeObjFromCode(code);
-        expect(typeof codeObj.init, `${task.id} ${label}: init`).toBe("function");
-        expect(typeof codeObj.update, `${task.id} ${label}: update`).toBe("function");
+    it("hands the player two programs that run, in every language", () => {
+      // A comment is prose, and prose is translated: a translation carrying a
+      // backtick, a `${` or a stray line break would not be a blemish on the
+      // program, it would be the end of it. The player it stops is the one
+      // reading the track in that language, so every language is parsed.
+      for (const locale of LOCALES) {
+        setLocale(locale);
+        for (const [label, code] of [
+          ["starting code", task.startingCode],
+          ["solution", task.solutionCode],
+        ] as const) {
+          const codeObj = getCodeObjFromCode(code);
+          expect(typeof codeObj.init, `${task.id} ${label} in ${locale}: init`).toBe("function");
+          expect(typeof codeObj.update, `${task.id} ${label} in ${locale}: update`).toBe(
+            "function",
+          );
+        }
       }
     });
 
-    it("hands the player two programs written like the starter program", () => {
-      expectPlayerCodeStyle(`${task.id} starting code`, task.startingCode);
-      expectPlayerCodeStyle(`${task.id} solution`, task.solutionCode);
+    it("hands the player two programs written like the starter program, in every language", () => {
+      // Indentation, tabs, trailing space and line length are properties of the
+      // text rather than of the code, so a translated comment can break any of
+      // them while leaving a program that runs perfectly well and reads like it
+      // came from somewhere else.
+      for (const locale of LOCALES) {
+        setLocale(locale);
+        expectPlayerCodeStyle(`${task.id} starting code in ${locale}`, task.startingCode);
+        expectPlayerCodeStyle(`${task.id} solution in ${locale}`, task.solutionCode);
+      }
+    });
+
+    it("renders its programs in the language they are read in", () => {
+      // The two fields are getters over message keys, which is the whole of what
+      // makes the track translatable: read at import time — as a field would be
+      // — both programs would freeze in whatever language was active while this
+      // module was being evaluated, and that is no language at all, since the
+      // table is built before anything has chosen one.
+      //
+      // The other half of the statement is what stays the same. Only the
+      // comments are translated, so the code with its comments stripped must be
+      // the same text in both languages, and a program that has comments must
+      // not be the same text with them.
+      setLocale(DEFAULT_LOCALE);
+      const english = { start: task.startingCode, answer: task.solutionCode };
+      setLocale("ru");
+      const russian = { start: task.startingCode, answer: task.solutionCode };
+      for (const [label, before, after] of [
+        ["starting code", english.start, russian.start],
+        ["solution", english.answer, russian.answer],
+      ] as const) {
+        expect(withoutComments(after), `${task.id} ${label}: the code was translated too`).toBe(
+          withoutComments(before),
+        );
+        if (before.includes("//")) {
+          expect(after, `${task.id} ${label}: the comments were left in English`).not.toBe(before);
+        }
+      }
     });
   });
 }

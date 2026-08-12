@@ -99,6 +99,19 @@ function englishTitle(id: string): unknown {
   return ENGLISH[`tutorial.task${id.slice("tutorial-".length)}.title`];
 }
 
+/**
+ * A program with its `//` comments taken out: the half that is never translated.
+ *
+ * @param code - A program as the panel drew it.
+ * @returns The same program without its comments.
+ */
+function uncommented(code: string): string {
+  return code
+    .split("\n")
+    .map((line) => line.replace(/\s*\/\/.*$/, ""))
+    .join("\n");
+}
+
 describe("presentTutorial", () => {
   it("draws the task, its goal, its hints and the way out", () => {
     presentTutorial(parent, panelData());
@@ -597,16 +610,30 @@ describe("presentTutorial", () => {
       );
     });
 
-    it("leaves the answer in the language it is written in", () => {
-      // The program is JavaScript. It comes from the task table in either
-      // language, and it is the same string in both.
-      setLocale("ru");
+    it("draws the answer of the language it is drawing in, and translates none of its code", () => {
+      // The answer is a message like everything else here, but a `.code` one:
+      // only the `//` comments in it are ever translated and the JavaScript is
+      // byte-identical in every locale, which `src/i18n/catalogue.test.ts`
+      // holds. So the panel asks the table while it draws — the first assertion
+      // — and what comes back is the same program with, at most, different
+      // comments.
+      //
+      // No answer on the track carries a comment today, so the two languages
+      // print the same bytes; that is a fact about the answers and not about
+      // the panel, and it is deliberately not what is asserted. The day an
+      // answer gains one, these three lines still say the right thing: the
+      // Russian reader gets the Russian entry, the code inside it is unchanged,
+      // and there is no Cyrillic anywhere but in the comments.
+      presentTutorial(parent, panelData());
+      const english = requireElement(".tutorialsolution code", parent).textContent;
 
+      setLocale("ru");
       presentTutorial(parent, panelData());
 
-      expect(requireElement(".tutorialsolution code", parent).textContent).toBe(
-        tutorialTasks[0]?.solutionCode,
-      );
+      const russian = requireElement(".tutorialsolution code", parent).textContent;
+      expect(russian).toBe(tutorialTasks[0]?.solutionCode);
+      expect(uncommented(russian), "the answer's code was translated").toBe(uncommented(english));
+      expect(uncommented(russian), "Cyrillic outside a comment").not.toMatch(/[а-яё]/i);
     });
   });
 });

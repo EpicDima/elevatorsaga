@@ -21,6 +21,15 @@
  * those measurements, and the entries whose numbers differ from
  * `docs/tutorial-plan.md` say which number moved and what forced it.
  *
+ * The programs themselves are not written out here. They are messages, keyed
+ * `tutorial.taskN.startingCode.code` and `tutorial.taskN.solutionCode.code`,
+ * because their `//` comments are prose addressed to the player and a Russian
+ * player was reading them in English. The JavaScript is byte-identical in every
+ * locale and only the comments are translated, which `src/i18n/catalogue.test.ts`
+ * checks rather than trusts. Each task's lesson — what its program does wrong
+ * and what the answer does instead — is still described in this file, above the
+ * entry it belongs to.
+ *
  * A {@link TutorialTask} is structurally a {@link "./challenges.ts"!Challenge}:
  * `options` and `condition` are named and typed to match, so a task can be
  * handed straight to the machinery that runs a challenge. Deliberately no
@@ -29,6 +38,7 @@
  * the solutions test never measured.
  */
 
+import { t } from "../i18n/index.ts";
 import {
   requireUserCountWithMaxWaitTime,
   requireUserCountWithinTime,
@@ -41,19 +51,21 @@ import type { WorldOptions } from "./world.ts";
  * One task: a building, a bar, the program the player is given, and the program
  * that clears it.
  *
- * `solutionCode` lives here rather than in the test that uses it because it is
- * two things at once. It is the third hint — the answer the player is shown
- * after the two hints that do not give it away — and it is the fixture the
- * solutions test proves the task with. Those must be the same bytes. Keeping
- * the answer in the test file and the shown answer somewhere else would leave
- * the suite guarding a program nobody is ever given, and the drift would be
- * invisible: both copies still compile, both still pass, and only the player is
- * told something untrue. One copy, in the table, is the version of this that
- * cannot rot.
+ * `solutionCode` is reached through this table rather than through the test
+ * that uses it because it is two things at once. It is the third hint — the
+ * answer the player is shown after the two hints that do not give it away — and
+ * it is the fixture the solutions test proves the task with. Those must be the
+ * same bytes. Keeping the answer in the test file and the shown answer
+ * somewhere else would leave the suite guarding a program nobody is ever given,
+ * and the drift would be invisible: both copies still compile, both still pass,
+ * and only the player is told something untrue. One string, reached one way, is
+ * the version of this that cannot rot.
  *
  * The same argument puts `startingCode` here. It is what the editor is filled
  * with *and* what the test proves cannot win; a second copy would mean the
- * failure being demonstrated is not the failure being measured.
+ * failure being demonstrated is not the failure being measured. Moving the text
+ * into the catalogue did not add a copy: it moved the one that exists, and the
+ * table is still the only way anything reaches it.
  */
 export interface TutorialTask {
   /**
@@ -80,376 +92,16 @@ export interface TutorialTask {
    * reproducibility rather than hiding a fluke.
    */
   readonly seed: RandomSeed;
-  /** The program the editor is filled with; contains the mistake to be found. */
+  /**
+   * The program the editor is filled with; contains the mistake to be found.
+   *
+   * A plain string, and read every time it is asked for rather than once:
+   * {@link tutorialTasks} says why that matters.
+   */
   readonly startingCode: string;
-  /** The program that wins; shown as the last hint. */
+  /** The program that wins; shown as the last hint. Read the same way. */
   readonly solutionCode: string;
 }
-
-/**
- * Task 1: an elevator that only ever visits one of the two floors.
- *
- * The mistake is visible from the shape of the code alone — one `goToFloor`
- * where a two-floor building needs two — and it is fatal rather than merely
- * slow: nobody is served at all, on any seed, however long the run.
- *
- * What that looks like on screen is worth stating exactly, because it is not
- * "an empty elevator standing still". {@link "./world.ts"!World} nudges a
- * standing car when a waiting passenger presses the button again, which sends
- * the car to the floor it is already on — doors open, people board. So the
- * parked car fills up (load factor 0.73 by 30 s on the pinned seed) and then
- * holds them there with `moveCount` at zero. A full elevator that delivers
- * nobody is a better first lesson than an empty one, and it is what the player
- * actually sees.
- */
-const TASK_1_START = `{
-    init: function(elevators, floors) {
-        const elevator = elevators[0];
-
-        elevator.on("idle", function() {
-            // TODO: this building has two floors, and the elevator only visits one
-            elevator.goToFloor(0);
-        });
-    },
-    update: function(dt, elevators, floors) {
-    }
-}`;
-
-/** Task 1's answer: the missing floor, added. */
-const TASK_1_SOLUTION = `{
-    init: function(elevators, floors) {
-        const elevator = elevators[0];
-
-        elevator.on("idle", function() {
-            elevator.goToFloor(0);
-            elevator.goToFloor(1);
-        });
-    },
-    update: function(dt, elevators, floors) {
-    }
-}`;
-
-/**
- * Task 2: nothing is subscribed, so nothing ever happens.
- *
- * The elevator is fetched and then never told anything. Written this way rather
- * than as an empty `init` so that the first line of the answer is already on
- * screen: the lesson is that a program is a set of handlers, and the player has
- * to reach for `on("idle")` unprompted.
- */
-const TASK_2_START = `{
-    init: function(elevators, floors) {
-        const elevator = elevators[0];
-
-        // TODO: send the elevator round all three floors, over and over
-    },
-    update: function(dt, elevators, floors) {
-    }
-}`;
-
-/** Task 2's answer: a round trip, restarted every time the car falls idle. */
-const TASK_2_SOLUTION = `{
-    init: function(elevators, floors) {
-        const elevator = elevators[0];
-
-        elevator.on("idle", function() {
-            elevator.goToFloor(0);
-            elevator.goToFloor(1);
-            elevator.goToFloor(2);
-        });
-    },
-    update: function(dt, elevators, floors) {
-    }
-}`;
-
-/**
- * Task 3: passengers get in and are never taken anywhere.
- *
- * The car returns to the ground floor and stops, which means it does open its
- * doors and does pick people up — and then ignores every button they press.
- * That is the point of the task: the first event that comes *from* the
- * simulation rather than from the car's own idleness.
- */
-const TASK_3_START = `{
-    init: function(elevators, floors) {
-        const elevator = elevators[0];
-
-        elevator.on("idle", function() {
-            elevator.goToFloor(0);
-        });
-
-        // TODO: they are already aboard and have already pressed their floors
-    },
-    update: function(dt, elevators, floors) {
-    }
-}`;
-
-/** Task 3's answer: listen to the buttons inside the car. */
-const TASK_3_SOLUTION = `{
-    init: function(elevators, floors) {
-        const elevator = elevators[0];
-
-        elevator.on("idle", function() {
-            elevator.goToFloor(0);
-        });
-
-        elevator.on("floor_button_pressed", function(floorNum) {
-            elevator.goToFloor(floorNum);
-        });
-    },
-    update: function(dt, elevators, floors) {
-    }
-}`;
-
-/**
- * Task 4: a destination queue that is filled and never started.
- *
- * The only task whose bug is in the API rather than in the reasoning, and the
- * reason it is a task at all is that assigning `destinationQueue` looks like it
- * should work and silently does not. Presented as somebody else's rewrite of
- * the round trip from task 2, so that the player is debugging a change rather
- * than being quizzed on a method they have never seen.
- */
-const TASK_4_START = `{
-    init: function(elevators, floors) {
-        const elevator = elevators[0];
-
-        // Somebody rewrote the round trip as a queue.
-        elevator.on("idle", function() {
-            elevator.destinationQueue = [0, 1, 2, 3];
-        });
-
-        elevator.on("floor_button_pressed", function(floorNum) {
-            elevator.goToFloor(floorNum);
-        });
-    },
-    update: function(dt, elevators, floors) {
-    }
-}`;
-
-/** Task 4's answer: tell the car to look at the queue it was handed. */
-const TASK_4_SOLUTION = `{
-    init: function(elevators, floors) {
-        const elevator = elevators[0];
-
-        elevator.on("idle", function() {
-            elevator.destinationQueue = [0, 1, 2, 3];
-            elevator.checkDestinationQueue();
-        });
-
-        elevator.on("floor_button_pressed", function(floorNum) {
-            elevator.goToFloor(floorNum);
-        });
-    },
-    update: function(dt, elevators, floors) {
-    }
-}`;
-
-/**
- * Task 5: a sweep of all nine floors, most of which nobody is waiting on.
- *
- * The first task that is not broken. It works, it is just slow, and it is slow
- * for a reason the player can name: the car spends its time on empty floors.
- * This is the first task judged on waiting rather than on throughput, because
- * the cost of a pointless stop is paid by the person watching the car go the
- * other way, and the clock the player is asked to think about should be theirs.
- */
-const TASK_5_START = `{
-    init: function(elevators, floors) {
-        const elevator = elevators[0];
-
-        elevator.on("idle", function() {
-            elevator.destinationQueue = [0, 1, 2, 3, 4, 5, 6, 7, 8];
-            elevator.checkDestinationQueue();
-        });
-
-        elevator.on("floor_button_pressed", function(floorNum) {
-            elevator.goToFloor(floorNum);
-        });
-
-        // TODO: ask the floors who wants an elevator instead of visiting them all
-    },
-    update: function(dt, elevators, floors) {
-    }
-}`;
-
-/** Task 5's answer: go where somebody actually pressed a button. */
-const TASK_5_SOLUTION = `{
-    init: function(elevators, floors) {
-        const elevator = elevators[0];
-
-        elevator.on("floor_button_pressed", function(floorNum) {
-            elevator.goToFloor(floorNum);
-        });
-
-        floors.forEach(function(floor) {
-            floor.on("up_button_pressed", function() {
-                elevator.goToFloor(floor.floorNum());
-            });
-            floor.on("down_button_pressed", function() {
-                elevator.goToFloor(floor.floorNum());
-            });
-        });
-    },
-    update: function(dt, elevators, floors) {
-    }
-}`;
-
-/**
- * Task 6: indicators that lie, so half the building refuses to board.
- *
- * The subtlest failure in the track, and the one that most looks like bad luck:
- * the program is task 5's answer, correct in every line, plus two lines that
- * announce the car is going up and not down. Passengers believe the indicators,
- * so everyone heading down lets the car go and presses again, and the wait
- * clock keeps running on somebody the car has already visited.
- */
-const TASK_6_START = `{
-    init: function(elevators, floors) {
-        const elevator = elevators[0];
-
-        // Somebody decided to show the passengers which way the elevator is going.
-        elevator.goingUpIndicator(true);
-        elevator.goingDownIndicator(false);
-
-        elevator.on("floor_button_pressed", function(floorNum) {
-            elevator.goToFloor(floorNum);
-        });
-
-        floors.forEach(function(floor) {
-            floor.on("up_button_pressed", function() {
-                elevator.goToFloor(floor.floorNum());
-            });
-            floor.on("down_button_pressed", function() {
-                elevator.goToFloor(floor.floorNum());
-            });
-        });
-    },
-    update: function(dt, elevators, floors) {
-    }
-}`;
-
-/**
- * Task 6's answer: admit the car goes both ways.
- *
- * Both indicators lit is the honest statement of a program that has no notion
- * of direction, and it is what a car is built with, so deleting the two lines
- * is the same program and the same run — the hints offer that as the answer
- * too. Switching them both *off* is emphatically not the same program, which is
- * worth knowing before anyone writes that in a hint: a passenger boards only a
- * car that admits it goes their way, so an unlit car is one nobody enters, and
- * it delivers nobody at all on every seed measured. Written as two explicit
- * `true`s because the lesson is what the indicators *say*, and "say yes to
- * everyone until you have something truer to say" needs a line to point at.
- */
-const TASK_6_SOLUTION = `{
-    init: function(elevators, floors) {
-        const elevator = elevators[0];
-
-        elevator.goingUpIndicator(true);
-        elevator.goingDownIndicator(true);
-
-        elevator.on("floor_button_pressed", function(floorNum) {
-            elevator.goToFloor(floorNum);
-        });
-
-        floors.forEach(function(floor) {
-            floor.on("up_button_pressed", function() {
-                elevator.goToFloor(floor.floorNum());
-            });
-            floor.on("down_button_pressed", function() {
-                elevator.goToFloor(floor.floorNum());
-            });
-        });
-    },
-    update: function(dt, elevators, floors) {
-    }
-}`;
-
-/**
- * Task 7: two elevators, one of which is never used.
- *
- * `elevators[0]` was harmless in every building so far and is exactly wrong
- * here, which is the whole lesson: the mistake is not a typo, it is an
- * assumption that quietly stopped holding. The second car sits still for the
- * entire run while the first one falls behind the traffic.
- */
-const TASK_7_START = `{
-    init: function(elevators, floors) {
-        const elevator = elevators[0];
-
-        elevator.on("floor_button_pressed", function(floorNum) {
-            elevator.goToFloor(floorNum);
-        });
-
-        floors.forEach(function(floor) {
-            floor.on("up_button_pressed", function() {
-                elevator.goToFloor(floor.floorNum());
-            });
-            floor.on("down_button_pressed", function() {
-                elevator.goToFloor(floor.floorNum());
-            });
-        });
-    },
-    update: function(dt, elevators, floors) {
-    }
-}`;
-
-/**
- * Task 7's answer: send each call to the emptiest car.
- *
- * `loadFactor` rather than queue length because it is the measure a player can
- * check against what they see on screen — a full car is drawn full. Any
- * dispatch rule that uses both cars wins this building; the hints say so, since
- * a task that only accepts one program teaches copying rather than dispatching.
- */
-const TASK_7_SOLUTION = `{
-    init: function(elevators, floors) {
-        function pickElevator() {
-            let best = elevators[0];
-            elevators.forEach(function(elevator) {
-                if (elevator.loadFactor() < best.loadFactor()) {
-                    best = elevator;
-                }
-            });
-            return best;
-        }
-
-        elevators.forEach(function(elevator) {
-            elevator.on("floor_button_pressed", function(floorNum) {
-                elevator.goToFloor(floorNum);
-            });
-        });
-
-        floors.forEach(function(floor) {
-            floor.on("up_button_pressed", function() {
-                pickElevator().goToFloor(floor.floorNum());
-            });
-            floor.on("down_button_pressed", function() {
-                pickElevator().goToFloor(floor.floorNum());
-            });
-        });
-    },
-    update: function(dt, elevators, floors) {
-    }
-}`;
-
-/**
- * Task 8: an empty program, in the building challenge 1 is played in.
- *
- * The graduation task, and the only one whose starting code contains no mistake
- * to find, because there is nothing to fix — there is something to write. An
- * empty `init` is also the most honest possible measurement of whether the
- * track worked: no scaffolding, and the same building the player walks into
- * next if they press on to the real challenges.
- */
-const TASK_8_START = `{
-    init: function(elevators, floors) {
-        // TODO: nothing here is new. You have written all of it already.
-    },
-    update: function(dt, elevators, floors) {
-    }
-}`;
 
 /**
  * Every task of the learning track, in the order they are played.
@@ -457,8 +109,42 @@ const TASK_8_START = `{
  * The buildings are small on purpose. A task has to be legible while it runs —
  * the player is meant to watch the mistake happen, not read about it afterwards
  * — and every one of these is a run somebody can follow with their eyes.
+ *
+ * `startingCode` and `solutionCode` are getters rather than fields, for the
+ * reason {@link "./fitness.ts"!fitnessChallenges} is a function rather than the
+ * constant it used to be: the programs are messages now, and a field in this
+ * table would render them while this module is being imported — before
+ * `main.ts` has a body to run, and so before anything has chosen a locale,
+ * freezing all sixteen in the one language nobody had asked for. A getter is
+ * read at the moment somebody needs the text: the editor when a task is opened,
+ * the panel when the answer is drawn, the solutions test when it replays a run.
+ * By then a language has been chosen, and a language chosen again later is
+ * answered the next time either program is asked for.
+ *
+ * Every key is written out in full at the entry that uses it rather than built
+ * from `id`, because a key assembled at runtime is a key the type checker
+ * cannot see: the day a task is renamed, added or dropped, the compiler is the
+ * one that should notice, not a player meeting an empty editor.
  */
 export const tutorialTasks: readonly TutorialTask[] = [
+  /**
+   * Task 1: an elevator that only ever visits one of the two floors.
+   *
+   * The mistake is visible from the shape of the code alone — one `goToFloor`
+   * where a two-floor building needs two — and it is fatal rather than merely
+   * slow: nobody is served at all, on any seed, however long the run.
+   *
+   * What that looks like on screen is worth stating exactly, because it is not
+   * "an empty elevator standing still". {@link "./world.ts"!World} nudges a
+   * standing car when a waiting passenger presses the button again, which sends
+   * the car to the floor it is already on — doors open, people board. So the
+   * parked car fills up (load factor 0.73 by 30 s on the pinned seed) and then
+   * holds them there with `moveCount` at zero. A full elevator that delivers
+   * nobody is a better first lesson than an empty one, and it is what the player
+   * actually sees.
+   *
+   * The answer is the missing floor, added.
+   */
   {
     id: "tutorial-1",
     // The smallest building in which "the elevator only visits one floor" can
@@ -468,9 +154,23 @@ export const tutorialTasks: readonly TutorialTask[] = [
     options: { floorCount: 2, elevatorCount: 1, spawnRate: 0.5 },
     condition: requireUserCountWithinTime(10, 60),
     seed: "tutorial-1",
-    startingCode: TASK_1_START,
-    solutionCode: TASK_1_SOLUTION,
+    get startingCode(): string {
+      return t("tutorial.task1.startingCode.code");
+    },
+    get solutionCode(): string {
+      return t("tutorial.task1.solutionCode.code");
+    },
   },
+  /**
+   * Task 2: nothing is subscribed, so nothing ever happens.
+   *
+   * The elevator is fetched and then never told anything. Written this way rather
+   * than as an empty `init` so that the first line of the answer is already on
+   * screen: the lesson is that a program is a set of handlers, and the player has
+   * to reach for `on("idle")` unprompted.
+   *
+   * The answer is a round trip, restarted every time the car falls idle.
+   */
   {
     id: "tutorial-2",
     // One floor more than task 1 and the same traffic: the step being taught is
@@ -479,9 +179,23 @@ export const tutorialTasks: readonly TutorialTask[] = [
     options: { floorCount: 3, elevatorCount: 1, spawnRate: 0.5 },
     condition: requireUserCountWithinTime(15, 60),
     seed: "tutorial-2",
-    startingCode: TASK_2_START,
-    solutionCode: TASK_2_SOLUTION,
+    get startingCode(): string {
+      return t("tutorial.task2.startingCode.code");
+    },
+    get solutionCode(): string {
+      return t("tutorial.task2.solutionCode.code");
+    },
   },
+  /**
+   * Task 3: passengers get in and are never taken anywhere.
+   *
+   * The car returns to the ground floor and stops, which means it does open its
+   * doors and does pick people up — and then ignores every button they press.
+   * That is the point of the task: the first event that comes *from* the
+   * simulation rather than from the car's own idleness.
+   *
+   * The answer listens to the buttons inside the car.
+   */
   {
     id: "tutorial-3",
     // Four floors, so that a passenger's destination is genuinely ambiguous and
@@ -490,9 +204,24 @@ export const tutorialTasks: readonly TutorialTask[] = [
     options: { floorCount: 4, elevatorCount: 1, spawnRate: 0.6 },
     condition: requireUserCountWithinTime(15, 60),
     seed: "tutorial-3",
-    startingCode: TASK_3_START,
-    solutionCode: TASK_3_SOLUTION,
+    get startingCode(): string {
+      return t("tutorial.task3.startingCode.code");
+    },
+    get solutionCode(): string {
+      return t("tutorial.task3.solutionCode.code");
+    },
   },
+  /**
+   * Task 4: a destination queue that is filled and never started.
+   *
+   * The only task whose bug is in the API rather than in the reasoning, and the
+   * reason it is a task at all is that assigning `destinationQueue` looks like it
+   * should work and silently does not. Presented as somebody else's rewrite of
+   * the round trip from task 2, so that the player is debugging a change rather
+   * than being quizzed on a method they have never seen.
+   *
+   * The answer tells the car to look at the queue it was handed.
+   */
   {
     id: "tutorial-4",
     // Spawn rate 0.8, where docs/tutorial-plan.md says 0.6. At 0.6 the answer's
@@ -505,9 +234,24 @@ export const tutorialTasks: readonly TutorialTask[] = [
     options: { floorCount: 4, elevatorCount: 1, spawnRate: 0.8 },
     condition: requireUserCountWithinTime(15, 60),
     seed: "tutorial-4",
-    startingCode: TASK_4_START,
-    solutionCode: TASK_4_SOLUTION,
+    get startingCode(): string {
+      return t("tutorial.task4.startingCode.code");
+    },
+    get solutionCode(): string {
+      return t("tutorial.task4.solutionCode.code");
+    },
   },
+  /**
+   * Task 5: a sweep of all nine floors, most of which nobody is waiting on.
+   *
+   * The first task that is not broken. It works, it is just slow, and it is slow
+   * for a reason the player can name: the car spends its time on empty floors.
+   * This is the first task judged on waiting rather than on throughput, because
+   * the cost of a pointless stop is paid by the person watching the car go the
+   * other way, and the clock the player is asked to think about should be theirs.
+   *
+   * The answer goes where somebody actually pressed a button.
+   */
   {
     id: "tutorial-5",
     // Nine floors, where the plan says ten. On ten the answer's worst wait was
@@ -538,9 +282,33 @@ export const tutorialTasks: readonly TutorialTask[] = [
     options: { floorCount: 9, elevatorCount: 1, spawnRate: 0.2 },
     condition: requireUserCountWithMaxWaitTime(15, 37),
     seed: "tutorial-5",
-    startingCode: TASK_5_START,
-    solutionCode: TASK_5_SOLUTION,
+    get startingCode(): string {
+      return t("tutorial.task5.startingCode.code");
+    },
+    get solutionCode(): string {
+      return t("tutorial.task5.solutionCode.code");
+    },
   },
+  /**
+   * Task 6: indicators that lie, so half the building refuses to board.
+   *
+   * The subtlest failure in the track, and the one that most looks like bad luck:
+   * the program is task 5's answer, correct in every line, plus two lines that
+   * announce the car is going up and not down. Passengers believe the indicators,
+   * so everyone heading down lets the car go and presses again, and the wait
+   * clock keeps running on somebody the car has already visited.
+   *
+   * The answer admits the car goes both ways. Both indicators lit is the honest
+   * statement of a program that has no notion of direction, and it is what a car
+   * is built with, so deleting the two lines is the same program and the same
+   * run — the hints offer that as the answer too. Switching them both *off* is
+   * emphatically not the same program, which is worth knowing before anyone
+   * writes that in a hint: a passenger boards only a car that admits it goes
+   * their way, so an unlit car is one nobody enters, and it delivers nobody at
+   * all on every seed measured. The answer says `true` twice rather than saying
+   * nothing, because the lesson is what the indicators *say*, and "say yes to
+   * everyone until you have something truer to say" needs a line to point at.
+   */
   {
     id: "tutorial-6",
     // Spawn rate 0.25, where the plan says 0.3. At 0.3 the answer did not merely
@@ -566,9 +334,27 @@ export const tutorialTasks: readonly TutorialTask[] = [
     options: { floorCount: 5, elevatorCount: 1, spawnRate: 0.25 },
     condition: requireUserCountWithMaxWaitTime(15, 28),
     seed: "tutorial-6",
-    startingCode: TASK_6_START,
-    solutionCode: TASK_6_SOLUTION,
+    get startingCode(): string {
+      return t("tutorial.task6.startingCode.code");
+    },
+    get solutionCode(): string {
+      return t("tutorial.task6.solutionCode.code");
+    },
   },
+  /**
+   * Task 7: two elevators, one of which is never used.
+   *
+   * `elevators[0]` was harmless in every building so far and is exactly wrong
+   * here, which is the whole lesson: the mistake is not a typo, it is an
+   * assumption that quietly stopped holding. The second car sits still for the
+   * entire run while the first one falls behind the traffic.
+   *
+   * The answer sends each call to the emptiest car. `loadFactor` rather than
+   * queue length because it is the measure a player can check against what they
+   * see on screen — a full car is drawn full. Any dispatch rule that uses both
+   * cars wins this building; the hints say so, since a task that only accepts
+   * one program teaches copying rather than dispatching.
+   */
   {
     id: "tutorial-7",
     // 1.2 passengers a second over six floors. The plan had already retuned
@@ -590,9 +376,24 @@ export const tutorialTasks: readonly TutorialTask[] = [
     options: { floorCount: 6, elevatorCount: 2, spawnRate: 1.2 },
     condition: requireUserCountWithinTime(28, 60),
     seed: "tutorial-7",
-    startingCode: TASK_7_START,
-    solutionCode: TASK_7_SOLUTION,
+    get startingCode(): string {
+      return t("tutorial.task7.startingCode.code");
+    },
+    get solutionCode(): string {
+      return t("tutorial.task7.solutionCode.code");
+    },
   },
+  /**
+   * Task 8: an empty program, in the building challenge 1 is played in.
+   *
+   * The graduation task, and the only one whose starting code contains no mistake
+   * to find, because there is nothing to fix — there is something to write. An
+   * empty `init` is also the most honest possible measurement of whether the
+   * track worked: no scaffolding, and the same building the player walks into
+   * next if they press on to the real challenges.
+   *
+   * The answer is task 7's answer, word for word and deliberately so.
+   */
   {
     id: "tutorial-8",
     // Challenge 1's building and challenge 1's bar, copied deliberately: the
@@ -617,13 +418,21 @@ export const tutorialTasks: readonly TutorialTask[] = [
     // exactly 399 — because anything that lifts this task to 400 does it by
     // making the graduation task no longer the game's own first challenge.
     //
-    // The answer is task 7's program, unchanged and deliberately so. Task 8 asks
-    // for nothing new; what it measures is whether the player can now write, on
-    // an empty page, what they have spent seven tasks assembling.
+    // Task 8 asks for nothing new; what it measures is whether the player can
+    // now write, on an empty page, what they have spent seven tasks assembling.
+    // So its answer is task 7's, and it is written out under this task's own key
+    // rather than pointed at task 7's, so that every task owns the same eight
+    // messages and a translator meets no exception. `tutorial.test.ts` holds the
+    // two equal in every locale, which is what a copy needs in order to be
+    // allowed to exist.
     options: { floorCount: 3, elevatorCount: 1, spawnRate: 0.3 },
     condition: requireUserCountWithinTime(15, 60),
     seed: "tutorial-8",
-    startingCode: TASK_8_START,
-    solutionCode: TASK_7_SOLUTION,
+    get startingCode(): string {
+      return t("tutorial.task8.startingCode.code");
+    },
+    get solutionCode(): string {
+      return t("tutorial.task8.solutionCode.code");
+    },
   },
 ];

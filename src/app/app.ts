@@ -661,6 +661,12 @@ export class App {
     // The task's own attempt if the player has left one, and the starting code
     // only when they have not: somebody who half-solved task 4, wandered off to
     // a challenge and came back is owed their attempt, not the mistake again.
+    //
+    // Read here rather than held anywhere, because the program is a message:
+    // `TutorialTask.startingCode` renders the task's own `.code` key when it is
+    // asked for, so the editor is handed the language the player has chosen by
+    // now, and starting the same task again — which is what "Start over" does —
+    // hands over the language they have chosen since.
     this.#editor.openTutorialBuffer(task.id, task.startingCode);
     this.#startRun(task, null, autoStart);
   }

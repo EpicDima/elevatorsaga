@@ -21,11 +21,17 @@ export const CODE_STORAGE_KEY = "elevatorCrushCode_v5";
 /**
  * The CodeMirror editing surface.
  *
+ * Found by the name it is announced under, which is a translated string like
+ * every other label on the page — so a spec reading the editor in another
+ * language has to say which name it expects, the way `tutorial.spec.ts` does
+ * for the learning track's landmark.
+ *
  * @param page - The page under test.
+ * @param name - The text box's accessible name in the language on screen.
  * @returns The editor's text box.
  */
-export function editor(page: Page): Locator {
-  return page.getByRole("textbox", { name: "Elevator program" });
+export function editor(page: Page, name = "Elevator program"): Locator {
+  return page.getByRole("textbox", { name });
 }
 
 /**

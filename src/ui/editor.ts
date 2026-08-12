@@ -673,7 +673,10 @@ export class CodeEditor extends Observable<CodeEditorEvents> {
    * @param starterCode - The program the task starts from, used only when the
    * task has nothing stored yet. Also what {@link CodeEditor.reset} restores
    * while the task is open, so passing the text in the player's current
-   * language keeps "start over" in that language.
+   * language keeps "start over" in that language. `TutorialTask.startingCode`
+   * renders it at the moment it is read, so a caller that reads it into this
+   * call is handing over the language chosen by then; the string is kept as it
+   * arrived, and a task opened again hands over a fresh one.
    */
   openTutorialBuffer(taskId: string, starterCode: string): void {
     this.#openBuffer(tutorialBuffer(taskId, starterCode));
@@ -690,11 +693,13 @@ export class CodeEditor extends Observable<CodeEditorEvents> {
       // Already on screen. Reloading it would be worse than useless: the
       // document would be replaced, moving the caret and emptying the undo
       // history, for text that is already there. Routers and interfaces repeat
-      // themselves — a re-render, a language change, a second click on the link
-      // for the task already open — and none of that may disturb typing. The
-      // description is still taken, because the starter program of one task is
-      // translated, so it changes under a language switch and "Reset" owes the
-      // player the version they can read.
+      // themselves — a re-render, a restart of the task already open, a second
+      // click on the link for it — and none of that may disturb typing. The
+      // description is still taken, because a starter program is a translated
+      // string: `editor.defaultCode.code` for the player's own buffer and
+      // `tutorial.taskN.startingCode.code` for a task's. A repeat after a
+      // language change therefore arrives carrying the newer text, and "Reset"
+      // owes the player the version they can read.
       this.#buffer = next;
       return;
     }

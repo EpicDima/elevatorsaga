@@ -426,11 +426,14 @@ export function presentTutorial(parent: HTMLElement, data: TutorialPanelData): v
       title: t(messages.title),
       goal: t(messages.goal),
       hints: [t(hint1), t(hint2), t(hint3)],
-      // Straight from the task table, and deliberately not from the catalogue:
-      // this is the program `tutorial-solutions.test.ts` clears the task with,
-      // so the answer on screen and the answer that is known to work are one
-      // string. A copy in the catalogue is a copy nothing compares, and the
-      // player would be the one told something untrue.
+      // Straight from the task table, and deliberately not from the catalogue
+      // even though that is where the text now lives: the table is what
+      // `tutorial-solutions.test.ts` clears the task with, so the answer on
+      // screen and the answer that is known to work are one string read one
+      // way. Reading `tutorial.taskN.solutionCode.code` here as well would be a
+      // second call site for one message with nothing comparing the two, and
+      // the player would be the one told something untrue. The table renders it
+      // when it is asked, so this is the answer in the language being drawn.
       solutionCode: task.solutionCode,
       explanation: t(messages.explanation),
     }),

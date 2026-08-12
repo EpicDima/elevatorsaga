@@ -17,7 +17,8 @@
  *
  * 1. every backticked token shaped like a message key is a real key;
  * 2. every key in `EN_MESSAGES` is named, bar the learning track's per-task
- *    keys, which the document covers by their shape;
+ *    keys — its prose and its two programs alike — which the document covers by
+ *    their shape;
  * 3. the counts it prints are the counts the catalogue has;
  * 4. every backticked `src/…` path exists on disk;
  * 5. no `file.ts:123` pin below the section that bans them;
@@ -131,7 +132,7 @@ function isGroupWildcard(span: string): boolean {
 /**
  * A span standing for the learning track's per-task keys: `tutorial.taskN.goal`.
  *
- * The `N` is the task number and the `*` a whole task's six keys; neither is a
+ * The `N` is the task number and the `*` a whole task's eight keys; neither is a
  * key, and the document says so where it uses them.
  *
  * @param span - A key-shaped span.
@@ -142,8 +143,14 @@ function isTaskShape(span: string): boolean {
 }
 
 /**
- * The six suffixes the document says every task owns, spelled as it spells
+ * The eight suffixes the document says every task owns, spelled as it spells
  * them: `tutorial.taskN.hint1.html` in full, `.hint2.html` abbreviated.
+ *
+ * The last two are the task's two programs, which are messages because their
+ * comments are addressed to the player. They are exempted from the naming check
+ * for the same reason the other six are — the document covers the track by
+ * shape rather than by sixty-four rows — and so they have to be spelled out
+ * here, or the exemption would cover keys the document never mentions.
  */
 const TASK_SUFFIXES = [
   "title",
@@ -152,13 +159,15 @@ const TASK_SUFFIXES = [
   "hint2.html",
   "hint3.html",
   "explanation.html",
+  "startingCode.code",
+  "solutionCode.code",
 ];
 
 /**
  * The keys the document covers by shape instead of by row.
  *
  * Built from `tutorialTasks`, so the exemption is exactly as wide as the track
- * really is. A ninth task's six keys would be exempted from the naming check
+ * really is. A ninth task's eight keys would be exempted from the naming check
  * here — and caught two tests down instead, where the `tutorial.*` count the
  * document prints stops matching the catalogue.
  */

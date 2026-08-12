@@ -104,21 +104,21 @@ Key names carry two suffixes that mean something:
 
 ## Where the strings are
 
-The catalogue holds **277 keys** in two locales. `src/i18n/en.ts` is the reference — its text is
+The catalogue holds **293 keys** in two locales. `src/i18n/en.ts` is the reference — its text is
 the English wording, extracted verbatim — and `src/i18n/ru.ts` is the Russian translation. The
 types make English the shape everything else is measured against: a Russian catalogue missing a
 key, carrying a key English does not have, or giving a plural message the wrong number of forms
 is a compile error, not a runtime surprise.
 
 ```sh
-grep -cE '^  "[^"]+":' src/i18n/en.ts                                   # 277
+grep -cE '^  "[^"]+":' src/i18n/en.ts                                   # 293
 grep -oE '^  "[^"]+"' src/i18n/en.ts | tr -d '"' | cut -d. -f1 | sort | uniq -c | sort -rn
 ```
 
 | Prefix         | Keys    | What reads them                                                                                          |
 | -------------- | ------- | -------------------------------------------------------------------------------------------------------- |
 | `docs.*`       | 83      | one of them, `docs.basics.example.code`, by `src/ui/completions.ts`; the other 82 by nothing             |
-| `tutorial.*`   | 64      | `src/ui/tutorial-panel.ts`, `src/ui/templates.ts`, `src/app/app.ts`                                      |
+| `tutorial.*`   | 80      | `src/ui/tutorial-panel.ts`, `src/ui/templates.ts`, `src/app/app.ts`                                      |
 | `completion.*` | 32      | `src/ui/completions.ts`                                                                                  |
 | `page.*`       | 32      | `index.html`, through `data-i18n` and `data-i18n-attr`; `page.noscript` excepted, see below              |
 | `game.*`       | 27      | `src/ui/templates.ts` (18), `src/ui/presenters.ts` (4), `src/app/app.ts` (5)                             |
@@ -126,7 +126,7 @@ grep -oE '^  "[^"]+"' src/i18n/en.ts | tr -d '"' | cut -d. -f1 | sort | uniq -c 
 | `fitness.*`    | 10      | `src/app/fitness.ts`, `src/game/fitness.ts`, `src/main.ts`                                               |
 | `error.*`      | 10      | `src/game/elevator-interface.ts`, `src/ui/presenters.ts`, `src/game/user-code.ts`, `src/game/movable.ts` |
 | `editor.*`     | 5       | `src/main.ts`, `src/ui/editor.ts`, `src/ui/default-code.ts`                                              |
-| **Total**      | **277** |                                                                                                          |
+| **Total**      | **293** |                                                                                                          |
 
 Which keys nothing reads:
 
@@ -141,8 +141,9 @@ optimistic rather than pessimistic: it matches text rather than calls, so a key 
 of another key counts as read whenever the longer one is, and a key named only in a comment
 counts as read too. `page.noscript` is the second case — nothing renders it, and `index.html`
 names it in a comment saying so — which makes the true figure 82. It also needs
-`src/ui/tutorial-panel.ts` to be in the tree, since that file is what reads the 48
-`tutorial.task*` messages.
+`src/ui/tutorial-panel.ts` and `src/game/tutorial.ts` to be in the tree, since between them that
+is what reads the 64 `tutorial.task*` messages: the panel each task's prose, the task table each
+task's two programs.
 
 **`page.noscript` cannot be wired, and the comment in `index.html` is the reason.** A browser
 running this code parses the children of `<noscript>` as text rather than as elements, so in the
@@ -307,16 +308,17 @@ case makes sure no key escapes that comparison.
 | `docs.api.floor.buttonStateChange.html`             | Triggered when either call button at a floor was lit or cleared. The handler is passed the state of both butto… | markup                                                                                                                             |
 | `docs.api.floor.buttonStateChange.example.code`     | floor.on("buttonstate_change", function(buttonStates) {                                                         | code; only the comments are translated                                                                                             |
 
-### The learning track — 64 `tutorial.*` keys
+### The learning track — 80 `tutorial.*` keys
 
 The track is the eight tasks in `src/game/tutorial.ts`, with ids `tutorial-1` … `tutorial-8`.
 Its prose is the largest single group of keys after the reference page, and it is the one group
 whose messages were committed before anything read them — the prose _is_ the teaching here, so it
 was written into both catalogues first and the panel built against it.
 
-Each task owns six keys, numbered by position: `tutorial.taskN.title`, `tutorial.taskN.goal`,
-`tutorial.taskN.hint1.html`, `.hint2.html`, `.hint3.html`, and `tutorial.taskN.explanation.html`
-— 48 in all. `src/ui/tutorial-panel.ts` writes every one of them out as a literal in
+Each task owns eight keys, numbered by position: `tutorial.taskN.title`, `tutorial.taskN.goal`,
+`tutorial.taskN.hint1.html`, `.hint2.html`, `.hint3.html`, `tutorial.taskN.explanation.html`,
+`tutorial.taskN.startingCode.code` and `tutorial.taskN.solutionCode.code` — 64 in all.
+`src/ui/tutorial-panel.ts` writes the six prose keys out as literals in
 `TUTORIAL_TASK_MESSAGES` and says why in its header: a message key has to reach `t` as a string
 literal, because the parameters a message takes are derived from the literal by `Placeholders<S>`
 in `src/i18n/catalogue.ts`. A key built as ``t(`tutorial.task${n}.title`)`` cannot be
@@ -327,6 +329,24 @@ its position, so that a ninth task inserted in the middle cannot slide one task'
 next task's building. `TutorialTaskId` is derived from the catalogue's own `tutorial.taskN.title`
 keys, which is what makes a ninth task's messages added to `src/i18n/en.ts` without a row here
 stop the file compiling.
+
+The other two keys are the task's two programs, and they are messages for the same reason
+`editor.defaultCode.code` is one: the `//` comments in them are prose written to the player —
+`// TODO: this building has two floors, and the elevator only visits one` is the whole of task
+1's instruction, and it is read in the editor and again under the third hint. The JavaScript is
+byte-identical in every locale and only the comments are translated. `tutorialTasks` in
+`src/game/tutorial.ts` reads both through getters rather than fields, so that a program is
+rendered when the editor or the panel asks for it rather than when the module is imported, which
+is before a locale has been chosen; the keys are written out at each entry, since a key built
+from the task's id could not be type-checked either. `tutorial.task8.solutionCode.code` repeats
+task 7's program word for word — the graduation task asks for nothing new — and every task owning
+the same eight keys is worth more than the saving; `src/game/tutorial.test.ts` holds the two
+equal in every locale.
+
+| Key                                | English                                                                                                         | Notes                                                                                                                                              |
+| ---------------------------------- | --------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `tutorial.taskN.startingCode.code` | { init: function(elevators, floors) { const elevator = elevators[0]; elevator.on("idle", function() { // TODO:… | code; only the comments are translated; the program the editor is filled with, and the one `src/game/tutorial-solutions.test.ts` proves cannot win |
+| `tutorial.taskN.solutionCode.code` | { init: function(elevators, floors) { const elevator = elevators[0]; elevator.on("idle", function() { elevator… | code; only the comments are translated; the answer, shown under the third hint and replayed as the fixture that must win                           |
 
 | Task | `tutorial.taskN.title`                   | What the goal asks for                                                                       |
 | ---- | ---------------------------------------- | -------------------------------------------------------------------------------------------- |
@@ -400,7 +420,7 @@ identically in every locale. Both names repeat it because an accessible name has
 own — "1234567890, link" describes nothing.
 
 `game.seed.newDraw` appearing inside `game.seed.newDrawLink` is a constraint a translator cannot
-see: the two sit on adjacent lines of a 277-key file and nothing in the file marks them as a
+see: the two sit on adjacent lines of a 293-key file and nothing in the file marks them as a
 pair. `src/i18n/catalogue.test.ts`, under _accessible names_, is what holds it — it requires the
 spoken name to contain the visible label in every locale. Rewording «новый розыгрыш» to «новый
 сид» meant changing both, which is exactly the edit where one gets missed.
@@ -788,9 +808,9 @@ is `src/i18n/inventory.test.ts`, which reads this file with `?raw` and checks it
 1. Every backticked token in this file shaped like a message key — dotted, and with a first
    segment that is one of the catalogue's prefixes — is a real `MessageKey`. This catches a key
    renamed in the catalogue and left behind here.
-2. Every key in `EN_MESSAGES` appears somewhere in this file, except the 48 `tutorial.taskN.*`
-   keys the learning track section covers by their shape. This catches a message added without a
-   row.
+2. Every key in `EN_MESSAGES` appears somewhere in this file, except the 64 `tutorial.taskN.*`
+   keys the learning track section covers by their shape — its prose and its two programs alike.
+   This catches a message added without a row.
 3. The **Keys** column of _Where the strings are_ equals the number of `EN_MESSAGES` keys under
    each prefix, and the **Total** equals `Object.keys(EN_MESSAGES).length`.
 4. Every backticked `src/…` path exists on disk. This catches a renamed module. Keep it to

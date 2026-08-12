@@ -33,6 +33,18 @@ const FIRST_TASK = "/#challenge=tutorial-1";
 const TASK_1_MARKER = "this building has two floors";
 
 /**
+ * The same line of the same program, as a Russian reader is handed it.
+ *
+ * The programs on the track are catalogue messages like everything else a
+ * player reads — `tutorial.task1.startingCode.code` — and the code inside them
+ * is identical in every language, so what changes between this marker and the
+ * one above is the comment and nothing else. Two markers rather than one
+ * because the interesting failure is not an empty editor: it is an editor
+ * holding the English program on a page that is otherwise entirely Russian.
+ */
+const TASK_1_MARKER_RU = "в этом доме два этажа";
+
+/**
  * The panel's landmark, by the name a screen reader announces it as.
  *
  * By role and name rather than by class, for the reason `game-page.ts` gives:
@@ -154,6 +166,27 @@ test("hands the task's program to the editor and stays on the task", async ({ pa
   await expect(page.getByRole("heading", { name: /^Challenge #1:/ })).toBeVisible();
   await expect(panel(page)).toHaveCount(0);
   await expect(editor(page)).toContainText(TASK_1_MARKER);
+});
+
+test("hands the editor the program in the language the link asks for", async ({ page }) => {
+  // `openTutorialBuffer` promises the starter "in the player's current
+  // language", and this is the only place that promise can be measured whole:
+  // the hash names a language, `resolveLocale` picks it, the Russian catalogue
+  // is fetched as its own chunk, and only then is the task opened and the
+  // getter on the table read. Every one of those steps is missing from jsdom,
+  // and the last two are ordered -- the starter is written into storage as the
+  // buffer opens, so a task that opened before the catalogue landed would keep
+  // its English program for the rest of the run with the page around it in
+  // Russian.
+  await page.goto(`${FIRST_TASK},lang=ru`);
+  await expect(panel(page, "Учебная дорожка")).toBeVisible();
+
+  const russianEditor = editor(page, "Программа для лифтов");
+  await expect(russianEditor).toContainText(TASK_1_MARKER_RU);
+  await expect(russianEditor).not.toContainText(TASK_1_MARKER);
+  // And it is still the program, not a translation of one: the line the task
+  // is about survives the trip through the catalogue exactly as written.
+  await expect(russianEditor).toContainText("elevator.goToFloor(0);");
 });
 
 test("starts the task again from the panel without leaving it", async ({ page }) => {
