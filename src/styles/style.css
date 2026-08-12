@@ -1182,9 +1182,19 @@ kbd {
  * this box is the one thing inside it whose size is known here, so it is the
  * one thing that can hold the clip open.
  *
- * The clipping itself has to stay: passengers walk off to the right when they
- * are delivered, and `.feedback` is a 2000px overlay deliberately larger than
- * anything it covers, so `overflow: visible` would paint both onto the page.
+ * The clipping itself has to stay, for the overlay and for one direction only.
+ * `.feedback` is drawn 1280px wide in a 1220px track, so with `overflow:
+ * visible` the end of a challenge takes `.world` from 1220px of content to
+ * 1280px -- measured -- and hands it 60px of horizontal scrolling that leads
+ * nowhere. Downwards there is nothing to fix: `.world` is `overflow-y: hidden`
+ * and its own height comes from this box, so the same overlay's 2000px is
+ * already cut at the same line whichever way this is set, and nothing of it
+ * ever reaches the page. Nor is this about the passengers, who are the other
+ * thing that leaves the building: a delivered passenger walks 100px past the
+ * car they left, which is 242px into the track in challenge 1, 1000px in the
+ * widest building the game ships, and 1038px in the widest one the sandbox
+ * will assemble -- `fitElevatorCount` in `src/app/router.ts` keeps the last
+ * shaft inside `--building-width`, so nobody can be walked to the edge.
  */
 .worldtrack {
   position: relative;
