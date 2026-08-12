@@ -116,6 +116,22 @@ const DECIMALS = 3;
  */
 export const DEFAULT_TIMEOUT_MS = 60_000;
 
+/**
+ * The longest deadline this command will take, in seconds.
+ *
+ * What a timer can hold. `setTimeout` keeps its delay in a signed 32-bit integer
+ * of milliseconds, and quietly rewrites anything longer to one millisecond — so
+ * without this, asking for a fortnight is asking for an instant, and the report
+ * that comes back blames the program for missing a deadline it was never given.
+ * Node says so on standard error, which a `--json` reader never sees.
+ *
+ * 24 days is not a deadline anybody means, and that is the point: a number this
+ * large is a typing slip or a way of trying to switch the deadline off, and
+ * both are better answered by a sentence than by a benchmark that fails
+ * everything.
+ */
+const MAX_TIMEOUT_SECONDS = 2_147_483;
+
 /** What to benchmark, and how to report it. */
 export interface BenchOptions {
   /** The file holding the player's program. */
@@ -165,10 +181,12 @@ Options:
   --locale <tag>     Language for the scenario names, one of ${LOCALES.join(", ")}.
                      Default: ${DEFAULT_LOCALE}
   --timeout <secs>   Whole seconds the program gets to finish in before it is
-                     stopped and reported as having run out of time. Raise it
-                     for a long seed list or a slow machine; there is no way to
-                     switch it off, because a benchmark that never returns is
-                     what it is here to prevent. Default: ${String(DEFAULT_TIMEOUT_MS / 1000)}
+                     stopped and reported as having run out of time, 1 to
+                     ${String(MAX_TIMEOUT_SECONDS)}, which is as long as a timer can be asked to
+                     wait. Raise it for a long seed list or a slow machine;
+                     there is no way to switch it off, because a benchmark that
+                     never returns is what it is here to prevent.
+                     Default: ${String(DEFAULT_TIMEOUT_MS / 1000)}
   --json             Print the report as JSON instead of as a table.
   -h, --help         Print this text.
   --                 End of options: what follows is the program file, whatever
@@ -263,27 +281,31 @@ function parseLocale(value: string): Locale {
 /**
  * Reads a `--timeout` as a number of milliseconds.
  *
- * Whole seconds and at least one of them. A deadline is a rough instrument —
- * what it is for is telling a program that will never finish from one that is
- * merely slow — and a fractional one invites the reading that it is a budget the
- * report is measured against, which it is not.
+ * Digits, and between one of them and {@link MAX_TIMEOUT_SECONDS}. A deadline is
+ * a rough instrument — what it is for is telling a program that will never
+ * finish from one that is merely slow — and a fractional one invites the reading
+ * that it is a budget the report is measured against, which it is not.
  *
- * `Number` rather than `parseInt`, because `parseInt("60s")` is 60 and a unit
- * this option does not take should be a sentence rather than a silent guess. The
- * rest of the rule is the same guess avoided twice more: `--timeout 0` is a
- * deadline nothing can meet and would report every program as having run out of
- * time, and a negative one fires before the thread exists.
+ * Matched as text rather than handed to `Number`, because every number JavaScript
+ * can read is a number this option should not take: `parseInt("60s")` is 60,
+ * `Number("0x10")` is 16, `Number("1e3")` is 1000, and `Number(" 5 ")` is 5. A
+ * unit, a base or a space this option does not take should be a sentence rather
+ * than a silent guess, and `Number.isInteger` says yes to all four. The bounds
+ * are the same guess avoided at each end: `--timeout 0` is a deadline nothing can
+ * meet and would report every program as having run out of time, and anything
+ * past the ceiling is a timer that fires immediately, which reads as the same
+ * thing.
  *
  * @param value - What was typed.
  * @returns The deadline in milliseconds, which is what a timer takes.
- * @throws {BenchUsageError} When it is not a whole number of seconds, or is less
- * than one.
+ * @throws {BenchUsageError} When it is not a whole number of seconds, or is
+ * outside what a timer can hold.
  */
 function parseTimeout(value: string): number {
-  const asSeconds = Number(value);
-  if (!Number.isInteger(asSeconds) || asSeconds < 1) {
+  const asSeconds = /^\d+$/.test(value) ? Number(value) : Number.NaN;
+  if (!(asSeconds >= 1 && asSeconds <= MAX_TIMEOUT_SECONDS)) {
     throw new BenchUsageError(
-      `--timeout takes a whole number of seconds, at least 1; got ${value}.`,
+      `--timeout takes a whole number of seconds, 1 to ${String(MAX_TIMEOUT_SECONDS)}; got ${value}.`,
     );
   }
   return asSeconds * 1000;

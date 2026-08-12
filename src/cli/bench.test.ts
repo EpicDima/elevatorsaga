@@ -231,15 +231,37 @@ describe("reading the command line", () => {
   });
 
   it("refuses a deadline that is not a whole number of seconds it could wait", () => {
-    // `Number` rather than `parseInt`, so a unit is a sentence rather than a
-    // silent 60; zero is a deadline every program misses, and a negative one
-    // fires before the thread it is timing exists.
-    for (const value of ["60s", "abc", "1.5", "0", "-1", "Infinity", ""]) {
+    // Digits and nothing else, so a unit is a sentence rather than a silent 60;
+    // zero is a deadline every program misses, and a negative one fires before
+    // the thread it is timing exists. The last three are numbers JavaScript is
+    // happy to read and this option is not: a hexadecimal 16, an exponent that
+    // means 1000, and a padded 5 -- each of which `Number.isInteger` accepts,
+    // and none of which anybody typed on purpose.
+    for (const value of ["60s", "abc", "1.5", "0", "-1", "Infinity", "", "0x10", "1e3", " 5 "]) {
       expect(() => parseBenchArgs(["solution.js", `--timeout=${value}`])).toThrow(BenchUsageError);
     }
     expect(() => parseBenchArgs(["solution.js", "--timeout", "60s"])).toThrow(
-      /--timeout takes a whole number of seconds, at least 1; got 60s\./,
+      /--timeout takes a whole number of seconds, 1 to 2147483; got 60s\./,
     );
+  });
+
+  it("refuses a deadline longer than a timer can be asked to wait", () => {
+    // `setTimeout` holds its delay in a signed 32-bit integer of milliseconds
+    // and rewrites anything longer to 1 -- so a deadline of 24.9 days would fire
+    // at once and report a program that is running perfectly well as having run
+    // out of time. The numbers are written out rather than derived from the
+    // parser's own ceiling: what has to hold is that the largest deadline it
+    // takes still fits in the timer, and a bound that checked itself would
+    // survive being raised.
+    expect(parseBenchArgs(["solution.js", "--timeout=2147483"])).toMatchObject({
+      options: { timeoutMs: 2_147_483_000 },
+    });
+    expect(2_147_483_000).toBeLessThanOrEqual(2 ** 31 - 1);
+    for (const value of ["2147484", "3000000", "9007199254740991"]) {
+      expect(() => parseBenchArgs(["solution.js", `--timeout=${value}`])).toThrow(
+        /--timeout takes a whole number of seconds, 1 to 2147483/,
+      );
+    }
   });
 
   it("refuses a language this build has no catalogue for", () => {
