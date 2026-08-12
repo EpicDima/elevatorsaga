@@ -1,6 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { doFitnessSuite, fitnessSeeds, type AveragedFitnessRun } from "../game/fitness.ts";
+import {
+  doFitnessSuite,
+  fitnessSeeds,
+  type AveragedFitnessRun,
+  type FitnessSuiteResult,
+} from "../game/fitness.ts";
 import { setLocale, translateIn, DEFAULT_LOCALE } from "../i18n/index.ts";
 import {
   formatReport,
@@ -48,12 +53,32 @@ interface Streams {
 }
 
 /**
+ * Runs the suite on this thread, which is what these tests want: the command
+ * runs it somewhere it can be stopped, and paying for that in every case that
+ * only wants to know what {@link runBench} does with an answer would make this
+ * file a suite of subprocesses.
+ *
+ * @param code - The program's source.
+ * @param benchOptions - What was asked for; the seeds are what it runs on.
+ * @returns The averaged results, or an error report.
+ */
+function runSuiteHere(code: string, benchOptions: BenchOptions): Promise<FitnessSuiteResult> {
+  return Promise.resolve(
+    withRunOutputOnStandardError(() => doFitnessSuite(code, benchOptions.seeds)),
+  );
+}
+
+/**
  * Builds the pair {@link runBench} writes through.
  *
  * @param files - The files that exist, by path; anything else fails to open.
+ * @param runSuite - What runs the suite; by default it runs here and now.
  * @returns The streams, and the io that writes into them.
  */
-function streams(files: Readonly<Record<string, string>> = {}): {
+function streams(
+  files: Readonly<Record<string, string>> = {},
+  runSuite: BenchIo["runSuite"] = runSuiteHere,
+): {
   streams: Streams;
   io: BenchIo;
 } {
@@ -67,6 +92,7 @@ function streams(files: Readonly<Record<string, string>> = {}): {
           ? Promise.reject(new Error(`ENOENT: no such file or directory, open '${path}'`))
           : Promise.resolve(contents);
       },
+      runSuite,
       write: (text) => {
         recorded.out += text;
       },

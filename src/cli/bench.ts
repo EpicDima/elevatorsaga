@@ -439,7 +439,15 @@ export function formatReport(result: FitnessSuiteResult, options: BenchOptions):
   return `${heading}\n${formatTable(result)}`;
 }
 
-/** Everything {@link runBench} does that is not computing the answer. */
+/**
+ * Everything {@link runBench} reaches outside itself: the file it reads, the
+ * streams it writes, and the thing that actually runs the suite.
+ *
+ * The run is in here rather than called directly so that the command can be
+ * tested without paying for the way the real one is run, and so that how it is
+ * run can change without {@link runBench} knowing: the shipped one hands the
+ * suite to a thread it can stop, and a test hands it a function that answers.
+ */
 export interface BenchIo {
   /**
    * Reads the program to benchmark.
@@ -448,6 +456,16 @@ export interface BenchIo {
    * @returns Its text.
    */
   readonly readFile: (path: string) => Promise<string>;
+  /**
+   * Runs the benchmark suite over the program.
+   *
+   * @param code - The program's source, as read from the file.
+   * @param options - What was asked for; the seeds are what the suite is run
+   * on, and the rest is context a runner may need.
+   * @returns The averaged results, or an error report. A program that failed is
+   * a result rather than a rejection, as it is everywhere else here.
+   */
+  readonly runSuite: (code: string, options: BenchOptions) => Promise<FitnessSuiteResult>;
   /**
    * Writes the report.
    *
@@ -552,14 +570,26 @@ export async function runBench(argv: readonly string[], io: BenchIo): Promise<nu
   await loadLocale(options.locale);
   setLocale(options.locale);
 
-  const result = withRunOutputOnStandardError(() => doFitnessSuite(code, options.seeds));
+  const result = await io.runSuite(code, options);
   io.write(formatReport(result, options));
   return Array.isArray(result) ? EXIT_OK : EXIT_PROGRAM_FAILED;
+}
+
+/**
+ * Runs the suite on this thread.
+ *
+ * @param code - The program's source.
+ * @param options - What was asked for; only the seeds decide anything here.
+ * @returns The averaged results, or an error report.
+ */
+function runSuiteHere(code: string, options: BenchOptions): Promise<FitnessSuiteResult> {
+  return Promise.resolve(withRunOutputOnStandardError(() => doFitnessSuite(code, options.seeds)));
 }
 
 /** Standard input, output and error, for the real command. */
 const NODE_IO: BenchIo = {
   readFile: (path) => readFile(path, "utf8"),
+  runSuite: runSuiteHere,
   write: (text) => {
     process.stdout.write(text);
   },
