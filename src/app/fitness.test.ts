@@ -301,6 +301,12 @@ describe("the fitness worker entry point", () => {
     // list quietly added here would change every score in the game and break
     // no other test. Driven through a stand-in `self`, which is the whole of
     // the environment the module touches.
+    //
+    // The slowest case in the suite, and it earns its own timeout: it runs the
+    // whole six-seed suite twice over, which is some two and a half seconds
+    // under coverage on an idle machine and more than the five-second default
+    // allows on a busy one. A timeout here would report a loaded machine rather
+    // than a broken worker.
     const posted: FitnessWorkerResponse[] = [];
     const workerSelf = {
       onmessage: null as ((event: MessageEvent<FitnessWorkerRequest>) => void) | null,
@@ -321,7 +327,7 @@ describe("the fitness worker entry point", () => {
     }
 
     expect(posted).toEqual([doFitnessSuite(DRIVING_PROGRAM, [...fitnessSeeds])]);
-  });
+  }, 30_000);
 
   it("answers in the language the request asked for", async () => {
     // The whole point of putting a locale in the request. A worker is a second

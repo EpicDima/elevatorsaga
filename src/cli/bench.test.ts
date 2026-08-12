@@ -1,3 +1,4 @@
+import process from "node:process";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
@@ -6,13 +7,15 @@ import {
   type AveragedFitnessRun,
   type FitnessSuiteResult,
 } from "../game/fitness.ts";
-import { setLocale, translateIn, DEFAULT_LOCALE } from "../i18n/index.ts";
+import { seconds, setLocale, translateIn, DEFAULT_LOCALE } from "../i18n/index.ts";
 import {
   formatReport,
   parseBenchArgs,
   runBench,
+  runSuiteInWorker,
   withRunOutputOnStandardError,
   BenchUsageError,
+  DEFAULT_TIMEOUT_MS,
   EXIT_OK,
   EXIT_PROGRAM_FAILED,
   EXIT_USAGE,
@@ -110,7 +113,14 @@ function streams(
  * @returns The options.
  */
 function options(overrides: Partial<BenchOptions> = {}): BenchOptions {
-  return { programPath: "solution.js", seeds: ["1", "2"], locale: "en", json: false, ...overrides };
+  return {
+    programPath: "solution.js",
+    seeds: ["1", "2"],
+    locale: "en",
+    json: false,
+    timeoutMs: DEFAULT_TIMEOUT_MS,
+    ...overrides,
+  };
 }
 
 /**
@@ -173,6 +183,7 @@ describe("reading the command line", () => {
         seeds: fitnessSeeds,
         locale: DEFAULT_LOCALE,
         json: false,
+        timeoutMs: DEFAULT_TIMEOUT_MS,
       },
     });
   });
@@ -196,6 +207,7 @@ describe("reading the command line", () => {
         seeds: ["rush-hour", "7", "003"],
         locale: DEFAULT_LOCALE,
         json: false,
+        timeoutMs: DEFAULT_TIMEOUT_MS,
       },
     });
   });
@@ -204,6 +216,30 @@ describe("reading the command line", () => {
     // `--seeds 1,,2` is a typing slip, and an empty seed is still a seed as far
     // as the hash is concerned -- it would silently score a fourth building.
     expect(() => parseBenchArgs(["solution.js", "--seeds", "1,,2"])).toThrow(BenchUsageError);
+  });
+
+  it("gives the program the same minute the page gives it, unless told otherwise", () => {
+    // The default is `WORKER_TIMEOUT_MS` from `src/app/fitness.ts` over again,
+    // for the same scenario list on the same seeds: a program the page can
+    // measure has to be one this command can measure.
+    expect(parseBenchArgs(["solution.js"])).toMatchObject({
+      options: { timeoutMs: DEFAULT_TIMEOUT_MS },
+    });
+    expect(parseBenchArgs(["solution.js", "--timeout", "5"])).toMatchObject({
+      options: { timeoutMs: 5000 },
+    });
+  });
+
+  it("refuses a deadline that is not a whole number of seconds it could wait", () => {
+    // `Number` rather than `parseInt`, so a unit is a sentence rather than a
+    // silent 60; zero is a deadline every program misses, and a negative one
+    // fires before the thread it is timing exists.
+    for (const value of ["60s", "abc", "1.5", "0", "-1", "Infinity", ""]) {
+      expect(() => parseBenchArgs(["solution.js", `--timeout=${value}`])).toThrow(BenchUsageError);
+    }
+    expect(() => parseBenchArgs(["solution.js", "--timeout", "60s"])).toThrow(
+      /--timeout takes a whole number of seconds, at least 1; got 60s\./,
+    );
   });
 
   it("refuses a language this build has no catalogue for", () => {
@@ -258,6 +294,7 @@ describe("reading the command line", () => {
         seeds: fitnessSeeds,
         locale: DEFAULT_LOCALE,
         json: true,
+        timeoutMs: DEFAULT_TIMEOUT_MS,
       },
     });
     // Everything after it is a file name, including the words that are options
@@ -425,6 +462,7 @@ describe("running the command", () => {
         seeds: ONE_SEED,
         locale: DEFAULT_LOCALE,
         json: false,
+        timeoutMs: DEFAULT_TIMEOUT_MS,
       }),
     );
   });
@@ -512,6 +550,63 @@ describe("running the command", () => {
     expect(recorded.out).toBe(USAGE);
     expect(recorded.err).toBe("");
   });
+});
+
+describe("running the suite where it can be stopped", () => {
+  /**
+   * What the runner is asked for, with the deadline short enough to wait for.
+   *
+   * @param overrides - What the case cares about.
+   * @returns The options.
+   */
+  function toRun(overrides: Partial<BenchOptions> = {}): BenchOptions {
+    return options({ seeds: ONE_SEED, timeoutMs: 2000, ...overrides });
+  }
+
+  beforeEach(() => {
+    // A real thread prints through real streams, and a failed program's stack
+    // would land in the test output.
+    recordStream(process.stderr);
+  });
+
+  it("hands back what the thread measured, which is what running it here gives", async () => {
+    // A thread is where the run happens, not something the run is measured
+    // against: the same program on the same seed has to come back with the same
+    // numbers it produces on this thread, or the command and the page have
+    // stopped agreeing about what a score is.
+    const measured = await runSuiteInWorker(DRIVING_PROGRAM, toRun());
+
+    expect(measured).toEqual(
+      withRunOutputOnStandardError(() => doFitnessSuite(DRIVING_PROGRAM, ONE_SEED)),
+    );
+  }, 30_000);
+
+  it("stops a program that will not stop and says how long it waited", async () => {
+    // The reason the run is not on this thread at all. Nothing inside the
+    // language can interrupt `while (true)`, and a run of it here would have
+    // taken the test process with it rather than failing this case.
+    const measured = await runSuiteInWorker(
+      `{ init: function () { while (true) {} }, update: function () {} }`,
+      toRun({ timeoutMs: 1000 }),
+    );
+
+    expect(measured).toEqual({
+      error: translateIn("en", "fitness.workerTimeout", { seconds: seconds(1) }),
+    });
+  }, 30_000);
+
+  it("answers for a thread that ends without answering", async () => {
+    // `process.exit()` reaches a real process object inside the thread and ends
+    // it on the spot: no message, no error, nothing to report. Unanswered, this
+    // is the deadline's own failure mode arriving by another door -- the command
+    // waits out the full minute for a thread that is already gone.
+    const measured = await runSuiteInWorker(
+      `{ init: function () { process.exit(0); }, update: function () {} }`,
+      toRun(),
+    );
+
+    expect(measured).toEqual({ error: translateIn("en", "fitness.workerFailed") });
+  }, 30_000);
 });
 
 describe("moving a run's output off standard output", () => {

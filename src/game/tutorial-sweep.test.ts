@@ -237,99 +237,151 @@ function describeSweep(label: string, result: SweepResult): string {
   );
 }
 
+/**
+ * How long one sweep is allowed to take.
+ *
+ * Every case in this file simulates four hundred minute-long buildings, which is
+ * one to two and a half seconds of real work each -- against a default timeout
+ * of five. That is not the margin it looks like: measured alone, on an idle
+ * laptop, with nothing else running. Vitest runs files in parallel, coverage
+ * instrumentation roughly doubles the figure, and a CI runner has two cores to
+ * share out; any two of those together put the slowest case over the line, and
+ * what it then reports is a timeout rather than a count, which is a red gate
+ * saying nothing about the simulation.
+ *
+ * Generous rather than tight on purpose. The number a timeout has to beat is not
+ * how long the work takes but how long somebody is willing to wait to be told a
+ * test has hung, and these cases are known to be slow -- being told after half a
+ * minute costs nothing, being told at five seconds that a busy machine was busy
+ * costs an afternoon.
+ */
+const SWEEP_TIMEOUT_MS = 30_000;
+
 describe("Learning track task tutorial-5 over four hundred seeds", () => {
   const task = taskById("tutorial-5");
 
-  it("never rejects its own answer", () => {
-    // The whole reason the limit is 37. At 26 this was 378, and the twenty-two
-    // it lost are the failure a learner cannot debug: the program they were
-    // shown as the answer, failing. Seed t61 was the worst of them, stopping
-    // the correct program at 7 of the 15 delivered.
-    const result = sweep(task.options, task.condition, task.solutionCode);
-    expect(result.wins, describeSweep("tutorial-5 answer", result)).toBe(400);
-  });
+  it(
+    "never rejects its own answer",
+    () => {
+      // The whole reason the limit is 37. At 26 this was 378, and the twenty-two
+      // it lost are the failure a learner cannot debug: the program they were
+      // shown as the answer, failing. Seed t61 was the worst of them, stopping
+      // the correct program at 7 of the 15 delivered.
+      const result = sweep(task.options, task.condition, task.solutionCode);
+      expect(result.wins, describeSweep("tutorial-5 answer", result)).toBe(400);
+    },
+    SWEEP_TIMEOUT_MS,
+  );
 
-  it("is passed by the nine-floor sweep on the seeds that suit it, and no others", () => {
-    // The price of the sentence above, paid knowingly: at 26 the sweep won one
-    // of the four hundred, and at 37 it wins 76. No limit avoids both errors —
-    // the sweep's best run leaves nobody waiting longer than 25.03 s while the
-    // answer's worst leaves somebody waiting 35.88 s — so the count is written
-    // down rather than wished away. It rising is not automatically a bug; it
-    // moving at all is something to look at.
-    const result = sweep(task.options, task.condition, task.startingCode);
-    expect(result.wins, describeSweep("tutorial-5 starting code", result)).toBe(76);
-  });
+  it(
+    "is passed by the nine-floor sweep on the seeds that suit it, and no others",
+    () => {
+      // The price of the sentence above, paid knowingly: at 26 the sweep won one
+      // of the four hundred, and at 37 it wins 76. No limit avoids both errors —
+      // the sweep's best run leaves nobody waiting longer than 25.03 s while the
+      // answer's worst leaves somebody waiting 35.88 s — so the count is written
+      // down rather than wished away. It rising is not automatically a bug; it
+      // moving at all is something to look at.
+      const result = sweep(task.options, task.condition, task.startingCode);
+      expect(result.wins, describeSweep("tutorial-5 starting code", result)).toBe(76);
+    },
+    SWEEP_TIMEOUT_MS,
+  );
 });
 
 describe("Learning track task tutorial-6 over four hundred seeds", () => {
   const task = taskById("tutorial-6");
 
-  it("never rejects its own answer", () => {
-    // At the old limit of 25 this was 399: seed u59 threw out the correct
-    // program with 14 of the 15 delivered and a worst wait of 25.02 s. The ten
-    // fixed seeds could not see it and cannot see it now, which is what this
-    // file is for.
-    const result = sweep(task.options, task.condition, task.solutionCode);
-    expect(result.wins, describeSweep("tutorial-6 answer", result)).toBe(400);
-  });
+  it(
+    "never rejects its own answer",
+    () => {
+      // At the old limit of 25 this was 399: seed u59 threw out the correct
+      // program with 14 of the 15 delivered and a worst wait of 25.02 s. The ten
+      // fixed seeds could not see it and cannot see it now, which is what this
+      // file is for.
+      const result = sweep(task.options, task.condition, task.solutionCode);
+      expect(result.wins, describeSweep("tutorial-6 answer", result)).toBe(400);
+    },
+    SWEEP_TIMEOUT_MS,
+  );
 
-  it("is passed by the lying indicators three times in four hundred", () => {
-    // Three, at every limit from 26 to 30 — the same three seeds throughout,
-    // which is what made 28 a shelf to stand in the middle of rather than a
-    // point to balance on.
-    const result = sweep(task.options, task.condition, task.startingCode);
-    expect(result.wins, describeSweep("tutorial-6 starting code", result)).toBe(3);
-  });
+  it(
+    "is passed by the lying indicators three times in four hundred",
+    () => {
+      // Three, at every limit from 26 to 30 — the same three seeds throughout,
+      // which is what made 28 a shelf to stand in the middle of rather than a
+      // point to balance on.
+      const result = sweep(task.options, task.condition, task.startingCode);
+      expect(result.wins, describeSweep("tutorial-6 starting code", result)).toBe(3);
+    },
+    SWEEP_TIMEOUT_MS,
+  );
 });
 
 describe("Learning track task tutorial-8 over four hundred seeds", () => {
   const task = taskById("tutorial-8");
 
-  it("loses one seed with its own answer, and it is challenge 1 that loses it", () => {
-    // 399, and the missing one is not a defect of the task. At 0.3 passengers a
-    // second the fifteenth does not exist before t ≈ 46.7 s of the 60 available,
-    // and on seed t165 the answer has 14 out by the bar with the last arriving
-    // some ten seconds later. This is the number to leave alone: task 8's
-    // building and bar are challenge 1's, deliberately and by identity, so
-    // anything that would lift 399 to 400 does it by making the graduation task
-    // no longer the game's own first challenge — which is the one thing it is
-    // for. The next test makes that concrete rather than asserting it.
-    const result = sweep(task.options, task.condition, task.solutionCode);
-    expect(result.wins, describeSweep("tutorial-8 answer", result)).toBe(399);
-    expect(result.losingSeeds).toEqual(["t165"]);
-  });
+  it(
+    "loses one seed with its own answer, and it is challenge 1 that loses it",
+    () => {
+      // 399, and the missing one is not a defect of the task. At 0.3 passengers a
+      // second the fifteenth does not exist before t ≈ 46.7 s of the 60 available,
+      // and on seed t165 the answer has 14 out by the bar with the last arriving
+      // some ten seconds later. This is the number to leave alone: task 8's
+      // building and bar are challenge 1's, deliberately and by identity, so
+      // anything that would lift 399 to 400 does it by making the graduation task
+      // no longer the game's own first challenge — which is the one thing it is
+      // for. The next test makes that concrete rather than asserting it.
+      const result = sweep(task.options, task.condition, task.solutionCode);
+      expect(result.wins, describeSweep("tutorial-8 answer", result)).toBe(399);
+      expect(result.losingSeeds).toEqual(["t165"]);
+    },
+    SWEEP_TIMEOUT_MS,
+  );
 
-  it("loses exactly that seed when the same program is played as challenge 1", () => {
-    // The claim above, measured: the same answer, over the same four hundred
-    // seeds, in the building and against the bar taken from challenges.ts
-    // rather than from the task table. Same 399, same seed. A future editor who
-    // "fixes" task 8 will find they have only moved it away from the challenge
-    // it is meant to rehearse.
-    const challenge = challenges[0];
-    if (challenge === undefined) {
-      throw new Error("the game has no challenges");
-    }
-    const result = sweep(challenge.options, challenge.condition, task.solutionCode);
-    expect(result.wins, describeSweep("challenge 1 with task 8's answer", result)).toBe(399);
-    expect(result.losingSeeds).toEqual(["t165"]);
-  });
+  it(
+    "loses exactly that seed when the same program is played as challenge 1",
+    () => {
+      // The claim above, measured: the same answer, over the same four hundred
+      // seeds, in the building and against the bar taken from challenges.ts
+      // rather than from the task table. Same 399, same seed. A future editor who
+      // "fixes" task 8 will find they have only moved it away from the challenge
+      // it is meant to rehearse.
+      const challenge = challenges[0];
+      if (challenge === undefined) {
+        throw new Error("the game has no challenges");
+      }
+      const result = sweep(challenge.options, challenge.condition, task.solutionCode);
+      expect(result.wins, describeSweep("challenge 1 with task 8's answer", result)).toBe(399);
+      expect(result.losingSeeds).toEqual(["t165"]);
+    },
+    SWEEP_TIMEOUT_MS,
+  );
 
-  it("is not passed once by the empty program the player is given", () => {
-    // The other end of the track's widest gap: an empty `init` moves nothing,
-    // so no seed and no budget can rescue it.
-    const result = sweep(task.options, task.condition, task.startingCode);
-    expect(result.wins, describeSweep("tutorial-8 starting code", result)).toBe(0);
-  });
+  it(
+    "is not passed once by the empty program the player is given",
+    () => {
+      // The other end of the track's widest gap: an empty `init` moves nothing,
+      // so no seed and no budget can rescue it.
+      const result = sweep(task.options, task.condition, task.startingCode);
+      expect(result.wins, describeSweep("tutorial-8 starting code", result)).toBe(0);
+    },
+    SWEEP_TIMEOUT_MS,
+  );
 
-  it("is passed on every seed by a program that only sweeps the three floors", () => {
-    // Where the missing seed really lives. A car that drives 0-1-2 for ever,
-    // knowing nothing about who is waiting, wins all four hundred on this
-    // building — including t165 — while the answer wins 399. The bar is low
-    // enough that being *thorough* beats being *responsive* here, which is a
-    // fact about challenge 1's building rather than about either program, and
-    // it is the reason task 8 is a rehearsal rather than a lesson: the thing it
-    // teaches is that the player can now write the answer unaided.
-    const result = sweep(task.options, task.condition, BLIND_SWEEP);
-    expect(result.wins, describeSweep("a blind three-floor sweep", result)).toBe(400);
-  });
+  it(
+    "is passed on every seed by a program that only sweeps the three floors",
+    () => {
+      // Where the missing seed really lives. A car that drives 0-1-2 for ever,
+      // knowing nothing about who is waiting, wins all four hundred on this
+      // building — including t165 — while the answer wins 399. The bar is low
+      // enough that being *thorough* beats being *responsive* here, which is a
+      // fact about challenge 1's building rather than about either program, and
+      // it is the reason task 8 is a rehearsal rather than a lesson: the thing it
+      // teaches is that the player can now write the answer unaided.
+      const result = sweep(task.options, task.condition, BLIND_SWEEP);
+      expect(result.wins, describeSweep("a blind three-floor sweep", result)).toBe(400);
+    },
+    SWEEP_TIMEOUT_MS,
+  );
 });

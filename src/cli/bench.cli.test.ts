@@ -3,14 +3,16 @@
  *
  * `bench.test.ts` calls {@link runBench} with its streams handed to it, which is
  * the right way to test what the command *decides* -- and it cannot see any of
- * what makes it a command. Four things live outside that boundary and are
+ * what makes it a command. Five things live outside that boundary and are
  * exercised here or nowhere: the entry guard that decides whether being
  * imported means running, the exit code a shell reads, the real file descriptor
- * a pipe is attached to, and Node stripping the types off a `.ts` file it was
- * pointed at. Each of them has a way of failing that leaves every in-process
- * test green: a guard that never matches makes the command print nothing and
- * succeed, and output that reaches standard output through a path the tests do
- * not model makes `--json` unparseable only once it is piped.
+ * a pipe is attached to, Node stripping the types off a `.ts` file it was
+ * pointed at, and the thread the suite really runs in. Each of them has a way of
+ * failing that leaves every in-process test green: a guard that never matches
+ * makes the command print nothing and succeed, output that reaches standard
+ * output through a path the tests do not model makes `--json` unparseable only
+ * once it is piped, and a deadline is worth nothing until it is held against a
+ * program that genuinely will not stop.
  *
  * The cost is a process per case, so there are few of them and they run the
  * shortest suite the tool can be asked for.
@@ -24,6 +26,7 @@ import process from "node:process";
 import { fileURLToPath } from "node:url";
 import { beforeAll, describe, expect, it } from "vitest";
 
+import { seconds, translateIn } from "../i18n/index.ts";
 import { EXIT_OK, EXIT_PROGRAM_FAILED, EXIT_USAGE } from "./bench.ts";
 
 /** The command, as a path node can be pointed at. */
@@ -134,6 +137,13 @@ describe("the benchmark as a command", () => {
     // The proof the in-process test cannot give: two file descriptors, and the
     // report parsing after a program has printed through the console methods
     // that write to standard output without going through `console.log`.
+    //
+    // The last line is the one only a subprocess can catch. The suite runs in a
+    // worker thread, where `process` is a real Node process object and a program
+    // is free to write to the descriptor itself -- no console involved, so
+    // nothing the thread does to its own console can stop it. What keeps it out
+    // of the report is the parent taking the thread's streams rather than
+    // letting Node forward them, and that plumbing exists nowhere else.
     const program = join(scratch, "chatty.js");
     await writeFile(
       program,
@@ -142,6 +152,7 @@ describe("the benchmark as a command", () => {
           console.log("logged");
           console.dir({ inspected: true });
           console.table([{ tabulated: 1 }]);
+          process.stdout.write("written straight to the descriptor\\n");
         },
         update: function () {}
       }`,
@@ -155,6 +166,7 @@ describe("the benchmark as a command", () => {
     expect(ran.err).toContain("logged");
     expect(ran.err).toContain("inspected");
     expect(ran.err).toContain("tabulated");
+    expect(ran.err).toContain("written straight to the descriptor");
   });
 
   it("stops when the report is printed, whatever the program left running", async () => {
@@ -177,6 +189,50 @@ describe("the benchmark as a command", () => {
     // goes wrong.
     expect(JSON.parse(ran.out)).toMatchObject({ program });
   }, 15_000);
+
+  it("stops a program that will not stop, and reports it as the program failing", async () => {
+    // The case the whole thread exists for, and the only one that cannot be
+    // faked: `while (true)` never returns to the simulation, never returns to
+    // the command, and cannot be interrupted from inside the language. Before
+    // the deadline this printed nothing and ran until somebody killed it from
+    // another terminal.
+    const program = join(scratch, "spinning.js");
+    await writeFile(program, `{ init: function () { while (true) {} }, update: function () {} }`);
+
+    // In Russian, in the same process rather than in a second one, because the
+    // sentence is the one part of a report the thread does not write: a thread
+    // that missed its deadline is not going to answer a question about
+    // language, so the command renders it here from the locale it was given.
+    // Spinning a core for a second is the cost of this case, and doing it twice
+    // to ask two questions is a second nobody needs to spend.
+    const ran = await bench([program, "--seeds", "1", "--timeout", "1", "--locale=ru", "--json"]);
+
+    // A failed program, not a misused command: a benchmark in a shell loop has
+    // to be able to record this one and go on to the next.
+    expect(ran.code).toBe(EXIT_PROGRAM_FAILED);
+    expect(JSON.parse(ran.out)).toEqual({
+      program,
+      seeds: ["1"],
+      locale: "ru",
+      error: translateIn("ru", "fitness.workerTimeout", { seconds: seconds(1) }),
+    });
+  }, 15_000);
+
+  it("answers for a program that ends the thread out from under the report", async () => {
+    // `process.exit()` reaches a real process object inside the worker and ends
+    // that thread on the spot: no message, no error, nothing for the command to
+    // report. Left unanswered it is the hang the deadline was added to remove,
+    // arriving by another door -- and a minute later rather than at once.
+    const program = join(scratch, "exiting.js");
+    await writeFile(program, `{ init: function () { process.exit(0); }, update: function () {} }`);
+
+    const ran = await bench([program, "--seeds", "1", "--json"]);
+
+    expect(ran.code).toBe(EXIT_PROGRAM_FAILED);
+    expect(JSON.parse(ran.out)).toMatchObject({
+      error: translateIn("en", "fitness.workerFailed"),
+    });
+  });
 
   it("tells a program that threw apart from arguments it could not use", async () => {
     // The two failure codes, as literals rather than as the constants the

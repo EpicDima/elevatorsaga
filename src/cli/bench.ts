@@ -29,6 +29,23 @@
  * output is the report, and one stray line through it is a `--json` that no
  * longer parses. See {@link withRunOutputOnStandardError}.
  *
+ * ## What stops a program that will not stop
+ *
+ * A `while (true)` in `init` never returns, and nothing inside the language can
+ * take control back from it: a run on this thread would print nothing, exit
+ * never, and have to be killed from another terminal. The suite therefore runs
+ * in a worker thread (`bench-worker.ts`) with `--timeout` seconds to finish in,
+ * and the thread is terminated when it does not — the same answer the page has
+ * always had, where `WORKER_TIMEOUT_MS` in `src/app/fitness.ts` gives its worker
+ * a minute and writes it off after that.
+ *
+ * Running out of time is reported as the program failing, not as this tool
+ * being misused: the report goes to standard output like any other, carrying
+ * the deadline it missed, and the exit code is
+ * {@link EXIT_PROGRAM_FAILED}. A program that will not finish is a fact about
+ * the program, and a benchmark in a shell loop needs to be able to record it
+ * and move on to the next one.
+ *
  * The columns are named with the keys of {@link FitnessResult} rather than with
  * prose, and are not translated. Two reasons, and they are the same reason. The
  * text table and `--json` then name the same things, so nobody needs a glossary
@@ -36,9 +53,10 @@
  * metrics are whatever {@link makeAverageResult} averaged — it iterates the
  * properties the first run happened to have, exactly as the legacy `_.forOwn`
  * did — so a column heading here can only be an identifier that came out of the
- * simulation, not a sentence somebody wrote for a fixed list of three. The one
- * piece of prose in the output is the scenario name, which comes from the
- * catalogue and so follows `--locale`.
+ * simulation, not a sentence somebody wrote for a fixed list of three. The
+ * prose in the output is the scenario name and, when a run is stopped, the
+ * sentence saying so; both come from the catalogue and so follow `--locale`.
+ * What a program threw is not translated, because it is the program's own text.
  *
  * Every figure in the table is printed to three decimals, one rule for every
  * column, because a per-metric rule would be a table of names in a report whose
@@ -50,8 +68,8 @@
  *
  * ## Exit codes
  *
- * `0` the program ran and was scored, `1` the program threw or would not
- * compile — the report says what it threw — and `2` this tool was asked for
+ * `0` the program ran and was scored, `1` the program threw, would not compile
+ * or ran out of time — the report says which — and `2` this tool was asked for
  * something it could not do.
  */
 
@@ -60,22 +78,21 @@ import { realpathSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
+import { isMainThread, Worker } from "node:worker_threads";
 
-import {
-  doFitnessSuite,
-  fitnessSeeds,
-  type AveragedFitnessRun,
-  type FitnessSuiteResult,
-} from "../game/fitness.ts";
+import { fitnessSeeds, type AveragedFitnessRun, type FitnessSuiteResult } from "../game/fitness.ts";
 import type { RandomSeed } from "../game/random.ts";
 import {
   DEFAULT_LOCALE,
   isLocale,
   loadLocale,
   LOCALES,
+  seconds,
   setLocale,
+  t,
   type Locale,
 } from "../i18n/index.ts";
+import type { BenchWorkerRequest } from "./bench-worker.ts";
 
 /** The program ran and was scored. */
 export const EXIT_OK = 0;
@@ -87,6 +104,18 @@ export const EXIT_USAGE = 2;
 /** How many decimals every figure in the report is printed to. */
 const DECIMALS = 3;
 
+/**
+ * How long a program gets to finish, in milliseconds, when nothing says
+ * otherwise.
+ *
+ * The minute `WORKER_TIMEOUT_MS` in `src/app/fitness.ts` gives the page's
+ * worker, for the same work: both run the whole scenario list over
+ * {@link fitnessSeeds}, so a program that reports in time on the page reports in
+ * time here, and a deadline that differed between the two would make the command
+ * disagree with the game about which programs are measurable.
+ */
+export const DEFAULT_TIMEOUT_MS = 60_000;
+
 /** What to benchmark, and how to report it. */
 export interface BenchOptions {
   /** The file holding the player's program. */
@@ -97,6 +126,8 @@ export interface BenchOptions {
   readonly locale: Locale;
   /** Whether to print JSON rather than a table. */
   readonly json: boolean;
+  /** How long the program gets to finish before it is stopped, in milliseconds. */
+  readonly timeoutMs: number;
 }
 
 /** What the command line asked for. */
@@ -133,6 +164,11 @@ Options:
                      reproducible. Default: ${fitnessSeeds.join(",")}
   --locale <tag>     Language for the scenario names, one of ${LOCALES.join(", ")}.
                      Default: ${DEFAULT_LOCALE}
+  --timeout <secs>   Whole seconds the program gets to finish in before it is
+                     stopped and reported as having run out of time. Raise it
+                     for a long seed list or a slow machine; there is no way to
+                     switch it off, because a benchmark that never returns is
+                     what it is here to prevent. Default: ${String(DEFAULT_TIMEOUT_MS / 1000)}
   --json             Print the report as JSON instead of as a table.
   -h, --help         Print this text.
   --                 End of options: what follows is the program file, whatever
@@ -146,7 +182,7 @@ standard error, so a program that logs cannot corrupt the report.
 
 Exit codes:
   ${String(EXIT_OK)}  the program ran and was scored
-  ${String(EXIT_PROGRAM_FAILED)}  the program threw, or would not compile
+  ${String(EXIT_PROGRAM_FAILED)}  the program threw, would not compile, or ran out of time
   ${String(EXIT_USAGE)}  the arguments were unusable, or the file could not be read
 `;
 
@@ -225,6 +261,35 @@ function parseLocale(value: string): Locale {
 }
 
 /**
+ * Reads a `--timeout` as a number of milliseconds.
+ *
+ * Whole seconds and at least one of them. A deadline is a rough instrument —
+ * what it is for is telling a program that will never finish from one that is
+ * merely slow — and a fractional one invites the reading that it is a budget the
+ * report is measured against, which it is not.
+ *
+ * `Number` rather than `parseInt`, because `parseInt("60s")` is 60 and a unit
+ * this option does not take should be a sentence rather than a silent guess. The
+ * rest of the rule is the same guess avoided twice more: `--timeout 0` is a
+ * deadline nothing can meet and would report every program as having run out of
+ * time, and a negative one fires before the thread exists.
+ *
+ * @param value - What was typed.
+ * @returns The deadline in milliseconds, which is what a timer takes.
+ * @throws {BenchUsageError} When it is not a whole number of seconds, or is less
+ * than one.
+ */
+function parseTimeout(value: string): number {
+  const asSeconds = Number(value);
+  if (!Number.isInteger(asSeconds) || asSeconds < 1) {
+    throw new BenchUsageError(
+      `--timeout takes a whole number of seconds, at least 1; got ${value}.`,
+    );
+  }
+  return asSeconds * 1000;
+}
+
+/**
  * Takes an argument as the program to benchmark.
  *
  * Written as a function of what was named before rather than as an assignment
@@ -264,6 +329,7 @@ export function parseBenchArgs(argv: readonly string[]): BenchRequest {
   let seeds: readonly RandomSeed[] = fitnessSeeds;
   let locale: Locale = DEFAULT_LOCALE;
   let json = false;
+  let timeoutMs = DEFAULT_TIMEOUT_MS;
   // Set by `--`, after which nothing is read as an option -- the one way to
   // benchmark a file whose name begins with a dash.
   let optionsEnded = false;
@@ -316,6 +382,11 @@ export function parseBenchArgs(argv: readonly string[]): BenchRequest {
         locale = parseLocale(optionValue(name, inline, argv[index + 1]));
         if (inline === undefined) index++;
         break;
+      case "--timeout":
+        takeOnce(name);
+        timeoutMs = parseTimeout(optionValue(name, inline, argv[index + 1]));
+        if (inline === undefined) index++;
+        break;
       case "--json":
         takeOnce(name);
         // `--json=false` reads as switching JSON off and would switch it on.
@@ -339,7 +410,7 @@ export function parseBenchArgs(argv: readonly string[]): BenchRequest {
   if (programPath === undefined) {
     throw new BenchUsageError("No program file given.");
   }
-  return { kind: "run", options: { programPath, seeds, locale, json } };
+  return { kind: "run", options: { programPath, seeds, locale, json, timeoutMs } };
 }
 
 /**
@@ -576,20 +647,95 @@ export async function runBench(argv: readonly string[], io: BenchIo): Promise<nu
 }
 
 /**
- * Runs the suite on this thread.
+ * Runs the suite in a thread, and stops the thread if it runs out of time.
+ *
+ * The deadline is the whole reason the run is not on this thread. A `while
+ * (true)` in `init` never returns to the simulation and so never returns to the
+ * caller; nothing inside the language can take control back from it, and a
+ * command in that state prints nothing, exits never, and has to be killed from
+ * another terminal. A thread can be stopped from outside.
+ *
+ * Running out of time is reported as a program that failed rather than raised,
+ * which is how every other failure is reported here: the caller gets a result,
+ * prints a report, and exits {@link EXIT_PROGRAM_FAILED}.
  *
  * @param code - The program's source.
- * @param options - What was asked for; only the seeds decide anything here.
- * @returns The averaged results, or an error report.
+ * @param options - What was asked for: the seeds it runs on, the language the
+ * scenario names and the deadline's own sentence are written in, and how long it
+ * gets.
+ * @returns The averaged results, or an error report. Always settles.
  */
-function runSuiteHere(code: string, options: BenchOptions): Promise<FitnessSuiteResult> {
-  return Promise.resolve(withRunOutputOnStandardError(() => doFitnessSuite(code, options.seeds)));
+export function runSuiteInWorker(code: string, options: BenchOptions): Promise<FitnessSuiteResult> {
+  const request: BenchWorkerRequest = { code, seeds: options.seeds, locale: options.locale };
+  return new Promise<FitnessSuiteResult>((resolve) => {
+    const worker = new Worker(new URL("./bench-worker.ts", import.meta.url), {
+      workerData: request,
+      // Both of the thread's streams are taken rather than left to Node, which
+      // would forward them to this process's own -- and its own standard output
+      // is the report. The thread moves what a run prints to its standard error
+      // itself, but that only covers what goes through a console: inside a
+      // worker `process` is a real Node process object, so a program is free to
+      // write to the descriptor directly, and one that does would land in the
+      // middle of a `--json` report. Piped rather than dropped, because a
+      // program being debugged is printing on purpose.
+      stdout: true,
+      stderr: true,
+    });
+    // `end: false` on both, or the first of the two to finish closes standard
+    // error for the rest of the command.
+    worker.stdout.pipe(process.stderr, { end: false });
+    worker.stderr.pipe(process.stderr, { end: false });
+
+    let settled = false;
+    /**
+     * Reports the first answer to arrive and shuts the thread down.
+     *
+     * Guarded, because several of these race by design: terminating the thread
+     * on the deadline makes it exit, and a thread that answered and then exited
+     * would otherwise report twice.
+     *
+     * @param result - What to report.
+     */
+    const finish = (result: FitnessSuiteResult): void => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      clearTimeout(timer);
+      void worker.terminate();
+      resolve(result);
+    };
+    // Rendered on this side rather than in the thread, as the page renders it on
+    // the page's side: a thread that has not answered in time is one that is
+    // never going to, so there is nobody there to ask for the sentence.
+    const timer = setTimeout(() => {
+      finish({
+        error: t("fitness.workerTimeout", { seconds: seconds(options.timeoutMs / 1000) }),
+      });
+    }, options.timeoutMs);
+    worker.on("message", (result: FitnessSuiteResult) => {
+      finish(result);
+    });
+    // The thread catches everything the player's program throws, so an error
+    // here is the thread itself failing -- a syntax error in a module it loads,
+    // or a catalogue that would not import.
+    worker.on("error", (error: unknown) => {
+      finish({ error: describeError(error) });
+    });
+    // A thread can also end without saying anything: `process.exit()` inside a
+    // worker ends that thread, and a player's program is free to call it. There
+    // is no message and no error, so without this the command waits for an
+    // answer that has already been decided against.
+    worker.on("exit", () => {
+      finish({ error: t("fitness.workerFailed") });
+    });
+  });
 }
 
 /** Standard input, output and error, for the real command. */
 const NODE_IO: BenchIo = {
   readFile: (path) => readFile(path, "utf8"),
-  runSuite: runSuiteHere,
+  runSuite: runSuiteInWorker,
   write: (text) => {
     process.stdout.write(text);
   },
@@ -628,9 +774,21 @@ function realPathOrNothing(path: string): string | undefined {
 // command -- `npm link`, a `bin` entry, a `node_modules/.bin` shim -- points at
 // it through a link, so comparing the two unresolved makes the command a
 // silence that exits 0.
+//
+// `isMainThread` is asked first, and it is not redundant. The worker imports
+// this module for one function, and argv[1] inside a worker is the worker's own
+// entry file -- so the comparison below already answers "no" there, by a rule of
+// Node's that nothing in this repository would notice changing. What it would
+// cost is not a wrong answer but a fork bomb: the command would run itself in
+// every thread it started, each of those starting more. One word makes that
+// impossible to reach rather than merely unlikely.
 const entryPoint = process.argv[1];
 const entryPath = entryPoint === undefined ? undefined : realPathOrNothing(entryPoint);
-if (entryPath !== undefined && entryPath === realPathOrNothing(fileURLToPath(import.meta.url))) {
+if (
+  isMainThread &&
+  entryPath !== undefined &&
+  entryPath === realPathOrNothing(fileURLToPath(import.meta.url))
+) {
   const status = await runBench(process.argv.slice(2), NODE_IO);
   // Left to itself, the process ends when nothing is left to do -- and a player's
   // program is free to leave something. `setInterval` in `init` is the ordinary
