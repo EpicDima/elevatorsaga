@@ -315,7 +315,7 @@ case makes sure no key escapes that comparison.
 | `docs.api.floor.buttonStateChange.html`             | Triggered when either call button at a floor was lit or cleared. The handler is passed the state of both butto… | markup                                                                                                                             |
 | `docs.api.floor.buttonStateChange.example.code`     | floor.on("buttonstate_change", function(buttonStates) {                                                         | code; only the comments are translated                                                                                             |
 
-### The learning track — 80 `tutorial.*` keys
+### The learning track — 79 `tutorial.*` keys
 
 The track is the eight tasks in `src/game/tutorial.ts`, with ids `tutorial-1` … `tutorial-8`.
 Its prose is the largest single group of keys after the reference page, and it is the one group
@@ -366,7 +366,7 @@ equal in every locale.
 | 7    | The second elevator                      | `elevators.forEach`; 28 passengers within 60 seconds                                         |
 | 8    | From memory                              | the whole program on an empty page; 15 passengers within 60 seconds — challenge 1's building |
 
-The other sixteen are the panel and the surfaces around it.
+The other fifteen are the panel and the surfaces around it.
 
 | Key                                 | English                                                                                                        | Notes                                                                                                                                           |
 | ----------------------------------- | -------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
