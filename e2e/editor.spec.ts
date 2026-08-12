@@ -112,16 +112,16 @@ test("surfaces a program that will not compile", async ({ page }) => {
   await expect(building(page).getByRole("group", { name: "Elevator 1" })).toBeVisible();
 });
 
-test("grows the editor on request, and is still that size next visit", async ({ page }) => {
+test("resizes the editor by its grip, and is still that size next visit", async ({ page }) => {
   // magwo/elevatorsaga#104, asked for in 2016: "the coding area is too small for
-  // editing after a few levels". The height is a stylesheet token behind an
-  // attribute on `<html>`; this is the only place the whole path from the button
-  // to a box on screen is exercised, so it measures pixels rather than trusting
-  // the attribute. See `src/ui/editor-size.ts`.
+  // editing after a few levels". The height is a stylesheet token the grip
+  // writes on `<html>`; this is the only place the whole path from a pointer on
+  // the grip to a box on screen is exercised, so it measures pixels rather than
+  // trusting the property. See `src/ui/editor-size.ts`.
   await page.goto("/");
 
   const box = page.locator(".cm-editor");
-  const expand = page.getByRole("button", { name: "Expand" });
+  const grip = page.getByRole("separator", { name: "Editor height" });
   const heightOf = async (): Promise<number> => (await box.boundingBox())?.height ?? 0;
 
   // Exactly `--editor-height`, borders and all. This stylesheet leaves
@@ -130,15 +130,24 @@ test("grows the editor on request, and is still that size next visit", async ({ 
   // it mounts as -- measured here rather than reasoned about for that reason.
   const shipped = await heightOf();
   expect(shipped).toBeCloseTo(320, 0);
-  await expect(expand).toHaveAttribute("aria-pressed", "false");
+  await expect(grip).toHaveAttribute("aria-valuenow", String(Math.round(shipped)));
 
-  await expand.click();
+  // A real drag: press on the grip, move 150px down the page, let go. Playwright
+  // drives this through the same pointer events a mouse does, so the capture and
+  // the `pointerup` are exercised rather than reasoned about.
+  const gripBox = await grip.boundingBox();
+  expect(gripBox).not.toBeNull();
+  const gripCentre = {
+    x: (gripBox?.x ?? 0) + (gripBox?.width ?? 0) / 2,
+    y: (gripBox?.y ?? 0) + (gripBox?.height ?? 0) / 2,
+  };
+  await page.mouse.move(gripCentre.x, gripCentre.y);
+  await page.mouse.down();
+  await page.mouse.move(gripCentre.x, gripCentre.y + 150, { steps: 10 });
+  await page.mouse.up();
 
-  // 70vh of Playwright's 720px window, so a little over 500. Asserted as "much
-  // bigger" rather than exactly, because the number is a design decision and
-  // this test is about whether pressing the button reaches the screen at all.
-  await expect.poll(heightOf).toBeGreaterThan(shipped + 100);
-  await expect(expand).toHaveAttribute("aria-pressed", "true");
+  await expect.poll(heightOf).toBeCloseTo(shipped + 150, 0);
+  await expect(grip).toHaveAttribute("aria-valuenow", String(Math.round(shipped) + 150));
 
   // The editor still works at the new size. CodeMirror is not told about it --
   // it has a `ResizeObserver` on its own scroller -- and this is what would
@@ -151,15 +160,21 @@ test("grows the editor on request, and is still that size next visit", async ({ 
 
   await page.reload();
 
-  // No click this time: the size is read back before the first frame, so the
+  // No drag this time: the height is read back before the first frame, so the
   // page comes up tall instead of growing into it.
-  await expect.poll(heightOf).toBeGreaterThan(shipped + 100);
-  await expect(expand).toHaveAttribute("aria-pressed", "true");
+  await expect.poll(heightOf).toBeCloseTo(shipped + 150, 0);
 
-  await expand.click();
+  // And from the keyboard, which is the half of this control a pointer test can
+  // never reach: focus the grip and walk it back a line at a time.
+  await grip.focus();
+  await page.keyboard.press("ArrowUp");
+  await page.keyboard.press("ArrowUp");
+
+  await expect.poll(heightOf).toBeCloseTo(shipped + 110, 0);
+
+  await grip.dblclick();
 
   await expect.poll(heightOf).toBeCloseTo(shipped, 0);
-  await expect(expand).toHaveAttribute("aria-pressed", "false");
 });
 
 test("surfaces a program that throws once the simulation is running", async ({ page }) => {

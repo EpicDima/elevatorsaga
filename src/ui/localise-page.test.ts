@@ -223,12 +223,15 @@ describe("localisePage", () => {
       expect([...page.querySelectorAll(".codebuttons button")].map((key) => textOf(key))).toEqual([
         "Сбросить",
         "Вернуть код",
-        // One word in both states, which is what `aria-pressed` is for: nothing
-        // here ever has to write "Свернуть" back over it.
-        "Развернуть",
         "Сохранить",
         "Применить",
       ]);
+      // The grip has no words of its own on screen, so its accessible name is
+      // the only thing to check -- and the only thing a reader who cannot see
+      // where it is will be given.
+      expect(page.querySelector(".editorresize")?.getAttribute("aria-label")).toBe(
+        "Высота редактора",
+      );
       expect(textOf(page.querySelector(".helpnote"))).toBe(
         "Не разобрались? Откройте страницу справки и документации по API",
       );
@@ -308,7 +311,9 @@ describe("localisePage", () => {
       ).toEqual(["⌘", "⌘"]);
       expect(textOf(page.querySelector(".hint"))).toBe(
         "В редакторе: ⌘+Enter применяет программу. ⌘+S сохраняет её. Tab добавляет отступ. " +
-          "Esc убирает фокус из редактора.",
+          "Esc убирает фокус из редактора. Потяните полоску над этой строкой, чтобы изменить " +
+          "высоту редактора, или наведите на неё фокус и нажимайте ↑ и ↓; двойной щелчок вернёт " +
+          "исходную высоту.",
       );
     });
   });

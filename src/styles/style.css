@@ -158,16 +158,21 @@
   --editor-height: 320px;
 
   /*
-   * What the Expand button asks for. Relative to the window rather than a
-   * second pixel figure, because the complaint upstream PR #104 was written
-   * about -- "the coding area is too small for editing after a few levels" --
-   * is about how much of the program is on screen at once, and how much screen
-   * there is is the thing this file cannot know. `max()` keeps it honest on a
-   * short window: 70vh falls under the height the editor already had below a
-   * 458px viewport, or below 343px where the narrow-screen value is 240px, and
-   * a button called Expand must never make the editor smaller.
+   * The range the grip under the editor may drag it through. The floor is six
+   * lines at the editor's `14px/1.4` plus its padding, and the ceiling leaves
+   * the row of buttons under the editor on screen -- a control that applies the
+   * program must not be pushed out of reach by the box the program is in.
+   *
+   * Relative to the window rather than a second pixel figure, because the
+   * complaint upstream PR #104 was written about -- "the coding area is too
+   * small for editing after a few levels" -- is about how much of the program is
+   * on screen at once, and how much screen there is is the thing this file
+   * cannot know. Both numbers are repeated in `src/ui/editor-size.ts`, which
+   * holds the height it hands back within the same range so that what it reports
+   * in `aria-valuenow` is what the cascade will draw.
    */
-  --editor-height-tall: max(var(--editor-height), 70vh);
+  --editor-height-min: 120px;
+  --editor-height-max: 85vh;
 
   --font-ui: Oswald, Arial, Helvetica, sans-serif;
   --font-body: Arial, Helvetica, sans-serif;
@@ -1149,8 +1154,22 @@ kbd {
  * white `body` inherits to the building.
  */
 .cm-editor {
-  block-size: var(--editor-height);
-  margin-block: 10px;
+  /*
+   * `--editor-height-chosen` is the height the player dragged the grip to, and
+   * `src/ui/editor-size.ts` writes it on `<html>`; `--editor-height` is the one
+   * nobody chose, which the narrow-screen media query below still has an opinion
+   * about. The choice is a token of its own rather than an inline height on this
+   * element precisely so that it cannot outrank that query and follow a player
+   * from a desktop onto a phone, and the `clamp()` is what keeps a height chosen
+   * in a tall window from filling a short one: the range is re-evaluated as the
+   * window changes, without anybody having to drag anything again.
+   */
+  block-size: clamp(
+    var(--editor-height-min),
+    var(--editor-height-chosen, var(--editor-height)),
+    var(--editor-height-max)
+  );
+  margin-block-start: 10px;
   border: 1px solid var(--color-control-border);
   border-radius: 4px;
   background-color: var(--color-code-page);
@@ -1159,15 +1178,46 @@ kbd {
 }
 
 /*
- * The Expand button, which sets the attribute on `<html>` and nothing else.
- * Kept here rather than written into `documentElement.style` by the script that
- * toggles it: an inline declaration on `:root` would outrank the narrow-screen
- * media query that also sets `--editor-height`, and the phone height would stop
- * applying for good the first time anybody pressed the button. See
- * `src/ui/editor-size.ts`.
+ * The editor's bottom edge, as a control: drag it, or focus it and use the
+ * arrow keys. See `src/ui/editor-size.ts` for why it is a `separator` and not a
+ * button, and for what it writes.
+ *
+ * The box is 24px tall and the bar drawn inside it is 4px, because the box is
+ * the target and the bar is only how the target says where it is: 24px is the
+ * minimum WCAG 2.5.8 asks a pointer target for, and a 4px grip would have been
+ * six times harder to hit than to see. It replaces the editor's 10px bottom
+ * margin, so the page below it is 14px lower than it was -- the one thing paid
+ * for a control that was not there before.
+ *
+ * `touch-action: none` is what makes the drag work on a touchscreen at all:
+ * without it the browser claims the vertical gesture for a scroll and the
+ * pointer events stop arriving mid-drag.
  */
-:root[data-editor-size="tall"] .cm-editor {
-  block-size: var(--editor-height-tall);
+.editorresize {
+  position: relative;
+  block-size: 24px;
+  cursor: ns-resize;
+  touch-action: none;
+}
+
+.editorresize::before {
+  content: "";
+  position: absolute;
+  inset-block-start: 10px;
+  inset-inline: 0;
+  block-size: 4px;
+  border-radius: 2px;
+  background-color: var(--color-control-border);
+}
+
+.editorresize:hover::before,
+.editorresize:focus-visible::before {
+  background-color: var(--color-text-strong);
+}
+
+.editorresize:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: -2px;
 }
 
 .cm-editor .cm-scroller {

@@ -245,34 +245,46 @@
         <!-- CodeMirror mounts here; see src/ui/editor.ts. -->
         <div class="code" id="code"></div>
         <!--
+          The editor's bottom edge, as a control. `separator` with a tabindex is
+          the window-splitter role: focusable, reporting its size, and moved with
+          the arrow keys, so the whole range of heights is reachable without a
+          pointer. The three `aria-value*` attributes are written by
+          src/ui/editor-size.ts from the box it measures; the numbers here are
+          the shipped height, for a page whose scripts have not run yet.
+
+          No `title`: a tooltip is mouse-only, and the two gestures beyond
+          dragging are exactly the ones a player without a mouse needs. They are
+          in the hint paragraph below instead, where everybody can read them.
+        -->
+        <div
+          class="editorresize"
+          id="editor_resize"
+          role="separator"
+          aria-orientation="horizontal"
+          aria-controls="code"
+          aria-valuenow="320"
+          aria-valuemin="120"
+          aria-valuemax="612"
+          tabindex="0"
+          aria-label="Editor height"
+          data-i18n-attr="aria-label:page.editorResize.label"
+        ></div>
+        <!--
           data-mod-key marks the keys the editor binds as `Mod-`, which is
           Command on Apple platforms; src/ui/shortcuts.ts relabels them.
         -->
         <p class="hint" data-i18n="page.hint.html">
           In the editor: <kbd data-mod-key>Ctrl</kbd>+<kbd>Enter</kbd> applies your program.
           <kbd data-mod-key>Ctrl</kbd>+<kbd>S</kbd> saves it. <kbd>Tab</kbd> indents.
-          <kbd>Esc</kbd> moves the focus back out.
+          <kbd>Esc</kbd> moves the focus back out. Drag the grip above this line to resize the
+          editor, or focus it and press <kbd>↑</kbd> or <kbd>↓</kbd>; double-click it to restore the
+          height.
         </p>
         <div class="codebuttons">
           <div>
             <button type="button" id="button_reset" data-i18n="page.button.reset">Reset</button>
             <button type="button" id="button_resetundo" data-i18n="page.button.undoReset">
               Undo reset
-            </button>
-            <!--
-              A toggle, so it carries `aria-pressed` rather than a label that
-              flips between two words: the name stays "Expand" in both states and
-              the state is announced with it. src/ui/editor-size.ts says why, and
-              writes the attribute from here on; the value in the markup is the
-              state of a page whose scripts have not run yet.
-            -->
-            <button
-              type="button"
-              id="button_expand"
-              aria-pressed="false"
-              data-i18n="page.button.expand"
-            >
-              Expand
             </button>
           </div>
           <div>

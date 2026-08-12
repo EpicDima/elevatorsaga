@@ -103,15 +103,16 @@ export const EN_MESSAGES = {
   "page.stats.avgLoad": "Avg load",
   "page.stats.avgLoadTitle":
     "How full the cars were, averaged over the moves counted above, so a car standing still is not in the figure at all",
+  // The last sentence is the grip's documentation. It is here, in a paragraph
+  // everybody can read, rather than in a `title` on the grip itself, because a
+  // tooltip never opens for a keyboard or a touchscreen -- and the two gestures
+  // it would have named are precisely the ones a player without a mouse needs.
   "page.hint.html":
-    "In the editor: <kbd data-mod-key>Ctrl</kbd>+<kbd>Enter</kbd> applies your program. <kbd data-mod-key>Ctrl</kbd>+<kbd>S</kbd> saves it. <kbd>Tab</kbd> indents. <kbd>Esc</kbd> moves the focus back out.",
-  // One word for both states, because the button says what it does and
-  // `aria-pressed` says which state it is in; `src/ui/editor-size.ts` is where
-  // that choice is argued. It is why this is not "Expand editor" either: the
-  // button sits directly under the editor, among four others that all act on
-  // it, and a name that repeats the obvious noun is longer without being
-  // clearer -- and this row has to wrap onto a 320px screen.
-  "page.button.expand": "Expand",
+    "In the editor: <kbd data-mod-key>Ctrl</kbd>+<kbd>Enter</kbd> applies your program. <kbd data-mod-key>Ctrl</kbd>+<kbd>S</kbd> saves it. <kbd>Tab</kbd> indents. <kbd>Esc</kbd> moves the focus back out. Drag the grip above this line to resize the editor, or focus it and press <kbd>↑</kbd> or <kbd>↓</kbd>; double-click it to restore the height.",
+  // The grip under the editor. Its name is what it controls rather than what it
+  // does -- a `separator` is announced with its role and its value, so "Editor
+  // height, 320" reads as a whole where "Resize the editor, 320" would not.
+  "page.editorResize.label": "Editor height",
   "page.button.reset": "Reset",
   "page.button.undoReset": "Undo reset",
   "page.button.save": "Save",
