@@ -267,6 +267,24 @@ export default defineConfig({
       reporter: ["text", "lcov"],
       include: ["src/**/*.ts"],
       exclude: ["src/**/*.test.ts", "src/**/test-helpers.ts", "src/i18n/test-setup.ts"],
+      // A ratchet, not a target. CI already runs the whole suite; without a
+      // floor it reports a number nobody reads, and code can arrive untested
+      // without anything going red. Each figure is a whole percent below what
+      // the suite measures today (96.25 statements, 94.6 branches, 95.74
+      // functions, 96.18 lines), so ordinary movement passes and a module
+      // landing with no tests at all does not.
+      //
+      // Global rather than per-file on purpose: `src/main.ts` and `src/docs.ts`
+      // are the two page entry points, they wire the pieces together and are
+      // covered by `e2e/` instead, which this run knows nothing about. A
+      // per-file floor would fail on them and be answered by excluding them,
+      // which is how a coverage gate stops meaning anything.
+      thresholds: {
+        statements: 95,
+        branches: 93,
+        functions: 94,
+        lines: 95,
+      },
     },
   },
 });
