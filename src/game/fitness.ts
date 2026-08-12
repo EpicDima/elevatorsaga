@@ -52,6 +52,18 @@ export type FitnessResult = {
   transportedPerSec?: number;
   /** Mean spawn-to-delivery time of delivered passengers, the ride included. */
   avgWaitTime?: number;
+  /**
+   * Mean spawn-to-boarding time: the part of the above spent on a floor.
+   *
+   * Its two companions on the world -- `maxWaitTime` and `maxPickupTime` -- are
+   * deliberately left out. {@link makeAverageResult} averages every property it
+   * finds across the seeds, and the mean of six maxima is neither a maximum nor
+   * a typical figure: it would read in the report as "the worst wait" while
+   * being nothing of the kind. A report of means stays a report of means; the
+   * worst case is a thing to watch a single run for, and the game's own
+   * statistics panel shows it there.
+   */
+  avgPickupTime?: number;
   /** Passengers delivered. */
   transportedCount?: number;
   /** How full the cars were, averaged over every floor they crossed. */
@@ -251,6 +263,7 @@ export function calculateFitness(
   world.on("stats_changed", () => {
     result.transportedPerSec = world.transportedPerSec;
     result.avgWaitTime = world.avgWaitTime;
+    result.avgPickupTime = world.avgPickupTime;
     result.transportedCount = world.transportedCounter;
     result.avgLoadFactorOnMove = world.avgLoadFactorOnMove;
   });

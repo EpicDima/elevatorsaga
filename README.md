@@ -252,11 +252,17 @@ program: sweep.js
 seeds:   1, 2, 3, 4, 5, 6
 locale:  en
 
-scenario         transportedPerSec  avgWaitTime  transportedCount
-Small scenario               0.578        8.339           115.500
-Medium scenario              1.398       13.158           279.500
-Large scenario               1.480       45.271           296.000
+scenario         transportedPerSec  avgWaitTime  avgPickupTime  transportedCount  avgLoadFactorOnMove
+Small scenario               0.578        8.339          3.128           115.500                0.279
+Medium scenario              1.398       13.158          5.464           279.500                0.553
+Large scenario               1.480       45.271         22.820           296.000                0.582
 ```
+
+`avgWaitTime` is the whole journey, spawn to delivery, ride included; `avgPickupTime` is the part
+of it spent standing on a floor, so the difference between them is the ride. A sweep that visits
+every floor in turn spends between a third and a half of its passengers' time collecting them.
+`avgLoadFactorOnMove` is how full the cars were, averaged over every floor they crossed — a sweep
+carries a light load because it goes to floors nobody called it to.
 
 | Option             | What it does                                                           |
 | ------------------ | ---------------------------------------------------------------------- |

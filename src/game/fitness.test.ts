@@ -198,8 +198,19 @@ describe("calculateFitness", () => {
     expect(result.error).toBeUndefined();
     expect(typeof result.transportedPerSec).toBe("number");
     expect(typeof result.avgWaitTime).toBe("number");
+    expect(typeof result.avgPickupTime).toBe("number");
     expect(typeof result.transportedCount).toBe("number");
     expect(typeof result.avgLoadFactorOnMove).toBe("number");
+  });
+
+  it("keeps the world's maxima out of a report of averages", () => {
+    const result = calculateFitness(challenge, drivingCodeObj(), 1000.0 / 60.0, 3000);
+
+    // `makeAverageResult` averages every property it is handed, and the mean of
+    // six worst cases is neither a worst case nor a typical one -- it would sit
+    // in the report under a name promising a maximum. The world has two of them
+    // (`maxWaitTime`, `maxPickupTime`) and neither may be copied across.
+    expect(Object.keys(result).filter((property) => property.startsWith("max"))).toEqual([]);
   });
 
   it("transports nobody when the code never moves an elevator", () => {
@@ -210,6 +221,9 @@ describe("calculateFitness", () => {
     // says so: a report is what a benchmark run is judged on, and a metric that
     // arrives as NaN is worse than one that is missing.
     expect(result.avgLoadFactorOnMove).toBe(0);
+    // Same reasoning for the wait before pickup: nobody boarded a car that
+    // never came, so the mean is over nothing and has to read as zero.
+    expect(result.avgPickupTime).toBe(0);
   });
 
   it("delivers passengers when the code actually drives the elevators", () => {
@@ -217,6 +231,15 @@ describe("calculateFitness", () => {
 
     expect(result.error).toBeUndefined();
     expect(result.transportedCount).toBeGreaterThan(0);
+  });
+
+  it("reports a wait for a car that is a part of the whole journey", () => {
+    const result = calculateFitness(challenge, drivingCodeObj(), 1000.0 / 60.0, 3000);
+
+    // The point of the split: the report now says how much of the figure a
+    // player is judged on was spent standing on a floor rather than riding.
+    expect(result.avgPickupTime).toBeGreaterThan(0);
+    expect(result.avgPickupTime).toBeLessThan(result.avgWaitTime ?? 0);
   });
 
   it("scores the same code against the same passengers when given a seed", () => {
