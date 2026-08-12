@@ -35,6 +35,27 @@ test("serves the help page from the game's own navigation", async ({ page }) => 
   expect(pageErrors).toEqual([]);
 });
 
+test("sends a beginner from the help page into the learning track", async ({ page }) => {
+  const pageErrors: string[] = [];
+  page.on("pageerror", (error) => pageErrors.push(error.message));
+
+  await page.goto("/documentation.html");
+  await page.getByRole("link", { name: "learning track" }).click();
+
+  // `src/page.test.ts` holds the href to the first task's id; what it cannot
+  // hold is that the address still opens the task, since a task address the
+  // router cannot read lands on the track's first task anyway and only a
+  // console warning tells the two apart. Landing on the task's own title is
+  // the difference, and it is also the only check here that the hash survives
+  // being followed from a page that is not the game.
+  await expect(page).toHaveURL(/\/index\.html#challenge=tutorial-1$/);
+  await expect(
+    page.getByRole("heading", { level: 2, name: "The elevator that goes nowhere" }),
+  ).toBeVisible();
+
+  expect(pageErrors).toEqual([]);
+});
+
 test("serves the Russian help page, and links the two together both ways", async ({ page }) => {
   const pageErrors: string[] = [];
   page.on("pageerror", (error) => pageErrors.push(error.message));
