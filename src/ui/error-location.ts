@@ -2,10 +2,12 @@
  * Works out which line of the player's own program an exception came from.
  *
  * The player's code is compiled with `eval`, so the engine has no file to name
- * for it and the browser's stack traces mark its frames as anonymous. That is
- * the only place a position can be recovered from: the thrown value itself
- * carries no line, and the game has no source map to consult. What this module
- * does is read the stack back.
+ * for it and the browser's stack traces mark its frames as anonymous. There is
+ * no source map to consult either, so all that is left is what the engines
+ * themselves volunteer -- and they volunteer it in two different places. V8 and
+ * SpiderMonkey write the position into the stack frame; JavaScriptCore leaves
+ * the frame bare and hangs the position off the thrown value instead. This
+ * module reads both.
  */
 
 import { firstLineColumnOffset } from "../game/user-code.ts";
@@ -105,32 +107,38 @@ function positionIn(frame: string): CodeErrorLocation | undefined {
  * position in the compiled source, on the same 1-based reckoning as everywhere
  * else here.
  *
- * `sourceURL` is what makes that safe to use. An error thrown from `eval`ed code
- * has none, while one thrown from a file -- which for this game means from the
- * engine's own bundle, several frames below whatever the player called -- names
- * that file. Without the check, `elevator.goToFloor(99)` would report the line
- * of `world.ts` that threw as though it were a line of the player's program, and
- * underline whatever happens to be there. A syntax error is caught by the same
- * check for the same reason: JavaScriptCore reports the position of the `eval`
- * call in the game, which is identical for every program that ever fails to
- * parse.
+ * `sourceURL` is what makes that safe to use. An error constructed in `eval`ed
+ * code has none, while one constructed in a file -- which for this game means in
+ * the engine's own bundle, several frames below whatever the player called --
+ * names that file. Without the check, `elevator.goToFloor("lobby")` would report
+ * the line of `elevator-interface.ts` that builds its `TypeError` as though it
+ * were a line of the player's program, and underline whatever happens to be
+ * there. A syntax error is caught by the same check for the same reason:
+ * JavaScriptCore reports the position of the `eval` call in the game, which is
+ * identical for every program that ever fails to parse.
  *
  * Checked against `jsc` -- the JavaScriptCore shell inside the framework macOS
  * ships, which is the engine Safari runs -- rather than reasoned about. The one
  * it was run against reports itself as framework build 21624.2.5.11.4, on macOS
  * 26.5; the shell has no version of its own to ask for, so that is the framework
- * bundle's. The cases covered are the ones that matter: a throw on the player's own line, a
- * throw from the engine below it, a throw inside a helper the player factored
- * out, a program compiled unwrapped, a `TypeError` from calling a method that is
- * not there, a native `SyntaxError` out of `JSON.parse`, an error constructed on
- * one line and thrown on another, and a thrown string. Safari itself was not
- * available to confirm the shell matches the browser.
+ * bundle's. The cases covered are the ones that matter: a throw on the player's
+ * own line, a throw from the engine below it, a throw inside a helper the player
+ * factored out, a program compiled unwrapped, a `TypeError` from calling a
+ * method that is not there, a native `SyntaxError` out of `JSON.parse`, an error
+ * constructed on one line and thrown on another, and a thrown string. Safari
+ * itself was not available to confirm the shell matches the browser.
  *
- * Two things it cannot do, both of which the V8 walk can. It reports the throw
- * site, so an error raised inside the engine gets no position rather than the
- * player's calling line. And a player who evaluates a string of their own gets
- * that string's line number with no second frame to fall back to, so the
- * out-of-range check ends in `undefined` instead of walking outwards.
+ * Two limits, and only the first is something the V8 walk does better. The
+ * position is where the error was *constructed*, not where it was raised:
+ * building one on line 2 and throwing it on line 5 reports line 2. So an error
+ * the engine built carries the engine's file, `sourceURL` sends it away, and the
+ * player's calling line is lost where the stack walk would have found it. And a
+ * player who evaluates a string of their own gets that string's line number with
+ * no second frame to fall back to. When the number is past the end of the
+ * program the range check discards it and nothing is reported; when the string
+ * is short enough for it to land inside the program, the wrong line is
+ * underlined. V8 underlines that same wrong line, so only the out-of-range half
+ * of this is a difference between the two.
  *
  * @param error - Whatever the player's code threw.
  * @returns The position, or `undefined` when the error carries none, or carries
@@ -192,11 +200,10 @@ function inPlayerCoordinates(
  * Finds the line of the player's program that an exception came from.
  *
  * The first `eval`ed frame is the answer, not the topmost frame of the stack.
- * When a player calls `elevator.goToFloor(7)` on a five-floor building the
- * throw happens inside the engine, several frames deep, and every one of those
- * frames is the game's own code; the first frame below them that belongs to
- * `eval`ed code is the line the player wrote, which is the only line they can
- * do anything about.
+ * When a player calls `elevator.goToFloor("lobby")` the throw happens inside the
+ * engine, several frames deep, and every one of those frames is the game's own
+ * code; the first frame below them that belongs to `eval`ed code is the line the
+ * player wrote, which is the only line they can do anything about.
  *
  * Not every failure has a line, and the honest answer then is `undefined`:
  *
@@ -216,8 +223,10 @@ function inPlayerCoordinates(
  * the order of how much each can tell. The stack is a list, so a position can
  * be chosen from it -- past the engine's frames, out of a nested evaluation --
  * where a position on the error is a single number that is whatever it is. In
- * practice the two never compete: V8 and SpiderMonkey put nothing on the error,
- * and JavaScriptCore puts nothing in the frame.
+ * practice the two never compete: JavaScriptCore puts nothing in the frame, V8
+ * puts nothing on the error, and SpiderMonkey's own position fields go by
+ * `lineNumber` and `columnNumber`, which are not the names read here. No
+ * SpiderMonkey build was to hand to confirm that last one.
  *
  * @param error - Whatever the player's code threw.
  * @param code - The source that was compiled to produce it. Needed for two

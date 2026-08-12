@@ -82,11 +82,11 @@ function v8Stack(...frames: readonly string[]): { readonly stack: string } {
  * against these same program constants, and the numbers in the tests are what it
  * printed. The build was framework 21624.2.5.11.4 on macOS 26.5, that being the
  * bundle's version, since the shell has none of its own to ask for.
- * Its own properties for a throw out of evaluated
- * code are exactly `message`, `line`, `column` and `stack`, in that order, with
- * `sourceURL` absent; a throw out of a file has `sourceURL` between `column` and
- * `stack`. The frames carry no position of their own, which is why none of these
- * stacks has one after the `@`.
+ * Its own properties for an error constructed in
+ * evaluated code are exactly `message`, `line`, `column` and `stack`, in that
+ * order, with `sourceURL` absent; one constructed in a file has `sourceURL`
+ * between `column` and `stack`. The frames carry no position of their own, which
+ * is why none of these stacks has one after the `@`.
  *
  * @param fields - The position, the stack, and the file when there is one.
  * @returns An object with those fields and a message, and nothing else.
