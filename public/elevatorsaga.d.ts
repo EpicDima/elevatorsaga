@@ -237,13 +237,19 @@ declare namespace ElevatorSaga {
     /**
      * Whether the elevator is moving toward a floor it has not passed yet.
      *
-     * Exactly the test the game puts in front of every `passing_floor` event,
-     * so the two cannot disagree. Only the direction of travel counts, not the
-     * destination: a floor further along the way the car is going is being
-     * approached even if the car will stop before it. A car standing still
-     * approaches nothing.
+     * One of the two tests the game puts in front of every `passing_floor`
+     * event; the other one excludes the destination floor. So a floor this says
+     * no to cannot raise that event, while a floor it says yes to still will
+     * not raise it if that floor is where the car is going.
      *
-     * @param floorNum - Floor to ask about.
+     * Only the direction of travel counts, not the destination: a floor further
+     * along the way the car is going is being approached even if the car will
+     * stop before it. A car standing still approaches nothing, and neither is
+     * one that has arrived at the floor you ask about.
+     *
+     * @param floorNum - Floor to ask about. A number outside the building is
+     * clamped to the nearest real floor; a value that is not a number at all,
+     * including a forgotten argument, is reported as an error in your code.
      * @returns `true` when the car is moving and that floor is still ahead.
      */
     isApproachingFloor(floorNum: number): boolean;
@@ -294,8 +300,12 @@ declare namespace ElevatorSaga {
     /**
      * Runs `handler` whenever the elevator passes a floor without stopping.
      *
-     * Raised for floors the car merely travels over, whether or not they are
-     * where it is going.
+     * Not raised for the destination floor, the one the car is heading to. That
+     * one it stops at, so it is an arrival rather than a pass, and the game
+     * excludes it explicitly.
+     * Every other floor along the way raises this slightly before the car
+     * reaches it, which is what makes it the moment to decide whether to stop
+     * there after all.
      *
      * @param event - `"passing_floor"`.
      * @param handler - Called with the floor being passed and the direction.

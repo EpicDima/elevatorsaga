@@ -347,6 +347,30 @@ describe("Elevator object", () => {
     expect(someHandler.mock.calls[1]?.slice(0, 1)).toEqual([2]);
   });
 
+  it("approaches the destination floor without ever passing it", () => {
+    // The two tests in front of a `passing_floor` event, disagreeing, which is
+    // the whole reason there are two of them. `isApproachingFloor` answers yes
+    // for the floor the car is heading to -- it is ahead, and the car is moving
+    // -- and the event is still withheld, because arriving somewhere is not
+    // passing it.
+    //
+    // Stated once, as a fact, because it is the fact the published declaration
+    // makes a promise about: `public/elevatorsaga.d.ts` told players for a
+    // while that the event fires for floors "whether or not they are where it
+    // is going". The surrounding cases each half-imply this; none says it.
+    const passed = vi.fn();
+    e.on("passing_floor", passed);
+    e.goToFloor(2);
+    stepElevator(e, 0.5, 0.015);
+
+    expect(e.isApproachingFloor(2)).toBe(true);
+
+    stepElevator(e, 10.0, 0.015);
+    expect(e.currentFloor).toBe(2);
+    expect(passed).toHaveBeenCalledTimes(1);
+    expect(passed.mock.calls[0]?.slice(0, 1)).toEqual([1]);
+  });
+
   it("emits passing floor events when going from floor 3 to 0", () => {
     // The legacy spec of this name was a copy-paste of the 0 -> 3 case and
     // never exercised downward travel; this is the real thing.
