@@ -104,14 +104,14 @@ Key names carry two suffixes that mean something:
 
 ## Where the strings are
 
-The catalogue holds **301 keys** in two locales. `src/i18n/en.ts` is the reference — its text is
+The catalogue holds **302 keys** in two locales. `src/i18n/en.ts` is the reference — its text is
 the English wording, extracted verbatim — and `src/i18n/ru.ts` is the Russian translation. The
 types make English the shape everything else is measured against: a Russian catalogue missing a
 key, carrying a key English does not have, or giving a plural message the wrong number of forms
 is a compile error, not a runtime surprise.
 
 ```sh
-grep -cE '^  "[^"]+":' src/i18n/en.ts                                   # 301
+grep -cE '^  "[^"]+":' src/i18n/en.ts                                   # 302
 grep -oE '^  "[^"]+"' src/i18n/en.ts | tr -d '"' | cut -d. -f1 | sort | uniq -c | sort -rn
 ```
 
@@ -125,8 +125,8 @@ grep -oE '^  "[^"]+"' src/i18n/en.ts | tr -d '"' | cut -d. -f1 | sort | uniq -c 
 | `challenge.*`  | 15      | `src/game/challenges.ts`                                                                                                                |
 | `fitness.*`    | 11      | `src/app/fitness.ts`, `src/game/fitness.ts`, `src/main.ts`, `src/cli/bench.ts`                                                          |
 | `error.*`      | 10      | `src/game/elevator-interface.ts`, `src/ui/presenters.ts`, `src/game/user-code.ts`, `src/game/movable.ts`                                |
-| `editor.*`     | 5       | `src/main.ts`, `src/app/app.ts`, `src/ui/editor.ts`, `src/ui/default-code.ts`                                                           |
-| **Total**      | **301** |                                                                                                                                         |
+| `editor.*`     | 6       | `src/main.ts`, `src/app/app.ts`, `src/ui/editor.ts`, `src/ui/default-code.ts`                                                           |
+| **Total**      | **302** |                                                                                                                                         |
 
 Which keys nothing reads:
 
@@ -426,7 +426,7 @@ identically in every locale. Both names repeat it because an accessible name has
 own — "1234567890, link" describes nothing.
 
 `game.seed.newDraw` appearing inside `game.seed.newDrawLink` is a constraint a translator cannot
-see: the two sit on adjacent lines of a 301-key file and nothing in the file marks them as a
+see: the two sit on adjacent lines of a 302-key file and nothing in the file marks them as a
 pair. `src/i18n/catalogue.test.ts`, under _accessible names_, is what holds it — it requires the
 spoken name to contain the visible label in every locale. Rewording «новый розыгрыш» to «новый
 сид» meant changing both, which is exactly the edit where one gets missed.
@@ -471,12 +471,13 @@ The locale preference is not app state and is not kept here beside `TIME_SCALE_S
 `LOCALE_STORAGE_KEY` and `readStoredLocale` live in `src/i18n/detect.ts`, shaped after
 `readStoredTimeScale` and saying so in a comment.
 
-### `src/main.ts` — 2 keys
+### `src/main.ts` — 3 keys
 
-| Key                 | English              | Notes                                                          |
-| ------------------- | -------------------- | -------------------------------------------------------------- |
-| `editor.saved`      | Code saved {time}    | takes `{time}`; `formatTime` drops the time zone suffix        |
-| `fitness.measuring` | Measuring fitness... | written into the panel beside the editor before the run starts |
+| Key                     | English                                                                                   | Notes                                                                      |
+| ----------------------- | ----------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| `editor.saved`          | Code saved {time}                                                                         | takes `{time}`; `formatTime` drops the time zone suffix                    |
+| `editor.storageRefused` | Not saved — this browser will not store it. Your program is here until you close the tab. | the same line as `editor.saved`, off `storage_refused`; never both at once |
+| `fitness.measuring`     | Measuring fitness...                                                                      | written into the panel beside the editor before the run starts             |
 
 ### `src/app/app.ts` — 2 `editor.*` keys
 

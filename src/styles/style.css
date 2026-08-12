@@ -1055,6 +1055,18 @@ button[disabled] {
   line-height: 18px;
 }
 
+/*
+ * The save line when the store has refused the write. Only the colour changes:
+ * the sentence says what happened, and this line is read by a player who is
+ * looking for a timestamp and finding something else, so it has to be legible
+ * before it is noticeable. Nothing here depends on the colour alone -- the
+ * paragraph is `aria-live`, so the message is announced whether or not it is
+ * seen.
+ */
+#save_message.refused {
+  color: var(--color-error);
+}
+
 .hint {
   margin-block: 4px;
   font-size: 12px;

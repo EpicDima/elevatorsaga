@@ -192,6 +192,8 @@ export const EN_MESSAGES = {
 
   "editor.label": "Elevator program",
   "editor.saved": "Code saved {time}",
+  "editor.storageRefused":
+    "Not saved — this browser will not store it. Your program is here until you close the tab.",
   "editor.confirmReset": "Do you really want to reset to the default implementation?",
   "editor.confirmUndoReset": "Do you want to bring back the code as before the last reset?",
   "editor.defaultCode.code": `{

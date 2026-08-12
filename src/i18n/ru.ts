@@ -223,6 +223,8 @@ export const RU_MESSAGES: MessageCatalogue<"ru"> = {
 
   "editor.label": "Программа для лифтов",
   "editor.saved": "Код сохранён в {time}",
+  "editor.storageRefused":
+    "Не сохранено — браузер отказывается хранить код. Программа останется здесь, пока открыта вкладка.",
   "editor.confirmReset": "Точно сбросить код до стандартной реализации?",
   "editor.confirmUndoReset": "Вернуть код, который был до сброса?",
   "editor.defaultCode.code": `{

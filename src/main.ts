@@ -103,6 +103,23 @@ async function main(): Promise<void> {
     // timestamp in every other. `formatTime` is `Intl.DateTimeFormat` with
     // `timeStyle: "medium"`, so the line now ends where a reader expects it to.
     saveMessage.textContent = t("editor.saved", { time: formatTime(savedAt) });
+    saveMessage.classList.remove("refused");
+  });
+  // The other half of that line, and the reason `storage_refused` exists at
+  // all: until this, the event was raised by every refused write in the editor
+  // and listened to by nothing, so a store that had stopped taking programs
+  // said so nowhere on the page. The visible cost was "Reset code" -- refused,
+  // it leaves the program exactly where it was and used to look indis-
+  // tinguishable from a button that does not work -- but the silence was worse
+  // between resets, where a player types all afternoon under a line reading
+  // "Code saved 14:32" from the last write that happened to fit.
+  //
+  // `aria-live="polite"` is already on the paragraph for the save line, so this
+  // is announced as well as shown, and the two cannot contradict each other:
+  // `saved` is raised only for a write that reached the store.
+  editor.on("storage_refused", () => {
+    saveMessage.textContent = t("editor.storageRefused");
+    saveMessage.classList.add("refused");
   });
   editor.on("change", () => {
     // The measurement on show no longer describes the program in the editor.
