@@ -101,9 +101,11 @@ export function requireNothing(): ChallengeCondition {
  * names are rendered has changed, from import time to the start of a suite,
  * which is late enough for whoever chose a language to have chosen it: inside
  * the worker that is the {@link "../i18n/index.ts"!setLocale} its request
- * carries, and on the main thread it is whatever the page has set by then. As
- * of this commit the page sets nothing and every suite is English, which is
- * exactly the state a constant would have made permanent.
+ * carries, and on the main thread it is whatever the page has set by then --
+ * which is now a real language rather than always English, since
+ * `applyPreferredLocale` resolves one before `main.ts` builds anything and the
+ * picker can change it afterwards. A constant would have frozen the names at
+ * import time, in the one language nobody had chosen yet.
  *
  * The name is deliberately the constant's: what other modules mean when they
  * refer to this is the list of buildings, which is unchanged, and only the way

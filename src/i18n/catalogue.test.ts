@@ -169,7 +169,8 @@ describe("accessible names", () => {
 
   it("says the visible words inside the spoken ones, in every locale", () => {
     // A translator has no way to see the constraint at all: the two messages sit
-    // on adjacent lines of a 208-key file and nothing marks them as a pair, so it
+    // on adjacent lines of a catalogue of several hundred keys and nothing marks
+    // them as a pair, so it
     // holds only as long as whoever edits one thinks to edit the other. Rewording
     // «новый розыгрыш» to «новый сид» meant changing both, which is exactly the
     // edit where one gets missed.

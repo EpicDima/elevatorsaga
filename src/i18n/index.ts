@@ -22,11 +22,14 @@
  * A catalogue is the better part of forty kilobytes of text, and a static
  * import of one puts it in every chunk that reaches a `t()`. Measured on this
  * build with both catalogues imported statically, the page's entry chunk was
- * 135.87 kB and the fitness worker — which draws no interface whatsoever — was
- * 95.32 kB, both of them carrying the whole Russian catalogue that no player
- * could reach, since nothing calls {@link setLocale} yet. Every catalogue but
- * English is therefore an `import()` of its own, which the bundler emits as a
- * chunk of its own and a browser fetches when {@link loadLocale} asks for it.
+ * 135.87 kB and the fitness worker was 95.32 kB, each of them carrying every
+ * catalogue in the repository whatever language the reader turned out to want.
+ * That is the cost that scales: a third and a fourth would land in both figures
+ * too, and be paid in full by every visit. Every catalogue but English is
+ * therefore an `import()` of its own, which the bundler emits as a chunk of its
+ * own and a browser fetches when {@link loadLocale} asks for it — so a run
+ * downloads the one language it is being read in, and the worker downloads the
+ * one its request named.
  *
  * English is the exception and stays statically imported, for two reasons that
  * are really one. It is {@link DEFAULT_LOCALE}, so the overwhelmingly common
