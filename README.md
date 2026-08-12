@@ -275,6 +275,10 @@ seeds fix the buildings, so the same program scores the same to the last decimal
 can be compared without wondering which drew the easier traffic. And the report owns standard
 output — everything the run itself prints, including the stack of a program that threw and any
 `console.log` you are debugging with, goes to standard error instead, so `--json` is safe to pipe.
+One thing is out of its reach: descriptors belong to a process rather than to the thread the run
+happens in, so a program that writes to file descriptor 1 directly — which takes an `import()` of
+`node:fs` to arrange — lands in the middle of the report. Writing one that does is aiming at the
+report rather than debugging.
 The exit code is `0` when the program was scored, `1` when it threw, would not compile or ran out
 of time, and `2` when the command itself could not proceed — bad arguments, a file it could not
 read, or a defect in the tool. A script scoring a directory of programs can therefore tell a bad

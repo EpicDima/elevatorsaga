@@ -253,6 +253,8 @@ describe("reading the command line", () => {
     // `setTimeout` holds its delay in a signed 32-bit integer of milliseconds
     // and rewrites anything longer to 1 -- so a deadline of 24.9 days would fire
     // at once and report a program that is running perfectly well as having run
+    // out of time.
+    //
     // The ceiling is written out rather than read from the parser's own
     // constant, so that raising it has to be done here too; what the second
     // assertion holds it against is the timer's limit, which is the fact the
