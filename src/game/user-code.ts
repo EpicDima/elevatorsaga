@@ -24,6 +24,43 @@ export type { UserCodeObject } from "./world-controller.ts";
 const evaluate: (src: string) => unknown = globalThis.eval;
 
 /**
+ * Whether the source has to be parenthesised before it can be evaluated.
+ *
+ * A bare `{ init: ..., update: ... }` object literal is parsed as a block, not
+ * as an expression, so evaluating it yields nothing at all; the parentheses are
+ * what let the editor's default template work. Surrounding whitespace is
+ * tolerated, which is why the test is on the trimmed text.
+ *
+ * @param code - The source the player typed.
+ * @returns Whether {@link getCodeObjFromCode} will wrap it.
+ */
+function needsParentheses(code: string): boolean {
+  const trimmed = code.trim();
+  return trimmed.startsWith("{") && trimmed.endsWith("}");
+}
+
+/**
+ * How many columns the compiled source adds to the player's first line.
+ *
+ * The opening parenthesis goes in front of the whole source, so it lands on the
+ * first line and shifts everything on that line one column to the right; every
+ * later line, and every line number, is untouched. Anything reading a position
+ * back out of a stack trace -- which reports positions in the *compiled* source
+ * -- has to subtract this to get back to what the player can see in the editor.
+ *
+ * Exported so that there is one statement of when the wrap happens rather than
+ * two that can disagree: a copy of the rule here would go on claiming a shifted
+ * column long after this module stopped wrapping, and point the player at the
+ * wrong character with no test able to notice.
+ *
+ * @param code - The source the player typed.
+ * @returns 1 when the source gets parenthesised, 0 when it is evaluated as-is.
+ */
+export function firstLineColumnOffset(code: string): number {
+  return needsParentheses(code) ? 1 : 0;
+}
+
+/**
  * Compiles the player's source into a usable code object.
  *
  * A bare `{ init: ..., update: ... }` object literal is wrapped in parentheses
@@ -42,8 +79,7 @@ const evaluate: (src: string) => unknown = globalThis.eval;
  */
 export function getCodeObjFromCode(code: string): UserCodeObject {
   let source = code;
-  const trimmed = source.trim();
-  if (trimmed.startsWith("{") && trimmed.endsWith("}")) {
+  if (needsParentheses(source)) {
     source = `(${source})`;
   }
   const obj = evaluate(source) as Partial<UserCodeObject> | null | undefined;
