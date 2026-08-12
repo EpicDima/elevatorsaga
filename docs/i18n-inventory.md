@@ -123,7 +123,7 @@ grep -oE '^  "[^"]+"' src/i18n/en.ts | tr -d '"' | cut -d. -f1 | sort | uniq -c 
 | `page.*`       | 32      | `index.html`, through `data-i18n` and `data-i18n-attr`; `page.noscript` excepted, see below              |
 | `game.*`       | 27      | `src/ui/templates.ts` (18), `src/ui/presenters.ts` (4), `src/app/app.ts` (5)                             |
 | `challenge.*`  | 14      | `src/game/challenges.ts`                                                                                 |
-| `fitness.*`    | 10      | `src/app/fitness.ts`, `src/game/fitness.ts`, `src/main.ts`                                               |
+| `fitness.*`    | 10      | `src/app/fitness.ts`, `src/game/fitness.ts`, `src/main.ts`, `src/cli/bench.ts`                           |
 | `error.*`      | 10      | `src/game/elevator-interface.ts`, `src/ui/presenters.ts`, `src/game/user-code.ts`, `src/game/movable.ts` |
 | `editor.*`     | 5       | `src/main.ts`, `src/ui/editor.ts`, `src/ui/default-code.ts`                                              |
 | **Total**      | **293** |                                                                                                          |
@@ -567,7 +567,7 @@ nullary function.
 | `completion.initSkeleton.code`                 | init: function(elevators, floors) {                                                                            | code; only the comments are translated                                        |
 | `completion.updateSkeleton.code`               | update: function(dt, elevators, floors) {                                                                      | code; only the comments are translated                                        |
 
-### `src/app/fitness.ts` and `src/game/fitness.ts` — 10 `fitness.*` keys
+### `src/app/fitness.ts`, `src/game/fitness.ts` and `src/cli/bench.ts` — 10 `fitness.*` keys
 
 | Key                       | English                                                                                                        | Notes                                                        |
 | ------------------------- | -------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
@@ -575,12 +575,18 @@ nullary function.
 | `fitness.result`          | {scenario}: {value}                                                                                            | takes `{scenario}`, `{value}`                                |
 | `fitness.unknownValue`    | ?                                                                                                              | shown when a scenario produced no average delivery time      |
 | `fitness.error`           | Could not compute fitness due to error: {error}                                                                | takes `{error}`; read from both files                        |
-| `fitness.workerTimeout`   | The fitness worker did not finish within {seconds} and was stopped. Does your program have a loop that never … | takes `{seconds}`                                            |
-| `fitness.workerFailed`    | The fitness worker failed                                                                                      |                                                              |
+| `fitness.workerTimeout`   | The fitness worker did not finish within {seconds} and was stopped. Does your program have a loop that never … | takes `{seconds}`; read by the page and by `npm run bench`   |
+| `fitness.workerFailed`    | The fitness worker failed                                                                                      | read by the page and by `npm run bench`                      |
 | `fitness.scenario.small`  | Small scenario                                                                                                 | `src/game/fitness.ts`; rendered inside the worker            |
 | `fitness.scenario.medium` | Medium scenario                                                                                                | `src/game/fitness.ts`                                        |
 | `fitness.scenario.large`  | Large scenario                                                                                                 | `src/game/fitness.ts`                                        |
 | `fitness.measuring`       | Measuring fitness...                                                                                           | `src/main.ts`; listed above with the editor's other messages |
+
+The two worker sentences are read from a second place as well. `src/cli/bench.ts` runs the same
+suite in a Node worker thread rather than a browser one, and renders both on the command's side for
+the reason the page does: a thread that has missed its deadline is not going to answer a question
+about wording. The command follows `--locale`, so these two are translated in a terminal exactly as
+they are on the page.
 
 The `?` and the `{scenario}: {value}` line it goes into are separate keys rather than one string
 with a hole in it, so neither locale has to make "?" agree with a sentence it did not write. The
