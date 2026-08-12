@@ -115,9 +115,11 @@ function positionIn(frame: string): CodeErrorLocation | undefined {
  * call in the game, which is identical for every program that ever fails to
  * parse.
  *
- * Checked against `jsc` 26.5 (the JavaScriptCore shell that ships in the
- * framework on macOS, which is the engine Safari runs) rather than reasoned
- * about, across the cases that matter: a throw on the player's own line, a
+ * Checked against `jsc` -- the JavaScriptCore shell inside the framework macOS
+ * ships, which is the engine Safari runs -- rather than reasoned about. The one
+ * it was run against reports itself as framework build 21624.2.5.11.4, on macOS
+ * 26.5; the shell has no version of its own to ask for, so that is the framework
+ * bundle's. The cases covered are the ones that matter: a throw on the player's own line, a
  * throw from the engine below it, a throw inside a helper the player factored
  * out, a program compiled unwrapped, a `TypeError` from calling a method that is
  * not there, a native `SyntaxError` out of `JSON.parse`, an error constructed on

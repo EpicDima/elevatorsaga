@@ -77,10 +77,12 @@ function v8Stack(...frames: readonly string[]): { readonly stack: string } {
  *
  * Vitest runs on V8, so the JavaScriptCore cases cannot be produced by throwing
  * the way the ones above are. The next best thing is transcription rather than
- * invention: every field below was read off a run of `jsc` 26.5 -- the
- * JavaScriptCore shell inside the framework macOS ships, which is the engine
- * Safari runs -- against these same program constants, and the numbers in the
- * tests are what it printed. Its own properties for a throw out of evaluated
+ * invention: every field below was read off a run of `jsc` -- the JavaScriptCore
+ * shell inside the framework macOS ships, which is the engine Safari runs --
+ * against these same program constants, and the numbers in the tests are what it
+ * printed. The build was framework 21624.2.5.11.4 on macOS 26.5, that being the
+ * bundle's version, since the shell has none of its own to ask for.
+ * Its own properties for a throw out of evaluated
  * code are exactly `message`, `line`, `column` and `stack`, in that order, with
  * `sourceURL` absent; a throw out of a file has `sourceURL` between `column` and
  * `stack`. The frames carry no position of their own, which is why none of these
