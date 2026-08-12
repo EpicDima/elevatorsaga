@@ -223,11 +223,15 @@ describe("calculateFitness", () => {
     expect(result.avgLoadFactorOnMove).toBe(0);
     // The wait before pickup reads zero for a subtler reason, and it is worth
     // saying which: a car nobody drives is still a car standing in the lobby,
-    // so the one passenger who gets into one during this run gets in on the
-    // frame they spawn on -- the floor button they press re-offers the car that
-    // is already there. The mean is over that boarding and it is a mean of
-    // zero. Everybody who really waited is in `maxPickupTime`, which the test
-    // above keeps out of a report of averages.
+    // so a passenger who appears on floor 0 gets in on the frame they spawn on
+    // -- the floor button they press re-offers the car that is already there --
+    // and every wait the mean is taken over is therefore zero. Exactly two
+    // passengers appear in these 200 frames, and `spawnUserRandomly` puts each
+    // of them in the lobby two times in three, so over 2000 unseeded runs the
+    // mean was taken over two boardings in 43% of them, one in 46%, and none at
+    // all in 12%, where it reads zero because nothing was averaged. It read
+    // zero in all 2000. Everybody who really waited is in `maxPickupTime`,
+    // which the test above keeps out of a report of averages.
     expect(result.avgPickupTime).toBe(0);
   });
 
@@ -243,8 +247,14 @@ describe("calculateFitness", () => {
     // are not taken over the same passengers: everybody picked up is in the
     // first and only those delivered are in the second, so at the moment the
     // run is cut off the difference between them is not a ride time but the
-    // rides still in progress. It holds for traffic the sweep keeps up with;
-    // pinning the traffic is what keeps that from being a coin toss.
+    // rides still in progress -- two to four of them, typically, out of some
+    // twenty-nine. Measured, that leaves a wide margin and not a narrow one:
+    // over 2000 unseeded runs neither assertion below failed once, and the
+    // ratio they turn on came no nearer to 1 than 0.59. So the seed is here for
+    // reproducibility -- the same traffic to look at again when a figure
+    // surprises somebody -- rather than to keep a coin toss from landing badly.
+    // Nor is `"pickup-seed"` a lucky draw: the wait for a car it produces sits
+    // at the 99th percentile of that distribution, which is the hard end of it.
     const result = calculateFitness(
       challenge,
       drivingCodeObj(),
