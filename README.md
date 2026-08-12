@@ -577,22 +577,32 @@ per file with a docblock on the very first line:
 // @vitest-environment jsdom
 ```
 
-That is how the `src/ui` tests, `src/app/app.test.ts` and `src/page.test.ts` run.
+That is how `src/app/app.test.ts`, `src/page.test.ts`, `src/i18n/detect.test.ts` and every `src/ui`
+test that touches an element runs. Two in `src/ui` do not and are left on `node`:
+`completions.test.ts` and `error-location.test.ts` both work on plain data — a completion table and
+a stack trace — and neither builds anything to put on a page.
 
 ### End-to-end tests
 
 `e2e/` holds a handful of Playwright smoke tests. They exist to answer one question the unit tests
 cannot: does the thing that actually ships come up in a real browser? So they run against the
 **production build** — `npm run test:e2e` builds the site and serves `dist/` with `vite preview`
-before the first test — and they stay few on purpose. Between them they boot the page, play a
-challenge through to "Success!", check that a program survives a reload in `localStorage`, that a
-pasted block keeps the indentation it arrived with, and that a program which will not compile or
-throws mid-simulation raises the error banner instead of failing silently; then that the help page
-and the licence notices are reachable from the footer, that the link preview points at an image
-that is really served, that both pages reflow onto a 320 px phone, and that the keyboard reaches
-the editor in one tab stop from the busiest challenge. Behaviour is covered in depth by the Vitest
-suite; repeating it through a browser would only buy slower, flakier versions of tests that already
-exist.
+before the first test — and they stay few on purpose: fourteen files. What they cover is everything
+whose proof is the browser itself. The game comes up and a challenge is played through to
+"Success!"; a program survives a reload in `localStorage`, a pasted block keeps the indentation it
+arrived with, <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>S</kbd> writes it the moment it is pressed without
+the browser's own save dialog opening, and a program that will not compile or throws
+mid-simulation raises the error banner instead of failing silently. Then the parts that are only
+real once an address bar and a browser are involved: a pinned seed brings the same passengers back
+on reload while an unpinned run draws a new building each time, a parameter the router refused
+leaves the address bar without breaking the Back button, the page arrives in the language the
+browser asks for and follows the picker to the other one, and a learning task shows its panel,
+keeps its answer folded until asked, and hands its program to the editor. Finally the flat
+statements: the help page and the licence notices are reachable from the footer, the link preview
+points at an image that is really served, both pages reflow onto a 320 px phone, and the keyboard
+reaches the editor in one tab stop from the busiest challenge. Behaviour is covered in depth by the
+Vitest suite; repeating it through a browser would only buy slower, flakier versions of tests that
+already exist.
 
 ```sh
 npm run test:e2e                       # the whole suite
