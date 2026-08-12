@@ -1,5 +1,6 @@
 /**
- * Contrast of the palette in `style.css`.
+ * What can be checked about `style.css` without a browser: the contrast of the
+ * palette, and the arithmetic the statistics panel is sized by.
  *
  * The stylesheet states every colour once, as a custom property, which is what
  * makes this checkable without a browser: the pairs that actually meet on
@@ -11,6 +12,10 @@
  * What it deliberately does not do is discover pairs. If a new rule puts text
  * on a background nobody listed here, this file will not notice — re-measure in
  * a browser when the layout changes, and add the pair.
+ *
+ * The panel's geometry is here for the same reason the colours are: the numbers
+ * are all in tokens, so what they add up to is arithmetic. Whether a browser
+ * then draws the panel where it was told to is `e2e/statistics-panel.spec.ts`.
  */
 
 import { readFileSync } from "node:fs";
@@ -265,5 +270,83 @@ describe("palette", () => {
     // it: no light emphasis can pass, however it is tuned, so the emphasis on
     // the page has to be darker than the page rather than paler.
     expect(contrast("#ffffff", token("color-page"))).toBeLessThan(3);
+  });
+});
+
+/**
+ * The game page, as text.
+ *
+ * The panel's rows are markup, and how many of them there are is a number the
+ * stylesheet has to be told: nothing in CSS can count elements.
+ */
+const pageSource = readFileSync(new URL("../../index.html", import.meta.url), "utf8");
+
+/**
+ * Reads a rule's body out of the stylesheet.
+ *
+ * @param selector - The selector, exactly as the rule spells it.
+ * @returns Everything between its braces.
+ */
+function ruleBody(selector: string): string {
+  const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const rules = [...styleSource.matchAll(new RegExp(`^${escaped}\\s*\\{([^}]*)\\}`, "gm"))];
+  expect(rules.length, `${selector} is no longer exactly one rule`).toBe(1);
+  return rules[0]?.[1] ?? "";
+}
+
+describe("statistics panel", () => {
+  it("is sized for as many rows as the page actually has", () => {
+    // The one number in the geometry that is a fact about somewhere else. Every
+    // other token below is the stylesheet's own business; this one is a count
+    // of elements in index.html, and adding a row there without changing it is
+    // exactly how the panel came to be taller than the box it is drawn in.
+    expect(pageSource, "index.html no longer has a .statscontainer").toMatch(
+      /class="statscontainer"/,
+    );
+    // Counted over the whole document rather than inside the panel's element,
+    // which is not something a regex can find the end of. `.stat` belongs to
+    // the panel and to nothing else on the page; a second user of the class
+    // would have to be counted here, and would be the more surprising of the
+    // two things to have happened.
+    const rows = [...pageSource.matchAll(/<div class="stat">/g)].length;
+
+    expect(rows).toBeGreaterThan(0);
+    expect(
+      Number(token("stats-rows")),
+      "--stats-rows is not the number of rows in index.html",
+    ).toBe(rows);
+  });
+
+  it("counts every row and both paddings into its height", () => {
+    // Pinned as the expression rather than as the 168px it comes to, because
+    // what matters is which quantities are in it: a height worked out from
+    // anything less than all of the rows, or from one padding, is the same
+    // defect in a new form. The rows are laid out by the flow and carry the
+    // pitch as a margin, so this is what they occupy.
+    expect(token("stats-block-size")).toBe(
+      "calc(var(--stats-rows) * var(--stats-row-pitch) + 2 * var(--stats-padding))",
+    );
+  });
+
+  it("holds open the box that clips it", () => {
+    // The panel is positioned out of the flow, so it adds nothing to the height
+    // of `.worldtrack` -- and `.worldtrack` takes its height from the building
+    // and clips what does not fit. A two-floor building is 100px, which is
+    // three rows short of the panel. Both boxes are stated in the same token so
+    // that the clip cannot be left behind when the panel changes size.
+    expect(declaration(ruleBody(".statscontainer"), "block-size", ".statscontainer")).toBe(
+      token("stats-block-size"),
+    );
+    expect(declaration(ruleBody(".worldtrack"), "min-block-size", ".worldtrack")).toBe(
+      token("stats-block-size"),
+    );
+    // Content-box would leave the padding out of the height the clip is told to
+    // keep, and put the bottom row back outside it by 40px.
+    expect(declaration(ruleBody(".statscontainer"), "box-sizing", ".statscontainer")).toBe(
+      "border-box",
+    );
+    // And the clipping stays: passengers walk off the right-hand edge, and the
+    // feedback overlay is deliberately larger than the building it covers.
+    expect(ruleBody(".worldtrack")).toMatch(/^\s*overflow:\s*hidden;/m);
   });
 });

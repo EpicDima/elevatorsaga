@@ -135,17 +135,23 @@
   --stats-row-height: 10px;
   /*
    * 16px, where the panel was drawn at 20px for as long as it had six rows.
-   * `.worldtrack` clips the panel, so what it has to fit inside is not its own
-   * box but the shortest building the game draws: a floor is 50px and
-   * challenges 1 and 7 are three floors, which leaves 150px. Six rows took
-   * 131px of that and a seventh took 151, clipping its own rule. At 16px seven
-   * rows take 127px and an eighth still fits, which is a row of headroom
-   * rather than the exact fit 17px would have been. The learning track's
-   * two-floor buildings cut the panel off at any pitch worth reading -- 100px
-   * does not hold this many rows of 12px text -- but they cut off less of it
-   * than they did.
+   * Eight rows at 20px would have been 160px of a panel whose box is what the
+   * two lines below make it, and the pitch came down instead of the box going
+   * up: 12px text on a 10px line has the room, and the panel is read as a
+   * column of numbers rather than as prose.
    */
   --stats-row-pitch: 16px;
+  /*
+   * How many rows the panel has, which is a fact about `index.html` and not
+   * about this file -- `src/styles/style.test.ts` counts the `.stat` elements
+   * there and fails if this number is not that number. It is here because the
+   * height below has to be worked out from it, and a panel that is drawn
+   * shorter than its own contents is the bug this replaced: the rows are laid
+   * out by the flow and `.worldtrack` clips them, so nothing about the panel
+   * itself objected to being cut off in the middle.
+   */
+  --stats-rows: 8;
+  --stats-block-size: calc(var(--stats-rows) * var(--stats-row-pitch) + 2 * var(--stats-padding));
   --editor-height: 320px;
 
   --font-ui: Oswald, Arial, Helvetica, sans-serif;
@@ -1162,9 +1168,25 @@ kbd {
   overflow-y: hidden;
 }
 
+/*
+ * As tall as the building, and never shorter than the panel beside it.
+ *
+ * The height comes from `.innerworld`, which the presenter sizes to the floors
+ * -- 50px each -- while the panel is positioned out of the flow and so counts
+ * for nothing in it. In a two-floor building that made the clip 100px tall and
+ * took the bottom three rows off the panel, the learning track's first task
+ * losing `Max delivery time`, `Moves` and `Avg load` outright. The floor of
+ * this box is the one thing inside it whose size is known here, so it is the
+ * one thing that can hold the clip open.
+ *
+ * The clipping itself has to stay: passengers walk off to the right when they
+ * are delivered, and `.feedback` is a 2000px overlay deliberately larger than
+ * anything it covers, so `overflow: visible` would paint both onto the page.
+ */
 .worldtrack {
   position: relative;
   inline-size: var(--world-width);
+  min-block-size: var(--stats-block-size);
   overflow: hidden;
 }
 
@@ -1255,8 +1277,9 @@ kbd {
   position: absolute;
   inset-block-start: 0;
   inset-inline-end: 0;
+  box-sizing: border-box;
   inline-size: var(--stats-width);
-  block-size: 200px;
+  block-size: var(--stats-block-size);
   padding: var(--stats-padding);
   font: 12px var(--font-mono);
   line-height: var(--stats-row-height);
