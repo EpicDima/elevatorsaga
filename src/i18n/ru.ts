@@ -474,7 +474,7 @@ export const RU_MESSAGES: MessageCatalogue<"ru"> = {
     }
 }`,
   "docs.basics.called.html":
-    'Эти функции игра вызывает по ходу задания.<br /> <span class="emphasis-color">init</span> вызывается в начале задания, а <span class="emphasis-color">update</span> — многократно, пока оно идёт.',
+    'Эти функции игра вызывает по ходу задания.<br /> <span class="emphasis-color">init</span> вызывается один раз, на первом кадре прогона, а не в момент, когда вы применили код; <span class="emphasis-color">update</span> — на том же кадре и на каждом следующем, то есть столько раз, сколько браузер успевает отрисовать. Поэтому сколько игрового времени прошло, говорит <span class="emphasis-color">dt</span>, а не число вызовов. Обеим передаются одни и те же два массива — все лифты здания и все его этажи, — так что <span class="emphasis-color">elevators.length</span> и есть число кабин, которыми вы распоряжаетесь; между вызовами эти массивы не подменяются. Обе функции вызываются на объекте, который вы объявили, так что <span class="emphasis-color">this</span> внутри них — этот самый объект: всё, что программе нужно помнить от кадра к кадру, можно хранить на <span class="emphasis-color">this</span>, а не во внешней переменной. Это верно, пока они написаны через <span class="emphasis-color">function</span>: стрелочная функция сохраняет <span class="emphasis-color">this</span> того места, где её написали, а здесь это страница, а не ваш объект.',
   "docs.basics.initPurpose.html":
     'Обычно основную часть кода пишут в функции <span class="emphasis-color">init</span>: там настраивают обработчики событий и логику.',
   "docs.basics.noLibraries.html":

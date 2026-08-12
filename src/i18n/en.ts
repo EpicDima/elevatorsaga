@@ -423,7 +423,7 @@ export const EN_MESSAGES = {
     }
 }`,
   "docs.basics.called.html":
-    'These functions will then be called by the game during the challenge.<br /> <span class="emphasis-color">init</span> will be called when the challenge starts, and <span class="emphasis-color">update</span> repeatedly during the challenge.',
+    'These functions will then be called by the game during the challenge.<br /> <span class="emphasis-color">init</span> runs once, on the first frame of the run rather than at the moment you apply your code, and <span class="emphasis-color">update</span> runs on that same frame and on every frame after it — as often as the browser draws, which is why <span class="emphasis-color">dt</span>, and not the number of calls, is what tells you how much game time has passed. Both are handed the same two arrays — one holding every elevator in the building, one holding every floor — so <span class="emphasis-color">elevators.length</span> is how many cars you have to work with, and neither array is replaced between calls. Both are called on the object you declared, so <span class="emphasis-color">this</span> inside them is that object: anything your program needs to remember from one frame to the next can live on <span class="emphasis-color">this</span> instead of in a variable outside. That holds as long as you write them with <span class="emphasis-color">function</span> — an arrow function keeps the <span class="emphasis-color">this</span> of wherever it was written, which here is the page rather than your object.',
   "docs.basics.initPurpose.html":
     'Normally you will put most of your code in the <span class="emphasis-color">init</span> function, to set up event listeners and logic.',
   "docs.basics.noLibraries.html":
