@@ -135,6 +135,11 @@ Options:
                      Default: ${DEFAULT_LOCALE}
   --json             Print the report as JSON instead of as a table.
   -h, --help         Print this text.
+  --                 End of options: what follows is the program file, whatever
+                     it is called.
+
+No option may be given twice, and an option that takes a value will not take the
+next option as one -- write --seeds=-1 for a seed that begins with a dash.
 
 The report goes to standard output. Everything the run itself printed goes to
 standard error, so a program that logs cannot corrupt the report.
@@ -151,18 +156,37 @@ Exit codes:
  * Both spellings are accepted, `--seeds=1,2` and `--seeds 1,2`, because both
  * are what people type.
  *
+ * The separated spelling will not swallow something that looks like another
+ * option. `--seeds --json` is a typo with a plausible reading -- score the seed
+ * called `--json` -- and taking it produces a run on one nonsense building, in
+ * table mode, exiting 0: three wrong answers and no complaint. A seed really can
+ * be called `-1`, since seeds are hashed strings rather than numbers, so this is
+ * refused rather than forbidden and the message says how to insist.
+ *
  * @param name - The option, as written, for the message if there is no value.
  * @param inline - The text after `=`, if the argument carried one.
  * @param next - The following argument, which is the value if `inline` is not.
  * @returns The value.
- * @throws {BenchUsageError} When the option was given no value.
+ * @throws {BenchUsageError} When the option was given no value, or was given the
+ * next option as its value.
  */
 function optionValue(name: string, inline: string | undefined, next: string | undefined): string {
-  const value = inline ?? next;
-  if (value === undefined || value === "") {
+  if (inline !== undefined) {
+    if (inline === "") {
+      throw new BenchUsageError(`${name} needs a value.`);
+    }
+    return inline;
+  }
+  if (next === undefined || next === "") {
     throw new BenchUsageError(`${name} needs a value.`);
   }
-  return value;
+  if (next.startsWith("-")) {
+    throw new BenchUsageError(
+      `${name} needs a value, and ${next} looks like another option. ` +
+        `Write ${name}=${next} if it really is the value.`,
+    );
+  }
+  return next;
 }
 
 /**
@@ -201,21 +225,79 @@ function parseLocale(value: string): Locale {
 }
 
 /**
+ * Takes an argument as the program to benchmark.
+ *
+ * Written as a function of what was named before rather than as an assignment
+ * in two places, so that naming two programs is refused by one sentence
+ * wherever the second one came from -- before the `--` or after it.
+ *
+ * @param current - The program named so far, if any.
+ * @param argument - The path, as written.
+ * @returns The program to benchmark.
+ * @throws {BenchUsageError} When a program was already named.
+ */
+function onlyProgram(current: string | undefined, argument: string): string {
+  if (current !== undefined) {
+    throw new BenchUsageError(
+      `Only one program can be benchmarked at a time; got ${current} and ${argument}.`,
+    );
+  }
+  return argument;
+}
+
+/**
  * Reads the command line.
+ *
+ * Every way of misreading an argument list is refused rather than guessed at,
+ * because the thing being run is a measurement: a run on the wrong seeds still
+ * prints a report full of plausible numbers, and nothing downstream can tell it
+ * from the run that was asked for.
  *
  * @param argv - The arguments, without the node binary and this script.
  * @returns What was asked for.
  * @throws {BenchUsageError} When an argument is unknown, repeated, missing a
- * value, or when more than one program was named.
+ * value, given a value it does not take, or when more than one program was
+ * named.
  */
 export function parseBenchArgs(argv: readonly string[]): BenchRequest {
   let programPath: string | undefined = undefined;
   let seeds: readonly RandomSeed[] = fitnessSeeds;
   let locale: Locale = DEFAULT_LOCALE;
   let json = false;
+  // Set by `--`, after which nothing is read as an option -- the one way to
+  // benchmark a file whose name begins with a dash.
+  let optionsEnded = false;
+  const given = new Set<string>();
+
+  /**
+   * Refuses an option that has already been given.
+   *
+   * `--seeds 1 --seeds 2` has two readings, the first wins and the last wins,
+   * and both are guesses about what somebody meant -- usually a shell loop that
+   * appended an argument the base command already carried. Silently scoring one
+   * of the two lists is the failure worth avoiding, because the report says
+   * which seeds it used and nobody re-reads that line.
+   *
+   * @param name - The option, as written.
+   * @throws {BenchUsageError} When it was given before.
+   */
+  const takeOnce = (name: string): void => {
+    if (given.has(name)) {
+      throw new BenchUsageError(`${name} was given more than once.`);
+    }
+    given.add(name);
+  };
 
   for (let index = 0; index < argv.length; index++) {
     const argument = argv[index] ?? "";
+    if (optionsEnded) {
+      programPath = onlyProgram(programPath, argument);
+      continue;
+    }
+    if (argument === "--") {
+      optionsEnded = true;
+      continue;
+    }
     if (argument === "-h" || argument === "--help") {
       return { kind: "help" };
     }
@@ -225,26 +307,28 @@ export function parseBenchArgs(argv: readonly string[]): BenchRequest {
     const inline = separator === -1 ? undefined : argument.slice(separator + 1);
     switch (name) {
       case "--seeds":
+        takeOnce(name);
         seeds = parseSeeds(optionValue(name, inline, argv[index + 1]));
         if (inline === undefined) index++;
         break;
       case "--locale":
+        takeOnce(name);
         locale = parseLocale(optionValue(name, inline, argv[index + 1]));
         if (inline === undefined) index++;
         break;
       case "--json":
+        takeOnce(name);
+        // `--json=false` reads as switching JSON off and would switch it on.
+        if (inline !== undefined) {
+          throw new BenchUsageError(`${name} takes no value, but was given ${inline}.`);
+        }
         json = true;
         break;
       default:
         if (argument.startsWith("-")) {
           throw new BenchUsageError(`Unknown option: ${argument}`);
         }
-        if (programPath !== undefined) {
-          throw new BenchUsageError(
-            `Only one program can be benchmarked at a time; got ${programPath} and ${argument}.`,
-          );
-        }
-        programPath = argument;
+        programPath = onlyProgram(programPath, argument);
     }
   }
 

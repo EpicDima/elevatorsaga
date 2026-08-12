@@ -192,6 +192,55 @@ describe("reading the command line", () => {
     expect(() => parseBenchArgs(["solution.js", "--seeds"])).toThrow(/--seeds needs a value/);
   });
 
+  it("refuses to read the next option as the value of this one", () => {
+    // Taken as a value, `--seeds --json` scores one nonsense building, in table
+    // mode, and exits 0 -- three wrong answers, none of them reported. A seed
+    // beginning with a dash is legitimate, though, so the refusal says how to
+    // insist rather than forbidding the seed.
+    expect(() => parseBenchArgs(["solution.js", "--seeds", "--json"])).toThrow(
+      /--seeds needs a value, and --json looks like another option\. Write --seeds=--json/,
+    );
+    expect(parseBenchArgs(["solution.js", "--seeds=-1"])).toMatchObject({
+      options: { seeds: ["-1"] },
+    });
+  });
+
+  it("refuses an option that was given twice, however each one was spelled", () => {
+    // Both readings -- first wins, last wins -- are guesses about what somebody
+    // meant, usually a shell loop that appended an argument the base command
+    // already carried, and either guess scores a building nobody asked for.
+    expect(() => parseBenchArgs(["a.js", "--seeds", "1", "--seeds", "2"])).toThrow(
+      /--seeds was given more than once/,
+    );
+    expect(() => parseBenchArgs(["a.js", "--seeds=1", "--seeds", "2"])).toThrow(BenchUsageError);
+    expect(() => parseBenchArgs(["a.js", "--locale=en", "--locale=ru"])).toThrow(BenchUsageError);
+    expect(() => parseBenchArgs(["a.js", "--json", "--json"])).toThrow(/--json was given more/);
+  });
+
+  it("refuses a value for the option that has none", () => {
+    // `--json=false` reads as switching JSON off and would switch it on.
+    expect(() => parseBenchArgs(["a.js", "--json=false"])).toThrow(
+      /--json takes no value, but was given false/,
+    );
+  });
+
+  it("benchmarks a file whose name begins with a dash when told where options end", () => {
+    expect(parseBenchArgs(["--json", "--", "--strange-name.js"])).toEqual({
+      kind: "run",
+      options: {
+        programPath: "--strange-name.js",
+        seeds: fitnessSeeds,
+        locale: DEFAULT_LOCALE,
+        json: true,
+      },
+    });
+    // Everything after it is a file name, including the words that are options
+    // before it -- which is the whole point, and means two of them are still two
+    // programs.
+    expect(parseBenchArgs(["--", "-h"])).toMatchObject({ options: { programPath: "-h" } });
+    expect(() => parseBenchArgs(["--", "a.js", "--json"])).toThrow(/a\.js and --json/);
+  });
+
   it("refuses a second program rather than quietly benchmarking one of them", () => {
     expect(() => parseBenchArgs(["a.js", "b.js"])).toThrow(/a\.js and b\.js/);
   });
