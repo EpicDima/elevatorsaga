@@ -49,9 +49,53 @@ const ONE_LINE = "{ init: function () {}, update: function () { missingHelper();
 const UNWRAPPED =
   "(function () { return { init: function () {}, update: function () { missingHelper(); } }; })()";
 
+/**
+ * The same program as {@link CALLS_THE_ENGINE}, padded out to 66 lines.
+ *
+ * Long enough that a line number belonging to the game's own bundle lands
+ * inside it, which is what makes the checks against it mean anything: a
+ * six-line program refuses a line of the engine because there is no such line,
+ * not because it knew whose line it was.
+ */
+const LONG_PROGRAM = [
+  "{",
+  "  init: function (elevators, floors) {},",
+  ...Array.from({ length: 60 }, () => "  // a line of the player's own"),
+  "  update: function (dt, elevators, floors) {",
+  "    elevators[0].goToFloor(7);",
+  "  },",
+  "}",
+].join("\n");
+
 /** A stack in the shape V8 writes, for the cases a real throw cannot produce. */
 function v8Stack(...frames: readonly string[]): { readonly stack: string } {
   return { stack: ["ReferenceError: missingHelper is not defined", ...frames].join("\n") };
+}
+
+/**
+ * Builds an error shaped the way JavaScriptCore shapes one.
+ *
+ * Vitest runs on V8, so the JavaScriptCore cases cannot be produced by throwing
+ * the way the ones above are. The next best thing is transcription rather than
+ * invention: every field below was read off a run of `jsc` 26.5 -- the
+ * JavaScriptCore shell inside the framework macOS ships, which is the engine
+ * Safari runs -- against these same program constants, and the numbers in the
+ * tests are what it printed. Its own properties for a throw out of evaluated
+ * code are exactly `message`, `line`, `column` and `stack`, in that order, with
+ * `sourceURL` absent; a throw out of a file has `sourceURL` between `column` and
+ * `stack`. The frames carry no position of their own, which is why none of these
+ * stacks has one after the `@`.
+ *
+ * @param fields - The position, the stack, and the file when there is one.
+ * @returns An object with those fields and a message, and nothing else.
+ */
+function jscError(fields: {
+  readonly line?: unknown;
+  readonly column?: unknown;
+  readonly sourceURL?: string;
+  readonly stack: string;
+}): object {
+  return { message: "missingHelper is not defined", ...fields };
 }
 
 describe("locateCodeError", () => {
@@ -173,6 +217,114 @@ describe("locateCodeError", () => {
     };
 
     expect(locateCodeError(stack, MULTI_LINE)).toEqual({ line: 3, column: 7 });
+  });
+
+  it("reads the position Safari writes on the error rather than in the frame", () => {
+    // Column 18 is the opening parenthesis of `missingHelper(`, where V8 gives
+    // 5 for the same throw: JavaScriptCore records a call at its parenthesis
+    // and V8 at the start of the name. Both are on the line that broke, which
+    // is what the mark is for, so the difference is left as it is.
+    const error = jscError({ line: 4, column: 18, stack: "update@\nglobal code@/game.js:39:15" });
+
+    expect(locateCodeError(error, MULTI_LINE)).toEqual({ line: 4, column: 18 });
+  });
+
+  it("takes the parenthesis back off the first line for Safari too", () => {
+    // The position is a position in the compiled source whichever engine
+    // reported it, so the wrap has to come off either way.
+    const error = jscError({ line: 1, column: 61, stack: "update@\nglobal code@/game.js:42:15" });
+
+    expect(locateCodeError(error, ONE_LINE)).toEqual({
+      line: 1,
+      column: ONE_LINE.indexOf("(", ONE_LINE.indexOf("missingHelper")) + 1,
+    });
+  });
+
+  it("says nothing when Safari names the file the throw came out of", () => {
+    // Line 24 is a line of the game, and the program it is offered against is
+    // 66 lines long, so line 24 of that exists and is a comment. This is the
+    // whole of what `sourceURL` is checked for: refusing the ones out of range
+    // would look like it worked, right up until a player wrote enough code.
+    const error = jscError({
+      line: 24,
+      column: 59,
+      sourceURL: "/game.js",
+      stack: "goToFloor@/game.js:24:59\nupdate@\nglobal code@/game.js:26:15",
+    });
+
+    expect(locateCodeError(error, LONG_PROGRAM)).toBeUndefined();
+  });
+
+  it("says nothing about a Safari syntax error, which points at the game's eval", () => {
+    // The same discriminator doing the same work. Line 29 is where the game
+    // called `eval`, which is where every program that fails to parse is
+    // reported, and it is inside this one.
+    const error = jscError({
+      line: 29,
+      column: 15,
+      sourceURL: "/game.js",
+      stack: "eval@[native code]\nglobal code@/game.js:29:15",
+    });
+
+    expect(locateCodeError(error, LONG_PROGRAM)).toBeUndefined();
+  });
+
+  it("says nothing about a line Safari counted in a string the player evaluated", () => {
+    // The recorded case: line 12 of the inner string, on a program with six
+    // lines. V8 walks out of this to the frame that called `eval`, because it
+    // has one; JavaScriptCore's frames carry no positions, so the range check
+    // is all there is, and refusing is where it ends.
+    const error = jscError({
+      line: 12,
+      column: 14,
+      stack: "eval code@\neval@[native code]\nupdate@\nglobal code@/game.js:50:15",
+    });
+
+    expect(locateCodeError(error, MULTI_LINE)).toBeUndefined();
+  });
+
+  it("prefers a position from the stack to one on the error", () => {
+    // No engine writes both -- V8 and SpiderMonkey leave the error bare, and
+    // JavaScriptCore leaves the frames bare -- so this fixes the order rather
+    // than describing a browser. The stack wins because it is a list that can
+    // be walked past the game's frames and out of a nested evaluation, where a
+    // number on the error is whatever it is.
+    const both = {
+      ...v8Stack("    at Object.update (eval at x (a.ts:1:1), <anonymous>:4:5)"),
+      line: 2,
+      column: 3,
+    };
+
+    expect(locateCodeError(both, MULTI_LINE)).toEqual({ line: 4, column: 5 });
+  });
+
+  it("ignores a position on the error that is not a pair of whole numbers", () => {
+    for (const position of [
+      { line: 0, column: 1 },
+      { line: 4, column: 0 },
+      { line: 3.5, column: 1 },
+      { line: Number.POSITIVE_INFINITY, column: 1 },
+      { line: Number.NaN, column: 1 },
+      { line: "4", column: "18" },
+      { column: 18 },
+      { line: 4 },
+    ]) {
+      expect(
+        locateCodeError(jscError({ ...position, stack: "update@" }), MULTI_LINE),
+      ).toBeUndefined();
+    }
+  });
+
+  it("survives an error whose position throws when it is read", () => {
+    const hostile = {
+      stack: "update@",
+      get line(): number {
+        throw new Error("no line for you");
+      },
+      column: 18,
+    };
+
+    expect(locateCodeError(hostile, MULTI_LINE)).toBeUndefined();
   });
 
   it("ignores the position where the game called eval, in favour of the player's", () => {

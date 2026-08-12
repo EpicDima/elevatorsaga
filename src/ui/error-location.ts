@@ -96,6 +96,97 @@ function positionIn(frame: string): CodeErrorLocation | undefined {
 }
 
 /**
+ * Reads the position JavaScriptCore records on the error itself.
+ *
+ * Safari puts no position in a stack frame belonging to `eval`ed code at all --
+ * its frames for such code are a bare `update@`, with nothing after the `@` --
+ * so the stack walk above has nothing to find there. What it does instead is
+ * hang `line` and `column` straight off the error object, and those *are* the
+ * position in the compiled source, on the same 1-based reckoning as everywhere
+ * else here.
+ *
+ * `sourceURL` is what makes that safe to use. An error thrown from `eval`ed code
+ * has none, while one thrown from a file -- which for this game means from the
+ * engine's own bundle, several frames below whatever the player called -- names
+ * that file. Without the check, `elevator.goToFloor(99)` would report the line
+ * of `world.ts` that threw as though it were a line of the player's program, and
+ * underline whatever happens to be there. A syntax error is caught by the same
+ * check for the same reason: JavaScriptCore reports the position of the `eval`
+ * call in the game, which is identical for every program that ever fails to
+ * parse.
+ *
+ * Checked against `jsc` 26.5 (the JavaScriptCore shell that ships in the
+ * framework on macOS, which is the engine Safari runs) rather than reasoned
+ * about, across the cases that matter: a throw on the player's own line, a
+ * throw from the engine below it, a throw inside a helper the player factored
+ * out, a program compiled unwrapped, a `TypeError` from calling a method that is
+ * not there, a native `SyntaxError` out of `JSON.parse`, an error constructed on
+ * one line and thrown on another, and a thrown string. Safari itself was not
+ * available to confirm the shell matches the browser.
+ *
+ * Two things it cannot do, both of which the V8 walk can. It reports the throw
+ * site, so an error raised inside the engine gets no position rather than the
+ * player's calling line. And a player who evaluates a string of their own gets
+ * that string's line number with no second frame to fall back to, so the
+ * out-of-range check ends in `undefined` instead of walking outwards.
+ *
+ * @param error - Whatever the player's code threw.
+ * @returns The position, or `undefined` when the error carries none, or carries
+ * one that belongs to a file rather than to the player's program.
+ */
+function positionOnError(error: unknown): CodeErrorLocation | undefined {
+  if (typeof error !== "object" || error === null) {
+    return undefined;
+  }
+  try {
+    const fields = error as Record<string, unknown>;
+    if (fields["sourceURL"] !== undefined) {
+      return undefined;
+    }
+    const line = fields["line"];
+    const column = fields["column"];
+    if (typeof line !== "number" || typeof column !== "number") {
+      return undefined;
+    }
+    // Same reasoning as `positionIn`: a zero, a fraction or an infinity is not a
+    // place in a document, whatever the engine meant by it.
+    return Number.isInteger(line) && line >= 1 && Number.isInteger(column) && column >= 1
+      ? { line, column }
+      : undefined;
+  } catch {
+    // Any of those reads can be a getter, and a getter the player wrote can
+    // throw. Losing the pointer is the price; taking the game down is not.
+    return undefined;
+  }
+}
+
+/**
+ * Puts a position from the compiled source into the player's coordinates.
+ *
+ * @param position - A position as an engine reported it.
+ * @param code - The source the player typed.
+ * @returns The same position with the wrap taken back off, or `undefined` when
+ * it names a line the program has not got.
+ */
+function inPlayerCoordinates(
+  position: CodeErrorLocation,
+  code: string,
+): CodeErrorLocation | undefined {
+  if (position.line > countLines(code)) {
+    return undefined;
+  }
+  // Positions are positions in the compiled source, which is the player's text
+  // plus at most one character. The parenthesis sits on the first line, so it is
+  // the only line whose columns moved, and `Math.max` covers the position *of*
+  // the parenthesis itself.
+  const column =
+    position.line === 1
+      ? Math.max(1, position.column - firstLineColumnOffset(code))
+      : position.column;
+  return { line: position.line, column };
+}
+
+/**
  * Finds the line of the player's program that an exception came from.
  *
  * The first `eval`ed frame is the answer, not the topmost frame of the stack.
@@ -112,19 +203,19 @@ function positionIn(frame: string): CodeErrorLocation | undefined {
  *   to describe. The banner still says what is wrong; it just cannot point.
  * - "Code must contain an init function" is thrown after `eval` has returned,
  *   so no frame is the player's, and there is no one line at fault anyway.
- * - Browsers other than V8 and SpiderMonkey are not recognised, and a stack
- *   deeper than the browser's frame limit has had the player's frame cut off
- *   its end.
- *
- * Safari is the known gap: JavaScriptCore's format was not checked against a
- * real stack when this was written, and a pattern nobody has run against the
- * engine it claims to parse is a pattern that matches the wrong frame in
- * silence. Until someone can produce one, Safari falls into the same
- * `undefined` as everything else unfamiliar, which costs it the pointer and
- * nothing more.
+ * - Browsers other than V8, SpiderMonkey and JavaScriptCore are not recognised,
+ *   and a stack deeper than the browser's frame limit has had the player's
+ *   frame cut off its end.
  *
  * In each of those the caller shows what it always showed, so a browser this
  * does not understand loses the new pointer and nothing else.
+ *
+ * The stack is read first and the error's own fields only after it, which is
+ * the order of how much each can tell. The stack is a list, so a position can
+ * be chosen from it -- past the engine's frames, out of a nested evaluation --
+ * where a position on the error is a single number that is whatever it is. In
+ * practice the two never compete: V8 and SpiderMonkey put nothing on the error,
+ * and JavaScriptCore puts nothing in the frame.
  *
  * @param error - Whatever the player's code threw.
  * @param code - The source that was compiled to produce it. Needed for two
@@ -135,13 +226,11 @@ function positionIn(frame: string): CodeErrorLocation | undefined {
  * cannot be established.
  */
 export function locateCodeError(error: unknown, code: string): CodeErrorLocation | undefined {
-  const stack = stackOf(error);
-  if (stack === undefined) {
-    return undefined;
-  }
-  const lineCount = countLines(code);
-  for (const frame of stack.split("\n")) {
+  for (const frame of (stackOf(error) ?? "").split("\n")) {
     const position = positionIn(frame.trim());
+    if (position === undefined) {
+      continue;
+    }
     // A player who evaluates a string of their own gets frames whose lines are
     // counted in *that* string. Nothing marks those frames as foreign, but a
     // line past the end of the program is recognisably not a line of it, and
@@ -149,20 +238,13 @@ export function locateCodeError(error: unknown, code: string): CodeErrorLocation
     // called it -- which is a line the player really did write. Handing the
     // number on unchecked would instead ask the editor for a line it has not
     // got.
-    if (position === undefined || position.line > lineCount) {
-      continue;
+    const located = inPlayerCoordinates(position, code);
+    if (located !== undefined) {
+      return located;
     }
-    // Stack positions are positions in the compiled source, which is the
-    // player's text plus at most one character. The parenthesis sits on the
-    // first line, so it is the only line whose columns moved, and `Math.max`
-    // covers the position *of* the parenthesis itself.
-    const column =
-      position.line === 1
-        ? Math.max(1, position.column - firstLineColumnOffset(code))
-        : position.column;
-    return { line: position.line, column };
   }
-  return undefined;
+  const onError = positionOnError(error);
+  return onError === undefined ? undefined : inPlayerCoordinates(onError, code);
 }
 
 /**
