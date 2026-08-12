@@ -61,7 +61,12 @@ interface Ran {
  * @returns What it printed, and the code it exited with.
  */
 async function bench(args: readonly string[], script: string = BENCH): Promise<Ran> {
-  const child = spawn(process.execPath, [script, ...args], { stdio: ["ignore", "pipe", "pipe"] });
+  const child = spawn(process.execPath, [script, ...args], {
+    stdio: ["ignore", "pipe", "pipe"],
+    // A safety net rather than part of any assertion: a command that hangs
+    // should fail the case that asked for it, not outlive the test run.
+    timeout: 10_000,
+  });
   let out = "";
   let err = "";
   child.stdout.setEncoding("utf8");
@@ -151,6 +156,27 @@ describe("the benchmark as a command", () => {
     expect(ran.err).toContain("inspected");
     expect(ran.err).toContain("tabulated");
   });
+
+  it("stops when the report is printed, whatever the program left running", async () => {
+    // `setInterval` in `init` is an ordinary thing for a program to do and it
+    // holds Node's event loop open forever. The whole report was printed and
+    // the command then sat there: in a shell loop scoring one program after
+    // another, the second one never starts.
+    const program = join(scratch, "timer.js");
+    await writeFile(
+      program,
+      `{ init: function () { setInterval(function () {}, 1000); }, update: function () {} }`,
+      "utf8",
+    );
+
+    const ran = await bench([program, "--seeds", "1", "--json"]);
+
+    expect(ran.code).toBe(EXIT_OK);
+    // Parsed rather than merely non-empty: the exit has to happen after the
+    // pipe has taken the last chunk, and a truncated report is the way that
+    // goes wrong.
+    expect(JSON.parse(ran.out)).toMatchObject({ program });
+  }, 15_000);
 
   it("tells a program that threw apart from arguments it could not use", async () => {
     // The two failure codes, as literals rather than as the constants the

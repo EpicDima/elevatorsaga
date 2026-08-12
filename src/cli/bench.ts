@@ -601,5 +601,28 @@ function realPathOrNothing(path: string): string | undefined {
 const entryPoint = process.argv[1];
 const entryPath = entryPoint === undefined ? undefined : realPathOrNothing(entryPoint);
 if (entryPath !== undefined && entryPath === realPathOrNothing(fileURLToPath(import.meta.url))) {
-  process.exitCode = await runBench(process.argv.slice(2), NODE_IO);
+  const status = await runBench(process.argv.slice(2), NODE_IO);
+  // Left to itself, the process ends when nothing is left to do -- and a player's
+  // program is free to leave something. `setInterval` in `init` is the ordinary
+  // case, and it holds the event loop open forever: the report is printed in
+  // full and the command then hangs, which is a benchmark in a shell loop that
+  // never reaches its second program. The report is the end of this command's
+  // work, so it says so.
+  //
+  // Both streams are flushed first. Standard output is a pipe as often as not --
+  // `bench --json | jq` is the point of `--json` -- and writing to a pipe is
+  // asynchronous, so exiting with a chunk still queued truncates the report into
+  // something that no longer parses. An empty write is enough to ask: stream
+  // writes are ordered, so its callback cannot run before the report's has.
+  await Promise.all(
+    [process.stdout, process.stderr].map(
+      (stream) =>
+        new Promise<void>((flushed) => {
+          stream.write("", () => {
+            flushed();
+          });
+        }),
+    ),
+  );
+  process.exit(status);
 }
