@@ -203,6 +203,14 @@ const RESTART_SELECTOR = ".tutorialrestart";
 /** The button that copies the task's program into the player's own editor. */
 const TAKE_CODE_SELECTOR = ".tutorialtakecode";
 
+/**
+ * The line that says whether that copy happened.
+ *
+ * Drawn empty by {@link tutorialTemplate} and written to on the click; see the
+ * note there for why it is not created at the moment there is something to say.
+ */
+const TAKEN_SELECTOR = ".tutorialtaken";
+
 /** The button that leaves the track for the numbered challenges. */
 const LEAVE_SELECTOR = ".tutorialleave";
 
@@ -223,8 +231,15 @@ export interface TutorialPanelData {
    *
    * Only after the confirmation has been agreed to, when one was asked for; see
    * {@link TutorialPanelData.hasOwnProgram}.
+   *
+   * @returns Whether the program was really stored. The panel says one thing or
+   * the other on the strength of this, so a caller that cannot fail still has to
+   * answer `true` rather than nothing: the write goes to a buffer the player
+   * cannot see from the track, and a confirmation is the only evidence they get
+   * that the button did anything. Silence on refusal was the old behaviour and
+   * it left them believing an afternoon's work was saved when it was not.
    */
-  readonly onTakeCode: () => void;
+  readonly onTakeCode: () => boolean;
   /** Called when the player asks to leave the track for the challenges. */
   readonly onLeave: () => void;
   /**
@@ -382,7 +397,12 @@ export function presentTutorial(parent: HTMLElement, data: TutorialPanelData): v
   });
   requireElement(TAKE_CODE_SELECTOR, parent).addEventListener("click", () => {
     if (takeCodeAgreed(data)) {
-      data.onTakeCode();
+      // Nothing is said when the question was asked and answered no, which is
+      // the one case here that needs no line: the player was shown a dialog
+      // about this and dismissed it themselves.
+      requireElement(TAKEN_SELECTOR, parent).textContent = t(
+        data.onTakeCode() ? "tutorial.panel.codeTaken" : "tutorial.panel.codeRefused",
+      );
     }
   });
   requireElement(LEAVE_SELECTOR, parent).addEventListener("click", () => {

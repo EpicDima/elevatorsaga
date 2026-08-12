@@ -894,6 +894,30 @@ dl dd {
 }
 
 /*
+ * What "Take this program" did, in the size and colour the editor's own
+ * "Code saved ..." line uses: this is the same kind of remark about the same
+ * kind of write, and the two should not look like different classes of news.
+ *
+ * Not hidden while it is empty, though it is empty for most of a task's life. It
+ * is a live region, and the announcement is only reliable when the region was
+ * already rendered before the text arrived -- `display: none` up to the moment
+ * of the update is the case screen readers most often miss. An empty `<p>` has
+ * no line box, so with no block margin it costs nothing until there is something
+ * to read; the margin below it appears with the text, which is why it is on
+ * `:not(:empty)` rather than on the element.
+ */
+.tutorialtaken {
+  margin-block: 0;
+  color: var(--color-text);
+  font-size: 12px;
+  line-height: 16px;
+}
+
+.tutorialtaken:not(:empty) {
+  margin-block-end: 10px;
+}
+
+/*
  * The one line here that is about the track rather than about this task, and the
  * only place the count of cleared tasks is shown. Last, and set at the size of
  * the position line above for the same reason.

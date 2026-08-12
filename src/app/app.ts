@@ -733,9 +733,13 @@ export class App {
    * own editor whenever they leave, because that is the key
    * {@link CodeEditor.openPlayerBuffer} reads.
    *
-   * Silent when the store refuses the write, for the reason every other write in
-   * this class is: the run the player is in is what matters, and it does not
-   * depend on this. The panel is what tells them it happened.
+   * Throws nothing when the store refuses the write, for the reason every other
+   * write in this class swallows its own: the run the player is in is what
+   * matters, and it does not depend on this. The refusal is not swallowed
+   * though — it is the return value, and the panel is what tells them either
+   * way. That is the whole point of the boolean; a caller that drops it turns
+   * the button into one that silently does nothing on a browser with storage
+   * switched off.
    *
    * @returns Whether the program was stored.
    */
@@ -971,9 +975,7 @@ export class App {
       onRestart: () => {
         this.#restart();
       },
-      onTakeCode: () => {
-        this.takeTutorialCode();
-      },
+      onTakeCode: () => this.takeTutorialCode(),
       onLeave: () => {
         this.leaveTutorial();
       },

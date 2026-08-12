@@ -42,7 +42,9 @@ afterEach(() => {
  *
  * `hasOwnProgram` answers `false` by default, which keeps the confirmation out
  * of the way of every spec that is not about it: an empty editor is the state in
- * which taking a program simply happens.
+ * which taking a program simply happens. `onTakeCode` answers `true` for the
+ * same reason — a store that accepts the write is the ordinary case, and it is
+ * what the panel's confirmation line is drawn from.
  *
  * @param overrides - The fields the spec is about.
  * @returns Data for one draw of the panel.
@@ -53,7 +55,7 @@ function panelData(overrides: Partial<TutorialPanelData> = {}): TutorialPanelDat
     clearedCount: 0,
     hasOwnProgram: () => false,
     onRestart: vi.fn(),
-    onTakeCode: vi.fn(),
+    onTakeCode: vi.fn(() => true),
     onLeave: vi.fn(),
     ...overrides,
   };
@@ -412,6 +414,85 @@ describe("presentTutorial", () => {
 
       expect(first.onRestart).not.toHaveBeenCalled();
       expect(second.onRestart).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe("what the panel says about taking the program", () => {
+    it("is a live region that is already there, and empty, before there is news", () => {
+      // Both halves are the point. A screen reader that first meets a live
+      // region at the moment it is inserted with text already in it generally
+      // says nothing, so the element has to be drawn empty and written to later
+      // -- and an element drawn with a sentence in it would be a panel claiming
+      // a program was taken before anybody pressed the button.
+      presentTutorial(parent, panelData());
+
+      const line = requireElement(".tutorialtaken", parent);
+      expect(line.getAttribute("aria-live")).toBe("polite");
+      expect(line.textContent).toBe("");
+    });
+
+    it("says the program was taken", () => {
+      // The write goes to a buffer that is not on screen from the track, so this
+      // line is the only evidence the player gets that the button did anything.
+      const data = panelData();
+      presentTutorial(parent, data);
+
+      requireElement(".tutorialtakecode", parent).click();
+
+      expect(requireElement(".tutorialtaken", parent).textContent).toBe(
+        "Copied into the game editor, waiting when you leave the track.",
+      );
+    });
+
+    it("says the store refused rather than letting the player believe it worked", () => {
+      // A browser with storage switched off answers `false` here, and the old
+      // panel said the same nothing to that as it did to success: the player
+      // walked away believing their program was waiting for them.
+      const data = panelData({ onTakeCode: vi.fn(() => false) });
+      presentTutorial(parent, data);
+
+      requireElement(".tutorialtakecode", parent).click();
+
+      expect(requireElement(".tutorialtaken", parent).textContent).toBe(
+        "Your browser refused to store it. Copy the program out of the editor by hand to keep it.",
+      );
+    });
+
+    it("stays quiet when the player answered the question with no", () => {
+      // The one case that needs no line: they were asked about this in a dialog
+      // and dismissed it themselves, so nothing happened that they do not know.
+      vi.spyOn(window, "confirm").mockReturnValue(false);
+      presentTutorial(parent, panelData({ hasOwnProgram: () => true }));
+
+      requireElement(".tutorialtakecode", parent).click();
+
+      expect(requireElement(".tutorialtaken", parent).textContent).toBe("");
+    });
+
+    it("does not carry the confirmation into the next draw", () => {
+      // Unlike the open hints, which are deliberately carried across a redraw of
+      // the same task. A redraw is the run restarting or the language changing,
+      // and either way the sentence would then be describing a copy made of a
+      // program the panel is no longer showing.
+      presentTutorial(parent, panelData());
+      requireElement(".tutorialtakecode", parent).click();
+
+      presentTutorial(parent, panelData());
+
+      expect(requireElement(".tutorialtaken", parent).textContent).toBe("");
+    });
+
+    it("says it in the language the player is reading", () => {
+      const data = panelData();
+      presentTutorial(parent, data);
+      setLocale("ru");
+      presentTutorial(parent, data);
+
+      requireElement(".tutorialtakecode", parent).click();
+
+      expect(requireElement(".tutorialtaken", parent).textContent).toBe(
+        "Программа скопирована в редактор игры — она будет там, когда вы выйдете с дорожки.",
+      );
     });
   });
 

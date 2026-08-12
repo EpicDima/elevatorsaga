@@ -3,6 +3,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 
 import { DEFAULT_LOCALE, setLocale } from "../i18n/index.ts";
+import { requireElement } from "./dom.ts";
 import {
   challengeTemplate,
   codeStatusTemplate,
@@ -631,8 +632,20 @@ describe("tutorialTemplate", () => {
       "tutorialhint",
       "tutorialexplanation",
       "tutorialbuttons",
+      "tutorialtaken",
       "tutorialprogress",
     ]);
+  });
+
+  it("leaves the line about taking the program empty, and live", () => {
+    // The presenter writes into this on the click, and a live region only
+    // announces reliably when it was in the document before the text arrived --
+    // so it is drawn here, empty, rather than made when there is news. Empty is
+    // also the only honest state for a panel nobody has pressed a button on.
+    const line = requireElement(".tutorialtaken", panel());
+
+    expect(line.textContent).toBe("");
+    expect(line.getAttribute("aria-live")).toBe("polite");
   });
 
   it("escapes the program, whatever the answer turns out to contain", () => {

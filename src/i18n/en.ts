@@ -644,6 +644,14 @@ elevator.goToFloor(2); // Queued anyway -- queue: 2, 3, 2`,
   },
   "tutorial.panel.hintSummary": "Hint {number}",
   "tutorial.panel.explanationSummary": "Why this happens",
+  // What the panel says after "Take this program" — the button writes into a
+  // buffer the player cannot see from here, so without a line of its own it is
+  // a button that does nothing visible. The refusal is worth its own key rather
+  // than silence: the copy is gone and the program is still on screen, so the
+  // one useful thing to say is how to keep it by hand.
+  "tutorial.panel.codeTaken": "Copied into the game editor, waiting when you leave the track.",
+  "tutorial.panel.codeRefused":
+    "Your browser refused to store it. Copy the program out of the editor by hand to keep it.",
   "tutorial.button.restart": "Start over",
   "tutorial.button.takeCode": "Take this program into your own editor",
   "tutorial.button.takeCodeConfirm":

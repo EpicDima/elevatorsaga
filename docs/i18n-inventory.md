@@ -104,21 +104,21 @@ Key names carry two suffixes that mean something:
 
 ## Where the strings are
 
-The catalogue holds **273 keys** in two locales. `src/i18n/en.ts` is the reference — its text is
+The catalogue holds **275 keys** in two locales. `src/i18n/en.ts` is the reference — its text is
 the English wording, extracted verbatim — and `src/i18n/ru.ts` is the Russian translation. The
 types make English the shape everything else is measured against: a Russian catalogue missing a
 key, carrying a key English does not have, or giving a plural message the wrong number of forms
 is a compile error, not a runtime surprise.
 
 ```sh
-grep -cE '^  "[^"]+":' src/i18n/en.ts                                   # 273
+grep -cE '^  "[^"]+":' src/i18n/en.ts                                   # 275
 grep -oE '^  "[^"]+"' src/i18n/en.ts | tr -d '"' | cut -d. -f1 | sort | uniq -c | sort -rn
 ```
 
 | Prefix         | Keys    | What reads them                                                                                          |
 | -------------- | ------- | -------------------------------------------------------------------------------------------------------- |
 | `docs.*`       | 82      | one of them, `docs.basics.example.code`, by `src/ui/completions.ts`; the other 81 by nothing             |
-| `tutorial.*`   | 62      | `src/ui/tutorial-panel.ts`, `src/ui/templates.ts`, `src/app/app.ts`                                      |
+| `tutorial.*`   | 64      | `src/ui/tutorial-panel.ts`, `src/ui/templates.ts`, `src/app/app.ts`                                      |
 | `completion.*` | 32      | `src/ui/completions.ts`                                                                                  |
 | `page.*`       | 31      | `index.html`, through `data-i18n` and `data-i18n-attr`; `page.noscript` excepted, see below              |
 | `game.*`       | 27      | `src/ui/templates.ts` (18), `src/ui/presenters.ts` (4), `src/app/app.ts` (5)                             |
@@ -126,7 +126,7 @@ grep -oE '^  "[^"]+"' src/i18n/en.ts | tr -d '"' | cut -d. -f1 | sort | uniq -c 
 | `fitness.*`    | 10      | `src/app/fitness.ts`, `src/game/fitness.ts`, `src/main.ts`                                               |
 | `error.*`      | 10      | `src/game/elevator-interface.ts`, `src/ui/presenters.ts`, `src/game/user-code.ts`, `src/game/movable.ts` |
 | `editor.*`     | 5       | `src/main.ts`, `src/ui/editor.ts`, `src/ui/default-code.ts`                                              |
-| **Total**      | **273** |                                                                                                          |
+| **Total**      | **275** |                                                                                                          |
 
 Which keys nothing reads:
 
@@ -305,7 +305,7 @@ case makes sure no key escapes that comparison.
 | `docs.api.floor.buttonStateChange.html`             | Triggered when either call button at a floor was lit or cleared. The handler is passed the state of both butto… | markup                                                                                                                             |
 | `docs.api.floor.buttonStateChange.example.code`     | floor.on("buttonstate_change", function(buttonStates) {                                                         | code; only the comments are translated                                                                                             |
 
-### The learning track — 62 `tutorial.*` keys
+### The learning track — 64 `tutorial.*` keys
 
 The track is the eight tasks in `src/game/tutorial.ts`, with ids `tutorial-1` … `tutorial-8`.
 Its prose is the largest single group of keys after the reference page, and it is the one group
@@ -337,7 +337,7 @@ stop the file compiling.
 | 7    | The second elevator                      | `elevators.forEach`; 28 passengers within 60 seconds                                         |
 | 8    | From memory                              | the whole program on an empty page; 15 passengers within 60 seconds — challenge 1's building |
 
-The other fourteen are the panel and the surfaces around it.
+The other sixteen are the panel and the surfaces around it.
 
 | Key                                 | English                                                                                                        | Notes                                                                                                                                           |
 | ----------------------------------- | -------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -346,6 +346,8 @@ The other fourteen are the panel and the surfaces around it.
 | `tutorial.panel.progress`           | {cleared} of {count} tasks done                                                                                | plural (one, other); takes `{cleared}`, `{count}`; the count that decides the form is `{count}`                                                 |
 | `tutorial.panel.hintSummary`        | Hint {number}                                                                                                  | takes `{number}`; the `<summary>` of one of the three hint disclosures                                                                          |
 | `tutorial.panel.explanationSummary` | Why this happens                                                                                               | the `<summary>` of the fourth disclosure                                                                                                        |
+| `tutorial.panel.codeTaken`          | Copied into the game editor, waiting when you leave the track.                                                 | the panel's `aria-live` line, written on a successful "Take this program"                                                                       |
+| `tutorial.panel.codeRefused`        | Your browser refused to store it. Copy the program out of the editor by hand to keep it.                       | the same line, when the store refused the write — the button is otherwise silent about it                                                       |
 | `tutorial.button.restart`           | Start over                                                                                                     |                                                                                                                                                 |
 | `tutorial.button.takeCode`          | Take this program into your own editor                                                                         |                                                                                                                                                 |
 | `tutorial.button.takeCodeConfirm`   | The game editor already holds a program of yours. Replace it with this one?                                    | a `window.confirm`, asked only when there is something to overwrite                                                                             |
@@ -396,7 +398,7 @@ identically in every locale. Both names repeat it because an accessible name has
 own — "1234567890, link" describes nothing.
 
 `game.seed.newDraw` appearing inside `game.seed.newDrawLink` is a constraint a translator cannot
-see: the two sit on adjacent lines of a 273-key file and nothing in the file marks them as a
+see: the two sit on adjacent lines of a 275-key file and nothing in the file marks them as a
 pair. `src/i18n/catalogue.test.ts`, under _accessible names_, is what holds it — it requires the
 spoken name to contain the visible label in every locale. Rewording «новый розыгрыш» to «новый
 сид» meant changing both, which is exactly the edit where one gets missed.

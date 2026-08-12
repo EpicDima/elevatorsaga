@@ -945,6 +945,33 @@ describe("App learning track", () => {
       // Still on the task: the button means "I want to keep this", not "I am
       // done here".
       expect(app.tutorial?.index).toBe(3);
+      // And the player is told, because the buffer it went into is not on screen
+      // from the track: without this line the button is one that visibly does
+      // nothing.
+      expect(requireElement(".tutorialtaken", elements.tutorial).textContent).toBe(
+        "Copied into the game editor, waiting when you leave the track.",
+      );
+    });
+
+    it("tells the player when the store refused, instead of claiming it worked", () => {
+      // A browser with storage switched off is the case `takeTutorialCode`
+      // returns `false` for, and the panel is where that answer is spent: the
+      // program is not waiting for them, and the useful thing to say is how to
+      // keep it by hand.
+      const { app, elements, storage } = setUp();
+      app.startTutorial(3);
+      vi.spyOn(storage, "setItem").mockImplementation(() => {
+        throw new Error("The quota is exhausted");
+      });
+
+      requireElement(".tutorialtakecode", elements.tutorial).click();
+
+      expect(requireElement(".tutorialtaken", elements.tutorial).textContent).toBe(
+        "Your browser refused to store it. Copy the program out of the editor by hand to keep it.",
+      );
+      // The refusal is not an error for the player to deal with: the run they
+      // are in does not depend on this write, and they are still on the task.
+      expect(app.tutorial?.index).toBe(3);
     });
 
     it("asks the app, not itself, whether that would overwrite a program", () => {

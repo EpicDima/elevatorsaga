@@ -622,6 +622,17 @@ function tutorialHintTemplate(number: number, hint: string, solution: string | n
  * only then the buttons that leave. The progress line is last because it is the
  * one thing here that is about the track rather than about this task.
  *
+ * `.tutorialtaken` is drawn empty, directly under the buttons, and filled in by
+ * {@link "./tutorial-panel.ts"!presentTutorial} when "Take this program" is
+ * pressed — the same shape as `#save_message` in `index.html`, which the editor
+ * writes its "Code saved …" line into. It is here rather than created on the
+ * click for the reason {@link feedbackTemplate} gives about its own container: a
+ * live region has to be in the document before the text appears inside it, or
+ * the announcement is generally not made at all. Empty is also the right state
+ * after a redraw, which happens when the task changes, the run restarts or the
+ * language does — a confirmation left over from the task before would be a
+ * sentence about a program the panel is no longer showing.
+ *
  * Two kinds of string arrive in this template and they are written differently.
  * The task's name and its goal are text and are escaped; the hints and the
  * explanation are `.html` messages of this repository's own catalogue and are
@@ -650,7 +661,7 @@ export function tutorialTemplate(data: TutorialTemplateData): string {
   // hints across a redraw of the same task and deliberately does not carry them
   // across a change of task, and after `replaceChildren` the old panel is the
   // only place the number it was drawn for still exists.
-  return markup`<section class="tutorialpanel" data-task-index="${data.taskNumber - 1}" aria-label="${t("tutorial.panel.label")}"><p class="tutorialposition"><span class="tutorialtrack">${t("tutorial.panel.label")}</span> <span class="tutorialstep">${t("tutorial.panel.position", { number: data.taskNumber, count: data.taskCount })}</span></p><h2 class="tutorialtitle">${data.title}</h2><p class="tutorialgoal">${data.goal}</p>${raw(hints)}<details class="tutorialexplanation"><summary>${t("tutorial.panel.explanationSummary")}</summary><p class="tutorialprose">${raw(data.explanation)}</p></details><div class="tutorialbuttons"><button type="button" class="tutorialrestart">${t("tutorial.button.restart")}</button><button type="button" class="tutorialtakecode">${t("tutorial.button.takeCode")}</button><button type="button" class="tutorialleave">${t("tutorial.button.leave")}</button></div><p class="tutorialprogress">${t("tutorial.panel.progress", { cleared: data.clearedCount, count: data.taskCount })}</p></section>`;
+  return markup`<section class="tutorialpanel" data-task-index="${data.taskNumber - 1}" aria-label="${t("tutorial.panel.label")}"><p class="tutorialposition"><span class="tutorialtrack">${t("tutorial.panel.label")}</span> <span class="tutorialstep">${t("tutorial.panel.position", { number: data.taskNumber, count: data.taskCount })}</span></p><h2 class="tutorialtitle">${data.title}</h2><p class="tutorialgoal">${data.goal}</p>${raw(hints)}<details class="tutorialexplanation"><summary>${t("tutorial.panel.explanationSummary")}</summary><p class="tutorialprose">${raw(data.explanation)}</p></details><div class="tutorialbuttons"><button type="button" class="tutorialrestart">${t("tutorial.button.restart")}</button><button type="button" class="tutorialtakecode">${t("tutorial.button.takeCode")}</button><button type="button" class="tutorialleave">${t("tutorial.button.leave")}</button></div><p class="tutorialtaken" aria-live="polite"></p><p class="tutorialprogress">${t("tutorial.panel.progress", { cleared: data.clearedCount, count: data.taskCount })}</p></section>`;
 }
 
 /** Everything the end-of-challenge overlay needs in order to render itself. */

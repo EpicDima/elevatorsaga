@@ -679,6 +679,10 @@ elevator.goToFloor(2); // Всё равно добавится — очеред�
   },
   "tutorial.panel.hintSummary": "Подсказка {number}",
   "tutorial.panel.explanationSummary": "Почему так получается",
+  "tutorial.panel.codeTaken":
+    "Программа скопирована в редактор игры — она будет там, когда вы выйдете с дорожки.",
+  "tutorial.panel.codeRefused":
+    "Браузер отказался её сохранить. Чтобы не потерять программу, скопируйте её из редактора вручную.",
   "tutorial.button.restart": "Начать заново",
   "tutorial.button.takeCode": "Забрать программу в свой редактор",
   "tutorial.button.takeCodeConfirm": "В редакторе игры уже лежит ваша программа. Заменить её этой?",

@@ -95,6 +95,11 @@ test("hands the task's program to the editor and stays on the task", async ({ pa
   await expect(editor(page)).toContainText(TASK_1_MARKER);
   expect((await storedCode(page)) ?? "").not.toContain(TASK_1_MARKER);
 
+  // Nothing has been taken yet, and the line that will say so is already in the
+  // document: it is a live region, and one inserted with its text already in it
+  // is generally not announced at all.
+  await expect(panel(page).locator(".tutorialtaken")).toBeEmpty();
+
   await panel(page).getByRole("button", { name: "Take this program into your own editor" }).click();
 
   // Stored under the game's own key, which is where the editor looks when the
@@ -102,6 +107,14 @@ test("hands the task's program to the editor and stays on the task", async ({ pa
   // button means "I want to keep this", not "I am done here".
   expect(await storedCode(page)).toContain(TASK_1_MARKER);
   await expect(panel(page)).toBeVisible();
+  // The write went somewhere the player cannot see from here, so this line is
+  // the whole of what they are told. `toBeVisible` rather than a text assertion
+  // alone because that is the half jsdom cannot answer: the rule that keeps the
+  // element out of the way while it is empty must not survive it being filled.
+  await expect(panel(page).locator(".tutorialtaken")).toBeVisible();
+  await expect(panel(page).locator(".tutorialtaken")).toHaveText(
+    "Copied into the game editor, waiting when you leave the track.",
+  );
 
   await panel(page).getByRole("button", { name: "Leave for the challenges" }).click();
 
