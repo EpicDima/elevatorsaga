@@ -128,3 +128,31 @@ export function countClearedTutorialTasks(
 ): number {
   return tasks.filter((task) => cleared.has(task.id)).length;
 }
+
+/**
+ * The earliest task of the track that has not been cleared yet.
+ *
+ * What an entrance to the track points at, so that a player who did four tasks
+ * yesterday is offered the fifth rather than the first. The alternative — always
+ * the first task — is what makes a track with no other way in unusable on the
+ * second visit: nothing else on the page offers task 5, so they would have to
+ * win task 1 again to be shown task 2.
+ *
+ * *Earliest* uncleared and not "one past the furthest cleared", which is the
+ * same distinction {@link readClearedTutorialTasks} makes and for the same
+ * reason: the track locks nothing, so a player who opened task 6 from a link and
+ * cleared it must still be offered task 1. Gaps are where the teaching they
+ * skipped is.
+ *
+ * @param cleared - The identifiers read back from the store.
+ * @param tasks - The tasks this build has, in playing order.
+ * @returns The first task of `tasks` that is not in `cleared`, or `undefined`
+ * when every one of them is — which is the finished track, and a caller has to
+ * say for itself where that leads.
+ */
+export function firstUnclearedTutorialTask(
+  cleared: ReadonlySet<string>,
+  tasks: readonly TutorialTask[],
+): TutorialTask | undefined {
+  return tasks.find((task) => !cleared.has(task.id));
+}

@@ -78,6 +78,27 @@
         -->
         <div class="headertools">
           <!--
+            The way into the learning track, and the only one: every task has an
+            address, but an address nothing links to is a feature that does not
+            exist for anybody who was not told about it.
+
+            Outside the <nav> below on purpose. That landmark is named "Help and
+            reference" and holds three places to *read* about the game; the track
+            is the game, and counting it among them would make the name lie -- the
+            same objection the challenge bar makes about keeping the seed line out
+            of its own navigation row.
+
+            The href here is the first task, which is what a reader without
+            JavaScript gets and what everybody gets before the app has drawn
+            anything. src/app/app.ts rewrites it to the first task not yet
+            cleared, so a player who did four yesterday is offered the fifth. It
+            is a real href either way, so opening it in a new tab, copying the
+            address and the status bar all work.
+          -->
+          <a href="#challenge=tutorial-1" class="tutoriallink" data-i18n="page.tutorialLink"
+            >Learning track</a
+          >
+          <!--
             data-i18n-doc names the reference page's anchor, and
             src/ui/documentation-links.ts turns it into a href in whatever
             language the page is being read in. The English written out here is

@@ -299,6 +299,24 @@ describe("index.html", () => {
     expect(targets).toContain("documentation.html#docs");
   });
 
+  it("links into the learning track, from outside the reference landmark", () => {
+    // The track's tasks each have an address, and for a while nothing on the
+    // page led to any of them: the feature existed only for a player who had
+    // been told what to type. This link is the entrance.
+    const link = page.querySelector(".tutoriallink");
+    expect(link?.tagName).toBe("A");
+    // A working address in the shipped markup, before a line of JavaScript has
+    // run and for a reader with none. `src/app/app.ts` moves it on to the first
+    // task not yet cleared.
+    expect(link?.getAttribute("href")).toBe("#challenge=tutorial-1");
+    expect(link?.getAttribute("data-i18n")).toBe("page.tutorialLink");
+    // Outside the `<nav>`, which is named "Help and reference" and holds three
+    // places to *read* about the game. The track is the game, so counting it
+    // among them would make the landmark's name lie.
+    expect(link?.closest("nav")).toBeNull();
+    expect(link?.parentElement?.className).toBe("headertools");
+  });
+
   it("offers the language as one labelled control a keyboard can operate", () => {
     // A `<select>` rather than a row of links: one stop in the tab order instead
     // of one per language, operable from the keyboard and on a touch screen

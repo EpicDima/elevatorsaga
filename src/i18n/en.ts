@@ -49,6 +49,11 @@ export const EN_MESSAGES = {
   "page.skipLink": "Skip to the code editor",
   "page.brand": "Elevator Saga",
   "page.tagline": "The elevator programming game",
+  // The header's way into the learning track, and deliberately not one of the
+  // `page.nav.*` keys below it: those three are the links inside a landmark
+  // named "Help and reference", and this one goes to the game rather than to
+  // something to read about it.
+  "page.tutorialLink": "Learning track",
   "page.nav.label": "Help and reference",
   "page.nav.help": "Help",
   "page.nav.documentation": "Documentation",

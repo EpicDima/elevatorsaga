@@ -115,6 +115,7 @@ async function main(): Promise<void> {
     elements: {
       challenge: requireElement(".challenge"),
       tutorial: requireElement(".tutorial"),
+      tutorialLink: requireElement(".tutoriallink"),
       world: requireElement(".innerworld"),
       stats: requireElement(".statscontainer"),
       feedback: requireElement(".feedbackcontainer"),

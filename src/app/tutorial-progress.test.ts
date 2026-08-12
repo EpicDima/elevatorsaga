@@ -6,6 +6,7 @@ import { MemoryStorage } from "../ui/test-helpers.ts";
 import {
   TUTORIAL_PROGRESS_STORAGE_KEY,
   countClearedTutorialTasks,
+  firstUnclearedTutorialTask,
   readClearedTutorialTasks,
   recordClearedTutorialTask,
 } from "./tutorial-progress.ts";
@@ -192,5 +193,48 @@ describe("countClearedTutorialTasks", () => {
     const cleared = new Set(["tutorial-8"]);
 
     expect(countClearedTutorialTasks(cleared, reordered)).toBe(1);
+  });
+});
+
+describe("firstUnclearedTutorialTask", () => {
+  it("offers task 1 to a player who has cleared nothing", () => {
+    expect(firstUnclearedTutorialTask(new Set(), tutorialTasks)?.id).toBe("tutorial-1");
+  });
+
+  it("offers the task after the ones already done", () => {
+    const cleared = new Set(["tutorial-1", "tutorial-2", "tutorial-3"]);
+
+    expect(firstUnclearedTutorialTask(cleared, tutorialTasks)?.id).toBe("tutorial-4");
+  });
+
+  it("offers the earliest gap rather than the task after the furthest win", () => {
+    // The track locks nothing, so a player can clear task 6 from a link without
+    // playing 1 to 5. "One past the furthest" would then send them to task 7 and
+    // they would never be offered the five tasks that teach what task 6 assumed.
+    const cleared = new Set(["tutorial-6"]);
+
+    expect(firstUnclearedTutorialTask(cleared, tutorialTasks)?.id).toBe("tutorial-1");
+  });
+
+  it("answers nothing at all when the whole track has been cleared", () => {
+    // Deliberately not task 1: where a finished track leads is a decision about
+    // what to offer, and this function only knows what is left.
+    const cleared = new Set(tutorialTasks.map((task) => task.id));
+
+    expect(firstUnclearedTutorialTask(cleared, tutorialTasks)).toBeUndefined();
+  });
+
+  it("ignores identifiers that are not tasks of this build", () => {
+    // The same set `countClearedTutorialTasks` refuses to count: it can hold a
+    // task from a newer deployment, and that must not stand in for one of these.
+    const cleared = new Set(["tutorial-9", "elevatorCrushCode_v5"]);
+
+    expect(firstUnclearedTutorialTask(cleared, tutorialTasks)?.id).toBe("tutorial-1");
+  });
+
+  it("follows the tasks it is given, in the order it is given them", () => {
+    const reordered: readonly TutorialTask[] = [...tutorialTasks].reverse();
+
+    expect(firstUnclearedTutorialTask(new Set(), reordered)?.id).toBe("tutorial-8");
   });
 });

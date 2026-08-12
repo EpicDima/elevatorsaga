@@ -21,9 +21,11 @@ import { editor, storedCode } from "./game-page.ts";
 /**
  * Where task 1 lives.
  *
- * Nothing on the page links into the track yet — no entry point has been built —
- * so the address is how a task is reached, and it is the address `router.ts`
- * sends `#challenge=tutorial-9` and every other wrong one on the track to.
+ * The header links here, and the test below follows that link rather than this
+ * constant. Everything else goes straight to the address, because a task the
+ * link does not point at can only be reached that way — and because this is the
+ * address `router.ts` sends `#challenge=tutorial-9` and every other wrong one on
+ * the track to.
  */
 const FIRST_TASK = "/#challenge=tutorial-1";
 
@@ -54,6 +56,45 @@ function panel(page: Page, name = "Learning track"): Locator {
 async function switchToRussian(page: Page): Promise<void> {
   await page.getByLabel("Language").selectOption("ru");
 }
+
+test("opens the track from the header link, in the language on screen", async ({ page }) => {
+  await page.goto("/");
+
+  // The only entrance there is. That the markup carries the link is `page.test.ts`'s
+  // to prove and where it points is `app.test.ts`'s; what neither can answer is
+  // whether a player can see it and whether pressing it starts a task -- the
+  // layout, the hash and the router are all outside jsdom, and a link nobody can
+  // see leaves the track exactly as undiscoverable as no link at all.
+  const english = page.getByRole("link", { name: "Learning track" });
+  await expect(english).toBeVisible();
+  // And dressed as the help links beside it. It is not inside their `<nav>` --
+  // that landmark is named for reading about the game, and the track is the
+  // game -- so it takes none of their rules by inheritance, and without a
+  // selector of its own it renders at the page's 16px in a row of 20px, looking
+  // like something that landed in the header by accident.
+  await expect(english).toHaveCSS("font-size", "20px");
+
+  await switchToRussian(page);
+
+  // Still visible with the longer label. The header is where a Russian label
+  // has hurt before -- `.header nav` in the stylesheet carries the write-up --
+  // and this is a fourth thing in that row, 180px of it at the width the
+  // `.headertools` wrapper is given on a 320px screen.
+  const link = page.getByRole("link", { name: "Учебная дорожка" });
+  await expect(link).toBeVisible();
+
+  await page.setViewportSize({ width: 320, height: 800 });
+  // Where the 50px line height above is wrong: it is there to centre a link in
+  // a header bar that a phone does not have, and on two wrapped rows it is
+  // 100px of empty header before the game. The nav's links are let down to 1.6
+  // at this width and this one has to come with them.
+  await expect(link).toBeVisible();
+  await expect(link).toHaveCSS("line-height", "32px");
+
+  await link.click();
+
+  await expect(panel(page, "Учебная дорожка")).toBeVisible();
+});
 
 test("shows the panel on a task and nothing at all off it", async ({ page }) => {
   await page.goto(FIRST_TASK);
@@ -251,13 +292,13 @@ for (const { name, region, hint, russian } of LANGUAGES) {
       await page.setViewportSize({ width, height: 800 });
 
       // The shell's own width first, on a challenge, where this region is
-      // empty. The Russian page already overflows 320px by 57px without any
-      // panel on it -- the header's three links and the language picker are
-      // 367px of one unbreakable row -- so "the document does not overflow" is
-      // a claim about the header rather than about the panel at that width, and
-      // it is measured here so that what is asserted below is the panel's own
-      // contribution. The header is written up in the report; it is not this
-      // panel's to fix.
+      // empty, so that what is asserted below is the panel's own contribution
+      // and not something the header did. It was 57px in Russian at 320px when
+      // this was written -- three unbreakable links and the picker wanting
+      // 367px inside a 300px container -- which is why the comparison is a
+      // baseline rather than a zero; `.header nav` in the stylesheet is where
+      // that was fixed, and it measures 0 in both languages at both widths
+      // today, the new track link included.
       await page.goto("/#challenge=1");
       if (russian) {
         await switchToRussian(page);

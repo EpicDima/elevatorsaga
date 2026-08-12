@@ -313,7 +313,15 @@ dl dd {
   gap: 15px;
 }
 
-.header nav a {
+/*
+ * The way into the learning track is dressed as one of the help links although
+ * it sits outside their landmark (see the note in index.html): a reader sees one
+ * row of header links, and a screen reader is told which of them are the three
+ * places to read about the game. The two facts do not have to agree, and this is
+ * the one place they deliberately do not.
+ */
+.header nav a,
+.header .tutoriallink {
   padding-inline: 4px;
   font-size: 20px;
   line-height: 50px;
@@ -1434,7 +1442,8 @@ pre code {
     line-height: 1.3;
   }
 
-  .header nav a {
+  .header nav a,
+  .header .tutoriallink {
     line-height: 1.6;
   }
 

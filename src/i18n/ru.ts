@@ -103,6 +103,7 @@ export const RU_MESSAGES: MessageCatalogue<"ru"> = {
   "page.skipLink": "Перейти к редактору кода",
   "page.brand": "Elevator Saga",
   "page.tagline": "Игра про программирование лифтов",
+  "page.tutorialLink": "Учебная дорожка",
   "page.nav.label": "Справка и документация",
   "page.nav.help": "Справка",
   "page.nav.documentation": "Документация",

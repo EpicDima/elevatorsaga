@@ -16,6 +16,7 @@ import { App, TIME_SCALE_STORAGE_KEY, readStoredTimeScale } from "./app.ts";
 import type { AppElements } from "./app.ts";
 import { parseQuery, resolveRoute, startRouter } from "./router.ts";
 import { DEFAULT_TIME_SCALE } from "./time-scale.ts";
+import { TUTORIAL_PROGRESS_STORAGE_KEY } from "./tutorial-progress.ts";
 
 /** A program that compiles and does nothing. */
 const INERT_CODE = "{ init: function() {}, update: function() {} }";
@@ -56,6 +57,7 @@ function setUp(code: string = INERT_CODE): Harness {
   const elements: AppElements = {
     challenge: createElement("div", { className: "challenge" }),
     tutorial: createElement("div", { className: "tutorial" }),
+    tutorialLink: createElement("a", { className: "tutoriallink" }),
     world: createElement("div", { className: "innerworld" }),
     stats: createElement("div", { className: "statscontainer" }),
     feedback: createElement("div", { className: "feedbackcontainer" }),
@@ -71,9 +73,14 @@ function setUp(code: string = INERT_CODE): Harness {
   ]) {
     elements.stats.append(createElement("span", { className }));
   }
+  // The address the shipped markup carries. Set here rather than left absent so
+  // that a spec asserting the link was moved on is asserting a change, and so
+  // that one asserting it was left alone has something to find.
+  elements.tutorialLink.setAttribute("href", "#challenge=tutorial-1");
   document.body.replaceChildren(
     elements.challenge,
     elements.tutorial,
+    elements.tutorialLink,
     elements.world,
     elements.stats,
     elements.feedback,
@@ -1018,6 +1025,105 @@ describe("App learning track", () => {
       leave.click();
 
       expect(document.activeElement).toBe(requireElement(".startstop", elements.challenge));
+    });
+  });
+
+  describe("the header's way in", () => {
+    /**
+     * Marks tasks as cleared without playing them.
+     *
+     * The store is what the link is computed from, and writing it directly is
+     * how a spec can describe a player who came back tomorrow: winning eight
+     * tasks to test where the link points afterwards would test the conditions
+     * instead. `tutorial-progress.test.ts` is where this shape of record is
+     * proved to be the one the app writes.
+     *
+     * @param storage - The store the app was built over.
+     * @param taskIds - The tasks to record as cleared.
+     */
+    function recordCleared(storage: MemoryStorage, ...taskIds: string[]): void {
+      storage.setItem(TUTORIAL_PROGRESS_STORAGE_KEY, JSON.stringify(taskIds));
+    }
+
+    /**
+     * Where the header's link currently points.
+     *
+     * @param elements - The page shell the app was built over.
+     * @returns The `href` attribute, which the shipped markup always has.
+     */
+    function linkHref(elements: AppElements): string | null {
+      return elements.tutorialLink.getAttribute("href");
+    }
+
+    it("offers task 1 to a player who has never been on the track", () => {
+      const { app, elements } = setUp();
+      app.handleRoute(...routeFor("#challenge=3"));
+      expect(linkHref(elements)).toBe("#challenge=tutorial-1");
+    });
+
+    it("is kept current while a challenge is being played, not only on the track", () => {
+      // Where the link is looked at: a player half-way down the numbered ladder
+      // is exactly who has not found the track yet. Nothing draws the panel for
+      // them -- there is no task on screen -- so the link has to be moved on
+      // before that decision, not after it.
+      const { app, elements, storage } = setUp();
+      recordCleared(storage, "tutorial-1", "tutorial-2");
+
+      app.handleRoute(...routeFor("#challenge=3"));
+
+      expect(app.tutorial).toBeUndefined();
+      expect(linkHref(elements)).toBe("#challenge=tutorial-3");
+    });
+
+    it("offers the earliest task still to do rather than one past the furthest win", () => {
+      // The track locks nothing, so a player can arrive at task 4 from a link
+      // and clear it without having seen tasks 2 and 3. The gap is where the
+      // teaching they skipped is, so that is where the entrance sends them.
+      const { app, elements, storage } = setUp();
+      recordCleared(storage, "tutorial-1", "tutorial-4");
+
+      app.handleRoute(...routeFor("#challenge=1"));
+
+      expect(linkHref(elements)).toBe("#challenge=tutorial-2");
+    });
+
+    it("starts the track over once every task has been cleared", () => {
+      // The alternative is a link that does nothing, or one pointing at the last
+      // task, which is not an entrance. Playing it again is a thing a player who
+      // has finished may well want, and the panel says how far along they are.
+      const { app, elements, storage } = setUp();
+      recordCleared(storage, ...tutorialTasks.map((task) => task.id));
+
+      app.handleRoute(...routeFor("#challenge=1"));
+
+      expect(linkHref(elements)).toBe("#challenge=tutorial-1");
+    });
+
+    it("moves on the moment a task is won, while the player is still looking at it", () => {
+      // The overlay says the task is cleared and offers the next one; the header
+      // has to agree with it by then. A link that only caught up on the next
+      // page load would send a player who took the long way round back to the
+      // task they had just finished.
+      const { app, elements } = setUp();
+      app.startTutorial(0);
+      expect(linkHref(elements)).toBe("#challenge=tutorial-1");
+
+      endRun(app, true);
+
+      expect(linkHref(elements)).toBe("#challenge=tutorial-2");
+    });
+
+    it("carries the speed along and leaves the run's seed behind", () => {
+      // Built like every other link the app makes, which is what keeps a player
+      // who slowed the game down from being sped back up by following it. The
+      // seed cannot come along: it belongs to the run being left, and the router
+      // refuses `seed` on a task address, so the link would be one the game
+      // itself will not open.
+      const { app, elements } = setUp();
+
+      app.handleRoute(...routeFor("#challenge=3,timescale=8,seed=issue-61"));
+
+      expect(linkHref(elements)).toBe("#challenge=tutorial-1,timescale=8");
     });
   });
 });
