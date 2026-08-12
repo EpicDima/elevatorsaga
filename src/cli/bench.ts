@@ -56,9 +56,9 @@
  */
 
 import { Console } from "node:console";
+import { realpathSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import process from "node:process";
-import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import {
@@ -484,13 +484,38 @@ const NODE_IO: BenchIo = {
   },
 };
 
+/**
+ * Where a path really leads, or `undefined` if it leads nowhere.
+ *
+ * @param path - The path to resolve.
+ * @returns The path with every link and `..` taken out of it.
+ */
+function realPathOrNothing(path: string): string | undefined {
+  try {
+    return realpathSync(path);
+  } catch {
+    // `node -e '...' something` puts a word that is not a file in argv[1], and
+    // failing to be a file is an answer to the question being asked here, not an
+    // error to take the process down with at import time.
+    return undefined;
+  }
+}
+
 // Only when this file is what node was pointed at, so that importing it -- which
 // is how it is tested -- runs nothing. `import.meta.main` would say this in one
 // word and is not available on the Node 22 this package still supports, so the
-// question is asked the portable way: argv[1] is the script node resolved, and
-// comparing resolved paths keeps `node ./src/cli/bench.ts` and `node
-// src/cli/bench.ts` the same file.
+// question is asked the portable way: argv[1] is the script node was given.
+//
+// Both sides are resolved through their symbolic links before being compared,
+// which is what makes the comparison the same question Node answered when it
+// loaded the module: `import.meta.url` is always the real file, because Node
+// resolves an entry point's links unless `--preserve-symlinks-main` says
+// otherwise, while argv[1] is whatever was typed. Every way of installing a
+// command -- `npm link`, a `bin` entry, a `node_modules/.bin` shim -- points at
+// it through a link, so comparing the two unresolved makes the command a
+// silence that exits 0.
 const entryPoint = process.argv[1];
-if (entryPoint !== undefined && resolve(entryPoint) === fileURLToPath(import.meta.url)) {
+const entryPath = entryPoint === undefined ? undefined : realPathOrNothing(entryPoint);
+if (entryPath !== undefined && entryPath === realPathOrNothing(fileURLToPath(import.meta.url))) {
   process.exitCode = await runBench(process.argv.slice(2), NODE_IO);
 }
