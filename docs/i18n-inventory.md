@@ -104,20 +104,20 @@ Key names carry two suffixes that mean something:
 
 ## Where the strings are
 
-The catalogue holds **276 keys** in two locales. `src/i18n/en.ts` is the reference — its text is
+The catalogue holds **277 keys** in two locales. `src/i18n/en.ts` is the reference — its text is
 the English wording, extracted verbatim — and `src/i18n/ru.ts` is the Russian translation. The
 types make English the shape everything else is measured against: a Russian catalogue missing a
 key, carrying a key English does not have, or giving a plural message the wrong number of forms
 is a compile error, not a runtime surprise.
 
 ```sh
-grep -cE '^  "[^"]+":' src/i18n/en.ts                                   # 276
+grep -cE '^  "[^"]+":' src/i18n/en.ts                                   # 277
 grep -oE '^  "[^"]+"' src/i18n/en.ts | tr -d '"' | cut -d. -f1 | sort | uniq -c | sort -rn
 ```
 
 | Prefix         | Keys    | What reads them                                                                                          |
 | -------------- | ------- | -------------------------------------------------------------------------------------------------------- |
-| `docs.*`       | 82      | one of them, `docs.basics.example.code`, by `src/ui/completions.ts`; the other 81 by nothing             |
+| `docs.*`       | 83      | one of them, `docs.basics.example.code`, by `src/ui/completions.ts`; the other 82 by nothing             |
 | `tutorial.*`   | 64      | `src/ui/tutorial-panel.ts`, `src/ui/templates.ts`, `src/app/app.ts`                                      |
 | `completion.*` | 32      | `src/ui/completions.ts`                                                                                  |
 | `page.*`       | 32      | `index.html`, through `data-i18n` and `data-i18n-attr`; `page.noscript` excepted, see below              |
@@ -126,7 +126,7 @@ grep -oE '^  "[^"]+"' src/i18n/en.ts | tr -d '"' | cut -d. -f1 | sort | uniq -c 
 | `fitness.*`    | 10      | `src/app/fitness.ts`, `src/game/fitness.ts`, `src/main.ts`                                               |
 | `error.*`      | 10      | `src/game/elevator-interface.ts`, `src/ui/presenters.ts`, `src/game/user-code.ts`, `src/game/movable.ts` |
 | `editor.*`     | 5       | `src/main.ts`, `src/ui/editor.ts`, `src/ui/default-code.ts`                                              |
-| **Total**      | **276** |                                                                                                          |
+| **Total**      | **277** |                                                                                                          |
 
 Which keys nothing reads:
 
@@ -232,6 +232,7 @@ case makes sure no key escapes that comparison.
 | `docs.about.p1.html`                                | This is a game of programming! Your task is to program the movement of elevators, by writing a program …        | markup                                                                                                                             |
 | `docs.about.p2.html`                                | The goal is to transport people in an efficient manner. Depending on how well you do it, you can progre…        | markup                                                                                                                             |
 | `docs.play.heading`                                 | How to play                                                                                                     |                                                                                                                                    |
+| `docs.play.track.html`                              | If you have never written one of these programs before, start on the learning track …                           | markup; links into `index.html#challenge=tutorial-1`                                                                               |
 | `docs.play.apply.html`                              | Enter your code in the input window below the game view, and press the Apply button …                           | markup; takes `{increase}`, `{decrease}` — the two icon names                                                                      |
 | `docs.play.statistics.html`                         | Beside the building is a panel that keeps score while a run is going. Most of it says what it is; …             | markup                                                                                                                             |
 | `docs.play.shortcuts.html`                          | Inside the editor, Ctrl+Enter applies your program and restarts the challenge …                                 | markup; same `data-mod-key` caveat as `page.hint.html`                                                                             |
@@ -399,7 +400,7 @@ identically in every locale. Both names repeat it because an accessible name has
 own — "1234567890, link" describes nothing.
 
 `game.seed.newDraw` appearing inside `game.seed.newDrawLink` is a constraint a translator cannot
-see: the two sit on adjacent lines of a 276-key file and nothing in the file marks them as a
+see: the two sit on adjacent lines of a 277-key file and nothing in the file marks them as a
 pair. `src/i18n/catalogue.test.ts`, under _accessible names_, is what holds it — it requires the
 spoken name to contain the visible label in every locale. Rewording «новый розыгрыш» to «новый
 сид» meant changing both, which is exactly the edit where one gets missed.

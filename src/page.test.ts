@@ -12,6 +12,7 @@ import { Elevator } from "./game/elevator.ts";
 import { ElevatorInterface, type ElevatorInterfaceEvents } from "./game/elevator-interface.ts";
 import { Floor } from "./game/floor.ts";
 import { FloorInterface, type FloorInterfaceEvents } from "./game/floor-interface.ts";
+import { tutorialTasks } from "./game/tutorial.ts";
 import type { MessageKey } from "./i18n/catalogue.ts";
 import { EN_MESSAGES } from "./i18n/en.ts";
 import { setLocale, DEFAULT_LOCALE } from "./i18n/index.ts";
@@ -1099,6 +1100,30 @@ describe("documentation.html and documentation.ru.html, as one document in two l
       sourceNoteTexts(english.document).length,
     );
   });
+
+  it("offers the learning track to a beginner, in both languages", () => {
+    // This page is where the game's header sends somebody who does not know the
+    // API yet, so it is the one place a player can arrive at already knowing
+    // they are out of their depth. The track's own way in is a link in the
+    // header of the *game*, which is the page they have just left.
+    const [firstTask] = tutorialTasks;
+    if (firstTask === undefined) {
+      throw new Error("The learning track has no tasks to offer");
+    }
+    // Built from the task's id rather than written out, so renaming task one
+    // fails here instead of leaving both pages pointing at an address that
+    // resolves to the track's start with a console warning -- which is what a
+    // dead task address does, and it would look like the link still worked.
+    const href = `index.html#challenge=${firstTask.id}`;
+    for (const { file, document } of DOCUMENTATION_PAGES) {
+      const links = [...document.querySelectorAll(`a[href="${href}"]`)];
+      expect(links, file).toHaveLength(1);
+      // Directly under a heading, which is "How to play" in both pages: an
+      // offer a beginner has to scroll past the whole API to reach is one that
+      // only ever finds the reader who needed it least.
+      expect(links[0]?.closest("p")?.previousElementSibling?.tagName, file).toBe("H2");
+    }
+  });
 });
 
 /**
@@ -1260,6 +1285,7 @@ const SUBSECTION_HEADINGS: readonly MessageKey[] = [
 const PARAGRAPHS: readonly MessageKey[] = [
   "docs.about.p1.html",
   "docs.about.p2.html",
+  "docs.play.track.html",
   "docs.play.apply.html",
   "docs.play.statistics.html",
   "docs.play.shortcuts.html",

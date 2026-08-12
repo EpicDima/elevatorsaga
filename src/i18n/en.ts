@@ -348,6 +348,14 @@ export const EN_MESSAGES = {
   "docs.about.p2.html":
     "The goal is to transport people in an efficient manner.<br /> Depending on how well you do it, you can progress through the ever more difficult challenges.<br /> Only the very best programs will be able to complete all the challenges.",
   "docs.play.heading": "How to play",
+  // The first thing under "How to play", because a reader who has arrived here
+  // not knowing the API has already found the one page that assumes they do.
+  // The address is written out rather than assembled from `tutorialTasks`: the
+  // reference pages are static HTML with no script of their own, so the same
+  // text has to be spellable by hand into both of them. `src/page.test.ts`
+  // holds the pages and this key to the first task's real id.
+  "docs.play.track.html":
+    'If you have never written one of these programs before, start on the <a href="index.html#challenge=tutorial-1">learning track</a>, which is also the <span class="emphasis-color">Learning track</span> link at the top of the game. It is eight small buildings that introduce this API one mistake at a time: each hands you a program that loses, and asks you to find the one thing wrong with it, with hints and an explanation of what the run was actually doing.',
   "docs.play.apply.html":
     'Enter your code in the input window below the game view, and press the <span class="emphasis-color">Apply</span> button to start the challenge.<br /> You can increase or decrease the speed of time by pressing the {increase} and {decrease} buttons.',
   "docs.play.statistics.html":
