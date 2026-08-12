@@ -739,7 +739,7 @@ describe("App learning track", () => {
     expect(link.querySelector("svg")).not.toBeNull();
   });
 
-  it("ends the track by offering challenge 1 and the program that clears it", () => {
+  it("ends the track by offering challenge 1", () => {
     const { app, elements } = setUp();
     app.startTutorial(tutorialTasks.length - 1);
 
@@ -750,7 +750,30 @@ describe("App learning track", () => {
     );
     const link = requireElement(".feedback a", elements.feedback);
     expect(link.getAttribute("href")).toBe("#challenge=1");
-    expect(link.textContent.trim()).toBe("Go to challenge 1 with this program");
+    expect(link.textContent.trim()).toBe("Go to challenge 1");
+  });
+
+  it("promises nothing on that link that following it does not do", () => {
+    // It read "Go to challenge 1 with this program", and the program stayed
+    // behind: the link is an ordinary route change, and leaving the track puts
+    // the player's own buffer back on screen. Their program is what is waiting
+    // there, which is right -- nothing may overwrite it without asking -- so it
+    // is the label that had to give. The winning program is not lost either; it
+    // is under the task's own key, and the panel's button is how it travels.
+    const { app, elements, view, storage } = setUp();
+    storage.setItem(CODE_STORAGE_KEY, "// the program I came in with");
+    app.startTutorial(tutorialTasks.length - 1);
+    view.type("// the program that clears challenge 1");
+
+    endRun(app, true);
+    const link = requireElement(".feedback a", elements.feedback);
+    app.handleRoute(...routeFor(link.getAttribute("href") ?? ""));
+
+    expect(link.textContent.trim()).not.toContain("this program");
+    expect(view.getValue()).toBe("// the program I came in with");
+    expect(storage.getItem(`develevateTutorialCode_${taskAt(tutorialTasks.length - 1).id}`)).toBe(
+      "// the program that clears challenge 1",
+    );
   });
 
   it("says a lost task is lost, and offers nothing", () => {

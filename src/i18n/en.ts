@@ -673,7 +673,7 @@ elevator.goToFloor(2); // Queued anyway -- queue: 2, 3, 2`,
   "tutorial.bar.title.html": "Tutorial task {number} of {count}: {description}",
   "tutorial.finish.title": "The track is finished",
   "tutorial.finish.message":
-    "Eight tasks, and the last of them was challenge 1: the same three floors, the same elevator, the same fifteen passengers in sixty seconds. The program in the editor solves it, so take the program with you.",
+    "Eight tasks, and the last of them was challenge 1: the same three floors, the same elevator, the same fifteen passengers in sixty seconds. The program in the editor solves it, and the panel has a button that copies it into your own editor — take it with you before you go.",
   "tutorial.finish.nextTask": "Next task",
-  "tutorial.finish.toChallenges": "Go to challenge 1 with this program",
+  "tutorial.finish.toChallenges": "Go to challenge 1",
 } as const satisfies Readonly<Record<string, string | PluralForms<"en">>>;

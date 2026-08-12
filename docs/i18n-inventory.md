@@ -358,7 +358,7 @@ The other sixteen are the panel and the surfaces around it.
 | `tutorial.finish.title`             | The track is finished                                                                                          | the overlay after the last task                                                                                                                 |
 | `tutorial.finish.message`           | Eight tasks, and the last of them was challenge 1: the same three floors, the same elevator, the same fifteen… |                                                                                                                                                 |
 | `tutorial.finish.nextTask`          | Next task                                                                                                      | not `game.feedback.next`, which says "Next challenge" — see the note below                                                                      |
-| `tutorial.finish.toChallenges`      | Go to challenge 1 with this program                                                                            | the finish overlay's link out of the track                                                                                                      |
+| `tutorial.finish.toChallenges`      | Go to challenge 1                                                                                              | the finish overlay's link out of the track; it carries no program, which is why it no longer says it does                                       |
 
 `tutorial.finish.nextTask` and `game.feedback.next` are separate keys although the Russian of both
 would fit as «Следующее задание». Two features sharing one key is a key neither can reword: the

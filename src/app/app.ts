@@ -1237,6 +1237,19 @@ export class App {
    * its link leaves the track for challenge 1 rather than offering a ninth task
    * that does not exist.
    *
+   * The link takes nothing with it, and its words no longer say it does. It is
+   * an ordinary route change: the editor switches to the player's own buffer on
+   * the way out, so what waits on challenge 1 is the player's own program and
+   * not the one that just won. The label used to read "Go to challenge 1 with
+   * this program", which was a promise the route does not keep — the winning
+   * program is safe under the task's own key, but the player was told it had
+   * travelled with them and would have found their old program instead. Copying
+   * it across from here was the other way to make the two agree, and it is the
+   * wrong one: overwriting the player's program is the thing the panel's
+   * `tutorial.button.takeCode` asks about first, and a link that did it silently
+   * would be the one path on the track that takes a program without asking. So
+   * the message names that button instead.
+   *
    * Nothing is recorded here. {@link #startRun} records the clear where the
    * condition resolves, so that {@link relocalise} can call this again to redraw
    * the same verdict in another language without a language change counting as
