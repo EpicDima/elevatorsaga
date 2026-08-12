@@ -52,7 +52,106 @@ original is scored by the same rules.
   <kbd>Ctrl</kbd>+<kbd>Space</kbd>, with the same one-line descriptions the reference page uses.
   It is added to the JavaScript language's own completions rather than replacing them, so keywords
   and the identifiers already in your program are still there.
+- **Types for your own editor.** A TypeScript declaration file describing the whole player API ships
+  with the site, so a solution kept in a file of your own gets the same completion, the same
+  descriptions and, on top of them, type checking. See
+  [Writing your solution in your own editor](#writing-your-solution-in-your-own-editor).
 - **A Russian API reference**, at [documentation.ru.html](documentation.ru.html).
+
+## Writing your solution in your own editor
+
+The editor on the page is fine for small changes, but a solution you are actually working on tends
+to live in a real file somewhere. `public/elevatorsaga.d.ts` is a TypeScript declaration file that
+describes everything player code can reach — every method, property and event on the elevator and
+floor objects, with the same one-line descriptions the reference page and the in-page completions
+use. Point your editor at it and you get completion, hover documentation and type checking for a
+plain `.js` file: no build step, no TypeScript in your program, nothing to compile before pasting it
+back into the game.
+
+It catches the mistakes that are otherwise a silent failed run: a misspelled event name, `goToFloor`
+called with a string, a `passing_floor` handler that expects the wrong arguments, a method the
+original game had and this fork does not.
+
+### Getting the file
+
+From a clone it is `public/elevatorsaga.d.ts` — copy it next to your solution. Vite copies `public/`
+into `dist/` verbatim, so a site you are running serves the same bytes from its root:
+
+```sh
+curl -O http://localhost:5173/elevatorsaga.d.ts   # npm run dev
+curl -O http://localhost:4173/elevatorsaga.d.ts   # ...or npm run preview, after npm run build
+```
+
+### Making your editor see it
+
+Either give the directory a `tsconfig.json`:
+
+```json
+{
+  "compilerOptions": {
+    "allowJs": true,
+    "checkJs": true,
+    "noEmit": true,
+    "strict": true
+  }
+}
+```
+
+Any editor that runs the TypeScript language service — VS Code, Zed, Neovim, WebStorm — reads it
+from there. Every `.d.ts` beside it is included automatically, so nothing has to name the file;
+`checkJs` is what extends the checking to `.js`, and without it you get completion and no
+diagnostics.
+
+Or, if you would rather not have a config file, name it from the top of your solution:
+
+```js
+// @ts-check
+/// <reference path="./elevatorsaga.d.ts" />
+```
+
+Both lines are needed. The `reference` is what finds the declaration, and it alone buys completion
+and hover text; `// @ts-check` is what turns the diagnostics on, and a lone `.js` file with no
+`tsconfig.json` has no other way to ask for them — without it a misspelled event name is offered no
+correction and reported nowhere.
+
+### Annotating your program
+
+Either way, one line above your program tells the editor what the object you are writing is:
+
+```js
+/** @type {ElevatorSaga.Solution} */
+({
+  init: function (elevators, floors) {
+    var elevator = elevators[0];
+
+    elevator.on("idle", function () {
+      elevator.goToFloor(0);
+    });
+
+    floors.forEach(function (floor) {
+      floor.on("up_button_pressed", function () {
+        elevator.goToFloor(floor.floorNum());
+      });
+    });
+  },
+
+  update: function (dt, elevators, floors) {},
+});
+```
+
+Without that annotation `elevators` and `floors` are untyped and nothing is offered; with it, they
+are `ElevatorSaga.Elevator[]` and `ElevatorSaga.Floor[]` and everything below follows.
+
+**Keep the parentheses around the object.** The game wraps your program in them for you, but only
+when it starts with `{` — a program that starts with a comment does not, so a bare `{ … }`
+underneath one is evaluated as a block and dies on **Apply** with `SyntaxError: Function statements
+require a function name`. Written as above it pastes back into the game unchanged, comment and all.
+
+The declaration describes _this fork_, including `isFull()`, `isEmpty()` and
+`isApproachingFloor(n)`, which the original game does not have. It is not maintained by hand alone:
+`src/api-declarations.test.ts` compares it against the live facades — every member, the type of
+each, every event, and the arguments each handler is given — so the suite fails when the two
+disagree. The header of that file says how far the comparison reaches and where it stops.
 
 ## Quick start
 
