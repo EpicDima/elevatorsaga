@@ -9,10 +9,11 @@ below](public/images/screenshot.png)
 
 Elevator Saga is a programming game. You are given a building, a few elevators and a stream of
 impatient people, and the only control you have is a small JavaScript program: an object with an
-`init` function that runs once and an `update` function that runs repeatedly. Each of the 19
-challenges sets a target — transport 15 people in 60 seconds, or 100 people using no more than 63
+`init` function that runs once and an `update` function that runs repeatedly. Eighteen of the 19
+challenges set a target — transport 15 people in 60 seconds, or 100 people using no more than 63
 elevator moves, or 50 people without anyone waiting longer than 21 seconds — and you keep rewriting
-your program until it clears them.
+your program until it clears them. The nineteenth sets none: it is an endless demo you can leave
+running.
 
 You play in the browser. Type your program in the editor next to the building, press **Apply**
 (or <kbd>Ctrl</kbd>+<kbd>Enter</kbd>) to restart the challenge with it, and watch. Your code is
@@ -286,16 +287,16 @@ Everything after the `#` is a comma-separated list of `key=value` pairs, for exa
 "next challenge" link. Anything malformed falls back to a sane default with a console warning
 rather than breaking the page.
 
-| Parameter               | Effect                                                                                                                                                                           |
-| ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `#challenge=N`          | Starts challenge `N`, counting from 1. Out of range, missing, or unreadable as a number and not one of the two names below: challenge 1.                                         |
-| `#challenge=sandbox`    | Starts a building of your own instead of a numbered challenge. See below.                                                                                                        |
-| `#challenge=tutorial-N` | Starts task `N` of the learning track, from `tutorial-1` to `tutorial-8`. A `tutorial-` address no task has starts the first one. See [The learning track](#the-learning-track). |
-| `#autostart`            | Starts the simulation immediately instead of waiting for the Start button.                                                                                                       |
-| `#timescale=X`          | Simulation speed multiplier. Clamped to `0.1`–`64`; defaults to `2`. Fractions such as `1.5` work.                                                                               |
-| `#seed=S`               | Pins the seed the passenger stream is drawn from. Not the building. Refused on a learning task. See below.                                                                       |
-| `#devtest`              | Loads the built-in reference solution into the editor, replacing what is there. Refused on a learning task.                                                                      |
-| `#fullscreen`           | Hides everything except the building.                                                                                                                                            |
+| Parameter               | Effect                                                                                                                                                                                                                      |
+| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `#challenge=N`          | Starts challenge `N`, counting from 1. Out of range, missing, or unreadable as a number and not one of the two names below: challenge 1.                                                                                    |
+| `#challenge=sandbox`    | Starts a building of your own instead of a numbered challenge. See below.                                                                                                                                                   |
+| `#challenge=tutorial-N` | Starts task `N` of the learning track, from `tutorial-1` to `tutorial-8`. A `tutorial-` address no task has starts the first one. See [The learning track](#the-learning-track).                                            |
+| `#autostart`            | Starts the simulation immediately instead of waiting for the Start button.                                                                                                                                                  |
+| `#timescale=X`          | Simulation speed multiplier. Clamped to `0.1`–`64`. Fractions such as `1.5` work. Without it, the speed you last chose is used again — it is kept in `localStorage` under `elevatorTimeScale` — and `2` when there is none. |
+| `#seed=S`               | Pins the seed the passenger stream is drawn from. Not the building. Refused on a learning task. See below.                                                                                                                  |
+| `#devtest`              | Loads the built-in reference solution into the editor, replacing what is there. Refused on a learning task.                                                                                                                 |
+| `#fullscreen`           | Hides everything except the building.                                                                                                                                                                                       |
 
 The three flags — `autostart`, `devtest` and `fullscreen` — are on when present and off when
 explicitly set to `false` (`#autostart=false`). Bare flags now work: in the original, `#fullscreen`
