@@ -276,7 +276,10 @@ can be compared without wondering which drew the easier traffic. And the report 
 output — everything the run itself prints, including the stack of a program that threw and any
 `console.log` you are debugging with, goes to standard error instead, so `--json` is safe to pipe.
 The exit code is `0` when the program was scored, `1` when it threw, would not compile or ran out
-of time, and `2` when the command itself could not proceed.
+of time, and `2` when the command itself could not proceed — bad arguments, a file it could not
+read, or a defect in the tool. A script scoring a directory of programs can therefore tell a bad
+program from a benchmark that has stopped working: a `2` means nothing was measured, and nothing is
+printed about the program at all.
 
 A program that never returns is stopped rather than waited on. The run happens in a worker thread
 with a deadline on it, the same arrangement the page uses for the **Fitness** button and the same

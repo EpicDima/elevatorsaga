@@ -201,6 +201,47 @@ describe("running the suite in a thread", () => {
     expect(thread.terminations).toBe(1);
   });
 
+  it("gives up when the thread itself fails, instead of calling it a failed program", async () => {
+    // The thread catches whatever the program throws and posts it back as a
+    // result, so an error event is the thread failing to be a thread. Answered
+    // with a rejection rather than with an error report, because a report is a
+    // measurement and nothing was measured.
+    const running = runSuiteInWorker(CODE, OPTIONS);
+    const thread = startedThread();
+
+    thread.emit("error", new SyntaxError("Expression expected"));
+
+    await expect(running).rejects.toThrow(/Expression expected/);
+    expect(thread.terminations).toBe(1);
+  });
+
+  it("gives up on a thread that failed with something that is not an error", async () => {
+    // `worker.on("error")` passes on whatever was thrown, and what is thrown is
+    // not always an `Error`. A rejection with a bare string reads as a promise
+    // that was rejected by mistake, three frames further up.
+    const running = runSuiteInWorker(CODE, OPTIONS);
+
+    startedThread().emit("error", "the loader gave up");
+
+    await expect(running).rejects.toThrow(/the loader gave up/);
+  });
+
+  it("reports a program that exhausted the thread's memory as a failed program", async () => {
+    // The one thread failure that is the program's doing: allocating without
+    // stopping takes the heap the thread was given, and Node ends the thread
+    // rather than letting it report. Nothing about this tool went wrong, so this
+    // one is a result -- the same answer a program that threw would get.
+    const outOfMemory = Object.assign(
+      new Error("Worker terminated due to reaching memory limit: JS heap out of memory"),
+      { code: "ERR_WORKER_OUT_OF_MEMORY" },
+    );
+    const running = runSuiteInWorker(CODE, OPTIONS);
+
+    startedThread().emit("error", outOfMemory);
+
+    await expect(running).resolves.toEqual({ error: outOfMemory.message });
+  });
+
   it("reports the first answer only, however many arrive", async () => {
     // Terminating a thread makes it exit, and the exit handler answers as well:
     // every deadline is therefore two answers racing, and the second of them

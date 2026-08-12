@@ -546,6 +546,24 @@ describe("running the command", () => {
     expect(globalThis.console).toBe(original);
   });
 
+  it("says this tool broke rather than blaming a program it never ran", async () => {
+    // The difference a script scoring a directory of programs lives on. A
+    // benchmark that has stopped working -- a thread that will not start, a
+    // module with a syntax error in it -- fails identically for every program it
+    // is pointed at, and reporting that as the program failing writes a
+    // directory of perfectly good solutions down as broken, at exit code 1,
+    // with a report on standard output under each program's name.
+    const { streams: recorded, io } = streams({ "solution.js": DRIVING_PROGRAM }, () =>
+      Promise.reject(new SyntaxError("Expression expected")),
+    );
+
+    const code = await runBench(["solution.js", "--seeds", "7"], io);
+
+    expect(code).toBe(EXIT_USAGE);
+    expect(recorded.out).toBe("");
+    expect(recorded.err).toBe("The benchmark could not be run: Expression expected\n");
+  });
+
   it("says which file it could not read, and reports nothing at all", async () => {
     const { streams: recorded, io } = streams();
 

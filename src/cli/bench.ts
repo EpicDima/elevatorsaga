@@ -69,8 +69,12 @@
  * ## Exit codes
  *
  * `0` the program ran and was scored, `1` the program threw, would not compile
- * or ran out of time — the report says which — and `2` this tool was asked for
- * something it could not do.
+ * or ran out of time — the report says which — and `2` this tool could not do
+ * the job: it was asked for something it could not do, or it broke. The
+ * difference between `1` and `2` is what a script scoring a directory of
+ * programs needs in order to tell a bad program from a benchmark that has
+ * stopped working, so a thread that fails to start is a `2` and nothing is
+ * printed about the program at all.
  */
 
 import { Console } from "node:console";
@@ -98,7 +102,10 @@ import type { BenchWorkerRequest } from "./bench-worker.ts";
 export const EXIT_OK = 0;
 /** The player's program threw, or would not compile. */
 export const EXIT_PROGRAM_FAILED = 1;
-/** The arguments were unusable, or the program file could not be read. */
+/**
+ * This tool could not do the job: the arguments were unusable, the program file
+ * could not be read, or the tool itself failed.
+ */
 export const EXIT_USAGE = 2;
 
 /** How many decimals every figure in the report is printed to. */
@@ -201,7 +208,8 @@ standard error, so a program that logs cannot corrupt the report.
 Exit codes:
   ${String(EXIT_OK)}  the program ran and was scored
   ${String(EXIT_PROGRAM_FAILED)}  the program threw, would not compile, or ran out of time
-  ${String(EXIT_USAGE)}  the arguments were unusable, or the file could not be read
+  ${String(EXIT_USAGE)}  the arguments were unusable, the file could not be read, or this
+     tool broke -- in which case nothing has been measured about the program
 `;
 
 /**
@@ -556,7 +564,9 @@ export interface BenchIo {
    * @param options - What was asked for; the seeds are what the suite is run
    * on, and the rest is context a runner may need.
    * @returns The averaged results, or an error report. A program that failed is
-   * a result rather than a rejection, as it is everywhere else here.
+   * a result rather than a rejection, as it is everywhere else here; a rejection
+   * says the run never happened, which is this tool's failure and not the
+   * program's.
    */
   readonly runSuite: (code: string, options: BenchOptions) => Promise<FitnessSuiteResult>;
   /**
@@ -581,6 +591,24 @@ export interface BenchIo {
  */
 function describeError(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
+}
+
+/**
+ * Whether a thread died because the program in it ran out of memory.
+ *
+ * The one way a thread can fail that is the program's fault rather than this
+ * tool's: a program that allocates without stopping exhausts the thread's heap,
+ * and Node ends the thread with this code rather than letting it report. Told
+ * apart by the code Node sets on the error, since the message is a sentence
+ * about heap sizes that says nothing about whose heap it was.
+ *
+ * @param error - What the thread failed with.
+ * @returns Whether it ran out of memory.
+ */
+function isOutOfMemory(error: unknown): boolean {
+  return (
+    error instanceof Error && (error as { code?: unknown }).code === "ERR_WORKER_OUT_OF_MEMORY"
+  );
 }
 
 /**
@@ -663,7 +691,17 @@ export async function runBench(argv: readonly string[], io: BenchIo): Promise<nu
   await loadLocale(options.locale);
   setLocale(options.locale);
 
-  const result = await io.runSuite(code, options);
+  let result: FitnessSuiteResult;
+  try {
+    result = await io.runSuite(code, options);
+  } catch (error: unknown) {
+    // Not a result: the run never happened, so there is nothing to report and
+    // nothing to say about the program. Printing a report here would be putting
+    // this tool's own failure on standard output under the program's name, which
+    // is what a script reading the exit code would then record about it.
+    io.writeError(`The benchmark could not be run: ${describeError(error)}\n`);
+    return EXIT_USAGE;
+  }
   io.write(formatReport(result, options));
   return Array.isArray(result) ? EXIT_OK : EXIT_PROGRAM_FAILED;
 }
@@ -689,7 +727,7 @@ export async function runBench(argv: readonly string[], io: BenchIo): Promise<nu
  */
 export function runSuiteInWorker(code: string, options: BenchOptions): Promise<FitnessSuiteResult> {
   const request: BenchWorkerRequest = { code, seeds: options.seeds, locale: options.locale };
-  return new Promise<FitnessSuiteResult>((resolve) => {
+  return new Promise<FitnessSuiteResult>((resolve, reject) => {
     const worker = new Worker(new URL("./bench-worker.ts", import.meta.url), {
       workerData: request,
       // Both of the thread's streams are taken rather than left to Node, which
@@ -710,9 +748,9 @@ export function runSuiteInWorker(code: string, options: BenchOptions): Promise<F
 
     let settled = false;
     /**
-     * Reports the first answer to arrive and shuts the thread down.
+     * Shuts the thread and its timer down, for the first answer only.
      *
-     * Guarded, because several of these race by design: terminating the thread
+     * Guarded, because several answers race by design: terminating the thread
      * on the deadline makes it exit, so every answer is followed by a second
      * one. The report is safe without the guard — a promise keeps the value it
      * settled with — but the shutdown is not idempotent in any useful sense: a
@@ -720,16 +758,36 @@ export function runSuiteInWorker(code: string, options: BenchOptions): Promise<F
      * that has already fired, which is work done on the strength of a decision
      * that was made and finished with.
      *
-     * @param result - What to report.
+     * @returns Whether this answer was the first, and so the one to report.
      */
-    const finish = (result: FitnessSuiteResult): void => {
+    const stop = (): boolean => {
       if (settled) {
-        return;
+        return false;
       }
       settled = true;
       clearTimeout(timer);
       void worker.terminate();
-      resolve(result);
+      return true;
+    };
+    /**
+     * Reports what the run came to.
+     *
+     * @param result - What to report.
+     */
+    const finish = (result: FitnessSuiteResult): void => {
+      if (stop()) {
+        resolve(result);
+      }
+    };
+    /**
+     * Gives up, as this tool failing rather than the program failing.
+     *
+     * @param error - What went wrong.
+     */
+    const abandon = (error: unknown): void => {
+      if (stop()) {
+        reject(error instanceof Error ? error : new Error(describeError(error)));
+      }
     };
     // Rendered on this side rather than in the thread, as the page renders it on
     // the page's side: a thread that has not answered in time is one that is
@@ -742,11 +800,23 @@ export function runSuiteInWorker(code: string, options: BenchOptions): Promise<F
     worker.on("message", (result: FitnessSuiteResult) => {
       finish(result);
     });
-    // The thread catches everything the player's program throws, so an error
-    // here is the thread itself failing -- a syntax error in a module it loads,
-    // or a catalogue that would not import.
+    // The thread catches everything the player's program throws and posts it
+    // back as a result, so an error arriving here is the thread itself failing
+    // -- a syntax error in a module it loads, or a catalogue that would not
+    // import. That is this tool being broken, and reporting it as a program that
+    // failed is how a script scoring a directory of solutions comes to record
+    // every one of them as broken and finish without a word.
+    //
+    // Except for running out of memory, which is the program's doing: a program
+    // that allocates without stopping takes the thread's heap with it, and Node
+    // ends the thread rather than letting it report. Nothing about this tool
+    // changed, and the answer is the same as for a program that threw.
     worker.on("error", (error: unknown) => {
-      finish({ error: describeError(error) });
+      if (isOutOfMemory(error)) {
+        finish({ error: describeError(error) });
+        return;
+      }
+      abandon(error);
     });
     // A thread can also end without saying anything: `process.exit()` inside a
     // worker ends that thread, and a player's program is free to call it. There
