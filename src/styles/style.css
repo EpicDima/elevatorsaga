@@ -135,10 +135,13 @@
   --stats-row-height: 10px;
   /*
    * 16px, where the panel was drawn at 20px for as long as it had six rows.
-   * Eight rows at 20px would have been 160px of a panel whose box is what the
-   * two lines below make it, and the pitch came down instead of the box going
-   * up: 12px text on a 10px line has the room, and the panel is read as a
-   * column of numbers rather than as prose.
+   * It came down in `ea9b51c`, with the seventh row, back when a clipped panel
+   * was something to squeeze under rather than something to fix: a floor is
+   * 50px, challenges 1 and 7 are three floors, and at 20px a seventh row ran
+   * past the 150px that left. It stays at 16px now that the box below holds
+   * the panel whatever the building does, because it is the better pitch and
+   * not because anything forces it -- 12px text on a 10px line has the room,
+   * and the panel is read as a column of numbers rather than as prose.
    */
   --stats-row-pitch: 16px;
   /*
