@@ -481,7 +481,14 @@ All six descriptions render through `t` inside a `get description()` on the cond
 `requireUserCountWithinTimeWithMaxWaitTime`, `requireUserCountWithinMoves`, `requireDemo` and
 `requireSandbox`. A getter and not a constant, for the reason under _Rules the wiring has to
 keep_. The sandbox's numbers all go through `exact`, because they came out of the address bar and
-the default three significant digits would round `spawnrate=0.0625` to `0.063`.
+`Intl.NumberFormat`'s default is three _fraction_ digits, not three significant ones — the
+distinction does not matter for `spawnrate=0.0625`, which either way rounds to `0.063`, but it is
+why `exact` asks for `maximumFractionDigits` rather than for significant digits:
+
+```sh
+node -e 'const f = new Intl.NumberFormat("en");
+  console.log(f.resolvedOptions().maximumFractionDigits, f.format(0.0625))'   # 3 0.063
+```
 
 ### `src/ui/completions.ts` — 32 `completion.*` keys
 
@@ -549,8 +556,21 @@ nullary function.
 
 The `?` and the `{scenario}: {value}` line it goes into are separate keys rather than one string
 with a hole in it, so neither locale has to make "?" agree with a sentence it did not write. The
-`s` that used to be appended to `avgWaitTime.toPrecision(3)` now goes through
-`format(seconds(...))`, which is what puts the non-breaking space in `60 с`.
+`s` that used to be appended to `avgWaitTime.toPrecision(3)` now comes from `waitTimeQuantity` in
+`src/app/fitness.ts`, and deliberately not from `seconds`, which its JSDoc rules out by name:
+`seconds` fixes the number of decimals where `toPrecision(3)` fixed the number of significant
+digits, so it would render 7 as `7.0s` where the benchmark has always printed `7.00s`, and moving
+a number on screen is the one thing routing this through the catalogue was not allowed to do.
+
+The non-breaking space Russian gets — `12,3 с` beside English's `12.3s` — is not `Intl`'s doing
+either. CLDR's narrow unit pattern for Russian carries an ordinary space, and `formatNumber` in
+`src/i18n/format.ts` replaces it with `NO_BREAK_SPACE` after formatting, for unit styles only:
+
+```sh
+node -e 'const s = new Intl.NumberFormat("ru",
+    { style: "unit", unit: "second", unitDisplay: "narrow" }).format(60);
+  console.log([...s].map((c) => c.codePointAt(0).toString(16)).join(" "))'   # 36 30 20 441
+```
 
 ### `src/game/user-code.ts`, `src/game/elevator-interface.ts`, `src/game/movable.ts` — 7 `error.*` keys
 
