@@ -21,10 +21,12 @@ there are, the command is next to the number, so the next reader re-derives it i
 instead of trusting a figure whose age they cannot tell.
 
 **What is machine-checked, and what is not.** The catalogues check each other, and several
-tests hold the catalogue against what draws from it — see _What guards what_ at the end. What
-nothing checks is this file: no test reads it, so every table below is prose and can go quietly
-out of date. _What guards what_ says precisely which test would close that, and it has not been
-written.
+tests hold the catalogue against what draws from it — see _What guards what_ at the end. One of
+them now reads this file: `src/i18n/inventory.test.ts` holds the keys it names, the keys it
+omits, the counts it prints and the files it points at against `EN_MESSAGES` and the tree. What
+that cannot read is the prose — the English column, the Notes, and every claim about which
+module calls what — so a row can still be right about its key and wrong about everything beside
+it.
 
 Everything here was re-measured against the tree on **12 August 2026**.
 
@@ -728,10 +730,11 @@ needs no edit to the control and none to `index.html`, which ships the `<select>
 | `src/i18n/format.test.ts`      | `PLURAL_CATEGORIES` against what ICU actually says, so a wrong guess about a new language fails a test rather than mistranslating a count.                                                                                                                                                           |
 | `src/ui/localise-page.test.ts` | That every key `index.html` names exists and takes no parameters; that the shell ships, word for word, the English of every message it names; that the noscript paragraph is left alone; that the modifier keys are relabelled after the shell is rewritten.                                         |
 | `src/page.test.ts`             | The two documentation pages as one document in two languages, every `docs.*` message against the passage it was lifted from in both languages, no `docs.*` key left unchecked, and the popup against the page wherever their English agrees.                                                         |
-| **nothing**                    | **This file.**                                                                                                                                                                                                                                                                                       |
+| `src/i18n/inventory.test.ts`   | This file: the keys it names, the keys it omits, the counts it prints, the `src/` paths it points at, and the absence of line pins. Not its prose.                                                                                                                                                   |
 
-The last row is the reason this document has needed rebuilding twice. A test would close most of
-it cheaply — `src/i18n/inventory.test.ts`, reading this file with `?raw` and `EN_MESSAGES`:
+That last row said **nothing** through two rebuildings of this document. What closes most of it
+is `src/i18n/inventory.test.ts`, which reads this file with `?raw` and checks it against
+`EN_MESSAGES`:
 
 1. Every backticked token in this file shaped like a message key — dotted, and with a first
    segment that is one of the catalogue's prefixes — is a real `MessageKey`. This catches a key
@@ -748,7 +751,12 @@ it cheaply — `src/i18n/inventory.test.ts`, reading this file with `?raw` and `
    lapse. The two in that section are the examples of what it prevents, and are meant to stay
    wrong.
 
-None of it is written; whoever writes it owns `src/i18n/inventory.test.ts` and nothing else.
+What it does not check is everything that cannot be read off `EN_MESSAGES`: the English column,
+which is abridged on purpose and so cannot be compared; the Notes and the _What reads them_
+column; the counts in the section headings, which count what a section lists rather than what
+the catalogue holds; and the 81 and 82 above, which come from a grep over the whole tree. Those
+are still prose and can still go quietly out of date. The test's own header says as much, so
+whoever reads it knows which columns are guarded and which are taken on trust.
 
 ## What changed on screen when this was wired
 
