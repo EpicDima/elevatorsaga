@@ -66,8 +66,8 @@ test("plays a challenge to completion when Start is pressed", async ({ page }) =
   expect(await statisticValue(page, "Transported")).toBeGreaterThanOrEqual(15);
 });
 
-test("colours the passenger whose wait the statistics panel is reporting", async ({ page }) => {
-  // The chain behind "Max wait time" end to end: the world picks the passenger,
+test("colours the passenger whose time the statistics panel is reporting", async ({ page }) => {
+  // The chain behind "Max delivery time" end to end: the world picks the passenger,
   // the presenter puts a class on them, and the stylesheet turns that into a
   // colour. Only the last of those three is out of reach of the unit tests, and
   // it is the only one the player can see.

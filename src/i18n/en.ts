@@ -69,8 +69,20 @@ export const EN_MESSAGES = {
   "page.stats.transported": "Transported",
   "page.stats.elapsedTime": "Elapsed time",
   "page.stats.transportedPerSec": "Transported/s",
-  "page.stats.avgWaitTime": "Avg waiting time",
-  "page.stats.maxWaitTime": "Max waiting time",
+  // Neither of these is a waiting time, whatever the two keys are called. Both
+  // are measured from the moment a passenger appears to the moment they step
+  // out of a car at their floor -- `World.registerUser` records the span on
+  // `exited_elevator`, the same instant the row above counts them -- so the
+  // ride is inside them and a passenger who never waited at all still adds to
+  // both. What a delivery takes, in the sense a delivery time is normally read:
+  // from the order to the goods in hand.
+  //
+  // The keys keep their names because they name the `World` fields they render,
+  // `avgWaitTime` and `maxWaitTime`, and those cannot be renamed: the challenge
+  // conditions in src/game/challenges.ts are written against them, and every
+  // upstream score ever posted was measured by them.
+  "page.stats.avgWaitTime": "Avg delivery time",
+  "page.stats.maxWaitTime": "Max delivery time",
   "page.stats.moves": "Moves",
   "page.stats.movesTitle":
     "One move is counted each time a car crosses the halfway mark between one floor and the next",
@@ -171,10 +183,14 @@ export const EN_MESSAGES = {
   // bar has always highlighted the numbers with.
 
   "challenge.transportWithinTime.html": "Transport {people} in {time} or less",
+  // "to be delivered" rather than "wait", because the limit these two sentences
+  // announce is `World.maxWaitTime`, which stops at the passenger's floor and
+  // not at the door of the car. A player who reads it as a wait optimises for
+  // boarding people quickly and then loses the run to the ride.
   "challenge.transportWithMaxWait.html":
-    "Transport {people} and let no one wait more than {waitTime}",
+    "Transport {people} and let no one take more than {waitTime} to be delivered",
   "challenge.transportWithinTimeWithMaxWait.html":
-    "Transport {people} in {time} or less and let no one wait more than {waitTime}",
+    "Transport {people} in {time} or less and let no one take more than {waitTime} to be delivered",
   "challenge.transportWithinMoves.html": "Transport {people} using {moves} or less",
   "challenge.demo": "Perpetual demo",
   "challenge.people.html": {
@@ -302,7 +318,9 @@ export const EN_MESSAGES = {
   // src/app/fitness.ts and the scenario names in src/game/fitness.ts.
 
   "fitness.measuring": "Measuring fitness...",
-  "fitness.results": "Fitness avg wait times: {results}",
+  // The number in each column is `World.avgWaitTime` from one scenario, so this
+  // line is named the way the panel names it rather than the way the field is.
+  "fitness.results": "Fitness avg delivery times: {results}",
   "fitness.result": "{scenario}: {value}",
   "fitness.unknownValue": "?",
   "fitness.error": "Could not compute fitness due to error: {error}",
@@ -359,7 +377,7 @@ export const EN_MESSAGES = {
   "docs.play.apply.html":
     'Enter your code in the input window below the game view, and press the <span class="emphasis-color">Apply</span> button to start the challenge.<br /> You can increase or decrease the speed of time by pressing the {increase} and {decrease} buttons.',
   "docs.play.statistics.html":
-    'Beside the building is a panel that keeps score while a run is going. Most of it says what it is; <span class="emphasis-color">Moves</span> does not. One move is counted each time a car crosses the halfway mark between one floor and the next, so a trip of three floors is three moves. A car that turns round mid-flight pays twice for the mark it crosses and re-crosses, and braking carries a car on across a mark it was turned back just short of. Two of the challenges are judged on that number, totalled over every car in the building, as well as on the people delivered, so on those a car that shuttles about empty can lose the run.',
+    'Beside the building is a panel that keeps score while a run is going. Three of its rows need a word. <span class="emphasis-color">Moves</span> first. One move is counted each time a car crosses the halfway mark between one floor and the next, so a trip of three floors is three moves. A car that turns round mid-flight pays twice for the mark it crosses and re-crosses, and braking carries a car on across a mark it was turned back just short of. Two of the challenges are judged on that number, totalled over every car in the building, as well as on the people delivered, so on those a car that shuttles about empty can lose the run. Then the two clocks. <span class="emphasis-color">Avg delivery time</span> and <span class="emphasis-color">Max delivery time</span> both run from the moment a passenger appears in the building to the moment they step out of a car at the floor they asked for, so the ride counts in them as much as the wait for it does: somebody who walks straight into a car already standing at their floor, and waits not one second for it, still adds every second of a nineteen-floor journey to both. Eight of the challenges and two of the tasks on the learning track are judged on the second of them, which is the largest total any one passenger has reached — it keeps climbing while somebody is still on their way, and once reached it never comes down again.',
   "docs.play.shortcuts.html":
     "Inside the editor, <kbd data-mod-key>Ctrl</kbd>+<kbd>Enter</kbd> applies your program and restarts the challenge, <kbd data-mod-key>Ctrl</kbd>+<kbd>S</kbd> saves it, <kbd>Tab</kbd> indents, and <kbd>Esc</kbd> moves the focus back out of the editor.",
   "docs.play.debugging.html":
@@ -728,7 +746,7 @@ elevator.goToFloor(2); // Queued anyway -- queue: 2, 3, 2`,
 
   "tutorial.task5.title": "The building grew",
   "tutorial.task5.goal":
-    "Send the elevator where it is actually called: deliver 15 passengers and let nobody wait longer than 37 seconds.",
+    "Send the elevator where it is actually called: deliver 15 passengers, and let nobody's delivery take longer than 37 seconds.",
   "tutorial.task5.hint1.html":
     "The trouble is not how fast the elevator goes, it is that it goes to floors where nobody is standing. Who in this game knows that somebody is waiting? The second argument of init has not been used once so far.",
   "tutorial.task5.hint2.html":
@@ -779,7 +797,7 @@ elevator.goToFloor(2); // Queued anyway -- queue: 2, 3, 2`,
 
   "tutorial.task6.title": "The elevator that lies to its passengers",
   "tutorial.task6.goal":
-    "Work out why half the building refuses to board, and deliver 15 passengers with nobody waiting longer than 28 seconds.",
+    "Work out why half the building refuses to board, and deliver 15 passengers with nobody's delivery taking longer than 28 seconds.",
   "tutorial.task6.hint1.html":
     "Do not watch the counters, watch the call arrows. One of them lights up partway through the run and never goes out again. Which way was the person who pressed it planning to go?",
   "tutorial.task6.hint2.html":

@@ -492,9 +492,18 @@ export class World extends Observable<WorldEvents> {
   moveCount = 0;
   /** Simulated seconds since the world started. */
   elapsedTime = 0.0;
-  /** Longest any passenger has waited so far, delivered or not. */
+  /**
+   * Longest spawn-to-delivery any passenger has reached, delivered or not.
+   *
+   * Not a waiting time, whatever the name says: the clock stops when a
+   * passenger steps out at their floor, so the ride is inside it, and it goes
+   * on growing for whoever is still aboard. The name is upstream's and stays,
+   * because every challenge condition and every score ever posted is written
+   * against it; what it measures is spelled out for the player under
+   * `docs.play.statistics.html`.
+   */
   maxWaitTime = 0.0;
-  /** Mean wait time of delivered passengers. */
+  /** Mean spawn-to-delivery time of delivered passengers, the same span. */
   avgWaitTime = 0.0;
   /** Whether the challenge is over and the world should stop updating. */
   challengeEnded = false;

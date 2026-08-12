@@ -3,17 +3,17 @@
 [![CI](https://github.com/EpicDima/elevatorsaga/actions/workflows/ci.yml/badge.svg)](https://github.com/EpicDima/elevatorsaga/actions/workflows/ci.yml)
 
 ![Challenge 5 in progress: four elevators carrying people between six floors, passengers waiting on
-the landings, one of them marked yellow as the longest wait the panel is reporting, the statistics
-panel counting them, and the JavaScript program driving it all in the editor
+the landings, one of them marked yellow as the longest the panel is reporting, the statistics panel
+counting them, and the JavaScript program driving it all in the editor
 below](public/images/screenshot.png)
 
 Elevator Saga is a programming game. You are given a building, a few elevators and a stream of
 impatient people, and the only control you have is a small JavaScript program: an object with an
 `init` function that runs once and an `update` function that runs repeatedly. Eighteen of the 19
 challenges set a target — transport 15 people in 60 seconds, or 100 people using no more than 63
-elevator moves, or 50 people without anyone waiting longer than 21 seconds — and you keep rewriting
-your program until it clears them. The nineteenth sets none: it is an endless demo you can leave
-running.
+elevator moves, or 50 people with none of them taking longer than 21 seconds to deliver — and you
+keep rewriting your program until it clears them. The nineteenth sets none: it is an endless demo
+you can leave running.
 
 You play in the browser. Type your program in the editor next to the building, press **Apply**
 (or <kbd>Ctrl</kbd>+<kbd>Enter</kbd>) to restart the challenge with it, and watch. Your code is
@@ -531,11 +531,16 @@ Four more, without upstream issues:
 
 - `maxWaitTime` counted the walk-away animation of passengers who had already been delivered,
   inflating the statistic by a random 1–1.5 seconds per person. Delivered passengers are now
-  excluded, which makes the statistic deterministic and the wait-time challenges — 8, 9, 11 to 15
+  excluded, which makes the statistic deterministic and the challenges it decides — 8, 9, 11 to 15
   and 18 — marginally easier than the same challenges upstream. **A score from here is not
   comparable with a score from [play.elevatorsaga.com](https://play.elevatorsaga.com/)**, and a
   solution posted on the upstream wiki that cleared one of them by a fraction of a second may not
-  be doing the same work here that it did there.
+  be doing the same work here that it did there. What the figure is has not changed and will not:
+  it is measured from a passenger appearing to their stepping out at their floor, so it includes
+  the ride, and a passenger carried nineteen floors after boarding a car that was already standing
+  there — no wait at all — still sets it. Upstream calls it a waiting time and this fork used to
+  print that on the panel; the panel now says `Avg delivery time` and `Max delivery time`, which is
+  what the same unchanged number has always been.
 - A malformed `#challenge` or `#timescale` used to be fatal. `#challenge=abc` indexed the challenge
   list with `NaN` and killed the page before anything was drawn; `#timescale=abc` set the world's
   time scale to `NaN`, which froze the simulation with no way out short of editing the URL by hand.

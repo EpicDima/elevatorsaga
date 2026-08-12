@@ -50,7 +50,7 @@ export type FitnessResult = {
   error?: unknown;
   /** Passengers delivered per simulated second. */
   transportedPerSec?: number;
-  /** Mean wait time of delivered passengers. */
+  /** Mean spawn-to-delivery time of delivered passengers, the ride included. */
   avgWaitTime?: number;
   /** Passengers delivered. */
   transportedCount?: number;

@@ -468,7 +468,7 @@ describe("doFitnessSuite", () => {
   it("rejects an empty seed list instead of reporting an empty score", () => {
     // There is nothing to average over no runs, and the honest answers are a
     // throw or an empty result list; an empty list would reach
-    // describeFitnessResults and print "Fitness avg wait times:" with nothing
+    // describeFitnessResults and print "Fitness avg delivery times:" with nothing
     // after it, which reads like a program that scored badly rather than like a
     // caller that asked for no measurement. This costs no simulation, so it is
     // also the cheapest test in the file.

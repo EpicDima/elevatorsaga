@@ -73,10 +73,10 @@ describe("Challenge requirements", () => {
       expect(challengeReq.evaluate(fakeWorld)).toBe(true);
     });
 
-    it("describes itself with one decimal of wait time", () => {
+    it("describes itself with one decimal of the limit", () => {
       expect(requireUserCountWithMaxWaitTime(50, 21).description).toBe(
-        "Transport <span class='emphasis-color'>50</span> people and let no one wait more than " +
-          "<span class='emphasis-color'>21.0</span> seconds",
+        "Transport <span class='emphasis-color'>50</span> people and let no one take more than " +
+          "<span class='emphasis-color'>21.0</span> seconds to be delivered",
       );
     });
   });
@@ -130,8 +130,8 @@ describe("Challenge requirements", () => {
       // `2 675` in Russian.
       expect(requireUserCountWithinTimeWithMaxWaitTime(2675, 1800, 45).description).toBe(
         "Transport <span class='emphasis-color'>2,675</span> people in " +
-          "<span class='emphasis-color'>1,800</span> seconds or less and let no one wait more " +
-          "than <span class='emphasis-color'>45.0</span> seconds",
+          "<span class='emphasis-color'>1,800</span> seconds or less and let no one take more " +
+          "than <span class='emphasis-color'>45.0</span> seconds to be delivered",
       );
     });
   });
@@ -278,7 +278,7 @@ describe("the language a description comes out in", () => {
   it("declines every noun the sentence counts", () => {
     // Three numbers, three different endings, none of which an English
     // template could have produced by gluing a word onto a number: 23
-    // пассажира, 30 секунд, 2,0 секунды. The wait time is the interesting one
+    // пассажира, 30 секунд, 2,0 секунды. The delivery limit is the interesting one
     // -- it is the same 2 as an integer would be, but written with a tenth it
     // takes a different form of the noun, which is why the catalogue is handed
     // the number together with the way it is spelled.
@@ -286,8 +286,8 @@ describe("the language a description comes out in", () => {
 
     expect(requireUserCountWithinTimeWithMaxWaitTime(23, 30, 2).description).toBe(
       "Перевезите <span class='emphasis-color'>23</span> пассажира за " +
-        "<span class='emphasis-color'>30</span> секунд или быстрее, и пусть никто не ждёт " +
-        "дольше <span class='emphasis-color'>2,0</span> секунды",
+        "<span class='emphasis-color'>30</span> секунд или быстрее, и пусть доставка каждого " +
+        "не длится дольше <span class='emphasis-color'>2,0</span> секунды",
     );
   });
 

@@ -368,7 +368,8 @@ describe("translate", () => {
     );
     expect(description).toBe(
       "Перевезите <span class='emphasis-color'>23</span> пассажира за " +
-        "<span class='emphasis-color'>30</span> секунд или быстрее, и пусть никто не ждёт дольше " +
+        "<span class='emphasis-color'>30</span> секунд или быстрее, и пусть доставка каждого " +
+        "не длится дольше " +
         "<span class='emphasis-color'>2,0</span> секунды",
     );
   });

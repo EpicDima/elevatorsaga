@@ -48,18 +48,18 @@ const TRANSPORTED_BEFORE_CAPTURE = 18;
  * with nothing else to do delivers very regular frames. Six captures from this
  * seed all came out at 27 transported in 24s at 1.13 a second and 68 moves,
  * with the cars at floors 4, 2, 0 and 0 and the same passengers waiting on the
- * same floors; the average wait read 7.5s or 7.4s and the worst 14.9s or 14.8s,
- * which is the whole of the difference between them. Other seeds tried were not
- * all this steady — `tower` landed on 23 transported once and 25 twice — so the
- * steadiness is a property of the seed picked, not a promise of the mechanism,
- * and a regenerated picture that differs in a car or two is the run wobbling
- * rather than anything being wrong. The wall-clock "Code saved" line under the
- * editor is the one part no seed reaches at all.
+ * same floors; the average delivery read 7.5s or 7.4s and the worst 14.9s or
+ * 14.8s, which is the whole of the difference between them. Other seeds tried
+ * were not all this steady — `tower` landed on 23 transported once and 25 twice
+ * — so the steadiness is a property of the seed picked, not a promise of the
+ * mechanism, and a regenerated picture that differs in a car or two is the run
+ * wobbling rather than anything being wrong. The wall-clock "Code saved" line
+ * under the editor is the one part no seed reaches at all.
  *
  * Chosen over the others tried for the composition at 1280x1000: passengers
  * left waiting on four of the six floors, cars caught at three different
  * heights rather than parked in a row, and the one marked by `waiting-longest`
- * near the middle of the frame, level with the "Max waiting time" it explains.
+ * near the middle of the frame, level with the "Max delivery time" it explains.
  */
 const SEED = "office";
 

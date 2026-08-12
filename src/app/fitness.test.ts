@@ -406,15 +406,15 @@ describe("the fitness worker entry point", () => {
 });
 
 describe("describeFitnessResults", () => {
-  it("lists the average wait time of every scenario", () => {
+  it("lists the average delivery time of every scenario", () => {
     expect(describeFitnessResults([run("Small scenario", 12.3456), run("Large scenario", 7)])).toBe(
-      "Fitness avg wait times: Small scenario: 12.3s\u00a0\u00a0\u00a0Large scenario: 7.00s",
+      "Fitness avg delivery times: Small scenario: 12.3s\u00a0\u00a0\u00a0Large scenario: 7.00s",
     );
   });
 
   it("marks a scenario that recorded nothing", () => {
     expect(describeFitnessResults([run("Small scenario")])).toBe(
-      "Fitness avg wait times: Small scenario: ?",
+      "Fitness avg delivery times: Small scenario: ?",
     );
   });
 
@@ -429,7 +429,7 @@ describe("describeFitnessResults", () => {
     // one fixes decimals rather than significant digits, and would print these
     // as `0.1s` and `0.0s`, losing the difference between them.
     expect(describeFitnessResults([run("A", 0.05), run("B", 0)])).toBe(
-      `Fitness avg wait times: A: 0.0500s${COLUMN_GAP}B: 0.00s`,
+      `Fitness avg delivery times: A: 0.0500s${COLUMN_GAP}B: 0.00s`,
     );
   });
 
@@ -444,7 +444,7 @@ describe("describeFitnessResults", () => {
     expect(
       describeFitnessResults([run("Маленький сценарий", 12.3456), run("Большой сценарий")]),
     ).toBe(
-      `Эффективность, среднее время ожидания: Маленький сценарий: 12,3${NBSP}с` +
+      `Эффективность, среднее время доставки: Маленький сценарий: 12,3${NBSP}с` +
         `${COLUMN_GAP}Большой сценарий: ?`,
     );
   });
