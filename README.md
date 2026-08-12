@@ -16,7 +16,9 @@ your program until it clears them.
 
 You play in the browser. Type your program in the editor next to the building, press **Apply**
 (or <kbd>Ctrl</kbd>+<kbd>Enter</kbd>) to restart the challenge with it, and watch. Your code is
-saved to `localStorage` as you go, so closing the tab does not lose it. The full API — every method,
+saved to `localStorage` as you go, so closing the tab does not lose it;
+<kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>S</kbd> saves it immediately rather than opening the browser's
+save dialog. The full API — every method,
 property and event on the elevator and floor objects, with examples — is in
 [documentation.html](documentation.html), which is served alongside the game
 ([in Russian](documentation.ru.html)).
@@ -460,6 +462,33 @@ Four more, without upstream issues:
   This one was listed as _fixed_ here until 2026-08-12, filed with #59 / #74 / #98 above. It never
   was: those are about an elevator standing still with the wrong indicator lit, and no indicator can
   help a car that is not level with a floor.
+
+## Asked for upstream, and here already
+
+Some of what this fork does answers feature requests that are still open on the upstream tracker.
+None of it was taken from those threads — each was built for its own reasons and the match found
+afterwards — but somebody arriving from one of those issues should be told their wish is already
+granted here rather than having to work it out from a feature list.
+
+- [#34](https://github.com/magwo/elevatorsaga/issues/34) — "allow replay a challenge with the exact
+  same passengers", so that a case can be reproduced instead of waited for. That is what the seed
+  is: `#seed=…` brings the same people back in the same order to every restart, and
+  `src/game/determinism.test.ts` holds three seeds to it across frame rates that differ, wander and
+  differ by a nanosecond. The reporter also asked that a replayed challenge not count as passed;
+  it does count here, because the seed changes who arrives and not what winning takes.
+- [#103](https://github.com/magwo/elevatorsaga/issues/103) — a playground without a challenge's
+  constraints, "just random popup guests", to debug a program against. `#challenge=sandbox` is a
+  building with no success condition and four parameters to shape it.
+- [#68](https://github.com/magwo/elevatorsaga/issues/68) — <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>S</kbd>
+  should save the code rather than open the browser's save dialog. It does: the editor takes the
+  binding, suppresses the browser's default, and writes to storage there and then instead of waiting
+  out the autosave delay.
+- [#133](https://github.com/magwo/elevatorsaga/issues/133) — TypeScript for the API, and
+  [#137](https://github.com/magwo/elevatorsaga/pull/137) — autocompletion inside the game. Both
+  ship, and are described under [What this fork adds](#what-this-fork-adds).
+
+The rest of the tracker's feature requests are not answered here, and nothing in this list is a
+claim about upstream's plans for them.
 
 ## Development
 
