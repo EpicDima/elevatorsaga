@@ -927,6 +927,144 @@ describe("CodeEditor compilation", () => {
   });
 });
 
+describe("CodeEditor marking what threw", () => {
+  const THROWS_ON_LINE_4 = [
+    "{",
+    "  init: function (elevators, floors) {},",
+    "  update: function (dt, elevators, floors) {",
+    "    missingHelper();",
+    "  },",
+    "}",
+  ].join("\n");
+
+  /**
+   * Compiles what is in the editor and runs it until it throws.
+   *
+   * The error is the engine's own, carrying a real stack, because that is what
+   * the app forwards: a hand-made object would only prove the editor passes
+   * objects along.
+   *
+   * @param editor - The editor holding the program.
+   * @returns Whatever the program threw.
+   * @throws {Error} When it compiled and then did not throw, since the test
+   * after that would be asserting about nothing.
+   */
+  function runUntilItThrows(editor: CodeEditor): unknown {
+    const codeObj = editor.getCodeObj();
+    if (codeObj === null) {
+      throw new Error("The program was expected to compile and did not");
+    }
+    try {
+      codeObj.update(0.1, [], []);
+    } catch (error: unknown) {
+      return error;
+    }
+    throw new Error("The program was expected to throw and did not");
+  }
+
+  it("marks the line a running program threw on", () => {
+    const { editor, view } = setUp();
+    view.value = THROWS_ON_LINE_4;
+
+    editor.trigger("usercode_error", runUntilItThrows(editor));
+
+    expect(view.errorMark).toEqual({ line: 4, column: 5 });
+  });
+
+  it("takes the last run's mark off before the next one starts", () => {
+    // Applying is the player saying they have changed something. Whatever the
+    // old mark was under, it is being reconsidered, and a mark left over from
+    // the previous attempt would sit there through the whole of the new run.
+    const { editor, view } = setUp();
+    view.value = THROWS_ON_LINE_4;
+    editor.trigger("usercode_error", runUntilItThrows(editor));
+
+    editor.getCodeObj();
+
+    expect(view.errorMark).toBeUndefined();
+  });
+
+  it("refuses to mark when the player has edited since the program compiled", () => {
+    // The error belongs to the text that was compiled, and its line 4 is not
+    // this document's line 4 any more. Underlining anyway would point at a line
+    // chosen by how far the edit happened to shift things.
+    const { editor, view } = setUp();
+    view.value = THROWS_ON_LINE_4;
+    const thrown = runUntilItThrows(editor);
+    view.type(["{", "  init: function () {},", "  update: function () {},", "}"].join("\n"));
+
+    editor.trigger("usercode_error", thrown);
+
+    expect(view.errorMark).toBeUndefined();
+    expect(view.errorMarks).toEqual([undefined]);
+  });
+
+  it("says nothing about a program that did not compile", () => {
+    // A syntax error has no line to give -- the code never ran -- and the
+    // banner says what is wrong without one.
+    const { editor, view } = setUp();
+    view.value = "{ init: function ( }";
+
+    expect(editor.getCodeObj()).toBeNull();
+    expect(view.errorMark).toBeUndefined();
+  });
+
+  it("leaves the previous run's line alone once a later program fails to compile", () => {
+    // The failed compilation did not replace the running program, so a runtime
+    // error arriving now still belongs to the one that is running -- but the
+    // document on screen is the broken text, and nothing in it is that line.
+    const { editor, view } = setUp();
+    view.value = THROWS_ON_LINE_4;
+    const thrown = runUntilItThrows(editor);
+    view.type("{ init: function ( }");
+    editor.getCodeObj();
+
+    editor.trigger("usercode_error", thrown);
+
+    expect(view.errorMark).toBeUndefined();
+  });
+
+  it("forgets the running program once a later compilation fails", () => {
+    // The document is put back to exactly the text that threw, so the "has the
+    // player edited?" guard would let this through. What stops it is that a
+    // failed compilation ends the run: the app starts the world with a no-op
+    // when `getCodeObj` returns null, so this program is not running any more
+    // and its old error is not about anything on screen.
+    const { editor, view } = setUp();
+    view.value = THROWS_ON_LINE_4;
+    const thrown = runUntilItThrows(editor);
+    view.type("{ init: function ( }");
+    editor.getCodeObj();
+    view.type(THROWS_ON_LINE_4);
+
+    editor.trigger("usercode_error", thrown);
+
+    expect(view.errorMark).toBeUndefined();
+  });
+
+  it("says nothing about an error that arrives before anything has been compiled", () => {
+    const { editor, view } = setUp();
+
+    editor.trigger("usercode_error", new Error("from somewhere else entirely"));
+
+    expect(view.errorMarks).toEqual([]);
+  });
+
+  it("marks nothing when the failure has no line to point at", () => {
+    // "Code must contain an init function" is thrown after the program was
+    // evaluated, from the game's own module, so no frame on it is the
+    // player's. The mark is cleared rather than guessed at.
+    const { editor, view } = setUp();
+    view.value = THROWS_ON_LINE_4;
+    runUntilItThrows(editor);
+
+    editor.trigger("usercode_error", new Error("Code must contain an init function"));
+
+    expect(view.errorMark).toBeUndefined();
+    expect(view.errorMarks).toEqual([undefined, undefined]);
+  });
+});
+
 describe("CodeEditor events", () => {
   it("passes an in-editor apply on to its listeners", () => {
     const { editor, view } = setUp();

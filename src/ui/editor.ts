@@ -29,6 +29,7 @@ import type { UserCodeObject } from "../game/user-code.ts";
 import { t } from "../i18n/index.ts";
 import { playerApiCompletionSource } from "./completions.ts";
 import { DEV_TEST_CODE, defaultCode } from "./default-code.ts";
+import { locateCodeError } from "./error-location.ts";
 import type { CodeErrorLocation } from "./error-location.ts";
 
 /**
@@ -380,6 +381,16 @@ export class CodeEditor extends Observable<CodeEditorEvents> {
    */
   #unsavedEdits = false;
   #autosaveTimer: ReturnType<typeof setTimeout> | undefined = undefined;
+  /**
+   * The program {@link getCodeObj} last compiled, or `undefined` if none did.
+   *
+   * A runtime error arrives from the running world, which may be several
+   * seconds and any number of keystrokes after the program that raised it was
+   * compiled. Its line numbers count lines of *that* text. Holding on to it is
+   * what lets the mark be refused when the document has moved on, rather than
+   * underlining whatever has since drifted onto line 4.
+   */
+  #runningCode: string | undefined = undefined;
 
   /**
    * @param createView - Builds the editing surface; receives the handlers the
@@ -415,6 +426,37 @@ export class CodeEditor extends Observable<CodeEditorEvents> {
       },
       initialCode,
     );
+    // The editor listens to its own event. `usercode_error` is raised here for a
+    // program that will not compile, and raised on this same object by the app
+    // for one that compiled and then threw while the world was running; both
+    // reach the mark this way, and neither needs the app to know the mark
+    // exists.
+    this.on("usercode_error", (error) => {
+      this.#markThrownAt(error);
+    });
+  }
+
+  /**
+   * Underlines the line of the program an exception came from.
+   *
+   * Refused unless the document still is the program that was compiled. The
+   * player can edit while the world runs — watching it go wrong is what
+   * prompts the edit — and a line number counted in the text they have since
+   * changed points at whatever has moved into that position. An underline in
+   * the wrong place is worse than none: it is a claim, and the player has no
+   * way to tell it is stale.
+   *
+   * Editing after the mark is drawn is the other half of the same problem, and
+   * is handled where the mark lives: any document change clears it.
+   *
+   * @param error - Whatever the player's code threw.
+   */
+  #markThrownAt(error: unknown): void {
+    const running = this.#runningCode;
+    if (running === undefined || running !== this.getCode()) {
+      return;
+    }
+    this.#view.markError(locateCodeError(error, running));
   }
 
   /**
@@ -517,11 +559,25 @@ export class CodeEditor extends Observable<CodeEditorEvents> {
    * @returns The compiled program, or `null` when it did not compile.
    */
   getCodeObj(): UserCodeObject | null {
+    const code = this.getCode();
+    // Cleared before anything else: whatever the last run underlined, it was a
+    // claim about a run that is over. A program that compiles and then throws
+    // on the same line marks it again a moment later.
+    this.#view.markError(undefined);
     try {
-      const codeObj = getCodeObjFromCode(this.getCode());
+      const codeObj = getCodeObjFromCode(code);
+      this.#runningCode = code;
       this.trigger("code_success");
       return codeObj;
     } catch (e) {
+      // Forgotten rather than left as it was. It would be tempting to keep the
+      // last program that did compile, on the grounds that it is still the one
+      // running -- but it is not: the app starts the world with a no-op
+      // whenever this returns `null` (`app.ts`, `#startRun`), so a failed
+      // compilation ends the previous run as surely as a successful one. What
+      // is running afterwards is incapable of throwing, and this field must not
+      // claim otherwise.
+      this.#runningCode = undefined;
       this.trigger("usercode_error", e);
       return null;
     }
