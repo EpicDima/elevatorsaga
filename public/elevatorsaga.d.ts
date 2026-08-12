@@ -432,8 +432,14 @@ declare namespace ElevatorSaga {
      * multi-event form instead — one taking an event name first — rejects
      * `elevator.off("floor_button_pressed", remember)` outright, because a
      * function declaring `floorNum: number` is not one declaring an event name.
-     * That is the call the reference page prints under `off`, and the whole
-     * point of keeping a reference to a handler.
+     * The reference page does not print that call: what it prints under `off` is
+     * `off("idle", goHome)`, `off("idle")` and `off("*")`, and all three survive
+     * a single signature, `goHome` being declared with no parameters at all.
+     * What it does print is the other half —
+     * `elevator.on("floor_button_pressed", function (floorNum) { ... })` — beside
+     * the note that removing a handler needs a reference to the function that was
+     * registered. Keep that reference, as the page says to, and the
+     * one-signature form is what refuses to let you use it.
      *
      * The handler is compared by identity, so only a function you kept a
      * reference to can be removed on its own; an inline anonymous function

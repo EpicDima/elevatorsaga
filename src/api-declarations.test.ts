@@ -882,8 +882,18 @@ describe("the events the declaration file publishes", () => {
     // registered, so its overloads carry the same parameters as `on`'s and can
     // drift apart from them. They did: before this file grew that check, `off`
     // was one signature typed for the multi-event form, and
-    // `elevator.off("floor_button_pressed", remember)` — the call the reference
-    // page prints — was reported as a type error in the player's editor.
+    // `elevator.off("floor_button_pressed", remember)` was reported as a type
+    // error in the player's editor. `documentation.html` does not print that
+    // call: it prints the `on` half, and says that removing a handler needs a
+    // reference to it. The three calls it does print under `off` would not have
+    // caught this — they pass no handler, or one declaring no parameters, and
+    // either survives a single signature — so EXERCISING_PROGRAM carries the
+    // call that does. Measured by putting the drift back, as one signature
+    // taking `ElevatorEventName | MultipleEvents<ElevatorEventName>`: this test
+    // fails, and so does "accepts a program that uses the whole API". Not
+    // "rejects each mistake, and only those" — its one `off` case is
+    // `off("*", function () {})`, which the wildcard overload refuses either
+    // way, so the mistakes fixture is no guard against this at all.
     for (const method of ["on", "once", "one", "off"]) {
       expect(Object.fromEntries(declaredEventArity("Elevator", method)), method).toEqual(
         Object.fromEntries(elevatorFacadeEvents),
