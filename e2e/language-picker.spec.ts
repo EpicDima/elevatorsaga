@@ -153,3 +153,50 @@ test("is one stop in the tab order, right after the links it sits beside", async
   // this control is the one who cannot read the language the page is in.
   await expect(page.getByLabel("Language").locator("option")).toHaveText(["English", "Русский"]);
 });
+
+/**
+ * Widths at which the header must come out the same height in either language.
+ *
+ * 1440 and 1280 are where it used to be worst: the title and the tools shared a
+ * row while English fitted and Russian did not, so the choice cost 55px of page.
+ * 1024 and 800 are where the two agreed even then, and are here so that a fix
+ * that only widened the desktop case would not pass. 675 is the boundary itself,
+ * measured — the narrowest width at which the two still agree.
+ *
+ * Below it they do not, and no assertion here pretends otherwise. Russian words
+ * are longer, and on a phone the row of links needs a line English does not; the
+ * stylesheet's note on `.header` has the sweep. What this pins is that the shape
+ * stops being decided by which language is on screen wherever there is room for
+ * it to be the same.
+ */
+const PARITY_WIDTHS = [1440, 1280, 1024, 800, 675] as const;
+
+test("keeps the header the same height in either language", async ({ page }) => {
+  const headerHeight = async (): Promise<number> =>
+    await page.evaluate(() => {
+      const header = document.querySelector(".header");
+      if (header === null) {
+        throw new Error("The page has no header to measure");
+      }
+      return Math.round(header.getBoundingClientRect().height * 100) / 100;
+    });
+
+  await page.goto("/#challenge=4");
+  await expect(page.getByRole("link", { name: "Wiki & Solutions" })).toBeVisible();
+  const english = new Map<number, number>();
+  for (const width of PARITY_WIDTHS) {
+    await page.setViewportSize({ width, height: 900 });
+    english.set(width, await headerHeight());
+  }
+
+  // Switched with the control rather than by loading a Russian URL, because the
+  // page a player sees change under them is the one that jumped.
+  await page.setViewportSize({ width: PARITY_WIDTHS[0], height: 900 });
+  await page.getByLabel("Language").selectOption("ru");
+  await expect(page.getByRole("link", { name: "Справка" })).toBeVisible();
+
+  for (const width of PARITY_WIDTHS) {
+    await page.setViewportSize({ width, height: 900 });
+    expect(await headerHeight(), `header height at ${String(width)}px`).toBe(english.get(width));
+  }
+});

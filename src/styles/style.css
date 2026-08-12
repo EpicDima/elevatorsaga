@@ -353,13 +353,35 @@ dl dd {
   --shell-width: 960px;
 }
 
+/*
+ * The title, and under it the row of tools.
+ *
+ * A column rather than the two at opposite ends of one wrapping row, because
+ * side by side they shared a line only while both fitted -- and how much they
+ * measure is a fact about the language being read. The title and the tools come
+ * to 1190.9px in English and 1326.4px in Russian, against the 1220px the shell
+ * is ever willing to give them, so at a desk English got a 60px header and
+ * Russian a 115px one. Switching language dropped the whole page 55px, on the
+ * same screen, with nothing else about it changed.
+ *
+ * Stacked, no measurement decides anything: there are two rows because there are
+ * two children, in every language and at every width. Swept in Chromium at every
+ * width from 320px to 1440px, English and Russian used to disagree at 430 of the
+ * 1121 -- the widest screen included -- and now disagree at 215, none of them
+ * above 674px. Below that the words are simply longer and need more lines, which
+ * is not something a stylesheet gets to fix.
+ *
+ * The trade is 87px of header at a desk where English had 60; Russian gets 28px
+ * back. What does not change is the one place the height still grows as the
+ * window widens: at 761px the title comes off the phone-sized rule at the foot
+ * of this file and takes the header from 70.27px to 87px. That reversal is a
+ * breakpoint doing what it was asked to, and it now happens at the same width
+ * and by the same amount in both languages, which is the part that was wrong.
+ */
 .header {
   display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 15px;
-  min-block-size: 60px;
+  flex-direction: column;
+  gap: 5px;
 }
 
 .header h1 {
@@ -379,11 +401,11 @@ dl dd {
  * game page in Russian. English fits either way, which is why the page that
  * ships in English never showed it.
  *
- * Bisected with the line in place: the three links take two rows from 320px up
- * to 458px and a single row from 459px, and the document overflows at neither
- * 320px nor 390px. `e2e/reflow.spec.ts` measures the Russian game page now, so
- * this cannot come back the way it arrived — by being true only of a language
- * nobody tested.
+ * Swept with the line in place: the three links take two rows up to 367px in
+ * English and up to 404px in Russian, one row above that, and the document
+ * overflows at no width from 320px to 1440px in either language.
+ * `e2e/reflow.spec.ts` measures the Russian game page now, so this cannot come
+ * back the way it arrived — by being true only of a language nobody tested.
  */
 .header nav {
   display: flex;
@@ -402,33 +424,29 @@ dl dd {
 .header .tutoriallink {
   padding-inline: 4px;
   font-size: 20px;
-  line-height: 50px;
+  line-height: 32px;
 }
 
 /*
- * The right-hand end of the header: the help links and the language picker.
+ * The header's second row: the way into the learning track, the help links and
+ * the language picker.
  *
- * A wrapper rather than a third child of `.header`, because that row is laid
- * out with `justify-content: space-between` -- which puts the first child at one
- * end, the last at the other and everything else evenly between them, so a bare
- * `<select>` would have taken the title's right-hand neighbour's place and left
- * the links stranded in the middle of the row.
+ * A wrapper rather than three more children of `.header`, which is what makes
+ * the header two rows rather than four. The rule above stacks whatever it is
+ * given, so the grouping is the layout here, not a hint about it.
  *
- * `center` rather than the `baseline` the header itself uses: the links carry a
- * 50px line box and the picker is a 30px control, so aligning their baselines
- * hangs the picker off the bottom of the row. Centring costs nothing at the
- * header's own alignment, which reads the wrapper's first item -- the links --
- * exactly as it read them when they were the child.
+ * `center`, because the links carry a 32px line box and the picker is a 30px
+ * control: left to the baseline they would agree on, the picker hangs off the
+ * bottom of the row by the difference between a link's descender and a
+ * `<select>`'s.
  *
  * `wrap`, because the picker has to be allowed to fall under the links rather
- * than push the page wider than the screen. Bisected in Chromium: the two share
- * a row down to 477px and the picker takes a row of its own at 476px and below,
- * where the links alone are already 347px against a 456px content box. The
- * header measured 60px at 1280, 80.3px at 760 and 113.5px at 500 both before
- * this control existed and after, and 158.5px at 420 and 190.5px at 360 and 320
- * against 113.5px and 145.5px before -- the 45px being the control plus the row
- * gap. Nothing overflows sideways at any width from 320px up, which is the part
- * that would have been a defect rather than a cost.
+ * than push the page wider than the screen. Swept in Chromium: the four sit on
+ * one row down to 675px in Russian and 608px in English, and nothing overflows
+ * sideways at any width from 320px up, which is the part that would have been a
+ * defect rather than a cost. Those two thresholds are the same as they were when
+ * this wrapper stood at the end of a row shared with the title -- once the tools
+ * wrap, they get the whole width either way.
  *
  * A phone paying a row for it is the trade this takes. The alternative is
  * hiding the picker below some width, and the reader most likely to need a
@@ -1576,18 +1594,9 @@ pre code {
     --editor-height: 240px;
   }
 
-  .header {
-    min-block-size: 0;
-  }
-
   .header h1 {
     font-size: 1.6em;
     line-height: 1.3;
-  }
-
-  .header nav a,
-  .header .tutoriallink {
-    line-height: 1.6;
   }
 
   .help p,

@@ -96,10 +96,10 @@ test("opens the track from the header link, in the language on screen", async ({
   await expect(link).toBeVisible();
 
   await page.setViewportSize({ width: 320, height: 800 });
-  // Where the 50px line height above is wrong: it is there to centre a link in
-  // a header bar that a phone does not have, and on two wrapped rows it is
-  // 100px of empty header before the game. The nav's links are let down to 1.6
-  // at this width and this one has to come with them.
+  // And on the same line box as the links it sits among, which is what stops
+  // three wrapped rows of header standing between a phone and the game. It used
+  // to be 50px here, a height that centres a link in a bar the header no longer
+  // is; the row has its own line now, so 32px is what every width gets.
   await expect(link).toBeVisible();
   await expect(link).toHaveCSS("line-height", "32px");
 
