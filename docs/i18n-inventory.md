@@ -1,55 +1,45 @@
 # Localisation inventory
 
-Every string the game shows a player, the key it now has in `src/i18n/`, and where it is
-still hardcoded. This is the checklist for wiring the catalogue into the page — part map of
-work to do, part record of work done.
+Every string the game shows a player, the key it has in `src/i18n/`, and what reads that key.
+Part map of the catalogue, part record of the decisions the wiring took and the reasons behind
+them.
 
-**Wiring status.** Ninety-three of the 209 keys are live, and the mechanism is finished.
-The game draws itself from the catalogue: the challenge bar, the building, the statistics
-panel, the feedback overlay, the editor's own messages and every error a player's code can
-raise call `t` at the moment they are drawn. So does the page shell — `index.html` carries
-`data-i18n` attributes that `src/ui/localise-page.ts` rewrites once a catalogue is in
-memory. So does start-up: `src/main.ts:63` awaits `applyPreferredLocale`, which resolves
-the language from `#lang=`, storage and `navigator.languages`, fetches that catalogue and
-writes the shell before anything is drawn, so nothing is ever shown in one language and
-replaced in another.
+## How this file is anchored
 
-What is left is 116 keys in three places, none of which is the mechanism:
+**There are no `file.ts:123` pins here, on purpose.** The version this replaces carried 237 of
+them, and they had started to rot where nobody would notice: it sent a reader to
+`src/app/app.ts:207` for a console line that is now on line 315, and to `index.html:4` for an
+`<html>` element that is now on line 2. That is the failure mode that matters — not a pin that
+is obviously broken, but one that lands somewhere plausible and wrong — and the only way to keep
+237 of them true is to re-pin the file after every commit that inserts a line anywhere. So a
+reference here is a file name plus something that can be grepped: a message key, an exported
+symbol, a CSS selector. `docs/fork-survey.md` was converted to the same convention first, after
+the same kind of failure.
 
-- the 81 `docs.*` keys, which nothing calls, because `documentation.html` and
-  `documentation.ru.html` still answer for that page as two static files rather than one
-  document translated at run time — see _Known overlap_, which is now a decision deferred
-  rather than a decision pending, since `src/page.test.ts` holds the two in step;
-- the 32 `completion.*` keys, which `src/ui/completions.ts` cannot use because it has never
-  imported `t` at all — its `info` prose is still 32 English strings in module-scope const
-  arrays. This is task #60, and it is the last place the import-time trap below is live;
-- `editor.defaultCode.code`, which exists translated in both catalogues and has no call
-  site, because `src/ui/default-code.ts` still carries the same program in English as
-  `DEFAULT_CODE`. This is task #61.
+**Counts come with the command that produced them.** Where this file says how many of anything
+there are, the command is next to the number, so the next reader re-derives it in a second
+instead of trusting a figure whose age they cannot tell.
 
-There is also no language picker: `page.language.label` is in the catalogue and has no
-element to name, so a reader changes language by changing the browser's, or by putting
-`#lang=ru` in the address bar.
+**What is machine-checked, and what is not.** The catalogues check each other, and several
+tests hold the catalogue against what draws from it — see _What guards what_ at the end. What
+nothing checks is this file: no test reads it, so every table below is prose and can go quietly
+out of date. _What guards what_ says precisely which test would close that, and it has not been
+written.
 
-Rows below are marked **wired** where the call site already reads from the catalogue.
-
-The catalogue holds **209 keys**, in two locales: `src/i18n/en.ts` is the reference — its
-text is the English wording, extracted verbatim — and `src/i18n/ru.ts` is the Russian
-translation. The types make English the shape everything else is measured against: a
-Russian catalogue missing a key, carrying a key that English does not have, or giving a
-plural message the wrong number of forms is a compile error, not a runtime surprise.
+Everything here was re-measured against the tree on **12 August 2026**.
 
 ## The module
 
-| File                    | What it is                                                                                                                                                     |
-| ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `src/i18n/locale.ts`    | `Locale`, `LOCALES`, `DEFAULT_LOCALE`, `LOCALE_NAMES`, `isLocale`, `htmlLang`                                                                                  |
-| `src/i18n/format.ts`    | `Intl` wrappers: `quantity`, `decimal`, `seconds`, `formatNumber`, `formatValue`, `formatTimeOfDay`, `selectPlural`, `interpolate`, `PLURAL_CATEGORIES`        |
-| `src/i18n/catalogue.ts` | `MessageKey`, `MessageCatalogue<L>`, `MessageParams<K>`, `MessageArgs<K>`, `translate`                                                                         |
-| `src/i18n/en.ts`        | `EN_MESSAGES` — the reference locale                                                                                                                           |
-| `src/i18n/ru.ts`        | `RU_MESSAGES` — the Russian catalogue, with its glossary at the top                                                                                            |
-| `src/i18n/detect.ts`    | `resolveLocale`, `browserLocaleSources`, `localeFromQuery`, `readStoredLocale`, `storeLocale`, `localeFromLanguages`, `LOCALE_QUERY_KEY`, `LOCALE_STORAGE_KEY` |
-| `src/i18n/index.ts`     | `t`, `translateIn`, `getLocale`, `setLocale`, `loadLocale`, `isLocaleLoaded`, `format`, `formatTime`, `CATALOGUE_LOADERS`                                      |
+| File                     | What it is                                                                                                                                                                                                                                                                 |
+| ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/i18n/locale.ts`     | `Locale`, `LOCALES`, `DEFAULT_LOCALE`, `LOCALE_NAMES`, `isLocale`, `htmlLang`                                                                                                                                                                                              |
+| `src/i18n/format.ts`     | `Intl` wrappers: `quantity`, `decimal`, `exact`, `seconds`, `formatNumber`, `formatValue`, `formatList`, `formatTimeOfDay`, `selectPlural`, `interpolate`, `PLURAL_CATEGORIES`, and the types `Quantity`, `ParamValue`, `Countable`, `PluralCategory<L>`, `PluralForms<L>` |
+| `src/i18n/catalogue.ts`  | `MessageKey`, `MessageCatalogue<L>`, `MessageParams<K>`, `MessageArgs<K>`, `translate`                                                                                                                                                                                     |
+| `src/i18n/en.ts`         | `EN_MESSAGES` — the reference locale                                                                                                                                                                                                                                       |
+| `src/i18n/ru.ts`         | `RU_MESSAGES` — the Russian catalogue, with its glossary and its translation rules at the top                                                                                                                                                                              |
+| `src/i18n/detect.ts`     | `resolveLocale`, `browserLocaleSources`, `localeFromQuery`, `readStoredLocale`, `storeLocale`, `localeFromLanguages`, `LOCALE_QUERY_KEY`, `LOCALE_STORAGE_KEY`, `LocaleSources`                                                                                            |
+| `src/i18n/index.ts`      | `t`, `translateIn`, `getLocale`, `setLocale`, `loadLocale`, `isLocaleLoaded`, `format`, `formatTime`, `formatList`, `CATALOGUE_LOADERS`, and a re-export of everything above except `RU_MESSAGES` — deliberately, since a re-export is a static import                     |
+| `src/i18n/test-setup.ts` | No exports. Vitest's one setup file, named as `setupFiles` in `vite.config.ts`: it awaits every catalogue before a test file's first line, because catalogues are fetched rather than bundled and a dozen test files say `setLocale("ru")` and assert about Russian next   |
 
 Calling it looks like this:
 
@@ -60,430 +50,563 @@ t("game.button.start"); // "Start" / "Старт"
 t("game.elevator.label", { number: 3 }); // "Elevator 3" / "Лифт 3"
 t("challenge.people.html", { count: 5 }); // 5 people / 5 пассажиров
 format(seconds(60)); // "60s" / "60 с"
-setLocale("ru"); // everything after this renders in Russian
+setLocale("ru"); // everything drawn after this renders in Russian
 ```
 
-The parameters are named and typed per key: `t("game.elevator.label")` with no arguments,
-or with `{ floor: 3 }` instead of `{ number: 3 }`, does not compile. Counts go through
-`Intl.PluralRules`, which is why Russian gets four forms and not two — 1 пассажир,
-2 пассажира, 5 пассажиров, 1,5 пассажира — and numbers go through `Intl.NumberFormat`,
-which is why Russian gets `1,5` and a non-breaking space before a unit.
+The parameters are named and typed per key: `t("game.elevator.label")` with no arguments, or
+with `{ floor: 3 }` instead of `{ number: 3 }`, does not compile. Counts go through
+`Intl.PluralRules`, which is why Russian gets four forms where English gets two —
+`challenge.sandbox.spawnRate.html` renders 1 пассажир, 2 пассажира, 5 пассажиров, 1,5 пассажира
+— and numbers go through `Intl.NumberFormat`, which is why Russian gets `1,5` and a
+non-breaking space before a unit.
+
+The Russian counted phrases are not always in the dictionary form, and `src/i18n/ru.ts` says why
+at length under _Numerals_: they have to be grammatical in the sentence they are built into.
+After «Перевезите» the noun is accusative, so `challenge.people.html` reads 1 пассажира rather
+than the nominative 1 пассажир.
 
 ## How to read the tables
 
-- **Key** — what to pass to `t`.
-- **Where** — `file:line`, re-pinned against commit `2f357de`. For a wired row that is the
-  call site: the `t(...)` that renders the message, or the element whose `data-i18n`
-  attribute names it. For a row that is not wired it is the English itself, still written
-  out where the wiring will have to find it. Line numbers rot, and 174 of the 209 rows had
-  to be moved in this pass — `challenge.sandbox.spawnRate.html` by 67 lines, `editor.label`
-  by 471 — so search for the key, or for the text, if a line has moved again.
-- **English** — the reference wording, trimmed to one line and shortened past 110
-  characters. `src/i18n/en.ts` is the authority, not this column.
-- **Notes** — plural categories, the parameters the message takes, and anything about the
-  call site the wiring has to respect.
+- **Key** — what to pass to `t`, and the only address a row has. Where the message is used is
+  the heading it sits under; to find the call site, grep for the key.
+- **English** — the reference wording, shortened to fit: whitespace collapsed to one line, long
+  values cut and marked `…`, markup dropped unless the row is about the markup, and a `.code`
+  block reduced to as much as makes it recognisable. Where a message has plural forms this is
+  the `other` form. `src/i18n/en.ts` is the authority, not this column — nothing here is quotable
+  as the message.
+- **Notes** — plural categories, the parameters the message takes, and anything about the call
+  site that whoever edits the message has to respect.
 
 Key names carry two suffixes that mean something:
 
-- `.html` — the value contains markup and is meant for `innerHTML` or a `raw()`
-  interpolation. Every other key is plain text for `textContent` or an attribute.
-- `.code` — the value is example code. Only its `//` comments are translated; the code
-  itself is byte-identical in every locale, and a test enforces that.
+- `.html` — the value is trusted markup, for `innerHTML` or a `raw()` interpolation. Everything
+  in one comes from this repository; nothing a player wrote is ever interpolated into one. Every
+  other key is plain text for `textContent`, an attribute or `confirm()`.
+- `.code` — the value is example code. Only its `//` comments are translated; the code itself is
+  byte-identical in every locale, and `src/i18n/catalogue.test.ts` enforces that rather than
+  trusting it.
 
 ## Where the strings are
 
-| File                             | Strings | Status                |
-| -------------------------------- | ------- | --------------------- |
-| `documentation.html`             | 81      | hardcoded             |
-| `src/ui/completions.ts`          | 32      | hardcoded (#60)       |
-| `index.html`                     | 31      | **29 wired**          |
-| `src/ui/templates.ts`            | 18      | **wired**             |
-| `src/game/challenges.ts`         | 14      | **wired**             |
-| `src/ui/presenters.ts`           | 7       | **wired**             |
-| `src/app/fitness.ts`             | 6       | **wired**             |
-| `src/main.ts`                    | 4       | **wired**             |
-| `src/app/app.ts`                 | 4       | **wired**             |
-| `src/game/elevator-interface.ts` | 4       | **wired**             |
-| `src/game/fitness.ts`            | 3       | **wired**             |
-| `src/game/user-code.ts`          | 2       | **wired**             |
-| `src/ui/editor.ts`               | 1       | **wired**             |
-| `src/ui/default-code.ts`         | 1       | hardcoded (#61)       |
-| `src/game/movable.ts`            | 1       | **wired**             |
-| nowhere yet                      | 1       | `page.language.label` |
-| **Total**                        | **209** | **93 wired**          |
+The catalogue holds **272 keys** in two locales. `src/i18n/en.ts` is the reference — its text is
+the English wording, extracted verbatim — and `src/i18n/ru.ts` is the Russian translation. The
+types make English the shape everything else is measured against: a Russian catalogue missing a
+key, carrying a key English does not have, or giving a plural message the wrong number of forms
+is a compile error, not a runtime surprise.
 
-Two of `index.html`'s thirty-one are not counted as wired, for different reasons.
-`page.noscript` is unreachable by design — a browser with scripting on parses the children
-of `<noscript>` as text, so there is no element to write into, and a browser with scripting
-off has nothing to write with; the key is kept for the day the build renders the shell per
-language, and `index.html` says so where the message is. `page.language.label` names a
-control nobody has built yet.
+```sh
+grep -cE '^  "[^"]+":' src/i18n/en.ts                                   # 272
+grep -oE '^  "[^"]+"' src/i18n/en.ts | tr -d '"' | cut -d. -f1 | sort | uniq -c | sort -rn
+```
 
-`src/main.ts` gained a string rather than losing one: `fitness.measuring` is set on the
-panel beside the editor, which is this file's business, so its call site moved here out of
-`src/app/fitness.ts` when the benchmark stopped touching the document.
+| Prefix         | Keys    | What reads them                                                                                          |
+| -------------- | ------- | -------------------------------------------------------------------------------------------------------- |
+| `docs.*`       | 82      | one of them, `docs.basics.example.code`, by `src/ui/completions.ts`; the other 81 by nothing             |
+| `tutorial.*`   | 62      | `src/ui/tutorial-panel.ts`, `src/ui/templates.ts`, `src/app/app.ts`                                      |
+| `completion.*` | 32      | `src/ui/completions.ts`                                                                                  |
+| `page.*`       | 31      | `index.html`, through `data-i18n` and `data-i18n-attr`; `page.noscript` excepted, see below              |
+| `game.*`       | 26      | `src/ui/templates.ts` (18), `src/ui/presenters.ts` (4), `src/app/app.ts` (4)                             |
+| `challenge.*`  | 14      | `src/game/challenges.ts`                                                                                 |
+| `fitness.*`    | 10      | `src/app/fitness.ts`, `src/game/fitness.ts`, `src/main.ts`                                               |
+| `error.*`      | 10      | `src/game/elevator-interface.ts`, `src/ui/presenters.ts`, `src/game/user-code.ts`, `src/game/movable.ts` |
+| `editor.*`     | 5       | `src/main.ts`, `src/ui/editor.ts`, `src/ui/default-code.ts`                                              |
+| **Total**      | **272** |                                                                                                          |
+
+Which keys nothing reads:
+
+```sh
+grep -oE '^  "[^"]+"' src/i18n/en.ts | tr -d '"' | while read -r key; do
+  grep -rqF --exclude=en.ts --exclude=ru.ts --exclude='*.test.ts' -e "$key" index.html src || echo "$key"
+done
+```
+
+It lists **81 keys, every one of them `docs.*`**. Two things it cannot see, both of which make it
+optimistic rather than pessimistic: it matches text rather than calls, so a key that is a prefix
+of another key counts as read whenever the longer one is, and a key named only in a comment
+counts as read too. `page.noscript` is the second case — nothing renders it, and `index.html`
+names it in a comment saying so — which makes the true figure 82. It also needs
+`src/ui/tutorial-panel.ts` to be in the tree, since that file is what reads the 48
+`tutorial.task*` messages.
+
+**`page.noscript` cannot be wired, and the comment in `index.html` is the reason.** A browser
+running this code parses the children of `<noscript>` as text rather than as elements, so in the
+only situation where the message could be replaced there is nothing there to replace; and a
+browser with scripting off has nothing running to replace it with. The key is kept for the day
+the build renders the shell per language.
+`src/ui/localise-page.test.ts`, in "leaves the noscript message in English, where it cannot be
+reached", pins that: it parses the page with `DOMParser`, which _does_ see the paragraph, and
+requires `localisePage` to leave it alone even in Russian.
+
+**The 81 `docs.*` keys have no call site because the reference page answers for itself.**
+`documentation.html` and `documentation.ru.html` are two static files rather than one document
+translated at run time. That duplication is deliberate and no longer silent — see _Known
+overlap_ at the end, and `src/page.test.ts`, which holds the two pages and the two catalogues in
+step.
 
 ## The strings
 
-### index.html — 31 strings, 29 wired
+### `index.html` — the page shell, 31 `page.*` keys
 
-| Key                            | Where               | English                                                                                                         | Notes                                                                                                                                 |
-| ------------------------------ | ------------------- | --------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| `page.title`                   | index.html:14       | Elevator Saga - the elevator programming game                                                                   | **wired**; also the `og:title` at index.html:39                                                                                       |
-| `page.description`             | index.html:18       | Elevator Saga is a programming game: write JavaScript to transport people efficiently.                          | **wired**; also the `og:description` at index.html:44                                                                                 |
-| `page.imageAlt`                | index.html:50       | Four elevators carrying people between six floors, with the JavaScript program driving them in the editor belo… | **wired**; an `alt` attribute                                                                                                         |
-| `page.skipLink`                | index.html:63       | Skip to the code editor                                                                                         | **wired**                                                                                                                             |
-| `page.brand`                   | index.html:68       | Elevator Saga                                                                                                   | **wired**                                                                                                                             |
-| `page.tagline`                 | index.html:69       | The elevator programming game                                                                                   | **wired**                                                                                                                             |
-| `page.nav.label`               | index.html:71       | Help and reference                                                                                              | **wired**; an `aria-label`                                                                                                            |
-| `page.nav.help`                | index.html:72       | Help                                                                                                            | **wired**                                                                                                                             |
-| `page.nav.documentation`       | index.html:73       | Documentation                                                                                                   | **wired**                                                                                                                             |
-| `page.nav.wiki`                | index.html:74       | Wiki & Solutions                                                                                                | **wired**                                                                                                                             |
-| `page.noscript`                | index.html:89       | Your browser does not appear to support JavaScript. This page contains a browser-based programming game implem… | not wired, and cannot be: see the note under _Where the strings are_                                                                  |
-| `page.world.label`             | index.html:110      | Building                                                                                                        | **wired**; an `aria-label`                                                                                                            |
-| `page.stats.label`             | index.html:125      | Simulation statistics                                                                                           | **wired**; an `aria-label`                                                                                                            |
-| `page.stats.transported`       | index.html:128      | Transported                                                                                                     | **wired**                                                                                                                             |
-| `page.stats.elapsedTime`       | index.html:132      | Elapsed time                                                                                                    | **wired**                                                                                                                             |
-| `page.stats.transportedPerSec` | index.html:136      | Transported/s                                                                                                   | **wired**                                                                                                                             |
-| `page.stats.avgWaitTime`       | index.html:140      | Avg waiting time                                                                                                | **wired**                                                                                                                             |
-| `page.stats.maxWaitTime`       | index.html:144      | Max waiting time                                                                                                | **wired**                                                                                                                             |
-| `page.stats.moves`             | index.html:151      | Moves                                                                                                           | **wired**                                                                                                                             |
-| `page.stats.movesTitle`        | index.html:152      | One move is counted each time a car crosses the halfway mark between one floor and the next                     | **wired**; a `title` attribute on the same cell as `page.stats.moves`                                                                 |
-| `page.hint.html`               | index.html:167      | In the editor: <kbd data-mod-key>Ctrl</kbd>+<kbd>Enter</kbd> applies your program. <kbd data-mod-key>Ctrl</kbd… | **wired**; markup; `localisePage` calls `labelModifierKeys` last, having just overwritten the `<kbd data-mod-key>` labels it rewrites |
-| `page.button.reset`            | index.html:174      | Reset                                                                                                           | **wired**                                                                                                                             |
-| `page.button.undoReset`        | index.html:175      | Undo reset                                                                                                      | **wired**                                                                                                                             |
-| `page.button.save`             | index.html:190      | Save                                                                                                            | **wired**                                                                                                                             |
-| `page.button.apply`            | index.html:191      | Apply                                                                                                           | **wired**                                                                                                                             |
-| `page.helpNote.html`           | index.html:196      | Confused? Open the <a href="documentation.html">Help and API documentation</a> page                             | **wired**; markup                                                                                                                     |
-| `page.footer.credits`          | index.html:201      | Made by Magnus Wolffelt and contributors                                                                        | **wired**                                                                                                                             |
-| `page.footer.version`          | index.html:208      | Version                                                                                                         | **wired**                                                                                                                             |
-| `page.footer.source.html`      | index.html:211      | <a href="https://github.com/EpicDima/elevatorsaga">Source code</a> on GitHub, forked from <a href="https://git… | **wired**; markup                                                                                                                     |
-| `page.footer.licences.html`    | index.html:216      | <a href="licenses.txt">Licences</a> for the game and everything it bundles                                      | **wired**; markup                                                                                                                     |
-| `page.language.label`          | not yet in the page | Language                                                                                                        | the label of the picker nobody has built; its options are `LOCALE_NAMES`, never translated                                            |
+The shell ships its English in the markup and names the message beside it: `data-i18n` for an
+element's words, `data-i18n-attr="attribute:key"` for its attributes. `src/ui/localise-page.ts`
+walks the document and rewrites both, at start-up and again after every language change.
 
-`page.helpNote.html` is the one link the page shell cannot redirect for a reader, because the
-href lives inside the message. The Russian entry therefore points at `documentation.ru.html`
-rather than `documentation.html`; every other cross-page link is markup and belongs to
-whoever builds the nav.
+| Key                            | English                                                                                                        | Notes                                                                                                                       |
+| ------------------------------ | -------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| `page.title`                   | Elevator Saga - the elevator programming game                                                                  | twice: the `<title>`, and the `og:title` meta                                                                               |
+| `page.description`             | Elevator Saga is a programming game: write JavaScript to transport people efficiently.                         | twice: the `description` meta, and the `og:description` one                                                                 |
+| `page.imageAlt`                | Four elevators carrying people between six floors, with the JavaScript program driving them in the editor bel… | the `og:image:alt` meta                                                                                                     |
+| `page.skipLink`                | Skip to the code editor                                                                                        |                                                                                                                             |
+| `page.brand`                   | Elevator Saga                                                                                                  | first half of the one `<h1>`; see _What could not be keyed cleanly_                                                         |
+| `page.tagline`                 | The elevator programming game                                                                                  | second half of the same `<h1>`                                                                                              |
+| `page.nav.label`               | Help and reference                                                                                             | an `aria-label`                                                                                                             |
+| `page.nav.help`                | Help                                                                                                           | also carries `data-i18n-doc=""`, so the link follows the language and lands at the top                                      |
+| `page.nav.documentation`       | Documentation                                                                                                  | also carries `data-i18n-doc="docs"`                                                                                         |
+| `page.nav.wiki`                | Wiki & Solutions                                                                                               | an external link; not retargeted                                                                                            |
+| `page.language.label`          | Language                                                                                                       | the `aria-label` of the picker's `<select>`; its options are `LOCALE_NAMES` and are never translated                        |
+| `page.noscript`                | Your browser does not appear to support JavaScript. This page contains a browser-based programming game imple… | the one key with no element, and it cannot have one: see _Where the strings are_                                            |
+| `page.world.label`             | Building                                                                                                       | an `aria-label`                                                                                                             |
+| `page.stats.label`             | Simulation statistics                                                                                          | an `aria-label`                                                                                                             |
+| `page.stats.transported`       | Transported                                                                                                    |                                                                                                                             |
+| `page.stats.elapsedTime`       | Elapsed time                                                                                                   |                                                                                                                             |
+| `page.stats.transportedPerSec` | Transported/s                                                                                                  |                                                                                                                             |
+| `page.stats.avgWaitTime`       | Avg waiting time                                                                                               |                                                                                                                             |
+| `page.stats.maxWaitTime`       | Max waiting time                                                                                               |                                                                                                                             |
+| `page.stats.moves`             | Moves                                                                                                          |                                                                                                                             |
+| `page.stats.movesTitle`        | One move is counted each time a car crosses the halfway mark between one floor and the next                    | a `title` attribute on the same cell as `page.stats.moves`                                                                  |
+| `page.hint.html`               | In the editor: `<kbd data-mod-key>`Ctrl`</kbd>`+`<kbd>`Enter`</kbd>` applies your program. …                   | markup; `localisePage` calls `labelModifierKeys` last, having just overwritten with `innerHTML` the `<kbd>` labels it fixes |
+| `page.button.reset`            | Reset                                                                                                          |                                                                                                                             |
+| `page.button.undoReset`        | Undo reset                                                                                                     |                                                                                                                             |
+| `page.button.save`             | Save                                                                                                           |                                                                                                                             |
+| `page.button.apply`            | Apply                                                                                                          |                                                                                                                             |
+| `page.helpNote.html`           | Confused? Open the `<a href="documentation.html">`Help and API documentation`</a>` page                        | markup; the only link whose target is inside the message — the Russian names `documentation.ru.html`                        |
+| `page.footer.credits`          | Made by Magnus Wolffelt and contributors                                                                       |                                                                                                                             |
+| `page.footer.version`          | Version                                                                                                        | the number beside it comes from `package.json`, through `src/ui/version.ts`                                                 |
+| `page.footer.source.html`      | `<a href="https://github.com/EpicDima/elevatorsaga">`Source code`</a>` on GitHub, forked from …                | markup                                                                                                                      |
+| `page.footer.licences.html`    | `<a href="licenses.txt">`Licences`</a>` for the game and everything it bundles                                 | markup; `licenses.txt` is generated into `dist/` by `vite.config.ts`                                                        |
 
-### documentation.html — 81 strings, none wired
+`page.helpNote.html` is the one link the shell cannot retarget from outside, because the `href`
+lives inside the message. Every other link into the reference page is an element of the shell and
+carries `data-i18n-doc` instead; `src/ui/documentation-links.ts` rewrites those from the attribute on
+every language change, which is why the header's two links no longer send a Russian reader to the
+English page. That module's own header explains why the mapping lives in `src/ui/` and not in
+`src/i18n/locale.ts`: `locale.ts` describes the languages the game speaks, this describes the
+files the build emits, and the two sets are allowed to differ.
 
-Nothing calls a `docs.*` key. The Where column here is the English itself, in the static
-page, and the Russian of every row is already written in `src/i18n/ru.ts` and already on
-screen in `documentation.ru.html` — see _Known overlap_.
+### `documentation.html` — the reference page, 82 `docs.*` keys
 
-| Key                                                 | Where                  | English                                                                                                         | Notes                                                  |
-| --------------------------------------------------- | ---------------------- | --------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------ |
-| `docs.page.title`                                   | documentation.html:6   | Elevator Saga - help and API documentation                                                                      |                                                        |
-| `docs.page.description`                             | documentation.html:7   | Help and API documentation for Elevator Saga.                                                                   |                                                        |
-| `docs.page.tagline`                                 | documentation.html:7   | Help and API documentation                                                                                      |                                                        |
-| `docs.nav.label`                                    | documentation.html:27  | Game                                                                                                            |                                                        |
-| `docs.nav.back`                                     | documentation.html:28  | Back to the game                                                                                                |                                                        |
-| `docs.about.heading`                                | documentation.html:36  | About the game                                                                                                  |                                                        |
-| `docs.about.p1.html`                                | documentation.html:38  | This is a game of programming!<br /> Your task is to program the movement of elevators, by writing a program i… | markup                                                 |
-| `docs.about.p2.html`                                | documentation.html:43  | The goal is to transport people in an efficient manner.<br /> Depending on how well you do it, you can progres… | markup                                                 |
-| `docs.play.heading`                                 | documentation.html:49  | How to play                                                                                                     |                                                        |
-| `docs.play.apply.html`                              | documentation.html:51  | Enter your code in the input window below the game view, and press the <span class="emphasis-color">Apply</spa… | markup; takes `{increase}`, `{decrease}`               |
-| `docs.play.statistics.html`                         | documentation.html:91  | Beside the building is a panel that keeps score while a run is going. Most of it says what it is; <span class=… | markup                                                 |
-| `docs.play.shortcuts.html`                          | documentation.html:98  | Inside the editor, <kbd data-mod-key>Ctrl</kbd>+<kbd>Enter</kbd> applies your program and restarts the challen… | markup; same `data-mod-key` caveat as `page.hint.html` |
-| `docs.play.debugging.html`                          | documentation.html:103 | If your program contains an error, you can use the developer tools in your web browser to try and debug it. If… | markup                                                 |
-| `docs.basics.heading`                               | documentation.html:114 | Basics                                                                                                          |                                                        |
-| `docs.basics.declare.html`                          | documentation.html:116 | Your code must declare an object containing at least two functions called <span class="emphasis-color">init</s… | markup                                                 |
-| `docs.basics.example.code`                          | documentation.html:120 | {                                                                                                               | code; only the comments are translated                 |
-| `docs.basics.called.html`                           | documentation.html:130 | These functions will then be called by the game during the challenge.<br /> <span class="emphasis-color">init<… | markup                                                 |
-| `docs.basics.initPurpose.html`                      | documentation.html:135 | Normally you will put most of your code in the <span class="emphasis-color">init</span> function, to set up ev… | markup                                                 |
-| `docs.basics.noLibraries.html`                      | documentation.html:139 | The game used to load jQuery and lodash, so older solutions you find on the wiki often call <span class="empha… | markup                                                 |
-| `docs.examples.heading`                             | documentation.html:161 | Code examples                                                                                                   |                                                        |
-| `docs.examples.control.heading`                     | documentation.html:162 | How to control an elevator                                                                                      |                                                        |
-| `docs.examples.goToFloor`                           | documentation.html:168 | Tell the elevator to move to floor 1 after completing other tasks, if any. A request for the floor already at … |                                                        |
-| `docs.examples.currentFloor`                        | documentation.html:177 | Calling currentFloor gets the floor number that the elevator currently is on. Note that this is a rounded numb… |                                                        |
-| `docs.examples.events.heading`                      | documentation.html:183 | Listening for events                                                                                            |                                                        |
-| `docs.examples.events.intro.html`                   | documentation.html:185 | It is possible to listen for events, like when stopping at a floor, or a button has been pressed. Elevators an… | markup                                                 |
-| `docs.examples.idle`                                | documentation.html:197 | Listen for the "idle" event issued by the elevator, when the task queue has been emptied and the elevator is d… |                                                        |
-| `docs.examples.floorButtonPressed`                  | documentation.html:204 | Listen for the "floor_button_pressed" event, issued when a passenger pressed a button inside the elevator. Thi… |                                                        |
-| `docs.examples.upButtonPressed`                     | documentation.html:211 | Listen for the "up_button_pressed" event, issued when a passenger pressed the up button on the floor they are … |                                                        |
-| `docs.api.heading`                                  | documentation.html:217 | API documentation                                                                                               |                                                        |
-| `docs.table.method`                                 | documentation.html:232 | Method                                                                                                          |                                                        |
-| `docs.table.property`                               | documentation.html:332 | Property                                                                                                        |                                                        |
-| `docs.table.event`                                  | documentation.html:582 | Event                                                                                                           |                                                        |
-| `docs.table.type`                                   | documentation.html:333 | Type                                                                                                            |                                                        |
-| `docs.table.explanation`                            | documentation.html:233 | Explanation                                                                                                     |                                                        |
-| `docs.table.example`                                | documentation.html:234 | Example                                                                                                         |                                                        |
-| `docs.api.events.heading`                           | documentation.html:219 | Event methods                                                                                                   |                                                        |
-| `docs.api.events.intro`                             | documentation.html:221 | Every elevator and every floor is an event emitter, and these are the methods it gives you. They all return th… |                                                        |
-| `docs.api.events.on`                                | documentation.html:242 | Register a listener. Listeners run in the order they were registered, and the same function may be registered … |                                                        |
-| `docs.api.events.once`                              | documentation.html:258 | Register a listener that runs at most once and is then removed. It is removed before it runs, so triggering th… |                                                        |
-| `docs.api.events.one.html`                          | documentation.html:271 | The older name for <span class="emphasis-color">once</span>, and the one the original game gave you. Same beha… | markup                                                 |
-| `docs.api.events.off.html`                          | documentation.html:283 | Remove listeners. With a function, removes just that function, however it was registered; without one, removes… | markup                                                 |
-| `docs.api.events.off.example.code`                  | documentation.html:292 | function goHome() { elevator.goToFloor(0); }                                                                    | code; only the comments are translated                 |
-| `docs.api.events.offAll.html`                       | documentation.html:303 | Remove every listener <em>you</em> registered, for every event, on that elevator or floor. The listeners the g… | markup                                                 |
-| `docs.api.events.outro.html`                        | documentation.html:317 | You rarely need to remove listeners: the elevators and floors are thrown away when a challenge restarts, and y… | markup                                                 |
-| `docs.api.elevator.heading`                         | documentation.html:322 | Elevator object                                                                                                 |                                                        |
-| `docs.api.elevator.goToFloor.html`                  | documentation.html:344 | Queue the elevator to go to specified floor number. If you specify true as second argument, the elevator will … | markup                                                 |
-| `docs.api.elevator.goToFloor.example.code`          | documentation.html:356 | elevator.goToFloor(3); // Do it after anything else -- queue: 3                                                 | code; only the comments are translated                 |
-| `docs.api.elevator.stop`                            | documentation.html:368 | Clear the destination queue and stop the elevator if it is moving. Note that you normally don't need to stop e… |                                                        |
-| `docs.api.elevator.currentFloor`                    | documentation.html:381 | Gets the floor number that the elevator currently is on.                                                        |                                                        |
-| `docs.api.elevator.currentFloor.example.code`       | documentation.html:383 | if(elevator.currentFloor() === 0) {                                                                             | code; only the comments are translated                 |
-| `docs.api.elevator.goingUpIndicator`                | documentation.html:393 | Gets or sets the going up indicator, which will affect passenger behaviour when stopping at floors.             |                                                        |
-| `docs.api.elevator.goingDownIndicator`              | documentation.html:408 | Gets or sets the going down indicator, which will affect passenger behaviour when stopping at floors.           |                                                        |
-| `docs.api.elevator.maxPassengerCount`               | documentation.html:423 | Gets the maximum number of passengers that can occupy the elevator at the same time.                            |                                                        |
-| `docs.api.elevator.maxPassengerCount.example.code`  | documentation.html:428 | if(elevator.maxPassengerCount() > 5) {                                                                          | code; only the comments are translated                 |
-| `docs.api.elevator.loadFactor`                      | documentation.html:438 | Gets the load factor of the elevator. 0 means empty, 1 means full. Varies with passenger weights, which vary -… |                                                        |
-| `docs.api.elevator.loadFactor.example.code`         | documentation.html:443 | if(elevator.loadFactor() < 0.4) {                                                                               | code; only the comments are translated                 |
-| `docs.api.elevator.isFull`                          | documentation.html:453 | Gets whether every spot in the elevator is taken. Use this rather than comparing loadFactor to 1 - passenger w… |                                                        |
-| `docs.api.elevator.isFull.example.code`             | documentation.html:460 | if(!elevator.isFull()) {                                                                                        | code; only the comments are translated                 |
-| `docs.api.elevator.isEmpty`                         | documentation.html:470 | Gets whether the elevator is carrying nobody at all. Not the opposite of isFull - an elevator with one passeng… |                                                        |
-| `docs.api.elevator.isEmpty.example.code`            | documentation.html:475 | if(elevator.isEmpty()) {                                                                                        | code; only the comments are translated                 |
-| `docs.api.elevator.isApproachingFloor`              | documentation.html:496 | Gets whether the elevator is moving toward the given floor and has not passed it yet. Only the direction of tr… |                                                        |
-| `docs.api.elevator.isApproachingFloor.example.code` | documentation.html:508 | if(elevator.isApproachingFloor(2)) {                                                                            | code; only the comments are translated                 |
-| `docs.api.elevator.destinationDirection`            | documentation.html:485 | Gets the direction the elevator is currently going to move toward. Can be "up", "down" or "stopped".            |                                                        |
-| `docs.api.elevator.destinationQueue`                | documentation.html:518 | The current destination queue, meaning the floor numbers the elevator is scheduled to go to. Can be modified a… |                                                        |
-| `docs.api.elevator.checkDestinationQueue`           | documentation.html:538 | Checks the destination queue for any new destinations to go to. Note that you only need to call this if you mo… |                                                        |
-| `docs.api.elevator.getPressedFloors`                | documentation.html:549 | Gets the currently pressed floor numbers as an array.                                                           |                                                        |
-| `docs.api.elevator.getPressedFloors.example.code`   | documentation.html:551 | if(elevator.getPressedFloors().length > 0) {                                                                    | code; only the comments are translated                 |
-| `docs.api.elevator.idle`                            | documentation.html:592 | Triggered when the elevator has completed all its tasks and is not doing anything.                              |                                                        |
-| `docs.api.elevator.floorButtonPressed`              | documentation.html:603 | Triggered when a passenger has pressed a button inside the elevator.                                            |                                                        |
-| `docs.api.elevator.floorButtonPressed.example.code` | documentation.html:606 | elevator.on("floor_button_pressed", function(floorNum) {                                                        | code; only the comments are translated                 |
-| `docs.api.elevator.passingFloor`                    | documentation.html:615 | Triggered slightly before the elevator will pass a floor. A good time to decide whether to stop at that floor.… |                                                        |
-| `docs.api.elevator.stoppedAtFloor`                  | documentation.html:626 | Triggered when the elevator has arrived at a floor.                                                             |                                                        |
-| `docs.api.elevator.stoppedAtFloor.example.code`     | documentation.html:628 | elevator.on("stopped_at_floor", function(floorNum) {                                                            | code; only the comments are translated                 |
-| `docs.api.floor.heading`                            | documentation.html:636 | Floor object                                                                                                    |                                                        |
-| `docs.api.floor.floorNum`                           | documentation.html:656 | Gets the floor number of the floor object.                                                                      |                                                        |
-| `docs.api.floor.upButtonPressed`                    | documentation.html:694 | Triggered when someone has pressed the up button at a floor. Note that passengers will press the button again … |                                                        |
-| `docs.api.floor.upButtonPressed.example.code`       | documentation.html:700 | floor.on("up_button_pressed", function(floor) {                                                                 | code; only the comments are translated                 |
-| `docs.api.floor.downButtonPressed`                  | documentation.html:709 | Triggered when someone has pressed the down button at a floor. Note that passengers will press the button agai… |                                                        |
-| `docs.api.floor.downButtonPressed.example.code`     | documentation.html:715 | floor.on("down_button_pressed", function(floor) {                                                               | code; only the comments are translated                 |
-| `docs.api.floor.buttonStateChange.html`             | documentation.html:724 | Triggered when either call button at a floor was lit or cleared. The handler is passed the state of both butto… | markup                                                 |
-| `docs.api.floor.buttonStateChange.example.code`     | documentation.html:734 | floor.on("buttonstate_change", function(buttonStates) {                                                         | code; only the comments are translated                 |
+One of these is read. The editor's skeleton completion inserts `docs.basics.example.code`, so
+the program the popup offers and the program the help page walks through are the same bytes in
+whichever language the reader is in; it is filed here rather than under `src/ui/completions.ts`
+because this is where its wording is decided, and the popup borrows it. The other 81 have no
+call site: their English is on screen in `documentation.html` and their Russian in
+`documentation.ru.html`. `src/page.test.ts` holds every one of them to being the same text as
+the passage it was lifted from, in both languages, and its "leaves no docs.\* message unchecked"
+case makes sure no key escapes that comparison.
 
-### src/ui/templates.ts — 18 strings, all wired
+| Key                                                 | English                                                                                                         | Notes                                                                                                                              |
+| --------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `docs.page.title`                                   | Elevator Saga - help and API documentation                                                                      |                                                                                                                                    |
+| `docs.page.description`                             | Help and API documentation for Elevator Saga.                                                                   |                                                                                                                                    |
+| `docs.page.tagline`                                 | Help and API documentation                                                                                      |                                                                                                                                    |
+| `docs.nav.label`                                    | Game                                                                                                            |                                                                                                                                    |
+| `docs.nav.back`                                     | Back to the game                                                                                                |                                                                                                                                    |
+| `docs.about.heading`                                | About the game                                                                                                  |                                                                                                                                    |
+| `docs.about.p1.html`                                | This is a game of programming! Your task is to program the movement of elevators, by writing a program …        | markup                                                                                                                             |
+| `docs.about.p2.html`                                | The goal is to transport people in an efficient manner. Depending on how well you do it, you can progre…        | markup                                                                                                                             |
+| `docs.play.heading`                                 | How to play                                                                                                     |                                                                                                                                    |
+| `docs.play.apply.html`                              | Enter your code in the input window below the game view, and press the Apply button …                           | markup; takes `{increase}`, `{decrease}` — the two icon names                                                                      |
+| `docs.play.statistics.html`                         | Beside the building is a panel that keeps score while a run is going. Most of it says what it is; …             | markup                                                                                                                             |
+| `docs.play.shortcuts.html`                          | Inside the editor, Ctrl+Enter applies your program and restarts the challenge …                                 | markup; same `data-mod-key` caveat as `page.hint.html`                                                                             |
+| `docs.play.debugging.html`                          | If your program contains an error, you can use the developer tools in your web browser to try and debug it. …   | markup                                                                                                                             |
+| `docs.basics.heading`                               | Basics                                                                                                          |                                                                                                                                    |
+| `docs.basics.declare.html`                          | Your code must declare an object containing at least two functions called init …                                | markup                                                                                                                             |
+| `docs.basics.example.code`                          | { init: function(elevators, floors) { // Do stuff with the elevators and floors, which are both arrays of obj…  | code; only the comments are translated; the one `docs.*` key with a call site — `src/ui/completions.ts` inserts it as the skeleton |
+| `docs.basics.called.html`                           | These functions will then be called by the game during the challenge. init …                                    | markup                                                                                                                             |
+| `docs.basics.initPurpose.html`                      | Normally you will put most of your code in the init function, to set up ev…                                     | markup                                                                                                                             |
+| `docs.basics.noLibraries.html`                      | The game used to load jQuery and lodash, so older solutions you find on the wiki often call …                   | markup                                                                                                                             |
+| `docs.examples.heading`                             | Code examples                                                                                                   |                                                                                                                                    |
+| `docs.examples.control.heading`                     | How to control an elevator                                                                                      |                                                                                                                                    |
+| `docs.examples.goToFloor`                           | Tell the elevator to move to floor 1 after completing other tasks, if any. A request for the floor already at … |                                                                                                                                    |
+| `docs.examples.currentFloor`                        | Calling currentFloor gets the floor number that the elevator currently is on. Note that this is a rounded numb… |                                                                                                                                    |
+| `docs.examples.events.heading`                      | Listening for events                                                                                            |                                                                                                                                    |
+| `docs.examples.events.intro.html`                   | It is possible to listen for events, like when stopping at a floor, or a button has been pressed. …             | markup                                                                                                                             |
+| `docs.examples.idle`                                | Listen for the "idle" event issued by the elevator, when the task queue has been emptied and the elevator is d… |                                                                                                                                    |
+| `docs.examples.floorButtonPressed`                  | Listen for the "floor_button_pressed" event, issued when a passenger pressed a button inside the elevator. Thi… |                                                                                                                                    |
+| `docs.examples.upButtonPressed`                     | Listen for the "up_button_pressed" event, issued when a passenger pressed the up button on the floor they are … |                                                                                                                                    |
+| `docs.examples.events.perElevator.html`             | Every elevator has its own events, so a handler registered on one elevator only ever hears that elevator: …     | markup; answers the fork survey's most-repeated complaint, that only the last elevator responds                                    |
+| `docs.api.heading`                                  | API documentation                                                                                               |                                                                                                                                    |
+| `docs.table.method`                                 | Method                                                                                                          |                                                                                                                                    |
+| `docs.table.property`                               | Property                                                                                                        |                                                                                                                                    |
+| `docs.table.event`                                  | Event                                                                                                           |                                                                                                                                    |
+| `docs.table.type`                                   | Type                                                                                                            |                                                                                                                                    |
+| `docs.table.explanation`                            | Explanation                                                                                                     |                                                                                                                                    |
+| `docs.table.example`                                | Example                                                                                                         |                                                                                                                                    |
+| `docs.api.events.heading`                           | Event methods                                                                                                   |                                                                                                                                    |
+| `docs.api.events.intro`                             | Every elevator and every floor is an event emitter, and these are the methods it gives you. They all return th… |                                                                                                                                    |
+| `docs.api.events.on`                                | Register a listener. Listeners run in the order they were registered, and the same function may be registered … |                                                                                                                                    |
+| `docs.api.events.once`                              | Register a listener that runs at most once and is then removed. It is removed before it runs, so triggering th… |                                                                                                                                    |
+| `docs.api.events.one.html`                          | The older name for once, and the one the original game gave you. Same beha…                                     | markup                                                                                                                             |
+| `docs.api.events.off.html`                          | Remove listeners. With a function, removes just that function, however it was registered; without one, removes… | markup                                                                                                                             |
+| `docs.api.events.off.example.code`                  | function goHome() { elevator.goToFloor(0); }                                                                    | code; only the comments are translated                                                                                             |
+| `docs.api.events.offAll.html`                       | Remove every listener you registered, for every event, on that elevator or floor. The listeners the g…          | markup                                                                                                                             |
+| `docs.api.events.outro.html`                        | You rarely need to remove listeners: the elevators and floors are thrown away when a challenge restarts, and y… | markup                                                                                                                             |
+| `docs.api.elevator.heading`                         | Elevator object                                                                                                 |                                                                                                                                    |
+| `docs.api.elevator.goToFloor.html`                  | Queue the elevator to go to specified floor number. If you specify true as second argument, the elevator will … | markup; the popup borrows its first two sentences as `completion.elevator.goToFloor`                                               |
+| `docs.api.elevator.goToFloor.example.code`          | elevator.goToFloor(3); // Do it after anything else -- queue: 3                                                 | code; only the comments are translated                                                                                             |
+| `docs.api.elevator.stop`                            | Clear the destination queue and stop the elevator if it is moving. Note that you normally don't need to stop e… |                                                                                                                                    |
+| `docs.api.elevator.currentFloor`                    | Gets the floor number that the elevator currently is on.                                                        |                                                                                                                                    |
+| `docs.api.elevator.currentFloor.example.code`       | if(elevator.currentFloor() === 0) {                                                                             | code; only the comments are translated                                                                                             |
+| `docs.api.elevator.goingUpIndicator`                | Gets or sets the going up indicator, which will affect passenger behaviour when stopping at floors.             |                                                                                                                                    |
+| `docs.api.elevator.goingDownIndicator`              | Gets or sets the going down indicator, which will affect passenger behaviour when stopping at floors.           |                                                                                                                                    |
+| `docs.api.elevator.maxPassengerCount`               | Gets the maximum number of passengers that can occupy the elevator at the same time.                            |                                                                                                                                    |
+| `docs.api.elevator.maxPassengerCount.example.code`  | if(elevator.maxPassengerCount() > 5) {                                                                          | code; only the comments are translated                                                                                             |
+| `docs.api.elevator.loadFactor`                      | Gets the load factor of the elevator. 0 means empty, 1 means full. Varies with passenger weights, which vary -… |                                                                                                                                    |
+| `docs.api.elevator.loadFactor.example.code`         | if(elevator.loadFactor() < 0.4) {                                                                               | code; only the comments are translated                                                                                             |
+| `docs.api.elevator.isFull`                          | Gets whether every spot in the elevator is taken. Use this rather than comparing loadFactor to 1 - passenger w… |                                                                                                                                    |
+| `docs.api.elevator.isFull.example.code`             | if(!elevator.isFull()) {                                                                                        | code; only the comments are translated                                                                                             |
+| `docs.api.elevator.isEmpty`                         | Gets whether the elevator is carrying nobody at all. Not the opposite of isFull - an elevator with one passeng… |                                                                                                                                    |
+| `docs.api.elevator.isEmpty.example.code`            | if(elevator.isEmpty()) {                                                                                        | code; only the comments are translated                                                                                             |
+| `docs.api.elevator.isApproachingFloor`              | Gets whether the elevator is moving toward the given floor and has not passed it yet. Only the direction of tr… |                                                                                                                                    |
+| `docs.api.elevator.isApproachingFloor.example.code` | if(elevator.isApproachingFloor(2)) {                                                                            | code; only the comments are translated                                                                                             |
+| `docs.api.elevator.destinationDirection`            | Gets the direction the elevator is currently going to move toward. Can be "up", "down" or "stopped".            |                                                                                                                                    |
+| `docs.api.elevator.destinationQueue`                | The current destination queue, meaning the floor numbers the elevator is scheduled to go to. Can be modified a… |                                                                                                                                    |
+| `docs.api.elevator.checkDestinationQueue`           | Checks the destination queue for any new destinations to go to. Note that you only need to call this if you mo… |                                                                                                                                    |
+| `docs.api.elevator.getPressedFloors`                | Gets the currently pressed floor numbers as an array.                                                           |                                                                                                                                    |
+| `docs.api.elevator.getPressedFloors.example.code`   | if(elevator.getPressedFloors().length > 0) {                                                                    | code; only the comments are translated                                                                                             |
+| `docs.api.elevator.idle`                            | Triggered when the elevator has completed all its tasks and is not doing anything.                              |                                                                                                                                    |
+| `docs.api.elevator.floorButtonPressed`              | Triggered when a passenger has pressed a button inside the elevator.                                            |                                                                                                                                    |
+| `docs.api.elevator.floorButtonPressed.example.code` | elevator.on("floor_button_pressed", function(floorNum) {                                                        | code; only the comments are translated                                                                                             |
+| `docs.api.elevator.passingFloor`                    | Triggered slightly before the elevator will pass a floor. A good time to decide whether to stop at that floor.… |                                                                                                                                    |
+| `docs.api.elevator.stoppedAtFloor`                  | Triggered when the elevator has arrived at a floor.                                                             |                                                                                                                                    |
+| `docs.api.elevator.stoppedAtFloor.example.code`     | elevator.on("stopped_at_floor", function(floorNum) {                                                            | code; only the comments are translated                                                                                             |
+| `docs.api.floor.heading`                            | Floor object                                                                                                    |                                                                                                                                    |
+| `docs.api.floor.floorNum`                           | Gets the floor number of the floor object.                                                                      |                                                                                                                                    |
+| `docs.api.floor.upButtonPressed`                    | Triggered when someone has pressed the up button at a floor. Note that passengers will press the button again … |                                                                                                                                    |
+| `docs.api.floor.upButtonPressed.example.code`       | floor.on("up_button_pressed", function(floor) {                                                                 | code; only the comments are translated                                                                                             |
+| `docs.api.floor.downButtonPressed`                  | Triggered when someone has pressed the down button at a floor. Note that passengers will press the button agai… |                                                                                                                                    |
+| `docs.api.floor.downButtonPressed.example.code`     | floor.on("down_button_pressed", function(floor) {                                                               | code; only the comments are translated                                                                                             |
+| `docs.api.floor.buttonStateChange.html`             | Triggered when either call button at a floor was lit or cleared. The handler is passed the state of both butto… | markup                                                                                                                             |
+| `docs.api.floor.buttonStateChange.example.code`     | floor.on("buttonstate_change", function(buttonStates) {                                                         | code; only the comments are translated                                                                                             |
 
-Every template here renders its words through `t` as it is built, which is why changing
-language mid-run cannot rewrite them: only starting a challenge builds them again.
+### The learning track — 62 `tutorial.*` keys
 
-| Key                         | Where                   | English                                        | Notes                                                     |
-| --------------------------- | ----------------------- | ---------------------------------------------- | --------------------------------------------------------- |
-| `game.floor.callUp`         | src/ui/templates.ts:137 | Call an elevator going up from floor {floor}   | **wired**; takes `{floor}`; an `aria-label`               |
-| `game.floor.callDown`       | src/ui/templates.ts:137 | Call an elevator going down from floor {floor} | **wired**; takes `{floor}`; an `aria-label`               |
-| `game.elevator.label`       | src/ui/templates.ts:148 | Elevator {number}                              | **wired**; takes `{number}`; the car's index plus one     |
-| `game.elevator.floorButton` | src/ui/templates.ts:161 | Go to floor {floor}                            | **wired**; takes `{floor}`                                |
-| `game.challenge.title.html` | src/ui/templates.ts:449 | Challenge #{number}: {description}             | **wired**; markup; takes `{number}`, `{description}`      |
-| `game.timeScale.decrease`   | src/ui/templates.ts:450 | Decrease simulation speed                      | **wired**; an `aria-label`                                |
-| `game.timeScale.increase`   | src/ui/templates.ts:450 | Increase simulation speed                      | **wired**; an `aria-label`                                |
-| `game.feedback.next`        | src/ui/templates.ts:479 | Next challenge                                 | **wired**                                                 |
-| `game.codeStatus`           | src/ui/templates.ts:492 | There is a problem with your code:             | **wired**; the message beside it is the player's own text |
+The track is the eight tasks in `src/game/tutorial.ts`, with ids `tutorial-1` … `tutorial-8`.
+Its prose is the largest single group of keys after the reference page, and it is the one group
+whose messages were committed before anything read them — the prose _is_ the teaching here, so it
+was written into both catalogues first and the panel built against it.
 
-Nine of these were added after the first pass over the file, when the challenge navigation
-row and the seed line landed. They are listed separately only because their notes are longer
-than the table above wants to be:
+Each task owns six keys, numbered by position: `tutorial.taskN.title`, `tutorial.taskN.goal`,
+`tutorial.taskN.hint1.html`, `.hint2.html`, `.hint3.html`, and `tutorial.taskN.explanation.html`
+— 48 in all. `src/ui/tutorial-panel.ts` writes every one of them out as a literal in
+`TUTORIAL_TASK_MESSAGES` and says why in its header: a message key has to reach `t` as a string
+literal, because the parameters a message takes are derived from the literal by `Placeholders<S>`
+in `src/i18n/catalogue.ts`. A key built as ``t(`tutorial.task${n}.title`)`` cannot be
+type-checked, and casting one through would trade the whole point of the typed catalogue for
+brevity — a renamed message would then print its own key at a player instead of failing the
+build. The table is typed `Record<TaskNumber, …>`, so a ninth task's messages added to
+`src/i18n/en.ts` without a row here stops the file compiling.
 
-| Key                        | Where                   | English                                                                                                                                                 | Notes                                                                                                   |
-| -------------------------- | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
-| `game.challenge.nav.label` | src/ui/templates.ts:450 | Challenges                                                                                                                                              | **wired**; the `<nav>`'s accessible name                                                                |
-| `game.challenge.nav.link`  | src/ui/templates.ts:219 | Challenge {number}                                                                                                                                      | **wired**; takes `{number}`; the accessible name of an entry whose visible text is the bare digit       |
-| `game.challenge.nav.demo`  | src/ui/templates.ts:216 | Demo                                                                                                                                                    | **wired**; both the visible label and the accessible name of the endless-demo entry                     |
-| `game.seed.label`          | src/ui/templates.ts:304 | Seed                                                                                                                                                    | **wired**; the word before the number, not a control                                                    |
-| `game.seed.link`           | src/ui/templates.ts:302 | Seed {seed}: start another run from this seed                                                                                                           | **wired**; takes `{seed}`; accessible name of the seed when the URL does not pin it                     |
-| `game.seed.newDraw`        | src/ui/templates.ts:303 | new draw                                                                                                                                                | **wired**; visible label, repeated inside `game.seed.newDrawLink` — WCAG 2.5.3 requires that they match |
-| `game.seed.newDrawLink`    | src/ui/templates.ts:303 | Seed {seed}: new draw, start again without it                                                                                                           | **wired**; takes `{seed}`; accessible name of the control that unpins                                   |
-| `game.seed.helpSummary`    | src/ui/templates.ts:366 | what a seed does                                                                                                                                        | **wired**; the `<summary>` of the caveat disclosure                                                     |
-| `game.seed.explanation`    | src/ui/templates.ts:366 | The same seed brings the same passengers, in the same order. Frame timing comes from the browser, so the run around them is never quite the same twice. | **wired**; a paragraph inside the disclosure, not a tooltip — it used to be a `title` attribute         |
+| Task | `tutorial.taskN.title`               | What the goal asks for                                                                       |
+| ---- | ------------------------------------ | -------------------------------------------------------------------------------------------- |
+| 1    | The elevator that goes nowhere       | visit both floors and deliver 10 passengers within 60 seconds                                |
+| 2    | The same loop, written by hand       | write the `idle` handler yourself; 15 passengers within 60 seconds                           |
+| 3    | The buttons inside the car           | `floor_button_pressed`; 15 passengers within 60 seconds                                      |
+| 4    | The queue nobody read                | the missing `checkDestinationQueue`; 15 passengers within 60 seconds                         |
+| 5    | The building grew                    | hall calls instead of a blind sweep; 15 passengers, nobody waiting over 37 seconds           |
+| 6    | The elevator that lies to passengers | the indicators; 15 passengers, nobody waiting over 28 seconds                                |
+| 7    | The second elevator                  | `elevators.forEach`; 28 passengers within 60 seconds                                         |
+| 8    | From memory                          | the whole program on an empty page; 15 passengers within 60 seconds — challenge 1's building |
 
-The seed itself is a placeholder in both accessible names and never part of the sentence: it
-is the token a player transcribes in order to hand a building to somebody else, so it reads
-identically in every locale. Both names repeat it because an accessible name has to stand on
-its own — "1234567890, link" describes nothing.
+The other fourteen are the panel and the surfaces around it.
 
-### src/ui/presenters.ts — 7 strings, all wired
+| Key                                 | English                                                                                                        | Notes                                                                                                                                           |
+| ----------------------------------- | -------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `tutorial.panel.label`              | Learning track                                                                                                 | twice: the panel's accessible name, and the words on its first line                                                                             |
+| `tutorial.panel.position`           | Task {number} of {count}                                                                                       | takes `{number}`, `{count}`                                                                                                                     |
+| `tutorial.panel.progress`           | {cleared} of {count} tasks done                                                                                | plural (one, other); takes `{cleared}`, `{count}`; the count that decides the form is `{count}`                                                 |
+| `tutorial.panel.hintSummary`        | Hint {number}                                                                                                  | takes `{number}`; the `<summary>` of one of the three hint disclosures                                                                          |
+| `tutorial.panel.explanationSummary` | Why this happens                                                                                               | the `<summary>` of the fourth disclosure                                                                                                        |
+| `tutorial.button.restart`           | Start over                                                                                                     |                                                                                                                                                 |
+| `tutorial.button.takeCode`          | Take this program into your own editor                                                                         |                                                                                                                                                 |
+| `tutorial.button.takeCodeConfirm`   | The game editor already holds a program of yours. Replace it with this one?                                    | a `window.confirm`, asked only when there is something to overwrite                                                                             |
+| `tutorial.button.leave`             | Leave for the challenges                                                                                       |                                                                                                                                                 |
+| `tutorial.bar.title.html`           | Tutorial task {number} of {count}: {description}                                                               | markup; takes `{number}`, `{count}`, `{description}`; the challenge bar's title on the track, counting the track rather than the challenge list |
+| `tutorial.finish.title`             | The track is finished                                                                                          | the overlay after the last task                                                                                                                 |
+| `tutorial.finish.message`           | Eight tasks, and the last of them was challenge 1: the same three floors, the same elevator, the same fifteen… |                                                                                                                                                 |
+| `tutorial.finish.nextTask`          | Next task                                                                                                      | not `game.feedback.next`, which says "Next challenge" — see the note below                                                                      |
+| `tutorial.finish.toChallenges`      | Go to challenge 1 with this program                                                                            | the finish overlay's link out of the track                                                                                                      |
 
-| Key                        | Where                    | English                       | Notes                                                           |
-| -------------------------- | ------------------------ | ----------------------------- | --------------------------------------------------------------- |
-| `game.timeScale.value`     | src/ui/presenters.ts:241 | {value}x                      | takes `{value}`; Russian writes `×`, not the Latin letter x     |
-| `game.button.start`        | src/ui/presenters.ts:352 | Start                         |                                                                 |
-| `game.button.pause`        | src/ui/presenters.ts:353 | Pause                         |                                                                 |
-| `game.button.restart`      | src/ui/presenters.ts:349 | Restart                       | rendered after an icon, as `" Restart"`; keep the leading space |
-| `error.thrown.emptyString` | src/ui/presenters.ts:606 | Thrown empty string           |                                                                 |
-| `error.thrown.noMessage`   | src/ui/presenters.ts:583 | Thrown {kind} with no message | takes `{kind}`                                                  |
-| `error.thrown.keys`        | src/ui/presenters.ts:584 | {kind} with keys: {keys}      | takes `{kind}`, `{keys}`                                        |
+`tutorial.finish.nextTask` and `game.feedback.next` are separate keys although the Russian of both
+would fit as «Следующее задание». Two features sharing one key is a key neither can reword: the
+day the challenge overlay wants different words, the track's overlay changes with it for no
+reason. The Russian of `tutorial.finish.nextTask` is «Следующее учебное задание», which the
+challenge overlay would not want.
 
-### src/app/app.ts — 4 strings, all wired
+### `src/ui/templates.ts` — 18 `game.*` keys
 
-| Key                             | Where              | English                                  | Notes |
-| ------------------------------- | ------------------ | ---------------------------------------- | ----- |
-| `game.feedback.success.title`   | src/app/app.ts:515 | Success!                                 |       |
-| `game.feedback.success.message` | src/app/app.ts:516 | Challenge completed                      |       |
-| `game.feedback.failure.title`   | src/app/app.ts:528 | Challenge failed                         |       |
-| `game.feedback.failure.message` | src/app/app.ts:529 | Maybe your program needs an improvement? |       |
+Every template renders its words through `t` as it is built, which is why a language change
+cannot rewrite them in place: the presenters build them again. `markup` escapes its
+interpolations, so a plain key is interpolated directly and an `.html` key goes through `raw()`.
 
-### src/main.ts — 4 strings, all wired
+| Key                         | English                                                                                                        | Notes                                                                                        |
+| --------------------------- | -------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| `game.floor.callUp`         | Call an elevator going up from floor {floor}                                                                   | takes `{floor}`; an `aria-label`                                                             |
+| `game.floor.callDown`       | Call an elevator going down from floor {floor}                                                                 | takes `{floor}`; an `aria-label`                                                             |
+| `game.elevator.label`       | Elevator {number}                                                                                              | takes `{number}`; the car's index plus one                                                   |
+| `game.elevator.floorButton` | Go to floor {floor}                                                                                            | takes `{floor}`                                                                              |
+| `game.challenge.title.html` | Challenge #{number}: {description}                                                                             | markup; takes `{number}`, `{description}`                                                    |
+| `game.challenge.nav.label`  | Challenges                                                                                                     | the `<nav>`'s accessible name                                                                |
+| `game.challenge.nav.link`   | Challenge {number}                                                                                             | takes `{number}`; the accessible name of an entry whose visible text is the bare digit       |
+| `game.challenge.nav.demo`   | Demo                                                                                                           | both the visible label and the accessible name of the endless-demo entry                     |
+| `game.seed.label`           | Seed                                                                                                           | the word before the number, not a control                                                    |
+| `game.seed.link`            | Seed {seed}: start another run from this seed                                                                  | takes `{seed}`; accessible name of the seed when the URL does not pin it                     |
+| `game.seed.newDraw`         | new draw                                                                                                       | visible label, repeated inside `game.seed.newDrawLink` — WCAG 2.5.3 requires that they match |
+| `game.seed.newDrawLink`     | Seed {seed}: new draw, start again without it                                                                  | takes `{seed}`; accessible name of the control that unpins                                   |
+| `game.seed.helpSummary`     | what a seed does                                                                                               | the `<summary>` of the caveat disclosure                                                     |
+| `game.seed.explanation`     | The same seed brings the same passengers, in the same order. Frame timing comes from the browser, so the run … | a paragraph inside the disclosure, not a tooltip — it used to be a `title` attribute         |
+| `game.timeScale.decrease`   | Decrease simulation speed                                                                                      | an `aria-label`                                                                              |
+| `game.timeScale.increase`   | Increase simulation speed                                                                                      | an `aria-label`                                                                              |
+| `game.feedback.next`        | Next challenge                                                                                                 | the link in the end-of-challenge overlay                                                     |
+| `game.codeStatus`           | There is a problem with your code:                                                                             | the message beside it is the player's own text and is never translated                       |
 
-| Key                       | Where           | English                                                      | Notes                                                                     |
-| ------------------------- | --------------- | ------------------------------------------------------------ | ------------------------------------------------------------------------- |
-| `editor.saved`            | src/main.ts:75  | Code saved {time}                                            | **wired**; takes `{time}`; `formatTime` drops the time zone suffix        |
-| `editor.confirmReset`     | src/main.ts:87  | Do you really want to reset to the default implementation?   | **wired**; a `window.confirm`                                             |
-| `editor.confirmUndoReset` | src/main.ts:93  | Do you want to bring back the code as before the last reset? | **wired**; a `window.confirm`                                             |
-| `fitness.measuring`       | src/main.ts:127 | Measuring fitness...                                         | **wired**; written into the panel beside the editor before the run starts |
+The seed itself is a placeholder in both accessible names and never part of the sentence: it is
+the token a player transcribes in order to hand a building to somebody else, so it reads
+identically in every locale. Both names repeat it because an accessible name has to stand on its
+own — "1234567890, link" describes nothing.
 
-### src/ui/editor.ts — 1 string, wired
+`game.seed.newDraw` appearing inside `game.seed.newDrawLink` is a constraint a translator cannot
+see: the two sit on adjacent lines of a 272-key file and nothing in the file marks them as a
+pair. `src/i18n/catalogue.test.ts`, under _accessible names_, is what holds it — it requires the
+spoken name to contain the visible label in every locale. Rewording «новый розыгрыш» to «новый
+сид» meant changing both, which is exactly the edit where one gets missed.
 
-| Key            | Where                | English          | Notes |
-| -------------- | -------------------- | ---------------- | ----- |
-| `editor.label` | src/ui/editor.ts:754 | Elevator program |       |
+The seed explanation used to be a module constant, `SEED_EXPLANATION`. It is now
+`t("game.seed.explanation")` inside `seedHelpTemplate`, which runs per render — which is the
+point. A `const SEED_EXPLANATION = t(...)` at module scope compiles, reads correctly and freezes
+English at import time; see _Rules the wiring has to keep_.
 
-### src/ui/default-code.ts — 1 string, not wired (#61)
+### `src/ui/presenters.ts` — 4 `game.*` and 3 `error.*` keys
 
-Outstanding, and not because the translation is missing: the Russian of this program is in
-`src/i18n/ru.ts` already, and so is the English. What is missing is the call. `DEFAULT_CODE`
-is a template literal that carries the same program a third time, `src/ui/editor.ts` imports
-that constant, and `editor.defaultCode.code` has no call site anywhere in the tree — so a
-Russian reader who has never saved anything is handed English comments, and the two copies
-can drift apart with nothing to notice. That is task #61.
+| Key                        | English                       | Notes                                                                            |
+| -------------------------- | ----------------------------- | -------------------------------------------------------------------------------- |
+| `game.timeScale.value`     | {value}x                      | takes `{value}`; Russian writes `×`, not the Latin letter x                      |
+| `game.button.start`        | Start                         |                                                                                  |
+| `game.button.pause`        | Pause                         |                                                                                  |
+| `game.button.restart`      | Restart                       | rendered after an icon as `` ` ${t(...)}` ``; the space belongs to the call site |
+| `error.thrown.emptyString` | Thrown empty string           | what the code status bar says when a program throws something with no message    |
+| `error.thrown.noMessage`   | Thrown {kind} with no message | takes `{kind}`                                                                   |
+| `error.thrown.keys`        | {kind} with keys: {keys}      | takes `{kind}`, `{keys}`                                                         |
 
-| Key                       | Where                     | English | Notes                                                    |
-| ------------------------- | ------------------------- | ------- | -------------------------------------------------------- |
-| `editor.defaultCode.code` | src/ui/default-code.ts:15 | {       | code; only the comments are translated; nothing calls it |
+Every figure in the statistics panel goes through `Intl` rather than `toFixed` and `String`:
+`format(seconds(world.elapsedTime))`, `format(quantity(...))` for the per-second rate, and
+`format(seconds(..., 1))` for the two wait times, which is what gives Russian `1,5 с` with a
+non-breaking space instead of `1.5s`.
 
-### src/game/challenges.ts — 14 strings, all wired
+### `src/app/app.ts` — 4 `game.feedback.*` keys
 
-| Key                                             | Where                      | English                                                                                                     | Notes                                                                                                                                   |
-| ----------------------------------------------- | -------------------------- | ----------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| `challenge.transportWithinTime.html`            | src/game/challenges.ts:77  | Transport {people} in {time} or less                                                                        | markup; takes `{people}`, `{time}`                                                                                                      |
-| `challenge.transportWithMaxWait.html`           | src/game/challenges.ts:105 | Transport {people} and let no one wait more than {waitTime}                                                 | markup; takes `{people}`, `{waitTime}`                                                                                                  |
-| `challenge.transportWithinTimeWithMaxWait.html` | src/game/challenges.ts:140 | Transport {people} in {time} or less and let no one wait more than {waitTime}                               | markup; takes `{people}`, `{time}`, `{waitTime}`                                                                                        |
-| `challenge.transportWithinMoves.html`           | src/game/challenges.ts:177 | Transport {people} using {moves} or less                                                                    | markup; takes `{people}`, `{moves}`                                                                                                     |
-| `challenge.demo`                                | src/game/challenges.ts:200 | Perpetual demo                                                                                              |                                                                                                                                         |
-| `challenge.people.html`                         | src/game/challenges.ts:78  | <span class='emphasis-color'>{count}</span> people                                                          | plural (one, other); markup; takes `{count}`; shared by all four challenge sentences                                                    |
-| `challenge.timeLimit.html`                      | src/game/challenges.ts:79  | <span class='emphasis-color'>{count}</span> seconds                                                         | plural (one, other); markup; takes `{count}`                                                                                            |
-| `challenge.waitLimit.html`                      | src/game/challenges.ts:112 | <span class='emphasis-color'>{count}</span> seconds                                                         | plural (one, other); markup; takes `{count}`                                                                                            |
-| `challenge.moveLimit.html`                      | src/game/challenges.ts:179 | <span class='emphasis-color'>{count}</span> elevator moves                                                  | plural (one, other); markup; takes `{count}`                                                                                            |
-| `challenge.sandbox.html`                        | src/game/challenges.ts:265 | Sandbox: {floors}, {elevators} of {capacityLabel} {capacities}, {spawnRate}. No goal, so the run never ends | markup; takes `{floors}`, `{elevators}`, `{capacityLabel}`, `{capacities}`, `{spawnRate}`; composed from the four sandbox phrases below |
-| `challenge.sandbox.floors.html`                 | src/game/challenges.ts:266 | <span class='emphasis-color'>{count}</span> floors                                                          | plural (one, other); markup; takes `{count}`                                                                                            |
-| `challenge.sandbox.elevators.html`              | src/game/challenges.ts:267 | <span class='emphasis-color'>{count}</span> elevators                                                       | plural (one, other); markup; takes `{count}`                                                                                            |
-| `challenge.sandbox.capacityLabel`               | src/game/challenges.ts:271 | capacities                                                                                                  | plural (one, other)                                                                                                                     |
-| `challenge.sandbox.spawnRate.html`              | src/game/challenges.ts:282 | <span class='emphasis-color'>{count}</span> people per second                                               | plural (one, other); markup; takes `{count}`; one English form for both categories, preserving today's `1 people per second`            |
+| Key                             | English                                  | Notes                                                              |
+| ------------------------------- | ---------------------------------------- | ------------------------------------------------------------------ |
+| `game.feedback.success.title`   | Success!                                 |                                                                    |
+| `game.feedback.success.message` | Challenge completed                      |                                                                    |
+| `game.feedback.failure.title`   | Challenge failed                         |                                                                    |
+| `game.feedback.failure.message` | Maybe your program needs an improvement? | not shown on the learning track, where a loss is the first outcome |
 
-### src/ui/completions.ts — 32 strings, none wired (#60)
+The locale preference is not app state and is not kept here beside `TIME_SCALE_STORAGE_KEY`:
+`LOCALE_STORAGE_KEY` and `readStoredLocale` live in `src/i18n/detect.ts`, shaped after
+`readStoredTimeScale` and saying so in a comment.
 
-Outstanding, and the largest thing left that is not the documentation page. The file does
-not import from `src/i18n/` at all: its `info` prose is 32 English string literals inside
-module-scope `const` arrays, so a player typing `elevator.` in the editor is told what the
-method does in English whatever language the rest of the page is in. It is also the last
-place the import-time trap is still live — a module-scope constant is evaluated once, before
-any catalogue is chosen, so simply swapping the literals for `t(...)` would freeze the
-English rather than fix it. Whatever wires this has to defer the read to the moment the
-completion list is built, the way `src/game/challenges.ts` defers its descriptions. That is
-task #60.
+### `src/main.ts` — 4 keys
 
-| Key                                            | Where                     | English                                                                                                         | Notes                                  |
-| ---------------------------------------------- | ------------------------- | --------------------------------------------------------------------------------------------------------------- | -------------------------------------- |
-| `completion.events.on`                         | src/ui/completions.ts:74  | Register a listener. Several event names separated by spaces register the same listener for all of them, and i… |                                        |
-| `completion.events.once`                       | src/ui/completions.ts:80  | Register a listener that runs at most once and is then removed. Takes a single event name.                      |                                        |
-| `completion.events.one`                        | src/ui/completions.ts:86  | The older name for once, and the one the original game gave you. Same behaviour, single event name as well.     |                                        |
-| `completion.events.off`                        | src/ui/completions.ts:92  | Remove listeners. With a function, removes just that function; without one, removes every listener of the name… |                                        |
-| `completion.events.offAll`                     | src/ui/completions.ts:98  | Remove every listener you registered, for every event, on that elevator or floor. The listeners the game itsel… |                                        |
-| `completion.elevator.goToFloor`                | src/ui/completions.ts:118 | Queue the elevator to go to specified floor number. If you specify true as second argument, the elevator will … |                                        |
-| `completion.elevator.stop`                     | src/ui/completions.ts:124 | Clear the destination queue and stop the elevator if it is moving. Note that the elevator will probably not st… |                                        |
-| `completion.elevator.currentFloor`             | src/ui/completions.ts:130 | Gets the floor number that the elevator currently is on. Note that this is a rounded number and does not neces… |                                        |
-| `completion.elevator.goingUpIndicator`         | src/ui/completions.ts:136 | Gets or sets the going up indicator, which will affect passenger behaviour when stopping at floors.             |                                        |
-| `completion.elevator.goingDownIndicator`       | src/ui/completions.ts:142 | Gets or sets the going down indicator, which will affect passenger behaviour when stopping at floors.           |                                        |
-| `completion.elevator.maxPassengerCount`        | src/ui/completions.ts:148 | Gets the maximum number of passengers that can occupy the elevator at the same time.                            |                                        |
-| `completion.elevator.loadFactor`               | src/ui/completions.ts:154 | Gets the load factor of the elevator. 0 means empty, 1 means full. Varies with passenger weights, which vary -… |                                        |
-| `completion.elevator.isFull`                   | src/ui/completions.ts:160 | Gets whether every spot in the elevator is taken. Use this rather than comparing loadFactor to 1 - passenger w… |                                        |
-| `completion.elevator.isEmpty`                  | src/ui/completions.ts:166 | Gets whether the elevator is carrying nobody at all. Not the opposite of isFull - an elevator with one passeng… |                                        |
-| `completion.elevator.destinationDirection`     | src/ui/completions.ts:172 | Gets the direction the elevator is currently going to move toward.                                              |                                        |
-| `completion.elevator.isApproachingFloor`       | src/ui/completions.ts:178 | Gets whether the elevator is moving toward the given floor and has not passed it yet. Only the direction of tr… |                                        |
-| `completion.elevator.destinationQueue`         | src/ui/completions.ts:184 | The current destination queue, meaning the floor numbers the elevator is scheduled to go to. Can be modified a… |                                        |
-| `completion.elevator.checkDestinationQueue`    | src/ui/completions.ts:190 | Checks the destination queue for any new destinations to go to. Note that you only need to call this if you mo… |                                        |
-| `completion.elevator.getPressedFloors`         | src/ui/completions.ts:196 | Gets the currently pressed floor numbers as an array.                                                           |                                        |
-| `completion.floor.floorNum`                    | src/ui/completions.ts:216 | Gets the floor number of the floor object.                                                                      |                                        |
-| `completion.elevator.event.idle`               | src/ui/completions.ts:240 | Triggered when the elevator has completed all its tasks and is not doing anything.                              |                                        |
-| `completion.elevator.event.floorButtonPressed` | src/ui/completions.ts:244 | Triggered when a passenger has pressed a button inside the elevator.                                            |                                        |
-| `completion.elevator.event.passingFloor`       | src/ui/completions.ts:248 | Triggered slightly before the elevator will pass a floor. A good time to decide whether to stop at that floor.… |                                        |
-| `completion.elevator.event.stoppedAtFloor`     | src/ui/completions.ts:252 | Triggered when the elevator has arrived at a floor.                                                             |                                        |
-| `completion.floor.event.upButtonPressed`       | src/ui/completions.ts:266 | Triggered when someone has pressed the up button at a floor. Note that passengers will press the button again … |                                        |
-| `completion.floor.event.downButtonPressed`     | src/ui/completions.ts:270 | Triggered when someone has pressed the down button at a floor. Note that passengers will press the button agai… |                                        |
-| `completion.floor.event.buttonStateChange`     | src/ui/completions.ts:274 | Either call button was lit or cleared.                                                                          |                                        |
-| `completion.global.skeleton`                   | src/ui/completions.ts:340 | Your code must declare an object containing at least two functions called init and update.                      |                                        |
-| `completion.global.init`                       | src/ui/completions.ts:347 | Called when the challenge starts. Normally you will put most of your code in here, to set up event listeners a… |                                        |
-| `completion.global.update`                     | src/ui/completions.ts:354 | Called repeatedly during the challenge. dt is the number of game seconds that passed since the last time updat… |                                        |
-| `completion.initSkeleton.code`                 | src/ui/completions.ts:320 | init: function(elevators, floors) {                                                                             | code; only the comments are translated |
-| `completion.updateSkeleton.code`               | src/ui/completions.ts:325 | update: function(dt, elevators, floors) {                                                                       | code; only the comments are translated |
+| Key                       | English                                                      | Notes                                                          |
+| ------------------------- | ------------------------------------------------------------ | -------------------------------------------------------------- |
+| `editor.saved`            | Code saved {time}                                            | takes `{time}`; `formatTime` drops the time zone suffix        |
+| `editor.confirmReset`     | Do you really want to reset to the default implementation?   | a `window.confirm`                                             |
+| `editor.confirmUndoReset` | Do you want to bring back the code as before the last reset? | a `window.confirm`                                             |
+| `fitness.measuring`       | Measuring fitness...                                         | written into the panel beside the editor before the run starts |
 
-### src/app/fitness.ts — 6 strings, all wired
+`fitness.measuring` is filed here rather than under `src/app/fitness.ts` because that is where it
+is written to the document; the benchmark itself stopped touching the page.
 
-| Key                     | Where                  | English                                                                                                         | Notes                                               |
-| ----------------------- | ---------------------- | --------------------------------------------------------------------------------------------------------------- | --------------------------------------------------- |
-| `fitness.results`       | src/app/fitness.ts:253 | Fitness avg wait times: {results}                                                                               | takes `{results}`                                   |
-| `fitness.result`        | src/app/fitness.ts:249 | {scenario}: {value}                                                                                             | takes `{scenario}`, `{value}`                       |
-| `fitness.unknownValue`  | src/app/fitness.ts:248 | ?                                                                                                               | shown when a scenario produced no average wait time |
-| `fitness.error`         | src/app/fitness.ts:243 | Could not compute fitness due to error: {error}                                                                 | takes `{error}`                                     |
-| `fitness.workerTimeout` | src/app/fitness.ts:159 | The fitness worker did not finish within {seconds} and was stopped. Does your program have a loop that never e… | takes `{seconds}`                                   |
-| `fitness.workerFailed`  | src/app/fitness.ts:187 | The fitness worker failed                                                                                       |                                                     |
+### `src/ui/editor.ts` and `src/ui/default-code.ts` — 2 keys
 
-### src/game/fitness.ts — 3 strings, all wired
+| Key                       | English                                                                                                        | Notes                                  |
+| ------------------------- | -------------------------------------------------------------------------------------------------------------- | -------------------------------------- |
+| `editor.label`            | Elevator program                                                                                               | the editor's `aria-label`              |
+| `editor.defaultCode.code` | { init: function(elevators, floors) { const elevator = elevators[0]; // Let's use the first elevator // Whene… | code; only the comments are translated |
 
-| Key                       | Where                   | English         | Notes |
-| ------------------------- | ----------------------- | --------------- | ----- |
-| `fitness.scenario.small`  | src/game/fitness.ts:118 | Small scenario  |       |
-| `fitness.scenario.medium` | src/game/fitness.ts:127 | Medium scenario |       |
-| `fitness.scenario.large`  | src/game/fitness.ts:137 | Large scenario  |       |
+`defaultCode()` in `src/ui/default-code.ts` is a function and not a constant, for the reason its
+own JSDoc gives: `t` answers for the locale active when it is called, and a module-scope `const`
+would answer for whichever locale happened to be active when the module was first imported. The
+same file's `DEV_TEST_CODE` is deliberately outside the catalogue — nobody reaches it without
+typing `#devtest` into the address bar, and what it is for is checking that the game still plays.
 
-### src/game/user-code.ts — 2 strings, all wired
+### `src/game/challenges.ts` — 14 keys
 
-| Key                   | Where                    | English                              | Notes                                     |
-| --------------------- | ------------------------ | ------------------------------------ | ----------------------------------------- |
-| `error.code.noInit`   | src/game/user-code.ts:53 | Code must contain an init function   | thrown, then shown in the code status bar |
-| `error.code.noUpdate` | src/game/user-code.ts:56 | Code must contain an update function | thrown, then shown in the code status bar |
+| Key                                             | English                                                                                                     | Notes                                                                                                                                   |
+| ----------------------------------------------- | ----------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| `challenge.transportWithinTime.html`            | Transport {people} in {time} or less                                                                        | markup; takes `{people}`, `{time}`                                                                                                      |
+| `challenge.transportWithMaxWait.html`           | Transport {people} and let no one wait more than {waitTime}                                                 | markup; takes `{people}`, `{waitTime}`                                                                                                  |
+| `challenge.transportWithinTimeWithMaxWait.html` | Transport {people} in {time} or less and let no one wait more than {waitTime}                               | markup; takes `{people}`, `{time}`, `{waitTime}`                                                                                        |
+| `challenge.transportWithinMoves.html`           | Transport {people} using {moves} or less                                                                    | markup; takes `{people}`, `{moves}`                                                                                                     |
+| `challenge.demo`                                | Perpetual demo                                                                                              |                                                                                                                                         |
+| `challenge.people.html`                         | `<span class='emphasis-color'>`{count}`</span>` people                                                      | plural (one, other; `one` is "person"); markup; takes `{count}`; shared by all four sentences above                                     |
+| `challenge.timeLimit.html`                      | `<span class='emphasis-color'>`{count}`</span>` seconds                                                     | plural (one, other); markup; takes `{count}`; the accusative «за 30 секунд» in Russian                                                  |
+| `challenge.waitLimit.html`                      | `<span class='emphasis-color'>`{count}`</span>` seconds                                                     | plural (one, other); markup; takes `{count}`; the same English as above and the genitive «дольше 30 секунд» in Russian                  |
+| `challenge.moveLimit.html`                      | `<span class='emphasis-color'>`{count}`</span>` elevator moves                                              | plural (one, other); markup; takes `{count}`                                                                                            |
+| `challenge.sandbox.html`                        | Sandbox: {floors}, {elevators} of {capacityLabel} {capacities}, {spawnRate}. No goal, so the run never ends | markup; takes `{floors}`, `{elevators}`, `{capacityLabel}`, `{capacities}`, `{spawnRate}`; composed from the four sandbox phrases below |
+| `challenge.sandbox.floors.html`                 | `<span class='emphasis-color'>`{count}`</span>` floors                                                      | plural (one, other); markup; takes `{count}`                                                                                            |
+| `challenge.sandbox.elevators.html`              | `<span class='emphasis-color'>`{count}`</span>` elevators                                                   | plural (one, other); markup; takes `{count}`                                                                                            |
+| `challenge.sandbox.capacityLabel`               | capacities                                                                                                  | plural (one, other); counted by how many capacities were listed, not by how many cars there are                                         |
+| `challenge.sandbox.spawnRate.html`              | `<span class='emphasis-color'>`{count}`</span>` people per second                                           | plural (one, other); markup; takes `{count}`; one English form for both categories, preserving today's `1 people per second`            |
 
-### src/game/elevator-interface.ts — 4 strings, all wired
+All six descriptions render through `t` inside a `get description()` on the condition object —
+`requireUserCountWithinTime`, `requireUserCountWithMaxWaitTime`,
+`requireUserCountWithinTimeWithMaxWaitTime`, `requireUserCountWithinMoves`, `requireDemo` and
+`requireSandbox`. A getter and not a constant, for the reason under _Rules the wiring has to
+keep_. The sandbox's numbers all go through `exact`, because they came out of the address bar and
+the default three significant digits would round `spawnrate=0.0625` to `0.063`.
 
-| Key                             | Where                              | English                                                                                                         | Notes                                                                    |
-| ------------------------------- | ---------------------------------- | --------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
-| `error.elevator.notAFloor`      | src/game/elevator-interface.ts:438 | elevator.{method} was called with {value}, which is not a floor number. It takes a finite number, and this bui… | takes `{method}`, `{value}`, `{topFloor}`                                |
-| `error.elevator.queueNotAFloor` | src/game/elevator-interface.ts:404 | elevator.destinationQueue contained {value}, which is not a floor number. The entry was dropped so the elevato… | takes `{value}`, `{topFloor}`                                            |
-| `error.value.array`             | src/game/elevator-interface.ts:109 | an array                                                                                                        | goes into `error.elevator.notAFloor` and `error.elevator.queueNotAFloor` |
-| `error.value.object`            | src/game/elevator-interface.ts:112 | an object                                                                                                       | goes into `error.elevator.notAFloor` and `error.elevator.queueNotAFloor` |
+### `src/ui/completions.ts` — 32 `completion.*` keys
 
-### src/game/movable.ts — 1 string, wired
+The editor's completion popup. Only the `info` prose is keyed: a `label` is an identifier the
+popup inserts into the player's program and a `detail` is that identifier's signature, so both
+stay English in every language — completing `goToFloor` into anything else would be suggesting
+code that does not exist.
 
-| Key                  | Where                  | English                                  | Notes |
-| -------------------- | ---------------------- | ---------------------------------------- | ----- |
-| `error.movable.busy` | src/game/movable.ts:49 | Object is busy - you should use callback |       |
+The tables in this module hold keys rather than rendered entries, and `elevatorMembers` and its
+neighbours turn them into completions per call. That shape is not decoration: the module is
+imported long before the player's language is resolved, so a module-scope constant holding
+rendered prose would be English for the rest of the session whatever the page around it said.
+`challenges.ts` repairs the same fault with `get description()` and `default-code.ts` with a
+nullary function.
+
+| Key                                            | English                                                                                                        | Notes                                                                         |
+| ---------------------------------------------- | -------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| `completion.events.on`                         | Register a listener. Several event names separated by spaces register the same listener for all of them, and … |                                                                               |
+| `completion.events.once`                       | Register a listener that runs at most once and is then removed. Takes a single event name.                     |                                                                               |
+| `completion.events.one`                        | The older name for once, and the one the original game gave you. Same behaviour, single event name as well.    |                                                                               |
+| `completion.events.off`                        | Remove listeners. With a function, removes just that function; without one, removes every listener of the nam… |                                                                               |
+| `completion.events.offAll`                     | Remove every listener you registered, for every event, on that elevator or floor. The listeners the game itse… |                                                                               |
+| `completion.elevator.goToFloor`                | Queue the elevator to go to specified floor number. If you specify true as second argument, the elevator will… | the first two sentences of `docs.api.elevator.goToFloor.html`, without markup |
+| `completion.elevator.stop`                     | Clear the destination queue and stop the elevator if it is moving. Note that the elevator will probably not s… |                                                                               |
+| `completion.elevator.currentFloor`             | Gets the floor number that the elevator currently is on. Note that this is a rounded number and does not nece… |                                                                               |
+| `completion.elevator.goingUpIndicator`         | Gets or sets the going up indicator, which will affect passenger behaviour when stopping at floors.            |                                                                               |
+| `completion.elevator.goingDownIndicator`       | Gets or sets the going down indicator, which will affect passenger behaviour when stopping at floors.          |                                                                               |
+| `completion.elevator.maxPassengerCount`        | Gets the maximum number of passengers that can occupy the elevator at the same time.                           |                                                                               |
+| `completion.elevator.loadFactor`               | Gets the load factor of the elevator. 0 means empty, 1 means full. Varies with passenger weights, which vary … |                                                                               |
+| `completion.elevator.isFull`                   | Gets whether every spot in the elevator is taken. Use this rather than comparing loadFactor to 1 - passenger … |                                                                               |
+| `completion.elevator.isEmpty`                  | Gets whether the elevator is carrying nobody at all. Not the opposite of isFull - an elevator with one passen… |                                                                               |
+| `completion.elevator.destinationDirection`     | Gets the direction the elevator is currently going to move toward.                                             |                                                                               |
+| `completion.elevator.isApproachingFloor`       | Gets whether the elevator is moving toward the given floor and has not passed it yet. Only the direction of t… |                                                                               |
+| `completion.elevator.destinationQueue`         | The current destination queue, meaning the floor numbers the elevator is scheduled to go to. Can be modified … |                                                                               |
+| `completion.elevator.checkDestinationQueue`    | Checks the destination queue for any new destinations to go to. Note that you only need to call this if you m… |                                                                               |
+| `completion.elevator.getPressedFloors`         | Gets the currently pressed floor numbers as an array.                                                          |                                                                               |
+| `completion.floor.floorNum`                    | Gets the floor number of the floor object.                                                                     |                                                                               |
+| `completion.elevator.event.idle`               | Triggered when the elevator has completed all its tasks and is not doing anything.                             |                                                                               |
+| `completion.elevator.event.floorButtonPressed` | Triggered when a passenger has pressed a button inside the elevator.                                           |                                                                               |
+| `completion.elevator.event.passingFloor`       | Triggered slightly before the elevator will pass a floor. A good time to decide whether to stop at that floor… |                                                                               |
+| `completion.elevator.event.stoppedAtFloor`     | Triggered when the elevator has arrived at a floor.                                                            |                                                                               |
+| `completion.floor.event.upButtonPressed`       | Triggered when someone has pressed the up button at a floor. Note that passengers will press the button again… |                                                                               |
+| `completion.floor.event.downButtonPressed`     | Triggered when someone has pressed the down button at a floor. Note that passengers will press the button aga… |                                                                               |
+| `completion.floor.event.buttonStateChange`     | Either call button was lit or cleared.                                                                         |                                                                               |
+| `completion.global.skeleton`                   | Your code must declare an object containing at least two functions called init and update.                     | the entry whose `apply` is `docs.basics.example.code`                         |
+| `completion.global.init`                       | Called when the challenge starts. Normally you will put most of your code in here, to set up event listeners…  |                                                                               |
+| `completion.global.update`                     | Called repeatedly during the challenge. dt is the number of game seconds that passed since the last time upda… |                                                                               |
+| `completion.initSkeleton.code`                 | init: function(elevators, floors) {                                                                            | code; only the comments are translated                                        |
+| `completion.updateSkeleton.code`               | update: function(dt, elevators, floors) {                                                                      | code; only the comments are translated                                        |
+
+### `src/app/fitness.ts` and `src/game/fitness.ts` — 10 `fitness.*` keys
+
+| Key                       | English                                                                                                        | Notes                                                        |
+| ------------------------- | -------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| `fitness.results`         | Fitness avg wait times: {results}                                                                              | takes `{results}`                                            |
+| `fitness.result`          | {scenario}: {value}                                                                                            | takes `{scenario}`, `{value}`                                |
+| `fitness.unknownValue`    | ?                                                                                                              | shown when a scenario produced no average wait time          |
+| `fitness.error`           | Could not compute fitness due to error: {error}                                                                | takes `{error}`; read from both files                        |
+| `fitness.workerTimeout`   | The fitness worker did not finish within {seconds} and was stopped. Does your program have a loop that never … | takes `{seconds}`                                            |
+| `fitness.workerFailed`    | The fitness worker failed                                                                                      |                                                              |
+| `fitness.scenario.small`  | Small scenario                                                                                                 | `src/game/fitness.ts`; rendered inside the worker            |
+| `fitness.scenario.medium` | Medium scenario                                                                                                | `src/game/fitness.ts`                                        |
+| `fitness.scenario.large`  | Large scenario                                                                                                 | `src/game/fitness.ts`                                        |
+| `fitness.measuring`       | Measuring fitness...                                                                                           | `src/main.ts`; listed above with the editor's other messages |
+
+The `?` and the `{scenario}: {value}` line it goes into are separate keys rather than one string
+with a hole in it, so neither locale has to make "?" agree with a sentence it did not write. The
+`s` that used to be appended to `avgWaitTime.toPrecision(3)` now goes through
+`format(seconds(...))`, which is what puts the non-breaking space in `60 с`.
+
+### `src/game/user-code.ts`, `src/game/elevator-interface.ts`, `src/game/movable.ts` — 7 `error.*` keys
+
+Everything a player's own program can make the game say.
+
+| Key                             | English                                                                                                        | Notes                                                                    |
+| ------------------------------- | -------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| `error.code.noInit`             | Code must contain an init function                                                                             | thrown, then shown in the code status bar                                |
+| `error.code.noUpdate`           | Code must contain an update function                                                                           | thrown, then shown in the code status bar                                |
+| `error.elevator.notAFloor`      | elevator.{method} was called with {value}, which is not a floor number. It takes a finite number, and this bu… | takes `{method}`, `{value}`, `{topFloor}`                                |
+| `error.elevator.queueNotAFloor` | elevator.destinationQueue contained {value}, which is not a floor number. The entry was dropped so the elevat… | takes `{value}`, `{topFloor}`                                            |
+| `error.value.array`             | an array                                                                                                       | goes into `error.elevator.notAFloor` and `error.elevator.queueNotAFloor` |
+| `error.value.object`            | an object                                                                                                      | goes into `error.elevator.notAFloor` and `error.elevator.queueNotAFloor` |
+| `error.movable.busy`            | Object is busy - you should use callback                                                                       | `src/game/movable.ts`                                                    |
+
+`error.value.array` and `error.value.object` are the pattern Russian punishes: a sentence built
+around a noun chosen at run time. The first Russian frame read «В elevator.destinationQueue
+попало {value}» — a neuter verb in front of a hole that a player fills with «массив», which is
+masculine, by writing `elevator.destinationQueue = [[1, 2]]`. Both frames were rewritten so that
+the verb agrees with its own subject and never with `{value}`, and `{value}` lands in the
+accusative, which for an inanimate masculine noun is spelled like the nominative; `src/i18n/ru.ts`
+carries that reasoning beside the two keys. Prefer whole sentences per key; where composition is
+unavoidable, write the frame so that no choice of insert can make it ungrammatical, and test it
+with an insert that has a gender — `NaN` is spelled the same in every case and gender, so it
+proves nothing.
 
 ## Deliberately not translated
 
-Not everything a string literal holds is a message to a player. These were looked at and
-left in English on purpose; translating them would cost work and buy nothing, and in some
-cases would do harm.
+Not everything a string literal holds is a message to a player. These were looked at and left in
+English on purpose; translating them would cost work and buy nothing, and in some cases would do
+harm.
 
-| Where                                                                                                  | What                                                                                                                                | Why                                                                                                                                                        |
-| ------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `src/app/app.ts:207`, `src/game/world-controller.ts:196`                                               | `World raised code error`, `Usercode error on update`                                                                               | `console` diagnostics. The player sees the same failure translated in the code status bar; the console line is for whoever is reading a stack next to it.  |
-| `src/game/movable.ts:168`                                                                              | `Attempt to use movable while it was busy`                                                                                          | `console` diagnostic accompanying `error.movable.busy`, which _is_ keyed.                                                                                  |
-| `src/game/observable.ts:181`                                                                           | `Event error handler threw while reporting`                                                                                         | `console` diagnostic about the game's own error reporting failing.                                                                                         |
-| `src/app/fitness.ts:122`                                                                               | `Fitness worker creation failed, running on the main thread instead`                                                                | `console` diagnostic; the player sees only the result.                                                                                                     |
-| `src/game/elevator.ts:497`                                                                             | The `getFirstPressedFloor` deprecation warning                                                                                      | Addressed to code, quoting an API name, and printed once per session. This row said `destinationDirection` until now, and never matched the line it cited. |
-| `src/app/router.ts:444, 543, 569, 586, 623, 650, 683, 691, 731, 756`                                   | The ten URL parameter warnings                                                                                                      | Addressed to whoever hand-wrote the URL, quoting parameter names that are themselves English.                                                              |
-| `src/ui/dom.ts:39`, `src/ui/templates.ts:118`, `src/ui/presenters.ts:116`                              | `Missing required element`, `Expected markup describing exactly one element`, `Expected the user template to render an SVG element` | Invariants. If a player ever reads one, the bug is that it was thrown, not that it was in English.                                                         |
-| `src/game/fitness.ts:85`                                                                               | `No requirement`                                                                                                                    | The benchmark's placeholder condition. Nothing renders a challenge bar during a benchmark, so it never reaches a screen.                                   |
-| `src/ui/completions.ts` `detail` and `label` fields                                                    | `(floorNum, directly)`, `elevator.goToFloor`, …                                                                                     | Signatures and identifiers. The editor completes real API names; translating them would suggest code that does not exist. Only the `info` prose is keyed.  |
-| `src/ui/shortcuts.ts:24`                                                                               | `⌘` / `Ctrl`                                                                                                                        | Key names. Russian keyboards are labelled `Ctrl` too.                                                                                                      |
-| `index.html:4`, `index.html:5`, `documentation.html:4`                                                 | `charset`, `viewport`                                                                                                               | Machine values, not prose.                                                                                                                                 |
-| `documentation.html:31`                                                                                | `Русский`                                                                                                                           | A language's own name. `LOCALE_NAMES` in `src/i18n/locale.ts` holds these; they are the same in every locale by definition.                                |
-| `documentation.html:202`, `documentation.html:209`, and the other one-line snippets in _Code examples_ | `elevator.on("floor_button_pressed", function(floorNum) { ... } );`                                                                 | Code with no comments in it. Nothing to translate.                                                                                                         |
-| `src/game/test-helpers.ts`, `*.test.ts`, `e2e/`                                                        | Test messages                                                                                                                       | Read by whoever ran the tests.                                                                                                                             |
-| `licenses.txt`                                                                                         | Licence texts                                                                                                                       | Legal texts are quoted, not translated.                                                                                                                    |
+| Where                                                                                                        | What                                                                                                                                | Why                                                                                                                                                                                                                                                      |
+| ------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/app/app.ts`, the `usercode_error` subscription; `src/game/world-controller.ts`, `handleUserCodeError`   | `World raised code error`, `Usercode error on update`                                                                               | `console` diagnostics. The player sees the same failure translated in the code status bar; the console line is for whoever is reading a stack beside it.                                                                                                 |
+| `src/game/movable.ts`, `makeSureNotBusy`                                                                     | `Attempt to use movable while it was busy`                                                                                          | `console` diagnostic accompanying `error.movable.busy`, which _is_ keyed.                                                                                                                                                                                |
+| `src/game/observable.ts`, `report`                                                                           | `Event error handler threw while reporting`                                                                                         | `console` diagnostic about the game's own error reporting failing.                                                                                                                                                                                       |
+| `src/app/fitness.ts`, `tryCreateWorker`                                                                      | `Fitness worker creation failed, running on the main thread instead`                                                                | `console` diagnostic; the player sees only the result.                                                                                                                                                                                                   |
+| `src/i18n/index.ts`, the `catch` inside `loadLocale`                                                         | `Could not load the ru messages; staying in en`                                                                                     | `console` diagnostic about the translation machinery itself. Saying it in the language that failed to load is not an option.                                                                                                                             |
+| `src/ui/localise-page.ts`, `warnUnusable`                                                                    | `Ignoring {attribute}="{key}": the page shell can only name a message that exists and takes no parameters`                          | Addressed to whoever wrote the attribute, quoting an attribute name.                                                                                                                                                                                     |
+| `src/game/elevator.ts`, `getFirstPressedFloor`                                                               | The deprecation notice, printed once per session behind a module flag                                                               | Addressed to code, quoting an API name.                                                                                                                                                                                                                  |
+| `src/app/router.ts`, the twelve `console.warn` calls                                                         | `Invalid seed "…", using a fresh one instead`, and eleven more                                                                      | Addressed to whoever hand-wrote the URL, quoting parameter names that are themselves English.                                                                                                                                                            |
+| `src/game/world.ts`, `resolveSpawnRate`                                                                      | `World was created with a spawnRate of …`                                                                                           | Reached only through `WorldOptions`, which is engine-internal and typed; a player's program cannot produce it.                                                                                                                                           |
+| `src/ui/dom.ts` `requireElement`; `src/ui/templates.ts` `renderElement`; `src/ui/presenters.ts` `renderUser` | `Missing required element`, `Expected markup describing exactly one element`, `Expected the user template to render an SVG element` | Invariants. If a player ever reads one, the bug is that it was thrown, not that it was in English.                                                                                                                                                       |
+| `src/game/fitness.ts`, `requireNothing`                                                                      | `No requirement`                                                                                                                    | The benchmark's placeholder condition. Nothing draws a challenge bar during a benchmark, so it never reaches a screen.                                                                                                                                   |
+| `src/ui/completions.ts`, the `label` and `detail` fields                                                     | `elevator.goToFloor`, `(floorNum, directly)`, …                                                                                     | Identifiers and signatures. The popup completes real API names; translating one would suggest code that does not exist. Only `info` is keyed.                                                                                                            |
+| `src/ui/default-code.ts`, `DEV_TEST_CODE`                                                                    | The `#devtest` program                                                                                                              | Unreachable without typing `#devtest` into the address bar, and it exists to check that the game still plays, not to teach anybody the API.                                                                                                              |
+| `src/ui/shortcuts.ts`, `modifierKeyLabel`                                                                    | `⌘` / `Ctrl`                                                                                                                        | Key names. Russian keyboards are labelled `Ctrl` too.                                                                                                                                                                                                    |
+| `index.html` and `documentation.html`, `<meta charset>` and `<meta name="viewport">`                         | `UTF-8`, `width=device-width, initial-scale=1`                                                                                      | Machine values, not prose.                                                                                                                                                                                                                               |
+| `documentation.html`, the link to `documentation.ru.html`                                                    | `Русский`                                                                                                                           | A language's own name. `LOCALE_NAMES` in `src/i18n/locale.ts` holds these, deliberately outside the catalogues: a reader who needs Русский has to find it while the interface is still English.                                                          |
+| `documentation.html`, the one-line snippets in _Code examples_                                               | `elevator.on("floor_button_pressed", function(floorNum) { … });`                                                                    | Code with no comments in it. Nothing to translate — and `src/page.test.ts` holds that both ways round, so a comment added to one of them fails the suite.                                                                                                |
+| `public/elevatorsaga.d.ts`, the whole file                                                                   | The JSDoc an editor shows over `elevator.goToFloor`                                                                                 | Its own header decides this: the prose is the English of `documentation.html` in both languages' builds, because the names it describes are English identifiers either way and two translations of a declaration would be a second pair to keep in step. |
+| `src/game/test-helpers.ts`, `*.test.ts`, `e2e/`                                                              | Test messages                                                                                                                       | Read by whoever ran the tests.                                                                                                                                                                                                                           |
+| `licenses.txt`, generated into `dist/` by `vite.config.ts`                                                   | Licence texts                                                                                                                       | Legal texts are quoted, not translated.                                                                                                                                                                                                                  |
+
+**One that is not a decision anybody wrote down.** `src/app/app.ts` prints a line at every start
+— `Seed … — the same passengers again, though never quite the same run: …` — and it is prose
+addressed to the player, not a diagnostic. It says in English roughly what
+`game.seed.explanation` says in the catalogue in both languages. The comment above it says why the
+line is printed — nobody knows a run is worth repeating until it has already gone wrong — and
+says nothing about the language, and the line was written after the catalogue existed, so this is
+an omission rather than a leftover. It is either worth keying or worth cutting back to the seed
+and the URL.
 
 ## What could not be keyed cleanly
 
-Five places where the English source resists a one-string-one-key mapping. All five are
-keyed and all five now ship, so what follows is a record of how each was resolved rather
-than a proposal.
+Seven places where the English source resists a one-string-one-key mapping. All seven are keyed
+and all seven ship, so this is a record of how each was resolved rather than a proposal.
 
-1. **Challenge descriptions are built from parts.** The four builders in
-   `src/game/challenges.ts` (lines 77, 105, 140 and 177) each interpolate two or three
-   counted phrases into one sentence, and every phrase needs its own plural. One key per
-   sentence, plus one key per phrase
+1. **Challenge descriptions are built from parts.** Each of the four builders in
+   `src/game/challenges.ts` interpolates two or three counted phrases into one sentence, and
+   every phrase needs its own plural. One key per sentence, plus one key per phrase
    (`challenge.people.html`, `challenge.timeLimit.html`, `challenge.waitLimit.html`,
    `challenge.moveLimit.html`), rendered inside out:
 
@@ -494,239 +617,171 @@ than a proposal.
    });
    ```
 
-   The alternative — one key per sentence with `{count}` in it — cannot work: a message
-   has one plural category, and these sentences count two different things. Each of the
-   four sits inside a `get description()` on the condition object, which is what keeps the
-   sentence out of the import-time trap; see below.
+   The alternative — one key per sentence with `{count}` in it — cannot work: a message has one
+   plural category, and these sentences count two different things.
 
-2. **`1 people per second`.** The sandbox description at `src/game/challenges.ts:282`
-   pluralises floors and elevators but not the spawn rate, so a rate of exactly 1 reads
-   `1 people per second` today. `challenge.sandbox.spawnRate.html` reproduces that by
-   giving both English categories the same text; Russian declines it properly. Fixing the
-   English is a one-word edit to `en.ts` whenever someone wants the wording changed rather
-   than preserved.
+2. **Two keys whose English is identical.** `challenge.timeLimit.html` and
+   `challenge.waitLimit.html` are both "{count} seconds" and neither can be dropped: Russian
+   needs the accusative after «за» — «за 21 секунду», «за 30 секунд» — and the genitive after
+   «дольше» — «дольше 21 секунды», «дольше 30 секунд». Two of Russian's four forms differ between
+   them, so a shared key would be wrong in one of the two sentences for every limit ending in 1,
+   2, 3 or 4. Anyone tempted to deduplicate them by their English is looking at the wrong
+   language.
 
-3. **`" Restart"` carries a leading space.** `src/ui/presenters.ts:349` writes the label
-   after an icon node, and the space is the gap between them. `game.button.restart` is the
-   word alone, so the call site keeps the separator:
+3. **`1 people per second`.** `challenge.sandbox.spawnRate.html` is a plural message whose two
+   English forms are the same string, so a sandbox running at one passenger a second still says
+   `1 people per second` — exactly what it said before the catalogue existed. That was preserved
+   rather than fixed, so that wiring the strings up changed nothing on screen, and `src/i18n/en.ts`
+   says so beside the key and points here. Russian declines it properly, which is why only the
+   English is odd. This is the one wording in the catalogue known to be wrong, and correcting it
+   is a one-word edit to `en.ts`.
+
+4. **The sandbox's list of capacities is punctuated by the locale.** `formatList`, not a `", "`
+   join, because Russian writes decimals with a comma: a joined list reads «вместимостью 6, 9»,
+   which is also how six point nine is written. `formatList` gives «6 и 9», which cannot be read
+   as one number — and "6 and 9" in English, which reads better anyway.
+
+5. **`" Restart"` carries a leading space.** `presentChallenge` in `src/ui/presenters.ts` writes
+   the label after an icon node, and the space is the gap between them. `game.button.restart` is
+   the word alone, so the call site keeps the separator:
 
    ```ts
    startStop.replaceChildren(createIcon("repeat"), ` ${t("game.button.restart")}`);
    ```
 
-4. **One `<h1>`, two strings.** The heading at `index.html:68-69` puts the game's name and
-   its tagline in one element. They are keyed as `page.brand` and `page.tagline`, because
-   the brand is a name that stays English and the tagline is prose that does not.
+   The space belongs to the line rather than to the message because every language needs it and
+   no translator should have to remember to type it.
 
-5. **The docs and the editor say the same thing twice.** `completion.elevator.goToFloor`
-   is the first two sentences of `docs.api.elevator.goToFloor.html`, without markup. They
-   are separate keys on purpose: one is plain text in a completion popup, the other is
-   markup in a table, and the docs entry has since grown detail the popup does not want.
-   Whoever edits one should read the other.
+6. **One `<h1>`, two strings.** The heading in `index.html` puts the game's name and its tagline
+   in one element. They are keyed as `page.brand` and `page.tagline`, because the brand is a name
+   that stays English and the tagline is prose that does not.
 
-## What is done, and what is left
+7. **The docs and the editor say the same thing twice.** `completion.elevator.goToFloor` is the
+   first two sentences of `docs.api.elevator.goToFloor.html` without its markup, and it is not
+   the only such pair. They are separate keys on purpose: one is plain text in a completion popup,
+   the other is markup in a table, and some docs entries have since grown detail the popup does
+   not want. What keeps them from drifting is `src/page.test.ts`, in two cases — one for the
+   pairs whose English is identical, one for the pairs where the popup's English is a prefix or a
+   substring of the page's, which then requires the Russian to be cut the same way. That second
+   case exists because the drift it caught was real and was Russian-only.
 
-The sections below were written as instructions to whoever wired the catalogue in. Most of
-that work has landed, so each one now says what shape the answer took — the reasoning is
-worth keeping even where the request is spent — and the two that are still open say so.
+## Rules the wiring has to keep
 
-### Before anything renders — `src/main.ts` — done
+Four traps. Each was sprung at least once, and each can be sprung again by the next module that
+reaches for `t`.
 
-`src/main.ts:63` awaits `applyPreferredLocale(document, navigator.userAgent)`, which is
-`src/ui/preferred-locale.ts`: it resolves the language, sets it, waits for the catalogue and
-writes the shell, all before the app is constructed. Nothing is drawn in one language and
-replaced in another, which is the whole reason the first draw waits.
+- **A module-scope constant freezes the language at import time.** `t` answers for the locale
+  active when it is called, and modules are imported long before a language is resolved. Three
+  files repair this in three shapes, and the shape is chosen by what holds the value:
+  `src/game/challenges.ts` uses `get description()` because callers hold the condition object;
+  `src/ui/default-code.ts` uses a nullary `defaultCode()`; `src/ui/completions.ts` keeps tables
+  of keys and renders per call because nothing holds a reference to a completion list.
+  `fitnessChallenges` is a nullary function that deliberately keeps the constant's name, because
+  what other modules mean by it — the list of buildings — did not change.
+- **A worker is a second module instance.** `src/app/fitness.ts` posts the player's source to
+  `src/app/fitness-worker.ts`, which has its own copy of `src/i18n/index.ts` and its own active
+  locale. The locale therefore travels with the request in `FitnessWorkerRequest`, and the worker
+  calls `setLocale` on arrival, per message rather than once at import. Anything else that ends
+  up in a worker needs the same treatment: a worker inherits nothing from the page that spawned
+  it.
+- **A static import of a catalogue puts it in every chunk that reaches a `t()`.**
+  `src/i18n/index.ts` records the measurement that decided this: with both catalogues imported
+  statically the page's entry chunk was 135.87 kB and the fitness worker — which draws no
+  interface at all — was 95.32 kB, both carrying the whole Russian catalogue. So every catalogue
+  but English is an `import()` of its own, in `CATALOGUE_LOADERS`. Do not `import { RU_MESSAGES }`
+  and do not re-export it from a module the page imports; `src/i18n/index.ts` re-exports English
+  only, and the test files that want the Russian catalogue as data import `./ru.ts` directly,
+  which reaches no bundle.
+- **`setLocale` starts the fetch and does not wait for it.** `await loadLocale(locale)` before
+  redrawing, or the interface stays English until the catalogue lands. A message asked for before
+  its catalogue arrives renders in English whole — never a raw key, and never an English sentence
+  with Russian decimal commas in it, which is why English stays bundled rather than being split
+  like the rest.
 
-`resolveLocale` takes `#lang=ru` from the hash first, then `localStorage`, then
-`navigator.languages`, then English. `browserLocaleSources` reads each of the three behind
-its own `catch`, so a browser that throws on `localStorage` — Safari in a private window,
-or any browser told to block site data — falls through to the next source instead of
-failing to start. `storeLocale(localStorage, locale)` is called for none of the three, and
-is still waiting for the language picker, for the reasons `preferred-locale.ts` sets out at
-length: a language found in somebody else's link is not a choice this reader made.
+Start-up is where all four meet. `src/main.ts` awaits `applyPreferredLocale` from
+`src/ui/preferred-locale.ts` before the app is constructed: it resolves the language, sets it,
+waits for the catalogue and writes the shell, so nothing is ever drawn in one language and
+replaced in another. `resolveLocale` reads `#lang=` first, then `localStorage`, then
+`navigator.languages`, then English, and `browserLocaleSources` reads each source behind its own
+`catch` — a browser that throws on `localStorage`, such as Safari in a private window, falls
+through to the next source instead of failing to start. None of those three sources calls
+`storeLocale`, and `preferred-locale.ts` says why at length: a language found in somebody else's
+link is not a choice this reader made. The language picker is what writes storage.
 
-Two ordering traps. Both were sprung once, and both are fixed, but the second half of the
-wiring can spring them again:
+`#lang=ru` needs nothing from `src/app/router.ts`, and that is not luck: `parseQuery` keeps every
+parameter it finds rather than the ones it understands, and `createParamsUrl` rebuilds the hash
+from all of them, replacing only what a link overrides. The language therefore rides along
+through the challenge row and the next-challenge link without either of them knowing about it.
 
-- **Modules that build their strings at import time run before this.** `challenges` at
-  `src/game/challenges.ts:316` is still a module constant, and that is now safe, because
-  what it holds are condition objects whose `description` is a `get description()` getter
-  rather than a rendered string — the sentence is built when the challenge bar asks for it,
-  in whatever language is active by then. That is the shape this fix took, rather than the
-  `createChallenges()` factory this document originally proposed: it left every caller
-  alone. The fitness scenarios needed the other shape, so `fitnessChallenges` is a nullary
-  function that deliberately keeps the constant's name, because what other modules mean by
-  it — the list of buildings — did not change. `src/ui/completions.ts` is the one place the
-  trap is still live: its prose is not lazy, and it is not keyed either (#60).
-- **The fitness worker is a second module instance.** `src/app/fitness.ts` posts the
-  player's source to `src/app/fitness-worker.ts`, and `doFitnessSuite` builds the run
-  descriptions inside the worker, where the active locale is whatever that instance
-  defaults to. Fixed by sending the locale with `FitnessWorkerRequest` and calling
-  `setLocale` on arrival; a test asserts the worker answers in the language it was asked
-  in. Anything else that ends up in a worker needs the same treatment — a worker inherits
-  nothing from the page that spawned it.
+Changing language mid-run goes through `presentLanguagePicker` in `src/ui/language-picker.ts`.
+Its `<select>` is one tab stop rather than one per language, announces its own current value
+without an `aria-current` to maintain, and opens the platform's own picker on a phone. Its
+options are `LOCALE_NAMES`, built from `LOCALES` rather than written out, so a third language
+needs no edit to the control and none to `index.html`, which ships the `<select>` empty.
 
-A third trap, also fixed, which the rest of the wiring has to keep fixed: **a static import
-of a catalogue puts it in every chunk that reaches a `t()`.** Both catalogues imported
-statically cost 42.75 kB in the entry chunk and 42.31 kB in the fitness worker — which draws
-nothing — to serve seventeen keys. Every catalogue but English is now fetched by
-`loadLocale`, and English stays bundled because it is the fallback that keeps `t`
-synchronous. So:
+## What guards what
 
-- **Do not `import { RU_MESSAGES }`,** and do not re-export it from a module the page
-  imports. `src/i18n/index.ts` deliberately re-exports English only. The two test files
-  that want a catalogue as data import `./ru.ts` directly, which reaches no bundle.
-- **`await loadLocale(locale)` before redrawing.** `setLocale` alone starts the fetch but
-  does not wait, so the interface stays English until it lands.
-- A message asked for before its catalogue arrives renders in English, whole — never a raw
-  key, and never an English sentence with Russian decimal commas in it.
+| Test                           | What it holds                                                                                                                                                                                                                                                                                        |
+| ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| the type system                | Key parity in both directions, and the right number of plural forms per language. A Russian catalogue missing a key does not compile.                                                                                                                                                                |
+| `src/i18n/catalogue.test.ts`   | Key order, non-empty values, `{placeholder}` parity, markup confined to `.html` keys and opening and closing the same tags in every locale, `.code` blocks identical but for their comments, the WCAG 2.5.3 pair, and Russian typography — «ёлочки» in pairs, spaced em dashes, ё, no double spaces. |
+| `src/i18n/format.test.ts`      | `PLURAL_CATEGORIES` against what ICU actually says, so a wrong guess about a new language fails a test rather than mistranslating a count.                                                                                                                                                           |
+| `src/ui/localise-page.test.ts` | That every key `index.html` names exists and takes no parameters; that the shell ships, word for word, the English of every message it names; that the noscript paragraph is left alone; that the modifier keys are relabelled after the shell is rewritten.                                         |
+| `src/page.test.ts`             | The two documentation pages as one document in two languages, every `docs.*` message against the passage it was lifted from in both languages, no `docs.*` key left unchecked, and the popup against the page wherever their English agrees.                                                         |
+| **nothing**                    | **This file.**                                                                                                                                                                                                                                                                                       |
 
-`#lang=ru` needs nothing from `src/app/router.ts`: `parseQuery` keeps unknown keys and
-round-trips them into the next-challenge link, so the language survives finishing a
-challenge.
+The last row is the reason this document has needed rebuilding twice. A test would close most of
+it cheaply — `src/i18n/inventory.test.ts`, reading this file with `?raw` and `EN_MESSAGES`:
 
-### `index.html` — done, apart from the picker and two links
+1. Every backticked token in this file shaped like a message key — dotted, and with a first
+   segment that is one of the catalogue's prefixes — is a real `MessageKey`. This catches a key
+   renamed in the catalogue and left behind here.
+2. Every key in `EN_MESSAGES` appears somewhere in this file, except the 48 `tutorial.taskN.*`
+   keys the learning track section covers by their shape. This catches a message added without a
+   row.
+3. The **Keys** column of _Where the strings are_ equals the number of `EN_MESSAGES` keys under
+   each prefix, and the **Total** equals `Object.keys(EN_MESSAGES).length`.
+4. Every backticked `src/…` path exists on disk. This catches a renamed module. Keep it to
+   `src/`: a message key such as `docs.play.apply.html` is shaped like a file name and is not
+   one, and `licenses.txt` only exists once the build has run.
+5. No `file.ts:123` pin below _How this file is anchored_, so the convention cannot quietly
+   lapse. The two in that section are the examples of what it prevents, and are meant to stay
+   wrong.
 
-The shell carries `data-i18n` and `data-i18n-attr` attributes and `src/ui/localise-page.ts`
-walks the document once per language change, which is the marked-up-document answer rather
-than the selector-table one; that module's own header says why. `<html lang>` is written
-from the locale that could actually be rendered, not the one that was asked for. Two things
-are still open:
-
-- `page.language.label` has no element: the picker is the one piece of markup this wiring
-  would add rather than translate. It belongs in the header nav, whose accessible name is
-  already `page.nav.label`. Its options come from `LOCALE_NAMES` in `src/i18n/locale.ts` and
-  are never translated — a reader who needs Русский has to be able to find it while the
-  interface is still English. Choosing one should call `storeLocale` and then reload, or
-  re-render everything; a reload is honest here, since the challenge in progress is already
-  addressed by the URL and the editor's buffer is already in local storage.
-- The two nav links at `index.html:72-73` both point at `documentation.html`. In Russian
-  they should point at `documentation.ru.html`. `page.helpNote.html` already does the
-  equivalent, because its `href` is inside the message; these two are markup, so they need
-  the same treatment the picker's author will be adding anyway.
-
-### `documentation.html` — 81 strings, not started
-
-The same mechanism, at four times the size, plus `<html lang>` at line 2. The `.code`
-blocks keep their code and change only their comments. Nothing is wired, and nothing is
-broken by that: `documentation.ru.html` is a complete Russian page today. See _Known
-overlap_ before starting.
-
-### `src/ui/templates.ts` — done
-
-`markup` escapes its interpolations, so a plain key is interpolated directly and an `.html`
-key goes through `raw()`. `floorTemplate` no longer builds `floor ${level}` and drops it
-into two labels: `game.floor.callUp` and `game.floor.callDown` take `{floor}` as a number,
-so the local disappeared with the concatenation.
-
-Two constraints on the challenge navigation row and the seed line outlive the wiring:
-
-- `game.seed.newDraw` is both the visible label and two words inside `game.seed.newDrawLink`.
-  They have to keep saying the same thing in every locale (WCAG 2.5.3): a speech-input user
-  says what they can see. If a translation changes one, it changes both.
-- The seed explanation used to be a module constant, `SEED_EXPLANATION`. It is now
-  `t("game.seed.explanation")` inside `seedHelpTemplate()`, which runs per render — which is
-  the point. A `const SEED_EXPLANATION = t(...)` at module scope would have compiled, read
-  correctly and frozen English at import time, which is the same trap as the challenge
-  descriptions above and the single most likely way for the rest of this wiring to
-  half-work.
-
-### `src/ui/presenters.ts` — done
-
-Every figure in the statistics panel goes through `Intl` rather than `toFixed` and `String`:
-`format(seconds(world.elapsedTime))`, `format(quantity(...))` for the per-second rate, and
-`format(seconds(..., 1))` for the two wait times, which is what gives Russian `1,5 с` with a
-non-breaking space instead of `1.5s`. The time scale renders through
-`game.timeScale.value`, `{value}x` in English and `{value}×` in Russian.
-
-### `src/app/app.ts` — done
-
-The four feedback strings render through `t` as the overlay is built. The locale preference
-did not end up here beside `TIME_SCALE_STORAGE_KEY` after all — `LOCALE_STORAGE_KEY` and
-`readStoredLocale` live in `src/i18n/detect.ts`, shaped after `readStoredTimeScale` and
-saying so in a comment, because the language is not the app's state in the way the time
-scale is.
-
-### `src/main.ts` — done
-
-`t("editor.saved", { time: formatTime(savedAt) })` renders `21:03:57` where the old
-`Code saved ${savedAt.toTimeString()}` rendered `21:03:57 GMT+0300 (Moscow Standard Time)`.
-That was a visible improvement, and it was a change.
-
-### `src/ui/editor.ts` — done; `src/ui/default-code.ts` — outstanding (#61)
-
-`editor.ts:754` is the editor's `aria-label` and reads from the catalogue.
-`default-code.ts:15` is the program a player starts with, and it does not:
-`editor.defaultCode.code` translates its comments and leaves every identifier alone, but
-nothing calls it, so the English `DEFAULT_CODE` is still what a Russian reader is handed.
-
-### `src/game/challenges.ts` — done
-
-The four description builders, the perpetual demo and the sandbox each render through `t`
-inside a `get description()` — six getters, at lines 76, 104, 139, 176, 199 and 259. See
-_What could not be keyed cleanly_ for how the counted phrases compose, and the import-time
-trap above for why a getter and not a constant.
-
-### `src/ui/completions.ts` — outstanding (#60)
-
-Only the `info` prose is to be keyed; `label` and `detail` stay as they are, because they
-are the API's own identifiers. Nothing has been done here yet, and the module scope this
-prose sits in means the fix has to be lazier than a search and replace.
-
-### Done — `src/app/fitness.ts`, `src/game/fitness.ts`, `src/game/user-code.ts`, `src/game/elevator-interface.ts`, `src/game/movable.ts`
-
-All sixteen of these are wired; nothing here is outstanding. Kept as a section because two
-of the decisions taken in them apply to the rest of the wiring:
-
-- The `?` shown when a scenario produced no average wait time, and the `{scenario}: {value}`
-  line it goes into, are separate keys rather than one string with a hole in it, so neither
-  locale has to make "?" agree with a sentence it did not write. The `s` suffix that used
-  to be appended to `avgWaitTime.toPrecision(3)` now goes through `format(seconds(...))`,
-  which is what puts the non-breaking space in `60 с`.
-- `error.value.array` and `error.value.object` are phrases that compose into
-  `error.elevator.notAFloor` and `error.elevator.queueNotAFloor`. Composing a sentence from
-  a noun chosen at run time is the pattern Russian punishes: the first draft of the frame
-  agreed with the interpolated noun instead of with the subject and read
-  «В elevator.destinationQueue попало массив», neuter verb against a masculine noun, which
-  a player could reach with `elevator.destinationQueue = [[1, 2]]`. Both frames now agree
-  with their own subject and let `{value}` land in a case that is spelled the same either
-  way. Prefer whole sentences per key; where composition is unavoidable, write the frame so
-  that no choice of insert can make it ungrammatical, and test it with an insert that has
-  gender — `NaN` is spelled identically in every case and gender, so it proves nothing.
+None of it is written; whoever writes it owns `src/i18n/inventory.test.ts` and nothing else.
 
 ## What changed on screen when this was wired
 
 Even in English, routing text through the catalogue changed four things. All four are
-improvements, all four are visible, and all four have now landed:
+improvements, and all four are visible.
 
-1. **Grouped thousands.** Challenge 18 asks for 2675 people and used to render `2675`;
+1. **Grouped thousands.** Challenge 18 asks for 2675 people —
+   `requireUserCountWithinTimeWithMaxWaitTime(2675, 1800, 45)` — and used to render `2675`;
    `Intl.NumberFormat` renders `2,675` in English and `2 675` in Russian.
-2. **The saved-code time** lost its `GMT+0300 (Moscow Standard Time)` tail.
+2. **The saved-code time** lost its tail: `t("editor.saved", { time: formatTime(savedAt) })`
+   renders `21:03:57` where `Code saved ${savedAt.toTimeString()}` rendered
+   `21:03:57 GMT+0300 (Moscow Standard Time)`.
 3. **Fractional time scales** render `0.5x` in English and `0,5×` in Russian.
-4. **Non-breaking spaces** appear between numbers and unit abbreviations in Russian, so
-   `60 с` cannot break across a line.
+4. **Non-breaking spaces** appear between numbers and unit abbreviations in Russian, so `60 с`
+   cannot break across a line.
 
 ## Known overlap: `documentation.ru.html`
 
 While this catalogue was being written, another change added `documentation.ru.html` — a
-separate, fully translated Russian copy of the documentation page, with `hreflang`
-alternates linking the pair. That covers the same ground as the 81 `docs.*` keys here, by
-a different route: a static file per language instead of one document translated at run
-time.
+separate, fully translated Russian copy of the reference page, with `hreflang` alternates linking
+the pair. That covers the same ground as the 81 unread `docs.*` keys, by a different route: a
+static file per language instead of one document translated at run time.
 
-Both were kept, which would ordinarily mean maintaining the Russian documentation twice —
-and it did: a review of the Russian page put a dozen corrections into
-`documentation.ru.html`, and every one of them stayed there while `ru.ts` went on saying
-the thing that had been corrected. `src/page.test.ts` now closes that gap from both ends. It
-holds the two pages to being one document in two languages — same headings, same tables in
-the same order, same anchors, same examples — and it holds every `docs.*` message to being
-the same text as the passage it was lifted from, in both languages. So the duplication is
-still there and can no longer drift silently, which turns the choice below from pending into
-deferred:
+Both were kept, which would ordinarily mean maintaining the Russian documentation twice — and it
+did: a review of the Russian page put a dozen corrections into `documentation.ru.html`, and every
+one of them stayed there while `ru.ts` went on saying the thing that had been corrected.
+`src/page.test.ts` now closes that gap from both ends, so the duplication is still there and can
+no longer drift silently. That turns the choice below from pending into deferred:
 
 - **Keep the static pages** and drop the `docs.*` keys from the catalogue, or generate
-  `documentation.ru.html` from them at build time. The `docs.*` keys have no other call
-  site, so removing them touches nothing else.
+  `documentation.ru.html` from them at build time. The 81 unread keys have no other call site, so
+  removing them touches nothing else — but `docs.basics.example.code` does have one, and would
+  have to stay.
 - **Keep the catalogue** and reduce `documentation.ru.html` to a redirect.
 
 Whoever takes it up should read `src/page.test.ts` first: whichever side is dropped, those
@@ -734,20 +789,28 @@ assertions are the specification of what the surviving side has to keep saying.
 
 ## Adding a language
 
-One file, plus two lines that the compiler demands anyway:
+One catalogue file, plus three lines the compiler demands anyway:
 
 1. Add the code to `Locale` and `LOCALES` in `src/i18n/locale.ts`, and its endonym to
-   `LOCALE_NAMES`.
+   `LOCALE_NAMES`. The language picker and `index.html` need no edit at all: the options are
+   built from `LOCALES`.
 2. Add the plural categories `Intl` gives that language to `PLURAL_CATEGORIES` in
-   `src/i18n/format.ts`. `src/i18n/format.test.ts` checks the list against ICU, so a wrong
-   guess fails a test rather than mistranslating a count.
-3. Write `src/i18n/<code>.ts` as `MessageCatalogue<"<code>">`. Every missing key, every
-   extra key and every missing plural form is a compile error.
+   `src/i18n/format.ts`. `src/i18n/format.test.ts` checks the list against ICU, so a wrong guess
+   fails a test rather than mistranslating a count.
+3. Write `src/i18n/<code>.ts` as `MessageCatalogue<"<code>">`. Every missing key, every extra key
+   and every missing plural form is a compile error.
 4. Register it in `CATALOGUE_LOADERS` in `src/i18n/index.ts`, as a one-line loader that
-   `await import()`s the file and files it in the catalogue slot for that locale. Writing
-   the locale's key out literally is what keeps it type-checked; a generic index would not
-   be.
+   `await import()`s the file and assigns it to that locale's own slot. Assigning to the slot by
+   name is what makes step 3 bite: the Russian entry is checked against Russian's four plural
+   forms and the English one against English's two. The `import()` sits inside that assignment
+   rather than around it, so splitting the catalogue out of the bundle costs none of the
+   checking.
 
-The tests in `src/i18n/catalogue.test.ts` then check the new catalogue for key parity,
-placeholder parity, markup that matches the English structure, and example code that is
-identical to the English but for its comments.
+The reference page is a separate job and deliberately so: `src/ui/documentation-links.ts` maps a
+locale to the file the build emits, and the set of catalogues and the set of translated pages are
+allowed to differ. A catalogue is one file a translator can finish in an afternoon; the reference
+page is nine hundred lines of tables. Ship the interface first.
+
+The tests in `src/i18n/catalogue.test.ts` then check the new catalogue for key parity, placeholder
+parity, markup that matches the English structure, and example code identical to the English but
+for its comments.
