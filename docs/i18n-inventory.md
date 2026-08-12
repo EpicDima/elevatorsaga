@@ -104,29 +104,29 @@ Key names carry two suffixes that mean something:
 
 ## Where the strings are
 
-The catalogue holds **300 keys** in two locales. `src/i18n/en.ts` is the reference — its text is
+The catalogue holds **303 keys** in two locales. `src/i18n/en.ts` is the reference — its text is
 the English wording, extracted verbatim — and `src/i18n/ru.ts` is the Russian translation. The
 types make English the shape everything else is measured against: a Russian catalogue missing a
 key, carrying a key English does not have, or giving a plural message the wrong number of forms
 is a compile error, not a runtime surprise.
 
 ```sh
-grep -cE '^  "[^"]+":' src/i18n/en.ts                                   # 300
+grep -cE '^  "[^"]+":' src/i18n/en.ts                                   # 303
 grep -oE '^  "[^"]+"' src/i18n/en.ts | tr -d '"' | cut -d. -f1 | sort | uniq -c | sort -rn
 ```
 
 | Prefix         | Keys    | What reads them                                                                                          |
 | -------------- | ------- | -------------------------------------------------------------------------------------------------------- |
-| `docs.*`       | 83      | one of them, `docs.basics.example.code`, by `src/ui/completions.ts`; the other 82 by nothing             |
+| `docs.*`       | 85      | one of them, `docs.basics.example.code`, by `src/ui/completions.ts`; the other 84 by nothing             |
 | `tutorial.*`   | 80      | `src/ui/tutorial-panel.ts`, `src/ui/templates.ts`, `src/app/app.ts`                                      |
-| `completion.*` | 32      | `src/ui/completions.ts`                                                                                  |
+| `completion.*` | 33      | `src/ui/completions.ts`                                                                                  |
 | `page.*`       | 37      | `index.html`, through `data-i18n` and `data-i18n-attr`; `page.noscript` excepted, see below              |
 | `game.*`       | 27      | `src/ui/templates.ts` (18), `src/ui/presenters.ts` (4), `src/app/app.ts` (5)                             |
 | `challenge.*`  | 15      | `src/game/challenges.ts`                                                                                 |
 | `fitness.*`    | 11      | `src/app/fitness.ts`, `src/game/fitness.ts`, `src/main.ts`, `src/cli/bench.ts`                           |
 | `error.*`      | 10      | `src/game/elevator-interface.ts`, `src/ui/presenters.ts`, `src/game/user-code.ts`, `src/game/movable.ts` |
 | `editor.*`     | 5       | `src/main.ts`, `src/ui/editor.ts`, `src/ui/default-code.ts`                                              |
-| **Total**      | **300** |                                                                                                          |
+| **Total**      | **303** |                                                                                                          |
 
 Which keys nothing reads:
 
@@ -136,11 +136,15 @@ grep -oE '^  "[^"]+"' src/i18n/en.ts | tr -d '"' | while read -r key; do
 done
 ```
 
-It lists **81 keys, every one of them `docs.*`**. Two things it cannot see, both of which make it
+It lists **83 keys, every one of them `docs.*`**. Two things it cannot see, both of which make it
 optimistic rather than pessimistic: it matches text rather than calls, so a key that is a prefix
 of another key counts as read whenever the longer one is, and a key named only in a comment
-counts as read too. `page.noscript` is the second case — nothing renders it, and `index.html`
-names it in a comment saying so — which makes the true figure 82. It also needs
+counts as read too. The prefix case costs nothing today — the same grep with each key required to
+end where the key ends lists the same 83 — and the comment case costs two. `page.noscript` is one:
+nothing renders it, and `index.html` names it in a comment saying so. `docs.play.statistics.html`
+is the other, and was missed when this figure was last written: it is a paragraph of the reference
+page like its neighbours, and `src/game/world.ts` names it twice in prose explaining what the
+statistics panel measures. So the true figure is 85. The grep also needs
 `src/ui/tutorial-panel.ts` and `src/game/tutorial.ts` to be in the tree, since between them that
 is what reads the 64 `tutorial.task*` messages: the panel each task's prose, the task table each
 task's two programs.
@@ -154,7 +158,7 @@ the build renders the shell per language.
 reached", pins that: it parses the page with `DOMParser`, which _does_ see the paragraph, and
 requires `localisePage` to leave it alone even in Russian.
 
-**The 81 `docs.*` keys have no call site because the reference page answers for itself.**
+**The 84 `docs.*` keys have no call site because the reference page answers for itself.**
 `documentation.html` and `documentation.ru.html` are two static files rather than one document
 translated at run time. That duplication is deliberate and no longer silent — see _Known
 overlap_ at the end, and `src/page.test.ts`, which holds the two pages and the two catalogues in
@@ -216,12 +220,12 @@ English page. That module's own header explains why the mapping lives in `src/ui
 `src/i18n/locale.ts`: `locale.ts` describes the languages the game speaks, this describes the
 files the build emits, and the two sets are allowed to differ.
 
-### `documentation.html` — the reference page, 82 `docs.*` keys
+### `documentation.html` — the reference page, 85 `docs.*` keys
 
 One of these is read. The editor's skeleton completion inserts `docs.basics.example.code`, so
 the program the popup offers and the program the help page walks through are the same bytes in
 whichever language the reader is in; it is filed here rather than under `src/ui/completions.ts`
-because this is where its wording is decided, and the popup borrows it. The other 81 have no
+because this is where its wording is decided, and the popup borrows it. The other 84 have no
 call site: their English is on screen in `documentation.html` and their Russian in
 `documentation.ru.html`. `src/page.test.ts` holds every one of them to being the same text as
 the passage it was lifted from, in both languages, and its "leaves no docs.\* message unchecked"
@@ -310,6 +314,8 @@ case makes sure no key escapes that comparison.
 | `docs.api.floor.upButtonPressed.example.code`       | floor.on("up_button_pressed", function(floor) {                                                                 | code; only the comments are translated                                                                                             |
 | `docs.api.floor.downButtonPressed`                  | Triggered when someone has pressed the down button at a floor. Note that passengers will press the button agai… |                                                                                                                                    |
 | `docs.api.floor.downButtonPressed.example.code`     | floor.on("down_button_pressed", function(floor) {                                                               | code; only the comments are translated                                                                                             |
+| `docs.api.floor.hallButtonPressed`                  | Triggered when someone has pressed either call button at a floor. The handler is passed the direction that was… |                                                                                                                                    |
+| `docs.api.floor.hallButtonPressed.example.code`     | floor.on("hall_button_pressed", function(direction, floor) {                                                    | code; only the comments are translated                                                                                             |
 | `docs.api.floor.buttonStateChange.html`             | Triggered when either call button at a floor was lit or cleared. The handler is passed the state of both butto… | markup                                                                                                                             |
 | `docs.api.floor.buttonStateChange.example.code`     | floor.on("buttonstate_change", function(buttonStates) {                                                         | code; only the comments are translated                                                                                             |
 
@@ -425,7 +431,7 @@ identically in every locale. Both names repeat it because an accessible name has
 own — "1234567890, link" describes nothing.
 
 `game.seed.newDraw` appearing inside `game.seed.newDrawLink` is a constraint a translator cannot
-see: the two sit on adjacent lines of a 300-key file and nothing in the file marks them as a
+see: the two sit on adjacent lines of a 303-key file and nothing in the file marks them as a
 pair. `src/i18n/catalogue.test.ts`, under _accessible names_, is what holds it — it requires the
 spoken name to contain the visible label in every locale. Rewording «новый розыгрыш» to «новый
 сид» meant changing both, which is exactly the edit where one gets missed.
@@ -524,7 +530,7 @@ node -e 'const f = new Intl.NumberFormat("en");
   console.log(f.resolvedOptions().maximumFractionDigits, f.format(0.0625))'   # 3 0.063
 ```
 
-### `src/ui/completions.ts` — 32 `completion.*` keys
+### `src/ui/completions.ts` — 33 `completion.*` keys
 
 The editor's completion popup. Only the `info` prose is keyed: a `label` is an identifier the
 popup inserts into the player's program and a `detail` is that identifier's signature, so both
@@ -566,6 +572,7 @@ nullary function.
 | `completion.elevator.event.stoppedAtFloor`     | Triggered when the elevator has arrived at a floor.                                                            |                                                                               |
 | `completion.floor.event.upButtonPressed`       | Triggered when someone has pressed the up button at a floor. Note that passengers will press the button again… |                                                                               |
 | `completion.floor.event.downButtonPressed`     | Triggered when someone has pressed the down button at a floor. Note that passengers will press the button aga… |                                                                               |
+| `completion.floor.event.hallButtonPressed`     | Triggered when someone has pressed either call button at a floor. The handler is passed the direction that wa… | the first two sentences of `docs.api.floor.hallButtonPressed`                 |
 | `completion.floor.event.buttonStateChange`     | Either call button was lit or cleared.                                                                         |                                                                               |
 | `completion.global.skeleton`                   | Your code must declare an object containing at least two functions called init and update.                     | the entry whose `apply` is `docs.basics.example.code`                         |
 | `completion.global.init`                       | Called when the challenge starts. Normally you will put most of your code in here, to set up event listeners…  |                                                                               |

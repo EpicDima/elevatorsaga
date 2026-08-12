@@ -42,6 +42,25 @@ export type FloorInterfaceEvents = {
   up_button_pressed: [floor: FloorInterface];
   /** Someone pressed the down call button. */
   down_button_pressed: [floor: FloorInterface];
+  /**
+   * Someone pressed either call button; the direction says which one.
+   *
+   * Asked for as upstream issue #33, where the two separate events forced a
+   * solution that treats a call as a call — the usual shape, since the queue an
+   * elevator ends up with is a list of floors either way — to register the same
+   * handler twice and then work out which button it had been given. This event
+   * is that handler, once, with the answer as its first argument.
+   *
+   * The direction leads and the floor follows because the world's own
+   * hall-call handler already takes the pair that way round
+   * (`#handleButtonRepressing(direction, floor)` in `./world.ts`), and because
+   * a `function` handler's `this` is already the facade, so the floor is the
+   * argument a solution is less likely to need. A string rather than a boolean
+   * or a pair of flags: `"up"` and `"down"` are the words the rest of the
+   * player API uses for a direction, down to
+   * {@link "./elevator-interface.ts"!ElevatorInterface.destinationDirection}.
+   */
+  hall_button_pressed: [direction: "up" | "down", floor: FloorInterface];
 };
 
 /** Called with anything a player-code floor handler throws. */
@@ -76,18 +95,31 @@ export class FloorInterface {
     this.#errorHandler = errorHandler;
 
     // Forwarded rather than re-exposed, so player code never receives the real
-    // Floor: the two `*_button_pressed` events carry the floor that was pressed
-    // and would otherwise hand it straight back.
+    // Floor: the `*_button_pressed` events carry the floor that was pressed and
+    // would otherwise hand it straight back.
     floor.on("buttonstate_change", () => {
       this.#tryTrigger("buttonstate_change", this.buttonStates);
     });
 
+    // `hall_button_pressed` is derived here, from the event it generalises,
+    // rather than emitted by the real floor alongside it. That fixes the order
+    // in this constructor instead of leaving it to the order the player
+    // happened to register their handlers in: the specific event is delivered
+    // first, then the general one, whichever way round they subscribed.
+    //
+    // Specific first because that is the one that was already being delivered.
+    // A solution written before this event existed sees exactly the sequence it
+    // always saw, with a new dispatch appended to it rather than pushed in
+    // front. The two dispatches are consecutive, not nested, so the emitter's
+    // in-flight guard — which is per event name — has nothing to refuse.
     floor.on("up_button_pressed", () => {
       this.#tryTrigger("up_button_pressed", this);
+      this.#tryTrigger("hall_button_pressed", "up", this);
     });
 
     floor.on("down_button_pressed", () => {
       this.#tryTrigger("down_button_pressed", this);
+      this.#tryTrigger("hall_button_pressed", "down", this);
     });
   }
 

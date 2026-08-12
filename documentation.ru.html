@@ -779,6 +779,22 @@ elevator.checkDestinationQueue();</code></pre>
               </td>
             </tr>
             <tr>
+              <td>hall_button_pressed</td>
+              <td>
+                <small
+                  >Срабатывает, когда на этаже нажали любую из кнопок вызова. Обработчику передаётся
+                  направление вызова — "up" или "down" — и этаж, на котором нажали кнопку. Приходит
+                  сразу после события up_button_pressed или down_button_pressed для того же нажатия,
+                  так что программа, подписанная на оба, узнает об этом нажатии дважды.</small
+                >
+              </td>
+              <td>
+                <pre><code>floor.on("hall_button_pressed", function(direction, floor) {
+    // Может, отправить лифт, который и так едет в эту сторону?
+})</code></pre>
+              </td>
+            </tr>
+            <tr>
               <td>buttonstate_change</td>
               <td>
                 <small

@@ -144,6 +144,7 @@ describe("event completions", () => {
     expect(labelsFor("floors[0].on('")).toEqual([
       "up_button_pressed",
       "down_button_pressed",
+      "hall_button_pressed",
       "buttonstate_change",
     ]);
   });

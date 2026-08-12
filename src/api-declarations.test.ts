@@ -633,6 +633,9 @@ const EXERCISING_PROGRAM = `
     floor.on("down_button_pressed down_button_pressed", function (eventName) {
       elevator.goToFloor(eventName === "down_button_pressed" ? 0 : 1);
     });
+    floor.on("hall_button_pressed", function (direction, pressedFloor) {
+      elevator.goToFloor(direction === "up" ? pressedFloor.floorNum() : 0);
+    });
     floor.once("buttonstate_change", function (buttons) {
       elevator.goToFloor(buttons.up === "activated" ? 0 : 1);
     });

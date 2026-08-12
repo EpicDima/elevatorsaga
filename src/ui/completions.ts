@@ -361,6 +361,10 @@ const FLOOR_EVENT_DESCRIPTIONS: Record<keyof FloorInterfaceEvents, EventDescript
     detail: "function(floor)",
     info: "completion.floor.event.downButtonPressed",
   },
+  hall_button_pressed: {
+    detail: "function(direction, floor)",
+    info: "completion.floor.event.hallButtonPressed",
+  },
   buttonstate_change: {
     detail: "function(buttonStates)",
     info: "completion.floor.event.buttonStateChange",

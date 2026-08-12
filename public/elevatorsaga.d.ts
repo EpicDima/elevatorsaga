@@ -87,7 +87,8 @@ declare namespace ElevatorSaga {
   type ElevatorEventName = "idle" | "floor_button_pressed" | "passing_floor" | "stopped_at_floor";
 
   /** The events a floor raises. */
-  type FloorEventName = "up_button_pressed" | "down_button_pressed" | "buttonstate_change";
+  type FloorEventName =
+    "up_button_pressed" | "down_button_pressed" | "hall_button_pressed" | "buttonstate_change";
 
   /**
    * Two or three event names separated by single spaces, which subscribe a
@@ -612,6 +613,22 @@ declare namespace ElevatorSaga {
     on(event: "down_button_pressed", handler: (this: Floor, floor: Floor) => void): this;
 
     /**
+     * Runs `handler` whenever either call button here is pressed.
+     *
+     * Raised just after the button's own event, so subscribing to this as well
+     * as to `up_button_pressed` means being told about one press twice.
+     *
+     * @param event - `"hall_button_pressed"`.
+     * @param handler - Called with the direction that was asked for and this
+     * floor.
+     * @returns This floor, so calls can be chained.
+     */
+    on(
+      event: "hall_button_pressed",
+      handler: (this: Floor, direction: Direction, floor: Floor) => void,
+    ): this;
+
+    /**
      * Runs `handler` whenever either call button is lit or cleared.
      *
      * @param event - `"buttonstate_change"`.
@@ -660,6 +677,20 @@ declare namespace ElevatorSaga {
     once(event: "down_button_pressed", handler: (this: Floor, floor: Floor) => void): this;
 
     /**
+     * Runs `handler` the next time either call button here is pressed, and then
+     * forgets it.
+     *
+     * @param event - `"hall_button_pressed"`.
+     * @param handler - Called with the direction that was asked for and this
+     * floor.
+     * @returns This floor, so calls can be chained.
+     */
+    once(
+      event: "hall_button_pressed",
+      handler: (this: Floor, direction: Direction, floor: Floor) => void,
+    ): this;
+
+    /**
      * Runs `handler` the next time either button changes here, and then forgets
      * it.
      *
@@ -691,6 +722,20 @@ declare namespace ElevatorSaga {
      * @returns This floor, so calls can be chained.
      */
     one(event: "down_button_pressed", handler: (this: Floor, floor: Floor) => void): this;
+
+    /**
+     * The legacy spelling of {@link Floor.once}; see the `"up_button_pressed"`
+     * overload.
+     *
+     * @param event - `"hall_button_pressed"`.
+     * @param handler - Called with the direction that was asked for and this
+     * floor.
+     * @returns This floor, so calls can be chained.
+     */
+    one(
+      event: "hall_button_pressed",
+      handler: (this: Floor, direction: Direction, floor: Floor) => void,
+    ): this;
 
     /**
      * The legacy spelling of {@link Floor.once}; see the `"up_button_pressed"`
@@ -729,6 +774,20 @@ declare namespace ElevatorSaga {
      * @returns This floor, so calls can be chained.
      */
     off(event: "down_button_pressed", handler?: (this: Floor, floor: Floor) => void): this;
+
+    /**
+     * Unregisters `hall_button_pressed` handlers; see the `"up_button_pressed"`
+     * overload.
+     *
+     * @param event - `"hall_button_pressed"`.
+     * @param handler - The exact function to remove; omit it to remove every
+     * handler of this event.
+     * @returns This floor, so calls can be chained.
+     */
+    off(
+      event: "hall_button_pressed",
+      handler?: (this: Floor, direction: Direction, floor: Floor) => void,
+    ): this;
 
     /**
      * Unregisters `buttonstate_change` handlers; see the `"up_button_pressed"`

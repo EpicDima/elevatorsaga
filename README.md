@@ -62,6 +62,10 @@ original is scored by the same rules.
 - **Three more methods on the elevator.** `isFull()`, `isEmpty()` and `isApproachingFloor(n)` —
   the three checks nearly every published solution had already written by hand out of `loadFactor`
   and `destinationQueue`.
+- **One more event on the floor.** `hall_button_pressed` fires for either call button and hands its
+  handler the direction, so a program that treats a call as a call — which is most of them, since
+  the queue an elevator ends up with is a list of floors either way — writes one handler instead of
+  registering the same one twice.
 - **Autocompletion in the editor.** The elevator and floor API is offered as you type, and on
   <kbd>Ctrl</kbd>+<kbd>Space</kbd>, with the same one-line descriptions the reference page uses.
   It is added to the JavaScript language's own completions rather than replacing them, so keywords
@@ -496,13 +500,15 @@ module-scoped now.
 - `level` — the same number as a property; undocumented, but kept because published solutions use it
 - `buttonStates` — a read-only `{ up, down }` **snapshot**, rebuilt on every read, so assigning to
   it or mutating it no longer clears the building's call buttons
-- `on` / `off` / `once` / `one` / `offAll` for `up_button_pressed`, `down_button_pressed` and
-  `buttonstate_change`
+- `on` / `off` / `once` / `one` / `offAll` for `up_button_pressed`, `down_button_pressed`,
+  `hall_button_pressed` and `buttonstate_change`
 
 Everything else the old `Floor` object exposed — `yPosition`, `getSpawnPosY`, `elevatorAvailable`,
-`pressUpButton`, `pressDownButton`, `trigger` — is unreachable. The `up_button_pressed` and
-`down_button_pressed` handlers are also passed the facade rather than the internal floor. This
-closes upstream issue [#3](https://github.com/magwo/elevatorsaga/issues/3).
+`pressUpButton`, `pressDownButton`, `trigger` — is unreachable. The three `*_button_pressed`
+handlers are also passed the facade rather than the internal floor. This closes upstream issue
+[#3](https://github.com/magwo/elevatorsaga/issues/3). `hall_button_pressed` is the one event in
+that list the original does not have; it is described under
+[Asked for upstream, and here already](#asked-for-upstream-and-here-already).
 
 **The event emitter is a rewrite; the surface solutions use is not.** `src/game/observable.ts`
 replaces riot's `riot.observable` and the near-copy of it in `unobservable.js`. Everything player
@@ -544,9 +550,12 @@ writable array.
 `destinationQueue`, `currentFloor`, `loadFactor`, `maxPassengerCount`, `destinationDirection`,
 `getPressedFloors`, `getFirstPressedFloor`, `goingUpIndicator`, `goingDownIndicator` and the
 `idle` / `floor_button_pressed` / `passing_floor` / `stopped_at_floor` events all keep their names,
-arities and payloads. `isFull()`, `isEmpty()` and `isApproachingFloor(n)` are additions — they are
-the only part of the player API the original does not have, so a solution that uses them is one you
-cannot take back to [play.elevatorsaga.com](https://play.elevatorsaga.com/).
+arities and payloads. `isFull()`, `isEmpty()` and `isApproachingFloor(n)` are additions, as the
+floor's `hall_button_pressed` above is, so a solution that uses them is one you cannot take back to
+[play.elevatorsaga.com](https://play.elevatorsaga.com/). So are `once()` and `offAll()`, which is
+easy to miss because what they do is not new: riot's observable and the `unobservable.js` near-copy
+of it each define `on`, `off`, `one` and `trigger` and no other method, so those two names are this
+emitter's spellings of `one()` and `off("*")` rather than the original's.
 
 **Your saved code survives.** The editor still reads and writes the same `localStorage` key,
 `elevatorCrushCode_v5`, and the reset backup still uses `develevateBackupCode`. Open the modernized
@@ -690,6 +699,15 @@ granted here rather than having to work it out from a feature list.
   state there; and `init` runs on the first frame the game actually runs — code applied while it is
   paused waits for Start — with `update` on that frame and every one after, which is why `dt` and
   not a tally of calls measures game time.
+- [#33](https://github.com/magwo/elevatorsaga/issues/33) — "Add a `floor.hall_button_pressed` event
+  to the API", because handling a call the same way whichever button rang it meant registering the
+  same handler for both events and then working out which one had called it. The event is here, and
+  its handler is passed the direction first — `"up"` or `"down"`, the words the rest of the API uses
+  for one — and the floor second, which the issue's own sketch does not ask for because it closes
+  over the floor, but which a handler shared between floors needs. It is raised immediately after
+  `up_button_pressed` or `down_button_pressed` for the same press, in that order whichever order
+  the two were registered in, so a program listening for both hears about that press twice and
+  always hears the specific event first.
 
 The rest of the tracker's feature requests are not answered here, and nothing in this list is a
 claim about upstream's plans for them.

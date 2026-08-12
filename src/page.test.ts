@@ -838,6 +838,7 @@ const ELEVATOR_EVENT_DECISIONS: Readonly<Record<keyof ElevatorInterfaceEvents, s
 const FLOOR_EVENT_DECISIONS: Readonly<Record<keyof FloorInterfaceEvents, string | null>> = {
   up_button_pressed: null,
   down_button_pressed: null,
+  hall_button_pressed: null,
   buttonstate_change: null,
 };
 

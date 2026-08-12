@@ -258,5 +258,143 @@ describe("FloorInterface", () => {
 
       expect(dropped).not.toHaveBeenCalled();
     });
+
+    describe("hall_button_pressed", () => {
+      // Upstream issue #33: one event for both call buttons, so a solution that
+      // treats a call as a call — the usual shape — need not register the same
+      // handler twice and then work out which of the two it was given.
+      it("forwards either call button, with the direction and itself", () => {
+        const hallPressed = vi.fn();
+        floorInterface.on("hall_button_pressed", hallPressed);
+
+        floor.pressUpButton();
+        floor.pressDownButton();
+
+        expect(hallPressed).toHaveBeenCalledTimes(2);
+        expect(hallPressed).toHaveBeenNthCalledWith(1, "up", floorInterface);
+        expect(hallPressed).toHaveBeenNthCalledWith(2, "down", floorInterface);
+        expect(hallPressed).not.toHaveBeenCalledWith("up", floor);
+      });
+
+      it("follows the button's own event, whichever order they were registered in", () => {
+        // The order is the forwarder's, not the player's: both events are
+        // raised from the one subscription on the real floor, specific first.
+        // Registering the general one first is the case that would give a
+        // registration-order dependency away.
+        const calls: string[] = [];
+        floorInterface.on("hall_button_pressed", (direction) => {
+          calls.push(`hall:${direction}`);
+        });
+        floorInterface.on("up_button_pressed", () => {
+          calls.push("up");
+        });
+        floorInterface.on("down_button_pressed", () => {
+          calls.push("down");
+        });
+        floorInterface.on("buttonstate_change", () => {
+          calls.push("buttons");
+        });
+
+        floor.pressUpButton();
+        floor.pressDownButton();
+
+        expect(calls).toEqual(["buttons", "up", "hall:up", "buttons", "down", "hall:down"]);
+      });
+
+      it("is raised for a press, not for a button going out", () => {
+        const hallPressed = vi.fn();
+        floor.pressUpButton();
+        floorInterface.on("hall_button_pressed", hallPressed);
+
+        floor.elevatorAvailable({ goingUpIndicator: true, goingDownIndicator: true });
+
+        expect(floorInterface.buttonStates).toEqual({ up: "", down: "" });
+        expect(hallPressed).not.toHaveBeenCalled();
+      });
+
+      it("still runs when a handler of the button's own event throws", () => {
+        // The two are separate dispatches and each isolates its handlers, so a
+        // solution subscribed to both does not lose the second because the
+        // first went wrong (upstream issues #88, #83, #27).
+        const boom = new Error("boom");
+        const hallPressed = vi.fn();
+        floorInterface.on("up_button_pressed", () => {
+          throw boom;
+        });
+        floorInterface.on("hall_button_pressed", hallPressed);
+
+        expect(() => {
+          floor.pressUpButton();
+        }).not.toThrow();
+
+        expect(errorHandler).toHaveBeenCalledWith(boom);
+        expect(hallPressed).toHaveBeenCalledWith("up", floorInterface);
+      });
+
+      it("runs its own handlers one at a time when one of them throws", () => {
+        const boom = new Error("boom");
+        const second = vi.fn();
+        floorInterface.on("hall_button_pressed", () => {
+          throw boom;
+        });
+        floorInterface.on("hall_button_pressed", second);
+
+        expect(() => {
+          floor.pressDownButton();
+        }).not.toThrow();
+
+        expect(errorHandler).toHaveBeenCalledWith(boom);
+        expect(second).toHaveBeenCalledWith("down", floorInterface);
+      });
+
+      it("supports once, one and off", () => {
+        const onceHandler = vi.fn();
+        const oneHandler = vi.fn();
+        const removed = vi.fn();
+        floorInterface.once("hall_button_pressed", onceHandler);
+        floorInterface.one("hall_button_pressed", oneHandler);
+        floorInterface.on("hall_button_pressed", removed);
+        floorInterface.off("hall_button_pressed", removed);
+
+        floor.pressUpButton();
+        floor.pressDownButton();
+
+        expect(onceHandler).toHaveBeenCalledTimes(1);
+        expect(onceHandler).toHaveBeenCalledWith("up", floorInterface);
+        expect(oneHandler).toHaveBeenCalledTimes(1);
+        expect(removed).not.toHaveBeenCalled();
+      });
+
+      it('goes with the rest on offAll, and on the off("*") spelling of it', () => {
+        const dropped = vi.fn();
+        floorInterface.on("hall_button_pressed", dropped);
+        floorInterface.offAll();
+        floor.pressUpButton();
+
+        // A second press of a button that is already lit raises nothing
+        // (`Floor.pressUpButton`), so the other button is what tests the other
+        // spelling.
+        floorInterface.on("hall_button_pressed", dropped);
+        floorInterface.off("*");
+        floor.pressDownButton();
+
+        expect(dropped).not.toHaveBeenCalled();
+      });
+
+      it("takes part in the documented space separated registration", () => {
+        const pressed = vi.fn();
+        floorInterface.on("hall_button_pressed up_button_pressed", pressed);
+
+        floor.pressUpButton();
+
+        // riot prepended the name of the event that fired whenever the
+        // registration named more than one (`libs/riot.js:11`,
+        // `libs/riot.js:45`), and the order of the two is still the forwarder's
+        // rather than the order the names were written in.
+        expect(pressed).toHaveBeenCalledTimes(2);
+        expect(pressed).toHaveBeenNthCalledWith(1, "up_button_pressed", floorInterface);
+        expect(pressed).toHaveBeenNthCalledWith(2, "hall_button_pressed", "up", floorInterface);
+      });
+    });
   });
 });
