@@ -745,12 +745,153 @@ dl dd {
   margin: 0;
 }
 
+/* ----------------------------------------------------------- Learning track */
+
+/*
+ * The region the panel is drawn into, and the spacing between the challenge bar
+ * above it and the building below.
+ *
+ * The spacing is on the region rather than on the panel inside it so that
+ * `:empty` has something to hide. Every route but the track leaves this element
+ * empty -- `App` draws into it only while a task is on screen and empties it for
+ * the nineteen challenges, the sandbox and the demo -- and an empty block with
+ * margins is still 10px of gap above the building on every one of them, its own
+ * two margins having collapsed into one. `.languagepicker:empty` is the same
+ * rule for the same reason: markup that is present so that a presenter has
+ * somewhere to draw must cost nothing on the pages where nothing is drawn.
+ */
+.tutorial {
+  margin-block: 10px;
+}
+
+.tutorial:empty {
+  display: none;
+}
+
+/*
+ * The panel: a task's name, what it asks for, four disclosures and the way out.
+ *
+ * No surface of its own, no border and no shadow. Nothing else on this page is
+ * drawn as a card, and a panel that were one would be the only box here with
+ * edges; what sets it apart from the bar above it is the space around it and the
+ * size of its type, which is what sets every other region here apart.
+ *
+ * The colour is the whole reason this rule exists, and it is the defect written
+ * up at `.challengeseed`: `<body>` paints everything `white`, which is 1.91:1 on
+ * this page against the 4.5:1 WCAG 1.4.3 asks for, and the document rules repair
+ * that for `p` and for the headings only. The four `<summary>` elements are
+ * neither, so left alone the panel's four controls would be the palest thing on
+ * the page and the prose beneath them the darkest.
+ */
+.tutorialpanel {
+  color: var(--color-text);
+}
+
+/*
+ * Where the player is on the track, above the task's own name and smaller than
+ * it. It repeats the panel's landmark name (see `tutorialTemplate`) and then
+ * says which task this is, and neither is what the player came here to read.
+ * The name is set bold because the two spans are one line of text with a space
+ * between them -- "Learning track Task 3 of 8" -- and without it the label and
+ * the position run together into a sentence that is neither.
+ */
+.tutorialposition {
+  margin: 0;
+  font-size: 14px;
+  line-height: 18px;
+}
+
+.tutorialtrack {
+  font-weight: bold;
+}
+
+/*
+ * A measure on the prose, for the reason `.seedcaveat` has one: at a desk the
+ * panel is a thousand pixels wide, and a line of prose that long is read by
+ * losing your place in it. It is deliberately not on `.tutorialpanel` itself,
+ * which would take the answer under the last hint down with it: that block is
+ * code, its longest line is 68 characters, and a measure set for prose would put
+ * a scrollbar under it.
+ */
+.tutorialgoal,
+.tutorialprose {
+  max-inline-size: 62ch;
+}
+
+/*
+ * The four disclosures: three hints, then why the task behaves as it does.
+ *
+ * `fit-content` for the reason written at `.seedhelp > summary` -- a `<summary>`
+ * is a block, so an open one stretches to whatever width the panel below it
+ * took, and the part of that width with no writing on it is a control that looks
+ * like empty page and closes the hint when clicked. The pointer is the other
+ * half of that rule: `<summary>` is a control and the UA gives it no cursor.
+ */
+.tutorialhint,
+.tutorialexplanation {
+  margin-block: 4px;
+}
+
+.tutorialhint > summary,
+.tutorialexplanation > summary {
+  inline-size: fit-content;
+  cursor: pointer;
+}
+
+.tutorialprose {
+  margin-block: 4px 8px;
+}
+
+/*
+ * The answer, under the third hint. `pre code` already paints it in the code
+ * colours the help page uses and wraps it below 760px; the only thing wanted
+ * here is a ceiling. The longest line in any of the eight answers is 68
+ * characters (task 7, which task 8 shows again), so a block any wider than that
+ * is a code surface with nothing in the right-hand half of it. The ceiling is on
+ * the `<code>`, where a `ch` is a character of the monospace face that is about
+ * to be measured out in it.
+ */
+.tutorialsolution code {
+  max-inline-size: 72ch;
+}
+
+/*
+ * The three ways out of a task. A wrapping row, because these labels are
+ * sentences rather than words -- "Take this program into your own editor", and
+ * the Russian for it -- and the three cannot share a line on a phone.
+ *
+ * What `nowrap` does here was measured rather than assumed, and it is not what
+ * `.codebuttons` below does: a flex item may shrink to its longest word, so the
+ * three stay on one line by becoming columns 55px, 133px and 92px wide holding
+ * two to four lines each, 64px tall against the 30px of a label on one line.
+ * The page does not grow -- the panel is 300px either way -- but in Russian at
+ * 320px the squeezed row is 5px wider than the panel it sits in and the last
+ * button hangs over the edge. Wrapping is what keeps a button a button.
+ */
+.tutorialbuttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-block: 10px;
+}
+
+/*
+ * The one line here that is about the track rather than about this task, and the
+ * only place the count of cleared tasks is shown. Last, and set at the size of
+ * the position line above for the same reason.
+ */
+.tutorialprogress {
+  margin-block: 0;
+  font-size: 14px;
+  line-height: 18px;
+}
+
 /* ------------------------------------------------------------------ Buttons */
 
 /*
  * Buttons are reset to nothing: most of them replace elements that used to be
- * non-interactive `<i>` glyphs, and must not pick up any button chrome. The two
- * groups that are meant to look like buttons opt in below.
+ * non-interactive `<i>` glyphs, and must not pick up any button chrome. The
+ * three groups that are meant to look like buttons opt in below.
  */
 button {
   margin: 0;
@@ -768,7 +909,8 @@ button[disabled] {
 }
 
 .startstop,
-.codebuttons button {
+.codebuttons button,
+.tutorialbuttons button {
   block-size: 30px;
   padding-inline: 10px;
   border: 1px solid var(--color-control-border);
@@ -784,6 +926,25 @@ button[disabled] {
 .startstop {
   /* Wide enough for "Pause", "Start" and the "Restart" icon plus label. */
   inline-size: 110px;
+}
+
+/*
+ * The chrome above pins a button to 30px, which is right for a label of one word
+ * and wrong for a label of six: "Забрать программу в свой редактор" takes two
+ * lines at 320px, and a fixed height draws the second of them outside the box.
+ * Released to grow, with the padding chosen so that a label that does fit on one
+ * line still measures what every other button here measures -- 16px of line box
+ * plus 2 * 6px of padding plus 2 * 1px of border is 30px, because a `button` is
+ * `border-box` in the UA stylesheet where the rest of this page is `content-box`
+ * (see the note at the top). At 7px it came out 32px, two taller than the Start
+ * button beside it. The Russian label then draws its two lines at 46px instead
+ * of spilling out of a box that stayed 30. It follows the chrome rather than
+ * being folded into it because it is an exception to it, the way `.startstop`'s
+ * width above is.
+ */
+.tutorialbuttons button {
+  block-size: auto;
+  padding-block: 6px;
 }
 
 /*
