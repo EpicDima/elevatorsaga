@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { tutorialTasks } from "../game/tutorial.ts";
 import type { TutorialTask } from "../game/tutorial.ts";
-import { DEFAULT_LOCALE, EN_MESSAGES, LOCALES, setLocale } from "../i18n/index.ts";
+import { DEFAULT_LOCALE, EN_MESSAGES, LOCALES, setLocale, translateIn } from "../i18n/index.ts";
 import { query, queryAll, requireElement } from "./dom.ts";
 import { createElement } from "./test-helpers.ts";
 import { presentTutorial } from "./tutorial-panel.ts";
@@ -610,30 +610,38 @@ describe("presentTutorial", () => {
       );
     });
 
-    it("draws the answer of the language it is drawing in, and translates none of its code", () => {
+    it("draws this task's own answer, out of the catalogue of the language it draws in", () => {
       // The answer is a message like everything else here, but a `.code` one:
       // only the `//` comments in it are ever translated and the JavaScript is
       // byte-identical in every locale, which `src/i18n/catalogue.test.ts`
-      // holds. So the panel asks the table while it draws — the first assertion
-      // — and what comes back is the same program with, at most, different
-      // comments.
+      // holds. So what the panel draws is the same program in either language,
+      // with at most different comments — and since no answer on the track
+      // carries a comment today, the two languages are the same bytes. Which
+      // language the panel drew from therefore cannot be read off the answer at
+      // all, and nothing below pretends it can. The starting programs are where
+      // the difference is visible: each carries a comment, so
+      // `tutorial.task1.startingCode.code` really is two different strings. The
+      // day an answer gains one, the assertion below starts carrying that half
+      // of the sentence by itself, with nothing here to change.
       //
-      // No answer on the track carries a comment today, so the two languages
-      // print the same bytes; that is a fact about the answers and not about
-      // the panel, and it is deliberately not what is asserted. The day an
-      // answer gains one, these three lines still say the right thing: the
-      // Russian reader gets the Russian entry, the code inside it is unchanged,
-      // and there is no Cyrillic anywhere but in the comments.
-      presentTutorial(parent, panelData());
-      const english = requireElement(".tutorialsolution code", parent).textContent;
+      // What it does say today is which message was drawn. Comparing the drawn
+      // text with `tutorialTasks[0].solutionCode` — which this spec used to do —
+      // reaches the getter the panel reached and moves with it, so it holds the
+      // panel to the table and says nothing about the table holding the wrong
+      // key. That is a mistake worth being able to fail on: the table reaches
+      // its programs through keys written out by hand, and a task reading its
+      // neighbour's would show the neighbour's answer here without anything
+      // throwing. Naming the message and the locale outright makes this the
+      // panel's own statement.
+      for (const locale of LOCALES) {
+        setLocale(locale);
 
-      setLocale("ru");
-      presentTutorial(parent, panelData());
+        presentTutorial(parent, panelData());
 
-      const russian = requireElement(".tutorialsolution code", parent).textContent;
-      expect(russian).toBe(tutorialTasks[0]?.solutionCode);
-      expect(uncommented(russian), "the answer's code was translated").toBe(uncommented(english));
-      expect(uncommented(russian), "Cyrillic outside a comment").not.toMatch(/[а-яё]/i);
+        const drawn = requireElement(".tutorialsolution code", parent).textContent;
+        expect(drawn, locale).toBe(translateIn(locale, "tutorial.task1.solutionCode.code"));
+        expect(uncommented(drawn), `${locale}: Cyrillic outside a comment`).not.toMatch(/[а-яё]/i);
+      }
     });
   });
 });

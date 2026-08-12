@@ -85,8 +85,21 @@ interface TutorialTaskMessages {
  * a ninth task inserted between two existing ones moves every task after it,
  * and a table read by position would then print task 3's title, goal and hints
  * over task 4's building. The answer under the last hint would not move with
- * them — it is read off the task itself — so the panel would show one program
- * and describe another, and nothing would throw.
+ * them — it comes off the task at that index rather than out of this table — so
+ * the panel would show one program and describe another, and nothing would
+ * throw.
+ *
+ * Coming off the task is what keeps the answer in step with the building. It is
+ * not what keeps it in step with the task, and it stopped being an argument that
+ * this hazard lives only in this file the day the programs became messages: a
+ * task reaches its own two through `tutorial.taskN.startingCode.code` and
+ * `tutorial.taskN.solutionCode.code`, written out by hand at the entry that uses
+ * them, so the very slip described above is available one file away, in
+ * `src/game/tutorial.ts`, and the compiler can no more see it there than here —
+ * a key that belongs to the next task is still a key. What holds the sixteen
+ * programs to the tasks that own them is `src/game/tutorial.test.ts`, which
+ * requires no two tasks to hand out one program beyond the answer task 8 copies
+ * from task 7 on purpose.
  *
  * Every key is spelled out because every one of them has to reach `t` as a
  * literal; see the note at the top of this file for why building them from the
