@@ -55,6 +55,7 @@ interface Harness {
 function setUp(code: string = INERT_CODE): Harness {
   const elements: AppElements = {
     challenge: createElement("div", { className: "challenge" }),
+    tutorial: createElement("div", { className: "tutorial" }),
     world: createElement("div", { className: "innerworld" }),
     stats: createElement("div", { className: "statscontainer" }),
     feedback: createElement("div", { className: "feedbackcontainer" }),
@@ -72,6 +73,7 @@ function setUp(code: string = INERT_CODE): Harness {
   }
   document.body.replaceChildren(
     elements.challenge,
+    elements.tutorial,
     elements.world,
     elements.stats,
     elements.feedback,
@@ -835,6 +837,161 @@ describe("App learning track", () => {
     expect(() => {
       app.startTutorial(99);
     }).toThrow(RangeError);
+  });
+
+  describe("the panel between the bar and the building", () => {
+    /**
+     * What the panel says about where the player is, if it is drawn at all.
+     *
+     * @param elements - The page shell the app was built over.
+     * @returns The position line's text, or `null` when the region is empty.
+     */
+    function positionLine(elements: AppElements): string | null {
+      return elements.tutorial.querySelector(".tutorialposition")?.textContent ?? null;
+    }
+
+    it("draws the panel for the task on screen", () => {
+      const { app, elements } = setUp();
+      app.startTutorial(2);
+
+      expect(positionLine(elements)).toBe(
+        `Learning track Task 3 of ${String(tutorialTasks.length)}`,
+      );
+      expect(requireElement(".tutorialtitle", elements.tutorial).textContent).toBe(
+        "The buttons inside the car",
+      );
+      expect(requireElement(".tutorialsolution code", elements.tutorial).textContent).toBe(
+        taskAt(2).solutionCode,
+      );
+    });
+
+    it("leaves the region empty everywhere else, so the page has no gap in it", () => {
+      // Nineteen challenges, the sandbox and the demo all go through the same
+      // draw, and the stylesheet hides the region only while it is empty. The
+      // last task's hints left above challenge 1 would be worse than a gap: they
+      // are the answer to a task nobody is playing.
+      const { app, elements } = setUp();
+      expect(elements.tutorial.children).toHaveLength(0);
+
+      app.startTutorial(2);
+      expect(elements.tutorial.children).toHaveLength(1);
+
+      app.startChallenge(0);
+      expect(elements.tutorial.children).toHaveLength(0);
+
+      app.startTutorial(2);
+      app.handleRoute(...routeFor("#challenge=sandbox,floors=20"));
+      expect(elements.tutorial.children).toHaveLength(0);
+    });
+
+    it("redraws the panel when the language changes under it", () => {
+      // The panel is most of the words on the page while a task is on screen,
+      // so a language change that missed it would leave the game in English
+      // with a Russian bar over it.
+      const { app, elements } = setUp();
+      app.startTutorial(0);
+
+      setLocale("ru");
+      app.relocalise();
+
+      expect(positionLine(elements)).toBe(
+        `Учебная дорожка Учебное задание 1 из ${String(tutorialTasks.length)}`,
+      );
+      expect(requireElement(".tutorialtitle", elements.tutorial).textContent).toBe(
+        "Лифт, который никуда не едет",
+      );
+    });
+
+    it("counts the task just cleared without waiting for the next draw", () => {
+      // The verdict is drawn over the panel, and the panel is behind it saying
+      // how far along the track the player is. Without the redraw it would say
+      // "0 of 8 tasks done" underneath an overlay congratulating them on the
+      // first, until they started something else.
+      const { app, elements } = setUp();
+      app.startTutorial(0);
+      expect(requireElement(".tutorialprogress", elements.tutorial).textContent).toBe(
+        `0 of ${String(tutorialTasks.length)} tasks done`,
+      );
+
+      endRun(app, true);
+
+      expect(requireElement(".tutorialprogress", elements.tutorial).textContent).toBe(
+        `1 of ${String(tutorialTasks.length)} tasks done`,
+      );
+    });
+
+    it("starts the task again from the panel's own button, and waits for Start", () => {
+      // The same private restart the bar's button and Ctrl-Enter go through, so
+      // two buttons that say the same thing do the same thing.
+      const { app, elements } = setUp();
+      app.startTutorial(1);
+      const before = app.world;
+
+      requireElement(".tutorialrestart", elements.tutorial).click();
+
+      expect(app.world).not.toBe(before);
+      expect(app.tutorial?.task.id).toBe("tutorial-2");
+      expect(app.worldController.isPaused).toBe(true);
+    });
+
+    it("takes the task's program into the player's editor from the panel", () => {
+      const { app, elements, storage, view } = setUp();
+      app.startTutorial(3);
+      view.type("// the answer, copied out of the hint");
+
+      requireElement(".tutorialtakecode", elements.tutorial).click();
+
+      expect(storage.getItem(CODE_STORAGE_KEY)).toBe("// the answer, copied out of the hint");
+      // Still on the task: the button means "I want to keep this", not "I am
+      // done here".
+      expect(app.tutorial?.index).toBe(3);
+    });
+
+    it("asks the app, not itself, whether that would overwrite a program", () => {
+      // The panel has no idea what is in the player's editor; `App` does, and
+      // answers at the moment the button is pressed. A player who wrote their
+      // first program during task 5 must not have it taken away in silence.
+      const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
+      const { app, elements, storage } = setUp();
+      app.startTutorial(4);
+      requireElement(".tutorialtakecode", elements.tutorial).click();
+      expect(confirm).not.toHaveBeenCalled();
+
+      storage.setItem(CODE_STORAGE_KEY, INERT_CODE);
+      requireElement(".tutorialtakecode", elements.tutorial).click();
+
+      expect(confirm).toHaveBeenCalledTimes(1);
+      expect(storage.getItem(CODE_STORAGE_KEY)).toBe(INERT_CODE);
+    });
+
+    it("leaves the track from the panel's own button", () => {
+      const { app, elements, storage, view } = setUp();
+      storage.setItem(CODE_STORAGE_KEY, INERT_CODE);
+      app.startTutorial(2);
+
+      requireElement(".tutorialleave", elements.tutorial).click();
+
+      expect(app.tutorial).toBeUndefined();
+      expect(app.currentChallengeIndex).toBe(0);
+      expect(elements.tutorial.children).toHaveLength(0);
+      expect(view.getValue()).toBe(INERT_CODE);
+    });
+
+    it("keeps the focus on the page when the button pressed was in the panel", () => {
+      // Leaving the track deletes the button that was pressed along with the
+      // rest of the panel, and the focus would fall back to the document -- the
+      // whole page to tab through again (WCAG 2.4.3). The bar is drawn before
+      // the panel is emptied, and it is the bar that catches the focus, exactly
+      // as it does when the Restart button destroys itself.
+      const { app, elements } = setUp();
+      app.startTutorial(2);
+      const leave = requireElement(".tutorialleave", elements.tutorial);
+      leave.focus();
+
+      leave.click();
+
+      expect(document.activeElement).toBe(requireElement(".startstop", elements.challenge));
+    });
   });
 });
 

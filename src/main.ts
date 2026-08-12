@@ -114,6 +114,7 @@ async function main(): Promise<void> {
   const app = new App({
     elements: {
       challenge: requireElement(".challenge"),
+      tutorial: requireElement(".tutorial"),
       world: requireElement(".innerworld"),
       stats: requireElement(".statscontainer"),
       feedback: requireElement(".feedbackcontainer"),

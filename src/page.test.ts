@@ -108,6 +108,8 @@ describe("index.html", () => {
     "#fitness_message",
     // Drawn into by src/app/app.ts and src/ui/presenters.ts.
     ".challenge",
+    // Drawn into by src/ui/tutorial-panel.ts, and left empty off the track.
+    ".tutorial",
     ".innerworld",
     ".statscontainer",
     ".feedbackcontainer",
@@ -153,12 +155,16 @@ describe("index.html", () => {
     expect(element?.textContent).toBe("");
   });
 
-  it.each([".world", ".innerworld", ".statscontainer", ".challenge"])(
+  it.each([".world", ".innerworld", ".statscontainer", ".challenge", ".tutorial"])(
     "leaves %s out of the live regions",
     (selector) => {
       // The building and the statistics change every frame, and the challenge
       // bar changes under the player's own hands. Announcing any of them would
-      // bury the messages that do need announcing under continuous noise.
+      // bury the messages that do need announcing under continuous noise. The
+      // learning track's panel is redrawn whole every time the language changes
+      // or a task is cleared, so announcing it would read the entire lesson out
+      // again; it is a named region instead, which is how it is reached on
+      // purpose.
       const element = page.querySelector(selector);
       expect(element).not.toBeNull();
       expect(element?.getAttribute("aria-live")).toBeNull();

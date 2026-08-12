@@ -14,6 +14,7 @@ import type { World } from "../game/world.ts";
 import type { AnimationFrameRequester, WorldController } from "../game/world-controller.ts";
 import { t } from "../i18n/index.ts";
 import { defaultCode } from "../ui/default-code.ts";
+import { clearChildren } from "../ui/dom.ts";
 import { CODE_STORAGE_KEY } from "../ui/editor.ts";
 import type { CodeEditor } from "../ui/editor.ts";
 import {
@@ -30,6 +31,7 @@ import {
 } from "../ui/presenters.ts";
 import type { ChallengePresenter } from "../ui/presenters.ts";
 import type { ChallengeLinkData, SeedLinkData } from "../ui/templates.ts";
+import { presentTutorial } from "../ui/tutorial-panel.ts";
 import { createParamsUrl } from "./router.ts";
 import type { RouteParams, RouteQuery } from "./router.ts";
 import { clampTimeScale, decreasedTimeScale, increasedTimeScale } from "./time-scale.ts";
@@ -114,6 +116,13 @@ function absoluteUrl(hash: string): string {
 export interface AppElements {
   /** The challenge bar. */
   readonly challenge: HTMLElement;
+  /**
+   * Where the learning track's panel goes.
+   *
+   * Empty on every route but the track, and the stylesheet hides an empty one,
+   * so a challenge and the demo are not left with a gap above the building.
+   */
+  readonly tutorial: HTMLElement;
   /** The building. */
   readonly world: HTMLElement;
   /** The statistics panel. */
@@ -794,14 +803,25 @@ export class App {
       );
     }
 
-    // Both of these regions can hold the focused element when a challenge
-    // starts: the "Next challenge" link lives in the feedback overlay, and the
-    // call and in-car buttons live in the building. Emptying them deletes it,
-    // and focus falls back to <body> -- so a keyboard or screen-reader player
-    // who takes the offered link is dropped at the top of the page instead of
-    // arriving at the challenge they just asked for. Asked before the teardown,
-    // because afterwards there is nothing left to ask about.
-    const focusWasDestroyed = containsFocus([this.#elements.world, this.#elements.feedback]);
+    // All three of these regions can hold the focused element when a challenge
+    // starts: the "Next challenge" link lives in the feedback overlay, the call
+    // and in-car buttons live in the building, and the learning track's panel
+    // has the button that leaves the track. Emptying them deletes it, and focus
+    // falls back to <body> -- so a keyboard or screen-reader player who takes
+    // the offered link, or who presses "leave", is dropped at the top of the
+    // page instead of arriving at the challenge they just asked for. Asked
+    // before the teardown, because afterwards there is nothing left to ask
+    // about.
+    //
+    // The panel is the odd one of the three: it is not emptied here but at the
+    // end of `#drawChallengeBar`, after the bar has already put the focus on the
+    // start button. That order is what makes one question cover all three -- by
+    // the time the panel goes, the focus has left it.
+    const focusWasDestroyed = containsFocus([
+      this.#elements.world,
+      this.#elements.feedback,
+      this.#elements.tutorial,
+    ]);
     clearAll([this.#elements.world, this.#elements.feedback]);
     this.#run = { challenge, challengeIndex };
     this.#outcome = undefined;
@@ -829,6 +849,14 @@ export class App {
       const tutorial = this.#tutorial;
       if (challengeStatus && tutorial !== undefined) {
         recordClearedTutorialTask(this.#storage, tutorial.task.id);
+        // The one moment the panel has to be redrawn without a run starting or a
+        // language changing: the count it prints has just gone up, and the
+        // player is looking at the panel while the success overlay tells them
+        // so. Without this line the panel would still say "0 of 8 tasks done"
+        // under an overlay congratulating them on the first. Drawn from the
+        // store, like every other draw of it, so the line and the record cannot
+        // disagree.
+        this.#drawTutorialPanel();
       }
       this.#showOutcome(challengeStatus);
     });
@@ -896,6 +924,62 @@ export class App {
     } else if (challengeIndex === null) {
       this.#retitleAsSandbox(challenge.condition.description);
     }
+    this.#drawTutorialPanel();
+  }
+
+  /**
+   * Draws the learning track's panel, or empties its region when what is on
+   * screen is not a task.
+   *
+   * Hung off the end of {@link #drawChallengeBar} rather than given call sites
+   * of its own, because that method's two callers are exactly the two moments
+   * the panel has to be drawn again: the start of a run, which is the only
+   * thing that can change which task is on screen, and a language change, which
+   * has to reach every word on the page — and the panel is most of the words on
+   * it. The alternative, calling this from both places, is two call sites to
+   * keep in step and a third to forget when a third caller appears. It runs
+   * after the bar so that the page is written in the order it is read.
+   *
+   * Emptying is not an afterthought but the common case: nineteen challenges,
+   * the sandbox and the demo all reach here, and every one of them has to leave
+   * the region empty, since the stylesheet hides it only while it is. Leaving
+   * the last task's hints above challenge 1 would be worse than a gap — they
+   * are the answer to a task the player is no longer playing.
+   *
+   * The three callbacks are closures over this object rather than a public
+   * method for the panel to call, which is what keeps the panel from having to
+   * know that "start over" is {@link #restart}: the same private method the
+   * Restart button and Ctrl-Enter go through, with the same `autoStart` of
+   * `false`, so a task restarted from the panel waits for Start exactly as one
+   * restarted from the bar does. Two buttons that say the same thing must not
+   * do different things.
+   *
+   * The panel's `hasOwnProgram` is a function and not a boolean because it is
+   * asked at the moment the player presses "take this program", not at the
+   * moment the panel was drawn: a player who writes their first program during
+   * task 5 would otherwise be told nothing before it was overwritten, since the
+   * panel was drawn when the store was still empty.
+   */
+  #drawTutorialPanel(): void {
+    const tutorial = this.#tutorial;
+    if (tutorial === undefined) {
+      clearChildren(this.#elements.tutorial);
+      return;
+    }
+    presentTutorial(this.#elements.tutorial, {
+      taskIndex: tutorial.index,
+      clearedCount: this.tutorialProgress().cleared,
+      hasOwnProgram: () => this.playerCodeWouldBeReplaced(),
+      onRestart: () => {
+        this.#restart();
+      },
+      onTakeCode: () => {
+        this.takeTutorialCode();
+      },
+      onLeave: () => {
+        this.leaveTutorial();
+      },
+    });
   }
 
   /**
@@ -942,10 +1026,16 @@ export class App {
    * this feature refuses -- losing a run because somebody changed a language is
    * worse than any amount of it staying in the old one.
    *
-   * The four regions and why each is done the way it is:
+   * The five regions and why each is done the way it is:
    *
    * - The challenge bar is rebuilt from scratch by {@link #drawChallengeBar},
    *   which is cheap and correct: the bar subscribes to nothing.
+   * - The learning track's panel goes with the bar, because
+   *   {@link #drawTutorialPanel} is called from the end of it. It is the region
+   *   with the most words in it and the one a player is most likely to be
+   *   reading when they change the language, which is why it is built from
+   *   message keys rather than from finished sentences: see the note at the top
+   *   of `src/ui/tutorial-panel.ts`.
    * - The statistics *labels* are shell, and `localisePage` has already dealt
    *   with them. The *figures* go through `Intl` in {@link presentStats}, so a
    *   Russian reader wants `2 675 с` where an English one has `2,675s`, and they

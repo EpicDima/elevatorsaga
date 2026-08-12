@@ -133,6 +133,15 @@
         <div class="challenge"></div>
 
         <!--
+          The learning track's panel, drawn by src/ui/tutorial-panel.ts. Empty
+          on every route but the track, and the stylesheet hides it while it is
+          -- the same way the language picker is hidden while it has no options.
+          It carries no data-i18n: the presenter asks the catalogue for every
+          word at the moment it draws, so there is nothing here to translate.
+        -->
+        <div class="tutorial"></div>
+
+        <!--
           The building is wider than the page on a narrow window and .world
           scrolls horizontally to reach it. A scroll container is only
           reachable by keyboard if it can take focus, so it is in the tab
