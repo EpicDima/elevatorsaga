@@ -7,7 +7,8 @@ import { tutorialTasks } from "../game/tutorial.ts";
 import type { TutorialTask } from "../game/tutorial.ts";
 import { createWorldController } from "../game/world-controller.ts";
 import type { WorldController } from "../game/world-controller.ts";
-import { DEFAULT_LOCALE, setLocale } from "../i18n/index.ts";
+import { DEFAULT_LOCALE, LOCALES, setLocale } from "../i18n/index.ts";
+import type { Locale } from "../i18n/index.ts";
 import { defaultCode } from "../ui/default-code.ts";
 import { queryAll, requireElement } from "../ui/dom.ts";
 import { CODE_STORAGE_KEY, CodeEditor } from "../ui/editor.ts";
@@ -751,6 +752,35 @@ describe("App learning track", () => {
     const link = requireElement(".feedback a", elements.feedback);
     expect(link.getAttribute("href")).toBe("#challenge=1");
     expect(link.textContent.trim()).toBe("Go to challenge 1");
+  });
+
+  it("says how long the track was in the words each catalogue counts it with", () => {
+    // `tutorial.finish.message` is the one sentence in the game that writes the
+    // length of the track out rather than counting `tutorialTasks.length`,
+    // because "Eight tasks" is what the sentence needs and "8 tasks" is not. A
+    // ninth task would leave both catalogues quietly wrong on the one screen a
+    // player reaches once, so the number is pinned here against the words --
+    // add the task, add its wording, and this passes again.
+    const SPELLED_OUT: Readonly<Record<number, Readonly<Record<Locale, string>>>> = {
+      8: { en: "Eight tasks", ru: "Восемь заданий" },
+    };
+    const words = SPELLED_OUT[tutorialTasks.length];
+    expect(
+      words,
+      `no wording is recorded for a track of ${String(tutorialTasks.length)}`,
+    ).toBeDefined();
+
+    for (const locale of LOCALES) {
+      setLocale(locale);
+      const { app, elements } = setUp();
+      app.startTutorial(tutorialTasks.length - 1);
+
+      endRun(app, true);
+
+      expect(requireElement(".feedback p", elements.feedback).textContent).toContain(
+        words?.[locale],
+      );
+    }
   });
 
   it("promises nothing on that link that following it does not do", () => {

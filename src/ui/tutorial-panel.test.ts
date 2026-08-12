@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { tutorialTasks } from "../game/tutorial.ts";
 import type { TutorialTask } from "../game/tutorial.ts";
-import { DEFAULT_LOCALE, EN_MESSAGES, setLocale } from "../i18n/index.ts";
+import { DEFAULT_LOCALE, EN_MESSAGES, LOCALES, setLocale } from "../i18n/index.ts";
 import { query, queryAll, requireElement } from "./dom.ts";
 import { createElement } from "./test-helpers.ts";
 import { presentTutorial } from "./tutorial-panel.ts";
@@ -609,4 +609,46 @@ describe("presentTutorial", () => {
       );
     });
   });
+});
+
+describe("The goal a task states", () => {
+  /**
+   * Every number in a piece of text, as a number.
+   *
+   * Decimals included, in either notation: the wait limit is rendered through
+   * `decimal(…, 1)`, so a bar of 37 seconds reads "37.0" in English and "37,0"
+   * in Russian, and both mean the same thing as the "37" the goal sentence
+   * writes.
+   *
+   * @param text - Any rendered sentence.
+   * @returns The numbers it contains, in the order they appear.
+   */
+  function numbersIn(text: string): number[] {
+    return [...text.matchAll(/\d+(?:[.,]\d+)?/g)].map((match) =>
+      Number(match[0].replace(",", ".")),
+    );
+  }
+
+  for (const [index, task] of tutorialTasks.entries()) {
+    for (const locale of LOCALES) {
+      it(`is the bar ${task.id} enforces, in ${locale}`, () => {
+        // The goal is prose in a catalogue and the bar is arithmetic in
+        // `src/game/tutorial.ts`, and nothing made the two agree: a goal saying
+        // "deliver 40 passengers and let nobody wait longer than 3 seconds" for
+        // a task requiring 15 and 37 left the whole suite green, and the player
+        // reading it would have been sent to fail at something the game was not
+        // asking for. The numbers are what can be checked without restating the
+        // sentence here -- word it however it should be worded, but every
+        // number the condition is built from has to be in it.
+        setLocale(locale);
+
+        presentTutorial(parent, panelData({ taskIndex: index }));
+
+        const goal = requireElement(".tutorialgoal", parent).textContent;
+        expect(numbersIn(goal)).toEqual(
+          expect.arrayContaining(numbersIn(task.condition.description)),
+        );
+      });
+    }
+  }
 });
