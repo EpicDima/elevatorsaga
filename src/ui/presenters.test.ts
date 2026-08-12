@@ -37,6 +37,7 @@ function statsContainer(): HTMLElement {
     "avgpickuptime",
     "maxwaittime",
     "movecount",
+    "avgloadfactor",
   ]) {
     container.append(createElement("span", { className: `value ${className}` }));
   }
@@ -64,6 +65,10 @@ function worldWithStats(): World {
   world.avgPickupTime = 1.75;
   world.maxWaitTime = 11.06;
   world.moveCount = 7;
+  // A load factor, so between 0 and 1, and one that a percentage has to round
+  // up and then drop the rest of: 56.94 is where multiplying by a hundred by
+  // hand and cutting the decimals off would print 56.
+  world.avgLoadFactorOnMove = 0.5694;
   return world;
 }
 
@@ -94,14 +99,15 @@ describe("presentStats", () => {
     expect(requireElement(".avgpickuptime", container).textContent).toBe("1.8s");
     expect(requireElement(".maxwaittime", container).textContent).toBe("11.1s");
     expect(requireElement(".movecount", container).textContent).toBe("7");
+    expect(requireElement(".avgloadfactor", container).textContent).toBe("57%");
   });
 
   it("shows a world nothing has happened in yet as zeroes", () => {
     // The state the panel is drawn in, every time: `presentStats` fires the
     // event itself so the rows are filled before the first frame. A figure
     // that arrives as NaN, or as an empty cell, is worse than one that is
-    // missing -- and the pickup average is the one with a divisor that is
-    // genuinely zero until a car reaches somebody.
+    // missing -- and the two averages added last are the ones whose divisors
+    // are genuinely zero here: nobody has been picked up and nothing has moved.
     const container = statsContainer();
     presentStats(container, createWorld({ floorCount: 3, elevatorCount: 1 }));
 
@@ -111,6 +117,7 @@ describe("presentStats", () => {
     expect(requireElement(".avgpickuptime", container).textContent).toBe("0.0s");
     expect(requireElement(".maxwaittime", container).textContent).toBe("0.0s");
     expect(requireElement(".movecount", container).textContent).toBe("0");
+    expect(requireElement(".avgloadfactor", container).textContent).toBe("0%");
   });
 
   it("groups the thousands a long run gets to", () => {

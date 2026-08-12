@@ -17,7 +17,7 @@ import type { Floor } from "../game/floor.ts";
 import type { User } from "../game/user.ts";
 import type { World } from "../game/world.ts";
 import type { WorldController } from "../game/world-controller.ts";
-import { format, quantity, seconds, t } from "../i18n/index.ts";
+import { format, percent, quantity, seconds, t } from "../i18n/index.ts";
 import {
   clearChildren,
   query,
@@ -178,6 +178,7 @@ export function presentStats(parent: HTMLElement, world: World): void {
   const avgPickupTime = requireElement(".avgpickuptime", parent);
   const maxWaitTime = requireElement(".maxwaittime", parent);
   const moveCount = requireElement(".movecount", parent);
+  const avgLoadFactor = requireElement(".avgloadfactor", parent);
 
   world.on("stats_display_changed", () => {
     transportedCounter.textContent = format(world.transportedCounter);
@@ -187,6 +188,7 @@ export function presentStats(parent: HTMLElement, world: World): void {
     avgPickupTime.textContent = format(seconds(world.avgPickupTime, 1));
     maxWaitTime.textContent = format(seconds(world.maxWaitTime, 1));
     moveCount.textContent = format(world.moveCount);
+    avgLoadFactor.textContent = format(percent(world.avgLoadFactorOnMove));
   });
   world.trigger("stats_display_changed");
 }

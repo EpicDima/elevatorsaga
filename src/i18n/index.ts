@@ -363,6 +363,7 @@ export {
   formatNumber,
   formatTimeOfDay,
   formatValue,
+  percent,
   quantity,
   seconds,
   selectPlural,

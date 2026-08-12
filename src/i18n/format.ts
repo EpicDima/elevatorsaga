@@ -163,6 +163,28 @@ export function decimal(value: number, fractionDigits: number): Quantity {
 }
 
 /**
+ * A fraction of one, shown as a percentage.
+ *
+ * The multiplication by a hundred belongs to `Intl` along with the sign, and
+ * not because multiplying is hard: what a call site cannot be expected to know
+ * is that Russian writes `72 %` with a space and English writes `72%` without
+ * one. CLDR's Russian percent pattern already uses a non-breaking space, so
+ * unlike the unit patterns {@link formatNumber} has to patch, this one arrives
+ * unbreakable.
+ *
+ * @param value - The fraction; `1` is the whole of it.
+ * @param fractionDigits - How many decimals to show; none by default.
+ * @returns The quantity.
+ */
+export function percent(value: number, fractionDigits = 0): Quantity {
+  return quantity(value, {
+    style: "percent",
+    minimumFractionDigits: fractionDigits,
+    maximumFractionDigits: fractionDigits,
+  });
+}
+
+/**
  * The most decimals `Intl.NumberFormat` will accept.
  *
  * Past the seventeen significant digits a double can carry, so asking for it is

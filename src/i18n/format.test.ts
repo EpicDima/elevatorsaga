@@ -8,6 +8,7 @@ import {
   formatTimeOfDay,
   formatValue,
   interpolate,
+  percent,
   quantity,
   seconds,
   selectPlural,
@@ -119,6 +120,24 @@ describe("quantity helpers", () => {
     expect(selectPlural("ru", exact(1.0004))).toBe("other");
     expect(selectPlural("ru", 1.0004)).toBe("one");
     expect(selectPlural("ru", exact(1))).toBe("one");
+  });
+
+  it("renders a fraction of one as a percentage", () => {
+    // The statistics panel holds load factors, which are 0 to 1 and belong on
+    // screen as percentages; whole ones, because a third decimal place of how
+    // full a lift was is noise.
+    expect(formatValue("en", percent(0.485))).toBe("49%");
+    expect(formatValue("en", percent(0))).toBe("0%");
+    expect(formatValue("en", percent(1))).toBe("100%");
+    expect(formatValue("en", percent(0.5694, 1))).toBe("56.9%");
+  });
+
+  it("puts the space before a Russian percent sign, and none in English", () => {
+    // The reason a call site asks for a percentage instead of multiplying by a
+    // hundred itself. The space CLDR gives Russian here is already
+    // non-breaking, which is why this is not on the list `formatNumber` patches.
+    expect(formatValue("ru", percent(0.721))).toBe(`72${NBSP}%`);
+    expect(formatValue("ru", percent(0.5694, 1))).toBe(`56,9${NBSP}%`);
   });
 
   it("renders durations with their unit", () => {
