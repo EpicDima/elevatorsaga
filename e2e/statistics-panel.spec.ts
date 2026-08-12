@@ -8,14 +8,20 @@
  * a stylesheet one -- the arithmetic is checked in `src/styles/style.test.ts`,
  * and what is checked here is the result of laying it out.
  *
- * Two buildings, because they were cut off by different amounts: the learning
- * track's two-floor rooms lost the last three rows, and a three-floor challenge
- * had lost the eighth until the row pitch came down. The tallest building in
- * the game is not measured -- it has 500px of slack and would pass a panel
- * twice this size.
+ * Two buildings, and only the first of them was ever cut: the learning track's
+ * two-floor rooms are 100px, which took `Max delivery time`, `Moves` and
+ * `Avg load` off the bottom of a 168px panel. The three-floor challenge is
+ * 150px and its bottom row ends at 143, so it fits -- by 7px, which is the
+ * whole of its margin and the reason it is measured anyway: a ninth row, or a
+ * pitch back at the 20px this panel was drawn at until `ea9b51c`, spends those
+ * 7px, and by then it is not a case anyone would think to add. The tallest
+ * building in the game is 21 floors, 1050px, six times the panel; it is not
+ * measured because there is nothing there to measure.
  */
 
 import { expect, test } from "@playwright/test";
+
+import { building } from "./game-page.ts";
 
 /** The shortest buildings the game draws, and how tall each one is. */
 const SHORT_BUILDINGS = [
@@ -26,7 +32,12 @@ const SHORT_BUILDINGS = [
 for (const { name, hash, floors } of SHORT_BUILDINGS) {
   test(`shows every statistic beside ${name}`, async ({ page }) => {
     await page.goto(`/${hash}`);
-    await expect(page.locator(".statscontainer .stat").first()).toBeVisible();
+    // A car, and not one of the rows this test is about: the rows are written
+    // into `index.html` and are on screen before any of our code has run, so
+    // waiting for one would let the measurement below read a building the
+    // presenter has not sized yet and report the clip as 0px tall. The cars are
+    // drawn by the presenter that sizes it, in the same pass.
+    await expect(building(page).getByRole("group", { name: "Elevator 1" })).toBeVisible();
 
     const measured = await page.evaluate(() => {
       const track = document.querySelector(".worldtrack");
