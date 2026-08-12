@@ -10,13 +10,20 @@
  *
  * Two buildings, and only the first of them was ever cut: the learning track's
  * two-floor rooms are 100px, which took `Max delivery time`, `Moves` and
- * `Avg load` off the bottom of a 168px panel. The three-floor challenge is
- * 150px and its bottom row ends at 143, so it fits -- by 7px, which is the
- * whole of its margin and the reason it is measured anyway: a ninth row, or a
- * pitch back at the 20px this panel was drawn at until `ea9b51c`, spends those
- * 7px, and by then it is not a case anyone would think to add. The tallest
- * building in the game is 21 floors, 1050px, six times the panel; it is not
- * measured because there is nothing there to measure.
+ * `Avg load` off the bottom of a 168px panel. That case is the guard. The
+ * three-floor challenge is 150px, its bottom row ends 143px down, and it was
+ * whole even before the fix -- so it is documentation, not a second guard, and
+ * saying otherwise would be claiming a failure it cannot detect: `.worldtrack`
+ * carries `min-block-size: var(--stats-block-size)`, so the clip these rows are
+ * measured against is held at 168px whatever the building does, and the margin
+ * the assertion below sees is 25px rather than the 7px the building has. Widen
+ * the panel -- a ninth row, or a pitch back at the 20px it was drawn at until
+ * `ea9b51c` -- and the floor rises with it, leaving `room` at `pitch + 9` for
+ * every building. What would fail here is the `min-block-size` line going away.
+ *
+ * Nothing taller is measured because there is nothing there to measure: the
+ * tallest shipped challenge is 21 floors, 1050px, six times the panel, and the
+ * sandbox will build 60 floors if asked.
  */
 
 import { expect, test } from "@playwright/test";
@@ -35,8 +42,11 @@ for (const { name, hash, floors } of SHORT_BUILDINGS) {
     // A car, and not one of the rows this test is about: the rows are written
     // into `index.html` and are on screen before any of our code has run, so
     // waiting for one would let the measurement below read a building the
-    // presenter has not sized yet and report the clip as 0px tall. The cars are
-    // drawn by the presenter that sizes it, in the same pass.
+    // presenter has not sized yet. That is a flaky failure rather than a false
+    // pass -- the height assertion further down would catch it, and the clip
+    // would measure 168px, not 0, thanks to that same `min-block-size` -- but
+    // a test that fails for a reason it is not about is worth not writing. The
+    // cars are drawn by the presenter that sizes the building, in the same pass.
     await expect(building(page).getByRole("group", { name: "Elevator 1" })).toBeVisible();
 
     const measured = await page.evaluate(() => {
