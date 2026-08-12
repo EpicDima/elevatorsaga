@@ -101,6 +101,31 @@ function run(description: string, result: Record<string, number>): AveragedFitne
   };
 }
 
+/**
+ * Silences a real stream and records what was written to it.
+ *
+ * The streams rather than the console methods, because a run prints through a
+ * console of the command's own making -- a different object from the one the
+ * assertions are written against, which is the whole mechanism -- and because
+ * what matters to a report being piped is which file descriptor a line came out
+ * of, not which method wrote it.
+ *
+ * @param stream - The stream to watch.
+ * @returns Everything written to it so far, read when the assertions run.
+ */
+function recordStream(stream: NodeJS.WriteStream): () => string {
+  const written = vi.spyOn(stream, "write").mockImplementation((...args: unknown[]) => {
+    // Node's `Console` hands its stream an error handler; a stream that never
+    // called it back would leave `console.log` waiting for it.
+    const callback = args.find((argument) => typeof argument === "function");
+    if (callback !== undefined) {
+      (callback as () => void)();
+    }
+    return true;
+  });
+  return () => written.mock.calls.map(([chunk]) => String(chunk)).join("");
+}
+
 afterEach(() => {
   // The active locale is module state, and `--locale ru` sets it for good.
   setLocale(DEFAULT_LOCALE);
@@ -302,11 +327,14 @@ describe("the report", () => {
 });
 
 describe("running the command", () => {
+  /** Everything a run printed, which lands on the real standard error. */
+  let printed: () => string;
+
   beforeEach(() => {
     // The engine logs a failed program, and a program is free to print; both are
     // deliberately kept out of the report and would otherwise land in the test
     // output instead.
-    vi.spyOn(console, "error").mockImplementation(() => undefined);
+    printed = recordStream(process.stderr);
   });
 
   it("scores the program and reports what the suite measured", async () => {
@@ -367,16 +395,16 @@ describe("running the command", () => {
       locale: "en",
       error: "Error: boom",
     });
-    expect(console.error).toHaveBeenCalledWith("thinking about it");
+    expect(printed()).toContain("thinking about it");
   });
 
   it("puts the console back the way it found it", async () => {
-    const original = console.log;
+    const original = globalThis.console;
     const { io } = streams({ "solution.js": "{ init: function () {}, update: function () {} }" });
 
     await runBench(["solution.js", "--seeds", "7"], io);
 
-    expect(console.log).toBe(original);
+    expect(globalThis.console).toBe(original);
   });
 
   it("says which file it could not read, and reports nothing at all", async () => {
@@ -412,8 +440,17 @@ describe("running the command", () => {
 });
 
 describe("moving a run's output off standard output", () => {
+  /**
+   * Watches both real streams a console can reach.
+   *
+   * @returns The text written to each, read when the assertions run.
+   */
+  function watchStreams(): { out: () => string; err: () => string } {
+    return { out: recordStream(process.stdout), err: recordStream(process.stderr) };
+  }
+
   it("hands back what the run returned and restores the console even when it throws", () => {
-    const before = { log: console.log, info: console.info, debug: console.debug };
+    const before = globalThis.console;
 
     expect(withRunOutputOnStandardError(() => 42)).toBe(42);
     expect(() =>
@@ -422,31 +459,72 @@ describe("moving a run's output off standard output", () => {
       }),
     ).toThrow("boom");
 
-    expect(console.log).toBe(before.log);
-    expect(console.info).toBe(before.info);
-    expect(console.debug).toBe(before.debug);
+    expect(globalThis.console).toBe(before);
   });
 
-  it("reroutes every stream that would otherwise land in the report", () => {
-    const errors = vi.spyOn(console, "error").mockImplementation(() => undefined);
+  it("leaves nothing a run prints on standard output", () => {
+    const watched = watchStreams();
 
     withRunOutputOnStandardError(() => {
-      console.log("log");
-      console.info("info");
-      console.debug("debug");
+      // Every console method that writes to standard output in Node 22, not
+      // just the three that go through `log`: `dir`, `table`, `group` and
+      // `count` reach the stream on their own, and a single one of them
+      // reaching the report is a `--json` that no longer parses.
+      console.log("logged");
+      console.info("informed");
+      console.debug("debugged");
+      console.dir({ inspected: true });
+      console.table([{ tabulated: 1 }]);
+      console.group("grouped");
+      console.groupEnd();
+      console.count("counted");
+      console.trace("traced");
+      console.warn("warned");
+      console.error("failed");
     });
 
-    expect(errors.mock.calls).toEqual([["log"], ["info"], ["debug"]]);
+    expect(watched.out()).toBe("");
+    const printed = watched.err();
+    for (const line of [
+      "logged",
+      "informed",
+      "debugged",
+      "inspected",
+      "tabulated",
+      "grouped",
+      "counted",
+      "traced",
+      "warned",
+      "failed",
+    ]) {
+      expect(printed).toContain(line);
+    }
   });
 
-  it("leaves the streams that already go to standard error alone", () => {
-    const warnings = vi.spyOn(console, "warn").mockImplementation(() => undefined);
-    const before = console.warn;
+  it("keeps writing the report to standard output while a run is under way", () => {
+    const watched = watchStreams();
 
     withRunOutputOnStandardError(() => {
-      expect(console.warn).toBe(before);
+      // What `runBench` does with the result: the io writes the report through
+      // the stream directly, and swapping the console must not touch it.
+      process.stdout.write("the report");
     });
 
-    expect(warnings).not.toHaveBeenCalled();
+    expect(watched.out()).toBe("the report");
+  });
+
+  it("puts the console back where it found it, whoever swapped it first", () => {
+    // The engine logs through whatever `globalThis.console` is at the time, and
+    // so does a test that spies on it. Restoring by identity rather than by
+    // reassigning Node's original console is what keeps a surrounding spy alive.
+    const swapped = { ...console };
+    const before = globalThis.console;
+    globalThis.console = swapped;
+    try {
+      withRunOutputOnStandardError(() => undefined);
+      expect(globalThis.console).toBe(swapped);
+    } finally {
+      globalThis.console = before;
+    }
   });
 });

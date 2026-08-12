@@ -55,6 +55,7 @@
  * something it could not do.
  */
 
+import { Console } from "node:console";
 import { readFile } from "node:fs/promises";
 import process from "node:process";
 import { resolve } from "node:path";
@@ -390,38 +391,37 @@ function describeError(error: unknown): string {
 /**
  * Runs something with everything it prints moved to standard error.
  *
- * `console.log`, `console.info` and `console.debug` write to standard output in
- * Node, and two things use them during a run: the engine, which logs a program's
- * error and its stack (`startWithFrameRequester` in `world-controller.ts`), and
- * the player's program, which is free to print whatever it likes and generally
- * does. Neither is unwanted — a stack trace is the most useful thing a bot
+ * Most of `console` writes to standard output in Node, and two things print
+ * during a run: the engine, which logs a program's error and its stack
+ * (`handleUserCodeError` in `world-controller.ts`), and the player's program,
+ * which is free to print whatever it likes and generally does. Neither is unwanted — a stack trace is the most useful thing a bot
  * author gets out of a failed run — but neither belongs in the report. Moved
  * rather than silenced: it all still arrives, on the stream diagnostics arrive
  * on, and `2>/dev/null` is there for anyone who wants the report alone.
  *
- * The three are rerouted rather than the whole `console` being replaced, so that
- * `warn` and `error` keep their own formatting and their own stream, and the
- * originals go back afterwards even if the run throws.
+ * The whole console is replaced rather than the three obvious methods being
+ * patched, and that is the point of the function. `console.dir`, `console.table`
+ * and `console.group` do not go through `console.log` -- they write to the
+ * stdout stream the console was built around -- so patching `log`, `info` and
+ * `debug` leaves several open doors into the report, and which method uses which
+ * stream is Node's business to change, not this file's to track. A console built
+ * on `process.stderr` for both streams has no door: everything a run prints,
+ * including whatever Node adds to the class next, lands on standard error.
+ *
+ * The replacement keeps Node's own formatting, `%s` substitution, `dir` depth
+ * and table drawing, because it is Node's `Console` -- only the streams differ.
+ * The original goes back afterwards even if the run throws.
  *
  * @param run - What to run.
  * @returns Whatever `run` returned.
  */
 export function withRunOutputOnStandardError<T>(run: () => T): T {
-  const original = { log: console.log, info: console.info, debug: console.debug };
-  // Looked up on `console` at call time rather than captured here, so that a
-  // test which watches `console.error` sees what a run printed.
-  const toStandardError = (...args: unknown[]): void => {
-    console.error(...args);
-  };
-  console.log = toStandardError;
-  console.info = toStandardError;
-  console.debug = toStandardError;
+  const original = globalThis.console;
+  globalThis.console = new Console({ stdout: process.stderr, stderr: process.stderr });
   try {
     return run();
   } finally {
-    console.log = original.log;
-    console.info = original.info;
-    console.debug = original.debug;
+    globalThis.console = original;
   }
 }
 
