@@ -260,7 +260,8 @@ Large scenario               1.480       45.271         22.820           296.000
 
 `avgWaitTime` is the whole journey, spawn to delivery, ride included; `avgPickupTime` is the part
 of it spent standing on a floor, so the difference between them is the ride. A sweep that visits
-every floor in turn spends between a third and a half of its passengers' time collecting them.
+every floor in turn spends over a third of its passengers' time collecting them in the smallest
+building, and slightly over half of it in the largest.
 `avgLoadFactorOnMove` is how full the cars were, averaged over every floor they crossed — a sweep
 carries a light load because it goes to floors nobody called it to.
 
