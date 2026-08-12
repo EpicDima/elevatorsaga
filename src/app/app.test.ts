@@ -1758,6 +1758,24 @@ describe("App.handleRoute", () => {
     expect(view.getValue()).not.toContain("selectElevatorForFloorPickup");
   });
 
+  it("does not write the reference solution into the task it is leaving", () => {
+    // The other direction of the same fault, and the one the router cannot
+    // refuse: `#challenge=1,devtest=true` is a perfectly ordinary challenge
+    // address, and the flag used to be applied while the task's buffer was
+    // still the one on screen. The task's attempt was flushed away under the
+    // dev-test program on the way out, and nothing showed it -- what appears
+    // after the switch is the player's own program, so the reference solution
+    // the flag was asked for was not even visible.
+    const { app, storage, view } = setUp();
+    app.handleRoute(...routeFor("#challenge=tutorial-1"));
+    view.type("// my attempt at task 1");
+
+    app.handleRoute(...routeFor("#challenge=1,devtest=true"));
+
+    expect(storage.getItem("develevateTutorialCode_tutorial-1")).toBe("// my attempt at task 1");
+    expect(view.getValue()).toContain("selectElevatorForFloorPickup");
+  });
+
   it("enters and leaves fullscreen with the url", () => {
     const { app } = setUp();
     app.handleRoute(...routeFor("#fullscreen=true"));

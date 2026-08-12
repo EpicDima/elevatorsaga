@@ -571,6 +571,16 @@ export class App {
     this.#query = query;
     this.#seed = params.seed;
     if (params.devTest) {
+      // Into the buffer the flag is meant for, before it is loaded. The
+      // reference solution is an edit of whatever is on screen, and what is on
+      // screen at this point is the buffer of the run being *left* -- so
+      // `#challenge=1,devtest=true` typed while a task was open used to write
+      // the dev-test program into that task's key, where the switch below
+      // flushed it, and then show the player their own program instead. The
+      // attempt was gone and nothing said so. The router refuses this flag on a
+      // task address, so the buffer it is asking for is always the player's own,
+      // and opening a buffer that is already on screen does nothing.
+      this.#editor.openPlayerBuffer();
       this.#editor.setDevTestCode();
     }
     setDemoFullscreen(params.fullscreen);
