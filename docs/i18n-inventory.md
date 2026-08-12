@@ -6,15 +6,29 @@ them.
 
 ## How this file is anchored
 
-**There are no `file.ts:123` pins here, on purpose.** The version this replaces carried 237 of
-them, and they had started to rot where nobody would notice: it sent a reader to
-`src/app/app.ts:207` for a console line that is now on line 315, and to `index.html:4` for an
-`<html>` element that is now on line 2. That is the failure mode that matters — not a pin that
-is obviously broken, but one that lands somewhere plausible and wrong — and the only way to keep
-237 of them true is to re-pin the file after every commit that inserts a line anywhere. So a
-reference here is a file name plus something that can be grepped: a message key, an exported
-symbol, a CSS selector. `docs/fork-survey.md` was converted to the same convention first, after
-the same kind of failure.
+**There are no `file.ts:123` pins here, on purpose.** The version this replaces, `a5010f2`,
+printed 237 of them, 226 of them distinct, and they had rotted wholesale rather than at the
+edges. Of the 226, 224 name a path the tree still has, and 95 of those 224 now point at a
+different line than they did when they were written:
+
+```sh
+git show a5010f2:docs/i18n-inventory.md |
+  grep -oE '(src/[A-Za-z0-9_./-]+|index|documentation)\.(ts|html):[0-9]+' | sort -u |
+  while IFS=: read -r file line; do
+    [ "$(git show "a5010f2:$file" | sed -n "${line}p")" = \
+      "$(git show "HEAD:$file" | sed -n "${line}p")" ] && echo same || echo moved
+  done | sort | uniq -c                                          # 95 moved, 129 same
+```
+
+Two of the 95 show the range. `src/app/app.ts:207` was the `World raised code error` console
+line and is now the `export class App` declaration: wrong in a way any reader would notice at a
+glance. `src/ui/completions.ts:148` was the `info` prose for `maxPassengerCount` and is now the
+`info` for `on` — the same field, in the same table of completions, describing a different API
+member. The second is the failure mode that matters, because it lands somewhere plausible and so
+nobody checks it, and the only way to keep 237 pins true is to re-pin the file after every commit
+that inserts a line anywhere. So a reference here is a file name plus something that can be
+grepped: a message key, an exported symbol, a CSS selector. `docs/fork-survey.md` was converted
+to the same convention first, after the same kind of failure.
 
 **Counts come with the command that produced them.** Where this file says how many of anything
 there are, the command is next to the number, so the next reader re-derives it in a second

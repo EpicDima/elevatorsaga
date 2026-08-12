@@ -5,10 +5,11 @@
  * reads it. Until this file, nothing in the repository read it — `en.ts` names
  * it in a comment and that is all — and it rotted the way an unread document
  * does. The version the rebuild in `4a58d85` replaced printed a total of 209
- * for a catalogue that held 210, and carried 237 `file.ts:123` pins, two of
- * which the rebuild found pointing at plausible wrong lines. Those three
- * numbers are counted off `git show a5010f2`, not taken on report. All of it
- * compiled, all of it passed, and only the reader was told something untrue.
+ * for a catalogue that held 210, and carried 237 `file.ts:123` pins, 95 of
+ * which now point at a line other than the one they were written against.
+ * Those numbers are counted off `git show a5010f2`, not taken on report; the
+ * document prints the command for the last of them. All of it compiled, all of
+ * it passed, and only the reader was told something untrue.
  *
  * The document specifies its own guard, in _What guards what_, and this file is
  * it. The five checks below are that list, in its order, and they are the whole
@@ -177,7 +178,8 @@ const TASK_KEYS: ReadonlySet<string> = new Set(
  * what made that reference true. An excuse would have kept it false.
  */
 const NON_PATHS: ReadonlyMap<string, string> = new Map([
-  ["src/app/app.ts:207", "the rotted pin _How this file is anchored_ exhibits"],
+  ["src/app/app.ts:207", "the first rotted pin _How this file is anchored_ exhibits"],
+  ["src/ui/completions.ts:148", "the second, the one that rotted onto a plausible wrong line"],
   ["src/i18n/<code>.ts", "the placeholder in _Adding a language_, `<code>` being the locale"],
   ["src/…", "the ellipsis in check 4's own wording"],
 ]);
@@ -374,8 +376,8 @@ describe("the line pins the inventory forbids", () => {
   it("keeps the two rotted pins that show what the rule prevents", () => {
     expect(
       PINS.map((match) => match[0]),
-      "the examples in _How this file is anchored_, which are meant to stay wrong",
-    ).toEqual(["app.ts:207", "index.html:4"]);
+      "the examples in _How this file is anchored_, which are meant to stay rotted",
+    ).toEqual(["app.ts:207", "completions.ts:148"]);
     for (const match of PINS) {
       expect(match.index > ANCHOR_START, `${match[0]} left the section`).toBe(true);
     }
