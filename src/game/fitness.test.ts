@@ -199,11 +199,17 @@ describe("calculateFitness", () => {
     expect(typeof result.transportedPerSec).toBe("number");
     expect(typeof result.avgWaitTime).toBe("number");
     expect(typeof result.transportedCount).toBe("number");
+    expect(typeof result.avgLoadFactorOnMove).toBe("number");
   });
 
   it("transports nobody when the code never moves an elevator", () => {
     const result = calculateFitness(challenge, inertCodeObj(), 1000.0 / 60.0, 200);
     expect(result.transportedCount).toBe(0);
+    // A program that never moves a car divides no load by no moves. `toBe(0)`
+    // and not `toBeCloseTo`, because NaN would satisfy neither but only this
+    // says so: a report is what a benchmark run is judged on, and a metric that
+    // arrives as NaN is worse than one that is missing.
+    expect(result.avgLoadFactorOnMove).toBe(0);
   });
 
   it("delivers passengers when the code actually drives the elevators", () => {

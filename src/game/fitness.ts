@@ -54,6 +54,8 @@ export type FitnessResult = {
   avgWaitTime?: number;
   /** Passengers delivered. */
   transportedCount?: number;
+  /** How full the cars were, averaged over every floor they crossed. */
+  avgLoadFactorOnMove?: number;
 };
 
 /** One scenario's outcome. */
@@ -250,6 +252,7 @@ export function calculateFitness(
     result.transportedPerSec = world.transportedPerSec;
     result.avgWaitTime = world.avgWaitTime;
     result.transportedCount = world.transportedCounter;
+    result.avgLoadFactorOnMove = world.avgLoadFactorOnMove;
   });
 
   controller.start(world, codeObj, frameRequester.register, true);
