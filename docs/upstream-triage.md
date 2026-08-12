@@ -106,13 +106,14 @@ its remaining half, and the estimate it was written against — a timestamp on `
 `World`, two rows and their catalogue keys — turned out to be the right shape. It is struck from
 here rather than restated; the "Closed here" rows say what shipped, and #77 says what did not.
 
-1. **Say what `init` and `update` are actually handed** — closes PR #113 and #108. Two facts, both
-   true today and neither written down: `this` is the object the player declared, and `update` runs
-   every frame. _Cost:_ one paragraph in `documentation.html`, its counterpart in
-   `documentation.ru.html`, and the `docs.basics.called.html` key in both catalogues. _Risk:_
-   effectively none; `src/page.test.ts` fails if one language is left behind.
+What stood first here after that is also done: saying what `init` and `update` are handed shipped in
+`309dabe`, closing #108 and PR #113, and the estimate was right to the file — a paragraph in each
+documentation page and the `docs.basics.called.html` key in each catalogue. One thing it turned out
+to owe the reader beyond the two facts it promised: `this` is the declared object only for a method
+written with `function`, and an arrow function there gets the page instead, which is worth more to
+somebody debugging than either of the two.
 
-2. **Decide about #4 in public** — the complaint is real and now measured, and the fork has never
+1. **Decide about #4 in public** — the complaint is real and now measured, and the fork has never
    answered it. _Cost:_ very high if the answer is new challenges, since each needs sizing against
    reference programs the way `2e90995` did; near zero if the answer is to leave the ladder alone
    and say so in README. _Risk:_ the expensive option is also the dangerous one — retuning
@@ -120,30 +121,30 @@ here rather than restated; the "Closed here" rows say what shipped, and #77 says
    rules, which README states and `src/game/challenges.test.ts` enforces. A nineteenth challenge
    was the safe shape of this answer, and more of the same is the safe continuation.
 
-3. **Let the editor grow** — PR #104, the only open item that is purely about using the game.
+2. **Let the editor grow** — PR #104, the only open item that is purely about using the game.
    _Cost:_ a button, a persisted flag, and turning `--editor-height` into something the page can
    set. _Risk:_ low; the two places to remember are the narrow-viewport media query that also sets
    the property, and telling CodeMirror to remeasure after the change.
 
-4. **Add `hall_button_pressed`** — #33, ten years old and never given an answer beyond a
+3. **Add `hall_button_pressed`** — #33, ten years old and never given an answer beyond a
    workaround. _Cost:_ two lines in `src/game/floor-interface.ts` and then the entire documented
    surface — both HTML pages, both catalogues, the declarations and the completions, each with the
    tests that pin them. _Risk:_ low technically, but it widens the gap between this fork's player
    API and upstream's, which README currently describes as three methods.
 
-5. **Scripted traffic** — PR #87, and item 2 of this fork's own backlog in `docs/fork-survey.md`.
+4. **Scripted traffic** — PR #87, and item 2 of this fork's own backlog in `docs/fork-survey.md`.
    _Cost:_ a `spawnPattern` option on `WorldOptions`, a schedule pass in `World.update`, and a
    decision about which random stream it draws from. _Risk:_ moderate, and concentrated in one
    place: the draw order in `spawnUserRandomly` is load-bearing for seed replay, so a new spawn
    path has to take its randomness from a derived stream or every existing seed changes meaning.
 
-6. **Horizontal room in the waiting area** — the unshipped half of PR #73. _Cost:_ moving
+5. **Horizontal room in the waiting area** — the unshipped half of PR #73. _Cost:_ moving
    `FIRST_ELEVATOR_X` and the spawn band, which invalidates every screenshot and any end-to-end
    assumption about coordinates. _Risk:_ moderate cost for a cosmetic gain, and the pressure it
    relieves is partly relieved already by `fitElevatorCount`. Worth doing only alongside other
    layout work.
 
-7. **PR #132's one word** — _Cost:_ four strings. _Risk:_ none, but it should be adopted only if
+6. **PR #132's one word** — _Cost:_ four strings. _Risk:_ none, but it should be adopted only if
    the maintainer agrees with the reading, which is arguable; "programs" is not obviously a typo.
 
 Left off deliberately: **#46** (the duplication is real, but generation is a large refactor and the
