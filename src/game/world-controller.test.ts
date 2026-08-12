@@ -337,6 +337,7 @@ describe("World controller", () => {
 
       expect(controller.isPaused).toBe(true);
       expect(reported).toHaveBeenCalledWith(boom);
+      expect(log).toHaveBeenCalledWith("Usercode error in init", boom);
       log.mockRestore();
     });
 
@@ -355,6 +356,7 @@ describe("World controller", () => {
 
       expect(controller.isPaused).toBe(true);
       expect(reported).toHaveBeenCalledWith(boom);
+      expect(log).toHaveBeenCalledWith("Usercode error in update", boom);
       log.mockRestore();
     });
 
@@ -369,6 +371,9 @@ describe("World controller", () => {
 
       expect(controller.isPaused).toBe(true);
       expect(reported).toHaveBeenCalledWith(boom);
+      // Everything the world reports came out of one of the player's handlers:
+      // the facades are the only things holding the world's reporter.
+      expect(log).toHaveBeenCalledWith("Usercode error in an event handler", boom);
       log.mockRestore();
     });
 

@@ -73,6 +73,18 @@ export interface ControllableWorld {
 /** Schedules a callback for the next animation frame. */
 export type AnimationFrameRequester = (callback: (t: number) => void) => void;
 
+/**
+ * Which part of the player's program was running when it threw.
+ *
+ * Worth naming, because the three are not interchangeable to whoever has to fix
+ * the program: `init` runs once and is where the handlers are hung, `update`
+ * runs every frame, and a handler runs whenever the building calls it. The
+ * console line reported all three as "on update" until now -- inherited
+ * wording, `legacy-1.x:world.js:271` -- which sends a reader whose `init` threw
+ * looking through a function that did not.
+ */
+export type UserCodeSite = "init" | "update" | "an event handler";
+
 /** Events emitted by {@link WorldController}. */
 export type WorldControllerEvents = {
   /** Player code threw; the simulation has been paused. */
@@ -119,8 +131,11 @@ export class WorldController extends Observable<WorldControllerEvents> {
     this.isPaused = true;
     let lastT: number | null = null;
     let firstUpdate = true;
+    // Everything the world reports came out of a handler: the world hands its
+    // own reporter to the facades, and they only ever call player code from an
+    // event.
     world.on("usercode_error", (e) => {
-      this.handleUserCodeError(e);
+      this.handleUserCodeError(e, "an event handler");
     });
     const updater = (t: number): void => {
       if (!this.isPaused && !world.challengeEnded && lastT !== null) {
@@ -131,7 +146,7 @@ export class WorldController extends Observable<WorldControllerEvents> {
             codeObj.init(world.elevatorInterfaces, world.floorInterfaces);
             world.init();
           } catch (e) {
-            this.handleUserCodeError(e);
+            this.handleUserCodeError(e, "init");
           }
         }
 
@@ -141,7 +156,7 @@ export class WorldController extends Observable<WorldControllerEvents> {
         try {
           codeObj.update(scaledDt, world.elevatorInterfaces, world.floorInterfaces);
         } catch (e) {
-          this.handleUserCodeError(e);
+          this.handleUserCodeError(e, "update");
         }
         // Substep the frame. The remainder is reduced by the step actually
         // taken, and the final step absorbs whatever is left, so the frame
@@ -190,10 +205,11 @@ export class WorldController extends Observable<WorldControllerEvents> {
    * Pauses the simulation and reports a player-code failure.
    *
    * @param e - Whatever the player code threw.
+   * @param site - Which part of the program it was thrown from.
    */
-  handleUserCodeError(e: unknown): void {
+  handleUserCodeError(e: unknown, site: UserCodeSite): void {
     this.setPaused(true);
-    console.log("Usercode error on update", e);
+    console.log(`Usercode error in ${site}`, e);
     this.trigger("usercode_error", e);
   }
 
