@@ -1215,10 +1215,15 @@ kbd {
  * already cut at the same line whichever way this is set, and nothing of it
  * ever reaches the page. Nor is this about the passengers, who are the other
  * thing that leaves the building: a delivered passenger walks 100px past the
- * car they left, which is 242px into the track in challenge 1, 1000px in the
- * widest building the game ships, and 1038px in the widest one the sandbox
- * will assemble -- `fitElevatorCount` in `src/app/router.ts` keeps the last
- * shaft inside `--building-width`, so nobody can be walked to the edge.
+ * seat they rode in, which is the shaft's x plus `2 + 10 * (capacity - 1)`,
+ * so 332px into the track in challenge 1, 992px in the widest building the
+ * game ships -- eight cars of capacity 6 and 8, the last of them at x=820 --
+ * and 1022px in the widest one the sandbox will assemble. That last figure is
+ * a packing result, not the 938px of `--building-width` plus the walk: shafts
+ * start at x=200 and step by `capacity * 10 + 20`, so every right edge is a
+ * multiple of ten and `fitElevatorCount` in `src/app/router.ts` can get one to
+ * 930 at best. All three are well inside the 1220px track, so nobody can be
+ * walked to the edge.
  */
 .worldtrack {
   position: relative;
