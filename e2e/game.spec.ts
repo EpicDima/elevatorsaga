@@ -74,30 +74,39 @@ test("colours the passenger whose time the statistics panel is reporting", async
   await page.goto("/#challenge=1,devtest,timescale=16");
   await page.getByRole("button", { name: "Start" }).click();
 
-  // Both counts in one evaluation, because they are counted a frame apart
-  // otherwise and the frame in between delivers somebody. Exactly one is
-  // marked, never two: there is one longest wait, and the mark is handed from
-  // passenger to passenger rather than handed out.
+  // Everything in one evaluation -- the crowd, the mark, and the colour of the
+  // marked passenger -- because a running world answers two questions about two
+  // different moments. The mark belongs to whoever has waited longest, so it
+  // moves the instant an elevator takes them, and every round trip to the
+  // browser is a frame or more in which that can happen.
+  //
+  // This case used to ask in three: poll for the mark, press Pause, then read
+  // the colour off it. Pausing was meant to be what made it safe, and it is
+  // what made it fail. Twice in eleven runs of the whole suite -- and never in
+  // twenty-four runs of this case by itself, because it takes a loaded machine
+  // to widen the gap -- the pause landed in the moment after the marked
+  // passenger had boarded and before anyone else had started waiting. A paused
+  // world never grows the mark back, so the colour assertion sat out its entire
+  // timeout waiting for an element that was not coming.
+  //
+  // Exactly one is marked, never two: there is one longest wait, and the mark
+  // is handed from passenger to passenger rather than handed out. Yellow rather
+  // than the white of everybody else; the value is set at
+  // `.user.waiting-longest` in src/styles/style.css, and reading it computed is
+  // the same question `toHaveCSS` asks.
   await expect
     .poll(
       async () =>
-        page.evaluate(() => ({
-          inACrowd: document.querySelectorAll(".user").length > 1,
-          marked: document.querySelectorAll(".user.waiting-longest").length,
-        })),
+        building(page).evaluate((where) => {
+          const marked = where.querySelectorAll(".user.waiting-longest");
+          const only = marked[0];
+          return {
+            inACrowd: where.querySelectorAll(".user").length > 1,
+            marked: marked.length,
+            colour: only === undefined ? null : getComputedStyle(only).color,
+          };
+        }),
       { timeout: 30_000 },
     )
-    .toEqual({ inACrowd: true, marked: 1 });
-
-  // Pausing before reading the colour, so that the assertion is not racing the
-  // end of the challenge: once the last passenger is delivered there is nothing
-  // marked to read a colour off, and the failure would be about the wrong thing.
-  await page.getByRole("button", { name: "Pause" }).click();
-  // Yellow rather than the white of everybody else. The value is measured at
-  // `.user.waiting-longest` in src/styles/style.css, against every surface a
-  // passenger is ever drawn on.
-  await expect(building(page).locator(".user.waiting-longest")).toHaveCSS(
-    "color",
-    "rgb(255, 255, 0)",
-  );
+    .toEqual({ inACrowd: true, marked: 1, colour: "rgb(255, 255, 0)" });
 });
