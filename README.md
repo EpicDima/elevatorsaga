@@ -70,6 +70,13 @@ original is scored by the same rules.
   with the site, so a solution kept in a file of your own is offered the same API as you type, with
   a description on every member of it and, on top of those, type checking. See
   [Writing your solution in your own editor](#writing-your-solution-in-your-own-editor).
+- **Two more figures on the panel.** `Avg wait for a car` is the part of the commute a passenger
+  spends standing on a floor, which is the half the panel never separated: both clocks it has always
+  shown run from a passenger appearing to their stepping out, ride included. `Avg load` is how full
+  the cars were, averaged over the moves counted above it. Read that one beside the number
+  delivered rather than on its own — of three programs measured on the same eighteen-floor
+  building, the one that filled its cars best delivered the fewest people, at nearly twice the wait
+  of the program whose cars were emptiest.
 - **A Russian API reference**, at [documentation.ru.html](documentation.ru.html).
 
 ## The learning track
@@ -592,7 +599,9 @@ Four more, without upstream issues:
   the ride, and a passenger carried nineteen floors after boarding a car that was already standing
   there — no wait at all — still sets it. Upstream calls it a waiting time and this fork used to
   print that on the panel; the panel now says `Avg delivery time` and `Max delivery time`, which is
-  what the same unchanged number has always been.
+  what the same unchanged number has always been. The waiting time upstream meant by the old name is
+  on the panel too, in a row of its own between them — see
+  [What this fork adds](#what-this-fork-adds).
 - A malformed `#challenge` or `#timescale` used to be fatal. `#challenge=abc` indexed the challenge
   list with `NaN` and killed the page before anything was drawn; `#timescale=abc` set the world's
   time scale to `NaN`, which froze the simulation with no way out short of editing the URL by hand.
@@ -665,6 +674,14 @@ granted here rather than having to work it out from a feature list.
 - [#133](https://github.com/magwo/elevatorsaga/issues/133) — TypeScript for the API, and
   [#137](https://github.com/magwo/elevatorsaga/pull/137) — autocompletion inside the game. Both
   ship, and are described under [What this fork adds](#what-this-fork-adds).
+- [#52](https://github.com/magwo/elevatorsaga/issues/52) — "average time spent in the elevator", and
+  [PR #82](https://github.com/magwo/elevatorsaga/pull/82), which asked for the reported time to be
+  split into waiting, travelling and total. `Avg wait for a car` on the panel is the wait; the two
+  delivery clocks beside it are the total they were always measuring; the travelling time is what
+  is left between them. A related request,
+  [#77](https://github.com/magwo/elevatorsaga/issues/77), is answered only in part: how long people
+  have been waiting is now a number on the panel, but it is not drawn beside the passenger it
+  belongs to, and the yellow mark still picks out the longest commute rather than the longest wait.
 
 The rest of the tracker's feature requests are not answered here, and nothing in this list is a
 claim about upstream's plans for them.
