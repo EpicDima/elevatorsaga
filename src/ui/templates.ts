@@ -517,6 +517,142 @@ export function challengeTemplate(data: ChallengeTemplateData): string {
   return markup`<h2 class="challengetitle">${raw(title)}</h2><div class="challengecontrols"><div class="timescale"><button type="button" class="timescale_decrease unselectable" aria-label="${t("game.timeScale.decrease")}">${raw(iconMarkup("minus-square"))}</button> <span class="emphasis-color timescale_value"></span> <button type="button" class="timescale_increase unselectable" aria-label="${t("game.timeScale.increase")}">${raw(iconMarkup("plus-square"))}</button></div><button type="button" class="startstop unselectable"></button></div><div class="challengefooter"><nav class="challengenav" aria-label="${t("game.challenge.nav.label")}"><ul>${raw(links)}</ul></nav>${raw(seed)}</div>`;
 }
 
+/** Everything the learning track's panel needs in order to render itself. */
+export interface TutorialTemplateData {
+  /** One-based number of the task being played, the way the player is told it. */
+  readonly taskNumber: number;
+  /** How many tasks the track holds, for the position and progress lines. */
+  readonly taskCount: number;
+  /** How many of them the player has cleared, for the progress line. */
+  readonly clearedCount: number;
+  /** The task's name. Text, written escaped. */
+  readonly title: string;
+  /** What the task asks the player for. Text, written escaped. */
+  readonly goal: string;
+  /**
+   * The three hints, in the order they are offered.
+   *
+   * Trusted markup: every one of them is a `.html` message of this repository's
+   * own catalogue, and several carry `<span class="emphasis-color">` around the
+   * identifier being talked about. Nothing a player typed reaches this field.
+   *
+   * A three-element tuple rather than an array, because "the last one" and "the
+   * one the answer goes under" have to be the same hint: {@link tutorialTemplate}
+   * prints {@link TutorialTemplateData.solutionCode} beneath the final entry, and
+   * a two-hint task would silently print the answer under hint 2.
+   */
+  readonly hints: readonly [string, string, string];
+  /**
+   * The program that clears the task, exactly as `src/game/tutorial.ts` holds it.
+   *
+   * Written escaped, unlike everything else that comes out of a `.html` message,
+   * because this is JavaScript and the HTML parser has opinions about two of its
+   * characters. Nothing on the track is changed by the escaping today, and that
+   * was checked rather than assumed: across the eight answers there is exactly
+   * one `<`, in task 7's `elevator.loadFactor() < best.loadFactor()` — which
+   * task 8 shows again — and it is followed by a space, which the parser leaves
+   * as text. There is no `&` in any of them. The escaping is what
+   * keeps that a fact about today's eight answers instead of a condition on
+   * every answer written after them — `<` before a letter opens a tag and takes
+   * the rest of the line into it, and `&` before a word and a semicolon becomes
+   * whatever entity it spells. It is the same string
+   * `tutorial-solutions.test.ts` proves the task with, which is why it comes from
+   * the task table rather than from the catalogue.
+   */
+  readonly solutionCode: string;
+  /**
+   * Why the task behaves the way it does, shown after the answer.
+   *
+   * Trusted markup, for the same reason the hints are: a `.html` message of this
+   * repository's own catalogue.
+   */
+  readonly explanation: string;
+}
+
+/**
+ * One hint, as something the player has to decide to open.
+ *
+ * A native `<details>`, for the reasons written out at {@link seedHelpTemplate}:
+ * the `<summary>` is in the tab order without a `tabindex`, Enter and Space work
+ * on it, and it is announced as a disclosure with its expanded state without a
+ * single ARIA attribute — on markup {@link "./tutorial-panel.ts"!presentTutorial}
+ * rebuilds from scratch every time the language changes.
+ *
+ * Closed is the only defensible default here, and more so than on the seed line.
+ * The hints are ordered from a nudge to the answer, and a task whose answer is
+ * on screen before the player has read the goal is not a task. That is also why
+ * they are three separate disclosures rather than one holding all three: opening
+ * the third is a decision, and a single panel would spend it on the first.
+ *
+ * @param number - One-based hint number, which is what the summary says.
+ * @param hint - The hint itself; trusted markup from the catalogue.
+ * @param solution - The program that clears the task, printed under the hint, or
+ * `null` for a hint that is not the last one.
+ * @returns The disclosure's markup.
+ */
+function tutorialHintTemplate(number: number, hint: string, solution: string | null): string {
+  // `<pre><code>` rather than a styled `<div>`: it is the pair the help page
+  // already prints its examples in, so the block picks up the editor's own
+  // colours and the wrapping the narrow-screen rules give code, and a screen
+  // reader is told this is code rather than a run-on sentence of punctuation.
+  const answer =
+    solution === null ? "" : markup`<pre class="tutorialsolution"><code>${solution}</code></pre>`;
+  return markup`<details class="tutorialhint"><summary>${t("tutorial.panel.hintSummary", { number })}</summary><p class="tutorialprose">${raw(hint)}</p>${raw(answer)}</details>`;
+}
+
+/**
+ * The learning track's panel: where the player is, what to do, and the way out.
+ *
+ * Drawn as a `<section>` with a name, which makes it a region landmark: the
+ * track puts a block of prose between the challenge bar and the building, and
+ * without a landmark a screen-reader player has no way to jump over it to the
+ * game or back to it for the next hint. A `<section>` with no name is not a
+ * landmark at all, so the name is what the element is for (WCAG 1.3.1: the
+ * structure a sighted player can see has to be there in the markup too).
+ *
+ * The name is `tutorial.panel.label`, and the same message is also the first
+ * thing written inside the panel, so the words announced on the way in are the
+ * words on the screen. `aria-labelledby` pointing at that line would name the
+ * landmark from one string instead of two — but it is one string already, since
+ * both come from the same `t()` call, and the id it would need is a second thing
+ * that has to stay unique in a page this panel does not own.
+ *
+ * The order is the order it is read in, and it is the order of a lesson: where
+ * you are, what to do, what to try if it will not come, why it happened, and
+ * only then the buttons that leave. The progress line is last because it is the
+ * one thing here that is about the track rather than about this task.
+ *
+ * Two kinds of string arrive in this template and they are written differently.
+ * The task's name and its goal are text and are escaped; the hints and the
+ * explanation are `.html` messages of this repository's own catalogue and are
+ * inserted verbatim. The answer is the exception that looks like the rule: it
+ * comes from `src/game/tutorial.ts` rather than the catalogue and is escaped,
+ * because it is JavaScript. Nothing here can carry player input — the editor's
+ * contents never reach this function, and the one thing that does come from
+ * outside the repository, the task index, is used to look up messages rather
+ * than printed.
+ *
+ * @param data - Where the player is on the track, and everything this task says.
+ * @returns The panel's markup, as exactly one element.
+ */
+export function tutorialTemplate(data: TutorialTemplateData): string {
+  const hints = data.hints
+    .map((hint, index) =>
+      tutorialHintTemplate(
+        index + 1,
+        hint,
+        index === data.hints.length - 1 ? data.solutionCode : null,
+      ),
+    )
+    .join("");
+  // The index is written into the markup because it is the one piece of state
+  // the panel has to remember about itself: presentTutorial carries the open
+  // hints across a redraw of the same task and deliberately does not carry them
+  // across a change of task, and after `replaceChildren` the old panel is the
+  // only place the number it was drawn for still exists.
+  return markup`<section class="tutorialpanel" data-task-index="${data.taskNumber - 1}" aria-label="${t("tutorial.panel.label")}"><p class="tutorialposition"><span class="tutorialtrack">${t("tutorial.panel.label")}</span> <span class="tutorialstep">${t("tutorial.panel.position", { number: data.taskNumber, count: data.taskCount })}</span></p><h2 class="tutorialtitle">${data.title}</h2><p class="tutorialgoal">${data.goal}</p>${raw(hints)}<details class="tutorialexplanation"><summary>${t("tutorial.panel.explanationSummary")}</summary><p class="tutorialprose">${raw(data.explanation)}</p></details><div class="tutorialbuttons"><button type="button" class="tutorialrestart">${t("tutorial.button.restart")}</button><button type="button" class="tutorialtakecode">${t("tutorial.button.takeCode")}</button><button type="button" class="tutorialleave">${t("tutorial.button.leave")}</button></div><p class="tutorialprogress">${t("tutorial.panel.progress", { cleared: data.clearedCount, count: data.taskCount })}</p></section>`;
+}
+
 /** Everything the end-of-challenge overlay needs in order to render itself. */
 export interface FeedbackTemplateData {
   /** Headline, e.g. `"Success!"`. */
