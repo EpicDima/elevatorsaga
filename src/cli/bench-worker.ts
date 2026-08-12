@@ -88,6 +88,16 @@ const result: FitnessSuiteResult = withRunOutputOnStandardError(() =>
 // An empty write is enough to ask, because stream writes are ordered -- its
 // callback cannot run before the callbacks of everything queued ahead of it.
 // The same trick, for the same reason, ends `bench.ts`.
+//
+// It does nothing for a program that never finishes, which is the run whose
+// output would be most worth having. This line is below the run, so a run that
+// does not return never reaches it: the parent times the thread out, terminates
+// it, and the lines the program logged on its way into the loop go with it. All
+// that arrives is the first write, and all the report says is which deadline was
+// missed. Nothing here can fix that -- every way out of a thread but one needs a
+// turn of the event loop, and the exception is a synchronous write to a
+// descriptor, which is a different bargain: it would block this thread on a
+// stalled reader and can fail outright on a pipe Node has set non-blocking.
 await Promise.all(
   [process.stdout, process.stderr].map(
     (stream) =>

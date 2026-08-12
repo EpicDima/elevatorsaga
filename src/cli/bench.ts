@@ -733,11 +733,21 @@ export function runSuiteInWorker(code: string, options: BenchOptions): Promise<F
       // Both of the thread's streams are taken rather than left to Node, which
       // would forward them to this process's own -- and its own standard output
       // is the report. The thread moves what a run prints to its standard error
-      // itself, but that only covers what goes through a console: inside a
-      // worker `process` is a real Node process object, so a program is free to
-      // write to the descriptor directly, and one that does would land in the
-      // middle of a `--json` report. Piped rather than dropped, because a
-      // program being debugged is printing on purpose.
+      // itself, but that only covers what goes through a console, and inside a
+      // worker `process` is a real Node process object: a program that calls
+      // `process.stdout.write` reaches a stream nobody swapped, and what it
+      // writes would land in the middle of a `--json` report. Taking the streams
+      // here catches that and puts it where the rest of a run's output goes.
+      // Piped rather than dropped, because a program being debugged is printing
+      // on purpose.
+      //
+      // What this does not reach is the descriptor. A worker's streams are
+      // ports; descriptors belong to the process and are shared by every thread
+      // in it, so `fs.writeSync(1, ...)` inside a program writes to this
+      // command's own standard output and nothing on this side sees it happen.
+      // Getting there from a program takes an `import()`, and a player who has
+      // written one is aiming at the report rather than debugging -- so this is
+      // a limit worth knowing about rather than a hole worth plugging.
       stdout: true,
       stderr: true,
     });
