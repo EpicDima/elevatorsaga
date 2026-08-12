@@ -80,8 +80,16 @@ export const EN_MESSAGES = {
   // The keys keep their names because they name the `World` fields they render,
   // `avgWaitTime` and `maxWaitTime`, and those cannot be renamed: the challenge
   // conditions in src/game/challenges.ts are written against them, and every
-  // upstream score ever posted was measured by them.
+  // upstream score ever posted was measured by them. The row between them is
+  // the wait neither of them is.
   "page.stats.avgWaitTime": "Avg delivery time",
+  // Sits between the two averages rather than beside its own maximum, which the
+  // panel does not show: the pair a player reads together is this one, and what
+  // separates them is the ride. "Wait for a car" rather than "wait", because
+  // the rows above claim the word and this is the row that has a right to it.
+  "page.stats.avgPickupTime": "Avg wait for a car",
+  "page.stats.avgPickupTimeTitle":
+    "The clock starts when a passenger appears and stops when a car takes them, so the difference from the average delivery time is the ride",
   "page.stats.maxWaitTime": "Max delivery time",
   "page.stats.moves": "Moves",
   "page.stats.movesTitle":
@@ -385,7 +393,7 @@ export const EN_MESSAGES = {
   "docs.play.apply.html":
     'Enter your code in the input window below the game view, and press the <span class="emphasis-color">Apply</span> button to start the challenge.<br /> You can increase or decrease the speed of time by pressing the {increase} and {decrease} buttons.',
   "docs.play.statistics.html":
-    'Beside the building is a panel that keeps score while a run is going. Three of its rows need a word. <span class="emphasis-color">Moves</span> first. One move is counted each time a car crosses the halfway mark between one floor and the next, so a trip of three floors is three moves. A car that turns round mid-flight pays twice for the mark it crosses and re-crosses, and braking carries a car on across a mark it was turned back just short of. Three of the challenges are judged on that number, totalled over every car in the building, as well as on the people delivered, so on those a car that shuttles about empty can lose the run. Then the two clocks. <span class="emphasis-color">Avg delivery time</span> and <span class="emphasis-color">Max delivery time</span> both run from the moment a passenger appears in the building to the moment they step out of a car at the floor they asked for, so the ride counts in them as much as the wait for it does: somebody who walks straight into a car already standing at their floor, and waits not one second for it, still adds every second of a nineteen-floor journey to both. Nine of the challenges and two of the tasks on the learning track are judged on the second of them, which is the largest total any one passenger has reached — it keeps climbing while somebody is still on their way, and once reached it never comes down again.',
+    'Beside the building is a panel that keeps score while a run is going. Four of its rows need a word. <span class="emphasis-color">Moves</span> first. One move is counted each time a car crosses the halfway mark between one floor and the next, so a trip of three floors is three moves. A car that turns round mid-flight pays twice for the mark it crosses and re-crosses, and braking carries a car on across a mark it was turned back just short of. Three of the challenges are judged on that number, totalled over every car in the building, as well as on the people delivered, so on those a car that shuttles about empty can lose the run. Then the two clocks. <span class="emphasis-color">Avg delivery time</span> and <span class="emphasis-color">Max delivery time</span> both run from the moment a passenger appears in the building to the moment they step out of a car at the floor they asked for, so the ride counts in them as much as the wait for it does: somebody who walks straight into a car already standing at their floor, and waits not one second for it, still adds every second of a nineteen-floor journey to both. Nine of the challenges and two of the tasks on the learning track are judged on the second of them, which is the largest total any one passenger has reached — it keeps climbing while somebody is still on their way, and once reached it never comes down again. Between the two of them sits <span class="emphasis-color">Avg wait for a car</span>, which is the wait neither of them is. The clock starts when a passenger appears and stops when a car takes them, so the difference from the average delivery time is the ride. Only the passengers a car has already reached are in that average, so it is not where somebody left standing on a floor turns up — the maximum is.',
   "docs.play.shortcuts.html":
     "Inside the editor, <kbd data-mod-key>Ctrl</kbd>+<kbd>Enter</kbd> applies your program and restarts the challenge, <kbd data-mod-key>Ctrl</kbd>+<kbd>S</kbd> saves it, <kbd>Tab</kbd> indents, and <kbd>Esc</kbd> moves the focus back out of the editor.",
   "docs.play.debugging.html":

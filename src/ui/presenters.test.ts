@@ -34,6 +34,7 @@ function statsContainer(): HTMLElement {
     "elapsedtime",
     "transportedpersec",
     "avgwaittime",
+    "avgpickuptime",
     "maxwaittime",
     "movecount",
   ]) {
@@ -58,6 +59,9 @@ function worldWithStats(): World {
   // The quotient the simulation would have computed, 0.1976935...
   world.transportedPerSec = world.transportedCounter / world.elapsedTime;
   world.avgWaitTime = 3.25;
+  // Below the delivery time beside it, as it has to be: the same commute with
+  // the ride taken off the end of it.
+  world.avgPickupTime = 1.75;
   world.maxWaitTime = 11.06;
   world.moveCount = 7;
   return world;
@@ -87,8 +91,26 @@ describe("presentStats", () => {
     expect(requireElement(".elapsedtime", container).textContent).toBe("61s");
     expect(requireElement(".transportedpersec", container).textContent).toBe("0.198");
     expect(requireElement(".avgwaittime", container).textContent).toBe("3.3s");
+    expect(requireElement(".avgpickuptime", container).textContent).toBe("1.8s");
     expect(requireElement(".maxwaittime", container).textContent).toBe("11.1s");
     expect(requireElement(".movecount", container).textContent).toBe("7");
+  });
+
+  it("shows a world nothing has happened in yet as zeroes", () => {
+    // The state the panel is drawn in, every time: `presentStats` fires the
+    // event itself so the rows are filled before the first frame. A figure
+    // that arrives as NaN, or as an empty cell, is worse than one that is
+    // missing -- and the pickup average is the one with a divisor that is
+    // genuinely zero until a car reaches somebody.
+    const container = statsContainer();
+    presentStats(container, createWorld({ floorCount: 3, elevatorCount: 1 }));
+
+    expect(requireElement(".transportedcounter", container).textContent).toBe("0");
+    expect(requireElement(".elapsedtime", container).textContent).toBe("0s");
+    expect(requireElement(".avgwaittime", container).textContent).toBe("0.0s");
+    expect(requireElement(".avgpickuptime", container).textContent).toBe("0.0s");
+    expect(requireElement(".maxwaittime", container).textContent).toBe("0.0s");
+    expect(requireElement(".movecount", container).textContent).toBe("0");
   });
 
   it("groups the thousands a long run gets to", () => {

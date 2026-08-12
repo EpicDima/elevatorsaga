@@ -175,6 +175,7 @@ export function presentStats(parent: HTMLElement, world: World): void {
   const elapsedTime = requireElement(".elapsedtime", parent);
   const transportedPerSec = requireElement(".transportedpersec", parent);
   const avgWaitTime = requireElement(".avgwaittime", parent);
+  const avgPickupTime = requireElement(".avgpickuptime", parent);
   const maxWaitTime = requireElement(".maxwaittime", parent);
   const moveCount = requireElement(".movecount", parent);
 
@@ -183,6 +184,7 @@ export function presentStats(parent: HTMLElement, world: World): void {
     elapsedTime.textContent = format(seconds(world.elapsedTime));
     transportedPerSec.textContent = format(quantity(world.transportedPerSec, PER_SECOND_DIGITS));
     avgWaitTime.textContent = format(seconds(world.avgWaitTime, 1));
+    avgPickupTime.textContent = format(seconds(world.avgPickupTime, 1));
     maxWaitTime.textContent = format(seconds(world.maxWaitTime, 1));
     moveCount.textContent = format(world.moveCount);
   });

@@ -120,6 +120,7 @@ describe("index.html", () => {
     ".statscontainer .elapsedtime",
     ".statscontainer .transportedpersec",
     ".statscontainer .avgwaittime",
+    ".statscontainer .avgpickuptime",
     ".statscontainer .maxwaittime",
     ".statscontainer .movecount",
     // Filled and listened to by src/ui/language-picker.ts.
@@ -174,7 +175,7 @@ describe("index.html", () => {
     },
   );
 
-  it("keeps its one tooltip from being the only copy of what it says", () => {
+  it("keeps no tooltip as the only copy of what it says", () => {
     // A `title` is a mouse-only tooltip: it never opens for a keyboard or a
     // touch screen, and on a plain `<span>` it is not an accessible description
     // either, because a span has no role for one to hang off. The seed's caveat
@@ -193,17 +194,27 @@ describe("index.html", () => {
     //
     // That the attribute here and the English message are the same string is
     // the drift check in `localise-page.test.ts`, and is not repeated. What is
-    // added is the other language: `localisePage` replaces this attribute with
-    // the Russian message, so the Russian tooltip has to quote the Russian
+    // added is the other language: `localisePage` replaces these attributes
+    // with the Russian messages, so a Russian tooltip has to quote the Russian
     // paragraph the same way, or a correction lands on one language only.
     const titled = [...page.querySelectorAll("[title]")];
-    expect(titled.map((element) => element.className)).toEqual(["key"]);
-    const tooltip = titled[0]?.getAttribute("title") ?? "";
-    expect(tooltip.length).toBeGreaterThan(20);
-    expect(message("en", "docs.play.statistics.html")).toContain(tooltip);
-    expect(message("ru", "docs.play.statistics.html")).toContain(
-      message("ru", "page.stats.movesTitle"),
+    expect(titled.map((element) => element.className)).toEqual(["key", "key"]);
+    // Named here as well as read off the page, so that the Russian half below
+    // is typed rather than cast, and so that a row losing its tooltip fails
+    // here instead of quietly halving what this test covers.
+    const titleKeys = [
+      "page.stats.avgPickupTimeTitle",
+      "page.stats.movesTitle",
+    ] as const satisfies readonly MessageKey[];
+    expect(titled.map((element) => element.getAttribute("data-i18n-attr"))).toEqual(
+      titleKeys.map((key) => `title:${key}`),
     );
+    for (const [index, key] of titleKeys.entries()) {
+      const tooltip = titled[index]?.getAttribute("title") ?? "";
+      expect(tooltip.length, key).toBeGreaterThan(20);
+      expect(message("en", "docs.play.statistics.html"), key).toContain(tooltip);
+      expect(message("ru", "docs.play.statistics.html"), key).toContain(message("ru", key));
+    }
   });
 
   it("lets a keyboard reach the building, which scrolls sideways", () => {

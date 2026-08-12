@@ -215,6 +215,7 @@ describe("localisePage", () => {
         "Прошло времени",
         "Перевезено/с",
         "Сред. время доставки",
+        "Сред. ожидание кабины",
         "Макс. время доставки",
         "Перемещения",
       ]);
@@ -247,9 +248,18 @@ describe("localisePage", () => {
       expect(page.querySelector(".statscontainer")?.getAttribute("aria-label")).toBe(
         "Статистика симуляции",
       );
-      expect(page.querySelector(".statscontainer .key[title]")?.getAttribute("title")).toBe(
+      // Every tooltip in the panel, in row order: a `title` is the one thing
+      // here a mouse reaches and a `querySelector` reads the first of, so the
+      // row that gained one would otherwise have taken this assertion over
+      // from the row it was written about.
+      expect(
+        [...page.querySelectorAll(".statscontainer .key[title]")].map((key) =>
+          key.getAttribute("title"),
+        ),
+      ).toEqual([
+        "Отсчёт идёт от появления пассажира до того момента, как его забрала кабина, поэтому разница со средним временем доставки — это поездка",
         "Перемещение засчитывается каждый раз, когда кабина проходит середину пути от одного этажа до соседнего",
-      );
+      ]);
     });
 
     it("sends a Russian reader to the Russian documentation", () => {

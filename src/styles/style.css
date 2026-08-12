@@ -133,7 +133,19 @@
   --stats-width: 240px;
   --stats-padding: 20px;
   --stats-row-height: 10px;
-  --stats-row-pitch: 20px;
+  /*
+   * 16px, where the panel was drawn at 20px for as long as it had six rows.
+   * `.worldtrack` clips the panel, so what it has to fit inside is not its own
+   * box but the shortest building the game draws: a floor is 50px and
+   * challenges 1 and 7 are three floors, which leaves 150px. Six rows took
+   * 131px of that and a seventh took 151, clipping its own rule. At 16px seven
+   * rows take 127px and an eighth still fits, which is a row of headroom
+   * rather than the exact fit 17px would have been. The learning track's
+   * two-floor buildings cut the panel off at any pitch worth reading -- 100px
+   * does not hold this many rows of 12px text -- but they cut off less of it
+   * than they did.
+   */
+  --stats-row-pitch: 16px;
   --editor-height: 320px;
 
   --font-ui: Oswald, Arial, Helvetica, sans-serif;
@@ -1255,8 +1267,7 @@ kbd {
 /*
  * Rows used to be absolutely positioned at hard-coded offsets written into the
  * markup. They are ordinary blocks now; the height, the rule and the gap add up
- * to the same 20px pitch, and the panel's padding puts the first row where it
- * was.
+ * to the pitch, and the panel's padding puts the first row where it was.
  */
 .statscontainer .stat {
   display: flex;

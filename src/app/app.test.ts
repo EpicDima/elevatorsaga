@@ -76,6 +76,7 @@ function setUp(code: string = INERT_CODE, storage: Storage = new MemoryStorage()
     "elapsedtime",
     "transportedpersec",
     "avgwaittime",
+    "avgpickuptime",
     "maxwaittime",
     "movecount",
   ]) {
