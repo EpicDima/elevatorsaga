@@ -767,7 +767,7 @@ needs no edit to the control and none to `index.html`, which ships the `<select>
 | `src/i18n/format.test.ts`      | `PLURAL_CATEGORIES` against what ICU actually says, so a wrong guess about a new language fails a test rather than mistranslating a count.                                                                                                                                                           |
 | `src/ui/localise-page.test.ts` | That every key `index.html` names exists and takes no parameters; that the shell ships, word for word, the English of every message it names; that the noscript paragraph is left alone; that the modifier keys are relabelled after the shell is rewritten.                                         |
 | `src/page.test.ts`             | The two documentation pages as one document in two languages, every `docs.*` message against the passage it was lifted from in both languages, no `docs.*` key left unchecked, and the popup against the page wherever their English agrees.                                                         |
-| `src/i18n/inventory.test.ts`   | This file: the keys it names, the keys it omits, the counts it prints, the `src/` paths it points at, and the absence of line pins. Not its prose.                                                                                                                                                   |
+| `src/i18n/inventory.test.ts`   | This file: the keys it names, the keys it omits, the counts it prints, the `src/` paths it points at, the absence of line pins, and the learning track's quoted titles. Not the rest of its prose.                                                                                                   |
 
 That last row said **nothing** through two rebuildings of this document. What closes most of it
 is `src/i18n/inventory.test.ts`, which reads this file with `?raw` and checks it against
@@ -787,10 +787,15 @@ is `src/i18n/inventory.test.ts`, which reads this file with `?raw` and checks it
 5. No `file.ts:123` pin below _How this file is anchored_, so the convention cannot quietly
    lapse. The two in that section are the examples of what it prevents, and are meant to stay
    wrong.
+6. The learning track's table quotes each task title as `EN_MESSAGES` words it, and carries a row
+   for every task in it. This is the one column of prose comparable by equality — the titles are
+   copied whole rather than abridged — and it had already rotted when the check was added: task
+   6's row said "lies to passengers" where the catalogue says "lies to its passengers", through
+   five checks that all passed because none of them read the column.
 
-What it does not check is everything that cannot be read off `EN_MESSAGES`: the English column,
-which is abridged on purpose and so cannot be compared; the Notes and the _What reads them_
-column; the counts in the section headings, which count what a section lists rather than what
+What it does not check is everything that cannot be read off `EN_MESSAGES`: the English column of
+_The strings_, which is abridged on purpose and so cannot be compared; the Notes and the _What
+reads them_ column; the counts in the section headings, which count what a section lists rather than what
 the catalogue holds; and the 81 and 82 above, which come from a grep over the whole tree. Those
 are still prose and can still go quietly out of date. The test's own header says as much, so
 whoever reads it knows which columns are guarded and which are taken on trust.

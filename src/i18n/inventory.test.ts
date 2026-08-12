@@ -12,7 +12,7 @@
  * it passed, and only the reader was told something untrue.
  *
  * The document specifies its own guard, in _What guards what_, and this file is
- * it. The five checks below are that list, in its order, and they are the whole
+ * it. The six checks below are that list, in its order, and they are the whole
  * of what is machine-checkable about a document made mostly of prose:
  *
  * 1. every backticked token shaped like a message key is a real key;
@@ -20,16 +20,20 @@
  *    keys, which the document covers by their shape;
  * 3. the counts it prints are the counts the catalogue has;
  * 4. every backticked `src/…` path exists on disk;
- * 5. no `file.ts:123` pin below the section that bans them.
+ * 5. no `file.ts:123` pin below the section that bans them;
+ * 6. the learning track's table quotes each task title as the catalogue words
+ *    it, and has a row for every task.
  *
  * What this deliberately does **not** check, because an over-claimed guard is
  * worse than a small one, and because a reader who thinks the tables are
  * verified will trust the wrong column:
  *
- * - the **English** column. It is deliberately abridged — whitespace collapsed,
- *   values cut and marked `…`, markup dropped — so it cannot be compared with
- *   the catalogue by equality, and comparing a prefix would pass on text that
- *   was truncated before the part that changed.
+ * - the **English** column of _The strings_. It is deliberately abridged —
+ *   whitespace collapsed, values cut and marked `…`, markup dropped — so it
+ *   cannot be compared with the catalogue by equality, and comparing a prefix
+ *   would pass on text that was truncated before the part that changed. The
+ *   learning track's titles are the exception check 6 makes, and they are one
+ *   because they are quoted whole.
  * - the **Notes** column, the _What reads them_ column, and every prose claim
  *   about which module calls what. A row can be right about its key and wrong
  *   about everything beside it, and nothing here would know.
@@ -203,6 +207,30 @@ const LINE_PIN = /[\w.-]+\.(?:ts|tsx|js|css|html|json|md|txt):\d+/g;
  */
 const PIN_NOTATION = "file.ts:123";
 
+/**
+ * The learning track's table of titles, as task number against quoted title.
+ *
+ * This is the one column of prose in the document that can be compared by
+ * equality, and it is worth saying why, since the header above rules the
+ * English column out for the opposite reason. That column is abridged on
+ * purpose — whitespace collapsed, values cut and marked `…` — so no comparison
+ * with the catalogue is available. These titles are not abridged: each is a
+ * whole `tutorial.taskN.title` copied across, so either it matches or it has
+ * rotted.
+ *
+ * One had. The row for task 6 read "The elevator that lies to passengers" where
+ * the catalogue says "lies to its passengers", and it had sat there since the
+ * table was written, through a guard specified as five checks and every one of
+ * them passing. Nothing here read the column, so nothing could have noticed.
+ */
+const QUOTED_TITLES: ReadonlyMap<string, string> = new Map(
+  [
+    ...inventorySource
+      .slice(inventorySource.indexOf("| Task | `tutorial.taskN.title`"))
+      .matchAll(/^\| (\d+) +\| (.+?) +\| /gm),
+  ].map(([, number = "", title = ""]) => [`tutorial.task${number}.title`, title]),
+);
+
 /** Where _How this file is anchored_ begins, and where the section after it does. */
 const ANCHOR_START = inventorySource.indexOf("\n## How this file is anchored\n");
 const ANCHOR_END = inventorySource.indexOf("\n## ", ANCHOR_START + 1);
@@ -362,6 +390,27 @@ describe("the files the inventory points at", () => {
         `${span} is a real path now, so it needs no excuse`,
       ).toBe(false);
     }
+  });
+});
+
+describe("the tutorial titles the inventory quotes", () => {
+  it("quotes each one as the catalogue words it", () => {
+    const catalogue: Readonly<Record<string, unknown>> = EN_MESSAGES;
+    const wrong = [...QUOTED_TITLES]
+      .filter(([key, quoted]) => catalogue[key] !== quoted)
+      .map(([key, quoted]) => `${key}: the table says "${quoted}"`);
+    expect(wrong, "quoted in docs/i18n-inventory.md, worded otherwise in en.ts").toEqual([]);
+  });
+
+  it("gives every task in the catalogue a row", () => {
+    // The other direction, and the one that matters when the track grows: a
+    // ninth task's title would otherwise be absent from the table rather than
+    // wrong in it, and a check that only walks the rows cannot see a row that
+    // was never written.
+    const missing = KEYS.filter(
+      (key) => /^tutorial\.task\d+\.title$/.test(key) && !QUOTED_TITLES.has(key),
+    );
+    expect(missing, "in EN_MESSAGES, with no row in the learning track's table").toEqual([]);
   });
 });
 
