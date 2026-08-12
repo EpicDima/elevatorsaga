@@ -11,8 +11,12 @@
  *
  * This is the same shape the page has used all along — `src/app/fitness-worker.ts`
  * is this file's browser twin, spawned by `src/app/fitness.ts` and given the
- * same minute — so the two ways of asking for a fitness report now fail the same
- * way as well as succeeding the same way.
+ * same minute — and what the two say is meant to match: the same program scored
+ * here and scored there should come back with the same report, a failing one
+ * included. The insides cannot match, because the runtimes do not. A thread here
+ * can run out of memory, be ended by a program calling `process.exit`, and die
+ * on a rejection a browser worker would merely log; each of those is answered on
+ * this side, and the answer chosen is whatever keeps the two reports the same.
  *
  * The request arrives as `workerData` rather than as a message, because there is
  * exactly one of them and it is known before the thread starts: a worker built
@@ -59,6 +63,9 @@ if (parentPort === null) {
   throw new Error("src/cli/bench-worker.ts is a worker entry point; run src/cli/bench.ts instead.");
 }
 
+/** The command's end of the port, narrowed once so the function below can use it. */
+const port = parentPort;
+
 // Before the suite runs, because the scenario names are rendered inside it, and
 // awaited because a catalogue other than English is a chunk of its own that has
 // to be fetched first. This is the point in the thread where waiting is
@@ -74,6 +81,50 @@ setLocale(request.locale);
 const result: FitnessSuiteResult = withRunOutputOnStandardError(() =>
   doFitnessSuite(request.code, request.seeds),
 );
+
+/** Whether the answer has been handed over, since several paths hand it over. */
+let posted = false;
+
+/** Hands the command the report, once, whatever else the thread is doing. */
+function postResult(): void {
+  if (posted) {
+    return;
+  }
+  posted = true;
+  // Handed back as well as answered: the two listeners below are on `process`,
+  // which a thread shares with nothing but is also what `bench-worker.test.ts`
+  // imports this module into, and a listener left behind there is a listener on
+  // the test run's own process.
+  process.off("uncaughtException", postResult);
+  process.off("unhandledRejection", postResult);
+  port.postMessage(result);
+}
+
+// From here to the last line, a failure the program left behind must not cost
+// the measurement that has just been made.
+//
+// `doFitnessSuite` catches what a program throws, but it can only catch what is
+// thrown at it, and not everything a program starts is finished by the time it
+// returns: an `async init`, a promise nobody caught, a `queueMicrotask` that
+// throws, all fail on a later turn of the event loop -- and the next turn is the
+// flush below. In a worker such a failure is an uncaught exception, an uncaught
+// exception ends the thread, and the parent reads a thread that ended as this
+// tool being broken. That was a program with an `await` in it scoring the
+// benchmark itself as broken: no report, exit 2, and a script scoring a
+// directory of solutions stopping on the first one.
+//
+// Listening is what prevents it, since Node's default for both of these is to
+// end the thread and a listener replaces the default. The answer is the report
+// the run produced, because that is the answer: the three buildings were scored,
+// and the page -- where an unhandled rejection does not stop a worker -- scores
+// the same program the same way. Only the run's own output is lost, and only if
+// the failure beats the flush.
+//
+// Before the flush rather than at the top of the file, so that a failure raised
+// while this module is still loading stays what it is: this tool broken, and the
+// parent's business to report as such.
+process.on("uncaughtException", postResult);
+process.on("unhandledRejection", postResult);
 
 // Nothing printed above has actually left this thread yet, and without this line
 // almost none of it ever would. A worker's streams are not descriptors: each
@@ -109,4 +160,4 @@ await Promise.all(
   ),
 );
 
-parentPort.postMessage(result);
+postResult();

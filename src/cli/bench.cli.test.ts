@@ -46,6 +46,19 @@ const DRIVING_PROGRAM = `{
   update: function () {}
 }`;
 
+/**
+ * The driving program with one more thing done before it starts driving.
+ *
+ * For the cases about what a program leaves behind it: the report has to hold
+ * real numbers, or passing would prove nothing about the measurement surviving.
+ *
+ * @param firstLine - A statement to run at the top of `init`.
+ * @returns The program, as source.
+ */
+function driving(firstLine: string): string {
+  return DRIVING_PROGRAM.replace("elevators.forEach", `${firstLine}\n    elevators.forEach`);
+}
+
 /** What a finished process left behind. */
 interface Ran {
   /** What the shell would see. */
@@ -233,6 +246,47 @@ describe("the benchmark as a command", () => {
       error: translateIn("en", "fitness.workerFailed"),
     });
   });
+
+  it("scores a program that left a failure behind it, rather than blaming this tool", async () => {
+    // The measurement was made: three buildings, scored, before any of this
+    // happened. What a program starts and does not finish -- an `async` function
+    // that rejects, a promise nobody caught -- fails on the turn of the event
+    // loop after the run, where `doFitnessSuite` is no longer looking; in a
+    // worker that ends the thread, and a thread that ended is how this command
+    // finds out that *it* is broken. So a single `await` in a player's program
+    // used to be exit 2 and an empty report, which is the answer that tells a
+    // script scoring a directory of solutions to stop.
+    //
+    // Both shapes, because they arrive by different doors: an uncaught
+    // exception and an unhandled rejection. The page scores both of these
+    // programs too -- a worker there survives what a worker here did not -- so
+    // this is also the two ways of asking for a report agreeing again.
+    const asyncThrow = join(scratch, "async-throw.js");
+    await writeFile(
+      asyncThrow,
+      driving(`(async function () { throw new Error("from an async function"); })();`),
+      "utf8",
+    );
+    const strayRejection = join(scratch, "stray-rejection.js");
+    await writeFile(
+      strayRejection,
+      driving(`Promise.reject(new Error("nobody caught this"));`),
+      "utf8",
+    );
+
+    for (const program of [asyncThrow, strayRejection]) {
+      const ran = await bench([program, "--seeds", "1", "--json"]);
+
+      expect(ran.code, program).toBe(EXIT_OK);
+      const report = JSON.parse(ran.out) as {
+        scenarios: { result: { transportedCount: number } }[];
+      };
+      expect(report.scenarios, program).toHaveLength(3);
+      for (const scenario of report.scenarios) {
+        expect(scenario.result.transportedCount, program).toBeGreaterThan(0);
+      }
+    }
+  }, 30_000);
 
   it("tells a program that threw apart from arguments it could not use", async () => {
     // The two failure codes, as literals rather than as the constants the

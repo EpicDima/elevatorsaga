@@ -715,9 +715,12 @@ export async function runBench(argv: readonly string[], io: BenchIo): Promise<nu
  * command in that state prints nothing, exits never, and has to be killed from
  * another terminal. A thread can be stopped from outside.
  *
- * Running out of time is reported as a program that failed rather than raised,
- * which is how every other failure is reported here: the caller gets a result,
- * prints a report, and exits {@link EXIT_PROGRAM_FAILED}.
+ * Running out of time is reported as a program that failed rather than raised:
+ * the caller gets a result, prints a report, and exits
+ * {@link EXIT_PROGRAM_FAILED}, which is what a script scoring a directory of
+ * solutions needs in order to record this one and go on to the next. Raising is
+ * kept for this tool being broken — a thread that could not load its own
+ * modules — because that is a different answer and deserves a different code.
  *
  * @param code - The program's source.
  * @param options - What was asked for: the seeds it runs on, the language the
@@ -810,12 +813,13 @@ export function runSuiteInWorker(code: string, options: BenchOptions): Promise<F
     worker.on("message", (result: FitnessSuiteResult) => {
       finish(result);
     });
-    // The thread catches everything the player's program throws and posts it
-    // back as a result, so an error arriving here is the thread itself failing
-    // -- a syntax error in a module it loads, or a catalogue that would not
-    // import. That is this tool being broken, and reporting it as a program that
-    // failed is how a script scoring a directory of solutions comes to record
-    // every one of them as broken and finish without a word.
+    // The thread answers for the program itself -- what it throws at the run,
+    // and what it leaves failing behind the run, both come back as a posted
+    // result -- so an error arriving here is the thread itself failing: a syntax
+    // error in a module it loads, or a catalogue that would not import. That is
+    // this tool being broken, and reporting it as a program that failed is how a
+    // script scoring a directory of solutions comes to record every one of them
+    // as broken and finish without a word.
     //
     // Except for running out of memory, which is the program's doing: a program
     // that allocates without stopping takes the thread's heap with it, and Node
