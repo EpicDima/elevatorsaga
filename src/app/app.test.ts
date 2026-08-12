@@ -3,11 +3,14 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { Challenge } from "../game/challenges.ts";
+import { tutorialTasks } from "../game/tutorial.ts";
+import type { TutorialTask } from "../game/tutorial.ts";
 import { createWorldController } from "../game/world-controller.ts";
 import type { WorldController } from "../game/world-controller.ts";
 import { DEFAULT_LOCALE, setLocale } from "../i18n/index.ts";
+import { defaultCode } from "../ui/default-code.ts";
 import { queryAll, requireElement } from "../ui/dom.ts";
-import { CodeEditor } from "../ui/editor.ts";
+import { CODE_STORAGE_KEY, CodeEditor } from "../ui/editor.ts";
 import { createElement, FakeTextEditorView, MemoryStorage } from "../ui/test-helpers.ts";
 import { App, TIME_SCALE_STORAGE_KEY, readStoredTimeScale } from "./app.ts";
 import type { AppElements } from "./app.ts";
@@ -458,6 +461,380 @@ describe("App sandbox", () => {
 
     expect(app.isPlayingSandbox).toBe(true);
     expect(app.world?.floors).toHaveLength(20);
+  });
+});
+
+describe("App learning track", () => {
+  // Same reason as the outcome specs above: a failed assertion must not leave
+  // the rest of the file in Russian.
+  afterEach(() => {
+    setLocale(DEFAULT_LOCALE);
+  });
+
+  /**
+   * The task at a position in the track.
+   *
+   * Read out of the real table rather than a fixture, unlike the challenges
+   * these specs play, because the table is what the app plays: `startTutorial`
+   * takes a position in `tutorialTasks`, the router resolves an address against
+   * the same array, and a stand-in track would prove the wiring against
+   * something no player can reach.
+   *
+   * @param index - Position in the track, counted from zero.
+   * @returns The task there.
+   * @throws Error When the track is shorter than that.
+   */
+  function taskAt(index: number): TutorialTask {
+    const task = tutorialTasks[index];
+    if (task === undefined) {
+      throw new Error(`The learning track has no task at position ${String(index)}`);
+    }
+    return task;
+  }
+
+  /**
+   * Ends the run on screen, one way or the other.
+   *
+   * Every condition on the track asks for passengers within a time limit, so a
+   * run is won by having delivered more than any task asks for while the clock
+   * is still young, and lost by letting the clock run out with nobody delivered.
+   * Written into the counters rather than played out, because what these specs
+   * are about is what the app does with a verdict; that the tasks can actually
+   * be lost by the program the player is handed and won by the answer they are
+   * shown is what `src/game/tutorial-solutions.test.ts` proves, by playing them.
+   *
+   * @param app - The app whose run to end.
+   * @param won - The verdict to produce.
+   */
+  function endRun(app: App, won: boolean): void {
+    const world = app.world;
+    if (world === undefined) {
+      throw new Error("There is no run to end");
+    }
+    world.transportedCounter = won ? 1000 : 0;
+    world.elapsedTime = won ? 1 : 1000;
+    world.trigger("stats_changed");
+  }
+
+  /**
+   * Where the editor keeps one task's program.
+   *
+   * Spelled out here as it is in `editor.test.ts`: the prefix is private to the
+   * editor, and a test that imported it could not tell a renamed key from a
+   * working one — the very thing the key exists to be stable about, since it
+   * holds a program the player typed.
+   */
+  const TASK_2_CODE_KEY = "develevateTutorialCode_tutorial-2";
+
+  it("plays the task the url names rather than challenge 1", () => {
+    // Until the route was dispatched on `tutorialIndex`, `#challenge=tutorial-5`
+    // fell through to the challenge branch, which resolves anything it does not
+    // understand to challenge 1 -- so the game played challenge 1 while the
+    // address bar went on saying `tutorial-5`, and a reload never escaped it.
+    const { app } = setUp();
+    app.handleRoute(...routeFor("#challenge=3"));
+
+    app.handleRoute(...routeFor("#challenge=tutorial-5"));
+
+    expect(app.tutorial?.task.id).toBe("tutorial-5");
+    expect(app.tutorial?.index).toBe(4);
+    expect(app.isPlayingSandbox).toBe(false);
+    expect(app.world?.floors.length).toBe(taskAt(4).options.floorCount);
+    // Where a restart would send them back to, left where the challenge put it,
+    // exactly as the sandbox leaves it: the track is not a station on the ladder.
+    expect(app.currentChallengeIndex).toBe(2);
+  });
+
+  it("runs a task without waiting when the url asks it to", () => {
+    const { app, worldController } = setUp();
+    app.handleRoute(...routeFor("#challenge=tutorial-2,autostart=true"));
+    expect(worldController.isPaused).toBe(false);
+  });
+
+  it("builds a task on its own pinned seed rather than a fresh draw", () => {
+    // The lesson is "this program loses and that one wins", which is a statement
+    // about a particular stream of passengers. On a random draw it would be a
+    // coin flip, and a player could be shown a mistake that happened to squeak
+    // past -- the opposite of what the task is for.
+    const { app } = setUp();
+    app.handleRoute(...routeFor("#challenge=tutorial-3"));
+    expect(app.world?.seed).toBe(taskAt(2).seed);
+  });
+
+  it("keeps the task's seed when the url is still carrying a challenge's", () => {
+    // The router refuses `seed` on a task address, so the two can only disagree
+    // from inside the app -- the panel's own restart, Ctrl-Enter, the Restart
+    // button -- and then it is the leftover from the challenge just left that
+    // has to lose.
+    const { app } = setUp();
+    app.handleRoute(...routeFor("#challenge=2,seed=issue-61"));
+    expect(app.world?.seed).toBe("issue-61");
+
+    app.startTutorial(0);
+
+    expect(app.world?.seed).toBe(taskAt(0).seed);
+  });
+
+  it("offers no seed line, and prints none, because both halves of it are refused", () => {
+    // "The same passengers again" would write `seed=` into an address the router
+    // refuses it on, and "a new draw" would offer to stop pinning the seed the
+    // task pins. A line that undoes itself is worse than no line, and the
+    // console print is built from the same data.
+    const { app, elements } = setUp();
+    app.startTutorial(0);
+
+    expect(elements.challenge.querySelector(".challengeseed")).toBeNull();
+    expect(console.log).not.toHaveBeenCalled();
+  });
+
+  it("hands a task nobody has opened its starting program", () => {
+    const { app, view } = setUp();
+    app.startTutorial(0);
+    expect(view.getValue()).toBe(taskAt(0).startingCode);
+  });
+
+  it("opens the task's buffer before the run compiles anything", () => {
+    // Ordering, tested by its consequence. `#startRun` compiles whatever is in
+    // the editor at the moment it starts, so a buffer opened afterwards would
+    // run the previous buffer's program in this task's building for one run.
+    // The stored attempt does not compile and the player's program does, so the
+    // banner is here only if the switch happened first.
+    const { app, elements, storage, view } = setUp();
+    storage.setItem(TASK_2_CODE_KEY, "{ this is not javascript");
+
+    app.startTutorial(1);
+
+    expect(view.getValue()).toBe("{ this is not javascript");
+    expect(requireElement(".errormessage", elements.codeStatus).textContent).not.toBe("");
+  });
+
+  it("puts the player's own program back on the way out", () => {
+    const { app, storage, view } = setUp();
+    storage.setItem(CODE_STORAGE_KEY, INERT_CODE);
+    app.startTutorial(0);
+    expect(view.getValue()).not.toBe(INERT_CODE);
+
+    app.leaveTutorial();
+
+    expect(app.tutorial).toBeUndefined();
+    expect(view.getValue()).toBe(INERT_CODE);
+    // Challenge one, and not wherever the player came from: the track is what
+    // somebody plays before they have a challenge to go back to.
+    expect(app.currentChallengeIndex).toBe(0);
+  });
+
+  it("leaves the track for the sandbox as readily as for a challenge", () => {
+    // Every way out goes through one of the two other starts, which is why both
+    // of them close the buffer rather than the router doing it once.
+    const { app, storage, view } = setUp();
+    storage.setItem(CODE_STORAGE_KEY, INERT_CODE);
+    app.startTutorial(2);
+
+    app.handleRoute(...routeFor("#challenge=sandbox,floors=20"));
+
+    expect(app.tutorial).toBeUndefined();
+    expect(app.isPlayingSandbox).toBe(true);
+    expect(view.getValue()).toBe(INERT_CODE);
+  });
+
+  it("repeats the task when the program is applied, not the last challenge played", () => {
+    // `startChallenge(currentChallengeIndex)` was what "run this again" used to
+    // mean. On the track it would apply the player's edit to a different
+    // building and take the attempt they were half-way through off the screen.
+    const { app, editor, view } = setUp();
+    app.handleRoute(...routeFor("#challenge=3"));
+    app.startTutorial(2);
+    view.type("// half an answer");
+    const before = app.world;
+
+    editor.trigger("apply_code");
+
+    expect(app.world).not.toBe(before);
+    expect(app.tutorial?.task.id).toBe("tutorial-3");
+    expect(app.world?.floors.length).toBe(taskAt(2).options.floorCount);
+    expect(app.worldController.isPaused).toBe(false);
+    // Reopening the buffer already on screen is a no-op, so the attempt being
+    // applied is still there to edit.
+    expect(view.getValue()).toBe("// half an answer");
+  });
+
+  it("repeats the task from the bar's restart button", () => {
+    const { app, elements } = setUp();
+    app.startTutorial(1);
+    // Only reachable once the run is over, which on a task is the ordinary case.
+    app.world?.unWind();
+
+    requireElement(".startstop", elements.challenge).click();
+
+    expect(app.tutorial?.task.id).toBe("tutorial-2");
+    expect(app.world?.challengeEnded).toBe(false);
+  });
+
+  it("numbers the bar's title in the track rather than in the challenge list", () => {
+    const { app, elements } = setUp();
+    app.startTutorial(2);
+
+    const title = requireElement(".challengetitle", elements.challenge);
+    expect(title.textContent).toBe(
+      `Tutorial task 3 of ${String(tutorialTasks.length)}: ` +
+        "Transport 15 people in 60 seconds or less",
+    );
+    // There is no challenge #0 to send anybody to, and the router refuses it.
+    expect(title.textContent).not.toContain("Challenge #");
+  });
+
+  it("keeps the task's own title through a language change mid-run", () => {
+    const { app, elements } = setUp();
+    app.startTutorial(0);
+
+    setLocale("ru");
+    app.relocalise();
+
+    const title = requireElement(".challengetitle", elements.challenge);
+    expect(title.textContent).toBe(
+      `Учебное задание 1 из ${String(tutorialTasks.length)}: ` +
+        "Перевезите 10 пассажиров за 60 секунд или быстрее",
+    );
+    // What the bar's own template would have written, had the retitle not run.
+    expect(title.textContent).not.toContain("№0");
+  });
+
+  it("leaves every challenge reachable from a task, and marks none of them current", () => {
+    const { app, elements } = setUp();
+    app.handleRoute(...routeFor("#challenge=tutorial-4,timescale=8"));
+
+    const entries = queryAll(".challengelink", elements.challenge);
+    expect(entries.map((entry) => entry.getAttribute("aria-current"))).toEqual([null, null, null]);
+    expect(entries[1]?.getAttribute("href")).toBe("#challenge=2,timescale=8");
+  });
+
+  it("offers the next task, by name, after a win in the middle of the track", () => {
+    const { app, elements } = setUp();
+    app.startTutorial(0);
+
+    endRun(app, true);
+
+    expect(requireElement(".feedback h2", elements.feedback).textContent).toBe("Success!");
+    const link = requireElement(".feedback a", elements.feedback);
+    expect(link.getAttribute("href")).toBe(`#challenge=${taskAt(1).id}`);
+    // "Next challenge" is what the shared template writes into every such link,
+    // and the numbered ladder is not where task 2 lives.
+    expect(link.textContent.trim()).toBe("Next task");
+    // The caret the template put beside the words survives being relabelled.
+    expect(link.querySelector("svg")).not.toBeNull();
+  });
+
+  it("ends the track by offering challenge 1 and the program that clears it", () => {
+    const { app, elements } = setUp();
+    app.startTutorial(tutorialTasks.length - 1);
+
+    endRun(app, true);
+
+    expect(requireElement(".feedback h2", elements.feedback).textContent).toBe(
+      "The track is finished",
+    );
+    const link = requireElement(".feedback a", elements.feedback);
+    expect(link.getAttribute("href")).toBe("#challenge=1");
+    expect(link.textContent.trim()).toBe("Go to challenge 1 with this program");
+  });
+
+  it("says a lost task is lost, and offers nothing", () => {
+    // The expected first outcome on the track: the player is meant to go back to
+    // the editor, where the hints are, rather than onwards.
+    const { app, elements } = setUp();
+    app.startTutorial(0);
+
+    endRun(app, false);
+
+    expect(requireElement(".feedback h2", elements.feedback).textContent).toBe("Challenge failed");
+    expect(elements.feedback.querySelector("a")).toBeNull();
+  });
+
+  it("counts a cleared task, and counts it once however often it is cleared", () => {
+    const { app } = setUp();
+    expect(app.tutorialProgress()).toEqual({ cleared: 0, count: tutorialTasks.length });
+
+    app.startTutorial(0);
+    endRun(app, true);
+    expect(app.tutorialProgress().cleared).toBe(1);
+
+    app.startTutorial(0);
+    endRun(app, true);
+    expect(app.tutorialProgress().cleared).toBe(1);
+  });
+
+  it("redraws a task's verdict in the new language, link and all", () => {
+    // `relocalise` draws the remembered outcome again, and it has to arrive back
+    // at the same three decisions: the task's overlay rather than a challenge's,
+    // the address of the next task rather than the next challenge, and the words
+    // the template does not have. Drawing it from the outcome alone is what
+    // makes that possible, and a redraw that lost any of the three would put a
+    // link labelled "Следующее задание" -- the numbered ladder -- in front of a
+    // player half-way through the track.
+    const { app, elements } = setUp();
+    app.startTutorial(0);
+    endRun(app, true);
+
+    setLocale("ru");
+    app.relocalise();
+
+    expect(requireElement(".feedback h2", elements.feedback).textContent).toBe("Получилось!");
+    const link = requireElement(".feedback a", elements.feedback);
+    expect(link.getAttribute("href")).toBe(`#challenge=${taskAt(1).id}`);
+    expect(link.textContent.trim()).toBe("Следующее учебное задание");
+    expect(app.tutorialProgress().cleared).toBe(1);
+  });
+
+  it("counts nothing for a task that was lost", () => {
+    const { app } = setUp();
+    app.startTutorial(0);
+
+    endRun(app, false);
+
+    expect(app.tutorialProgress().cleared).toBe(0);
+  });
+
+  it("knows whether taking a task's program would overwrite one of the player's", () => {
+    // Asked before the panel offers to confirm. An empty store is not a program
+    // of theirs, and neither is the one the game itself put there: confirming
+    // the replacement of a program nobody typed teaches players to dismiss the
+    // question, and the one time it matters is the time they do it without
+    // reading.
+    const { app, storage } = setUp();
+    expect(app.playerCodeWouldBeReplaced()).toBe(false);
+
+    storage.setItem(CODE_STORAGE_KEY, defaultCode());
+    expect(app.playerCodeWouldBeReplaced()).toBe(false);
+
+    storage.setItem(CODE_STORAGE_KEY, "   \n  ");
+    expect(app.playerCodeWouldBeReplaced()).toBe(false);
+
+    storage.setItem(CODE_STORAGE_KEY, INERT_CODE);
+    expect(app.playerCodeWouldBeReplaced()).toBe(true);
+  });
+
+  it("copies the program into the player's editor without leaving the task", () => {
+    // The button means "I want to keep this", not "I am done here": somebody who
+    // takes the answer to task 4 usually wants to go on reading task 4.
+    const { app, storage, view } = setUp();
+    app.startTutorial(3);
+    view.type("// my answer to task 4");
+
+    expect(app.takeTutorialCode()).toBe(true);
+
+    expect(storage.getItem(CODE_STORAGE_KEY)).toBe("// my answer to task 4");
+    expect(app.tutorial?.index).toBe(3);
+    expect(view.getValue()).toBe("// my answer to task 4");
+  });
+
+  it("refuses a position that does not name a task", () => {
+    // Symmetric with `startChallenge`: the router resolves a task address
+    // against the same table, so this is only reachable from a caller that made
+    // the position up, and a made-up position must not quietly play task 1.
+    const { app } = setUp();
+    expect(() => {
+      app.startTutorial(99);
+    }).toThrow(RangeError);
   });
 });
 

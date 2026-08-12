@@ -7,10 +7,14 @@
 
 import { createSandboxChallenge } from "../game/challenges.ts";
 import type { Challenge, SandboxOptions } from "../game/challenges.ts";
+import { tutorialTasks } from "../game/tutorial.ts";
+import type { TutorialTask } from "../game/tutorial.ts";
 import { createWorld } from "../game/world.ts";
 import type { World } from "../game/world.ts";
 import type { AnimationFrameRequester, WorldController } from "../game/world-controller.ts";
 import { t } from "../i18n/index.ts";
+import { defaultCode } from "../ui/default-code.ts";
+import { CODE_STORAGE_KEY } from "../ui/editor.ts";
 import type { CodeEditor } from "../ui/editor.ts";
 import {
   clearAll,
@@ -29,6 +33,11 @@ import type { ChallengeLinkData, SeedLinkData } from "../ui/templates.ts";
 import { createParamsUrl } from "./router.ts";
 import type { RouteParams, RouteQuery } from "./router.ts";
 import { clampTimeScale, decreasedTimeScale, increasedTimeScale } from "./time-scale.ts";
+import {
+  countClearedTutorialTasks,
+  readClearedTutorialTasks,
+  recordClearedTutorialTask,
+} from "./tutorial-progress.ts";
 
 declare global {
   interface Window {
@@ -68,19 +77,24 @@ const NO_OP_CODE = {
   update: (): void => undefined,
 };
 
-/** The challenge bar's title, which a sandbox run rewrites once the bar is drawn. */
+/** The challenge bar's title, which a run outside the list rewrites once the bar is drawn. */
 const CHALLENGE_TITLE_SELECTOR = ".challengetitle";
 
+/** The link of the end-of-run overlay, whose words the last task of the track rewrites. */
+const FEEDBACK_LINK_SELECTOR = ".feedback a";
+
 /**
- * The number the sandbox is drawn with before its title is rewritten.
+ * The number a run outside {@link App.challenges} is drawn with before its
+ * title is rewritten.
  *
  * The bar's template renders `Challenge #{num}:` in front of every description,
- * and the sandbox is not challenge anything. It is given a number no challenge
- * can have — they are one-based, and the router refuses `#challenge=0` — so
- * that if the rewrite below ever fails to find the title, what shows is
- * obviously not an invitation to type `#challenge=0` into the address bar.
+ * and neither the sandbox nor a task of the learning track is challenge
+ * anything. Both are given a number no challenge can have — they are one-based,
+ * and the router refuses `#challenge=0` — so that if the rewrite below ever
+ * fails to find the title, what shows is obviously not an invitation to type
+ * `#challenge=0` into the address bar.
  */
-const SANDBOX_CHALLENGE_NUM = 0;
+const UNNUMBERED_CHALLENGE_NUM = 0;
 
 /**
  * Turns the hash URL of a run into one that can be pasted somewhere else.
@@ -120,10 +134,44 @@ export interface AppOptions {
   readonly worldController: WorldController;
   /** The challenges, in order. */
   readonly challenges: readonly Challenge[];
-  /** Where the chosen time scale is remembered; defaults to `localStorage`. */
+  /**
+   * Where the chosen time scale and the learning track's progress are
+   * remembered, and where the player's own program is looked for; defaults to
+   * `localStorage`.
+   *
+   * The same store the editor was built over, or {@link App.playerCodeWouldBeReplaced}
+   * answers about somebody else's browser: `main.ts` gives both `localStorage`
+   * by leaving them their default, and the tests hand both the same object.
+   */
   readonly storage?: Storage;
   /** Schedules simulation frames; defaults to `requestAnimationFrame`. */
   readonly requestAnimationFrame?: AnimationFrameRequester;
+}
+
+/**
+ * The task of the learning track on screen, and where it sits in the track.
+ *
+ * The task itself rather than its index alone, because everything the panel and
+ * the bar ask for — the identifier, the seed, the two programs, the condition —
+ * is on it, and a second lookup by index is a second chance to look up the
+ * wrong one. The index rides along because the track is the one part of the
+ * game that is *numbered for the player*: "Task 3 of 8" is in the bar's title
+ * and in the panel, and it is a position in the table rather than anything
+ * stored, which is why nothing but the interface is allowed to use it.
+ */
+export interface TutorialRun {
+  /** The task being played. */
+  readonly task: TutorialTask;
+  /** Its position in `tutorialTasks`, counted from zero. */
+  readonly index: number;
+}
+
+/** How much of the learning track this browser has cleared. */
+export interface TutorialProgress {
+  /** How many tasks have been cleared, counting each task once. */
+  readonly cleared: number;
+  /** How many tasks the track has. */
+  readonly count: number;
 }
 
 /**
@@ -173,10 +221,27 @@ export class App {
   /** The building the sandbox is running, or `undefined` for a challenge. */
   #sandbox: SandboxOptions | undefined = undefined;
   /**
+   * The task of the learning track being played, or `undefined` for anything
+   * else.
+   *
+   * The third thing that can be on screen, and the field that tells the other
+   * two what to do about it: it decides which run a restart repeats, which seed
+   * a world is built from, what the bar's title says, and which overlay the end
+   * of a run gets. Set by {@link startTutorial} and cleared by
+   * {@link startChallenge} and {@link startSandbox}, so that exactly one of the
+   * three is ever in effect.
+   */
+  #tutorial: TutorialRun | undefined = undefined;
+  /**
    * The seed every run is built from, or `null` to let each draw its own.
    *
    * Read from the URL and from nowhere else, which is the whole of the restart
    * rule: see {@link handleRoute}.
+   *
+   * A task of the learning track is the exception, and it does not change that
+   * sentence: the task's own seed is applied where the world is built, and this
+   * field goes on meaning "what the URL asked for" so that leaving the track
+   * for a challenge finds the URL's seed still in it. See {@link #startRun}.
    */
   #seed: string | null = null;
   /**
@@ -328,6 +393,26 @@ export class App {
    * the line offering to pin the seed that was actually drawn, which is what
    * happened.
    *
+   * A task of the learning track offers no seed line at all, and it is the one
+   * run in the game where that is the honest answer. Both halves of the line are
+   * offers about the address bar, and on a task both are refused. "The same
+   * passengers again" writes `seed=` into an address the router refuses it on —
+   * `refuseSeedOnTrack` in `src/app/router.ts` — so following the game's own
+   * link would warn on the console and have `startRouter` strip the key back out
+   * of the bar in front of the player. "A new draw" offers to stop pinning a
+   * seed that the *task* pins, which is the point of the task: `TutorialTask.seed`
+   * records that a random one would make the lesson a coin flip. A line that
+   * undoes itself is worse than no line, so the line goes, and the console print
+   * built from the same data goes with it — what it prints is that same refused
+   * URL. The seed is not lost: it is the task's, written down in the table.
+   *
+   * Rendering the seed as plain text was the alternative and was rejected. It
+   * would occupy the same space in the bar to say a word that means nothing to
+   * the player on the track — the seed of task 5 is `tutorial-5` — and the line
+   * exists to be *acted* on. If the track ever wants the seed shown, the honest
+   * form is the panel saying so in its own words, not the bar's link with its
+   * href taken away.
+   *
    * @param world - The run that has just been built.
    * @param challengeIndex - Its index in {@link challenges}, or `null` for the
    * sandbox, which the URL addresses by its building instead.
@@ -335,6 +420,9 @@ export class App {
    * stops pinning it, or `null` when it has no seed to offer.
    */
   #seedLink(world: World, challengeIndex: number | null): SeedLinkData | null {
+    if (this.#tutorial !== undefined) {
+      return null;
+    }
     if (world.seed === null) {
       // Only reachable when a caller handed the world a ready-made random
       // stream, which the app never does; a test that does gets no seed line
@@ -376,17 +464,31 @@ export class App {
   /**
    * Starts whatever is currently on screen again, from the beginning.
    *
-   * Both callers — the Restart button and the editor's "apply code" — mean "run
-   * this again", and until the sandbox existed the only thing that could be on
-   * screen was `challenges[currentChallengeIndex]`. Restarting through the
-   * index would now throw a sandbox player back onto a numbered challenge, and
-   * with it the building they had configured.
+   * Its three callers — the Restart button, the editor's "apply code" and the
+   * track panel's "start over" — all mean "run this again", and until the
+   * sandbox existed the only thing that could be on screen was
+   * `challenges[currentChallengeIndex]`. Restarting through the index would now
+   * throw a sandbox player back onto a numbered challenge, and with it the
+   * building they had configured. A task of the learning track is the same
+   * hazard with a worse ending: `currentChallengeIndex` is left wherever the
+   * last numbered challenge put it, so Ctrl-Enter on task 3 would apply the
+   * player's edit to challenge 1 — a different building, and the attempt they
+   * were half-way through no longer on screen to compare against.
+   *
+   * The order of the three is the order of {@link handleRoute} and means the
+   * same thing: a task, or the sandbox, or a numbered challenge. Only one of
+   * the two fields is ever set, so the order decides nothing at runtime; it is
+   * written the same way in both places so that a reader who has checked one
+   * has checked the other.
    *
    * @param autoStart - Whether to run without waiting for the Start button.
    */
   #restart(autoStart = false): void {
+    const tutorial = this.#tutorial;
     const sandbox = this.#sandbox;
-    if (sandbox === undefined) {
+    if (tutorial !== undefined) {
+      this.startTutorial(tutorial.index, autoStart);
+    } else if (sandbox === undefined) {
       this.startChallenge(this.currentChallengeIndex, autoStart);
     } else {
       this.startSandbox(sandbox, autoStart);
@@ -429,6 +531,18 @@ export class App {
    * state the player is in, one click in the bar reaches the other, and neither
    * needs the address bar.
    *
+   * What a route names is decided in one order, and the order is stated because
+   * it is the whole of the dispatch: a route is a task of the learning track, or
+   * the sandbox, or a numbered challenge. The router never sets more than one of
+   * those — `#challenge=` holds one value — so this is a statement of precedence
+   * rather than a decision made every time, and the precedence runs from the
+   * most specific address to the least. `challengeIndex` is the least, because
+   * the router resolves it to challenge 1 for any spelling it does not
+   * understand, which is exactly what an unrecognised route should play and
+   * exactly what a task's route must not: until this branch existed,
+   * `#challenge=tutorial-5` played challenge 1 while the address bar went on
+   * saying `tutorial-5`, and a reload never escaped it.
+   *
    * @param params - The validated route parameters.
    * @param query - The raw parameters, kept for the next-challenge link.
    */
@@ -440,7 +554,9 @@ export class App {
     }
     setDemoFullscreen(params.fullscreen);
     this.worldController.setTimeScale(params.timeScale);
-    if (params.sandbox === null) {
+    if (params.tutorialIndex !== null) {
+      this.startTutorial(params.tutorialIndex, params.autoStart);
+    } else if (params.sandbox === null) {
       this.startChallenge(params.challengeIndex, params.autoStart);
     } else {
       this.startSandbox(params.sandbox, params.autoStart);
@@ -459,6 +575,7 @@ export class App {
       throw new RangeError(`No challenge with index ${String(challengeIndex)}`);
     }
     this.#sandbox = undefined;
+    this.#leaveTutorialBuffer();
     this.currentChallengeIndex = challengeIndex;
     this.#startRun(challenge, challengeIndex, autoStart);
   }
@@ -475,7 +592,166 @@ export class App {
    */
   startSandbox(options: SandboxOptions, autoStart = false): void {
     this.#sandbox = options;
+    this.#leaveTutorialBuffer();
     this.#startRun(createSandboxChallenge(options), null, autoStart);
+  }
+
+  /**
+   * Tears the current run down and starts a task of the learning track.
+   *
+   * A {@link TutorialTask} is structurally a {@link Challenge} — `options` and
+   * `condition` are named and typed to match, deliberately — so it is handed
+   * straight to the same machinery, with `null` where a challenge index would
+   * go. That `null` is the whole of "a task is not a challenge": it is not
+   * numbered in the bar, not marked in the navigation row, and not followed by a
+   * link into the numbered ladder. {@link currentChallengeIndex} is left where
+   * the last numbered challenge put it, exactly as the sandbox leaves it, since
+   * it says where the player would return to and not what is on screen.
+   *
+   * The editor is switched to the task's own buffer before the run is built,
+   * and the order matters: {@link #startRun} compiles whatever is in the editor
+   * at the moment it starts, so opening the buffer afterwards would run the
+   * previous task's program in this task's building for one run.
+   *
+   * @param tutorialIndex - Zero-based position of the task in `tutorialTasks`.
+   * @param autoStart - Whether to run without waiting for the Start button.
+   * @throws RangeError When no task has that position. Symmetric with
+   * {@link startChallenge}: the router resolves a task address against the same
+   * table, so this can only be reached by a caller that made the index up, and
+   * a made-up index must not quietly play task 1.
+   */
+  startTutorial(tutorialIndex: number, autoStart = false): void {
+    const task = tutorialTasks[tutorialIndex];
+    if (task === undefined) {
+      throw new RangeError(`No tutorial task with index ${String(tutorialIndex)}`);
+    }
+    this.#sandbox = undefined;
+    this.#tutorial = { task, index: tutorialIndex };
+    // The task's own attempt if the player has left one, and the starting code
+    // only when they have not: somebody who half-solved task 4, wandered off to
+    // a challenge and came back is owed their attempt, not the mistake again.
+    this.#editor.openTutorialBuffer(task.id, task.startingCode);
+    this.#startRun(task, null, autoStart);
+  }
+
+  /**
+   * Puts the player's own program back in the editor on the way out of the
+   * track.
+   *
+   * Called by both of the other two starts rather than by the router, because
+   * the track is left in more ways than by following a link: the navigation row,
+   * the panel's own way out, the Restart button after the player has typed
+   * another address. Every one of them goes through `startChallenge` or
+   * `startSandbox`, and none of them may leave a challenge being played with a
+   * task's program in the editor, which would then be saved under the task's key
+   * as the player edited it.
+   *
+   * Idempotent, and so safe to call when no task was running: the editor
+   * returns early when the buffer asked for is the one already on screen, which
+   * is what keeps a challenge-to-challenge jump from disturbing the caret or
+   * emptying the undo history.
+   */
+  #leaveTutorialBuffer(): void {
+    this.#tutorial = undefined;
+    this.#editor.openPlayerBuffer();
+  }
+
+  /**
+   * The task of the learning track on screen, or `undefined` for anything else.
+   *
+   * The panel's whole input: it decides from this whether to draw at all, which
+   * task's hints to show, and which number to print. Exposed read-only, because
+   * the way to change what is being played is {@link startTutorial} — a panel
+   * that could assign this would leave the field disagreeing with the world.
+   */
+  get tutorial(): TutorialRun | undefined {
+    return this.#tutorial;
+  }
+
+  /**
+   * How much of the learning track this browser has cleared.
+   *
+   * Read from the store on every call rather than cached, which costs one
+   * `getItem` per draw and buys the one thing a cache would lose: the count is
+   * right after the win that has just happened, in a second tab, and after the
+   * player clears their storage mid-session. Nothing here is on a frame path.
+   *
+   * @returns The cleared count and the size of the track.
+   */
+  tutorialProgress(): TutorialProgress {
+    return {
+      cleared: countClearedTutorialTasks(readClearedTutorialTasks(this.#storage), tutorialTasks),
+      count: tutorialTasks.length,
+    };
+  }
+
+  /**
+   * Whether taking a task's program would overwrite something the player wrote.
+   *
+   * What the panel asks before it offers `tutorial.button.takeCodeConfirm`.
+   * "Something the player wrote" is deliberately narrow: an empty store is not
+   * it, and neither is the starting program the game itself put there, because
+   * confirming the replacement of a program nobody typed teaches players to
+   * dismiss the question — and the one time it matters is the time they do it
+   * without reading.
+   *
+   * Compared against {@link defaultCode} rather than remembered, since the
+   * player may have arrived on the track without ever opening the editor, in
+   * which case what is in the store is whatever the last version of this game
+   * wrote there.
+   *
+   * @returns Whether the player's own buffer holds a program of theirs.
+   */
+  playerCodeWouldBeReplaced(): boolean {
+    let stored: string | null;
+    try {
+      stored = this.#storage.getItem(CODE_STORAGE_KEY);
+    } catch {
+      // A store that refuses to be read cannot be overwritten either, so there
+      // is nothing to warn about.
+      return false;
+    }
+    return stored !== null && stored.trim() !== "" && stored.trim() !== defaultCode().trim();
+  }
+
+  /**
+   * Copies the program now in the editor into the player's own buffer.
+   *
+   * Written straight to the player's key rather than by switching buffers,
+   * which is what keeps the player on the task. The button means "I want to keep
+   * this", not "I am done here": somebody who takes the answer to task 6 usually
+   * wants to go on reading task 6. The copy is waiting for them under the game's
+   * own editor whenever they leave, because that is the key
+   * {@link CodeEditor.openPlayerBuffer} reads.
+   *
+   * Silent when the store refuses the write, for the reason every other write in
+   * this class is: the run the player is in is what matters, and it does not
+   * depend on this. The panel is what tells them it happened.
+   *
+   * @returns Whether the program was stored.
+   */
+  takeTutorialCode(): boolean {
+    try {
+      this.#storage.setItem(CODE_STORAGE_KEY, this.#editor.getCode());
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Leaves the learning track for the numbered challenges.
+   *
+   * Challenge one and not `currentChallengeIndex`, which is where a player who
+   * came to the track from challenge 12 would be sent back to. The track is what
+   * somebody plays before they have a challenge to go back to, so the useful
+   * exit is the beginning of the game; a player who did arrive from challenge 12
+   * has that address in their history and in the navigation row.
+   *
+   * @param autoStart - Whether to run without waiting for the Start button.
+   */
+  leaveTutorial(autoStart = false): void {
+    this.startChallenge(0, autoStart);
   }
 
   /**
@@ -490,10 +766,22 @@ export class App {
    */
   #startRun(challenge: Challenge, challengeIndex: number | null, autoStart: boolean): void {
     this.world?.unWind();
+    // A task's own seed wins over the URL's, and it is the one seed in the game
+    // the player cannot override. That is what `TutorialTask.seed` is for: the
+    // lesson is "this program loses and that one wins", which is a statement
+    // about a particular stream of passengers, and a random draw would make it a
+    // coin flip. The router already refuses `seed` on a task address, so the two
+    // can disagree only when a task is started from inside the app while the URL
+    // still carries the seed of the challenge just left -- and then it is the
+    // leftover that has to lose.
+    //
     // `undefined`, not `null`: the world generates a seed of its own when it is
     // given none, and records it either way, which is what makes an unpinned run
     // repeatable after the fact.
-    const world = createWorld(challenge.options, this.#seed ?? undefined);
+    const world = createWorld(
+      challenge.options,
+      this.#tutorial?.task.seed ?? this.#seed ?? undefined,
+    );
     this.world = world;
     window.world = world;
     const seed = this.#seedLink(world, challengeIndex);
@@ -528,6 +816,20 @@ export class App {
       }
       world.challengeEnded = true;
       this.worldController.setPaused(true);
+      // Recorded where the verdict is reached rather than in `#showOutcome`,
+      // which `relocalise` calls again to redraw that verdict in another
+      // language. Nothing miscounts today if it moves -- progress is a set of
+      // task ids, so a redraw would re-add an id that is already in it -- and
+      // that is exactly why the rule is worth writing down rather than leaving
+      // to the type it happens to be stored in. The day progress records
+      // anything a repeat would change, an attempt count, a first-cleared
+      // timestamp, a language switch would quietly start writing it, and the
+      // drawing path is the last place anybody would think to look. Drawing
+      // stays drawing.
+      const tutorial = this.#tutorial;
+      if (challengeStatus && tutorial !== undefined) {
+        recordClearedTutorialTask(this.#storage, tutorial.task.id);
+      }
       this.#showOutcome(challengeStatus);
     });
 
@@ -567,7 +869,7 @@ export class App {
     }
     const { challenge, challengeIndex } = run;
     this.#challengePresenter = presentChallenge(this.#elements.challenge, {
-      challengeNum: challengeIndex === null ? SANDBOX_CHALLENGE_NUM : challengeIndex + 1,
+      challengeNum: challengeIndex === null ? UNNUMBERED_CHALLENGE_NUM : challengeIndex + 1,
       description: challenge.condition.description,
       challengeLinks: this.#challengeLinks(challengeIndex),
       seed: this.#seedLink(world, challengeIndex),
@@ -584,7 +886,14 @@ export class App {
         this.worldController.setTimeScale(decreasedTimeScale(this.worldController.timeScale));
       },
     });
-    if (challengeIndex === null) {
+    // Both retitles hang off the same `challengeIndex === null`, which is what
+    // "not one of the nineteen" means; which of the two it is comes from the
+    // field, not from the index, because both unnumbered runs reach here the
+    // same way.
+    const tutorial = this.#tutorial;
+    if (tutorial !== undefined) {
+      this.#retitleAsTutorial(tutorial, challenge.condition.description);
+    } else if (challengeIndex === null) {
       this.#retitleAsSandbox(challenge.condition.description);
     }
   }
@@ -602,6 +911,11 @@ export class App {
    */
   #showOutcome(won: boolean): void {
     this.#outcome = won;
+    const tutorial = this.#tutorial;
+    if (tutorial !== undefined) {
+      this.#showTutorialOutcome(tutorial, won);
+      return;
+    }
     const challengeIndex = this.#run?.challengeIndex ?? null;
     presentFeedback(this.#elements.feedback, {
       title: won ? t("game.feedback.success.title") : t("game.feedback.failure.title"),
@@ -696,6 +1010,124 @@ export class App {
     const title = this.#elements.challenge.querySelector(CHALLENGE_TITLE_SELECTOR);
     if (title !== null) {
       title.innerHTML = description;
+    }
+  }
+
+  /**
+   * Puts a task's position into the challenge bar's title.
+   *
+   * The same repair as {@link #retitleAsSandbox} and for the same reason — the
+   * bar's template writes `Challenge #N:` in front of every description and
+   * there is no challenge N here — but the answer is the opposite one. The
+   * sandbox drops the prefix because its description already names the building;
+   * a task keeps a prefix and changes what it counts, because "task 3 of 8" is
+   * the one thing about a task that the description cannot say and that the
+   * player most wants: how far along they are.
+   *
+   * The number is the position in `tutorialTasks` rather than anything read from
+   * the task, which is the only place in the app allowed to use it — see
+   * {@link TutorialRun}. The description rides in as markup, exactly as it does
+   * for the sandbox: it is built in `src/game/challenges.ts` from the task's own
+   * condition and never from player input.
+   *
+   * @param tutorial - The task on screen and where it sits in the track.
+   * @param description - The condition's sentence, containing markup.
+   */
+  #retitleAsTutorial(tutorial: TutorialRun, description: string): void {
+    const title = this.#elements.challenge.querySelector(CHALLENGE_TITLE_SELECTOR);
+    if (title !== null) {
+      title.innerHTML = t("tutorial.bar.title.html", {
+        number: tutorial.index + 1,
+        count: tutorialTasks.length,
+        description,
+      });
+    }
+  }
+
+  /**
+   * Draws the end-of-run overlay for a task of the learning track.
+   *
+   * A task ends in one of three ways and the game already had words for only one
+   * of them. A loss is an ordinary loss and says so: the program did not clear
+   * the bar, which on the track is the *expected* first outcome, so nothing here
+   * treats it as special or offers a way onwards — the player is meant to go
+   * back to the editor, and the panel is where the hints are.
+   *
+   * A win in the middle of the track offers the next task. It cannot use
+   * `game.feedback.next`, which the template writes into every link and which
+   * says "Next challenge": the numbered ladder is not where task 4 lives, and a
+   * player who follows a link labelled that way lands somewhere they did not ask
+   * for. So the link's words are replaced after the render, the way the sandbox
+   * replaces the title, and for the same reason — the template is shared and its
+   * markup is not this module's to change.
+   *
+   * A win on the *last* task replaces the whole overlay. Task 8 is challenge 1
+   * with the hints taken away, so what the player has in the editor at that
+   * moment is a program that clears the first real challenge, and the only
+   * useful thing to say is "take it with you". That is `tutorial.finish.*`, and
+   * its link leaves the track for challenge 1 rather than offering a ninth task
+   * that does not exist.
+   *
+   * Nothing is recorded here. {@link #startRun} records the clear where the
+   * condition resolves, so that {@link relocalise} can call this again to redraw
+   * the same verdict in another language without a language change counting as
+   * a second win.
+   *
+   * @param tutorial - The task that just ended and where it sits in the track.
+   * @param won - Whether the task's condition was met.
+   */
+  #showTutorialOutcome(tutorial: TutorialRun, won: boolean): void {
+    const isLastTask = tutorial.index + 1 >= tutorialTasks.length;
+    const nextTask = tutorialTasks[tutorial.index + 1];
+    const finished = won && isLastTask;
+    presentFeedback(this.#elements.feedback, {
+      title: finished
+        ? t("tutorial.finish.title")
+        : won
+          ? t("game.feedback.success.title")
+          : t("game.feedback.failure.title"),
+      message: finished
+        ? t("tutorial.finish.message")
+        : won
+          ? t("game.feedback.success.message")
+          : t("game.feedback.failure.message"),
+      // The seed is dropped from both, as it is from every link the app builds:
+      // it belongs to the run just finished. On the way to challenge 1 that is
+      // also what keeps the link usable at all -- the router refuses a seed on a
+      // task address and would refuse this one on arrival if it survived.
+      url: finished
+        ? createParamsUrl(this.#query, { challenge: 1, seed: null })
+        : won && nextTask !== undefined
+          ? createParamsUrl(this.#query, { challenge: nextTask.id, seed: null })
+          : "",
+    });
+    if (won) {
+      this.#relabelFeedbackLink(
+        finished ? t("tutorial.finish.toChallenges") : t("tutorial.finish.nextTask"),
+      );
+    }
+  }
+
+  /**
+   * Replaces the words in the end-of-run link, leaving its caret icon alone.
+   *
+   * The link is one text node followed by an icon element, so the text node is
+   * rewritten rather than the link: assigning `textContent` would take the caret
+   * with it, and assigning `innerHTML` would put a translated string through the
+   * HTML parser for no reason.
+   *
+   * Missing the link is not an error and is the ordinary case — there is no link
+   * after a loss. What the player sees if the shape of the template ever changes
+   * under this is the template's own wording, which is wrong but readable, and
+   * the same trade {@link #retitleAsSandbox} already makes.
+   *
+   * @param words - What the link should say, already in the active language.
+   */
+  #relabelFeedbackLink(words: string): void {
+    const link = this.#elements.feedback.querySelector(FEEDBACK_LINK_SELECTOR);
+    const text = link?.firstChild;
+    if (text?.nodeType === Node.TEXT_NODE) {
+      text.textContent = `${words} `;
     }
   }
 }
