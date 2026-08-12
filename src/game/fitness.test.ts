@@ -227,11 +227,17 @@ describe("calculateFitness", () => {
     // -- the floor button they press re-offers the car that is already there --
     // and every wait the mean is taken over is therefore zero. Exactly two
     // passengers appear in these 200 frames, and `spawnUserRandomly` puts each
-    // of them in the lobby two times in three, so over 2000 unseeded runs the
-    // mean was taken over two boardings in 43% of them, one in 46%, and none at
-    // all in 12%, where it reads zero because nothing was averaged. It read
-    // zero in all 2000. Everybody who really waited is in `maxPickupTime`,
-    // which the test above keeps out of a report of averages.
+    // of them in the lobby two times in three -- half the time floor 0 is
+    // chosen outright, and a third of the other half comes back as floor 0 from
+    // a three-floor draw. That two thirds is a fact about this challenge and
+    // not about the game: the general figure is `(floors + 1) / (2 * floors)`,
+    // which is 5/8 in a four-floor building. So the mean is taken over two
+    // boardings in 44% of runs, one in 44%, and none at all in 11%, where it
+    // reads zero because nothing was averaged. Measured over 200000 unseeded
+    // runs -- 44.41 / 44.52 / 11.07, which is binomial(2, 2/3) to within a
+    // chi-square of 0.64 on two degrees of freedom -- and it read zero in every
+    // one of them. Everybody who really waited is in `maxPickupTime`, which the
+    // test above keeps out of a report of averages.
     expect(result.avgPickupTime).toBe(0);
   });
 
@@ -249,12 +255,17 @@ describe("calculateFitness", () => {
     // run is cut off the difference between them is not a ride time but the
     // rides still in progress -- two to four of them, typically, out of some
     // twenty-nine. Measured, that leaves a wide margin and not a narrow one:
-    // over 2000 unseeded runs neither assertion below failed once, and the
-    // ratio they turn on came no nearer to 1 than 0.59. So the seed is here for
-    // reproducibility -- the same traffic to look at again when a figure
-    // surprises somebody -- rather than to keep a coin toss from landing badly.
-    // Nor is `"pickup-seed"` a lucky draw: the wait for a car it produces sits
-    // at the 99th percentile of that distribution, which is the hard end of it.
+    // over 100000 unseeded runs neither assertion below failed once, and the
+    // ratio they turn on -- `avgPickupTime / avgWaitTime`, against a threshold
+    // of 1 -- had a median of 0.45, a 99th percentile of 0.54, and never once
+    // reached 0.68. Quoting the largest value seen would be quoting noise: the
+    // maximum of a 2000-run sample lands anywhere between 0.57 and 0.67
+    // depending on the sample, which is why an earlier reading of this comment
+    // could not be reproduced. So the seed is here for reproducibility -- the
+    // same traffic to look at again when a figure surprises somebody -- rather
+    // than to keep a coin toss from landing badly. Nor is `"pickup-seed"` a
+    // lucky draw: the ratio it produces is 0.53, in the top 2% of that
+    // distribution, which is the hard end of it.
     const result = calculateFitness(
       challenge,
       drivingCodeObj(),
