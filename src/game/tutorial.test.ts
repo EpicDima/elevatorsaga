@@ -23,6 +23,12 @@
  * parses and is still written the way the track's programs are written, since a
  * translated comment is a line like any other and can be too long, indented
  * wrongly, or end a template literal early.
+ *
+ * The other thing a message key costs is the tie between a program and its task.
+ * The compiler asks whether a key exists and never whether it was written under
+ * the right entry, so the sixteen programs are held apart here instead: no two
+ * tasks may hand out one starting program, and no two may share an answer beyond
+ * the one copy the track is built on.
  */
 
 import { afterEach, describe, expect, it } from "vitest";
@@ -198,6 +204,38 @@ function withoutComments(code: string): string {
     .join("\n");
 }
 
+/**
+ * The tasks that hand out one and the same program, grouped by that program.
+ *
+ * Every program on the track is reached through a message key written out by
+ * hand in the entry that uses it, and a key names no task: the compiler is asked
+ * whether `tutorial.task4.solutionCode.code` exists, never whether it belongs to
+ * the task it was written under. A key that slipped a row still compiles, still
+ * renders, still parses and still reads like a program, so the one thing left
+ * that can tell is the text — and a slipped key shows up as two tasks holding
+ * the same text, since the program it borrowed is still being handed out by its
+ * owner as well.
+ *
+ * @param programOf - Which of a task's two programs to look at.
+ * @returns One group of task ids per program that more than one task hands out,
+ * in the order the track plays them; empty when every task's program is its own.
+ */
+function tasksSharingAProgram(
+  programOf: (task: TutorialTask) => string,
+): readonly (readonly string[])[] {
+  const byProgram = new Map<string, string[]>();
+  for (const task of tutorialTasks) {
+    const program = programOf(task);
+    const sharing = byProgram.get(program);
+    if (sharing === undefined) {
+      byProgram.set(program, [task.id]);
+    } else {
+      sharing.push(task.id);
+    }
+  }
+  return [...byProgram.values()].filter((group) => group.length > 1);
+}
+
 describe("Learning track table", () => {
   it("has the eight tasks the track is built around", () => {
     expect(tutorialTasks).toHaveLength(8);
@@ -241,6 +279,45 @@ describe("Learning track table", () => {
     for (const locale of LOCALES) {
       setLocale(locale);
       expect(tutorialTasks.at(-1)?.solutionCode, locale).toBe(tutorialTasks.at(-2)?.solutionCode);
+    }
+  });
+
+  it("fills every task's editor with a program no other task hands out, in every language", () => {
+    // The mistake each task is built around is its own, so two tasks handed the
+    // same program means one of them is not being taught what its entry says it
+    // is. The way that happens is a key: the programs are messages, every one of
+    // the sixteen keys is written out by hand under the task it belongs to, and
+    // nothing about `tutorial.task4.startingCode.code` says which entry it may
+    // be written under. A row that borrowed its neighbour's key is a task that
+    // fills the editor with the neighbour's program — which compiles, renders,
+    // parses, and passes every other check in this file, because it is a
+    // perfectly good program. It is just not this task's.
+    for (const locale of LOCALES) {
+      setLocale(locale);
+      expect(
+        tasksSharingAProgram((task) => task.startingCode),
+        locale,
+      ).toEqual([]);
+    }
+  });
+
+  it("answers every task with a program no other task is answered by, save the last, in every language", () => {
+    // The same argument for the other half of each entry, and it is the half
+    // where a slipped key is worst: the answer is shown to a player who has
+    // given up, and an answer belonging to another task would clear neither the
+    // task it is shown under nor any suspicion that the track is broken.
+    //
+    // One pair is deliberately the same program and is measured here rather
+    // than excused: task 8's answer is task 7's, word for word, which the spec
+    // above states as an equality and this one states as the *only* equality
+    // there is. Written out as the pair rather than as a count, so that the day
+    // the copy moves the failure names the two tasks that ended up sharing.
+    for (const locale of LOCALES) {
+      setLocale(locale);
+      expect(
+        tasksSharingAProgram((task) => task.solutionCode),
+        locale,
+      ).toEqual([["tutorial-7", "tutorial-8"]]);
     }
   });
 });
