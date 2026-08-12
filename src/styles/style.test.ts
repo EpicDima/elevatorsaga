@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 /**
  * What can be checked about `style.css` without a browser: the contrast of the
  * palette, and the arithmetic the statistics panel is sized by.
@@ -16,11 +17,27 @@
  * The panel's geometry is here for the same reason the colours are: the numbers
  * are all in tokens, so what they add up to is arithmetic. Whether a browser
  * then draws the panel where it was told to is `e2e/statistics-panel.spec.ts`.
+ *
+ * jsdom, for one line of that arithmetic: the number of rows is a count of
+ * elements in `index.html`, and counting elements wants a parser. Nothing here
+ * is laid out or cascaded — jsdom does neither, and the stylesheet is read as
+ * text.
  */
 
 import { readFileSync } from "node:fs";
+import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
+
+/**
+ * The repository root.
+ *
+ * This file runs under jsdom, where `import.meta.url` is an `http:` URL for the
+ * benefit of the DOM and no use at all to `node:fs`. Vitest runs from the
+ * project root, so the working directory is the one thing that does point here
+ * — the same reasoning, and the same line, as `src/page.test.ts`.
+ */
+const ROOT = process.cwd();
 
 /**
  * The stylesheet, as text.
@@ -28,7 +45,7 @@ import { describe, expect, it } from "vitest";
  * Read from disk rather than imported: Vitest does not process CSS, and hands
  * back an empty string for `style.css?raw` as readily as for `style.css`.
  */
-const styleSource = readFileSync(new URL("./style.css", import.meta.url), "utf8");
+const styleSource = readFileSync(join(ROOT, "src/styles/style.css"), "utf8");
 
 /** The custom properties declared on `:root`, by name without the `--`. */
 const PALETTE: ReadonlyMap<string, string> = new Map(
@@ -274,12 +291,20 @@ describe("palette", () => {
 });
 
 /**
- * The game page, as text.
+ * The game page, parsed as a browser would parse it.
  *
  * The panel's rows are markup, and how many of them there are is a number the
- * stylesheet has to be told: nothing in CSS can count elements.
+ * stylesheet has to be told: nothing in CSS can count elements. Parsed rather
+ * than pattern-matched because the thing being counted is a class on an
+ * element, and a regex counts a spelling: `<div class="stat">` and
+ * `<div class="stat" title="...">` are one selector and two patterns, so a row
+ * written the second way would be a row this file did not see. That is the
+ * defect it is here to catch, in the form it would come back in.
  */
-const pageSource = readFileSync(new URL("../../index.html", import.meta.url), "utf8");
+const page = new DOMParser().parseFromString(
+  readFileSync(join(ROOT, "index.html"), "utf8"),
+  "text/html",
+);
 
 /**
  * Reads a rule's body out of the stylesheet.
@@ -300,15 +325,14 @@ describe("statistics panel", () => {
     // other token below is the stylesheet's own business; this one is a count
     // of elements in index.html, and adding a row there without changing it is
     // exactly how the panel came to be taller than the box it is drawn in.
-    expect(pageSource, "index.html no longer has a .statscontainer").toMatch(
-      /class="statscontainer"/,
-    );
-    // Counted over the whole document rather than inside the panel's element,
-    // which is not something a regex can find the end of. `.stat` belongs to
-    // the panel and to nothing else on the page; a second user of the class
-    // would have to be counted here, and would be the more surprising of the
-    // two things to have happened.
-    const rows = [...pageSource.matchAll(/<div class="stat">/g)].length;
+    expect(
+      page.querySelector(".statscontainer"),
+      "index.html no longer has a .statscontainer",
+    ).not.toBeNull();
+    // Counted inside the panel, so that a `.stat` somewhere else on the page --
+    // there is none today -- would not be mistaken for a row this box has to
+    // make room for.
+    const rows = page.querySelectorAll(".statscontainer .stat").length;
 
     expect(rows).toBeGreaterThan(0);
     expect(
@@ -340,13 +364,17 @@ describe("statistics panel", () => {
     expect(declaration(ruleBody(".worldtrack"), "min-block-size", ".worldtrack")).toBe(
       token("stats-block-size"),
     );
-    // Content-box would leave the padding out of the height the clip is told to
-    // keep, and put the bottom row back outside it by 40px.
+    // Nothing moves on screen if this is dropped: the panel paints nothing of
+    // its own -- no background, no border -- and its rows are laid out from the
+    // padding edge either way. What it keeps is one meaning for the token in
+    // both of the lines above, the height of a whole box. Under content-box the
+    // same token would make the panel 208px against a 168px clip, and the first
+    // rule to give the panel something to paint would find 40px of it cut off.
     expect(declaration(ruleBody(".statscontainer"), "box-sizing", ".statscontainer")).toBe(
       "border-box",
     );
-    // And the clipping stays: passengers walk off the right-hand edge, and the
-    // feedback overlay is deliberately larger than the building it covers.
+    // And the clipping stays, for the reason `style.css` gives: the feedback
+    // overlay is wider than the track it is drawn in.
     expect(ruleBody(".worldtrack")).toMatch(/^\s*overflow:\s*hidden;/m);
   });
 });
