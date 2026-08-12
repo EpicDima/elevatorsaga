@@ -45,15 +45,17 @@ const TRANSPORTED_BEFORE_CAPTURE = 18;
  * why — `dt` comes from `requestAnimationFrame`, so the cars are elsewhere as
  * each passenger appears and the outcome moves with them. That caveat holds
  * here too; what makes the picture steady anyway is that a headless Chromium
- * with nothing else to do delivers very regular frames. Six captures from this
- * seed all came out at 27 transported in 24s at 1.13 a second and 68 moves,
- * with the cars at floors 4, 2, 0 and 0 and the same passengers waiting on the
- * same floors; the average delivery read 7.5s or 7.4s and the worst 14.9s or
- * 14.8s, which is the whole of the difference between them. Other seeds tried
- * were not all this steady — `tower` landed on 23 transported once and 25 twice
- * — so the steadiness is a property of the seed picked, not a promise of the
- * mechanism, and a regenerated picture that differs in a car or two is the run
- * wobbling rather than anything being wrong. The wall-clock "Code saved" line
+ * with nothing else to do delivers very regular frames. Seven captures from
+ * this seed all came out at 27 transported in 24s and 68 moves, with the cars
+ * at floors 4, 2, 0 and 0 and the same passengers waiting on the same floors;
+ * the rate read 1.13 a second or 1.12, the average delivery 7.5s or 7.4s and
+ * the worst 14.9s or 14.8s, which is the whole of the difference between them
+ * -- the rate is 27 over an elapsed time the panel prints rounded, so the two
+ * readings are a fraction of a second apart. Other seeds tried were not all
+ * this steady — `tower` landed on 23 transported once and 25 twice — so the
+ * steadiness is a property of the seed picked, not a promise of the mechanism,
+ * and a regenerated picture that differs in a car or two is the run wobbling
+ * rather than anything being wrong. The wall-clock "Code saved" line
  * under the editor is the one part no seed reaches at all.
  *
  * Chosen over the others tried for the composition at 1280x1000: passengers
