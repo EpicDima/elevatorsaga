@@ -277,7 +277,7 @@ describe("the benchmark as a command", () => {
     for (const program of [asyncThrow, strayRejection]) {
       const ran = await bench([program, "--seeds", "1", "--json"]);
 
-      expect(ran.code, program).toBe(EXIT_OK);
+      expect(ran.code, `${program}\n${ran.err}`).toBe(EXIT_OK);
       const report = JSON.parse(ran.out) as {
         scenarios: { result: { transportedCount: number } }[];
       };

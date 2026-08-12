@@ -98,7 +98,41 @@ async function runWorker(request: BenchWorkerRequest): Promise<FitnessSuiteResul
   return posted;
 }
 
+/** Whatever was listening for a failure before a case imported the module. */
+let listenersBefore: { uncaughtException: unknown[]; unhandledRejection: unknown[] } = {
+  uncaughtException: [],
+  unhandledRejection: [],
+};
+
+/**
+ * Takes off the listeners the module under test left behind.
+ *
+ * It installs a pair on `process` and keeps them for the life of its thread, on
+ * purpose: taking them off after the first failure hands the second one back to
+ * Node, which ends the thread, and the command then reads a report it has
+ * already been sent as itself being broken. A thread ends with the run; this
+ * process does not, and a pair left here per import is a pair of handlers
+ * quietly swallowing every later failure in this test run -- including the ones
+ * a test is supposed to fail on.
+ */
+function takeOffModuleListeners(): void {
+  for (const listener of process.listeners("uncaughtException")) {
+    if (!listenersBefore.uncaughtException.includes(listener)) {
+      process.off("uncaughtException", listener);
+    }
+  }
+  for (const listener of process.listeners("unhandledRejection")) {
+    if (!listenersBefore.unhandledRejection.includes(listener)) {
+      process.off("unhandledRejection", listener);
+    }
+  }
+}
+
 beforeEach(() => {
+  listenersBefore = {
+    uncaughtException: process.listeners("uncaughtException"),
+    unhandledRejection: process.listeners("unhandledRejection"),
+  };
   // The engine logs a failed program and its stack, and the module deliberately
   // puts everything a run prints on standard error -- which, here, is the test
   // run's own output. Silenced rather than asserted on: what lands on which
@@ -116,6 +150,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  takeOffModuleListeners();
   // The module sets the active locale, and this process shares one with it.
   setLocale(DEFAULT_LOCALE);
   thread.workerData = undefined;
@@ -158,6 +193,27 @@ describe("the benchmark worker", () => {
     });
 
     expect(posted).toEqual([{ error: "Error: boom" }]);
+  }, 30_000);
+
+  it("is still listening for a failure once the answer has been posted", async () => {
+    // The listeners are how a program that leaves a failure behind it -- an
+    // `async init`, a promise nobody caught -- gets scored instead of ending the
+    // thread and being reported as this tool breaking. Taking them off after the
+    // answer went out looks tidy and is the bug: `init` runs once per scenario,
+    // so a program that fails that way fails that way three times, and the
+    // second failure meets Node's default and ends the thread. The command is
+    // then holding a report and an ended thread, arriving on separate channels
+    // in either order -- exit 0 or exit 2 depending on the machine's mood, which
+    // is exactly how this was found.
+    const posted = await runWorker({ code: DRIVING_PROGRAM, seeds: ONE_SEED, locale: "en" });
+
+    expect(posted).toHaveLength(1);
+    expect(process.listeners("uncaughtException")).toHaveLength(
+      listenersBefore.uncaughtException.length + 1,
+    );
+    expect(process.listeners("unhandledRejection")).toHaveLength(
+      listenersBefore.unhandledRejection.length + 1,
+    );
   }, 30_000);
 
   it("says what it is when it is run as a command instead of as a thread", async () => {

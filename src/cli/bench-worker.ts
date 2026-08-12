@@ -73,58 +73,73 @@ const port = parentPort;
 await loadLocale(request.locale);
 setLocale(request.locale);
 
+/** What the run produced, once it has produced it. */
+let result: FitnessSuiteResult | undefined = undefined;
+
+/** Whether the answer has been handed over, since several paths hand it over. */
+let posted = false;
+
+/**
+ * Hands the command the report, once there is one and once only.
+ *
+ * Called by the two listeners below as well as by the last line of this file, so
+ * both guards are load-bearing. Doing nothing while the run is still on the
+ * stack is the point of the second one: what a failing program has to be
+ * answered with is the report the run is in the middle of producing, and this
+ * file's last line is where it gets handed over.
+ *
+ * The listeners are not taken off afterwards, which they were at first. A
+ * program that leaves one failure behind usually leaves several — `init` runs
+ * once per scenario — and taking the listeners off after the first restores
+ * Node's default for the rest, so the second one ends the thread. A thread that
+ * ended and a message in flight are two answers racing on different channels,
+ * and the parent believing the wrong one is an intermittent exit 2 with the
+ * report already written. Leaving them on costs a listener that a thread about
+ * to be terminated will never be asked for again.
+ */
+function postResult(): void {
+  if (posted || result === undefined) {
+    return;
+  }
+  posted = true;
+  port.postMessage(result);
+}
+
+// From here on, a failure the player's program leaves behind it must not cost
+// the measurement being made.
+//
+// `doFitnessSuite` catches what a program throws, but it can only catch what is
+// thrown at it, and not everything a program starts is finished when it returns:
+// an `async init`, a promise nobody caught, a `queueMicrotask` that throws, all
+// fail on a turn of the event loop the run is not on. In a worker such a failure
+// is an uncaught exception, an uncaught exception ends the thread, and the
+// parent reads a thread that ended as this tool being broken. That was a program
+// with an `await` in it scoring the benchmark itself as broken: no report, exit
+// 2, and a script scoring a directory of solutions stopping on the first one.
+//
+// Listening is what prevents it, since Node's default for both of these is to
+// end the thread and a listener replaces the default. The answer is the report
+// the run produced, because that is the answer: the buildings were scored, and
+// the page -- where an unhandled rejection does not stop a worker -- scores the
+// same program the same way. Only the run's own output is lost, and only if the
+// failure beats the flush.
+//
+// Above the run, so that the window covers everything the program is able to
+// schedule, from the first line of `init` onwards. Below the module's own
+// loading, though: a failure raised while this file is still finding its
+// imports is this tool broken, and the parent's business to report as such.
+// Between the two, a failure arriving before the run has produced anything is
+// left alone by {@link postResult} -- there is no report to hand over, and a
+// thread with nothing to say is what the parent's deadline is for.
+process.on("uncaughtException", postResult);
+process.on("unhandledRejection", postResult);
+
 // Everything the run prints goes to standard error, exactly as it did when the
 // command ran the suite itself. The parent redirects this thread's streams as
 // well, so this is not the only thing standing between a player's `console.log`
 // and a `--json` report that no longer parses -- but it is what keeps a run
 // printing where a run has always printed, whoever is listening.
-const result: FitnessSuiteResult = withRunOutputOnStandardError(() =>
-  doFitnessSuite(request.code, request.seeds),
-);
-
-/** Whether the answer has been handed over, since several paths hand it over. */
-let posted = false;
-
-/** Hands the command the report, once, whatever else the thread is doing. */
-function postResult(): void {
-  if (posted) {
-    return;
-  }
-  posted = true;
-  // Handed back as well as answered: the two listeners below are on `process`,
-  // which a thread shares with nothing but is also what `bench-worker.test.ts`
-  // imports this module into, and a listener left behind there is a listener on
-  // the test run's own process.
-  process.off("uncaughtException", postResult);
-  process.off("unhandledRejection", postResult);
-  port.postMessage(result);
-}
-
-// From here to the last line, a failure the program left behind must not cost
-// the measurement that has just been made.
-//
-// `doFitnessSuite` catches what a program throws, but it can only catch what is
-// thrown at it, and not everything a program starts is finished by the time it
-// returns: an `async init`, a promise nobody caught, a `queueMicrotask` that
-// throws, all fail on a later turn of the event loop -- and the next turn is the
-// flush below. In a worker such a failure is an uncaught exception, an uncaught
-// exception ends the thread, and the parent reads a thread that ended as this
-// tool being broken. That was a program with an `await` in it scoring the
-// benchmark itself as broken: no report, exit 2, and a script scoring a
-// directory of solutions stopping on the first one.
-//
-// Listening is what prevents it, since Node's default for both of these is to
-// end the thread and a listener replaces the default. The answer is the report
-// the run produced, because that is the answer: the three buildings were scored,
-// and the page -- where an unhandled rejection does not stop a worker -- scores
-// the same program the same way. Only the run's own output is lost, and only if
-// the failure beats the flush.
-//
-// Before the flush rather than at the top of the file, so that a failure raised
-// while this module is still loading stays what it is: this tool broken, and the
-// parent's business to report as such.
-process.on("uncaughtException", postResult);
-process.on("unhandledRejection", postResult);
+result = withRunOutputOnStandardError(() => doFitnessSuite(request.code, request.seeds));
 
 // Nothing printed above has actually left this thread yet, and without this line
 // almost none of it ever would. A worker's streams are not descriptors: each
