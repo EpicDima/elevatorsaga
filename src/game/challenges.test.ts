@@ -8,6 +8,7 @@ import {
   requireSandbox,
   requireUserCountWithMaxWaitTime,
   requireUserCountWithinMoves,
+  requireUserCountWithinMovesWithMaxWaitTime,
   requireUserCountWithinTime,
   requireUserCountWithinTimeWithMaxWaitTime,
   type ChallengeWorldStats,
@@ -136,6 +137,48 @@ describe("Challenge requirements", () => {
     });
   });
 
+  describe("requireUserCountWithinMovesWithMaxWaitTime", () => {
+    it("evaluates correctly", () => {
+      const challengeReq = requireUserCountWithinMovesWithMaxWaitTime(10, 20, 4.0);
+      expect(challengeReq.evaluate(fakeWorld)).toBe(null);
+      fakeWorld.moveCount = 21;
+      expect(challengeReq.evaluate(fakeWorld)).toBe(false);
+      fakeWorld.transportedCounter = 11;
+      expect(challengeReq.evaluate(fakeWorld)).toBe(false);
+      fakeWorld.moveCount = 19;
+      expect(challengeReq.evaluate(fakeWorld)).toBe(true);
+      fakeWorld.maxWaitTime = 4.1;
+      expect(challengeReq.evaluate(fakeWorld)).toBe(false);
+    });
+
+    it("decides as soon as either limit is reached, not when the crowd is delivered", () => {
+      // A run that has already spent its moves, or already left someone
+      // undelivered too long, is lost with passengers still to come: the
+      // condition has to say so then, because the alternative is a bar that
+      // reads "in progress" over a run whose outcome is settled.
+      const challengeReq = requireUserCountWithinMovesWithMaxWaitTime(100, 450, 30);
+      expect(challengeReq.evaluate({ ...fakeWorld, moveCount: 450 })).toBe(false);
+      expect(challengeReq.evaluate({ ...fakeWorld, maxWaitTime: 30 })).toBe(false);
+      expect(challengeReq.evaluate({ ...fakeWorld, moveCount: 449, maxWaitTime: 29.9 })).toBe(null);
+    });
+
+    it("counts both limits themselves as a win", () => {
+      const challengeReq = requireUserCountWithinMovesWithMaxWaitTime(10, 20, 4.0);
+      fakeWorld.moveCount = 20;
+      fakeWorld.maxWaitTime = 4.0;
+      fakeWorld.transportedCounter = 10;
+      expect(challengeReq.evaluate(fakeWorld)).toBe(true);
+    });
+
+    it("describes itself", () => {
+      expect(requireUserCountWithinMovesWithMaxWaitTime(100, 450, 30).description).toBe(
+        "Transport <span class='emphasis-color'>100</span> people using " +
+          "<span class='emphasis-color'>450</span> elevator moves or less and let no one take " +
+          "more than <span class='emphasis-color'>30.0</span> seconds to be delivered",
+      );
+    });
+  });
+
   describe("requireDemo", () => {
     it("never resolves", () => {
       const challengeReq = requireDemo();
@@ -253,7 +296,21 @@ describe("createSandboxChallenge", () => {
 
 describe("challenges", () => {
   it("keeps the full legacy list, in order", () => {
-    expect(challenges).toHaveLength(19);
+    expect(challenges).toHaveLength(20);
+  });
+
+  it("ends the playable list with the moves-and-wait challenge", () => {
+    // Second to last, because the demo is not a challenge and stays where it
+    // has always been: the end. The numbers are the ones the reference program
+    // was measured against -- a challenge whose limits drifted from the run
+    // that sized them is a challenge nobody can be sure is winnable.
+    const challenge = challenges.at(-2);
+    expect(challenge?.options).toEqual({ floorCount: 8, elevatorCount: 6, spawnRate: 0.9 });
+    expect(challenge?.condition.description).toBe(
+      "Transport <span class='emphasis-color'>100</span> people using " +
+        "<span class='emphasis-color'>450</span> elevator moves or less and let no one take " +
+        "more than <span class='emphasis-color'>30.0</span> seconds to be delivered",
+    );
   });
 
   it("gives every challenge a described condition and world options", () => {
@@ -288,6 +345,20 @@ describe("the language a description comes out in", () => {
       "Перевезите <span class='emphasis-color'>23</span> пассажира за " +
         "<span class='emphasis-color'>30</span> секунд или быстрее, и пусть доставка каждого " +
         "не длится дольше <span class='emphasis-color'>2,0</span> секунды",
+    );
+  });
+
+  it("declines the nouns of the moves-and-wait sentence too", () => {
+    // The one sentence that counts all three of them. 100 and 450 are both
+    // `many` in Russian and take «пассажиров» and «перемещений»; the delivery
+    // limit is written with a tenth, which is `other`, so it takes «секунды»
+    // rather than the «секунд» a bare 30 would have taken.
+    setLocale("ru");
+
+    expect(requireUserCountWithinMovesWithMaxWaitTime(100, 450, 30).description).toBe(
+      "Перевезите <span class='emphasis-color'>100</span> пассажиров, уложившись в " +
+        "<span class='emphasis-color'>450</span> перемещений, и пусть доставка каждого " +
+        "не длится дольше <span class='emphasis-color'>30,0</span> секунды",
     );
   });
 

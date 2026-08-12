@@ -190,6 +190,54 @@ export function requireUserCountWithinMoves(
 }
 
 /**
+ * Requires a number of passengers within both a move budget and a wait limit.
+ *
+ * The two limits pull against each other, which is the point of asking for
+ * both. A move is spent every time a car changes floor, so the cheapest way to
+ * deliver a crowd is to fill a car and let it work down its list -- and the
+ * passenger at the end of that list is the one whose delivery takes longest.
+ * Optimise for the wait alone and cars run half empty, one errand at a time,
+ * spending moves; optimise for moves alone and somebody rides through every
+ * floor in the building. Neither limit is hard to meet on its own here, and a
+ * program that meets both is one that decided when a car is full enough.
+ *
+ * @param userCount - Passengers that must be delivered.
+ * @param moveLimit - Elevator moves available.
+ * @param maxWaitTime - Longest wait any passenger may endure, in seconds.
+ * @returns The condition.
+ */
+export function requireUserCountWithinMovesWithMaxWaitTime(
+  userCount: number,
+  moveLimit: number,
+  maxWaitTime: number,
+): ChallengeCondition {
+  return {
+    get description(): string {
+      return t("challenge.transportWithinMovesWithMaxWait.html", {
+        people: t("challenge.people.html", { count: userCount }),
+        moves: t("challenge.moveLimit.html", { count: moveLimit }),
+        waitTime: t("challenge.waitLimit.html", { count: decimal(maxWaitTime, 1) }),
+      });
+    },
+    evaluate(world: ChallengeWorldStats): boolean | null {
+      if (
+        world.moveCount >= moveLimit ||
+        world.maxWaitTime >= maxWaitTime ||
+        world.transportedCounter >= userCount
+      ) {
+        return (
+          world.moveCount <= moveLimit &&
+          world.maxWaitTime <= maxWaitTime &&
+          world.transportedCounter >= userCount
+        );
+      } else {
+        return null;
+      }
+    },
+  };
+}
+
+/**
  * A condition that never resolves, used for the endless demo.
  *
  * @returns The condition.
@@ -385,6 +433,21 @@ export const challenges: readonly Challenge[] = [
   {
     options: { floorCount: 21, elevatorCount: 8, spawnRate: 1.5, elevatorCapacities: [6, 8] },
     condition: requireUserCountWithinTimeWithMaxWaitTime(2675, 1800, 45),
+  },
+  {
+    // The building of the wait-limited challenge eleven places above, asked a
+    // second question. That one wanted 120 delivered with nobody taking more
+    // than fourteen seconds, which a car-per-call program answers by running
+    // cars nearly empty; this one leaves the wait limit slack enough for that
+    // program to keep meeting it and takes away the moves it was paying with.
+    // Measured over twenty seeds at a hundred delivered: sending the nearest
+    // free car to each call costs 394 to 502 moves, plain collective control
+    // costs 335 to 404 but lets a delivery reach 35.7 seconds, and collective
+    // control that stops taking passengers on aboard a car once it is half full
+    // costs 316 to 412 with a worst delivery of 27.2. The limits are that last
+    // program's worst seed with about a tenth in hand on each.
+    options: { floorCount: 8, elevatorCount: 6, spawnRate: 0.9 },
+    condition: requireUserCountWithinMovesWithMaxWaitTime(100, 450, 30),
   },
   {
     options: { floorCount: 21, elevatorCount: 8, spawnRate: 1.5, elevatorCapacities: [6, 8] },

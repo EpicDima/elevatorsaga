@@ -423,8 +423,8 @@ dl dd {
 /*
  * The bar was a fixed 40px, which was exactly the title line it held. It now
  * has a second line under the first -- the row of challenge links -- and that
- * row has to be allowed to grow: on a phone nineteen entries wrap onto three or
- * four lines, and a fixed height would leave them lying over the building.
+ * row has to be allowed to grow: on a phone twenty entries wrap onto three
+ * lines, and a fixed height would leave them lying over the building.
  *
  * A wrapping flex row, and the reason is the tab order rather than the look.
  * This was `float: left` on the title and `float: right` on the two controls,
@@ -437,7 +437,8 @@ dl dd {
  * would let the two orders come apart again.
  *
  * "The same places" is near enough to be worth saying and not exact. Swept over
- * all nineteen challenges at every 20px from 320px to 940px -- 608 measurements
+ * all nineteen challenges there were then at every 20px from 320px to 940px --
+ * 608 measurements
  * of this bar's height against the float bar's, in Chromium with the seed
  * pinned -- this one is taller in 59 of them, shorter in 162 and identical to
  * the pixel in 387. The claim that stood here that the two were exact was wrong,
@@ -451,11 +452,11 @@ dl dd {
  * arrangement this replaces the floats for. And the width the controls leave at
  * is now a property of the bar instead of the challenge: a basis decides it (see
  * `.challengetitle`), so they hold their place down to a 501px window on every
- * one of the nineteen, where under the floats it was the title's own text that
- * decided -- 345px on challenge 19, 510px on challenge 1, 522px on challenge 5,
+ * one of them, where under the floats it was the title's own text that
+ * decided -- 345px on the demo, 510px on challenge 1, 522px on challenge 5,
  * 853px on challenge 18. That is the whole shape of the difference: uniform
  * where it used to vary, which is later than the floats managed on the long
- * titles and earlier on the short ones. Challenge 19 is the short one, and its
+ * titles and earlier on the short ones. The demo is the short one, and its
  * 40.1px between 440px and 500px is the worst cell in the sweep. The bar's own
  * 15px column gap is part of that width and is width the floats never set aside;
  * neutralise it and the controls hold on to 486px instead of 501px, so it costs
@@ -579,11 +580,11 @@ dl dd {
  * the third and last item of the bar's own flex row, and an item that asks for
  * every pixel cannot share a line with the title and the controls, so it wraps
  * under them. This is the one thing the bar's `flex-wrap` will not do on its
- * own -- the row of nineteen links is wide, but "wide" is not "wider than
+ * own -- the row of twenty links is wide, but "wide" is not "wider than
  * whatever is left over", and on a short challenge list it would have ridden up
  * beside the title.
  *
- * A flex row so the links take the width they need and no more: 658.1px of the
+ * A flex row so the links take the width they need and no more: 692.1px of the
  * 1220px on offer at a 1280px window, wrapping within themselves where they do
  * not fit. The seed does not share that line and cannot -- it carries a
  * `flex-basis: 100%` of its own, for the reason written where that is set -- so
@@ -606,8 +607,8 @@ dl dd {
 }
 
 /*
- * A wrapping flex row, not a fixed grid: nineteen entries fit one line at the
- * shell's full width and fall into three or four at 320px, where the
+ * A wrapping flex row, not a fixed grid: twenty entries fit one line at the
+ * shell's full width and fall into three at 320px, where the
  * alternative -- a row that will not wrap -- is a page that has to be read by
  * panning sideways (WCAG 1.4.10).
  */
@@ -684,7 +685,7 @@ dl dd {
  * A basis of the full width, so that it is a line under the challenge numbers
  * rather than something that might fit beside them. It used to fit beside them,
  * and opening the disclosure at the end of it is what showed why that was wrong:
- * the panel widens this box, the widened box no longer fits next to nineteen
+ * the panel widens this box, the widened box no longer fits next to twenty
  * challenge links, and the whole line dropped below them -- carrying the summary
  * the player had just clicked 1119px to the left and 54px down, out from under
  * the pointer that clicked it. What made that happen was the line's width being

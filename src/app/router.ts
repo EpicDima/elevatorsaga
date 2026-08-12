@@ -1090,7 +1090,7 @@ export interface RouterOptions {
  *
  * The handler is handed the corrected parameters rather than the ones that were
  * written, so that everything built from them is clean as well. The challenge
- * bar builds nineteen navigation links out of this query; carrying
+ * bar builds twenty navigation links out of this query; carrying
  * `seed=rush%20hour` into all of them would mean a refusal, and its warning, on
  * every one the player followed afterwards.
  *

@@ -109,7 +109,7 @@ export const EN_MESSAGES = {
   "game.elevator.label": "Elevator {number}",
   "game.elevator.floorButton": "Go to floor {floor}",
   "game.challenge.title.html": "Challenge #{number}: {description}",
-  // The navigation row shows bare numbers, because nineteen entries have to fit
+  // The navigation row shows bare numbers, because twenty entries have to fit
   // across a phone; the name each one carries is what a screen reader announces
   // in their place, so it has to say what the number means on its own.
   "game.challenge.nav.label": "Challenges",
@@ -183,15 +183,17 @@ export const EN_MESSAGES = {
   // bar has always highlighted the numbers with.
 
   "challenge.transportWithinTime.html": "Transport {people} in {time} or less",
-  // "to be delivered" rather than "wait", because the limit these two sentences
-  // announce is `World.maxWaitTime`, which stops at the passenger's floor and
-  // not at the door of the car. A player who reads it as a wait optimises for
-  // boarding people quickly and then loses the run to the ride.
+  // "to be delivered" rather than "wait", because the limit these three
+  // sentences announce is `World.maxWaitTime`, which stops at the passenger's
+  // floor and not at the door of the car. A player who reads it as a wait
+  // optimises for boarding people quickly and then loses the run to the ride.
   "challenge.transportWithMaxWait.html":
     "Transport {people} and let no one take more than {waitTime} to be delivered",
   "challenge.transportWithinTimeWithMaxWait.html":
     "Transport {people} in {time} or less and let no one take more than {waitTime} to be delivered",
   "challenge.transportWithinMoves.html": "Transport {people} using {moves} or less",
+  "challenge.transportWithinMovesWithMaxWait.html":
+    "Transport {people} using {moves} or less and let no one take more than {waitTime} to be delivered",
   "challenge.demo": "Perpetual demo",
   "challenge.people.html": {
     one: "<span class='emphasis-color'>{count}</span> person",
@@ -201,8 +203,8 @@ export const EN_MESSAGES = {
     one: "<span class='emphasis-color'>{count}</span> second",
     other: "<span class='emphasis-color'>{count}</span> seconds",
   },
-  // `one` here can never print, and stays anyway. Both places that build this
-  // phrase (src/game/challenges.ts) pass `decimal(maxWaitTime, 1)`, and a number
+  // `one` here can never print, and stays anyway. All three places that build
+  // this phrase (src/game/challenges.ts) pass `decimal(maxWaitTime, 1)`, and a number
   // written with a tenth is `other` in English as much as in Russian: the
   // fifteen-second limit reads "more than 15.0 seconds", and a one-second limit
   // would read "1.0 seconds" rather than "1 second". The form is kept because
@@ -377,7 +379,7 @@ export const EN_MESSAGES = {
   "docs.play.apply.html":
     'Enter your code in the input window below the game view, and press the <span class="emphasis-color">Apply</span> button to start the challenge.<br /> You can increase or decrease the speed of time by pressing the {increase} and {decrease} buttons.',
   "docs.play.statistics.html":
-    'Beside the building is a panel that keeps score while a run is going. Three of its rows need a word. <span class="emphasis-color">Moves</span> first. One move is counted each time a car crosses the halfway mark between one floor and the next, so a trip of three floors is three moves. A car that turns round mid-flight pays twice for the mark it crosses and re-crosses, and braking carries a car on across a mark it was turned back just short of. Two of the challenges are judged on that number, totalled over every car in the building, as well as on the people delivered, so on those a car that shuttles about empty can lose the run. Then the two clocks. <span class="emphasis-color">Avg delivery time</span> and <span class="emphasis-color">Max delivery time</span> both run from the moment a passenger appears in the building to the moment they step out of a car at the floor they asked for, so the ride counts in them as much as the wait for it does: somebody who walks straight into a car already standing at their floor, and waits not one second for it, still adds every second of a nineteen-floor journey to both. Eight of the challenges and two of the tasks on the learning track are judged on the second of them, which is the largest total any one passenger has reached — it keeps climbing while somebody is still on their way, and once reached it never comes down again.',
+    'Beside the building is a panel that keeps score while a run is going. Three of its rows need a word. <span class="emphasis-color">Moves</span> first. One move is counted each time a car crosses the halfway mark between one floor and the next, so a trip of three floors is three moves. A car that turns round mid-flight pays twice for the mark it crosses and re-crosses, and braking carries a car on across a mark it was turned back just short of. Three of the challenges are judged on that number, totalled over every car in the building, as well as on the people delivered, so on those a car that shuttles about empty can lose the run. Then the two clocks. <span class="emphasis-color">Avg delivery time</span> and <span class="emphasis-color">Max delivery time</span> both run from the moment a passenger appears in the building to the moment they step out of a car at the floor they asked for, so the ride counts in them as much as the wait for it does: somebody who walks straight into a car already standing at their floor, and waits not one second for it, still adds every second of a nineteen-floor journey to both. Nine of the challenges and two of the tasks on the learning track are judged on the second of them, which is the largest total any one passenger has reached — it keeps climbing while somebody is still on their way, and once reached it never comes down again.',
   "docs.play.shortcuts.html":
     "Inside the editor, <kbd data-mod-key>Ctrl</kbd>+<kbd>Enter</kbd> applies your program and restarts the challenge, <kbd data-mod-key>Ctrl</kbd>+<kbd>S</kbd> saves it, <kbd>Tab</kbd> indents, and <kbd>Esc</kbd> moves the focus back out of the editor.",
   "docs.play.debugging.html":

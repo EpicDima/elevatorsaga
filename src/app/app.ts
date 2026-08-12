@@ -950,7 +950,7 @@ export class App {
       },
     });
     // Both retitles hang off the same `challengeIndex === null`, which is what
-    // "not one of the nineteen" means; which of the two it is comes from the
+    // "not one of the twenty" means; which of the two it is comes from the
     // field, not from the index, because both unnumbered runs reach here the
     // same way.
     const tutorial = this.#tutorial;
@@ -1166,7 +1166,7 @@ export class App {
    * Replaces the challenge bar's title with the sandbox's own.
    *
    * The bar is a shared template that writes `Challenge #N: ` in front of every
-   * description, which is right for the nineteen entries in the list and a lie
+   * description, which is right for the twenty entries in the list and a lie
    * for the sandbox: there is no challenge N to go to, and a player reading it
    * would reasonably try. The description already names the building in full,
    * and it stands on its own — it begins "Sandbox:" — so the prefix is dropped

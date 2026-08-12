@@ -9,10 +9,10 @@ below](public/images/screenshot.png)
 
 Elevator Saga is a programming game. You are given a building, a few elevators and a stream of
 impatient people, and the only control you have is a small JavaScript program: an object with an
-`init` function that runs once and an `update` function that runs repeatedly. Eighteen of the 19
+`init` function that runs once and an `update` function that runs repeatedly. Nineteen of the 20
 challenges set a target — transport 15 people in 60 seconds, or 100 people using no more than 63
 elevator moves, or 50 people with none of them taking longer than 21 seconds to deliver — and you
-keep rewriting your program until it clears them. The nineteenth sets none: it is an endless demo
+keep rewriting your program until it clears them. The twentieth sets none: it is an endless demo
 you can leave running.
 
 You play in the browser. Type your program in the editor next to the building, press **Apply**

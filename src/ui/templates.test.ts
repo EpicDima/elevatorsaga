@@ -281,15 +281,15 @@ describe("challengeTemplate", () => {
   it("gives every challenge a link of its own, the last one being the demo", () => {
     // Reaching challenge 12 used to mean either winning eleven challenges or
     // typing #challenge=12 into the address bar.
-    const fragment = bar({ num: 1, description: "x", links: links(19) });
+    const fragment = bar({ num: 1, description: "x", links: links(20) });
     const entries = [...fragment.querySelectorAll("a.challengelink")];
 
-    expect(entries).toHaveLength(19);
+    expect(entries).toHaveLength(20);
     expect(entries.map((entry) => entry.textContent)).toEqual([
-      ...Array.from({ length: 18 }, (_unused, index) => String(index + 1)),
+      ...Array.from({ length: 19 }, (_unused, index) => String(index + 1)),
       "Demo",
     ]);
-    expect(entries.at(-1)?.getAttribute("href")).toBe("#challenge=19,timescale=8");
+    expect(entries.at(-1)?.getAttribute("href")).toBe("#challenge=20,timescale=8");
   });
 
   it("names the links for a screen reader rather than leaving them as digits", () => {
@@ -329,7 +329,7 @@ describe("challengeTemplate", () => {
 
   it("tabs through the bar in the order it is read in", () => {
     // WCAG 2.4.3. The speed controls are drawn to the left of the start button,
-    // so they are written before it; the nineteen challenge stops come after
+    // so they are written before it; the twenty challenge stops come after
     // both, and the seed -- a debugging aid rather than part of the game --
     // comes last of all. The bar reached this order by losing the `float: right`
     // that used to draw the first-written control furthest right, so a class

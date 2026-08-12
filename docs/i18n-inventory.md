@@ -104,14 +104,14 @@ Key names carry two suffixes that mean something:
 
 ## Where the strings are
 
-The catalogue holds **293 keys** in two locales. `src/i18n/en.ts` is the reference — its text is
+The catalogue holds **294 keys** in two locales. `src/i18n/en.ts` is the reference — its text is
 the English wording, extracted verbatim — and `src/i18n/ru.ts` is the Russian translation. The
 types make English the shape everything else is measured against: a Russian catalogue missing a
 key, carrying a key English does not have, or giving a plural message the wrong number of forms
 is a compile error, not a runtime surprise.
 
 ```sh
-grep -cE '^  "[^"]+":' src/i18n/en.ts                                   # 293
+grep -cE '^  "[^"]+":' src/i18n/en.ts                                   # 294
 grep -oE '^  "[^"]+"' src/i18n/en.ts | tr -d '"' | cut -d. -f1 | sort | uniq -c | sort -rn
 ```
 
@@ -122,11 +122,11 @@ grep -oE '^  "[^"]+"' src/i18n/en.ts | tr -d '"' | cut -d. -f1 | sort | uniq -c 
 | `completion.*` | 32      | `src/ui/completions.ts`                                                                                  |
 | `page.*`       | 32      | `index.html`, through `data-i18n` and `data-i18n-attr`; `page.noscript` excepted, see below              |
 | `game.*`       | 27      | `src/ui/templates.ts` (18), `src/ui/presenters.ts` (4), `src/app/app.ts` (5)                             |
-| `challenge.*`  | 14      | `src/game/challenges.ts`                                                                                 |
+| `challenge.*`  | 15      | `src/game/challenges.ts`                                                                                 |
 | `fitness.*`    | 10      | `src/app/fitness.ts`, `src/game/fitness.ts`, `src/main.ts`, `src/cli/bench.ts`                           |
 | `error.*`      | 10      | `src/game/elevator-interface.ts`, `src/ui/presenters.ts`, `src/game/user-code.ts`, `src/game/movable.ts` |
 | `editor.*`     | 5       | `src/main.ts`, `src/ui/editor.ts`, `src/ui/default-code.ts`                                              |
-| **Total**      | **293** |                                                                                                          |
+| **Total**      | **294** |                                                                                                          |
 
 Which keys nothing reads:
 
@@ -420,7 +420,7 @@ identically in every locale. Both names repeat it because an accessible name has
 own — "1234567890, link" describes nothing.
 
 `game.seed.newDraw` appearing inside `game.seed.newDrawLink` is a constraint a translator cannot
-see: the two sit on adjacent lines of a 293-key file and nothing in the file marks them as a
+see: the two sit on adjacent lines of a 294-key file and nothing in the file marks them as a
 pair. `src/i18n/catalogue.test.ts`, under _accessible names_, is what holds it — it requires the
 spoken name to contain the visible label in every locale. Rewording «новый розыгрыш» to «новый
 сид» meant changing both, which is exactly the edit where one gets missed.
@@ -485,24 +485,25 @@ would answer for whichever locale happened to be active when the module was firs
 same file's `DEV_TEST_CODE` is deliberately outside the catalogue — nobody reaches it without
 typing `#devtest` into the address bar, and what it is for is checking that the game still plays.
 
-### `src/game/challenges.ts` — 14 keys
+### `src/game/challenges.ts` — 15 keys
 
-| Key                                             | English                                                                                                     | Notes                                                                                                                                   |
-| ----------------------------------------------- | ----------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| `challenge.transportWithinTime.html`            | Transport {people} in {time} or less                                                                        | markup; takes `{people}`, `{time}`                                                                                                      |
-| `challenge.transportWithMaxWait.html`           | Transport {people} and let no one take more than {waitTime} to be delivered                                 | markup; takes `{people}`, `{waitTime}`                                                                                                  |
-| `challenge.transportWithinTimeWithMaxWait.html` | Transport {people} in {time} or less and let no one take more than {waitTime} to be delivered               | markup; takes `{people}`, `{time}`, `{waitTime}`                                                                                        |
-| `challenge.transportWithinMoves.html`           | Transport {people} using {moves} or less                                                                    | markup; takes `{people}`, `{moves}`                                                                                                     |
-| `challenge.demo`                                | Perpetual demo                                                                                              |                                                                                                                                         |
-| `challenge.people.html`                         | `<span class='emphasis-color'>`{count}`</span>` people                                                      | plural (one, other; `one` is "person"); markup; takes `{count}`; shared by all four sentences above                                     |
-| `challenge.timeLimit.html`                      | `<span class='emphasis-color'>`{count}`</span>` seconds                                                     | plural (one, other); markup; takes `{count}`; the accusative «за 30 секунд» in Russian                                                  |
-| `challenge.waitLimit.html`                      | `<span class='emphasis-color'>`{count}`</span>` seconds                                                     | plural (one, other); markup; takes `{count}`; the same English as above and the genitive «дольше 30 секунд» in Russian                  |
-| `challenge.moveLimit.html`                      | `<span class='emphasis-color'>`{count}`</span>` elevator moves                                              | plural (one, other); markup; takes `{count}`                                                                                            |
-| `challenge.sandbox.html`                        | Sandbox: {floors}, {elevators} of {capacityLabel} {capacities}, {spawnRate}. No goal, so the run never ends | markup; takes `{floors}`, `{elevators}`, `{capacityLabel}`, `{capacities}`, `{spawnRate}`; composed from the four sandbox phrases below |
-| `challenge.sandbox.floors.html`                 | `<span class='emphasis-color'>`{count}`</span>` floors                                                      | plural (one, other); markup; takes `{count}`                                                                                            |
-| `challenge.sandbox.elevators.html`              | `<span class='emphasis-color'>`{count}`</span>` elevators                                                   | plural (one, other); markup; takes `{count}`                                                                                            |
-| `challenge.sandbox.capacityLabel`               | capacities                                                                                                  | plural (one, other); counted by how many capacities were listed, not by how many cars there are                                         |
-| `challenge.sandbox.spawnRate.html`              | `<span class='emphasis-color'>`{count}`</span>` people per second                                           | plural (one, other); markup; takes `{count}`; one English form for both categories, preserving today's `1 people per second`            |
+| Key                                              | English                                                                                                     | Notes                                                                                                                                   |
+| ------------------------------------------------ | ----------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| `challenge.transportWithinTime.html`             | Transport {people} in {time} or less                                                                        | markup; takes `{people}`, `{time}`                                                                                                      |
+| `challenge.transportWithMaxWait.html`            | Transport {people} and let no one take more than {waitTime} to be delivered                                 | markup; takes `{people}`, `{waitTime}`                                                                                                  |
+| `challenge.transportWithinTimeWithMaxWait.html`  | Transport {people} in {time} or less and let no one take more than {waitTime} to be delivered               | markup; takes `{people}`, `{time}`, `{waitTime}`                                                                                        |
+| `challenge.transportWithinMoves.html`            | Transport {people} using {moves} or less                                                                    | markup; takes `{people}`, `{moves}`                                                                                                     |
+| `challenge.transportWithinMovesWithMaxWait.html` | Transport {people} using {moves} or less and let no one take more than {waitTime} to be delivered           | markup; takes `{people}`, `{moves}`, `{waitTime}`                                                                                       |
+| `challenge.demo`                                 | Perpetual demo                                                                                              |                                                                                                                                         |
+| `challenge.people.html`                          | `<span class='emphasis-color'>`{count}`</span>` people                                                      | plural (one, other; `one` is "person"); markup; takes `{count}`; shared by all five sentences above                                     |
+| `challenge.timeLimit.html`                       | `<span class='emphasis-color'>`{count}`</span>` seconds                                                     | plural (one, other); markup; takes `{count}`; the accusative «за 30 секунд» in Russian                                                  |
+| `challenge.waitLimit.html`                       | `<span class='emphasis-color'>`{count}`</span>` seconds                                                     | plural (one, other); markup; takes `{count}`; the same English as above and the genitive «дольше 30 секунд» in Russian                  |
+| `challenge.moveLimit.html`                       | `<span class='emphasis-color'>`{count}`</span>` elevator moves                                              | plural (one, other); markup; takes `{count}`                                                                                            |
+| `challenge.sandbox.html`                         | Sandbox: {floors}, {elevators} of {capacityLabel} {capacities}, {spawnRate}. No goal, so the run never ends | markup; takes `{floors}`, `{elevators}`, `{capacityLabel}`, `{capacities}`, `{spawnRate}`; composed from the four sandbox phrases below |
+| `challenge.sandbox.floors.html`                  | `<span class='emphasis-color'>`{count}`</span>` floors                                                      | plural (one, other); markup; takes `{count}`                                                                                            |
+| `challenge.sandbox.elevators.html`               | `<span class='emphasis-color'>`{count}`</span>` elevators                                                   | plural (one, other); markup; takes `{count}`                                                                                            |
+| `challenge.sandbox.capacityLabel`                | capacities                                                                                                  | plural (one, other); counted by how many capacities were listed, not by how many cars there are                                         |
+| `challenge.sandbox.spawnRate.html`               | `<span class='emphasis-color'>`{count}`</span>` people per second                                           | plural (one, other); markup; takes `{count}`; one English form for both categories, preserving today's `1 people per second`            |
 
 All six descriptions render through `t` inside a `get description()` on the condition object —
 `requireUserCountWithinTime`, `requireUserCountWithMaxWaitTime`,
@@ -681,7 +682,7 @@ and the URL.
 Seven places where the English source resists a one-string-one-key mapping. All seven are keyed
 and all seven ship, so this is a record of how each was resolved rather than a proposal.
 
-1. **Challenge descriptions are built from parts.** Each of the four builders in
+1. **Challenge descriptions are built from parts.** Each of the five builders in
    `src/game/challenges.ts` interpolates two or three counted phrases into one sentence, and
    every phrase needs its own plural. One key per sentence, plus one key per phrase
    (`challenge.people.html`, `challenge.timeLimit.html`, `challenge.waitLimit.html`,

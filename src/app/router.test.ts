@@ -1026,7 +1026,7 @@ describe("startRouter", () => {
   });
 
   it("hands the handler what the address bar says now", () => {
-    // Not what it said. The challenge bar builds nineteen navigation links out
+    // Not what it said. The challenge bar builds twenty navigation links out
     // of this query, so a refused key left in it would be written into every
     // one of them and refused again on each.
     const target = new FakeTarget();

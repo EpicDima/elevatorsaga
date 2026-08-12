@@ -263,10 +263,10 @@ export interface ChallengeLinkData {
 /**
  * One entry of the challenge navigation row.
  *
- * The visible label is the bare number: nineteen of these have to fit across a
+ * The visible label is the bare number: twenty of these have to fit across a
  * phone. The accessible name is not, because "7" on its own says nothing about
  * where the link goes, and a screen reader reading the row out would produce
- * nineteen unrelated digits. The visible text is contained in the accessible
+ * twenty unrelated digits. The visible text is contained in the accessible
  * name, which is what WCAG 2.5.3 asks of a control whose two names differ — and
  * what lets speech input reach it by the label on screen.
  *
