@@ -29,9 +29,36 @@
  * proven against one stream of passengers; the pin exists so the player's run is
  * reproducible, not so the measurement can be cheap. The other nine are the
  * plan's: `1`–`6` and three that exercise the string half of
- * {@link "./random.ts"!RandomSeed}. The whole file is some 330 runs of at most a
- * few simulated minutes each and takes well under a second, so there is nothing
- * to be saved by trimming the list.
+ * {@link "./random.ts"!RandomSeed}.
+ *
+ * **Every language, not the default one.** A task hands out one program per
+ * locale: the two programs are catalogue messages, because the `//` comments in
+ * them are prose written to the player and translated like any other, so
+ * `task.solutionCode` answers in whatever language was last set. Read only
+ * under {@link "../i18n/locale.ts"!DEFAULT_LOCALE}, this file measured the
+ * English programs and left the Russian ones — the program a Russian player is
+ * handed in the editor, and the one shown to them as the answer — never once
+ * simulated.
+ *
+ * The gap could be argued away and should not be. `catalogue.test.ts` holds the
+ * two locales' code identical once the comments are emptied, and
+ * `tutorial.test.ts` parses both programs of every task in every language, so a
+ * Russian program that lost a task would have to get past both. But that is an
+ * inference across two other files' invariants about *text*, and what a task
+ * promises is about a *run*: this mistake cannot pass, this fix can, in the
+ * language the player is reading. Measuring it costs another 328 runs and about
+ * three tenths of a second — the whole file is some 660 runs of at most a few
+ * simulated minutes each and spends about seven tenths of a second on them — so
+ * there is nothing to be saved by trimming either list.
+ *
+ * The four hundred seeds of `tutorial-sweep.test.ts` are left in one language
+ * for the same arithmetic read the other way: that file spends some two and a
+ * half seconds simulating and is already the slowest of the fifty, so a second
+ * language there costs seven times what it costs here and buys the same
+ * sentence. What it counts is how *often* a program wins, which cannot differ
+ * between two programs whose code is identical; whether the Russian programs
+ * run at all is a question ten seeds answer as well as four hundred, and they
+ * answer it here.
  *
  * **With margin.** A task whose answer scrapes past with three seconds to spare
  * is a task that will break, and it should be retuned now rather than discovered
@@ -40,8 +67,9 @@
  * file having to know what any particular threshold is.
  */
 
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 
+import { DEFAULT_LOCALE, LOCALES, setLocale, type Locale } from "../i18n/index.ts";
 import type { ChallengeCondition, ChallengeWorldStats } from "./challenges.ts";
 import { createFrameRequester } from "./frame-requester.ts";
 import type { RandomSeed } from "./random.ts";
@@ -49,6 +77,12 @@ import { tutorialTasks, type TutorialTask } from "./tutorial.ts";
 import { getCodeObjFromCode } from "./user-code.ts";
 import { createWorldController } from "./world-controller.ts";
 import { createWorld } from "./world.ts";
+
+afterEach(() => {
+  // Every spec below names a language and leaves it named, and the task table
+  // answers in whatever language was set last.
+  setLocale(DEFAULT_LOCALE);
+});
 
 /** Largest simulated step the world is advanced by at once; `src/main.ts`'s value. */
 const SIMULATION_STEP_SECONDS = 1.0 / 60.0;
@@ -207,6 +241,9 @@ function judgeWithClockShift(
  * @param seed - The passengers to run against.
  * @param shiftSeconds - Handicap applied to both clocks; see
  * {@link judgeWithClockShift}. Zero plays the task exactly as the player does.
+ * @param locale - The language `code` was read in. Nothing here reads it but
+ * the failure messages, and they need it: "the program threw" is a different
+ * report depending on which language's copy of the program threw.
  * @returns What the run came to.
  * @throws When the program throws, or when the run reaches
  * {@link MAX_SIMULATED_SECONDS} undecided.
@@ -216,6 +253,7 @@ function playTask(
   code: string,
   seed: RandomSeed,
   shiftSeconds: number,
+  locale: Locale,
 ): RunOutcome {
   const codeObj = getCodeObjFromCode(code);
   const world = createWorld(task.options, seed);
@@ -263,14 +301,15 @@ function playTask(
   }
 
   if (run.userCodeError !== null) {
-    throw new Error(`${task.id}: the program threw at seed ${String(seed)}`, {
+    throw new Error(`${task.id}: the ${locale} program threw at seed ${String(seed)}`, {
       cause: run.userCodeError,
     });
   }
   if (run.verdict === null) {
     throw new Error(
-      `${task.id}: the run was still undecided after ${String(MAX_SIMULATED_SECONDS)} ` +
-        `simulated seconds at seed ${String(seed)}, so the task decides nothing`,
+      `${task.id}: the ${locale} run was still undecided after ` +
+        `${String(MAX_SIMULATED_SECONDS)} simulated seconds at seed ${String(seed)}, ` +
+        `so the task decides nothing`,
     );
   }
   return {
@@ -317,15 +356,19 @@ function startingCodeWins(task: TutorialTask, seed: RandomSeed): boolean {
  *
  * The numbers are the ones needed to retune the task without re-running
  * anything: whoever reads this failure wants to know how far off it was, not
- * merely that it was.
+ * merely that it was. The language comes first for the same reason, and it is
+ * the thing to reach for first when only one of the two is failing: a task that
+ * loses in one language and wins in the other is not a task that needs
+ * retuning, it is a program whose translation has changed a line.
  *
+ * @param locale - The language the program was read in.
  * @param seed - The seed the run used.
  * @param outcome - What the run came to.
  * @returns A one-line description.
  */
-function describeRun(seed: RandomSeed, outcome: RunOutcome): string {
+function describeRun(locale: Locale, seed: RandomSeed, outcome: RunOutcome): string {
   return (
-    `seed ${String(seed)}: decided at ${outcome.elapsedTime.toFixed(1)}s ` +
+    `${locale}, seed ${String(seed)}: decided at ${outcome.elapsedTime.toFixed(1)}s ` +
     `with ${String(outcome.transportedCounter)} delivered ` +
     `and a worst wait of ${outcome.maxWaitTime.toFixed(1)}s`
   );
@@ -333,58 +376,70 @@ function describeRun(seed: RandomSeed, outcome: RunOutcome): string {
 
 for (const task of tutorialTasks) {
   describe(`Learning track task ${task.id}`, () => {
-    it("cannot be passed by the program the player is given, except where recorded", () => {
-      for (const seed of seedsFor(task)) {
-        const outcome = playTask(task, task.startingCode, seed, 0);
-        const recorded = startingCodeWins(task, seed);
-        expect(
-          outcome.verdict,
-          recorded
-            ? `${task.id} starting code no longer wins a seed it is recorded as winning, so ` +
-                `STARTING_CODE_WINS is out of date — ${describeRun(seed, outcome)}`
-            : `${task.id} starting code unexpectedly won — ${describeRun(seed, outcome)}`,
-        ).toBe(recorded);
+    it("cannot be passed by the program the player is given, except where recorded, in every language", () => {
+      for (const locale of LOCALES) {
+        setLocale(locale);
+        for (const seed of seedsFor(task)) {
+          const outcome = playTask(task, task.startingCode, seed, 0, locale);
+          const recorded = startingCodeWins(task, seed);
+          expect(
+            outcome.verdict,
+            recorded
+              ? `${task.id} starting code no longer wins a seed it is recorded as winning, so ` +
+                  `STARTING_CODE_WINS is out of date — ${describeRun(locale, seed, outcome)}`
+              : `${task.id} starting code unexpectedly won — ${describeRun(locale, seed, outcome)}`,
+          ).toBe(recorded);
+        }
       }
     });
 
-    it("is passed by the reference answer", () => {
-      for (const seed of seedsFor(task)) {
-        const outcome = playTask(task, task.solutionCode, seed, 0);
-        expect(
-          outcome.verdict,
-          `${task.id} answer unexpectedly lost — ${describeRun(seed, outcome)}`,
-        ).toBe(true);
+    it("is passed by the reference answer, in every language", () => {
+      for (const locale of LOCALES) {
+        setLocale(locale);
+        for (const seed of seedsFor(task)) {
+          const outcome = playTask(task, task.solutionCode, seed, 0, locale);
+          expect(
+            outcome.verdict,
+            `${task.id} answer unexpectedly lost — ${describeRun(locale, seed, outcome)}`,
+          ).toBe(true);
+        }
       }
     });
 
-    it("cannot be passed by the starting code with seconds to spare, except where recorded", () => {
+    it("cannot be passed by the starting code with seconds to spare, except where recorded, in every language", () => {
       // The starting code losing by a hair would mean the task teaches by
       // accident: a slightly faster elevator, or a seed nobody measured, and the
       // mistake starts passing.
       const margin = marginFor(task);
-      for (const seed of seedsFor(task)) {
-        const outcome = playTask(task, task.startingCode, seed, -margin);
-        const recorded = startingCodeWins(task, seed);
-        expect(
-          outcome.verdict,
-          recorded
-            ? `${task.id} starting code no longer wins a seed it is recorded as winning, and ` +
-                `grace cannot take a win away — ${describeRun(seed, outcome)}`
-            : `${task.id} starting code won when given ${String(margin)}s of grace — ` +
-                describeRun(seed, outcome),
-        ).toBe(recorded);
+      for (const locale of LOCALES) {
+        setLocale(locale);
+        for (const seed of seedsFor(task)) {
+          const outcome = playTask(task, task.startingCode, seed, -margin, locale);
+          const recorded = startingCodeWins(task, seed);
+          expect(
+            outcome.verdict,
+            recorded
+              ? `${task.id} starting code no longer wins a seed it is recorded as winning, and ` +
+                  `grace cannot take a win away — ${describeRun(locale, seed, outcome)}`
+              : `${task.id} starting code won when given ${String(margin)}s of grace — ` +
+                  describeRun(locale, seed, outcome),
+          ).toBe(recorded);
+        }
       }
     });
 
-    it("is passed by the reference answer with seconds to spare", () => {
+    it("is passed by the reference answer with seconds to spare, in every language", () => {
       const margin = marginFor(task);
-      for (const seed of seedsFor(task)) {
-        const outcome = playTask(task, task.solutionCode, seed, margin);
-        expect(
-          outcome.verdict,
-          `${task.id} answer had less than ${String(margin)}s of margin — ` +
-            describeRun(seed, outcome),
-        ).toBe(true);
+      for (const locale of LOCALES) {
+        setLocale(locale);
+        for (const seed of seedsFor(task)) {
+          const outcome = playTask(task, task.solutionCode, seed, margin, locale);
+          expect(
+            outcome.verdict,
+            `${task.id} answer had less than ${String(margin)}s of margin — ` +
+              describeRun(locale, seed, outcome),
+          ).toBe(true);
+        }
       }
     });
 
@@ -396,7 +451,18 @@ for (const task of tutorialTasks) {
       // future task as any. Were that to happen the margin tests would still
       // pass, and would be measuring nothing at all. A shift no threshold on
       // either clock can survive has to lose; if it wins, the shift is inert.
-      const outcome = playTask(task, task.solutionCode, task.seed, ABSURD_SHIFT_SECONDS);
+      //
+      // One language, unlike the four above, and deliberately: what is under
+      // test here is the task's condition, which is built in `tutorial.ts` out
+      // of numbers and knows nothing about any catalogue. The program is only
+      // the thing that makes the world produce statistics to judge.
+      const outcome = playTask(
+        task,
+        task.solutionCode,
+        task.seed,
+        ABSURD_SHIFT_SECONDS,
+        DEFAULT_LOCALE,
+      );
       expect(
         outcome.verdict,
         `${task.id}: the answer still won with ${String(ABSURD_SHIFT_SECONDS)}s added to both ` +
