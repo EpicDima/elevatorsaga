@@ -307,6 +307,12 @@ describe("locateCodeError", () => {
       { line: 3.5, column: 1 },
       { line: Number.POSITIVE_INFINITY, column: 1 },
       { line: Number.NaN, column: 1 },
+      // The column is checked the same way as the line and needs its own cases
+      // to prove it: paired with a line that is perfectly good, so nothing but
+      // the column can be what rejects them.
+      { line: 4, column: 1.5 },
+      { line: 4, column: Number.POSITIVE_INFINITY },
+      { line: 4, column: Number.NaN },
       { line: "4", column: "18" },
       { column: 18 },
       { line: 4 },
@@ -315,6 +321,17 @@ describe("locateCodeError", () => {
         locateCodeError(jscError({ ...position, stack: "update@" }), MULTI_LINE),
       ).toBeUndefined();
     }
+  });
+
+  it("reads a position off an error that carries no stack at all", () => {
+    // The stack walk runs first, and it must not be what decides whether the
+    // fallback runs at all: returning early when there is nothing to walk would
+    // switch the whole JavaScriptCore branch off. Every real JavaScriptCore
+    // error does carry a stack, so what a player reaches this way is throwing
+    // an object of their own with these fields on it. The point of the test is
+    // the structure -- the two sources are consulted independently -- rather
+    // than the case.
+    expect(locateCodeError({ line: 4, column: 18 }, MULTI_LINE)).toEqual({ line: 4, column: 18 });
   });
 
   it("survives an error whose position throws when it is read", () => {
