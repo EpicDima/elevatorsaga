@@ -113,6 +113,16 @@ to owe the reader beyond the two facts it promised: `this` is the declared objec
 written with `function`, and an arrow function there gets the page instead, which is worth more to
 somebody debugging than either of the two.
 
+The editor is done too: PR #104 shipped in `ecec334`, an Expand button beside Reset that takes
+`.cm-editor` to `max(--editor-height, 70vh)` and remembers the choice. The estimate named both
+hazards and was right about one of them. The media query was the real one, and the answer was to put
+an attribute on `<html>` rather than a height in `documentElement.style`, which would have outranked
+it permanently. The other — "telling CodeMirror to remeasure" — turned out to be nothing to do:
+`@codemirror/view` observes its own scroller with a `ResizeObserver`, so a height arriving through
+the cascade needs no announcement. What the estimate did not mention is the part that took the most
+thought: a toggle needs one label and `aria-pressed`, not a word that flips, because `localisePage`
+re-reads the shell on every language change and would write the other word back.
+
 1. **Decide about #4 in public** — the complaint is real and now measured, and the fork has never
    answered it. _Cost:_ very high if the answer is new challenges, since each needs sizing against
    reference programs the way `2e90995` did; near zero if the answer is to leave the ladder alone
@@ -121,30 +131,25 @@ somebody debugging than either of the two.
    rules, which README states and `src/game/challenges.test.ts` enforces. A nineteenth challenge
    was the safe shape of this answer, and more of the same is the safe continuation.
 
-2. **Let the editor grow** — PR #104, the only open item that is purely about using the game.
-   _Cost:_ a button, a persisted flag, and turning `--editor-height` into something the page can
-   set. _Risk:_ low; the two places to remember are the narrow-viewport media query that also sets
-   the property, and telling CodeMirror to remeasure after the change.
-
-3. **Add `hall_button_pressed`** — #33, ten years old and never given an answer beyond a
+2. **Add `hall_button_pressed`** — #33, ten years old and never given an answer beyond a
    workaround. _Cost:_ two lines in `src/game/floor-interface.ts` and then the entire documented
    surface — both HTML pages, both catalogues, the declarations and the completions, each with the
    tests that pin them. _Risk:_ low technically, but it widens the gap between this fork's player
    API and upstream's, which README currently describes as three methods.
 
-4. **Scripted traffic** — PR #87, and item 2 of this fork's own backlog in `docs/fork-survey.md`.
+3. **Scripted traffic** — PR #87, and item 2 of this fork's own backlog in `docs/fork-survey.md`.
    _Cost:_ a `spawnPattern` option on `WorldOptions`, a schedule pass in `World.update`, and a
    decision about which random stream it draws from. _Risk:_ moderate, and concentrated in one
    place: the draw order in `spawnUserRandomly` is load-bearing for seed replay, so a new spawn
    path has to take its randomness from a derived stream or every existing seed changes meaning.
 
-5. **Horizontal room in the waiting area** — the unshipped half of PR #73. _Cost:_ moving
+4. **Horizontal room in the waiting area** — the unshipped half of PR #73. _Cost:_ moving
    `FIRST_ELEVATOR_X` and the spawn band, which invalidates every screenshot and any end-to-end
    assumption about coordinates. _Risk:_ moderate cost for a cosmetic gain, and the pressure it
    relieves is partly relieved already by `fitElevatorCount`. Worth doing only alongside other
    layout work.
 
-6. **PR #132's one word** — _Cost:_ four strings. _Risk:_ none, but it should be adopted only if
+5. **PR #132's one word** — _Cost:_ four strings. _Risk:_ none, but it should be adopted only if
    the maintainer agrees with the reading, which is arguable; "programs" is not obviously a typo.
 
 Left off deliberately: **#46** (the duplication is real, but generation is a large refactor and the
