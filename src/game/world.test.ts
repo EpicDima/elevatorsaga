@@ -804,8 +804,8 @@ describe("World", () => {
     }
 
     it("picks up a refused passenger once the matching indicator is lit", () => {
-      // Issues #59, #74, #98, #124: the elevator stands empty at the
-      // passenger's floor with the wrong indicator lit, so it never takes them.
+      // Issues #59, #74, #98: the elevator stands empty at the passenger's
+      // floor with the wrong indicator lit, so it never takes them.
       const { elevator, elevInterface, user } = createWorldWithRefusedUser();
       expect(user.currentFloor).toBe(0);
       expect(user.destinationFloor).toBe(1);
@@ -1158,6 +1158,87 @@ describe("World", () => {
       // That is the split - the world's own handler runs, the player's does
       // not - and it is why the guard cannot simply be moved down onto Floor.
       expect(seen).toEqual([at(world.floorInterfaces, 1)]);
+    });
+  });
+
+  describe("stopping en route", () => {
+    /**
+     * Sets up the building from upstream issue #124.
+     *
+     * One passenger stands on floor 1 wanting to go down, the car is parked on
+     * floor 2, and its indicators advertise exactly the direction that
+     * passenger wants — so nothing about the passenger, the call or the
+     * signage can be what turns them away.
+     *
+     * @returns The world, the elevator, its facade and the waiting passenger.
+     */
+    function createWorldWithPassengerOnTheWay(): {
+      world: World;
+      elevator: Elevator;
+      elevInterface: ElevatorInterface;
+      waiting: User;
+    } {
+      const world = createWorld({ spawnRate: 0.001, floorCount: 3, elevatorCount: 1 }, ALWAYS_ZERO);
+      const elevator = at(world.elevators, 0);
+      const elevInterface = at(world.elevatorInterfaces, 0);
+      elevator.setFloorPosition(2);
+      elevInterface.goingUpIndicator(false);
+      elevInterface.goingDownIndicator(true);
+      const waiting = new User(70);
+      waiting.appearOnFloor(at(world.floors, 1), 0);
+      world.users.push(waiting);
+      return { world, elevator, elevInterface, waiting };
+    }
+
+    /**
+     * Runs the world long enough for the car to travel and come to rest.
+     *
+     * @param world - The world to advance.
+     */
+    function run(world: World): void {
+      for (let frame = 0; frame < 600; frame++) {
+        world.update(1.0 / 60.0);
+      }
+    }
+
+    it("leaves a passenger standing when stop() halts the car between floors", () => {
+      // Upstream issue #124, "User doesn't enter the elevator when it stops
+      // enroute": the reporter stops the car from a passing_floor handler and
+      // expects the passenger on that floor to board. This reproduces it, and
+      // it is not a defect - it is what stop() is. The car is travelling at
+      // speed when the handler runs, so the nearest position it can physically
+      // reach is the one it would coast to, which is past the floor. Boarding
+      // is offered on arrival at a floor, and the car never arrives at one.
+      const { world, elevator, elevInterface, waiting } = createWorldWithPassengerOnTheWay();
+      const passed: [number, string][] = [];
+      elevInterface.on("passing_floor", (floorNum, direction) => {
+        passed.push([floorNum, direction]);
+        elevInterface.stop();
+      });
+
+      elevInterface.goToFloor(0);
+      run(world);
+
+      expect(passed).toEqual([[1, "down"]]);
+      expect(elevator.isMoving).toBe(false);
+      // Below the floor it was asked to stop at, and not level with anything.
+      expect(elevator.getExactCurrentFloor()).toBeLessThan(1);
+      expect(elevator.isOnAFloor()).toBe(false);
+      expect(waiting.parent).toBe(null);
+    });
+
+    it("boards that same passenger when the car is sent to their floor", () => {
+      // The other half of the #124 answer, and the reason the first test is
+      // about position and nothing else: same building, same passenger, same
+      // indicators, one line different. What the reporter wanted is spelled
+      // goToFloor.
+      const { world, elevator, elevInterface, waiting } = createWorldWithPassengerOnTheWay();
+
+      elevInterface.goToFloor(1);
+      run(world);
+
+      expect(elevator.isOnAFloor()).toBe(true);
+      expect(waiting.parent).toBe(elevator);
     });
   });
 

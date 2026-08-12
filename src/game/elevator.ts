@@ -225,9 +225,15 @@ export class Elevator extends Movable<ElevatorEvents> {
     // Boarding is otherwise only ever offered from handleDestinationArrival, so
     // a passenger the indicators turned away when the car arrived would never
     // be reconsidered, however the player changed the indicators afterwards
-    // (issues #59, #74, #98, #124). Re-offering the entrance — and nothing else
-    // — leaves the destination queue, the move counts and the arrival events
+    // (issues #59, #74, #98). Re-offering the entrance — and nothing else —
+    // leaves the destination queue, the move counts and the arrival events
     // exactly as they were.
+    //
+    // Not #124, which this once claimed as well and does not cover: there the
+    // car is stopped mid-flight from a passing_floor handler and comes to rest
+    // between floors, where no indicator can help because boarding is a
+    // question of position. `world.test.ts` reproduces it under "stopping en
+    // route".
     //
     // Not while the arrival sequence is still running, though: isMoving is
     // cleared before it starts, so an indicator flip from a stopped_at_floor

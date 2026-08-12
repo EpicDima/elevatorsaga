@@ -720,8 +720,8 @@ describe("Elevator object", () => {
     });
 
     it("re-offers boarding when an indicator changes while parked at a floor", () => {
-      // Issues #59, #74, #98, #124: boarding is otherwise only ever offered
-      // from handleDestinationArrival, so a passenger the indicators refused is
+      // Issues #59, #74, #98: boarding is otherwise only ever offered from
+      // handleDestinationArrival, so a passenger the indicators refused is
       // never reconsidered once the elevator has come to rest.
       const entranceAvailable = vi.fn();
       e.on("entrance_available", entranceAvailable);

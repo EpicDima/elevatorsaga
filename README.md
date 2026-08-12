@@ -379,8 +379,7 @@ better.
 
 - [#59](https://github.com/magwo/elevatorsaga/issues/59) /
   [#74](https://github.com/magwo/elevatorsaga/issues/74) /
-  [#98](https://github.com/magwo/elevatorsaga/issues/98) /
-  [#124](https://github.com/magwo/elevatorsaga/issues/124) — flipping an indicator on an elevator
+  [#98](https://github.com/magwo/elevatorsaga/issues/98) — flipping an indicator on an elevator
   parked at a floor now re-offers boarding, instead of leaving passengers standing there forever.
 - [#88](https://github.com/magwo/elevatorsaga/issues/88) /
   [#83](https://github.com/magwo/elevatorsaga/issues/83) /
@@ -448,6 +447,19 @@ Four more, without upstream issues:
   holds the elevator the loop finished on — `let` and `forEach` give each iteration its own.
   `src/game/world-controller.test.ts` asserts the engine half of that, so nobody can ever repair the
   simulation for a fault that is not in it.
+- [#124](https://github.com/magwo/elevatorsaga/issues/124) — "user doesn't enter the elevator when
+  it stops enroute". The reporter calls `stop()` from a `passing_floor` handler and expects the
+  passenger on that floor to board. The car is travelling at speed when the handler runs, so the
+  nearest position it can physically reach is the one it would coast to, which is past the floor;
+  boarding is offered on arrival at a floor, and the car never arrives at one. `stop()` says as much
+  in the API documentation — "the elevator will probably not stop at a floor, so passengers will not
+  get out" — and what the reporter wanted is spelled `goToFloor`. `src/game/world.test.ts`
+  reproduces the whole scenario under "stopping en route", alongside the one-line change that makes
+  the same passenger board, so the difference is pinned rather than argued.
+
+  This one was listed as _fixed_ here until 2026-08-12, filed with #59 / #74 / #98 above. It never
+  was: those are about an elevator standing still with the wrong indicator lit, and no indicator can
+  help a car that is not level with a floor.
 
 ## Development
 
