@@ -17,7 +17,7 @@ import type { Floor } from "../game/floor.ts";
 import type { User } from "../game/user.ts";
 import type { World } from "../game/world.ts";
 import type { WorldController } from "../game/world-controller.ts";
-import { format, percent, quantity, seconds, t } from "../i18n/index.ts";
+import { decimal, format, percent, quantity, seconds, t } from "../i18n/index.ts";
 import {
   clearChildren,
   query,
@@ -177,8 +177,11 @@ export function presentStats(parent: HTMLElement, world: World): void {
   const transportedPerSec = requireElement(".transportedpersec", parent);
   const avgWaitTime = requireElement(".avgwaittime", parent);
   const avgPickupTime = requireElement(".avgpickuptime", parent);
+  const avgRideTime = requireElement(".avgridetime", parent);
   const maxWaitTime = requireElement(".maxwaittime", parent);
   const moveCount = requireElement(".movecount", parent);
+  const stopCount = requireElement(".stopcount", parent);
+  const peoplePerStop = requireElement(".peopleperstop", parent);
   const avgLoadFactor = requireElement(".avgloadfactor", parent);
 
   world.on("stats_display_changed", () => {
@@ -187,8 +190,11 @@ export function presentStats(parent: HTMLElement, world: World): void {
     transportedPerSec.textContent = format(quantity(world.transportedPerSec, PER_SECOND_DIGITS));
     avgWaitTime.textContent = format(seconds(world.avgWaitTime, 1));
     avgPickupTime.textContent = format(seconds(world.avgPickupTime, 1));
+    avgRideTime.textContent = format(seconds(world.avgRideTime, 1));
     maxWaitTime.textContent = format(seconds(world.maxWaitTime, 1));
     moveCount.textContent = format(world.moveCount);
+    stopCount.textContent = format(world.stopCount);
+    peoplePerStop.textContent = format(decimal(world.avgPeoplePerStop, 2));
     avgLoadFactor.textContent = format(percent(world.avgLoadFactorOnMove));
   });
   world.trigger("stats_display_changed");

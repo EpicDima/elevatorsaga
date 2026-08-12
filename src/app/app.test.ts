@@ -78,8 +78,11 @@ function setUp(code: string = INERT_CODE, storage: Storage = new MemoryStorage()
     "transportedpersec",
     "avgwaittime",
     "avgpickuptime",
+    "avgridetime",
     "maxwaittime",
     "movecount",
+    "stopcount",
+    "peopleperstop",
     "avgloadfactor",
   ]) {
     elements.stats.append(createElement("span", { className }));

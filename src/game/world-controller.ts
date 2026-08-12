@@ -186,8 +186,8 @@ export class WorldController extends Observable<WorldControllerEvents> {
         // Chromium 151 on an Apple Silicon Mac, of which roughly 0.2
         // microseconds was the number formatting and the rest the DOM writes.
         // That is 0.008% of a 60 Hz frame, or 78 microseconds per second of
-        // play. The panel had six rows when that was measured and has eight
-        // now, so the real figure is somewhat above it; two more spans written
+        // play. The panel had six rows when that was measured and has eleven
+        // now, so the real figure is somewhat above it; five more spans written
         // the same way do not bring a cost of that size anywhere near a frame.
         // Throttling would buy it back and cost the one thing the panel is
         // for: statistics that match the building next to them on the frame

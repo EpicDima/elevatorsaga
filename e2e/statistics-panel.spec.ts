@@ -8,22 +8,27 @@
  * a stylesheet one -- the arithmetic is checked in `src/styles/style.test.ts`,
  * and what is checked here is the result of laying it out.
  *
- * Two buildings, and only the first of them was ever cut: the learning track's
- * two-floor rooms are 100px, which took `Max delivery time`, `Moves` and
- * `Avg load` off the bottom of a 168px panel. That case is the guard. The
- * three-floor challenge is 150px, its bottom row ends 143px down, and it was
- * whole even before the fix -- so it is documentation, not a second guard, and
- * saying otherwise would be claiming a failure it cannot detect: `.worldtrack`
+ * Two buildings, and neither of them is whole without the fix. The learning
+ * track's two-floor rooms are 100px, which takes the six rows from
+ * `Avg ride time` down off the bottom of a 216px panel; the three-floor
+ * challenge is 150px, which loses the last three, `Stops`, `People per stop`
+ * and `Avg load`. The second was documentation rather than a guard while the
+ * panel had eight rows and ended 143px down -- it fitted, barely, and it
+ * stopped fitting when the panel grew, which is the argument for measuring the
+ * building the game is played in rather than only the shortest one it draws.
+ *
+ * What either case can detect is one failure, the same one: `.worldtrack`
  * carries `min-block-size: var(--stats-block-size)`, so the clip these rows are
- * measured against is held at 168px whatever the building does, and the margin
- * the assertion below sees is 25px rather than the 7px the building has. Widen
- * the panel -- a ninth row, or a pitch back at the 20px it was drawn at until
- * `ea9b51c` -- and the floor rises with it, leaving `room` at `pitch + 9` for
- * every building. What would fail here is the `min-block-size` line going away.
+ * measured against is held at the panel's own height whatever the building
+ * does, and the margin the assertion below sees is 25px for both rather than
+ * the -41px and -91px the buildings have. Widen the panel -- another row, or
+ * a pitch back at the 20px it was drawn at until `ea9b51c` -- and the floor
+ * rises with it, leaving `room` at `pitch + 9` for every building. What would
+ * fail here is the `min-block-size` line going away.
  *
  * Nothing taller is measured because there is nothing there to measure: the
- * tallest shipped challenge is 21 floors, 1050px, six times the panel, and the
- * sandbox will build 60 floors if asked.
+ * tallest shipped challenge is 21 floors, 1050px, nearly five times the panel,
+ * and the sandbox will build 60 floors if asked.
  */
 
 import { expect, test } from "@playwright/test";
@@ -44,7 +49,7 @@ for (const { name, hash, floors } of SHORT_BUILDINGS) {
     // waiting for one would let the measurement below read a building the
     // presenter has not sized yet. That is a flaky failure rather than a false
     // pass -- the height assertion further down would catch it, and the clip
-    // would measure 168px, not 0, thanks to that same `min-block-size` -- but
+    // would measure 216px, not 0, thanks to that same `min-block-size` -- but
     // a test that fails for a reason it is not about is worth not writing. The
     // cars are drawn by the presenter that sizes the building, in the same pass.
     await expect(building(page).getByRole("group", { name: "Elevator 1" })).toBeVisible();

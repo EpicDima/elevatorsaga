@@ -153,7 +153,7 @@
    * out by the flow and `.worldtrack` clips them, so nothing about the panel
    * itself objected to being cut off in the middle.
    */
-  --stats-rows: 8;
+  --stats-rows: 11;
   --stats-block-size: calc(var(--stats-rows) * var(--stats-row-pitch) + 2 * var(--stats-padding));
   --editor-height: 320px;
 

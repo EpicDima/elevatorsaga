@@ -119,8 +119,11 @@ describe("index.html", () => {
     ".statscontainer .transportedpersec",
     ".statscontainer .avgwaittime",
     ".statscontainer .avgpickuptime",
+    ".statscontainer .avgridetime",
     ".statscontainer .maxwaittime",
     ".statscontainer .movecount",
+    ".statscontainer .stopcount",
+    ".statscontainer .peopleperstop",
     ".statscontainer .avgloadfactor",
     // Filled and listened to by src/ui/language-picker.ts.
     ".languagepicker",
@@ -197,13 +200,23 @@ describe("index.html", () => {
     // with the Russian messages, so a Russian tooltip has to quote the Russian
     // paragraph the same way, or a correction lands on one language only.
     const titled = [...page.querySelectorAll("[title]")];
-    expect(titled.map((element) => element.className)).toEqual(["key", "key", "key"]);
+    expect(titled.map((element) => element.className)).toEqual([
+      "key",
+      "key",
+      "key",
+      "key",
+      "key",
+      "key",
+    ]);
     // Named here as well as read off the page, so that the Russian half below
     // is typed rather than cast, and so that a row losing its tooltip fails
     // here instead of quietly halving what this test covers.
     const titleKeys = [
       "page.stats.avgPickupTimeTitle",
+      "page.stats.avgRideTimeTitle",
       "page.stats.movesTitle",
+      "page.stats.stopsTitle",
+      "page.stats.peoplePerStopTitle",
       "page.stats.avgLoadTitle",
     ] as const satisfies readonly MessageKey[];
     expect(titled.map((element) => element.getAttribute("data-i18n-attr"))).toEqual(

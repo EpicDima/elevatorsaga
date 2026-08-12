@@ -342,7 +342,7 @@ describe("statistics panel", () => {
   });
 
   it("counts every row and both paddings into its height", () => {
-    // Pinned as the expression rather than as the 168px it comes to, because
+    // Pinned as the expression rather than as the 216px it comes to, because
     // what matters is which quantities are in it: a height worked out from
     // anything less than all of the rows, or from one padding, is the same
     // defect in a new form. The rows are laid out by the flow and carry the
@@ -356,7 +356,7 @@ describe("statistics panel", () => {
     // The panel is positioned out of the flow, so it adds nothing to the height
     // of `.worldtrack` -- and `.worldtrack` takes its height from the building
     // and clips what does not fit. A two-floor building is 100px, which is
-    // three rows short of the panel. Both boxes are stated in the same token so
+    // six rows short of the panel. Both boxes are stated in the same token so
     // that the clip cannot be left behind when the panel changes size.
     expect(declaration(ruleBody(".statscontainer"), "block-size", ".statscontainer")).toBe(
       token("stats-block-size"),
@@ -368,7 +368,7 @@ describe("statistics panel", () => {
     // its own -- no background, no border -- and its rows are laid out from the
     // padding edge either way. What it keeps is one meaning for the token in
     // both of the lines above, the height of a whole box. Under content-box the
-    // same token would make the panel 208px against a 168px clip, and the first
+    // same token would make the panel 256px against a 216px clip, and the first
     // rule to give the panel something to paint would find 40px of it cut off.
     expect(declaration(ruleBody(".statscontainer"), "box-sizing", ".statscontainer")).toBe(
       "border-box",

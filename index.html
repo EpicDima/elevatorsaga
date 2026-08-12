@@ -219,11 +219,20 @@
               <div class="stat">
                 <span
                   class="key"
-                  title="The clock starts when a passenger appears and stops when a car takes them, so the difference from the average delivery time is the ride"
+                  title="The clock starts when a passenger appears and stops when a car takes them, and the row below it is the rest of the journey"
                   data-i18n="page.stats.avgPickupTime"
                   data-i18n-attr="title:page.stats.avgPickupTimeTitle"
                   >Avg wait for a car</span
                 ><span class="value avgpickuptime"></span>
+              </div>
+              <div class="stat">
+                <span
+                  class="key"
+                  title="The clock starts when a car takes a passenger and stops when they step out at their floor, so this and the wait above it add up to the delivery time"
+                  data-i18n="page.stats.avgRideTime"
+                  data-i18n-attr="title:page.stats.avgRideTimeTitle"
+                  >Avg ride time</span
+                ><span class="value avgridetime"></span>
               </div>
               <div class="stat">
                 <span class="key" data-i18n="page.stats.maxWaitTime">Max delivery time</span
@@ -237,6 +246,24 @@
                   data-i18n-attr="title:page.stats.movesTitle"
                   >Moves</span
                 ><span class="value movecount"></span>
+              </div>
+              <div class="stat">
+                <span
+                  class="key"
+                  title="One stop is counted each time a car comes to rest at a floor and opens its doors, so a car sent to the floor it is already standing on counts another one"
+                  data-i18n="page.stats.stops"
+                  data-i18n-attr="title:page.stats.stopsTitle"
+                  >Stops</span
+                ><span class="value stopcount"></span>
+              </div>
+              <div class="stat">
+                <span
+                  class="key"
+                  title="Everyone who got in or out, over the stops counted above, so opening the doors where nobody is waiting brings it down"
+                  data-i18n="page.stats.peoplePerStop"
+                  data-i18n-attr="title:page.stats.peoplePerStopTitle"
+                  >People per stop</span
+                ><span class="value peopleperstop"></span>
               </div>
               <div class="stat">
                 <span

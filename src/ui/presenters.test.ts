@@ -36,8 +36,11 @@ function statsContainer(): HTMLElement {
     "transportedpersec",
     "avgwaittime",
     "avgpickuptime",
+    "avgridetime",
     "maxwaittime",
     "movecount",
+    "stopcount",
+    "peopleperstop",
     "avgloadfactor",
   ]) {
     container.append(createElement("span", { className: `value ${className}` }));
@@ -64,8 +67,17 @@ function worldWithStats(): World {
   // Below the delivery time beside it, as it has to be: the same commute with
   // the ride taken off the end of it.
   world.avgPickupTime = 1.75;
+  // The one figure here that is not chosen but implied: the delivery time less
+  // the wait above. It prints as it is, and the rounding this fixture is built
+  // to catch is exercised by the two either side of it instead.
+  world.avgRideTime = world.avgWaitTime - world.avgPickupTime;
   world.maxWaitTime = 11.06;
   world.moveCount = 7;
+  world.stopCount = 5;
+  // Both ends of a journey over the stops that served them, and a quotient
+  // `toFixed(2)` has to round up: 2.375 prints as 2.38 or the panel is cutting
+  // digits off rather than rounding them.
+  world.avgPeoplePerStop = 2.375;
   // A load factor, so between 0 and 1, and one that a percentage has to round
   // up and then drop the rest of: 56.94 is where multiplying by a hundred by
   // hand and cutting the decimals off would print 56.
@@ -98,8 +110,11 @@ describe("presentStats", () => {
     expect(requireElement(".transportedpersec", container).textContent).toBe("0.198");
     expect(requireElement(".avgwaittime", container).textContent).toBe("3.3s");
     expect(requireElement(".avgpickuptime", container).textContent).toBe("1.8s");
+    expect(requireElement(".avgridetime", container).textContent).toBe("1.5s");
     expect(requireElement(".maxwaittime", container).textContent).toBe("11.1s");
     expect(requireElement(".movecount", container).textContent).toBe("7");
+    expect(requireElement(".stopcount", container).textContent).toBe("5");
+    expect(requireElement(".peopleperstop", container).textContent).toBe("2.38");
     expect(requireElement(".avgloadfactor", container).textContent).toBe("57%");
   });
 
@@ -107,8 +122,9 @@ describe("presentStats", () => {
     // The state the panel is drawn in, every time: `presentStats` fires the
     // event itself so the rows are filled before the first frame. A figure
     // that arrives as NaN, or as an empty cell, is worse than one that is
-    // missing -- and the two averages added last are the ones whose divisors
-    // are genuinely zero here: nobody has been picked up and nothing has moved.
+    // missing -- and the averages are where that would come from, since every
+    // divisor in the panel is genuinely zero here: nobody has been picked up,
+    // nothing has moved, and no door has opened.
     const container = statsContainer();
     presentStats(container, createWorld({ floorCount: 3, elevatorCount: 1 }));
 
@@ -116,8 +132,11 @@ describe("presentStats", () => {
     expect(requireElement(".elapsedtime", container).textContent).toBe("0s");
     expect(requireElement(".avgwaittime", container).textContent).toBe("0.0s");
     expect(requireElement(".avgpickuptime", container).textContent).toBe("0.0s");
+    expect(requireElement(".avgridetime", container).textContent).toBe("0.0s");
     expect(requireElement(".maxwaittime", container).textContent).toBe("0.0s");
     expect(requireElement(".movecount", container).textContent).toBe("0");
+    expect(requireElement(".stopcount", container).textContent).toBe("0");
+    expect(requireElement(".peopleperstop", container).textContent).toBe("0.00");
     expect(requireElement(".avgloadfactor", container).textContent).toBe("0%");
   });
 
@@ -131,11 +150,13 @@ describe("presentStats", () => {
     world.transportedCounter = 1234;
     world.elapsedTime = 2675;
     world.moveCount = 10000;
+    world.stopCount = 4321;
     presentStats(container, world);
 
     expect(requireElement(".transportedcounter", container).textContent).toBe("1,234");
     expect(requireElement(".elapsedtime", container).textContent).toBe("2,675s");
     expect(requireElement(".movecount", container).textContent).toBe("10,000");
+    expect(requireElement(".stopcount", container).textContent).toBe("4,321");
   });
 
   it("keeps following the world", () => {
