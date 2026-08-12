@@ -128,32 +128,72 @@ function lightestFloorBand(): string {
 }
 
 /**
- * How the floor indicator inside a car is set: the colour it is painted in, and
- * the two properties that decide which bar 1.4.3 holds that colour to.
+ * Reads one declaration out of a rule body, following the palette one step.
  *
- * Read out of the rule rather than written down here, and through the palette
- * wherever the rule names a token, because the colour passes only on the
- * strength of the size and the weight. Taking the boldness off, or letting the
- * size drift back towards the 15px it used to be, is the same failure as
- * dimming the number, and this is where both are caught.
- *
- * @returns The size in px, the weight, and the colour.
+ * @param body - The rule's body, braces excluded.
+ * @param property - The property to read.
+ * @param selector - The rule's selector, for the failure message.
+ * @returns The declared value, with a lone `var(--token)` resolved through the
+ * palette.
  */
-function carNumber(): { size: number; weight: string; colour: string } {
-  const rule = /\.elevator \.floorindicator\s*\{([^}]*)\}/.exec(styleSource);
-  expect(rule, ".elevator .floorindicator is no longer a rule of its own").not.toBeNull();
-  const read = (property: string): string => {
-    const found = new RegExp(`^\\s*${property}:\\s*([^;]+);`, "m").exec(rule?.[1] ?? "");
-    expect(found, `.elevator .floorindicator no longer sets ${property}`).not.toBeNull();
-    const value = (found?.[1] ?? "").trim();
-    const variable = /^var\(--([\w-]+)\)$/.exec(value);
-    return variable === null ? value : token(variable[1] ?? "");
-  };
+function declaration(body: string, property: string, selector: string): string {
+  const found = new RegExp(`^\\s*${property}:\\s*([^;]+);`, "m").exec(body);
+  expect(found, `${selector} no longer sets ${property}`).not.toBeNull();
+  const value = (found?.[1] ?? "").trim();
+  const variable = /^var\(--([\w-]+)\)$/.exec(value);
+  return variable === null ? value : token(variable[1] ?? "");
+}
+
+/**
+ * How the floor indicator inside a car is set: the colour it is painted in, the
+ * colour it is painted on, and the size and weight that decide which bar 1.4.3
+ * holds that pair to.
+ *
+ * All of it read out of the rules rather than written down here, and through
+ * the palette wherever a rule names a token. The background especially: a
+ * colour compared against a token nobody paints with proves nothing, so this
+ * takes what `.elevator` actually says its background is.
+ *
+ * @returns The size in px, the weight, the colour, and the colour behind it.
+ */
+function carNumber(): { size: number; weight: string; colour: string; on: string } {
+  const selector = ".elevator .floorindicator";
+  const rules = [...styleSource.matchAll(/\.elevator \.floorindicator\s*\{([^}]*)\}/g)];
+  expect(rules.length, `${selector} is no longer exactly one rule`).toBe(1);
+  const body = rules[0]?.[1] ?? "";
+  expect(
+    body,
+    `an opacity on ${selector} would dim the number below what its colour says`,
+  ).not.toMatch(/^\s*opacity:/m);
+  const car = /^\.elevator \{([^}]*)\}/m.exec(styleSource);
+  expect(car, ".elevator is no longer a rule of its own").not.toBeNull();
   return {
-    size: Number.parseFloat(read("font-size")),
-    weight: read("font-weight"),
-    colour: read("color"),
+    size: Number.parseFloat(declaration(body, "font-size", selector)),
+    // Unset is the initial value, and the initial value is not bold. Optional
+    // because the number is ordinary text now and says nothing about weight;
+    // reading it as `normal` is what lets the bar below be worked out anyway.
+    weight: /^\s*font-weight:/m.test(body) ? declaration(body, "font-weight", selector) : "normal",
+    colour: declaration(body, "color", selector),
+    on: declaration(car?.[1] ?? "", "background-color", ".elevator"),
   };
+}
+
+/**
+ * The ratio WCAG 1.4.3 asks of text set at a given size and weight.
+ *
+ * Worked out rather than written down at each call, so that a rule which grows
+ * into large text is held to the 3:1 that large text is really asked for, and
+ * one which shrinks back out of it is held to 4.5:1 again. Large is 24px, or
+ * 18.66px when bold -- the pixel equivalents WCAG's own Understanding document
+ * gives for 18pt and 14pt.
+ *
+ * @param size - The font size in px.
+ * @param weight - The font weight, as the rule states it.
+ * @returns 3 or 4.5.
+ */
+function requiredRatio(size: number, weight: string): number {
+  const bold = ["bold", "bolder", "700", "800", "900"].includes(weight);
+  return size >= 24 || (bold && size >= 18.66) ? 3 : 4.5;
 }
 
 describe("palette", () => {
@@ -197,23 +237,26 @@ describe("palette", () => {
   });
 
   it("keeps the floor a car is at readable inside the car", () => {
-    // The other marking that never lights up, and the one pair no palette value
-    // could have carried. On --color-elevator white reaches 4.13:1 and nothing
-    // reaches further, so at the 15px this was set at for twelve years -- 1.63:1
-    // -- there was no colour that passed; the way out was to stop it being
-    // ordinary text. 18.66px and bold is where 1.4.3 calls text large and asks
-    // 3:1 of it, which is why the size and the weight are asserted here beside
-    // the colour: drop either and the colour no longer clears anything.
+    // The other marking that never lights up. It was 15px in 30% white for
+    // twelve years -- 1.63:1 -- and the repair is the colour rather than the
+    // size: the car is a mid-tone, so white on it stops at 4.13 and cannot
+    // clear the 4.5 ordinary text is asked for, while a near-black number
+    // reaches 4.57 at exactly the size the number always was.
+    //
+    // The bar is worked out from the rule instead of being written down, and
+    // both sides of the pair are read from the stylesheet, so nothing here
+    // forbids a later repair: setting the number as large text lowers the bar
+    // to 3:1 the way 1.4.3 does, and repainting the car is measured rather
+    // than refused.
     const number = carNumber();
-    expect(number.weight).toBe("bold");
-    expect(number.size).toBeGreaterThanOrEqual(18.66);
     expect(number.colour).toBe(token("color-car-number"));
     expect(
       number.colour,
       "a translucent car number would have to be composited over the car before it is measured",
     ).toMatch(/^#[0-9a-f]{3,6}$/i);
-    expect(contrast(number.colour, token("color-elevator"))).toBeGreaterThanOrEqual(3);
-    expect(contrast("#ffffff", token("color-elevator"))).toBeLessThan(4.5);
+    expect(contrast(number.colour, number.on)).toBeGreaterThanOrEqual(
+      requiredRatio(number.size, number.weight),
+    );
   });
 
   it("cannot be fixed by lightening anything that sits on the page", () => {
