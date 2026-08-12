@@ -919,6 +919,12 @@ if (
   // asynchronous, so exiting with a chunk still queued truncates the report into
   // something that no longer parses. An empty write is enough to ask: stream
   // writes are ordered, so its callback cannot run before the report's has.
+  //
+  // Only a report too big for the pipe can notice, and only through a reader
+  // that does not keep up, so the case that holds this is "hands over a report
+  // larger than a pipe before it exits" in `bench.cli.test.ts` and nothing else
+  // in the repository: take these lines away and that one fails with exactly
+  // 65536 bytes of JSON while every other test stays green.
   await Promise.all(
     [process.stdout, process.stderr].map(
       (stream) =>

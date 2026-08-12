@@ -23,6 +23,7 @@ import { mkdtemp, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import process from "node:process";
+import { Writable } from "node:stream";
 import { fileURLToPath } from "node:url";
 import { beforeAll, describe, expect, it } from "vitest";
 
@@ -97,6 +98,52 @@ async function bench(args: readonly string[], script: string = BENCH): Promise<R
       settle({ code: code ?? -1, out, err });
     });
   });
+}
+
+/**
+ * Runs the command with a reader that takes the report slowly.
+ *
+ * {@link bench} takes every chunk the moment it is offered, which is the one
+ * habit that hides the case below: a reader that keeps up leaves nothing queued
+ * to lose. Real ones do not always keep up -- `bench --json | jq` on a large
+ * report is the ordinary example -- and a pipe holds 64KB before the writer has
+ * to wait.
+ *
+ * The delay per chunk is what makes it slow; the watermark of one byte is what
+ * stops the stream from swallowing the whole report into memory and reporting
+ * it drained. Standard error is thrown away rather than collected, because the
+ * program this is used with logs its enormous message once per scenario and
+ * none of that is what is being asked about.
+ *
+ * @param args - The arguments after the script.
+ * @returns What reached the reader, and the code the command exited with.
+ */
+async function benchThroughSlowReader(args: readonly string[]): Promise<Ran> {
+  const child = spawn(process.execPath, [BENCH, ...args], {
+    stdio: ["ignore", "pipe", "ignore"],
+    timeout: 20_000,
+  });
+  const chunks: Buffer[] = [];
+  const slow = new Writable({
+    highWaterMark: 1,
+    write(chunk: Buffer, _encoding, done) {
+      chunks.push(chunk);
+      setTimeout(done, 25);
+    },
+  });
+  child.stdout.pipe(slow);
+  const code = await new Promise<number>((settle, fail) => {
+    child.on("error", fail);
+    child.on("close", (status) => {
+      settle(status ?? -1);
+    });
+  });
+  // The child being gone says nothing about the reader being done with what it
+  // was handed, and the last chunk is the whole point of this case.
+  await new Promise<void>((done) => {
+    slow.on("finish", done).on("close", done);
+  });
+  return { code, out: Buffer.concat(chunks).toString("utf8"), err: "" };
 }
 
 describe("the benchmark as a command", () => {
@@ -202,6 +249,41 @@ describe("the benchmark as a command", () => {
     // goes wrong.
     expect(JSON.parse(ran.out)).toMatchObject({ program });
   }, 15_000);
+
+  it("hands over a report larger than a pipe before it exits", async () => {
+    // The other half of that exit, and the half every other case is blind to.
+    // Exiting is what stops a program's stray `setInterval` from holding the
+    // command open; flushing first is what stops the exit from cutting the
+    // report in two. A pipe takes 64KB and then makes the writer wait, so a
+    // report bigger than that is written in pieces -- and `process.exit` with a
+    // piece still queued drops it. Deleting the flush leaves every other test
+    // in this file green, because every other report is small enough to fit in
+    // one go, and turns this one into exactly 65536 bytes of JSON that no
+    // longer parses.
+    //
+    // A huge error message is how the report is made huge, because it is the
+    // only part of one that a program controls the size of: the scenarios are
+    // averaged, so three of them is three of them however many seeds were
+    // asked for. It is not a contrivance either -- a message with a serialised
+    // object in it, or a stack from a library, reaches this size without
+    // trying.
+    const message = "x".repeat(100_000);
+    const program = join(scratch, "verbose-failure.js");
+    await writeFile(
+      program,
+      `{ init: function () { throw new Error("${message}"); }, update: function () {} }`,
+      "utf8",
+    );
+
+    const ran = await benchThroughSlowReader([program, "--seeds", "1", "--json"]);
+
+    // Stated rather than assumed: a report that fits in the pipe proves
+    // nothing here, so if this ever stops being true the case is no longer
+    // asking its question and should say so by failing.
+    expect(ran.out.length).toBeGreaterThan(65_536);
+    expect(ran.code).toBe(EXIT_PROGRAM_FAILED);
+    expect(JSON.parse(ran.out)).toMatchObject({ program, error: `Error: ${message}` });
+  }, 30_000);
 
   it("stops a program that will not stop, and reports it as the program failing", async () => {
     // The case the whole thread exists for, and the only one that cannot be
