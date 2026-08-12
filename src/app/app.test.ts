@@ -996,6 +996,12 @@ describe("App learning track", () => {
 });
 
 describe("App seed", () => {
+  // One spec below reads the console line in Russian; same reason as the blocks
+  // above, a failed assertion must not leave the rest of the file in Russian.
+  afterEach(() => {
+    setLocale(DEFAULT_LOCALE);
+  });
+
   /**
    * The passengers a run produces, in the order they appeared.
    *
@@ -1196,6 +1202,23 @@ describe("App seed", () => {
 
     expect(console.log).toHaveBeenCalledWith(
       `Seed issue-61 — the same passengers again, though never quite the same run: ` +
+        `${window.location.origin}/#challenge=1,seed=issue-61`,
+    );
+  });
+
+  it("prints it in the language the player is reading", () => {
+    // The one console line in the game that goes through the catalogue. Every
+    // other one reports something -- a bug, a URL that would not parse, a
+    // broken invariant -- and is addressed to whoever is reading a stack beside
+    // it; this one reports nothing and is addressed to the player, at every
+    // successful start, so a Russian player getting it in English is the same
+    // gap as an English sentence anywhere else on the page.
+    setLocale("ru");
+    const { app } = setUp();
+    app.handleRoute(...routeFor("#challenge=1,seed=issue-61"));
+
+    expect(console.log).toHaveBeenCalledWith(
+      `Сид issue-61 — снова те же пассажиры, но прогон каждый раз складывается немного иначе: ` +
         `${window.location.origin}/#challenge=1,seed=issue-61`,
     );
   });

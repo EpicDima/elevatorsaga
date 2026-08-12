@@ -152,6 +152,8 @@ export const RU_MESSAGES: MessageCatalogue<"ru"> = {
   "game.seed.helpSummary": "что задаёт сид",
   "game.seed.explanation":
     "Один и тот же сид приводит тех же пассажиров и в том же порядке. А вот когда придёт очередной кадр, решает браузер, поэтому всё остальное в прогоне каждый раз складывается немного иначе.",
+  "game.seed.console":
+    "Сид {seed} — снова те же пассажиры, но прогон каждый раз складывается немного иначе: {url}",
   "game.timeScale.decrease": "Уменьшить скорость симуляции",
   "game.timeScale.increase": "Увеличить скорость симуляции",
   "game.timeScale.value": "{value}×",

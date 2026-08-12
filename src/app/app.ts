@@ -798,9 +798,7 @@ export class App {
       // Printed at every start, because nobody knows a run is worth repeating
       // until it has already gone wrong -- by which time the only record of what
       // it was is this line.
-      console.log(
-        `Seed ${seed.seed} — the same passengers again, though never quite the same run: ${absoluteUrl(seed.url)}`,
-      );
+      console.log(t("game.seed.console", { seed: seed.seed, url: absoluteUrl(seed.url) }));
     }
 
     // All three of these regions can hold the focused element when a challenge

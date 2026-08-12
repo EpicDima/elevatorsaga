@@ -104,14 +104,14 @@ Key names carry two suffixes that mean something:
 
 ## Where the strings are
 
-The catalogue holds **272 keys** in two locales. `src/i18n/en.ts` is the reference — its text is
+The catalogue holds **273 keys** in two locales. `src/i18n/en.ts` is the reference — its text is
 the English wording, extracted verbatim — and `src/i18n/ru.ts` is the Russian translation. The
 types make English the shape everything else is measured against: a Russian catalogue missing a
 key, carrying a key English does not have, or giving a plural message the wrong number of forms
 is a compile error, not a runtime surprise.
 
 ```sh
-grep -cE '^  "[^"]+":' src/i18n/en.ts                                   # 272
+grep -cE '^  "[^"]+":' src/i18n/en.ts                                   # 273
 grep -oE '^  "[^"]+"' src/i18n/en.ts | tr -d '"' | cut -d. -f1 | sort | uniq -c | sort -rn
 ```
 
@@ -121,12 +121,12 @@ grep -oE '^  "[^"]+"' src/i18n/en.ts | tr -d '"' | cut -d. -f1 | sort | uniq -c 
 | `tutorial.*`   | 62      | `src/ui/tutorial-panel.ts`, `src/ui/templates.ts`, `src/app/app.ts`                                      |
 | `completion.*` | 32      | `src/ui/completions.ts`                                                                                  |
 | `page.*`       | 31      | `index.html`, through `data-i18n` and `data-i18n-attr`; `page.noscript` excepted, see below              |
-| `game.*`       | 26      | `src/ui/templates.ts` (18), `src/ui/presenters.ts` (4), `src/app/app.ts` (4)                             |
+| `game.*`       | 27      | `src/ui/templates.ts` (18), `src/ui/presenters.ts` (4), `src/app/app.ts` (5)                             |
 | `challenge.*`  | 14      | `src/game/challenges.ts`                                                                                 |
 | `fitness.*`    | 10      | `src/app/fitness.ts`, `src/game/fitness.ts`, `src/main.ts`                                               |
 | `error.*`      | 10      | `src/game/elevator-interface.ts`, `src/ui/presenters.ts`, `src/game/user-code.ts`, `src/game/movable.ts` |
 | `editor.*`     | 5       | `src/main.ts`, `src/ui/editor.ts`, `src/ui/default-code.ts`                                              |
-| **Total**      | **272** |                                                                                                          |
+| **Total**      | **273** |                                                                                                          |
 
 Which keys nothing reads:
 
@@ -368,26 +368,27 @@ Every template renders its words through `t` as it is built, which is why a lang
 cannot rewrite them in place: the presenters build them again. `markup` escapes its
 interpolations, so a plain key is interpolated directly and an `.html` key goes through `raw()`.
 
-| Key                         | English                                                                                                        | Notes                                                                                        |
-| --------------------------- | -------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
-| `game.floor.callUp`         | Call an elevator going up from floor {floor}                                                                   | takes `{floor}`; an `aria-label`                                                             |
-| `game.floor.callDown`       | Call an elevator going down from floor {floor}                                                                 | takes `{floor}`; an `aria-label`                                                             |
-| `game.elevator.label`       | Elevator {number}                                                                                              | takes `{number}`; the car's index plus one                                                   |
-| `game.elevator.floorButton` | Go to floor {floor}                                                                                            | takes `{floor}`                                                                              |
-| `game.challenge.title.html` | Challenge #{number}: {description}                                                                             | markup; takes `{number}`, `{description}`                                                    |
-| `game.challenge.nav.label`  | Challenges                                                                                                     | the `<nav>`'s accessible name                                                                |
-| `game.challenge.nav.link`   | Challenge {number}                                                                                             | takes `{number}`; the accessible name of an entry whose visible text is the bare digit       |
-| `game.challenge.nav.demo`   | Demo                                                                                                           | both the visible label and the accessible name of the endless-demo entry                     |
-| `game.seed.label`           | Seed                                                                                                           | the word before the number, not a control                                                    |
-| `game.seed.link`            | Seed {seed}: start another run from this seed                                                                  | takes `{seed}`; accessible name of the seed when the URL does not pin it                     |
-| `game.seed.newDraw`         | new draw                                                                                                       | visible label, repeated inside `game.seed.newDrawLink` — WCAG 2.5.3 requires that they match |
-| `game.seed.newDrawLink`     | Seed {seed}: new draw, start again without it                                                                  | takes `{seed}`; accessible name of the control that unpins                                   |
-| `game.seed.helpSummary`     | what a seed does                                                                                               | the `<summary>` of the caveat disclosure                                                     |
-| `game.seed.explanation`     | The same seed brings the same passengers, in the same order. Frame timing comes from the browser, so the run … | a paragraph inside the disclosure, not a tooltip — it used to be a `title` attribute         |
-| `game.timeScale.decrease`   | Decrease simulation speed                                                                                      | an `aria-label`                                                                              |
-| `game.timeScale.increase`   | Increase simulation speed                                                                                      | an `aria-label`                                                                              |
-| `game.feedback.next`        | Next challenge                                                                                                 | the link in the end-of-challenge overlay                                                     |
-| `game.codeStatus`           | There is a problem with your code:                                                                             | the message beside it is the player's own text and is never translated                       |
+| Key                         | English                                                                                                        | Notes                                                                                                        |
+| --------------------------- | -------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| `game.floor.callUp`         | Call an elevator going up from floor {floor}                                                                   | takes `{floor}`; an `aria-label`                                                                             |
+| `game.floor.callDown`       | Call an elevator going down from floor {floor}                                                                 | takes `{floor}`; an `aria-label`                                                                             |
+| `game.elevator.label`       | Elevator {number}                                                                                              | takes `{number}`; the car's index plus one                                                                   |
+| `game.elevator.floorButton` | Go to floor {floor}                                                                                            | takes `{floor}`                                                                                              |
+| `game.challenge.title.html` | Challenge #{number}: {description}                                                                             | markup; takes `{number}`, `{description}`                                                                    |
+| `game.challenge.nav.label`  | Challenges                                                                                                     | the `<nav>`'s accessible name                                                                                |
+| `game.challenge.nav.link`   | Challenge {number}                                                                                             | takes `{number}`; the accessible name of an entry whose visible text is the bare digit                       |
+| `game.challenge.nav.demo`   | Demo                                                                                                           | both the visible label and the accessible name of the endless-demo entry                                     |
+| `game.seed.label`           | Seed                                                                                                           | the word before the number, not a control                                                                    |
+| `game.seed.link`            | Seed {seed}: start another run from this seed                                                                  | takes `{seed}`; accessible name of the seed when the URL does not pin it                                     |
+| `game.seed.newDraw`         | new draw                                                                                                       | visible label, repeated inside `game.seed.newDrawLink` — WCAG 2.5.3 requires that they match                 |
+| `game.seed.newDrawLink`     | Seed {seed}: new draw, start again without it                                                                  | takes `{seed}`; accessible name of the control that unpins                                                   |
+| `game.seed.helpSummary`     | what a seed does                                                                                               | the `<summary>` of the caveat disclosure                                                                     |
+| `game.seed.explanation`     | The same seed brings the same passengers, in the same order. Frame timing comes from the browser, so the run … | a paragraph inside the disclosure, not a tooltip — it used to be a `title` attribute                         |
+| `game.seed.console`         | Seed {seed} — the same passengers again, though never quite the same run: {url}                                | takes `{seed}` and `{url}`; the `console.log` printed at every start, and the one console line that is keyed |
+| `game.timeScale.decrease`   | Decrease simulation speed                                                                                      | an `aria-label`                                                                                              |
+| `game.timeScale.increase`   | Increase simulation speed                                                                                      | an `aria-label`                                                                                              |
+| `game.feedback.next`        | Next challenge                                                                                                 | the link in the end-of-challenge overlay                                                                     |
+| `game.codeStatus`           | There is a problem with your code:                                                                             | the message beside it is the player's own text and is never translated                                       |
 
 The seed itself is a placeholder in both accessible names and never part of the sentence: it is
 the token a player transcribes in order to hand a building to somebody else, so it reads
@@ -395,7 +396,7 @@ identically in every locale. Both names repeat it because an accessible name has
 own — "1234567890, link" describes nothing.
 
 `game.seed.newDraw` appearing inside `game.seed.newDrawLink` is a constraint a translator cannot
-see: the two sit on adjacent lines of a 272-key file and nothing in the file marks them as a
+see: the two sit on adjacent lines of a 273-key file and nothing in the file marks them as a
 pair. `src/i18n/catalogue.test.ts`, under _accessible names_, is what holds it — it requires the
 spoken name to contain the visible label in every locale. Rewording «новый розыгрыш» to «новый
 сид» meant changing both, which is exactly the edit where one gets missed.
@@ -605,6 +606,13 @@ proves nothing.
 Not everything a string literal holds is a message to a player. These were looked at and left in
 English on purpose; translating them would cost work and buy nothing, and in some cases would do
 harm.
+
+The line the `console` entries below draw is what is being reported, not where it is printed.
+Each of them reports a bug, a hand-written URL that would not parse, or a broken invariant, and
+is addressed to whoever is reading a stack or an address beside it. `game.seed.console` is
+printed to the same console and _is_ keyed, because it reports nothing: it goes out at every
+successful start, to a player who has done nothing wrong, to tell them how to play the run
+again.
 
 | Where                                                                                                        | What                                                                                                                                | Why                                                                                                                                                                                                                                                      |
 | ------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

@@ -114,6 +114,15 @@ export const EN_MESSAGES = {
   "game.seed.helpSummary": "what a seed does",
   "game.seed.explanation":
     "The same seed brings the same passengers, in the same order. Frame timing comes from the browser, so the run around them is never quite the same twice.",
+  // The same sentence the disclosure makes, compressed onto the console line
+  // printed at every start. It is keyed and the other console strings are not,
+  // because it is not a diagnostic: the rest report a bug, a malformed URL or a
+  // broken invariant, and this one is addressed to a player who has done
+  // nothing wrong and is being told how to play the run again. The seed and the
+  // URL are placeholders for the same reason they are everywhere else -- they
+  // are transcribed, not read.
+  "game.seed.console":
+    "Seed {seed} — the same passengers again, though never quite the same run: {url}",
   "game.timeScale.decrease": "Decrease simulation speed",
   "game.timeScale.increase": "Increase simulation speed",
   "game.timeScale.value": "{value}x",
