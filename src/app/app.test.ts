@@ -1742,6 +1742,22 @@ describe("App.handleRoute", () => {
     expect(view.getValue()).toContain("selectElevatorForFloorPickup");
   });
 
+  it("does not load it on a task, where it would land in the player's own buffer", () => {
+    // The load happens before the editor has switched to the task's buffer, so
+    // the reference solution used to be flushed into the player's own key on the
+    // way past -- destroying their program with nothing on screen to show for
+    // it, since what appears is the task's starting program. The router refuses
+    // the flag on a task address for that reason, and because the last hint of
+    // every task is already its answer.
+    const { app, storage, view } = setUp();
+    storage.setItem(CODE_STORAGE_KEY, "// the program I came in with");
+
+    app.handleRoute(...routeFor("#challenge=tutorial-1,devtest=true"));
+
+    expect(storage.getItem(CODE_STORAGE_KEY)).toBe("// the program I came in with");
+    expect(view.getValue()).not.toContain("selectElevatorForFloorPickup");
+  });
+
   it("enters and leaves fullscreen with the url", () => {
     const { app } = setUp();
     app.handleRoute(...routeFor("#fullscreen=true"));

@@ -652,9 +652,11 @@ describe("resolveRoute tutorial validation", () => {
   });
 
   it("keeps the rest of the url working on the track", () => {
-    // Every parameter but one behaves on a task address exactly as it does on a
-    // challenge. `seed` is the exception, and it is refused rather than read --
-    // see "resolveRoute seed on the learning track" for what it would cost.
+    // Every parameter but two behaves on a task address exactly as it does on a
+    // challenge. `seed` and `devtest` are the exceptions, and both are refused
+    // rather than read: see "resolveRoute seed on the learning track" for what
+    // the first would cost, and `refuseDevTestOnTrack` for what the second used
+    // to destroy.
     expect(
       route(
         "#challenge=tutorial-3,seed=issue-61,timescale=8,autostart,devtest=true,fullscreen=true",
@@ -665,11 +667,37 @@ describe("resolveRoute tutorial validation", () => {
       tutorialIndex: 2,
       autoStart: true,
       timeScale: 8,
-      devTest: true,
+      devTest: false,
       fullscreen: true,
       seed: null,
-      refusedKeys: ["seed"],
+      refusedKeys: ["devtest", "seed"],
     });
+  });
+
+  it("refuses devtest on a task, and only when it is switched on", () => {
+    // `#devtest` loads the reference solution into the editor, and on a task
+    // address it loaded it into the *player's own* buffer -- the switch to the
+    // task's buffer writes what is on screen back where it came from, and what
+    // was on screen was the freshly loaded solution. The player's program was
+    // overwritten with nothing on the page to show for it.
+    const params = route("#challenge=tutorial-3,devtest");
+    expect(params.devTest).toBe(false);
+    expect(params.refusedKeys).toEqual(["devtest"]);
+    expect(console.warn).toHaveBeenCalledWith(
+      "Ignoring devtest: a learning task hands out its own answer as its last hint",
+    );
+    // The invariant every refusal rests on, and the one that lets `startRouter`
+    // take the key out of the address bar: the route without it is the route
+    // being played.
+    expect({ ...params, refusedKeys: [] }).toEqual(route("#challenge=tutorial-3"));
+
+    // Nothing to refuse when the flag is off: `devtest=false` asks for nothing
+    // and would get nothing anywhere else either, so warning about it, and
+    // taking it back out of the address bar, would both be noise.
+    const off = route("#challenge=tutorial-3,devtest=false");
+    expect(off.devTest).toBe(false);
+    expect(off.refusedKeys).toEqual([]);
+    expect(console.warn).toHaveBeenCalledTimes(1);
   });
 
   it("refuses an unusable value on the track exactly as anywhere else", () => {
