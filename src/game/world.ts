@@ -528,6 +528,41 @@ export class World extends Observable<WorldEvents> {
   maxPickupTime = 0.0;
   /** Mean spawn-to-boarding time of the passengers a car has picked up. */
   avgPickupTime = 0.0;
+  /**
+   * Mean boarding-to-delivery time of delivered passengers: the ride itself.
+   *
+   * The third of the three spans the lift industry measures a building by, and
+   * the one the panel was missing. {@link World.avgPickupTime} is its average
+   * waiting time, {@link World.avgWaitTime} its average journey time, and a
+   * journey is a wait followed by a ride — so this is what the other two do not
+   * account for between them, and the sum of the two averages is the third to
+   * within floating point.
+   *
+   * Only delivered passengers are in it. Somebody still riding has no ride time
+   * yet, in the way somebody still waiting has no journey time.
+   */
+  avgRideTime = 0.0;
+  /**
+   * Door openings across all elevators; see {@link "./elevator.ts"!Elevator.stopCount}.
+   */
+  stopCount = 0;
+  /**
+   * People who got in or out at an average stop.
+   *
+   * Boardings plus deliveries over stops, which is the game's reading of the
+   * car loading that round-trip-time analysis calls `P`. It says whether the
+   * doors are being opened for a crowd or for one person: a program that sends
+   * a car to every floor that lights up drives it towards one, and a program
+   * that lets calls collect and sweeps them drives it up.
+   *
+   * Both ends of a journey count, so a passenger carried from floor 3 to floor
+   * 0 adds one to the stop they boarded at and one to the stop they left at.
+   * Anything above zero is therefore easier to reach than the figure a lift
+   * engineer would quote for the same building, where `P` counts boardings
+   * alone; what matters here is the direction it moves in, and both ends move
+   * it the same way. Zero while nothing has stopped.
+   */
+  avgPeoplePerStop = 0.0;
   /** Whether the challenge is over and the world should stop updating. */
   challengeEnded = false;
 
@@ -683,6 +718,11 @@ export class World extends Observable<WorldEvents> {
     // long as the player leaves it, and 0/0 would put NaN in the panel.
     const loadSum = this.elevators.reduce((sum, elevator) => sum + elevator.loadFactorSumOnMove, 0);
     this.avgLoadFactorOnMove = this.moveCount === 0 ? 0 : loadSum / this.moveCount;
+    this.stopCount = this.elevators.reduce((sum, elevator) => sum + elevator.stopCount, 0);
+    // Guarded for the same reason the load factor above is: a building whose
+    // cars have not opened their doors yet is where every run starts.
+    this.avgPeoplePerStop =
+      this.stopCount === 0 ? 0 : (this.#pickedUpCounter + this.transportedCounter) / this.stopCount;
     this.trigger("stats_changed");
   }
 
@@ -715,6 +755,16 @@ export class World extends Observable<WorldEvents> {
       this.avgWaitTime =
         (this.avgWaitTime * (this.transportedCounter - 1) +
           (this.elapsedTime - user.spawnTimestamp)) /
+        this.transportedCounter;
+      // A delivered passenger has boarded, always: `User.handleExit` is only
+      // ever reached through the `exit_available` handler that boarding
+      // registers, so `pickupTimestamp` was written before this fires. The
+      // fallback is there so that a future path into this event which somehow
+      // skipped boarding would report the whole journey as the ride -- an
+      // overstatement a reader can see -- rather than putting NaN in the panel.
+      const boardedAt = user.pickupTimestamp ?? user.spawnTimestamp;
+      this.avgRideTime =
+        (this.avgRideTime * (this.transportedCounter - 1) + (this.elapsedTime - boardedAt)) /
         this.transportedCounter;
       this.#recalculateStats();
     });

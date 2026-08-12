@@ -992,6 +992,36 @@ describe("Elevator object", () => {
       expect(e.loadFactorSumOnMove).toBe(0);
     });
 
+    it("counts one stop however many floors the journey crossed", () => {
+      // The whole difference between the two counters, in one journey: the
+      // doors open once at the end of it, whatever the distance was.
+      expect(e.stopCount).toBe(0);
+      e.goToFloor(3);
+      stepElevator(e, 10.0, 0.015);
+      expect(e.moveCount).toBe(3);
+      expect(e.stopCount).toBe(1);
+    });
+
+    it("counts a stop for a car sent to the floor it is already on", () => {
+      // Which is a real door opening -- the arrival sequence runs again and
+      // passengers board -- and the reason this is not derived from moveCount.
+      // It is also how a repressed floor button is answered, so it happens in
+      // ordinary play rather than only when a player asks for it.
+      e.goToFloor(0);
+      stepElevator(e, 1.0, 0.015);
+      expect(e.moveCount).toBe(0);
+      expect(e.stopCount).toBe(1);
+    });
+
+    it("counts nothing for a car that comes to rest between floors", () => {
+      // Nothing opens, so nothing is counted: this is the position upstream
+      // #124 is about, and a stop nobody could board at is not a stop.
+      e.goToFloor(1.5);
+      stepElevator(e, 10.0, 0.015);
+      expect(e.isOnAFloor()).toBe(false);
+      expect(e.stopCount).toBe(0);
+    });
+
     it("emits new_current_floor as it passes each floor", () => {
       const seen: number[] = [];
       e.on("new_current_floor", (floorNum) => {

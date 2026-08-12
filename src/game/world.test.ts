@@ -617,6 +617,100 @@ describe("World", () => {
       expect(world.avgLoadFactorOnMove).toBe(0);
     });
 
+    it("sums the stop counts of all elevators", () => {
+      // Assigned after a frame rather than before one, which is the difference
+      // between this and the move-count case above: the first passenger appears
+      // on the first frame whatever the spawn rate is, and a passenger who
+      // appears beside a parked car has it open its doors there and then. That
+      // stop is real and belongs in the count -- it is only not the arithmetic
+      // under test here, and which floor they appear on is the seed's business.
+      const world = createWorld({ spawnRate: 0.001, floorCount: 3, elevatorCount: 2 });
+      world.update(0.1);
+      at(world.elevators, 0).stopCount = 5;
+      at(world.elevators, 1).stopCount = 2;
+      world.update(0.1);
+      expect(world.stopCount).toBe(7);
+    });
+
+    it("counts everyone who got in or out against the stops that were made", () => {
+      // Both ends of a journey, which is what the field's own note says it
+      // counts: one boarding and one delivery over four door openings is 0.5.
+      //
+      // The car is sent to the top and left there, the way the wait-for-a-car
+      // cases below do it, so that the passenger is boarded by this test rather
+      // than by the simulation; its own stop is then overwritten, once it has
+      // parked, so the divisor is a number the test chose.
+      const world = waitingWorld(0.5);
+      const spawned = collectUsers(world);
+      const elevator = at(world.elevators, 0);
+      elevator.goToFloor(2);
+      world.update(0.1);
+      for (let frame = 0; frame < 600 && elevator.isMoving; frame++) {
+        world.update(1.0 / 60.0);
+      }
+      expect(elevator.isMoving).toBe(false);
+
+      elevator.stopCount = 4;
+      at(spawned, 0).trigger("entered_elevator", elevator);
+      at(spawned, 0).trigger("exited_elevator", elevator);
+      world.update(0.1);
+
+      expect(world.stopCount).toBe(4);
+      expect(world.avgPeoplePerStop).toBeCloseTo(0.5, 10);
+    });
+
+    it("reports nobody per stop rather than NaN before any doors have opened", () => {
+      // The same zero denominator the load factor is guarded against, reached
+      // the same way: cars start parked with their doors shut. The car is put
+      // upstairs and the passengers all appear in the lobby, because a car
+      // parked where somebody appears opens its doors for them immediately.
+      const world = waitingWorld(0.001);
+      at(world.elevators, 0).setFloorPosition(2);
+      world.update(0.1);
+      expect(world.stopCount).toBe(0);
+      expect(world.avgPeoplePerStop).toBe(0);
+    });
+
+    it("averages the ride from the moment of boarding to the moment of delivery", () => {
+      // The third span, and the one the other two do not account for between
+      // them: one second standing on the floor, three riding, four altogether.
+      // Boarded and delivered by hand so the three figures come out of chosen
+      // moments rather than out of the elevator's braking curve, and the car is
+      // sent away first so the simulation does not board the passenger itself.
+      const world = waitingWorld(0.5);
+      const spawned = collectUsers(world);
+      at(world.elevators, 0).goToFloor(2);
+      world.update(0.1);
+      world.update(1.0);
+      at(spawned, 0).trigger("entered_elevator", at(world.elevators, 0));
+      world.update(3.0);
+      at(spawned, 0).trigger("exited_elevator", at(world.elevators, 0));
+
+      expect(world.avgPickupTime).toBeCloseTo(1.0, 10);
+      expect(world.avgRideTime).toBeCloseTo(3.0, 10);
+      expect(world.avgWaitTime).toBeCloseTo(4.0, 10);
+      expect(world.avgPickupTime + world.avgRideTime).toBeCloseTo(world.avgWaitTime, 10);
+    });
+
+    it("averages the ride over deliveries, not over boardings", () => {
+      // A passenger still in the car has no ride time yet, in the way a
+      // passenger still on a floor has no journey time. Two board, one is
+      // delivered after two seconds and the other stays aboard: the mean is the
+      // delivered one's two seconds and not one second over two boardings.
+      const world = waitingWorld(0.5);
+      const spawned = collectUsers(world);
+      at(world.elevators, 0).goToFloor(2);
+      world.update(0.1);
+      world.update(2.0);
+      at(spawned, 0).trigger("entered_elevator", at(world.elevators, 0));
+      at(spawned, 1).trigger("entered_elevator", at(world.elevators, 0));
+      world.update(2.0);
+      at(spawned, 0).trigger("exited_elevator", at(world.elevators, 0));
+
+      expect(world.transportedCounter).toBe(1);
+      expect(world.avgRideTime).toBeCloseTo(2.0, 10);
+    });
+
     it("stops the wait for a car at the moment a car takes them", () => {
       // The split upstream #52, #77 and PR #82 all ask for, in one assertion:
       // `maxWaitTime` is the whole commute and keeps running while a passenger
@@ -1587,6 +1681,12 @@ interface RunStats {
   maxWaitTime: number;
   /** Total floor changes across all elevators. */
   moveCount: number;
+  /** Mean boarding-to-delivery time of delivered passengers. */
+  avgRideTime: number;
+  /** Total door openings across all elevators. */
+  stopCount: number;
+  /** People who got in or out at an average stop. */
+  avgPeoplePerStop: number;
 }
 
 /** Everything an observer of a whole run can see of it. */
@@ -1663,6 +1763,9 @@ function traceRun(random?: RandomSeed | RandomSource): { trace: RunTrace; world:
         avgWaitTime: world.avgWaitTime,
         maxWaitTime: world.maxWaitTime,
         moveCount: world.moveCount,
+        avgRideTime: world.avgRideTime,
+        stopCount: world.stopCount,
+        avgPeoplePerStop: world.avgPeoplePerStop,
       },
       usersLeft: world.users.length,
     },

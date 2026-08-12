@@ -152,6 +152,23 @@ export class Elevator extends Movable<ElevatorEvents> {
    * weighted by distance travelled, which is where an empty car is expensive.
    */
   loadFactorSumOnMove = 0;
+  /**
+   * Times the car has come to rest on a floor and opened its doors.
+   *
+   * The `S` of lift-traffic analysis, and not a second name for
+   * {@link Elevator.moveCount}: one move is one floor crossed, so a car sent
+   * from 0 to 5 counts five moves and one stop, and a car told to go where it
+   * already is counts no moves and one more stop. That last case is a real door
+   * opening — {@link Elevator.handleDestinationArrival} re-runs the whole
+   * arrival sequence and passengers board — so it is counted rather than
+   * filtered out.
+   *
+   * Coming to rest between floors counts nothing, because nothing opens: the
+   * arrival sequence checks {@link Elevator.isOnAFloor} before it emits, and a
+   * car stopped mid-shaft from a `passing_floor` handler is exactly the case
+   * upstream #124 is about.
+   */
+  stopCount = 0;
   /** Legacy flag, kept for parity; never read by the simulation. */
   removed = false;
 
@@ -431,6 +448,7 @@ export class Elevator extends Movable<ElevatorEvents> {
       this.trigger("stopped", this.getExactCurrentFloor());
 
       if (this.isOnAFloor()) {
+        this.stopCount++;
         this.buttonStates[this.currentFloor] = false;
         this.trigger("floor_buttons_changed", this.buttonStates, this.currentFloor);
         this.trigger("stopped_at_floor", this.currentFloor);
