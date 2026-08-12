@@ -682,6 +682,14 @@ granted here rather than having to work it out from a feature list.
   [#77](https://github.com/magwo/elevatorsaga/issues/77), is answered only in part: how long people
   have been waiting is now a number on the panel, but it is not drawn beside the passenger it
   belongs to, and the yellow mark still picks out the longest commute rather than the longest wait.
+- [#108](https://github.com/magwo/elevatorsaga/issues/108) — "how am I supposed to know how many
+  elevators there are?", and [PR #113](https://github.com/magwo/elevatorsaga/pull/113), which said
+  the sentence describing `init` and `update` explains nothing. They are the same paragraph, and it
+  now says what those two functions are handed: the same two arrays every call, so
+  `elevators.length` is the count; `this` is the object you declared, so a program can keep its
+  state there; and `init` runs on the first frame the game actually runs — code applied while it is
+  paused waits for Start — with `update` on that frame and every one after, which is why `dt` and
+  not a tally of calls measures game time.
 
 The rest of the tracker's feature requests are not answered here, and nothing in this list is a
 claim about upstream's plans for them.
