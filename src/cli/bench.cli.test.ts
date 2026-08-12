@@ -261,6 +261,14 @@ describe("the benchmark as a command", () => {
     // exception and an unhandled rejection. The page scores both of these
     // programs too -- a worker there survives what a worker here did not -- so
     // this is also the two ways of asking for a report agreeing again.
+    //
+    // This case is the demonstration and not the guard. Reinstating the bug it
+    // was written for -- the listeners being taken off after the first failure
+    // -- leaves it passing on an idle machine and failing only under load, since
+    // what it depends on is which of two answers reaches the parent first. The
+    // assertion that fails every time is the listener count in
+    // `bench-worker.test.ts`, so that is the one to keep if these ever look
+    // redundant.
     const asyncThrow = join(scratch, "async-throw.js");
     await writeFile(
       asyncThrow,
@@ -287,6 +295,37 @@ describe("the benchmark as a command", () => {
       }
     }
   }, 30_000);
+
+  it("says it could not run when a program breaks the run itself", async () => {
+    // The other side of the case above, and the reason the worker's listeners
+    // check whether a report exists before they answer with one. Poisoning
+    // `Array.prototype.push` breaks the suite rather than the program: the
+    // throw comes out of the line that collects a scenario's result, which is
+    // outside the `try` that turns a program's own failure into a report. So
+    // there is no report to hand over, and answering anyway -- or swallowing
+    // the failure and letting the thread exit quietly -- would have this print
+    // "the fitness worker failed", which names the wrong thing entirely and
+    // hides a sentence that says exactly what happened.
+    //
+    // Exit 2 and not 1, because 1 means the program was measured and scored
+    // badly. Nothing here was measured. A script scoring a directory of
+    // solutions should stop on this one and ask, which is what 2 tells it.
+    const poisoning = join(scratch, "poisoning.js");
+    await writeFile(
+      poisoning,
+      `Array.prototype.push = function () { throw new Error("poisoned push"); };\n({ init: function () {}, update: function () {} })`,
+      "utf8",
+    );
+
+    const ran = await bench([poisoning, "--seeds", "1", "--json"]);
+
+    expect(ran.code, ran.err).toBe(EXIT_USAGE);
+    // Nothing on standard output at all: a `--json` reader is given no report
+    // rather than one that would parse and be wrong.
+    expect(ran.out).toBe("");
+    expect(ran.err).toContain("The benchmark could not be run");
+    expect(ran.err).toContain("poisoned push");
+  }, 15_000);
 
   it("tells a program that threw apart from arguments it could not use", async () => {
     // The two failure codes, as literals rather than as the constants the

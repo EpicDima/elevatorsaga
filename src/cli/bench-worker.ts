@@ -82,20 +82,9 @@ let posted = false;
 /**
  * Hands the command the report, once there is one and once only.
  *
- * Called by the two listeners below as well as by the last line of this file, so
- * both guards are load-bearing. Doing nothing while the run is still on the
- * stack is the point of the second one: what a failing program has to be
- * answered with is the report the run is in the middle of producing, and this
- * file's last line is where it gets handed over.
- *
- * The listeners are not taken off afterwards, which they were at first. A
- * program that leaves one failure behind usually leaves several — `init` runs
- * once per scenario — and taking the listeners off after the first restores
- * Node's default for the rest, so the second one ends the thread. A thread that
- * ended and a message in flight are two answers racing on different channels,
- * and the parent believing the wrong one is an intermittent exit 2 with the
- * report already written. Leaving them on costs a listener that a thread about
- * to be terminated will never be asked for again.
+ * Called by {@link answerFailure} as well as by the last line of this file, so
+ * the `posted` guard is load-bearing: a program that leaves a failure behind
+ * usually leaves several, since `init` runs once per scenario.
  */
 function postResult(): void {
   if (posted || result === undefined) {
@@ -103,6 +92,43 @@ function postResult(): void {
   }
   posted = true;
   port.postMessage(result);
+}
+
+/**
+ * Answers a failure the run left behind it, or gets out of the way of one that
+ * is not the run's to answer.
+ *
+ * The listeners are not taken off after the first failure, which they were at
+ * first. Taking them off restores Node's default for the rest, so the second
+ * failure ends the thread — and a thread that ended and a message in flight are
+ * two answers racing on different channels, which the parent resolves in
+ * whichever order they land. That was an intermittent exit 2 with the report
+ * already written.
+ *
+ * A failure arriving before the run has produced anything is a different
+ * animal, and the guard below is the whole of the difference. There is no
+ * report to hand over, so answering with one is not on the table; what is on
+ * the table is a thread that says nothing and exits, which the parent reads as
+ * a program that failed — exit 1, "the fitness worker failed", and not a word
+ * anywhere about the actual cause. So the default is handed back and the
+ * failure is thrown again, which ends the thread the way it would have ended
+ * before any of this: an `error` event carrying the real message, and a command
+ * that says it could not run rather than inventing a verdict it never reached.
+ * A program can get here — poisoning `Array.prototype.push` makes the run
+ * itself throw, and a throw at the top level of a module with an `await` in it
+ * arrives as a rejection — and "the tool could not measure this" is the honest
+ * answer to that too.
+ *
+ * @param thrown - Whatever failed: an uncaught exception, or a rejection's
+ * reason.
+ */
+function answerFailure(thrown: unknown): void {
+  if (result === undefined) {
+    process.off("uncaughtException", answerFailure);
+    process.off("unhandledRejection", answerFailure);
+    throw thrown;
+  }
+  postResult();
 }
 
 // From here on, a failure the player's program leaves behind it must not cost
@@ -128,11 +154,11 @@ function postResult(): void {
 // schedule, from the first line of `init` onwards. Below the module's own
 // loading, though: a failure raised while this file is still finding its
 // imports is this tool broken, and the parent's business to report as such.
-// Between the two, a failure arriving before the run has produced anything is
-// left alone by {@link postResult} -- there is no report to hand over, and a
-// thread with nothing to say is what the parent's deadline is for.
-process.on("uncaughtException", postResult);
-process.on("unhandledRejection", postResult);
+// Between the two lies the case {@link answerFailure} hands back to Node --
+// there is no report yet, so there is nothing to answer with, and swallowing it
+// would leave the parent a thread that exited quietly with nothing to say.
+process.on("uncaughtException", answerFailure);
+process.on("unhandledRejection", answerFailure);
 
 // Everything the run prints goes to standard error, exactly as it did when the
 // command ran the suite itself. The parent redirects this thread's streams as
