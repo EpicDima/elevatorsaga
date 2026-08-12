@@ -38,19 +38,32 @@ export default tseslint.config(
     },
   },
   {
-    // Browser-facing sources.
+    // Browser-facing sources, which is all of `src/` bar the one directory
+    // below. Declaring the globals rather than leaving them undeclared is what
+    // keeps this file honest about where each directory runs: no rule enabled
+    // here reads the declarations today, because `typescript-eslint` turns
+    // `no-undef` off in favour of the compiler, which resolves globals from
+    // `tsconfig.json`'s `lib` and from `@types/node`. They are the record of the
+    // intent, and the day a globals-reading rule is added -- `no-undef` on a
+    // plain-JS corner, `no-restricted-globals` -- it lands on a correct map
+    // instead of a stale one.
     files: ["src/**/*.ts"],
+    ignores: ["src/cli/**"],
     languageOptions: {
       globals: { ...globals.browser },
     },
   },
   {
-    // The one part of `src/` that is not browser-facing: the command that runs
-    // the benchmark from a terminal. It sits under `src/` rather than in a
-    // scripts directory because it is the same simulation, checked by the same
-    // `tsconfig.json`, tested by the same suite and held to the same coverage
-    // floor as everything it imports -- and a benchmark nobody type-checks is a
-    // benchmark that stops building the day the engine moves.
+    // The one part of `src/` that is not browser-facing: the benchmark command
+    // and the tests that run it. It sits under `src/` rather than in a scripts
+    // directory because it is the same simulation, checked by the same
+    // `tsconfig.json` and tested by the same suite as everything it imports --
+    // and a benchmark nobody type-checks is a benchmark that stops building the
+    // day the engine moves. (Coverage is measured over `src/**` as one figure,
+    // so no per-file floor applies to it or to anything else; what covers the
+    // parts of the command an in-process test cannot reach -- the entry point,
+    // the exit code, the real streams -- is `bench.cli.test.ts`, which spawns
+    // it, and coverage cannot see into a subprocess.)
     files: ["src/cli/**/*.ts"],
     languageOptions: {
       globals: { ...globals.node },
