@@ -855,8 +855,8 @@ export class CodeEditor extends Observable<CodeEditorEvents> {
   }
 
   /**
-   * Whether {@link CodeEditor.undoReset} would put a different program on
-   * screen.
+   * Whether there is a reset of this buffer for {@link CodeEditor.undoReset} to
+   * take back.
    *
    * Published so that the run controls can keep the button out of the way until
    * it can do something — see
@@ -865,23 +865,33 @@ export class CodeEditor extends Observable<CodeEditorEvents> {
    * with the buffer as well as with a reset: switching to another task swaps
    * the backup slot underneath it.
    *
-   * A backup that matches the program on screen answers `false`, which is a
-   * stronger condition than the one `undoReset` itself guards on and covers the
-   * two ways the backup slot outlives the reset that filled it. A refused reset
-   * leaves the program where it was and the copy `#write` keeps in this page
-   * behind it, so the button would appear offering to undo something that never
-   * happened; and after an undo has been carried out, the backup is still there
-   * and pressing the button again would restore what is already in front of the
-   * player. Neither is harmful — both restore the same text — but a control
-   * that does nothing is a control the player has to learn to ignore, and the
-   * point of hiding this one is that it is only ever offered when it acts.
+   * The question is not whether the backup differs from the program on screen,
+   * which is the obvious reading and the wrong one. Comparing them offers the
+   * button whenever the two have drifted apart *for any reason*, and typing is
+   * a reason: after a refused reset, or after an undo, one keystroke made this
+   * true again and the button reappeared — at the next pause or speed change,
+   * with no visible connection to anything the player had done — behind a
+   * dialog that says "as before the last reset" for a reset that either never
+   * happened or has already been taken back. Accepting it then throws away
+   * every keystroke since. A button that quietly rearms itself into a
+   * destructive one is worse than a button that does nothing.
    *
-   * @returns Whether this buffer's backup holds a program other than the one on
-   * screen.
+   * What is asked instead is whether the editor still holds what a reset leaves
+   * behind: the starter program, with a backup underneath it to bring back.
+   * That is true only in the state where the undo restores work and destroys
+   * none, it survives a reload — the backup is in the store, so a player who
+   * reset yesterday and comes back to the untouched skeleton is still offered
+   * the way back — and it stops being true the moment the player writes
+   * something worth keeping, which is the moment the offer becomes a trap.
+   *
+   * @returns Whether the buffer on screen is back at its starter program with a
+   * backup behind it.
    */
   canUndoReset(): boolean {
-    const backup = this.#read(this.#buffer.backupKey);
-    return backup.state === "text" && backup.text !== this.getCode();
+    if (this.getCode() !== this.#buffer.starterCode) {
+      return false;
+    }
+    return this.#read(this.#buffer.backupKey).state === "text";
   }
 
   /** Puts the caret back in the editing surface. */

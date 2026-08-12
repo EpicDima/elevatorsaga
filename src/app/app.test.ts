@@ -1806,6 +1806,27 @@ describe("App run controls", () => {
     expect(focus).toHaveBeenCalledTimes(2);
   });
 
+  it("takes the way back off the row once the player has written over the reset", () => {
+    // The row is redrawn by its own events -- a pause, a speed change, the end
+    // of a run -- and none of them is typing. Without the editor's `change`
+    // among them, "Undo reset" would sit there through an afternoon's work and
+    // then be pressed, at which point it discards the afternoon under a dialog
+    // that talks about a reset from before it started.
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+    const { app, elements, editor, view } = setUp();
+    app.startChallenge(0);
+    view.type("// an afternoon of work");
+    requireElement(".resetcode", elements.controls).click();
+    expect(requireElement(".undoreset", elements.controls).hidden).toBe(false);
+
+    view.type("// starting again from here");
+    // What the autosave does a second after the last keystroke, and what
+    // Ctrl+S does at once; either raises `change`.
+    editor.save();
+
+    expect(requireElement(".undoreset", elements.controls).hidden).toBe(true);
+  });
+
   it("hides the way back again when the buffer under it changes", () => {
     // The backup slot is per buffer, so a task the player never reset must not
     // offer to undo the reset of their own program. `canUndoReset` is asked

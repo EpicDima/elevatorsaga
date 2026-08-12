@@ -398,6 +398,21 @@ export class App {
     this.#editor.on("apply_code", () => {
       this.#restart(true);
     });
+    // "Undo reset" is the only thing in the row that the program itself moves,
+    // and it moves in the direction that matters: once the player has written
+    // something over the skeleton a reset left behind, the offer to undo that
+    // reset would throw the writing away. Nothing else here watches the editor,
+    // so without this the row would keep the offer on screen until a pause or a
+    // speed change happened to refresh it.
+    //
+    // `change` is raised by the autosave rather than by the keystroke, so this
+    // is at most one pass over seven labels per second of typing, and the
+    // disclosure trails the last keystroke by the autosave delay -- during
+    // which the button still restores strictly more than it destroys, because
+    // what it would destroy is not yet in the store either.
+    this.#editor.on("change", () => {
+      this.#controls.update();
+    });
     this.#editor.on("code_success", () => {
       this.#codeError = undefined;
       clearCodeStatus(this.#elements.codeStatus);

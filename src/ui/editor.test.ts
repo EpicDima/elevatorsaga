@@ -862,6 +862,40 @@ describe("CodeEditor reset", () => {
     expect(editor.canUndoReset()).toBe(true);
   });
 
+  it("withdraws the offer once the player has written over the skeleton", () => {
+    // The state the offer is for is "the reset happened and I have not started
+    // again yet". A player who has started again has something to lose, and
+    // "Undo reset" is the button that would lose it.
+    const { editor, view } = setUp();
+    view.type("// my own program");
+    editor.reset();
+    expect(editor.canUndoReset()).toBe(true);
+
+    view.type(`${defaultCode()}\n// a second attempt`);
+
+    expect(editor.canUndoReset()).toBe(false);
+  });
+
+  it("still offers the way back to a player who reset and came back later", () => {
+    // The backup is in the store, not in the page, and this is what that is
+    // for: the reset is autosaved a second after it happens, so a player who
+    // closes the tab and returns finds the skeleton -- and nothing else to go
+    // on. An answer that lived only in this page's memory would have quietly
+    // dropped the program on the way.
+    const storage = new MemoryStorage();
+    const first = setUp(storage);
+    first.view.type("// an afternoon of work");
+    first.editor.reset();
+    vi.advanceTimersByTime(AUTOSAVE_DELAY_MS);
+
+    const returning = setUp(storage);
+
+    expect(returning.view.getValue()).toBe(defaultCode());
+    expect(returning.editor.canUndoReset()).toBe(true);
+    returning.editor.undoReset();
+    expect(returning.view.getValue()).toBe("// an afternoon of work");
+  });
+
   it("says there is nothing to bring back when the reset was refused", () => {
     // A refused reset leaves the program where it was -- and the copy `#write`
     // kept in this page behind it, since the write is attempted before the
@@ -874,13 +908,17 @@ describe("CodeEditor reset", () => {
     expect(editor.reset()).toBe(false);
 
     expect(editor.canUndoReset()).toBe(false);
+    // And goes on saying so. Typing is not a reset: an answer that compared the
+    // slot with the screen would say `true` again from here, and the button
+    // would surface at the next pause offering to undo something that never
+    // happened -- taking this line with it.
+    view.type("// and another paragraph of it");
+    expect(editor.canUndoReset()).toBe(false);
   });
 
   it("says there is nothing to bring back once it has been brought back", () => {
     // The backup outlives the undo that used it, so the button would sit there
-    // afterwards restoring the program already in front of the player. It comes
-    // back only when the program on screen is something else again, which is
-    // the one state where pressing it does anything.
+    // afterwards restoring the program already in front of the player.
     const { editor, view } = setUp();
     view.type("// worth keeping");
     editor.reset();
@@ -889,8 +927,12 @@ describe("CodeEditor reset", () => {
     editor.undoReset();
 
     expect(editor.canUndoReset()).toBe(false);
+    // The dangerous half of the same question. The undo is done; carrying on
+    // from the restored program must not re-arm a button whose dialog still
+    // says "as before the last reset" and whose effect is now to discard
+    // everything written since.
     view.type("// written since");
-    expect(editor.canUndoReset()).toBe(true);
+    expect(editor.canUndoReset()).toBe(false);
   });
 
   it("loads the reference solution for devtest", () => {

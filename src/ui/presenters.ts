@@ -230,7 +230,13 @@ export interface ControlsPresenterOptions {
    * is reporting on is replaced on every restart.
    */
   readonly challengeEnded: () => boolean;
-  /** Whether there is a program "Undo reset" could bring back. */
+  /**
+   * Whether there is a reset "Undo reset" could take back.
+   *
+   * Not "whether there is a program in the backup slot": see
+   * {@link "./editor.ts"!CodeEditor.canUndoReset}, where the difference is the
+   * difference between a button that recovers work and one that destroys it.
+   */
   readonly canUndoReset: () => boolean;
   /** Called when the start/pause/restart button is pressed. */
   readonly onStartStop: () => void;
@@ -253,7 +259,11 @@ export interface ControlsPresenter {
    *
    * Everything this touches is state the row reports rather than owns, so it is
    * called after anything that could have moved any of it: a pause, a speed
-   * change, the end of a run, a reset, and a language change.
+   * change, the end of a run, a reset, a language change — and an edit, which
+   * is the one that is easy to leave out. `canUndoReset` answers for the
+   * program on screen, so typing moves it as surely as pressing Reset does, and
+   * a row that is only refreshed by the run controls' own events would go on
+   * offering to undo a reset the player has already typed over.
    */
   update(): void;
 
