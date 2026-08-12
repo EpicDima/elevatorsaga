@@ -11,7 +11,12 @@ import { DEFAULT_LOCALE, setLocale } from "../i18n/index.ts";
 import { defaultCode } from "../ui/default-code.ts";
 import { queryAll, requireElement } from "../ui/dom.ts";
 import { CODE_STORAGE_KEY, CodeEditor } from "../ui/editor.ts";
-import { createElement, FakeTextEditorView, MemoryStorage } from "../ui/test-helpers.ts";
+import {
+  createElement,
+  FakeTextEditorView,
+  MemoryStorage,
+  fullStorage,
+} from "../ui/test-helpers.ts";
 import { App, TIME_SCALE_STORAGE_KEY, readStoredTimeScale } from "./app.ts";
 import type { AppElements } from "./app.ts";
 import { parseQuery, resolveRoute, startRouter } from "./router.ts";
@@ -44,16 +49,18 @@ interface Harness {
   editor: CodeEditor;
   view: FakeTextEditorView;
   worldController: WorldController;
-  storage: MemoryStorage;
+  storage: Storage;
 }
 
 /**
  * Builds a page shell and an app over it.
  *
  * @param code - The program the editor starts with.
+ * @param storage - The store the app and its editor share. A working one unless
+ * a spec is about what happens when the browser's is not.
  * @returns Everything the tests need to drive the app.
  */
-function setUp(code: string = INERT_CODE): Harness {
+function setUp(code: string = INERT_CODE, storage: Storage = new MemoryStorage()): Harness {
   const elements: AppElements = {
     challenge: createElement("div", { className: "challenge" }),
     tutorial: createElement("div", { className: "tutorial" }),
@@ -87,7 +94,6 @@ function setUp(code: string = INERT_CODE): Harness {
     elements.codeStatus,
   );
 
-  const storage = new MemoryStorage();
   let view: FakeTextEditorView | undefined;
   const editor = new CodeEditor(
     (handlers, initialValue) => {
@@ -822,6 +828,29 @@ describe("App learning track", () => {
     expect(app.playerCodeWouldBeReplaced()).toBe(true);
   });
 
+  it("still asks when the store refused to keep the player's program", () => {
+    // The program the question is about is the editor's, not the store's: when
+    // the store will not take a write, the editor's own copy of the key is the
+    // only copy there is, and it is exactly what taking a task's program
+    // overwrites. Asking the store directly answers "there is nothing of yours
+    // here" at the one moment that is both wrong and expensive -- a full quota,
+    // or the private windows that hand out a `Storage` and refuse every write.
+    const { app, editor, view } = setUp(INERT_CODE, fullStorage());
+    view.type("// the program I wrote in a private window");
+    editor.save();
+
+    expect(app.playerCodeWouldBeReplaced()).toBe(true);
+  });
+
+  it("does not ask about a program nobody wrote, however the store behaves", () => {
+    // The other half of the same rule: a store that cannot be read is not a
+    // store holding something to lose, and a confirmation nobody can act on is
+    // the kind players learn to dismiss.
+    const { app } = setUp(INERT_CODE, fullStorage());
+
+    expect(app.playerCodeWouldBeReplaced()).toBe(false);
+  });
+
   it("copies the program into the player's editor without leaving the task", () => {
     // The button means "I want to keep this", not "I am done here": somebody who
     // takes the answer to task 4 usually wants to go on reading task 4.
@@ -1082,7 +1111,7 @@ describe("App learning track", () => {
      * @param storage - The store the app was built over.
      * @param taskIds - The tasks to record as cleared.
      */
-    function recordCleared(storage: MemoryStorage, ...taskIds: string[]): void {
+    function recordCleared(storage: Storage, ...taskIds: string[]): void {
       storage.setItem(TUTORIAL_PROGRESS_STORAGE_KEY, JSON.stringify(taskIds));
     }
 

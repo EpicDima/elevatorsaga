@@ -15,7 +15,7 @@ import {
   codeMirrorView,
 } from "./editor.ts";
 import type { TextEditorView, TextReplacement } from "./editor.ts";
-import { FakeTextEditorView, MemoryStorage } from "./test-helpers.ts";
+import { FakeTextEditorView, MemoryStorage, fullStorage } from "./test-helpers.ts";
 
 /**
  * The shared fake, taught the difference between an edit and a swap.
@@ -86,38 +86,6 @@ function deniedStorage(): Storage {
     key: denied,
     removeItem: denied,
     setItem: denied,
-  };
-}
-
-/**
- * A `Storage` that reads back but refuses every write, as a full quota does.
- *
- * The other half of the storage-failure story: a store that throws from
- * `getItem` too can hold nothing and never could, while this one has been
- * working all along and stops, which is when there is something to lose.
- *
- * @returns The full store, already holding `entries`.
- */
-function fullStorage(entries: Readonly<Record<string, string>> = {}): Storage {
-  const storage = new MemoryStorage();
-  for (const [key, value] of Object.entries(entries)) {
-    storage.setItem(key, value);
-  }
-  return {
-    get length(): number {
-      return storage.length;
-    },
-    clear: () => {
-      storage.clear();
-    },
-    getItem: (key: string) => storage.getItem(key),
-    key: (index: number) => storage.key(index),
-    removeItem: (key: string) => {
-      storage.removeItem(key);
-    },
-    setItem: () => {
-      throw new Error("QuotaExceededError");
-    },
   };
 }
 

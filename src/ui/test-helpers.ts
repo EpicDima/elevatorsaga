@@ -80,6 +80,42 @@ export class MemoryStorage implements Storage {
   }
 }
 
+/**
+ * A `Storage` that reads back but refuses every write, as a full quota does.
+ *
+ * The other half of the storage-failure story from a store that throws from
+ * `getItem` too: that one can hold nothing and never could, while this one has
+ * been working all along and stops, which is when there is something to lose.
+ * Shared rather than written out in each suite because both the editor's own
+ * tests and the application's ask what happens to a program the store will not
+ * take, and the answer has to be the same store in both.
+ *
+ * @param entries - What the store is already holding.
+ * @returns The full store.
+ */
+export function fullStorage(entries: Readonly<Record<string, string>> = {}): Storage {
+  const storage = new MemoryStorage();
+  for (const [key, value] of Object.entries(entries)) {
+    storage.setItem(key, value);
+  }
+  return {
+    get length(): number {
+      return storage.length;
+    },
+    clear: () => {
+      storage.clear();
+    },
+    getItem: (key: string) => storage.getItem(key),
+    key: (index: number) => storage.key(index),
+    removeItem: (key: string) => {
+      storage.removeItem(key);
+    },
+    setItem: () => {
+      throw new Error("QuotaExceededError");
+    },
+  };
+}
+
 /** A text editing surface that keeps its document in a string. */
 export class FakeTextEditorView implements TextEditorView {
   /** The current document. Assigning it does not count as an edit. */

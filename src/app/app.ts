@@ -15,7 +15,6 @@ import type { AnimationFrameRequester, WorldController } from "../game/world-con
 import { t } from "../i18n/index.ts";
 import { defaultCode } from "../ui/default-code.ts";
 import { clearChildren } from "../ui/dom.ts";
-import { CODE_STORAGE_KEY } from "../ui/editor.ts";
 import type { CodeEditor } from "../ui/editor.ts";
 import {
   clearAll,
@@ -157,12 +156,13 @@ export interface AppOptions {
   readonly challenges: readonly Challenge[];
   /**
    * Where the chosen time scale and the learning track's progress are
-   * remembered, and where the player's own program is looked for; defaults to
-   * `localStorage`.
+   * remembered; defaults to `localStorage`.
    *
-   * The same store the editor was built over, or {@link App.playerCodeWouldBeReplaced}
-   * answers about somebody else's browser: `main.ts` gives both `localStorage`
-   * by leaving them their default, and the tests hand both the same object.
+   * The player's program is deliberately not on that list, though it lives in
+   * the same store: it is the editor's, and asking it for one
+   * ({@link App.playerCodeWouldBeReplaced}) goes through the editor so that the
+   * answer is the program the player would actually see. Everything here is
+   * something no other object owns.
    */
   readonly storage?: Storage;
   /** Schedules simulation frames; defaults to `requestAnimationFrame`. */
@@ -731,17 +731,18 @@ export class App {
    * which case what is in the store is whatever the last version of this game
    * wrote there.
    *
+   * Asked of the editor rather than of the store this class also holds, because
+   * the program at risk is the editor's: it keeps its own copy of every key it
+   * has written this page and reads that first, so against a full quota — or in
+   * the private windows that hand out a `Storage` and refuse every write — the
+   * player's program is in the editor and the store says they never wrote one.
+   * Reading the store directly answered "nothing of theirs here" in exactly the
+   * case where the copy about to be overwritten is the only one left.
+   *
    * @returns Whether the player's own buffer holds a program of theirs.
    */
   playerCodeWouldBeReplaced(): boolean {
-    let stored: string | null;
-    try {
-      stored = this.#storage.getItem(CODE_STORAGE_KEY);
-    } catch {
-      // A store that refuses to be read cannot be overwritten either, so there
-      // is nothing to warn about.
-      return false;
-    }
+    const stored = this.#editor.readPlayerCode();
     return stored !== null && stored.trim() !== "" && stored.trim() !== defaultCode().trim();
   }
 

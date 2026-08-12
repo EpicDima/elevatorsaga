@@ -636,6 +636,31 @@ export class CodeEditor extends Observable<CodeEditorEvents> {
   }
 
   /**
+   * The program {@link CodeEditor.openPlayerBuffer} would put on screen.
+   *
+   * The counterpart of {@link CodeEditor.writePlayerCode}, and there for the
+   * same reason: a caller that reads the player's key out of the store answers
+   * a different question from the one it means to ask. What the player would
+   * see, and what taking a task's program would replace, is what this class
+   * holds — the store agrees with it only while the store is accepting writes.
+   * In a private window, or against a full quota, the program the player typed
+   * is in this session and nowhere else, and the store's answer is that they
+   * have never written one. That is the moment they have most to lose.
+   *
+   * The player's own program specifically, never a task's: which buffer is on
+   * screen makes no difference to what this returns, so the learning track can
+   * ask about the program waiting behind it.
+   *
+   * @returns The program, or `null` when neither this session nor the store has
+   * one — including when the store refuses to say, which is not the same fact
+   * but leads to the same answer: nothing recoverable is known to be there.
+   */
+  readPlayerCode(): string | null {
+    const stored = this.#read(PLAYER_BUFFER.codeKey);
+    return stored.state === "text" ? stored.text : null;
+  }
+
+  /**
    * Shows one learning-track task's program, keeping whatever was on screen.
    *
    * The task's own attempt if there is one, otherwise `starterCode`. Callers
