@@ -91,15 +91,17 @@ declare namespace ElevatorSaga {
     "up_button_pressed" | "down_button_pressed" | "hall_button_pressed" | "buttonstate_change";
 
   /**
-   * Two or three event names separated by single spaces, which subscribe a
-   * handler to all of them.
+   * Two, three or four event names separated by single spaces, which subscribe
+   * a handler to all of them.
    *
-   * The game's own `EventNameSpec` stops at three for the same reason: the
-   * documented multi-name form registers two, and a wider union only makes the
-   * error message longer. A handler registered this way is called with the name
-   * of the event that fired ahead of that event's own arguments.
+   * The game's own `EventNameSpec` stops at four for the same reason, and at
+   * four rather than three because the floor has four events: a bound too small
+   * to name every event of a facade would refuse in the type checker what the
+   * runtime accepts. A handler registered this way is called with the name of
+   * the event that fired ahead of that event's own arguments.
    */
-  type MultipleEvents<Name extends string> = `${Name} ${Name}` | `${Name} ${Name} ${Name}`;
+  type MultipleEvents<Name extends string> =
+    `${Name} ${Name}` | `${Name} ${Name} ${Name}` | `${Name} ${Name} ${Name} ${Name}`;
 
   /** `off`'s wildcard: unregister every handler, whatever the event. */
   type AllEvents = "*";

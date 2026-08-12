@@ -78,16 +78,20 @@ type SplitEventNames<S extends string> = string extends S
     : Exclude<S, "">;
 
 /**
- * One event name, or up to three names separated by single spaces.
+ * One event name, or up to four names separated by single spaces.
  *
- * The legacy emitters accepted any number of names; three covers every
- * realistic registration (the documented multi-name form registers two) while
- * keeping the union small enough to produce readable type errors.
+ * The legacy emitters accepted any number of names; four covers every realistic
+ * registration while keeping the union small enough to produce readable type
+ * errors. Four rather than three because the floor has four events since
+ * `hall_button_pressed` was added, and a bound that cannot name every event of
+ * the smaller facade would refuse in the type checker what the runtime accepts:
+ * {@link splitEventNames} has no limit.
  */
 export type EventNameSpec<E extends EventArgsMap> =
   | EventName<E>
   | `${EventName<E>} ${EventName<E>}`
-  | `${EventName<E>} ${EventName<E>} ${EventName<E>}`;
+  | `${EventName<E>} ${EventName<E>} ${EventName<E>}`
+  | `${EventName<E>} ${EventName<E>} ${EventName<E>} ${EventName<E>}`;
 
 /**
  * riot's and unobservable's wildcard: unregister everything.
