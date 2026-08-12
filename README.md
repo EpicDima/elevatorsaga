@@ -262,7 +262,7 @@ Large scenario               1.480       45.271           296.000
 | ------------------ | ---------------------------------------------------------------------- |
 | `--seeds <list>`   | Comma-separated seeds, one run of all three scenarios each, averaged   |
 | `--locale <tag>`   | Language for the scenario names: `en` or `ru`                          |
-| `--timeout <secs>` | Whole seconds the program gets to finish in. Default `60`, no way off  |
+| `--timeout <secs>` | Whole seconds to finish in, `1` to `2147483`. Default `60`, no way off |
 | `--json`           | The report as JSON, with the numbers unrounded                         |
 | `-h`, `--help`     | The usage text                                                         |
 | `--`               | End of options: what follows is the program file, whatever it is named |

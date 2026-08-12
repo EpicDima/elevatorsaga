@@ -16,6 +16,7 @@
  * something to assert rather than something to believe.
  */
 
+import process from "node:process";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { FitnessSuiteResult } from "../game/fitness.ts";
@@ -23,12 +24,22 @@ import { DEFAULT_LOCALE, seconds, translateIn } from "../i18n/index.ts";
 import type { BenchWorkerRequest } from "./bench-worker.ts";
 import { DEFAULT_TIMEOUT_MS, runSuiteInWorker, type BenchOptions } from "./bench.ts";
 
+/** Where one of the thread's streams was sent, and on what terms. */
+interface Piped {
+  /** The stream it was handed to. */
+  readonly destination: unknown;
+  /** The second argument to `pipe`. */
+  readonly options: unknown;
+}
+
 /** The part of a worker thread the command uses, plus what the tests drive it with. */
 interface FakeThread {
   /** The entry file it was pointed at. */
   readonly url: URL;
   /** What it was sent. */
   readonly workerData: BenchWorkerRequest;
+  /** Both of its streams being piped somewhere, in the order they were. */
+  readonly piped: readonly Piped[];
   /** How many times it was terminated. */
   readonly terminations: number;
   /**
@@ -48,11 +59,21 @@ vi.mock("node:worker_threads", () => {
   class FakeWorker implements FakeThread {
     readonly url: URL;
     readonly workerData: BenchWorkerRequest;
-    // Piped to standard error by the command, which is a stream question
-    // `bench.cli.test.ts` answers with a real process; here they only have to
-    // exist.
-    readonly stdout = { pipe: (): void => undefined };
-    readonly stderr = { pipe: (): void => undefined };
+    readonly piped: Piped[] = [];
+    // Piped to standard error by the command. Where the bytes end up is a
+    // question only `bench.cli.test.ts` can answer, with a real process; what
+    // these record is the instruction the command gave, which is the half of it
+    // no real process can be asked about.
+    readonly stdout = {
+      pipe: (destination: unknown, options: unknown): void => {
+        this.piped.push({ destination, options });
+      },
+    };
+    readonly stderr = {
+      pipe: (destination: unknown, options: unknown): void => {
+        this.piped.push({ destination, options });
+      },
+    };
     readonly handlers = new Map<string, (payload: unknown) => void>();
     terminations = 0;
 
@@ -167,6 +188,32 @@ describe("running the suite in a thread", () => {
     await expect(running).resolves.toBe(SCORED);
   });
 
+  it("sends both of the thread's streams to standard error, and closes neither", async () => {
+    // Standard output is the report, so anything the run prints has to go to the
+    // other descriptor -- and the thread cannot be trusted to put it there
+    // itself, since inside a worker `process.stdout` is a real stream a program
+    // is free to write to.
+    //
+    // `end: false` is the load-bearing half. A pipe ends its destination when the
+    // source ends, and both of these end when the thread is terminated: without
+    // it, whichever of the two finishes first closes this command's standard
+    // error, and every sentence the command had left -- the deadline it missed,
+    // the file it could not read, the reason it is giving up -- is written to a
+    // stream that is gone. The command exits 2 having said nothing about why.
+    // Nothing else here can catch that: the report is on the other descriptor
+    // and comes out fine, so a run that fails this way looks like a success.
+    const running = runSuiteInWorker(CODE, OPTIONS);
+    const thread = startedThread();
+
+    expect(thread.piped).toEqual([
+      { destination: process.stderr, options: { end: false } },
+      { destination: process.stderr, options: { end: false } },
+    ]);
+
+    thread.emit("message", SCORED);
+    await running;
+  });
+
   it("stops the thread and its timer as soon as the answer is in", async () => {
     // Two leaks in one line of the implementation. A thread that is not
     // terminated goes on holding a core -- the command exits anyway, so nothing
@@ -202,10 +249,11 @@ describe("running the suite in a thread", () => {
   });
 
   it("gives up when the thread itself fails, instead of calling it a failed program", async () => {
-    // The thread catches whatever the program throws and posts it back as a
-    // result, so an error event is the thread failing to be a thread. Answered
-    // with a rejection rather than with an error report, because a report is a
-    // measurement and nothing was measured.
+    // The thread answers for the program itself -- what it throws at the run,
+    // and what it leaves failing behind the run -- so an error event is the
+    // thread failing to be a thread. Answered with a rejection rather than with
+    // an error report, because a report is a measurement and nothing was
+    // measured.
     const running = runSuiteInWorker(CODE, OPTIONS);
     const thread = startedThread();
 

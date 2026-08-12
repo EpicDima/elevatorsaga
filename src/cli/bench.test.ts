@@ -253,14 +253,16 @@ describe("reading the command line", () => {
     // `setTimeout` holds its delay in a signed 32-bit integer of milliseconds
     // and rewrites anything longer to 1 -- so a deadline of 24.9 days would fire
     // at once and report a program that is running perfectly well as having run
-    // out of time. The numbers are written out rather than derived from the
-    // parser's own ceiling: what has to hold is that the largest deadline it
-    // takes still fits in the timer, and a bound that checked itself would
-    // survive being raised.
-    expect(parseBenchArgs(["solution.js", "--timeout=2147483"])).toMatchObject({
-      options: { timeoutMs: 2_147_483_000 },
-    });
-    expect(2_147_483_000).toBeLessThanOrEqual(2 ** 31 - 1);
+    // The ceiling is written out rather than read from the parser's own
+    // constant, so that raising it has to be done here too; what the second
+    // assertion holds it against is the timer's limit, which is the fact the
+    // ceiling exists for and the one thing raising it cannot change.
+    const largest = parseBenchArgs(["solution.js", "--timeout=2147483"]);
+    expect(largest).toMatchObject({ kind: "run", options: { timeoutMs: 2_147_483_000 } });
+    // `NaN` for a request that turned out not to be a run, which fails the
+    // comparison rather than passing it by vacuum.
+    const largestMs = largest.kind === "run" ? largest.options.timeoutMs : Number.NaN;
+    expect(largestMs).toBeLessThanOrEqual(2 ** 31 - 1);
     for (const value of ["2147484", "3000000", "9007199254740991"]) {
       expect(() => parseBenchArgs(["solution.js", `--timeout=${value}`])).toThrow(
         /--timeout takes a whole number of seconds, 1 to 2147483/,
