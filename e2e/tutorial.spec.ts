@@ -136,11 +136,6 @@ test("hands the task's program to the editor and stays on the task", async ({ pa
   await expect(editor(page)).toContainText(TASK_1_MARKER);
   expect((await storedCode(page)) ?? "").not.toContain(TASK_1_MARKER);
 
-  // Nothing has been taken yet, and the line that will say so is already in the
-  // document: it is a live region, and one inserted with its text already in it
-  // is generally not announced at all.
-  await expect(panel(page).locator(".tutorialtaken")).toBeEmpty();
-
   await panel(page).getByRole("button", { name: "Take this program into your own editor" }).click();
 
   // Stored under the game's own key, which is where the editor looks when the
@@ -149,13 +144,10 @@ test("hands the task's program to the editor and stays on the task", async ({ pa
   expect(await storedCode(page)).toContain(TASK_1_MARKER);
   await expect(panel(page)).toBeVisible();
   // The write went somewhere the player cannot see from here, so this line is
-  // the whole of what they are told. `toBeVisible` rather than a text assertion
-  // alone because that is the half jsdom cannot answer: the rule that keeps the
-  // element out of the way while it is empty must not survive it being filled.
+  // the whole of what they are told -- and `toBeVisible` is the half of that
+  // jsdom cannot answer. That it holds the right sentence, and that it is empty
+  // until the press, are `tutorial-panel.test.ts`'s and are not repeated here.
   await expect(panel(page).locator(".tutorialtaken")).toBeVisible();
-  await expect(panel(page).locator(".tutorialtaken")).toHaveText(
-    "Copied into the game editor, waiting when you leave the track.",
-  );
 
   await panel(page).getByRole("button", { name: "Leave for the challenges" }).click();
 
@@ -218,8 +210,20 @@ const WIDTHS = [320, 390] as const;
 
 /** The two languages the panel is read in, and the words that identify it. */
 const LANGUAGES = [
-  { name: "English", region: "Learning track", hint: "Hint 3", russian: false },
-  { name: "Russian", region: "Учебная дорожка", hint: "Подсказка 3", russian: true },
+  {
+    name: "English",
+    region: "Learning track",
+    hint: "Hint 3",
+    take: "Take this program into your own editor",
+    russian: false,
+  },
+  {
+    name: "Russian",
+    region: "Учебная дорожка",
+    hint: "Подсказка 3",
+    take: "Забрать программу в свой редактор",
+    russian: true,
+  },
 ] as const;
 
 /**
@@ -286,7 +290,7 @@ function measureShell(page: Page): Promise<number> {
   );
 }
 
-for (const { name, region, hint, russian } of LANGUAGES) {
+for (const { name, region, hint, take, russian } of LANGUAGES) {
   for (const width of WIDTHS) {
     test(`the panel in ${name} fits a ${String(width)}px screen`, async ({ page }) => {
       await page.setViewportSize({ width, height: 800 });
@@ -314,6 +318,14 @@ for (const { name, region, hint, russian } of LANGUAGES) {
       // the track, and the three buttons carry sentences rather than words.
       await panel(page, region).getByText(hint, { exact: true }).click();
       await expect(panel(page, region).locator(".tutorialsolution code")).toBeVisible();
+      // And with the confirmation drawn under the buttons, so that what is
+      // measured is the panel a player who pressed everything is looking at.
+      // Its Russian is 88 characters against the 98 of task 1's goal above it,
+      // and it wraps, so it cannot be what widens the document; it is here for
+      // the measurements that are not about the document -- the panel's own
+      // right edge, and the buttons staying inside it.
+      await panel(page, region).getByRole("button", { name: take }).click();
+      await expect(panel(page, region).locator(".tutorialtaken")).toBeVisible();
 
       const measurements = await measurePanel(page);
 

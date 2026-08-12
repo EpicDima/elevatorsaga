@@ -431,23 +431,34 @@ describe("presentTutorial", () => {
       expect(line.textContent).toBe("");
     });
 
-    it("says the program was taken", () => {
+    it("says the program was taken, into the region a screen reader is watching", () => {
       // The write goes to a buffer that is not on screen from the track, so this
       // line is the only evidence the player gets that the button did anything.
+      //
+      // The element is held from before the click, because *which* node the
+      // sentence lands in is the whole design: a handler that built a new
+      // paragraph and swapped it in would read the same from the outside and
+      // would announce nothing at all, the live region having been met by the
+      // screen reader with its text already in it.
       const data = panelData();
       presentTutorial(parent, data);
+      const line = requireElement(".tutorialtaken", parent);
 
       requireElement(".tutorialtakecode", parent).click();
 
-      expect(requireElement(".tutorialtaken", parent).textContent).toBe(
+      expect(line.textContent).toBe(
         "Copied into the game editor, waiting when you leave the track.",
       );
+      expect(line.isConnected).toBe(true);
+      expect(requireElement(".tutorialtaken", parent)).toBe(line);
     });
 
     it("says the store refused rather than letting the player believe it worked", () => {
-      // A browser with storage switched off answers `false` here, and the old
-      // panel said the same nothing to that as it did to success: the player
-      // walked away believing their program was waiting for them.
+      // Answering `false` is a store that took the write and threw: a quota that
+      // is full, or the private-browsing mode that accepts a `Storage` object
+      // and refuses every write to it. The old panel said the same nothing to
+      // that as it did to success, and the player walked away believing their
+      // program was waiting for them.
       const data = panelData({ onTakeCode: vi.fn(() => false) });
       presentTutorial(parent, data);
 
@@ -469,29 +480,99 @@ describe("presentTutorial", () => {
       expect(requireElement(".tutorialtaken", parent).textContent).toBe("");
     });
 
-    it("does not carry the confirmation into the next draw", () => {
-      // Unlike the open hints, which are deliberately carried across a redraw of
-      // the same task. A redraw is the run restarting or the language changing,
-      // and either way the sentence would then be describing a copy made of a
+    it("keeps the news across a redraw of the same task", () => {
+      // Carried like the open hints beside it. The redraw that made this
+      // necessary is the task being cleared: the panel is drawn again to move
+      // its counter on, and the confirmation the player had just been given
+      // would otherwise vanish under the overlay congratulating them.
+      presentTutorial(parent, panelData());
+      requireElement(".tutorialtakecode", parent).click();
+
+      presentTutorial(parent, panelData({ clearedCount: 1 }));
+
+      expect(requireElement(".tutorialtaken", parent).textContent).toBe(
+        "Copied into the game editor, waiting when you leave the track.",
+      );
+    });
+
+    it("keeps a refusal across that redraw too, not only good news", () => {
+      // The half a player most needs to still be able to read: the program is
+      // not waiting for them anywhere, and the line is where it says so.
+      const refusing = { onTakeCode: vi.fn(() => false) };
+      presentTutorial(parent, panelData(refusing));
+      requireElement(".tutorialtakecode", parent).click();
+
+      presentTutorial(parent, panelData({ ...refusing, clearedCount: 1 }));
+
+      expect(requireElement(".tutorialtaken", parent).textContent).toBe(
+        "Your browser refused to store it. Copy the program out of the editor by hand to keep it.",
+      );
+    });
+
+    it("restores the news without announcing it a second time", () => {
+      // The counterpart of drawing the line empty: this text was read out when
+      // the button was pressed, so on the way back it has to be in the paragraph
+      // before the paragraph is in the page. A live region met already populated
+      // is generally not announced, which is the failure everywhere else in this
+      // panel and the requirement here.
+      presentTutorial(parent, panelData());
+      requireElement(".tutorialtakecode", parent).click();
+      const observer = new MutationObserver(() => undefined);
+      observer.observe(parent, { childList: true, characterData: true, subtree: true });
+
+      presentTutorial(parent, panelData({ clearedCount: 1 }));
+
+      // `takeRecords` rather than the callback: the callback is a microtask, and
+      // a spec that awaited one would be asserting after the assertion could
+      // still be made. Everything the redraw did is in here synchronously.
+      const records = observer.takeRecords();
+      observer.disconnect();
+      // One record is expected -- the whole panel being swapped into `parent` --
+      // and that is the one that carries the text in, unannounced. What must not
+      // be here is a mutation of the line itself, which is a write to a live
+      // region that is already in the document, and is read out.
+      const line = requireElement(".tutorialtaken", parent);
+      expect(records.filter((record) => line.contains(record.target))).toEqual([]);
+      expect(records).not.toEqual([]);
+    });
+
+    it("drops the news when the panel moves to another task", () => {
+      // The one case where the sentence would be describing a copy made of a
       // program the panel is no longer showing.
       presentTutorial(parent, panelData());
       requireElement(".tutorialtakecode", parent).click();
 
-      presentTutorial(parent, panelData());
+      presentTutorial(parent, panelData({ taskIndex: 1 }));
 
       expect(requireElement(".tutorialtaken", parent).textContent).toBe("");
     });
 
-    it("says it in the language the player is reading", () => {
-      const data = panelData();
-      presentTutorial(parent, data);
+    it("says it in the language the player is reading, at the moment it says it", () => {
+      // The catalogue is asked when the sentence is written, not when the panel
+      // was drawn -- the same rule the rest of this file follows. A draw-time
+      // lookup would be a line in the language the player *had been* reading.
+      presentTutorial(parent, panelData());
       setLocale("ru");
-      presentTutorial(parent, data);
 
       requireElement(".tutorialtakecode", parent).click();
 
       expect(requireElement(".tutorialtaken", parent).textContent).toBe(
-        "Программа скопирована в редактор игры — она будет там, когда вы выйдете с дорожки.",
+        "Программа скопирована в редактор игры — она будет ждать вас, когда вы выйдете с дорожки.",
+      );
+    });
+
+    it("says the restored news in the language the panel is now drawn in", () => {
+      // The reason the answer is what survives a redraw and not the sentence:
+      // changing the language redraws the panel, and English news restored into
+      // a Russian panel would be the one line the picker had not translated.
+      presentTutorial(parent, panelData());
+      requireElement(".tutorialtakecode", parent).click();
+      setLocale("ru");
+
+      presentTutorial(parent, panelData());
+
+      expect(requireElement(".tutorialtaken", parent).textContent).toBe(
+        "Программа скопирована в редактор игры — она будет ждать вас, когда вы выйдете с дорожки.",
       );
     });
   });

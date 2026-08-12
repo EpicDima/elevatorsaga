@@ -624,14 +624,19 @@ function tutorialHintTemplate(number: number, hint: string, solution: string | n
  *
  * `.tutorialtaken` is drawn empty, directly under the buttons, and filled in by
  * {@link "./tutorial-panel.ts"!presentTutorial} when "Take this program" is
- * pressed — the same shape as `#save_message` in `index.html`, which the editor
- * writes its "Code saved …" line into. It is here rather than created on the
- * click for the reason {@link feedbackTemplate} gives about its own container: a
- * live region has to be in the document before the text appears inside it, or
- * the announcement is generally not made at all. Empty is also the right state
- * after a redraw, which happens when the task changes, the run restarts or the
- * language does — a confirmation left over from the task before would be a
- * sentence about a program the panel is no longer showing.
+ * pressed — an empty live region waiting for its news, which is what
+ * `#save_message` in `index.html` is too, the one the editor writes its "Code
+ * saved …" line into. It is here rather than created on the click for the reason
+ * {@link feedbackTemplate} gives about its own container: a live region has to
+ * be in the document before the text appears inside it, or the announcement is
+ * generally not made at all.
+ *
+ * Empty is what it is drawn as every time, including the redraws — the task
+ * changing, the run restarting, the language changing, and the task being
+ * cleared, which redraws the panel to move its progress line on. Whether any of
+ * those keeps the news is `presentTutorial`'s to decide, and it puts it back
+ * before this markup reaches the document; the template has no opinion beyond
+ * refusing to be the thing that announces it.
  *
  * Two kinds of string arrive in this template and they are written differently.
  * The task's name and its goal are text and are escaped; the hints and the

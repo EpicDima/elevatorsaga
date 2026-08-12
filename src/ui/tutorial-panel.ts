@@ -211,6 +211,47 @@ const TAKE_CODE_SELECTOR = ".tutorialtakecode";
  */
 const TAKEN_SELECTOR = ".tutorialtaken";
 
+/**
+ * What that line is currently saying, in a form a redraw can act on.
+ *
+ * The text itself cannot be carried across a redraw: one of the redraws is the
+ * language changing, and English news restored into a Russian panel would be
+ * the one line of the page the picker had not translated. The *answer* survives
+ * instead, and the sentence is looked up again — the same reason this file takes
+ * a task index rather than the words for it.
+ *
+ * On the markup for the same reason {@link TASK_INDEX_ATTRIBUTE} is: the panel
+ * keeps nothing in a variable between calls, and the drawn markup is the only
+ * thing that outlives one.
+ */
+const TAKEN_STATE_ATTRIBUTE = "data-taken";
+
+/**
+ * The two things that line can say, by the answer that produces them.
+ *
+ * A token in the markup rather than the message key itself, so that the
+ * attribute is not a place a key can be misspelled: {@link t} is reached only
+ * through this table, and a renamed message fails the build here as it does
+ * everywhere else.
+ */
+const TAKEN_MESSAGES = {
+  yes: "tutorial.panel.codeTaken",
+  no: "tutorial.panel.codeRefused",
+} as const satisfies Readonly<Record<string, MessageKey>>;
+
+/** The answers {@link TAKEN_MESSAGES} has a sentence for. */
+type TakenState = keyof typeof TAKEN_MESSAGES;
+
+/**
+ * Reads back what a drawn panel's line was saying.
+ *
+ * @param value - The attribute's value, or null when the line said nothing.
+ * @returns The answer it recorded, or `undefined` when it recorded none.
+ */
+function takenStateOf(value: string | null): TakenState | undefined {
+  return value === "yes" || value === "no" ? value : undefined;
+}
+
 /** The button that leaves the track for the numbered challenges. */
 const LEAVE_SELECTOR = ".tutorialleave";
 
@@ -365,26 +406,48 @@ export function presentTutorial(parent: HTMLElement, data: TutorialPanelData): v
   const focusedControl = queryAll(CONTROL_SELECTOR, parent).findIndex(
     (control) => control === document.activeElement,
   );
+  // Carried across a redraw of the same task, and dropped when the task changes.
+  // Three things redraw this panel and none of them is news: the run starting
+  // again, the language changing, and -- the one that made this necessary -- the
+  // task being cleared, which redraws the panel to move its counter on while the
+  // player is looking at it. Without this the confirmation they had just been
+  // given would vanish underneath the overlay congratulating them. A different
+  // task is the one case where it has to go: the copy was made of a program the
+  // panel is no longer showing.
+  const takenState = sameTask
+    ? takenStateOf(query(TAKEN_SELECTOR, parent)?.getAttribute(TAKEN_STATE_ATTRIBUTE) ?? null)
+    : undefined;
 
-  parent.replaceChildren(
-    renderElement(
-      tutorialTemplate({
-        taskNumber,
-        taskCount: tutorialTasks.length,
-        clearedCount: data.clearedCount,
-        title: t(messages.title),
-        goal: t(messages.goal),
-        hints: [t(hint1), t(hint2), t(hint3)],
-        // Straight from the task table, and deliberately not from the catalogue:
-        // this is the program `tutorial-solutions.test.ts` clears the task with,
-        // so the answer on screen and the answer that is known to work are one
-        // string. A copy in the catalogue is a copy nothing compares, and the
-        // player would be the one told something untrue.
-        solutionCode: task.solutionCode,
-        explanation: t(messages.explanation),
-      }),
-    ),
+  const panel = renderElement(
+    tutorialTemplate({
+      taskNumber,
+      taskCount: tutorialTasks.length,
+      clearedCount: data.clearedCount,
+      title: t(messages.title),
+      goal: t(messages.goal),
+      hints: [t(hint1), t(hint2), t(hint3)],
+      // Straight from the task table, and deliberately not from the catalogue:
+      // this is the program `tutorial-solutions.test.ts` clears the task with,
+      // so the answer on screen and the answer that is known to work are one
+      // string. A copy in the catalogue is a copy nothing compares, and the
+      // player would be the one told something untrue.
+      solutionCode: task.solutionCode,
+      explanation: t(messages.explanation),
+    }),
   );
+
+  if (takenState !== undefined) {
+    // Written while the panel is still detached, which is what makes this a
+    // restoration rather than a second announcement: a live region that is
+    // inserted with its text already in it is generally not read out, and the
+    // player heard this sentence when they pressed the button. The click below
+    // writes into the region once it is in the document, which is the case where
+    // being read out is the whole point.
+    const line = requireElement(TAKEN_SELECTOR, panel);
+    line.setAttribute(TAKEN_STATE_ATTRIBUTE, takenState);
+    line.textContent = t(TAKEN_MESSAGES[takenState]);
+  }
+  parent.replaceChildren(panel);
 
   queryAll(DISCLOSURE_SELECTOR, parent).forEach((disclosure, index) => {
     if (wasOpen[index] === true && disclosure instanceof HTMLDetailsElement) {
@@ -395,14 +458,20 @@ export function presentTutorial(parent: HTMLElement, data: TutorialPanelData): v
   requireElement(RESTART_SELECTOR, parent).addEventListener("click", () => {
     data.onRestart();
   });
+  // Nothing is said when the question was asked and answered no, which is the
+  // one case here that needs no line: the player was shown a dialog about this
+  // and dismissed it themselves.
   requireElement(TAKE_CODE_SELECTOR, parent).addEventListener("click", () => {
     if (takeCodeAgreed(data)) {
-      // Nothing is said when the question was asked and answered no, which is
-      // the one case here that needs no line: the player was shown a dialog
-      // about this and dismissed it themselves.
-      requireElement(TAKEN_SELECTOR, parent).textContent = t(
-        data.onTakeCode() ? "tutorial.panel.codeTaken" : "tutorial.panel.codeRefused",
-      );
+      // The copy is made before the line to report it is looked up, and not in
+      // the same expression. An assignment resolves the element it assigns to
+      // first, so an `onTakeCode` that redrew the panel -- it is supplied by the
+      // object that owns the redrawing -- would leave this writing news into a
+      // paragraph that had already been thrown away.
+      const state: TakenState = data.onTakeCode() ? "yes" : "no";
+      const line = requireElement(TAKEN_SELECTOR, parent);
+      line.setAttribute(TAKEN_STATE_ATTRIBUTE, state);
+      line.textContent = t(TAKEN_MESSAGES[state]);
     }
   });
   requireElement(LEAVE_SELECTOR, parent).addEventListener("click", () => {

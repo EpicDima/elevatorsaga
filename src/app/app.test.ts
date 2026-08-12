@@ -961,10 +961,11 @@ describe("App learning track", () => {
     });
 
     it("tells the player when the store refused, instead of claiming it worked", () => {
-      // A browser with storage switched off is the case `takeTutorialCode`
-      // returns `false` for, and the panel is where that answer is spent: the
-      // program is not waiting for them, and the useful thing to say is how to
-      // keep it by hand.
+      // A store that throws on the write is what `takeTutorialCode` answers
+      // `false` for -- a full quota, as here, or a private-browsing mode that
+      // hands out a `Storage` and refuses every write to it -- and the panel is
+      // where that answer is spent: the program is not waiting for them, and the
+      // useful thing to say is how to keep it by hand.
       const { app, elements, storage } = setUp();
       app.startTutorial(3);
       vi.spyOn(storage, "setItem").mockImplementation(() => {
@@ -979,6 +980,24 @@ describe("App learning track", () => {
       // The refusal is not an error for the player to deal with: the run they
       // are in does not depend on this write, and they are still on the task.
       expect(app.tutorial?.index).toBe(3);
+    });
+
+    it("keeps that confirmation on screen when the task is cleared under it", () => {
+      // The sequence this was written for: take the program, then win the run.
+      // Clearing a task redraws the panel to move its progress line on, and the
+      // sentence the player had just been given used to go with it -- wiped at
+      // the exact moment the overlay appeared over the top, so it would have
+      // looked like the overlay that did it.
+      const { app, elements } = setUp();
+      app.startTutorial(3);
+      requireElement(".tutorialtakecode", elements.tutorial).click();
+
+      endRun(app, true);
+
+      expect(app.tutorialProgress().cleared).toBe(1);
+      expect(requireElement(".tutorialtaken", elements.tutorial).textContent).toBe(
+        "Copied into the game editor, waiting when you leave the track.",
+      );
     });
 
     it("asks the app, not itself, whether that would overwrite a program", () => {

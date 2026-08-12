@@ -750,8 +750,12 @@ export class App {
    * matters, and it does not depend on this. The refusal is not swallowed
    * though — it is the return value, and the panel is what tells them either
    * way. That is the whole point of the boolean; a caller that drops it turns
-   * the button into one that silently does nothing on a browser with storage
-   * switched off.
+   * the button into one that silently does nothing when the store throws. Which
+   * it does on a full quota, and in the private-browsing modes that hand out a
+   * `Storage` object and refuse every write to it. Storage being *switched off*
+   * is not on the list: `src/main.ts` reads `localStorage` bare, so a browser
+   * that throws on the property has already stopped the game from starting, and
+   * there is no button to press.
    *
    * @returns Whether the program was stored.
    */
@@ -1118,6 +1122,13 @@ export class App {
    * are rewritten by the next save and the next measurement. The editor's own
    * accessible name is the third, and that one is a limitation rather than a
    * choice -- CodeMirror is given it when the view is built.
+   *
+   * The learning track's "program taken" line is a fourth report of something
+   * that has already happened and is deliberately *not* in that group: it is
+   * inside the panel this redraws, so leaving it alone was never an option --
+   * the redraw would have thrown it away. It says nothing about when, so it can
+   * be said again in the new language, and `src/ui/tutorial-panel.ts` carries
+   * the answer rather than the sentence across the redraw in order to say it.
    */
   relocalise(): void {
     const world = this.world;
