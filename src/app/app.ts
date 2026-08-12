@@ -932,9 +932,10 @@ export class App {
     // about.
     //
     // The panel is the odd one of the three: it is not emptied here but at the
-    // end of `#drawChallengeBar`, after the bar has already put the focus on the
-    // start button. That order is what makes one question cover all three -- by
-    // the time the panel goes, the focus has left it.
+    // end of `#drawChallengeBar`. One question covers all three because it is
+    // asked of all three up front, and answered at the very end of this method
+    // -- by which time every region that could have held the focus is gone,
+    // whichever of them did.
     const focusWasDestroyed = containsFocus([
       this.#elements.world,
       this.#elements.feedback,
@@ -944,7 +945,7 @@ export class App {
     this.#run = { challenge, challengeIndex };
     this.#outcome = undefined;
     presentStats(this.#elements.stats, world);
-    this.#drawChallengeBar(world, focusWasDestroyed);
+    this.#drawChallengeBar(world);
     presentWorld(this.#elements.world, world);
 
     world.on("stats_changed", () => {
@@ -991,6 +992,20 @@ export class App {
     // no event, and a run started from a running one would otherwise leave a
     // button reading "Pause" over a simulation that is standing still.
     this.#controls.update();
+    // And the focus after the label, which is the whole reason this is down here
+    // rather than back with the redraw that emptied the region: focusing a
+    // button is what makes a screen reader read its name, and until the line
+    // above the name is the one the *previous* run ended on. "Start over" on a
+    // finished challenge would have announced "Start" and then silently become
+    // "Pause", which is a button that says one thing and does another.
+    //
+    // The run controls are where it lands because the bar has nowhere to put it
+    // -- every control there belongs to something the player was reading, not
+    // doing -- and because a player who has just started a run is heading for
+    // them anyway.
+    if (focusWasDestroyed) {
+      this.#controls.focusStartStop();
+    }
   }
 
   /**
@@ -1009,13 +1024,8 @@ export class App {
    * control and the seed disclosure's `open` state across for itself.
    *
    * @param world - The run being played, consulted for its seed.
-   * @param focusWasDestroyed - Whether the caller has already deleted the
-   * focused element by emptying the building or the overlay. The bar has
-   * nowhere to put focus back — every control in it belongs to something the
-   * player was reading, not doing — so it goes to the run controls, which are
-   * where a player who has just started a run is heading anyway.
    */
-  #drawChallengeBar(world: World, focusWasDestroyed: boolean): void {
+  #drawChallengeBar(world: World): void {
     const run = this.#run;
     if (run === undefined) {
       return;
@@ -1027,14 +1037,13 @@ export class App {
       challengeLinks: this.#challengeLinks(challengeIndex),
       seed: this.#seedLink(world, challengeIndex),
     });
-    // Before the focus below, so that a screen reader announces the label the
-    // button has now rather than the "Restart" left over from the run that just
-    // ended. The pause state it reads here is still the old run's; `#startRun`
-    // asks again once the controller has set the new one.
+    // The bar's own redraw does not touch the row, but the seed line it just
+    // rewrote sits directly above it, and a language change reaches here
+    // without reaching `#startRun`. The pause state read here is whatever the
+    // controller currently holds, which during a restart is still the old run's
+    // -- `#startRun` asks again after the controller has decided the new one,
+    // and that is the pass the label ends on.
     this.#controls.update();
-    if (focusWasDestroyed) {
-      this.#controls.focusStartStop();
-    }
     // Both retitles hang off the same `challengeIndex === null`, which is what
     // "not one of the twenty" means; which of the two it is comes from the
     // field, not from the index, because both unnumbered runs reach here the
@@ -1242,7 +1251,7 @@ export class App {
     this.#controls.update();
     const world = this.world;
     if (world !== undefined) {
-      this.#drawChallengeBar(world, false);
+      this.#drawChallengeBar(world);
       world.trigger("stats_display_changed");
     }
     relabelWorld(this.#elements.world);

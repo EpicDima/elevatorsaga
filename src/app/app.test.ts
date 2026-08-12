@@ -1686,6 +1686,35 @@ describe("App focus", () => {
     expect(document.activeElement).toBe(requireElement(".startstop", elements.controls));
   });
 
+  it("gives the start button its final label before handing it the focus", () => {
+    // Focusing a button is what makes a screen reader read its name, so the
+    // name has to be the one it will keep. "Start over" auto-starts, and the
+    // label is decided twice on the way: once while the controller still holds
+    // the old run's paused state, and once after it has been told about the new
+    // one. Taking the focus between the two announces "Start" about a button
+    // that is already becoming "Pause".
+    //
+    // Read inside the `focus` call rather than after it, because afterwards the
+    // two orderings are indistinguishable: the second pass relabels the button
+    // either way, and what a screen reader said is not in the DOM to assert on.
+    // That focus lands there at all is pinned by the two tests above.
+    const { app, elements } = setUp();
+    app.startChallenge(0);
+    const startStop = requireElement(".startstop", elements.controls);
+    // The state that makes the two passes disagree: nothing is running, so the
+    // first reads "paused" and the second reads the auto-started run.
+    expect(startStop.textContent).toBe("Start");
+    let labelWhenFocused: string | null = null;
+    vi.spyOn(startStop, "focus").mockImplementation(() => {
+      labelWhenFocused = startStop.textContent;
+    });
+    requireElement(".floor button.up", elements.world).focus();
+
+    requireElement(".startover", elements.controls).click();
+
+    expect(labelWhenFocused).toBe("Pause");
+  });
+
   it("leaves focus alone when the challenge is restarted from the editor", () => {
     // Ctrl-Enter applies the program, which restarts the challenge. Pulling
     // focus out of the editor on every apply would be worse than the bug.
