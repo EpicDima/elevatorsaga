@@ -791,10 +791,11 @@ elevator.checkDestinationQueue();</code></pre>
               <td>hall_button_pressed</td>
               <td>
                 <small
-                  >Triggered when someone has pressed either call button at a floor. The handler is
-                  passed the direction that was asked for, either "up" or "down", and the floor the
-                  button was pressed on. It is triggered just after the up_button_pressed or
-                  down_button_pressed event for the same press, so a program listening for both
+                  >Triggered when someone has pressed either call button at a floor. Note that
+                  passengers will press the button again if they fail to enter an elevator. The
+                  handler is passed the direction that was asked for, either "up" or "down", and the
+                  floor the button was pressed on. It is triggered just after the up_button_pressed
+                  or down_button_pressed event for the same press, so a program listening for both
                   hears about that press twice.</small
                 >
               </td>
