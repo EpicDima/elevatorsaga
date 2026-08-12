@@ -108,15 +108,11 @@ export const EN_MESSAGES = {
   // tooltip never opens for a keyboard or a touchscreen -- and the two gestures
   // it would have named are precisely the ones a player without a mouse needs.
   "page.hint.html":
-    "In the editor: <kbd data-mod-key>Ctrl</kbd>+<kbd>Enter</kbd> applies your program. <kbd data-mod-key>Ctrl</kbd>+<kbd>S</kbd> saves it. <kbd>Tab</kbd> indents. <kbd>Esc</kbd> moves the focus back out. Drag the grip above this line to resize the editor, or focus it and press <kbd>↑</kbd> or <kbd>↓</kbd>; double-click it to restore the height.",
+    "In the editor: your code is saved as you type. <kbd data-mod-key>Ctrl</kbd>+<kbd>Enter</kbd> applies it. <kbd>Tab</kbd> indents. <kbd>Esc</kbd> moves the focus back out. Drag the grip above this line to resize the editor, or focus it and press <kbd>↑</kbd> or <kbd>↓</kbd>; double-click it to restore the height.",
   // The grip under the editor. Its name is what it controls rather than what it
   // does -- a `separator` is announced with its role and its value, so "Editor
   // height, 320" reads as a whole where "Resize the editor, 320" would not.
   "page.editorResize.label": "Editor height",
-  "page.button.reset": "Reset",
-  "page.button.undoReset": "Undo reset",
-  "page.button.save": "Save",
-  "page.button.apply": "Apply",
   "page.helpNote.html":
     'Confused? Open the <a href="documentation.html">Help and API documentation</a> page',
   "page.footer.credits": "Made by Magnus Wolffelt and contributors",
@@ -171,6 +167,19 @@ export const EN_MESSAGES = {
   "game.button.start": "Start",
   "game.button.pause": "Pause",
   "game.button.restart": "Restart",
+  // The other three of the run cluster. `startOver` throws away the run on
+  // screen and begins the same challenge again with whatever is in the editor,
+  // which is what the old "Apply" did; it is named for its effect rather than
+  // for the mechanism, because the program is applied on every start now and
+  // there is nothing left for the player to press "Apply" for.
+  //
+  // `resetCode` and `undoResetCode` say "code" where the buttons beside them do
+  // not, because they are the two in the row that act on the editor rather than
+  // on the run, and "Reset" next to "Start over" would otherwise read as a
+  // second way to restart the simulation.
+  "game.button.startOver": "Start over",
+  "game.button.resetCode": "Reset code",
+  "game.button.undoResetCode": "Undo reset",
   "game.feedback.success.title": "Success!",
   "game.feedback.success.message": "Challenge completed",
   "game.feedback.failure.title": "Challenge failed",
@@ -409,14 +418,14 @@ export const EN_MESSAGES = {
   // holds the pages and this key to the first task's real id.
   "docs.play.track.html":
     'If you have never written one of these programs before, start on the <a href="index.html#challenge=tutorial-1">learning track</a>, which is also the <span class="emphasis-color">Learning track</span> link at the top of the game. It is eight small buildings that introduce this API one mistake at a time: each hands you a program that loses, and asks you to find the one thing wrong with it, with hints and an explanation of what the run was actually doing.',
-  "docs.play.apply.html":
-    'Enter your code in the input window below the game view, and press the <span class="emphasis-color">Apply</span> button to start the challenge.<br /> You can increase or decrease the speed of time by pressing the {increase} and {decrease} buttons.',
+  "docs.play.start.html":
+    'Enter your code in the input window below the game view, and press the <span class="emphasis-color">Start</span> button to run it. There is nothing to apply first: your program is saved as you type, and every run reads it afresh. While a run is going that button reads <span class="emphasis-color">Pause</span>, and <span class="emphasis-color">Start over</span> beside it throws the run away and begins the challenge again with whatever the editor holds by then.<br /> You can increase or decrease the speed of time by pressing the {increase} and {decrease} buttons.',
   "docs.play.statistics.html":
     'Beside the building is a panel that keeps score while a run is going. Five of its rows need a word. <span class="emphasis-color">Moves</span> first. One move is counted each time a car crosses the halfway mark between one floor and the next, so a trip of three floors is three moves. A car that turns round mid-flight pays twice for the mark it crosses and re-crosses, and braking carries a car on across a mark it was turned back just short of. Three of the challenges are judged on that number, totalled over every car in the building, as well as on the people delivered, so on those a car that shuttles about empty can lose the run. Then the two clocks. <span class="emphasis-color">Avg delivery time</span> and <span class="emphasis-color">Max delivery time</span> both run from the moment a passenger appears in the building to the moment they step out of a car at the floor they asked for, so the ride counts in them as much as the wait for it does: somebody who walks straight into a car already standing at their floor, and waits not one second for it, still adds every second of a nineteen-floor journey to both. Nine of the challenges and two of the tasks on the learning track are judged on the second of them, which is the largest total any one passenger has reached — it keeps climbing while somebody is still on their way, and once reached it never comes down again. Between the two of them sits <span class="emphasis-color">Avg wait for a car</span>, which is the wait neither of them is. The clock starts when a passenger appears and stops when a car takes them, so the difference from the average delivery time is the ride. Only the passengers a car has already reached are in that average, so it is not where somebody left standing on a floor turns up — the maximum is. Last, <span class="emphasis-color">Avg load</span>. How full the cars were, averaged over the moves counted above, so a car standing still is not in the figure at all — parking costs nothing here, and in several of the challenges it is the right thing to do. In an ordinary run the figure sits far below full, and that is not a fault to be fixed: cars are rarely full, and nothing in the game pays for filling them. Nor does a higher figure mean better play. Of three programs run on the same eighteen-floor building, the one that holds a car at its floor until it is nearly full before setting off got its cars to about 70% and delivered the fewest people of the three, at nearly twice the wait of the best of them, while the program that delivered the most carried the emptiest cars of all, under a half. What the number is good for is comparing two programs that deliver about the same: at equal numbers delivered, the one with the higher load did it with fewer trips that carried nobody.',
   "docs.play.shortcuts.html":
     "Inside the editor, <kbd data-mod-key>Ctrl</kbd>+<kbd>Enter</kbd> applies your program and restarts the challenge, <kbd data-mod-key>Ctrl</kbd>+<kbd>S</kbd> saves it, <kbd>Tab</kbd> indents, and <kbd>Esc</kbd> moves the focus back out of the editor.",
   "docs.play.debugging.html":
-    'If your program contains an error, you can use the developer tools in your web browser to try and debug it. If you want to start over with the code, press the <span class="emphasis-color">Reset</span> button. This will revert the code to a working but simplistic implementation.<br /> If you have a favorite text editor, such as <a href="https://www.sublimetext.com/">Sublime Text</a>, feel free to edit the code there and paste it into the game editor.<br /> Your code is automatically saved in your local storage, so don\'t worry - it doesn\'t disappear if you accidentally close the browser.',
+    'If your program contains an error, you can use the developer tools in your web browser to try and debug it. If you want to start over with the code, press the <span class="emphasis-color">Reset code</span> button. This will revert the code to a working but simplistic implementation, and an <span class="emphasis-color">Undo reset</span> button appears beside it for as long as there is something to bring back.<br /> If you have a favorite text editor, such as <a href="https://www.sublimetext.com/">Sublime Text</a>, feel free to edit the code there and paste it into the game editor.<br /> Your code is automatically saved in your local storage, so don\'t worry - it doesn\'t disappear if you accidentally close the browser.',
 
   // ----------------------------------------------- the help page: the basics
 
@@ -1032,7 +1041,6 @@ elevator.goToFloor(2); // Queued anyway -- queue: 2, 3, 2`,
   "tutorial.panel.codeTaken": "Copied into the game editor, waiting when you leave the track.",
   "tutorial.panel.codeRefused":
     "Your browser refused to store it. Copy the program out of the editor by hand to keep it.",
-  "tutorial.button.restart": "Start over",
   "tutorial.button.takeCode": "Take this program into your own editor",
   "tutorial.button.takeCodeConfirm":
     "The game editor already holds a program of yours. Replace it with this one?",

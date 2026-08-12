@@ -15,11 +15,14 @@ elevator moves, or 50 people with none of them taking longer than 21 seconds to 
 keep rewriting your program until it clears them. The twentieth sets none: it is an endless demo
 you can leave running.
 
-You play in the browser. Type your program in the editor next to the building, press **Apply**
-(or <kbd>Ctrl</kbd>+<kbd>Enter</kbd>) to restart the challenge with it, and watch. Your code is
-saved to `localStorage` as you go, so closing the tab does not lose it;
-<kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>S</kbd> saves it immediately rather than opening the browser's
-save dialog. The full API — every method,
+You play in the browser. Type your program in the editor next to the building, press **Start**,
+and watch. There is nothing to apply first: your code is saved to `localStorage` as you type, so
+closing the tab does not lose it, and every run reads whatever is in the editor at the moment it
+begins. The same button reads **Pause** while a run is going; **Start over** beside it begins the
+challenge again, which is what <kbd>Ctrl</kbd>+<kbd>Enter</kbd> does from inside the editor, and
+**Reset code** puts the starter program back with **Undo reset** offered next to it afterwards.
+<kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>S</kbd> still saves immediately rather than opening the
+browser's save dialog. The full API — every method,
 property and event on the elevator and floor objects, with examples — is in
 [documentation.html](documentation.html), which is served alongside the game
 ([in Russian](documentation.ru.html)). If challenge 1 and a starter program you are left to reverse
@@ -228,7 +231,7 @@ file compiles clean, `elevators` and `floors` are `readonly ElevatorSaga.Elevato
 
 **Keep the parentheses around the object.** The game wraps your program in them for you, but only
 when it starts with `{` — a program that starts with a comment does not, so a bare `{ … }`
-underneath one is evaluated as a block and dies on **Apply** with `SyntaxError: Function statements
+underneath one is evaluated as a block and dies on **Start** with `SyntaxError: Function statements
 require a function name`. Written as above it pastes back into the game unchanged, comment and all.
 
 The declaration describes _this fork_, including `isFull()`, `isEmpty()` and

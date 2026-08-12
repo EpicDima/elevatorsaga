@@ -16,7 +16,7 @@
 import { expect, test } from "@playwright/test";
 import type { Locator, Page } from "@playwright/test";
 
-import { editor, storedCode } from "./game-page.ts";
+import { editor, startButton, storedCode } from "./game-page.ts";
 
 /**
  * Where task 1 lives.
@@ -189,23 +189,26 @@ test("hands the editor the program in the language the link asks for", async ({ 
   await expect(russianEditor).toContainText("elevator.goToFloor(0);");
 });
 
-test("starts the task again from the panel without leaving it", async ({ page }) => {
+test("starts the task again from the run controls without leaving the track", async ({ page }) => {
   await page.goto(FIRST_TASK);
-  await panel(page).getByRole("button", { name: "Start over" }).click();
 
-  // The same task, and a new run of it waiting to be started.
+  // Exactly one button on the page says this. The panel used to carry a second
+  // one, which restarted the task without starting it, and two buttons under one
+  // accessible name doing two things is WCAG 3.2.4 -- the panel sits directly
+  // above this row, so both were on screen at once.
+  await expect(page.getByRole("button", { name: "Start over", exact: true })).toHaveCount(1);
+  await page.getByRole("button", { name: "Start over", exact: true }).click();
+
+  // The same task, running: "Start over" is pressed by somebody who has decided
+  // to go again, so it does not stop to ask a second time.
   await expect(panel(page)).toBeVisible();
   await expect(page.locator(".tutorialposition")).toHaveText("Learning track Task 1 of 8");
-  await expect(page.getByRole("button", { name: "Start", exact: true })).toBeVisible();
-  // The button that was pressed no longer exists: the panel is redrawn whole,
-  // and a keyboard player whose focus went with it would be back at <body> with
-  // the entire page to tab through again (WCAG 2.4.3). Where it goes was
-  // measured rather than assumed -- the start button, not the redrawn "Start
-  // over" -- because the panel is one of the three regions `#startRun` asks
-  // about before it tears a run down, so the bar takes the focus first and the
-  // panel then finds it already outside itself. That is the same place pressing
-  // "leave" lands, and it is where the next press has to happen anyway.
-  await expect(page.getByRole("button", { name: "Start", exact: true })).toBeFocused();
+  await expect(startButton(page, "Pause")).toBeVisible();
+  // And the button survives the restart it caused, so the focus never leaves it.
+  // The panel is redrawn whole underneath, but the run controls are drawn once
+  // for the life of the page and are not among the regions `#startRun` tears
+  // down -- which is the whole reason they were moved out of the challenge bar.
+  await expect(page.getByRole("button", { name: "Start over", exact: true })).toBeFocused();
 });
 
 test("draws the panel again in the language the picker asks for", async ({ page }) => {
@@ -295,15 +298,18 @@ function measurePanel(page: Page): Promise<{
         (block) => block.scrollWidth > block.clientWidth,
       ).length,
       // And the buttons hold their labels: the shared chrome pins a button to a
-      // 30px content box, which is right for "Start over" and wrong for a label
-      // that takes two lines at this width.
+      // 30px content box, which is right for one line of text and wrong for a
+      // label that takes two at this width.
       spilledButtons: [...document.querySelectorAll(".tutorialbuttons button")].filter(
         (button) => button.scrollHeight > button.clientHeight,
       ).length,
-      // And they stay inside the panel. A row that may not wrap keeps the three
-      // on one line by squeezing each to its longest word, which does not widen
-      // the page -- so the two measurements above would both pass -- and in
-      // Russian at 320px hangs the last of them over the panel's edge.
+      // And they stay inside the panel. A row that may not wrap keeps them on
+      // one line by squeezing each to its longest word, which does not widen
+      // the page -- so the two measurements above would both pass -- and with
+      // the three buttons the panel used to have, that squeeze was 5px wider
+      // than the panel in Russian at 320px and hung the last one over its edge.
+      // Two of them fit exactly, so this guards a hazard the panel is currently
+      // just clear of rather than one it is nowhere near.
       escapedButtons: [...document.querySelectorAll(".tutorialbuttons button")].filter(
         (button) => button.getBoundingClientRect().right > panelRight + 0.5,
       ).length,

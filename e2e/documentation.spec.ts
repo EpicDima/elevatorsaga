@@ -11,6 +11,8 @@
 
 import { expect, test } from "@playwright/test";
 
+import { startButton } from "./game-page.ts";
+
 test("serves the help page from the game's own navigation", async ({ page }) => {
   const pageErrors: string[] = [];
   page.on("pageerror", (error) => pageErrors.push(error.message));
@@ -30,7 +32,7 @@ test("serves the help page from the game's own navigation", async ({ page }) => 
   await expect(page.getByRole("cell", { name: "loadFactor", exact: true })).toBeVisible();
 
   await page.getByRole("link", { name: "Back to the game" }).click();
-  await expect(page.getByRole("button", { name: "Start" })).toBeVisible();
+  await expect(startButton(page)).toBeVisible();
 
   expect(pageErrors).toEqual([]);
 });
@@ -84,7 +86,7 @@ test("serves the Russian help page, and links the two together both ways", async
   // And the way back to the game works from the translated page too.
   await page.getByRole("link", { name: "Русский" }).click();
   await page.getByRole("link", { name: "Вернуться к игре" }).click();
-  await expect(page.getByRole("button", { name: "Start" })).toBeVisible();
+  await expect(startButton(page)).toBeVisible();
 
   expect(pageErrors).toEqual([]);
 });

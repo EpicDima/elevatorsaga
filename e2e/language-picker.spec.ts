@@ -22,7 +22,7 @@
 
 import { expect, test } from "@playwright/test";
 
-import { statistic, statisticValue } from "./game-page.ts";
+import { startButton, statistic, statisticValue } from "./game-page.ts";
 
 /** The seed of the run in the challenge bar, which names the building drawn. */
 const SEED_LINK = ".seedlink";
@@ -54,10 +54,13 @@ test("puts the whole page into Russian without disturbing the run", async ({ pag
   // The shell, rewritten from the catalogue.
   await expect(page.locator("html")).toHaveAttribute("lang", "ru");
   await expect(page.getByText("Перевезено", { exact: true })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Сохранить" })).toBeVisible();
-  // The challenge bar, rebuilt by the app.
+  await expect(page.getByRole("link", { name: "Документация" })).toBeVisible();
+  // The challenge bar, rebuilt by the app; and the run controls, which are not
+  // rebuilt at all -- they are drawn once for the life of the page, so every
+  // word on them is written by the relabelling this change triggers.
   await expect(page.getByRole("heading", { name: /^Задание №4:/ })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Пауза" })).toBeVisible();
+  await expect(startButton(page, "Пауза")).toBeVisible();
+  await expect(page.getByRole("button", { name: "С начала" })).toBeVisible();
   // The building, renamed in place. This is the part that used to stay English
   // however the page was redrawn: these names are written when the floors are
   // drawn, and the floors are not drawn again.

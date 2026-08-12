@@ -45,6 +45,22 @@ export function building(page: Page): Locator {
 }
 
 /**
+ * The button that starts, pauses and restarts the run.
+ *
+ * `exact` is not decoration: the same row carries "Start over", and Playwright's
+ * accessible-name matching is a substring match, so `{ name: "Start" }` on its
+ * own resolves to both and fails the whole locator as ambiguous.
+ *
+ * @param page - The page under test.
+ * @param name - The button's label in the language on screen, which is `Start`,
+ * `Pause` or `Restart` depending on the run.
+ * @returns The start/pause button.
+ */
+export function startButton(page: Page, name = "Start"): Locator {
+  return page.getByRole("button", { name, exact: true });
+}
+
+/**
  * One value from the statistics panel.
  *
  * The panel pairs a label and a value as two sibling `<span>`s with no

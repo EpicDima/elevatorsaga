@@ -104,29 +104,29 @@ Key names carry two suffixes that mean something:
 
 ## Where the strings are
 
-The catalogue holds **303 keys** in two locales. `src/i18n/en.ts` is the reference — its text is
+The catalogue holds **301 keys** in two locales. `src/i18n/en.ts` is the reference — its text is
 the English wording, extracted verbatim — and `src/i18n/ru.ts` is the Russian translation. The
 types make English the shape everything else is measured against: a Russian catalogue missing a
 key, carrying a key English does not have, or giving a plural message the wrong number of forms
 is a compile error, not a runtime surprise.
 
 ```sh
-grep -cE '^  "[^"]+":' src/i18n/en.ts                                   # 303
+grep -cE '^  "[^"]+":' src/i18n/en.ts                                   # 301
 grep -oE '^  "[^"]+"' src/i18n/en.ts | tr -d '"' | cut -d. -f1 | sort | uniq -c | sort -rn
 ```
 
-| Prefix         | Keys    | What reads them                                                                                          |
-| -------------- | ------- | -------------------------------------------------------------------------------------------------------- |
-| `docs.*`       | 85      | one of them, `docs.basics.example.code`, by `src/ui/completions.ts`; the other 84 by nothing             |
-| `tutorial.*`   | 80      | `src/ui/tutorial-panel.ts`, `src/ui/templates.ts`, `src/app/app.ts`                                      |
-| `completion.*` | 33      | `src/ui/completions.ts`                                                                                  |
-| `page.*`       | 37      | `index.html`, through `data-i18n` and `data-i18n-attr`; `page.noscript` excepted, see below              |
-| `game.*`       | 27      | `src/ui/templates.ts` (18), `src/ui/presenters.ts` (4), `src/app/app.ts` (5)                             |
-| `challenge.*`  | 15      | `src/game/challenges.ts`                                                                                 |
-| `fitness.*`    | 11      | `src/app/fitness.ts`, `src/game/fitness.ts`, `src/main.ts`, `src/cli/bench.ts`                           |
-| `error.*`      | 10      | `src/game/elevator-interface.ts`, `src/ui/presenters.ts`, `src/game/user-code.ts`, `src/game/movable.ts` |
-| `editor.*`     | 5       | `src/main.ts`, `src/ui/editor.ts`, `src/ui/default-code.ts`                                              |
-| **Total**      | **303** |                                                                                                          |
+| Prefix         | Keys    | What reads them                                                                                                                         |
+| -------------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| `docs.*`       | 85      | one of them, `docs.basics.example.code`, by `src/ui/completions.ts`; the other 84 by nothing                                            |
+| `tutorial.*`   | 79      | `src/ui/tutorial-panel.ts`, `src/ui/templates.ts`, `src/app/app.ts`                                                                     |
+| `completion.*` | 33      | `src/ui/completions.ts`                                                                                                                 |
+| `page.*`       | 33      | `index.html`, through `data-i18n` and `data-i18n-attr`; `page.noscript` excepted, see below                                             |
+| `game.*`       | 30      | `src/ui/templates.ts` (18), `src/ui/presenters.ts` (9), `src/app/app.ts` (5); the two speed labels are written by both of the first two |
+| `challenge.*`  | 15      | `src/game/challenges.ts`                                                                                                                |
+| `fitness.*`    | 11      | `src/app/fitness.ts`, `src/game/fitness.ts`, `src/main.ts`, `src/cli/bench.ts`                                                          |
+| `error.*`      | 10      | `src/game/elevator-interface.ts`, `src/ui/presenters.ts`, `src/game/user-code.ts`, `src/game/movable.ts`                                |
+| `editor.*`     | 5       | `src/main.ts`, `src/app/app.ts`, `src/ui/editor.ts`, `src/ui/default-code.ts`                                                           |
+| **Total**      | **301** |                                                                                                                                         |
 
 Which keys nothing reads:
 
@@ -166,51 +166,47 @@ step.
 
 ## The strings
 
-### `index.html` — the page shell, 37 `page.*` keys
+### `index.html` — the page shell, 33 `page.*` keys
 
 The shell ships its English in the markup and names the message beside it: `data-i18n` for an
 element's words, `data-i18n-attr="attribute:key"` for its attributes. `src/ui/localise-page.ts`
 walks the document and rewrites both, at start-up and again after every language change.
 
-| Key                             | English                                                                                                        | Notes                                                                                                                                           |
-| ------------------------------- | -------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| `page.title`                    | Elevator Saga - the elevator programming game                                                                  | twice: the `<title>`, and the `og:title` meta                                                                                                   |
-| `page.description`              | Elevator Saga is a programming game: write JavaScript to transport people efficiently.                         | twice: the `description` meta, and the `og:description` one                                                                                     |
-| `page.imageAlt`                 | Four elevators carrying people between six floors, with the JavaScript program driving them in the editor bel… | the `og:image:alt` meta                                                                                                                         |
-| `page.skipLink`                 | Skip to the code editor                                                                                        |                                                                                                                                                 |
-| `page.brand`                    | Elevator Saga                                                                                                  | first half of the one `<h1>`; see _What could not be keyed cleanly_                                                                             |
-| `page.tagline`                  | The elevator programming game                                                                                  | second half of the same `<h1>`                                                                                                                  |
-| `page.tutorialLink`             | Learning track                                                                                                 | the only way into the learning track; outside the `<nav>` below it, and `src/app/app.ts` keeps its `href` on the first task not yet cleared     |
-| `page.nav.label`                | Help and reference                                                                                             | an `aria-label`                                                                                                                                 |
-| `page.nav.help`                 | Help                                                                                                           | also carries `data-i18n-doc=""`, so the link follows the language and lands at the top                                                          |
-| `page.nav.documentation`        | Documentation                                                                                                  | also carries `data-i18n-doc="docs"`                                                                                                             |
-| `page.nav.wiki`                 | Wiki & Solutions                                                                                               | an external link; not retargeted                                                                                                                |
-| `page.language.label`           | Language                                                                                                       | the `aria-label` of the picker's `<select>`; its options are `LOCALE_NAMES` and are never translated                                            |
-| `page.noscript`                 | Your browser does not appear to support JavaScript. This page contains a browser-based programming game imple… | the one key with no element, and it cannot have one: see _Where the strings are_                                                                |
-| `page.world.label`              | Building                                                                                                       | an `aria-label`                                                                                                                                 |
-| `page.stats.label`              | Simulation statistics                                                                                          | an `aria-label`                                                                                                                                 |
-| `page.stats.transported`        | Transported                                                                                                    |                                                                                                                                                 |
-| `page.stats.elapsedTime`        | Elapsed time                                                                                                   |                                                                                                                                                 |
-| `page.stats.transportedPerSec`  | Transported/s                                                                                                  |                                                                                                                                                 |
-| `page.stats.avgWaitTime`        | Avg delivery time                                                                                              | the key names the `World` field, which is `avgWaitTime`; the label names what it measures, which is not a wait                                  |
-| `page.stats.avgPickupTime`      | Avg wait for a car                                                                                             | the row between the two above, and the only one of the three that is a wait: it stops when a car takes the passenger, so the ride is outside it |
-| `page.stats.avgPickupTimeTitle` | The clock starts when a passenger appears and stops when a car takes them, so the difference from the aver…    | a `title` attribute on the same cell as `page.stats.avgPickupTime`; text of `docs.play.statistics.html` word for word                           |
-| `page.stats.maxWaitTime`        | Max delivery time                                                                                              | likewise, and this is the figure the eight wait-limited challenges are judged on                                                                |
-| `page.stats.moves`              | Moves                                                                                                          |                                                                                                                                                 |
-| `page.stats.movesTitle`         | One move is counted each time a car crosses the halfway mark between one floor and the next                    | a `title` attribute on the same cell as `page.stats.moves`                                                                                      |
-| `page.stats.avgLoad`            | Avg load                                                                                                       | how full the cars were, as a percentage; averaged over the moves the row above counts, so a car that never moved is absent rather than empty    |
-| `page.stats.avgLoadTitle`       | How full the cars were, averaged over the moves counted above, so a car standing still is not in the…          | a `title` attribute on the same cell as `page.stats.avgLoad`; text of `docs.play.statistics.html` word for word                                 |
-| `page.hint.html`                | In the editor: `<kbd data-mod-key>`Ctrl`</kbd>`+`<kbd>`Enter`</kbd>` applies your program. …                   | markup; `localisePage` calls `labelModifierKeys` last, having just overwritten with `innerHTML` the `<kbd>` labels it fixes                     |
-| `page.editorResize.label`       | Editor height                                                                                                  | the accessible name of the grip under the editor; a `separator` is announced with its value, so the name is what it controls, not what it does  |
-| `page.button.reset`             | Reset                                                                                                          |                                                                                                                                                 |
-| `page.button.undoReset`         | Undo reset                                                                                                     |                                                                                                                                                 |
-| `page.button.save`              | Save                                                                                                           |                                                                                                                                                 |
-| `page.button.apply`             | Apply                                                                                                          |                                                                                                                                                 |
-| `page.helpNote.html`            | Confused? Open the `<a href="documentation.html">`Help and API documentation`</a>` page                        | markup; the only link whose target is inside the message — the Russian names `documentation.ru.html`                                            |
-| `page.footer.credits`           | Made by Magnus Wolffelt and contributors                                                                       |                                                                                                                                                 |
-| `page.footer.version`           | Version                                                                                                        | the number beside it comes from `package.json`, through `src/ui/version.ts`                                                                     |
-| `page.footer.source.html`       | `<a href="https://github.com/EpicDima/elevatorsaga">`Source code`</a>` on GitHub, forked from …                | markup                                                                                                                                          |
-| `page.footer.licences.html`     | `<a href="licenses.txt">`Licences`</a>` for the game and everything it bundles                                 | markup; `licenses.txt` is generated into `dist/` by `vite.config.ts`                                                                            |
+| Key                             | English                                                                                                            | Notes                                                                                                                                           |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `page.title`                    | Elevator Saga - the elevator programming game                                                                      | twice: the `<title>`, and the `og:title` meta                                                                                                   |
+| `page.description`              | Elevator Saga is a programming game: write JavaScript to transport people efficiently.                             | twice: the `description` meta, and the `og:description` one                                                                                     |
+| `page.imageAlt`                 | Four elevators carrying people between six floors, with the JavaScript program driving them in the editor bel…     | the `og:image:alt` meta                                                                                                                         |
+| `page.skipLink`                 | Skip to the code editor                                                                                            |                                                                                                                                                 |
+| `page.brand`                    | Elevator Saga                                                                                                      | first half of the one `<h1>`; see _What could not be keyed cleanly_                                                                             |
+| `page.tagline`                  | The elevator programming game                                                                                      | second half of the same `<h1>`                                                                                                                  |
+| `page.tutorialLink`             | Learning track                                                                                                     | the only way into the learning track; outside the `<nav>` below it, and `src/app/app.ts` keeps its `href` on the first task not yet cleared     |
+| `page.nav.label`                | Help and reference                                                                                                 | an `aria-label`                                                                                                                                 |
+| `page.nav.help`                 | Help                                                                                                               | also carries `data-i18n-doc=""`, so the link follows the language and lands at the top                                                          |
+| `page.nav.documentation`        | Documentation                                                                                                      | also carries `data-i18n-doc="docs"`                                                                                                             |
+| `page.nav.wiki`                 | Wiki & Solutions                                                                                                   | an external link; not retargeted                                                                                                                |
+| `page.language.label`           | Language                                                                                                           | the `aria-label` of the picker's `<select>`; its options are `LOCALE_NAMES` and are never translated                                            |
+| `page.noscript`                 | Your browser does not appear to support JavaScript. This page contains a browser-based programming game imple…     | the one key with no element, and it cannot have one: see _Where the strings are_                                                                |
+| `page.world.label`              | Building                                                                                                           | an `aria-label`                                                                                                                                 |
+| `page.stats.label`              | Simulation statistics                                                                                              | an `aria-label`                                                                                                                                 |
+| `page.stats.transported`        | Transported                                                                                                        |                                                                                                                                                 |
+| `page.stats.elapsedTime`        | Elapsed time                                                                                                       |                                                                                                                                                 |
+| `page.stats.transportedPerSec`  | Transported/s                                                                                                      |                                                                                                                                                 |
+| `page.stats.avgWaitTime`        | Avg delivery time                                                                                                  | the key names the `World` field, which is `avgWaitTime`; the label names what it measures, which is not a wait                                  |
+| `page.stats.avgPickupTime`      | Avg wait for a car                                                                                                 | the row between the two above, and the only one of the three that is a wait: it stops when a car takes the passenger, so the ride is outside it |
+| `page.stats.avgPickupTimeTitle` | The clock starts when a passenger appears and stops when a car takes them, so the difference from the aver…        | a `title` attribute on the same cell as `page.stats.avgPickupTime`; text of `docs.play.statistics.html` word for word                           |
+| `page.stats.maxWaitTime`        | Max delivery time                                                                                                  | likewise, and this is the figure the eight wait-limited challenges are judged on                                                                |
+| `page.stats.moves`              | Moves                                                                                                              |                                                                                                                                                 |
+| `page.stats.movesTitle`         | One move is counted each time a car crosses the halfway mark between one floor and the next                        | a `title` attribute on the same cell as `page.stats.moves`                                                                                      |
+| `page.stats.avgLoad`            | Avg load                                                                                                           | how full the cars were, as a percentage; averaged over the moves the row above counts, so a car that never moved is absent rather than empty    |
+| `page.stats.avgLoadTitle`       | How full the cars were, averaged over the moves counted above, so a car standing still is not in the…              | a `title` attribute on the same cell as `page.stats.avgLoad`; text of `docs.play.statistics.html` word for word                                 |
+| `page.hint.html`                | In the editor: your code is saved as you type. `<kbd data-mod-key>`Ctrl`</kbd>`+`<kbd>`Enter`</kbd>` applies it. … | markup; `localisePage` calls `labelModifierKeys` last, having just overwritten with `innerHTML` the `<kbd>` labels it fixes                     |
+| `page.editorResize.label`       | Editor height                                                                                                      | the accessible name of the grip under the editor; a `separator` is announced with its value, so the name is what it controls, not what it does  |
+| `page.helpNote.html`            | Confused? Open the `<a href="documentation.html">`Help and API documentation`</a>` page                            | markup; the only link whose target is inside the message — the Russian names `documentation.ru.html`                                            |
+| `page.footer.credits`           | Made by Magnus Wolffelt and contributors                                                                           |                                                                                                                                                 |
+| `page.footer.version`           | Version                                                                                                            | the number beside it comes from `package.json`, through `src/ui/version.ts`                                                                     |
+| `page.footer.source.html`       | `<a href="https://github.com/EpicDima/elevatorsaga">`Source code`</a>` on GitHub, forked from …                    | markup                                                                                                                                          |
+| `page.footer.licences.html`     | `<a href="licenses.txt">`Licences`</a>` for the game and everything it bundles                                     | markup; `licenses.txt` is generated into `dist/` by `vite.config.ts`                                                                            |
 
 `page.helpNote.html` is the one link the shell cannot retarget from outside, because the `href`
 lives inside the message. Every other link into the reference page is an element of the shell and
@@ -243,7 +239,7 @@ case makes sure no key escapes that comparison.
 | `docs.about.p2.html`                                | The goal is to transport people in an efficient manner. Depending on how well you do it, you can progre…        | markup                                                                                                                             |
 | `docs.play.heading`                                 | How to play                                                                                                     |                                                                                                                                    |
 | `docs.play.track.html`                              | If you have never written one of these programs before, start on the learning track …                           | markup; links into `index.html#challenge=tutorial-1`                                                                               |
-| `docs.play.apply.html`                              | Enter your code in the input window below the game view, and press the Apply button …                           | markup; takes `{increase}`, `{decrease}` — the two icon names                                                                      |
+| `docs.play.start.html`                              | Enter your code in the input window below the game view, and press the Start button to run it …                 | markup; takes `{increase}`, `{decrease}` — the two icon names                                                                      |
 | `docs.play.statistics.html`                         | Beside the building is a panel that keeps score while a run is going. Five of its rows need a word. …           | markup                                                                                                                             |
 | `docs.play.shortcuts.html`                          | Inside the editor, Ctrl+Enter applies your program and restarts the challenge …                                 | markup; same `data-mod-key` caveat as `page.hint.html`                                                                             |
 | `docs.play.debugging.html`                          | If your program contains an error, you can use the developer tools in your web browser to try and debug it. …   | markup                                                                                                                             |
@@ -381,7 +377,6 @@ The other sixteen are the panel and the surfaces around it.
 | `tutorial.panel.explanationSummary` | Why this happens                                                                                               | the `<summary>` of the fourth disclosure                                                                                                        |
 | `tutorial.panel.codeTaken`          | Copied into the game editor, waiting when you leave the track.                                                 | the panel's `aria-live` line, written on a successful "Take this program"                                                                       |
 | `tutorial.panel.codeRefused`        | Your browser refused to store it. Copy the program out of the editor by hand to keep it.                       | the same line, when the store refused the write — the button is otherwise silent about it                                                       |
-| `tutorial.button.restart`           | Start over                                                                                                     |                                                                                                                                                 |
 | `tutorial.button.takeCode`          | Take this program into your own editor                                                                         |                                                                                                                                                 |
 | `tutorial.button.takeCodeConfirm`   | The game editor already holds a program of yours. Replace it with this one?                                    | a `window.confirm`, asked only when there is something to overwrite                                                                             |
 | `tutorial.button.leave`             | Leave for the challenges                                                                                       |                                                                                                                                                 |
@@ -431,7 +426,7 @@ identically in every locale. Both names repeat it because an accessible name has
 own — "1234567890, link" describes nothing.
 
 `game.seed.newDraw` appearing inside `game.seed.newDrawLink` is a constraint a translator cannot
-see: the two sit on adjacent lines of a 303-key file and nothing in the file marks them as a
+see: the two sit on adjacent lines of a 301-key file and nothing in the file marks them as a
 pair. `src/i18n/catalogue.test.ts`, under _accessible names_, is what holds it — it requires the
 spoken name to contain the visible label in every locale. Rewording «новый розыгрыш» to «новый
 сид» meant changing both, which is exactly the edit where one gets missed.
@@ -441,17 +436,22 @@ The seed explanation used to be a module constant, `SEED_EXPLANATION`. It is now
 point. A `const SEED_EXPLANATION = t(...)` at module scope compiles, reads correctly and freezes
 English at import time; see _Rules the wiring has to keep_.
 
-### `src/ui/presenters.ts` — 4 `game.*` and 3 `error.*` keys
+### `src/ui/presenters.ts` — 9 `game.*` and 3 `error.*` keys
 
-| Key                        | English                       | Notes                                                                            |
-| -------------------------- | ----------------------------- | -------------------------------------------------------------------------------- |
-| `game.timeScale.value`     | {value}x                      | takes `{value}`; Russian writes `×`, not the Latin letter x                      |
-| `game.button.start`        | Start                         |                                                                                  |
-| `game.button.pause`        | Pause                         |                                                                                  |
-| `game.button.restart`      | Restart                       | rendered after an icon as `` ` ${t(...)}` ``; the space belongs to the call site |
-| `error.thrown.emptyString` | Thrown empty string           | what the code status bar says when a program throws something with no message    |
-| `error.thrown.noMessage`   | Thrown {kind} with no message | takes `{kind}`                                                                   |
-| `error.thrown.keys`        | {kind} with keys: {keys}      | takes `{kind}`, `{keys}`                                                         |
+| Key                         | English                       | Notes                                                                                                          |
+| --------------------------- | ----------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| `game.timeScale.value`      | {value}x                      | takes `{value}`; Russian writes `×`, not the Latin letter x                                                    |
+| `game.timeScale.decrease`   | Decrease simulation speed     | an `aria-label`, also written by `controlsTemplate`; rewritten on every update so a language change reaches it |
+| `game.timeScale.increase`   | Increase simulation speed     | likewise                                                                                                       |
+| `game.button.start`         | Start                         |                                                                                                                |
+| `game.button.pause`         | Pause                         |                                                                                                                |
+| `game.button.restart`       | Restart                       | rendered after an icon as `` ` ${t(...)}` ``; the space belongs to the call site                               |
+| `game.button.startOver`     | Start over                    | restarts the run from the program in the editor; the button "Apply" became                                     |
+| `game.button.resetCode`     | Reset code                    | puts the starter program back, behind a confirmation                                                           |
+| `game.button.undoResetCode` | Undo reset                    | hidden until a reset has something to bring back                                                               |
+| `error.thrown.emptyString`  | Thrown empty string           | what the code status bar says when a program throws something with no message                                  |
+| `error.thrown.noMessage`    | Thrown {kind} with no message | takes `{kind}`                                                                                                 |
+| `error.thrown.keys`         | {kind} with keys: {keys}      | takes `{kind}`, `{keys}`                                                                                       |
 
 Every figure in the statistics panel goes through `Intl` rather than `toFixed` and `String`:
 `format(seconds(world.elapsedTime))`, `format(quantity(...))` for the per-second rate, and
@@ -471,14 +471,23 @@ The locale preference is not app state and is not kept here beside `TIME_SCALE_S
 `LOCALE_STORAGE_KEY` and `readStoredLocale` live in `src/i18n/detect.ts`, shaped after
 `readStoredTimeScale` and saying so in a comment.
 
-### `src/main.ts` — 4 keys
+### `src/main.ts` — 2 keys
 
-| Key                       | English                                                      | Notes                                                          |
-| ------------------------- | ------------------------------------------------------------ | -------------------------------------------------------------- |
-| `editor.saved`            | Code saved {time}                                            | takes `{time}`; `formatTime` drops the time zone suffix        |
-| `editor.confirmReset`     | Do you really want to reset to the default implementation?   | a `window.confirm`                                             |
-| `editor.confirmUndoReset` | Do you want to bring back the code as before the last reset? | a `window.confirm`                                             |
-| `fitness.measuring`       | Measuring fitness...                                         | written into the panel beside the editor before the run starts |
+| Key                 | English              | Notes                                                          |
+| ------------------- | -------------------- | -------------------------------------------------------------- |
+| `editor.saved`      | Code saved {time}    | takes `{time}`; `formatTime` drops the time zone suffix        |
+| `fitness.measuring` | Measuring fitness... | written into the panel beside the editor before the run starts |
+
+### `src/app/app.ts` — 2 `editor.*` keys
+
+| Key                       | English                                                      | Notes              |
+| ------------------------- | ------------------------------------------------------------ | ------------------ |
+| `editor.confirmReset`     | Do you really want to reset to the default implementation?   | a `window.confirm` |
+| `editor.confirmUndoReset` | Do you want to bring back the code as before the last reset? | a `window.confirm` |
+
+Both are asked by the `onResetCode` and `onUndoReset` callbacks `App` hands to `presentControls`.
+They were `src/main.ts`'s until the run buttons were gathered into one row: the two buttons that
+ask them are drawn by `src/ui/presenters.ts` now, and the app is what knows the editor.
 
 `fitness.measuring` is filed here rather than under `src/app/fitness.ts` because that is where it
 is written to the document; the benchmark itself stopped touching the page.
@@ -732,7 +741,7 @@ and all seven ship, so this is a record of how each was resolved rather than a p
    which is also how six point nine is written. `formatList` gives «6 и 9», which cannot be read
    as one number — and "6 and 9" in English, which reads better anyway.
 
-5. **`" Restart"` carries a leading space.** `presentChallenge` in `src/ui/presenters.ts` writes
+5. **`" Restart"` carries a leading space.** `presentControls` in `src/ui/presenters.ts` writes
    the label after an icon node, and the space is the gap between them. `game.button.restart` is
    the word alone, so the call site keeps the separator:
 
@@ -834,7 +843,7 @@ is `src/i18n/inventory.test.ts`, which reads this file with `?raw` and checks it
 3. The **Keys** column of _Where the strings are_ equals the number of `EN_MESSAGES` keys under
    each prefix, and the **Total** equals `Object.keys(EN_MESSAGES).length`.
 4. Every backticked `src/…` path exists on disk. This catches a renamed module. Keep it to
-   `src/`: a message key such as `docs.play.apply.html` is shaped like a file name and is not
+   `src/`: a message key such as `docs.play.start.html` is shaped like a file name and is not
    one, and `licenses.txt` only exists once the build has run.
 5. No `file.ts:123` pin below _How this file is anchored_, so the convention cannot quietly
    lapse. The two in that section are the examples of what it prevents, and are meant to stay

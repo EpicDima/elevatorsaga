@@ -39,8 +39,8 @@ declare global {
      * The legacy `fitness.js` exposed `fitnessSuite` as a global for the same
      * purpose, and its only call site was commented out because running the
      * benchmark after every keystroke was too slow to be useful. It stays
-     * opt-in: call it from the browser console and the answer appears next to
-     * the Save button.
+     * opt-in: call it from the browser console and the answer appears in the
+     * status line under the editor.
      */
     runFitnessSuite: (codeStr?: string) => Promise<FitnessSuiteResult>;
   }
@@ -97,25 +97,11 @@ async function main(): Promise<void> {
     fitnessMessage.classList.add("faded");
   });
 
-  requireElement("#button_save").addEventListener("click", () => {
-    editor.save();
-    editor.focus();
-  });
-  requireElement("#button_reset").addEventListener("click", () => {
-    if (window.confirm(t("editor.confirmReset"))) {
-      editor.reset();
-    }
-    editor.focus();
-  });
-  requireElement("#button_resetundo").addEventListener("click", () => {
-    if (window.confirm(t("editor.confirmUndoReset"))) {
-      editor.undoReset();
-    }
-    editor.focus();
-  });
-  requireElement("#button_apply").addEventListener("click", () => {
-    editor.trigger("apply_code");
-  });
+  // The four buttons that used to be wired here -- Save, Apply, Reset and Undo
+  // reset -- are the run controls now, drawn and driven by the app; see
+  // `presentControls` in src/ui/presenters.ts. Save has no successor: the editor
+  // has always autosaved a second after the last keystroke, so the button was a
+  // promise the game had already kept.
 
   // The skip link. Two things have to be taken off the browser: the focus,
   // which belongs inside CodeMirror rather than on the `<div>` it mounts into,
@@ -130,6 +116,7 @@ async function main(): Promise<void> {
   const app = new App({
     elements: {
       challenge: requireElement(".challenge"),
+      controls: requireElement(".controls"),
       tutorial: requireElement(".tutorial"),
       tutorialLink: requireElement(".tutoriallink"),
       world: requireElement(".innerworld"),

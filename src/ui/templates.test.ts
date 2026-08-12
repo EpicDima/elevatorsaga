@@ -7,6 +7,7 @@ import { requireElement } from "./dom.ts";
 import {
   challengeTemplate,
   codeStatusTemplate,
+  controlsTemplate,
   elevatorButtonTemplate,
   elevatorFloorButtonLabel,
   elevatorLabel,
@@ -196,6 +197,54 @@ describe("userTemplate", () => {
   });
 });
 
+describe("controlsTemplate", () => {
+  it("makes the time-scale controls real, labelled buttons", () => {
+    const fragment = renderFragment(controlsTemplate());
+    expect(fragment.querySelector("button.timescale_decrease")?.getAttribute("aria-label")).toBe(
+      "Decrease simulation speed",
+    );
+    expect(fragment.querySelector("button.timescale_increase")?.getAttribute("aria-label")).toBe(
+      "Increase simulation speed",
+    );
+  });
+
+  it("draws the four run buttons in one box, in the order they are read in", () => {
+    // Not decoration: the row wraps on a narrow page, and loose in it the four
+    // would break up one at a time. One box, so what drives the run wraps as
+    // the cluster it is -- and so the speed, which is a setting rather than a
+    // thing the player came for, stays on the far side of the row.
+    const fragment = renderFragment(controlsTemplate());
+    const buttons = [...(fragment.querySelector(".runbuttons")?.children ?? [])];
+
+    expect(buttons.map((button) => button.className)).toEqual([
+      "startstop unselectable",
+      "startover unselectable",
+      "resetcode unselectable",
+      "undoreset unselectable",
+    ]);
+    expect(buttons.every((button) => button.getAttribute("type") === "button")).toBe(true);
+  });
+
+  it("ships the four with no label at all, for the presenter to write", () => {
+    // The region is drawn once for the life of the page, so a label baked in
+    // here would still be in the language the page opened in after a change of
+    // language. `presentControls.update` writes all four.
+    const fragment = renderFragment(controlsTemplate());
+    const buttons = [...(fragment.querySelector(".runbuttons")?.children ?? [])];
+
+    expect(buttons.map((button) => button.textContent)).toEqual(["", "", "", ""]);
+  });
+
+  it("hides Undo reset until there is something to bring back", () => {
+    // The legacy game offered it unconditionally, so the most dangerous-looking
+    // button on the page was live at moments when it could only do nothing.
+    const fragment = renderFragment(controlsTemplate());
+
+    expect(fragment.querySelector(".undoreset")?.hasAttribute("hidden")).toBe(true);
+    expect(fragment.querySelector(".startstop")?.hasAttribute("hidden")).toBe(false);
+  });
+});
+
 describe("challengeTemplate", () => {
   /** A run nobody pinned, and the URL that starts another run from its seed. */
   const SEED: SeedLinkData = {
@@ -267,17 +316,6 @@ describe("challengeTemplate", () => {
     expect(title?.querySelector(".x")?.textContent).toBe("15");
   });
 
-  it("makes the time-scale controls real, labelled buttons", () => {
-    const fragment = bar({ num: 1, description: "x", links: [] });
-    expect(fragment.querySelector("button.timescale_decrease")?.getAttribute("aria-label")).toBe(
-      "Decrease simulation speed",
-    );
-    expect(fragment.querySelector("button.timescale_increase")?.getAttribute("aria-label")).toBe(
-      "Increase simulation speed",
-    );
-    expect(fragment.querySelector("button.startstop")).not.toBeNull();
-  });
-
   it("gives every challenge a link of its own, the last one being the demo", () => {
     // Reaching challenge 12 used to mean either winning eleven challenges or
     // typing #challenge=12 into the address bar.
@@ -328,38 +366,33 @@ describe("challengeTemplate", () => {
   });
 
   it("tabs through the bar in the order it is read in", () => {
-    // WCAG 2.4.3. The speed controls are drawn to the left of the start button,
-    // so they are written before it; the twenty challenge stops come after
-    // both, and the seed -- a debugging aid rather than part of the game --
-    // comes last of all. The bar reached this order by losing the `float: right`
-    // that used to draw the first-written control furthest right, so a class
-    // name is asserted here and not just a tag: `right` coming back on any of
+    // WCAG 2.4.3. The challenge stops come first, and the seed -- a debugging
+    // aid rather than part of the game -- comes last of all. The bar reached
+    // this order by losing the `float: right` that used to draw the
+    // first-written control furthest right, so `right` coming back on any of
     // these is the layout and the tab order coming apart again.
     const fragment = bar({ num: 1, description: "x", links: links(3) }, SEED);
     // `<summary>` is focusable and in the tab order without a tabindex, which is
     // the whole reason the caveat lives in one, so it counts as a stop here.
     const focusable = [...fragment.querySelectorAll("button, a, summary")];
 
-    expect(focusable.slice(0, 3).map((element) => element.className)).toEqual([
-      "timescale_decrease unselectable",
-      "timescale_increase unselectable",
-      "startstop unselectable",
+    expect(focusable.slice(0, -2).map((element) => element.className)).toEqual([
+      "challengelink",
+      "challengelink",
+      "challengelink",
     ]);
-    expect(focusable.slice(3, -1).every((element) => element.tagName === "A")).toBe(true);
     expect(focusable.at(-2)?.className).toBe("seedlink");
     expect(focusable.at(-1)?.tagName).toBe("SUMMARY");
   });
 
-  it("keeps the speed and the start button in one box", () => {
-    // Not decoration: the bar wraps somewhere around 600px, and loose in the
-    // row the start button falls under the speed on its own. One box, so the
-    // two things that drive the run wrap as the pair they are.
-    const controls = bar({ num: 1, description: "x", links: links(3) }).querySelector(
-      ".challengecontrols",
-    );
+  it("leaves the run controls out of the bar entirely", () => {
+    // They are a region of their own, drawn once for the life of the page
+    // (`controlsTemplate`). The bar is rebuilt on every restart, so anything
+    // left in here is a control that destroys itself when pressed.
+    const fragment = bar({ num: 1, description: "x", links: links(3) }, SEED);
 
-    expect(controls?.querySelector(".timescale")).not.toBeNull();
-    expect(controls?.querySelector(".startstop")).not.toBeNull();
+    expect(fragment.querySelector(".startstop")).toBeNull();
+    expect(fragment.querySelector(".timescale")).toBeNull();
   });
 
   it("escapes a link url rebuilt from the location hash", () => {
@@ -755,24 +788,23 @@ describe("tutorialTemplate", () => {
     expect(panel({ taskNumber: 6 }).getAttribute("data-task-index")).toBe("5");
   });
 
-  it("gives the way out three real buttons", () => {
+  it("gives the way out two real buttons, and no second Start over", () => {
     const buttons = [...panel().querySelectorAll(".tutorialbuttons button")];
 
     expect(buttons.map((button) => button.className)).toEqual([
-      "tutorialrestart",
       "tutorialtakecode",
       "tutorialleave",
     ]);
-    expect(buttons.map((button) => button.getAttribute("type"))).toEqual([
-      "button",
-      "button",
-      "button",
-    ]);
+    expect(buttons.map((button) => button.getAttribute("type"))).toEqual(["button", "button"]);
     expect(buttons.map((button) => button.textContent)).toEqual([
-      "Start over",
       "Take this program into your own editor",
       "Leave for the challenges",
     ]);
+    // The panel had its own "Start over" until the run buttons were gathered
+    // into `controlsTemplate`, which is drawn directly under it. Two buttons on
+    // screen together under one accessible name, doing not quite the same thing,
+    // is WCAG 3.2.4; the one that went is the one only the track had.
+    expect(panel().textContent).not.toContain("Start over");
   });
 });
 
@@ -828,7 +860,19 @@ describe("the language the building comes out in", () => {
     );
   });
 
-  it("names the speed controls and the navigation row", () => {
+  it("names the speed controls", () => {
+    setLocale("ru");
+    const fragment = renderFragment(controlsTemplate());
+
+    expect(fragment.querySelector("button.timescale_decrease")?.getAttribute("aria-label")).toBe(
+      "Уменьшить скорость симуляции",
+    );
+    expect(fragment.querySelector("button.timescale_increase")?.getAttribute("aria-label")).toBe(
+      "Увеличить скорость симуляции",
+    );
+  });
+
+  it("names the navigation row", () => {
     setLocale("ru");
     const fragment = renderFragment(
       challengeTemplate({
@@ -842,12 +886,6 @@ describe("the language the building comes out in", () => {
       }),
     );
 
-    expect(fragment.querySelector("button.timescale_decrease")?.getAttribute("aria-label")).toBe(
-      "Уменьшить скорость симуляции",
-    );
-    expect(fragment.querySelector("button.timescale_increase")?.getAttribute("aria-label")).toBe(
-      "Увеличить скорость симуляции",
-    );
     expect(fragment.querySelector("nav.challengenav")?.getAttribute("aria-label")).toBe("Задания");
     const entries = [...fragment.querySelectorAll("a.challengelink")];
     expect(entries.map((entry) => entry.getAttribute("aria-label"))).toEqual(["Задание 1", "Демо"]);
@@ -946,7 +984,7 @@ describe("the language the building comes out in", () => {
     expect(drawn.querySelector(".tutorialprogress")?.textContent).toBe("Пройдено 6 из 8 заданий");
     expect(
       [...drawn.querySelectorAll(".tutorialbuttons button")].map((button) => button.textContent),
-    ).toEqual(["Начать заново", "Забрать программу в свой редактор", "Выйти к заданиям игры"]);
+    ).toEqual(["Забрать программу в свой редактор", "Выйти к заданиям игры"]);
   });
 
   it("leaves the answer in the language it is written in", () => {

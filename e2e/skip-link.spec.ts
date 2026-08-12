@@ -3,7 +3,7 @@
  *
  * The editor is what the page is for, and it is behind everything the building
  * contains: the scroll container, and a button for every call and every floor.
- * On the eighteenth challenge that is 240 tab stops past the link, 208 of them
+ * On the eighteenth challenge that is 242 tab stops past the link, 208 of them
  * buttons. The count is measured here rather than asserted from the markup
  * because most of those stops are drawn by the presenters at run time and do
  * not exist in `index.html` at all.
@@ -56,10 +56,12 @@ test("saves a walk through the whole building", async ({ page }) => {
 
   // Exact, because a range records nothing: this file's own header claimed 208
   // while the walk was 240, and bounds of 100 and 400 had nothing to say about
-  // it. 208 of the 240 are buttons -- eight cars of 21 floors, plus a call each
-  // way -- and the other 32 are the rest of the chrome above the building, the
+  // it. 208 of the 242 are buttons -- eight cars of 21 floors, plus a call each
+  // way -- and the other 34 are the rest of the chrome above the building, the
   // building's own scroll container, and the press that lands on the editor.
   // Adding a challenge link, or anything else above the building, moves this by
-  // one, and then the number has to be looked at rather than guessed at.
-  expect(stops).toBe(240);
+  // one, and then the number has to be looked at rather than guessed at. It was
+  // 240 until the run controls gained "Start over" and "Reset code", which are
+  // above the building and so are two more stops this link saves.
+  expect(stops).toBe(242);
 });

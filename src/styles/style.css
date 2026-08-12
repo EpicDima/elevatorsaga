@@ -479,162 +479,52 @@ dl dd {
  * row has to be allowed to grow: on a phone twenty entries wrap onto three
  * lines, and a fixed height would leave them lying over the building.
  *
- * A wrapping flex row, and the reason is the tab order rather than the look.
- * This was `float: left` on the title and `float: right` on the two controls,
- * and a float lays the *first* box out furthest from the content edge: the start
- * button was written before the speed controls precisely so that it would be
- * drawn to the right of them. Tab therefore walked the bar right-to-left,
- * against the way it reads (WCAG 2.4.3, Focus Order). Flex in document order
- * puts the same boxes back in the same places, with the document now saying what
- * it means, and deliberately without `order` or `row-reverse`, either of which
- * would let the two orders come apart again.
+ * Two stacked blocks, and nothing more, which is the third layout this bar has
+ * had. It was `float: left` on the title and `float: right` on the start button
+ * and the speed, and a float lays the *first* box out furthest from the content
+ * edge: the start button was written before the speed controls precisely so that
+ * it would be drawn to the right of them. Tab therefore walked the bar
+ * right-to-left, against the way it reads (WCAG 2.4.3, Focus Order). A wrapping
+ * flex row put the same boxes back in the same places with the document saying
+ * what it meant, and carried a basis on the title (below) that decided, uniformly
+ * for every challenge, the window width at which the controls dropped to a line
+ * of their own.
  *
- * "The same places" is near enough to be worth saying and not exact. Swept over
- * all nineteen challenges there were then at every 20px from 320px to 940px --
- * 608 measurements of this bar's height against the float bar's, in Chromium
- * with the seed pinned -- this one is taller in 59 of them, shorter in 162 and
- * identical to the pixel in 387. The claim that stood here that the two were exact was wrong,
- * and so was the first repair of it, which said 21 taller by at most 25.3px: 21
- * is the count over 320px to 900px, and 25.3px the worst of the cells it looked
- * at rather than of the sweep.
+ * All of that machinery was about keeping two kinds of thing on one line. The
+ * controls are not in this bar any more -- see `.controls` -- so there is one
+ * thing left on each of its lines, and a flex row with one item to a line is a
+ * block. `justify-content`, `align-items`, the column gap and the title's basis
+ * went with them; every one of them was measured, and every one of them was
+ * measuring where the start button went.
  *
- * Three things account for the difference, and only two of them are this rule's
- * doing. The floats used to leave the start button up on the title's line with
- * the speed stranded below it, and the pair now wraps together, which is the
- * arrangement this replaces the floats for. And the width the controls leave at
- * is now a property of the bar instead of the challenge: a basis decides it (see
- * `.challengetitle`), so they hold their place down to a 501px window on every
- * one of them, where under the floats it was the title's own text that
- * decided -- 345px on the demo, 510px on challenge 1, 522px on challenge 5,
- * 853px on challenge 18. That is the whole shape of the difference: uniform
- * where it used to vary, which is later than the floats managed on the long
- * titles and earlier on the short ones. The demo is the short one, and its
- * 40.1px between 440px and 500px is the worst cell in the sweep. The bar's own
- * 15px column gap is part of that width and is width the floats never set aside;
- * neutralise it and the controls hold on to 486px instead of 501px, so it costs
- * 15px of window, the same 15px on every challenge.
- *
- * The third is not this bar's layout at all. Thirty-eight of the 59, which is
- * every challenge at 920px and at 940px, are the seed line: it used to sit
- * beside the row of challenge links whenever it fitted, and now always takes a
- * line of its own, for the reason written at `.challengeseed`. That landed long
- * after the floats went, and a sweep of two commits picks it up all the same.
- * Over 320px to 900px, where the seed line dropped below the links in both, this
- * bar is taller in 21 of 570 places and shorter in the same 162 -- of which 20
- * are challenge 18, whose title is two characters longer here than there because
- * its numbers gained thousands separators in between, and not a layout
- * difference either.
- *
- * `justify-content: flex-end` rather than `space-between`: the title takes the
- * slack (see `.challengetitle`), so the only line this can act on is the one the
- * controls fall onto when the title has taken the first, and there they belong
- * at the end, under the start button they were beside a moment earlier.
- *
- * `align-items: baseline` is the other deliberate difference: a float hangs from
- * the top of the block, which had the start button 7px above the requirement it
- * sits beside. Aligned on the baseline the two now read as one line of text, and
- * the bar is no taller for it -- 30px of button still fits inside the 40px the
- * title line already reserved.
+ * `min-block-size` stays. The bar is directly above the run controls and the
+ * building, and a challenge whose requirement is one short line would otherwise
+ * move everything under it up by the difference.
  */
 .challenge {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  justify-content: flex-end;
-  gap: 0 15px;
   min-block-size: 40px;
 }
 
 /*
- * The requirement, and the item that takes whatever width the controls do not.
- *
- * The basis is the narrowest the requirement may be squeezed to, and that is the
- * only question it answers: flex breaks a line on base sizes and never on the
- * size an item would settle at, so the number written here is the width below
- * which the controls are sent to a line of their own. Everywhere above it the
- * item grows past the basis to take whatever the controls leave.
- *
- * It was 20em, which is what challenge 1's title happens to measure (374.5px),
- * so the narrowest the requirement could be and the width it would like were the
- * same number, and the controls left the moment the longest requirement could no
- * longer be shown whole. That is the expensive way round. Measured at 900px tall
- * in Chromium: a line of its own for the controls costs the bar 40.1px, a second
- * line for the requirement costs 25.3px, and the bar sits directly above the
- * building, where every pixel it grows pushes the game down the page. At 14em
- * the requirement gives way first, and the controls stay beside it down to a
- * 501px window rather than a 614px one -- on the demo, whose title is only
- * 212px, that is 40.1px of building recovered at every width from 501px to
- * 613px, and on challenge 1 it is 14.8px. No challenge at any width is taller
- * than 20em left it.
- *
- * Every width here is bisected to the pixel rather than read off a sweep, which
- * is what an earlier revision of this comment did: 510px, 620px and 460px are
- * all the next multiple of ten above the width the layout actually changes at,
- * and every figure derived from them was out by the same few pixels.
- *
- * Not lower than 14em, because the requirement is prose and has to stay
- * readable: the break now lands where it still has 262.3px to lay out in, which
- * is a sentence over two lines rather than the column of single words a basis of
- * 0 would leave. 11em would carry the demo down to 445px, but at 445px it
- * leaves challenge 18's title 206.3px and that bar 12.2px taller than it is now,
- * which is the point at which squeezing the requirement starts costing one
- * challenge to pay for another.
+ * The requirement. A line of prose across the bar, and since the controls left
+ * it there is nothing beside it to divide the width with -- what stands here is
+ * what a heading needs to look like the rest of the page, and the margins that
+ * hold it off the row of challenge links below.
  */
 .challengetitle {
-  flex: 1 1 14em;
   margin-block: 0.4em 0.3em;
   font-size: 1.17em;
   font-weight: normal;
 }
 
 /*
- * What drives the run: the speed, and the button that starts and pauses it.
- *
- * They are one flex item of the bar rather than two so that they wrap as a pair.
- * Loose, the bar breaks between them at every width from 380px to 500px -- wide
- * enough for the title and the speed but not the start button -- and the button
- * lands alone under the speed, reading as something unrelated to it at exactly
- * the width where there is least room to work out that it is not.
- *
- * The 15px gap is the distance the two stood apart under the floats, where it
- * was spelled as a trailing margin on the speed's `+` and a leading one on the
- * start button. Two boxes standing apart is a fact about the pair, so the pair
- * says it, once.
- */
-.challengecontrols {
-  display: flex;
-  align-items: baseline;
-  gap: 15px;
-}
-
-.timescale {
-  margin-block: 0.4em 0.3em;
-  font-size: 1.17em;
-  color: var(--color-text);
-  white-space: nowrap;
-}
-
-.timescale button {
-  padding: 4px;
-  line-height: 20px;
-}
-
-.timescale_value {
-  display: inline-block;
-  inline-size: 22px;
-  text-align: center;
-}
-
-/*
  * The rest of the bar: the row of challenge links, and the seed line under it.
  *
- * A basis of the full width is what makes them lines of the bar at all: this is
- * the third and last item of the bar's own flex row, and an item that asks for
- * every pixel cannot share a line with the title and the controls, so it wraps
- * under them. This is the one thing the bar's `flex-wrap` will not do on its
- * own -- the row of twenty links is wide, but "wide" is not "wider than
- * whatever is left over", and on a short challenge list it would have ridden up
- * beside the title.
+ * A block of the bar, which is what puts them under the title rather than beside
+ * it. That used to be a `flex-basis: 100%` fighting the bar's own flex row for
+ * the same result -- the row of twenty links is wide, but "wide" is not "wider
+ * than whatever is left over", and on a short challenge list it would have
+ * ridden up beside the title.
  *
  * A flex row so the links take the width they need and no more: 692.1px of the
  * 1220px on offer at a 1280px window, wrapping within themselves where they do
@@ -648,7 +538,6 @@ dl dd {
  * 320px to 1280px: not one box moves.
  */
 .challengefooter {
-  flex-basis: 100%;
   display: flex;
   flex-wrap: wrap;
 }
@@ -674,7 +563,7 @@ dl dd {
 }
 
 /*
- * The chrome is the start button's, so the row reads as part of the same bar.
+ * The chrome is the run buttons', so the whole page's controls read as one set.
  * The box is 30x28 including its border, which clears the 24x24 minimum for a
  * pointer target (WCAG 2.5.8) with the gap between entries on top of it.
  */
@@ -849,6 +738,63 @@ dl dd {
   margin: 0;
 }
 
+/* ------------------------------------------------------------- Run controls */
+
+/*
+ * What drives the run: the four buttons, and the speed.
+ *
+ * Its own row between the panels and the building, where the challenge bar used
+ * to hold the start button and the speed and the editor held the other three.
+ * The two groups sit at opposite ends because they are different kinds of
+ * thing -- four things to press and one setting -- and `wrap` lets the speed
+ * drop under the buttons rather than squeezing them, which is the order they
+ * matter in.
+ *
+ * The 15px column gap is the distance the speed and the start button stood apart
+ * in the bar, where it was spelled as a trailing margin on the speed's `+` and a
+ * leading one on the start button. The 10px row gap is what keeps the two from
+ * touching once they are stacked.
+ */
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 15px;
+  margin-block: 8px;
+}
+
+/*
+ * Start/Pause, Start over, Reset code, Undo reset -- in that order, which is the
+ * order they are reached for: the one every run needs, the one that begins the
+ * run again, and then the two that act on the program rather than on the run.
+ * The last of the four is `hidden` until there is a reset to undo, so this is a
+ * row of three most of the time and the gap closes behind it by itself.
+ */
+.runbuttons {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px;
+}
+
+.timescale {
+  font-size: 1.17em;
+  color: var(--color-text);
+  white-space: nowrap;
+}
+
+.timescale button {
+  padding: 4px;
+  line-height: 20px;
+}
+
+.timescale_value {
+  display: inline-block;
+  inline-size: 22px;
+  text-align: center;
+}
+
 /* ----------------------------------------------------------- Learning track */
 
 /*
@@ -960,17 +906,21 @@ dl dd {
 }
 
 /*
- * The three ways out of a task. A wrapping row, because these labels are
+ * The two ways out of a task. A wrapping row, because these labels are
  * sentences rather than words -- "Take this program into your own editor", and
- * the Russian for it -- and the three cannot share a line on a phone.
+ * the Russian for it -- and the two cannot share a line on a phone.
  *
  * What `nowrap` does here was measured rather than assumed, and it is not what
- * `.codebuttons` below does: a flex item may shrink to its longest word, so the
- * three stay on one line by becoming columns 55px, 133px and 92px wide holding
- * two to four lines each, 64px tall against the 30px of a label on one line.
- * The page does not grow -- the panel is 300px either way -- but in Russian at
- * 320px the squeezed row is 5px wider than the panel it sits in and the last
- * button hangs over the edge. Wrapping is what keeps a button a button.
+ * `.runbuttons` does: a flex item may shrink to its longest word, so the two
+ * stay on one line by becoming columns of two to four lines each. In Russian at
+ * 320px that is 170.7px and 119.3px wide and 62px tall, against the 46px and
+ * 30px the wrapped row gives them; in English, 173.2px and 116.8px at 46px tall
+ * against two 30px lines. Nothing overflows -- the squeezed pair comes to
+ * exactly the panel's 300px -- so what is lost is only that a button stops
+ * looking like a button, which is enough. There were three of these until the
+ * run controls were gathered into `.runbuttons`, and with the third the squeeze
+ * was 5px wider than the panel and hung the last button over its edge; the
+ * `escapedButtons` measurement in `e2e/tutorial.spec.ts` is what caught that.
  */
 .tutorialbuttons {
   display: flex;
@@ -983,8 +933,8 @@ dl dd {
  * What "Take this program" did, at the size the editor's own "Code saved ..."
  * line uses: this is the same kind of remark about the same kind of write, and
  * the two should not look like different classes of news. Only the size is
- * repeated -- the colour comes from the `p` rule above, which `#save_message`
- * cannot use because it is a `<span>`.
+ * repeated -- the colour is the `p` rule above, which `#save_message` now gets
+ * for itself, being a paragraph as well.
  *
  * Not hidden while it is empty, though it is empty for most of a task's life. It
  * is a live region, and the announcement is only reliable when the region was
@@ -1040,8 +990,7 @@ button[disabled] {
   cursor: default;
 }
 
-.startstop,
-.codebuttons button,
+.runbuttons button,
 .tutorialbuttons button {
   block-size: 30px;
   padding-inline: 10px;
@@ -1080,33 +1029,30 @@ button[disabled] {
 }
 
 /*
- * Reset/Undo on one side, Save/Apply on the other. The two groups need about
- * 400px between them, so on a 320px screen the row has to be allowed to fall
- * into two lines -- without `wrap` it pushed the whole page 25px wider than the
- * screen, which is the two-dimensional scrolling WCAG 1.4.10 is about. There is
- * room for both groups from roughly 420px up, and the rule costs nothing there.
+ * What the editor has to say for itself: the save confirmation, and the fitness
+ * benchmark's result when the console has asked for one.
+ *
+ * One line of height is held open whether or not anything is in it, because the
+ * save confirmation arrives a second after the first keystroke and would
+ * otherwise push the rest of the page down while the player was reading it. Only
+ * one line: the benchmark is a console command, and the Russian result is wider
+ * than the shell is allowed to be, so reserving room for it would leave every
+ * player who never runs it looking at two blank lines to spare one.
+ *
+ * They are two paragraphs rather than two spans in a row, for the same reason:
+ * side by side, the row grew by a line the moment a result landed.
  */
-.codebuttons {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
+.editorstatus {
+  min-block-size: 18px;
+  margin-block: 4px;
 }
 
-.codebuttons div {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 5px;
-}
-
+/* The colour is the `p` rule's, now that these two are paragraphs. */
 #save_message,
 #fitness_message {
-  margin-inline: 20px;
-  color: var(--color-text);
+  margin-block: 0;
   font-size: 12px;
-  line-height: 30px;
+  line-height: 18px;
 }
 
 .hint {

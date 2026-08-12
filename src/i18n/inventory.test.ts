@@ -46,7 +46,7 @@
  *   whole tree, not from the catalogue, and reproducing that grep here would
  *   make this suite fail whenever an unrelated file is mid-edit.
  * - paths outside `src/`. The document says why: a message key such as
- *   `docs.play.apply.html` is shaped like a file name and is not one, and
+ *   `docs.play.start.html` is shaped like a file name and is not one, and
  *   `licenses.txt` exists only after a build.
  *
  * Read with `?raw` rather than `node:fs` so that the document is a module
@@ -200,7 +200,7 @@ const NON_PATHS: ReadonlyMap<string, string> = new Map([
 /**
  * A `file.ts:123` reference, which is the notation this document bans.
  *
- * The extension list is closed on purpose: `docs.play.apply.html` followed by a
+ * The extension list is closed on purpose: `docs.play.start.html` followed by a
  * colon and a digit would otherwise read as a pin, and messages get quoted
  * beside numbers all through the tables.
  */

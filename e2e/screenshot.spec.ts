@@ -13,7 +13,7 @@
 
 import { expect, test } from "@playwright/test";
 
-import { statistic, statisticValue } from "./game-page.ts";
+import { startButton, statistic, statisticValue } from "./game-page.ts";
 
 /**
  * Where the README expects to find it.
@@ -90,7 +90,7 @@ test.describe("README screenshot", () => {
     // Freeze the simulation so nothing is halfway through a transition, and so
     // the numbers in the panel match the pixels above them.
     await page.getByRole("button", { name: "Pause" }).click();
-    await expect(page.getByRole("button", { name: "Start" })).toBeVisible();
+    await expect(startButton(page)).toBeVisible();
 
     // Oswald is self-hosted and loaded by the bundle; without this the headings
     // can still be in the fallback face when the shutter comes down.

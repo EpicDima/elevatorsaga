@@ -54,7 +54,6 @@ function panelData(overrides: Partial<TutorialPanelData> = {}): TutorialPanelDat
     taskIndex: 0,
     clearedCount: 0,
     hasOwnProgram: () => false,
-    onRestart: vi.fn(),
     onTakeCode: vi.fn(() => true),
     onLeave: vi.fn(),
     ...overrides,
@@ -128,7 +127,6 @@ describe("presentTutorial", () => {
     expect(requireElement(".tutorialexplanation summary", parent).textContent).toBe(
       "Why this happens",
     );
-    expect(requireElement(".tutorialrestart", parent).textContent).toBe("Start over");
     expect(requireElement(".tutorialtakecode", parent).textContent).toBe(
       "Take this program into your own editor",
     );
@@ -289,17 +287,17 @@ describe("presentTutorial", () => {
 
   describe("focus", () => {
     it("puts it back on the button a redraw destroyed", () => {
-      // Pressing "Start over" starts the task again, which redraws this panel
-      // and deletes the button that was pressed. Focus would fall back to the
-      // document, dropping a keyboard player at the top of the page and leaving
-      // them the whole of it to tab through again (WCAG 2.4.3).
+      // Clearing the task redraws this panel to move its progress line on, and
+      // that deletes whichever button was under the player's finger. Focus would
+      // fall back to the document, dropping a keyboard player at the top of the
+      // page and leaving them the whole of it to tab through again (WCAG 2.4.3).
       presentTutorial(parent, panelData());
-      const pressed = requireElement(".tutorialrestart", parent);
+      const pressed = requireElement(".tutorialtakecode", parent);
       pressed.focus();
 
       presentTutorial(parent, panelData());
 
-      const redrawn = requireElement(".tutorialrestart", parent);
+      const redrawn = requireElement(".tutorialtakecode", parent);
       expect(redrawn).not.toBe(pressed);
       expect(document.activeElement).toBe(redrawn);
     });
@@ -347,15 +345,13 @@ describe("presentTutorial", () => {
     });
   });
 
-  describe("the three buttons", () => {
-    it("reports a press of the two that cannot destroy anything", () => {
+  describe("the two buttons", () => {
+    it("reports a press of the one that cannot destroy anything", () => {
       const data = panelData();
       presentTutorial(parent, data);
 
-      requireElement(".tutorialrestart", parent).click();
       requireElement(".tutorialleave", parent).click();
 
-      expect(data.onRestart).toHaveBeenCalledTimes(1);
       expect(data.onLeave).toHaveBeenCalledTimes(1);
       expect(data.onTakeCode).not.toHaveBeenCalled();
     });
@@ -423,10 +419,10 @@ describe("presentTutorial", () => {
       const second = panelData();
       presentTutorial(parent, second);
 
-      requireElement(".tutorialrestart", parent).click();
+      requireElement(".tutorialleave", parent).click();
 
-      expect(first.onRestart).not.toHaveBeenCalled();
-      expect(second.onRestart).toHaveBeenCalledTimes(1);
+      expect(first.onLeave).not.toHaveBeenCalled();
+      expect(second.onLeave).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -604,7 +600,7 @@ describe("presentTutorial", () => {
       expect(requireElement(".tutorialtitle", parent).textContent).toBe(
         "Лифт, который никуда не едет",
       );
-      expect(requireElement(".tutorialrestart", parent).textContent).toBe("Начать заново");
+      expect(requireElement(".tutorialleave", parent).textContent).toBe("Выйти к заданиям игры");
       expect(requireElement(".tutorialprogress", parent).textContent).toBe(
         `Пройдено 1 из ${String(tutorialTasks.length)} заданий`,
       );

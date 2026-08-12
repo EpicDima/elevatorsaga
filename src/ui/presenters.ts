@@ -30,6 +30,7 @@ import { createIcon } from "./icons.ts";
 import {
   challengeTemplate,
   codeStatusTemplate,
+  controlsTemplate,
   elevatorButtonTemplate,
   elevatorFloorButtonLabel,
   elevatorLabel,
@@ -215,35 +216,148 @@ export interface ChallengePresenterOptions {
    * what the current one is.
    */
   readonly seed: SeedLinkData | null;
-  /** The world being played, consulted for `challengeEnded`. */
-  readonly world: Pick<World, "challengeEnded">;
+}
+
+/** What the run controls need in order to draw and drive themselves. */
+export interface ControlsPresenterOptions {
   /** The controller being driven, consulted for `isPaused` and `timeScale`. */
   readonly worldController: Pick<WorldController, "isPaused" | "timeScale">;
+  /**
+   * Whether the run on screen is over, so the button offers to start again.
+   *
+   * A function rather than the world itself, because this region outlives every
+   * run it drives: it is drawn once for the life of the page, and the world it
+   * is reporting on is replaced on every restart.
+   */
+  readonly challengeEnded: () => boolean;
+  /** Whether there is a program "Undo reset" could bring back. */
+  readonly canUndoReset: () => boolean;
   /** Called when the start/pause/restart button is pressed. */
   readonly onStartStop: () => void;
+  /** Called when "Start over" is pressed. */
+  readonly onStartOver: () => void;
+  /** Called when "Reset code" is pressed. */
+  readonly onResetCode: () => void;
+  /** Called when "Undo reset" is pressed. */
+  readonly onUndoReset: () => void;
   /** Called when the `+` button is pressed. */
   readonly onTimeScaleIncrease: () => void;
   /** Called when the `-` button is pressed. */
   readonly onTimeScaleDecrease: () => void;
-  /**
-   * Whether the caller has already destroyed the focused element.
-   *
-   * Set by the app when the teardown that precedes this render emptied a
-   * container focus was inside — the end-of-challenge overlay, or the building.
-   * The bar cannot detect that for itself: by the time it runs, focus has
-   * already fallen back to `<body>`. See {@link containsFocus}.
-   */
-  readonly focusWasDestroyed?: boolean;
 }
 
-/** A rendered challenge bar. */
-export interface ChallengePresenter {
-  /** Redraws the parts that change: the start button label and the time scale. */
+/** The rendered run controls. */
+export interface ControlsPresenter {
+  /**
+   * Relabels the start button, the speed and the visibility of "Undo reset".
+   *
+   * Everything this touches is state the row reports rather than owns, so it is
+   * called after anything that could have moved any of it: a pause, a speed
+   * change, the end of a run, a reset, and a language change.
+   */
   update(): void;
+
+  /**
+   * Puts focus on the start button.
+   *
+   * For the app, and only for the case it alone can see: a redraw that emptied
+   * a region focus was inside — the end-of-challenge overlay holding the "Next
+   * challenge" link, or the building — leaves focus on `<body>` and a keyboard
+   * player back at the top of the page. The start button is where they were
+   * going anyway. This row is the one place on the page that survives every
+   * redraw, which is what makes it the place to land.
+   */
+  focusStartStop(): void;
 }
 
 /**
- * Renders a time scale the way the challenge bar shows it.
+ * Draws the run controls and wires them up.
+ *
+ * Called once, from the app's constructor, and never again — see
+ * {@link "./templates.ts"!controlsTemplate} for why the row is not rebuilt with
+ * the challenge bar. That is what makes {@link ControlsPresenter.update} the
+ * whole of the redraw: there is no markup to carry focus or disclosure state
+ * across, because the markup never goes away.
+ *
+ * A language change needs no more than another {@link ControlsPresenter.update}:
+ * every word this row shows is written there, from the catalogue, at the moment
+ * it is written.
+ *
+ * @param parent - The `.controls` element.
+ * @param options - The controller to report on and the callbacks for the six
+ * buttons.
+ * @returns The presenter, already drawn.
+ */
+export function presentControls(
+  parent: HTMLElement,
+  options: ControlsPresenterOptions,
+): ControlsPresenter {
+  parent.innerHTML = controlsTemplate();
+
+  const startStop = requireElement(".startstop", parent);
+  const startOver = requireElement(".startover", parent);
+  const resetCode = requireElement(".resetcode", parent);
+  const undoReset = requireElement(".undoreset", parent);
+  const timeScaleValue = requireElement(".timescale_value", parent);
+  const timeScaleDecrease = requireElement(".timescale_decrease", parent);
+  const timeScaleIncrease = requireElement(".timescale_increase", parent);
+
+  startStop.addEventListener("click", () => {
+    options.onStartStop();
+  });
+  startOver.addEventListener("click", () => {
+    options.onStartOver();
+  });
+  resetCode.addEventListener("click", () => {
+    options.onResetCode();
+  });
+  undoReset.addEventListener("click", () => {
+    options.onUndoReset();
+  });
+  timeScaleDecrease.addEventListener("click", () => {
+    options.onTimeScaleDecrease();
+  });
+  timeScaleIncrease.addEventListener("click", () => {
+    options.onTimeScaleIncrease();
+  });
+
+  const presenter: ControlsPresenter = {
+    update(): void {
+      timeScaleValue.textContent = formatTimeScale(options.worldController.timeScale);
+      timeScaleDecrease.setAttribute("aria-label", t("game.timeScale.decrease"));
+      timeScaleIncrease.setAttribute("aria-label", t("game.timeScale.increase"));
+      startOver.textContent = t("game.button.startOver");
+      resetCode.textContent = t("game.button.resetCode");
+      undoReset.textContent = t("game.button.undoResetCode");
+      if (options.challengeEnded()) {
+        // The space belongs to this line rather than to the message: it is the
+        // gap between the icon and the word, which every language needs and no
+        // translator should have to remember to type.
+        startStop.replaceChildren(createIcon("repeat"), ` ${t("game.button.restart")}`);
+      } else {
+        startStop.textContent = options.worldController.isPaused
+          ? t("game.button.start")
+          : t("game.button.pause");
+      }
+      // Hidden rather than disabled: there is nothing to explain to a player
+      // who has not reset anything, and a disabled control they can neither
+      // press nor tab to is a worse answer than one that is not there. It
+      // appears the moment a reset gives it something to do.
+      undoReset.hidden = !options.canUndoReset();
+    },
+
+    focusStartStop(): void {
+      startStop.focus();
+    },
+  };
+  // Before anything can take focus, so that a screen reader announces "Start"
+  // rather than an unnamed button.
+  presenter.update();
+  return presenter;
+}
+
+/**
+ * Renders a time scale the way the run controls show it.
  *
  * The legacy `timeScale.toFixed(0) + "x"` was fine for the whole numbers the
  * buttons produce and a lie for anything else: `#timescale=0.5` read `1x`, and
@@ -266,48 +380,37 @@ export function formatTimeScale(timeScale: number): string {
 }
 
 /**
- * Draws the challenge bar and wires up its controls.
+ * Draws the challenge bar.
  *
  * The legacy version re-rendered the whole bar — and re-bound all three click
- * handlers — on every `timescale_changed` event. Here the bar is built once per
- * challenge and {@link ChallengePresenter.update} refreshes only the text.
+ * handlers — on every `timescale_changed` event. The speed and the start button
+ * have their own region now ({@link presentControls}), which is drawn once and
+ * never rebuilt, so a speed change touches no markup here at all; the bar itself
+ * is built once per challenge.
+ *
+ * Nothing is returned: everything the bar shows is settled by the time it is
+ * drawn, and the one thing about it that changes during a run — the start
+ * button — moved out to {@link presentControls}, which is what has an `update`.
  *
  * @param parent - The `.challenge` element.
- * @param options - Challenge data and the callbacks for its three buttons.
- * @returns The presenter, already drawn.
+ * @param options - The challenge number, the requirement, the navigation row and
+ * the seed line.
  */
-export function presentChallenge(
-  parent: HTMLElement,
-  options: ChallengePresenterOptions,
-): ChallengePresenter {
-  // Pressing Restart makes the app start the challenge again, which rebuilds
-  // this bar and so destroys the very button that was just pressed. Focus then
-  // falls back to <body>, and a keyboard player who pressed Space on Restart is
-  // returned to the top of the page and has to tab all the way back in. If the
-  // rebuild is pulling the floor out from under the focused element like that,
-  // put focus back on the button that replaced it.
+export function presentChallenge(parent: HTMLElement, options: ChallengePresenterOptions): void {
+  // A rebuild of this bar destroys whatever inside it had focus, and following
+  // any of its links rebuilds it: each changes the hash, which restarts the run.
+  // So the two things a player can be standing on here are restored by position
+  // below. What is no longer restored here is the start button, which used to be
+  // the fallback for everything else: it is in the controls row now, which
+  // survives every rebuild, so the button a player pressed is still under them
+  // afterwards and there is nothing to put back.
   //
-  // The test is deliberately "was focus inside this bar", not a flag from the
-  // caller: it is true exactly when the rebuild destroyed the focused element,
-  // and false for the initial render and for a rebuild triggered from the
-  // editor (Ctrl-Enter), where stealing focus out of the editor would be worse
-  // than doing nothing.
-  //
-  // The same question about the regions torn down *before* this render — the
-  // feedback overlay holding the "Next challenge" link, and the building — can
-  // only be answered by the caller, which is why it may say so explicitly.
-  const restoreFocus =
-    options.focusWasDestroyed === true ||
-    (document.activeElement !== null &&
-      parent.contains(document.activeElement) &&
-      parent !== document.activeElement);
-
-  // Taking a link out of the navigation row destroys the focused element for
-  // the same reason Restart does, and the start button is the wrong landing
-  // place for it: a player working through the row with the keyboard has to be
-  // able to carry on down it. The row is rebuilt entry for entry, so the entry
-  // that replaces the one that was pressed is the one in the same position —
-  // which is also the one now marked as current.
+  // Taking a link out of the navigation row destroys the focused element, and
+  // the start button was the wrong landing place for that even when it was
+  // here: a player working through the row with the keyboard has to be able to
+  // carry on down it. The row is rebuilt entry for entry, so the entry that
+  // replaces the one that was pressed is the one in the same position — which is
+  // also the one now marked as current.
   const focusedLinkIndex = queryAll(CHALLENGE_LINK_SELECTOR, parent).findIndex(
     (link) => link === document.activeElement,
   );
@@ -315,8 +418,7 @@ export function presentChallenge(
   // The seed line is the one other thing in the bar a player can be standing on
   // when it rebuilds, and following either of its links *always* rebuilds: both
   // change the hash, which restarts the run. It is not in the row, so it needs
-  // asking about separately -- and it must not fall through to the start button,
-  // which would put a keyboard player one press away from restarting again.
+  // asking about separately.
   //
   // Restored by position, like the row and for the same reason: the link that
   // replaces the one that was followed is not the same link. Pinning a run
@@ -350,47 +452,13 @@ export function presentChallenge(
     rebuiltHelp.open = true;
   }
 
-  const startStop = requireElement(".startstop", parent);
-  const timeScaleValue = requireElement(".timescale_value", parent);
-
-  requireElement(".timescale_decrease", parent).addEventListener("click", () => {
-    options.onTimeScaleDecrease();
-  });
-  requireElement(".timescale_increase", parent).addEventListener("click", () => {
-    options.onTimeScaleIncrease();
-  });
-  startStop.addEventListener("click", () => {
-    options.onStartStop();
-  });
-
-  const presenter: ChallengePresenter = {
-    update(): void {
-      timeScaleValue.textContent = formatTimeScale(options.worldController.timeScale);
-      if (options.world.challengeEnded) {
-        // The space belongs to this line rather than to the message: it is the
-        // gap between the icon and the word, which every language needs and no
-        // translator should have to remember to type.
-        startStop.replaceChildren(createIcon("repeat"), ` ${t("game.button.restart")}`);
-      } else {
-        startStop.textContent = options.worldController.isPaused
-          ? t("game.button.start")
-          : t("game.button.pause");
-      }
-    },
-  };
-  // After update(), so the button already has its label when it takes focus and
-  // a screen reader announces "Start" rather than an unnamed button.
-  presenter.update();
   const focusedLink = queryAll(CHALLENGE_LINK_SELECTOR, parent)[focusedLinkIndex];
   const focusedSeedControl = queryAll(SEED_CONTROL_SELECTOR, parent)[focusedSeedIndex];
   if (focusedLink !== undefined) {
     focusedLink.focus();
   } else if (focusedSeedControl !== undefined) {
     focusedSeedControl.focus();
-  } else if (restoreFocus) {
-    startStop.focus();
   }
-  return presenter;
 }
 
 /** What the end-of-challenge overlay says. */

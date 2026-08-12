@@ -220,12 +220,10 @@ describe("localisePage", () => {
         "Перемещения",
         "Сред. загрузка",
       ]);
-      expect([...page.querySelectorAll(".codebuttons button")].map((key) => textOf(key))).toEqual([
-        "Сбросить",
-        "Вернуть код",
-        "Сохранить",
-        "Применить",
-      ]);
+      // The run buttons are not checked here: they are the app's, written by
+      // `presentControls` into a region this file leaves empty, and what they
+      // say in Russian is `app.test.ts`'s subject.
+      //
       // The grip has no words of its own on screen, so its accessible name is
       // the only thing to check -- and the only thing a reader who cannot see
       // where it is will be given.
@@ -308,12 +306,12 @@ describe("localisePage", () => {
       // combination that does nothing.
       expect(
         [...page.querySelectorAll(".hint kbd[data-mod-key]")].map((key) => textOf(key)),
-      ).toEqual(["⌘", "⌘"]);
+      ).toEqual(["⌘"]);
       expect(textOf(page.querySelector(".hint"))).toBe(
-        "В редакторе: ⌘+Enter применяет программу. ⌘+S сохраняет её. Tab добавляет отступ. " +
-          "Esc убирает фокус из редактора. Потяните полоску над этой строкой, чтобы изменить " +
-          "высоту редактора, или наведите на неё фокус и нажимайте ↑ и ↓; двойной щелчок вернёт " +
-          "исходную высоту.",
+        "В редакторе: код сохраняется сам, пока вы печатаете. ⌘+Enter применяет программу. " +
+          "Tab добавляет отступ. Esc убирает фокус из редактора. Потяните полоску над этой " +
+          "строкой, чтобы изменить высоту редактора, или наведите на неё фокус и нажимайте ↑ и " +
+          "↓; двойной щелчок вернёт исходную высоту.",
       );
     });
   });

@@ -5,7 +5,7 @@
 
 import { expect, test } from "@playwright/test";
 
-import { building, editor, statistic, statisticValue } from "./game-page.ts";
+import { building, editor, startButton, statistic, statisticValue } from "./game-page.ts";
 
 test("boots the first challenge with an editor and a building", async ({ page }) => {
   const pageErrors: string[] = [];
@@ -32,7 +32,7 @@ test("boots the first challenge with an editor and a building", async ({ page })
     building(page).getByRole("button", { name: "Call an elevator going up from floor 0" }),
   ).toBeVisible();
 
-  await expect(page.getByRole("button", { name: "Start" })).toBeVisible();
+  await expect(startButton(page)).toBeVisible();
   await expect(statistic(page, "Transported")).toHaveText("0");
   await expect(statistic(page, "Elapsed time")).toHaveText("0s");
 
@@ -49,7 +49,7 @@ test("plays a challenge to completion when Start is pressed", async ({ page }) =
   await expect(statistic(page, "Transported")).toHaveText("0");
   await expect(statistic(page, "Moves")).toHaveText("0");
 
-  await page.getByRole("button", { name: "Start" }).click();
+  await startButton(page).click();
   await expect(page.getByRole("button", { name: "Pause" })).toBeVisible();
 
   // Passengers are actually being carried, not merely animated.
@@ -72,7 +72,7 @@ test("colours the passenger whose time the statistics panel is reporting", async
   // colour. Only the last of those three is out of reach of the unit tests, and
   // it is the only one the player can see.
   await page.goto("/#challenge=1,devtest,timescale=16");
-  await page.getByRole("button", { name: "Start" }).click();
+  await startButton(page).click();
 
   // Everything in one evaluation -- the crowd, the mark, and the colour of the
   // marked passenger -- because a running world answers two questions about two

@@ -200,7 +200,7 @@ const DISCLOSURE_SELECTOR = ".tutorialhint, .tutorialexplanation";
 /**
  * Everything in the panel a player can be standing on when it is redrawn.
  *
- * The four summaries and the three buttons, in document order, which is the
+ * The four summaries and the two buttons, in document order, which is the
  * order `querySelectorAll` returns them in. Every one of them is destroyed by a
  * redraw, so every one of them needs somewhere to put the focus back.
  *
@@ -209,9 +209,6 @@ const DISCLOSURE_SELECTOR = ".tutorialhint, .tutorialexplanation";
  * later is covered by this without anybody having to remember it exists.
  */
 const CONTROL_SELECTOR = ".tutorialpanel summary, .tutorialpanel button";
-
-/** The button that starts the task again. */
-const RESTART_SELECTOR = ".tutorialrestart";
 
 /** The button that copies the task's program into the player's own editor. */
 const TAKE_CODE_SELECTOR = ".tutorialtakecode";
@@ -278,8 +275,6 @@ export interface TutorialPanelData {
   readonly taskIndex: number;
   /** How many tasks the player has cleared, for the progress line. */
   readonly clearedCount: number;
-  /** Called when the player asks for this task to start again. */
-  readonly onRestart: () => void;
   /**
    * Called when the player asks for this task's program in their own editor.
    *
@@ -343,14 +338,14 @@ function isTaskId(value: string): value is TutorialTaskId {
  */
 function takeCodeAgreed(data: TutorialPanelData): boolean {
   // `window.confirm` rather than a dialog of the game's own, matching the two
-  // questions `src/main.ts` already asks before it throws a program away. It is
+  // questions the run controls already ask before throwing a program away. It is
   // modal, focusable and readable by every assistive technology without a line
   // of code here, which a hand-built one would not be.
   return !data.hasOwnProgram() || window.confirm(t("tutorial.button.takeCodeConfirm"));
 }
 
 /**
- * Draws the learning track's panel and wires up its three buttons.
+ * Draws the learning track's panel and wires up its two buttons.
  *
  * Safe to call over a panel that is already there, which is the only way it is
  * ever called after the first time: the track redraws it when the player clears
@@ -369,15 +364,15 @@ function takeCodeAgreed(data: TutorialPanelData): boolean {
  *   carrying it open into the next task would hand out that task's answer before
  *   its goal had been read. The task the markup was drawn for is therefore read
  *   back off it before it is thrown away.
- * - The focus. Pressing "Start over" destroys the button that was pressed, and a
- *   keyboard player would be dropped back at the top of the document with the
- *   whole page to tab through again (WCAG 2.4.3). The control that lands in the
- *   same position takes the focus back, the same way the challenge bar restores
- *   its navigation row: the panel's controls are the same seven in the same
- *   order for every task, so the position is the control.
+ * - The focus. A redraw destroys whichever hint or button the player was
+ *   standing on, and a keyboard player would be dropped back at the top of the
+ *   document with the whole page to tab through again (WCAG 2.4.3). The control
+ *   that lands in the same position takes the focus back, the same way the
+ *   challenge bar restores its navigation row: the panel's controls are the same
+ *   six in the same order for every task, so the position is the control.
  *
  * @param parent - The `.tutorial` element of the page shell.
- * @param data - Which task, how far along, and what its three buttons do.
+ * @param data - Which task, how far along, and what its two buttons do.
  * @throws {RangeError} When the track has no task at that index.
  * @throws {Error} When it has one, but the catalogue has no prose for it.
  */
@@ -471,9 +466,6 @@ export function presentTutorial(parent: HTMLElement, data: TutorialPanelData): v
     }
   });
 
-  requireElement(RESTART_SELECTOR, parent).addEventListener("click", () => {
-    data.onRestart();
-  });
   // Nothing is said when the question was asked and answered no, which is the
   // one case here that needs no line: the player was shown a dialog about this
   // and dismissed it themselves.

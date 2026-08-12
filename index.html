@@ -163,6 +163,16 @@
         <div class="tutorial"></div>
 
         <!--
+          The run controls, drawn by presentControls in src/ui/presenters.ts.
+          Here, between the panels and the building, because they act on the
+          building and belong against it; and outside everything that gets
+          redrawn, because they are the one region that has to survive a
+          restart. Empty for the same reason .tutorial is: the presenter asks
+          the catalogue for every word at the moment it writes it.
+        -->
+        <div class="controls"></div>
+
+        <!--
           The building is wider than the page on a narrow window and .world
           scrolls horizontally to reach it. A scroll container is only
           reachable by keyboard if it can take focus, so it is in the tab
@@ -274,33 +284,29 @@
           Command on Apple platforms; src/ui/shortcuts.ts relabels them.
         -->
         <p class="hint" data-i18n="page.hint.html">
-          In the editor: <kbd data-mod-key>Ctrl</kbd>+<kbd>Enter</kbd> applies your program.
-          <kbd data-mod-key>Ctrl</kbd>+<kbd>S</kbd> saves it. <kbd>Tab</kbd> indents.
-          <kbd>Esc</kbd> moves the focus back out. Drag the grip above this line to resize the
-          editor, or focus it and press <kbd>↑</kbd> or <kbd>↓</kbd>; double-click it to restore the
-          height.
+          In the editor: your code is saved as you type. <kbd data-mod-key>Ctrl</kbd>+<kbd
+            >Enter</kbd
+          >
+          applies it. <kbd>Tab</kbd> indents. <kbd>Esc</kbd> moves the focus back out. Drag the grip
+          above this line to resize the editor, or focus it and press <kbd>↑</kbd> or <kbd>↓</kbd>;
+          double-click it to restore the height.
         </p>
-        <div class="codebuttons">
-          <div>
-            <button type="button" id="button_reset" data-i18n="page.button.reset">Reset</button>
-            <button type="button" id="button_resetundo" data-i18n="page.button.undoReset">
-              Undo reset
-            </button>
-          </div>
-          <div>
-            <!--
-              Both of these are written asynchronously, and neither is next to
-              whatever the reader is looking at: the fitness benchmark says it
-              has started and then, seconds later, reports its result from a
-              worker, and the editor confirms a save. They announce themselves;
-              the building and the statistics, which change every frame,
-              deliberately do not.
-            -->
-            <span id="fitness_message" aria-live="polite"></span>
-            <span id="save_message" aria-live="polite"></span>
-            <button type="button" id="button_save" data-i18n="page.button.save">Save</button>
-            <button type="button" id="button_apply" data-i18n="page.button.apply">Apply</button>
-          </div>
+        <!--
+          What the editor has to say for itself. Both paragraphs are written
+          asynchronously, and neither is next to whatever the reader is looking
+          at: the fitness benchmark says it has started and then, seconds later,
+          reports its result from a worker, and the editor confirms a save. They
+          announce themselves; the building and the statistics, which change
+          every frame, deliberately do not.
+
+          Two lines rather than one row: the Russian fitness result is wider
+          than the page is allowed to be, so a row shared with anything else
+          grew by a line the moment a result landed, shoving everything below it
+          down with no resize to explain it.
+        -->
+        <div class="editorstatus">
+          <p id="fitness_message" aria-live="polite"></p>
+          <p id="save_message" aria-live="polite"></p>
         </div>
       </main>
 

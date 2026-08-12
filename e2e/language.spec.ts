@@ -19,6 +19,8 @@
 
 import { expect, test } from "@playwright/test";
 
+import { startButton } from "./game-page.ts";
+
 /** The challenge bar's heading, which the game draws rather than the shell. */
 const CHALLENGE_TITLE = ".challengetitle";
 
@@ -28,13 +30,13 @@ test("shows the whole game in the language a link asks for", async ({ page }) =>
   // What a screen reader picks its voice from, and what a crawler is told.
   await expect(page.locator("html")).toHaveAttribute("lang", "ru");
   // The shell: shipped in English by `index.html`, rewritten from the catalogue.
-  await expect(page.getByRole("button", { name: "Сохранить" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Документация" })).toBeVisible();
   await expect(page.getByText("Перевезено", { exact: true })).toBeVisible();
   // The game the shell frames, drawn through the same catalogue by the
   // presenters -- and only after it had arrived, which is what keeps the two
   // halves of the page in one language.
   await expect(page.getByRole("heading", { name: /^Задание №1:/ })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Старт" })).toBeVisible();
+  await expect(startButton(page, "Старт")).toBeVisible();
   await expect(page.locator(CHALLENGE_TITLE)).not.toContainText("Challenge");
 });
 

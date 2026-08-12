@@ -6,7 +6,7 @@
 
 import { expect, test } from "@playwright/test";
 
-import { building, editor, seedCode, storedCode } from "./game-page.ts";
+import { building, editor, seedCode, startButton, storedCode } from "./game-page.ts";
 
 /** A short, valid program with something distinctive to look for. */
 const PROGRAM = `{
@@ -52,7 +52,10 @@ test("keeps the player's program across a reload", async ({ page }) => {
   await page.keyboard.insertText(PROGRAM);
   await expect(editor(page)).toContainText("e2e-marker-a7f3");
 
-  await page.getByRole("button", { name: "Save" }).click();
+  // Ctrl+S rather than a button: the editor autosaves a second after the last
+  // keystroke, so the Save button is gone and this shortcut -- which also stops
+  // the browser offering to save the page -- is the only explicit save left.
+  await page.keyboard.press("ControlOrMeta+s");
   await expect(page.getByText(/^Code saved /)).toBeVisible();
 
   // The key is `elevatorCrushCode_v5`, unchanged from the legacy game so that
@@ -88,7 +91,7 @@ test("pastes code without reindenting it", async ({ page, context }) => {
   await page.keyboard.press("ControlOrMeta+v");
   await expect(editor(page)).toContainText("e2e-paste-marker-4b2e");
 
-  await page.getByRole("button", { name: "Save" }).click();
+  await page.keyboard.press("ControlOrMeta+s");
   await expect(page.getByText(/^Code saved /)).toBeVisible();
 
   // Character for character, whitespace included. Read back out of storage
@@ -108,7 +111,7 @@ test("surfaces a program that will not compile", async ({ page }) => {
 
   // The page is still a game: the legacy version handed `null` to the world
   // controller here and died on the first frame with a TypeError instead.
-  await expect(page.getByRole("button", { name: "Start" })).toBeVisible();
+  await expect(startButton(page)).toBeVisible();
   await expect(building(page).getByRole("group", { name: "Elevator 1" })).toBeVisible();
 });
 
@@ -188,11 +191,11 @@ test("surfaces a program that throws once the simulation is running", async ({ p
   // It compiles, so nothing is wrong until it runs.
   await expect(page.getByText(errorBanner)).toBeHidden();
 
-  await page.getByRole("button", { name: "Start" }).click();
+  await startButton(page).click();
 
   const banner = page.getByText(errorBanner);
   await expect(banner).toBeVisible();
   await expect(banner).toContainText("e2e boom");
   // Paused, not dead: the button is offering to start again.
-  await expect(page.getByRole("button", { name: "Start" })).toBeVisible();
+  await expect(startButton(page)).toBeVisible();
 });

@@ -841,6 +841,58 @@ describe("CodeEditor reset", () => {
     expect(view.getValue()).toBe("// my own program");
   });
 
+  it("answers whether there is anything to bring back, buffer by buffer", () => {
+    // What the run controls hide the "Undo reset" button on, so a wrong answer
+    // is either a button that does nothing or a way back that is not offered.
+    // Asked of the buffer on screen rather than of the editor as a whole, for
+    // the same reason the backup slot is per buffer: a task that was reset must
+    // not offer to undo it from the player's own program.
+    const { editor, view } = setUp();
+
+    expect(editor.canUndoReset()).toBe(false);
+
+    view.type("// my own program");
+    editor.reset();
+    expect(editor.canUndoReset()).toBe(true);
+
+    editor.openTutorialBuffer("tutorial-1", "// task 1");
+    expect(editor.canUndoReset()).toBe(false);
+
+    editor.openPlayerBuffer();
+    expect(editor.canUndoReset()).toBe(true);
+  });
+
+  it("says there is nothing to bring back when the reset was refused", () => {
+    // A refused reset leaves the program where it was -- and the copy `#write`
+    // kept in this page behind it, since the write is attempted before the
+    // refusal is decided. Asking only whether the slot holds something would
+    // put "Undo reset" on screen offering to undo a reset that never happened.
+    const program = "// an afternoon of work";
+    const { editor, view } = setUp(crowdedStorage({ [CODE_STORAGE_KEY]: program }));
+    view.value = program;
+
+    expect(editor.reset()).toBe(false);
+
+    expect(editor.canUndoReset()).toBe(false);
+  });
+
+  it("says there is nothing to bring back once it has been brought back", () => {
+    // The backup outlives the undo that used it, so the button would sit there
+    // afterwards restoring the program already in front of the player. It comes
+    // back only when the program on screen is something else again, which is
+    // the one state where pressing it does anything.
+    const { editor, view } = setUp();
+    view.type("// worth keeping");
+    editor.reset();
+    expect(editor.canUndoReset()).toBe(true);
+
+    editor.undoReset();
+
+    expect(editor.canUndoReset()).toBe(false);
+    view.type("// written since");
+    expect(editor.canUndoReset()).toBe(true);
+  });
+
   it("loads the reference solution for devtest", () => {
     const { editor, view } = setUp();
     editor.setDevTestCode();

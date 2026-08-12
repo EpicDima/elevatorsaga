@@ -854,6 +854,36 @@ export class CodeEditor extends Observable<CodeEditorEvents> {
     this.setCode(backup.text);
   }
 
+  /**
+   * Whether {@link CodeEditor.undoReset} would put a different program on
+   * screen.
+   *
+   * Published so that the run controls can keep the button out of the way until
+   * it can do something — see
+   * {@link "./presenters.ts"!ControlsPresenterOptions.canUndoReset}. Asked
+   * afresh every time rather than announced as an event, because it changes
+   * with the buffer as well as with a reset: switching to another task swaps
+   * the backup slot underneath it.
+   *
+   * A backup that matches the program on screen answers `false`, which is a
+   * stronger condition than the one `undoReset` itself guards on and covers the
+   * two ways the backup slot outlives the reset that filled it. A refused reset
+   * leaves the program where it was and the copy `#write` keeps in this page
+   * behind it, so the button would appear offering to undo something that never
+   * happened; and after an undo has been carried out, the backup is still there
+   * and pressing the button again would restore what is already in front of the
+   * player. Neither is harmful — both restore the same text — but a control
+   * that does nothing is a control the player has to learn to ignore, and the
+   * point of hiding this one is that it is only ever offered when it acts.
+   *
+   * @returns Whether this buffer's backup holds a program other than the one on
+   * screen.
+   */
+  canUndoReset(): boolean {
+    const backup = this.#read(this.#buffer.backupKey);
+    return backup.state === "text" && backup.text !== this.getCode();
+  }
+
   /** Puts the caret back in the editing surface. */
   focus(): void {
     this.#view.focus();

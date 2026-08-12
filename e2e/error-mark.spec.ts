@@ -17,7 +17,7 @@
 
 import { expect, test } from "@playwright/test";
 
-import { editor, seedCode } from "./game-page.ts";
+import { editor, seedCode, startButton } from "./game-page.ts";
 
 /**
  * A program that compiles and then throws on line 4, at column 9.
@@ -52,7 +52,7 @@ test("underlines the line a running program threw on", async ({ page }) => {
   // It compiles, so there is nothing to underline until it runs.
   await expect(page.locator(errorMark)).toHaveCount(0);
 
-  await page.getByRole("button", { name: "Start" }).click();
+  await startButton(page).click();
 
   await expect(page.getByText(errorBanner)).toBeVisible();
   const mark = page.locator(errorMark);
@@ -68,7 +68,7 @@ test("underlines the line a running program threw on", async ({ page }) => {
 test("takes the underline off as soon as the player edits", async ({ page }) => {
   await seedCode(page, THROWS_ON_LINE_4);
   await page.goto("/");
-  await page.getByRole("button", { name: "Start" }).click();
+  await startButton(page).click();
   await expect(page.locator(errorMark)).toBeVisible();
 
   // The player's first move on seeing the mark is to edit the line under it,

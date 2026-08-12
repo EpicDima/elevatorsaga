@@ -16,13 +16,14 @@ import {
   FULLSCREEN_CLASS,
   presentChallenge,
   presentCodeStatus,
+  presentControls,
   presentFeedback,
   presentStats,
   presentWorld,
   relabelWorld,
   setDemoFullscreen,
 } from "./presenters.ts";
-import type { ChallengePresenterOptions } from "./presenters.ts";
+import type { ChallengePresenterOptions, ControlsPresenterOptions } from "./presenters.ts";
 import type { ChallengeLinkData, SeedLinkData } from "./templates.ts";
 import { createElement } from "./test-helpers.ts";
 
@@ -206,10 +207,10 @@ describe("presentChallenge", () => {
   const PINNED_SEED: SeedLinkData = { ...SEED, newDrawUrl: "#challenge=3,timescale=8" };
 
   /**
-   * Assembles challenge options over a mutable world/controller pair.
+   * Assembles challenge options over the four links and the seed above.
    *
-   * @param overrides - Callbacks and data to replace the defaults with.
-   * @returns The parent element, the options and the presenter.
+   * @param overrides - Data to replace the defaults with.
+   * @returns The parent element and the options.
    */
   function setUp(overrides: Partial<ChallengePresenterOptions> = {}): {
     parent: HTMLElement;
@@ -221,53 +222,18 @@ describe("presentChallenge", () => {
       description: "Transport <span class='emphasis-color'>15</span> people",
       challengeLinks: CHALLENGE_LINKS,
       seed: SEED,
-      world: { challengeEnded: false },
-      worldController: { isPaused: true, timeScale: 2 },
-      onStartStop: vi.fn(),
-      onTimeScaleIncrease: vi.fn(),
-      onTimeScaleDecrease: vi.fn(),
       ...overrides,
     };
     return { parent, options };
   }
 
-  it("draws the title, the time scale and the start button", () => {
+  it("draws the title", () => {
     const { parent, options } = setUp();
     presentChallenge(parent, options);
 
     expect(requireElement(".challengetitle", parent).textContent).toBe(
       "Challenge #3: Transport 15 people",
     );
-    expect(requireElement(".timescale_value", parent).textContent).toBe("2x");
-    expect(requireElement(".startstop", parent).textContent).toBe("Start");
-  });
-
-  it("shows Pause while running and Restart once the challenge is over", () => {
-    const { parent, options } = setUp();
-    const presenter = presentChallenge(parent, options);
-    const startStop = requireElement(".startstop", parent);
-
-    options.worldController.isPaused = false;
-    presenter.update();
-    expect(startStop.textContent).toBe("Pause");
-
-    options.world.challengeEnded = true;
-    presenter.update();
-    expect(startStop.textContent).toBe(" Restart");
-    expect(startStop.querySelector("svg")).not.toBeNull();
-  });
-
-  it("reports button presses to the app", () => {
-    const { parent, options } = setUp();
-    presentChallenge(parent, options);
-
-    requireElement(".startstop", parent).click();
-    requireElement(".timescale_increase", parent).click();
-    requireElement(".timescale_decrease", parent).click();
-
-    expect(options.onStartStop).toHaveBeenCalledTimes(1);
-    expect(options.onTimeScaleIncrease).toHaveBeenCalledTimes(1);
-    expect(options.onTimeScaleDecrease).toHaveBeenCalledTimes(1);
   });
 
   it("draws a link to every challenge, marking the one being played", () => {
@@ -353,25 +319,11 @@ describe("presentChallenge", () => {
     expect(parent.querySelector(".challengeseed")).toBeNull();
   });
 
-  it("binds its listeners once, however often it is updated", () => {
-    const { parent, options } = setUp();
-    const presenter = presentChallenge(parent, options);
-
-    for (let i = 0; i < 5; i += 1) {
-      options.worldController.timeScale = i;
-      presenter.update();
-    }
-    requireElement(".startstop", parent).click();
-
-    expect(requireElement(".timescale_value", parent).textContent).toBe("4x");
-    expect(options.onStartStop).toHaveBeenCalledTimes(1);
-  });
-
   describe("focus", () => {
     /**
      * Draws a challenge bar inside the document, where focus can be moved.
      *
-     * @param overrides - Callbacks and data to replace the defaults with.
+     * @param overrides - Data to replace the defaults with.
      * @returns The parent element and the options it was drawn from.
      */
     function mount(overrides: Partial<ChallengePresenterOptions> = {}): {
@@ -383,29 +335,15 @@ describe("presentChallenge", () => {
       return { parent, options };
     }
 
-    it("puts focus back on the button a rebuild destroyed", () => {
-      // Pressing Restart restarts the challenge, which rebuilds this bar and
-      // deletes the button that was pressed. Focus used to fall back to <body>,
-      // dropping a keyboard player at the top of the page mid-game.
-      const { parent, options } = mount({ world: { challengeEnded: true } });
-      presentChallenge(parent, options);
-      requireElement(".startstop", parent).focus();
-
-      presentChallenge(parent, { ...options, world: { challengeEnded: false } });
-
-      const startStop = requireElement(".startstop", parent);
-      expect(document.activeElement).toBe(startStop);
-      // Focused after the label is written, so it is not announced unnamed.
-      expect(startStop.textContent).toBe("Start");
-    });
-
-    it("does not grab focus on the first render", () => {
+    it("takes no focus of its own on the first render", () => {
       const { parent, options } = mount();
-      document.body.focus();
+      const elsewhere = document.createElement("textarea");
+      document.body.append(elsewhere);
+      elsewhere.focus();
 
       presentChallenge(parent, options);
 
-      expect(document.activeElement).not.toBe(requireElement(".startstop", parent));
+      expect(document.activeElement).toBe(elsewhere);
     });
 
     it("leaves focus alone when the rebuild came from outside the bar", () => {
@@ -446,7 +384,6 @@ describe("presentChallenge", () => {
       // And it is the challenge that is now being played, so a screen reader
       // announces the arrival rather than a link to somewhere else.
       expect(first?.getAttribute("aria-current")).toBe("page");
-      expect(document.activeElement).not.toBe(requireElement(".startstop", parent));
     });
 
     it("keeps focus on the seed when following it rebuilds the bar", () => {
@@ -501,29 +438,149 @@ describe("presentChallenge", () => {
       expect(document.activeElement).toBe(requireElement(".seedhelp summary", parent));
     });
 
-    it("falls back to the start button when the rebuild has no seed to return to", () => {
+    it("has nowhere to put focus when the rebuild drops the seed line", () => {
+      // Nothing in the rebuilt bar stands where the seed did, so focus falls
+      // back to <body>. That is the app's cue rather than this function's: it
+      // is the one that knows the redraw happened, and `ControlsPresenter`
+      // gives it a button that outlives every rebuild to land on.
       const { parent, options } = mount();
       presentChallenge(parent, options);
       requireElement(".seedlink", parent).focus();
 
       presentChallenge(parent, { ...options, seed: null });
 
-      expect(document.activeElement).toBe(requireElement(".startstop", parent));
+      expect(document.activeElement).toBe(document.body);
     });
+  });
+});
 
-    it("takes focus when the caller reports the teardown destroyed it", () => {
-      // The app empties the feedback overlay and the building before drawing
-      // the bar, so a "Next challenge" link that had focus is already gone --
-      // and with it any way for the bar to notice.
-      const { parent, options } = mount();
-      document.body.focus();
+describe("presentControls", () => {
+  /**
+   * Assembles controls options over a mutable controller.
+   *
+   * @param overrides - Callbacks and data to replace the defaults with.
+   * @returns The parent element and the options, both mutable.
+   */
+  function setUp(overrides: Partial<ControlsPresenterOptions> = {}): {
+    parent: HTMLElement;
+    options: {
+      -readonly [Key in keyof ControlsPresenterOptions]: ControlsPresenterOptions[Key];
+    } & { worldController: { isPaused: boolean; timeScale: number } };
+  } {
+    const parent = createElement("div", { className: "controls" });
+    return {
+      parent,
+      options: {
+        worldController: { isPaused: true, timeScale: 2 },
+        challengeEnded: (): boolean => false,
+        canUndoReset: (): boolean => false,
+        onStartStop: vi.fn(),
+        onStartOver: vi.fn(),
+        onResetCode: vi.fn(),
+        onUndoReset: vi.fn(),
+        onTimeScaleIncrease: vi.fn(),
+        onTimeScaleDecrease: vi.fn(),
+        ...overrides,
+      },
+    };
+  }
 
-      presentChallenge(parent, { ...options, focusWasDestroyed: true });
+  it("draws the time scale and labels all four buttons", () => {
+    const { parent, options } = setUp();
+    presentControls(parent, options);
 
-      const startStop = requireElement(".startstop", parent);
-      expect(document.activeElement).toBe(startStop);
-      expect(startStop.textContent).toBe("Start");
-    });
+    expect(requireElement(".timescale_value", parent).textContent).toBe("2x");
+    expect(requireElement(".startstop", parent).textContent).toBe("Start");
+    expect(requireElement(".startover", parent).textContent).toBe("Start over");
+    expect(requireElement(".resetcode", parent).textContent).toBe("Reset code");
+    expect(requireElement(".undoreset", parent).textContent).toBe("Undo reset");
+  });
+
+  it("shows Pause while running and Restart once the challenge is over", () => {
+    const { parent, options } = setUp();
+    const presenter = presentControls(parent, options);
+    const startStop = requireElement(".startstop", parent);
+
+    options.worldController.isPaused = false;
+    presenter.update();
+    expect(startStop.textContent).toBe("Pause");
+
+    options.challengeEnded = (): boolean => true;
+    presenter.update();
+    expect(startStop.textContent).toBe(" Restart");
+    expect(startStop.querySelector("svg")).not.toBeNull();
+  });
+
+  it("offers Undo reset only once there is a program to bring back", () => {
+    const { parent, options } = setUp();
+    const presenter = presentControls(parent, options);
+    const undoReset = requireElement(".undoreset", parent);
+    expect(undoReset.hidden).toBe(true);
+
+    options.canUndoReset = (): boolean => true;
+    presenter.update();
+
+    expect(undoReset.hidden).toBe(false);
+  });
+
+  it("reports button presses to the app", () => {
+    const { parent, options } = setUp();
+    presentControls(parent, options);
+
+    requireElement(".startstop", parent).click();
+    requireElement(".startover", parent).click();
+    requireElement(".resetcode", parent).click();
+    requireElement(".undoreset", parent).click();
+    requireElement(".timescale_increase", parent).click();
+    requireElement(".timescale_decrease", parent).click();
+
+    expect(options.onStartStop).toHaveBeenCalledTimes(1);
+    expect(options.onStartOver).toHaveBeenCalledTimes(1);
+    expect(options.onResetCode).toHaveBeenCalledTimes(1);
+    expect(options.onUndoReset).toHaveBeenCalledTimes(1);
+    expect(options.onTimeScaleIncrease).toHaveBeenCalledTimes(1);
+    expect(options.onTimeScaleDecrease).toHaveBeenCalledTimes(1);
+  });
+
+  it("binds its listeners once, however often it is updated", () => {
+    const { parent, options } = setUp();
+    const presenter = presentControls(parent, options);
+
+    for (let i = 0; i < 5; i += 1) {
+      options.worldController.timeScale = i;
+      presenter.update();
+    }
+    requireElement(".startstop", parent).click();
+
+    expect(requireElement(".timescale_value", parent).textContent).toBe("4x");
+    expect(options.onStartStop).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps the element a keyboard player is standing on across an update", () => {
+    // The whole point of the row being drawn once: pressing Start over restarts
+    // the run, which used to delete the button that was pressed and drop focus
+    // on <body>. Nothing here is rebuilt, so there is nothing to restore.
+    const { parent, options } = setUp();
+    document.body.append(parent);
+    const presenter = presentControls(parent, options);
+    const startOver = requireElement(".startover", parent);
+    startOver.focus();
+
+    presenter.update();
+
+    expect(document.activeElement).toBe(startOver);
+  });
+
+  it("lands focus on the start button when the app asks it to", () => {
+    // For the redraw that empties the region focus was in -- the overlay's
+    // "Next challenge" link, or the building -- which leaves focus on <body>.
+    const { parent, options } = setUp();
+    document.body.append(parent);
+    const presenter = presentControls(parent, options);
+
+    presenter.focusStartStop();
+
+    expect(document.activeElement).toBe(requireElement(".startstop", parent));
   });
 });
 
@@ -1014,40 +1071,65 @@ describe("the language the interface comes out in", () => {
     expect(formatTimeScale(0.5)).toBe("0,5×");
   });
 
-  it("labels the start button in the language of the moment it is drawn", () => {
-    // The bar is rebuilt on every restart, so this is the label a player sees
+  it("writes the challenge title in the language of the moment it is drawn", () => {
+    // The bar is rebuilt on every restart, so this is the title a player sees
     // after switching language and letting the page redraw -- which is the
     // contract `setLocale` asks its callers to keep.
     const parent = createElement("div", { className: "challenge" });
-    const options: ChallengePresenterOptions = {
+    setLocale("ru");
+
+    presentChallenge(parent, {
       challengeNum: 3,
       description: "Перевезите <span class='emphasis-color'>15</span> пассажиров",
       challengeLinks: [],
       seed: null,
-      world: { challengeEnded: false },
-      worldController: { isPaused: true, timeScale: 8 },
-      onStartStop: vi.fn(),
-      onTimeScaleIncrease: vi.fn(),
-      onTimeScaleDecrease: vi.fn(),
-    };
-    setLocale("ru");
-    const presenter = presentChallenge(parent, options);
-    const startStop = requireElement(".startstop", parent);
+    });
 
     expect(requireElement(".challengetitle", parent).textContent).toBe(
       "Задание №3: Перевезите 15 пассажиров",
     );
+  });
+
+  it("relabels every run control on the next update", () => {
+    // The row is drawn once for the life of the page, so a language change is
+    // an `update()` and nothing else: every word it shows is read from the
+    // catalogue at the moment it is written.
+    const parent = createElement("div", { className: "controls" });
+    const worldController = { isPaused: true, timeScale: 8 };
+    let challengeEnded = false;
+    const presenter = presentControls(parent, {
+      worldController,
+      challengeEnded: () => challengeEnded,
+      canUndoReset: () => true,
+      onStartStop: vi.fn(),
+      onStartOver: vi.fn(),
+      onResetCode: vi.fn(),
+      onUndoReset: vi.fn(),
+      onTimeScaleIncrease: vi.fn(),
+      onTimeScaleDecrease: vi.fn(),
+    });
+    const startStop = requireElement(".startstop", parent);
+
+    setLocale("ru");
+    presenter.update();
+
     expect(requireElement(".timescale_value", parent).textContent).toBe("8×");
     expect(startStop.textContent).toBe("Старт");
+    expect(requireElement(".startover", parent).textContent).toBe("С начала");
+    expect(requireElement(".resetcode", parent).textContent).toBe("Сбросить код");
+    expect(requireElement(".undoreset", parent).textContent).toBe("Вернуть код");
+    expect(requireElement(".timescale_increase", parent).getAttribute("aria-label")).toBe(
+      "Увеличить скорость симуляции",
+    );
 
-    options.worldController.isPaused = false;
+    worldController.isPaused = false;
     presenter.update();
     expect(startStop.textContent).toBe("Пауза");
 
-    options.world.challengeEnded = true;
+    challengeEnded = true;
     presenter.update();
     // The space in front is the gap between the icon and the word, and it is
-    // this file's job rather than the translator's.
+    // `presenters.ts`'s job rather than the translator's.
     expect(startStop.textContent).toBe(" Заново");
   });
 

@@ -9,7 +9,7 @@
  * but it has to be replaceable once the catalogue is in memory, and nothing in
  * the shell tells a program which of its words are words rather than markup.
  *
- * Two attributes say so. `data-i18n="page.button.save"` means the element's
+ * Two attributes say so. `data-i18n="page.nav.help"` means the element's
  * content is that message, and `data-i18n-attr="aria-label:page.world.label"`
  * means an attribute of it is; several attributes can be named at once,
  * separated by commas. A key ending in `.html` is written with `innerHTML`,

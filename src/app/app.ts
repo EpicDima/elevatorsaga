@@ -22,13 +22,14 @@ import {
   containsFocus,
   presentChallenge,
   presentCodeStatus,
+  presentControls,
   presentFeedback,
   presentStats,
   presentWorld,
   relabelWorld,
   setDemoFullscreen,
 } from "../ui/presenters.ts";
-import type { ChallengePresenter } from "../ui/presenters.ts";
+import type { ControlsPresenter } from "../ui/presenters.ts";
 import type { ChallengeLinkData, SeedLinkData } from "../ui/templates.ts";
 import { presentTutorial } from "../ui/tutorial-panel.ts";
 import { createParamsUrl } from "./router.ts";
@@ -116,6 +117,15 @@ function absoluteUrl(hash: string): string {
 export interface AppElements {
   /** The challenge bar. */
   readonly challenge: HTMLElement;
+  /**
+   * The run controls: start/pause, start over, the two code buttons, the speed.
+   *
+   * The one region the app draws that is never redrawn. Everything else here is
+   * emptied and written again at the start of every run; this is written once,
+   * in the constructor, and only relabelled afterwards, which is what lets a
+   * player keep their finger on a button that restarts the game.
+   */
+  readonly controls: HTMLElement;
   /**
    * Where the learning track's panel goes.
    *
@@ -236,7 +246,13 @@ export class App {
   readonly #editor: CodeEditor;
   readonly #storage: Storage;
   readonly #requestAnimationFrame: AnimationFrameRequester;
-  #challengePresenter: ChallengePresenter | undefined = undefined;
+  /**
+   * The run controls, drawn once in the constructor.
+   *
+   * Not optional and never reassigned, unlike every other presenter here: this
+   * one is not tied to a run. See {@link AppElements.controls}.
+   */
+  readonly #controls: ControlsPresenter;
   /** The parameters of the URL the current challenge was started from. */
   #query: RouteQuery = new Map<string, string>();
   /** The building the sandbox is running, or `undefined` for a challenge. */
@@ -315,13 +331,64 @@ export class App {
         requestAnimationFrame(callback);
       });
 
+    // Drawn before anything else the app draws, and drawn exactly once: this is
+    // the region that has to be standing there when a run is torn down. Every
+    // question it asks is a closure over this object rather than a value, so the
+    // row can be built before there is a world to report on and go on being
+    // right after that world has been replaced.
+    this.#controls = presentControls(this.#elements.controls, {
+      worldController: this.worldController,
+      challengeEnded: () => this.world?.challengeEnded === true,
+      canUndoReset: () => this.#editor.canUndoReset(),
+      onStartStop: () => {
+        this.startStopOrRestart();
+      },
+      // With `autoStart`, unlike the Restart that the same row's first button
+      // turns into when a run ends. The two are asking for different things: a
+      // finished run is a result to read, and the player says when to go again,
+      // while "Start over" is pressed by somebody who has decided to. It is the
+      // button the legacy "Apply" became, and applying the program has always
+      // started the run — Ctrl-Enter still reaches this through `apply_code`.
+      onStartOver: () => {
+        this.#restart(true);
+      },
+      onResetCode: () => {
+        // `window.confirm`, as `src/ui/tutorial-panel.ts` explains at the one
+        // other place the game asks before throwing a program away. The update
+        // afterwards is what puts "Undo reset" on screen: a refused reset leaves
+        // nothing to undo, and asking the editor covers both outcomes without
+        // this having to know which it got.
+        if (window.confirm(t("editor.confirmReset"))) {
+          this.#editor.reset();
+          this.#controls.update();
+        }
+        this.#editor.focus();
+      },
+      onUndoReset: () => {
+        if (window.confirm(t("editor.confirmUndoReset"))) {
+          this.#editor.undoReset();
+          this.#controls.update();
+        }
+        this.#editor.focus();
+      },
+      onTimeScaleIncrease: () => {
+        this.worldController.setTimeScale(increasedTimeScale(this.worldController.timeScale));
+      },
+      onTimeScaleDecrease: () => {
+        this.worldController.setTimeScale(decreasedTimeScale(this.worldController.timeScale));
+      },
+    });
+
     // Subscribed once, for the lifetime of the app. The legacy code subscribed
     // inside startChallenge, so every challenge start added another listener
     // that was never removed: after N challenges the time scale was written to
     // storage N times and the challenge bar was rebuilt N times per click.
+    //
+    // Pausing raises this too — `WorldController.setPaused` triggers it — so one
+    // subscription relabels the start button as well as the speed.
     this.worldController.on("timescale_changed", () => {
       this.#storeTimeScale();
-      this.#challengePresenter?.update();
+      this.#controls.update();
     });
     this.worldController.on("usercode_error", (e) => {
       console.log("World raised code error", e);
@@ -903,6 +970,11 @@ export class App {
       this.#requestAnimationFrame,
       autoStart,
     );
+    // After the controller, which is where the new run's pause state is decided:
+    // `start` pauses by assignment rather than through `setPaused`, so it raises
+    // no event, and a run started from a running one would otherwise leave a
+    // button reading "Pause" over a simulation that is standing still.
+    this.#controls.update();
   }
 
   /**
@@ -920,10 +992,12 @@ export class App {
    * wholesale, subscribes to nothing on the world, and carries the focused
    * control and the seed disclosure's `open` state across for itself.
    *
-   * @param world - The run being played; consulted for its seed and for
-   * `challengeEnded`, which decides whether the button says Start or Restart.
+   * @param world - The run being played, consulted for its seed.
    * @param focusWasDestroyed - Whether the caller has already deleted the
-   * focused element by emptying the building or the overlay.
+   * focused element by emptying the building or the overlay. The bar has
+   * nowhere to put focus back — every control in it belongs to something the
+   * player was reading, not doing — so it goes to the run controls, which are
+   * where a player who has just started a run is heading anyway.
    */
   #drawChallengeBar(world: World, focusWasDestroyed: boolean): void {
     const run = this.#run;
@@ -931,24 +1005,20 @@ export class App {
       return;
     }
     const { challenge, challengeIndex } = run;
-    this.#challengePresenter = presentChallenge(this.#elements.challenge, {
+    presentChallenge(this.#elements.challenge, {
       challengeNum: challengeIndex === null ? UNNUMBERED_CHALLENGE_NUM : challengeIndex + 1,
       description: challenge.condition.description,
       challengeLinks: this.#challengeLinks(challengeIndex),
       seed: this.#seedLink(world, challengeIndex),
-      world,
-      worldController: this.worldController,
-      focusWasDestroyed,
-      onStartStop: () => {
-        this.startStopOrRestart();
-      },
-      onTimeScaleIncrease: () => {
-        this.worldController.setTimeScale(increasedTimeScale(this.worldController.timeScale));
-      },
-      onTimeScaleDecrease: () => {
-        this.worldController.setTimeScale(decreasedTimeScale(this.worldController.timeScale));
-      },
     });
+    // Before the focus below, so that a screen reader announces the label the
+    // button has now rather than the "Restart" left over from the run that just
+    // ended. The pause state it reads here is still the old run's; `#startRun`
+    // asks again once the controller has set the new one.
+    this.#controls.update();
+    if (focusWasDestroyed) {
+      this.#controls.focusStartStop();
+    }
     // Both retitles hang off the same `challengeIndex === null`, which is what
     // "not one of the twenty" means; which of the two it is comes from the
     // field, not from the index, because both unnumbered runs reach here the
@@ -981,13 +1051,18 @@ export class App {
    * the last task's hints above challenge 1 would be worse than a gap — they
    * are the answer to a task the player is no longer playing.
    *
-   * The three callbacks are closures over this object rather than a public
-   * method for the panel to call, which is what keeps the panel from having to
-   * know that "start over" is {@link #restart}: the same private method the
-   * Restart button and Ctrl-Enter go through, with the same `autoStart` of
-   * `false`, so a task restarted from the panel waits for Start exactly as one
-   * restarted from the bar does. Two buttons that say the same thing must not
-   * do different things.
+   * The panel has no button of its own for starting the task again, though it
+   * had one until the run controls were gathered into a row: "Start over" in the
+   * panel and "Start over" in `.controls` are two buttons with the same
+   * accessible name, on screen together on every task, and the panel's one did
+   * not auto-start where the row's does. Two buttons that say the same thing
+   * must not do different things (WCAG 3.2.4), and the row is directly under the
+   * panel, so the one that stayed is the one a player can find from anywhere in
+   * the game rather than only on the track.
+   *
+   * The two callbacks that are left are closures over this object rather than
+   * public methods for the panel to call, so that the panel needs to know
+   * nothing about how leaving the track or copying a program is carried out.
    *
    * The panel's `hasOwnProgram` is a function and not a boolean because it is
    * asked at the moment the player presses "take this program", not at the
@@ -1012,9 +1087,6 @@ export class App {
       taskIndex: tutorial.index,
       clearedCount: this.tutorialProgress().cleared,
       hasOwnProgram: () => this.playerCodeWouldBeReplaced(),
-      onRestart: () => {
-        this.#restart();
-      },
       onTakeCode: () => this.takeTutorialCode(),
       onLeave: () => {
         this.leaveTutorial();
@@ -1133,8 +1205,8 @@ export class App {
    * it was.
    *
    * Two lines in the page are left alone on purpose, and both report something
-   * that has already happened: the save confirmation next to the Save button and
-   * the fitness benchmark's result. Re-translating either would mean asserting
+   * that has already happened: the save confirmation under the editor and the
+   * fitness benchmark's result beside it. Re-translating either would mean asserting
    * in the new language that a thing happened at a time nobody recorded; both
    * are rewritten by the next save and the next measurement. The editor's own
    * accessible name is the third, and that one is a limitation rather than a
@@ -1148,6 +1220,10 @@ export class App {
    * the answer rather than the sentence across the redraw in order to say it.
    */
   relocalise(): void {
+    // Unconditional, unlike the bar: the run controls are on screen from the
+    // first paint, before any challenge has started, so they have words to
+    // rewrite even when there is no world to redraw around them.
+    this.#controls.update();
     const world = this.world;
     if (world !== undefined) {
       this.#drawChallengeBar(world, false);

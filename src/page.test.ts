@@ -101,15 +101,12 @@ describe("index.html", () => {
   it.each([
     // Queried by src/main.ts.
     ".code",
-    "#button_reset",
-    "#button_resetundo",
     "#editor_resize",
-    "#button_apply",
-    "#button_save",
     "#save_message",
     "#fitness_message",
     // Drawn into by src/app/app.ts and src/ui/presenters.ts.
     ".challenge",
+    ".controls",
     // Drawn into by src/ui/tutorial-panel.ts, and left empty off the track.
     ".tutorial",
     ".innerworld",
@@ -275,11 +272,11 @@ describe("index.html", () => {
     expect(existsSync(join(ROOT, "public", image))).toBe(true);
   });
 
-  it("marks the shortcut keys the editor binds as Mod-", () => {
+  it("marks the shortcut key the editor binds as Mod-", () => {
     // Mod- is Command on Apple platforms, so the shipped "Ctrl" is wrong there
-    // and src/ui/shortcuts.ts rewrites these two at load.
+    // and src/ui/shortcuts.ts rewrites it at load.
     const modKeys = [...page.querySelectorAll(".hint kbd[data-mod-key]")];
-    expect(modKeys.map((key) => key.textContent)).toEqual(["Ctrl", "Ctrl"]);
+    expect(modKeys.map((key) => key.textContent)).toEqual(["Ctrl"]);
   });
 
   it("has one landmark of each kind, and a single top-level heading", () => {
@@ -1301,7 +1298,7 @@ const PARAGRAPHS: readonly MessageKey[] = [
   "docs.about.p1.html",
   "docs.about.p2.html",
   "docs.play.track.html",
-  "docs.play.apply.html",
+  "docs.play.start.html",
   "docs.play.statistics.html",
   "docs.play.shortcuts.html",
   "docs.play.debugging.html",
@@ -1757,7 +1754,7 @@ describe("src/i18n, against the editor it also speaks for", () => {
     // the markup, which is a weaker check; this is what keeps it to the one
     // message that needs it.
     expect(DOCS_KEYS.filter((key) => message("en", key).match(PLACEHOLDER) !== null)).toEqual([
-      "docs.play.apply.html",
+      "docs.play.start.html",
     ]);
   });
 });

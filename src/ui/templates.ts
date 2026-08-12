@@ -458,26 +458,69 @@ export interface ChallengeTemplateData {
 }
 
 /**
- * The challenge bar: requirement text, time-scale controls, start button and a
- * link to every challenge.
+ * Everything that drives the run in progress, as one row.
+ *
+ * Drawn into its own region between the learning track's panel and the building
+ * rather than into the challenge bar, which is where the start button and the
+ * speed used to live. Two reasons, and the first is the one a player notices: a
+ * task's panel is a screenful of prose, and with the controls above it the
+ * button that starts the run sat at the top of that screenful while the building
+ * it starts was at the bottom. The controls belong against the thing they
+ * control.
+ *
+ * The second is that the challenge bar is rebuilt on every restart, so every one
+ * of these buttons used to destroy itself when pressed — which is what the focus
+ * bookkeeping in `presentChallenge` exists to paper over. This region is drawn
+ * once for the life of the page and only relabelled, so a keyboard player who
+ * presses Start over is still standing on Start over afterwards, with nothing to
+ * restore.
+ *
+ * Four buttons and a speed, in that order, because the four are what the player
+ * came for and the speed is a setting. They were in three places before this —
+ * start and speed here, "Reset"/"Undo reset" under the editor at one end of a
+ * row, "Save"/"Apply" at the other — and being in three places is what made them
+ * hard to tell apart: nothing about "Apply" says what it does that "Save" does
+ * not, and neither of them was anywhere near the run they restart. "Save" is
+ * gone because the editor has always autosaved a second after the last
+ * keystroke, so the button was a promise the game had already kept; "Apply" is
+ * this row's Start over.
+ *
+ * "Undo reset" ships hidden and is shown by the presenter when there is a
+ * program to bring back. The legacy game offered it unconditionally, which meant
+ * the most dangerous-looking button on the page was live at moments when it
+ * could only do nothing.
+ *
+ * The four buttons ship without labels, which the presenter writes. It has to
+ * write the first one anyway — it says Start, Pause or Restart depending on the
+ * run — and having one place write all four is what makes a language change work
+ * here without re-rendering anything: `presentControls` draws this once for the
+ * life of the page, so a label baked in here would still be in the language the
+ * page opened in. The speed buttons carry theirs as `aria-label`, which for that
+ * reason the presenter rewrites too; they are written here as well so that the
+ * row is never nameless, not even for the instant between this markup and the
+ * first update.
  *
  * The time-scale controls used to be a `<h3>` wrapping two clickable `<i>`
  * elements. They are a plain container with real buttons now; `.timescale`
- * carries the heading's former metrics so the bar looks the same.
+ * carries the heading's former metrics so the row looks the same.
  *
- * Everything here is in the order it is read in: the requirement, the speed, the
- * start button, then the row of challenges and the seed. That is not decoration.
- * The bar used to be floats — `float: right` lays the *first* element out
- * furthest right — so the start button was written before the speed controls and
- * drawn after them, and Tab walked the bar backwards against the screen (WCAG
- * 2.4.3). The stylesheet lays this out with flex in document order and has no
- * `order` or `row-reverse` in it, so the two orders cannot come apart again.
+ * @returns The run controls markup.
+ */
+export function controlsTemplate(): string {
+  return markup`<div class="runbuttons"><button type="button" class="startstop unselectable"></button> <button type="button" class="startover unselectable"></button> <button type="button" class="resetcode unselectable"></button> <button type="button" class="undoreset unselectable" hidden></button></div><div class="timescale"><button type="button" class="timescale_decrease unselectable" aria-label="${t("game.timeScale.decrease")}">${raw(iconMarkup("minus-square"))}</button> <span class="emphasis-color timescale_value"></span> <button type="button" class="timescale_increase unselectable" aria-label="${t("game.timeScale.increase")}">${raw(iconMarkup("plus-square"))}</button></div>`;
+}
+
+/**
+ * The challenge bar: requirement text, the row of challenges and the seed.
  *
- * The speed and the start button share a container because they are what drives
- * the run in progress, and because the bar becomes two lines somewhere around
- * 600px: without it the start button falls under the speed on its own and the
- * pair reads as two unrelated things at exactly the width where the reader has
- * the least room to work out that they are not.
+ * Everything here is in the order it is read in: the requirement, then the row
+ * of challenges and the seed. That is not decoration. The bar used to be floats
+ * — `float: right` lays the *first* element out furthest right — so the start
+ * button was written before the speed controls and drawn after them, and Tab
+ * walked the bar backwards against the screen (WCAG 2.4.3). Those two have their
+ * own region now (see {@link controlsTemplate}); the stylesheet lays what is
+ * left out with flex in document order and has no `order` or `row-reverse` in
+ * it, so the two orders cannot come apart again.
  *
  * The navigation row is a `<nav>` around a list: the landmark gives it a name
  * and a way to be jumped to, and the list tells a screen reader up front how many
@@ -514,7 +557,7 @@ export function challengeTemplate(data: ChallengeTemplateData): string {
   // catalogue is this repository's own text, and the description comes from
   // `src/game/challenges.ts` — so the assembled title goes in raw.
   const title = t("game.challenge.title.html", { number: data.num, description: data.description });
-  return markup`<h2 class="challengetitle">${raw(title)}</h2><div class="challengecontrols"><div class="timescale"><button type="button" class="timescale_decrease unselectable" aria-label="${t("game.timeScale.decrease")}">${raw(iconMarkup("minus-square"))}</button> <span class="emphasis-color timescale_value"></span> <button type="button" class="timescale_increase unselectable" aria-label="${t("game.timeScale.increase")}">${raw(iconMarkup("plus-square"))}</button></div><button type="button" class="startstop unselectable"></button></div><div class="challengefooter"><nav class="challengenav" aria-label="${t("game.challenge.nav.label")}"><ul>${raw(links)}</ul></nav>${raw(seed)}</div>`;
+  return markup`<h2 class="challengetitle">${raw(title)}</h2><div class="challengefooter"><nav class="challengenav" aria-label="${t("game.challenge.nav.label")}"><ul>${raw(links)}</ul></nav>${raw(seed)}</div>`;
 }
 
 /** Everything the learning track's panel needs in order to render itself. */
@@ -666,7 +709,7 @@ export function tutorialTemplate(data: TutorialTemplateData): string {
   // hints across a redraw of the same task and deliberately does not carry them
   // across a change of task, and after `replaceChildren` the old panel is the
   // only place the number it was drawn for still exists.
-  return markup`<section class="tutorialpanel" data-task-index="${data.taskNumber - 1}" aria-label="${t("tutorial.panel.label")}"><p class="tutorialposition"><span class="tutorialtrack">${t("tutorial.panel.label")}</span> <span class="tutorialstep">${t("tutorial.panel.position", { number: data.taskNumber, count: data.taskCount })}</span></p><h2 class="tutorialtitle">${data.title}</h2><p class="tutorialgoal">${data.goal}</p>${raw(hints)}<details class="tutorialexplanation"><summary>${t("tutorial.panel.explanationSummary")}</summary><p class="tutorialprose">${raw(data.explanation)}</p></details><div class="tutorialbuttons"><button type="button" class="tutorialrestart">${t("tutorial.button.restart")}</button><button type="button" class="tutorialtakecode">${t("tutorial.button.takeCode")}</button><button type="button" class="tutorialleave">${t("tutorial.button.leave")}</button></div><p class="tutorialtaken" aria-live="polite"></p><p class="tutorialprogress">${t("tutorial.panel.progress", { cleared: data.clearedCount, count: data.taskCount })}</p></section>`;
+  return markup`<section class="tutorialpanel" data-task-index="${data.taskNumber - 1}" aria-label="${t("tutorial.panel.label")}"><p class="tutorialposition"><span class="tutorialtrack">${t("tutorial.panel.label")}</span> <span class="tutorialstep">${t("tutorial.panel.position", { number: data.taskNumber, count: data.taskCount })}</span></p><h2 class="tutorialtitle">${data.title}</h2><p class="tutorialgoal">${data.goal}</p>${raw(hints)}<details class="tutorialexplanation"><summary>${t("tutorial.panel.explanationSummary")}</summary><p class="tutorialprose">${raw(data.explanation)}</p></details><div class="tutorialbuttons"><button type="button" class="tutorialtakecode">${t("tutorial.button.takeCode")}</button><button type="button" class="tutorialleave">${t("tutorial.button.leave")}</button></div><p class="tutorialtaken" aria-live="polite"></p><p class="tutorialprogress">${t("tutorial.panel.progress", { cleared: data.clearedCount, count: data.taskCount })}</p></section>`;
 }
 
 /** Everything the end-of-challenge overlay needs in order to render itself. */

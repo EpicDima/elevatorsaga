@@ -15,12 +15,12 @@ const USER_AGENT =
  * The message the shell in these tests is made of.
  *
  * One word, present in both catalogues, and unmistakable in either: what the
- * button says is the whole evidence of which language the page came out in.
+ * link says is the whole evidence of which language the page came out in.
  */
-const BUTTON_KEY = "page.button.save";
+const LINK_KEY = "page.nav.help";
 
-/** What {@link BUTTON_KEY} says in each of the game's languages. */
-const BUTTON = { en: "Save", ru: "Сохранить" };
+/** What {@link LINK_KEY} says in each of the game's languages. */
+const LINK = { en: "Help", ru: "Справка" };
 
 /** The document under test, rebuilt for each test that writes into it. */
 let page: Document;
@@ -70,20 +70,20 @@ function fakeStorage(initial: Readonly<Record<string, string>> = {}): Storage {
 function shell(): Document {
   return new DOMParser().parseFromString(
     `<!doctype html><html lang="en"><body>` +
-      `<button ${TEXT_KEY_ATTRIBUTE}="${BUTTON_KEY}">${BUTTON.en}</button>` +
+      `<a href="help.html" ${TEXT_KEY_ATTRIBUTE}="${LINK_KEY}">${LINK.en}</a>` +
       `</body></html>`,
     "text/html",
   );
 }
 
 /**
- * What the shell's one button reads as.
+ * What the shell's one link reads as.
  *
  * @param shown - The document that was written into.
- * @returns The button's text.
+ * @returns The link's text.
  */
-function buttonText(shown: Document): string {
-  return shown.querySelector("button")?.textContent ?? "";
+function linkText(shown: Document): string {
+  return shown.querySelector("a")?.textContent ?? "";
 }
 
 beforeEach(() => {
@@ -112,7 +112,7 @@ describe("the language the page starts in", () => {
 
     expect(getLocale()).toBe("ru");
     expect(page.documentElement.lang).toBe("ru");
-    expect(buttonText(page)).toBe(BUTTON.ru);
+    expect(linkText(page)).toBe(LINK.ru);
   });
 
   it("is the remembered one when the hash names none", async () => {
@@ -126,7 +126,7 @@ describe("the language the page starts in", () => {
 
     expect(getLocale()).toBe("ru");
     expect(page.documentElement.lang).toBe("ru");
-    expect(buttonText(page)).toBe(BUTTON.ru);
+    expect(linkText(page)).toBe(LINK.ru);
   });
 
   it("is the browser's when nothing is remembered", async () => {
@@ -138,7 +138,7 @@ describe("the language the page starts in", () => {
 
     expect(getLocale()).toBe("ru");
     expect(page.documentElement.lang).toBe("ru");
-    expect(buttonText(page)).toBe(BUTTON.ru);
+    expect(linkText(page)).toBe(LINK.ru);
   });
 
   it("is English when no source names a language the game speaks", async () => {
@@ -150,7 +150,7 @@ describe("the language the page starts in", () => {
 
     expect(getLocale()).toBe(DEFAULT_LOCALE);
     expect(page.documentElement.lang).toBe("en");
-    expect(buttonText(page)).toBe(BUTTON.en);
+    expect(linkText(page)).toBe(LINK.en);
   });
 
   it("comes from this browser when it is not told where to look", async () => {
@@ -223,7 +223,7 @@ describe("a catalogue that has to be fetched", () => {
     // Not "eventually Russian": by the time this settles the page is finished,
     // which is what lets `src/main.ts` draw the game after it and get the same
     // language as the shell without a second pass over either.
-    expect(buttonText(page)).toBe(BUTTON.ru);
+    expect(linkText(page)).toBe(LINK.ru);
     expect(page.documentElement.lang).toBe("ru");
   });
 
@@ -239,7 +239,7 @@ describe("a catalogue that has to be fetched", () => {
 
     await ui.applyPreferredLocale(page, USER_AGENT, { hash: "#lang=ru" });
 
-    expect(buttonText(page)).toBe(BUTTON.en);
+    expect(linkText(page)).toBe(LINK.en);
     // `<html lang>` follows the words that were written rather than the
     // language they were meant to be in, so a screen reader does not announce
     // English in a Russian voice.

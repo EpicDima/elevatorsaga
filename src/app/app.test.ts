@@ -64,6 +64,7 @@ interface Harness {
 function setUp(code: string = INERT_CODE, storage: Storage = new MemoryStorage()): Harness {
   const elements: AppElements = {
     challenge: createElement("div", { className: "challenge" }),
+    controls: createElement("div", { className: "controls" }),
     tutorial: createElement("div", { className: "tutorial" }),
     tutorialLink: createElement("a", { className: "tutoriallink" }),
     world: createElement("div", { className: "innerworld" }),
@@ -89,6 +90,7 @@ function setUp(code: string = INERT_CODE, storage: Storage = new MemoryStorage()
   elements.tutorialLink.setAttribute("href", "#challenge=tutorial-1");
   document.body.replaceChildren(
     elements.challenge,
+    elements.controls,
     elements.tutorial,
     elements.tutorialLink,
     elements.world,
@@ -475,7 +477,7 @@ describe("App sandbox", () => {
     // never ends.
     app.world?.unWind();
 
-    requireElement(".startstop", elements.challenge).click();
+    requireElement(".startstop", elements.controls).click();
 
     expect(app.isPlayingSandbox).toBe(true);
     expect(app.world?.floors).toHaveLength(20);
@@ -581,9 +583,9 @@ describe("App learning track", () => {
 
   it("keeps the task's seed when the url is still carrying a challenge's", () => {
     // The router refuses `seed` on a task address, so the two can only disagree
-    // from inside the app -- the panel's own restart, Ctrl-Enter, the Restart
-    // button -- and then it is the leftover from the challenge just left that
-    // has to lose.
+    // from inside the app -- Ctrl-Enter, "Start over", the Restart button --
+    // and then it is the leftover from the challenge just left that has to
+    // lose.
     const { app } = setUp();
     app.handleRoute(...routeFor("#challenge=2,seed=issue-61"));
     expect(app.world?.seed).toBe("issue-61");
@@ -682,7 +684,7 @@ describe("App learning track", () => {
     // Only reachable once the run is over, which on a task is the ordinary case.
     app.world?.unWind();
 
-    requireElement(".startstop", elements.challenge).click();
+    requireElement(".startstop", elements.controls).click();
 
     expect(app.tutorial?.task.id).toBe("tutorial-2");
     expect(app.world?.challengeEnded).toBe(false);
@@ -1033,18 +1035,22 @@ describe("App learning track", () => {
       );
     });
 
-    it("starts the task again from the panel's own button, and waits for Start", () => {
-      // The same private restart the bar's button and Ctrl-Enter go through, so
-      // two buttons that say the same thing do the same thing.
+    it("leaves the run controls to be the only way to start the task again", () => {
+      // The panel had a "Start over" of its own, and so does the row of run
+      // controls drawn directly under it, with the same accessible name and
+      // without the auto-start the row's has (WCAG 3.2.4). The one that went is
+      // the one only the track had; the one that stayed restarts the task from
+      // the track exactly as it restarts a challenge.
       const { app, elements } = setUp();
       app.startTutorial(1);
       const before = app.world;
 
-      requireElement(".tutorialrestart", elements.tutorial).click();
+      expect(elements.tutorial.querySelector(".tutorialrestart")).toBeNull();
+      requireElement(".startover", elements.controls).click();
 
       expect(app.world).not.toBe(before);
       expect(app.tutorial?.task.id).toBe("tutorial-2");
-      expect(app.worldController.isPaused).toBe(true);
+      expect(app.worldController.isPaused).toBe(false);
     });
 
     it("takes the task's program into the player's editor from the panel", () => {
@@ -1149,7 +1155,7 @@ describe("App learning track", () => {
 
       leave.click();
 
-      expect(document.activeElement).toBe(requireElement(".startstop", elements.challenge));
+      expect(document.activeElement).toBe(requireElement(".startstop", elements.controls));
     });
   });
 
@@ -1344,7 +1350,7 @@ describe("App seed", () => {
     app.handleRoute(...routeFor("#challenge=3,seed=issue-61"));
 
     app.world?.trigger("stats_changed");
-    requireElement(".startstop", elements.challenge).click();
+    requireElement(".startstop", elements.controls).click();
     expect(app.world?.seed).toBe("issue-61");
 
     editor.trigger("apply_code");
@@ -1362,7 +1368,7 @@ describe("App seed", () => {
     const first = app.world?.seed;
 
     app.world?.trigger("stats_changed");
-    requireElement(".startstop", elements.challenge).click();
+    requireElement(".startstop", elements.controls).click();
 
     expect(app.world?.seed).not.toBe(first);
   });
@@ -1502,7 +1508,7 @@ describe("App seed", () => {
     vi.mocked(console.log).mockClear();
 
     app.world?.trigger("stats_changed");
-    requireElement(".startstop", elements.challenge).click();
+    requireElement(".startstop", elements.controls).click();
 
     expect(console.log).toHaveBeenCalledTimes(1);
     expect(vi.mocked(console.log).mock.calls[0]?.[0]).toContain(String(app.world?.seed));
@@ -1648,7 +1654,7 @@ describe("App focus", () => {
     // What the router does once the link's hash navigation arrives.
     app.handleRoute(...routeFor("#challenge=3"));
 
-    const startStop = requireElement(".startstop", elements.challenge);
+    const startStop = requireElement(".startstop", elements.controls);
     expect(document.activeElement).toBe(startStop);
     // Focused after it has its label, so it is not announced unnamed.
     expect(startStop.textContent).toBe("Start");
@@ -1677,7 +1683,7 @@ describe("App focus", () => {
 
     app.startChallenge(1);
 
-    expect(document.activeElement).toBe(requireElement(".startstop", elements.challenge));
+    expect(document.activeElement).toBe(requireElement(".startstop", elements.controls));
   });
 
   it("leaves focus alone when the challenge is restarted from the editor", () => {
@@ -1699,7 +1705,7 @@ describe("App start/stop", () => {
   it("pauses and resumes a running challenge", () => {
     const { app, worldController, elements } = setUp();
     app.startChallenge(0);
-    const startStop = requireElement(".startstop", elements.challenge);
+    const startStop = requireElement(".startstop", elements.controls);
     expect(startStop.textContent).toBe("Start");
 
     startStop.click();
@@ -1717,24 +1723,116 @@ describe("App start/stop", () => {
     app.world?.trigger("stats_changed");
     const ended = app.world;
 
-    requireElement(".startstop", elements.challenge).click();
+    requireElement(".startstop", elements.controls).click();
 
     expect(app.world).not.toBe(ended);
     expect(app.currentChallengeIndex).toBe(2);
   });
 });
 
+describe("App run controls", () => {
+  it("starts the same challenge over, running, from Start over", () => {
+    // Unlike the Restart the first button becomes at the end of a run, which
+    // leaves the new run paused: a finished run is a result to read and the
+    // player says when to go again, while this one is pressed by somebody who
+    // has already decided to.
+    const { app, elements, worldController } = setUp();
+    app.startChallenge(1);
+    const before = app.world;
+
+    requireElement(".startover", elements.controls).click();
+
+    expect(app.world).not.toBe(before);
+    expect(app.currentChallengeIndex).toBe(1);
+    expect(worldController.isPaused).toBe(false);
+  });
+
+  it("asks before throwing the program away, and offers the way back afterwards", () => {
+    const confirm = vi.spyOn(window, "confirm").mockReturnValue(true).mockClear();
+    const { app, elements, view, storage } = setUp();
+    app.startChallenge(0);
+    view.type("// an afternoon of work");
+    const undoReset = requireElement(".undoreset", elements.controls);
+    // Nothing to bring back, so the button is not in the tab order at all --
+    // pressing "Undo reset" in a buffer never reset was the legacy game's
+    // quickest way to lose a program.
+    expect(undoReset.hidden).toBe(true);
+
+    requireElement(".resetcode", elements.controls).click();
+
+    expect(confirm).toHaveBeenCalledTimes(1);
+    expect(view.getValue()).toBe(defaultCode());
+    expect(undoReset.hidden).toBe(false);
+
+    requireElement(".undoreset", elements.controls).click();
+
+    expect(confirm).toHaveBeenCalledTimes(2);
+    expect(view.getValue()).toBe("// an afternoon of work");
+    expect(storage.getItem(CODE_STORAGE_KEY)).not.toBe(defaultCode());
+  });
+
+  it("leaves the program alone when the question is answered no", () => {
+    // Both dialogs, because both buttons destroy something: one the program on
+    // screen, the other the program written since the reset.
+    const confirm = vi.spyOn(window, "confirm").mockReturnValue(false).mockClear();
+    const { app, elements, view } = setUp();
+    app.startChallenge(0);
+    view.type("// an afternoon of work");
+
+    requireElement(".resetcode", elements.controls).click();
+
+    expect(confirm).toHaveBeenCalledTimes(1);
+    expect(view.getValue()).toBe("// an afternoon of work");
+    // And no way back is offered for a reset that never happened.
+    expect(requireElement(".undoreset", elements.controls).hidden).toBe(true);
+  });
+
+  it("puts the cursor back in the editor either way", () => {
+    // The two buttons are the only ones in the row that act on the editor, and
+    // the next thing anybody does after pressing them is type. A refused dialog
+    // gets the focus too: the player asked to be in the editor by reaching for
+    // a button about it, and changing their mind about the reset is not
+    // changing their mind about that.
+    const confirm = vi.spyOn(window, "confirm").mockReturnValue(false).mockClear();
+    const { app, elements, editor } = setUp();
+    app.startChallenge(0);
+    const focus = vi.spyOn(editor, "focus");
+
+    requireElement(".resetcode", elements.controls).click();
+    expect(focus).toHaveBeenCalledTimes(1);
+
+    confirm.mockReturnValue(true);
+    requireElement(".undoreset", elements.controls).click();
+    expect(focus).toHaveBeenCalledTimes(2);
+  });
+
+  it("hides the way back again when the buffer under it changes", () => {
+    // The backup slot is per buffer, so a task the player never reset must not
+    // offer to undo the reset of their own program. `canUndoReset` is asked
+    // afresh on every update rather than remembered for this reason.
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+    const { app, elements } = setUp();
+    app.startChallenge(0);
+    requireElement(".resetcode", elements.controls).click();
+    expect(requireElement(".undoreset", elements.controls).hidden).toBe(false);
+
+    app.startTutorial(0);
+
+    expect(requireElement(".undoreset", elements.controls).hidden).toBe(true);
+  });
+});
+
 describe("App time scale", () => {
-  it("steps the speed with the challenge bar's buttons", () => {
+  it("steps the speed with the run controls' buttons", () => {
     const { app, worldController, elements } = setUp();
     app.startChallenge(0);
     worldController.setTimeScale(2);
 
-    requireElement(".timescale_increase", elements.challenge).click();
+    requireElement(".timescale_increase", elements.controls).click();
     expect(worldController.timeScale).toBe(3);
-    expect(requireElement(".timescale_value", elements.challenge).textContent).toBe("3x");
+    expect(requireElement(".timescale_value", elements.controls).textContent).toBe("3x");
 
-    requireElement(".timescale_decrease", elements.challenge).click();
+    requireElement(".timescale_decrease", elements.controls).click();
     expect(worldController.timeScale).toBe(2);
   });
 
@@ -1769,7 +1867,7 @@ describe("App time scale", () => {
     expect(worldController.timeScale).toBe(0.5);
 
     for (let i = 0; i < 5; i += 1) {
-      requireElement(".timescale_decrease", elements.challenge).click();
+      requireElement(".timescale_decrease", elements.controls).click();
     }
 
     expect(worldController.timeScale).toBeGreaterThan(0);
@@ -1917,7 +2015,7 @@ describe("App.relocalise", () => {
     expect(requireElement(".challengetitle", elements.challenge).textContent).toBe(
       "Задание №1: Challenge one",
     );
-    expect(requireElement(".startstop", elements.challenge).textContent).toBe("Старт");
+    expect(requireElement(".startstop", elements.controls).textContent).toBe("Старт");
     expect(requireElement(".challengenav", elements.challenge).ariaLabel).toBe("Задания");
   });
 
