@@ -104,14 +104,14 @@ Key names carry two suffixes that mean something:
 
 ## Where the strings are
 
-The catalogue holds **294 keys** in two locales. `src/i18n/en.ts` is the reference — its text is
+The catalogue holds **295 keys** in two locales. `src/i18n/en.ts` is the reference — its text is
 the English wording, extracted verbatim — and `src/i18n/ru.ts` is the Russian translation. The
 types make English the shape everything else is measured against: a Russian catalogue missing a
 key, carrying a key English does not have, or giving a plural message the wrong number of forms
 is a compile error, not a runtime surprise.
 
 ```sh
-grep -cE '^  "[^"]+":' src/i18n/en.ts                                   # 294
+grep -cE '^  "[^"]+":' src/i18n/en.ts                                   # 295
 grep -oE '^  "[^"]+"' src/i18n/en.ts | tr -d '"' | cut -d. -f1 | sort | uniq -c | sort -rn
 ```
 
@@ -123,10 +123,10 @@ grep -oE '^  "[^"]+"' src/i18n/en.ts | tr -d '"' | cut -d. -f1 | sort | uniq -c 
 | `page.*`       | 32      | `index.html`, through `data-i18n` and `data-i18n-attr`; `page.noscript` excepted, see below              |
 | `game.*`       | 27      | `src/ui/templates.ts` (18), `src/ui/presenters.ts` (4), `src/app/app.ts` (5)                             |
 | `challenge.*`  | 15      | `src/game/challenges.ts`                                                                                 |
-| `fitness.*`    | 10      | `src/app/fitness.ts`, `src/game/fitness.ts`, `src/main.ts`, `src/cli/bench.ts`                           |
+| `fitness.*`    | 11      | `src/app/fitness.ts`, `src/game/fitness.ts`, `src/main.ts`, `src/cli/bench.ts`                           |
 | `error.*`      | 10      | `src/game/elevator-interface.ts`, `src/ui/presenters.ts`, `src/game/user-code.ts`, `src/game/movable.ts` |
 | `editor.*`     | 5       | `src/main.ts`, `src/ui/editor.ts`, `src/ui/default-code.ts`                                              |
-| **Total**      | **294** |                                                                                                          |
+| **Total**      | **295** |                                                                                                          |
 
 Which keys nothing reads:
 
@@ -420,7 +420,7 @@ identically in every locale. Both names repeat it because an accessible name has
 own — "1234567890, link" describes nothing.
 
 `game.seed.newDraw` appearing inside `game.seed.newDrawLink` is a constraint a translator cannot
-see: the two sit on adjacent lines of a 294-key file and nothing in the file marks them as a
+see: the two sit on adjacent lines of a 295-key file and nothing in the file marks them as a
 pair. `src/i18n/catalogue.test.ts`, under _accessible names_, is what holds it — it requires the
 spoken name to contain the visible label in every locale. Rewording «новый розыгрыш» to «новый
 сид» meant changing both, which is exactly the edit where one gets missed.
@@ -570,18 +570,19 @@ nullary function.
 
 ### `src/app/fitness.ts`, `src/game/fitness.ts` and `src/cli/bench.ts` — 10 `fitness.*` keys
 
-| Key                       | English                                                                                                        | Notes                                                        |
-| ------------------------- | -------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
-| `fitness.results`         | Fitness avg delivery times: {results}                                                                          | takes `{results}`                                            |
-| `fitness.result`          | {scenario}: {value}                                                                                            | takes `{scenario}`, `{value}`                                |
-| `fitness.unknownValue`    | ?                                                                                                              | shown when a scenario produced no average delivery time      |
-| `fitness.error`           | Could not compute fitness due to error: {error}                                                                | takes `{error}`; read from both files                        |
-| `fitness.workerTimeout`   | The fitness worker did not finish within {seconds} and was stopped. Does your program have a loop that never … | takes `{seconds}`; read by the page and by `npm run bench`   |
-| `fitness.workerFailed`    | The fitness worker failed                                                                                      | read by the page and by `npm run bench`                      |
-| `fitness.scenario.small`  | Small scenario                                                                                                 | `src/game/fitness.ts`; rendered inside the worker            |
-| `fitness.scenario.medium` | Medium scenario                                                                                                | `src/game/fitness.ts`                                        |
-| `fitness.scenario.large`  | Large scenario                                                                                                 | `src/game/fitness.ts`                                        |
-| `fitness.measuring`       | Measuring fitness...                                                                                           | `src/main.ts`; listed above with the editor's other messages |
+| Key                         | English                                                                                                         | Notes                                                              |
+| --------------------------- | --------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| `fitness.results`           | Fitness avg delivery times: {results}                                                                           | takes `{results}`                                                  |
+| `fitness.result`            | {scenario}: {value}                                                                                             | takes `{scenario}`, `{value}`                                      |
+| `fitness.unknownValue`      | ?                                                                                                               | shown when a scenario produced no average delivery time            |
+| `fitness.error`             | Could not compute fitness due to error: {error}                                                                 | takes `{error}`; read from both files                              |
+| `fitness.workerTimeout`     | The fitness worker did not finish within {seconds} and was stopped. Does your program have a loop that never …  | takes `{seconds}`; read by the page and by `npm run bench`         |
+| `fitness.workerFailed`      | The fitness worker failed                                                                                       | read by the page and by `npm run bench`                            |
+| `fitness.workerOutOfMemory` | The fitness worker ran out of memory and was stopped. Is your program keeping something that grows with every … | read by `npm run bench` only; the page's worker has no such report |
+| `fitness.scenario.small`    | Small scenario                                                                                                  | `src/game/fitness.ts`; rendered inside the worker                  |
+| `fitness.scenario.medium`   | Medium scenario                                                                                                 | `src/game/fitness.ts`                                              |
+| `fitness.scenario.large`    | Large scenario                                                                                                  | `src/game/fitness.ts`                                              |
+| `fitness.measuring`         | Measuring fitness...                                                                                            | `src/main.ts`; listed above with the editor's other messages       |
 
 The two worker sentences are read from a second place as well. `src/cli/bench.ts` runs the same
 suite in a Node worker thread rather than a browser one, and renders both on the command's side for

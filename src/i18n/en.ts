@@ -329,6 +329,12 @@ export const EN_MESSAGES = {
   "fitness.workerTimeout":
     "The fitness worker did not finish within {seconds} and was stopped. Does your program have a loop that never ends?",
   "fitness.workerFailed": "The fitness worker failed",
+  // Reached from the benchmark command only: a program that allocates without
+  // stopping exhausts the thread's heap, and Node ends the thread rather than
+  // letting it report. Said here rather than passed on from Node, whose own
+  // sentence is about heap sizes and does not mention the program.
+  "fitness.workerOutOfMemory":
+    "The fitness worker ran out of memory and was stopped. Is your program keeping something that grows with every passenger?",
   "fitness.scenario.small": "Small scenario",
   "fitness.scenario.medium": "Medium scenario",
   "fitness.scenario.large": "Large scenario",

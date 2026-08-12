@@ -825,9 +825,16 @@ export function runSuiteInWorker(code: string, options: BenchOptions): Promise<F
     // that allocates without stopping takes the thread's heap with it, and Node
     // ends the thread rather than letting it report. Nothing about this tool
     // changed, and the answer is the same as for a program that threw.
+    //
+    // Said in the language the command was given, and said here, for the reason
+    // the deadline's sentence is: the thread whose heap is gone is not going to
+    // answer a question about wording. Node's own sentence is not passed on --
+    // it is a line about heap sizes, in English whatever `--locale` said, and it
+    // does not mention the program. What a program threw is passed on, but that
+    // is the program's own text; this is a report about the program.
     worker.on("error", (error: unknown) => {
       if (isOutOfMemory(error)) {
-        finish({ error: describeError(error) });
+        finish({ error: t("fitness.workerOutOfMemory") });
         return;
       }
       abandon(error);

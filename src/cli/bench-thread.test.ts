@@ -20,7 +20,7 @@ import process from "node:process";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { FitnessSuiteResult } from "../game/fitness.ts";
-import { DEFAULT_LOCALE, seconds, translateIn } from "../i18n/index.ts";
+import { DEFAULT_LOCALE, loadLocale, seconds, setLocale, translateIn } from "../i18n/index.ts";
 import type { BenchWorkerRequest } from "./bench-worker.ts";
 import { DEFAULT_TIMEOUT_MS, runSuiteInWorker, type BenchOptions } from "./bench.ts";
 
@@ -287,7 +287,37 @@ describe("running the suite in a thread", () => {
 
     startedThread().emit("error", outOfMemory);
 
-    await expect(running).resolves.toEqual({ error: outOfMemory.message });
+    // The catalogue's sentence rather than Node's, which is a line about heap
+    // sizes: it says nothing about the program, and it is in English however the
+    // command was called.
+    await expect(running).resolves.toEqual({
+      error: translateIn(DEFAULT_LOCALE, "fitness.workerOutOfMemory"),
+    });
+  });
+
+  it("says a thread ran out of memory in the language the command was given", async () => {
+    // Rendered on this side, like the deadline's sentence and for the same
+    // reason -- a thread whose heap is gone cannot be asked for wording -- so it
+    // is the command's own active locale that decides it, and this is the case
+    // that notices when nobody set one.
+    await loadLocale("ru");
+    setLocale("ru");
+    try {
+      const running = runSuiteInWorker(CODE, { ...OPTIONS, locale: "ru" });
+
+      startedThread().emit(
+        "error",
+        Object.assign(new Error("Worker terminated due to reaching memory limit"), {
+          code: "ERR_WORKER_OUT_OF_MEMORY",
+        }),
+      );
+
+      await expect(running).resolves.toEqual({
+        error: translateIn("ru", "fitness.workerOutOfMemory"),
+      });
+    } finally {
+      setLocale(DEFAULT_LOCALE);
+    }
   });
 
   it("reports the first answer only, however many arrive", async () => {
