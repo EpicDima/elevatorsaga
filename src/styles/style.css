@@ -157,6 +157,18 @@
   --stats-block-size: calc(var(--stats-rows) * var(--stats-row-pitch) + 2 * var(--stats-padding));
   --editor-height: 320px;
 
+  /*
+   * What the Expand button asks for. Relative to the window rather than a
+   * second pixel figure, because the complaint upstream PR #104 was written
+   * about -- "the coding area is too small for editing after a few levels" --
+   * is about how much of the program is on screen at once, and how much screen
+   * there is is the thing this file cannot know. `max()` keeps it honest on a
+   * short window: 70vh falls under the height the editor already had below a
+   * 458px viewport, or below 343px where the narrow-screen value is 240px, and
+   * a button called Expand must never make the editor smaller.
+   */
+  --editor-height-tall: max(var(--editor-height), 70vh);
+
   --font-ui: Oswald, Arial, Helvetica, sans-serif;
   --font-body: Arial, Helvetica, sans-serif;
   --font-mono: Consolas, Monaco, monospace;
@@ -1144,6 +1156,18 @@ kbd {
   background-color: var(--color-code-page);
   color: var(--color-code-text);
   overflow: hidden;
+}
+
+/*
+ * The Expand button, which sets the attribute on `<html>` and nothing else.
+ * Kept here rather than written into `documentElement.style` by the script that
+ * toggles it: an inline declaration on `:root` would outrank the narrow-screen
+ * media query that also sets `--editor-height`, and the phone height would stop
+ * applying for good the first time anybody pressed the button. See
+ * `src/ui/editor-size.ts`.
+ */
+:root[data-editor-size="tall"] .cm-editor {
+  block-size: var(--editor-height-tall);
 }
 
 .cm-editor .cm-scroller {

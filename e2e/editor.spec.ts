@@ -1,7 +1,7 @@
 /**
  * The editor: does a program the player typed survive a reload, does a pasted
- * one arrive unaltered, and does a broken one say so instead of failing
- * silently?
+ * one arrive unaltered, does a broken one say so instead of failing silently,
+ * and does the Expand button make it bigger and keep it that way?
  */
 
 import { expect, test } from "@playwright/test";
@@ -110,6 +110,56 @@ test("surfaces a program that will not compile", async ({ page }) => {
   // controller here and died on the first frame with a TypeError instead.
   await expect(page.getByRole("button", { name: "Start" })).toBeVisible();
   await expect(building(page).getByRole("group", { name: "Elevator 1" })).toBeVisible();
+});
+
+test("grows the editor on request, and is still that size next visit", async ({ page }) => {
+  // magwo/elevatorsaga#104, asked for in 2016: "the coding area is too small for
+  // editing after a few levels". The height is a stylesheet token behind an
+  // attribute on `<html>`; this is the only place the whole path from the button
+  // to a box on screen is exercised, so it measures pixels rather than trusting
+  // the attribute. See `src/ui/editor-size.ts`.
+  await page.goto("/");
+
+  const box = page.locator(".cm-editor");
+  const expand = page.getByRole("button", { name: "Expand" });
+  const heightOf = async (): Promise<number> => (await box.boundingBox())?.height ?? 0;
+
+  // Exactly `--editor-height`, borders and all. This stylesheet leaves
+  // `box-sizing` at `content-box`, which would have put the 1px borders outside
+  // the 320px, but CodeMirror's own base theme sets `border-box` on the element
+  // it mounts as -- measured here rather than reasoned about for that reason.
+  const shipped = await heightOf();
+  expect(shipped).toBeCloseTo(320, 0);
+  await expect(expand).toHaveAttribute("aria-pressed", "false");
+
+  await expand.click();
+
+  // 70vh of Playwright's 720px window, so a little over 500. Asserted as "much
+  // bigger" rather than exactly, because the number is a design decision and
+  // this test is about whether pressing the button reaches the screen at all.
+  await expect.poll(heightOf).toBeGreaterThan(shipped + 100);
+  await expect(expand).toHaveAttribute("aria-pressed", "true");
+
+  // The editor still works at the new size. CodeMirror is not told about it --
+  // it has a `ResizeObserver` on its own scroller -- and this is what would
+  // catch that changing: a view that had not remeasured puts the text it draws
+  // somewhere other than where the caret went.
+  await editor(page).click();
+  await page.keyboard.press("ControlOrMeta+a");
+  await page.keyboard.insertText(PROGRAM);
+  await expect(editor(page)).toContainText("e2e-marker-a7f3");
+
+  await page.reload();
+
+  // No click this time: the size is read back before the first frame, so the
+  // page comes up tall instead of growing into it.
+  await expect.poll(heightOf).toBeGreaterThan(shipped + 100);
+  await expect(expand).toHaveAttribute("aria-pressed", "true");
+
+  await expand.click();
+
+  await expect.poll(heightOf).toBeCloseTo(shipped, 0);
+  await expect(expand).toHaveAttribute("aria-pressed", "false");
 });
 
 test("surfaces a program that throws once the simulation is running", async ({ page }) => {

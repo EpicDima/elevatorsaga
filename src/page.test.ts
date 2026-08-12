@@ -103,6 +103,7 @@ describe("index.html", () => {
     ".code",
     "#button_reset",
     "#button_resetundo",
+    "#button_expand",
     "#button_apply",
     "#button_save",
     "#save_message",

@@ -223,6 +223,9 @@ describe("localisePage", () => {
       expect([...page.querySelectorAll(".codebuttons button")].map((key) => textOf(key))).toEqual([
         "Сбросить",
         "Вернуть код",
+        // One word in both states, which is what `aria-pressed` is for: nothing
+        // here ever has to write "Свернуть" back over it.
+        "Развернуть",
         "Сохранить",
         "Применить",
       ]);

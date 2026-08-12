@@ -25,6 +25,7 @@ import { createWorldController } from "./game/world-controller.ts";
 import { formatTime, t } from "./i18n/index.ts";
 import { requireElement } from "./ui/dom.ts";
 import { CodeEditor, codeMirrorView } from "./ui/editor.ts";
+import { presentEditorSize } from "./ui/editor-size.ts";
 import { presentLanguagePicker } from "./ui/language-picker.ts";
 import { localisePage } from "./ui/localise-page.ts";
 import { applyPreferredLocale } from "./ui/preferred-locale.ts";
@@ -64,6 +65,20 @@ async function main(): Promise<void> {
   // together and cannot be left in an order this file happens to get right.
   await applyPreferredLocale(document, navigator.userAgent);
   presentVersion();
+
+  // Ahead of the editor rather than beside the other buttons below, because a
+  // player who left it expanded should find it expanded rather than watch it
+  // grow: the height is on `<html>` before CodeMirror measures anything, so
+  // there is one layout instead of two and nothing for the eye to catch.
+  const expandButton = requireElement("#button_expand");
+  if (!(expandButton instanceof HTMLButtonElement)) {
+    throw new TypeError("Expected #button_expand to be a <button>");
+  }
+  presentEditorSize({
+    button: expandButton,
+    root: document.documentElement,
+    storage: localStorage,
+  });
 
   const editor = new CodeEditor(codeMirrorView(requireElement(".code")));
   const saveMessage = requireElement("#save_message");

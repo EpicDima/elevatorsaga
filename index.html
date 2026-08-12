@@ -259,6 +259,21 @@
             <button type="button" id="button_resetundo" data-i18n="page.button.undoReset">
               Undo reset
             </button>
+            <!--
+              A toggle, so it carries `aria-pressed` rather than a label that
+              flips between two words: the name stays "Expand" in both states and
+              the state is announced with it. src/ui/editor-size.ts says why, and
+              writes the attribute from here on; the value in the markup is the
+              state of a page whose scripts have not run yet.
+            -->
+            <button
+              type="button"
+              id="button_expand"
+              aria-pressed="false"
+              data-i18n="page.button.expand"
+            >
+              Expand
+            </button>
           </div>
           <div>
             <!--

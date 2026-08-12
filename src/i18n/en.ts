@@ -105,6 +105,13 @@ export const EN_MESSAGES = {
     "How full the cars were, averaged over the moves counted above, so a car standing still is not in the figure at all",
   "page.hint.html":
     "In the editor: <kbd data-mod-key>Ctrl</kbd>+<kbd>Enter</kbd> applies your program. <kbd data-mod-key>Ctrl</kbd>+<kbd>S</kbd> saves it. <kbd>Tab</kbd> indents. <kbd>Esc</kbd> moves the focus back out.",
+  // One word for both states, because the button says what it does and
+  // `aria-pressed` says which state it is in; `src/ui/editor-size.ts` is where
+  // that choice is argued. It is why this is not "Expand editor" either: the
+  // button sits directly under the editor, among four others that all act on
+  // it, and a name that repeats the obvious noun is longer without being
+  // clearer -- and this row has to wrap onto a 320px screen.
+  "page.button.expand": "Expand",
   "page.button.reset": "Reset",
   "page.button.undoReset": "Undo reset",
   "page.button.save": "Save",
