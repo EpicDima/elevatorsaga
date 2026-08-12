@@ -66,6 +66,10 @@ original is scored by the same rules.
   handler the direction, so a program that treats a call as a call — which is most of them, since
   the queue an elevator ends up with is a list of floors either way — writes one handler instead of
   registering the same one twice.
+- **Room to work in the editor.** Expand, beside Reset, takes the editor to at least 70% of the
+  window height and leaves it there for next time. The shipped height holds about fifteen lines at
+  the editor's `14px/1.4`, and the starter program is fifteen lines, so anything you write past it
+  was being read through a letterbox. A phone still gets the shorter editor its own rule asks for.
 - **Autocompletion in the editor.** The elevator and floor API is offered as you type, and on
   <kbd>Ctrl</kbd>+<kbd>Space</kbd>, with the same one-line descriptions the reference page uses.
   It is added to the JavaScript language's own completions rather than replacing them, so keywords
@@ -708,6 +712,11 @@ granted here rather than having to work it out from a feature list.
   `up_button_pressed` or `down_button_pressed` for the same press, in that order whichever order
   the two were registered in, so a program listening for both hears about that press twice and
   always hears the specific event first.
+- [PR #104](https://github.com/magwo/elevatorsaga/pull/104) — a control to expand and collapse the
+  code editor. Expand is beside Reset, and the choice is remembered. The PR's own mechanism is not
+  what shipped: it writes a height onto the element, which would have outranked the narrow-viewport
+  rule that shrinks the editor on a phone forever after. The size is chosen in the stylesheet here
+  and the button only asks for it, so the phone still gets its own answer.
 
 The rest of the tracker's feature requests are not answered here, and nothing in this list is a
 claim about upstream's plans for them.
