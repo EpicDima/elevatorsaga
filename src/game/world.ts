@@ -516,8 +516,30 @@ export class World extends Observable<WorldEvents> {
   maxWaitTime = 0.0;
   /** Mean spawn-to-delivery time of delivered passengers, the same span. */
   avgWaitTime = 0.0;
+  /**
+   * Longest anyone has stood on a floor before a car took them, still-waiting
+   * passengers included.
+   *
+   * This is the waiting time the two above are not. It stops at the moment of
+   * boarding, so the ride is outside it, and it keeps growing for whoever is
+   * still on a floor -- which is what makes a stranded passenger visible here
+   * rather than only at the end of the challenge.
+   */
+  maxPickupTime = 0.0;
+  /** Mean spawn-to-boarding time of the passengers a car has picked up. */
+  avgPickupTime = 0.0;
   /** Whether the challenge is over and the world should stop updating. */
   challengeEnded = false;
+
+  /**
+   * Boardings so far, the denominator behind {@link World.avgPickupTime}.
+   *
+   * Private because nothing outside needs it and every public counter here is
+   * something a challenge condition could come to be written against. It is not
+   * `transportedCounter`: a passenger inside a moving car has boarded and has
+   * not been delivered.
+   */
+  #pickedUpCounter = 0;
 
   readonly #floorCount: number;
   /**
@@ -674,6 +696,19 @@ export class World extends Observable<WorldEvents> {
     user.updateDisplayPosition(true);
     user.spawnTimestamp = this.elapsedTime;
     this.trigger("new_user", user);
+    user.on("entered_elevator", () => {
+      user.pickupTimestamp = this.elapsedTime;
+      const waited = this.elapsedTime - user.spawnTimestamp;
+      this.#pickedUpCounter++;
+      this.maxPickupTime = Math.max(this.maxPickupTime, waited);
+      this.avgPickupTime =
+        (this.avgPickupTime * (this.#pickedUpCounter - 1) + waited) / this.#pickedUpCounter;
+      // No `#recalculateStats()` here, unlike the delivery handler below. That
+      // call exists so a delivery shows in the panel on the frame it happens;
+      // these two figures are read from the same event and `update()` ends with
+      // a recalculation anyway, so adding one would only mean more
+      // `stats_changed` traffic for a number that is already about to be drawn.
+    });
     user.on("exited_elevator", () => {
       this.transportedCounter++;
       this.maxWaitTime = Math.max(this.maxWaitTime, this.elapsedTime - user.spawnTimestamp);
@@ -821,6 +856,14 @@ export class World extends Observable<WorldEvents> {
       if (!u.done) {
         const waited = this.elapsedTime - u.spawnTimestamp;
         this.maxWaitTime = Math.max(this.maxWaitTime, waited);
+        // For a passenger still standing on a floor, the same subtraction is
+        // their wait for a car so far, so the worst one is kept up to date
+        // every frame instead of only at the moment somebody is finally
+        // picked up. A passenger nobody ever comes for would otherwise never
+        // appear in this figure at all, and that is the case worth seeing.
+        if (u.pickupTimestamp === null) {
+          this.maxPickupTime = Math.max(this.maxPickupTime, waited);
+        }
         if (waited > longestWait) {
           longestWait = waited;
           longestWaiter = u;

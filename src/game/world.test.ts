@@ -44,6 +44,24 @@ function collectUsers(world: World): User[] {
 const ALWAYS_ZERO: RandomSource = () => 0;
 
 /**
+ * A three-floor building whose passengers all appear in the lobby.
+ *
+ * For the wait-before-pickup cases, which need a passenger who is actually left
+ * standing: {@link ALWAYS_ZERO} puts every spawn in the lobby heading for floor
+ * 1, and the third floor exists so the caller can legally send the one car away
+ * from them. The spawn rate is the caller's because it decides how many
+ * passengers there are — the accumulator starts above its own threshold, so the
+ * first passenger appears on the first frame whatever it is set to, and the
+ * next one `1 / rate` seconds later.
+ *
+ * @param spawnRate - Passengers per second.
+ * @returns The world.
+ */
+function waitingWorld(spawnRate: number): World {
+  return createWorld({ spawnRate, floorCount: 3, elevatorCount: 1 }, ALWAYS_ZERO);
+}
+
+/**
  * A walk-off stream that fails the test if anybody draws from it.
  *
  * Every passenger built below is left standing on a floor, so none of them ever
@@ -597,6 +615,67 @@ describe("World", () => {
       world.update(0.1);
       expect(world.moveCount).toBe(0);
       expect(world.avgLoadFactorOnMove).toBe(0);
+    });
+
+    it("stops the wait for a car at the moment a car takes them", () => {
+      // The split upstream #52, #77 and PR #82 all ask for, in one assertion:
+      // `maxWaitTime` is the whole commute and keeps running while a passenger
+      // rides, `maxPickupTime` is the part they spent standing on a floor and
+      // stops the moment they are taken. One second waiting, five riding.
+      //
+      // The car is sent to the top first, and that is what makes the wait
+      // exist at all: a passenger who spawns in the lobby beside a standing
+      // car is picked up on the frame they appear on, and waits zero seconds --
+      // correctly, but there is nothing to measure in it.
+      const world = waitingWorld(0.05);
+      const spawned = collectUsers(world);
+      at(world.elevators, 0).goToFloor(2);
+      world.update(0.1);
+      world.update(1.0);
+      const user = at(spawned, 0);
+      expect(user.pickupTimestamp).toBeNull();
+      expect(world.maxPickupTime).toBeCloseTo(1.0, 10);
+
+      user.trigger("entered_elevator", at(world.elevators, 0));
+      world.update(5.0);
+
+      expect(world.maxPickupTime).toBeCloseTo(1.0, 10);
+      expect(world.maxWaitTime).toBeCloseTo(6.0, 10);
+    });
+
+    it("averages the wait for a car over the passengers a car came for", () => {
+      // Over boardings and not over deliveries, which are different sets: a
+      // passenger riding in a car has been picked up and has not been
+      // delivered. At one passenger every two seconds, the first waits one
+      // second and the second waits three, for a mean of two.
+      const world = waitingWorld(0.5);
+      const spawned = collectUsers(world);
+      at(world.elevators, 0).goToFloor(2);
+      world.update(0.1);
+      world.update(1.0);
+      at(spawned, 0).trigger("entered_elevator", at(world.elevators, 0));
+      expect(world.avgPickupTime).toBeCloseTo(1.0, 10);
+
+      world.update(1.0);
+      world.update(3.0);
+      at(spawned, 1).trigger("entered_elevator", at(world.elevators, 0));
+
+      expect(world.avgPickupTime).toBeCloseTo(2.0, 10);
+      expect(world.maxPickupTime).toBeCloseTo(3.0, 10);
+    });
+
+    it("goes on counting the wait of a passenger nobody ever comes for", () => {
+      // The case that makes this statistic worth having, and the reason it is
+      // not derived from boardings alone. A passenger left standing has no
+      // boarding moment, so a figure built only out of boardings would never
+      // mention them: the run would report a healthy average with somebody
+      // still on the floor they spawned on.
+      const world = waitingWorld(0.05);
+      at(world.elevators, 0).goToFloor(2);
+      world.update(0.1);
+      world.update(10.0);
+      expect(world.avgPickupTime).toBe(0);
+      expect(world.maxPickupTime).toBeCloseTo(10.0, 10);
     });
 
     it("tracks the longest wait of any user still in the world", () => {

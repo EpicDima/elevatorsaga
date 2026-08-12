@@ -51,6 +51,15 @@ export class User extends Movable<UserEvents> {
   /** World time at which the passenger appeared; assigned by the world. */
   spawnTimestamp = 0.0;
   /**
+   * World time at which the passenger got into a car, or `null` while they are
+   * still on their floor; assigned by the world.
+   *
+   * Boarding happens at most once: `elevatorAvailable` returns early both for a
+   * passenger who already has a parent and for one who is done, so nothing can
+   * set this twice, and the world counts boardings on the strength of that.
+   */
+  pickupTimestamp: number | null = null;
+  /**
    * Whether this is the passenger who has been waiting longest right now.
    *
    * Set by the world, read by whatever is drawing. Nothing in the simulation
