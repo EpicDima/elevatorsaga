@@ -924,7 +924,7 @@ describe("the language the building comes out in", () => {
     // see is out of place.
     expect(drawn.getAttribute("aria-label")).toBe("Учебная дорожка");
     expect(drawn.querySelector(".tutorialposition")?.textContent).toBe(
-      "Учебная дорожка Учебное задание 7 из 8",
+      "Учебная дорожка Задание 7 из 8",
     );
     expect(drawn.querySelector(".tutorialhint summary")?.textContent).toBe("Подсказка 1");
     expect(drawn.querySelector(".tutorialexplanation summary")?.textContent).toBe(

@@ -895,7 +895,7 @@ describe("App learning track", () => {
       app.relocalise();
 
       expect(positionLine(elements)).toBe(
-        `Учебная дорожка Учебное задание 1 из ${String(tutorialTasks.length)}`,
+        `Учебная дорожка Задание 1 из ${String(tutorialTasks.length)}`,
       );
       expect(requireElement(".tutorialtitle", elements.tutorial).textContent).toBe(
         "Лифт, который никуда не едет",
