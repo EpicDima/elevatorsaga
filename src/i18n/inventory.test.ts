@@ -42,7 +42,7 @@
  *   a section lists rather than what the catalogue holds — `src/ui/templates.ts`
  *   reads 18 of the 26 `game.*` keys — so there is nothing in `EN_MESSAGES` to
  *   compare them against.
- * - the 81 and 82 in _Where the strings are_. They come from a grep over the
+ * - the 83 and 85 in _Where the strings are_. They come from a grep over the
  *   whole tree, not from the catalogue, and reproducing that grep here would
  *   make this suite fail whenever an unrelated file is mid-edit.
  * - paths outside `src/`. The document says why: a message key such as
