@@ -21,7 +21,9 @@ saved to `localStorage` as you go, so closing the tab does not lose it;
 save dialog. The full API — every method,
 property and event on the elevator and floor objects, with examples — is in
 [documentation.html](documentation.html), which is served alongside the game
-([in Russian](documentation.ru.html)).
+([in Russian](documentation.ru.html)). If challenge 1 and a starter program you are left to reverse
+engineer are not where you want to begin, [the learning track](#the-learning-track) teaches the same
+API one small mistake at a time.
 
 This is a modernized fork of [Magnus Wolffelt's original](https://github.com/magwo/elevatorsaga),
 which is still playable at [play.elevatorsaga.com](https://play.elevatorsaga.com/). The challenges,
@@ -35,6 +37,15 @@ bugs are fixed. If you are bringing a solution over from the original, read
 Everything here is additive: no challenge got easier or harder, and a program written for the
 original is scored by the same rules.
 
+- **A learning track.** Eight small buildings that teach the API before the challenges ask for it,
+  behind the **Learning track** link in the header. Seven of them hand you a program that runs and
+  loses, and ask you to work out why: an elevator that only visits one floor, a destination queue
+  that is filled and never started, indicators that lie to the passengers. Three hints are there
+  when you want them — the third is the answer — beside a note on what the run was actually doing.
+  The track remembers what you have cleared, so the header link takes you to the first task you
+  have not, and the eighth task is challenge 1's building and challenge 1's bar, so the program
+  that clears it is one you can take straight into challenge 1. See
+  [The learning track](#the-learning-track).
 - **A jump list for the challenges.** Every challenge is a link in the bar above the building, so
   reaching challenge 12 no longer means either winning eleven of them or hand-editing the address
   bar. The one being played is marked, and the last entry is the endless demo.
@@ -59,6 +70,51 @@ original is scored by the same rules.
   a description on every member of it and, on top of those, type checking. See
   [Writing your solution in your own editor](#writing-your-solution-in-your-own-editor).
 - **A Russian API reference**, at [documentation.ru.html](documentation.ru.html).
+
+## The learning track
+
+Challenge 1 hands you a building, a starter program that sends one elevator between two floors and
+never explains itself, and a reference page that assumes you already know which of its methods you
+are looking for. The track is what comes before that: eight small buildings, behind the **Learning
+track** link in the header or at `#challenge=tutorial-1`, each one built around a single mistake.
+
+Every task starts with a program that runs and loses, and asks you to find out why. The elevator
+that only ever visits one of two floors; the handler nobody subscribed; the passengers whose buttons
+are ignored; the destination queue that is filled and never started; the car that sweeps nine floors
+because it never asked who was waiting; the indicators that tell everybody it is going up, so half
+the building refuses to board; the second elevator that stands still all run. The eighth is an empty
+`init` in challenge 1's building, against challenge 1's bar.
+
+The buildings are tuned so that the lesson is not a coin flip. Each task pins the seed it is played
+on, and on that seed the program you are handed loses and the task's own answer wins — both
+measured, not hoped for. `src/game/tutorial-solutions.test.ts` replays both programs of every task
+on ten seeds, and `src/game/tutorial-sweep.test.ts` replays three of them on four hundred: the two
+whose bar is a worst case rather than a total, where one unlucky passenger decides the run, and the
+one whose answer is measured losing a seed. A change to the physics that quietly turns a lesson
+upside down fails the suite instead of reaching a player.
+
+Each task carries three hints, folded away until you want one — the third is the answer in full,
+because a hint you cannot get past is not a hint — and a **Why this happens** note on what the run
+was really doing. The editor belongs to the task: what you write is kept per task and your own
+program in the game's editor is left alone until you press **Take this program into your own
+editor**, which copies what is in front of you across for when you leave. Cleared tasks are
+remembered in `localStorage`, so the header link goes to the first one you have not cleared — back
+to task 1 once there is none — and nothing is ever locked: every task is playable by its address
+from the first visit.
+
+A task refuses two things you can write in the URL, each with a console warning and each taken back
+out of the address bar. `seed`, because whether the given program really loses is a fact about the
+passenger stream as much as about the program — task 5's sweep does win on some seeds — so
+`#challenge=tutorial-5,seed=42a` would sit a player in front of a broken program winning. And
+`devtest`, whose reference solution is no answer to any of the first seven tasks — and each task
+already hands out its own answer as its last hint. Because the seed is the task's rather than yours, the bar above the building
+shows no seed line while a task is open — there is nothing there to pin and nothing to unpin — and
+Restart brings back the same passengers rather than a fresh draw. An address that names no task,
+such as `tutorial-9`, starts the first task rather than challenge 1: whoever wrote it was asking for
+the track.
+
+The whole track — titles, goals, hints and explanations — is translated, so it can be played in
+Russian as well as English.
 
 ## Writing your solution in your own editor
 
@@ -230,15 +286,16 @@ Everything after the `#` is a comma-separated list of `key=value` pairs, for exa
 "next challenge" link. Anything malformed falls back to a sane default with a console warning
 rather than breaking the page.
 
-| Parameter            | Effect                                                                                                |
-| -------------------- | ----------------------------------------------------------------------------------------------------- |
-| `#challenge=N`       | Starts challenge `N`, counting from 1. Out of range, non-numeric or missing values start challenge 1. |
-| `#challenge=sandbox` | Starts a building of your own instead of a numbered challenge. See below.                             |
-| `#autostart`         | Starts the simulation immediately instead of waiting for the Start button.                            |
-| `#timescale=X`       | Simulation speed multiplier. Clamped to `0.1`–`64`; defaults to `2`. Fractions such as `1.5` work.    |
-| `#seed=S`            | Pins the seed the passenger stream is drawn from. Not the building. See below.                        |
-| `#devtest`           | Loads the built-in reference solution into the editor, replacing what is there.                       |
-| `#fullscreen`        | Hides everything except the building.                                                                 |
+| Parameter               | Effect                                                                                                                                                                           |
+| ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `#challenge=N`          | Starts challenge `N`, counting from 1. Out of range, missing, or unreadable as a number and not one of the two names below: challenge 1.                                         |
+| `#challenge=sandbox`    | Starts a building of your own instead of a numbered challenge. See below.                                                                                                        |
+| `#challenge=tutorial-N` | Starts task `N` of the learning track, from `tutorial-1` to `tutorial-8`. A `tutorial-` address no task has starts the first one. See [The learning track](#the-learning-track). |
+| `#autostart`            | Starts the simulation immediately instead of waiting for the Start button.                                                                                                       |
+| `#timescale=X`          | Simulation speed multiplier. Clamped to `0.1`–`64`; defaults to `2`. Fractions such as `1.5` work.                                                                               |
+| `#seed=S`               | Pins the seed the passenger stream is drawn from. Not the building. Refused on a learning task. See below.                                                                       |
+| `#devtest`              | Loads the built-in reference solution into the editor, replacing what is there. Refused on a learning task.                                                                      |
+| `#fullscreen`           | Hides everything except the building.                                                                                                                                            |
 
 The three flags — `autostart`, `devtest` and `fullscreen` — are on when present and off when
 explicitly set to `false` (`#autostart=false`). Bare flags now work: in the original, `#fullscreen`
@@ -259,6 +316,10 @@ is a complete address you can paste at someone.
 
 A URL with no `seed` draws a fresh one on every restart, which is deliberate: a run you cannot get
 away from is not what you want when you are stuck on a challenge.
+
+None of this applies on the learning track, where the seed belongs to the task rather than to you:
+there is no seed line in the bar, nothing is printed, and every restart replays the same passengers.
+See [The learning track](#the-learning-track).
 
 **What a seed fixes is the passenger stream, and only that.** The building — how many floors, how
 many elevators, how large they are — comes from the challenge number or from the sandbox parameters,
