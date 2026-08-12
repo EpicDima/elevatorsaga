@@ -55,8 +55,8 @@ original is scored by the same rules.
   It is added to the JavaScript language's own completions rather than replacing them, so keywords
   and the identifiers already in your program are still there.
 - **Types for your own editor.** A TypeScript declaration file describing the whole player API ships
-  with the site, so a solution kept in a file of your own gets the same completion, the same
-  descriptions and, on top of them, type checking. See
+  with the site, so a solution kept in a file of your own is offered the same API as you type, with
+  a description on every member of it and, on top of those, type checking. See
   [Writing your solution in your own editor](#writing-your-solution-in-your-own-editor).
 - **A Russian API reference**, at [documentation.ru.html](documentation.ru.html).
 
@@ -65,10 +65,12 @@ original is scored by the same rules.
 The editor on the page is fine for small changes, but a solution you are actually working on tends
 to live in a real file somewhere. `public/elevatorsaga.d.ts` is a TypeScript declaration file that
 describes everything player code can reach — every method, property and event on the elevator and
-floor objects, with the same one-line descriptions the reference page and the in-page completions
-use. Point your editor at it and you get completion, hover documentation and type checking for a
-plain `.js` file: no build step, no TypeScript in your program, nothing to compile before pasting it
-back into the game.
+floor objects, each with a description of its own. Those descriptions are written for this file
+rather than lifted from elsewhere: of the twenty members the reference page, the in-page completion
+popup and the declaration all describe, not one is described here in the words either of the other
+two uses. Point your editor at it and you get completion, hover documentation and type checking for
+a plain `.js` file: no build step, no TypeScript in your program, nothing to compile before pasting
+it back into the game.
 
 It catches the mistakes that are otherwise a silent failed run: a misspelled event name, `goToFloor`
 called with a string, a `passing_floor` handler that expects the wrong arguments, a method the
@@ -141,8 +143,12 @@ Either way, one line above your program tells the editor what the object you are
 });
 ```
 
-Without that annotation `elevators` and `floors` are untyped and nothing is offered; with it, they
-are `ElevatorSaga.Elevator[]` and `ElevatorSaga.Floor[]` and everything below follows.
+Without that annotation `elevators` and `floors` are `any`, and it costs more than the completion
+list: under the `"strict": true` printed above, this very example is six errors, one per parameter
+that has lost its type — the two `init` takes, the `floor` its `forEach` callback takes, and the
+three on `update` — each reported as implicitly having an `any` type. With the annotation the same
+file compiles clean, `elevators` and `floors` are `readonly ElevatorSaga.Elevator[]` and
+`readonly ElevatorSaga.Floor[]`, and everything below follows.
 
 **Keep the parentheses around the object.** The game wraps your program in them for you, but only
 when it starts with `{` — a program that starts with a comment does not, so a bare `{ … }`

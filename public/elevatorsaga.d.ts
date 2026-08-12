@@ -36,9 +36,12 @@
  * each fails the test suite. That file's own header says exactly how far the
  * comparison reaches and where it stops.
  *
- * The prose is the English of `documentation.html`, in both languages' builds:
- * the names it describes are English identifiers either way, and a declaration
- * whose two translations could disagree is a second thing to keep in step.
+ * The prose is in English in both languages' builds: the names it describes are
+ * English identifiers either way, and a declaration whose two translations could
+ * disagree is a second thing to keep in step. It is this file's own prose rather
+ * than `documentation.html`'s moved over — of the twenty members that page, the
+ * in-game completion popup and this file all describe, not one is described here
+ * in the words either of the other two uses.
  *
  * @see https://github.com/EpicDima/elevatorsaga
  */
