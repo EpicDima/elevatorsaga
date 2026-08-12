@@ -36,11 +36,22 @@
  *   emphasis #f1f2d8 kept on the world  11.09:1            (needs 4.5)
  *   stats    #999 -> #9c9c9c on world    4.43:1 -> 4.60:1  (needs 4.5)
  *   buttons  #333 on #777 -> on #9c9c9c  2.82:1 -> 4.60:1  (needs 4.5)
+ *   floor no 15% -> 60% white on a band  1.40:1 -> 3.29:1  (needs 3)
  *
- * The building itself is not in this list: the dim floor numbers and the unlit
- * elevator indicators are painted at 15-30% white on purpose, and it is the lit
- * state that carries the information (6.45:1 for a lit call button). Changing
- * them would be a redesign of the building rather than a palette fix.
+ * The rest of the building is dim on purpose and stays that way: the unlit call
+ * buttons, the direction arrows and the car's button panel are painted at
+ * 20-30% white because it is the lit state that carries the information
+ * (6.45:1 for a lit call button), and reading an unpressed button as unpressed
+ * does not depend on reading it clearly. The floor numbers used to be defended
+ * by that same sentence and never belonged in it: a floor number never lights
+ * up, it is the only marking the floor carries, and at 32px it is large text,
+ * so 1.4.3 asks 3:1 of it and it was at 1.40.
+ *
+ * One thing in the building is still short and cannot be fixed here: the floor
+ * indicator inside a car, 15px on --color-elevator, where not even white clears
+ * 4.5:1 (it reaches 4.13). That one needs the car darkened or the number set
+ * larger, which is a change to how the building is drawn rather than a palette
+ * value.
  */
 :root {
   /* Palette */
@@ -69,6 +80,20 @@
   --color-world: #333;
   --color-elevator: #4f8686;
   --color-lit: #33ff44;
+  /*
+   * The number painted down the left edge of each floor. Translucent white, as
+   * it always was, because it has to sit on a band whose own colour changes
+   * down its height; what changed is how much of it there is. The band's
+   * lightest point is `.floor`'s gradient at 24% white over --color-world,
+   * which is #646464, and 60% white composites to #c1c1c1 on it -- 3.29:1,
+   * against the 3:1 that 32px text is asked for. Sampling the running page in
+   * Chromium reads 3.35:1, because the brightest row a number is actually
+   * drawn across is a shade below the gradient's peak; the arithmetic is the
+   * stricter of the two, which is the one worth holding. `style.test.ts`
+   * recomputes both composites from these values and the gradient beside them,
+   * so lightening the band is caught as readily as dimming the number.
+   */
+  --color-floor-number: rgb(255 255 255 / 60%);
   --color-stats: #9c9c9c;
   --color-stats-rule: #444;
   --color-control: #9c9c9c;
@@ -1315,7 +1340,7 @@ kbd {
   padding-inline-start: 10px;
   font-size: 32px;
   line-height: var(--floor-height);
-  color: rgb(255 255 255 / 15%);
+  color: var(--color-floor-number);
 }
 
 /* --------------------------------------------------------- Fullscreen demo */

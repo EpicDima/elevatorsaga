@@ -75,6 +75,58 @@ function token(name: string): string {
   return value ?? "";
 }
 
+/**
+ * Paints a translucent colour over an opaque one, the way the browser does.
+ *
+ * Source-over compositing in sRGB, channel by channel, which is what a
+ * `rgb(... / n%)` foreground on an opaque background comes to. WCAG asks for
+ * the ratio between what is on screen, and what is on screen here is the
+ * result of this, not the value in the declaration.
+ *
+ * @param foreground - `rgb(r g b / n%)`, the translucent colour.
+ * @param background - A `#rgb` or `#rrggbb` colour to paint it on.
+ * @returns The composited colour, as `#rrggbb`.
+ */
+function over(foreground: string, background: string): string {
+  const parsed = /rgb\(\s*(\d+)\s+(\d+)\s+(\d+)\s*\/\s*([\d.]+)%\s*\)/.exec(foreground);
+  expect(parsed, `${foreground} is not an rgb(r g b / n%) colour`).not.toBeNull();
+  const [, red = "0", green = "0", blue = "0", percent = "0"] = parsed ?? [];
+  const alpha = Number(percent) / 100;
+  const digits = background.replace("#", "");
+  const expanded = digits.length === 3 ? digits.replace(/./g, (digit) => digit + digit) : digits;
+  const behind = (expanded.match(/../g) ?? []).map((pair) => parseInt(pair, 16));
+  return `#${[red, green, blue]
+    .map((channel, index) =>
+      Math.round(Number(channel) * alpha + (behind[index] ?? 0) * (1 - alpha)),
+    )
+    .map((channel) => channel.toString(16).padStart(2, "0"))
+    .join("")}`;
+}
+
+/**
+ * The lightest the floor band ever gets, which is the worst a floor number
+ * ever has to be read against.
+ *
+ * Taken from `.floor`'s own gradient rather than written down here: the band is
+ * white at four alphas over --color-world, and the darker a foreground gets
+ * relative to its background the *lighter* the background has to be for the
+ * ratio to be worst -- so the peak stop is the one to measure. Reading it out
+ * of the rule means someone raising that 24% has to answer to this file.
+ *
+ * @returns The composited band colour, as `#rrggbb`.
+ */
+function lightestFloorBand(): string {
+  const rule = /\.floor\s*\{([^}]*)\}/.exec(styleSource);
+  expect(rule, ".floor is no longer a rule of its own").not.toBeNull();
+  const gradient = /background:\s*linear-gradient\(([\s\S]*?)\);/.exec(rule?.[1] ?? "");
+  expect(gradient, ".floor no longer paints a linear-gradient").not.toBeNull();
+  const alphas = [...(gradient?.[1] ?? "").matchAll(/rgb\(255 255 255 \/ ([\d.]+)%\)/g)].map(
+    ([, percent = "0"]) => Number(percent),
+  );
+  expect(alphas.length, ".floor's gradient is not white at a list of alphas").toBeGreaterThan(1);
+  return over(`rgb(255 255 255 / ${String(Math.max(...alphas))}%)`, token("color-world"));
+}
+
 describe("palette", () => {
   it("declares every colour it is asked about", () => {
     expect([...PALETTE.keys()].filter((name) => name.startsWith("color-")).length).toBeGreaterThan(
@@ -98,6 +150,21 @@ describe("palette", () => {
     ["color-code-text", "color-code-page", 4.5],
   ])("has --%s readable on --%s", (foreground, background, required) => {
     expect(contrast(token(foreground), token(background))).toBeGreaterThanOrEqual(required);
+  });
+
+  it("keeps the floor numbers readable on the brightest part of a floor", () => {
+    // The one pair in the building that has to clear a bar, and the one that
+    // cannot be checked by comparing two tokens: both sides of it are painted
+    // through something else. The number is translucent white on a band that is
+    // itself translucent white on --color-world, so the comparison is between
+    // two composites -- 32px text, so 1.4.3 asks 3:1 rather than 4.5:1.
+    //
+    // It sat at 1.40:1 for twelve years, defended by a note saying the building
+    // was dim on purpose. That is true of a call button, which says what it has
+    // to say by lighting up. A floor number never lights up.
+    const band = lightestFloorBand();
+    expect(band).toBe("#646464");
+    expect(contrast(over(token("color-floor-number"), band), band)).toBeGreaterThanOrEqual(3);
   });
 
   it("cannot be fixed by lightening anything that sits on the page", () => {
