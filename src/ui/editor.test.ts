@@ -2,7 +2,7 @@
 
 import { CompletionContext } from "@codemirror/autocomplete";
 import { EditorView } from "@codemirror/view";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { DEFAULT_LOCALE, setLocale } from "../i18n/index.ts";
 import { playerApiCompletionSource } from "./completions.ts";
@@ -14,7 +14,7 @@ import {
   CodeEditor,
   codeMirrorView,
 } from "./editor.ts";
-import type { TextReplacement } from "./editor.ts";
+import type { TextEditorView, TextReplacement } from "./editor.ts";
 import { FakeTextEditorView, MemoryStorage } from "./test-helpers.ts";
 
 /**
@@ -200,6 +200,20 @@ function unreadableStorage(entries: Readonly<Record<string, string>> = {}): {
     },
   };
 }
+
+beforeAll(() => {
+  // jsdom lays nothing out, so `Range.getClientRects` is missing from it
+  // altogether, and CodeMirror's measure cycle throws without it. That cycle
+  // runs from a `requestAnimationFrame` callback, long after the test that
+  // scheduled it has finished — out of reach of any `expect`, and out of reach
+  // of a hook that would put jsdom back, which is why this is installed once
+  // for the file and left in place. An empty list is the truthful answer for a
+  // document nothing ever laid out: measurement returns zeroes and scrolling
+  // becomes the no-op it always was here.
+  Range.prototype.getClientRects = function getClientRects(): DOMRectList {
+    return Object.assign([], { item: () => null });
+  };
+});
 
 beforeEach(() => {
   vi.useFakeTimers();
@@ -899,6 +913,18 @@ describe("CodeEditor compilation", () => {
     editor.setDevTestCode();
     expect(editor.getCodeObj()).not.toBeNull();
   });
+
+  it("puts an error mark on the surface, and takes it off again", () => {
+    // The position comes from a run that was already going, not from
+    // compilation, so the editor has no way to work it out and no business
+    // second-guessing it — it carries it through exactly as given.
+    const { editor, view } = setUp();
+
+    editor.markError({ line: 4, column: 9 });
+    editor.markError(undefined);
+
+    expect(view.errorMarks).toEqual([{ line: 4, column: 9 }, undefined]);
+  });
 });
 
 describe("CodeEditor events", () => {
@@ -1239,6 +1265,111 @@ describe("codeMirrorView", () => {
 
     expect(result?.from).toBe(state.doc.length - "goT".length);
     expect(result?.options.map((option) => option.label)).toContain("goToFloor");
+  });
+
+  describe("the error mark", () => {
+    /**
+     * Mounts a real editor on a program.
+     *
+     * @param doc - The program to put in it.
+     * @returns The surface, and the element it was mounted in.
+     */
+    function mount(doc: string): { view: TextEditorView; parent: HTMLElement } {
+      vi.useRealTimers();
+      const parent = document.createElement("div");
+      document.body.append(parent);
+      const view = codeMirrorView(parent)(
+        { onChange: vi.fn(), onApply: vi.fn(), onSave: vi.fn() },
+        doc,
+      );
+      return { view, parent };
+    }
+
+    const PROGRAM = ["{", "  update: function () {", "    boom();", "  },", "}"].join("\n");
+
+    it("underlines from the failing character to the end of its line", () => {
+      const { view, parent } = mount(PROGRAM);
+
+      view.markError({ line: 3, column: 5 });
+
+      expect(parent.querySelector(".cm-errorMark")?.textContent).toBe("boom();");
+    });
+
+    it("takes the mark away when asked for nothing", () => {
+      const { view, parent } = mount(PROGRAM);
+      view.markError({ line: 3, column: 5 });
+
+      view.markError(undefined);
+
+      expect(parent.querySelector(".cm-errorMark")).toBeNull();
+    });
+
+    it("takes the mark away as soon as the program is edited", () => {
+      // The player's first move on seeing the mark is to fix the line it is
+      // under, and a red underline left beneath their correction says the
+      // correction is what is wrong.
+      const { view, parent } = mount(PROGRAM);
+      view.markError({ line: 3, column: 5 });
+
+      view.setValue(PROGRAM.replace("boom();", "elevators[0].goToFloor(0);"));
+
+      expect(parent.querySelector(".cm-errorMark")).toBeNull();
+    });
+
+    it("marks the last character when the column is past the end of the line", () => {
+      // Rather than nothing: a mark spanning no characters is one CodeMirror
+      // rejects outright, and a position at the very end of a line is what a
+      // failure in a call that closes it reports.
+      const { view, parent } = mount(PROGRAM);
+
+      view.markError({ line: 3, column: 999 });
+
+      expect(parent.querySelector(".cm-errorMark")?.textContent).toBe(";");
+    });
+
+    it("marks nothing on a line the program does not have", () => {
+      const { view, parent } = mount(PROGRAM);
+
+      view.markError({ line: 99, column: 1 });
+
+      expect(parent.querySelector(".cm-errorMark")).toBeNull();
+    });
+
+    // These two are regression guards rather than proofs: a line with nothing
+    // on it has no character to underline, and the mark is skipped for it so
+    // that the range never has to start before the line it belongs to. Removing
+    // that guard was tried, and neither test noticed -- CodeMirror accepts the
+    // resulting range, which reaches back over the preceding line break, and
+    // draws nothing for it. They are here for the version of this that stops
+    // being tolerant, and because "nothing is drawn" is the contract either way.
+    it("marks nothing on a line with nothing on it", () => {
+      const { view, parent } = mount("{\n\n}");
+
+      view.markError({ line: 2, column: 1 });
+
+      expect(parent.querySelector(".cm-errorMark")).toBeNull();
+    });
+
+    it("marks nothing in an empty program", () => {
+      const { view, parent } = mount("");
+
+      expect(() => {
+        view.markError({ line: 1, column: 1 });
+      }).not.toThrow();
+      expect(parent.querySelector(".cm-errorMark")).toBeNull();
+    });
+
+    it("leaves the caret where the player left it", () => {
+      // The mark arrives while they are typing somewhere else. Selecting the
+      // failing text would be the obvious way to show it and the wrong one.
+      const { view, parent } = mount(PROGRAM);
+      const editor = EditorView.findFromDOM(parent);
+      editor?.dispatch({ selection: { anchor: 1 } });
+
+      view.markError({ line: 3, column: 5 });
+
+      expect(editor?.state.selection.main.anchor).toBe(1);
+    });
   });
 
   describe("the language the editing surface is named in", () => {

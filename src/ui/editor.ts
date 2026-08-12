@@ -17,8 +17,10 @@
 
 import { javascript, javascriptLanguage } from "@codemirror/lang-javascript";
 import { indentUnit } from "@codemirror/language";
-import { EditorState, Prec } from "@codemirror/state";
-import { EditorView, keymap } from "@codemirror/view";
+import { EditorState, Prec, StateEffect, StateField } from "@codemirror/state";
+import type { Text } from "@codemirror/state";
+import { Decoration, EditorView, keymap } from "@codemirror/view";
+import type { DecorationSet } from "@codemirror/view";
 import { basicSetup } from "codemirror";
 
 import { Observable } from "../game/observable.ts";
@@ -27,6 +29,7 @@ import type { UserCodeObject } from "../game/user-code.ts";
 import { t } from "../i18n/index.ts";
 import { playerApiCompletionSource } from "./completions.ts";
 import { DEV_TEST_CODE, defaultCode } from "./default-code.ts";
+import type { CodeErrorLocation } from "./error-location.ts";
 
 /**
  * Where the player's program is kept between visits.
@@ -153,6 +156,19 @@ export interface TextEditorView {
   setValue: (value: string, replacement?: TextReplacement) => void;
   /** Puts the caret back in the editor. */
   focus: () => void;
+  /**
+   * Marks the place a program failed, or takes an existing mark away.
+   *
+   * Drawn rather than selected, and it never moves the caret: the mark arrives
+   * while the player is reading or typing somewhere else, and an editor that
+   * jumps the cursor out from under them to say so has taken more than it gave.
+   *
+   * @param location - Where the failure was, or `undefined` to clear the mark.
+   * A location the document cannot contain — because it has since been edited,
+   * or replaced by another buffer — clears it too, rather than being clamped to
+   * a line that had nothing to do with the failure.
+   */
+  markError: (location: CodeErrorLocation | undefined) => void;
 }
 
 /**
@@ -731,7 +747,108 @@ export class CodeEditor extends Observable<CodeEditorEvents> {
   focus(): void {
     this.#view.focus();
   }
+
+  /**
+   * Marks where the running program failed, or takes the mark away.
+   *
+   * Not derived from {@link CodeEditor.getCodeObj}, which is where compilation
+   * failures surface, because most of these arrive much later: a program
+   * compiles, runs for forty seconds and then reads a property of nothing on
+   * one particular frame. Only the caller watching the run knows that happened.
+   *
+   * @param location - Where the failure was, or `undefined` to clear the mark.
+   */
+  markError(location: CodeErrorLocation | undefined): void {
+    this.#view.markError(location);
+  }
 }
+
+/**
+ * Carries a new error mark, or `undefined` to take the current one away.
+ *
+ * A state effect rather than a method on the view because CodeMirror keeps no
+ * mutable state of its own worth writing to: everything drawn is derived from
+ * the document plus fields, and a field can only be changed by a transaction.
+ */
+const showErrorMark = StateEffect.define<CodeErrorLocation | undefined>();
+
+/**
+ * How the failing text is drawn.
+ *
+ * A wavy underline in `--color-error` rather than a wash across the line: the
+ * editor's text sits at 4.99:1 on its Solarized background, so tinting what is
+ * behind it costs the program the player is reading its legibility -- even a
+ * tenth-strength red takes it to 4.44:1, under the 4.5:1 that text has to keep.
+ * An underline puts nothing behind the text at all, and at full strength the
+ * mark itself is 3.57:1 against the same background, clear of the 3:1 a
+ * graphical indicator needs. Both ratios were measured against the values in
+ * `style.css`, not estimated.
+ */
+const errorMark = Decoration.mark({ class: "cm-errorMark" });
+
+/**
+ * Works out what to underline for a reported failure.
+ *
+ * From the failing character to the end of its line, because the stack says
+ * where the failing call *starts* and nothing about where it ends: underlining
+ * to the end of the line claims exactly what is known, where guessing at a
+ * token's width would sometimes underline half an identifier.
+ *
+ * @param doc - The document as it now stands, which may no longer be the one
+ * the failure came from.
+ * @param location - The reported position.
+ * @returns The range to mark, or `undefined` when the document has no such
+ * place to mark: a line it does not have, or one with nothing on it. Both are
+ * refusals rather than best-effort marks, because the clamp below has nowhere
+ * to land on an empty line -- backing off the end of one puts the start before
+ * the line begins, and the mark would then belong to the line above, or to no
+ * line at all in an empty document. Neither draws anything today, so no test
+ * can tell the guard from its absence; it is here to keep the range inside the
+ * line it names. What CodeMirror does reject outright is a mark spanning
+ * nothing at all, with `RangeError: Mark decorations may not be empty` --
+ * checked, not assumed -- which is why the range always runs to the line's end.
+ */
+function errorRange(
+  doc: Text,
+  location: CodeErrorLocation,
+): { from: number; to: number } | undefined {
+  if (location.line < 1 || location.line > doc.lines) {
+    return undefined;
+  }
+  const line = doc.line(location.line);
+  if (line.from === line.to) {
+    return undefined;
+  }
+  // Clamped at both ends: a column past the end of the line would mark nothing,
+  // and one before its start would reach into the line above.
+  const from = Math.min(line.from + Math.max(0, location.column - 1), line.to - 1);
+  return { from, to: line.to };
+}
+
+/**
+ * Holds the error mark, and knows when it has stopped being true.
+ *
+ * Any edit clears it. The mark points at text that failed, so the moment that
+ * text changes the mark is a claim about something that is no longer there --
+ * and the player's first move on seeing it is usually to edit the very line it
+ * is under, which would leave a red underline sitting beneath their correction.
+ */
+const errorMarkField = StateField.define<DecorationSet>({
+  create: () => Decoration.none,
+  update: (marks, transaction) => {
+    for (const effect of transaction.effects) {
+      if (effect.is(showErrorMark)) {
+        const location = effect.value;
+        const range = location === undefined ? undefined : errorRange(transaction.newDoc, location);
+        return range === undefined
+          ? Decoration.none
+          : Decoration.set([errorMark.range(range.from, range.to)]);
+      }
+    }
+    return transaction.docChanged ? Decoration.none : marks;
+  },
+  provide: (field) => EditorView.decorations.from(field),
+});
 
 /**
  * Builds a CodeMirror 6 editing surface inside a container.
@@ -811,6 +928,17 @@ export function codeMirrorView(parent: HTMLElement): TextEditorViewFactory {
           handlers.onChange();
         }
       }),
+      errorMarkField,
+      EditorView.theme({
+        ".cm-errorMark": {
+          // `wavy` rather than a straight rule so the mark cannot be read as
+          // part of the program -- an underscore, or a link.
+          textDecoration: "underline wavy var(--color-error)",
+          // Clear of the descenders, which the wave would otherwise run
+          // through at this amplitude.
+          textUnderlineOffset: "0.2em",
+        },
+      }),
     ];
     const view = new EditorView({ parent, doc: initialValue, extensions });
     view.dom.tabIndex = -1;
@@ -852,6 +980,19 @@ export function codeMirrorView(parent: HTMLElement): TextEditorViewFactory {
       },
       focus: () => {
         view.focus();
+      },
+      markError: (location: CodeErrorLocation | undefined) => {
+        const range = location === undefined ? undefined : errorRange(view.state.doc, location);
+        view.dispatch({
+          effects:
+            range === undefined
+              ? [showErrorMark.of(location)]
+              : // Scrolled to as well as drawn: the editor is 320px tall at a
+                // 19.6px line, so it shows sixteen lines, and a program with a
+                // bug worth hunting is usually longer than that. Drawing a
+                // mark where nobody can see it answers nothing.
+                [showErrorMark.of(location), EditorView.scrollIntoView(range.from)],
+        });
       },
     };
   };

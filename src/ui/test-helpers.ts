@@ -5,6 +5,7 @@
  */
 
 import type { TextEditorHandlers, TextEditorView } from "./editor.ts";
+import type { CodeErrorLocation } from "./error-location.ts";
 
 /** Options accepted by {@link createElement}. */
 export interface CreateElementOptions {
@@ -85,6 +86,17 @@ export class FakeTextEditorView implements TextEditorView {
   value = "";
   /** How often the caret has been put back in the editor. */
   focusCount = 0;
+  /** Where the last error mark was put, if there is one now. */
+  errorMark: CodeErrorLocation | undefined = undefined;
+  /**
+   * Every mark ever asked for, clearings included.
+   *
+   * Kept as well as {@link FakeTextEditorView.errorMark} because "the mark was
+   * cleared and then set" and "the mark was only ever set" end in the same
+   * place, and a caller that draws a mark before clearing the last one leaves
+   * the player's eye on the wrong line for a frame.
+   */
+  readonly errorMarks: (CodeErrorLocation | undefined)[] = [];
   /** The handlers the editor gave this surface. */
   readonly handlers: TextEditorHandlers;
 
@@ -114,6 +126,16 @@ export class FakeTextEditorView implements TextEditorView {
 
   focus(): void {
     this.focusCount += 1;
+  }
+
+  /**
+   * Records the mark instead of drawing it.
+   *
+   * @param location - Where the failure was, or `undefined` to clear the mark.
+   */
+  markError(location: CodeErrorLocation | undefined): void {
+    this.errorMark = location;
+    this.errorMarks.push(location);
   }
 
   /**
