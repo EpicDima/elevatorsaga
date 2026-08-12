@@ -47,11 +47,14 @@
  * up, it is the only marking the floor carries, and at 32px it is large text,
  * so 1.4.3 asks 3:1 of it and it was at 1.40.
  *
- * One thing in the building is still short and cannot be fixed here: the floor
- * indicator inside a car, 15px on --color-elevator, where not even white clears
- * 4.5:1 (it reaches 4.13). That one needs the car darkened or the number set
- * larger, which is a change to how the building is drawn rather than a palette
- * value.
+ * The floor indicator inside a car was the last one short, and it is the one
+ * pair here that a palette value could not have fixed: at 15px it needed 4.5:1,
+ * and on --color-elevator not even white reaches that (it gets to 4.13). The
+ * way out was to make it large text rather than to make it brighter -- 18.66px
+ * bold is where 1.4.3 drops the bar to 3:1 -- so the fix is a font size and a
+ * weight, and the colour token beside it only records what it is painted in:
+ *
+ *   car floor no 30% -> 100% white on the car   1.63:1 -> 4.13:1  (needs 3)
  */
 :root {
   /* Palette */
@@ -94,6 +97,15 @@
    * so lightening the band is caught as readily as dimming the number.
    */
   --color-floor-number: rgb(255 255 255 / 60%);
+  /*
+   * The floor a car is at, painted inside the car. Opaque white and no lighter
+   * colour exists: on --color-elevator white is 4.13:1, which is everything
+   * this pair can be given. It passes because the number is set as large text
+   * and is asked for 3:1 -- see `.elevator .floorindicator`, which carries the
+   * size and the weight that earn the lower bar, and `style.test.ts`, which
+   * refuses the colour unless that rule still says so.
+   */
+  --color-car-number: #fff;
   --color-stats: #9c9c9c;
   --color-stats-rule: #444;
   --color-control: #9c9c9c;
@@ -117,6 +129,13 @@
   --floor-height: 50px;
   --elevator-height: 50px;
   --elevator-border: 2px;
+  /*
+   * 18.66px is where WCAG 1.4.3 calls bold text large, and the line box that
+   * holds it is what the button panel below has to start after. Stated once so
+   * the two cannot drift apart and leave the panel over the number.
+   */
+  --car-number-size: 18.66px;
+  --car-number-height: 19px;
   --stats-width: 240px;
   --stats-padding: 20px;
   --stats-row-height: 10px;
@@ -1284,19 +1303,35 @@ kbd {
   color: var(--color-lit);
 }
 
+/*
+ * The floor the car is at. The one marking a player reads off a moving car, and
+ * for twelve years it was 15px at 30% white on the car itself -- 1.63:1, which
+ * is a shape where a digit should be. Brightening it alone could not fix it:
+ * 15px is ordinary text, ordinary text is asked 4.5:1, and white on
+ * --color-elevator stops at 4.13. Setting it bold at the size WCAG calls large
+ * asks 3:1 instead, and then white clears it with room to spare.
+ *
+ * The size is deliberately at the threshold and not past it: the car is 46px of
+ * interior and the button panel has to fit under the number, and at the widths
+ * the cars are actually drawn -- 44px for a two-passenger car, 64px for the
+ * busiest -- a two-digit floor at this size still sits clear of the direction
+ * arrows either side of it.
+ */
 .elevator .floorindicator {
   position: absolute;
   display: inline-block;
   inline-size: 100%;
-  font-size: 15px;
+  font-size: var(--car-number-size);
+  font-weight: bold;
+  line-height: var(--car-number-height);
   text-align: center;
-  color: rgb(255 255 255 / 30%);
+  color: var(--color-car-number);
 }
 
 .elevator .buttonindicator {
   position: absolute;
   display: inline-block;
-  inset-block-start: 15px;
+  inset-block-start: var(--car-number-height);
   inline-size: 95%;
   font-size: 8px;
   line-height: 8px;

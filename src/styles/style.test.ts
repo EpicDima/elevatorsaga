@@ -127,6 +127,35 @@ function lightestFloorBand(): string {
   return over(`rgb(255 255 255 / ${String(Math.max(...alphas))}%)`, token("color-world"));
 }
 
+/**
+ * How the floor indicator inside a car is set: the colour it is painted in, and
+ * the two properties that decide which bar 1.4.3 holds that colour to.
+ *
+ * Read out of the rule rather than written down here, and through the palette
+ * wherever the rule names a token, because the colour passes only on the
+ * strength of the size and the weight. Taking the boldness off, or letting the
+ * size drift back towards the 15px it used to be, is the same failure as
+ * dimming the number, and this is where both are caught.
+ *
+ * @returns The size in px, the weight, and the colour.
+ */
+function carNumber(): { size: number; weight: string; colour: string } {
+  const rule = /\.elevator \.floorindicator\s*\{([^}]*)\}/.exec(styleSource);
+  expect(rule, ".elevator .floorindicator is no longer a rule of its own").not.toBeNull();
+  const read = (property: string): string => {
+    const found = new RegExp(`^\\s*${property}:\\s*([^;]+);`, "m").exec(rule?.[1] ?? "");
+    expect(found, `.elevator .floorindicator no longer sets ${property}`).not.toBeNull();
+    const value = (found?.[1] ?? "").trim();
+    const variable = /^var\(--([\w-]+)\)$/.exec(value);
+    return variable === null ? value : token(variable[1] ?? "");
+  };
+  return {
+    size: Number.parseFloat(read("font-size")),
+    weight: read("font-weight"),
+    colour: read("color"),
+  };
+}
+
 describe("palette", () => {
   it("declares every colour it is asked about", () => {
     expect([...PALETTE.keys()].filter((name) => name.startsWith("color-")).length).toBeGreaterThan(
@@ -165,6 +194,26 @@ describe("palette", () => {
     const band = lightestFloorBand();
     expect(band).toBe("#646464");
     expect(contrast(over(token("color-floor-number"), band), band)).toBeGreaterThanOrEqual(3);
+  });
+
+  it("keeps the floor a car is at readable inside the car", () => {
+    // The other marking that never lights up, and the one pair no palette value
+    // could have carried. On --color-elevator white reaches 4.13:1 and nothing
+    // reaches further, so at the 15px this was set at for twelve years -- 1.63:1
+    // -- there was no colour that passed; the way out was to stop it being
+    // ordinary text. 18.66px and bold is where 1.4.3 calls text large and asks
+    // 3:1 of it, which is why the size and the weight are asserted here beside
+    // the colour: drop either and the colour no longer clears anything.
+    const number = carNumber();
+    expect(number.weight).toBe("bold");
+    expect(number.size).toBeGreaterThanOrEqual(18.66);
+    expect(number.colour).toBe(token("color-car-number"));
+    expect(
+      number.colour,
+      "a translucent car number would have to be composited over the car before it is measured",
+    ).toMatch(/^#[0-9a-f]{3,6}$/i);
+    expect(contrast(number.colour, token("color-elevator"))).toBeGreaterThanOrEqual(3);
+    expect(contrast("#ffffff", token("color-elevator"))).toBeLessThan(4.5);
   });
 
   it("cannot be fixed by lightening anything that sits on the page", () => {
