@@ -224,38 +224,76 @@ The same benchmark the **Fitness** button runs — three buildings, six seeds, e
 is also a command:
 
 ```sh
-npm run bench -- solution.js
-```
-
-```
-program: solution.js
-seeds:   1, 2, 3, 4, 5, 6
-locale:  en
-
-scenario         transportedPerSec  avgWaitTime  transportedCount
-Small scenario               0.542       12.567           108.333
-Medium scenario              0.593       57.516           118.667
-Large scenario               0.294       79.803            58.833
+npm run bench -- sweep.js
 ```
 
 The file is a program in exactly the form the in-page editor takes: an object literal with `init`
 and `update`, parentheses optional. Nothing is drawn and no browser is involved — the simulation
-never needed one — so a full report takes under a second.
+never needed one — so a full report takes under a second. Save this as `sweep.js` and the numbers
+below are what you get, on any machine:
 
-| Option           | What it does                                                         |
-| ---------------- | -------------------------------------------------------------------- |
-| `--seeds <list>` | Comma-separated seeds, one run of all three scenarios each, averaged |
-| `--locale <tag>` | Language for the scenario names: `en` or `ru`                        |
-| `--json`         | The report as JSON, with the numbers unrounded                       |
-| `--help`         | The usage text                                                       |
+```js
+{
+  init: function (elevators, floors) {
+    elevators.forEach(function (elevator) {
+      elevator.on("idle", function () {
+        floors.forEach(function (floor) {
+          elevator.goToFloor(floor.floorNum());
+        });
+      });
+    });
+  },
+  update: function () {},
+}
+```
+
+```
+program: sweep.js
+seeds:   1, 2, 3, 4, 5, 6
+locale:  en
+
+scenario         transportedPerSec  avgWaitTime  transportedCount
+Small scenario               0.578        8.339           115.500
+Medium scenario              1.398       13.158           279.500
+Large scenario               1.480       45.271           296.000
+```
+
+| Option             | What it does                                                           |
+| ------------------ | ---------------------------------------------------------------------- |
+| `--seeds <list>`   | Comma-separated seeds, one run of all three scenarios each, averaged   |
+| `--locale <tag>`   | Language for the scenario names: `en` or `ru`                          |
+| `--timeout <secs>` | Whole seconds the program gets to finish in. Default `60`, no way off  |
+| `--json`           | The report as JSON, with the numbers unrounded                         |
+| `-h`, `--help`     | The usage text                                                         |
+| `--`               | End of options: what follows is the program file, whatever it is named |
+
+No option may be given twice, and an option that takes a value will not swallow the next option as
+one — write `--seeds=-1` for a seed that starts with a dash.
 
 Two things make it usable as a check rather than as a curiosity. The numbers are reproducible: the
 seeds fix the buildings, so the same program scores the same to the last decimal, and two programs
 can be compared without wondering which drew the easier traffic. And the report owns standard
 output — everything the run itself prints, including the stack of a program that threw and any
 `console.log` you are debugging with, goes to standard error instead, so `--json` is safe to pipe.
-The exit code is `0` when the program was scored, `1` when it threw or would not compile, and `2`
-when the command itself could not proceed.
+The exit code is `0` when the program was scored, `1` when it threw, would not compile or ran out
+of time, and `2` when the command itself could not proceed.
+
+A program that never returns is stopped rather than waited on. The run happens in a worker thread
+with a deadline on it, the same arrangement the page uses for the **Fitness** button and the same
+minute by default, so a `while (true)` in an `update()` costs you a message and an exit code
+instead of a terminal you have to go and kill:
+
+```sh
+npm run bench -- spinner.js --timeout 5
+```
+
+```
+program: spinner.js
+seeds:   1, 2, 3, 4, 5, 6
+locale:  en
+
+error: The fitness worker did not finish within 5s and was stopped. Does your program have a loop that never ends?
+```
 
 Pipe from the entry point rather than through `npm run`, which prints the script it is about to run
 on the same stream:
