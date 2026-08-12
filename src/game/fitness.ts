@@ -317,7 +317,10 @@ export function doFitnessSuite(
   } catch (e) {
     return { error: stringifyError(e) };
   }
-  let error: unknown = null;
+  // Boxed, and not the thrown value itself, because every value is a value a
+  // program can throw: `null` and `undefined` are the two this has to survive,
+  // and either of them as a sentinel would read as "nothing went wrong".
+  let failure: { readonly thrown: unknown } | undefined = undefined;
 
   // Once, not once per seed: every run has to be scored on the same three
   // buildings, and `makeAverageResult` keeps the options object of the first
@@ -340,21 +343,26 @@ export function doFitnessSuite(
       // whole row of the results rather than one cell of it.
       const fitness = calculateFitness(challenge, codeObj, 1000.0 / 60.0, 12000, seed);
       // The legacy code kept iterating the remaining scenarios after a failure
-      // and only bailed out afterwards; that is preserved, as is the
-      // truthiness test, which ignores a falsy thrown value.
-      if (fitness.error) {
-        error = fitness.error;
+      // and only bailed out afterwards, which is preserved. Its truthiness test
+      // is not: `throw 0`, `throw null` and `throw ""` all failed that test, so
+      // the scenario was scored as if it had run and `error` went into the
+      // averaging as another number -- a report of `error: 0` beside the
+      // transport rate, and a benchmark exiting as though the program had been
+      // measured. What decides it is whether the run set the property, not what
+      // it set it to.
+      if (Object.hasOwn(fitness, "error")) {
+        failure = { thrown: fitness.error };
         continue;
       }
       results.push({ options: challenge.options, result: fitness });
     }
-    if (error !== null) {
+    if (failure !== undefined) {
       continue;
     }
     testruns.push(results);
   }
-  if (error !== null) {
-    return { error: stringifyError(error) };
+  if (failure !== undefined) {
+    return { error: stringifyError(failure.thrown) };
   }
 
   // Now do averaging over all properties for each challenge's test runs

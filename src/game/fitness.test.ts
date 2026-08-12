@@ -408,6 +408,24 @@ describe("doFitnessSuite", () => {
     expect("error" in result).toBe(true);
   });
 
+  it.each([
+    ["0", "0"],
+    ["null", "null"],
+    ["undefined", "undefined"],
+    ["false", "false"],
+    ['""', ""],
+    ["NaN", "NaN"],
+  ])("reports a program that threw %s as an error", (thrown, reported) => {
+    // Every one of these was scored as a successful run, because the test that
+    // decided it was the truthiness of the thrown value. The report then
+    // carried the thrown value as a metric -- `error: 0` averaged alongside the
+    // transport rate -- and the benchmark command exited 0, so a script scoring
+    // a directory of programs wrote the failure down as a measurement.
+    expect(
+      doFitnessSuite(`{init: function () { throw ${thrown}; }, update: function () {} }`),
+    ).toEqual({ error: reported });
+  });
+
   it("reports the error in the language the suite is running in", () => {
     // Which is why the worker is told the locale rather than sending scenario
     // identifiers home: this string is `String()` of whatever was thrown, so
