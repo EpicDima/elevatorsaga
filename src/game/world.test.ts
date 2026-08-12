@@ -664,6 +664,34 @@ describe("World", () => {
       expect(world.maxPickupTime).toBeCloseTo(3.0, 10);
     });
 
+    it("counts the last frame of a wait that a car really ends", () => {
+      // What the boarding handler adds over the per-frame sweep, which is the
+      // one thing the two tests above cannot tell apart because they board
+      // their passengers by hand between frames. A car that arrives inside
+      // update() takes its passenger after the clock has already been advanced,
+      // and the sweep that runs afterwards skips anybody already picked up --
+      // so that last frame of waiting is recorded at the boarding or nowhere.
+      //
+      // `avgPickupTime` is the second reading of the same moment and is written
+      // only there, so over a single boarding the two figures are the same
+      // subtraction. Exact equality rather than toBeCloseTo: a maximum left to
+      // the sweep alone would be short by exactly one frame, and rounding it
+      // away is how that would go unnoticed.
+      const world = waitingWorld(0.05);
+      at(world.elevators, 0).goToFloor(2);
+      world.update(0.1);
+      world.update(1.0);
+      expect(world.avgPickupTime).toBe(0);
+
+      at(world.elevators, 0).goToFloor(0);
+      for (let frame = 0; frame < 600 && world.avgPickupTime === 0; frame++) {
+        world.update(1.0 / 60.0);
+      }
+
+      expect(world.avgPickupTime).toBeGreaterThan(1.0);
+      expect(world.maxPickupTime).toBe(world.avgPickupTime);
+    });
+
     it("goes on counting the wait of a passenger nobody ever comes for", () => {
       // The case that makes this statistic worth having, and the reason it is
       // not derived from boardings alone. A passenger left standing has no

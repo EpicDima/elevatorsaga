@@ -221,8 +221,13 @@ describe("calculateFitness", () => {
     // says so: a report is what a benchmark run is judged on, and a metric that
     // arrives as NaN is worse than one that is missing.
     expect(result.avgLoadFactorOnMove).toBe(0);
-    // Same reasoning for the wait before pickup: nobody boarded a car that
-    // never came, so the mean is over nothing and has to read as zero.
+    // The wait before pickup reads zero for a subtler reason, and it is worth
+    // saying which: a car nobody drives is still a car standing in the lobby,
+    // so the one passenger who gets into one during this run gets in on the
+    // frame they spawn on -- the floor button they press re-offers the car that
+    // is already there. The mean is over that boarding and it is a mean of
+    // zero. Everybody who really waited is in `maxPickupTime`, which the test
+    // above keeps out of a report of averages.
     expect(result.avgPickupTime).toBe(0);
   });
 
@@ -234,7 +239,19 @@ describe("calculateFitness", () => {
   });
 
   it("reports a wait for a car that is a part of the whole journey", () => {
-    const result = calculateFitness(challenge, drivingCodeObj(), 1000.0 / 60.0, 3000);
+    // Seeded, unlike its neighbours, because this one compares two means that
+    // are not taken over the same passengers: everybody picked up is in the
+    // first and only those delivered are in the second, so at the moment the
+    // run is cut off the difference between them is not a ride time but the
+    // rides still in progress. It holds for traffic the sweep keeps up with;
+    // pinning the traffic is what keeps that from being a coin toss.
+    const result = calculateFitness(
+      challenge,
+      drivingCodeObj(),
+      1000.0 / 60.0,
+      3000,
+      "pickup-seed",
+    );
 
     // The point of the split: the report now says how much of the figure a
     // player is judged on was spent standing on a floor rather than riding.
