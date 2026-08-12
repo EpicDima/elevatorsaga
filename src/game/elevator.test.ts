@@ -971,6 +971,27 @@ describe("Elevator object", () => {
       expect(e.moveCount).toBe(2);
     });
 
+    it("samples how full it is on every floor it crosses", () => {
+      // Sampled on the same branch that counts the move, which is what lets
+      // `World` divide one by the other. Two of four slots at the nominal 100
+      // is a load factor of exactly 0.5, and two floors crossed at that load
+      // sum to exactly 1 -- both exact in binary, so no epsilon is wanted here.
+      e.userEntering(passenger(100));
+      e.userEntering(passenger(100));
+      expect(e.loadFactorSumOnMove).toBe(0);
+      e.goToFloor(2);
+      stepElevator(e, 10.0, 0.015);
+      expect(e.moveCount).toBe(2);
+      expect(e.loadFactorSumOnMove).toBe(1);
+    });
+
+    it("counts an empty car's floors without adding to the load it carried", () => {
+      e.goToFloor(2);
+      stepElevator(e, 10.0, 0.015);
+      expect(e.moveCount).toBe(2);
+      expect(e.loadFactorSumOnMove).toBe(0);
+    });
+
     it("emits new_current_floor as it passes each floor", () => {
       const seen: number[] = [];
       e.on("new_current_floor", (floorNum) => {

@@ -573,6 +573,32 @@ describe("World", () => {
       expect(world.moveCount).toBe(7);
     });
 
+    it("averages the load its elevators carried over the floors they crossed", () => {
+      // Set on the elevators directly, the way the move-count case above does:
+      // what is under test is the division, and driving real passengers into
+      // real cars to arrive at a chosen numerator would test the boarding code
+      // instead. Four crossings carrying 2.0 between them and one carrying
+      // nothing is 2.0 over 5 moves.
+      const world = createWorld({ spawnRate: 0.001, floorCount: 3, elevatorCount: 2 });
+      at(world.elevators, 0).moveCount = 4;
+      at(world.elevators, 0).loadFactorSumOnMove = 2.0;
+      at(world.elevators, 1).moveCount = 1;
+      at(world.elevators, 1).loadFactorSumOnMove = 0;
+      world.update(0.1);
+      expect(world.avgLoadFactorOnMove).toBeCloseTo(0.4, 10);
+    });
+
+    it("reports no load rather than NaN while nothing has moved", () => {
+      // A building whose cars have not moved yet is an ordinary state that
+      // lasts as long as the player leaves it alone, so the zero denominator
+      // here is reached in normal play rather than only at start-up -- and an
+      // unguarded division would put NaN in the statistics panel.
+      const world = createWorld({ spawnRate: 0.001, floorCount: 4, elevatorCount: 2 });
+      world.update(0.1);
+      expect(world.moveCount).toBe(0);
+      expect(world.avgLoadFactorOnMove).toBe(0);
+    });
+
     it("tracks the longest wait of any user still in the world", () => {
       const world = createWorld({ spawnRate: 0.5 });
       world.update(0.1);

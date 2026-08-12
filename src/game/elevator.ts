@@ -143,6 +143,15 @@ export class Elevator extends Movable<ElevatorEvents> {
   previousTruncFutureFloorIfStopped = 0;
   /** Number of floor changes, used by the "elevator moves" challenges. */
   moveCount = 0;
+  /**
+   * Load factors summed over the moves counted in {@link Elevator.moveCount}.
+   *
+   * Sampled on the same branch that counts the move, so the two can never
+   * disagree about how many samples there have been; `World` divides one by the
+   * other. One move is one floor crossed, so a mean over moves is already
+   * weighted by distance travelled, which is where an empty car is expensive.
+   */
+  loadFactorSumOnMove = 0;
   /** Legacy flag, kept for parity; never read by the simulation. */
   removed = false;
 
@@ -686,6 +695,7 @@ export class Elevator extends Movable<ElevatorEvents> {
     const currentFloor = this.getRoundedCurrentFloor();
     if (currentFloor !== this.currentFloor) {
       this.moveCount++;
+      this.loadFactorSumOnMove += this.getLoadFactor();
       this.currentFloor = currentFloor;
       this.trigger("new_current_floor", this.currentFloor);
     }

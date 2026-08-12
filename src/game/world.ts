@@ -490,6 +490,17 @@ export class World extends Observable<WorldEvents> {
   transportedPerSec = 0.0;
   /** Total floor changes across all elevators. */
   moveCount = 0;
+  /**
+   * How full the cars were, averaged over every floor they crossed.
+   *
+   * Sampled once per move rather than once per frame, which keeps a car parked
+   * at the lobby from dragging the figure down: parking cars is good play in
+   * several challenges, and a statistic that punished it would be pointing the
+   * player the wrong way. Zero while nothing has moved. What it means for the
+   * player is spelled out under `docs.play.statistics.html`, including why it
+   * sits so far below 1.
+   */
+  avgLoadFactorOnMove = 0.0;
   /** Simulated seconds since the world started. */
   elapsedTime = 0.0;
   /**
@@ -644,6 +655,12 @@ export class World extends Observable<WorldEvents> {
     // the same array — so there is nothing here to win and a `reduce` says what
     // it does.
     this.moveCount = this.elevators.reduce((sum, elevator) => sum + elevator.moveCount, 0);
+    // Guarded where `transportedPerSec` above is not, and the difference is
+    // real: `elapsedTime` is past zero by the time anything reads these, but a
+    // building whose cars have not moved yet is an ordinary state that lasts as
+    // long as the player leaves it, and 0/0 would put NaN in the panel.
+    const loadSum = this.elevators.reduce((sum, elevator) => sum + elevator.loadFactorSumOnMove, 0);
+    this.avgLoadFactorOnMove = this.moveCount === 0 ? 0 : loadSum / this.moveCount;
     this.trigger("stats_changed");
   }
 
