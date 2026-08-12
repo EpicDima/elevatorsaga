@@ -454,8 +454,8 @@ export class Observable<E extends EventArgsMap> {
  * surfaces as a `usercode_error` and pauses the game. riot, which backed these
  * facades, absorbed it (`libs/riot.js:43-48`).
  *
- * Both dispatch methods are guarded, and they share one in-flight set per event
- * name, so nesting either inside the other is refused as well. Guarding only
+ * Every dispatch method is guarded, and they share one in-flight set per event
+ * name, so nesting any of them inside another is refused as well. Guarding only
  * {@link Observable.triggerSafe} would have left the whole guard bypassable:
  * `trigger` is published surface on the elevator facade — the legacy one really
  * was a `riot.observable(obj)` (`interfaces.js:6`) — so player code can call it,
@@ -469,6 +469,10 @@ export class Observable<E extends EventArgsMap> {
  * an event at a time, per emitter" is a rule that can be stated in one line.
  * What it gives up is riot's ability to still run the *other* handlers of a
  * re-triggered event.
+ *
+ * The name is the default unit, not the only one:
+ * {@link PlayerObservable.triggerSafeKeyed} lets a caller that knows better name
+ * the unit itself, which an event standing for several others needs — see there.
  *
  * The guard is cleared in a `finally`, so a throwing handler cannot wedge an
  * event off permanently — riot's defect in upstream issue #88. `trigger` still
@@ -513,13 +517,53 @@ export class PlayerObservable<E extends EventArgsMap> extends Observable<E> {
   }
 
   /**
+   * Invokes every handler of `event` under a re-entrancy key the caller
+   * chooses, rather than under the event's own name.
+   *
+   * For an event that generalises several others, the event name is the wrong
+   * unit to guard by. `hall_button_pressed` is the only one so far: it is one
+   * name for the up call and the down call both, and a handler of it that
+   * presses the other button is making a second, unrelated call that has to be
+   * heard. Guarded by name, that nested call arrives as its specific event with
+   * no general one behind it — the split `FloorInterface` exists to prevent —
+   * because the outer dispatch is still holding the name. Keyed by call, the
+   * two nest as they should and a repress of the *same* call is still refused.
+   *
+   * The key shares one namespace with the event names, so a key that is a bare
+   * event name means "guard as usual". Callers that mean something narrower
+   * qualify it — `hall_button_pressed:up` — and the colon is what keeps the two
+   * apart: no event name has one.
+   *
+   * The depth this admits is the caller's to bound, and the reason this is not
+   * simply an escape hatch: `FloorInterface` marks the call in flight itself
+   * before it dispatches anything, so the nesting stops at one call per
+   * direction. A caller with no such mark of its own should be using
+   * {@link triggerSafe}.
+   *
+   * @param key - What counts as "this dispatch" for the re-entrancy guard.
+   * @param event - Event name to dispatch.
+   * @param onError - Receives whatever a handler throws.
+   * @param args - Arguments forwarded to each handler.
+   * @returns This emitter, for chaining.
+   */
+  triggerSafeKeyed<K extends EventName<E>>(
+    key: string,
+    event: K,
+    onError: (e: unknown) => void,
+    ...args: E[K]
+  ): this {
+    return this.#guard(key, () => super.triggerSafe(event, onError, ...args));
+  }
+
+  /**
    * Runs one dispatch unless that event is already being dispatched.
    *
-   * Shared by both dispatch methods so that the in-flight set is one set, not
-   * one per method: an event is in flight regardless of which method put it
+   * Shared by all three dispatch methods so that the in-flight set is one set,
+   * not one per method: an event is in flight regardless of which method put it
    * there.
    *
-   * @param event - Event name being dispatched.
+   * @param event - Re-entrancy key being dispatched under, which is the event's
+   * own name unless the caller chose otherwise.
    * @param dispatch - Performs the dispatch.
    * @returns This emitter, for chaining, whether or not the dispatch ran.
    */

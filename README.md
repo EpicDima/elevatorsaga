@@ -712,10 +712,12 @@ granted here rather than having to work it out from a feature list.
   same handler for both events and then working out which one had called it. The event is here, and
   its handler is passed the direction first — `"up"` or `"down"`, the words the rest of the API uses
   for one — and the floor second, which the issue's own sketch does not ask for because it closes
-  over the floor, but which a handler shared between floors needs. It is raised immediately after
-  `up_button_pressed` or `down_button_pressed` for the same press, in that order whichever order
-  the two were registered in, so a program listening for both hears about that press twice and
-  always hears the specific event first.
+  over the floor, but which a handler shared between floors needs. Every press raises the pair:
+  `up_button_pressed` or `down_button_pressed` first and `hall_button_pressed` after it, in that
+  order whichever order the two were registered in, so a program listening for both hears about
+  that press twice and always hears the specific event first. Something can come between them, but
+  only a press one of your own handlers made — the game's own passengers press again while a call
+  is being delivered, and each such call arrives whole.
 - [PR #104](https://github.com/magwo/elevatorsaga/pull/104) — a control to expand and collapse the
   code editor. What shipped is more than the PR asked for: the editor's bottom edge is a grip, so
   every height in the range is available rather than two, and the choice is remembered. The PR's own

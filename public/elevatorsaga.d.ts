@@ -617,8 +617,9 @@ declare namespace ElevatorSaga {
     /**
      * Runs `handler` whenever either call button here is pressed.
      *
-     * Raised just after the button's own event, so subscribing to this as well
-     * as to `up_button_pressed` means being told about one press twice.
+     * Always raised after the button's own event and never before it, so
+     * subscribing to this as well as to `up_button_pressed` means being told
+     * about one press twice.
      *
      * @param event - `"hall_button_pressed"`.
      * @param handler - Called with the direction that was asked for and this

@@ -472,6 +472,65 @@ describe("FloorInterface", () => {
 
           expect(calls).toEqual(["down", "up", "hall:up", "hall:down"]);
         });
+
+        it("still delivers a press of the other button from the general handler", () => {
+          // The same independence, reached from the general event — which is the
+          // case the per-direction mark alone could not carry. It admits the
+          // nested `up` call, being a different direction, but the emitter
+          // guards by event *name*, and `hall_button_pressed` is one name for
+          // both directions: the nested general event was refused as already in
+          // flight, so this recorded ["down", "hall:down", "up"] — a specific
+          // event with no general one after it, the very split the mark exists
+          // to prevent. Hence the per-call key in `#forwardCall`.
+          //
+          // Worth a test of its own because a solution reads far more naturally
+          // this way round: a handler of `hall_button_pressed` is the one place
+          // a program sees both calls, so it is where a program that answers a
+          // call by making another would put that logic.
+          const calls: string[] = [];
+          let pressedUp = false;
+          floorInterface.on("down_button_pressed", () => {
+            calls.push("down");
+          });
+          floorInterface.on("up_button_pressed", () => {
+            calls.push("up");
+          });
+          floorInterface.on("hall_button_pressed", (direction) => {
+            calls.push(`hall:${direction}`);
+            if (direction === "down" && !pressedUp) {
+              pressedUp = true;
+              floor.pressUpButton();
+            }
+          });
+
+          floor.pressDownButton();
+
+          expect(calls).toEqual(["down", "hall:down", "up", "hall:up"]);
+        });
+
+        it("drops a repress of the same button from the general handler", () => {
+          // The other half of the key: narrowing the guard to one call must not
+          // widen it back to nothing. A `hall_button_pressed` handler that
+          // presses the button it was just told about is the recursion the guard
+          // is for, and it is still refused — both events of it, not one.
+          const calls: string[] = [];
+          let repressed = false;
+          floorInterface.on("down_button_pressed", () => {
+            calls.push("down");
+          });
+          floorInterface.on("hall_button_pressed", (direction) => {
+            calls.push(`hall:${direction}`);
+            if (!repressed) {
+              repressed = true;
+              floor.buttonStates.down = "";
+              floor.pressDownButton();
+            }
+          });
+
+          floor.pressDownButton();
+
+          expect(calls).toEqual(["down", "hall:down"]);
+        });
       });
     });
   });

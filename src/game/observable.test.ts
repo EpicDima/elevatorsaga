@@ -734,6 +734,125 @@ describe("PlayerObservable", () => {
   });
 });
 
+describe("PlayerObservable.triggerSafeKeyed", () => {
+  it("lets one event nest inside itself under two different keys", () => {
+    // The point of the method. `FloorInterface` dispatches
+    // `hall_button_pressed` under a key per direction, because one press of the
+    // up button and one of the down button are two calls that both have to be
+    // heard even though they share an event name.
+    const emitter = new PlayerObservable<TestEvents>();
+    const onError = vi.fn();
+    const seen: number[] = [];
+    emitter.on("up_button_pressed", (floor) => {
+      seen.push(floor);
+      if (floor < 3) {
+        emitter.triggerSafeKeyed(
+          `up_button_pressed:${String(floor + 1)}`,
+          "up_button_pressed",
+          onError,
+          3,
+        );
+      }
+    });
+
+    emitter.triggerSafeKeyed("up_button_pressed:1", "up_button_pressed", onError, 1);
+
+    expect(seen).toEqual([1, 3]);
+    expect(onError).not.toHaveBeenCalled();
+  });
+
+  it("refuses to re-enter the same key", () => {
+    const emitter = new PlayerObservable<TestEvents>();
+    const onError = vi.fn();
+    const seen: number[] = [];
+    emitter.on("up_button_pressed", (floor) => {
+      seen.push(floor);
+      if (floor < 3) {
+        emitter.triggerSafeKeyed("call:up", "up_button_pressed", onError, floor + 1);
+      }
+    });
+
+    emitter.triggerSafeKeyed("call:up", "up_button_pressed", onError, 1);
+
+    expect(seen).toEqual([1]);
+    expect(onError).not.toHaveBeenCalled();
+  });
+
+  it("shares the in-flight set with the unkeyed methods", () => {
+    // One set, so a key that *is* an event name is that event's own mark: a
+    // caller cannot reach a nested dispatch of an event already in flight by
+    // spelling its name through this method instead.
+    const emitter = new PlayerObservable<TestEvents>();
+    const onError = vi.fn();
+    const seen: number[] = [];
+    emitter.on("up_button_pressed", (floor) => {
+      seen.push(floor);
+      if (floor < 3) {
+        emitter.triggerSafeKeyed("up_button_pressed", "up_button_pressed", onError, floor + 1);
+      }
+    });
+
+    emitter.trigger("up_button_pressed", 1);
+
+    expect(seen).toEqual([1]);
+    expect(onError).not.toHaveBeenCalled();
+  });
+
+  it("marks only the key, so the event's own name stays free", () => {
+    // The other direction of the same rule, and the one a caller has to think
+    // about: a keyed dispatch does not mark the event, so an unkeyed dispatch
+    // of it from inside a handler still runs. What bounds that is the caller's
+    // own bookkeeping — `FloorInterface` marks the call in flight before it
+    // dispatches anything — not this method.
+    const emitter = new PlayerObservable<TestEvents>();
+    const onError = vi.fn();
+    const seen: number[] = [];
+    emitter.on("up_button_pressed", (floor) => {
+      seen.push(floor);
+      if (floor < 3) {
+        emitter.triggerSafe("up_button_pressed", onError, floor + 1);
+      }
+    });
+
+    emitter.triggerSafeKeyed("call:up", "up_button_pressed", onError, 1);
+
+    // Two deep, not three: the nested `triggerSafe` marks the name as usual, so
+    // it is the one that refuses the level below it.
+    expect(seen).toEqual([1, 2]);
+    expect(onError).not.toHaveBeenCalled();
+  });
+
+  it("isolates a handler that throws, and clears the key afterwards", () => {
+    const emitter = new PlayerObservable<TestEvents>();
+    const onError = vi.fn();
+    const boom = new Error("boom");
+    const second = vi.fn();
+    emitter.on("idle", () => {
+      throw boom;
+    });
+    emitter.on("idle", second);
+
+    emitter.triggerSafeKeyed("tick", "idle", onError);
+    emitter.triggerSafeKeyed("tick", "idle", onError);
+
+    expect(second).toHaveBeenCalledTimes(2);
+    expect(onError).toHaveBeenNthCalledWith(1, boom);
+    expect(onError).toHaveBeenNthCalledWith(2, boom);
+  });
+
+  it("returns itself, dispatched or refused", () => {
+    const emitter = new PlayerObservable<TestEvents>();
+    const onError = vi.fn();
+    const seen: unknown[] = [];
+    emitter.on("idle", () => {
+      seen.push(emitter.triggerSafeKeyed("tick", "idle", onError));
+    });
+
+    expect(emitter.triggerSafeKeyed("tick", "idle", onError)).toBe(emitter);
+    expect(seen).toEqual([emitter]);
+  });
+});
+
 describe("Observable handler receiver", () => {
   it("calls handlers with the emitter as `this`, as riot did", () => {
     // libs/riot.js:45 dispatched with `fn.apply(el, ...)`, so the legacy idiom

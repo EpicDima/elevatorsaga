@@ -570,7 +570,7 @@ elevator.goToFloor(2); // Queued anyway -- queue: 2, 3, 2`,
     // Maybe tell an elevator to go to this floor?
 })`,
   "docs.api.floor.hallButtonPressed":
-    'Triggered when someone has pressed either call button at a floor. Note that passengers will press the button again if they fail to enter an elevator. The handler is passed the direction that was asked for, either "up" or "down", and the floor the button was pressed on. It is triggered just after the up_button_pressed or down_button_pressed event for the same press, so a program listening for both hears about that press twice.',
+    'Triggered when someone has pressed either call button at a floor. Note that passengers will press the button again if they fail to enter an elevator. The handler is passed the direction that was asked for, either "up" or "down", and the floor the button was pressed on. It always follows the up_button_pressed or down_button_pressed event for the same press, never precedes it, so a program listening for both hears about that press twice.',
   "docs.api.floor.hallButtonPressed.example.code": `floor.on("hall_button_pressed", function(direction, floor) {
     // Maybe send an elevator that is already going that way?
 })`,

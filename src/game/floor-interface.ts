@@ -148,6 +148,15 @@ export class FloorInterface {
    * of the button already in flight is dropped, which is the behaviour the
    * specific event has always had.
    *
+   * Which is why the general half goes out under a key of its own. The emitter
+   * guards by event name, and `hall_button_pressed` is a single name for both
+   * directions — so a handler of it that presses the other button would have had
+   * its specific event delivered, the mark above admitting a different
+   * direction, and its general one refused as already in flight. That is the
+   * same split again, in the one case the per-direction mark was meant to allow.
+   * Keyed by direction the two calls nest, and the mark above is what stops the
+   * nesting: one call per direction, so two deep at most.
+   *
    * @param direction - Which call button was pressed.
    */
   #forwardCall(direction: "up" | "down"): void {
@@ -157,7 +166,13 @@ export class FloorInterface {
     this.#callsInFlight.add(direction);
     try {
       this.#tryTrigger(`${direction}_button_pressed`, this);
-      this.#tryTrigger("hall_button_pressed", direction, this);
+      this.#events.triggerSafeKeyed(
+        `hall_button_pressed:${direction}`,
+        "hall_button_pressed",
+        this.#errorHandler,
+        direction,
+        this,
+      );
     } finally {
       this.#callsInFlight.delete(direction);
     }
