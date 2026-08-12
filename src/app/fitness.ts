@@ -38,6 +38,10 @@ const FALLBACK_SEED_COUNT = 2;
 /**
  * How long the worker is given before it is written off, in milliseconds.
  *
+ * Exported so that `src/cli/bench.ts`, which gives a program the same minute for
+ * the same suite, can be held to it: the two deadlines have to agree, or the
+ * command and the game disagree about which programs are measurable.
+ *
  * A player program with a `while (true)` in it never returns, and a worker
  * running one never posts a message and never raises an error either: it just
  * spins a core forever. Without this the promise never settles, the page reads
@@ -45,7 +49,7 @@ const FALLBACK_SEED_COUNT = 2;
  * strands another worker. Generous enough that a merely slow program still
  * reports, since the whole suite is several seconds of simulation.
  */
-const WORKER_TIMEOUT_MS = 60_000;
+export const WORKER_TIMEOUT_MS = 60_000;
 
 /** The part of a `Worker` the benchmark uses. */
 export interface FitnessWorkerLike {

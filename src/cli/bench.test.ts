@@ -1,6 +1,7 @@
 import process from "node:process";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { WORKER_TIMEOUT_MS } from "../app/fitness.ts";
 import {
   doFitnessSuite,
   fitnessSeeds,
@@ -221,7 +222,10 @@ describe("reading the command line", () => {
   it("gives the program the same minute the page gives it, unless told otherwise", () => {
     // The default is `WORKER_TIMEOUT_MS` from `src/app/fitness.ts` over again,
     // for the same scenario list on the same seeds: a program the page can
-    // measure has to be one this command can measure.
+    // measure has to be one this command can measure. Asserted against that
+    // constant rather than against a number written here, because a claim that
+    // two things agree is worth nothing while each of them is free to move.
+    expect(DEFAULT_TIMEOUT_MS).toBe(WORKER_TIMEOUT_MS);
     expect(parseBenchArgs(["solution.js"])).toMatchObject({
       options: { timeoutMs: DEFAULT_TIMEOUT_MS },
     });

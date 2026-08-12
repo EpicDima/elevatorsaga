@@ -713,8 +713,12 @@ export function runSuiteInWorker(code: string, options: BenchOptions): Promise<F
      * Reports the first answer to arrive and shuts the thread down.
      *
      * Guarded, because several of these race by design: terminating the thread
-     * on the deadline makes it exit, and a thread that answered and then exited
-     * would otherwise report twice.
+     * on the deadline makes it exit, so every answer is followed by a second
+     * one. The report is safe without the guard — a promise keeps the value it
+     * settled with — but the shutdown is not idempotent in any useful sense: a
+     * second pass terminates a thread that is already gone and clears a timer
+     * that has already fired, which is work done on the strength of a decision
+     * that was made and finished with.
      *
      * @param result - What to report.
      */
