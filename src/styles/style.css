@@ -290,8 +290,26 @@ dl dd {
   line-height: 50px;
 }
 
+/*
+ * `wrap` for the same reason `.headertools` has it, one level further in.
+ *
+ * The wrapper being allowed to wrap only lets the picker drop below the links;
+ * the links themselves were one unbreakable row, and three of them in Russian
+ * do not fit a phone. Measured in Chromium before this line existed: at a 320px
+ * viewport the nav laid itself out 367px wide inside a 300px container and took
+ * the whole document 57px past the screen, which is WCAG 1.4.10 failed on the
+ * game page in Russian. English fits either way, which is why the page that
+ * ships in English never showed it.
+ *
+ * Bisected with the line in place: the three links take two rows from 320px up
+ * to 458px and a single row from 459px, and the document overflows at neither
+ * 320px nor 390px. `e2e/reflow.spec.ts` measures the Russian game page now, so
+ * this cannot come back the way it arrived — by being true only of a language
+ * nobody tested.
+ */
 .header nav {
   display: flex;
+  flex-wrap: wrap;
   gap: 15px;
 }
 

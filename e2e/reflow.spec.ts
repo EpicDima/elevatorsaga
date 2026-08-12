@@ -123,3 +123,34 @@ for (const { name, hash, open } of SEED_STATES) {
     });
   }
 }
+
+/*
+ * The game page in the other language.
+ *
+ * The two help pages above are measured in both languages because each is its
+ * own file with its own path. The game page is one file that changes language
+ * underneath itself, so `PAGES` can only reach the English it ships with -- and
+ * that is precisely the gap this closes. Russian words are longer, and the
+ * header's three help links in Russian were an unbreakable 367px row inside a
+ * 300px container: the game page failed 1.4.10 at 320px by 57px while every
+ * test here passed. The picker is used the way a player would, rather than a
+ * locale being forced through the module, so what is measured is the page a
+ * player actually gets.
+ */
+for (const width of WIDTHS) {
+  test(`the game in Russian fits a ${String(width)}px screen`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 800 });
+    await page.goto("/");
+    await page.getByLabel("Language").selectOption("ru");
+    // The heading is translated last thing in the pass over the document, so
+    // waiting for its Russian text is waiting for the relayout to have happened.
+    await expect(page.getByRole("heading", { level: 1 })).toContainText("Elevator Saga");
+    await expect(page.locator(".header nav a").first()).toHaveText("Справка");
+
+    const overflow = await page.evaluate(() => {
+      const root = document.documentElement;
+      return root.scrollWidth - root.clientWidth;
+    });
+    expect(overflow).toBeLessThanOrEqual(0);
+  });
+}
