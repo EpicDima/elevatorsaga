@@ -8,8 +8,11 @@
  * highlight.js itself.
  */
 
-import "@fontsource/oswald/latin-400.css";
-import "@fontsource/oswald/latin-700.css";
+// The whole-family files, not the `latin-*.css` subsets: see the note in
+// src/main.ts. The Russian page is most of the prose this site has, and it was
+// the one falling back to Arial.
+import "@fontsource/oswald/400.css";
+import "@fontsource/oswald/700.css";
 import "./styles/style.css";
 
 import { labelModifierKeys } from "./ui/shortcuts.ts";
