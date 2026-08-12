@@ -443,8 +443,8 @@ dl dd {
 }
 
 /*
- * The picker is dressed as the page's other controls (the Save/Apply row and
- * the Start button): same border, same fill, same corner radius. `font` is
+ * The picker is dressed as the page's other controls (the run row, from Start
+ * to the speed arrows): same border, same fill, same corner radius. `font` is
  * inherited explicitly because form controls do not take the page's family on
  * their own, and a `<select>` in the browser's default sans-serif beside a
  * header set in Oswald is the one thing that would make it look bolted on.

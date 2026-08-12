@@ -567,8 +567,9 @@ export class App {
   /**
    * Starts whatever is currently on screen again, from the beginning.
    *
-   * Its three callers — the Restart button, the editor's "apply code" and the
-   * track panel's "start over" — all mean "run this again", and until the
+   * Its three callers — the run row's "Start over", the same row's first button
+   * once it has become Restart, and the editor's "apply code" behind
+   * Ctrl-Enter — all mean "run this again", and until the
    * sandbox existed the only thing that could be on screen was
    * `challenges[currentChallengeIndex]`. Restarting through the index would now
    * throw a sandbox player back onto a numbered challenge, and with it the
