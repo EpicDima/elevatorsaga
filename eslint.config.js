@@ -45,6 +45,18 @@ export default tseslint.config(
     },
   },
   {
+    // The one part of `src/` that is not browser-facing: the command that runs
+    // the benchmark from a terminal. It sits under `src/` rather than in a
+    // scripts directory because it is the same simulation, checked by the same
+    // `tsconfig.json`, tested by the same suite and held to the same coverage
+    // floor as everything it imports -- and a benchmark nobody type-checks is a
+    // benchmark that stops building the day the engine moves.
+    files: ["src/cli/**/*.ts"],
+    languageOptions: {
+      globals: { ...globals.node },
+    },
+  },
+  {
     // Simulation event maps must be `type` aliases, not interfaces: only type
     // aliases get the implicit index signature required to satisfy the
     // `EventArgsMap` (`Record<string, readonly unknown[]>`) constraint of

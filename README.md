@@ -218,6 +218,57 @@ The declaration describes _this fork_, including `isFull()`, `isEmpty()` and
 each, every event, and the arguments each handler is given — so the suite fails when the two
 disagree. The header of that file says how far the comparison reaches and where it stops.
 
+## Scoring a solution without a browser
+
+The same benchmark the **Fitness** button runs — three buildings, six seeds, everything averaged —
+is also a command:
+
+```sh
+npm run bench -- solution.js
+```
+
+```
+program: solution.js
+seeds:   1, 2, 3, 4, 5, 6
+locale:  en
+
+scenario         transportedPerSec  avgWaitTime  transportedCount
+Small scenario               0.542       12.567           108.333
+Medium scenario              0.593       57.516           118.667
+Large scenario               0.294       79.803            58.833
+```
+
+The file is a program in exactly the form the in-page editor takes: an object literal with `init`
+and `update`, parentheses optional. Nothing is drawn and no browser is involved — the simulation
+never needed one — so a full report takes under a second.
+
+| Option           | What it does                                                         |
+| ---------------- | -------------------------------------------------------------------- |
+| `--seeds <list>` | Comma-separated seeds, one run of all three scenarios each, averaged |
+| `--locale <tag>` | Language for the scenario names: `en` or `ru`                        |
+| `--json`         | The report as JSON, with the numbers unrounded                       |
+| `--help`         | The usage text                                                       |
+
+Two things make it usable as a check rather than as a curiosity. The numbers are reproducible: the
+seeds fix the buildings, so the same program scores the same to the last decimal, and two programs
+can be compared without wondering which drew the easier traffic. And the report owns standard
+output — everything the run itself prints, including the stack of a program that threw and any
+`console.log` you are debugging with, goes to standard error instead, so `--json` is safe to pipe.
+The exit code is `0` when the program was scored, `1` when it threw or would not compile, and `2`
+when the command itself could not proceed.
+
+Pipe from the entry point rather than through `npm run`, which prints the script it is about to run
+on the same stream:
+
+```sh
+node src/cli/bench.ts solution.js --seeds 42 --json | jq '.scenarios[].result.avgWaitTime'
+for f in solutions/*.js; do node src/cli/bench.ts "$f" --seeds 1,2,3; done
+```
+
+Running the TypeScript entry point directly is Node's own type stripping, which is on by default
+from Node 22.18 and 24. On an earlier 22.x, `node --experimental-strip-types src/cli/bench.ts` does
+the same thing.
+
 ## Quick start
 
 Node 22 or newer is required.
@@ -249,6 +300,7 @@ GitHub Pages project sub-path, without further configuration.
 | `npm run build`         | Typechecks, then builds the three pages into `dist/`          |
 | `npm run preview`       | Serves the built `dist/` for a final look before deploying    |
 | `npm run typecheck`     | `tsc --noEmit` over the whole project                         |
+| `npm run bench`         | Scores a solution file headlessly; see above                  |
 | `npm test`              | Runs the Vitest suite once                                    |
 | `npm run test:watch`    | Runs the suite in watch mode                                  |
 | `npm run test:coverage` | Runs the suite and writes a V8 coverage report to `coverage/` |
@@ -267,6 +319,8 @@ src/
             the event emitter, and the facades handed to player code
   ui/       DOM presenters, markup templates, inline SVG icons, CodeMirror editor
   app/      hash router, challenge orchestration, fitness benchmark worker
+  cli/      the benchmark as a terminal command; the only part of src/ not
+            meant for a browser
   i18n/     message catalogue, locale detection, plural and number formatting
   styles/   the single stylesheet
   main.ts   entry point: wires the three layers together and starts the router

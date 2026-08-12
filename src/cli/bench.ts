@@ -1,0 +1,496 @@
+/**
+ * The benchmark suite, run from a terminal.
+ *
+ * The simulation has been headless all along — {@link doFitnessSuite} draws
+ * nothing, `createFrameRequester` turns the clock by hand, and
+ * `determinism.test.ts` shows a seed reproduces its passengers whatever the
+ * frame timing does — but the only way to reach it was a browser tab, because
+ * the page's report goes through a web worker (`src/app/fitness.ts`) and a
+ * worker needs a page. This is the command that was missing. It reads a program
+ * from a file, runs it over the same three buildings on the same seed list the
+ * game scores with, and prints what it scored.
+ *
+ * That opens three doors at once: a program can be written by another program
+ * and measured without a browser, two strategies can be held against the same
+ * buildings from a shell loop, and a repository of solutions can be scored in
+ * CI. The same numbers are what a distribution would have to be built from, so
+ * anything that wants to say "you are here" among other players' results starts
+ * here too.
+ *
+ * ## What it prints
+ *
+ * The report goes to standard output, in both modes, whether the program ran or
+ * threw: a program that fails is a *result* — the thing being measured did
+ * something — and only the exit code separates it from one that did not. What
+ * goes to standard error is everything else: this tool failing to do its job,
+ * and every line the run itself printed. The engine logs whatever a program
+ * threw with `console.log`, and a program being debugged prints far more than
+ * that; on a page both go to a console nobody is parsing, but here standard
+ * output is the report, and one stray line through it is a `--json` that no
+ * longer parses. See {@link withRunOutputOnStandardError}.
+ *
+ * The columns are named with the keys of {@link FitnessResult} rather than with
+ * prose, and are not translated. Two reasons, and they are the same reason. The
+ * text table and `--json` then name the same things, so nobody needs a glossary
+ * to move between the mode a human reads and the mode a script parses. And the
+ * metrics are whatever {@link makeAverageResult} averaged — it iterates the
+ * properties the first run happened to have, exactly as the legacy `_.forOwn`
+ * did — so a column heading here can only be an identifier that came out of the
+ * simulation, not a sentence somebody wrote for a fixed list of three. The one
+ * piece of prose in the output is the scenario name, which comes from the
+ * catalogue and so follows `--locale`.
+ *
+ * Every figure in the table is printed to three decimals, one rule for every
+ * column, because a per-metric rule would be a table of names in a report whose
+ * names are not known in advance. `--json` keeps the numbers exactly as the
+ * simulation produced them, since whatever reads it can round for itself and
+ * cannot recover what was thrown away. Both are reproducible to the byte: the
+ * seeds fix the buildings, so re-running the same program prints the same
+ * report, which is what makes this usable as a check in CI.
+ *
+ * ## Exit codes
+ *
+ * `0` the program ran and was scored, `1` the program threw or would not
+ * compile — the report says what it threw — and `2` this tool was asked for
+ * something it could not do.
+ */
+
+import { readFile } from "node:fs/promises";
+import process from "node:process";
+import { resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+
+import {
+  doFitnessSuite,
+  fitnessSeeds,
+  type AveragedFitnessRun,
+  type FitnessSuiteResult,
+} from "../game/fitness.ts";
+import type { RandomSeed } from "../game/random.ts";
+import {
+  DEFAULT_LOCALE,
+  isLocale,
+  loadLocale,
+  LOCALES,
+  setLocale,
+  type Locale,
+} from "../i18n/index.ts";
+
+/** The program ran and was scored. */
+export const EXIT_OK = 0;
+/** The player's program threw, or would not compile. */
+export const EXIT_PROGRAM_FAILED = 1;
+/** The arguments were unusable, or the program file could not be read. */
+export const EXIT_USAGE = 2;
+
+/** How many decimals every figure in the report is printed to. */
+const DECIMALS = 3;
+
+/** What to benchmark, and how to report it. */
+export interface BenchOptions {
+  /** The file holding the player's program. */
+  readonly programPath: string;
+  /** The buildings to score it on, one run of the scenario list per seed. */
+  readonly seeds: readonly RandomSeed[];
+  /** The language the scenario names are reported in. */
+  readonly locale: Locale;
+  /** Whether to print JSON rather than a table. */
+  readonly json: boolean;
+}
+
+/** What the command line asked for. */
+export type BenchRequest =
+  /** `--help`, or nothing at all: print the usage and stop. */
+  | { readonly kind: "help" }
+  /** A run, with everything it needs. */
+  | { readonly kind: "run"; readonly options: BenchOptions };
+
+/**
+ * An argument this tool cannot act on, phrased for whoever typed it.
+ *
+ * A class rather than a string so that {@link runBench} can tell a bad argument
+ * — which the usage text answers — from a defect in this module, which it must
+ * not swallow.
+ */
+export class BenchUsageError extends Error {}
+
+/** What `--help` prints, and what a usage error is printed above. */
+export const USAGE = `Usage: node src/cli/bench.ts <program.js> [options]
+
+Runs a player program through the benchmark suite and prints what it scored:
+the same three buildings, on the same seeds, that the game's own fitness report
+measures.
+
+Arguments:
+  <program.js>       File holding the program, in the form the editor takes:
+                     an object literal with init() and update().
+
+Options:
+  --seeds <list>     Comma-separated seeds to score on: the scenario list is
+                     run once per seed and the results averaged. A seed is
+                     hashed, so 7 and rush-hour are equally valid and equally
+                     reproducible. Default: ${fitnessSeeds.join(",")}
+  --locale <tag>     Language for the scenario names, one of ${LOCALES.join(", ")}.
+                     Default: ${DEFAULT_LOCALE}
+  --json             Print the report as JSON instead of as a table.
+  -h, --help         Print this text.
+
+The report goes to standard output. Everything the run itself printed goes to
+standard error, so a program that logs cannot corrupt the report.
+
+Exit codes:
+  ${String(EXIT_OK)}  the program ran and was scored
+  ${String(EXIT_PROGRAM_FAILED)}  the program threw, or would not compile
+  ${String(EXIT_USAGE)}  the arguments were unusable, or the file could not be read
+`;
+
+/**
+ * Reads the value of an option that takes one.
+ *
+ * Both spellings are accepted, `--seeds=1,2` and `--seeds 1,2`, because both
+ * are what people type.
+ *
+ * @param name - The option, as written, for the message if there is no value.
+ * @param inline - The text after `=`, if the argument carried one.
+ * @param next - The following argument, which is the value if `inline` is not.
+ * @returns The value.
+ * @throws {BenchUsageError} When the option was given no value.
+ */
+function optionValue(name: string, inline: string | undefined, next: string | undefined): string {
+  const value = inline ?? next;
+  if (value === undefined || value === "") {
+    throw new BenchUsageError(`${name} needs a value.`);
+  }
+  return value;
+}
+
+/**
+ * Splits a `--seeds` list.
+ *
+ * The seeds stay strings, as they do in the address bar (see `resolveSeed` in
+ * `src/app/router.ts`): `createRandomSource` hashes `String(seed)`, so `5` and
+ * `"5"` are the same building, and keeping them as typed means a seed is
+ * reported back exactly as it was given.
+ *
+ * @param value - The comma-separated list.
+ * @returns The seeds, in the order they were written.
+ * @throws {BenchUsageError} When the list has an empty entry, which is a typed
+ * comma rather than a seed anybody meant.
+ */
+function parseSeeds(value: string): readonly RandomSeed[] {
+  const seeds = value.split(",").map((seed) => seed.trim());
+  if (seeds.some((seed) => seed === "")) {
+    throw new BenchUsageError(`--seeds has an empty entry: ${value}`);
+  }
+  return seeds;
+}
+
+/**
+ * Checks that a `--locale` names a language this build has.
+ *
+ * @param value - What was typed.
+ * @returns The locale.
+ * @throws {BenchUsageError} When no such catalogue exists.
+ */
+function parseLocale(value: string): Locale {
+  if (!isLocale(value)) {
+    throw new BenchUsageError(`Unknown locale: ${value}. Known: ${LOCALES.join(", ")}`);
+  }
+  return value;
+}
+
+/**
+ * Reads the command line.
+ *
+ * @param argv - The arguments, without the node binary and this script.
+ * @returns What was asked for.
+ * @throws {BenchUsageError} When an argument is unknown, repeated, missing a
+ * value, or when more than one program was named.
+ */
+export function parseBenchArgs(argv: readonly string[]): BenchRequest {
+  let programPath: string | undefined = undefined;
+  let seeds: readonly RandomSeed[] = fitnessSeeds;
+  let locale: Locale = DEFAULT_LOCALE;
+  let json = false;
+
+  for (let index = 0; index < argv.length; index++) {
+    const argument = argv[index] ?? "";
+    if (argument === "-h" || argument === "--help") {
+      return { kind: "help" };
+    }
+    const separator = argument.indexOf("=");
+    const name =
+      argument.startsWith("--") && separator !== -1 ? argument.slice(0, separator) : argument;
+    const inline = separator === -1 ? undefined : argument.slice(separator + 1);
+    switch (name) {
+      case "--seeds":
+        seeds = parseSeeds(optionValue(name, inline, argv[index + 1]));
+        if (inline === undefined) index++;
+        break;
+      case "--locale":
+        locale = parseLocale(optionValue(name, inline, argv[index + 1]));
+        if (inline === undefined) index++;
+        break;
+      case "--json":
+        json = true;
+        break;
+      default:
+        if (argument.startsWith("-")) {
+          throw new BenchUsageError(`Unknown option: ${argument}`);
+        }
+        if (programPath !== undefined) {
+          throw new BenchUsageError(
+            `Only one program can be benchmarked at a time; got ${programPath} and ${argument}.`,
+          );
+        }
+        programPath = argument;
+    }
+  }
+
+  // Called with nothing at all, which is somebody finding out what this is.
+  if (programPath === undefined && argv.length === 0) {
+    return { kind: "help" };
+  }
+  if (programPath === undefined) {
+    throw new BenchUsageError("No program file given.");
+  }
+  return { kind: "run", options: { programPath, seeds, locale, json } };
+}
+
+/**
+ * A figure, as every figure in the report is printed.
+ *
+ * @param value - The averaged metric.
+ * @returns Its text.
+ */
+function formatValue(value: number): string {
+  return value.toFixed(DECIMALS);
+}
+
+/**
+ * The metric names, in the order the simulation produced them.
+ *
+ * Taken from the runs rather than written out, because {@link makeAverageResult}
+ * averages whatever properties the result had: a scenario whose statistics never
+ * changed contributes none, and a metric added to the simulation later appears
+ * here without this file being touched.
+ *
+ * @param runs - The scored scenarios.
+ * @returns Every metric any of them reported, first seen first.
+ */
+function metricNames(runs: readonly AveragedFitnessRun[]): readonly string[] {
+  const names = new Set<string>();
+  for (const run of runs) {
+    for (const name of Object.keys(run.result)) {
+      names.add(name);
+    }
+  }
+  return [...names];
+}
+
+/**
+ * Lays the scored scenarios out as a table.
+ *
+ * @param runs - The scored scenarios.
+ * @returns The table, one line per scenario under one heading line.
+ */
+function formatTable(runs: readonly AveragedFitnessRun[]): string {
+  const metrics = metricNames(runs);
+  const header = ["scenario", ...metrics];
+  const rows = runs.map((run) => [
+    run.options.description,
+    ...metrics.map((metric) => {
+      const value = run.result[metric];
+      return value === undefined ? "" : formatValue(value);
+    }),
+  ]);
+  const widths = header.map((heading, column) =>
+    Math.max(heading.length, ...rows.map((row) => (row[column] ?? "").length)),
+  );
+  // The scenario name is text and the figures are numbers, so the first column
+  // reads down its left edge and the rest down their right, which is where the
+  // decimal points line up.
+  const line = (cells: readonly string[]): string =>
+    cells
+      .map((cell, column) => {
+        const width = widths[column] ?? 0;
+        return column === 0 ? cell.padEnd(width) : cell.padStart(width);
+      })
+      .join("  ")
+      .trimEnd();
+  return [line(header), ...rows.map(line)].join("\n") + "\n";
+}
+
+/**
+ * Renders the outcome of a run.
+ *
+ * @param result - What {@link doFitnessSuite} reported.
+ * @param options - What was asked for, which the report repeats back: a score
+ * means nothing without the buildings it was measured on.
+ * @returns The report, ending in a newline.
+ */
+export function formatReport(result: FitnessSuiteResult, options: BenchOptions): string {
+  const seeds = options.seeds.map(String);
+  if (options.json) {
+    const report = Array.isArray(result)
+      ? {
+          program: options.programPath,
+          seeds,
+          locale: options.locale,
+          // The whole of the scenario, spread rather than picked field by
+          // field: a report has to say which building produced a number, and a
+          // hand-written list of fields silently stops saying so the first time
+          // one is added. `elevatorCapacities` was already such a field --
+          // present on two of the three scenarios, absent from a list of four.
+          scenarios: result.map((run) => ({ ...run.options, result: run.result })),
+        }
+      : { program: options.programPath, seeds, locale: options.locale, error: result.error };
+    return JSON.stringify(report, undefined, 2) + "\n";
+  }
+  const heading = `program: ${options.programPath}\nseeds:   ${seeds.join(", ")}\nlocale:  ${options.locale}\n`;
+  if (!Array.isArray(result)) {
+    return `${heading}\nerror: ${result.error}\n`;
+  }
+  return `${heading}\n${formatTable(result)}`;
+}
+
+/** Everything {@link runBench} does that is not computing the answer. */
+export interface BenchIo {
+  /**
+   * Reads the program to benchmark.
+   *
+   * @param path - The file named on the command line.
+   * @returns Its text.
+   */
+  readonly readFile: (path: string) => Promise<string>;
+  /**
+   * Writes the report.
+   *
+   * @param text - What to write to standard output.
+   */
+  readonly write: (text: string) => void;
+  /**
+   * Writes a failure of this tool, as opposed to of the program it was given.
+   *
+   * @param text - What to write to standard error.
+   */
+  readonly writeError: (text: string) => void;
+}
+
+/**
+ * Describes a caught value the way a shell user needs to see it.
+ *
+ * @param error - Whatever was thrown.
+ * @returns Its message, or its string form if it has none.
+ */
+function describeError(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
+/**
+ * Runs something with everything it prints moved to standard error.
+ *
+ * `console.log`, `console.info` and `console.debug` write to standard output in
+ * Node, and two things use them during a run: the engine, which logs a program's
+ * error and its stack (`startWithFrameRequester` in `world-controller.ts`), and
+ * the player's program, which is free to print whatever it likes and generally
+ * does. Neither is unwanted — a stack trace is the most useful thing a bot
+ * author gets out of a failed run — but neither belongs in the report. Moved
+ * rather than silenced: it all still arrives, on the stream diagnostics arrive
+ * on, and `2>/dev/null` is there for anyone who wants the report alone.
+ *
+ * The three are rerouted rather than the whole `console` being replaced, so that
+ * `warn` and `error` keep their own formatting and their own stream, and the
+ * originals go back afterwards even if the run throws.
+ *
+ * @param run - What to run.
+ * @returns Whatever `run` returned.
+ */
+export function withRunOutputOnStandardError<T>(run: () => T): T {
+  const original = { log: console.log, info: console.info, debug: console.debug };
+  // Looked up on `console` at call time rather than captured here, so that a
+  // test which watches `console.error` sees what a run printed.
+  const toStandardError = (...args: unknown[]): void => {
+    console.error(...args);
+  };
+  console.log = toStandardError;
+  console.info = toStandardError;
+  console.debug = toStandardError;
+  try {
+    return run();
+  } finally {
+    console.log = original.log;
+    console.info = original.info;
+    console.debug = original.debug;
+  }
+}
+
+/**
+ * Runs the command.
+ *
+ * Takes its input and output as a parameter rather than reaching for `process`,
+ * so the whole command — parsing, the run, the report, the exit code — is
+ * exercised by the tests without a subprocess and without capturing a stream.
+ *
+ * @param argv - The arguments, without the node binary and this script.
+ * @param io - Where the program is read from and the report is written to.
+ * @returns The exit code; see this module's documentation for what each means.
+ */
+export async function runBench(argv: readonly string[], io: BenchIo): Promise<number> {
+  let request: BenchRequest;
+  try {
+    request = parseBenchArgs(argv);
+  } catch (error: unknown) {
+    if (!(error instanceof BenchUsageError)) {
+      throw error;
+    }
+    io.writeError(`${error.message}\n\n${USAGE}`);
+    return EXIT_USAGE;
+  }
+  if (request.kind === "help") {
+    io.write(USAGE);
+    return EXIT_OK;
+  }
+
+  const { options } = request;
+  let code: string;
+  try {
+    code = await io.readFile(options.programPath);
+  } catch (error: unknown) {
+    io.writeError(`Could not read ${options.programPath}: ${describeError(error)}\n`);
+    return EXIT_USAGE;
+  }
+
+  // Before the suite runs, because the scenario names are rendered inside it --
+  // `fitnessChallenges` calls `t` at the start of every suite, which is exactly
+  // late enough for this. `loadLocale` never rejects: a catalogue that cannot be
+  // read leaves the report in English rather than taking the run down.
+  await loadLocale(options.locale);
+  setLocale(options.locale);
+
+  const result = withRunOutputOnStandardError(() => doFitnessSuite(code, options.seeds));
+  io.write(formatReport(result, options));
+  return Array.isArray(result) ? EXIT_OK : EXIT_PROGRAM_FAILED;
+}
+
+/** Standard input, output and error, for the real command. */
+const NODE_IO: BenchIo = {
+  readFile: (path) => readFile(path, "utf8"),
+  write: (text) => {
+    process.stdout.write(text);
+  },
+  writeError: (text) => {
+    process.stderr.write(text);
+  },
+};
+
+// Only when this file is what node was pointed at, so that importing it -- which
+// is how it is tested -- runs nothing. `import.meta.main` would say this in one
+// word and is not available on the Node 22 this package still supports, so the
+// question is asked the portable way: argv[1] is the script node resolved, and
+// comparing resolved paths keeps `node ./src/cli/bench.ts` and `node
+// src/cli/bench.ts` the same file.
+const entryPoint = process.argv[1];
+if (entryPoint !== undefined && resolve(entryPoint) === fileURLToPath(import.meta.url)) {
+  process.exitCode = await runBench(process.argv.slice(2), NODE_IO);
+}
