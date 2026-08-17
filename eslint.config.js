@@ -24,6 +24,11 @@ export default tseslint.config(
       "test-results/**",
       "*.tmp.*",
       "**/*.tmp.*",
+      // A parallel agent's own worktree, checked out under the main tree so it
+      // can resolve node_modules the same way *.tmp.* scratch does above. Its
+      // gates are its own responsibility, run in its own directory; it should
+      // not be able to fail this one's.
+      ".claude/worktrees/**",
     ],
   },
   js.configs.recommended,
