@@ -1123,19 +1123,47 @@ button[disabled] {
   color: var(--color-error-on-page);
 }
 
+/*
+ * 12px was the smallest text on the page, and the one place it sat on a
+ * combination of keys rather than a sentence -- Ctrl+Enter, Tab, Esc, and on a
+ * Mac the dense single glyph of ⌘. 14px/18px is what the rest of the page's
+ * secondary text is set at (.tutorialprogress, .challengeseed,
+ * .challengelink): still the quiet line under the grip rather than a heading,
+ * but no longer the smallest thing here.
+ */
 .hint {
   margin-block: 4px;
-  font-size: 12px;
+  font-size: 14px;
+  line-height: 18px;
 }
 
 /*
  * Both pages name keys with <kbd>, so the rule is not scoped to .hint: the
  * documentation page used to get the browser default, which is a monospace
  * family unrelated to the editor's.
+ *
+ * The browser default beyond that family is nothing: a bare <kbd> reads as
+ * plain text run in with the sentence around it, which is exactly what made a
+ * lone ⌘ easy to lose. The border, background and radius are the run
+ * buttons' own (see .runbuttons button below), so a key reads as the same
+ * kind of control-shaped mark this page already draws rather than a new
+ * invention -- the conventional bordered key cap most sites reach for. The
+ * pairing is --color-text-strong on --color-control, which the palette tests
+ * in style.test.ts already hold to 4.5:1, so nothing new needs checking
+ * there. Bold for the reason the run buttons are bold too: heavier strokes
+ * are what keep a single character -- ⌘ chief among them -- legible at the
+ * size a key is actually set at, without singling that one glyph out from the
+ * letters beside it.
  */
 kbd {
+  padding: 1px 6px;
+  border: 1px solid var(--color-control-border);
+  border-radius: 4px;
+  background-color: var(--color-control);
+  color: var(--color-text-strong);
   font: inherit;
   font-family: var(--font-mono);
+  font-weight: bold;
 }
 
 .helpnote {

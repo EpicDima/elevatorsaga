@@ -240,6 +240,17 @@ describe("index.html", () => {
     expect(world?.getAttribute("aria-label")).toBeTruthy();
   });
 
+  it("names the run controls as one group, the way .statscontainer does", () => {
+    // .controls holds two different kinds of thing -- four buttons and a
+    // speed -- behind one row, and presentControls fills it without ever
+    // touching the div itself. A screen reader landing here with no name would
+    // read "group" and then four buttons and a speed with nothing to say what
+    // they are collectively for.
+    const controls = page.querySelector(".controls");
+    expect(controls?.getAttribute("role")).toBe("group");
+    expect(controls?.getAttribute("aria-label")).toBeTruthy();
+  });
+
   it("offers a way past the building, before anything else in the tab order", () => {
     // WCAG 2.4.1. The building is between the top of the page and the editor,
     // and nearly everything in it takes focus; the editor is what the page is

@@ -104,14 +104,14 @@ Key names carry two suffixes that mean something:
 
 ## Where the strings are
 
-The catalogue holds **308 keys** in two locales. `src/i18n/en.ts` is the reference — its text is
+The catalogue holds **309 keys** in two locales. `src/i18n/en.ts` is the reference — its text is
 the English wording, extracted verbatim — and `src/i18n/ru.ts` is the Russian translation. The
 types make English the shape everything else is measured against: a Russian catalogue missing a
 key, carrying a key English does not have, or giving a plural message the wrong number of forms
 is a compile error, not a runtime surprise.
 
 ```sh
-grep -cE '^  "[^"]+":' src/i18n/en.ts                                   # 308
+grep -cE '^  "[^"]+":' src/i18n/en.ts                                   # 309
 grep -oE '^  "[^"]+"' src/i18n/en.ts | tr -d '"' | cut -d. -f1 | sort | uniq -c | sort -rn
 ```
 
@@ -120,13 +120,13 @@ grep -oE '^  "[^"]+"' src/i18n/en.ts | tr -d '"' | cut -d. -f1 | sort | uniq -c 
 | `docs.*`       | 85      | one of them, `docs.basics.example.code`, by `src/ui/completions.ts`; the other 84 by nothing                                            |
 | `tutorial.*`   | 79      | `src/ui/tutorial-panel.ts`, `src/ui/templates.ts`, `src/app/app.ts`                                                                     |
 | `completion.*` | 33      | `src/ui/completions.ts`                                                                                                                 |
-| `page.*`       | 39      | `index.html`, through `data-i18n` and `data-i18n-attr`; `page.noscript` excepted, see below                                             |
+| `page.*`       | 40      | `index.html`, through `data-i18n` and `data-i18n-attr`; `page.noscript` excepted, see below                                             |
 | `game.*`       | 30      | `src/ui/templates.ts` (18), `src/ui/presenters.ts` (9), `src/app/app.ts` (5); the two speed labels are written by both of the first two |
 | `challenge.*`  | 15      | `src/game/challenges.ts`                                                                                                                |
 | `fitness.*`    | 11      | `src/app/fitness.ts`, `src/game/fitness.ts`, `src/main.ts`, `src/cli/bench.ts`                                                          |
 | `error.*`      | 10      | `src/game/elevator-interface.ts`, `src/ui/presenters.ts`, `src/game/user-code.ts`, `src/game/movable.ts`                                |
 | `editor.*`     | 6       | `src/main.ts`, `src/app/app.ts`, `src/ui/editor.ts`, `src/ui/default-code.ts`                                                           |
-| **Total**      | **308** |                                                                                                                                         |
+| **Total**      | **309** |                                                                                                                                         |
 
 Which keys nothing reads:
 
@@ -166,7 +166,7 @@ step.
 
 ## The strings
 
-### `index.html` — the page shell, 39 `page.*` keys
+### `index.html` — the page shell, 40 `page.*` keys
 
 The shell ships its English in the markup and names the message beside it: `data-i18n` for an
 element's words, `data-i18n-attr="attribute:key"` for its attributes. `src/ui/localise-page.ts`
@@ -187,6 +187,7 @@ walks the document and rewrites both, at start-up and again after every language
 | `page.nav.wiki`                 | Wiki & Solutions                                                                                                                          | an external link; not retargeted                                                                                                                    |
 | `page.language.label`           | Language                                                                                                                                  | the `aria-label` of the picker's `<select>`; its options are `LOCALE_NAMES` and are never translated                                                |
 | `page.noscript`                 | Your browser does not appear to support JavaScript. This page contains a browser-based programming game imple…                            | the one key with no element, and it cannot have one: see _Where the strings are_                                                                    |
+| `page.controls.label`           | Run controls                                                                                                                              | an `aria-label` on `.controls`, the run/pause/reset row and the speed together, the way `page.stats.label` names `.statscontainer`                  |
 | `page.world.label`              | Building                                                                                                                                  | an `aria-label`                                                                                                                                     |
 | `page.stats.label`              | Simulation statistics                                                                                                                     | an `aria-label`                                                                                                                                     |
 | `page.stats.transported`        | Transported                                                                                                                               |                                                                                                                                                     |
@@ -432,7 +433,7 @@ identically in every locale. Both names repeat it because an accessible name has
 own — "1234567890, link" describes nothing.
 
 `game.seed.newDraw` appearing inside `game.seed.newDrawLink` is a constraint a translator cannot
-see: the two sit on adjacent lines of a 308-key file and nothing in the file marks them as a
+see: the two sit on adjacent lines of a 309-key file and nothing in the file marks them as a
 pair. `src/i18n/catalogue.test.ts`, under _accessible names_, is what holds it — it requires the
 spoken name to contain the visible label in every locale. Rewording «новый розыгрыш» to «новый
 сид» meant changing both, which is exactly the edit where one gets missed.

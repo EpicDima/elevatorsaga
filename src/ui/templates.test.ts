@@ -243,6 +243,17 @@ describe("controlsTemplate", () => {
     expect(fragment.querySelector(".undoreset")?.hasAttribute("hidden")).toBe(true);
     expect(fragment.querySelector(".startstop")?.hasAttribute("hidden")).toBe(false);
   });
+
+  it("announces the speed as it changes, without interrupting", () => {
+    // presentControls.update rewrites .timescale_value's text on every click of
+    // the two speed buttons, which without aria-live would happen in perfect
+    // silence for a screen reader -- the number changes and nothing is said.
+    // Polite rather than assertive: a player holding a speed button down can
+    // change it several times a second, and an assertive region interrupts
+    // whatever is already being read to announce each one in turn.
+    const fragment = renderFragment(controlsTemplate());
+    expect(fragment.querySelector(".timescale_value")?.getAttribute("aria-live")).toBe("polite");
+  });
 });
 
 describe("challengeTemplate", () => {

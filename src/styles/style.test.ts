@@ -296,6 +296,51 @@ describe("palette", () => {
 });
 
 /**
+ * Reads a rule's body out of the stylesheet.
+ *
+ * Declared here, ahead of its first use below, because both `describe("kbd")`
+ * and `describe("statistics panel")` need it and only one of them can carry
+ * the definition. `function` is hoisted, so where this sits in the file does
+ * not change when either suite can call it.
+ *
+ * @param selector - The selector, exactly as the rule spells it.
+ * @returns Everything between its braces.
+ */
+function ruleBody(selector: string): string {
+  const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const rules = [...styleSource.matchAll(new RegExp(`^${escaped}\\s*\\{([^}]*)\\}`, "gm"))];
+  expect(rules.length, `${selector} is no longer exactly one rule`).toBe(1);
+  return rules[0]?.[1] ?? "";
+}
+
+describe("kbd and .hint", () => {
+  it("draws a key cap instead of the browser default", () => {
+    // <kbd> ships with no border, background or radius of its own -- only a
+    // monospace font, which the rule above already sets. Reusing the run
+    // buttons' own tokens (see .runbuttons button) means a key reads as the
+    // same kind of control-shaped mark those buttons already draw, rather
+    // than a colour this file would have no test for. The pair is
+    // --color-text-strong on --color-control, which the "readable on" cases
+    // above already hold to 4.5:1 by way of .runbuttons button, .skip-link
+    // and .challengelink, all painting the same two tokens over each other.
+    const body = ruleBody("kbd");
+    expect(declaration(body, "border-radius", "kbd")).toBe("4px");
+    expect(declaration(body, "color", "kbd")).toBe(token("color-text-strong"));
+    expect(declaration(body, "background-color", "kbd")).toBe(token("color-control"));
+    expect(body).toMatch(/^\s*font-weight:\s*bold;/m);
+  });
+
+  it("keeps the hint paragraph off the page's smallest text", () => {
+    // .hint used to sit at 12px, the same size as #save_message and
+    // #fitness_message -- but unlike those two, every word in it is either a
+    // key combination or the sentence naming one, including a Mac player's
+    // lone ⌘. 14px is what the rest of the page's secondary text is set at
+    // (.tutorialprogress, .challengeseed, .challengelink).
+    expect(declaration(ruleBody(".hint"), "font-size", ".hint")).toBe("14px");
+  });
+});
+
+/**
  * The game page, parsed as a browser would parse it.
  *
  * The panel's rows are markup, and how many of them there are is a number the
@@ -310,19 +355,6 @@ const page = new DOMParser().parseFromString(
   readFileSync(join(ROOT, "index.html"), "utf8"),
   "text/html",
 );
-
-/**
- * Reads a rule's body out of the stylesheet.
- *
- * @param selector - The selector, exactly as the rule spells it.
- * @returns Everything between its braces.
- */
-function ruleBody(selector: string): string {
-  const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const rules = [...styleSource.matchAll(new RegExp(`^${escaped}\\s*\\{([^}]*)\\}`, "gm"))];
-  expect(rules.length, `${selector} is no longer exactly one rule`).toBe(1);
-  return rules[0]?.[1] ?? "";
-}
 
 describe("statistics panel", () => {
   it("is sized for as many rows as the page actually has", () => {

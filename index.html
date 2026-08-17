@@ -169,8 +169,19 @@
           redrawn, because they are the one region that has to survive a
           restart. Empty for the same reason .tutorial is: the presenter asks
           the catalogue for every word at the moment it writes it.
+
+          role="group" and the label are on this element rather than on
+          .runbuttons or .timescale inside it, the same way .statscontainer
+          carries one name for its rows rather than each row naming itself: a
+          screen reader landing here is told what the whole row is for before
+          it reads the buttons and the speed one at a time.
         -->
-        <div class="controls"></div>
+        <div
+          class="controls"
+          role="group"
+          aria-label="Run controls"
+          data-i18n-attr="aria-label:page.controls.label"
+        ></div>
 
         <!--
           The building is wider than the page on a narrow window and .world

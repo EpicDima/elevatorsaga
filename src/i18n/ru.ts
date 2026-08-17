@@ -126,6 +126,7 @@ export const RU_MESSAGES: MessageCatalogue<"ru"> = {
   "page.language.label": "Язык",
   "page.noscript":
     "Похоже, ваш браузер не поддерживает JavaScript. На этой странице — игра про программирование, которая на JavaScript и написана.",
+  "page.controls.label": "Управление симуляцией",
   "page.world.label": "Здание",
   "page.stats.label": "Статистика симуляции",
   "page.stats.transported": "Перевезено",

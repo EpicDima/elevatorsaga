@@ -510,10 +510,17 @@ export interface ChallengeTemplateData {
  * elements. They are a plain container with real buttons now; `.timescale`
  * carries the heading's former metrics so the row looks the same.
  *
+ * `.timescale_value` carries `aria-live="polite"`, so a screen reader hears
+ * the new speed whichever of the two buttons changed it. Polite rather than
+ * assertive: the speed can change several times a second under a held-down
+ * button, and an assertive region interrupts whatever is already being read
+ * to announce each one, which for a value that settles in well under a second
+ * is noise rather than information.
+ *
  * @returns The run controls markup.
  */
 export function controlsTemplate(): string {
-  return markup`<div class="runbuttons"><button type="button" class="startstop unselectable"></button> <button type="button" class="startover unselectable"></button> <button type="button" class="resetcode unselectable"></button> <button type="button" class="undoreset unselectable" hidden></button></div><div class="timescale"><button type="button" class="timescale_decrease unselectable" aria-label="${t("game.timeScale.decrease")}">${raw(iconMarkup("minus-square"))}</button> <span class="emphasis-color timescale_value"></span> <button type="button" class="timescale_increase unselectable" aria-label="${t("game.timeScale.increase")}">${raw(iconMarkup("plus-square"))}</button></div>`;
+  return markup`<div class="runbuttons"><button type="button" class="startstop unselectable"></button> <button type="button" class="startover unselectable"></button> <button type="button" class="resetcode unselectable"></button> <button type="button" class="undoreset unselectable" hidden></button></div><div class="timescale"><button type="button" class="timescale_decrease unselectable" aria-label="${t("game.timeScale.decrease")}">${raw(iconMarkup("minus-square"))}</button> <span class="emphasis-color timescale_value" aria-live="polite"></span> <button type="button" class="timescale_increase unselectable" aria-label="${t("game.timeScale.increase")}">${raw(iconMarkup("plus-square"))}</button></div>`;
 }
 
 /**

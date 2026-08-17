@@ -64,6 +64,13 @@ export const EN_MESSAGES = {
   "page.language.label": "Language",
   "page.noscript":
     "Your browser does not appear to support JavaScript. This page contains a browser-based programming game implemented in JavaScript.",
+  // Names the row for a screen reader landing in it: Start/Pause, Start over,
+  // Reset code, Undo reset and the speed, drawn by controlsTemplate. It is
+  // .controls itself that carries this, in index.html, rather than the
+  // .runbuttons and .timescale it wraps -- one name for the row a player
+  // reaches for as a set, the way .statscontainer carries one name for its
+  // rows rather than each of them naming itself.
+  "page.controls.label": "Run controls",
   "page.world.label": "Building",
   "page.stats.label": "Simulation statistics",
   "page.stats.transported": "Transported",
