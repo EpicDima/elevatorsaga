@@ -3,9 +3,9 @@
 [![CI](https://github.com/EpicDima/elevatorsaga/actions/workflows/ci.yml/badge.svg)](https://github.com/EpicDima/elevatorsaga/actions/workflows/ci.yml)
 
 ![Challenge 5 in progress: four elevators carrying people between six floors, passengers waiting on
-the landings and riding in the cars, one of the riders marked yellow as the longest wait the panel
-is reporting, the statistics panel counting them, and the JavaScript program driving it all in the
-editor below](public/images/screenshot.png)
+the landings and riding in the cars, one of the riders marked yellow as the one behind the panel's
+Max delivery time row, the statistics panel counting them, and the JavaScript program driving it
+all in the editor below](public/images/screenshot.png)
 
 Elevator Saga is a programming game. You are given a building, a few elevators and a stream of
 impatient people, and the only control you have is a small JavaScript program: an object with an

@@ -1327,10 +1327,10 @@ kbd {
  * The passenger whose wait is the one the challenge is about to be lost on.
  *
  * Upstream #135 asked for this and it was never built: the panel on the right
- * says the longest wait is 14.6 seconds, and the player has no way to tell
- * which of thirty identical white figures that is, so it reports a problem it
- * gives no way to look at. src/game/world.ts already measured that number
- * every frame; it now remembers whose it is.
+ * says the Max delivery time is 14.6 seconds, and the player has no way to
+ * tell which of thirty identical white figures that is, so it reports a
+ * problem it gives no way to look at. src/game/world.ts already measured that
+ * number every frame; it now remembers whose it is.
  *
  * A passenger is a graphical object rather than text, so the bar is WCAG
  * 1.4.11's 3:1, and it has to be cleared against every surface a passenger is
