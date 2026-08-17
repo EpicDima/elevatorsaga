@@ -520,8 +520,8 @@ typing `#devtest` into the address bar, and what it is for is checking that the 
 
 ### `src/ui/templates.ts` and `index.html` — 2 `editor.slot.*` keys
 
-The code slot switcher: three buttons under the editor, one per independent attempt a challenge
-can hold, drawn by `codeSlotTemplate` in `src/ui/templates.ts`. `editor.slot.tablist.label` is
+The code slot switcher: three buttons under the editor, one per independent scratch slot a
+challenge can hold, drawn by `codeSlotTemplate` in `src/ui/templates.ts`. `editor.slot.tablist.label` is
 static, so it is written into `index.html` the same way a `page.*` key is, through
 `data-i18n-attr`; it is prefixed `editor.` rather than `page.` because it names a control that
 belongs to the editor rather than to the page shell around it. `editor.slot.tab.label` is
