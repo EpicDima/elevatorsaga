@@ -22,6 +22,14 @@ const NOTHING_HAPPENED: ChallengeWorldStats = {
   transportedCounter: 0,
   maxWaitTime: 0,
   moveCount: 0,
+  transportedPerSec: 0,
+  avgLoadFactorOnMove: 0,
+  avgWaitTime: 0,
+  maxPickupTime: 0,
+  avgPickupTime: 0,
+  avgRideTime: 0,
+  stopCount: 0,
+  avgPeoplePerStop: 0,
 };
 
 /** A sandbox building the specs vary one field of at a time. */
@@ -39,7 +47,20 @@ describe("Challenge requirements", () => {
   let fakeWorld: MutableWorldStats;
 
   beforeEach(() => {
-    fakeWorld = { elapsedTime: 0.0, transportedCounter: 0, maxWaitTime: 0.0, moveCount: 0 };
+    fakeWorld = {
+      elapsedTime: 0.0,
+      transportedCounter: 0,
+      maxWaitTime: 0.0,
+      moveCount: 0,
+      transportedPerSec: 0.0,
+      avgLoadFactorOnMove: 0.0,
+      avgWaitTime: 0.0,
+      maxPickupTime: 0.0,
+      avgPickupTime: 0.0,
+      avgRideTime: 0.0,
+      stopCount: 0,
+      avgPeoplePerStop: 0.0,
+    };
   });
 
   describe("requireUserCountWithinTime", () => {
@@ -195,9 +216,22 @@ describe("Challenge requirements", () => {
       const challengeReq = requireSandbox(SANDBOX);
       expect(challengeReq.evaluate(fakeWorld)).toBe(null);
       for (const stats of [
-        { elapsedTime: 1e9, transportedCounter: 0, maxWaitTime: 0, moveCount: 0 },
-        { elapsedTime: 0, transportedCounter: 1e9, maxWaitTime: 0, moveCount: 0 },
-        { elapsedTime: 1e9, transportedCounter: 1e9, maxWaitTime: 1e9, moveCount: 1e9 },
+        { ...NOTHING_HAPPENED, elapsedTime: 1e9 },
+        { ...NOTHING_HAPPENED, transportedCounter: 1e9 },
+        {
+          elapsedTime: 1e9,
+          transportedCounter: 1e9,
+          maxWaitTime: 1e9,
+          moveCount: 1e9,
+          transportedPerSec: 1e9,
+          avgLoadFactorOnMove: 1e9,
+          avgWaitTime: 1e9,
+          maxPickupTime: 1e9,
+          avgPickupTime: 1e9,
+          avgRideTime: 1e9,
+          stopCount: 1e9,
+          avgPeoplePerStop: 1e9,
+        },
       ]) {
         Object.assign(fakeWorld, stats);
         expect(challengeReq.evaluate(fakeWorld), JSON.stringify(stats)).toBe(null);

@@ -134,6 +134,14 @@ describe("requireNothing", () => {
         transportedCounter: 1e9,
         maxWaitTime: 1e9,
         moveCount: 1e9,
+        transportedPerSec: 1e9,
+        avgLoadFactorOnMove: 1e9,
+        avgWaitTime: 1e9,
+        maxPickupTime: 1e9,
+        avgPickupTime: 1e9,
+        avgRideTime: 1e9,
+        stopCount: 1e9,
+        avgPeoplePerStop: 1e9,
       }),
     ).toBe(null);
   });

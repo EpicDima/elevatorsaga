@@ -14,6 +14,7 @@
  */
 
 import { decimal, exact, format, formatList, t } from "../i18n/index.ts";
+import type { ChallengeTierRequirements } from "./challenge-tiers.ts";
 import type { WorldOptions } from "./world.ts";
 
 /** The statistics a challenge condition inspects. */
@@ -26,6 +27,22 @@ export interface ChallengeWorldStats {
   readonly maxWaitTime: number;
   /** Total floor changes across all elevators. */
   readonly moveCount: number;
+  /** Passengers delivered per simulated second. */
+  readonly transportedPerSec: number;
+  /** How full the cars were, averaged over every floor they crossed. */
+  readonly avgLoadFactorOnMove: number;
+  /** Mean spawn-to-delivery time of delivered passengers. */
+  readonly avgWaitTime: number;
+  /** Longest anyone has stood on a floor before a car took them. */
+  readonly maxPickupTime: number;
+  /** Mean spawn-to-boarding time of the passengers a car has picked up. */
+  readonly avgPickupTime: number;
+  /** Mean boarding-to-delivery time of delivered passengers: the ride itself. */
+  readonly avgRideTime: number;
+  /** Door openings across all elevators. */
+  readonly stopCount: number;
+  /** People who got in or out at an average stop. */
+  readonly avgPeoplePerStop: number;
 }
 
 /** A win/lose condition attached to a challenge. */
@@ -59,6 +76,18 @@ export interface Challenge {
   readonly options: WorldOptions;
   /** The condition deciding the outcome. */
   readonly condition: ChallengeCondition;
+  /**
+   * Silver/gold requirements, on top of the win/lose {@link condition}.
+   *
+   * Optional so that a challenge with nothing to say about tiers — every
+   * built-in entry today, plus the sandbox and demo factories below, which
+   * never resolve at all — simply omits the field rather than being made to
+   * invent one. {@link "./challenge-tiers.ts"!evaluateChallengeTier} reads a
+   * missing value as "bronze is the only tier this challenge has," which is
+   * exactly what today's challenges mean until a later change gives some of
+   * them silver and gold requirements of their own.
+   */
+  readonly tiers?: ChallengeTierRequirements;
 }
 
 /**

@@ -220,13 +220,15 @@ function judgeWithClockShift(
   shiftSeconds: number,
 ): boolean | null {
   return condition.evaluate({
+    // Every other field of `stats` passes through unshifted -- only elapsed
+    // time and waiting time are the clocks this file's margin tests move, and
+    // no condition here is built out of the rest of them.
+    ...stats,
     // Clamped at zero because a negative clock is not a lenient world, it is a
     // nonsensical one, and `requireUserCountWithMaxWaitTime` would read it as a
     // run in which nobody has ever waited.
     elapsedTime: Math.max(0, stats.elapsedTime + shiftSeconds),
-    transportedCounter: stats.transportedCounter,
     maxWaitTime: Math.max(0, stats.maxWaitTime + shiftSeconds),
-    moveCount: stats.moveCount,
   });
 }
 

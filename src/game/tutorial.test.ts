@@ -101,6 +101,14 @@ const NOTHING_HAPPENED: ChallengeWorldStats = {
   transportedCounter: 0,
   maxWaitTime: 0,
   moveCount: 0,
+  transportedPerSec: 0,
+  avgLoadFactorOnMove: 0,
+  avgWaitTime: 0,
+  maxPickupTime: 0,
+  avgPickupTime: 0,
+  avgRideTime: 0,
+  stopCount: 0,
+  avgPeoplePerStop: 0,
 };
 
 /**
@@ -134,6 +142,7 @@ function expectConditionIsReachable(task: TutorialTask): void {
   expect(spawnRate).toBeGreaterThan(0);
   for (let delivered = 1; delivered <= REACHABILITY_PROBE_LIMIT; delivered++) {
     const verdict = task.condition.evaluate({
+      ...NOTHING_HAPPENED,
       elapsedTime: delivered / spawnRate,
       transportedCounter: delivered,
       maxWaitTime: 0,
