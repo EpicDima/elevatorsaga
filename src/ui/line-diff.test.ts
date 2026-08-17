@@ -54,7 +54,7 @@ describe("changedLines", () => {
     expect(changedLines(before, after)).toEqual(new Set([0, 1]));
   });
 
-  it("marks nothing when the starting program is empty", () => {
+  it("marks the only line there is when the starting program is empty", () => {
     expect(changedLines("", "elevator.goToFloor(1);")).toEqual(new Set([0]));
   });
 
