@@ -208,8 +208,8 @@ describe("controlsTemplate", () => {
     );
   });
 
-  it("draws the four run buttons in one box, in the order they are read in", () => {
-    // Not decoration: the row wraps on a narrow page, and loose in it the four
+  it("draws the five run buttons in one box, in the order they are read in", () => {
+    // Not decoration: the row wraps on a narrow page, and loose in it the five
     // would break up one at a time. One box, so what drives the run wraps as
     // the cluster it is -- and so the speed, which is a setting rather than a
     // thing the player came for, stays on the far side of the row.
@@ -221,18 +221,19 @@ describe("controlsTemplate", () => {
       "startover unselectable",
       "resetcode unselectable",
       "undoreset unselectable",
+      "runinstant unselectable",
     ]);
     expect(buttons.every((button) => button.getAttribute("type") === "button")).toBe(true);
   });
 
-  it("ships the four with no label at all, for the presenter to write", () => {
+  it("ships the five with no label at all, for the presenter to write", () => {
     // The region is drawn once for the life of the page, so a label baked in
     // here would still be in the language the page opened in after a change of
-    // language. `presentControls.update` writes all four.
+    // language. `presentControls.update` writes all five.
     const fragment = renderFragment(controlsTemplate());
     const buttons = [...(fragment.querySelector(".runbuttons")?.children ?? [])];
 
-    expect(buttons.map((button) => button.textContent)).toEqual(["", "", "", ""]);
+    expect(buttons.map((button) => button.textContent)).toEqual(["", "", "", "", ""]);
   });
 
   it("hides Undo reset until there is something to bring back", () => {

@@ -5,7 +5,14 @@
 
 import { expect, test } from "@playwright/test";
 
-import { building, editor, startButton, statistic, statisticValue } from "./game-page.ts";
+import {
+  building,
+  editor,
+  runInstantButton,
+  startButton,
+  statistic,
+  statisticValue,
+} from "./game-page.ts";
 
 test("boots the first challenge with an editor and a building", async ({ page }) => {
   const pageErrors: string[] = [];
@@ -63,6 +70,40 @@ test("plays a challenge to completion when Start is pressed", async ({ page }) =
   await expect(page.getByRole("heading", { name: "Success!" })).toBeVisible({ timeout: 30_000 });
   await expect(page.getByRole("link", { name: /Next challenge/ })).toBeVisible();
   await expect(page.getByRole("button", { name: /Restart/ })).toBeVisible();
+  expect(await statisticValue(page, "Transported")).toBeGreaterThanOrEqual(15);
+});
+
+test("crunches a challenge instantly, with nothing drawn while it runs, and shows the outcome", async ({
+  page,
+}) => {
+  // Same reference solution and challenge as the animated run above, so the
+  // two tests are asking the same question of the same program — only how it
+  // is driven differs. No `timescale`: that only paces animation, and a
+  // crunch draws none, so it would change nothing here.
+  await page.goto("/#challenge=1,devtest");
+
+  // Before the crunch, the reference solution's elevator is on screen exactly
+  // as any other run's would be.
+  await expect(building(page).getByRole("group", { name: "Elevator 1" })).toBeVisible();
+
+  await runInstantButton(page).click();
+
+  // Nothing is drawn for the whole run: whatever building a normal start put
+  // up is gone, and nothing replaces it while the crunch is under way.
+  await expect(building(page).getByRole("group", { name: /^Elevator/ })).toHaveCount(0);
+
+  // The button waits out "Crunching..." on its own — this is one assertion
+  // doing two jobs, since it can only pass once the crunch has both reached a
+  // verdict and handed the button back. Well under the 30s the animated test
+  // budgets for the same challenge: nothing here waits on simulated time
+  // passing in real time, only on however long the CPU actually needs.
+  await expect(runInstantButton(page)).toBeVisible({ timeout: 15_000 });
+  await expect(runInstantButton(page)).toBeEnabled();
+
+  // The same outcome, and the same final statistics, an animated run of this
+  // challenge already proves it reaches.
+  await expect(page.getByRole("heading", { name: "Success!" })).toBeVisible();
+  await expect(page.getByRole("link", { name: /Next challenge/ })).toBeVisible();
   expect(await statisticValue(page, "Transported")).toBeGreaterThanOrEqual(15);
 });
 

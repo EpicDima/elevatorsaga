@@ -256,6 +256,16 @@ export interface ControlsPresenterOptions {
   readonly onTimeScaleIncrease: () => void;
   /** Called when the `-` button is pressed. */
   readonly onTimeScaleDecrease: () => void;
+  /**
+   * Whether a headless crunch, started by "Run instantly", is under way.
+   *
+   * A function for the same reason {@link challengeEnded} is one: this row is
+   * drawn once and outlives every run, including the private controller a
+   * crunch drives itself with.
+   */
+  readonly instantRunInProgress: () => boolean;
+  /** Called when "Run instantly" is pressed. */
+  readonly onRunInstant: () => void;
 }
 
 /** The rendered run controls. */
@@ -314,6 +324,7 @@ export function presentControls(
   const startOver = requireElement(".startover", parent);
   const resetCode = requireElement(".resetcode", parent);
   const undoReset = requireElement(".undoreset", parent);
+  const runInstant = requireElement(".runinstant", parent);
   const timeScaleValue = requireElement(".timescale_value", parent);
   const timeScaleDecrease = requireElement(".timescale_decrease", parent);
   const timeScaleIncrease = requireElement(".timescale_increase", parent);
@@ -329,6 +340,9 @@ export function presentControls(
   });
   undoReset.addEventListener("click", () => {
     options.onUndoReset();
+  });
+  runInstant.addEventListener("click", () => {
+    options.onRunInstant();
   });
   timeScaleDecrease.addEventListener("click", () => {
     options.onTimeScaleDecrease();
@@ -360,6 +374,15 @@ export function presentControls(
       // press nor tab to is a worse answer than one that is not there. It
       // appears the moment a reset gives it something to do.
       undoReset.hidden = !options.canUndoReset();
+      // Disabled rather than hidden, unlike "Undo reset" above: a crunch is
+      // ordinarily too quick to ever be seen in this state, so a player who
+      // does see it pressed the button and wants to know it was heard, not to
+      // have it vanish out from under the pointer.
+      const inProgress = options.instantRunInProgress();
+      runInstant.textContent = inProgress
+        ? t("game.button.runningInstantly")
+        : t("game.button.runInstant");
+      runInstant.toggleAttribute("disabled", inProgress);
     },
 
     focusStartStop(): void {

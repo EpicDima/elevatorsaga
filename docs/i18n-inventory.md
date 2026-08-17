@@ -104,29 +104,29 @@ Key names carry two suffixes that mean something:
 
 ## Where the strings are
 
-The catalogue holds **312 keys** in two locales. `src/i18n/en.ts` is the reference — its text is
+The catalogue holds **314 keys** in two locales. `src/i18n/en.ts` is the reference — its text is
 the English wording, extracted verbatim — and `src/i18n/ru.ts` is the Russian translation. The
 types make English the shape everything else is measured against: a Russian catalogue missing a
 key, carrying a key English does not have, or giving a plural message the wrong number of forms
 is a compile error, not a runtime surprise.
 
 ```sh
-grep -cE '^  "[^"]+":' src/i18n/en.ts                                   # 312
+grep -cE '^  "[^"]+":' src/i18n/en.ts                                   # 314
 grep -oE '^  "[^"]+"' src/i18n/en.ts | tr -d '"' | cut -d. -f1 | sort | uniq -c | sort -rn
 ```
 
-| Prefix         | Keys    | What reads them                                                                                                                         |
-| -------------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| `docs.*`       | 85      | one of them, `docs.basics.example.code`, by `src/ui/completions.ts`; the other 84 by nothing                                            |
-| `tutorial.*`   | 82      | `src/ui/tutorial-panel.ts`, `src/ui/templates.ts`, `src/app/app.ts`                                                                     |
-| `completion.*` | 33      | `src/ui/completions.ts`                                                                                                                 |
-| `page.*`       | 40      | `index.html`, through `data-i18n` and `data-i18n-attr`; `page.noscript` excepted, see below                                             |
-| `game.*`       | 30      | `src/ui/templates.ts` (18), `src/ui/presenters.ts` (9), `src/app/app.ts` (5); the two speed labels are written by both of the first two |
-| `challenge.*`  | 15      | `src/game/challenges.ts`                                                                                                                |
-| `fitness.*`    | 11      | `src/app/fitness.ts`, `src/game/fitness.ts`, `src/main.ts`, `src/cli/bench.ts`                                                          |
-| `error.*`      | 10      | `src/game/elevator-interface.ts`, `src/ui/presenters.ts`, `src/game/user-code.ts`, `src/game/movable.ts`                                |
-| `editor.*`     | 6       | `src/main.ts`, `src/app/app.ts`, `src/ui/editor.ts`, `src/ui/default-code.ts`                                                           |
-| **Total**      | **312** |                                                                                                                                         |
+| Prefix         | Keys    | What reads them                                                                                                                          |
+| -------------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `docs.*`       | 85      | one of them, `docs.basics.example.code`, by `src/ui/completions.ts`; the other 84 by nothing                                             |
+| `tutorial.*`   | 82      | `src/ui/tutorial-panel.ts`, `src/ui/templates.ts`, `src/app/app.ts`                                                                      |
+| `completion.*` | 33      | `src/ui/completions.ts`                                                                                                                  |
+| `page.*`       | 40      | `index.html`, through `data-i18n` and `data-i18n-attr`; `page.noscript` excepted, see below                                              |
+| `game.*`       | 32      | `src/ui/templates.ts` (18), `src/ui/presenters.ts` (11), `src/app/app.ts` (5); the two speed labels are written by both of the first two |
+| `challenge.*`  | 15      | `src/game/challenges.ts`                                                                                                                 |
+| `fitness.*`    | 11      | `src/app/fitness.ts`, `src/game/fitness.ts`, `src/main.ts`, `src/cli/bench.ts`                                                           |
+| `error.*`      | 10      | `src/game/elevator-interface.ts`, `src/ui/presenters.ts`, `src/game/user-code.ts`, `src/game/movable.ts`                                 |
+| `editor.*`     | 6       | `src/main.ts`, `src/app/app.ts`, `src/ui/editor.ts`, `src/ui/default-code.ts`                                                            |
+| **Total**      | **314** |                                                                                                                                          |
 
 Which keys nothing reads:
 
@@ -436,7 +436,7 @@ identically in every locale. Both names repeat it because an accessible name has
 own — "1234567890, link" describes nothing.
 
 `game.seed.newDraw` appearing inside `game.seed.newDrawLink` is a constraint a translator cannot
-see: the two sit on adjacent lines of a 312-key file and nothing in the file marks them as a
+see: the two sit on adjacent lines of a 314-key file and nothing in the file marks them as a
 pair. `src/i18n/catalogue.test.ts`, under _accessible names_, is what holds it — it requires the
 spoken name to contain the visible label in every locale. Rewording «новый розыгрыш» to «новый
 сид» meant changing both, which is exactly the edit where one gets missed.
@@ -446,22 +446,24 @@ The seed explanation used to be a module constant, `SEED_EXPLANATION`. It is now
 point. A `const SEED_EXPLANATION = t(...)` at module scope compiles, reads correctly and freezes
 English at import time; see _Rules the wiring has to keep_.
 
-### `src/ui/presenters.ts` — 9 `game.*` and 3 `error.*` keys
+### `src/ui/presenters.ts` — 11 `game.*` and 3 `error.*` keys
 
-| Key                         | English                       | Notes                                                                                                          |
-| --------------------------- | ----------------------------- | -------------------------------------------------------------------------------------------------------------- |
-| `game.timeScale.value`      | {value}x                      | takes `{value}`; Russian writes `×`, not the Latin letter x                                                    |
-| `game.timeScale.decrease`   | Decrease simulation speed     | an `aria-label`, also written by `controlsTemplate`; rewritten on every update so a language change reaches it |
-| `game.timeScale.increase`   | Increase simulation speed     | likewise                                                                                                       |
-| `game.button.start`         | Start                         |                                                                                                                |
-| `game.button.pause`         | Pause                         |                                                                                                                |
-| `game.button.restart`       | Restart                       | rendered after an icon as `` ` ${t(...)}` ``; the space belongs to the call site                               |
-| `game.button.startOver`     | Start over                    | restarts the run from the program in the editor; the button "Apply" became                                     |
-| `game.button.resetCode`     | Reset code                    | puts the starter program back, behind a confirmation                                                           |
-| `game.button.undoResetCode` | Undo reset                    | hidden until a reset has something to bring back                                                               |
-| `error.thrown.emptyString`  | Thrown empty string           | what the code status bar says when a program throws something with no message                                  |
-| `error.thrown.noMessage`    | Thrown {kind} with no message | takes `{kind}`                                                                                                 |
-| `error.thrown.keys`         | {kind} with keys: {keys}      | takes `{kind}`, `{keys}`                                                                                       |
+| Key                            | English                       | Notes                                                                                                          |
+| ------------------------------ | ----------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| `game.timeScale.value`         | {value}x                      | takes `{value}`; Russian writes `×`, not the Latin letter x                                                    |
+| `game.timeScale.decrease`      | Decrease simulation speed     | an `aria-label`, also written by `controlsTemplate`; rewritten on every update so a language change reaches it |
+| `game.timeScale.increase`      | Increase simulation speed     | likewise                                                                                                       |
+| `game.button.start`            | Start                         |                                                                                                                |
+| `game.button.pause`            | Pause                         |                                                                                                                |
+| `game.button.restart`          | Restart                       | rendered after an icon as `` ` ${t(...)}` ``; the space belongs to the call site                               |
+| `game.button.startOver`        | Start over                    | restarts the run from the program in the editor; the button "Apply" became                                     |
+| `game.button.resetCode`        | Reset code                    | puts the starter program back, behind a confirmation                                                           |
+| `game.button.undoResetCode`    | Undo reset                    | hidden until a reset has something to bring back                                                               |
+| `game.button.runInstant`       | Run instantly                 | starts a headless crunch of the run on screen; see `src/game/instant-run.ts`                                   |
+| `game.button.runningInstantly` | Crunching...                  | shown, and the button disabled, while that crunch is under way                                                 |
+| `error.thrown.emptyString`     | Thrown empty string           | what the code status bar says when a program throws something with no message                                  |
+| `error.thrown.noMessage`       | Thrown {kind} with no message | takes `{kind}`                                                                                                 |
+| `error.thrown.keys`            | {kind} with keys: {keys}      | takes `{kind}`, `{keys}`                                                                                       |
 
 Every figure in the statistics panel goes through `Intl` rather than `toFixed` and `String`:
 `format(seconds(world.elapsedTime))`, `format(quantity(...))` for the per-second rate, and
