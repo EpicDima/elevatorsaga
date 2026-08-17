@@ -10,6 +10,7 @@
  */
 
 import { expect, test } from "@playwright/test";
+import type { Page } from "@playwright/test";
 
 import { startButton } from "./game-page.ts";
 
@@ -35,6 +36,47 @@ test("serves the help page from the game's own navigation", async ({ page }) => 
   await expect(startButton(page)).toBeVisible();
 
   expect(pageErrors).toEqual([]);
+});
+
+/**
+ * Widths pinned for the header both help pages share with the game.
+ *
+ * 1440 is a desk and 761 the width just above the phone-sized rule at the foot
+ * of `style.css`; the game page's header is 87px at both, per the note on
+ * `.header`. 760 is one pixel below that rule -- where the two help pages used
+ * to disagree with each other (35px in English, 80.27px in Russian) before the
+ * shared rule changed shape for a defect that was never theirs, and now agree
+ * at 70.27px. Nothing here is the game page: each help page is a document of
+ * its own, so there is no language picker to switch mid-visit, only two
+ * separately built pages to compare.
+ */
+const HEADER_WIDTHS = [1440, 761, 760] as const;
+
+/** The height the header renders at, in the page loaded last. */
+async function headerHeight(page: Page): Promise<number> {
+  return page.evaluate(() => {
+    const header = document.querySelector(".header");
+    if (header === null) {
+      throw new Error("The page has no header to measure");
+    }
+    return Math.round(header.getBoundingClientRect().height * 100) / 100;
+  });
+}
+
+test("shares the game's header height with its Russian twin, at the widths that shared the header change", async ({
+  page,
+}) => {
+  for (const width of HEADER_WIDTHS) {
+    await page.setViewportSize({ width, height: 900 });
+
+    await page.goto("/documentation.html");
+    const english = await headerHeight(page);
+
+    await page.goto("/documentation.ru.html");
+    const russian = await headerHeight(page);
+
+    expect(russian, `header height at ${String(width)}px`).toBe(english);
+  }
 });
 
 test("sends a beginner from the help page into the learning track", async ({ page }) => {

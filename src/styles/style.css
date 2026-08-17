@@ -397,6 +397,19 @@ dl dd {
  * of this file and takes the header from 70.27px to 87px. That reversal is a
  * breakpoint doing what it was asked to, and it now happens at the same width
  * and by the same amount in both languages, which is the part that was wrong.
+ *
+ * `documentation.html`/`documentation.ru.html` share this rule and `.header
+ * nav`, though never the defect above: each is its own static page, so a
+ * reader picking a language follows a link to a different document rather
+ * than watching this one move. They pay the same 27px at a desk (60px to
+ * 87px) and the same 28px back at 761px regardless, because the header is
+ * shared rather than duplicated for a markup that is otherwise identical
+ * here -- an `<h1>` and a `nav`, no `.headertools`. That cost buys them
+ * something the game page did not need: at 760px the two language pages used
+ * to disagree, 35px against 80.27px, unnoticed because nothing tested it; both
+ * read 70.27px now. `e2e/documentation.spec.ts` pins all three widths on both
+ * pages, so the shared rule cannot drift back to a height only one of them
+ * gets to see.
  */
 .header {
   display: flex;
