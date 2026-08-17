@@ -27,7 +27,10 @@
  */
 
 import { t } from "../i18n/index.ts";
+
+import { highlightJavaScript } from "./code-highlight.ts";
 import { iconMarkup } from "./icons.ts";
+import { changedLines } from "./line-diff.ts";
 
 /** Markup that is inserted as-is, without escaping. */
 export class RawHtml {
@@ -599,21 +602,30 @@ export interface TutorialTemplateData {
    */
   readonly hints: readonly [string, string, string];
   /**
+   * The program the task starts the player with, exactly as
+   * `src/game/tutorial.ts` holds it.
+   *
+   * Printed nowhere — the panel only ever shows the answer — and read for one
+   * thing: {@link "./line-diff.ts"!changedLines} compares it against
+   * {@link TutorialTemplateData.solutionCode} to find the line or lines a
+   * player actually has to write, which is what the answer marks. A field of
+   * its own rather than folding the diff in here, because that keeps this
+   * interface a plain record of what the panel is told and leaves the deciding
+   * to the function that draws the answer.
+   */
+  readonly startingCode: string;
+  /**
    * The program that clears the task, exactly as `src/game/tutorial.ts` holds it.
    *
-   * Written escaped, unlike everything else that comes out of a `.html` message,
-   * because this is JavaScript and the HTML parser has opinions about two of its
-   * characters. Nothing on the track is changed by the escaping today, and that
-   * was checked rather than assumed: across the eight answers there is exactly
-   * one `<`, in task 7's `elevator.loadFactor() < best.loadFactor()` — which
-   * task 8 shows again — and it is followed by a space, which the parser leaves
-   * as text. There is no `&` in any of them. The escaping is what
-   * keeps that a fact about today's eight answers instead of a condition on
-   * every answer written after them — `<` before a letter opens a tag and takes
-   * the rest of the line into it, and `&` before a word and a semicolon becomes
-   * whatever entity it spells. It is the same string
-   * `tutorial-solutions.test.ts` proves the task with, which is why it comes from
-   * the task table rather than from the catalogue.
+   * Handed to {@link "./code-highlight.ts"!highlightJavaScript} rather than
+   * interpolated by {@link markup}, which is why it does not appear escaped in
+   * the template below the way the task's title and goal do: the highlighter
+   * parses it as JavaScript and escapes every character of it itself as it
+   * writes each token out, so the two functions have to keep agreeing on the
+   * same five characters, and `code-highlight.test.ts` and `templates.test.ts`
+   * both pin them. It is the same string `tutorial-solutions.test.ts` proves the
+   * task with, which is why it comes from the task table rather than from the
+   * catalogue.
    */
   readonly solutionCode: string;
   /**
@@ -623,6 +635,59 @@ export interface TutorialTemplateData {
    * repository's own catalogue.
    */
   readonly explanation: string;
+}
+
+/** The two programs {@link tutorialAnswerTemplate} needs: what changed, and against what. */
+interface TutorialAnswerData {
+  /** The program the task starts the player with; see {@link changedLines}. */
+  readonly startingCode: string;
+  /** The program that clears the task, which is what gets shown and copied. */
+  readonly solutionCode: string;
+}
+
+/**
+ * The answer, under the last hint: the program that clears the task,
+ * syntax-highlighted, with the line or lines a player has to write marked, and
+ * a button that copies it.
+ *
+ * The mark is computed rather than written into the hint's own prose, which is
+ * what named the changed line before this existed: `changedLines` compares
+ * {@link TutorialAnswerData.startingCode} against
+ * {@link TutorialAnswerData.solutionCode} — the two strings the task already
+ * holds, and the only two a diff could possibly disagree with — so there is no
+ * second copy of "line 2 is new" for a task's wording to drift away from.
+ * `changedLines` finds lines, not characters, because every task on the track
+ * changes the player's program by adding or rewriting whole lines; a
+ * character-level diff would buy nothing here and cost a harder-to-read mark.
+ *
+ * `<pre><code>` rather than a styled `<div>`: it is the pair the help page
+ * already prints its examples in, so the block picks up the editor's own
+ * colours and the wrapping the narrow-screen rules give code, and a screen
+ * reader is told this is code rather than a run-on sentence of punctuation.
+ * `highlightJavaScript` writes each source line into its own `<span>` (a
+ * `<mark class="tutoriallinechanged">` for a changed one) and escapes every
+ * character itself, which is why `raw` is used here rather than letting
+ * {@link markup} escape the whole string as one attribute value — see the note
+ * on {@link TutorialTemplateData.solutionCode}.
+ *
+ * The copy button and the line that reports what it did sit above the code in
+ * their own row, `.tutorialanswertools`, which exists only so that row can be
+ * styled apart from `.tutorialbuttons` below: this pair acts on the code
+ * beside it, and that pair leaves the task. `.tutorialcopied` is drawn empty
+ * and filled in by {@link "./tutorial-panel.ts"!presentTutorial} on the click,
+ * for the same reason `.tutorialtaken` is: a live region has to already be in
+ * the document when its text arrives, or the announcement generally does not
+ * happen.
+ *
+ * @param answer - The starting program and the one that clears the task.
+ * @returns The answer block's markup.
+ */
+function tutorialAnswerTemplate(answer: TutorialAnswerData): string {
+  const highlighted = highlightJavaScript(
+    answer.solutionCode,
+    changedLines(answer.startingCode, answer.solutionCode),
+  );
+  return markup`<div class="tutorialanswer"><div class="tutorialanswertools"><button type="button" class="tutorialcopycode">${t("tutorial.solution.copy")}</button><p class="tutorialcopied" aria-live="polite"></p></div><pre class="tutorialsolution"><code>${raw(highlighted)}</code></pre></div>`;
 }
 
 /**
@@ -642,18 +707,17 @@ export interface TutorialTemplateData {
  *
  * @param number - One-based hint number, which is what the summary says.
  * @param hint - The hint itself; trusted markup from the catalogue.
- * @param solution - The program that clears the task, printed under the hint, or
- * `null` for a hint that is not the last one.
+ * @param answer - The starting and solution programs, printed under the hint by
+ * {@link tutorialAnswerTemplate}, or `null` for a hint that is not the last one.
  * @returns The disclosure's markup.
  */
-function tutorialHintTemplate(number: number, hint: string, solution: string | null): string {
-  // `<pre><code>` rather than a styled `<div>`: it is the pair the help page
-  // already prints its examples in, so the block picks up the editor's own
-  // colours and the wrapping the narrow-screen rules give code, and a screen
-  // reader is told this is code rather than a run-on sentence of punctuation.
-  const answer =
-    solution === null ? "" : markup`<pre class="tutorialsolution"><code>${solution}</code></pre>`;
-  return markup`<details class="tutorialhint"><summary>${t("tutorial.panel.hintSummary", { number })}</summary><p class="tutorialprose">${raw(hint)}</p>${raw(answer)}</details>`;
+function tutorialHintTemplate(
+  number: number,
+  hint: string,
+  answer: TutorialAnswerData | null,
+): string {
+  const drawnAnswer = answer === null ? "" : tutorialAnswerTemplate(answer);
+  return markup`<details class="tutorialhint"><summary>${t("tutorial.panel.hintSummary", { number })}</summary><p class="tutorialprose">${raw(hint)}</p>${raw(drawnAnswer)}</details>`;
 }
 
 /**
@@ -694,15 +758,18 @@ function tutorialHintTemplate(number: number, hint: string, solution: string | n
  * before this markup reaches the document; the template has no opinion beyond
  * refusing to be the thing that announces it.
  *
- * Two kinds of string arrive in this template and they are written differently.
- * The task's name and its goal are text and are escaped; the hints and the
- * explanation are `.html` messages of this repository's own catalogue and are
- * inserted verbatim. The answer is the exception that looks like the rule: it
- * comes from `src/game/tutorial.ts` rather than the catalogue and is escaped,
- * because it is JavaScript. Nothing here can carry player input — the editor's
- * contents never reach this function, and the one thing that does come from
- * outside the repository, the task index, is used to look up messages rather
- * than printed.
+ * Three kinds of string arrive in this template and they are written
+ * differently. The task's name and its goal are text and are escaped; the
+ * hints and the explanation are `.html` messages of this repository's own
+ * catalogue and are inserted verbatim. The answer is the exception that looks
+ * like the rule: it comes from `src/game/tutorial.ts` rather than the
+ * catalogue, and is neither escaped by `markup` nor inserted verbatim, but
+ * parsed and escaped a token at a time by
+ * {@link "./code-highlight.ts"!highlightJavaScript} — see the note on
+ * {@link TutorialTemplateData.solutionCode}. Nothing here can carry player
+ * input — the editor's contents never reach this function, and the one thing
+ * that does come from outside the repository, the task index, is used to look
+ * up messages rather than printed.
  *
  * @param data - Where the player is on the track, and everything this task says.
  * @returns The panel's markup, as exactly one element.
@@ -713,7 +780,9 @@ export function tutorialTemplate(data: TutorialTemplateData): string {
       tutorialHintTemplate(
         index + 1,
         hint,
-        index === data.hints.length - 1 ? data.solutionCode : null,
+        index === data.hints.length - 1
+          ? { startingCode: data.startingCode, solutionCode: data.solutionCode }
+          : null,
       ),
     )
     .join("");

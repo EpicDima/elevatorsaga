@@ -143,6 +143,48 @@ test("keeps the answer shut until a player asks for it", async ({ page }) => {
   await expect(answer).toContainText("elevator.goToFloor(1);");
 });
 
+test("highlights the answer, marks the line it adds, and copies it to the clipboard", async ({
+  page,
+  context,
+}) => {
+  // What `src/ui/code-highlight.test.ts`, `src/ui/line-diff.test.ts` and
+  // `src/ui/templates.test.ts` prove against jsdom: that the markup carries
+  // `tok-*` classes and a `.tutoriallinechanged` mark, and that
+  // `navigator.clipboard.writeText` is called at all. What only a real browser
+  // answers is whether `style.css` actually paints those classes as anything
+  // and whether the clipboard the button claims to have written to is the one
+  // a player would paste from.
+  await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+  await page.goto(FIRST_TASK);
+
+  await panel(page).getByText("Hint 3", { exact: true }).click();
+
+  const code = panel(page).locator(".tutorialsolution code");
+  await expect(code).toBeVisible();
+  expect(await code.locator("[class^='tok-']").count()).toBeGreaterThan(0);
+
+  // The one line task 1 actually adds, marked rather than only named in the
+  // hint's prose above it.
+  const marked = code.locator(".tutoriallinechanged");
+  await expect(marked).toHaveCount(1);
+  await expect(marked).toHaveText("elevator.goToFloor(1);");
+
+  const copyButton = panel(page).getByRole("button", { name: "Copy this program" });
+  const status = panel(page).locator(".tutorialcopied");
+  await expect(status).toHaveText("");
+
+  await copyButton.click();
+
+  await expect(status).toHaveText("Copied to your clipboard.");
+  // Character for character against what is actually on screen, not a second
+  // copy of the program kept by the test -- the same reason
+  // `editor.spec.ts`'s paste test reads storage back rather than trusting the
+  // keystrokes that produced it.
+  const clipboard = await page.evaluate(() => navigator.clipboard.readText());
+  expect(clipboard).toBe(await code.evaluate((element) => element.textContent));
+  expect(clipboard).toContain("elevator.goToFloor(1);");
+});
+
 test("hands the task's program to the editor and stays on the task", async ({ page }) => {
   await page.goto(FIRST_TASK);
   await expect(editor(page)).toContainText(TASK_1_MARKER);

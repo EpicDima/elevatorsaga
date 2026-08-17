@@ -134,6 +134,29 @@
    */
   --color-code-page: #fdf6e3;
   --color-code-text: #586e75;
+  /*
+   * The learning track's syntax colours, for the answer under the third hint.
+   * `@lezer/highlight`'s `classHighlighter` names a token by what it is
+   * (`tok-keyword`, `tok-string`, …), not by a colour, and these are what pay
+   * each name back out. Solarized again, the way `--color-code-page` and
+   * `--color-code-text` are, but not at the legacy accent values: the raw
+   * Solarized violet, cyan, magenta and blue read at 2.5-4.3:1 on
+   * --color-code-page, all short of the 4.5:1 that 13px text is asked for.
+   * Each is the same hue and saturation taken down until it clears the bar,
+   * the way `--color-emphasis-on-page` and `--color-error-on-page` already are
+   * above:
+   *
+   *   keyword  #6c71c4 -> #6267c0   4.06:1 -> 4.61:1  (needs 4.5)
+   *   string   #2aa198 -> #207c76   2.93:1 -> 4.63:1  (needs 4.5)
+   *   number   #d33682 -> #cc2d7a   4.21:1 -> 4.61:1  (needs 4.5)
+   *   entity   #268bd2 -> #2074b0   3.41:1 -> 4.65:1  (needs 4.5)
+   *   comment  #93a1a1 -> #647272   2.48:1 -> 4.64:1  (needs 4.5)
+   */
+  --color-code-keyword: #6267c0;
+  --color-code-string: #207c76;
+  --color-code-number: #cc2d7a;
+  --color-code-entity: #2074b0;
+  --color-code-comment: #647272;
 
   /* Geometry. The floor and elevator sizes mirror src/game/world.ts. */
   --shell-width: 1220px;
@@ -963,6 +986,77 @@ dl dd {
 }
 
 /*
+ * The line or lines a player actually has to write, inside the answer.
+ * `changedLines` (`src/ui/line-diff.ts`) is what decides which lines these
+ * are, by comparing the task's starting program against this one; this rule
+ * is only the paint. `--color-emphasis-on-page` is reused rather than a new
+ * colour, for the same reason `.emphasis-color` reaches for it everywhere
+ * else in this file: it is already "the important thing on this page" here,
+ * and it is already proven at 11.66:1 on --color-code-page, which is far past
+ * the 4.5:1 that matters for the border alone -- 1.4.11 asks 3:1 of a
+ * graphical indicator, and `style.test.ts` holds it to that bar explicitly,
+ * since a border is a new kind of pairing for the colour even though the
+ * colour itself is not new.
+ *
+ * A `<mark>` rather than a `<span>` with the same class: it is the element
+ * HTML already has for "this text matters here, against another context",
+ * which is exactly what a changed line is against the program the task
+ * started with -- see `code-highlight.ts`. The border sits on the inline
+ * *start* edge, which is where reading begins in every language this page
+ * ships (English and Russian both read left to right), so `border-inline-start`
+ * rather than `border-left`.
+ *
+ * The negative margin and the compensating padding cancel out exactly:
+ * `pre code` pads its content 8px in from its own edge, this element's
+ * `display: block` makes it as wide as that content box regardless of which
+ * side its margin comes from, and `-8px` pulls its own box back out into that
+ * padding so the 3px border can sit inside it. Without the 5px given back the
+ * text of a changed line would sit 3px to the left of every other line's; with
+ * it, both start at the same 8px from the code block's own edge, and the mark
+ * is the only line with anything in the gutter to its left.
+ */
+.tutoriallinechanged {
+  display: block;
+  margin-inline-start: -8px;
+  border-inline-start: 3px solid var(--color-emphasis-on-page);
+  padding-inline-start: 5px;
+  background-color: rgb(51 53 31 / 10%);
+}
+
+/*
+ * The row above the answer: a button that copies it to the clipboard, and the
+ * line that says whether that worked, in that order -- the line reports on the
+ * button beside it, the way `.tutorialtaken` reports on "Take this program"
+ * below. Not part of `.tutorialbuttons`: that row leaves the task, and this
+ * button acts on the code beside it instead, so it stays with the code rather
+ * than joining the buttons that end the task.
+ */
+.tutorialanswertools {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-block: 8px 4px;
+}
+
+.tutorialcopycode {
+  padding: 5px 10px;
+  border: 1px solid var(--color-control-border);
+  border-radius: 5px;
+  background-color: var(--color-control);
+  color: var(--color-text-strong);
+  font-size: 13px;
+  font-weight: bold;
+}
+
+/* Sized and drawn exactly the way `.tutorialtaken` is, for the reason given there. */
+.tutorialcopied {
+  margin-block: 0;
+  font-size: 12px;
+  line-height: 16px;
+}
+
+/*
  * The two ways out of a task. A wrapping row, because these labels are
  * sentences rather than words -- "Take this program into your own editor", and
  * the Russian for it -- and the two cannot share a line on a phone.
@@ -1607,6 +1701,42 @@ pre code {
   color: var(--color-code-text);
   font: 13px/1.4 var(--font-mono);
   overflow-x: auto;
+}
+
+/*
+ * The token classes `@lezer/highlight`'s `classHighlighter` assigns, styled
+ * for exactly the ones the eight tutorial answers actually produce --
+ * `src/ui/code-highlight.ts` names the check that keeps this list honest.
+ * Operators and punctuation are left in `--color-code-text`, the colour the
+ * rest of the block is already in: the grammar tags `.`, `(`, `;` and the
+ * like separately from the words either side of them, and giving every one of
+ * them its own colour would be more colour than the block needs to read.
+ * `tok-definition` is not its own rule -- it names a declaration site
+ * (a `function` parameter, say) and always rides alongside `tok-variableName`
+ * or `tok-propertyName` on the same element, which is already styled.
+ */
+.tok-keyword {
+  color: var(--color-code-keyword);
+}
+
+.tok-string {
+  color: var(--color-code-string);
+}
+
+.tok-number,
+.tok-bool {
+  color: var(--color-code-number);
+}
+
+.tok-propertyName,
+.tok-labelName,
+.tok-variableName {
+  color: var(--color-code-entity);
+}
+
+.tok-comment {
+  color: var(--color-code-comment);
+  font-style: italic;
 }
 
 .doctable {

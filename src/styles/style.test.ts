@@ -244,6 +244,17 @@ describe("palette", () => {
     ["color-stats", "color-world", 4.5],
     ["color-text-strong", "color-control", 4.5],
     ["color-code-text", "color-code-page", 4.5],
+    ["color-code-keyword", "color-code-page", 4.5],
+    ["color-code-string", "color-code-page", 4.5],
+    ["color-code-number", "color-code-page", 4.5],
+    ["color-code-entity", "color-code-page", 4.5],
+    ["color-code-comment", "color-code-page", 4.5],
+    // The changed-line border in the learning track's answer, 1.4.11's bar
+    // rather than 1.4.3's: nothing is written in this colour there, only drawn.
+    // --color-emphasis-on-page is proven readable as text twice already; this
+    // is the same colour meeting a background it has not been measured against
+    // before, in a role the 4.5:1 rows above do not cover.
+    ["color-emphasis-on-page", "color-code-page", 3],
   ])("has --%s readable on --%s", (foreground, background, required) => {
     expect(contrast(token(foreground), token(background))).toBeGreaterThanOrEqual(required);
   });
