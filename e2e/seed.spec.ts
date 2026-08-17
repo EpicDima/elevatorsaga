@@ -95,7 +95,7 @@ test("opens the caveat from the keyboard, on a phone-sized screen", async ({ pag
   await expect(page.locator(HELP_SUMMARY)).toBeFocused();
   await page.keyboard.press("Enter");
   await expect(page.locator(CAVEAT)).toBeVisible();
-  await expect(page.locator(CAVEAT)).toContainText("never quite the same twice");
+  await expect(page.locator(CAVEAT)).toContainText("played the same way");
 
   // Open, it is a whole sentence of prose in a control strip; if it will not
   // wrap into 320px the page has to be read by panning sideways.

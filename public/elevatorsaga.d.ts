@@ -862,9 +862,13 @@ declare namespace ElevatorSaga {
     init(elevators: readonly Elevator[], floors: readonly Floor[]): void;
 
     /**
-     * Runs on every animation frame, after `init`.
+     * Runs at a fixed rate of 100 times per simulated second, after `init`.
      *
-     * @param dt - Simulated seconds since the previous frame.
+     * The rate is tied to game time, not to how often the browser draws, so
+     * `dt` is always the same value and the same seed played the same way
+     * takes the exact same sequence of steps regardless of frame rate.
+     *
+     * @param dt - Always one hundredth of a simulated second.
      * @param elevators - Every elevator in the building.
      * @param floors - Every floor, from 0 at the bottom.
      */

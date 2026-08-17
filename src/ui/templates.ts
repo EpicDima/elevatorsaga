@@ -372,7 +372,8 @@ function seedTemplate(data: SeedLinkData): string {
 }
 
 /**
- * What a seed does and does not fix, as something a player can actually open.
+ * What a seed fixes, and what playing it the same way adds on top, as
+ * something a player can actually open.
  *
  * The words are `game.seed.explanation` in the message catalogue, and both
  * halves of them are load-bearing; each was measured rather than assumed, so a
@@ -387,13 +388,18 @@ function seedTemplate(data: SeedLinkData): string {
  * characters however the frames fall. That is what makes the affordance worth
  * having: comparing two programs means comparing them on the same people.
  *
- * The run does not come back. `dt` comes from `requestAnimationFrame` timestamps
- * in `src/game/world-controller.ts`, so the cars are in different places as each
- * passenger appears, the player's program is asked to decide at different
- * moments, and the outcome moves with them. Only the headless paths — the
- * fitness suite and the tests, which drive the clock themselves — repeat a run
- * step for step. "Replay this run" is the natural thing to write here and would
- * be a promise the browser cannot keep, so it is not made.
+ * The run comes back too, now, given the same play. `src/game/world-controller.ts`
+ * used to drive `codeObj.update` and `world.update` off `requestAnimationFrame`'s
+ * variable `dt`; both now advance in fixed `TICK_SECONDS` ticks instead, so the
+ * cars are in the same places at each passenger's appearance, the player's
+ * program is asked to decide at the same moments, and the outcome no longer
+ * moves with the browser's frame rate — headless paths and the browser now
+ * repeat a run step for step alike. What still moves the outcome is the play
+ * itself: a pause or a speed change lands on whichever tick it lands on, so
+ * two people running the same seed differently still get different runs.
+ * "Replay this run" would need the browser to record and re-drive that play,
+ * not just the seed — nothing here does that, so the promise made is scoped to
+ * playing it the same way, not to an automatic replay.
  *
  * It used to be a `title` attribute on the word "Seed", which delivered it to a
  * mouse and to nothing else: `title` never appears on a touch screen, a `<span>`

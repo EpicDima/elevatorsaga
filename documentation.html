@@ -183,18 +183,20 @@
     },
     update: function(dt, elevators, floors) {
         // Do more stuff with the elevators and floors
-        // dt is the number of game seconds that passed since the last time update was called
+        // dt is always the same fraction of a game second: update runs 100 times per
+        // simulated second, however fast or slow the browser is actually drawing
     }
 }</code></pre>
         <p>
           These functions will then be called by the game during the challenge.<br />
           <span class="emphasis-color">init</span> runs once, on the first frame of the run rather
           than at the moment you apply your code, and
-          <span class="emphasis-color">update</span> runs on that same frame and on every frame
-          after it — as often as the browser draws, which is why
-          <span class="emphasis-color">dt</span>, and not the number of calls, is what tells you how
-          much game time has passed. Both are handed the same two arrays — one holding every
-          elevator in the building, one holding every floor — so
+          <span class="emphasis-color">update</span> runs on that same frame and on every simulated
+          step after it — 100 times per game second, on a fixed schedule tied to game time rather
+          than to how often the browser draws. That means <span class="emphasis-color">dt</span> is
+          always the same value, and two runs of the same seed and the same play take the exact same
+          sequence of steps whether the browser is fast or slow. Both functions are handed the same
+          two arrays — one holding every elevator in the building, one holding every floor — so
           <span class="emphasis-color">elevators.length</span> is how many cars you have to work
           with, and neither array is replaced between calls. Both are called on the object you
           declared, so <span class="emphasis-color">this</span> inside them is that object: anything

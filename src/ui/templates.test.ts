@@ -430,23 +430,27 @@ describe("challengeTemplate", () => {
       expect(seedLineText(fragment)).toBe("Seed 1234567890");
     });
 
-    it("promises the passengers, and stops short of promising the run", () => {
+    it("promises the passengers, and now the run too, given the same play", () => {
       // The seed brings the same people in the same order, which is the whole
-      // point of the affordance. It cannot bring the run: dt comes from
-      // requestAnimationFrame, so the cars stand somewhere else as each of them
-      // appears and the player's program is asked at different moments.
+      // point of the affordance. It now brings the run back too:
+      // world-controller.ts advances codeObj.update and world.update in fixed
+      // TICK_SECONDS ticks rather than off requestAnimationFrame's variable dt,
+      // so the cars are in the same places at each passenger's appearance and
+      // the player's program is asked to decide at the same moments -- as long
+      // as the run is played the same way.
       const explanation = bar({ num: 1, description: "x", links: links(3) }, SEED).querySelector(
         ".seedcaveat",
       )?.textContent;
 
       expect(explanation).toBe(
-        "The same seed brings the same passengers, in the same order. Frame timing comes from " +
-          "the browser, so the run around them is never quite the same twice.",
+        "The same seed brings the same passengers, in the same order — and, played the same " +
+          "way, the exact same run: every elevator movement, arrival and button press repeats " +
+          "exactly, whatever the browser's frame rate.",
       );
-      expect(explanation).not.toMatch(/replay|exact|identical/i);
-      // The caveat is the whole point of the second sentence, so it may not go
-      // missing while the promise in front of it stays.
-      expect(explanation).toContain("never quite the same twice");
+      // The condition -- "played the same way" -- is the whole point of the
+      // promise now being made, so it may not go missing while the promise
+      // in front of it stays.
+      expect(explanation).toContain("played the same way");
     });
 
     it("puts the caveat somewhere a keyboard and a screen reader can reach it", () => {
@@ -938,9 +942,9 @@ describe("the language the building comes out in", () => {
 
     expect(fragment.querySelector(".seedhelp summary")?.textContent).toBe("что задаёт сид");
     expect(fragment.querySelector(".seedcaveat")?.textContent).toBe(
-      "Один и тот же сид приводит тех же пассажиров и в том же порядке. А вот когда придёт " +
-        "очередной кадр, решает браузер, поэтому всё остальное в прогоне каждый раз складывается " +
-        "немного иначе.",
+      "Один и тот же сид приводит тех же пассажиров и в том же порядке — а если ещё и играть " +
+        "одинаково, то и весь прогон повторяется в точности: каждое движение лифта, прибытие и " +
+        "нажатие кнопки — один в один, независимо от частоты кадров браузера.",
     );
   });
 

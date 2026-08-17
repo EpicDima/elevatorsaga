@@ -173,7 +173,7 @@ export const EN_MESSAGES = {
   "game.seed.newDrawLink": "Seed {seed}: new draw, start again without it",
   "game.seed.helpSummary": "what a seed does",
   "game.seed.explanation":
-    "The same seed brings the same passengers, in the same order. Frame timing comes from the browser, so the run around them is never quite the same twice.",
+    "The same seed brings the same passengers, in the same order — and, played the same way, the exact same run: every elevator movement, arrival and button press repeats exactly, whatever the browser's frame rate.",
   // The same sentence the disclosure makes, compressed onto the console line
   // printed at every start. It is keyed and the other console strings are not,
   // because it is not a diagnostic: the rest report a bug, a malformed URL or a
@@ -181,8 +181,7 @@ export const EN_MESSAGES = {
   // nothing wrong and is being told how to play the run again. The seed and the
   // URL are placeholders for the same reason they are everywhere else -- they
   // are transcribed, not read.
-  "game.seed.console":
-    "Seed {seed} — the same passengers again, though never quite the same run: {url}",
+  "game.seed.console": "Seed {seed} — the exact same run again, whatever the frame rate: {url}",
   "game.timeScale.decrease": "Decrease simulation speed",
   "game.timeScale.increase": "Increase simulation speed",
   "game.timeScale.value": "{value}x",
@@ -368,7 +367,7 @@ export const EN_MESSAGES = {
   "completion.global.init":
     "Called when the challenge starts. Normally you will put most of your code in here, to set up event listeners and logic.",
   "completion.global.update":
-    "Called repeatedly during the challenge. dt is the number of game seconds that passed since the last time update was called.",
+    "Called repeatedly during the challenge, at a fixed rate of 100 times per game second. dt is always that fixed step.",
   "completion.initSkeleton.code": `init: function(elevators, floors) {
     // Do stuff with the elevators and floors, which are both arrays of objects
 }`,
@@ -462,11 +461,12 @@ export const EN_MESSAGES = {
     },
     update: function(dt, elevators, floors) {
         // Do more stuff with the elevators and floors
-        // dt is the number of game seconds that passed since the last time update was called
+        // dt is always the same fraction of a game second: update runs 100 times per
+        // simulated second, however fast or slow the browser is actually drawing
     }
 }`,
   "docs.basics.called.html":
-    'These functions will then be called by the game during the challenge.<br /> <span class="emphasis-color">init</span> runs once, on the first frame of the run rather than at the moment you apply your code, and <span class="emphasis-color">update</span> runs on that same frame and on every frame after it — as often as the browser draws, which is why <span class="emphasis-color">dt</span>, and not the number of calls, is what tells you how much game time has passed. Both are handed the same two arrays — one holding every elevator in the building, one holding every floor — so <span class="emphasis-color">elevators.length</span> is how many cars you have to work with, and neither array is replaced between calls. Both are called on the object you declared, so <span class="emphasis-color">this</span> inside them is that object: anything your program needs to remember from one frame to the next can live on <span class="emphasis-color">this</span> instead of in a variable outside. That holds as long as you write them with <span class="emphasis-color">function</span> — an arrow function keeps the <span class="emphasis-color">this</span> of wherever it was written, which here is the page rather than your object.',
+    'These functions will then be called by the game during the challenge.<br /> <span class="emphasis-color">init</span> runs once, on the first frame of the run rather than at the moment you apply your code, and <span class="emphasis-color">update</span> runs on that same frame and on every simulated step after it — 100 times per game second, on a fixed schedule tied to game time rather than to how often the browser draws. That means <span class="emphasis-color">dt</span> is always the same value, and two runs of the same seed and the same play take the exact same sequence of steps whether the browser is fast or slow. Both functions are handed the same two arrays — one holding every elevator in the building, one holding every floor — so <span class="emphasis-color">elevators.length</span> is how many cars you have to work with, and neither array is replaced between calls. Both are called on the object you declared, so <span class="emphasis-color">this</span> inside them is that object: anything your program needs to remember from one frame to the next can live on <span class="emphasis-color">this</span> instead of in a variable outside. That holds as long as you write them with <span class="emphasis-color">function</span> — an arrow function keeps the <span class="emphasis-color">this</span> of wherever it was written, which here is the page rather than your object.',
   "docs.basics.initPurpose.html":
     'Normally you will put most of your code in the <span class="emphasis-color">init</span> function, to set up event listeners and logic.',
   "docs.basics.noLibraries.html":
@@ -706,7 +706,7 @@ elevator.goToFloor(2); // Queued anyway -- queue: 2, 3, 2`,
   "tutorial.task2.hint3.html":
     'The answer: subscribe to <span class="emphasis-color">idle</span> and queue floors 0, 1 and 2 inside the handler, the way task 1 did it for two floors.',
   "tutorial.task2.explanation.html":
-    "init is called once, on the first frame of the run and before the world has taken a single step, and all it normally does is subscribe to events. The first idle is sent by the game itself, on the line right after your init returns, so subscribing is enough to set the whole thing going. The other function, update(dt, elevators, floors), is called on every frame instead. The track never uses it, and that is deliberate: asking the building about its state on every frame gives worse programs than answering the events it sends you. Worse, not forbidden — polling will get you through any task on this track.",
+    "init is called once, on the first frame of the run and before the world has taken a single step, and all it normally does is subscribe to events. The first idle is sent by the game itself, on the line right after your init returns, so subscribing is enough to set the whole thing going. The other function, update(dt, elevators, floors), is called on every simulated tick instead — 100 times a game second. The track never uses it, and that is deliberate: asking the building about its state on every tick gives worse programs than answering the events it sends you. Worse, not forbidden — polling will get you through any task on this track.",
 
   "tutorial.task2.startingCode.code": `{
     init: function(elevators, floors) {

@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Challenge } from "../game/challenges.ts";
 import { tutorialTasks } from "../game/tutorial.ts";
 import type { TutorialTask } from "../game/tutorial.ts";
-import { createWorldController } from "../game/world-controller.ts";
+import { TICK_SECONDS, createWorldController } from "../game/world-controller.ts";
 import type { WorldController } from "../game/world-controller.ts";
 import { DEFAULT_LOCALE, LOCALES, setLocale } from "../i18n/index.ts";
 import type { Locale } from "../i18n/index.ts";
@@ -115,7 +115,7 @@ function setUp(code: string = INERT_CODE, storage: Storage = new MemoryStorage()
   }
   view.value = code;
 
-  const worldController = createWorldController(1.0 / 60.0);
+  const worldController = createWorldController(TICK_SECONDS);
   const app = new App({
     elements,
     editor,
@@ -1468,7 +1468,7 @@ describe("App seed", () => {
     app.handleRoute(...routeFor("#challenge=1,seed=issue-61"));
 
     expect(console.log).toHaveBeenCalledWith(
-      `Seed issue-61 — the same passengers again, though never quite the same run: ` +
+      `Seed issue-61 — the exact same run again, whatever the frame rate: ` +
         `${window.location.origin}/#challenge=1,seed=issue-61`,
     );
   });
@@ -1485,24 +1485,26 @@ describe("App seed", () => {
     app.handleRoute(...routeFor("#challenge=1,seed=issue-61"));
 
     expect(console.log).toHaveBeenCalledWith(
-      `Сид issue-61 — снова те же пассажиры, но прогон каждый раз складывается немного иначе: ` +
+      `Сид issue-61 — тот же самый прогон один в один, независимо от частоты кадров: ` +
         `${window.location.origin}/#challenge=1,seed=issue-61`,
     );
   });
 
-  it("offers the passengers back, and says the run is not, because it is not", () => {
-    // The controller takes its dt from requestAnimationFrame timestamps, so the
-    // cars stand somewhere else as each passenger appears and the player's
-    // program is asked to decide at different moments. The people repeat; what
-    // happens to them does not. Only the headless paths -- the fitness suite and
-    // these tests -- repeat a run step for step.
+  it("offers the exact same run back, because the controller no longer depends on frame timing", () => {
+    // The controller used to take its dt from requestAnimationFrame timestamps,
+    // so the cars stood somewhere else as each passenger appeared and the
+    // player's program was asked to decide at different moments. Now
+    // world-controller.ts advances codeObj.update and world.update in fixed
+    // TICK_SECONDS ticks instead, so the browser and the headless paths (the
+    // fitness suite, the tests) alike repeat a run step for step, played the
+    // same way.
     const { app } = setUp();
     app.handleRoute(...routeFor("#challenge=1,seed=issue-61"));
 
     const printed = vi.mocked(console.log).mock.calls.map(([message]) => String(message));
     expect(printed).toHaveLength(1);
-    expect(printed[0]).toContain("never quite the same run");
-    expect(printed[0]).not.toMatch(/exact|identical|replay/i);
+    expect(printed[0]).toMatch(/exact/i);
+    expect(printed[0]).not.toMatch(/never quite the same/i);
   });
 
   it("prints a fresh line for every run, including a restart", () => {
