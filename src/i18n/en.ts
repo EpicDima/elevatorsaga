@@ -201,6 +201,14 @@ export const EN_MESSAGES = {
   "game.button.startOver": "Start over",
   "game.button.resetCode": "Reset code",
   "game.button.undoResetCode": "Undo reset",
+  // The fifth button of the row, and its label while a crunch is under way.
+  // "Instantly" rather than "fast" or "fast-forward", which is what the speed
+  // control already offers: that still draws the building, only quicker, and
+  // this draws nothing at all while it runs. `runningInstantly` echoes
+  // `fitness.measuring`'s three ASCII dots — the one other button in the game
+  // that replaces its own label while it works.
+  "game.button.runInstant": "Run instantly",
+  "game.button.runningInstantly": "Crunching...",
   "game.feedback.success.title": "Success!",
   "game.feedback.success.message": "Challenge completed",
   "game.feedback.failure.title": "Challenge failed",

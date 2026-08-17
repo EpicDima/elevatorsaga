@@ -61,6 +61,25 @@ export function startButton(page: Page, name = "Start"): Locator {
 }
 
 /**
+ * The button that crunches the current challenge headlessly and shows its
+ * outcome, without ever drawing the building while it runs.
+ *
+ * `exact` for the same reason {@link startButton} needs it: "Run instantly"
+ * and "Crunching..." are not substrings of anything else in the row, but the
+ * two labels this one button carries are each other's whole story, and a
+ * locator that matched loosely could not tell "not running yet" from "still
+ * running" apart.
+ *
+ * @param page - The page under test.
+ * @param name - The button's label in the language on screen, `Run instantly`
+ * or `Crunching...` depending on whether a crunch is under way.
+ * @returns The instant-run button.
+ */
+export function runInstantButton(page: Page, name = "Run instantly"): Locator {
+  return page.getByRole("button", { name, exact: true });
+}
+
+/**
  * One value from the statistics panel.
  *
  * The panel pairs a label and a value as two sibling `<span>`s with no

@@ -3,6 +3,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { Challenge } from "../game/challenges.ts";
+import { INSTANT_RUN_MAX_SIMULATED_SECONDS } from "../game/instant-run.ts";
 import { tutorialTasks } from "../game/tutorial.ts";
 import type { TutorialTask } from "../game/tutorial.ts";
 import { TICK_SECONDS, createWorldController } from "../game/world-controller.ts";
@@ -276,6 +277,91 @@ describe("App challenge outcome", () => {
     expect(requireElement(".feedback a", elements.feedback).getAttribute("href")).toBe(
       "#challenge=3,timescale=8",
     );
+  });
+});
+
+describe("App instant run", () => {
+  afterEach(() => {
+    setLocale(DEFAULT_LOCALE);
+  });
+
+  it("crunches the current challenge headlessly, drawing nothing while it runs, and shows the same outcome overlay an animated run would", () => {
+    const { app, elements } = setUp();
+    app.startChallenge(1);
+    expect(queryAll(".elevator", elements.world)).toHaveLength(2);
+
+    app.runInstantly();
+
+    // `presentWorld` is skipped entirely for a crunch -- the building the
+    // earlier animated start drew is torn down, and nothing replaces it.
+    expect(queryAll(".floor", elements.world)).toHaveLength(0);
+    expect(queryAll(".elevator", elements.world)).toHaveLength(0);
+    expect(app.world?.challengeEnded).toBe(true);
+    expect(requireElement(".feedback h2", elements.feedback).textContent).toBe("Success!");
+    // The button is back to its ready state, not stuck reading "Crunching...":
+    // clearing `#instantRunHandle` when `stats_changed` reaches a verdict is
+    // what a crunch gets in place of the relabelling an animated run's
+    // `setPaused` raises for free.
+    const button = requireElement(".runinstant", elements.controls);
+    expect(button.textContent).toBe("Run instantly");
+    expect(button.hasAttribute("disabled")).toBe(false);
+  });
+
+  it("falls back to a loss once the ceiling is reached without the challenge's own condition ever deciding", () => {
+    const { app, elements } = setUp();
+    app.startChallenge(0); // `evaluate` always returns null: nothing but the ceiling ends this
+
+    app.runInstantly();
+    // `driveInstantly` runs synchronously up to its first yield or verdict, so
+    // nothing it queues in the background can run before this point -- an
+    // empty, spawnless building is cheap enough that the real crunch may well
+    // have already reached the ceiling on its own by here. Forcing it and
+    // re-raising the event the ceiling is read from reproduces exactly what a
+    // slower machine's crunch would eventually do on its own, without a test
+    // that waits on real wall-clock time to find out which happened.
+    if (app.world) {
+      app.world.elapsedTime = INSTANT_RUN_MAX_SIMULATED_SECONDS;
+      app.world.trigger("stats_changed");
+    }
+
+    expect(app.world?.challengeEnded).toBe(true);
+    expect(requireElement(".feedback h2", elements.feedback).textContent).toBe("Challenge failed");
+  });
+
+  it("surfaces a player-code error during a crunch through the same banner as any other run, and recovers the button", () => {
+    const { app, elements, view } = setUp();
+    app.startChallenge(0); // never resolves on its own; only the error ends this run
+    view.type("{ init: function() {}, update: function() { throw new Error('boom'); } }");
+
+    app.runInstantly();
+
+    expect(requireElement(".errormessage", elements.codeStatus).textContent).toContain("boom");
+    // Not ended: a controller a thrown error has paused never ticks the world
+    // again, so nothing driven by `stats_changed` -- a verdict, the ceiling --
+    // can fire either. The challenge is left exactly as undecided as it was,
+    // the same as an animated run's error leaves it paused rather than lost.
+    expect(app.world?.challengeEnded).toBe(false);
+    const button = requireElement(".runinstant", elements.controls);
+    expect(button.textContent).toBe("Run instantly");
+    expect(button.hasAttribute("disabled")).toBe(false);
+  });
+
+  it("leaves the controls in their normal, ready state after starting a new run over an instant one", () => {
+    const { app, elements } = setUp();
+    app.startChallenge(0); // never resolves on its own
+    app.runInstantly();
+
+    app.startChallenge(1);
+
+    // Whether the abandoned crunch had already reached its own ceiling or was
+    // still running in the background, `#startRun` cancels whatever
+    // `#instantRunHandle` still points at unconditionally, before it does
+    // anything else -- so the button is never left stuck on "Crunching..."
+    // for a run that is no longer the one on screen.
+    const button = requireElement(".runinstant", elements.controls);
+    expect(button.textContent).toBe("Run instantly");
+    expect(button.hasAttribute("disabled")).toBe(false);
+    expect(app.world?.floors).toHaveLength(4);
   });
 });
 

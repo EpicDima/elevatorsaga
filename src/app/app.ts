@@ -7,6 +7,8 @@
 
 import { createSandboxChallenge } from "../game/challenges.ts";
 import type { Challenge, SandboxOptions } from "../game/challenges.ts";
+import { INSTANT_RUN_MAX_SIMULATED_SECONDS, driveInstantly } from "../game/instant-run.ts";
+import type { InstantRunHandle } from "../game/instant-run.ts";
 import { tutorialTasks } from "../game/tutorial.ts";
 import type { TutorialTask } from "../game/tutorial.ts";
 import { createWorld } from "../game/world.ts";
@@ -314,6 +316,19 @@ export class App {
    * so is the description of a thrown object with nothing to say for itself.
    */
   #codeError: { readonly thrown: unknown } | undefined = undefined;
+  /**
+   * The headless crunch in progress, or `undefined` when there is none.
+   *
+   * Its own field rather than a case of {@link worldController} because it is
+   * not that controller: a crunch gets a private one, so an abandoned run's
+   * stale callbacks can never tick a world {@link #startRun} has already
+   * replaced. Set when {@link runInstantly} starts one, cleared by the
+   * `stats_changed` handler in {@link #startRun} when it reaches a verdict on
+   * its own, and cleared -- after cancelling it -- at the top of every
+   * {@link #startRun}, instant or not, so a player who starts anything else
+   * while a crunch is running abandons it rather than raced against it.
+   */
+  #instantRunHandle: InstantRunHandle | undefined = undefined;
 
   /**
    * @param options - The page regions, the editor, the controller and the
@@ -376,6 +391,10 @@ export class App {
       },
       onTimeScaleDecrease: () => {
         this.worldController.setTimeScale(decreasedTimeScale(this.worldController.timeScale));
+      },
+      instantRunInProgress: () => this.#instantRunHandle !== undefined,
+      onRunInstant: () => {
+        this.runInstantly();
       },
     });
 
@@ -606,6 +625,34 @@ export class App {
     } else {
       this.worldController.setPaused(!this.worldController.isPaused);
     }
+  }
+
+  /**
+   * Runs whatever is on screen again, headlessly: nothing drawn while it
+   * plays, the outcome and the final statistics shown the moment it has one.
+   *
+   * Deliberately not a fourth case alongside {@link #restart}'s three, though
+   * it does the same job for the same reason: {@link #run} already says which
+   * challenge, task or sandbox is current, however it got there, so re-reading
+   * it here is one branch instead of {@link #restart}'s three, and none of
+   * `startChallenge`/`startSandbox`/`startTutorial`'s own bookkeeping --
+   * leaving the tutorial buffer, remembering which sandbox or challenge index
+   * is current -- has anything to add when what is being started is the very
+   * thing already on screen. `autoStart` is always `true`: a crunch that
+   * waited for the Start button would be a button that does nothing visible
+   * until a second one is pressed.
+   *
+   * Does nothing before the first run has started -- there is nothing in
+   * {@link #run} yet to rerun. Only a test still driving the constructor's
+   * bare output can reach that path; by the time a player can click the
+   * button that calls this, `handleRoute` has already started one.
+   */
+  runInstantly(): void {
+    const run = this.#run;
+    if (run === undefined) {
+      return;
+    }
+    this.#startRun(run.challenge, run.challengeIndex, true, true);
   }
 
   /**
@@ -892,8 +939,25 @@ export class App {
    * sandbox, which is not in the list and so is neither numbered in the bar nor
    * marked in the navigation row nor followed by a "next challenge" link.
    * @param autoStart - Whether to run without waiting for the Start button.
+   * @param instant - Whether to drive this run headlessly, through
+   * {@link driveInstantly}, instead of drawing it and driving it from
+   * animation frames. See {@link runInstantly}.
    */
-  #startRun(challenge: Challenge, challengeIndex: number | null, autoStart: boolean): void {
+  #startRun(
+    challenge: Challenge,
+    challengeIndex: number | null,
+    autoStart: boolean,
+    instant = false,
+  ): void {
+    // Abandoned rather than raced: a crunch left running past the start of
+    // whatever this call is beginning would go on ticking a world nothing on
+    // screen points at any more, and could still reach the `stats_changed`
+    // handler below with a verdict for a run that no longer exists. Done for
+    // every run, not only an instant one, because the crunch this cancels
+    // might have been left running by an *earlier* call here while a plain
+    // Start over or a route change was what actually happened next.
+    this.#instantRunHandle?.cancel();
+    this.#instantRunHandle = undefined;
     this.world?.unWind();
     // A task's own seed wins over the URL's, and it is the one seed in the game
     // the player cannot override. That is what `TutorialTask.seed` is for: the
@@ -946,15 +1010,49 @@ export class App {
     this.#outcome = undefined;
     presentStats(this.#elements.stats, world);
     this.#drawChallengeBar(world);
-    presentWorld(this.#elements.world, world);
+    // Skipped entirely for a crunch: this is the one line that draws the
+    // building, and an instant run's whole point is that nothing does. The
+    // statistics panel just above is not behind this condition -- it
+    // subscribes to the world, not to this call -- so it goes on reporting
+    // live figures throughout a crunch exactly as it does through an animated
+    // run, and is left holding the final ones the moment `stats_changed`
+    // below reaches a verdict.
+    if (!instant) {
+      presentWorld(this.#elements.world, world);
+    }
 
     world.on("stats_changed", () => {
-      const challengeStatus = challenge.condition.evaluate(world);
+      const conditionStatus = challenge.condition.evaluate(world);
+      // A crunch's own ceiling, folded into the same verdict a normal run
+      // reaches: past `INSTANT_RUN_MAX_SIMULATED_SECONDS` of simulated time
+      // with the challenge's own condition still undecided, this stops
+      // waiting for one and calls it a loss -- `false`, not a third outcome,
+      // because the task is exactly the same one every other failure already
+      // shows. Only a crunch is bounded this way; an animated run is bounded
+      // by the player's own patience instead, same as it always was.
+      const challengeStatus =
+        conditionStatus ??
+        (instant && world.elapsedTime >= INSTANT_RUN_MAX_SIMULATED_SECONDS ? false : null);
       if (challengeStatus === null) {
         return;
       }
       world.challengeEnded = true;
-      this.worldController.setPaused(true);
+      if (instant) {
+        // Not `this.worldController.setPaused(true)`: a crunch drives a
+        // private controller nothing else touches (see
+        // `src/game/instant-run.ts`), so pausing the shared one here would
+        // pause whatever *that* is doing instead and raise a `timescale_changed`
+        // nobody asked for. Clearing the handle is what marks this crunch
+        // finished rather than abandoned -- `#instantRunHandle` is
+        // {@link driveInstantly}'s own stopping signal for nothing except a
+        // still-running one -- and the explicit `update()` is this path's
+        // replacement for the relabelling an animated run gets for free from
+        // `setPaused`'s `timescale_changed`.
+        this.#instantRunHandle = undefined;
+        this.#controls.update();
+      } else {
+        this.worldController.setPaused(true);
+      }
       // Recorded where the verdict is reached rather than in `#showOutcome`,
       // which `relocalise` calls again to redraw that verdict in another
       // language. Nothing miscounts today if it moves -- progress is a set of
@@ -981,12 +1079,52 @@ export class App {
     });
 
     const codeObj = this.#editor.getCodeObj();
-    this.worldController.start(
-      world,
-      codeObj ?? NO_OP_CODE,
-      this.#requestAnimationFrame,
-      autoStart,
-    );
+    if (instant) {
+      // The constructor's `usercode_error` subscription is bound to
+      // `this.worldController`, the shared controller -- a crunch's private one
+      // raises nothing on it, so it is wired here instead, through
+      // `onController` rather than off the handle `driveInstantly` returns.
+      // That distinction matters for a program whose `init` throws on the very
+      // first tick: a challenge that small can run to a verdict, error and all,
+      // entirely inside the call to `driveInstantly` below, before it has
+      // returned anything to subscribe to. `onController` runs before a single
+      // tick has happened, which is early enough to catch it; the handle is not.
+      const handle = driveInstantly(world, codeObj ?? NO_OP_CODE, {
+        onController: (controller) => {
+          controller.on("usercode_error", (e) => {
+            console.log("World raised code error", e);
+            this.#editor.trigger("usercode_error", e);
+            // A crunch has no Pause button to leave paused and no Resume to
+            // come back from -- unlike an animated run's `worldController`,
+            // nothing ever unpauses this private one again, so an error ends
+            // this crunch rather than merely halting it. `stats_changed` will
+            // not do this instead: it is `world.update` that raises it, and
+            // `WorldController.start`'s own tick loop stops calling that the
+            // moment `codeObj.update` has thrown. Clearing the field here, not
+            // just relying on the guard below, is what recovers a run whose
+            // very first tick is the one that throws -- see that guard.
+            this.#instantRunHandle = undefined;
+            this.#controls.update();
+          });
+        },
+      });
+      // Not stored when the crunch has already finished, or already failed:
+      // a small challenge can run to a verdict, or a program can throw on its
+      // very first tick, entirely inside `driveInstantly` above, before it
+      // returns here -- and the handlers above have already cleared
+      // `#instantRunHandle` by the time this line would otherwise overwrite it
+      // with a handle for a run that is already over.
+      if (!world.challengeEnded && !handle.controller.isPaused) {
+        this.#instantRunHandle = handle;
+      }
+    } else {
+      this.worldController.start(
+        world,
+        codeObj ?? NO_OP_CODE,
+        this.#requestAnimationFrame,
+        autoStart,
+      );
+    }
     // After the controller, which is where the new run's pause state is decided:
     // `start` pauses by assignment rather than through `setPaused`, so it raises
     // no event, and a run started from a running one would otherwise leave a

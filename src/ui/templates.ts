@@ -496,9 +496,17 @@ export interface ChallengeTemplateData {
  * the most dangerous-looking button on the page was live at moments when it
  * could only do nothing.
  *
- * The four buttons ship without labels, which the presenter writes. It has to
+ * A fifth button, "Run instantly", sits at the end of the row: the crunch
+ * `src/game/instant-run.ts` drives, with nothing drawn while it runs. It is not
+ * a fifth kind of thing to learn — it starts the same run the first button
+ * does, just without the building — so it belongs beside Start rather than in a
+ * row of its own, and disables itself for the (ordinarily imperceptible) moment
+ * a crunch is actually in progress rather than hiding, since a player who
+ * pressed it is exactly the player who wants to see it was heard.
+ *
+ * The five buttons ship without labels, which the presenter writes. It has to
  * write the first one anyway — it says Start, Pause or Restart depending on the
- * run — and having one place write all four is what makes a language change work
+ * run — and having one place write all five is what makes a language change work
  * here without re-rendering anything: `presentControls` draws this once for the
  * life of the page, so a label baked in here would still be in the language the
  * page opened in. The speed buttons carry theirs as `aria-label`, which for that
@@ -513,7 +521,7 @@ export interface ChallengeTemplateData {
  * @returns The run controls markup.
  */
 export function controlsTemplate(): string {
-  return markup`<div class="runbuttons"><button type="button" class="startstop unselectable"></button> <button type="button" class="startover unselectable"></button> <button type="button" class="resetcode unselectable"></button> <button type="button" class="undoreset unselectable" hidden></button></div><div class="timescale"><button type="button" class="timescale_decrease unselectable" aria-label="${t("game.timeScale.decrease")}">${raw(iconMarkup("minus-square"))}</button> <span class="emphasis-color timescale_value"></span> <button type="button" class="timescale_increase unselectable" aria-label="${t("game.timeScale.increase")}">${raw(iconMarkup("plus-square"))}</button></div>`;
+  return markup`<div class="runbuttons"><button type="button" class="startstop unselectable"></button> <button type="button" class="startover unselectable"></button> <button type="button" class="resetcode unselectable"></button> <button type="button" class="undoreset unselectable" hidden></button> <button type="button" class="runinstant unselectable"></button></div><div class="timescale"><button type="button" class="timescale_decrease unselectable" aria-label="${t("game.timeScale.decrease")}">${raw(iconMarkup("minus-square"))}</button> <span class="emphasis-color timescale_value"></span> <button type="button" class="timescale_increase unselectable" aria-label="${t("game.timeScale.increase")}">${raw(iconMarkup("plus-square"))}</button></div>`;
 }
 
 /**

@@ -501,12 +501,14 @@ describe("presentControls", () => {
         onUndoReset: vi.fn(),
         onTimeScaleIncrease: vi.fn(),
         onTimeScaleDecrease: vi.fn(),
+        instantRunInProgress: (): boolean => false,
+        onRunInstant: vi.fn(),
         ...overrides,
       },
     };
   }
 
-  it("draws the time scale and labels all four buttons", () => {
+  it("draws the time scale and labels all five buttons", () => {
     const { parent, options } = setUp();
     presentControls(parent, options);
 
@@ -515,6 +517,26 @@ describe("presentControls", () => {
     expect(requireElement(".startover", parent).textContent).toBe("Start over");
     expect(requireElement(".resetcode", parent).textContent).toBe("Reset code");
     expect(requireElement(".undoreset", parent).textContent).toBe("Undo reset");
+    expect(requireElement(".runinstant", parent).textContent).toBe("Run instantly");
+  });
+
+  it("labels the instant-run button as crunching, and disables it, while a crunch is in progress", () => {
+    const { parent, options } = setUp();
+    const presenter = presentControls(parent, options);
+    const runInstant = requireElement(".runinstant", parent);
+    expect(runInstant.hasAttribute("disabled")).toBe(false);
+
+    options.instantRunInProgress = (): boolean => true;
+    presenter.update();
+
+    expect(runInstant.textContent).toBe("Crunching...");
+    expect(runInstant.hasAttribute("disabled")).toBe(true);
+
+    options.instantRunInProgress = (): boolean => false;
+    presenter.update();
+
+    expect(runInstant.textContent).toBe("Run instantly");
+    expect(runInstant.hasAttribute("disabled")).toBe(false);
   });
 
   it("shows Pause while running and Restart once the challenge is over", () => {
@@ -552,6 +574,7 @@ describe("presentControls", () => {
     requireElement(".startover", parent).click();
     requireElement(".resetcode", parent).click();
     requireElement(".undoreset", parent).click();
+    requireElement(".runinstant", parent).click();
     requireElement(".timescale_increase", parent).click();
     requireElement(".timescale_decrease", parent).click();
 
@@ -559,6 +582,7 @@ describe("presentControls", () => {
     expect(options.onStartOver).toHaveBeenCalledTimes(1);
     expect(options.onResetCode).toHaveBeenCalledTimes(1);
     expect(options.onUndoReset).toHaveBeenCalledTimes(1);
+    expect(options.onRunInstant).toHaveBeenCalledTimes(1);
     expect(options.onTimeScaleIncrease).toHaveBeenCalledTimes(1);
     expect(options.onTimeScaleDecrease).toHaveBeenCalledTimes(1);
   });
@@ -1128,6 +1152,8 @@ describe("the language the interface comes out in", () => {
       onUndoReset: vi.fn(),
       onTimeScaleIncrease: vi.fn(),
       onTimeScaleDecrease: vi.fn(),
+      instantRunInProgress: () => false,
+      onRunInstant: vi.fn(),
     });
     const startStop = requireElement(".startstop", parent);
 
@@ -1139,6 +1165,7 @@ describe("the language the interface comes out in", () => {
     expect(requireElement(".startover", parent).textContent).toBe("С начала");
     expect(requireElement(".resetcode", parent).textContent).toBe("Сбросить код");
     expect(requireElement(".undoreset", parent).textContent).toBe("Вернуть код");
+    expect(requireElement(".runinstant", parent).textContent).toBe("Прогнать мгновенно");
     expect(requireElement(".timescale_increase", parent).getAttribute("aria-label")).toBe(
       "Увеличить скорость симуляции",
     );
