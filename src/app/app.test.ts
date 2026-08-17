@@ -68,6 +68,7 @@ function setUp(code: string = INERT_CODE, storage: Storage = new MemoryStorage()
     controls: createElement("div", { className: "controls" }),
     tutorial: createElement("div", { className: "tutorial" }),
     tutorialLink: createElement("a", { className: "tutoriallink" }),
+    codeSlots: createElement("div", { className: "codeslots" }),
     world: createElement("div", { className: "innerworld" }),
     stats: createElement("div", { className: "statscontainer" }),
     feedback: createElement("div", { className: "feedbackcontainer" }),
@@ -97,6 +98,7 @@ function setUp(code: string = INERT_CODE, storage: Storage = new MemoryStorage()
     elements.controls,
     elements.tutorial,
     elements.tutorialLink,
+    elements.codeSlots,
     elements.world,
     elements.stats,
     elements.feedback,
@@ -181,11 +183,106 @@ describe("App.startChallenge", () => {
   });
 
   it("starts even when the program does not compile", () => {
-    const { app, elements } = setUp("{ this is not javascript");
+    const { app, elements, storage } = setUp();
+    storage.setItem("develevateChallengeCode_0_1", "{ this is not javascript");
     app.startChallenge(0);
 
     expect(app.world).toBeDefined();
     expect(requireElement(".errormessage", elements.codeStatus).textContent).not.toBe("");
+  });
+
+  it("opens the first code slot by default", () => {
+    const { app } = setUp();
+    app.startChallenge(0);
+    expect(app.currentCodeSlot).toBe(1);
+  });
+
+  it("opens the code slot it is asked for", () => {
+    const { app, storage, view } = setUp();
+    storage.setItem("develevateChallengeCode_0_2", "// slot two's program");
+    app.startChallenge(0, false, 2);
+
+    expect(app.currentCodeSlot).toBe(2);
+    expect(view.getValue()).toBe("// slot two's program");
+  });
+});
+
+describe("App code slots", () => {
+  it("draws three slot buttons for a numbered challenge, marking the open one", () => {
+    const { app, elements } = setUp();
+    app.startChallenge(0);
+
+    const buttons = queryAll(".codeslot", elements.codeSlots);
+    expect(buttons.map((button) => button.textContent)).toEqual(["1", "2", "3"]);
+    expect(buttons.map((button) => button.getAttribute("aria-pressed"))).toEqual([
+      "true",
+      "false",
+      "false",
+    ]);
+  });
+
+  it("hides the switcher on the learning track and in the sandbox", () => {
+    const { app, elements } = setUp();
+    app.startChallenge(0);
+    expect(queryAll(".codeslot", elements.codeSlots)).not.toHaveLength(0);
+
+    app.startTutorial(0);
+    expect(elements.codeSlots.children).toHaveLength(0);
+
+    app.handleRoute(...routeFor("#challenge=sandbox,floors=20"));
+    expect(elements.codeSlots.children).toHaveLength(0);
+  });
+
+  it("switches the editor to another slot from the panel, without touching the run", () => {
+    const { app, elements, view, storage } = setUp();
+    app.startChallenge(0);
+    storage.setItem("develevateChallengeCode_0_2", "// slot two's program");
+    const world = app.world;
+
+    queryAll(".codeslot", elements.codeSlots)[1]?.click();
+
+    expect(app.currentCodeSlot).toBe(2);
+    expect(view.getValue()).toBe("// slot two's program");
+    expect(app.world).toBe(world);
+    expect(
+      queryAll(".codeslot", elements.codeSlots).map((button) =>
+        button.getAttribute("aria-pressed"),
+      ),
+    ).toEqual(["false", "true", "false"]);
+  });
+
+  it("does nothing when the slot already open is asked for again", () => {
+    const { app, view } = setUp();
+    app.startChallenge(0);
+    view.type("// unsaved work");
+
+    app.selectCodeSlot(1);
+
+    expect(view.getValue()).toBe("// unsaved work");
+  });
+
+  it("keeps the slot a start-over reopens", () => {
+    const { app, elements, view, storage } = setUp();
+    app.startChallenge(0);
+    storage.setItem("develevateChallengeCode_0_2", "// slot two's program");
+    app.selectCodeSlot(2);
+
+    requireElement(".startover", elements.controls).click();
+
+    expect(app.currentCodeSlot).toBe(2);
+    expect(view.getValue()).toBe("// slot two's program");
+  });
+
+  it("loads the reference solution into the first slot for devtest, regardless of which one is open", () => {
+    const { app, view, storage } = setUp();
+    app.startChallenge(0);
+    storage.setItem("develevateChallengeCode_0_2", "// slot two's program");
+    app.selectCodeSlot(2);
+
+    app.handleRoute(...routeFor("#challenge=1,devtest=true"));
+
+    expect(app.currentCodeSlot).toBe(1);
+    expect(view.getValue()).toContain("selectElevatorForFloorPickup");
   });
 });
 
@@ -964,13 +1061,13 @@ describe("App learning track", () => {
     const { app, storage } = setUp();
     expect(app.playerCodeWouldBeReplaced()).toBe(false);
 
-    storage.setItem(CODE_STORAGE_KEY, defaultCode());
+    storage.setItem("develevateChallengeCode_0_1", defaultCode());
     expect(app.playerCodeWouldBeReplaced()).toBe(false);
 
-    storage.setItem(CODE_STORAGE_KEY, "   \n  ");
+    storage.setItem("develevateChallengeCode_0_1", "   \n  ");
     expect(app.playerCodeWouldBeReplaced()).toBe(false);
 
-    storage.setItem(CODE_STORAGE_KEY, INERT_CODE);
+    storage.setItem("develevateChallengeCode_0_1", INERT_CODE);
     expect(app.playerCodeWouldBeReplaced()).toBe(true);
   });
 
@@ -982,6 +1079,7 @@ describe("App learning track", () => {
     // here" at the one moment that is both wrong and expensive -- a full quota,
     // or the private windows that hand out a `Storage` and refuse every write.
     const { app, editor, view } = setUp(INERT_CODE, fullStorage());
+    app.startChallenge(0);
     view.type("// the program I wrote in a private window");
     editor.save();
 
@@ -1006,7 +1104,7 @@ describe("App learning track", () => {
 
     expect(app.takeTutorialCode()).toBe(true);
 
-    expect(storage.getItem(CODE_STORAGE_KEY)).toBe("// my answer to task 4");
+    expect(storage.getItem("develevateChallengeCode_0_1")).toBe("// my answer to task 4");
     expect(app.tutorial?.index).toBe(3);
     expect(view.getValue()).toBe("// my answer to task 4");
   });
@@ -1015,9 +1113,9 @@ describe("App learning track", () => {
     // The copy is only worth taking if it is the one waiting under the game's
     // own editor afterwards. It was not: the write went straight to storage,
     // around the copy the editor keeps of every key it has written this page,
-    // and that copy is what `openPlayerBuffer` reads first. A player who had
-    // saved anything at all before visiting the track got their old program
-    // back on leaving, and the next autosave wrote it over the taken one.
+    // and that copy is what challenge 1's slot 1 buffer reads first. A player
+    // who had saved anything at all before visiting the track got their old
+    // program back on leaving, and the next autosave wrote it over the taken one.
     const { app, editor, storage, view } = setUp();
     app.startChallenge(0);
     view.type("// the program I came in with");
@@ -1030,7 +1128,7 @@ describe("App learning track", () => {
     app.leaveTutorial();
 
     expect(view.getValue()).toBe("// my answer to task 4");
-    expect(storage.getItem(CODE_STORAGE_KEY)).toBe("// my answer to task 4");
+    expect(storage.getItem("develevateChallengeCode_0_1")).toBe("// my answer to task 4");
   });
 
   it("refuses a position that does not name a task", () => {
@@ -1149,7 +1247,9 @@ describe("App learning track", () => {
 
       requireElement(".tutorialtakecode", elements.tutorial).click();
 
-      expect(storage.getItem(CODE_STORAGE_KEY)).toBe("// the answer, copied out of the hint");
+      expect(storage.getItem("develevateChallengeCode_0_1")).toBe(
+        "// the answer, copied out of the hint",
+      );
       // Still on the task: the button means "I want to keep this", not "I am
       // done here".
       expect(app.tutorial?.index).toBe(3);
@@ -1211,11 +1311,11 @@ describe("App learning track", () => {
       requireElement(".tutorialtakecode", elements.tutorial).click();
       expect(confirm).not.toHaveBeenCalled();
 
-      storage.setItem(CODE_STORAGE_KEY, INERT_CODE);
+      storage.setItem("develevateChallengeCode_0_1", INERT_CODE);
       requireElement(".tutorialtakecode", elements.tutorial).click();
 
       expect(confirm).toHaveBeenCalledTimes(1);
-      expect(storage.getItem(CODE_STORAGE_KEY)).toBe(INERT_CODE);
+      expect(storage.getItem("develevateChallengeCode_0_1")).toBe(INERT_CODE);
     });
 
     it("leaves the track from the panel's own button", () => {
@@ -1952,8 +2052,9 @@ describe("App run controls", () => {
     // offer to undo the reset of their own program. `canUndoReset` is asked
     // afresh on every update rather than remembered for this reason.
     vi.spyOn(window, "confirm").mockReturnValue(true);
-    const { app, elements } = setUp();
+    const { app, elements, view } = setUp();
     app.startChallenge(0);
+    view.type("// something to reset away from");
     requireElement(".resetcode", elements.controls).click();
     expect(requireElement(".undoreset", elements.controls).hidden).toBe(false);
 

@@ -104,14 +104,14 @@ Key names carry two suffixes that mean something:
 
 ## Where the strings are
 
-The catalogue holds **314 keys** in two locales. `src/i18n/en.ts` is the reference — its text is
+The catalogue holds **316 keys** in two locales. `src/i18n/en.ts` is the reference — its text is
 the English wording, extracted verbatim — and `src/i18n/ru.ts` is the Russian translation. The
 types make English the shape everything else is measured against: a Russian catalogue missing a
 key, carrying a key English does not have, or giving a plural message the wrong number of forms
 is a compile error, not a runtime surprise.
 
 ```sh
-grep -cE '^  "[^"]+":' src/i18n/en.ts                                   # 314
+grep -cE '^  "[^"]+":' src/i18n/en.ts                                   # 316
 grep -oE '^  "[^"]+"' src/i18n/en.ts | tr -d '"' | cut -d. -f1 | sort | uniq -c | sort -rn
 ```
 
@@ -125,8 +125,8 @@ grep -oE '^  "[^"]+"' src/i18n/en.ts | tr -d '"' | cut -d. -f1 | sort | uniq -c 
 | `challenge.*`  | 15      | `src/game/challenges.ts`                                                                                                                 |
 | `fitness.*`    | 11      | `src/app/fitness.ts`, `src/game/fitness.ts`, `src/main.ts`, `src/cli/bench.ts`                                                           |
 | `error.*`      | 10      | `src/game/elevator-interface.ts`, `src/ui/presenters.ts`, `src/game/user-code.ts`, `src/game/movable.ts`                                 |
-| `editor.*`     | 6       | `src/main.ts`, `src/app/app.ts`, `src/ui/editor.ts`, `src/ui/default-code.ts`                                                            |
-| **Total**      | **314** |                                                                                                                                          |
+| `editor.*`     | 8       | `src/main.ts`, `src/app/app.ts`, `src/ui/editor.ts`, `src/ui/default-code.ts`, `src/ui/templates.ts`, `index.html`                       |
+| **Total**      | **316** |                                                                                                                                          |
 
 Which keys nothing reads:
 
@@ -436,7 +436,7 @@ identically in every locale. Both names repeat it because an accessible name has
 own — "1234567890, link" describes nothing.
 
 `game.seed.newDraw` appearing inside `game.seed.newDrawLink` is a constraint a translator cannot
-see: the two sit on adjacent lines of a 314-key file and nothing in the file marks them as a
+see: the two sit on adjacent lines of a 316-key file and nothing in the file marks them as a
 pair. `src/i18n/catalogue.test.ts`, under _accessible names_, is what holds it — it requires the
 spoken name to contain the visible label in every locale. Rewording «новый розыгрыш» to «новый
 сид» meant changing both, which is exactly the edit where one gets missed.
@@ -517,6 +517,21 @@ own JSDoc gives: `t` answers for the locale active when it is called, and a modu
 would answer for whichever locale happened to be active when the module was first imported. The
 same file's `DEV_TEST_CODE` is deliberately outside the catalogue — nobody reaches it without
 typing `#devtest` into the address bar, and what it is for is checking that the game still plays.
+
+### `src/ui/templates.ts` and `index.html` — 2 `editor.slot.*` keys
+
+The code slot switcher: three buttons under the editor, one per independent attempt a challenge
+can hold, drawn by `codeSlotTemplate` in `src/ui/templates.ts`. `editor.slot.tablist.label` is
+static, so it is written into `index.html` the same way a `page.*` key is, through
+`data-i18n-attr`; it is prefixed `editor.` rather than `page.` because it names a control that
+belongs to the editor rather than to the page shell around it. `editor.slot.tab.label` is
+dynamic — `codeSlotTemplate` calls it once per button, with `{number}`, the same pattern
+`game.elevator.label` uses for the car index.
+
+| Key                         | English            | Notes                                                                             |
+| --------------------------- | ------------------ | --------------------------------------------------------------------------------- |
+| `editor.slot.tablist.label` | Code slots         | the `aria-label` of `.codeslots`, written by `data-i18n-attr` like a `page.*` key |
+| `editor.slot.tab.label`     | Code slot {number} | takes `{number}`; the accessible name of one `.codeslot` button                   |
 
 ### `src/game/challenges.ts` — 15 keys
 

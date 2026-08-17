@@ -570,10 +570,18 @@ easy to miss because what they do is not new: riot's observable and the `unobser
 of it each define `on`, `off`, `one` and `trigger` and no other method, so those two names are this
 emitter's spellings of `one()` and `off("*")` rather than the original's.
 
-**Your saved code survives.** The editor still reads and writes the same `localStorage` key,
-`elevatorCrushCode_v5`, and the reset backup still uses `develevateBackupCode`. Open the modernized
-game in the same browser profile and your program is where you left it. Reads and writes are wrapped
-in `try`/`catch` now, so a browser that refuses storage degrades instead of crashing.
+**Your saved code survives, and each challenge now keeps its own.** Every numbered challenge has its
+own program — under `develevateChallengeCode_<challenge>_<slot>` in `localStorage` — instead of all
+nineteen sharing the one buffer the legacy key held, so changing your answer on challenge 8 no longer
+touches what you left on challenge 7. Each challenge also offers three interchangeable slots for a
+program you want to keep, switched with the buttons above the editor: nothing built into them means
+"attempt" or "goal", they are just three places to put code so you never have to lose one to try
+another. The legacy key, `elevatorCrushCode_v5`, is read once as the starting point for challenge 1's
+first slot — the one slot a player who saved code before slots existed will find it under — and stays
+in use for the sandbox, which has no challenge index of its own to key a slot by. The reset backup
+follows the same split, one per challenge and slot rather than the single `develevateBackupCode` it
+used to share. Reads and writes are wrapped in `try`/`catch`, so a browser that refuses storage
+degrades instead of crashing.
 
 ## Fixed bugs
 

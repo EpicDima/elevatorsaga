@@ -1292,6 +1292,57 @@ kbd {
 }
 
 /*
+ * The three code slots. `:empty` hides the row on a learning task and in the
+ * sandbox, the same rule `.tutorial:empty` states at length above: markup that
+ * is present so a presenter has somewhere to draw must cost nothing on the
+ * routes nothing is drawn on.
+ */
+.codeslots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-block: 8px;
+}
+
+.codeslots:empty {
+  display: none;
+}
+
+/*
+ * The chrome is the run buttons' and the challenge links', so every
+ * button-shaped control on the page reads as one set.
+ */
+.codeslot {
+  block-size: 30px;
+  min-inline-size: 30px;
+  padding-inline: 10px;
+  border: 1px solid var(--color-control-border);
+  border-radius: 5px;
+  background-color: var(--color-control);
+  color: var(--color-text-strong);
+  font-size: 16px;
+  font-weight: bold;
+  line-height: 16px;
+  text-shadow: 0 0 3px #aaa;
+}
+
+/*
+ * The slot open in the editor right now. The same fill, text colour and
+ * underline as `.challengelink[aria-current]`, and for the same reasons: the
+ * pairing holds 4.5:1 already tested there, and the underline keeps the mark
+ * from being carried by colour alone (WCAG 1.4.1) and survives forced-colours
+ * mode, where the system repaints the fill but leaves the decoration.
+ */
+.codeslot[aria-pressed="true"] {
+  border-color: var(--color-emphasis-on-page);
+  background-color: var(--color-emphasis-on-page);
+  color: var(--color-emphasis);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  text-shadow: none;
+}
+
+/*
  * The editor carries its own background and text colour rather than inheriting
  * the page's: CodeMirror 6 ships no theme of its own beyond the syntax
  * highlighting, so without these the program sits on the page colour in the

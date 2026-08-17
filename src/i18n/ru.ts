@@ -263,6 +263,8 @@ export const RU_MESSAGES: MessageCatalogue<"ru"> = {
     "Не сохранено — браузер отказывается хранить код. Программа останется здесь, пока открыта вкладка.",
   "editor.confirmReset": "Точно сбросить код до стандартной реализации?",
   "editor.confirmUndoReset": "Вернуть код, который был до сброса?",
+  "editor.slot.tablist.label": "Слоты кода",
+  "editor.slot.tab.label": "Слот кода {number}",
   "editor.defaultCode.code": `{
     init: function(elevators, floors) {
         const elevator = elevators[0]; // Возьмём первый лифт

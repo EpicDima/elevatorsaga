@@ -10,13 +10,25 @@
 import type { Locator, Page } from "@playwright/test";
 
 /**
- * Where the player's program is persisted.
+ * Where the player's program used to be persisted, and still is, once: as the
+ * starter {@link seedCode} plants for a page visited for the first time, which
+ * `CodeEditor.#resolveChallengeStarterCode` falls back to for challenge 1's
+ * first slot when nothing has been saved under its own key yet.
  *
  * Spelled out rather than imported from `src/ui/editor.ts` deliberately: the
  * key is a compatibility promise to everyone who has a program saved in the
  * legacy game, so the test should fail if it is ever renamed, not follow it.
  */
 export const CODE_STORAGE_KEY = "elevatorCrushCode_v5";
+
+/**
+ * Where challenge 1's first code slot is persisted — the buffer open on the
+ * default route, and the one every "take this program" action writes into.
+ *
+ * Spelled out for the same reason {@link CODE_STORAGE_KEY} is: a rename in
+ * `src/ui/editor.ts` should fail a test here rather than pass unnoticed.
+ */
+export const CHALLENGE_ONE_SLOT_ONE_STORAGE_KEY = "develevateChallengeCode_0_1";
 
 /**
  * The CodeMirror editing surface.
@@ -113,13 +125,14 @@ export async function statisticValue(page: Page, label: string): Promise<number>
 }
 
 /**
- * Reads the program the page has persisted.
+ * Reads the program the page has persisted for challenge 1's first slot — the
+ * one open on the default route, and the one every spec below lands on.
  *
  * @param page - The page under test.
  * @returns The stored program, or `null` when nothing has been stored.
  */
 export function storedCode(page: Page): Promise<string | null> {
-  return page.evaluate((key) => localStorage.getItem(key), CODE_STORAGE_KEY);
+  return page.evaluate((key) => localStorage.getItem(key), CHALLENGE_ONE_SLOT_ONE_STORAGE_KEY);
 }
 
 /**

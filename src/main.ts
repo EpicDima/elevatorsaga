@@ -145,6 +145,7 @@ async function main(): Promise<void> {
       controls: requireElement(".controls"),
       tutorial: requireElement(".tutorial"),
       tutorialLink: requireElement(".tutoriallink"),
+      codeSlots: requireElement(".codeslots"),
       world: requireElement(".innerworld"),
       stats: requireElement(".statscontainer"),
       feedback: requireElement(".feedbackcontainer"),

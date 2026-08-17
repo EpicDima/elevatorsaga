@@ -27,6 +27,8 @@ import { Observable } from "../game/observable.ts";
 import { getCodeObjFromCode } from "../game/user-code.ts";
 import type { UserCodeObject } from "../game/user-code.ts";
 import { t } from "../i18n/index.ts";
+import { DEFAULT_CODE_SLOT } from "./code-slots.ts";
+import type { CodeSlot } from "./code-slots.ts";
 import { playerApiCompletionSource } from "./completions.ts";
 import { DEV_TEST_CODE, defaultCode } from "./default-code.ts";
 import { locateCodeError } from "./error-location.ts";
@@ -76,6 +78,41 @@ const TUTORIAL_CODE_KEY_PREFIX = "develevateTutorialCode_";
  * task 3's program over task 4's.
  */
 const TUTORIAL_BACKUP_KEY_PREFIX = "develevateTutorialBackupCode_";
+
+/**
+ * Prefix of the storage keys holding a challenge's three code slots.
+ *
+ * One key per `(challengeIndex, slot)` pair, for the same reason the learning
+ * track has one key per task: a player who left challenge 7 with a program in
+ * it must find that program again on challenge 7, and only there, however
+ * many challenges they visit in between.
+ */
+const CHALLENGE_CODE_KEY_PREFIX = "develevateChallengeCode_";
+
+/** Prefix of the per-`(challengeIndex, slot)` "Undo reset" backups. */
+const CHALLENGE_BACKUP_KEY_PREFIX = "develevateChallengeBackupCode_";
+
+/**
+ * The storage key of one challenge's one code slot.
+ *
+ * @param challengeIndex - Zero-based index of the challenge.
+ * @param slot - Which of the challenge's three slots.
+ * @returns The key that slot's program is stored under.
+ */
+function challengeCodeKey(challengeIndex: number, slot: CodeSlot): string {
+  return `${CHALLENGE_CODE_KEY_PREFIX}${String(challengeIndex)}_${String(slot)}`;
+}
+
+/**
+ * The storage key of one challenge's one code slot's "Undo reset" backup.
+ *
+ * @param challengeIndex - Zero-based index of the challenge.
+ * @param slot - Which of the challenge's three slots.
+ * @returns The key that slot's backup is stored under.
+ */
+function challengeBackupKey(challengeIndex: number, slot: CodeSlot): string {
+  return `${CHALLENGE_BACKUP_KEY_PREFIX}${String(challengeIndex)}_${String(slot)}`;
+}
 
 /** How long typing must pause before the program is saved, in milliseconds. */
 export const AUTOSAVE_DELAY_MS = 1000;
@@ -344,6 +381,29 @@ function tutorialBuffer(taskId: string, starterCode: string): EditorBuffer {
 }
 
 /**
+ * Describes the buffer of one challenge's one code slot.
+ *
+ * @param challengeIndex - Zero-based index of the challenge.
+ * @param slot - Which of the challenge's three slots.
+ * @param starterCode - The program to show when the slot has nothing of its
+ * own — the resolved carry-forward or legacy program, never the bare default:
+ * see {@link CodeEditor.#resolveChallengeStarterCode}.
+ * @returns The buffer for that challenge and slot.
+ */
+function challengeBuffer(
+  challengeIndex: number,
+  slot: CodeSlot,
+  starterCode: string,
+): EditorBuffer {
+  return {
+    codeKey: challengeCodeKey(challengeIndex, slot),
+    backupKey: challengeBackupKey(challengeIndex, slot),
+    starterCode,
+    writesStarterOnOpen: true,
+  };
+}
+
+/**
  * The player's program: its text, its storage and its compilation.
  */
 export class CodeEditor extends Observable<CodeEditorEvents> {
@@ -600,11 +660,15 @@ export class CodeEditor extends Observable<CodeEditorEvents> {
   }
 
   /**
-   * Shows the player's own program again, keeping whatever was on screen.
+   * Shows the sandbox's own program again, keeping whatever was on screen.
    *
    * Takes no program to fall back on, and that is the point: the only text this
-   * can ever put on screen is the player's own, so no caller can hand the
-   * player's key somebody else's starter code by mistake.
+   * can ever put on screen is the legacy single-buffer program, so no caller
+   * can hand its key somebody else's starter code by mistake. The sandbox is
+   * the last caller left: every numbered challenge has its own buffer now (see
+   * {@link CodeEditor.openChallengeBuffer}), and this key lives on beneath it
+   * only as the one-time migration source {@link CodeEditor.#resolveChallengeStarterCode}
+   * reads for challenge 1's first slot.
    */
   openPlayerBuffer(): void {
     this.#openBuffer(PLAYER_BUFFER);
@@ -619,44 +683,44 @@ export class CodeEditor extends Observable<CodeEditorEvents> {
    * it keeps of every key it has written this page *before* it reads the store
    * (see {@link CodeEditor.#read}), so a write that goes round it leaves the two
    * disagreeing, with the store holding the taken program and the editor still
-   * believing the player's old one. {@link CodeEditor.openPlayerBuffer} would
+   * believing the player's old one. {@link CodeEditor.openChallengeBuffer} would
    * then put that old program back on screen the moment the player left the
    * track, and the next save would write it over the copy they had just taken.
    *
-   * Never while the player's own buffer is the one on screen: the text there
-   * would be the older program and would be flushed back over this on the way
-   * out. Nothing enforces that, because there is no such call to make — the
-   * button exists only while a task is open.
+   * Challenge 1's first slot specifically, never wherever the player happens to
+   * be: leaving the track always lands on that slot (see
+   * {@link "../app/app.ts"!App.leaveTutorial}), so it is the one buffer
+   * guaranteed to be the one on screen the moment they get there.
    *
    * @param code - The program to keep as the player's own.
    * @returns Whether it reached the store, and so the player's next visit.
    */
   writePlayerCode(code: string): boolean {
-    return this.#write(PLAYER_BUFFER.codeKey, code);
+    return this.#write(challengeCodeKey(0, DEFAULT_CODE_SLOT), code);
   }
 
   /**
-   * The program {@link CodeEditor.openPlayerBuffer} would put on screen.
+   * The program {@link CodeEditor.writePlayerCode} would put on screen.
    *
    * The counterpart of {@link CodeEditor.writePlayerCode}, and there for the
-   * same reason: a caller that reads the player's key out of the store answers
-   * a different question from the one it means to ask. What the player would
+   * same reason: a caller that reads the key out of the store answers a
+   * different question from the one it means to ask. What the player would
    * see, and what taking a task's program would replace, is what this class
    * holds — the store agrees with it only while the store is accepting writes.
    * In a private window, or against a full quota, the program the player typed
    * is in this session and nowhere else, and the store's answer is that they
    * have never written one. That is the moment they have most to lose.
    *
-   * The player's own program specifically, never a task's: which buffer is on
-   * screen makes no difference to what this returns, so the learning track can
-   * ask about the program waiting behind it.
+   * Challenge 1's first slot specifically, never whichever buffer is on screen:
+   * which buffer is on screen makes no difference to what this returns, so the
+   * learning track can ask about the program waiting behind it.
    *
    * @returns The program, or `null` when neither this session nor the store has
    * one — including when the store refuses to say, which is not the same fact
    * but leads to the same answer: nothing recoverable is known to be there.
    */
   readPlayerCode(): string | null {
-    const stored = this.#read(PLAYER_BUFFER.codeKey);
+    const stored = this.#read(challengeCodeKey(0, DEFAULT_CODE_SLOT));
     return stored.state === "text" ? stored.text : null;
   }
 
@@ -680,6 +744,67 @@ export class CodeEditor extends Observable<CodeEditorEvents> {
    */
   openTutorialBuffer(taskId: string, starterCode: string): void {
     this.#openBuffer(tutorialBuffer(taskId, starterCode));
+  }
+
+  /**
+   * Shows one challenge's one code slot, keeping whatever was on screen.
+   *
+   * The slot's own attempt if there is one, otherwise the starter program
+   * {@link CodeEditor.#resolveChallengeStarterCode} resolves for it. Callers
+   * name a challenge and a slot, never a storage key, for the same reason
+   * {@link CodeEditor.openTutorialBuffer} does.
+   *
+   * @param challengeIndex - Zero-based index of the challenge to open.
+   * @param slot - Which of the challenge's three slots to show.
+   */
+  openChallengeBuffer(challengeIndex: number, slot: CodeSlot = DEFAULT_CODE_SLOT): void {
+    // Ahead of resolving the starter code, and not left to the flush inside
+    // `#openBuffer` below: the legacy key `#resolveChallengeStarterCode` falls
+    // back to is exactly the key the buffer on screen is still writing to, the
+    // very first time a player ever opens a numbered challenge. Resolving
+    // first would carry forward whatever that key held before this keystroke
+    // rather than what is on screen right now.
+    this.#flush();
+    const starterCode = this.#resolveChallengeStarterCode(challengeIndex, slot);
+    this.#openBuffer(challengeBuffer(challengeIndex, slot, starterCode));
+  }
+
+  /**
+   * The starter program to open a challenge's slot with, when the slot itself
+   * is empty.
+   *
+   * Walks every lower-numbered challenge's same slot, newest first, and takes
+   * the first one holding a program — the carry-forward a player who has never
+   * touched slot 2 of challenge 9 still expects, because slot 2 of challenge 8
+   * had one. Every lower index, not just the one immediately before this
+   * challenge: a player can land on any challenge directly, by a bookmark or a
+   * typed URL, without ever having opened the ones in between.
+   *
+   * Only the default slot falls back further, to the legacy single-buffer key.
+   * That fallback is what makes slot 1 of whichever challenge a returning
+   * player first opens show the program they saved before slots existed; slots
+   * 2 and 3 have no such history to inherit, so they fall straight to the bare
+   * default.
+   *
+   * @param challengeIndex - Zero-based index of the challenge being opened.
+   * @param slot - Which of the challenge's three slots.
+   * @returns The carried-forward program, the legacy program, or the bare
+   * default — never empty.
+   */
+  #resolveChallengeStarterCode(challengeIndex: number, slot: CodeSlot): string {
+    for (let i = challengeIndex - 1; i >= 0; i -= 1) {
+      const stored = this.#read(challengeCodeKey(i, slot));
+      if (stored.state === "text") {
+        return stored.text;
+      }
+    }
+    if (slot === DEFAULT_CODE_SLOT) {
+      const stored = this.#read(CODE_STORAGE_KEY);
+      if (stored.state === "text") {
+        return stored.text;
+      }
+    }
+    return defaultCode();
   }
 
   /**

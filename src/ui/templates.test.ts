@@ -6,6 +6,7 @@ import { DEFAULT_LOCALE, setLocale } from "../i18n/index.ts";
 import { requireElement } from "./dom.ts";
 import {
   challengeTemplate,
+  codeSlotsTemplate,
   codeStatusTemplate,
   controlsTemplate,
   elevatorButtonTemplate,
@@ -634,6 +635,32 @@ describe("codeStatusTemplate", () => {
     expect(codeStatusTemplate()).toContain(
       '</svg> There is a problem with your code: <span class="errormessage">',
     );
+  });
+});
+
+describe("codeSlotsTemplate", () => {
+  it("draws three numbered buttons, marking the open one", () => {
+    const fragment = renderFragment(codeSlotsTemplate({ currentSlot: 2 }));
+    const buttons = [...fragment.querySelectorAll(".codeslot")];
+
+    expect(buttons.map((button) => button.textContent)).toEqual(["1", "2", "3"]);
+    expect(buttons.map((button) => button.getAttribute("aria-pressed"))).toEqual([
+      "false",
+      "true",
+      "false",
+    ]);
+    expect(buttons.every((button) => button.getAttribute("type") === "button")).toBe(true);
+  });
+
+  it("labels each button with the sentence its bare number is short for", () => {
+    const fragment = renderFragment(codeSlotsTemplate({ currentSlot: 1 }));
+    const buttons = [...fragment.querySelectorAll(".codeslot")];
+
+    expect(buttons.map((button) => button.getAttribute("aria-label"))).toEqual([
+      "Code slot 1",
+      "Code slot 2",
+      "Code slot 3",
+    ]);
   });
 });
 

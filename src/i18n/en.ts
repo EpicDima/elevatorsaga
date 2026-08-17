@@ -232,6 +232,8 @@ export const EN_MESSAGES = {
     "Not saved — this browser will not store it. Your program is here until you close the tab.",
   "editor.confirmReset": "Do you really want to reset to the default implementation?",
   "editor.confirmUndoReset": "Do you want to bring back the code as before the last reset?",
+  "editor.slot.tablist.label": "Code slots",
+  "editor.slot.tab.label": "Code slot {number}",
   "editor.defaultCode.code": `{
     init: function(elevators, floors) {
         const elevator = elevators[0]; // Let's use the first elevator

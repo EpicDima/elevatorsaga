@@ -6,6 +6,7 @@ import { User } from "../game/user.ts";
 import { createWorld } from "../game/world.ts";
 import type { World } from "../game/world.ts";
 import { DEFAULT_LOCALE, setLocale } from "../i18n/index.ts";
+import type { CodeSlot } from "./code-slots.ts";
 import { queryAll, requireElement } from "./dom.ts";
 import {
   clearAll,
@@ -15,6 +16,7 @@ import {
   formatTimeScale,
   FULLSCREEN_CLASS,
   presentChallenge,
+  presentCodeSlots,
   presentCodeStatus,
   presentControls,
   presentFeedback,
@@ -1062,6 +1064,75 @@ describe("clearCodeStatus", () => {
     presentCodeStatus(parent, new Error("boom"));
     clearCodeStatus(parent);
     expect(parent.innerHTML).toBe("");
+  });
+});
+
+describe("presentCodeSlots", () => {
+  it("draws three buttons, marking the open one", () => {
+    const parent = createElement("div", { className: "codeslots" });
+    presentCodeSlots(parent, { currentSlot: () => 2, onSelect: vi.fn() });
+
+    const buttons = queryAll(".codeslot", parent);
+    expect(buttons.map((button) => button.textContent)).toEqual(["1", "2", "3"]);
+    expect(buttons.map((button) => button.getAttribute("aria-pressed"))).toEqual([
+      "false",
+      "true",
+      "false",
+    ]);
+  });
+
+  it("moves the mark to the new slot on the next update", () => {
+    const parent = createElement("div", { className: "codeslots" });
+    let currentSlot: CodeSlot = 1;
+    const presenter = presentCodeSlots(parent, {
+      currentSlot: () => currentSlot,
+      onSelect: vi.fn(),
+    });
+
+    currentSlot = 3;
+    presenter.update();
+
+    expect(
+      queryAll(".codeslot", parent).map((button) => button.getAttribute("aria-pressed")),
+    ).toEqual(["false", "false", "true"]);
+  });
+
+  it("reports the slot pressed, by position rather than by its label alone", () => {
+    const parent = createElement("div", { className: "codeslots" });
+    const onSelect = vi.fn();
+    presentCodeSlots(parent, { currentSlot: () => 1, onSelect });
+
+    queryAll(".codeslot", parent)[1]?.click();
+
+    expect(onSelect).toHaveBeenCalledTimes(1);
+    expect(onSelect).toHaveBeenCalledWith(2);
+  });
+
+  it("goes on hearing clicks after being rebuilt by its own update", () => {
+    // Every button is destroyed and rebuilt on `update`, unlike the run
+    // controls' -- there is no single element a listener could be bound to
+    // that survives every call, so the listener is bound to the parent
+    // instead, once, and never has to be rebound.
+    const parent = createElement("div", { className: "codeslots" });
+    const onSelect = vi.fn();
+    const presenter = presentCodeSlots(parent, { currentSlot: () => 1, onSelect });
+
+    presenter.update();
+    presenter.update();
+    queryAll(".codeslot", parent)[2]?.click();
+
+    expect(onSelect).toHaveBeenCalledTimes(1);
+    expect(onSelect).toHaveBeenCalledWith(3);
+  });
+
+  it("ignores a click that did not land on a slot button", () => {
+    const parent = createElement("div", { className: "codeslots" });
+    const onSelect = vi.fn();
+    presentCodeSlots(parent, { currentSlot: () => 1, onSelect });
+
+    parent.click();
+
+    expect(onSelect).not.toHaveBeenCalled();
   });
 });
 

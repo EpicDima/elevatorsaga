@@ -14,8 +14,9 @@ import type { TutorialTask } from "../game/tutorial.ts";
 import { createWorld } from "../game/world.ts";
 import type { World } from "../game/world.ts";
 import type { AnimationFrameRequester, WorldController } from "../game/world-controller.ts";
-import { t } from "../i18n/index.ts";
-import { defaultCode } from "../ui/default-code.ts";
+import { LOCALES, t, translateIn } from "../i18n/index.ts";
+import { DEFAULT_CODE_SLOT } from "../ui/code-slots.ts";
+import type { CodeSlot } from "../ui/code-slots.ts";
 import { clearChildren } from "../ui/dom.ts";
 import type { CodeEditor } from "../ui/editor.ts";
 import {
@@ -23,6 +24,7 @@ import {
   clearCodeStatus,
   containsFocus,
   presentChallenge,
+  presentCodeSlots,
   presentCodeStatus,
   presentControls,
   presentFeedback,
@@ -31,7 +33,7 @@ import {
   relabelWorld,
   setDemoFullscreen,
 } from "../ui/presenters.ts";
-import type { ControlsPresenter } from "../ui/presenters.ts";
+import type { CodeSlotsPresenter, ControlsPresenter } from "../ui/presenters.ts";
 import type { ChallengeLinkData, SeedLinkData } from "../ui/templates.ts";
 import { presentTutorial } from "../ui/tutorial-panel.ts";
 import { createParamsUrl } from "./router.ts";
@@ -146,6 +148,14 @@ export interface AppElements {
    * exactly the state this element exists to end.
    */
   readonly tutorialLink: HTMLElement;
+  /**
+   * Where the code slot switcher goes.
+   *
+   * Shown only for a numbered challenge, never for the sandbox or a learning
+   * task: a slot is a convenience for a program a player wants to keep, and
+   * neither of those has a challenge index of its own to key one by.
+   */
+  readonly codeSlots: HTMLElement;
   /** The building. */
   readonly world: HTMLElement;
   /** The statistics panel. */
@@ -255,6 +265,29 @@ export class App {
    * one is not tied to a run. See {@link AppElements.controls}.
    */
   readonly #controls: ControlsPresenter;
+  /**
+   * The code slot switcher, or `undefined` before the first challenge has
+   * drawn it.
+   *
+   * Built lazily, on the first {@link #drawCodeSlots} that finds a numbered
+   * challenge on screen, rather than in the constructor alongside
+   * {@link #controls}: unlike the run controls, this region does not exist on
+   * every route, and building it before the first challenge has started would
+   * have nothing to report on.
+   */
+  #codeSlotsPresenter: CodeSlotsPresenter | undefined = undefined;
+  /**
+   * The code slot open in the editor, for whichever numbered challenge is
+   * current.
+   *
+   * In-memory only, like {@link currentChallengeIndex}: nothing about which
+   * slot a player last used is worth remembering across a reload, and the
+   * editor's own storage already remembers each slot's text. Set by
+   * {@link startChallenge} and left alone by everything else that is not
+   * {@link selectCodeSlot}, so that "Start over" and Ctrl-Enter reopen the slot
+   * the player was looking at rather than silently returning to the first one.
+   */
+  #currentSlot: CodeSlot = DEFAULT_CODE_SLOT;
   /** The parameters of the URL the current challenge was started from. */
   #query: RouteQuery = new Map<string, string>();
   /** The building the sandbox is running, or `undefined` for a challenge. */
@@ -612,7 +645,7 @@ export class App {
     if (tutorial !== undefined) {
       this.startTutorial(tutorial.index, autoStart);
     } else if (sandbox === undefined) {
-      this.startChallenge(this.currentChallengeIndex, autoStart);
+      this.startChallenge(this.currentChallengeIndex, autoStart, this.#currentSlot);
     } else {
       this.startSandbox(sandbox, autoStart);
     }
@@ -708,9 +741,20 @@ export class App {
       // the dev-test program into that task's key, where the switch below
       // flushed it, and then show the player their own program instead. The
       // attempt was gone and nothing said so. The router refuses this flag on a
-      // task address, so the buffer it is asking for is always the player's own,
-      // and opening a buffer that is already on screen does nothing.
-      this.#editor.openPlayerBuffer();
+      // task address, so the buffer it is asking for is always a challenge's or
+      // the sandbox's, and opening a buffer that is already on screen does
+      // nothing.
+      //
+      // The default slot always, regardless of which one the player last had
+      // open: devtest is a QA route, not the place a player's chosen slot
+      // matters, and a route that could load the reference solution into
+      // whichever slot happened to be current would be one more thing a QA
+      // session could overwrite by accident.
+      if (params.sandbox === null) {
+        this.#editor.openChallengeBuffer(params.challengeIndex, DEFAULT_CODE_SLOT);
+      } else {
+        this.#editor.openPlayerBuffer();
+      }
       this.#editor.setDevTestCode();
     }
     setDemoFullscreen(params.fullscreen);
@@ -729,16 +773,57 @@ export class App {
    *
    * @param challengeIndex - Zero-based index of the challenge to start.
    * @param autoStart - Whether to run without waiting for the Start button.
+   * @param slot - Which of the challenge's three code slots to open; defaults
+   * to {@link DEFAULT_CODE_SLOT}.
    */
-  startChallenge(challengeIndex: number, autoStart = false): void {
+  startChallenge(
+    challengeIndex: number,
+    autoStart = false,
+    slot: CodeSlot = DEFAULT_CODE_SLOT,
+  ): void {
     const challenge = this.challenges[challengeIndex];
     if (challenge === undefined) {
       throw new RangeError(`No challenge with index ${String(challengeIndex)}`);
     }
     this.#sandbox = undefined;
-    this.#leaveTutorialBuffer();
+    this.#tutorial = undefined;
+    this.#currentSlot = slot;
+    this.#editor.openChallengeBuffer(challengeIndex, slot);
     this.currentChallengeIndex = challengeIndex;
     this.#startRun(challenge, challengeIndex, autoStart);
+  }
+
+  /**
+   * Switches the editor to another of the current challenge's three code
+   * slots, without disturbing the run in progress.
+   *
+   * Deliberately not a call to {@link startChallenge}: a slot is a place to
+   * keep a program, not a different challenge, and a player who switches slots
+   * mid-run is not asking for the world to be torn down and rebuilt under
+   * them. Only the editor's buffer and the two regions that report the slot in
+   * use move; {@link #run}, the world and the controller are left exactly as
+   * they were.
+   *
+   * A no-op when the slot asked for is already open, for the same reason
+   * {@link "../ui/editor.ts"!CodeEditor.openChallengeBuffer} is idempotent: the
+   * switcher's own button is one of the things that can ask for it, and a
+   * second click must not replace the document under a player who is typing.
+   *
+   * @param slot - The slot to open.
+   */
+  selectCodeSlot(slot: CodeSlot): void {
+    if (slot === this.#currentSlot) {
+      return;
+    }
+    this.#currentSlot = slot;
+    this.#editor.openChallengeBuffer(this.currentChallengeIndex, slot);
+    this.#controls.update();
+    this.#drawCodeSlots();
+  }
+
+  /** The code slot currently open in the editor. */
+  get currentCodeSlot(): CodeSlot {
+    return this.#currentSlot;
   }
 
   /**
@@ -802,20 +887,18 @@ export class App {
   }
 
   /**
-   * Puts the player's own program back in the editor on the way out of the
-   * track.
+   * Puts the legacy single-buffer program back in the editor on the way out of
+   * the track, into the sandbox.
    *
-   * Called by both of the other two starts rather than by the router, because
-   * the track is left in more ways than by following a link: the navigation row,
-   * the panel's own way out, the Restart button after the player has typed
-   * another address. Every one of them goes through `startChallenge` or
-   * `startSandbox`, and none of them may leave a challenge being played with a
-   * task's program in the editor, which would then be saved under the task's key
-   * as the player edited it.
+   * `startChallenge` leaves the track the same way, but no longer through this
+   * method: it opens its own challenge-and-slot buffer directly, which already
+   * clears `#tutorial` and already replaces whatever was on screen. Only the
+   * sandbox has no buffer of its own to open instead — it always shows the
+   * legacy key — so this is what is left once that is its only caller.
    *
    * Idempotent, and so safe to call when no task was running: the editor
    * returns early when the buffer asked for is the one already on screen, which
-   * is what keeps a challenge-to-challenge jump from disturbing the caret or
+   * is what keeps a challenge-to-sandbox jump from disturbing the caret or
    * emptying the undo history.
    */
   #leaveTutorialBuffer(): void {
@@ -862,10 +945,20 @@ export class App {
    * dismiss the question — and the one time it matters is the time they do it
    * without reading.
    *
-   * Compared against {@link defaultCode} rather than remembered, since the
+   * Compared against `editor.defaultCode.code` rather than remembered, since the
    * player may have arrived on the track without ever opening the editor, in
    * which case what is in the store is whatever the last version of this game
    * wrote there.
+   *
+   * Checked in every locale {@link LOCALES} names, not only the one on screen:
+   * the slot this reads is written the moment challenge 1 is first opened (see
+   * {@link "../ui/editor.ts"!EditorBuffer.writesStarterOnOpen}), in whichever
+   * language was active then, and a reader who switches language afterwards
+   * must not be asked to confirm overwriting a program that is still exactly
+   * the one the game put there — only in a language it no longer shows.
+   * {@link translateIn} renders a locale that has not loaded as English rather
+   * than throwing, so a language fetched later than this check costs nothing
+   * beyond comparing against English twice.
    *
    * Asked of the editor rather than of the store this class also holds, because
    * the program at risk is the editor's: it keeps its own copy of every key it
@@ -879,7 +972,13 @@ export class App {
    */
   playerCodeWouldBeReplaced(): boolean {
     const stored = this.#editor.readPlayerCode();
-    return stored !== null && stored.trim() !== "" && stored.trim() !== defaultCode().trim();
+    if (stored === null || stored.trim() === "") {
+      return false;
+    }
+    const trimmed = stored.trim();
+    return !LOCALES.some(
+      (locale) => trimmed === translateIn(locale, "editor.defaultCode.code").trim(),
+    );
   }
 
   /**
@@ -889,8 +988,8 @@ export class App {
    * keeps the player on the task. The button means "I want to keep this", not
    * "I am done here": somebody who takes the answer to task 6 usually wants to
    * go on reading task 6. The copy is waiting for them under the game's own
-   * editor whenever they leave, because that is the key
-   * {@link CodeEditor.openPlayerBuffer} reads.
+   * editor whenever they leave, because challenge 1's first slot is the buffer
+   * {@link leaveTutorial} always opens.
    *
    * Through {@link CodeEditor.writePlayerCode} rather than into `#storage` here,
    * even though this class holds the same store: the editor reads its own copy
@@ -1186,6 +1285,7 @@ export class App {
       this.#retitleAsSandbox(challenge.condition.description);
     }
     this.#drawTutorialPanel();
+    this.#drawCodeSlots();
   }
 
   /**
@@ -1248,6 +1348,36 @@ export class App {
         this.leaveTutorial();
       },
     });
+  }
+
+  /**
+   * Shows which of a numbered challenge's three code slots is open, and lets
+   * the player switch between them.
+   *
+   * Hidden on a learning task and in the sandbox, the same two cases
+   * {@link #drawTutorialPanel} clears its own region for: a slot is a
+   * convenience for a program a player wants to keep across challenges, and
+   * neither a task nor the sandbox has a challenge index of its own to key one
+   * by.
+   *
+   * The presenter is built once, the first time this runs, and kept from then
+   * on: unlike {@link #controls}, which the constructor draws before a
+   * challenge exists to switch slots for, this region has nothing to draw
+   * until the first run starts, so construction waits for that first call
+   * instead of happening up front.
+   */
+  #drawCodeSlots(): void {
+    if (this.#tutorial !== undefined || this.isPlayingSandbox) {
+      clearChildren(this.#elements.codeSlots);
+      return;
+    }
+    this.#codeSlotsPresenter ??= presentCodeSlots(this.#elements.codeSlots, {
+      currentSlot: () => this.#currentSlot,
+      onSelect: (slot) => {
+        this.selectCodeSlot(slot);
+      },
+    });
+    this.#codeSlotsPresenter.update();
   }
 
   /**

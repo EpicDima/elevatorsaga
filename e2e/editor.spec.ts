@@ -58,9 +58,8 @@ test("keeps the player's program across a reload", async ({ page }) => {
   await page.keyboard.press("ControlOrMeta+s");
   await expect(page.getByText(/^Code saved /)).toBeVisible();
 
-  // The key is `elevatorCrushCode_v5`, unchanged from the legacy game so that
-  // anyone with a program saved in the original still finds it here. Asserted
-  // exactly, not merely "something was stored".
+  // The key is challenge 1's first slot, the buffer the default route opens.
+  // Asserted exactly, not merely "something was stored".
   expect(await storedCode(page)).toBe(PROGRAM);
 
   await page.reload();
