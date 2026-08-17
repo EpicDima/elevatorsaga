@@ -754,15 +754,21 @@ dl dd {
  * stays exactly where it was at 640px and wider.
  *
  * Narrower than that it does move, and on both axes, which is worth writing down
- * because the obvious guess is that it only drops a line. At 620px and below the
- * panel no longer fits beside the seed, so the whole disclosure wraps and takes
- * its summary with it: 21px down and 168.4px back to the start of the line,
- * measured on challenge 18 and the same at every width from 620px to 320px. What
- * makes that reflow rather than a control running away is that nothing follows
- * it into the space -- the point it left is bare `.challengeseed`, so the click
- * that chases it is a dead one rather than a different button. Pinning the
- * summary would cost a line of bar at every width, which is what the disclosure
- * was made a `<details>` to avoid.
+ * because the obvious guess is that it only drops a line. Below about 590px in
+ * English and a little less in Russian, the open panel no longer fits beside the
+ * seed, so the whole disclosure wraps and takes its summary with it. That width
+ * moves with the seed -- a drawn seed is anywhere from one digit to ten, and
+ * every digit narrows the room the panel has beside it -- so it is not a number
+ * worth fixing in place, and neither is how far sideways the summary had drifted
+ * before the wrap: it lands back at the very start of the line, all of that
+ * distance and not part of it. What is fixed is the drop -- 21px -- measured on
+ * challenge 18 with the seed both pinned and freshly drawn, in both languages,
+ * and the same at every width from the wrap down to 320px. What makes that
+ * reflow rather than a control running away is that nothing follows it into the
+ * space -- the point it left is bare `.challengeseed`, so the click that chases
+ * it is a dead one rather than a different button. Pinning the summary would
+ * cost a line of bar at every width, which is what the disclosure was made a
+ * `<details>` to avoid.
  *
  * The pointer cursor is the one thing the UA does not supply: `<summary>` is a
  * control, and it is the only one on this line that does not already look like
@@ -964,14 +970,16 @@ dl dd {
  * What `nowrap` does here was measured rather than assumed, and it is not what
  * `.runbuttons` does: a flex item may shrink to its longest word, so the two
  * stay on one line by becoming columns of two to four lines each. In Russian at
- * 320px that is 170.7px and 119.3px wide and 62px tall, against the 46px and
- * 30px the wrapped row gives them; in English, 173.2px and 116.8px at 46px tall
- * against two 30px lines. Nothing overflows -- the squeezed pair comes to
- * exactly the panel's 300px -- so what is lost is only that a button stops
- * looking like a button, which is enough. There were three of these until the
- * run controls were gathered into `.runbuttons`, and with the third the squeeze
- * was 5px wider than the panel and hung the last button over its edge; the
- * `escapedButtons` measurement in `e2e/tutorial.spec.ts` is what caught that.
+ * 320px that is 168.9px and 121.1px wide and 62px tall; in English it is 173.2px
+ * and 116.8px wide and 46px tall. Wrapped -- what this rule actually sets --
+ * both buttons hold at a plain 30px in either language: neither label needs a
+ * second line once each has the row's full 300px to itself. Nothing overflows --
+ * the squeezed pair comes to exactly the panel's 300px -- so what is lost is
+ * only that a button stops looking like a button, which is enough. There were
+ * three of these until the run controls were gathered into `.runbuttons`, and
+ * with the third the squeeze was 5px wider than the panel and hung the last
+ * button over its edge; the `escapedButtons` measurement in
+ * `e2e/tutorial.spec.ts` is what caught that.
  */
 .tutorialbuttons {
   display: flex;
