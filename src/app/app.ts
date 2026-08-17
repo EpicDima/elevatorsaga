@@ -1037,13 +1037,6 @@ export class App {
       challengeLinks: this.#challengeLinks(challengeIndex),
       seed: this.#seedLink(world, challengeIndex),
     });
-    // The bar's own redraw does not touch the row, but the seed line it just
-    // rewrote sits directly above it, and a language change reaches here
-    // without reaching `#startRun`. The pause state read here is whatever the
-    // controller currently holds, which during a restart is still the old run's
-    // -- `#startRun` asks again after the controller has decided the new one,
-    // and that is the pass the label ends on.
-    this.#controls.update();
     // Both retitles hang off the same `challengeIndex === null`, which is what
     // "not one of the twenty" means; which of the two it is comes from the
     // field, not from the index, because both unnumbered runs reach here the
@@ -1215,7 +1208,7 @@ export class App {
    *   with them. The *figures* go through `Intl` in {@link presentStats}, so a
    *   Russian reader wants `2 675 с` where an English one has `2,675s`, and they
    *   are written only when the world says they changed. Re-triggering that
-   *   event redraws all six and adds no subscription; calling `presentStats`
+   *   event redraws all eleven and adds no subscription; calling `presentStats`
    *   again would add a second one, and the panel would be written twice per
    *   frame for the rest of the run.
    * - The building is renamed in place by {@link relabelWorld} rather than
