@@ -225,17 +225,22 @@ describe("palette", () => {
     );
   });
 
-  // Foreground, background, and the ratio WCAG 1.4.3 asks of that pair: 3 for
-  // text at 24px, or 18.66px and bold; 4.5 for everything else. Each pair is
-  // one that really occurs -- the emphasis colour appears twice because it sits
-  // on the page in the headings, the challenge bar and the help prose, and on
-  // the building in the end-of-challenge overlay.
+  // Foreground, background, and the ratio the pair is asked for: 4.5 for
+  // ordinary text under WCAG 1.4.3, 3 for text at 24px or 18.66px and bold, and
+  // 3 for the one graphical indicator here, which is 1.4.11's bar rather than
+  // 1.4.3's. Each pair is one that really occurs -- the emphasis colour appears
+  // twice because it sits on the page in the headings, the challenge bar and
+  // the help prose, and on the building in the end-of-challenge overlay, and
+  // the error colour twice because it is a sentence and an icon on the page and
+  // the wavy underline under a failing line in the editor.
   it.each([
     ["color-text", "color-page", 4.5],
     ["color-text-strong", "color-page", 4.5],
     ["color-link", "color-page", 4.5],
     ["color-emphasis-on-page", "color-page", 4.5],
     ["color-emphasis", "color-world", 4.5],
+    ["color-error-on-page", "color-page", 4.5],
+    ["color-error", "color-code-page", 3],
     ["color-stats", "color-world", 4.5],
     ["color-text-strong", "color-control", 4.5],
     ["color-code-text", "color-code-page", 4.5],
