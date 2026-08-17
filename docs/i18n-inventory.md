@@ -104,21 +104,21 @@ Key names carry two suffixes that mean something:
 
 ## Where the strings are
 
-The catalogue holds **308 keys** in two locales. `src/i18n/en.ts` is the reference — its text is
+The catalogue holds **311 keys** in two locales. `src/i18n/en.ts` is the reference — its text is
 the English wording, extracted verbatim — and `src/i18n/ru.ts` is the Russian translation. The
 types make English the shape everything else is measured against: a Russian catalogue missing a
 key, carrying a key English does not have, or giving a plural message the wrong number of forms
 is a compile error, not a runtime surprise.
 
 ```sh
-grep -cE '^  "[^"]+":' src/i18n/en.ts                                   # 308
+grep -cE '^  "[^"]+":' src/i18n/en.ts                                   # 311
 grep -oE '^  "[^"]+"' src/i18n/en.ts | tr -d '"' | cut -d. -f1 | sort | uniq -c | sort -rn
 ```
 
 | Prefix         | Keys    | What reads them                                                                                                                         |
 | -------------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------- |
 | `docs.*`       | 85      | one of them, `docs.basics.example.code`, by `src/ui/completions.ts`; the other 84 by nothing                                            |
-| `tutorial.*`   | 79      | `src/ui/tutorial-panel.ts`, `src/ui/templates.ts`, `src/app/app.ts`                                                                     |
+| `tutorial.*`   | 82      | `src/ui/tutorial-panel.ts`, `src/ui/templates.ts`, `src/app/app.ts`                                                                     |
 | `completion.*` | 33      | `src/ui/completions.ts`                                                                                                                 |
 | `page.*`       | 39      | `index.html`, through `data-i18n` and `data-i18n-attr`; `page.noscript` excepted, see below                                             |
 | `game.*`       | 30      | `src/ui/templates.ts` (18), `src/ui/presenters.ts` (9), `src/app/app.ts` (5); the two speed labels are written by both of the first two |
@@ -126,7 +126,7 @@ grep -oE '^  "[^"]+"' src/i18n/en.ts | tr -d '"' | cut -d. -f1 | sort | uniq -c 
 | `fitness.*`    | 11      | `src/app/fitness.ts`, `src/game/fitness.ts`, `src/main.ts`, `src/cli/bench.ts`                                                          |
 | `error.*`      | 10      | `src/game/elevator-interface.ts`, `src/ui/presenters.ts`, `src/game/user-code.ts`, `src/game/movable.ts`                                |
 | `editor.*`     | 6       | `src/main.ts`, `src/app/app.ts`, `src/ui/editor.ts`, `src/ui/default-code.ts`                                                           |
-| **Total**      | **308** |                                                                                                                                         |
+| **Total**      | **311** |                                                                                                                                         |
 
 Which keys nothing reads:
 
@@ -321,7 +321,7 @@ case makes sure no key escapes that comparison.
 | `docs.api.floor.buttonStateChange.html`             | Triggered when either call button at a floor was lit or cleared. The handler is passed the state of both butto… | markup                                                                                                                             |
 | `docs.api.floor.buttonStateChange.example.code`     | floor.on("buttonstate_change", function(buttonStates) {                                                         | code; only the comments are translated                                                                                             |
 
-### The learning track — 79 `tutorial.*` keys
+### The learning track — 82 `tutorial.*` keys
 
 The track is the eight tasks in `src/game/tutorial.ts`, with ids `tutorial-1` … `tutorial-8`.
 Its prose is the largest single group of keys after the reference page, and it is the one group
@@ -372,7 +372,7 @@ equal in every locale.
 | 7    | The second elevator                      | `elevators.forEach`; 28 passengers within 60 seconds                                         |
 | 8    | From memory                              | the whole program on an empty page; 15 passengers within 60 seconds — challenge 1's building |
 
-The other fifteen are the panel and the surfaces around it.
+The other eighteen are the panel and the surfaces around it.
 
 | Key                                 | English                                                                                                        | Notes                                                                                                                                           |
 | ----------------------------------- | -------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -386,6 +386,9 @@ The other fifteen are the panel and the surfaces around it.
 | `tutorial.button.takeCode`          | Take this program into your own editor                                                                         |                                                                                                                                                 |
 | `tutorial.button.takeCodeConfirm`   | The game editor already holds a program of yours. Replace it with this one?                                    | a `window.confirm`, asked only when there is something to overwrite                                                                             |
 | `tutorial.button.leave`             | Leave for the challenges                                                                                       |                                                                                                                                                 |
+| `tutorial.solution.copy`            | Copy this program                                                                                              | the accessible name of the button beside the answer, in `src/ui/tutorial-panel.ts`'s `copySolution`                                             |
+| `tutorial.solution.copied`          | Copied to your clipboard.                                                                                      | `copySolution`'s `aria-live` line on a successful `navigator.clipboard.writeText`                                                               |
+| `tutorial.solution.copyFailed`      | Your browser refused to copy it. Select the code above and copy it yourself.                                   | the same line, when the write refuses or the API is missing                                                                                     |
 | `tutorial.bar.title.html`           | Tutorial task {number} of {count}: {description}                                                               | markup; takes `{number}`, `{count}`, `{description}`; the challenge bar's title on the track, counting the track rather than the challenge list |
 | `tutorial.finish.title`             | The track is finished                                                                                          | the overlay after the last task                                                                                                                 |
 | `tutorial.finish.message`           | Eight tasks, and the last of them was challenge 1: the same three floors, the same elevator, the same fifteen… |                                                                                                                                                 |
@@ -432,7 +435,7 @@ identically in every locale. Both names repeat it because an accessible name has
 own — "1234567890, link" describes nothing.
 
 `game.seed.newDraw` appearing inside `game.seed.newDrawLink` is a constraint a translator cannot
-see: the two sit on adjacent lines of a 308-key file and nothing in the file marks them as a
+see: the two sit on adjacent lines of a 311-key file and nothing in the file marks them as a
 pair. `src/i18n/catalogue.test.ts`, under _accessible names_, is what holds it — it requires the
 spoken name to contain the visible label in every locale. Rewording «новый розыгрыш» to «новый
 сид» meant changing both, which is exactly the edit where one gets missed.

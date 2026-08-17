@@ -131,6 +131,30 @@ describe("presentTutorial", () => {
       "Take this program into your own editor",
     );
     expect(requireElement(".tutorialleave", parent).textContent).toBe("Leave for the challenges");
+    expect(requireElement(".tutorialcopycode", parent).textContent).toBe("Copy this program");
+  });
+
+  it("highlights the answer and marks the line a player actually has to write", () => {
+    // The wiring, not the algorithm: code-highlight.test.ts and
+    // line-diff.test.ts each cover their own function on their own. This is
+    // that the panel really hands them this task's own two programs rather
+    // than, say, always diffing against an empty string.
+    presentTutorial(parent, panelData({ taskIndex: 0 }));
+
+    const code = requireElement(".tutorialsolution code", parent);
+    const task = tutorialTasks[0];
+    if (task === undefined) {
+      throw new Error("The track has no first task");
+    }
+    expect(code.querySelectorAll("[class^='tok-']").length).toBeGreaterThan(0);
+    const marked = [...code.querySelectorAll(".tutoriallinechanged")];
+    expect(marked.length).toBeGreaterThan(0);
+    // Whatever is marked is text the starting program does not already have --
+    // the whole point of the mark.
+    const startingLines = new Set(task.startingCode.split("\n"));
+    for (const line of marked) {
+      expect(startingLines.has(line.textContent)).toBe(false);
+    }
   });
 
   it("says where on the track the player is, and how much of the track is done", () => {
@@ -311,6 +335,15 @@ describe("presentTutorial", () => {
       presentTutorial(parent, panelData());
 
       expect(document.activeElement).toBe(queryAll(".tutorialpanel summary", parent)[1]);
+    });
+
+    it("puts it back on the copy button a redraw destroyed", () => {
+      presentTutorial(parent, panelData());
+      requireElement(".tutorialcopycode", parent).focus();
+
+      presentTutorial(parent, panelData());
+
+      expect(document.activeElement).toBe(requireElement(".tutorialcopycode", parent));
     });
 
     it("restores by position, so a change of task lands in the same place", () => {
@@ -582,6 +615,137 @@ describe("presentTutorial", () => {
 
       expect(requireElement(".tutorialtaken", parent).textContent).toBe(
         "Программа скопирована в редактор игры — она будет ждать вас, когда вы выйдете с дорожки.",
+      );
+    });
+  });
+
+  describe("what the panel says about copying the answer", () => {
+    afterEach(() => {
+      // jsdom implements no Clipboard API at all, so the property only exists
+      // in a spec that put it there; nothing to restore otherwise, but a spec
+      // that stubbed it must not leave `navigator.clipboard` behind for the
+      // next one to find.
+      Reflect.deleteProperty(navigator, "clipboard");
+    });
+
+    /**
+     * Stands in for `navigator.clipboard.writeText`.
+     *
+     * jsdom has no Clipboard API at all — there is no default implementation to
+     * spy on the way `editor.test.ts` spies on `localStorage.setItem` — so the
+     * whole object has to be put on `navigator` before a spec can drive either
+     * of the two outcomes `copySolution` is written to handle.
+     *
+     * @param resolved - Whether the write should resolve, the way a browser
+     * does when it grants the permission, or reject, the way it does when it
+     * refuses.
+     * @returns The mock, so a spec can see what it was asked to copy.
+     */
+    function stubClipboard(resolved: boolean): ReturnType<typeof vi.fn> {
+      const writeText = vi.fn(() =>
+        resolved ? Promise.resolve() : Promise.reject(new Error("denied")),
+      );
+      Object.defineProperty(navigator, "clipboard", {
+        value: { writeText },
+        configurable: true,
+      });
+      return writeText;
+    }
+
+    it("is a live region that is already there, and empty, before there is news", () => {
+      presentTutorial(parent, panelData());
+
+      const line = requireElement(".tutorialcopied", parent);
+      expect(line.getAttribute("aria-live")).toBe("polite");
+      expect(line.textContent).toBe("");
+    });
+
+    it("copies the program exactly as it is shown, and says so", async () => {
+      const writeText = stubClipboard(true);
+      presentTutorial(parent, panelData());
+      const code = requireElement(".tutorialsolution code", parent).textContent;
+
+      requireElement(".tutorialcopycode", parent).click();
+
+      await vi.waitFor(() => {
+        expect(requireElement(".tutorialcopied", parent).textContent).not.toBe("");
+      });
+      expect(writeText).toHaveBeenCalledWith(code);
+      expect(requireElement(".tutorialcopied", parent).textContent).toBe(
+        "Copied to your clipboard.",
+      );
+    });
+
+    it("says the browser refused, and what to do instead", async () => {
+      stubClipboard(false);
+      presentTutorial(parent, panelData());
+
+      requireElement(".tutorialcopycode", parent).click();
+
+      await vi.waitFor(() => {
+        expect(requireElement(".tutorialcopied", parent).textContent).not.toBe("");
+      });
+      expect(requireElement(".tutorialcopied", parent).textContent).toBe(
+        "Your browser refused to copy it. Select the code above and copy it yourself.",
+      );
+    });
+
+    it("says the browser refused when there is no clipboard to write to at all", async () => {
+      // No stub at all: jsdom's own `navigator.clipboard` is undefined, the way
+      // an insecure context leaves it, so the write throws before it ever
+      // becomes a promise -- the one case `copySolution`'s `catch` exists for.
+      presentTutorial(parent, panelData());
+
+      requireElement(".tutorialcopycode", parent).click();
+
+      await vi.waitFor(() => {
+        expect(requireElement(".tutorialcopied", parent).textContent).not.toBe("");
+      });
+      expect(requireElement(".tutorialcopied", parent).textContent).toBe(
+        "Your browser refused to copy it. Select the code above and copy it yourself.",
+      );
+    });
+
+    it("keeps the news across a redraw of the same task", async () => {
+      stubClipboard(true);
+      presentTutorial(parent, panelData());
+      requireElement(".tutorialcopycode", parent).click();
+      await vi.waitFor(() => {
+        expect(requireElement(".tutorialcopied", parent).textContent).not.toBe("");
+      });
+
+      presentTutorial(parent, panelData({ clearedCount: 1 }));
+
+      expect(requireElement(".tutorialcopied", parent).textContent).toBe(
+        "Copied to your clipboard.",
+      );
+    });
+
+    it("drops the news when the panel moves to another task", async () => {
+      stubClipboard(true);
+      presentTutorial(parent, panelData());
+      requireElement(".tutorialcopycode", parent).click();
+      await vi.waitFor(() => {
+        expect(requireElement(".tutorialcopied", parent).textContent).not.toBe("");
+      });
+
+      presentTutorial(parent, panelData({ taskIndex: 1 }));
+
+      expect(requireElement(".tutorialcopied", parent).textContent).toBe("");
+    });
+
+    it("says it in the language the player is reading, at the moment it says it", async () => {
+      stubClipboard(true);
+      presentTutorial(parent, panelData());
+      setLocale("ru");
+
+      requireElement(".tutorialcopycode", parent).click();
+
+      await vi.waitFor(() => {
+        expect(requireElement(".tutorialcopied", parent).textContent).not.toBe("");
+      });
+      expect(requireElement(".tutorialcopied", parent).textContent).toBe(
+        "Скопировано в буфер обмена.",
       );
     });
   });

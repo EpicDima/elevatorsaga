@@ -1069,6 +1069,16 @@ elevator.goToFloor(2); // Queued anyway -- queue: 2, 3, 2`,
   "tutorial.button.takeCodeConfirm":
     "The game editor already holds a program of yours. Replace it with this one?",
   "tutorial.button.leave": "Leave for the challenges",
+  "tutorial.solution.copy": "Copy this program",
+  // The clipboard write's two outcomes, at the size and just under the answer
+  // the way `tutorial.panel.codeTaken`/`codeRefused` sit under the editor
+  // button they report on. `navigator.clipboard.writeText` can refuse for
+  // reasons a player has no way to fix from here — no permission, no secure
+  // context — so the refusal says what to do instead rather than only that it
+  // failed: the program is still on screen, right above the line saying so.
+  "tutorial.solution.copied": "Copied to your clipboard.",
+  "tutorial.solution.copyFailed":
+    "Your browser refused to copy it. Select the code above and copy it yourself.",
   "tutorial.bar.title.html": "Tutorial task {number} of {count}: {description}",
   "tutorial.finish.title": "The track is finished",
   "tutorial.finish.message":

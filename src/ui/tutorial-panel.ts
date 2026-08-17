@@ -262,6 +262,84 @@ function takenStateOf(value: string | null): TakenState | undefined {
   return value === "yes" || value === "no" ? value : undefined;
 }
 
+/** The button that copies the task's answer to the clipboard. */
+const COPY_CODE_SELECTOR = ".tutorialcopycode";
+
+/**
+ * The line that says whether that copy happened.
+ *
+ * Drawn empty by {@link tutorialTemplate} and written to on the click, the way
+ * {@link TAKEN_SELECTOR}'s line is; see the note there for why it is not
+ * created at the moment there is something to say.
+ */
+const COPIED_SELECTOR = ".tutorialcopied";
+
+/**
+ * What that line is currently saying, in a form a redraw can act on.
+ *
+ * See {@link TAKEN_STATE_ATTRIBUTE} for why this is an attribute on the
+ * markup rather than a variable, and for why it is the answer that is carried
+ * across a redraw rather than the sentence itself.
+ */
+const COPIED_STATE_ATTRIBUTE = "data-copied";
+
+/**
+ * The two things that line can say, by the answer that produces them.
+ *
+ * A token in the markup rather than the message key itself, for the reason
+ * {@link TAKEN_MESSAGES} is.
+ */
+const COPIED_MESSAGES = {
+  yes: "tutorial.solution.copied",
+  no: "tutorial.solution.copyFailed",
+} as const satisfies Readonly<Record<string, MessageKey>>;
+
+/** The answers {@link COPIED_MESSAGES} has a sentence for. */
+type CopiedState = keyof typeof COPIED_MESSAGES;
+
+/**
+ * Reads back what a drawn panel's copy line was saying.
+ *
+ * @param value - The attribute's value, or null when the line said nothing.
+ * @returns The answer it recorded, or `undefined` when it recorded none.
+ */
+function copiedStateOf(value: string | null): CopiedState | undefined {
+  return value === "yes" || value === "no" ? value : undefined;
+}
+
+/**
+ * Copies the task's answer to the clipboard, and reports whether that worked.
+ *
+ * The text comes off the rendered `<code>` rather than out of
+ * `TutorialPanelData`, because the element's `textContent` is the program
+ * exactly as `highlightJavaScript` reconstructs it — see the note there — and
+ * reading it back is simpler than threading the task's solution string through
+ * a second path to reach the same button.
+ *
+ * `navigator.clipboard.writeText` is wrapped in a `try`/`catch` rather than
+ * checked for beforehand: `navigator.clipboard` is `undefined` in an insecure
+ * context and absent from jsdom, and the call itself rejects when the
+ * permission is refused, so one `catch` covers both without asking the caller
+ * to know which browser it is running in — the same shape `editor.ts`'s
+ * `writeStorage` uses for its own `localStorage` write.
+ *
+ * @param parent - The `.tutorial` element the panel is drawn into.
+ */
+async function copySolution(parent: HTMLElement): Promise<void> {
+  const code = requireElement(".tutorialsolution code", parent).textContent;
+  let copied: boolean;
+  try {
+    await navigator.clipboard.writeText(code);
+    copied = true;
+  } catch {
+    copied = false;
+  }
+  const state: CopiedState = copied ? "yes" : "no";
+  const line = requireElement(COPIED_SELECTOR, parent);
+  line.setAttribute(COPIED_STATE_ATTRIBUTE, state);
+  line.textContent = t(COPIED_MESSAGES[state]);
+}
+
 /** The button that leaves the track for the numbered challenges. */
 const LEAVE_SELECTOR = ".tutorialleave";
 
@@ -345,7 +423,7 @@ function takeCodeAgreed(data: TutorialPanelData): boolean {
 }
 
 /**
- * Draws the learning track's panel and wires up its two buttons.
+ * Draws the learning track's panel and wires up its three buttons.
  *
  * Safe to call over a panel that is already there, which is the only way it is
  * ever called after the first time: the track redraws it when the player clears
@@ -369,7 +447,7 @@ function takeCodeAgreed(data: TutorialPanelData): boolean {
  *   document with the whole page to tab through again (WCAG 2.4.3). The control
  *   that lands in the same position takes the focus back, the same way the
  *   challenge bar restores its navigation row: the panel's controls are the same
- *   six in the same order for every task, so the position is the control.
+ *   seven in the same order for every task, so the position is the control.
  *
  * @param parent - The `.tutorial` element of the page shell.
  * @param data - Which task, how far along, and what its two buttons do.
@@ -425,6 +503,13 @@ export function presentTutorial(parent: HTMLElement, data: TutorialPanelData): v
   const takenState = sameTask
     ? takenStateOf(query(TAKEN_SELECTOR, parent)?.getAttribute(TAKEN_STATE_ATTRIBUTE) ?? null)
     : undefined;
+  // Carried the same way and for the same reason as `takenState`: a copy made
+  // moments ago should still say so after the panel is redrawn to move the
+  // progress line on, and a different task means a different answer was on the
+  // clipboard button, so nothing here is still true of it.
+  const copiedState = sameTask
+    ? copiedStateOf(query(COPIED_SELECTOR, parent)?.getAttribute(COPIED_STATE_ATTRIBUTE) ?? null)
+    : undefined;
 
   const panel = renderElement(
     tutorialTemplate({
@@ -434,14 +519,19 @@ export function presentTutorial(parent: HTMLElement, data: TutorialPanelData): v
       title: t(messages.title),
       goal: t(messages.goal),
       hints: [t(hint1), t(hint2), t(hint3)],
-      // Straight from the task table, and deliberately not from the catalogue
-      // even though that is where the text now lives: the table is what
-      // `tutorial-solutions.test.ts` clears the task with, so the answer on
-      // screen and the answer that is known to work are one string read one
-      // way. Reading `tutorial.taskN.solutionCode.code` here as well would be a
-      // second call site for one message with nothing comparing the two, and
-      // the player would be the one told something untrue. The table renders it
-      // when it is asked, so this is the answer in the language being drawn.
+      // Both straight from the task table, and deliberately not from the
+      // catalogue even though that is where the rest of this task's text now
+      // lives: the table is what `tutorial-solutions.test.ts` clears the task
+      // with, so the answer on screen and the answer that is known to work are
+      // one string read one way. Reading `tutorial.taskN.solutionCode.code`
+      // here as well would be a second call site for one message with nothing
+      // comparing the two, and the player would be the one told something
+      // untrue. The table renders it when it is asked, so this is the answer
+      // in the language being drawn. `startingCode` rides along for the same
+      // reason: it is never printed, only diffed against `solutionCode` to
+      // find the line the answer marks, and a diff has to compare two drafts
+      // of the one program the player is actually shown.
+      startingCode: task.startingCode,
       solutionCode: task.solutionCode,
       explanation: t(messages.explanation),
     }),
@@ -457,6 +547,12 @@ export function presentTutorial(parent: HTMLElement, data: TutorialPanelData): v
     const line = requireElement(TAKEN_SELECTOR, panel);
     line.setAttribute(TAKEN_STATE_ATTRIBUTE, takenState);
     line.textContent = t(TAKEN_MESSAGES[takenState]);
+  }
+  if (copiedState !== undefined) {
+    // The same restoration, for the copy button's line.
+    const line = requireElement(COPIED_SELECTOR, panel);
+    line.setAttribute(COPIED_STATE_ATTRIBUTE, copiedState);
+    line.textContent = t(COPIED_MESSAGES[copiedState]);
   }
   parent.replaceChildren(panel);
 
@@ -481,6 +577,9 @@ export function presentTutorial(parent: HTMLElement, data: TutorialPanelData): v
       line.setAttribute(TAKEN_STATE_ATTRIBUTE, state);
       line.textContent = t(TAKEN_MESSAGES[state]);
     }
+  });
+  requireElement(COPY_CODE_SELECTOR, parent).addEventListener("click", () => {
+    void copySolution(parent);
   });
   requireElement(LEAVE_SELECTOR, parent).addEventListener("click", () => {
     data.onLeave();

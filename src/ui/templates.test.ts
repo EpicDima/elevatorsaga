@@ -645,6 +645,7 @@ describe("tutorialTemplate", () => {
         title: "The elevator that goes nowhere",
         goal: "Deliver 10 passengers",
         hints: ["first", "second", "third"],
+        startingCode: "s",
         solutionCode: "elevator.goToFloor(1);",
         explanation: "why it happens",
         ...overrides,
@@ -692,6 +693,15 @@ describe("tutorialTemplate", () => {
     // no `&` at all -- so nothing on the track would notice this being dropped,
     // and the ninth answer written with a `<` before a letter would lose the
     // rest of its line into a tag nobody can see.
+    //
+    // The answer is highlighted now, which wraps each token of the line in its
+    // own `<span>` -- so "if (a &lt; b ..." is no longer one contiguous run of
+    // escaped text the way it was before highlighting existed; code-highlight.ts
+    // has its own tests for exactly how it is split. What has to hold here is
+    // the security property, not the exact bytes it is spread across: every
+    // character `escapeHtml` would have escaped is escaped somewhere, no tag
+    // parses out of the program, and the element's text reads the hostile
+    // program back whole.
     const hostile = `if (a < b && c) { elevator.goToFloor("<img src=x onerror=alert(1)>"); }`;
     const html = tutorialTemplate({
       taskNumber: 1,
@@ -700,11 +710,17 @@ describe("tutorialTemplate", () => {
       title: "t",
       goal: "g",
       hints: ["one", "two", "three"],
+      startingCode: "s",
       solutionCode: hostile,
       explanation: "e",
     });
 
-    expect(html).toContain("if (a &lt; b &amp;&amp; c)");
+    expect(html).not.toContain("<img");
+    expect(html).toContain("&lt;");
+    expect(html).toContain("&gt;");
+    expect(html).toContain("&amp;&amp;");
+    // The string literal is one token, so its escaped text is still one
+    // contiguous run.
     expect(html).toContain("&lt;img src=x onerror=alert(1)&gt;");
     expect(html).toContain("&quot;");
     const drawn = renderElement(html);
@@ -756,6 +772,53 @@ describe("tutorialTemplate", () => {
       "Hint 2",
       "Hint 3",
     ]);
+  });
+
+  it("draws the answer as highlighted code, with the new line marked and a way to copy it", () => {
+    // startingCode is never printed -- it exists only to be diffed against
+    // solutionCode, which is what code-highlight.ts and line-diff.ts each have
+    // their own tests for. This is the wiring: that the two actually reach
+    // tutorialAnswerTemplate and come out as markup a player can read.
+    const drawn = panel({
+      startingCode: "elevator.goToFloor(0);",
+      solutionCode: "elevator.goToFloor(0);\nelevator.goToFloor(1);",
+    });
+    const code = drawn.querySelector(".tutorialsolution code");
+
+    // Real syntax highlighting, not plain text.
+    expect(code?.querySelector(".tok-propertyName")?.textContent).toBe("goToFloor");
+    expect(
+      [...(code?.querySelectorAll(".tok-number") ?? [])].map((token) => token.textContent),
+    ).toEqual(["0", "1"]);
+    // One element per line, and only the new line is a <mark>.
+    const lines = [...(code?.children ?? [])];
+    expect(lines.map((line) => line.tagName)).toEqual(["SPAN", "MARK"]);
+    expect(lines[1]?.className).toBe("tutoriallinechanged");
+    expect(lines[1]?.textContent).toBe("elevator.goToFloor(1);");
+
+    // The copy button and its live status line sit above the code, inside the
+    // same answer block.
+    const answer = drawn.querySelector(".tutorialanswer");
+    const button = answer?.querySelector("button.tutorialcopycode");
+    expect(button?.textContent).toBe("Copy this program");
+    expect(button?.getAttribute("type")).toBe("button");
+    const status = answer?.querySelector("p.tutorialcopied");
+    expect(status?.textContent).toBe("");
+    expect(status?.getAttribute("aria-live")).toBe("polite");
+  });
+
+  it("marks nothing when the answer is exactly the program the player started with", () => {
+    // Task 8 is exactly this case on the real track: it hands back task 7's own
+    // answer, unchanged, and there is nothing here for a player to be told they
+    // still have to write.
+    const drawn = panel({
+      startingCode: "elevator.goToFloor(1);",
+      solutionCode: "elevator.goToFloor(1);",
+    });
+    const code = drawn.querySelector(".tutorialsolution code");
+
+    expect(code?.querySelector("mark")).toBeNull();
+    expect(code?.querySelector(".tutoriallinechanged")).toBeNull();
   });
 
   it("leaves every disclosure closed", () => {
@@ -969,6 +1032,7 @@ describe("the language the building comes out in", () => {
         title: "Один лифт на три этажа",
         goal: "Перевезите 20 пассажиров",
         hints: ["раз", "два", "три"],
+        startingCode: "s",
         solutionCode: "elevator.goToFloor(1);",
         explanation: "почему",
       }),
@@ -1006,6 +1070,7 @@ describe("the language the building comes out in", () => {
           title: "т",
           goal: "ц",
           hints: ["раз", "два", "три"],
+          startingCode: "s",
           solutionCode: code,
           explanation: "п",
         }),

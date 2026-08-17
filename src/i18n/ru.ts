@@ -1100,6 +1100,10 @@ elevator.goToFloor(2); // Всё равно добавится — очеред�
   "tutorial.button.takeCode": "Забрать программу в свой редактор",
   "tutorial.button.takeCodeConfirm": "В редакторе игры уже лежит ваша программа. Заменить её этой?",
   "tutorial.button.leave": "Выйти к заданиям игры",
+  "tutorial.solution.copy": "Скопировать программу",
+  "tutorial.solution.copied": "Скопировано в буфер обмена.",
+  "tutorial.solution.copyFailed":
+    "Браузер отказался скопировать программу. Выделите её в блоке выше и скопируйте вручную.",
   "tutorial.bar.title.html": "Учебное задание {number} из {count}: {description}",
   "tutorial.finish.title": "Дорожка пройдена",
   "tutorial.finish.message":
