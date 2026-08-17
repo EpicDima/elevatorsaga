@@ -33,7 +33,7 @@ import { startRouter } from "./app/router.ts";
 import { DEFAULT_TIME_SCALE } from "./app/time-scale.ts";
 import { challenges } from "./game/challenges.ts";
 import type { FitnessSuiteResult } from "./game/fitness.ts";
-import { createWorldController } from "./game/world-controller.ts";
+import { TICK_SECONDS, createWorldController } from "./game/world-controller.ts";
 import { formatTime, t } from "./i18n/index.ts";
 import { requireElement } from "./ui/dom.ts";
 import { CodeEditor, codeMirrorView } from "./ui/editor.ts";
@@ -57,9 +57,6 @@ declare global {
     runFitnessSuite: (codeStr?: string) => Promise<FitnessSuiteResult>;
   }
 }
-
-/** Largest simulated step, in seconds; the legacy value. */
-const MAX_STEP_SECONDS = 1.0 / 60.0;
 
 /**
  * Builds the game and starts it.
@@ -154,7 +151,7 @@ async function main(): Promise<void> {
       codeStatus: requireElement(".codestatus"),
     },
     editor,
-    worldController: createWorldController(MAX_STEP_SECONDS),
+    worldController: createWorldController(TICK_SECONDS),
     challenges,
   });
 

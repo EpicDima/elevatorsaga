@@ -24,9 +24,10 @@ export interface UserCodeObject {
    */
   init(elevators: readonly ElevatorInterface[], floors: readonly FloorInterface[]): void;
   /**
-   * Called once per animation frame.
+   * Called once per simulation tick, at the fixed rate {@link TICK_SECONDS}.
    *
-   * @param dt - Simulated seconds since the previous frame.
+   * @param dt - Always {@link TICK_SECONDS}: the tick is fixed, not derived
+   * from real frame timing.
    * @param elevators - The elevator facades.
    * @param floors - The floor facades.
    */
@@ -74,6 +75,38 @@ export interface ControllableWorld {
 export type AnimationFrameRequester = (callback: (t: number) => void) => void;
 
 /**
+ * Duration of one simulation tick, in seconds.
+ *
+ * Both {@link UserCodeObject.update} and the world's own physics advance by
+ * exactly this much per tick, however many real animation frames that takes
+ * or however few — a run is a pure function of how many ticks have elapsed,
+ * not of how the browser's frame timer happened to divide them up. 100 a
+ * second was picked as a round number comfortably above any display's
+ * refresh rate, so a real frame ordinarily advances the simulation by
+ * several whole ticks rather than raising the question of what a fraction of
+ * one would mean.
+ */
+export const TICK_SECONDS = 1 / 100;
+
+/**
+ * Most ticks a single real animation frame is allowed to run.
+ *
+ * Bounds two different situations by the same number, deliberately: a
+ * browser stall, where real time jumps far ahead of the last frame, and a
+ * high {@link WorldController.timeScale}, where a single ordinary frame
+ * already represents several seconds of simulated time. Both hand the
+ * accumulator more than {@link TICK_SECONDS} at once, and both would turn
+ * into an unbounded run of synchronous {@link UserCodeObject.update} calls —
+ * player code runs on the main thread with no sandbox timeout — if nothing
+ * capped it. `100 * TICK_SECONDS` is one simulated second per real frame,
+ * matching what a stalled browser is allowed to catch up by; any time beyond
+ * that is dropped rather than queued, so fast-forwarding at the interface's
+ * maximum 64x only falls slightly short of nominal speed on a 60Hz display,
+ * and not at all above it.
+ */
+export const MAX_TICKS_PER_FRAME = 100;
+
+/**
  * Which part of the player's program was running when it threw.
  *
  * Worth naming, because the three are not interchangeable to whoever has to fix
@@ -100,15 +133,18 @@ export class WorldController extends Observable<WorldControllerEvents> {
   /** Whether the simulation is currently frozen. */
   isPaused = true;
 
-  readonly #dtMax: number;
+  readonly #tickSeconds: number;
 
   /**
-   * @param dtMax - Largest simulated step the world is advanced by at once;
-   * longer frames are split into several substeps.
+   * @param tickSeconds - Fixed duration of one simulation tick, in seconds.
+   * Both `codeObj.update` and the world's physics advance by exactly this
+   * much per tick; real call sites pass {@link TICK_SECONDS}, and tests may
+   * pass another value to exercise the tick loop at a resolution of their
+   * own choosing.
    */
-  constructor(dtMax: number) {
+  constructor(tickSeconds: number) {
     super();
-    this.#dtMax = dtMax;
+    this.#tickSeconds = tickSeconds;
   }
 
   /**
@@ -131,6 +167,12 @@ export class WorldController extends Observable<WorldControllerEvents> {
     this.isPaused = true;
     let lastT: number | null = null;
     let firstUpdate = true;
+    // Carries whatever real time a frame did not have enough of to make a
+    // whole tick. Deliberately never reset except by the cap below: a tick
+    // owed by one frame is paid by however many frames it takes, which is
+    // what makes the run a function of elapsed time rather than of how that
+    // time was divided into frames.
+    let accumulator = 0;
     // Everything the world reports came out of a handler: the world hands its
     // own reporter to the facades, and they only ever call player code from an
     // event.
@@ -151,31 +193,45 @@ export class WorldController extends Observable<WorldControllerEvents> {
         }
 
         const dt = t - lastT;
-        let scaledDt = dt * 0.001 * this.timeScale;
-        scaledDt = Math.min(scaledDt, this.#dtMax * 3 * this.timeScale); // Limit to prevent unhealthy substepping
-        try {
-          codeObj.update(scaledDt, world.elevatorInterfaces, world.floorInterfaces);
-        } catch (e) {
-          this.handleUserCodeError(e, "update");
-        }
-        // Substep the frame. The remainder is reduced by the step actually
-        // taken, and the final step absorbs whatever is left, so the frame
-        // advances the world by exactly scaledDt.
-        //
-        // The epsilon is what stops a degenerate final substep: frame times
-        // are accumulated in floating point, so a frame that should be a whole
-        // number of steps routinely leaves a few 1e-18 behind. Charging that
-        // residue as its own world.update() is not a rounding difference — it
-        // is an entire extra world tick, re-running arrival snapping and the
-        // statistics recalculation.
-        const dtEpsilon = this.#dtMax * 1e-9;
-        let remaining = scaledDt;
+        accumulator += dt * 0.001 * this.timeScale;
+        // Bounds a stalled browser and a high timeScale by the same rule: at
+        // most MAX_TICKS_PER_FRAME ticks — and so at most that many
+        // synchronous, unsandboxed codeObj.update calls — run off one real
+        // frame. Time beyond that is dropped, not queued, which is what
+        // keeps a very long stall from spending the next several seconds
+        // catching up frame by frame.
+        accumulator = Math.min(accumulator, MAX_TICKS_PER_FRAME * this.#tickSeconds);
+
+        // Ticks available this frame are computed by one division rather than
+        // by counting how many times tickSeconds can be subtracted out of the
+        // accumulator: subtracting the same not-quite-representable fraction
+        // up to MAX_TICKS_PER_FRAME times drifts under the threshold before
+        // reaching zero (1.0 - 0.01 * 99 is 0.009999999999999247, not 0.01),
+        // which silently ran one tick short of the cap every time the
+        // accumulator actually sat at it. A single division does not
+        // accumulate that error.
+        const ticksAvailable = Math.min(
+          Math.floor(accumulator / this.#tickSeconds),
+          MAX_TICKS_PER_FRAME,
+        );
+        let ticksRun = 0;
         // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- world.update() can end the challenge mid-loop, which defeats the narrowing above
-        while (remaining > dtEpsilon && !world.challengeEnded) {
-          const thisDt = remaining - this.#dtMax <= dtEpsilon ? remaining : this.#dtMax;
-          world.update(thisDt);
-          remaining -= thisDt;
+        while (ticksRun < ticksAvailable && !world.challengeEnded) {
+          try {
+            codeObj.update(this.#tickSeconds, world.elevatorInterfaces, world.floorInterfaces);
+          } catch (e) {
+            this.handleUserCodeError(e, "update");
+            // The tick this update was for did not happen: its time is still
+            // owed, so it is left out of ticksRun below rather than counted,
+            // and no more ticks run this frame — codeObj is now known to
+            // throw, and setPaused above stops the next frame from trying
+            // again on its own.
+            break;
+          }
+          world.update(this.#tickSeconds);
+          ticksRun++;
         }
+        accumulator -= ticksRun * this.#tickSeconds;
         world.updateDisplayPositions();
         // Every frame, deliberately. `legacy-1.x:world.js:256` wanted this
         // triggered less often "for performance reasons"; there are none to
@@ -241,9 +297,9 @@ export class WorldController extends Observable<WorldControllerEvents> {
 /**
  * Creates a world controller.
  *
- * @param dtMax - Largest simulated step the world is advanced by at once.
+ * @param tickSeconds - Fixed duration of one simulation tick, in seconds.
  * @returns The new controller.
  */
-export function createWorldController(dtMax: number): WorldController {
-  return new WorldController(dtMax);
+export function createWorldController(tickSeconds: number): WorldController {
+  return new WorldController(tickSeconds);
 }

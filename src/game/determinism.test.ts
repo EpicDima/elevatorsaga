@@ -3,18 +3,19 @@
  * twice.
  *
  * The game pins a run with `#challenge=4,seed=12345` and tells the player that
- * the same seed gives the same building and the same passengers. The building
- * half is a constructor argument and cannot drift. The passenger half is a
- * sequence of draws, and a sequence only stays put if nothing else is allowed
- * into the stream it comes from — because the browser never hands the same
- * frame lengths to two runs. `dt` in `WorldController.start` is a real
- * `requestAnimationFrame` delta, so every draw whose *moment* the simulation's
- * dynamics decide lands at a different point of the run each time, and a single
- * such draw sharing the spawn stream permanently offsets it: from there on the
- * Nth passenger is a different person heading somewhere else.
+ * the same seed gives the same building, the same passengers, and now — since
+ * both {@link "./world-controller.ts"!UserCodeObject.update} and the world's
+ * physics advance in fixed {@link "./world-controller.ts"!TICK_SECONDS} ticks
+ * regardless of real frame timing — the same building's mechanics too: car
+ * positions, arrival timing, button-press counts. None of that was true before
+ * the fixed-tick rewrite, when `dt` in `WorldController.start` was a real
+ * `requestAnimationFrame` delta and a player program reading elevator state
+ * made different decisions at different frame rates even while meeting
+ * identical passengers.
  *
  * So these tests do the one thing a determinism test has to do — vary the thing
- * that varies in the browser. Two runs of one seed are driven through the real
+ * that used to vary in the browser and confirm it no longer matters. Two runs
+ * of one seed are driven through the real
  * {@link "./world-controller.ts"!WorldController}, with a player program that
  * actually moves the elevators, at frame schedules that differ: 60 Hz against
  * 120 Hz, 60 Hz against 60 Hz plus a nanosecond, and 60 Hz against a jittered
@@ -22,7 +23,8 @@
  * driving the elevators, would assert nothing more than that a deterministic
  * generator is deterministic: with the cars parked, nobody is ever delivered
  * and no boarding is ever refused, so neither of the draws that can shift the
- * stream is ever taken. {@link expectRunIsMeaningful} is what keeps that from
+ * spawn stream is ever taken, and every button-press count is zero regardless
+ * of the frame schedule. {@link expectRunIsMeaningful} is what keeps that from
  * happening quietly here.
  */
 
@@ -30,16 +32,8 @@ import { describe, expect, it } from "vitest";
 
 import type { RandomSeed } from "./random.ts";
 import { at } from "./test-helpers.ts";
-import { createWorldController, type UserCodeObject } from "./world-controller.ts";
+import { TICK_SECONDS, createWorldController, type UserCodeObject } from "./world-controller.ts";
 import { createWorld, type WorldOptions } from "./world.ts";
-
-/**
- * Largest step the world is advanced by at once.
- *
- * The value `src/main.ts` gives the real controller, so a frame longer than
- * this is substepped here exactly as it is in the browser.
- */
-const SIMULATION_STEP_SECONDS = 1.0 / 60.0;
 
 /** Milliseconds per frame at the rate most displays run at. */
 const SIXTY_HZ_MILLIS = 1000.0 / 60.0;
@@ -104,6 +98,18 @@ interface Spawn {
   readonly weight: number;
   /** How they are drawn, which is the second and third. */
   readonly displayType: string | undefined;
+  /**
+   * Floor-button presses the run had already emitted when this passenger
+   * appeared.
+   *
+   * Carried on the spawn itself so a comparison over a shared prefix of
+   * passengers — the only kind two differently-timed schedules can make — is
+   * also a comparison of the building's mechanics up to that point, not just
+   * of who arrived.
+   */
+  readonly buttonPressesSoFar: number;
+  /** Passengers already delivered when this passenger appeared. */
+  readonly transportedSoFar: number;
 }
 
 /** Everything one run of the probe observed. */
@@ -205,11 +211,11 @@ function directionalProgram(): UserCodeObject {
 /**
  * Runs one seed to a schedule and writes down every passenger it produced.
  *
- * Driven through the real controller rather than by calling `world.update` once
- * per frame, because the substepping is part of what the browser does to `dt`:
- * a frame is split into steps of at most {@link SIMULATION_STEP_SECONDS} and the
- * last step absorbs the remainder, so the world sees a different sequence of
- * step lengths for the same elapsed time depending on how the frames fell.
+ * Driven through the real controller rather than by calling `world.update`
+ * directly, so the probe exercises the same fixed-tick accumulator a real
+ * frame schedule does: however the frames in `schedule` fall, they are cut
+ * into the same {@link "./world-controller.ts"!TICK_SECONDS} ticks a browser's
+ * `requestAnimationFrame` schedule would produce.
  *
  * @param seed - Seed to replay.
  * @param schedule - Length of each frame, in milliseconds.
@@ -220,15 +226,6 @@ function directionalProgram(): UserCodeObject {
  */
 function probe(seed: RandomSeed, schedule: FrameSchedule, frameCount: number): ProbeRun {
   const world = createWorld(SCENARIO, seed);
-  const spawns: Spawn[] = [];
-  world.on("new_user", (user) => {
-    spawns.push({
-      from: user.currentFloor,
-      to: user.destinationFloor,
-      weight: user.weight,
-      displayType: user.displayType,
-    });
-  });
 
   // Counted off the floors themselves rather than off the player-facing
   // facades: these are the very events World subscribes to in order to re-offer
@@ -240,8 +237,20 @@ function probe(seed: RandomSeed, schedule: FrameSchedule, frameCount: number): P
     });
   }
 
+  const spawns: Spawn[] = [];
+  world.on("new_user", (user) => {
+    spawns.push({
+      from: user.currentFloor,
+      to: user.destinationFloor,
+      weight: user.weight,
+      displayType: user.displayType,
+      buttonPressesSoFar: buttonPresses,
+      transportedSoFar: world.transportedCounter,
+    });
+  });
+
   const errors: unknown[] = [];
-  const controller = createWorldController(SIMULATION_STEP_SECONDS);
+  const controller = createWorldController(TICK_SECONDS);
   controller.on("usercode_error", (e) => {
     errors.push(e);
   });
@@ -275,16 +284,26 @@ function expectRunIsMeaningful(run: ProbeRun): void {
 }
 
 /**
- * Asserts two runs of one seed met the same passengers.
+ * Asserts two runs of one seed met the same passengers and moved the same
+ * building.
  *
  * Compared over the shorter of the two, and the lengths are allowed to differ
  * by one. That is not slack in the property, which is exact — the Nth passenger
- * is decided by the Nth group of draws and by nothing else — but in what a
- * fixed *number of frames* can observe. The spawn accumulator is a float sum of
- * the step lengths, so two schedules covering the same simulated seconds reach
- * the final spawn threshold a hair apart and one run can catch a passenger the
- * other has not reached yet. Requiring equal counts would make the suite fail
- * for the one reason it does not care about.
+ * is decided by the Nth group of draws and by nothing else — but a residue of
+ * floating-point summation: the controller's accumulator is a running sum of
+ * per-frame additions, and 60 additions of `dt/60` and 120 additions of
+ * `dt/120` can round to a sum a float epsilon apart even though the schedules
+ * cover the same simulated seconds, which can occasionally shift the last tick
+ * of a long run by one. Requiring exactly equal counts would make the suite
+ * fail for the one reason it does not care about.
+ *
+ * `transported` and `buttonPresses` carry no such slack: both are compared
+ * exactly, because a run's mechanics are now — since both player code and
+ * world physics advance in fixed {@link "./world-controller.ts"!TICK_SECONDS}
+ * ticks regardless of real frame timing — a pure function of how many ticks
+ * elapsed, and that count is identical between two schedules unless the rare
+ * accumulator rounding above has already shifted it, in which case the spawn
+ * comparison above catches it first.
  *
  * @param actual - The run under test.
  * @param expected - The run it must agree with.
@@ -296,6 +315,8 @@ function expectSamePassengers(actual: ProbeRun, expected: ProbeRun): void {
   const compared = Math.min(actual.spawns.length, expected.spawns.length);
   expect(compared).toBeGreaterThanOrEqual(MIN_SPAWNS_COMPARED);
   expect(actual.spawns.slice(0, compared)).toEqual(expected.spawns.slice(0, compared));
+  expect(actual.transported).toBe(expected.transported);
+  expect(actual.buttonPresses).toBe(expected.buttonPresses);
 }
 
 /** Seeds the comparison is made on; three, so one lucky stream cannot pass it. */
@@ -334,23 +355,15 @@ describe("a seed replays the same passengers however the frames fall", () => {
 
     // Only the prefix: a wandering clock covers a different stretch of
     // simulated time, so the run lengths have nothing to say to each other.
+    // The comparison below still checks mechanics, not just identity — each
+    // spawn carries the button-press and delivery counts the run had already
+    // made when that passenger appeared, so an equal prefix is an equal
+    // building up to the last passenger compared, not just an equal queue of
+    // arrivals.
     expectRunIsMeaningful(wandering);
     expectRunIsMeaningful(sixty);
     const compared = Math.min(wandering.spawns.length, sixty.spawns.length);
     expect(compared).toBeGreaterThanOrEqual(MIN_SPAWNS_COMPARED);
     expect(wandering.spawns.slice(0, compared)).toEqual(sixty.spawns.slice(0, compared));
-  });
-
-  it("is a comparison of runs that really did diverge", () => {
-    // The guard on the guard. Every assertion above is that two *different*
-    // runs produced the same passengers; if the two runs were secretly
-    // identical, they would pass no matter what shared the spawn stream. The
-    // elevators are driven by a program reading positions that depend on `dt`,
-    // so at 60 and 120 Hz the buildings must behave differently even though the
-    // people walking into them do not.
-    const sixty = probe("issue-61", () => SIXTY_HZ_MILLIS, BASE_FRAMES);
-    const oneTwenty = probe("issue-61", () => ONE_TWENTY_HZ_MILLIS, BASE_FRAMES * 2);
-
-    expect(oneTwenty.buttonPresses).not.toBe(sixty.buttonPresses);
   });
 });

@@ -16,7 +16,7 @@ import {
 } from "./fitness.ts";
 import { at } from "./test-helpers.ts";
 import { World } from "./world.ts";
-import type { UserCodeObject } from "./world-controller.ts";
+import { MAX_TICKS_PER_FRAME, TICK_SECONDS, type UserCodeObject } from "./world-controller.ts";
 
 const options: FitnessChallengeOptions = {
   description: "Tiny scenario",
@@ -318,12 +318,11 @@ describe("calculateFitness", () => {
     expect(result.transportedCount).toBe(0);
   });
 
-  it("caps a long frame at the substepping limit", () => {
-    // The controller's dtMax is a number of simulated *seconds*, but
-    // calculateFitness handed it stepSize, which is milliseconds. With the
-    // shipped 1000/60 that made the limit 16.7 simulated seconds instead of
-    // 0.0167, so the clamp that exists to stop one long frame being swallowed
-    // whole never engaged.
+  it("caps a very long frame at MAX_TICKS_PER_FRAME ticks", () => {
+    // calculateFitness's controller always ticks at TICK_SECONDS, however long
+    // a "frame" of the suite's own fake frame requester lasts; the excess
+    // beyond MAX_TICKS_PER_FRAME ticks is dropped, not queued, the same as a
+    // real browser stall would be.
     const dts: number[] = [];
     const codeObj: UserCodeObject = {
       init(): void {
@@ -334,23 +333,20 @@ describe("calculateFitness", () => {
       },
     };
 
-    calculateFitness(challenge, codeObj, 1000.0, 3);
+    // Comfortably past MAX_TICKS_PER_FRAME * TICK_SECONDS = 1 simulated second.
+    calculateFitness(challenge, codeObj, 3_600_000, 2);
 
-    // One second of real time per frame, clamped to three times the step.
-    expect(dts.length).toBeGreaterThan(0);
+    expect(dts).toHaveLength(MAX_TICKS_PER_FRAME);
     for (const dt of dts) {
-      expect(dt).toBeCloseTo(3.0 / 60.0, 12);
+      expect(dt).toBe(TICK_SECONDS);
     }
   });
 
-  it("advances the world exactly once per frame at the suite's own step size", () => {
-    // Pins the numbers the benchmark actually runs with: at 1000/60 ms per
-    // frame the clamp is inert and every frame is one whole simulation step.
-    //
-    // This used to assert only the dt handed to player code, which is why it
-    // stayed green while the substep loop was quietly taking a second,
-    // ~7e-18 second world.update() on most frames — a whole extra world tick,
-    // re-running arrival snapping and the statistics recalculation.
+  it("advances the world in lockstep with player code, always by TICK_SECONDS", () => {
+    // Pins the numbers the benchmark actually runs with: at 1000 * TICK_SECONDS
+    // ms per frame, each frame is exactly one tick, so the count below is also
+    // a guard against a stray extra or missing world.update() alongside
+    // codeObj.update() — the bug the substep loop used to have.
     const dts: number[] = [];
     const worldUpdate = vi.spyOn(World.prototype, "update");
     const codeObj: UserCodeObject = {
@@ -362,23 +358,16 @@ describe("calculateFitness", () => {
       },
     };
 
-    calculateFitness(challenge, codeObj, 1000.0 / 60.0, 21);
+    calculateFitness(challenge, codeObj, 1000 * TICK_SECONDS, 21);
 
     // 21 frames, the first of which only records the timestamp.
     expect(dts).toHaveLength(20);
     for (const dt of dts) {
-      expect(dt).toBeCloseTo(1.0 / 60.0, 12);
+      expect(dt).toBe(TICK_SECONDS);
     }
 
     const steps = worldUpdate.mock.calls.map((call) => call[0]);
-    expect(steps).toHaveLength(dts.length);
-    for (const step of steps) {
-      expect(step).toBeCloseTo(1.0 / 60.0, 12);
-    }
-    expect(steps.reduce((a, b) => a + b, 0)).toBeCloseTo(
-      dts.reduce((a, b) => a + b, 0),
-      12,
-    );
+    expect(steps).toEqual(dts);
   });
 
   it("stops simulating as soon as the code throws", () => {

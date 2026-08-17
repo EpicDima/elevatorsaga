@@ -53,11 +53,8 @@ import { createFrameRequester } from "./frame-requester.ts";
 import type { RandomSeed } from "./random.ts";
 import { tutorialTasks, type TutorialTask } from "./tutorial.ts";
 import { getCodeObjFromCode } from "./user-code.ts";
-import { createWorldController } from "./world-controller.ts";
+import { TICK_SECONDS, createWorldController } from "./world-controller.ts";
 import { createWorld, type WorldOptions } from "./world.ts";
-
-/** Largest simulated step the world is advanced by at once; `src/main.ts`'s value. */
-const SIMULATION_STEP_SECONDS = 1.0 / 60.0;
 
 /** Milliseconds per frame, at the rate most displays run at. */
 const FRAME_MILLISECONDS = 1000.0 / 60.0;
@@ -134,7 +131,7 @@ function playRun(
 ): boolean {
   const codeObj = getCodeObjFromCode(code);
   const world = createWorld(options, seed);
-  const worldController = createWorldController(SIMULATION_STEP_SECONDS);
+  const worldController = createWorldController(TICK_SECONDS);
   const frameRequester = createFrameRequester(FRAME_MILLISECONDS);
   // A property rather than two locals, for the reason the fast suite's harness
   // gives: these are written from inside callbacks the compiler's flow analysis

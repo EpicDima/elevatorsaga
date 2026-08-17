@@ -16,7 +16,7 @@ import { createFrameRequester } from "./frame-requester.ts";
 import type { RandomSeed } from "./random.ts";
 import { getCodeObjFromCode } from "./user-code.ts";
 import { createWorld, type WorldOptions } from "./world.ts";
-import { createWorldController, type UserCodeObject } from "./world-controller.ts";
+import { TICK_SECONDS, createWorldController, type UserCodeObject } from "./world-controller.ts";
 
 /** World options for a fitness scenario, with a label for the report. */
 export interface FitnessChallengeOptions extends WorldOptions {
@@ -193,12 +193,13 @@ export function fitnessChallenges(): readonly FitnessChallenge[] {
 export const fitnessSeeds: readonly RandomSeed[] = [1, 2, 3, 4, 5, 6];
 
 /**
- * Largest simulated step the world is advanced by at once, in seconds.
+ * Simulated seconds the benchmark runs each scenario for.
  *
- * The same value `app.js:142` gives the real game's controller, so the
- * benchmark simulates the same physics the player is scored on.
+ * Divided by {@link TICK_SECONDS} to get the tick count `calculateFitness` is
+ * given, so the benchmark's simulated duration stays 200s regardless of the
+ * tick rate it is measured at.
  */
-const SIMULATION_STEP_SECONDS = 1.0 / 60.0;
+const BENCHMARK_SECONDS = 200;
 
 /**
  * Reads an array element that is known to exist.
@@ -251,7 +252,7 @@ export function calculateFitness(
   // The controller takes seconds; the frame requester takes milliseconds. The
   // legacy code passed stepSize to both (fitness.js:17,22), so the substepping
   // limit was three orders of magnitude too large and never engaged.
-  const controller = createWorldController(SIMULATION_STEP_SECONDS);
+  const controller = createWorldController(TICK_SECONDS);
   const result: FitnessResult = {};
 
   const world = createWorld(challenge.options, seed);
@@ -357,7 +358,13 @@ export function doFitnessSuite(
       // seeds, as this does, rather than to read one scenario on its own. One
       // seed per run is also what makes a report quotable -- "seed 3" names a
       // whole row of the results rather than one cell of it.
-      const fitness = calculateFitness(challenge, codeObj, 1000.0 / 60.0, 12000, seed);
+      const fitness = calculateFitness(
+        challenge,
+        codeObj,
+        1000 * TICK_SECONDS,
+        BENCHMARK_SECONDS / TICK_SECONDS,
+        seed,
+      );
       // The legacy code kept iterating the remaining scenarios after a failure
       // and only bailed out afterwards, which is preserved. Its truthiness test
       // is not: `throw 0`, `throw null` and `throw ""` all failed that test, so

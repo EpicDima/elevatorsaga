@@ -4,13 +4,13 @@ import { createFrameRequester, type FrameRequester } from "./frame-requester.ts"
 import { at } from "./test-helpers.ts";
 import { createWorld } from "./world.ts";
 import {
+  MAX_TICKS_PER_FRAME,
+  TICK_SECONDS,
   WorldController,
   createWorldController,
   type ControllableWorld,
   type UserCodeObject,
 } from "./world-controller.ts";
-
-const DT_MAX = 1000.0 / 59;
 
 /** A world stub that records the calls the controller makes on it. */
 interface FakeWorld extends ControllableWorld {
@@ -79,7 +79,7 @@ describe("World controller", () => {
   let frameRequester: FrameRequester;
 
   beforeEach(() => {
-    controller = createWorldController(DT_MAX);
+    controller = createWorldController(TICK_SECONDS);
     fakeWorld = createFakeWorld();
     fakeCodeObj = createFakeCodeObj();
     frameRequester = createFrameRequester(10.0);
@@ -98,12 +98,14 @@ describe("World controller", () => {
     expect(fakeWorld.update).toHaveBeenCalledWith(0.01);
   });
 
-  it("calls world update with scaled delta t", () => {
+  it("runs twice as many ticks for twice the time scale, each still tickSeconds long", () => {
+    // A scaled tick is not a bigger tick: the tick itself is fixed, so what
+    // timeScale changes is how many of them a real frame's time buys.
     controller.timeScale = 2.0;
     controller.start(fakeWorld, fakeCodeObj, frameRequester.register, true);
     frameRequester.trigger();
     frameRequester.trigger();
-    expect(fakeWorld.update).toHaveBeenCalledWith(0.02);
+    expect(fakeWorld.update.mock.calls.map((call) => call[0])).toEqual([0.01, 0.01]);
   });
 
   it("does not update world when paused", () => {
@@ -223,46 +225,53 @@ describe("World controller", () => {
     });
   });
 
-  describe("substepping", () => {
-    it("splits a long frame into steps no longer than dtMax", () => {
-      const dtMax = 0.25;
-      const stepController = createWorldController(dtMax);
-      // 600 ms of real time at timeScale 1 is 0.6 simulated seconds.
+  describe("the tick loop", () => {
+    it("splits a long frame into ticks of exactly tickSeconds, carrying the remainder over", () => {
+      const tickSeconds = 0.25;
+      const stepController = createWorldController(tickSeconds);
+      // 600 ms of real time at timeScale 1 is 0.6 simulated seconds: two whole
+      // ticks and a 0.1 s remainder. The remainder is not flushed as a shorter
+      // final tick — it stays in the accumulator for whatever frame comes next.
       const requester = createFrameRequester(600.0);
       stepController.start(fakeWorld, fakeCodeObj, requester.register, true);
       requester.trigger();
       requester.trigger();
 
-      const steps = fakeWorld.update.mock.calls.map((call) => call[0]);
-      expect(steps).toHaveLength(3);
-      expect(steps[0]).toBeCloseTo(0.25, 10);
-      expect(steps[1]).toBeCloseTo(0.25, 10);
-      expect(steps[2]).toBeCloseTo(0.1, 10);
-      expect(steps.reduce((a, b) => a + b, 0)).toBeCloseTo(0.6, 10);
+      let steps = fakeWorld.update.mock.calls.map((call) => call[0]);
+      expect(steps).toEqual([0.25, 0.25]);
+
+      // Another 600 ms brings the accumulator to 0.1 + 0.6 = 0.7 s: two more
+      // ticks, not three, with 0.2 s left owed.
+      requester.trigger();
+      steps = fakeWorld.update.mock.calls.map((call) => call[0]);
+      expect(steps).toEqual([0.25, 0.25, 0.25, 0.25]);
     });
 
-    it("clamps a very long frame to three times dtMax", () => {
-      const dtMax = 0.25;
-      const stepController = createWorldController(dtMax);
-      const requester = createFrameRequester(10000.0);
+    it("clamps a very long frame to MAX_TICKS_PER_FRAME ticks", () => {
+      const tickSeconds = 0.25;
+      const stepController = createWorldController(tickSeconds);
+      // Comfortably past MAX_TICKS_PER_FRAME * tickSeconds = 25 simulated
+      // seconds, so the cap -- not the frame length -- decides the tick count.
+      const requester = createFrameRequester(1_000_000.0);
       stepController.start(fakeWorld, fakeCodeObj, requester.register, true);
       requester.trigger();
       requester.trigger();
 
       const steps = fakeWorld.update.mock.calls.map((call) => call[0]);
-      expect(steps.reduce((a, b) => a + b, 0)).toBeCloseTo(dtMax * 3, 10);
+      expect(steps).toHaveLength(MAX_TICKS_PER_FRAME);
+      expect(steps.reduce((a, b) => a + b, 0)).toBeCloseTo(MAX_TICKS_PER_FRAME * tickSeconds, 10);
     });
 
-    it("does not take a degenerate extra substep at the end of a frame", () => {
-      // The frame requester accumulates `currentT += timeStep` in floating
-      // point, so at the fitness suite's own 1000/60 ms per frame most frames
-      // land a few 1e-18 above one whole dtMax. The loop used to subtract the
-      // full dtMax rather than the step it had just taken, so that residue
-      // stayed above zero and bought a second world.update() of ~7e-18 — an
-      // entire extra world tick, not a rounding difference. 12 of these 20
-      // frames were double-stepped.
-      const dtMax = 1.0 / 60.0;
-      const stepController = createWorldController(dtMax);
+    it("gives every tick exactly tickSeconds, never a fractional remainder", () => {
+      // The old dtMax-substepping loop absorbed whatever was left of a frame
+      // into a final, undersized step, which floating-point frame lengths (the
+      // fitness suite's own 1000/60 ms, among others) could push a few 1e-18
+      // above a whole multiple of dtMax and buy an entire spurious extra step.
+      // The accumulator design has no "final step" to absorb anything into —
+      // every tick is exactly tickSeconds or it does not run yet — so there is
+      // nothing left here for that regression to recur in.
+      const tickSeconds = 1.0 / 60.0;
+      const stepController = createWorldController(tickSeconds);
       const requester = createFrameRequester(1000.0 / 60.0);
       stepController.start(fakeWorld, fakeCodeObj, requester.register, true);
       for (let i = 0; i < 21; i++) {
@@ -270,33 +279,15 @@ describe("World controller", () => {
       }
 
       const steps = fakeWorld.update.mock.calls.map((call) => call[0]);
-      // The first frame only records lastT, so 21 frames are 20 updates.
-      expect(steps).toHaveLength(20);
+      expect(steps.length).toBeGreaterThan(0);
       for (const step of steps) {
-        expect(step).toBeGreaterThan(dtMax * 0.5);
+        expect(step).toBe(tickSeconds);
       }
-      expect(steps.reduce((a, b) => a + b, 0)).toBeCloseTo(20.0 * dtMax, 12);
     });
 
-    it("splits a frame a hair over a whole multiple of dtMax into that many steps", () => {
-      // 50 ms per frame is exactly three steps of 1/60 s, but only in decimal:
-      // in binary the scaled delta lands 6.9e-18 above 3 * dtMax, which used to
-      // buy a fourth substep of 6.9e-18.
-      const dtMax = 1.0 / 60.0;
-      const stepController = createWorldController(dtMax);
-      const requester = createFrameRequester(50.0);
-      stepController.start(fakeWorld, fakeCodeObj, requester.register, true);
-      requester.trigger();
-      requester.trigger();
-
-      const steps = fakeWorld.update.mock.calls.map((call) => call[0]);
-      expect(steps).toHaveLength(3);
-      expect(steps.reduce((a, b) => a + b, 0)).toBe(0.05);
-    });
-
-    it("stops substepping as soon as the challenge ends", () => {
-      const dtMax = 0.25;
-      const stepController = createWorldController(dtMax);
+    it("stops ticking as soon as the challenge ends", () => {
+      const tickSeconds = 0.25;
+      const stepController = createWorldController(tickSeconds);
       const requester = createFrameRequester(600.0);
       fakeWorld.update.mockImplementation(() => {
         fakeWorld.challengeEnded = true;

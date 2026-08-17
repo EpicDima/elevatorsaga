@@ -75,7 +75,7 @@ import { createFrameRequester } from "./frame-requester.ts";
 import type { RandomSeed } from "./random.ts";
 import { tutorialTasks, type TutorialTask } from "./tutorial.ts";
 import { getCodeObjFromCode } from "./user-code.ts";
-import { createWorldController } from "./world-controller.ts";
+import { TICK_SECONDS, createWorldController } from "./world-controller.ts";
 import { createWorld } from "./world.ts";
 
 afterEach(() => {
@@ -83,9 +83,6 @@ afterEach(() => {
   // answers in whatever language was set last.
   setLocale(DEFAULT_LOCALE);
 });
-
-/** Largest simulated step the world is advanced by at once; `src/main.ts`'s value. */
-const SIMULATION_STEP_SECONDS = 1.0 / 60.0;
 
 /** Milliseconds per frame, at the rate most displays run at. */
 const FRAME_MILLISECONDS = 1000.0 / 60.0;
@@ -257,7 +254,7 @@ function playTask(
 ): RunOutcome {
   const codeObj = getCodeObjFromCode(code);
   const world = createWorld(task.options, seed);
-  const worldController = createWorldController(SIMULATION_STEP_SECONDS);
+  const worldController = createWorldController(TICK_SECONDS);
   const frameRequester = createFrameRequester(FRAME_MILLISECONDS);
   // One object rather than two `let` bindings: both are written from inside
   // callbacks, which the compiler's flow analysis does not follow, so a plain
