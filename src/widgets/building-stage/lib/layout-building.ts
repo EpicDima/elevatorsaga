@@ -43,7 +43,7 @@ export const MIN_SHAFT = 46;
 const DENSE_FLOOR_THRESHOLD = 58;
 
 /** How wide the corridor between the floor numbers and the shafts is, in pixels. */
-const CORRIDOR = 170;
+export const CORRIDOR = 170;
 
 /** Whether a floor's call lamps and floor number have room to stack ("full"), or must pack tighter ("compact"). */
 export type BuildingDensity = "full" | "compact";
