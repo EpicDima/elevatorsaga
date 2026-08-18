@@ -34,36 +34,48 @@ const AT_LEAST_HALF_LOADED: TierRequirementInfo = {
 
 describe("requirementProgress", () => {
   describe("an at-most requirement", () => {
-    it("is 1 once the figure has reached the threshold", () => {
+    it("reads empty on a fresh run, nothing spent yet", () => {
+      expect(requirementProgress(UNDER_60_SECONDS, { ...NOTHING_HAPPENED, elapsedTime: 0 })).toBe(
+        0,
+      );
+    });
+
+    it("fills in step with how much of the budget is spent", () => {
+      expect(requirementProgress(UNDER_60_SECONDS, { ...NOTHING_HAPPENED, elapsedTime: 30 })).toBe(
+        0.5,
+      );
+    });
+
+    it("is full once the figure has reached the threshold", () => {
       expect(requirementProgress(UNDER_60_SECONDS, { ...NOTHING_HAPPENED, elapsedTime: 60 })).toBe(
         1,
       );
     });
 
-    it("is 1 while the figure sits under the threshold, not above 1", () => {
-      expect(requirementProgress(UNDER_60_SECONDS, { ...NOTHING_HAPPENED, elapsedTime: 30 })).toBe(
+    it("stays full rather than climbing past 1 once the threshold is blown", () => {
+      expect(requirementProgress(UNDER_60_SECONDS, { ...NOTHING_HAPPENED, elapsedTime: 120 })).toBe(
         1,
       );
-    });
-
-    it("shrinks toward 0 as the figure grows past the threshold", () => {
-      expect(requirementProgress(UNDER_60_SECONDS, { ...NOTHING_HAPPENED, elapsedTime: 120 })).toBe(
-        0.5,
-      );
-    });
-
-    it("stays finite and clamped at a figure of 0", () => {
-      const fraction = requirementProgress(UNDER_60_SECONDS, {
-        ...NOTHING_HAPPENED,
-        elapsedTime: 0,
-      });
-      expect(fraction).toBe(1);
-      expect(Number.isFinite(fraction)).toBe(true);
     });
   });
 
   describe("an at-least requirement", () => {
-    it("is 1 once the figure has reached the threshold", () => {
+    it("reads empty on a fresh run, nothing earned yet", () => {
+      expect(
+        requirementProgress(AT_LEAST_HALF_LOADED, { ...NOTHING_HAPPENED, avgLoadFactorOnMove: 0 }),
+      ).toBe(0);
+    });
+
+    it("grows toward the threshold", () => {
+      expect(
+        requirementProgress(AT_LEAST_HALF_LOADED, {
+          ...NOTHING_HAPPENED,
+          avgLoadFactorOnMove: 0.25,
+        }),
+      ).toBe(0.5);
+    });
+
+    it("is full once the figure has reached the threshold", () => {
       expect(
         requirementProgress(AT_LEAST_HALF_LOADED, {
           ...NOTHING_HAPPENED,
@@ -72,28 +84,13 @@ describe("requirementProgress", () => {
       ).toBe(1);
     });
 
-    it("is 1 while the figure sits above the threshold, not above 1", () => {
+    it("stays full rather than climbing past 1 once past the threshold", () => {
       expect(
         requirementProgress(AT_LEAST_HALF_LOADED, {
           ...NOTHING_HAPPENED,
           avgLoadFactorOnMove: 1,
         }),
       ).toBe(1);
-    });
-
-    it("grows from 0 toward the threshold", () => {
-      expect(
-        requirementProgress(AT_LEAST_HALF_LOADED, {
-          ...NOTHING_HAPPENED,
-          avgLoadFactorOnMove: 0.25,
-        }),
-      ).toBe(0.5);
-      expect(
-        requirementProgress(AT_LEAST_HALF_LOADED, {
-          ...NOTHING_HAPPENED,
-          avgLoadFactorOnMove: 0,
-        }),
-      ).toBe(0);
     });
   });
 });
@@ -105,14 +102,15 @@ describe("requirementSetProgress", () => {
 
   it("is the one requirement's own progress for a set of one", () => {
     expect(
-      requirementSetProgress([UNDER_60_SECONDS], { ...NOTHING_HAPPENED, elapsedTime: 120 }),
+      requirementSetProgress([UNDER_60_SECONDS], { ...NOTHING_HAPPENED, elapsedTime: 30 }),
     ).toBe(0.5);
   });
 
   it("takes the least-advanced requirement, not the average", () => {
-    const world = { ...NOTHING_HAPPENED, elapsedTime: 120, avgLoadFactorOnMove: 0.5 };
-    // elapsedTime's own fraction is 0.5; avgLoadFactorOnMove's is already 1.
+    // elapsedTime's own fraction is 0.5 (half the time budget spent);
+    // avgLoadFactorOnMove's is already 1 (its own threshold fully reached).
     // The set is only as far along as elapsedTime, not their average of 0.75.
+    const world = { ...NOTHING_HAPPENED, elapsedTime: 30, avgLoadFactorOnMove: 0.5 };
     expect(requirementSetProgress([UNDER_60_SECONDS, AT_LEAST_HALF_LOADED], world)).toBe(0.5);
   });
 });

@@ -16,22 +16,25 @@ import type { ChallengeWorldStats } from "#game/challenges.ts";
 import type { TierRequirementInfo } from "#game/challenge-tiers.ts";
 
 /**
- * A live figure is never let closer to "done" than this from a zero
- * denominator — an at-most requirement's fraction divides by the current
- * figure, and a run that has not moved a single passenger yet must not
- * produce `Infinity` or `NaN`.
- */
-const MIN_DENOMINATOR = 1e-9;
-
-/**
- * How far a live run has come toward clearing one requirement, as a fraction
- * from 0 (nothing done) to 1 (already cleared).
+ * How full a live run has made one requirement's own bar, as a fraction from
+ * 0 (a fresh run, nothing spent or earned yet) to 1 (the threshold reached
+ * or blown).
  *
- * An at-most requirement (lower is better — elapsed time, wait times, move
- * count, stop count) reads 1 once the live figure has fallen to the
- * threshold or below, and shrinks toward 0 as the figure grows past it. An
- * at-least requirement (higher is better — load factor, delivery rate) is
- * the mirror: 1 once the figure has climbed to the threshold or above.
+ * The same `current / threshold` reading for both directions, matching
+ * `design/ui-mockup.html`'s own `needShare()` — its own doc comment states
+ * the rule this ports: a fill bar has to mean the same thing here as it does
+ * in the meter above it, or a player would have to relearn what "full"
+ * means every time they open the card. For an at-least requirement (higher
+ * is better — load factor, delivery rate) that reading is already the
+ * intuitive one: empty at nothing earned, full once the bar is reached. For
+ * an at-most requirement (lower is better — elapsed time, wait times, move
+ * count, stop count) it reads as a budget: empty at nothing spent, full once
+ * the limit is reached, and it stays full rather than draining back down if
+ * the run keeps going past it — the bar is not a live pass/fail verdict
+ * (that is a separate concern; see `design/ui-mockup.html`'s own long
+ * comment on `drawTiers()` for why star-lighting deliberately does not use
+ * this fraction either), only a record of how much of the allowance is
+ * gone.
  *
  * @param requirement - The field, direction and bar to measure against.
  * @param world - The run's current statistics.
@@ -42,11 +45,7 @@ export function requirementProgress(
   world: ChallengeWorldStats,
 ): number {
   const current = world[requirement.field];
-  const fraction =
-    requirement.comparison === "atMost"
-      ? requirement.threshold / Math.max(current, MIN_DENOMINATOR)
-      : current / requirement.threshold;
-  return Math.min(1, Math.max(0, fraction));
+  return Math.min(1, Math.max(0, current / requirement.threshold));
 }
 
 /**
