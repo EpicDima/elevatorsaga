@@ -28,7 +28,21 @@
     "noPropertyAccessFromIndexSignature": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
-    "forceConsistentCasingInFileNames": true
+    "forceConsistentCasingInFileNames": true,
+
+    /* Feature-Sliced Design layer aliases — mirrored in vite.config.ts's
+     * resolve.alias, since Vite/esbuild/Vitest do not read this field.
+     * No baseUrl: paths without one resolve relative to this file. */
+    "paths": {
+      "@shared/*": ["./src/shared/*"],
+      "@entities/*": ["./src/entities/*"],
+      "@features/*": ["./src/features/*"],
+      "@widgets/*": ["./src/widgets/*"],
+      "@pages/*": ["./src/pages/*"],
+      "@app/*": ["./src/app/*"],
+      "@game/*": ["./src/game/*"],
+      "@i18n/*": ["./src/i18n/*"]
+    }
   },
   "include": ["src", "e2e", "*.config.ts", "public/*.d.ts"]
 }

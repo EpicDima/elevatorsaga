@@ -89,6 +89,98 @@ export default tseslint.config(
       globals: { ...globals.node },
     },
   },
+  // Feature-Sliced Design layer boundaries: shared < entities < features <
+  // widgets < pages < app. Each layer may import from itself and everything
+  // below it, never from a layer above. `src/game` and `src/i18n` sit outside
+  // this hierarchy entirely (aliased as @game/@i18n) and are importable from
+  // any layer. This does not catch a slice reaching into a same-layer
+  // sibling's internals instead of its index.ts — a known, accepted gap.
+  {
+    files: ["src/shared/**/*.ts"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: [
+                "**/entities/**",
+                "**/features/**",
+                "**/widgets/**",
+                "**/pages/**",
+                "**/app/**",
+              ],
+              message: "shared may not import from entities, features, widgets, pages or app.",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    files: ["src/entities/**/*.ts"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: ["**/features/**", "**/widgets/**", "**/pages/**", "**/app/**"],
+              message: "entities may not import from features, widgets, pages or app.",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    files: ["src/features/**/*.ts"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: ["**/widgets/**", "**/pages/**", "**/app/**"],
+              message: "features may not import from widgets, pages or app.",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    files: ["src/widgets/**/*.ts"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: ["**/pages/**", "**/app/**"],
+              message: "widgets may not import from pages or app.",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    files: ["src/pages/**/*.ts"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: ["**/app/**"],
+              message: "pages may not import from app.",
+            },
+          ],
+        },
+      ],
+    },
+  },
   {
     // End-to-end tests drive a browser from Node, and the callbacks they hand
     // to `page.evaluate` are evaluated inside the page, so both sets of globals

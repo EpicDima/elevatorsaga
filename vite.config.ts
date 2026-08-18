@@ -1,5 +1,5 @@
 import { readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 
 import type { Plugin } from "vite";
 import { defineConfig } from "vitest/config";
@@ -184,6 +184,21 @@ function licenseNotices(): Plugin {
 
 export default defineConfig({
   plugins: [licenseNotices()],
+  resolve: {
+    // Mirrors tsconfig.json's compilerOptions.paths: TypeScript resolves these
+    // for type-checking, but Vite/esbuild/Vitest never read that field, so the
+    // same mapping has to be repeated here for the build, dev server and tests.
+    alias: [
+      { find: "@shared", replacement: resolve(import.meta.dirname, "src/shared") },
+      { find: "@entities", replacement: resolve(import.meta.dirname, "src/entities") },
+      { find: "@features", replacement: resolve(import.meta.dirname, "src/features") },
+      { find: "@widgets", replacement: resolve(import.meta.dirname, "src/widgets") },
+      { find: "@pages", replacement: resolve(import.meta.dirname, "src/pages") },
+      { find: "@app", replacement: resolve(import.meta.dirname, "src/app") },
+      { find: "@game", replacement: resolve(import.meta.dirname, "src/game") },
+      { find: "@i18n", replacement: resolve(import.meta.dirname, "src/i18n") },
+    ],
+  },
   // package.json is the only place the version is written down; src/ui/version.ts
   // reads it from here and puts it in the footer. This is a compile-time
   // substitution, so it reaches the built bundle and the test run alike.
