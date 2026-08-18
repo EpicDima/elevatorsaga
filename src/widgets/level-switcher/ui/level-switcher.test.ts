@@ -117,6 +117,23 @@ describe("presentLevelSwitcher", () => {
     expect(tiles[0]?.getAttribute("href")).toBe("#challenge=1");
   });
 
+  it("badges every open, non-demo challenge tile with its tier stars, but not the demo tile", () => {
+    const { parent, options } = setUp({
+      challenges: fixtureChallenges(5),
+      bestTiers: new Map<number, ChallengeTier>([[0, "silver"]]),
+      selection: { kind: "challenge", index: 0 },
+    });
+    presentLevelSwitcher(parent, options);
+    const [, challengeBlock] = parent.querySelectorAll(".taskblock");
+    const tiles = [...(challengeBlock?.querySelectorAll(".tasklink") ?? [])];
+
+    const litCounts = tiles
+      .slice(0, 4)
+      .map((tile) => tile.querySelectorAll(".stars .is-on").length);
+    expect(litCounts).toEqual([2, 0, 0, 0]);
+    expect(tiles[4]?.querySelector(".stars")).toBeNull();
+  });
+
   it("marks the current tile with aria-current and writes its name into the trigger", () => {
     const { parent, options } = setUp({
       challenges: fixtureChallenges(4),

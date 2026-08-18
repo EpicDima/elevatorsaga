@@ -3,8 +3,18 @@
 import { describe, expect, it } from "vitest";
 
 import fontAwesome from "./fontawesome-glyphs.json";
-import { createIcon, ICON_ASCENT, ICON_EM_UNITS, ICONS, iconMarkup, iconWidthEm } from "./icon.ts";
-import type { IconName } from "./icon.ts";
+import {
+  createIcon,
+  createSpriteIcon,
+  ICON_ASCENT,
+  ICON_EM_UNITS,
+  ICONS,
+  iconMarkup,
+  iconWidthEm,
+  SPRITE_ICONS,
+  spriteIconMarkup,
+} from "./icon.ts";
+import type { IconName, SpriteIconName } from "./icon.ts";
 
 /**
  * Every `fa-*` glyph the legacy markup used, with the codepoint that class
@@ -110,6 +120,71 @@ describe("iconMarkup", () => {
       template.innerHTML = iconMarkup(name, "extra");
       const parsed = template.content.firstElementChild;
       const built = createIcon(name, "extra");
+      expect(parsed?.outerHTML, name).toBe(built.outerHTML);
+    }
+  });
+});
+
+/** The mockup-family icon names, in the order `SPRITE_ICONS` declares them. */
+const SPRITE_ICON_NAMES = Object.keys(SPRITE_ICONS) as SpriteIconName[];
+
+describe("SPRITE_ICONS", () => {
+  // design/ui-mockup.html's own <symbol id="i-star"> — copied verbatim, the
+  // same reason ICONS is held to fontawesome-glyphs.json above.
+  it("reproduces the mockup's star glyph exactly", () => {
+    expect(SPRITE_ICONS.star).toEqual({
+      viewBox: "0 0 16 16",
+      shapes: [
+        {
+          tag: "path",
+          attrs: {
+            d: "M8 2 9.76 6.17 14.28 6.56 10.85 9.53 11.88 13.94 8 11.6 4.12 13.94 5.15 9.53 1.72 6.56 6.24 6.17Z",
+            fill: "currentColor",
+            stroke: "none",
+          },
+        },
+      ],
+    });
+  });
+});
+
+describe("createSpriteIcon", () => {
+  it("builds an svg at the glyph's native viewBox", () => {
+    const icon = createSpriteIcon("star");
+    expect(icon.namespaceURI).toBe("http://www.w3.org/2000/svg");
+    expect(icon.getAttribute("viewBox")).toBe("0 0 16 16");
+  });
+
+  it("stays out of the accessibility tree", () => {
+    const icon = createSpriteIcon("star");
+    expect(icon.getAttribute("aria-hidden")).toBe("true");
+    expect(icon.getAttribute("focusable")).toBe("false");
+  });
+
+  it("draws each shape with its own paint attributes", () => {
+    const icon = createSpriteIcon("star");
+    const path = icon.firstElementChild;
+    expect(path?.tagName).toBe("path");
+    expect(path?.getAttribute("fill")).toBe("currentColor");
+    expect(path?.getAttribute("stroke")).toBe("none");
+    expect(path?.getAttribute("d")).toBe(SPRITE_ICONS.star.shapes[0].attrs.d);
+  });
+
+  it("keeps the base class and appends any extra classes", () => {
+    expect(createSpriteIcon("star").getAttribute("class")).toBe("ds-icon");
+    expect(createSpriteIcon("star", "up activated").getAttribute("class")).toBe(
+      "ds-icon up activated",
+    );
+  });
+});
+
+describe("spriteIconMarkup", () => {
+  it("parses into the same element createSpriteIcon builds", () => {
+    for (const name of SPRITE_ICON_NAMES) {
+      const template = document.createElement("template");
+      template.innerHTML = spriteIconMarkup(name, "extra");
+      const parsed = template.content.firstElementChild;
+      const built = createSpriteIcon(name, "extra");
       expect(parsed?.outerHTML, name).toBe(built.outerHTML);
     }
   });

@@ -4,6 +4,7 @@ export {
   recordChallengeTier,
 } from "./model/best-tier.ts";
 export { requirementProgress, requirementSetProgress } from "./model/tier-progress.ts";
+export { tierBadgeMarkup } from "./ui/tier-badge.ts";
 export {
   CHALLENGE_TIERS,
   evaluateChallengeTier,

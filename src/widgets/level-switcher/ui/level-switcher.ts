@@ -27,11 +27,12 @@
  *
  * Ships with no CSS, matching `app-bar.ts`'s and `workspace-layout.ts`'s own
  * staged commits: built and tested, not yet called from `index.html` or
- * `src/app/app.ts`. A tile's tier is likewise carried in the markup
- * (`data-tier`) but not yet drawn as anything a player reads — stars belong
- * to `entities/challenge-tier`'s own badge, the next slice of this phase,
- * and a tile that already exposes the attribute costs that slice nothing to
- * adopt later.
+ * `src/app/app.ts`. A tile's tier is carried both as a bare `data-tier`
+ * attribute on the tile itself, for whatever styling a later CSS pass gives
+ * the tile as a whole, and as `entities/challenge-tier`'s own
+ * {@link tierBadgeMarkup} badge, for the stars a player actually reads —
+ * every open, non-demo challenge tile gets one, dim stars included at zero
+ * earned, matching `design/ui-mockup.html`'s `renderTaskMenu`.
  */
 
 import {
@@ -40,6 +41,7 @@ import {
   type LevelMenuInput,
   type LevelMenuTile,
 } from "../model/level-menu.ts";
+import { tierBadgeMarkup } from "#entities/challenge-tier/index.ts";
 import { t } from "#i18n/index.ts";
 import { queryAll, requireElement } from "#shared/lib/dom.ts";
 import { createDisclosure } from "#shared/ui/disclosure.ts";
@@ -228,7 +230,8 @@ function tileTemplate(tile: LevelMenuTile): string {
     tile.kind === "challenge" && tile.tier !== undefined
       ? raw(` data-tier="${tile.tier}"`)
       : raw("");
-  return markup`<a class="${classes}" href="${tile.href}" aria-label="${name}"${current}${tier}>${text}</a>`;
+  const badge = tile.kind === "challenge" && !tile.demo ? raw(tierBadgeMarkup(tile.tier)) : raw("");
+  return markup`<a class="${classes}" href="${tile.href}" aria-label="${name}"${current}${tier}>${text}${badge}</a>`;
 }
 
 /**

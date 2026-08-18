@@ -154,3 +154,112 @@ export function iconMarkup(name: IconName, className?: string): string {
     ` focusable="false"><path transform="${FLIP_TRANSFORM}" d="${path}"/></svg>`
   );
 }
+
+/**
+ * `design/ui-mockup.html`'s own icon family: flat 16x16 outlines, drawn from
+ * scratch for this redesign rather than traced from a webfont. Kept as its
+ * own table rather than folded into {@link ICONS} because the two do not
+ * share a shape — a mockup glyph is one or more raw SVG shapes at native
+ * 16x16 size, some with their own paint overrides (a filled star, a
+ * heavier-stroked check mark), where every {@link ICONS} entry is exactly one
+ * path, flipped out of a webfont's y-up em box. A consumer gets its own
+ * `ds-icon` wrapper class rather than reusing `icon` for the same reason
+ * `style.css`'s design tokens went in under a `--ds-` prefix: this family's
+ * sizing is fixed-pixel, not em-relative like the legacy glyphs already
+ * styled through `.icon`, and the two would fight over that class once either
+ * gets a stylesheet rule.
+ *
+ * Grows one glyph at a time, as this migration's widgets actually need one,
+ * rather than transcribing the mockup's whole sprite sheet up front.
+ */
+export const SPRITE_ICONS = {
+  // Filled solid rather than outlined, unlike every other glyph in this
+  // table: at the 10-11px a star draws in a tile or a tier badge, an
+  // outlined star is a blob, not a star.
+  star: {
+    viewBox: "0 0 16 16",
+    shapes: [
+      {
+        tag: "path",
+        attrs: {
+          d: "M8 2 9.76 6.17 14.28 6.56 10.85 9.53 11.88 13.94 8 11.6 4.12 13.94 5.15 9.53 1.72 6.56 6.24 6.17Z",
+          fill: "currentColor",
+          stroke: "none",
+        },
+      },
+    ],
+  },
+} as const satisfies Record<string, SpriteIconDefinition>;
+
+/** Name of a mockup-family icon in {@link SPRITE_ICONS}. */
+export type SpriteIconName = keyof typeof SPRITE_ICONS;
+
+/** One shape making up a {@link SpriteIconDefinition} — a direct, typed stand-in for an SVG element. */
+interface SpriteShape {
+  /** The SVG element to build. */
+  readonly tag: "circle" | "path";
+  /** Attributes to set on it verbatim, copied from the mockup's own markup. */
+  readonly attrs: Readonly<Record<string, string>>;
+}
+
+/** One mockup-family icon: its native viewBox and the shapes that draw it. */
+interface SpriteIconDefinition {
+  readonly viewBox: string;
+  readonly shapes: readonly SpriteShape[];
+}
+
+/**
+ * Builds a mockup-family icon element.
+ *
+ * Decorative and out of the tab order for the same reason {@link createIcon}
+ * is: every control that carries one also carries its own visible text or
+ * `aria-label`.
+ *
+ * @param name - Icon to draw.
+ * @param className - Extra classes to add alongside `ds-icon`.
+ * @returns A detached `<svg>` element that takes its colour from `currentColor`
+ * unless one of its shapes overrides that.
+ */
+export function createSpriteIcon(name: SpriteIconName, className?: string): SVGSVGElement {
+  const { viewBox, shapes } = SPRITE_ICONS[name];
+  const svg = document.createElementNS(SVG_NS, "svg");
+  svg.setAttribute("class", className === undefined ? "ds-icon" : `ds-icon ${className}`);
+  svg.setAttribute("viewBox", viewBox);
+  svg.setAttribute("aria-hidden", "true");
+  svg.setAttribute("focusable", "false");
+  for (const shape of shapes) {
+    const element = document.createElementNS(SVG_NS, shape.tag);
+    for (const [attribute, value] of Object.entries(shape.attrs)) {
+      element.setAttribute(attribute, value);
+    }
+    svg.append(element);
+  }
+  return svg;
+}
+
+/**
+ * Markup for a mockup-family icon, for embedding in a template literal.
+ *
+ * The result is trusted markup, built only from {@link SPRITE_ICONS} and the
+ * caller-supplied class name, never from player input.
+ *
+ * @param name - Icon to draw.
+ * @param className - Extra classes to add alongside `ds-icon`.
+ * @returns The `<svg>` markup.
+ */
+export function spriteIconMarkup(name: SpriteIconName, className?: string): string {
+  const { viewBox, shapes } = SPRITE_ICONS[name];
+  const classes = className === undefined ? "ds-icon" : `ds-icon ${className}`;
+  const inner = shapes
+    .map((shape) => {
+      const attrs = Object.entries(shape.attrs)
+        .map(([attribute, value]) => `${attribute}="${value}"`)
+        .join(" ");
+      return `<${shape.tag} ${attrs}/>`;
+    })
+    .join("");
+  return (
+    `<svg class="${classes}" viewBox="${viewBox}" aria-hidden="true" focusable="false">` +
+    `${inner}</svg>`
+  );
+}
