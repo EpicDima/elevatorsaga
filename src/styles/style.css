@@ -716,9 +716,9 @@ dl dd {
 
 /*
  * `index.html` ships the control with no options in it, because the list is
- * built from `LOCALES` by `src/ui/language-picker.ts`. A reader with no
- * JavaScript, and every crawler, would otherwise be shown an empty combo box
- * that opens on nothing.
+ * built from `LOCALES` by `src/features/switch-language/ui/language-picker.ts`.
+ * A reader with no JavaScript, and every crawler, would otherwise be shown an
+ * empty combo box that opens on nothing.
  */
 .languagepicker:empty {
   display: none;

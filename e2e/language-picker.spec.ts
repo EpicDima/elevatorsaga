@@ -1,9 +1,10 @@
 /**
  * Changing the language from inside the page, mid-run, in a real browser.
  *
- * `src/ui/language-picker.test.ts` proves the sequence a choice runs through and
- * `src/app/app.test.ts` proves what `relocalise` redraws, both against a jsdom
- * document. Three things only exist in the built site:
+ * `src/features/switch-language/ui/language-picker.test.ts` proves the sequence
+ * a choice runs through and `src/app/app.test.ts` proves what `relocalise`
+ * redraws, both against a jsdom document. Three things only exist in the built
+ * site:
  *
  * - The Russian catalogue is fetched at the moment of the choice rather than
  *   before the first paint, so this is the only place the chunk is loaded into a

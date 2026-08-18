@@ -65,7 +65,8 @@
  * is a preference that should go on following the browser: freezing it on the
  * first visit would strand a reader who later changes their browser's language.
  *
- * That leaves the writing to `src/ui/language-picker.ts`, which is the one
+ * That leaves the writing to
+ * `src/features/switch-language/ui/language-picker.ts`, which is the one
  * source that is a choice, made in this browser, by the person looking at the
  * page — and it is the only place in the game that calls
  * {@link "../i18n/index.ts"!storeLocale}. `preferred-locale.test.ts` holds this
@@ -91,7 +92,8 @@ import { localisePage } from "./localise-page.ts";
  * active language without being told.
  *
  * The sources are read once and none of them is listened to. A language chosen
- * while the page is open is `src/ui/language-picker.ts`'s business, because it
+ * while the page is open is
+ * `src/features/switch-language/ui/language-picker.ts`'s business, because it
  * has to redraw what is already on screen and leave the run in progress where it
  * is — a decision about a game that is being played rather than about start-up.
  *

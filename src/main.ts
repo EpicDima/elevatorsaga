@@ -36,11 +36,11 @@ import { TICK_SECONDS, createWorldController } from "./game/world-controller.ts"
 import { formatTime, t } from "./i18n/index.ts";
 import { CodeEditor, codeMirrorView } from "./ui/editor.ts";
 import { applyStoredEditorHeight, presentEditorResize } from "./ui/editor-size.ts";
-import { presentLanguagePicker } from "./ui/language-picker.ts";
 import { localisePage } from "./ui/localise-page.ts";
 import { applyPreferredLocale } from "./ui/preferred-locale.ts";
 import { presentVersion } from "./ui/version.ts";
 import { DEFAULT_TIME_SCALE } from "#features/adjust-speed/model/time-scale.ts";
+import { presentLanguagePicker } from "#features/switch-language/index.ts";
 import { requireElement } from "#shared/lib/dom.ts";
 
 declare global {

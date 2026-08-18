@@ -125,7 +125,7 @@ describe("index.html", () => {
     ".statscontainer .stopcount",
     ".statscontainer .peopleperstop",
     ".statscontainer .avgloadfactor",
-    // Filled and listened to by src/ui/language-picker.ts.
+    // Filled and listened to by src/features/switch-language/ui/language-picker.ts.
     ".languagepicker",
     // The scrolling frame the world is drawn inside.
     ".world .worldtrack .innerworld",
@@ -373,7 +373,8 @@ describe("index.html", () => {
   });
 
   it("ships the language picker empty, with nothing to choose until the code runs", () => {
-    // The endonyms are built from `LOCALES` in src/ui/language-picker.ts, so
+    // The endonyms are built from `LOCALES` in
+    // src/features/switch-language/ui/language-picker.ts, so
     // adding a third language stays a one-line change and cannot leave a stale
     // copy of the list here. Empty is also what the stylesheet's
     // `.languagepicker:empty` hides: without JavaScript the control could not

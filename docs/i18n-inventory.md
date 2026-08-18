@@ -1021,7 +1021,8 @@ parameter it finds rather than the ones it understands, and `createParamsUrl` re
 from all of them, replacing only what a link overrides. The language therefore rides along
 through the challenge row and the next-challenge link without either of them knowing about it.
 
-Changing language mid-run goes through `presentLanguagePicker` in `src/ui/language-picker.ts`.
+Changing language mid-run goes through `presentLanguagePicker` in
+`src/features/switch-language/ui/language-picker.ts`.
 Its `<select>` is one tab stop rather than one per language, announces its own current value
 without an `aria-current` to maintain, and opens the platform's own picker on a phone. Its
 options are `LOCALE_NAMES`, built from `LOCALES` rather than written out, so a third language
