@@ -685,9 +685,9 @@ Built and unit-tested against a jsdom `<dialog>` — `polyfillDialogElement`
 (`src/shared/ui/test-helpers.ts`) — but not yet wired into `src/app/app.ts` or `settings-menu.ts`'s
 `keysopen` opener, matching every widget staged so far in this migration.
 
-### `docs-modal.ts` — 24 `game.docs.*` keys
+### `src/features/docs-reference/ui/docs-modal.ts` — 24 `game.docs.*` keys
 
-The `docs-reference` feature's own dialog, built in a later commit of this same phase — the help dialog
+The `docs-reference` feature's own dialog — the help dialog
 `design/ui-mockup.html` draws as `<dialog class="docs">`: a search box, a guide, the code skeleton
 every program starts from, a lead paragraph, and the API reference table below (`reference.ts`,
 next). Six keys are the dialog's own chrome, including `empty`, shown in place of the guide and the
@@ -726,10 +726,9 @@ rather than the mockup's own bare `<pre>`.
 | `game.docs.intro.example.code`           | { init: function (elevators, floors) { // subscribe to events here }, update: function (dt, elevator… | code; the skeleton every program starts from; comments translated only |
 | `game.docs.lead.html`                    | elevator is an elevator: all of them live in elevators. floor is a floor, and they're in floors. Any… | markup                                                                 |
 
-`docs-modal.ts` will be built and unit-tested the same way `hotkeys-modal.ts` above already is —
-against a jsdom `<dialog>`, through `polyfillDialogElement` — but is not built yet, so it is not
-wired into `src/app/app.ts` or `settings-menu.ts`'s `docsOpenLabel` opener either, the same "build
-inert first" staging every widget in this migration follows so far.
+Built and unit-tested against a jsdom `<dialog>` — `polyfillDialogElement`
+(`src/shared/ui/test-helpers.ts`) — but not yet wired into `src/app/app.ts` or `settings-menu.ts`'s
+`docsopen` opener, matching every widget staged so far in this migration.
 
 ### `src/entities/api-reference/model/reference.ts` — 59 `game.apiRef.*` keys
 
@@ -745,8 +744,7 @@ example) — besides the two group labels themselves. English condenses this rep
 for a dash. Every `.code` key holds only its comments in translation, the code itself
 byte-identical between locales — `docs.basics.example.code`'s own convention.
 
-Read by nothing outside its own unit test yet — `docs-modal.ts`, the presenter that will draw
-`API_REFERENCE` as the reference table's own rows, is the next commit of this phase.
+Read by `docs-modal.ts` (above), which draws `API_REFERENCE` as the reference table's own rows.
 
 | Key                                                | English                                                                                               | Notes                                                         |
 | -------------------------------------------------- | ----------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
