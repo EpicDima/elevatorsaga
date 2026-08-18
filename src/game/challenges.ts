@@ -490,24 +490,32 @@ export const challenges: readonly Challenge[] = [
   {
     options: { floorCount: 13, elevatorCount: 2, spawnRate: 1.1, elevatorCapacities: [4, 10] },
     condition: requireUserCountWithinTime(50, 70),
-    // DEV_TEST_CODE never wins this building's bronze -- not once across
-    // 2,300 measured seeds, sampled independently of the two hundred every
-    // other challenge here was calibrated against, because the first two
-    // hundred tried turned up nothing to read a threshold from either.
-    // GOOD_CODE_BALANCED does win it, just rarely: sixteen wins in that same
-    // 2,300, about seven in a thousand. As with challenges 12 to 14 above,
-    // there is no second program's distribution to read silver from, so both
-    // tiers come from the one program's own sixteen wins: the median of
-    // their finishing times is silver's bar, the fastest quarter of them is
-    // gold's. This challenge's row in the tiering plan also asks for a
-    // second axis, the same avgLoadFactorOnMove challenge 16 below reads
-    // gold from -- but across these sixteen wins load factor barely tracks
-    // how fast the run finished, a correlation of about 0.28 that a sample
-    // this size cannot tell apart from noise. Compounding a second, noisy
-    // axis onto a distribution already this thin would not separate a
-    // program's play from what a lucky spawn handed it, so this challenge
-    // stays on elapsedTime alone.
-    tiers: { silver: underElapsedTime(67.8), gold: underElapsedTime(66.9) },
+    // DEV_TEST_CODE all but never wins this building's bronze -- two wins in
+    // 40,000 measured seeds (20000-59999), not literally zero but far too
+    // thin to read a threshold from. GOOD_CODE_BALANCED does win it more
+    // often, though still rarely: 273 wins in that same 40,000, about seven
+    // in a thousand. As with challenges 12 to 14 above, there is no second
+    // program's distribution to read silver from, so both tiers come from
+    // GOOD_CODE_BALANCED's own wins: the median of their finishing times is
+    // silver's bar (68.6s, cleared by 49% of those 273 wins), the fastest
+    // quarter of them is gold's (67.7s, cleared by 26%). This challenge's row
+    // in the tiering plan also asks for a second axis, the same
+    // avgLoadFactorOnMove challenge 16 below reads gold from -- but across
+    // these 273 wins load factor barely tracks how fast the run finished, a
+    // correlation of about 0.03. Compounding a second, uncorrelated axis onto
+    // this distribution would not separate a program's play from what a
+    // lucky spawn handed it, so this challenge stays on elapsedTime alone.
+    //
+    // A first pass at these numbers, read off just sixteen wins sampled from
+    // 2,300 seeds, put silver and gold at 67.8s and 66.9s -- tighter than
+    // this recalibration finds, because that sixteen-win sample turned out to
+    // be an unusually fast draw rather than a representative one. Even at
+    // 273 wins this is still a win rate under 1%, so these numbers should be
+    // read as a floor pulled up from a thin population, not a settled
+    // statistic -- they are real observed wins, not a guess, but a program's
+    // actual pass rate against them can still drift as more seeds are
+    // measured.
+    tiers: { silver: underElapsedTime(68.6), gold: underElapsedTime(67.7) },
   },
   {
     options: { floorCount: 9, elevatorCount: 5, spawnRate: 1.1 },
