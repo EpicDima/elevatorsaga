@@ -721,19 +721,28 @@ rather than the mockup's own bare `<pre>`.
 | `game.docs.intro.example.code`           | { init: function (elevators, floors) { // subscribe to events here }, update: function (dt, elevator… | code; the skeleton every program starts from; comments translated only |
 | `game.docs.lead.html`                    | elevator is an elevator: all of them live in elevators. floor is a floor, and they're in floors. Any… | markup                                                                 |
 
-### `reference.ts` — 59 `game.apiRef.*` keys
+Both `hotkeys-modal.ts` and `docs-modal.ts` will be built and unit-tested against a jsdom
+`<dialog>` — `src/shared/ui/modal.test.ts`'s own `polyfillDialogElement` helper — but neither is
+built yet, so neither is wired into `src/app/app.ts` or `settings-menu.ts`'s
+`docsOpenLabel`/`hotkeysOpenLabel` openers either, the same "build inert first" staging every
+widget in this migration follows so far.
 
-The `api-reference` entity's own structural table, likewise built later this phase — which
-`sig` belongs to which group, in which order — as plain data with no `t()` call of its own,
-mirroring `src/entities/challenge/model/challenge-list.ts`'s own purity: an `elevator` group of
-sixteen entries and a `floor` group of three. Every entry names three keys after its own id —
-`.short` (the collapsed `<details class="api">` row's summary), `.more` (its expanded paragraph) and
-`.code` (its example) — besides the two group labels themselves. English condenses this
-repository's own `documentation.html` prose for the same methods rather than translating the
-Russian cold; Russian is `design/ui-mockup.html`'s own `API_DOCS` text, unchanged but for
-`floorNum.more`'s `floors.length-1`, tightened to keep the catalogue's own rule against a spaced
-hyphen standing in for a dash. Every `.code` key holds only its comments in translation, the code
-itself byte-identical between locales — `docs.basics.example.code`'s own convention.
+### `src/entities/api-reference/model/reference.ts` — 59 `game.apiRef.*` keys
+
+`API_REFERENCE`'s own structural table — which `sig` belongs to which group, in which order — as
+plain data with no `t()` call of its own, mirroring
+`src/entities/challenge/model/challenge-list.ts`'s own purity: an `elevator` group of sixteen
+entries and a `floor` group of three. Every entry names three keys after its own id — `.short` (the
+collapsed `<details class="api">` row's summary), `.more` (its expanded paragraph) and `.code` (its
+example) — besides the two group labels themselves. English condenses this repository's own
+`documentation.html` prose for the same methods rather than translating the Russian cold; Russian is
+`design/ui-mockup.html`'s own `API_DOCS` text, unchanged but for `floorNum.more`'s
+`floors.length-1`, tightened to keep the catalogue's own rule against a spaced hyphen standing in
+for a dash. Every `.code` key holds only its comments in translation, the code itself
+byte-identical between locales — `docs.basics.example.code`'s own convention.
+
+Read by nothing outside its own unit test yet — `docs-modal.ts`, the presenter that will draw
+`API_REFERENCE` as the reference table's own rows, is the next commit of this phase.
 
 | Key                                                | English                                                                                               | Notes                                                         |
 | -------------------------------------------------- | ----------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
@@ -796,11 +805,6 @@ itself byte-identical between locales — `docs.basics.example.code`'s own conve
 | `game.apiRef.floor.downButtonPressed.short`        | The "down" button was pressed outside.                                                                |                                                               |
 | `game.apiRef.floor.downButtonPressed.more`         | The same thing, downward. If direction doesn't matter yet, both events can be subscribed in one line… |                                                               |
 | `game.apiRef.floor.downButtonPressed.code`         | floor.on("up_button_pressed down_button_pressed", () => { elevators[0].goToFloor(floor.floorNum());…  | code; comments translated only, code identical across locales |
-
-Built and unit-tested against a jsdom `<dialog>` — `src/shared/ui/modal.test.ts`'s own
-`polyfillDialogElement` helper — none of the three yet wired into `src/app/app.ts` or
-`settings-menu.ts`'s `docsOpenLabel`/`hotkeysOpenLabel` openers, the same "build inert first"
-staging every widget in this migration follows so far.
 
 ### `src/ui/presenters.ts` — 11 `game.*` and 3 `error.*` keys
 
