@@ -30,6 +30,7 @@ import { t } from "../i18n/index.ts";
 
 import { highlightJavaScript } from "./code-highlight.ts";
 import { changedLines } from "./line-diff.ts";
+import { speedStepperTemplate } from "#features/adjust-speed/index.ts";
 import { CODE_SLOTS } from "#features/manage-code-slots/model/code-slots.ts";
 import type { CodeSlot } from "#features/manage-code-slots/model/code-slots.ts";
 import { runButtonsTemplate } from "#features/run-simulation/index.ts";
@@ -488,36 +489,21 @@ export interface ChallengeTemplateData {
  * restore.
  *
  * Four buttons and a speed, in that order, because the four are what the player
- * came for and the speed is a setting. The four are `#features/run-simulation`'s
+ * came for and the speed is a setting. The four are
+ * `#features/run-simulation`'s
  * {@link import("#features/run-simulation/index.ts").runButtonsTemplate} —
  * see that module for their own history and design, including why "Undo
  * reset" ships hidden and why "Run instantly" sits beside Start rather than in
- * a row of its own.
- *
- * The speed buttons carry their name as `aria-label`, which the presenter
- * rewrites on a language change the same way it rewrites every word this
- * template ships without: they are written here so that the row is never
- * nameless, not even for the instant between this markup and the first
- * update.
- *
- * The time-scale controls used to be a `<h3>` wrapping two clickable `<i>`
- * elements. They are a plain container with real buttons now; `.timescale`
- * carries the heading's former metrics so the row looks the same.
- *
- * `.timescale_value` carries `aria-live="polite"`, so a screen reader hears
- * the new speed whichever of the two buttons changed it. Polite rather than
- * assertive: the speed can change several times a second under a held-down
- * button, and an assertive region interrupts whatever is already being read
- * to announce each one, which for a value that settles in well under a second
- * is noise rather than information.
+ * a row of its own. The speed is `#features/adjust-speed`'s
+ * {@link import("#features/adjust-speed/index.ts").speedStepperTemplate} —
+ * see that module for why it is a plain container of real buttons rather than
+ * the `<h3>` wrapping two clickable `<i>` elements it used to be, and for its
+ * `aria-live` region.
  *
  * @returns The run controls markup.
  */
 export function controlsTemplate(): string {
-  return (
-    runButtonsTemplate() +
-    markup`<div class="timescale"><button type="button" class="timescale_decrease unselectable" aria-label="${t("game.timeScale.decrease")}">${raw(iconMarkup("minus-square"))}</button> <span class="emphasis-color timescale_value" aria-live="polite"></span> <button type="button" class="timescale_increase unselectable" aria-label="${t("game.timeScale.increase")}">${raw(iconMarkup("plus-square"))}</button></div>`
-  );
+  return runButtonsTemplate() + speedStepperTemplate();
 }
 
 /**

@@ -35,6 +35,7 @@ import {
   userTemplate,
 } from "./templates.ts";
 import type { ChallengeLinkData, SeedLinkData, UserDisplayType } from "./templates.ts";
+import { presentSpeedStepper } from "#features/adjust-speed/index.ts";
 import { CODE_SLOTS } from "#features/manage-code-slots/model/code-slots.ts";
 import type { CodeSlot } from "#features/manage-code-slots/model/code-slots.ts";
 import { presentRunControls } from "#features/run-simulation/index.ts";
@@ -316,9 +317,10 @@ export interface ControlsPresenter {
  * it is written.
  *
  * The four run buttons plus "Run instantly" are drawn and driven by
- * `#features/run-simulation`'s `presentRunControls`; this function composes
- * that with the speed stepper. The composed pair keeps the app talking to one
- * region and one contract, the way it always has.
+ * `#features/run-simulation`'s `presentRunControls`; the speed stepper by
+ * `#features/adjust-speed`'s `presentSpeedStepper`. This function composes
+ * the two. The composed pair keeps the app talking to one region and one
+ * contract, the way it always has.
  *
  * @param parent - The `.controls` element.
  * @param options - The controller to report on and the callbacks for the six
@@ -357,23 +359,20 @@ export function presentControls(
     },
   });
 
-  const timeScaleValue = requireElement(".timescale_value", parent);
-  const timeScaleDecrease = requireElement(".timescale_decrease", parent);
-  const timeScaleIncrease = requireElement(".timescale_increase", parent);
-
-  timeScaleDecrease.addEventListener("click", () => {
-    options.onTimeScaleDecrease();
-  });
-  timeScaleIncrease.addEventListener("click", () => {
-    options.onTimeScaleIncrease();
+  const speedStepper = presentSpeedStepper(parent, {
+    worldController: options.worldController,
+    onTimeScaleIncrease: () => {
+      options.onTimeScaleIncrease();
+    },
+    onTimeScaleDecrease: () => {
+      options.onTimeScaleDecrease();
+    },
   });
 
   const presenter: ControlsPresenter = {
     update(): void {
       runControls.update();
-      timeScaleValue.textContent = formatTimeScale(options.worldController.timeScale);
-      timeScaleDecrease.setAttribute("aria-label", t("game.timeScale.decrease"));
-      timeScaleIncrease.setAttribute("aria-label", t("game.timeScale.increase"));
+      speedStepper.update();
     },
 
     focusStartStop(): void {
@@ -389,25 +388,11 @@ export function presentControls(
 /**
  * Renders a time scale the way the run controls show it.
  *
- * The legacy `timeScale.toFixed(0) + "x"` was fine for the whole numbers the
- * buttons produce and a lie for anything else: `#timescale=0.5` read `1x`, and
- * `#timescale=0.1` read `0x`, which says the simulation is stopped when it is
- * running at a tenth speed. Whole speeds still render as `1x` and `40x` — not
- * `1.0x` — and fractional ones render as themselves.
- *
- * The multiplication sign is part of the message rather than appended here,
- * because it is not the same character everywhere: English writes the `x` this
- * game has always written, and Russian typography wants `×`.
- *
- * @param timeScale - The multiplier the simulation is running at.
- * @returns The label, e.g. `"2x"`, `"0.25x"`, or `"0,25×"` in Russian.
+ * Re-exported from `#features/adjust-speed`, which now owns it — kept
+ * reachable from here too since this module's own tests still ask for it by
+ * this name.
  */
-export function formatTimeScale(timeScale: number): string {
-  // Rounding first keeps float noise (0.1 + 0.2 and friends) out of the label.
-  // `Intl` then prints the result without padding whole numbers with a decimal
-  // point the way toFixed does, since it is given no minimum fraction digits.
-  return t("game.timeScale.value", { value: Math.round(timeScale * 1000) / 1000 });
-}
+export { formatTimeScale } from "#features/adjust-speed/index.ts";
 
 /**
  * Draws the challenge bar.
