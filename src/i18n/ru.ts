@@ -283,6 +283,22 @@ export const RU_MESSAGES: MessageCatalogue<"ru"> = {
   "game.switchLayout.right": "Код справа",
   "game.switchLayout.onlyCode": "Только код",
   "game.switchLayout.onlyGame": "Только здание",
+  // Настройки: widgets/app-bar's settings-menu.ts — виджет, который собирает
+  // switch-theme, switch-layout, switch-language и manage-seed в одном
+  // попапе, который рисует design/ui-mockup.html. docsOpenLabel и
+  // hotkeysOpenLabel называют только кнопки-открыватели — сами окна справки
+  // и горячих клавиш появятся в фазе 10, поэтому обе кнопки принимают
+  // колбэк клика извне и сами пока ничего не делают. aboutForkLabel/
+  // aboutOriginalLabel/aboutCopyright — единственный текст в блоке, который
+  // в остальном состоит из двух настоящих, зашитых адресов на GitHub:
+  // адреса — не дело переводчика.
+  "game.appBar.docsOpenLabel": "Справка",
+  "game.appBar.settingsLabel": "Настройки",
+  "game.appBar.hotkeysOpenLabel": "Горячие клавиши",
+  "game.appBar.aboutCaption": "Об игре",
+  "game.appBar.aboutForkLabel": "Этот форк",
+  "game.appBar.aboutOriginalLabel": "Оригинал",
+  "game.appBar.aboutCopyright": "Elevator Saga © 2015 Magnus Wolffelt, © 2026 EpicDima, MIT.",
   "game.timeScale.decrease": "Уменьшить скорость симуляции",
   "game.timeScale.increase": "Увеличить скорость симуляции",
   "game.timeScale.value": "{value}×",

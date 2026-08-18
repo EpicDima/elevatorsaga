@@ -258,6 +258,21 @@ export const EN_MESSAGES = {
   "game.switchLayout.right": "Code right",
   "game.switchLayout.onlyCode": "Code only",
   "game.switchLayout.onlyGame": "Building only",
+  // Settings: widgets/app-bar's settings-menu.ts, the widget composing
+  // switch-theme, switch-layout, switch-language and manage-seed into the one
+  // popover `design/ui-mockup.html` draws. docsOpenLabel and hotkeysOpenLabel
+  // name openers only -- Phase 10 is where the docs and hotkeys dialogs
+  // themselves get built, so both buttons take an injected click callback and
+  // do nothing on their own yet. aboutForkLabel/aboutOriginalLabel/
+  // aboutCopyright are the only prose in a block that is otherwise two real,
+  // hardcoded GitHub URLs -- addresses are not a translator's business.
+  "game.appBar.docsOpenLabel": "Help",
+  "game.appBar.settingsLabel": "Settings",
+  "game.appBar.hotkeysOpenLabel": "Hotkeys",
+  "game.appBar.aboutCaption": "About",
+  "game.appBar.aboutForkLabel": "This fork",
+  "game.appBar.aboutOriginalLabel": "Original",
+  "game.appBar.aboutCopyright": "Elevator Saga © 2015 Magnus Wolffelt, © 2026 EpicDima, MIT.",
   "game.timeScale.decrease": "Decrease simulation speed",
   "game.timeScale.increase": "Increase simulation speed",
   "game.timeScale.value": "{value}x",
