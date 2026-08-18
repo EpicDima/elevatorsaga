@@ -131,6 +131,11 @@ describe("presentLevelSwitcher", () => {
       .slice(0, 4)
       .map((tile) => tile.querySelectorAll(".stars .is-on").length);
     expect(litCounts).toEqual([2, 0, 0, 0]);
+    // Tiles 2-3 are locked (no tier on record) and must carry no badge at
+    // all, not merely an unlit one — a dim badge would still read [0, 0]
+    // above and let a regression through unnoticed.
+    expect(tiles[2]?.querySelector(".stars")).toBeNull();
+    expect(tiles[3]?.querySelector(".stars")).toBeNull();
     expect(tiles[4]?.querySelector(".stars")).toBeNull();
   });
 
