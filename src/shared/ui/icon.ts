@@ -509,6 +509,24 @@ export const SPRITE_ICONS = {
       },
     ],
   },
+  // The mockup's generic disclosure chevron, `#i-right` — used by the
+  // settings popover's `keysOpen` row (`.chev`) among other places.
+  right: {
+    viewBox: "0 0 16 16",
+    shapes: [
+      {
+        tag: "path",
+        attrs: {
+          d: "m6 3 5 5-5 5",
+          fill: "none",
+          stroke: "currentColor",
+          "stroke-width": "1.6",
+          "stroke-linecap": "round",
+          "stroke-linejoin": "round",
+        },
+      },
+    ],
+  },
   // The settings trigger's own glyph, `#setOpen` — sliders standing in for
   // "preferences" the same way a gear does elsewhere.
   slider: {

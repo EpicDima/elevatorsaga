@@ -103,12 +103,12 @@ describe("appBarSettingsTemplate", () => {
     expect(parent.querySelector("a.seedlink")?.textContent).toBe("1234567890");
   });
 
-  it("draws the hotkeys opener with a trailing chevron, reusing the legacy caret icon", () => {
+  it("draws the hotkeys opener with a trailing chevron, matching the mockup's own #i-right sprite", () => {
     const parent = document.createElement("div");
     parent.innerHTML = appBarSettingsTemplate(null);
 
     const keysOpen = requireElement(".keysopen", parent);
-    expect(keysOpen.querySelector("svg.chev")).not.toBeNull();
+    expect(keysOpen.querySelector("svg.ds-icon.chev")).not.toBeNull();
     expect(keysOpen.textContent).toContain("Hotkeys");
   });
 

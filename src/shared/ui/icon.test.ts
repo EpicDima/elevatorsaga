@@ -409,6 +409,15 @@ describe("SPRITE_ICONS", () => {
       ],
     });
   });
+
+  // design/ui-mockup.html's own <symbol id="i-right"> — the generic
+  // disclosure chevron the settings popover's keysOpen row draws.
+  it("reproduces the mockup's right glyph exactly", () => {
+    expect(SPRITE_ICONS.right).toEqual({
+      viewBox: "0 0 16 16",
+      shapes: [{ tag: "path", attrs: { d: "m6 3 5 5-5 5", ...STROKE_DEFAULTS("1.6") } }],
+    });
+  });
 });
 
 describe("createSpriteIcon", () => {
