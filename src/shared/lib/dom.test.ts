@@ -10,7 +10,7 @@ import {
   setClass,
   setTransformPos,
 } from "./dom.ts";
-import { createElement } from "./test-helpers.ts";
+import { createElement } from "../../ui/test-helpers.ts";
 
 beforeEach(() => {
   document.body.replaceChildren();

@@ -5,10 +5,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { tutorialTasks } from "../game/tutorial.ts";
 import type { TutorialTask } from "../game/tutorial.ts";
 import { DEFAULT_LOCALE, EN_MESSAGES, LOCALES, setLocale, translateIn } from "../i18n/index.ts";
-import { query, queryAll, requireElement } from "./dom.ts";
 import { createElement } from "./test-helpers.ts";
 import { presentTutorial } from "./tutorial-panel.ts";
 import type { TutorialPanelData } from "./tutorial-panel.ts";
+import { query, queryAll, requireElement } from "@shared/lib/dom.ts";
 
 /**
  * The English catalogue, indexable by a key built at run time.

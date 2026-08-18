@@ -3,7 +3,6 @@
 import { afterEach, describe, expect, it } from "vitest";
 
 import { DEFAULT_LOCALE, setLocale } from "../i18n/index.ts";
-import { requireElement } from "./dom.ts";
 import {
   challengeTemplate,
   codeSlotsTemplate,
@@ -31,6 +30,7 @@ import type {
   SeedLinkData,
   TutorialTemplateData,
 } from "./templates.ts";
+import { requireElement } from "@shared/lib/dom.ts";
 
 describe("escapeHtml", () => {
   it("escapes every character that could break out of markup", () => {

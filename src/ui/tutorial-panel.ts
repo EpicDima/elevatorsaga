@@ -27,8 +27,8 @@
 import { tutorialTasks } from "../game/tutorial.ts";
 import { t, type MessageKey } from "../i18n/index.ts";
 
-import { query, queryAll, requireElement } from "./dom.ts";
 import { renderElement, tutorialTemplate } from "./templates.ts";
+import { query, queryAll, requireElement } from "@shared/lib/dom.ts";
 
 /**
  * Every task the catalogue has prose for, named by its title message.

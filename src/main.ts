@@ -35,13 +35,13 @@ import { challenges } from "./game/challenges.ts";
 import type { FitnessSuiteResult } from "./game/fitness.ts";
 import { TICK_SECONDS, createWorldController } from "./game/world-controller.ts";
 import { formatTime, t } from "./i18n/index.ts";
-import { requireElement } from "./ui/dom.ts";
 import { CodeEditor, codeMirrorView } from "./ui/editor.ts";
 import { applyStoredEditorHeight, presentEditorResize } from "./ui/editor-size.ts";
 import { presentLanguagePicker } from "./ui/language-picker.ts";
 import { localisePage } from "./ui/localise-page.ts";
 import { applyPreferredLocale } from "./ui/preferred-locale.ts";
 import { presentVersion } from "./ui/version.ts";
+import { requireElement } from "@shared/lib/dom.ts";
 
 declare global {
   interface Window {

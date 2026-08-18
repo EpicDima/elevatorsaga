@@ -11,7 +11,6 @@ import type { WorldController } from "../game/world-controller.ts";
 import { DEFAULT_LOCALE, LOCALES, setLocale } from "../i18n/index.ts";
 import type { Locale } from "../i18n/index.ts";
 import { defaultCode } from "../ui/default-code.ts";
-import { queryAll, requireElement } from "../ui/dom.ts";
 import { CODE_STORAGE_KEY, CodeEditor } from "../ui/editor.ts";
 import {
   createElement,
@@ -24,6 +23,7 @@ import type { AppElements } from "./app.ts";
 import { parseQuery, resolveRoute, startRouter } from "./router.ts";
 import { DEFAULT_TIME_SCALE } from "./time-scale.ts";
 import { TUTORIAL_PROGRESS_STORAGE_KEY } from "./tutorial-progress.ts";
+import { queryAll, requireElement } from "@shared/lib/dom.ts";
 
 /** A program that compiles and does nothing. */
 const INERT_CODE = "{ init: function() {}, update: function() {} }";

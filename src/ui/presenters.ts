@@ -20,14 +20,6 @@ import type { WorldController } from "../game/world-controller.ts";
 import { decimal, format, percent, quantity, seconds, t } from "../i18n/index.ts";
 import { CODE_SLOTS } from "./code-slots.ts";
 import type { CodeSlot } from "./code-slots.ts";
-import {
-  clearChildren,
-  query,
-  queryAll,
-  requireElement,
-  setClass,
-  setTransformPos,
-} from "./dom.ts";
 import { createIcon } from "./icons.ts";
 import {
   challengeTemplate,
@@ -46,6 +38,14 @@ import {
   userTemplate,
 } from "./templates.ts";
 import type { ChallengeLinkData, SeedLinkData, UserDisplayType } from "./templates.ts";
+import {
+  clearChildren,
+  query,
+  queryAll,
+  requireElement,
+  setClass,
+  setTransformPos,
+} from "@shared/lib/dom.ts";
 
 /** Class on `<html>` that hides everything except the world. */
 export const FULLSCREEN_CLASS = "fullscreen-demo";
