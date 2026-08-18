@@ -26,7 +26,7 @@ import {
 import type { ChallengePresenterOptions, ControlsPresenterOptions } from "./presenters.ts";
 import type { ChallengeLinkData, SeedLinkData } from "./templates.ts";
 import { createElement } from "./test-helpers.ts";
-import type { CodeSlot } from "#features/manage-code-slots/model/code-slots.ts";
+import type { CodeSlot } from "#features/manage-code-slots/index.ts";
 import { queryAll, requireElement } from "#shared/lib/dom.ts";
 
 /** Builds the `.statscontainer` markup the page shell provides. */

@@ -31,8 +31,6 @@ import { t } from "../i18n/index.ts";
 import { highlightJavaScript } from "./code-highlight.ts";
 import { changedLines } from "./line-diff.ts";
 import { speedStepperTemplate } from "#features/adjust-speed/index.ts";
-import { CODE_SLOTS } from "#features/manage-code-slots/model/code-slots.ts";
-import type { CodeSlot } from "#features/manage-code-slots/model/code-slots.ts";
 import { runButtonsTemplate } from "#features/run-simulation/index.ts";
 import { iconMarkup } from "#shared/ui/icon.ts";
 
@@ -816,48 +814,11 @@ export function codeStatusTemplate(): string {
   return markup`<p class="error">${raw(iconMarkup("warning", "error-color"))} ${t("game.codeStatus")} <span class="errormessage"></span></p>`;
 }
 
-/** Everything the code slot switcher needs in order to render itself. */
-export interface CodeSlotsData {
-  /** The slot open in the editor right now. */
-  readonly currentSlot: CodeSlot;
-}
-
-/**
- * One button of the code slot switcher.
- *
- * The visible label is the bare number, the same choice `challengeLinkTemplate`
- * makes for the challenge row and for the same reason: three of these have to
- * sit in whatever room the toolbar under the editor leaves them, and a number on
- * its own says nothing to a screen reader about what it does. `aria-label`
- * carries the sentence the number is short for.
- *
- * `aria-pressed` rather than `aria-current`: a slot is not a place with an
- * address of its own the way a challenge is, it is a toggle a player presses to
- * change what the editor is showing, the same kind of control the floor call and
- * in-car buttons are. The stylesheet marks the same button off the same
- * attribute, following `.challengelink[aria-current]`, so the two cannot drift
- * apart.
- *
- * @param slot - The slot this button switches to.
- * @param current - Whether this is the slot open in the editor right now.
- * @returns The button markup.
- */
-function codeSlotTemplate(slot: CodeSlot, current: boolean): string {
-  return markup`<button type="button" class="codeslot" aria-pressed="${current}" aria-label="${t("editor.slot.tab.label", { number: slot })}">${slot}</button>`;
-}
-
 /**
  * The code slot switcher, as one row of buttons.
  *
- * Rebuilt from scratch on every call rather than updated in place, unlike
- * `controlsTemplate`'s buttons: there are only three of these, switching one
- * off and another on is the entire update, and nothing about them — no timer,
- * no focus held mid-edit — needs to survive being replaced the way the run
- * controls do.
- *
- * @param data - Which slot is open in the editor right now.
- * @returns The switcher's markup.
+ * Re-exported from `#features/manage-code-slots`, which now owns it — kept
+ * reachable from here too since this module's own tests still ask for it by
+ * this name.
  */
-export function codeSlotsTemplate(data: CodeSlotsData): string {
-  return CODE_SLOTS.map((slot) => codeSlotTemplate(slot, slot === data.currentSlot)).join("");
-}
+export { codeSlotsTemplate, type CodeSlotsData } from "#features/manage-code-slots/index.ts";

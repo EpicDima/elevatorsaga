@@ -20,7 +20,6 @@ import type { WorldController } from "../game/world-controller.ts";
 import { decimal, format, percent, quantity, seconds, t } from "../i18n/index.ts";
 import {
   challengeTemplate,
-  codeSlotsTemplate,
   codeStatusTemplate,
   controlsTemplate,
   elevatorButtonTemplate,
@@ -36,8 +35,6 @@ import {
 } from "./templates.ts";
 import type { ChallengeLinkData, SeedLinkData, UserDisplayType } from "./templates.ts";
 import { presentSpeedStepper } from "#features/adjust-speed/index.ts";
-import { CODE_SLOTS } from "#features/manage-code-slots/model/code-slots.ts";
-import type { CodeSlot } from "#features/manage-code-slots/model/code-slots.ts";
 import { presentRunControls } from "#features/run-simulation/index.ts";
 import {
   clearChildren,
@@ -66,9 +63,6 @@ const SEED_CONTROL_SELECTOR = ".challengeseed a, .challengeseed summary";
 
 /** Selector matching the seed line's disclosure. */
 const SEED_HELP_SELECTOR = ".seedhelp";
-
-/** Selector matching one button of the code slot switcher. */
-const CODE_SLOT_SELECTOR = ".codeslot";
 
 /**
  * Selectors for the parts of a drawn building.
@@ -799,64 +793,18 @@ export function clearCodeStatus(parent: HTMLElement): void {
   clearChildren(parent);
 }
 
-/** What the code slot switcher needs in order to draw and drive itself. */
-export interface CodeSlotsPresenterOptions {
-  /** Which slot is open in the editor right now. */
-  readonly currentSlot: () => CodeSlot;
-  /** Called when a slot button is pressed. */
-  readonly onSelect: (slot: CodeSlot) => void;
-}
-
-/** The rendered code slot switcher. */
-export interface CodeSlotsPresenter {
-  /**
-   * Redraws the row, marking whichever slot `currentSlot` now answers as
-   * pressed.
-   *
-   * Rebuilds the row's markup rather than relabelling what is there, unlike
-   * {@link ControlsPresenter.update}: three buttons are cheap enough to throw
-   * away and redraw, and nothing about them — no timer, no text mid-edit — has
-   * to survive being replaced the way the challenge bar's focus and open
-   * disclosure do in {@link presentChallenge}.
-   */
-  update(): void;
-}
-
 /**
  * Draws the code slot switcher and wires it up.
  *
- * The click listener is bound once, on `parent`, rather than on the buttons
- * `update` throws away and redraws: a listener on a button `update` has just
- * removed from the document hears nothing.
- *
- * @param parent - The `.codeslots` element.
- * @param options - Which slot is current, and the callback for picking another.
- * @returns The presenter, already drawn.
+ * Re-exported from `#features/manage-code-slots`, which now owns it — kept
+ * reachable from here too since this module's own tests still ask for it by
+ * this name.
  */
-export function presentCodeSlots(
-  parent: HTMLElement,
-  options: CodeSlotsPresenterOptions,
-): CodeSlotsPresenter {
-  parent.addEventListener("click", (event) => {
-    const target = event.target;
-    const button = target instanceof Element ? target.closest(CODE_SLOT_SELECTOR) : null;
-    if (!(button instanceof HTMLElement)) {
-      return;
-    }
-    const slot = CODE_SLOTS[queryAll(CODE_SLOT_SELECTOR, parent).indexOf(button)];
-    if (slot !== undefined) {
-      options.onSelect(slot);
-    }
-  });
-
-  const presenter: CodeSlotsPresenter = {
-    update(): void {
-      parent.innerHTML = codeSlotsTemplate({ currentSlot: options.currentSlot() });
-    },
-  };
-  presenter.update();
-  return presenter;
-}
+export {
+  presentCodeSlots,
+  type CodeSlotsPresenter,
+  type CodeSlotsPresenterOptions,
+} from "#features/manage-code-slots/index.ts";
 
 /**
  * Hides everything except the world, for the `#fullscreen` demo mode.
