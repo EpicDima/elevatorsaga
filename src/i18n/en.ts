@@ -236,6 +236,42 @@ export const EN_MESSAGES = {
   "game.feedback.next": "Next challenge",
   "game.codeStatus": "There is a problem with your code:",
 
+  // The challenge bar's own meters and tier popover: `widgets/goal-bar`. Main
+  // meter captions reuse "page.stats.*" directly in code rather than
+  // duplicating them here — "maxPickupTime" is the one figure that panel
+  // never shows, so it is the only caption that needs a key of its own.
+  "game.goalBar.caption.maxPickupTime": "Max wait for a car",
+  "game.goalBar.unit.seconds": " s",
+  "game.goalBar.unit.floors": " fl.",
+  "game.goalBar.tier.bronze": "Bronze",
+  "game.goalBar.tier.silver": "Silver",
+  "game.goalBar.tier.gold": "Gold",
+  "game.goalBar.trigger.titleNone": "Level stars: none yet. Open requirements",
+  "game.goalBar.trigger.titleEarned": "Level stars: {tier}. Open requirements",
+  "game.goalBar.floorBudget.html": {
+    one: "{count} floor",
+    other: "{count} floors",
+  },
+  "game.goalBar.stopBudget.html": {
+    one: "{count} stop",
+    other: "{count} stops",
+  },
+  "game.goalBar.req.transportedCounter.html": "transport {people}",
+  "game.goalBar.req.elapsedTime.html": "finish within {time}",
+  // "deliver everyone within {time}", not "no one waits longer than {time}":
+  // maxWaitTime/avgWaitTime measure spawn-to-delivery, not a wait — see
+  // page.stats.avgWaitTime's and page.stats.maxWaitTime's own doc comments.
+  "game.goalBar.req.maxWaitTime.html": "deliver everyone within {time}",
+  "game.goalBar.req.avgWaitTime.html": "average delivery no later than {time}",
+  "game.goalBar.req.moveCount.html": "elevators travel no more than {floors}",
+  "game.goalBar.req.stopCount.html": "elevators stop no more than {stops}",
+  "game.goalBar.req.avgLoadFactorOnMove.html": "elevators run {percent} full or more",
+  "game.goalBar.req.transportedPerSec.html": "at least {rate} people per second",
+  "game.goalBar.req.avgPeoplePerStop.html": "at least {rate} people per stop",
+  "game.goalBar.req.maxPickupTime.html": "never leave anyone waiting more than {time} for a car",
+  "game.goalBar.req.avgPickupTime.html": "average wait for a car no more than {time}",
+  "game.goalBar.req.avgRideTime.html": "average ride no more than {time}",
+
   // ------------------------------------------------------------- the editor
   // src/ui/editor.ts, src/main.ts and src/ui/default-code.ts.
 

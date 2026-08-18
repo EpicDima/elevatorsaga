@@ -261,6 +261,65 @@ export const RU_MESSAGES: MessageCatalogue<"ru"> = {
   "game.feedback.next": "Следующее задание",
   "game.codeStatus": "С вашим кодом что-то не так:",
 
+  // Полоса цели задания и всплывающий список требований по рангам:
+  // `widgets/goal-bar`. Подписи основных счётчиков берутся прямо из
+  // "page.stats.*" в коде, без дублирования здесь — «maxPickupTime» это
+  // единственная величина, которую панель статистики не показывает, поэтому
+  // только для неё нужен отдельный ключ.
+  // Параллельно page.stats.avgPickupTime «Сред. ожидание кабины» — та же
+  // величина, но максимум, а не среднее.
+  "game.goalBar.caption.maxPickupTime": "Макс. ожидание кабины",
+  "game.goalBar.unit.seconds": " с",
+  "game.goalBar.unit.floors": " эт.",
+  "game.goalBar.tier.bronze": "Бронза",
+  "game.goalBar.tier.silver": "Серебро",
+  "game.goalBar.tier.gold": "Золото",
+  "game.goalBar.trigger.titleNone": "Звёзды уровня: пока ни одной. Открыть требования",
+  // Не «взято {tier}», как в макете: «взято» не согласуется с «бронза»
+  // (нужно «взята»), хотя согласуется с «серебро»/«золото». Вместо этого имя
+  // ранга подставляется прямо, с заглавной буквы.
+  "game.goalBar.trigger.titleEarned": "Звёзды уровня: {tier}. Открыть требования",
+  // Родительный множественный «этажей» неизменен после «не больше» вне
+  // зависимости от числа — то же упрощение, что и в самом макете.
+  "game.goalBar.floorBudget.html": {
+    one: "{count} этажей",
+    few: "{count} этажей",
+    many: "{count} этажей",
+    other: "{count} этажей",
+  },
+  // Полное склонение, в отличие от floorBudget.html — не порт макета, у
+  // которого нет прецедента для этой фразы, поэтому по умолчанию выбрана
+  // грамматически правильная форма.
+  "game.goalBar.stopBudget.html": {
+    one: "{count} остановки",
+    few: "{count} остановок",
+    many: "{count} остановок",
+    other: "{count} остановки",
+  },
+  "game.goalBar.req.transportedCounter.html": "перевезти {people}",
+  "game.goalBar.req.elapsedTime.html": "уложиться в {time}",
+  // Переформулировано относительно «никто не ждёт дольше {time}» из макета —
+  // это вернуло бы ту самую путаницу, которую уже исправляют собственные
+  // комментарии page.stats.avgWaitTime/.maxWaitTime: maxWaitTime/avgWaitTime
+  // измеряют время от появления до доставки, а не ожидание.
+  "game.goalBar.req.maxWaitTime.html": "никого не доставлять дольше {time}",
+  // См. обоснование maxWaitTime выше, здесь не повторяется дословно.
+  "game.goalBar.req.avgWaitTime.html": "доставлять в среднем не дольше {time}",
+  "game.goalBar.req.moveCount.html": "лифты проезжают не больше {floors}",
+  "game.goalBar.req.stopCount.html": "лифты останавливаются не больше {stops}",
+  "game.goalBar.req.avgLoadFactorOnMove.html": "лифты заполнены на {percent} и выше",
+  // Родительный единственного «человека», не множественного: число с двумя
+  // знаками после запятой грамматически дробное (форма other в русском), а
+  // дробные числа требуют родительного единственного.
+  "game.goalBar.req.transportedPerSec.html": "не меньше {rate} человека в секунду",
+  // То же обоснование про родительный единственный; расходится с родительным
+  // множественным собственной подписи page.stats.peoplePerStop «Людей на
+  // остановку» — там нет управляющего числа.
+  "game.goalBar.req.avgPeoplePerStop.html": "не меньше {rate} человека на остановку",
+  "game.goalBar.req.maxPickupTime.html": "никого не забирать дольше {time}",
+  "game.goalBar.req.avgPickupTime.html": "забирать в среднем не дольше {time}",
+  "game.goalBar.req.avgRideTime.html": "везти в среднем не дольше {time}",
+
   // --------------------------------------------------------------- редактор
 
   "editor.label": "Программа для лифтов",

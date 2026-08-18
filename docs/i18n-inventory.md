@@ -104,29 +104,29 @@ Key names carry two suffixes that mean something:
 
 ## Where the strings are
 
-The catalogue holds **322 keys** in two locales. `src/i18n/en.ts` is the reference — its text is
+The catalogue holds **344 keys** in two locales. `src/i18n/en.ts` is the reference — its text is
 the English wording, extracted verbatim — and `src/i18n/ru.ts` is the Russian translation. The
 types make English the shape everything else is measured against: a Russian catalogue missing a
 key, carrying a key English does not have, or giving a plural message the wrong number of forms
 is a compile error, not a runtime surprise.
 
 ```sh
-grep -cE '^  "[^"]+":' src/i18n/en.ts                                   # 322
+grep -cE '^  "[^"]+":' src/i18n/en.ts                                   # 344
 grep -oE '^  "[^"]+"' src/i18n/en.ts | tr -d '"' | cut -d. -f1 | sort | uniq -c | sort -rn
 ```
 
-| Prefix         | Keys    | What reads them                                                                                                                                                                                 |
-| -------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `docs.*`       | 85      | one of them, `docs.basics.example.code`, by `src/ui/completions.ts`; the other 84 by nothing                                                                                                    |
-| `tutorial.*`   | 82      | `src/ui/tutorial-panel.ts`, `src/ui/templates.ts`, `src/app/app.ts`                                                                                                                             |
-| `completion.*` | 33      | `src/ui/completions.ts`                                                                                                                                                                         |
-| `page.*`       | 40      | `index.html`, through `data-i18n` and `data-i18n-attr`; `page.noscript` excepted, see below                                                                                                     |
-| `game.*`       | 38      | `src/ui/templates.ts` (18), `src/ui/presenters.ts` (11), `src/app/app.ts` (5), `src/widgets/level-switcher/ui/level-switcher.ts` (6); the two speed labels are written by both of the first two |
-| `challenge.*`  | 15      | `src/game/challenges.ts`                                                                                                                                                                        |
-| `fitness.*`    | 11      | `src/app/fitness.ts`, `src/game/fitness.ts`, `src/main.ts`, `src/cli/bench.ts`                                                                                                                  |
-| `error.*`      | 10      | `src/game/elevator-interface.ts`, `src/ui/presenters.ts`, `src/game/user-code.ts`, `src/game/movable.ts`                                                                                        |
-| `editor.*`     | 8       | `src/main.ts`, `src/app/app.ts`, `src/ui/editor.ts`, `src/ui/default-code.ts`, `src/ui/templates.ts`, `index.html`                                                                              |
-| **Total**      | **322** |                                                                                                                                                                                                 |
+| Prefix         | Keys    | What reads them                                                                                                                                                                                                                             |
+| -------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `docs.*`       | 85      | one of them, `docs.basics.example.code`, by `src/ui/completions.ts`; the other 84 by nothing                                                                                                                                                |
+| `tutorial.*`   | 82      | `src/ui/tutorial-panel.ts`, `src/ui/templates.ts`, `src/app/app.ts`                                                                                                                                                                         |
+| `game.*`       | 60      | `src/ui/templates.ts` (18), `src/ui/presenters.ts` (11), `src/widgets/goal-bar/ui/goal-bar.ts` (22), `src/app/app.ts` (5), `src/widgets/level-switcher/ui/level-switcher.ts` (6); the two speed labels are written by both of the first two |
+| `page.*`       | 40      | `index.html`, through `data-i18n` and `data-i18n-attr`; `page.noscript` excepted, see below                                                                                                                                                 |
+| `completion.*` | 33      | `src/ui/completions.ts`                                                                                                                                                                                                                     |
+| `challenge.*`  | 15      | `src/game/challenges.ts`                                                                                                                                                                                                                    |
+| `fitness.*`    | 11      | `src/app/fitness.ts`, `src/game/fitness.ts`, `src/main.ts`, `src/cli/bench.ts`                                                                                                                                                              |
+| `error.*`      | 10      | `src/game/elevator-interface.ts`, `src/ui/presenters.ts`, `src/game/user-code.ts`, `src/game/movable.ts`                                                                                                                                    |
+| `editor.*`     | 8       | `src/main.ts`, `src/app/app.ts`, `src/ui/editor.ts`, `src/ui/default-code.ts`, `src/ui/templates.ts`, `index.html`                                                                                                                          |
+| **Total**      | **344** |                                                                                                                                                                                                                                             |
 
 Which keys nothing reads:
 
@@ -436,7 +436,7 @@ identically in every locale. Both names repeat it because an accessible name has
 own — "1234567890, link" describes nothing.
 
 `game.seed.newDraw` appearing inside `game.seed.newDrawLink` is a constraint a translator cannot
-see: the two sit on adjacent lines of a 322-key file and nothing in the file marks them as a
+see: the two sit on adjacent lines of a 344-key file and nothing in the file marks them as a
 pair. `src/i18n/catalogue.test.ts`, under _accessible names_, is what holds it — it requires the
 spoken name to contain the visible label in every locale. Rewording «новый розыгрыш» to «новый
 сид» meant changing both, which is exactly the edit where one gets missed.
@@ -467,6 +467,49 @@ A locked challenge tile can still be `current` — reached by a direct link to a
 player has not unlocked through the switcher itself — and `tileAccessibleName` in
 `level-switcher.ts` keeps naming it as locked even then, rather than switching to
 `game.challenge.nav.link` once it is also the one on screen.
+
+### `src/widgets/goal-bar/ui/goal-bar.ts` — 22 `game.goalBar.*` keys
+
+The challenge bar's own meters and its tier popover. Not yet mounted anywhere the player reaches
+— `presentGoalBar` has no caller outside its own module and its own test file — so this prefix is
+read but not, today, shown; it is filed here rather than under _Deliberately not translated_
+because that section is for strings that were looked at and left out on purpose, and this one
+is wired and waiting on the widget that mounts it.
+
+A main meter's caption is `page.stats.*` wherever the statistics panel already names the same
+field — `METER_CAPTION_KEY` maps eleven of the twelve `ChallengeWorldStats` fields there
+directly. `maxPickupTime` is the one figure that panel never shows, so it is the only caption
+this prefix supplies. The tier popover's twelve `req.*` sentences are built the same way
+`src/game/challenges.ts`'s own condition builders are, from nested `t()` calls: a threshold
+reaches its sentence already declined, through `challenge.timeLimit.html`/`.waitLimit.html`/
+`.people.html` for the seven time- or count-shaped fields, `floorBudget.html`/`stopBudget.html`
+for the two elevator-activity fields, and a bare `format()` call for the three that are already a
+percentage or a rate.
+
+| Key                                         | English                                               | Notes                                                                                                                                                                                                                                                           |
+| ------------------------------------------- | ----------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `game.goalBar.caption.maxPickupTime`        | Max wait for a car                                    | the only main-meter caption not borrowed from `page.stats.*`, since the panel never shows this figure                                                                                                                                                           |
+| `game.goalBar.unit.seconds`                 | ` s` (a leading space)                                | `NoParamMessageKey`; appended after `elapsedTime`'s and `maxWaitTime`'s own figures, the two `METER_FORMAT` entries that carry a `unitKey`                                                                                                                      |
+| `game.goalBar.unit.floors`                  | ` fl.` (a leading space)                              | likewise, after `moveCount`'s figures                                                                                                                                                                                                                           |
+| `game.goalBar.tier.bronze`                  | Bronze                                                | a tier's display name, read by both a popover row and `trigger.titleEarned`'s `{tier}`                                                                                                                                                                          |
+| `game.goalBar.tier.silver`                  | Silver                                                |                                                                                                                                                                                                                                                                 |
+| `game.goalBar.tier.gold`                    | Gold                                                  |                                                                                                                                                                                                                                                                 |
+| `game.goalBar.trigger.titleNone`            | Level stars: none yet. Open requirements              | the tier trigger's title before any tier is earned                                                                                                                                                                                                              |
+| `game.goalBar.trigger.titleEarned`          | Level stars: {tier}. Open requirements                | takes `{tier}`, itself `t(TIER_NAME_KEY[earnedTier])`; Russian could not reuse the mockup's «взято {tier}» — «взято» agrees with «серебро»/«золото» but not with «бронза», which needs «взята» — so the tier's own name is substituted directly instead         |
+| `game.goalBar.floorBudget.html`             | {count} floor / {count} floors                        | plural (one, other); takes `{count}`; feeds `req.moveCount.html`'s `{floors}`; Russian keeps the genitive plural «этажей» invariant across all four categories, matching a simplification the mockup already made                                               |
+| `game.goalBar.stopBudget.html`              | {count} stop / {count} stops                          | plural (one, other); takes `{count}`; feeds `req.stopCount.html`'s `{stops}`; Russian declines all four categories properly — there was no mockup precedent here to simplify from                                                                               |
+| `game.goalBar.req.transportedCounter.html`  | transport {people}                                    | takes `{people}`, itself `challenge.people.html`                                                                                                                                                                                                                |
+| `game.goalBar.req.elapsedTime.html`         | finish within {time}                                  | takes `{time}`, itself `challenge.timeLimit.html`                                                                                                                                                                                                               |
+| `game.goalBar.req.maxWaitTime.html`         | deliver everyone within {time}                        | takes `{time}`, itself `challenge.waitLimit.html`; not "no one waits longer than {time}" — `maxWaitTime`/`avgWaitTime` measure spawn-to-delivery, not a wait, the same distinction `page.stats.avgWaitTime` and `.maxWaitTime` already draw                     |
+| `game.goalBar.req.avgWaitTime.html`         | average delivery no later than {time}                 | takes `{time}`, itself `challenge.waitLimit.html`                                                                                                                                                                                                               |
+| `game.goalBar.req.moveCount.html`           | elevators travel no more than {floors}                | takes `{floors}`, itself `floorBudget.html`                                                                                                                                                                                                                     |
+| `game.goalBar.req.stopCount.html`           | elevators stop no more than {stops}                   | takes `{stops}`, itself `stopBudget.html`                                                                                                                                                                                                                       |
+| `game.goalBar.req.avgLoadFactorOnMove.html` | elevators run {percent} full or more                  | takes `{percent}`, a bare `format(percent(threshold))`                                                                                                                                                                                                          |
+| `game.goalBar.req.transportedPerSec.html`   | at least {rate} people per second                     | takes `{rate}`, a bare `format(decimal(threshold, 2))`; Russian takes the genitive singular «человека», not the plural — a two-decimal figure is grammatically fractional (the `other` category), and a fraction takes the genitive singular whatever the value |
+| `game.goalBar.req.avgPeoplePerStop.html`    | at least {rate} people per stop                       | takes `{rate}`, likewise; the same genitive-singular reasoning, diverging from `page.stats.peoplePerStop`'s own genitive-plural «Людей на остановку», which has no number governing it                                                                          |
+| `game.goalBar.req.maxPickupTime.html`       | never leave anyone waiting more than {time} for a car | takes `{time}`, itself `challenge.waitLimit.html`                                                                                                                                                                                                               |
+| `game.goalBar.req.avgPickupTime.html`       | average wait for a car no more than {time}            | takes `{time}`, itself `challenge.waitLimit.html`                                                                                                                                                                                                               |
+| `game.goalBar.req.avgRideTime.html`         | average ride no more than {time}                      | takes `{time}`, itself `challenge.waitLimit.html`                                                                                                                                                                                                               |
 
 ### `src/ui/presenters.ts` — 11 `game.*` and 3 `error.*` keys
 

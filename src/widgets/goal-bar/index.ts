@@ -5,3 +5,9 @@ export {
   type TierRow,
   type TierRowState,
 } from "./model/tier-rows.ts";
+export {
+  goalBarTemplate,
+  presentGoalBar,
+  type GoalBarOptions,
+  type GoalBarPresenter,
+} from "./ui/goal-bar.ts";
