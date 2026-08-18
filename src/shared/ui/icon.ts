@@ -173,6 +173,89 @@ export function iconMarkup(name: IconName, className?: string): string {
  * rather than transcribing the mockup's whole sprite sheet up front.
  */
 export const SPRITE_ICONS = {
+  // The mockup draws every stroked glyph in this family through one shared
+  // ".icon" CSS rule (fill: none; stroke: currentcolor; stroke-width: 1.6;
+  // round caps/joins) rather than per-shape attributes. This module has no
+  // stylesheet rule for `.ds-icon` yet (see the class doc comment above), so
+  // each stroked shape below carries that same default explicitly instead of
+  // depending on a cascade that doesn't exist here — the same reason `star`
+  // spells out its own paint rather than leaving it to inherited CSS.
+  check: {
+    viewBox: "0 0 16 16",
+    shapes: [
+      {
+        tag: "path",
+        attrs: {
+          d: "m3.5 8.5 3 3 6-7",
+          fill: "none",
+          stroke: "currentColor",
+          "stroke-width": "2",
+          "stroke-linecap": "round",
+          "stroke-linejoin": "round",
+        },
+      },
+    ],
+  },
+  // The tier popover's "not decided yet" mark, between check and x — the
+  // requirement it sits on is neither held nor lost while a run is live.
+  dash: {
+    viewBox: "0 0 16 16",
+    shapes: [
+      {
+        tag: "path",
+        attrs: {
+          d: "M4 8h8",
+          fill: "none",
+          stroke: "currentColor",
+          "stroke-width": "2",
+          "stroke-linecap": "round",
+          "stroke-linejoin": "round",
+        },
+      },
+    ],
+  },
+  // The goal bar's "nothing to meter here" mark, for the demo/sandbox tiles'
+  // never-resolving challenge condition.
+  lamp: {
+    viewBox: "0 0 16 16",
+    shapes: [
+      {
+        tag: "path",
+        attrs: {
+          d: "M8 2v1.5M3.5 8H2m12 0h-1.5M4.6 4.6 3.5 3.5m8.9 1.1 1.1-1.1",
+          fill: "none",
+          stroke: "currentColor",
+          "stroke-width": "1.6",
+          "stroke-linecap": "round",
+          "stroke-linejoin": "round",
+        },
+      },
+      {
+        tag: "circle",
+        attrs: {
+          cx: "8",
+          cy: "8.5",
+          r: "3",
+          fill: "none",
+          stroke: "currentColor",
+          "stroke-width": "1.6",
+          "stroke-linecap": "round",
+          "stroke-linejoin": "round",
+        },
+      },
+      {
+        tag: "path",
+        attrs: {
+          d: "M6.5 13h3",
+          fill: "none",
+          stroke: "currentColor",
+          "stroke-width": "1.6",
+          "stroke-linecap": "round",
+          "stroke-linejoin": "round",
+        },
+      },
+    ],
+  },
   // Filled solid rather than outlined, unlike every other glyph in this
   // table: at the 10-11px a star draws in a tile or a tier badge, an
   // outlined star is a blob, not a star.
@@ -185,6 +268,23 @@ export const SPRITE_ICONS = {
           d: "M8 2 9.76 6.17 14.28 6.56 10.85 9.53 11.88 13.94 8 11.6 4.12 13.94 5.15 9.53 1.72 6.56 6.24 6.17Z",
           fill: "currentColor",
           stroke: "none",
+        },
+      },
+    ],
+  },
+  // The tier popover's "requirement missed" mark, once a run has ended.
+  x: {
+    viewBox: "0 0 16 16",
+    shapes: [
+      {
+        tag: "path",
+        attrs: {
+          d: "m4 4 8 8M12 4l-8 8",
+          fill: "none",
+          stroke: "currentColor",
+          "stroke-width": "2",
+          "stroke-linecap": "round",
+          "stroke-linejoin": "round",
         },
       },
     ],

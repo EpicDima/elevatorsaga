@@ -128,6 +128,15 @@ describe("iconMarkup", () => {
 /** The mockup-family icon names, in the order `SPRITE_ICONS` declares them. */
 const SPRITE_ICON_NAMES = Object.keys(SPRITE_ICONS) as SpriteIconName[];
 
+/** The default paint every stroked mockup-family glyph shares, spelled out per shape (see icon.ts). */
+const STROKE_DEFAULTS = (strokeWidth: string) => ({
+  fill: "none",
+  stroke: "currentColor",
+  "stroke-width": strokeWidth,
+  "stroke-linecap": "round",
+  "stroke-linejoin": "round",
+});
+
 describe("SPRITE_ICONS", () => {
   // design/ui-mockup.html's own <symbol id="i-star"> — copied verbatim, the
   // same reason ICONS is held to fontawesome-glyphs.json above.
@@ -143,6 +152,43 @@ describe("SPRITE_ICONS", () => {
             stroke: "none",
           },
         },
+      ],
+    });
+  });
+
+  // design/ui-mockup.html's own <symbol id="i-check">/<symbol id="i-x">/
+  // <symbol id="i-dash"> — copied verbatim, with the mockup's shared ".icon"
+  // stroke defaults spelled out per shape (see icon.ts's doc comment on why).
+  it("reproduces the mockup's check/x/dash glyphs exactly", () => {
+    expect(SPRITE_ICONS.check).toEqual({
+      viewBox: "0 0 16 16",
+      shapes: [{ tag: "path", attrs: { d: "m3.5 8.5 3 3 6-7", ...STROKE_DEFAULTS("2") } }],
+    });
+    expect(SPRITE_ICONS.x).toEqual({
+      viewBox: "0 0 16 16",
+      shapes: [{ tag: "path", attrs: { d: "m4 4 8 8M12 4l-8 8", ...STROKE_DEFAULTS("2") } }],
+    });
+    expect(SPRITE_ICONS.dash).toEqual({
+      viewBox: "0 0 16 16",
+      shapes: [{ tag: "path", attrs: { d: "M4 8h8", ...STROKE_DEFAULTS("2") } }],
+    });
+  });
+
+  // design/ui-mockup.html's own <symbol id="i-lamp"> — copied verbatim,
+  // three shapes at the mockup's own default (unoverridden) stroke width.
+  it("reproduces the mockup's lamp glyph exactly", () => {
+    expect(SPRITE_ICONS.lamp).toEqual({
+      viewBox: "0 0 16 16",
+      shapes: [
+        {
+          tag: "path",
+          attrs: {
+            d: "M8 2v1.5M3.5 8H2m12 0h-1.5M4.6 4.6 3.5 3.5m8.9 1.1 1.1-1.1",
+            ...STROKE_DEFAULTS("1.6"),
+          },
+        },
+        { tag: "circle", attrs: { cx: "8", cy: "8.5", r: "3", ...STROKE_DEFAULTS("1.6") } },
+        { tag: "path", attrs: { d: "M6.5 13h3", ...STROKE_DEFAULTS("1.6") } },
       ],
     });
   });
