@@ -30,18 +30,24 @@
     "noUnusedParameters": true,
     "forceConsistentCasingInFileNames": true,
 
-    /* Feature-Sliced Design layer aliases — mirrored in vite.config.ts's
-     * resolve.alias, since Vite/esbuild/Vitest do not read this field.
+    /* Feature-Sliced Design layer aliases — `#`-prefixed so they also
+     * resolve as Node's native package.json#imports subpath imports, which
+     * is what lets `node src/cli/bench.ts` (a real npm script, run with no
+     * bundler) follow them: an `@`-style bare specifier has no meaning to
+     * Node's own resolver and breaks at runtime the moment a module on that
+     * CLI's import graph starts using one. Mirrored in package.json's
+     * "imports" field and vite.config.ts's resolve.alias, since Vite/esbuild/
+     * Vitest do not read either of those on their own.
      * No baseUrl: paths without one resolve relative to this file. */
     "paths": {
-      "@shared/*": ["./src/shared/*"],
-      "@entities/*": ["./src/entities/*"],
-      "@features/*": ["./src/features/*"],
-      "@widgets/*": ["./src/widgets/*"],
-      "@pages/*": ["./src/pages/*"],
-      "@app/*": ["./src/app/*"],
-      "@game/*": ["./src/game/*"],
-      "@i18n/*": ["./src/i18n/*"]
+      "#shared/*": ["./src/shared/*"],
+      "#entities/*": ["./src/entities/*"],
+      "#features/*": ["./src/features/*"],
+      "#widgets/*": ["./src/widgets/*"],
+      "#pages/*": ["./src/pages/*"],
+      "#app/*": ["./src/app/*"],
+      "#game/*": ["./src/game/*"],
+      "#i18n/*": ["./src/i18n/*"]
     }
   },
   "include": ["src", "e2e", "*.config.ts", "public/*.d.ts"]

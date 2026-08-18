@@ -92,9 +92,15 @@ export default tseslint.config(
   // Feature-Sliced Design layer boundaries: shared < entities < features <
   // widgets < pages < app. Each layer may import from itself and everything
   // below it, never from a layer above. `src/game` and `src/i18n` sit outside
-  // this hierarchy entirely (aliased as @game/@i18n) and are importable from
-  // any layer. This does not catch a slice reaching into a same-layer
-  // sibling's internals instead of its index.ts — a known, accepted gap.
+  // this hierarchy entirely (aliased as #game/#i18n) and are importable from
+  // any layer. Each group lists both the relative-path form
+  // (`**/entities/**`, for a stray `../../entities/x`) and the alias form
+  // (`\#entities/**`, backslash-escaped: these are gitignore-style patterns,
+  // and a leading `#` is otherwise read as a comment and matches nothing),
+  // since a bare `#`-prefixed specifier does not contain a `/` before the
+  // layer name and so does not match the relative-path glob.
+  // This does not catch a slice reaching into a same-layer sibling's
+  // internals instead of its index.ts — a known, accepted gap.
   {
     files: ["src/shared/**/*.ts"],
     rules: {
@@ -105,10 +111,15 @@ export default tseslint.config(
             {
               group: [
                 "**/entities/**",
+                "\\#entities/**",
                 "**/features/**",
+                "\\#features/**",
                 "**/widgets/**",
+                "\\#widgets/**",
                 "**/pages/**",
+                "\\#pages/**",
                 "**/app/**",
+                "\\#app/**",
               ],
               message: "shared may not import from entities, features, widgets, pages or app.",
             },
@@ -125,7 +136,16 @@ export default tseslint.config(
         {
           patterns: [
             {
-              group: ["**/features/**", "**/widgets/**", "**/pages/**", "**/app/**"],
+              group: [
+                "**/features/**",
+                "\\#features/**",
+                "**/widgets/**",
+                "\\#widgets/**",
+                "**/pages/**",
+                "\\#pages/**",
+                "**/app/**",
+                "\\#app/**",
+              ],
               message: "entities may not import from features, widgets, pages or app.",
             },
           ],
@@ -141,7 +161,14 @@ export default tseslint.config(
         {
           patterns: [
             {
-              group: ["**/widgets/**", "**/pages/**", "**/app/**"],
+              group: [
+                "**/widgets/**",
+                "\\#widgets/**",
+                "**/pages/**",
+                "\\#pages/**",
+                "**/app/**",
+                "\\#app/**",
+              ],
               message: "features may not import from widgets, pages or app.",
             },
           ],
@@ -157,7 +184,7 @@ export default tseslint.config(
         {
           patterns: [
             {
-              group: ["**/pages/**", "**/app/**"],
+              group: ["**/pages/**", "\\#pages/**", "**/app/**", "\\#app/**"],
               message: "widgets may not import from pages or app.",
             },
           ],
@@ -173,7 +200,7 @@ export default tseslint.config(
         {
           patterns: [
             {
-              group: ["**/app/**"],
+              group: ["**/app/**", "\\#app/**"],
               message: "pages may not import from app.",
             },
           ],

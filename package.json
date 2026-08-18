@@ -33,6 +33,16 @@
   "engines": {
     "node": ">=22"
   },
+  "imports": {
+    "#shared/*": "./src/shared/*",
+    "#entities/*": "./src/entities/*",
+    "#features/*": "./src/features/*",
+    "#widgets/*": "./src/widgets/*",
+    "#pages/*": "./src/pages/*",
+    "#app/*": "./src/app/*",
+    "#game/*": "./src/game/*",
+    "#i18n/*": "./src/i18n/*"
+  },
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",

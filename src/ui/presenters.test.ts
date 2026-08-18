@@ -27,7 +27,7 @@ import {
 import type { ChallengePresenterOptions, ControlsPresenterOptions } from "./presenters.ts";
 import type { ChallengeLinkData, SeedLinkData } from "./templates.ts";
 import { createElement } from "./test-helpers.ts";
-import { queryAll, requireElement } from "@shared/lib/dom.ts";
+import { queryAll, requireElement } from "#shared/lib/dom.ts";
 
 /** Builds the `.statscontainer` markup the page shell provides. */
 function statsContainer(): HTMLElement {

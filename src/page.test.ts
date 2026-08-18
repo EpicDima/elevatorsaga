@@ -27,7 +27,7 @@ import {
 } from "./ui/completions.ts";
 import { DOCUMENTATION_LINK_ATTRIBUTE, documentationUrl } from "./ui/documentation-links.ts";
 import { presentVersion, VERSION_SELECTOR } from "./ui/version.ts";
-import { createIcon } from "@shared/ui/icon.ts";
+import { createIcon } from "#shared/ui/icon.ts";
 
 /** The page shell, parsed as the browser would parse it. */
 const page = new DOMParser().parseFromString(pageSource, "text/html");

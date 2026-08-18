@@ -8,7 +8,7 @@
  * time.
  */
 
-import { requireElement } from "@shared/lib/dom.ts";
+import { requireElement } from "#shared/lib/dom.ts";
 
 /**
  * The version from `package.json`, replaced at build time by Vite's `define`.

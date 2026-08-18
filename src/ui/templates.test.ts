@@ -30,7 +30,7 @@ import type {
   SeedLinkData,
   TutorialTemplateData,
 } from "./templates.ts";
-import { requireElement } from "@shared/lib/dom.ts";
+import { requireElement } from "#shared/lib/dom.ts";
 
 describe("escapeHtml", () => {
   it("escapes every character that could break out of markup", () => {

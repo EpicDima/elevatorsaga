@@ -44,8 +44,8 @@ import {
   requireElement,
   setClass,
   setTransformPos,
-} from "@shared/lib/dom.ts";
-import { createIcon } from "@shared/ui/icon.ts";
+} from "#shared/lib/dom.ts";
+import { createIcon } from "#shared/ui/icon.ts";
 
 /** Class on `<html>` that hides everything except the world. */
 export const FULLSCREEN_CLASS = "fullscreen-demo";

@@ -8,7 +8,7 @@ import { DEFAULT_LOCALE, EN_MESSAGES, LOCALES, setLocale, translateIn } from "..
 import { createElement } from "./test-helpers.ts";
 import { presentTutorial } from "./tutorial-panel.ts";
 import type { TutorialPanelData } from "./tutorial-panel.ts";
-import { query, queryAll, requireElement } from "@shared/lib/dom.ts";
+import { query, queryAll, requireElement } from "#shared/lib/dom.ts";
 
 /**
  * The English catalogue, indexable by a key built at run time.
