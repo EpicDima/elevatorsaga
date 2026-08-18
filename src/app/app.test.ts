@@ -21,7 +21,7 @@ import {
 import { App, TIME_SCALE_STORAGE_KEY, readStoredTimeScale } from "./app.ts";
 import type { AppElements } from "./app.ts";
 import { parseQuery, resolveRoute, startRouter } from "./router.ts";
-import { TUTORIAL_PROGRESS_STORAGE_KEY } from "./tutorial-progress.ts";
+import { TUTORIAL_PROGRESS_STORAGE_KEY } from "#entities/tutorial-task/model/progress.ts";
 import { DEFAULT_TIME_SCALE } from "#features/adjust-speed/model/time-scale.ts";
 import { queryAll, requireElement } from "#shared/lib/dom.ts";
 
@@ -1355,8 +1355,8 @@ describe("App learning track", () => {
      * The store is what the link is computed from, and writing it directly is
      * how a spec can describe a player who came back tomorrow: winning eight
      * tasks to test where the link points afterwards would test the conditions
-     * instead. `tutorial-progress.test.ts` is where this shape of record is
-     * proved to be the one the app writes.
+     * instead. `progress.test.ts` is where this shape of record is proved to
+     * be the one the app writes.
      *
      * @param storage - The store the app was built over.
      * @param taskIds - The tasks to record as cleared.

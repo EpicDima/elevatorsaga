@@ -18,7 +18,7 @@
  * for a store that answers with nothing, with rubbish, or by throwing.
  */
 
-import type { TutorialTask } from "../game/tutorial.ts";
+import type { TutorialTask } from "#game/tutorial.ts";
 
 /**
  * Where the cleared tasks are remembered between visits.

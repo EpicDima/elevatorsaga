@@ -42,7 +42,7 @@ import {
   firstUnclearedTutorialTask,
   readClearedTutorialTasks,
   recordClearedTutorialTask,
-} from "./tutorial-progress.ts";
+} from "#entities/tutorial-task/model/progress.ts";
 import {
   clampTimeScale,
   decreasedTimeScale,

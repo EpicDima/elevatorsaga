@@ -3,11 +3,12 @@
 **Дорожка построена — это документ о том, почему она такая, а не список работы.** Восемь заданий
 лежат в `tutorialTasks` (`src/game/tutorial.ts`), маршрут `#challenge=tutorial-N` разбирает
 `src/app/router.ts`, панель с текстом рисует `src/ui/tutorial-panel.ts`, пройденное помнит
-`src/app/tutorial-progress.ts`, а свои буферы редактора дают `openTutorialBuffer` и
-`TUTORIAL_CODE_KEY_PREFIX` в `src/ui/editor.ts`. Обещания ниже держат тесты:
+`src/entities/tutorial-task/model/progress.ts`, а свои буферы редактора дают `openTutorialBuffer`
+и `TUTORIAL_CODE_KEY_PREFIX` в `src/ui/editor.ts`. Обещания ниже держат тесты:
 `src/game/tutorial.test.ts`, `tutorial-solutions.test.ts` (стартовый код проигрывает, эталон
 выигрывает), `tutorial-sweep.test.ts` (запас на сотнях сидов), `src/ui/tutorial-panel.test.ts`,
-`src/app/tutorial-progress.test.ts` и `e2e/tutorial.spec.ts`. Для игрока то же самое описано в
+`src/entities/tutorial-task/model/progress.test.ts` и `e2e/tutorial.spec.ts`. Для игрока то же
+самое описано в
 [README](../README.md#the-learning-track); здесь — разбор, антирешения и метод, по которому
 подбирались здания и пороги. Будущее время в тексте оставлено как есть: переписывать его в
 прошедшее — значит потерять, что именно решалось до постройки, а что выяснилось после.

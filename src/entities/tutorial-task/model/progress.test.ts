@@ -1,15 +1,15 @@
 import { describe, expect, it } from "vitest";
 
-import { tutorialTasks } from "../game/tutorial.ts";
-import type { TutorialTask } from "../game/tutorial.ts";
-import { MemoryStorage } from "../ui/test-helpers.ts";
+import { MemoryStorage } from "../../../ui/test-helpers.ts";
 import {
   TUTORIAL_PROGRESS_STORAGE_KEY,
   countClearedTutorialTasks,
   firstUnclearedTutorialTask,
   readClearedTutorialTasks,
   recordClearedTutorialTask,
-} from "./tutorial-progress.ts";
+} from "./progress.ts";
+import { tutorialTasks } from "#game/tutorial.ts";
+import type { TutorialTask } from "#game/tutorial.ts";
 
 /**
  * A `Storage` that throws from everything, as Safari does in private mode.
