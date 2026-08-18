@@ -104,29 +104,29 @@ Key names carry two suffixes that mean something:
 
 ## Where the strings are
 
-The catalogue holds **362 keys** in two locales. `src/i18n/en.ts` is the reference — its text is
+The catalogue holds **363 keys** in two locales. `src/i18n/en.ts` is the reference — its text is
 the English wording, extracted verbatim — and `src/i18n/ru.ts` is the Russian translation. The
 types make English the shape everything else is measured against: a Russian catalogue missing a
 key, carrying a key English does not have, or giving a plural message the wrong number of forms
 is a compile error, not a runtime surprise.
 
 ```sh
-grep -cE '^  "[^"]+":' src/i18n/en.ts                                   # 362
+grep -cE '^  "[^"]+":' src/i18n/en.ts                                   # 363
 grep -oE '^  "[^"]+"' src/i18n/en.ts | tr -d '"' | cut -d. -f1 | sort | uniq -c | sort -rn
 ```
 
-| Prefix         | Keys    | What reads them                                                                                                                                                                                                                                                                                                                                        |
-| -------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `docs.*`       | 85      | one of them, `docs.basics.example.code`, by `src/ui/completions.ts`; the other 84 by nothing                                                                                                                                                                                                                                                           |
-| `tutorial.*`   | 82      | `src/ui/tutorial-panel.ts`, `src/ui/templates.ts`, `src/app/app.ts`                                                                                                                                                                                                                                                                                    |
-| `game.*`       | 78      | `src/ui/templates.ts` (18), `src/ui/presenters.ts` (11), `src/widgets/goal-bar/ui/goal-bar.ts` (22), `src/app/app.ts` (5), `src/widgets/level-switcher/ui/level-switcher.ts` (6), `src/widgets/building-stage/lib/hover-card-text.ts` (15), `src/widgets/stats-panel/ui/stats-panel.ts` (3); the two speed labels are written by both of the first two |
-| `page.*`       | 40      | `index.html`, through `data-i18n` and `data-i18n-attr`; `page.noscript` excepted, see below                                                                                                                                                                                                                                                            |
-| `completion.*` | 33      | `src/ui/completions.ts`                                                                                                                                                                                                                                                                                                                                |
-| `challenge.*`  | 15      | `src/game/challenges.ts`                                                                                                                                                                                                                                                                                                                               |
-| `fitness.*`    | 11      | `src/app/fitness.ts`, `src/game/fitness.ts`, `src/main.ts`, `src/cli/bench.ts`                                                                                                                                                                                                                                                                         |
-| `error.*`      | 10      | `src/game/elevator-interface.ts`, `src/ui/presenters.ts`, `src/game/user-code.ts`, `src/game/movable.ts`                                                                                                                                                                                                                                               |
-| `editor.*`     | 8       | `src/main.ts`, `src/app/app.ts`, `src/ui/editor.ts`, `src/ui/default-code.ts`, `src/ui/templates.ts`, `index.html`                                                                                                                                                                                                                                     |
-| **Total**      | **362** |                                                                                                                                                                                                                                                                                                                                                        |
+| Prefix         | Keys    | What reads them                                                                                                                                                                                                                                                                                                                                                                                         |
+| -------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `docs.*`       | 85      | one of them, `docs.basics.example.code`, by `src/ui/completions.ts`; the other 84 by nothing                                                                                                                                                                                                                                                                                                            |
+| `tutorial.*`   | 82      | `src/ui/tutorial-panel.ts`, `src/ui/templates.ts`, `src/app/app.ts`                                                                                                                                                                                                                                                                                                                                     |
+| `game.*`       | 79      | `src/ui/templates.ts` (18), `src/ui/presenters.ts` (11), `src/widgets/goal-bar/ui/goal-bar.ts` (22), `src/app/app.ts` (5), `src/widgets/level-switcher/ui/level-switcher.ts` (6), `src/widgets/building-stage/lib/hover-card-text.ts` (15), `src/widgets/stats-panel/ui/stats-panel.ts` (3), `src/widgets/editor-pane/ui/editor-pane.ts` (1); the two speed labels are written by both of the first two |
+| `page.*`       | 40      | `index.html`, through `data-i18n` and `data-i18n-attr`; `page.noscript` excepted, see below                                                                                                                                                                                                                                                                                                             |
+| `completion.*` | 33      | `src/ui/completions.ts`                                                                                                                                                                                                                                                                                                                                                                                 |
+| `challenge.*`  | 15      | `src/game/challenges.ts`                                                                                                                                                                                                                                                                                                                                                                                |
+| `fitness.*`    | 11      | `src/app/fitness.ts`, `src/game/fitness.ts`, `src/main.ts`, `src/cli/bench.ts`                                                                                                                                                                                                                                                                                                                          |
+| `error.*`      | 10      | `src/game/elevator-interface.ts`, `src/ui/presenters.ts`, `src/game/user-code.ts`, `src/game/movable.ts`                                                                                                                                                                                                                                                                                                |
+| `editor.*`     | 8       | `src/main.ts`, `src/app/app.ts`, `src/ui/editor.ts`, `src/ui/default-code.ts`, `src/ui/templates.ts`, `index.html`                                                                                                                                                                                                                                                                                      |
+| **Total**      | **363** |                                                                                                                                                                                                                                                                                                                                                                                                         |
 
 Which keys nothing reads:
 
@@ -436,7 +436,7 @@ identically in every locale. Both names repeat it because an accessible name has
 own — "1234567890, link" describes nothing.
 
 `game.seed.newDraw` appearing inside `game.seed.newDrawLink` is a constraint a translator cannot
-see: the two sit on adjacent lines of a 362-key file and nothing in the file marks them as a
+see: the two sit on adjacent lines of a 363-key file and nothing in the file marks them as a
 pair. `src/i18n/catalogue.test.ts`, under _accessible names_, is what holds it — it requires the
 spoken name to contain the visible label in every locale. Rewording «новый розыгрыш» to «новый
 сид» meant changing both, which is exactly the edit where one gets missed.
@@ -560,6 +560,23 @@ percentage or a rate.
 | `game.goalBar.req.maxPickupTime.html`       | never leave anyone waiting more than {time} for a car | takes `{time}`, itself `challenge.waitLimit.html`                                                                                                                                                                                                               |
 | `game.goalBar.req.avgPickupTime.html`       | average wait for a car no more than {time}            | takes `{time}`, itself `challenge.waitLimit.html`                                                                                                                                                                                                               |
 | `game.goalBar.req.avgRideTime.html`         | average ride no more than {time}                      | takes `{time}`, itself `challenge.waitLimit.html`                                                                                                                                                                                                               |
+
+### `src/widgets/editor-pane/ui/editor-pane.ts` — 1 `game.editorPane.*` key
+
+The editor pane's chrome: the code slot switcher (`presentCodeSlots`, drawn as-is from
+`#features/manage-code-slots`, contributing no key of its own here), a second, independent copy of
+`run-controls.ts`'s "Reset code" and "Undo reset" buttons — reusing `game.button.resetCode` and
+`.undoResetCode`, so neither is a new key either — and an error banner reusing `game.codeStatus`
+for its own message line. The one new key is the banner's goto link, which
+`src/ui/error-location.ts`'s `locateCodeError` makes possible where the mockup's own `#errorGoto`
+did nothing.
+
+| Key                        | English       | Notes                                                                                                                             |
+| -------------------------- | ------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| `game.editorPane.gotoLine` | Line {line} → | takes `{line}`, 1-based; the label of a button hidden whenever `locateCodeError` finds no position for the player's own exception |
+
+Built and unit-tested, not yet wired into `src/app/app.ts`, matching every widget staged so far in
+this migration.
 
 ### `src/ui/presenters.ts` — 11 `game.*` and 3 `error.*` keys
 

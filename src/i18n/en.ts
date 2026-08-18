@@ -208,6 +208,11 @@ export const EN_MESSAGES = {
   "game.levelSwitcher.tutorialTileLabel": "Tutorial task {number}",
   "game.levelSwitcher.tutorialTileClearedLabel": "Tutorial task {number}, completed",
   "game.levelSwitcher.challengeTileLockedLabel": "Challenge {number}, locked",
+  // The editor pane's own goto link: `widgets/editor-pane`. Points at the line
+  // "src/ui/error-location.ts"'s locateCodeError found for the player's own
+  // exception; the button that carries it is hidden whenever that comes back
+  // empty.
+  "game.editorPane.gotoLine": "Line {line} →",
   // The seed line, which is two lines really: a control that says what the run
   // is, and a disclosure that says how far the promise goes. The seed itself is
   // a placeholder rather than part of the sentence — it is the token a player

@@ -249,6 +249,11 @@ export const RU_MESSAGES: MessageCatalogue<"ru"> = {
   "game.levelSwitcher.tutorialTileLabel": "Учебное задание {number}",
   "game.levelSwitcher.tutorialTileClearedLabel": "Учебное задание {number}, пройдено",
   "game.levelSwitcher.challengeTileLockedLabel": "Задание {number}, заблокировано",
+  // Ссылка «к строке» панели редактора: widgets/editor-pane. Указывает на
+  // строку, которую locateCodeError из src/ui/error-location.ts нашла для
+  // исключения игрока; кнопка, которая её несёт, скрыта, если строка не
+  // найдена.
+  "game.editorPane.gotoLine": "строка {line} →",
   "game.seed.label": "Сид",
   "game.seed.link": "Сид {seed}: начать ещё один прогон с этим сидом",
   "game.seed.newDraw": "новый сид",
