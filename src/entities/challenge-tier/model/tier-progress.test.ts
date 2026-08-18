@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { requirementProgress, requirementSetProgress } from "./tier-progress.ts";
+import { requirementMet, requirementProgress, requirementSetProgress } from "./tier-progress.ts";
 import type { ChallengeWorldStats } from "#game/challenges.ts";
 import type { TierRequirementInfo } from "#game/challenge-tiers.ts";
 
@@ -91,6 +91,44 @@ describe("requirementProgress", () => {
           avgLoadFactorOnMove: 1,
         }),
       ).toBe(1);
+    });
+  });
+});
+
+describe("requirementMet", () => {
+  describe("an at-most requirement", () => {
+    it("holds under the threshold", () => {
+      expect(requirementMet(UNDER_60_SECONDS, { ...NOTHING_HAPPENED, elapsedTime: 30 })).toBe(true);
+    });
+
+    it("holds exactly at the threshold", () => {
+      expect(requirementMet(UNDER_60_SECONDS, { ...NOTHING_HAPPENED, elapsedTime: 60 })).toBe(true);
+    });
+
+    it("fails past the threshold", () => {
+      expect(requirementMet(UNDER_60_SECONDS, { ...NOTHING_HAPPENED, elapsedTime: 61 })).toBe(
+        false,
+      );
+    });
+  });
+
+  describe("an at-least requirement", () => {
+    it("fails under the threshold", () => {
+      expect(
+        requirementMet(AT_LEAST_HALF_LOADED, { ...NOTHING_HAPPENED, avgLoadFactorOnMove: 0.4 }),
+      ).toBe(false);
+    });
+
+    it("holds exactly at the threshold", () => {
+      expect(
+        requirementMet(AT_LEAST_HALF_LOADED, { ...NOTHING_HAPPENED, avgLoadFactorOnMove: 0.5 }),
+      ).toBe(true);
+    });
+
+    it("holds past the threshold", () => {
+      expect(
+        requirementMet(AT_LEAST_HALF_LOADED, { ...NOTHING_HAPPENED, avgLoadFactorOnMove: 0.6 }),
+      ).toBe(true);
     });
   });
 });

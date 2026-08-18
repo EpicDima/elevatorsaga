@@ -49,6 +49,31 @@ export function requirementProgress(
 }
 
 /**
+ * Whether a live run currently sits on the passing side of one requirement —
+ * not how full its bar is (that is {@link requirementProgress}), the plain
+ * pass/fail `design/ui-mockup.html`'s own `meets()` answers per requirement.
+ * The same direction check {@link "#game/challenge-tiers.ts"!TierPredicate}'s
+ * own internal `tierPredicate` factory already builds into a composed
+ * predicate, exposed here one requirement at a time: a goal bar needs this
+ * for a single figure (a budget already blown, a bronze target not yet
+ * reached) independently of whichever other requirements share its tier.
+ *
+ * @param requirement - The field, direction and bar to test.
+ * @param world - The run's current statistics.
+ * @returns Whether `field` currently sits at or past `threshold`, on the
+ * required side.
+ */
+export function requirementMet(
+  requirement: TierRequirementInfo,
+  world: ChallengeWorldStats,
+): boolean {
+  const current = world[requirement.field];
+  return requirement.comparison === "atMost"
+    ? current <= requirement.threshold
+    : current >= requirement.threshold;
+}
+
+/**
  * How far a live run has come toward clearing every requirement in a set, as
  * a single fraction.
  *
