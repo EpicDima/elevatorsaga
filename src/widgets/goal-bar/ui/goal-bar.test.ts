@@ -164,6 +164,36 @@ describe("presentGoalBar", () => {
     expect(transported.querySelectorAll(".tick")).toHaveLength(0);
   });
 
+  it("suppresses a tick exactly at either edge of the 3%/98% window, not just past it", () => {
+    const challenge: Challenge = {
+      options: {},
+      condition: requireUserCountWithinTime(10, 100),
+      tiers: {
+        silver: underElapsedTime(3), // 3 / 100 = 3.0%, the edge itself
+        gold: underElapsedTime(98), // 98 / 100 = 98.0%, the other edge
+      },
+    };
+    const parent = setUp(challenge, fixtureWorld());
+    const elapsed = requireElement('.meter[data-kind="elapsedTime"]', parent);
+
+    expect(elapsed.querySelectorAll(".tick")).toHaveLength(0);
+  });
+
+  it("draws a tick a hair inside either edge of the 3%/98% window", () => {
+    const challenge: Challenge = {
+      options: {},
+      condition: requireUserCountWithinTime(10, 100),
+      tiers: {
+        silver: underElapsedTime(3.01), // 3.01%, just past the low edge
+        gold: underElapsedTime(97.99), // 97.99%, just short of the high edge
+      },
+    };
+    const parent = setUp(challenge, fixtureWorld());
+    const elapsed = requireElement('.meter[data-kind="elapsedTime"]', parent);
+
+    expect(elapsed.querySelectorAll(".tick")).toHaveLength(2);
+  });
+
   it("shows the challenge's own description and hides the tier trigger for a challenge with nothing to meter", () => {
     const parent = setUp(NOTHING_TO_METER_CHALLENGE, fixtureWorld());
 
