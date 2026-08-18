@@ -15,6 +15,19 @@ import {
   type TierPredicate,
 } from "./challenge-tiers.ts";
 
+/**
+ * Builds a bare `TierPredicate` stub for tests that exercise
+ * `requireAll`/`evaluateChallengeTier`'s own logic, not any one real
+ * requirement -- an empty `requirements` list is honest here, since a stub
+ * reads no field at all.
+ *
+ * @param result - What the stub always returns.
+ * @returns The stub.
+ */
+function stubPredicate(result: boolean): TierPredicate {
+  return Object.assign(() => result, { requirements: [] });
+}
+
 /** A world in which nothing at all has happened yet. */
 const NOTHING_HAPPENED: ChallengeWorldStats = {
   elapsedTime: 0,
@@ -37,6 +50,12 @@ describe("underElapsedTime", () => {
     expect(predicate({ ...NOTHING_HAPPENED, elapsedTime: 60 })).toBe(true);
     expect(predicate({ ...NOTHING_HAPPENED, elapsedTime: 60.0001 })).toBe(false);
   });
+
+  it("describes itself as an at-most requirement on elapsedTime", () => {
+    expect(underElapsedTime(60).requirements).toEqual([
+      { field: "elapsedTime", comparison: "atMost", threshold: 60 },
+    ]);
+  });
 });
 
 describe("underMaxWaitTime", () => {
@@ -44,6 +63,12 @@ describe("underMaxWaitTime", () => {
     const predicate = underMaxWaitTime(20);
     expect(predicate({ ...NOTHING_HAPPENED, maxWaitTime: 20 })).toBe(true);
     expect(predicate({ ...NOTHING_HAPPENED, maxWaitTime: 20.0001 })).toBe(false);
+  });
+
+  it("describes itself as an at-most requirement on maxWaitTime", () => {
+    expect(underMaxWaitTime(20).requirements).toEqual([
+      { field: "maxWaitTime", comparison: "atMost", threshold: 20 },
+    ]);
   });
 });
 
@@ -53,6 +78,12 @@ describe("underMoveCount", () => {
     expect(predicate({ ...NOTHING_HAPPENED, moveCount: 450 })).toBe(true);
     expect(predicate({ ...NOTHING_HAPPENED, moveCount: 451 })).toBe(false);
   });
+
+  it("describes itself as an at-most requirement on moveCount", () => {
+    expect(underMoveCount(450).requirements).toEqual([
+      { field: "moveCount", comparison: "atMost", threshold: 450 },
+    ]);
+  });
 });
 
 describe("underAvgWaitTime", () => {
@@ -60,6 +91,12 @@ describe("underAvgWaitTime", () => {
     const predicate = underAvgWaitTime(15);
     expect(predicate({ ...NOTHING_HAPPENED, avgWaitTime: 15 })).toBe(true);
     expect(predicate({ ...NOTHING_HAPPENED, avgWaitTime: 15.0001 })).toBe(false);
+  });
+
+  it("describes itself as an at-most requirement on avgWaitTime", () => {
+    expect(underAvgWaitTime(15).requirements).toEqual([
+      { field: "avgWaitTime", comparison: "atMost", threshold: 15 },
+    ]);
   });
 });
 
@@ -69,6 +106,12 @@ describe("underStopCount", () => {
     expect(predicate({ ...NOTHING_HAPPENED, stopCount: 200 })).toBe(true);
     expect(predicate({ ...NOTHING_HAPPENED, stopCount: 201 })).toBe(false);
   });
+
+  it("describes itself as an at-most requirement on stopCount", () => {
+    expect(underStopCount(200).requirements).toEqual([
+      { field: "stopCount", comparison: "atMost", threshold: 200 },
+    ]);
+  });
 });
 
 describe("atLeastAvgLoadFactorOnMove", () => {
@@ -76,6 +119,12 @@ describe("atLeastAvgLoadFactorOnMove", () => {
     const predicate = atLeastAvgLoadFactorOnMove(0.5);
     expect(predicate({ ...NOTHING_HAPPENED, avgLoadFactorOnMove: 0.5 })).toBe(true);
     expect(predicate({ ...NOTHING_HAPPENED, avgLoadFactorOnMove: 0.4999 })).toBe(false);
+  });
+
+  it("describes itself as an at-least requirement on avgLoadFactorOnMove", () => {
+    expect(atLeastAvgLoadFactorOnMove(0.5).requirements).toEqual([
+      { field: "avgLoadFactorOnMove", comparison: "atLeast", threshold: 0.5 },
+    ]);
   });
 });
 
@@ -85,12 +134,18 @@ describe("atLeastTransportedPerSec", () => {
     expect(predicate({ ...NOTHING_HAPPENED, transportedPerSec: 1.5 })).toBe(true);
     expect(predicate({ ...NOTHING_HAPPENED, transportedPerSec: 1.4999 })).toBe(false);
   });
+
+  it("describes itself as an at-least requirement on transportedPerSec", () => {
+    expect(atLeastTransportedPerSec(1.5).requirements).toEqual([
+      { field: "transportedPerSec", comparison: "atLeast", threshold: 1.5 },
+    ]);
+  });
 });
 
 describe("requireAll", () => {
   it("holds only when every predicate holds", () => {
-    const alwaysTrue: TierPredicate = () => true;
-    const alwaysFalse: TierPredicate = () => false;
+    const alwaysTrue = stubPredicate(true);
+    const alwaysFalse = stubPredicate(false);
     expect(requireAll(alwaysTrue, alwaysTrue)(NOTHING_HAPPENED)).toBe(true);
     expect(requireAll(alwaysTrue, alwaysFalse)(NOTHING_HAPPENED)).toBe(false);
     expect(requireAll(alwaysFalse, alwaysTrue)(NOTHING_HAPPENED)).toBe(false);
@@ -100,15 +155,28 @@ describe("requireAll", () => {
     expect(requireAll()(NOTHING_HAPPENED)).toBe(true);
   });
 
+  it("concatenates its predicates' requirements in order", () => {
+    expect(requireAll(underMaxWaitTime(20), underMoveCount(450)).requirements).toEqual([
+      { field: "maxWaitTime", comparison: "atMost", threshold: 20 },
+      { field: "moveCount", comparison: "atMost", threshold: 450 },
+    ]);
+  });
+
   it("short-circuits, the same way Array.prototype.every does", () => {
     // A later predicate that would fail the run on its own must never be
     // asked, once an earlier one has already said no -- proving this combinator
     // is exactly `.every` under the hood rather than something that scores
     // every predicate and only decides at the end.
-    const failsFirst = vi.fn(() => false);
-    const wouldThrow = vi.fn(() => {
-      throw new Error("must not be called once an earlier predicate has already failed");
-    });
+    const failsFirst = Object.assign(
+      vi.fn(() => false),
+      { requirements: [] },
+    );
+    const wouldThrow = Object.assign(
+      vi.fn(() => {
+        throw new Error("must not be called once an earlier predicate has already failed");
+      }),
+      { requirements: [] },
+    );
     expect(requireAll(failsFirst, wouldThrow)(NOTHING_HAPPENED)).toBe(false);
     expect(failsFirst).toHaveBeenCalledOnce();
     expect(wouldThrow).not.toHaveBeenCalled();
@@ -118,8 +186,8 @@ describe("requireAll", () => {
 describe("evaluateChallengeTier", () => {
   it("is null on a loss, whatever the statistics and requirements say", () => {
     const tiers: ChallengeTierRequirements = {
-      silver: () => true,
-      gold: () => true,
+      silver: stubPredicate(true),
+      gold: stubPredicate(true),
     };
     expect(evaluateChallengeTier(false, NOTHING_HAPPENED, tiers)).toBe(null);
     expect(evaluateChallengeTier(false, { ...NOTHING_HAPPENED, elapsedTime: 1e9 }, undefined)).toBe(
@@ -133,16 +201,16 @@ describe("evaluateChallengeTier", () => {
 
   it("is bronze on a win that clears neither requirement", () => {
     const tiers: ChallengeTierRequirements = {
-      silver: () => false,
-      gold: () => false,
+      silver: stubPredicate(false),
+      gold: stubPredicate(false),
     };
     expect(evaluateChallengeTier(true, NOTHING_HAPPENED, tiers)).toBe("bronze");
   });
 
   it("is silver on a win that clears silver but not gold", () => {
     const tiers: ChallengeTierRequirements = {
-      silver: () => true,
-      gold: () => false,
+      silver: stubPredicate(true),
+      gold: stubPredicate(false),
     };
     expect(evaluateChallengeTier(true, NOTHING_HAPPENED, tiers)).toBe("silver");
   });
@@ -153,8 +221,8 @@ describe("evaluateChallengeTier", () => {
       // gold does not imply silver here on purpose, so that gold winning
       // regardless of silver's answer is a property of the evaluator, not an
       // accident of a well-behaved fixture.
-      silver: () => false,
-      gold: () => true,
+      silver: stubPredicate(false),
+      gold: stubPredicate(true),
     };
     expect(evaluateChallengeTier(true, NOTHING_HAPPENED, tiers)).toBe("gold");
   });

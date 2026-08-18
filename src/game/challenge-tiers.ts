@@ -37,8 +37,36 @@ export const CHALLENGE_TIERS: readonly ChallengeTier[] = ["bronze", "silver", "g
  * `(world) => boolean` to fail to express, so it does not have one, and a
  * predicate can be exercised directly against a synthetic fixture without
  * standing up a world or driving a clock through it.
+ *
+ * Beyond that call signature, every predicate this module builds also carries
+ * a {@link TierRequirementInfo.requirements} array describing the figure(s) it
+ * reads — this is what lets a UI (a goal bar's live progress fill, a tier
+ * popover's per-requirement row) show *how close* a run is to a bar, without
+ * this module exposing a second, parallel table of the same thresholds that
+ * could drift from the predicates actually enforced.
  */
-export type TierPredicate = (world: ChallengeWorldStats) => boolean;
+export type TierPredicate = ((world: ChallengeWorldStats) => boolean) & {
+  readonly requirements: readonly TierRequirementInfo[];
+};
+
+/** Which way a {@link TierRequirementInfo.threshold} bounds the figure it reads. */
+export type TierRequirementComparison = "atMost" | "atLeast";
+
+/**
+ * One fact a {@link TierPredicate} tests, inspectable independently of calling
+ * the predicate — the figure it reads, which way the bar runs, and the bar
+ * itself. A UI computes a progress fraction from this plus a live
+ * {@link ChallengeWorldStats} snapshot; this module has no notion of "how
+ * close," only "did it pass," so the fraction math lives elsewhere.
+ */
+export interface TierRequirementInfo {
+  /** The {@link ChallengeWorldStats} figure this requirement reads. */
+  readonly field: keyof ChallengeWorldStats;
+  /** Whether `field` must stay at or under `threshold`, or reach it or above. */
+  readonly comparison: TierRequirementComparison;
+  /** The bar `field` must clear. */
+  readonly threshold: number;
+}
 
 /** The silver and gold bars a challenge asks a winning run to clear. */
 export interface ChallengeTierRequirements {
@@ -49,13 +77,35 @@ export interface ChallengeTierRequirements {
 }
 
 /**
+ * Builds a predicate that reads one {@link ChallengeWorldStats} field against
+ * one threshold, and attaches the {@link TierRequirementInfo} describing it —
+ * the one place that pairing is written, so every factory below stays a
+ * one-line call instead of a hand-rolled closure plus a hand-rolled metadata
+ * literal that could disagree with it.
+ *
+ * @param field - The figure to read.
+ * @param comparison - Which way `threshold` bounds `field`.
+ * @param threshold - The bar `field` must clear.
+ * @returns The predicate.
+ */
+function tierPredicate(
+  field: keyof ChallengeWorldStats,
+  comparison: TierRequirementComparison,
+  threshold: number,
+): TierPredicate {
+  const test = (world: ChallengeWorldStats): boolean =>
+    comparison === "atMost" ? world[field] <= threshold : world[field] >= threshold;
+  return Object.assign(test, { requirements: [{ field, comparison, threshold }] });
+}
+
+/**
  * Requires a run to have finished within a time limit.
  *
  * @param limitSeconds - Highest {@link ChallengeWorldStats.elapsedTime} allowed.
  * @returns The predicate.
  */
 export function underElapsedTime(limitSeconds: number): TierPredicate {
-  return (world: ChallengeWorldStats): boolean => world.elapsedTime <= limitSeconds;
+  return tierPredicate("elapsedTime", "atMost", limitSeconds);
 }
 
 /**
@@ -65,7 +115,7 @@ export function underElapsedTime(limitSeconds: number): TierPredicate {
  * @returns The predicate.
  */
 export function underMaxWaitTime(limitSeconds: number): TierPredicate {
-  return (world: ChallengeWorldStats): boolean => world.maxWaitTime <= limitSeconds;
+  return tierPredicate("maxWaitTime", "atMost", limitSeconds);
 }
 
 /**
@@ -75,7 +125,7 @@ export function underMaxWaitTime(limitSeconds: number): TierPredicate {
  * @returns The predicate.
  */
 export function underMoveCount(limitMoves: number): TierPredicate {
-  return (world: ChallengeWorldStats): boolean => world.moveCount <= limitMoves;
+  return tierPredicate("moveCount", "atMost", limitMoves);
 }
 
 /**
@@ -85,7 +135,7 @@ export function underMoveCount(limitMoves: number): TierPredicate {
  * @returns The predicate.
  */
 export function underAvgWaitTime(limitSeconds: number): TierPredicate {
-  return (world: ChallengeWorldStats): boolean => world.avgWaitTime <= limitSeconds;
+  return tierPredicate("avgWaitTime", "atMost", limitSeconds);
 }
 
 /**
@@ -95,7 +145,7 @@ export function underAvgWaitTime(limitSeconds: number): TierPredicate {
  * @returns The predicate.
  */
 export function underStopCount(limitStops: number): TierPredicate {
-  return (world: ChallengeWorldStats): boolean => world.stopCount <= limitStops;
+  return tierPredicate("stopCount", "atMost", limitStops);
 }
 
 /**
@@ -105,7 +155,7 @@ export function underStopCount(limitStops: number): TierPredicate {
  * @returns The predicate.
  */
 export function atLeastAvgLoadFactorOnMove(minFactor: number): TierPredicate {
-  return (world: ChallengeWorldStats): boolean => world.avgLoadFactorOnMove >= minFactor;
+  return tierPredicate("avgLoadFactorOnMove", "atLeast", minFactor);
 }
 
 /**
@@ -115,7 +165,7 @@ export function atLeastAvgLoadFactorOnMove(minFactor: number): TierPredicate {
  * @returns The predicate.
  */
 export function atLeastTransportedPerSec(minRate: number): TierPredicate {
-  return (world: ChallengeWorldStats): boolean => world.transportedPerSec >= minRate;
+  return tierPredicate("transportedPerSec", "atLeast", minRate);
 }
 
 /**
@@ -132,10 +182,15 @@ export function atLeastTransportedPerSec(minRate: number): TierPredicate {
  * "every one of zero conditions holds" — nothing in this module calls it with
  * zero predicates, but there is no reason to special-case an empty combinator
  * when `.every` already does the right thing with one.
- * @returns A predicate that holds exactly when all of `predicates` do.
+ * @returns A predicate that holds exactly when all of `predicates` do, whose
+ * `requirements` list every one of `predicates`' requirements in order.
  */
 export function requireAll(...predicates: readonly TierPredicate[]): TierPredicate {
-  return (world: ChallengeWorldStats): boolean => predicates.every((predicate) => predicate(world));
+  const test = (world: ChallengeWorldStats): boolean =>
+    predicates.every((predicate) => predicate(world));
+  return Object.assign(test, {
+    requirements: predicates.flatMap((predicate) => predicate.requirements),
+  });
 }
 
 /**
