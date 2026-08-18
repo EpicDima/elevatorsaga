@@ -270,6 +270,19 @@ export const RU_MESSAGES: MessageCatalogue<"ru"> = {
   "game.switchTheme.system": "Как в системе",
   "game.switchTheme.light": "Светлая",
   "game.switchTheme.dark": "Тёмная",
+  // Настройки: features/switch-layout. Четыре режима переключают ту же
+  // раскладку, что и рабочая область (widgets/workspace-layout), но своим
+  // именем — LayoutModeId, не LayoutMode — потому что features не может
+  // импортировать widgets (см. doc comment у layout-switch.ts). Ключи
+  // "onlyCode"/"onlyGame", а не голое "code"/"game" ("code" совпало бы с
+  // зарезервированным суффиксом ".code" из catalogue.test.ts, который требует
+  // побайтового совпадения между локалями — это подпись к примеру кода, а не
+  // к режиму раскладки).
+  "game.switchLayout.caption": "Раскладка",
+  "game.switchLayout.left": "Код слева",
+  "game.switchLayout.right": "Код справа",
+  "game.switchLayout.onlyCode": "Только код",
+  "game.switchLayout.onlyGame": "Только здание",
   "game.timeScale.decrease": "Уменьшить скорость симуляции",
   "game.timeScale.increase": "Увеличить скорость симуляции",
   "game.timeScale.value": "{value}×",

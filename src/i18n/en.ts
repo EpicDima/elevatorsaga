@@ -245,6 +245,19 @@ export const EN_MESSAGES = {
   "game.switchTheme.system": "System",
   "game.switchTheme.light": "Light",
   "game.switchTheme.dark": "Dark",
+  // Settings: features/switch-layout. The four modes switch the same layout
+  // `widgets/workspace-layout` does, but under its own name -- LayoutModeId,
+  // not LayoutMode -- because features may not import from widgets (see
+  // layout-switch.ts's module doc comment). Named "onlyCode"/"onlyGame"
+  // rather than bare "code"/"game": a bare "code" would collide with
+  // catalogue.test.ts's reserved ".code" suffix, which demands the value be
+  // byte-identical across locales -- a promise meant for example code, not a
+  // layout mode's label.
+  "game.switchLayout.caption": "Layout",
+  "game.switchLayout.left": "Code left",
+  "game.switchLayout.right": "Code right",
+  "game.switchLayout.onlyCode": "Code only",
+  "game.switchLayout.onlyGame": "Building only",
   "game.timeScale.decrease": "Decrease simulation speed",
   "game.timeScale.increase": "Increase simulation speed",
   "game.timeScale.value": "{value}x",
