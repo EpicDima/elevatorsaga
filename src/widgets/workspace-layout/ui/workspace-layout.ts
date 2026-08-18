@@ -17,8 +17,8 @@
  * resizing the boundary already works in full once the skeleton is on a real
  * page; only *choosing a mode* is unreachable until that control exists.
  *
- * Two places deliberately outgrow the mockup's own script rather than port it
- * literally:
+ * Three places deliberately outgrow the mockup's own script rather than port
+ * it literally:
  *
  * - The pointer handlers ignore a non-primary pointer and a non-primary
  *   button, exactly as `presentEditorResize` does and the mockup's splitter
@@ -30,6 +30,11 @@
  *   the move handler, which can fire dozens of times a second during a single
  *   drag. The value that ends up stored is identical either way; only the
  *   number of writes differs.
+ * - The keyboard handler bails on Alt/Ctrl/Meta/Shift, exactly as
+ *   `presentEditorResize`'s does and the mockup's does not — the mockup's
+ *   arrow-key handler calls `preventDefault()` unconditionally, which on
+ *   Alt+ArrowLeft/Right also swallows the browser's own back/forward
+ *   navigation.
  */
 
 import {
