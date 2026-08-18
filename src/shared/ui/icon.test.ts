@@ -3,8 +3,8 @@
 import { describe, expect, it } from "vitest";
 
 import fontAwesome from "./fontawesome-glyphs.json";
-import { createIcon, ICON_ASCENT, ICON_EM_UNITS, ICONS, iconMarkup, iconWidthEm } from "./icons.ts";
-import type { IconName } from "./icons.ts";
+import { createIcon, ICON_ASCENT, ICON_EM_UNITS, ICONS, iconMarkup, iconWidthEm } from "./icon.ts";
+import type { IconName } from "./icon.ts";
 
 /**
  * Every `fa-*` glyph the legacy markup used, with the codepoint that class
@@ -39,7 +39,7 @@ describe("ICONS", () => {
   // webfont, and nothing in the game reads that webfont at runtime any more, so
   // nothing else would notice if an outline were swapped for another, truncated
   // or nudged: the icons would simply be wrong, and every other test would keep
-  // passing. src/ui/fontawesome-glyphs.json is a copy of the twelve glyphs
+  // passing. src/shared/ui/fontawesome-glyphs.json is a copy of the twelve glyphs
   // taken from the font itself (not from ICONS, which would make this
   // circular), and this is the assertion that holds ICONS to it.
   it("reproduces the Font Awesome 4.1 outlines exactly", () => {

@@ -867,14 +867,15 @@ with its [Lezer](https://lezer.codemirror.net/) parser for JavaScript, both lice
 [MIT Licence](https://github.com/codemirror/dev/blob/main/LICENSE). Together they are around 500 kB
 of the built bundle — most of what the browser downloads.
 
-The twelve interface icons in `src/ui/icons.ts` are the glyph outlines of
+The twelve interface icons in `src/shared/ui/icon.ts` are the glyph outlines of
 [Font Awesome](https://fontawesome.com/) 4.1.0 by Dave Gandy, copied verbatim from the SVG
 webfont the legacy game shipped. Font Awesome 4 is licensed
 `Font: SIL OFL 1.1, CSS: MIT License`; only the font artwork is used here, so the
 [SIL OFL 1.1](https://scripts.sil.org/OFL) applies. The full licence text and the upstream
-copyright notice are in [src/ui/fontawesome-license.txt](src/ui/fontawesome-license.txt), and
-[src/ui/fontawesome-glyphs.json](src/ui/fontawesome-glyphs.json) records which glyph came from
-which codepoint.
+copyright notice are in
+[src/shared/ui/fontawesome-license.txt](src/shared/ui/fontawesome-license.txt), and
+[src/shared/ui/fontawesome-glyphs.json](src/shared/ui/fontawesome-glyphs.json) records which
+glyph came from which codepoint.
 
 The interface font is [Oswald](https://fonts.google.com/specimen/Oswald), copyright © 2016 The
 Oswald Project Authors, licensed under the [SIL OFL 1.1](https://scripts.sil.org/OFL) and

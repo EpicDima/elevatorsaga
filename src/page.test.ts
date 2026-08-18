@@ -26,8 +26,8 @@ import {
   globalCompletions,
 } from "./ui/completions.ts";
 import { DOCUMENTATION_LINK_ATTRIBUTE, documentationUrl } from "./ui/documentation-links.ts";
-import { createIcon } from "./ui/icons.ts";
 import { presentVersion, VERSION_SELECTOR } from "./ui/version.ts";
+import { createIcon } from "@shared/ui/icon.ts";
 
 /** The page shell, parsed as the browser would parse it. */
 const page = new DOMParser().parseFromString(pageSource, "text/html");
@@ -269,7 +269,7 @@ describe("index.html", () => {
   it("names a favicon, drawn here rather than borrowed", () => {
     // There was none at all, so every tab showed the browser's blank-page
     // glyph. The mark is original artwork: the twelve Font Awesome outlines in
-    // src/ui/icons.ts were the shorter route, but they are OFL-licensed, and a
+    // src/shared/ui/icon.ts were the shorter route, but they are OFL-licensed, and a
     // site's own identity is not a good thing to owe attribution for.
     const icon = page.querySelector("link[rel='icon']");
     expect(icon?.getAttribute("type")).toBe("image/svg+xml");
@@ -659,7 +659,7 @@ describe.each(DOCUMENTATION_PAGES)("$file", (reference) => {
   it("draws the same plus and minus icons the challenge bar draws", () => {
     // The page is static, so the two icons in "How to play" are written out by
     // hand instead of built by createIcon. Nothing else would notice them
-    // drifting from src/ui/icons.ts -- or from each other, the plus and the
+    // drifting from src/shared/ui/icon.ts -- or from each other, the plus and the
     // minus being one character apart in the path data.
     expect([...docs.querySelectorAll(".icon")].map(iconShape)).toEqual([
       iconShape(createIcon("plus", "emphasis-color")),

@@ -20,7 +20,6 @@ import type { WorldController } from "../game/world-controller.ts";
 import { decimal, format, percent, quantity, seconds, t } from "../i18n/index.ts";
 import { CODE_SLOTS } from "./code-slots.ts";
 import type { CodeSlot } from "./code-slots.ts";
-import { createIcon } from "./icons.ts";
 import {
   challengeTemplate,
   codeSlotsTemplate,
@@ -46,6 +45,7 @@ import {
   setClass,
   setTransformPos,
 } from "@shared/lib/dom.ts";
+import { createIcon } from "@shared/ui/icon.ts";
 
 /** Class on `<html>` that hides everything except the world. */
 export const FULLSCREEN_CLASS = "fullscreen-demo";

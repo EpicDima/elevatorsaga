@@ -16,7 +16,7 @@ import packageJson from "./package.json" with { type: "json" };
  * subsets in two formats in each of the two weights, of which a given reader
  * downloads only the ones their language needs) and
  * OFL-licensed artwork (the Font Awesome 4 outlines inlined by
- * `src/ui/icons.ts`). MIT asks for its notice to travel with substantial
+ * `src/shared/ui/icon.ts`). MIT asks for its notice to travel with substantial
  * portions of the software; OFL asks for the copyright notice and licence to be
  * bundled with the font software. Neither obligation is met by a licence file
  * that only exists in the repository, so the build has to put one in `dist/`.
@@ -148,7 +148,7 @@ Source: ${packageJson.homepage.replace(/#.*$/, "")}`,
     ),
     section("Elevator Saga", readFileSync("LICENSE.txt", "utf8")),
     // Already carries its own heading, in the same style.
-    readFileSync("src/ui/fontawesome-license.txt", "utf8").trim() + "\n",
+    readFileSync("src/shared/ui/fontawesome-license.txt", "utf8").trim() + "\n",
     section(
       "Bundled packages",
       `The editor is CodeMirror 6 and the interface font is Oswald. Both, and the

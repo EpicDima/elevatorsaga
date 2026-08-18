@@ -31,8 +31,8 @@ import { t } from "../i18n/index.ts";
 import { highlightJavaScript } from "./code-highlight.ts";
 import { CODE_SLOTS } from "./code-slots.ts";
 import type { CodeSlot } from "./code-slots.ts";
-import { iconMarkup } from "./icons.ts";
 import { changedLines } from "./line-diff.ts";
+import { iconMarkup } from "@shared/ui/icon.ts";
 
 /** Markup that is inserted as-is, without escaping. */
 export class RawHtml {
