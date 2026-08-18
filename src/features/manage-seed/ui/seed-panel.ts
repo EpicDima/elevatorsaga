@@ -19,15 +19,18 @@
  *
  * The mockup's own seed block is not what this renders. It shows an editable
  * `#seedVal` text input next to a `#seedRoll` reroll button and a `#seedCopy`
- * copy-link button — but nothing in the mockup's own script attaches a click
- * handler to either button, and production has no arbitrary-seed field to
- * reroll or type into in the first place: a run's seed is drawn once, from
+ * copy-link button. `#seedRoll` does have a click handler in the mockup's own
+ * script — it rerolls to a random word from a fixed `SEED_WORDS` list and
+ * restarts the run with it — but production has no arbitrary-seed field to
+ * type or reroll into in the first place: a run's seed is drawn once, from
  * the URL or from `Math.random()`, by `src/app/app.ts`'s `#seedLink`, and the
  * only thing a player can do with it is pin the current draw into the address
- * bar or take a pin back out — never choose one by hand. `#shared/ui/icon.ts`
- * keeps the `dice` and `copy` sprites the mockup drew for that row, in case a
- * later phase gives them a real affordance, but this module does not use
- * either: there is nothing behind them yet.
+ * bar or take a pin back out — never choose one by hand, so there is nothing
+ * for a reroll button to reroll. `#seedCopy`, unlike `#seedRoll`, has no
+ * click handler anywhere in the mockup's script at all — a cosmetic stub.
+ * `#shared/ui/icon.ts` keeps the `dice` and `copy` sprites the mockup drew
+ * for that row, in case a later phase gives them a real affordance, but this
+ * module does not use either: there is nothing behind them yet.
  *
  * What this module renders instead is production's own seed affordance —
  * `src/ui/templates.ts`'s exported {@link SeedLinkData} type and the same six
