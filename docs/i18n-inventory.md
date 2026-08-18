@@ -104,29 +104,29 @@ Key names carry two suffixes that mean something:
 
 ## Where the strings are
 
-The catalogue holds **379 keys** in two locales. `src/i18n/en.ts` is the reference — its text is
+The catalogue holds **470 keys** in two locales. `src/i18n/en.ts` is the reference — its text is
 the English wording, extracted verbatim — and `src/i18n/ru.ts` is the Russian translation. The
 types make English the shape everything else is measured against: a Russian catalogue missing a
 key, carrying a key English does not have, or giving a plural message the wrong number of forms
 is a compile error, not a runtime surprise.
 
 ```sh
-grep -cE '^  "[^"]+":' src/i18n/en.ts                                   # 379
+grep -cE '^  "[^"]+":' src/i18n/en.ts                                   # 470
 grep -oE '^  "[^"]+"' src/i18n/en.ts | tr -d '"' | cut -d. -f1 | sort | uniq -c | sort -rn
 ```
 
-| Prefix         | Keys    | What reads them                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
-| -------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `docs.*`       | 85      | one of them, `docs.basics.example.code`, by `src/ui/completions.ts`; the other 84 by nothing                                                                                                                                                                                                                                                                                                                                                                                                                              |
-| `tutorial.*`   | 82      | `src/ui/tutorial-panel.ts`, `src/ui/templates.ts`, `src/app/app.ts`                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
-| `game.*`       | 95      | `src/ui/templates.ts` (18), `src/ui/presenters.ts` (11), `src/widgets/goal-bar/ui/goal-bar.ts` (22), `src/app/app.ts` (5), `src/widgets/level-switcher/ui/level-switcher.ts` (6), `src/widgets/building-stage/lib/hover-card-text.ts` (15), `src/widgets/stats-panel/ui/stats-panel.ts` (3), `src/widgets/editor-pane/ui/editor-pane.ts` (1), `src/features/switch-theme` (4), `src/features/switch-layout` (5), `src/widgets/app-bar/ui/settings-menu.ts` (7); the two speed labels are written by both of the first two |
-| `page.*`       | 40      | `index.html`, through `data-i18n` and `data-i18n-attr`; `page.noscript` excepted, see below                                                                                                                                                                                                                                                                                                                                                                                                                               |
-| `completion.*` | 33      | `src/ui/completions.ts`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
-| `challenge.*`  | 15      | `src/game/challenges.ts`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
-| `fitness.*`    | 11      | `src/app/fitness.ts`, `src/game/fitness.ts`, `src/main.ts`, `src/cli/bench.ts`                                                                                                                                                                                                                                                                                                                                                                                                                                            |
-| `error.*`      | 10      | `src/game/elevator-interface.ts`, `src/ui/presenters.ts`, `src/game/user-code.ts`, `src/game/movable.ts`                                                                                                                                                                                                                                                                                                                                                                                                                  |
-| `editor.*`     | 8       | `src/main.ts`, `src/app/app.ts`, `src/ui/editor.ts`, `src/ui/default-code.ts`, `src/ui/templates.ts`, `index.html`                                                                                                                                                                                                                                                                                                                                                                                                        |
-| **Total**      | **379** |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| Prefix         | Keys    | What reads them                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| -------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `docs.*`       | 85      | one of them, `docs.basics.example.code`, by `src/ui/completions.ts`; the other 84 by nothing                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| `tutorial.*`   | 82      | `src/ui/tutorial-panel.ts`, `src/ui/templates.ts`, `src/app/app.ts`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| `game.*`       | 186     | `src/ui/templates.ts` (18), `src/ui/presenters.ts` (11), `src/widgets/goal-bar/ui/goal-bar.ts` (22), `src/app/app.ts` (5), `src/widgets/level-switcher/ui/level-switcher.ts` (6), `src/widgets/building-stage/lib/hover-card-text.ts` (15), `src/widgets/stats-panel/ui/stats-panel.ts` (3), `src/widgets/editor-pane/ui/editor-pane.ts` (1), `src/features/switch-theme` (4), `src/features/switch-layout` (5), `src/widgets/app-bar/ui/settings-menu.ts` (7); the two speed labels are written by both of the first two; the other 91, under `game.hotkeys.*`, `game.docs.*` and `game.apiRef.*`, by none of them yet — see below |
+| `page.*`       | 40      | `index.html`, through `data-i18n` and `data-i18n-attr`; `page.noscript` excepted, see below                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| `completion.*` | 33      | `src/ui/completions.ts`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| `challenge.*`  | 15      | `src/game/challenges.ts`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| `fitness.*`    | 11      | `src/app/fitness.ts`, `src/game/fitness.ts`, `src/main.ts`, `src/cli/bench.ts`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| `error.*`      | 10      | `src/game/elevator-interface.ts`, `src/ui/presenters.ts`, `src/game/user-code.ts`, `src/game/movable.ts`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| `editor.*`     | 8       | `src/main.ts`, `src/app/app.ts`, `src/ui/editor.ts`, `src/ui/default-code.ts`, `src/ui/templates.ts`, `index.html`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| **Total**      | **470** |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
 
 Which keys nothing reads:
 
@@ -436,7 +436,7 @@ identically in every locale. Both names repeat it because an accessible name has
 own — "1234567890, link" describes nothing.
 
 `game.seed.newDraw` appearing inside `game.seed.newDrawLink` is a constraint a translator cannot
-see: the two sit on adjacent lines of a 379-key file and nothing in the file marks them as a
+see: the two sit on adjacent lines of a 470-key file and nothing in the file marks them as a
 pair. `src/i18n/catalogue.test.ts`, under _accessible names_, is what holds it — it requires the
 spoken name to contain the visible label in every locale. Rewording «новый розыгрыш» to «новый
 сид» meant changing both, which is exactly the edit where one gets missed.
@@ -656,6 +656,151 @@ reader's language, the same reason the mockup's own Russian page leaves it in En
 Built and unit-tested, not yet wired into `src/app/app.ts` or `index.html` —
 `presentAppBarSettings` has no caller outside its own module and its own test file yet, matching
 every widget staged so far in this migration.
+
+### `hotkeys-modal.ts` — 8 `game.hotkeys.*` keys
+
+The `hotkeys-help` feature's own dialog, built in a later commit of this same phase — the keys
+dialog `design/ui-mockup.html` draws as `<dialog class="keys">`: a title, a close button and five
+rows pairing a hotkey with what it does. Two of the five are Mod- bindings, and the mockup spells
+each as one compressed glyph — `⌘⏎`, `⌘B` — with a static paragraph underneath explaining that
+Windows and Linux read `Ctrl` for `⌘`. This port spells both as two `<kbd>`s joined by `+` instead,
+the convention `page.hint.html` and `docs.play.shortcuts.html` already use and
+`src/ui/shortcuts.ts`'s `labelModifierKeys` already resolves per visitor at runtime — which is also
+why the mockup's own hint paragraph is dropped rather than ported: relabelling per visitor is what
+makes the hint's own question not arise.
+
+| Key                         | English            | Notes                                                                          |
+| --------------------------- | ------------------ | ------------------------------------------------------------------------------ |
+| `game.hotkeys.title`        | Keyboard shortcuts | the dialog's heading                                                           |
+| `game.hotkeys.closeTitle`   | Close window       | the close button's `title`                                                     |
+| `game.hotkeys.close`        | Close              | the close button's screen-reader-only label                                    |
+| `game.hotkeys.startPause`   | Start and pause    | the row naming `Space`                                                         |
+| `game.hotkeys.startOver`    | Start over         | the row naming `Ctrl`+`Enter`, two `<kbd>`s rather than the mockup's own glyph |
+| `game.hotkeys.switchLayout` | Switch layout      | the row naming `Ctrl`+`B`, likewise                                            |
+| `game.hotkeys.openDocs`     | Help               | the row naming `F1`                                                            |
+| `game.hotkeys.openSettings` | Settings           | the row naming `?`                                                             |
+
+### `docs-modal.ts` — 24 `game.docs.*` keys
+
+The `docs-reference` feature's own dialog, likewise built later this phase — the help dialog
+`design/ui-mockup.html` draws as `<dialog class="docs">`: a search box, a guide, the code skeleton
+every program starts from, a lead paragraph, and the API reference table below (`reference.ts`,
+next). Six keys are the dialog's own chrome, including `empty`, shown in place of the guide and the
+reference once a search matches nothing. Fifteen are the guide, ported section by section from the
+mockup's own `GUIDE` template literal — `whatToDo`'s four steps are their own keys rather than one
+holding the whole `<ol>`, since the list itself is the template's to draw and not a translator's to
+reproduce, and `step3` alone carries a `.html` suffix, being the only one of the seven sections with
+an inline tag. `intro.example.code` is rendered through `highlightJavaScript` and wrapped in
+`<pre><code>` at the presenter — `src/ui/templates.ts`'s own `tutorialAnswerTemplate` convention —
+rather than the mockup's own bare `<pre>`.
+
+| Key                                      | English                                                                                               | Notes                                                                  |
+| ---------------------------------------- | ----------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| `game.docs.title`                        | Help                                                                                                  | the dialog's heading                                                   |
+| `game.docs.searchPlaceholder`            | Search: goToFloor, waiting, button…                                                                   | the search input's `placeholder`                                       |
+| `game.docs.clearSearch`                  | Clear search                                                                                          | the clear-search button's `title`/`aria-label`                         |
+| `game.docs.closeTitle`                   | Close help                                                                                            | the close button's `title`                                             |
+| `game.docs.close`                        | Close                                                                                                 | the close button's screen-reader-only label                            |
+| `game.docs.empty`                        | Nothing found                                                                                         | shown once a search matches nothing                                    |
+| `game.docs.guide.whatGame.heading`       | What kind of game this is                                                                             |                                                                        |
+| `game.docs.guide.whatGame.body`          | Elevators move through a building, and people wait on its floors: each one arrived on their own floo… |                                                                        |
+| `game.docs.guide.whatToDo.heading`       | What to do                                                                                            |                                                                        |
+| `game.docs.guide.whatToDo.step1`         | Pick a level in the header. Each one has its own building — floors, elevator count, elevator capacit… | one `<li>` of the four-step list                                       |
+| `game.docs.guide.whatToDo.step2`         | Write your program on the right. It subscribes to elevator and floor events: a button was pressed, a… | likewise                                                               |
+| `game.docs.guide.whatToDo.step3.html`    | Press Start and watch. A run can be paused, sped up — all the way to instant, where the outcome is c… | markup; the only step with an inline `<b>`                             |
+| `game.docs.guide.whatToDo.step4`         | Didn't work out? Adjust the rule and run again. Three code slots per level hold three different appr… | likewise                                                               |
+| `game.docs.guide.carArrows.heading`      | The arrows on the car                                                                                 |                                                                        |
+| `game.docs.guide.carArrows.html`         | Each car carries two lit arrows — up and down lamps, the very ones goingUpIndicator and goingDownInd… | markup                                                                 |
+| `game.docs.guide.readingResults.heading` | How to tell whether it worked                                                                         |                                                                        |
+| `game.docs.guide.readingResults.body`    | The bars under the header show the level's condition: how many people to carry, in how much time, ho… |                                                                        |
+| `game.docs.guide.threeStars.heading`     | Three stars                                                                                           |                                                                        |
+| `game.docs.guide.threeStars.html`        | Clearing a level earns bronze — that's exactly its own condition. Silver and gold come from how it w… | markup                                                                 |
+| `game.docs.guide.tutorialLevels.heading` | The first levels come with an explanation                                                             |                                                                        |
+| `game.docs.guide.tutorialLevels.body`    | Tutorial levels have a lesson standing next to the building: step by step, what's happening, which e… |                                                                        |
+| `game.docs.intro.heading`                | What a program is made of                                                                             |                                                                        |
+| `game.docs.intro.example.code`           | { init: function (elevators, floors) { // subscribe to events here }, update: function (dt, elevator… | code; the skeleton every program starts from; comments translated only |
+| `game.docs.lead.html`                    | elevator is an elevator: all of them live in elevators. floor is a floor, and they're in floors. Any… | markup                                                                 |
+
+### `reference.ts` — 59 `game.apiRef.*` keys
+
+The `api-reference` entity's own structural table, likewise built later this phase — which
+`sig` belongs to which group, in which order — as plain data with no `t()` call of its own,
+mirroring `src/entities/challenge/model/challenge-list.ts`'s own purity: an `elevator` group of
+sixteen entries and a `floor` group of three. Every entry names three keys after its own id —
+`.short` (the collapsed `<details class="api">` row's summary), `.more` (its expanded paragraph) and
+`.code` (its example) — besides the two group labels themselves. English condenses this
+repository's own `documentation.html` prose for the same methods rather than translating the
+Russian cold; Russian is `design/ui-mockup.html`'s own `API_DOCS` text, unchanged but for
+`floorNum.more`'s `floors.length-1`, tightened to keep the catalogue's own rule against a spaced
+hyphen standing in for a dash. Every `.code` key holds only its comments in translation, the code
+itself byte-identical between locales — `docs.basics.example.code`'s own convention.
+
+| Key                                                | English                                                                                               | Notes                                                         |
+| -------------------------------------------------- | ----------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| `game.apiRef.elevator.groupLabel`                  | Elevator                                                                                              | the heading over `API_REFERENCE`'s elevator group             |
+| `game.apiRef.floor.groupLabel`                     | Floor                                                                                                 | the heading over `API_REFERENCE`'s floor group                |
+| `game.apiRef.elevator.goToFloor.short`             | Queues a floor for the elevator.                                                                      |                                                               |
+| `game.apiRef.elevator.goToFloor.more`              | The floor joins the end of the queue: the elevator gets to it once it has dealt with whatever was qu… |                                                               |
+| `game.apiRef.elevator.goToFloor.code`              | // don't queue what's already queued const wanted = floor.floorNum(); if (!elevator.destinationQueue… | code; comments translated only, code identical across locales |
+| `game.apiRef.elevator.goToFloorPriority.short`     | The same, but first in the queue: the elevator goes there right away.                                 |                                                               |
+| `game.apiRef.elevator.goToFloorPriority.more`      | The second argument puts the floor at the front of the queue and pushes everything else back. It's h… |                                                               |
+| `game.apiRef.elevator.goToFloorPriority.code`      | elevator.on("passing_floor", (floorNum, direction) => { if (elevator.loadFactor() < 0.8 && waiting(f… | code; comments translated only, code identical across locales |
+| `game.apiRef.elevator.stop.short`                  | Stops and drops the queue. The passengers inside won't thank you.                                     |                                                               |
+| `game.apiRef.elevator.stop.more`                   | The elevator stops wherever it is, and the whole queue is cleared. Buttons pressed by the passengers… |                                                               |
+| `game.apiRef.elevator.stop.code`                   | elevator.stop(); // put back what was ordered from inside for (const floorNum of elevator.getPressed… | code; comments translated only, code identical across locales |
+| `game.apiRef.elevator.currentFloor.short`          | The floor the elevator is on right now.                                                               |                                                               |
+| `game.apiRef.elevator.currentFloor.more`           | A whole number, never a fraction: while the elevator is travelling between floors, this answers with… |                                                               |
+| `game.apiRef.elevator.currentFloor.code`           | const distance = Math.abs(elevator.currentFloor() - floor.floorNum());                                | code; comments translated only, code identical across locales |
+| `game.apiRef.elevator.destinationQueue.short`      | The floor queue. It's a plain array, and can be edited like one.                                      |                                                               |
+| `game.apiRef.elevator.destinationQueue.more`       | The first element is wherever the elevator is headed right now. Reading is free, and so is changing…  |                                                               |
+| `game.apiRef.elevator.destinationQueue.code`       | // drop repeats without touching the order elevator.destinationQueue = elevator.destinationQueue.fil… | code; comments translated only, code identical across locales |
+| `game.apiRef.elevator.checkDestinationQueue.short` | Re-reads the queue after a manual edit.                                                               |                                                               |
+| `game.apiRef.elevator.checkDestinationQueue.more`  | Needed in exactly one case: destinationQueue was changed directly. There's no need to call it after…  |                                                               |
+| `game.apiRef.elevator.checkDestinationQueue.code`  | elevator.destinationQueue.sort((a, b) => a - b); elevator.checkDestinationQueue();                    | code; comments translated only, code identical across locales |
+| `game.apiRef.elevator.getPressedFloors.short`      | Which buttons are pressed inside the elevator.                                                        |                                                               |
+| `game.apiRef.elevator.getPressedFloors.more`       | An array of floor numbers, ascending. These are the passengers' wishes, not a route — the elevator w… |                                                               |
+| `game.apiRef.elevator.getPressedFloors.code`       | elevator.on("stopped_at_floor", () => { for (const floorNum of elevator.getPressedFloors()) { elevat… | code; comments translated only, code identical across locales |
+| `game.apiRef.elevator.loadFactor.short`            | How full the elevator is: from 0 (empty) to 1 (packed).                                               |                                                               |
+| `game.apiRef.elevator.loadFactor.more`             | Counted by the passengers' weight, not by how many there are, so half the seats filled won't read as… |                                                               |
+| `game.apiRef.elevator.loadFactor.code`             | floor.on("up_button_pressed", () => { if (elevator.loadFactor() < 0.7) { elevator.goToFloor(floor.fl… | code; comments translated only, code identical across locales |
+| `game.apiRef.elevator.maxPassengerCount.short`     | How many people fit inside it.                                                                        |                                                               |
+| `game.apiRef.elevator.maxPassengerCount.more`      | A fixed number, worth asking once in init. Elevators in the same building can carry different amount… |                                                               |
+| `game.apiRef.elevator.maxPassengerCount.code`      | const big = elevators.filter((elevator) => elevator.maxPassengerCount() >= 8);                        | code; comments translated only, code identical across locales |
+| `game.apiRef.elevator.destinationDirection.short`  | Which way it's headed: "up", "down" or "stopped".                                                     |                                                               |
+| `game.apiRef.elevator.destinationDirection.more`   | Answers from the first floor in the queue, not from the lamps outside — those are set by hand, and c… |                                                               |
+| `game.apiRef.elevator.destinationDirection.code`   | if (elevator.destinationDirection() === "up" && floorNum > elevator.currentFloor()) { elevator.goToF… | code; comments translated only, code identical across locales |
+| `game.apiRef.elevator.goingUpIndicator.short`      | The "up" lamp outside. With no argument, it just reads.                                               |                                                               |
+| `game.apiRef.elevator.goingUpIndicator.more`       | With an argument, it lights the lamp or turns it off; with none, it reports whether it's lit. People… |                                                               |
+| `game.apiRef.elevator.goingUpIndicator.code`       | elevator.goingUpIndicator(true); elevator.goingDownIndicator(false);                                  | code; comments translated only, code identical across locales |
+| `game.apiRef.elevator.goingDownIndicator.short`    | The "down" lamp. People decide whether to board by these lamps.                                       |                                                               |
+| `game.apiRef.elevator.goingDownIndicator.more`     | The same thing, downward. The pair is usually flipped at the turnaround: reach the top, turn off "up… |                                                               |
+| `game.apiRef.elevator.goingDownIndicator.code`     | elevator.on("stopped_at_floor", (floorNum) => { const up = floorNum === 0; elevator.goingUpIndicator… | code; comments translated only, code identical across locales |
+| `game.apiRef.elevator.idle.short`                  | The queue ran out — the elevator has nothing left to do.                                              |                                                               |
+| `game.apiRef.elevator.idle.more`                   | Fires once, when the elevator reaches the last floor in its queue. Leave it unanswered and the eleva… |                                                               |
+| `game.apiRef.elevator.idle.code`                   | elevator.on("idle", () => { elevator.goToFloor(0); });                                                | code; comments translated only, code identical across locales |
+| `game.apiRef.elevator.floorButtonPressed.short`    | A passenger inside pressed a floor button.                                                            |                                                               |
+| `game.apiRef.elevator.floorButtonPressed.more`     | The floor number arrives as the argument. The event itself changes nothing — until the floor is queu… |                                                               |
+| `game.apiRef.elevator.floorButtonPressed.code`     | elevator.on("floor_button_pressed", (floorNum) => { elevator.goToFloor(floorNum); });                 | code; comments translated only, code identical across locales |
+| `game.apiRef.elevator.passingFloor.short`          | Passing a floor — there's still time to stop for it.                                                  |                                                               |
+| `game.apiRef.elevator.passingFloor.more`           | Fires just before the elevator draws level with the floor — the one place where goToFloor(floorNum,…  |                                                               |
+| `game.apiRef.elevator.passingFloor.code`           | elevator.on("passing_floor", (floorNum, direction) => { if (elevator.getPressedFloors().includes(flo… | code; comments translated only, code identical across locales |
+| `game.apiRef.elevator.stoppedAtFloor.short`        | Stopped at a floor, doors open.                                                                       |                                                               |
+| `game.apiRef.elevator.stoppedAtFloor.more`         | Boarding and alighting have already happened by this point. A good place to reset the lamps and deci… |                                                               |
+| `game.apiRef.elevator.stoppedAtFloor.code`         | elevator.on("stopped_at_floor", (floorNum) => { elevator.goingUpIndicator(floorNum === 0); elevator.… | code; comments translated only, code identical across locales |
+| `game.apiRef.floor.floorNum.short`                 | The floor's number, counting up from zero at the bottom.                                              |                                                               |
+| `game.apiRef.floor.floorNum.more`                  | The lowest floor is 0, the highest is floors.length - 1. Inside a floor's own handler, this is the o… |                                                               |
+| `game.apiRef.floor.floorNum.code`                  | floors.forEach((floor) => { floor.on("up_button_pressed", () => { elevators[0].goToFloor(floor.floor… | code; comments translated only, code identical across locales |
+| `game.apiRef.floor.upButtonPressed.short`          | The "up" button was pressed outside — a call upward.                                                  |                                                               |
+| `game.apiRef.floor.upButtonPressed.more`           | Someone wants to go up. The event arrives on the floor, not on any elevator: which one answers the c… |                                                               |
+| `game.apiRef.floor.upButtonPressed.code`           | floor.on("up_button_pressed", () => { nearest(floor.floorNum()).goToFloor(floor.floorNum()); });      | code; comments translated only, code identical across locales |
+| `game.apiRef.floor.downButtonPressed.short`        | The "down" button was pressed outside.                                                                |                                                               |
+| `game.apiRef.floor.downButtonPressed.more`         | The same thing, downward. If direction doesn't matter yet, both events can be subscribed in one line… |                                                               |
+| `game.apiRef.floor.downButtonPressed.code`         | floor.on("up_button_pressed down_button_pressed", () => { elevators[0].goToFloor(floor.floorNum());…  | code; comments translated only, code identical across locales |
+
+Built and unit-tested against a jsdom `<dialog>` — `src/shared/ui/modal.test.ts`'s own
+`polyfillDialogElement` helper — none of the three yet wired into `src/app/app.ts` or
+`settings-menu.ts`'s `docsOpenLabel`/`hotkeysOpenLabel` openers, the same "build inert first"
+staging every widget in this migration follows so far.
 
 ### `src/ui/presenters.ts` — 11 `game.*` and 3 `error.*` keys
 

@@ -299,6 +299,214 @@ export const RU_MESSAGES: MessageCatalogue<"ru"> = {
   "game.appBar.aboutForkLabel": "Этот форк",
   "game.appBar.aboutOriginalLabel": "Оригинал",
   "game.appBar.aboutCopyright": "Elevator Saga © 2015 Magnus Wolffelt, © 2026 EpicDima, MIT.",
+  // Горячие клавиши: своё окно features/hotkeys-help, `<dialog class="keys">`
+  // из design/ui-mockup.html. Каждое сочетание с Mod записано двумя <kbd>,
+  // соединёнными «+» (тот же приём, что и в documentation.html через
+  // <kbd data-mod-key>, подпись которому в рантайме даёт
+  // src/ui/shortcuts.ts's labelModifierKeys), а не сжатыми Mac-глифами
+  // мокапа («⌘⏎», «⌘B»); собственная подсказка мокапа про Windows и Linux
+  // опущена — labelModifierKeys и так подставляет нужную подпись сама.
+  "game.hotkeys.title": "Горячие клавиши",
+  "game.hotkeys.closeTitle": "Закрыть окно",
+  "game.hotkeys.close": "Закрыть",
+  "game.hotkeys.startPause": "Пуск и пауза",
+  "game.hotkeys.startOver": "Начать заново",
+  "game.hotkeys.switchLayout": "Сменить раскладку",
+  "game.hotkeys.openDocs": "Справка",
+  "game.hotkeys.openSettings": "Настройки",
+  // Справка: окно features/docs-reference, `<dialog class="docs">` из
+  // design/ui-mockup.html — обвязка вокруг рассказа и справочника API, а не
+  // их содержимое.
+  "game.docs.title": "Справка",
+  "game.docs.searchPlaceholder": "Поиск: goToFloor, ожидание, кнопка…",
+  "game.docs.clearSearch": "Стереть запрос",
+  "game.docs.closeTitle": "Закрыть справку",
+  "game.docs.close": "Закрыть",
+  "game.docs.empty": "Ничего не нашлось",
+  // Рассказ «как играть»: собственный шаблон GUIDE из design/ui-mockup.html,
+  // перенесённый раздел за разделом. Четыре шага whatToDo — отдельные ключи,
+  // а не один с разметкой <ol> целиком: список рисует шаблон, а не
+  // переводчик; suffix .html остаётся только у step3, потому что лишь в нём
+  // есть <b>, у остальных шагов разметки нет.
+  "game.docs.guide.whatGame.heading": "Что это за игра",
+  "game.docs.guide.whatGame.body":
+    "В здании ездят лифты, а на этажах ждут люди: каждый пришёл на свой этаж и хочет попасть на другой. Кнопки они жмут сами. Лифтами не управляет никто — ими управляет программа, которую пишете вы. Мышью лифт не подвинуть, и в этом вся игра: единственный способ довезти людей — объяснить зданию правило, по которому оно поедет само.",
+  "game.docs.guide.whatToDo.heading": "Что делать",
+  "game.docs.guide.whatToDo.step1":
+    "Выберите уровень в шапке. У каждого своё здание — этажи, число лифтов и их вместимость — и свои условия.",
+  "game.docs.guide.whatToDo.step2":
+    "Напишите программу справа. Она подписывается на события лифтов и этажей: «нажали кнопку», «лифт освободился», «проезжаем этаж».",
+  "game.docs.guide.whatToDo.step3.html":
+    "Нажмите <b>Запустить</b> и смотрите. Прогон можно поставить на паузу, ускорить — вплоть до мгновенного, когда итог считается сразу, — и начать заново: здание каждый раз одно и то же, а люди приходят по одному и тому же seed.",
+  "game.docs.guide.whatToDo.step4":
+    "Не сошлось — правьте правило и запускайте снова. Три слота кода на уровень хранят три разных подхода, между ними можно переключаться прямо на ходу.",
+  "game.docs.guide.carArrows.heading": "Стрелки на кабине",
+  "game.docs.guide.carArrows.html":
+    "На каждой кабине горят две стрелки — лампы <b>вверх</b> и <b>вниз</b>, те самые, которыми распоряжаются <b>goingUpIndicator</b> и <b>goingDownIndicator</b>. Люди на этаже смотрят на них и заходят, только если лифт собрался в их сторону: с погашенной лампой «вниз» едущий вниз останется ждать следующего. Горят обе — заходят все подряд; полный лифт гасит обе сам. Кого лифт берёт прямо сейчас, написано в карточке, которая всплывает при наведении на кабину.",
+  "game.docs.guide.readingResults.heading": "Как понять, что получилось",
+  "game.docs.guide.readingResults.body":
+    "Шкалы под шапкой показывают условие уровня: сколько человек надо перевезти, за какое время, сколько этажей позволено проехать лифтам и сколько секунд ждать людям. Плитки внизу считают то же самое подробнее — среднюю доставку, худшее ожидание, загрузку лифтов, — и рисуют, как это менялось по ходу прогона. Уровень засчитан, когда людей перевезли и ни один предел не нарушен.",
+  "game.docs.guide.threeStars.heading": "Три звезды",
+  "game.docs.guide.threeStars.html":
+    "За пройденный уровень дают бронзу — это ровно его условие. Серебро и золото достаются за то, <em>как</em> он пройден: уложиться с запасом, не гонять лифты вхолостую, не заставлять людей ждать. Что именно нужно для каждой звезды, показывает карточка справа в строке целей: там же видно, какие из них держатся прямо сейчас. Ход по уровням звёзды не меняют — следующий открывает бронза, а серебро и золото остаются в списке.",
+  "game.docs.guide.tutorialLevels.heading": "Первые уровни — с объяснением",
+  "game.docs.guide.tutorialLevels.body":
+    "У обучающих уровней рядом со зданием стоит урок: шаг за шагом, что происходит, каким событием это видно из программы и как выглядит ответ на него. Его можно свернуть и вернуть кнопкой над зданием.",
+  // Скелет программы, с которого начинается любой код, и единственный абзац,
+  // называющий elevator/elevators/floor/floors перед тем, как справочник
+  // разбирает их по одному — из той же сборки docsBody.innerHTML в
+  // design/ui-mockup.html, между рассказом и строками API.
+  "game.docs.intro.heading": "Из чего состоит программа",
+  "game.docs.intro.example.code": `{
+  init: function (elevators, floors) {
+    // здесь подписываются на события
+  },
+  update: function (dt, elevators, floors) {
+    // вызывается всё время, пока идёт прогон
+  }
+}`,
+  "game.docs.lead.html":
+    "<code>elevator</code> — это лифт: все они лежат в <code>elevators</code>. <code>floor</code> — этаж, они в <code>floors</code>. Любую строку ниже можно раскрыть: под ней подробности и пример.",
+  // Справочник API: структурную таблицу (какая sig какой группе принадлежит
+  // и в каком порядке) хранит entities/api-reference/model/reference.ts;
+  // каждая тройка ниже — краткое описание, подробности и пример одной строки
+  // <details class="api">. Русский текст — дословно API_DOCS из
+  // design/ui-mockup.html, кроме floorNum.more, где «floors.length - 1»
+  // сжато до «floors.length-1», чтобы не нарушать собственное правило этого
+  // каталога «дефис — не тире».
+  "game.apiRef.elevator.groupLabel": "Лифт",
+  "game.apiRef.floor.groupLabel": "Этаж",
+  "game.apiRef.elevator.goToFloor.short": "Поставить этаж в очередь лифта.",
+  "game.apiRef.elevator.goToFloor.more":
+    "Этаж встаёт в конец очереди: лифт доедет до него, когда разберётся с тем, что заказали раньше. Один и тот же этаж можно записать дважды — и лифт остановится там дважды, поэтому перед добавлением очередь стоит проверить.",
+  "game.apiRef.elevator.goToFloor.code": `// не заказываем то, что уже заказано
+const wanted = floor.floorNum();
+if (!elevator.destinationQueue.includes(wanted)) {
+  elevator.goToFloor(wanted);
+}`,
+  "game.apiRef.elevator.goToFloorPriority.short":
+    "То же, но первым в очереди: лифт поедет туда сразу.",
+  "game.apiRef.elevator.goToFloorPriority.more":
+    "Второй аргумент ставит этаж в начало очереди, остальное подождёт. Так подбирают человека, мимо которого лифт всё равно проезжает. Если же отвечать этим на каждый вызов, очередь никогда не дойдёт до конца: последние в ней будут ждать вечно.",
+  "game.apiRef.elevator.goToFloorPriority.code": `elevator.on("passing_floor", (floorNum, direction) => {
+  if (elevator.loadFactor() < 0.8 && waiting(floorNum, direction)) {
+    elevator.goToFloor(floorNum, true);
+  }
+});`,
+  "game.apiRef.elevator.stop.short": "Встать и забыть очередь. Пассажиры внутри этого не оценят.",
+  "game.apiRef.elevator.stop.more":
+    "Лифт останавливается там, где есть, и очередь очищается целиком. Кнопки, нажатые пассажирами внутри, при этом остаются нажатыми — маршрут после stop() придётся собрать заново, иначе люди поедут кататься.",
+  "game.apiRef.elevator.stop.code": `elevator.stop();
+// вернуть в очередь то, что заказали изнутри
+for (const floorNum of elevator.getPressedFloors()) {
+  elevator.goToFloor(floorNum);
+}`,
+  "game.apiRef.elevator.currentFloor.short": "Этаж, на котором лифт сейчас.",
+  "game.apiRef.elevator.currentFloor.more":
+    "Целое число, а не дробь: пока лифт едет между этажами, отвечает тот этаж, который он последним миновал. Куда он при этом движется, знает destinationDirection().",
+  "game.apiRef.elevator.currentFloor.code": `const distance = Math.abs(elevator.currentFloor() - floor.floorNum());`,
+  "game.apiRef.elevator.destinationQueue.short":
+    "Очередь этажей. Её можно править как обычный массив.",
+  "game.apiRef.elevator.destinationQueue.more":
+    "Первый элемент — то, куда лифт едет прямо сейчас. Читать можно свободно, менять — тоже, но после правки нужен checkDestinationQueue(): сам по себе лифт изменения в массиве не заметит.",
+  "game.apiRef.elevator.destinationQueue.code": `// выбросить повторы, не трогая порядок
+elevator.destinationQueue = elevator.destinationQueue.filter(
+  (floorNum, index, all) => all.indexOf(floorNum) === index,
+);
+elevator.checkDestinationQueue();`,
+  "game.apiRef.elevator.checkDestinationQueue.short": "Перечитать очередь после ручной правки.",
+  "game.apiRef.elevator.checkDestinationQueue.more":
+    "Нужен ровно в одном случае: вы поменяли destinationQueue напрямую. После goToFloor() и stop() вызывать его не надо — они это делают сами.",
+  "game.apiRef.elevator.checkDestinationQueue.code": `elevator.destinationQueue.sort((a, b) => a - b);
+elevator.checkDestinationQueue();`,
+  "game.apiRef.elevator.getPressedFloors.short": "Какие кнопки нажаты внутри лифта.",
+  "game.apiRef.elevator.getPressedFloors.more":
+    "Массив номеров по возрастанию. Это желания пассажиров, а не маршрут: пока этаж не попал в очередь, лифт туда не поедет. Кнопка гаснет, когда двери открылись на этом этаже.",
+  "game.apiRef.elevator.getPressedFloors.code": `elevator.on("stopped_at_floor", () => {
+  for (const floorNum of elevator.getPressedFloors()) {
+    elevator.goToFloor(floorNum);
+  }
+});`,
+  "game.apiRef.elevator.loadFactor.short": "Насколько лифт полон: от 0 (пусто) до 1 (битком).",
+  "game.apiRef.elevator.loadFactor.more":
+    "Считается по весу пассажиров, а не по их числу, поэтому ровной половины при половине мест не будет. Порог принято брать с запасом: полный лифт всё равно никого не возьмёт, а вызов на себя заберёт.",
+  "game.apiRef.elevator.loadFactor.code": `floor.on("up_button_pressed", () => {
+  if (elevator.loadFactor() < 0.7) {
+    elevator.goToFloor(floor.floorNum());
+  }
+});`,
+  "game.apiRef.elevator.maxPassengerCount.short": "Сколько человек в него влезает.",
+  "game.apiRef.elevator.maxPassengerCount.more":
+    "Число постоянное, его удобно спросить один раз в init. В одном здании лифты бывают разной вместимости — например, на 4 и на 10 человек, — и тогда «ближайший» и «подходящий» перестают быть одним и тем же.",
+  "game.apiRef.elevator.maxPassengerCount.code": `const big = elevators.filter((elevator) => elevator.maxPassengerCount() >= 8);`,
+  "game.apiRef.elevator.destinationDirection.short": 'Куда едет: "up", "down" или "stopped".',
+  "game.apiRef.elevator.destinationDirection.more":
+    'Отвечает по первому этажу в очереди, а не по лампам снаружи: лампы вы ставите сами, и они могут говорить что угодно. Если очередь пуста — "stopped".',
+  "game.apiRef.elevator.destinationDirection.code": `if (elevator.destinationDirection() === "up" && floorNum > elevator.currentFloor()) {
+  elevator.goToFloor(floorNum, true);
+}`,
+  "game.apiRef.elevator.goingUpIndicator.short":
+    "Лампа «вверх» снаружи. Без аргумента — прочитать.",
+  "game.apiRef.elevator.goingUpIndicator.more":
+    "С аргументом — зажечь или погасить, без аргумента — узнать, горит ли. По лампам люди на этаже решают, заходить ли им: если горят обе, зайдут все подряд, если не горит ни одна — не зайдёт никто.",
+  "game.apiRef.elevator.goingUpIndicator.code": `elevator.goingUpIndicator(true);
+elevator.goingDownIndicator(false);`,
+  "game.apiRef.elevator.goingDownIndicator.short":
+    "Лампа «вниз». По лампам люди решают, заходить ли.",
+  "game.apiRef.elevator.goingDownIndicator.more":
+    "То же самое, только вниз. Менять их принято на развороте: доехали до верхней точки — погасили «вверх», зажгли «вниз». Забытая лампа набивает лифт людьми, которым не по пути.",
+  "game.apiRef.elevator.goingDownIndicator.code": `elevator.on("stopped_at_floor", (floorNum) => {
+  const up = floorNum === 0;
+  elevator.goingUpIndicator(up);
+  elevator.goingDownIndicator(!up);
+});`,
+  "game.apiRef.elevator.idle.short": "Очередь опустела — лифту нечего делать.",
+  "game.apiRef.elevator.idle.more":
+    "Приходит один раз, когда лифт доехал до последнего этажа очереди. Если на событие не ответить, лифт так и останется стоять там, где встал, — а ждут чаще всего внизу.",
+  "game.apiRef.elevator.idle.code": `elevator.on("idle", () => {
+  elevator.goToFloor(0);
+});`,
+  "game.apiRef.elevator.floorButtonPressed.short": "Пассажир внутри нажал кнопку этажа.",
+  "game.apiRef.elevator.floorButtonPressed.more":
+    "Номер этажа приходит аргументом. Само событие ничего не меняет: пока вы не поставите этаж в очередь, лифт туда не поедет — человек так и будет ездить с вами.",
+  "game.apiRef.elevator.floorButtonPressed.code": `elevator.on("floor_button_pressed", (floorNum) => {
+  elevator.goToFloor(floorNum);
+});`,
+  "game.apiRef.elevator.passingFloor.short": "Проезжаем этаж; ещё можно успеть остановиться.",
+  "game.apiRef.elevator.passingFloor.more":
+    'Приходит чуть раньше, чем лифт поравняется с этажом, — это единственное место, где имеет смысл goToFloor(floorNum, true). direction — "up" или "down", то есть куда мы едем, а не куда хочет пассажир.',
+  "game.apiRef.elevator.passingFloor.code": `elevator.on("passing_floor", (floorNum, direction) => {
+  if (elevator.getPressedFloors().includes(floorNum)) {
+    elevator.goToFloor(floorNum, true);
+  }
+});`,
+  "game.apiRef.elevator.stoppedAtFloor.short": "Встали на этаже, двери открыты.",
+  "game.apiRef.elevator.stoppedAtFloor.more":
+    "Посадка и высадка к этому моменту уже произошли. Удобное место, чтобы переставить лампы и решить, куда ехать дальше, — особенно если очередь после остановки опустела.",
+  "game.apiRef.elevator.stoppedAtFloor.code": `elevator.on("stopped_at_floor", (floorNum) => {
+  elevator.goingUpIndicator(floorNum === 0);
+  elevator.goingDownIndicator(floorNum !== 0);
+});`,
+  "game.apiRef.floor.floorNum.short": "Номер этажа, считая с нуля снизу.",
+  "game.apiRef.floor.floorNum.more":
+    "У самого нижнего этажа номер 0, у верхнего — floors.length-1. Внутри обработчика этажа это единственный способ узнать, где нажали: номер в событие не приходит.",
+  "game.apiRef.floor.floorNum.code": `floors.forEach((floor) => {
+  floor.on("up_button_pressed", () => {
+    elevators[0].goToFloor(floor.floorNum());
+  });
+});`,
+  "game.apiRef.floor.upButtonPressed.short": "Снаружи нажали кнопку «вверх» — вызов наверх.",
+  "game.apiRef.floor.upButtonPressed.more":
+    "Человек хочет ехать выше. Событие приходит этажу, а не лифту: кому отдать вызов, решаете вы. Кнопка гаснет, когда на этом этаже открывает двери любой лифт, — даже если человек в него не влез.",
+  "game.apiRef.floor.upButtonPressed.code": `floor.on("up_button_pressed", () => {
+  nearest(floor.floorNum()).goToFloor(floor.floorNum());
+});`,
+  "game.apiRef.floor.downButtonPressed.short": "Снаружи нажали кнопку «вниз».",
+  "game.apiRef.floor.downButtonPressed.more":
+    "То же самое, но человек едет вниз. Если направление вам пока не важно, оба события подписываются одной строкой — через пробел.",
+  "game.apiRef.floor.downButtonPressed.code": `floor.on("up_button_pressed down_button_pressed", () => {
+  elevators[0].goToFloor(floor.floorNum());
+});`,
   "game.timeScale.decrease": "Уменьшить скорость симуляции",
   "game.timeScale.increase": "Увеличить скорость симуляции",
   "game.timeScale.value": "{value}×",

@@ -273,6 +273,218 @@ export const EN_MESSAGES = {
   "game.appBar.aboutForkLabel": "This fork",
   "game.appBar.aboutOriginalLabel": "Original",
   "game.appBar.aboutCopyright": "Elevator Saga © 2015 Magnus Wolffelt, © 2026 EpicDima, MIT.",
+  // Hotkeys: features/hotkeys-help's keys dialog, design/ui-mockup.html's own
+  // `<dialog class="keys">`. Every Mod- binding is spelled out as two <kbd>s
+  // joined by "+" (documentation.html's own <kbd data-mod-key> convention,
+  // resolved at runtime by src/ui/shortcuts.ts's labelModifierKeys) rather
+  // than the mockup's Mac-only "⌘⏎"/"⌘B" glyphs, and the mockup's own
+  // Windows/Linux hint paragraph is dropped: labelModifierKeys already
+  // relabels the kbd per visitor, so the hint's own question does not arise.
+  "game.hotkeys.title": "Keyboard shortcuts",
+  "game.hotkeys.closeTitle": "Close window",
+  "game.hotkeys.close": "Close",
+  "game.hotkeys.startPause": "Start and pause",
+  "game.hotkeys.startOver": "Start over",
+  "game.hotkeys.switchLayout": "Switch layout",
+  "game.hotkeys.openDocs": "Help",
+  "game.hotkeys.openSettings": "Settings",
+  // Docs: features/docs-reference's help dialog, design/ui-mockup.html's own
+  // `<dialog class="docs">` -- the chrome around the guide and the API
+  // reference, not their content.
+  "game.docs.title": "Help",
+  "game.docs.searchPlaceholder": "Search: goToFloor, waiting, button…",
+  "game.docs.clearSearch": "Clear search",
+  "game.docs.closeTitle": "Close help",
+  "game.docs.close": "Close",
+  "game.docs.empty": "Nothing found",
+  // The guide: design/ui-mockup.html's own GUIDE template literal, ported
+  // section by section. whatToDo's four steps are their own keys rather than
+  // one holding the whole <ol>, because the list markup is the template's to
+  // draw, not a translator's to reproduce; step3 keeps a .html suffix because
+  // it alone has an inline <b>, and the rest do not.
+  "game.docs.guide.whatGame.heading": "What kind of game this is",
+  "game.docs.guide.whatGame.body":
+    "Elevators move through a building, and people wait on its floors: each one arrived on their own floor and wants to reach another. They press their own buttons. Nobody drives the elevators — a program you write does, instead. You can't move an elevator with the mouse, and that's the whole game: the only way to get people where they're going is to give the building a rule it can follow on its own.",
+  "game.docs.guide.whatToDo.heading": "What to do",
+  "game.docs.guide.whatToDo.step1":
+    "Pick a level in the header. Each one has its own building — floors, elevator count, elevator capacity — and its own conditions.",
+  "game.docs.guide.whatToDo.step2":
+    "Write your program on the right. It subscribes to elevator and floor events: a button was pressed, an elevator went idle, we're passing a floor.",
+  "game.docs.guide.whatToDo.step3.html":
+    "Press <b>Start</b> and watch. A run can be paused, sped up — all the way to instant, where the outcome is computed at once — and started over: the building is the same every time, and people arrive by the same seed.",
+  "game.docs.guide.whatToDo.step4":
+    "Didn't work out? Adjust the rule and run again. Three code slots per level hold three different approaches, and you can switch between them on the fly.",
+  "game.docs.guide.carArrows.heading": "The arrows on the car",
+  "game.docs.guide.carArrows.html":
+    "Each car carries two lit arrows — <b>up</b> and <b>down</b> lamps, the very ones <b>goingUpIndicator</b> and <b>goingDownIndicator</b> control. People on a floor watch them and only board if the elevator is headed their way: with the down lamp off, someone headed down just waits for the next one. Light both and everyone boards; a full elevator turns both off by itself. Who the elevator is carrying right now shows in the card that pops up on hover.",
+  "game.docs.guide.readingResults.heading": "How to tell whether it worked",
+  "game.docs.guide.readingResults.body":
+    "The bars under the header show the level's condition: how many people to carry, in how much time, how many floors the elevators may travel past, and how many seconds people may wait. The tiles below track the same things in more detail — average delivery time, worst wait, elevator load — and chart how each one moved over the run. A level is cleared once everyone's been carried and no limit was broken.",
+  "game.docs.guide.threeStars.heading": "Three stars",
+  "game.docs.guide.threeStars.html":
+    "Clearing a level earns bronze — that's exactly its own condition. Silver and gold come from <em>how</em> it was cleared: with room to spare, without running elevators empty, without making people wait. The card on the right, in the goal bar, shows exactly what each star needs — and which of them are being held right now. Stars don't gate progress: bronze alone opens the next level, and silver and gold stay on the list to come back for.",
+  "game.docs.guide.tutorialLevels.heading": "The first levels come with an explanation",
+  "game.docs.guide.tutorialLevels.body":
+    "Tutorial levels have a lesson standing next to the building: step by step, what's happening, which event a program sees it through, and what answering it looks like. A button above the building collapses it and brings it back.",
+  // The code skeleton every program starts from, and the one paragraph naming
+  // elevator/elevators/floor/floors before the reference dives into each --
+  // design/ui-mockup.html's own docsBody.innerHTML assembly, between the
+  // guide and the API rows.
+  "game.docs.intro.heading": "What a program is made of",
+  "game.docs.intro.example.code": `{
+  init: function (elevators, floors) {
+    // subscribe to events here
+  },
+  update: function (dt, elevators, floors) {
+    // called continuously while a run is in progress
+  }
+}`,
+  "game.docs.lead.html":
+    "<code>elevator</code> is an elevator: all of them live in <code>elevators</code>. <code>floor</code> is a floor, and they're in <code>floors</code>. Any row below can be expanded — details and an example live underneath.",
+  // The API reference: entities/api-reference/model/reference.ts holds the
+  // structural table (which sig belongs to which group, in which order); each
+  // triplet below is one <details class="api"> row's short summary, longer
+  // explanation and example. English condenses this repository's own
+  // documentation.html prose for the same methods rather than translating the
+  // Russian cold; Russian is design/ui-mockup.html's own API_DOCS text,
+  // verbatim but for floorNum.more's "floors.length-1", tightened to satisfy
+  // this catalogue's own hyphen-is-not-a-dash rule.
+  "game.apiRef.elevator.groupLabel": "Elevator",
+  "game.apiRef.floor.groupLabel": "Floor",
+  "game.apiRef.elevator.goToFloor.short": "Queues a floor for the elevator.",
+  "game.apiRef.elevator.goToFloor.more":
+    "The floor joins the end of the queue: the elevator gets to it once it has dealt with whatever was queued earlier. The same floor can be queued twice — and the elevator will stop there twice, so it's worth checking the queue before adding to it.",
+  "game.apiRef.elevator.goToFloor.code": `// don't queue what's already queued
+const wanted = floor.floorNum();
+if (!elevator.destinationQueue.includes(wanted)) {
+  elevator.goToFloor(wanted);
+}`,
+  "game.apiRef.elevator.goToFloorPriority.short":
+    "The same, but first in the queue: the elevator goes there right away.",
+  "game.apiRef.elevator.goToFloorPriority.more":
+    "The second argument puts the floor at the front of the queue and pushes everything else back. It's how you pick up someone the elevator is passing anyway. Answer every call this way, though, and the queue never reaches its end — whoever is last in it waits forever.",
+  "game.apiRef.elevator.goToFloorPriority.code": `elevator.on("passing_floor", (floorNum, direction) => {
+  if (elevator.loadFactor() < 0.8 && waiting(floorNum, direction)) {
+    elevator.goToFloor(floorNum, true);
+  }
+});`,
+  "game.apiRef.elevator.stop.short":
+    "Stops and drops the queue. The passengers inside won't thank you.",
+  "game.apiRef.elevator.stop.more":
+    "The elevator stops wherever it is, and the whole queue is cleared. Buttons pressed by the passengers inside stay pressed, though — the route has to be rebuilt after stop(), or people end up along for the ride.",
+  "game.apiRef.elevator.stop.code": `elevator.stop();
+// put back what was ordered from inside
+for (const floorNum of elevator.getPressedFloors()) {
+  elevator.goToFloor(floorNum);
+}`,
+  "game.apiRef.elevator.currentFloor.short": "The floor the elevator is on right now.",
+  "game.apiRef.elevator.currentFloor.more":
+    "A whole number, never a fraction: while the elevator is travelling between floors, this answers with whichever floor it last passed. destinationDirection() knows which way it's headed while that's true.",
+  "game.apiRef.elevator.currentFloor.code": `const distance = Math.abs(elevator.currentFloor() - floor.floorNum());`,
+  "game.apiRef.elevator.destinationQueue.short":
+    "The floor queue. It's a plain array, and can be edited like one.",
+  "game.apiRef.elevator.destinationQueue.more":
+    "The first element is wherever the elevator is headed right now. Reading is free, and so is changing it — but an edit needs checkDestinationQueue() afterward: the elevator doesn't notice a change to the array by itself.",
+  "game.apiRef.elevator.destinationQueue.code": `// drop repeats without touching the order
+elevator.destinationQueue = elevator.destinationQueue.filter(
+  (floorNum, index, all) => all.indexOf(floorNum) === index,
+);
+elevator.checkDestinationQueue();`,
+  "game.apiRef.elevator.checkDestinationQueue.short": "Re-reads the queue after a manual edit.",
+  "game.apiRef.elevator.checkDestinationQueue.more":
+    "Needed in exactly one case: destinationQueue was changed directly. There's no need to call it after goToFloor() or stop() — they already do it themselves.",
+  "game.apiRef.elevator.checkDestinationQueue.code": `elevator.destinationQueue.sort((a, b) => a - b);
+elevator.checkDestinationQueue();`,
+  "game.apiRef.elevator.getPressedFloors.short": "Which buttons are pressed inside the elevator.",
+  "game.apiRef.elevator.getPressedFloors.more":
+    "An array of floor numbers, ascending. These are the passengers' wishes, not a route — the elevator won't go there until the floor joins the queue. A button turns off once the doors have opened on that floor.",
+  "game.apiRef.elevator.getPressedFloors.code": `elevator.on("stopped_at_floor", () => {
+  for (const floorNum of elevator.getPressedFloors()) {
+    elevator.goToFloor(floorNum);
+  }
+});`,
+  "game.apiRef.elevator.loadFactor.short":
+    "How full the elevator is: from 0 (empty) to 1 (packed).",
+  "game.apiRef.elevator.loadFactor.more":
+    "Counted by the passengers' weight, not by how many there are, so half the seats filled won't read as exactly 0.5. A threshold is usually given some slack: a full elevator won't take anyone regardless, and a call still gets answered.",
+  "game.apiRef.elevator.loadFactor.code": `floor.on("up_button_pressed", () => {
+  if (elevator.loadFactor() < 0.7) {
+    elevator.goToFloor(floor.floorNum());
+  }
+});`,
+  "game.apiRef.elevator.maxPassengerCount.short": "How many people fit inside it.",
+  "game.apiRef.elevator.maxPassengerCount.more":
+    'A fixed number, worth asking once in init. Elevators in the same building can carry different amounts — 4 seats and 10 seats, say — and once they do, "nearest" and "big enough" stop being the same elevator.',
+  "game.apiRef.elevator.maxPassengerCount.code": `const big = elevators.filter((elevator) => elevator.maxPassengerCount() >= 8);`,
+  "game.apiRef.elevator.destinationDirection.short":
+    'Which way it\'s headed: "up", "down" or "stopped".',
+  "game.apiRef.elevator.destinationDirection.more":
+    'Answers from the first floor in the queue, not from the lamps outside — those are set by hand, and can say anything at all. An empty queue reads as "stopped".',
+  "game.apiRef.elevator.destinationDirection.code": `if (elevator.destinationDirection() === "up" && floorNum > elevator.currentFloor()) {
+  elevator.goToFloor(floorNum, true);
+}`,
+  "game.apiRef.elevator.goingUpIndicator.short":
+    'The "up" lamp outside. With no argument, it just reads.',
+  "game.apiRef.elevator.goingUpIndicator.more":
+    "With an argument, it lights the lamp or turns it off; with none, it reports whether it's lit. People on a floor decide whether to board by these lamps: light both and everyone boards, light neither and nobody does.",
+  "game.apiRef.elevator.goingUpIndicator.code": `elevator.goingUpIndicator(true);
+elevator.goingDownIndicator(false);`,
+  "game.apiRef.elevator.goingDownIndicator.short":
+    'The "down" lamp. People decide whether to board by these lamps.',
+  "game.apiRef.elevator.goingDownIndicator.more":
+    'The same thing, downward. The pair is usually flipped at the turnaround: reach the top, turn off "up", turn on "down". Forget to, and the elevator fills with people headed the wrong way.',
+  "game.apiRef.elevator.goingDownIndicator.code": `elevator.on("stopped_at_floor", (floorNum) => {
+  const up = floorNum === 0;
+  elevator.goingUpIndicator(up);
+  elevator.goingDownIndicator(!up);
+});`,
+  "game.apiRef.elevator.idle.short": "The queue ran out — the elevator has nothing left to do.",
+  "game.apiRef.elevator.idle.more":
+    "Fires once, when the elevator reaches the last floor in its queue. Leave it unanswered and the elevator just sits wherever it stopped — and most waiting happens downstairs.",
+  "game.apiRef.elevator.idle.code": `elevator.on("idle", () => {
+  elevator.goToFloor(0);
+});`,
+  "game.apiRef.elevator.floorButtonPressed.short": "A passenger inside pressed a floor button.",
+  "game.apiRef.elevator.floorButtonPressed.more":
+    "The floor number arrives as the argument. The event itself changes nothing — until the floor is queued, the elevator won't go there, and the passenger just keeps riding along.",
+  "game.apiRef.elevator.floorButtonPressed.code": `elevator.on("floor_button_pressed", (floorNum) => {
+  elevator.goToFloor(floorNum);
+});`,
+  "game.apiRef.elevator.passingFloor.short": "Passing a floor — there's still time to stop for it.",
+  "game.apiRef.elevator.passingFloor.more":
+    'Fires just before the elevator draws level with the floor — the one place where goToFloor(floorNum, true) actually makes sense. direction is "up" or "down": which way the elevator is going, not which way the passenger wants.',
+  "game.apiRef.elevator.passingFloor.code": `elevator.on("passing_floor", (floorNum, direction) => {
+  if (elevator.getPressedFloors().includes(floorNum)) {
+    elevator.goToFloor(floorNum, true);
+  }
+});`,
+  "game.apiRef.elevator.stoppedAtFloor.short": "Stopped at a floor, doors open.",
+  "game.apiRef.elevator.stoppedAtFloor.more":
+    "Boarding and alighting have already happened by this point. A good place to reset the lamps and decide where to go next — especially if the queue is now empty.",
+  "game.apiRef.elevator.stoppedAtFloor.code": `elevator.on("stopped_at_floor", (floorNum) => {
+  elevator.goingUpIndicator(floorNum === 0);
+  elevator.goingDownIndicator(floorNum !== 0);
+});`,
+  "game.apiRef.floor.floorNum.short": "The floor's number, counting up from zero at the bottom.",
+  "game.apiRef.floor.floorNum.more":
+    "The lowest floor is 0, the highest is floors.length - 1. Inside a floor's own handler, this is the only way to find out where the button was pressed — the number doesn't arrive with the event.",
+  "game.apiRef.floor.floorNum.code": `floors.forEach((floor) => {
+  floor.on("up_button_pressed", () => {
+    elevators[0].goToFloor(floor.floorNum());
+  });
+});`,
+  "game.apiRef.floor.upButtonPressed.short": 'The "up" button was pressed outside — a call upward.',
+  "game.apiRef.floor.upButtonPressed.more":
+    "Someone wants to go up. The event arrives on the floor, not on any elevator: which one answers the call is your decision. The button turns off once any elevator opens its doors on that floor — even if nobody actually boards it.",
+  "game.apiRef.floor.upButtonPressed.code": `floor.on("up_button_pressed", () => {
+  nearest(floor.floorNum()).goToFloor(floor.floorNum());
+});`,
+  "game.apiRef.floor.downButtonPressed.short": 'The "down" button was pressed outside.',
+  "game.apiRef.floor.downButtonPressed.more":
+    "The same thing, downward. If direction doesn't matter yet, both events can be subscribed in one line — space-separated.",
+  "game.apiRef.floor.downButtonPressed.code": `floor.on("up_button_pressed down_button_pressed", () => {
+  elevators[0].goToFloor(floor.floorNum());
+});`,
   "game.timeScale.decrease": "Decrease simulation speed",
   "game.timeScale.increase": "Increase simulation speed",
   "game.timeScale.value": "{value}x",
