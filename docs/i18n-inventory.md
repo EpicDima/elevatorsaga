@@ -42,7 +42,7 @@ that cannot read is the prose — the English column, the Notes, and every claim
 module calls what — so a row can still be right about its key and wrong about everything beside
 it.
 
-Everything here was re-measured against the tree on **12 August 2026**.
+Everything here was re-measured against the tree on **18 August 2026**.
 
 ## The module
 
@@ -104,29 +104,29 @@ Key names carry two suffixes that mean something:
 
 ## Where the strings are
 
-The catalogue holds **316 keys** in two locales. `src/i18n/en.ts` is the reference — its text is
+The catalogue holds **322 keys** in two locales. `src/i18n/en.ts` is the reference — its text is
 the English wording, extracted verbatim — and `src/i18n/ru.ts` is the Russian translation. The
 types make English the shape everything else is measured against: a Russian catalogue missing a
 key, carrying a key English does not have, or giving a plural message the wrong number of forms
 is a compile error, not a runtime surprise.
 
 ```sh
-grep -cE '^  "[^"]+":' src/i18n/en.ts                                   # 316
+grep -cE '^  "[^"]+":' src/i18n/en.ts                                   # 322
 grep -oE '^  "[^"]+"' src/i18n/en.ts | tr -d '"' | cut -d. -f1 | sort | uniq -c | sort -rn
 ```
 
-| Prefix         | Keys    | What reads them                                                                                                                          |
-| -------------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| `docs.*`       | 85      | one of them, `docs.basics.example.code`, by `src/ui/completions.ts`; the other 84 by nothing                                             |
-| `tutorial.*`   | 82      | `src/ui/tutorial-panel.ts`, `src/ui/templates.ts`, `src/app/app.ts`                                                                      |
-| `completion.*` | 33      | `src/ui/completions.ts`                                                                                                                  |
-| `page.*`       | 40      | `index.html`, through `data-i18n` and `data-i18n-attr`; `page.noscript` excepted, see below                                              |
-| `game.*`       | 32      | `src/ui/templates.ts` (18), `src/ui/presenters.ts` (11), `src/app/app.ts` (5); the two speed labels are written by both of the first two |
-| `challenge.*`  | 15      | `src/game/challenges.ts`                                                                                                                 |
-| `fitness.*`    | 11      | `src/app/fitness.ts`, `src/game/fitness.ts`, `src/main.ts`, `src/cli/bench.ts`                                                           |
-| `error.*`      | 10      | `src/game/elevator-interface.ts`, `src/ui/presenters.ts`, `src/game/user-code.ts`, `src/game/movable.ts`                                 |
-| `editor.*`     | 8       | `src/main.ts`, `src/app/app.ts`, `src/ui/editor.ts`, `src/ui/default-code.ts`, `src/ui/templates.ts`, `index.html`                       |
-| **Total**      | **316** |                                                                                                                                          |
+| Prefix         | Keys    | What reads them                                                                                                                                                                                 |
+| -------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `docs.*`       | 85      | one of them, `docs.basics.example.code`, by `src/ui/completions.ts`; the other 84 by nothing                                                                                                    |
+| `tutorial.*`   | 82      | `src/ui/tutorial-panel.ts`, `src/ui/templates.ts`, `src/app/app.ts`                                                                                                                             |
+| `completion.*` | 33      | `src/ui/completions.ts`                                                                                                                                                                         |
+| `page.*`       | 40      | `index.html`, through `data-i18n` and `data-i18n-attr`; `page.noscript` excepted, see below                                                                                                     |
+| `game.*`       | 38      | `src/ui/templates.ts` (18), `src/ui/presenters.ts` (11), `src/app/app.ts` (5), `src/widgets/level-switcher/ui/level-switcher.ts` (6); the two speed labels are written by both of the first two |
+| `challenge.*`  | 15      | `src/game/challenges.ts`                                                                                                                                                                        |
+| `fitness.*`    | 11      | `src/app/fitness.ts`, `src/game/fitness.ts`, `src/main.ts`, `src/cli/bench.ts`                                                                                                                  |
+| `error.*`      | 10      | `src/game/elevator-interface.ts`, `src/ui/presenters.ts`, `src/game/user-code.ts`, `src/game/movable.ts`                                                                                        |
+| `editor.*`     | 8       | `src/main.ts`, `src/app/app.ts`, `src/ui/editor.ts`, `src/ui/default-code.ts`, `src/ui/templates.ts`, `index.html`                                                                              |
+| **Total**      | **322** |                                                                                                                                                                                                 |
 
 Which keys nothing reads:
 
@@ -436,7 +436,7 @@ identically in every locale. Both names repeat it because an accessible name has
 own — "1234567890, link" describes nothing.
 
 `game.seed.newDraw` appearing inside `game.seed.newDrawLink` is a constraint a translator cannot
-see: the two sit on adjacent lines of a 316-key file and nothing in the file marks them as a
+see: the two sit on adjacent lines of a 322-key file and nothing in the file marks them as a
 pair. `src/i18n/catalogue.test.ts`, under _accessible names_, is what holds it — it requires the
 spoken name to contain the visible label in every locale. Rewording «новый розыгрыш» to «новый
 сид» meant changing both, which is exactly the edit where one gets missed.
@@ -445,6 +445,28 @@ The seed explanation used to be a module constant, `SEED_EXPLANATION`. It is now
 `t("game.seed.explanation")` inside `seedHelpTemplate`, which runs per render — which is the
 point. A `const SEED_EXPLANATION = t(...)` at module scope compiles, reads correctly and freezes
 English at import time; see _Rules the wiring has to keep_.
+
+### `src/widgets/level-switcher/ui/level-switcher.ts` — 6 `game.levelSwitcher.*` keys
+
+The app bar's level-switcher popover, and its step buttons either side of the trigger. Its block
+captions reuse `tutorial.panel.label` and `game.challenge.nav.label`, and an open, non-demo
+challenge tile reuses `game.challenge.nav.link` — this prefix only holds what those cannot say:
+the sandbox's own label, the two step buttons, and the two tile labels the nav row has no
+counterpart for, since it never lists a learning-track task or a locked challenge.
+
+| Key                                           | English                           | Notes                                                                                                                       |
+| --------------------------------------------- | --------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| `game.levelSwitcher.prevLabel`                | Previous level                    | an `aria-label` on `.task-prev`, rewritten on every `update()`                                                              |
+| `game.levelSwitcher.nextLabel`                | Next level                        | an `aria-label` on `.task-next`, likewise                                                                                   |
+| `game.levelSwitcher.sandboxLabel`             | Sandbox                           | both the sandbox tile's visible text and its accessible name, and the sandbox block's caption                               |
+| `game.levelSwitcher.tutorialTileLabel`        | Tutorial task {number}            | takes `{number}`; accessible name of an open, not-yet-cleared tutorial tile                                                 |
+| `game.levelSwitcher.tutorialTileClearedLabel` | Tutorial task {number}, completed | takes `{number}`; accessible name of a cleared tutorial tile                                                                |
+| `game.levelSwitcher.challengeTileLockedLabel` | Challenge {number}, locked        | takes `{number}`; accessible name of a locked, non-demo challenge tile, drawn as a `<button disabled>` rather than an `<a>` |
+
+A locked challenge tile can still be `current` — reached by a direct link to a challenge the
+player has not unlocked through the switcher itself — and `tileAccessibleName` in
+`level-switcher.ts` keeps naming it as locked even then, rather than switching to
+`game.challenge.nav.link` once it is also the one on screen.
 
 ### `src/ui/presenters.ts` — 11 `game.*` and 3 `error.*` keys
 

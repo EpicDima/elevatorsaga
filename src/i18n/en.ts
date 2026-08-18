@@ -165,6 +165,19 @@ export const EN_MESSAGES = {
   "game.challenge.nav.label": "Challenges",
   "game.challenge.nav.link": "Challenge {number}",
   "game.challenge.nav.demo": "Demo",
+  // The level switcher's own popover: `widgets/level-switcher`. Its block
+  // captions otherwise reuse "game.challenge.nav.label" (challenges) and
+  // "tutorial.panel.label" (the learning track), so only what is new to this
+  // widget is here — the sandbox's own label, the step buttons either side of
+  // the popover trigger, and the two tile labels the nav row has no
+  // counterpart for, since it never lists a learning-track task or a locked
+  // challenge.
+  "game.levelSwitcher.prevLabel": "Previous level",
+  "game.levelSwitcher.nextLabel": "Next level",
+  "game.levelSwitcher.sandboxLabel": "Sandbox",
+  "game.levelSwitcher.tutorialTileLabel": "Tutorial task {number}",
+  "game.levelSwitcher.tutorialTileClearedLabel": "Tutorial task {number}, completed",
+  "game.levelSwitcher.challengeTileLockedLabel": "Challenge {number}, locked",
   // The seed line, which is two lines really: a control that says what the run
   // is, and a disclosure that says how far the promise goes. The seed itself is
   // a placeholder rather than part of the sentence — it is the token a player
