@@ -180,6 +180,36 @@ export const SPRITE_ICONS = {
   // each stroked shape below carries that same default explicitly instead of
   // depending on a cascade that doesn't exist here — the same reason `star`
   // spells out its own paint rather than leaving it to inherited CSS.
+  //
+  // The docs opener's glyph (`#docsOpen`): an open book, split down the
+  // spine.
+  book: {
+    viewBox: "0 0 16 16",
+    shapes: [
+      {
+        tag: "path",
+        attrs: {
+          d: "M2.5 3.5h4a2 2 0 0 1 2 2v8a1.6 1.6 0 0 0-1.6-1.5H2.5v-8.5Z",
+          fill: "none",
+          stroke: "currentColor",
+          "stroke-width": "1.6",
+          "stroke-linecap": "round",
+          "stroke-linejoin": "round",
+        },
+      },
+      {
+        tag: "path",
+        attrs: {
+          d: "M13.5 3.5h-4a2 2 0 0 0-2 2v8a1.6 1.6 0 0 1 1.6-1.5h4.4v-8.5Z",
+          fill: "none",
+          stroke: "currentColor",
+          "stroke-width": "1.6",
+          "stroke-linecap": "round",
+          "stroke-linejoin": "round",
+        },
+      },
+    ],
+  },
   check: {
     viewBox: "0 0 16 16",
     shapes: [
@@ -190,6 +220,42 @@ export const SPRITE_ICONS = {
           fill: "none",
           stroke: "currentColor",
           "stroke-width": "2",
+          "stroke-linecap": "round",
+          "stroke-linejoin": "round",
+        },
+      },
+    ],
+  },
+  // The mockup's own copy-link glyph, `#seedCopy`. Kept alongside `dice` even
+  // though `features/manage-seed` does not wire either affordance up — see
+  // that slice's module comment for why: the mockup's own `#seedCopy` has no
+  // click handler anywhere in its script, and there is no arbitrary-seed
+  // text field in production to reroll in the first place.
+  copy: {
+    viewBox: "0 0 16 16",
+    shapes: [
+      {
+        tag: "rect",
+        attrs: {
+          x: "5.5",
+          y: "5.5",
+          width: "8",
+          height: "8",
+          rx: "1.5",
+          fill: "none",
+          stroke: "currentColor",
+          "stroke-width": "1.6",
+          "stroke-linecap": "round",
+          "stroke-linejoin": "round",
+        },
+      },
+      {
+        tag: "path",
+        attrs: {
+          d: "M10.5 3.5h-7a1 1 0 0 0-1 1v7",
+          fill: "none",
+          stroke: "currentColor",
+          "stroke-width": "1.6",
           "stroke-linecap": "round",
           "stroke-linejoin": "round",
         },
@@ -208,6 +274,87 @@ export const SPRITE_ICONS = {
           fill: "none",
           stroke: "currentColor",
           "stroke-width": "2",
+          "stroke-linecap": "round",
+          "stroke-linejoin": "round",
+        },
+      },
+    ],
+  },
+  // The seed block's reroll glyph, `#seedRoll`. Kept alongside `copy` even
+  // though `features/manage-seed` does not wire either affordance up — see
+  // that slice's module comment for why: production has no arbitrary-seed
+  // text input to reroll in the first place, only the URL-driven seed the
+  // mockup's own `#seedVal` field has no real equivalent for.
+  dice: {
+    viewBox: "0 0 16 16",
+    shapes: [
+      {
+        tag: "rect",
+        attrs: {
+          x: "2.5",
+          y: "2.5",
+          width: "11",
+          height: "11",
+          rx: "2.5",
+          fill: "none",
+          stroke: "currentColor",
+          "stroke-width": "1.6",
+          "stroke-linecap": "round",
+          "stroke-linejoin": "round",
+        },
+      },
+      {
+        tag: "circle",
+        attrs: { cx: "5.8", cy: "5.8", r: ".9", fill: "currentcolor", stroke: "none" },
+      },
+      {
+        tag: "circle",
+        attrs: { cx: "10.2", cy: "10.2", r: ".9", fill: "currentcolor", stroke: "none" },
+      },
+      {
+        tag: "circle",
+        attrs: { cx: "8", cy: "8", r: ".9", fill: "currentcolor", stroke: "none" },
+      },
+    ],
+  },
+  // The settings popover's own trigger row for its seed help disclosure's
+  // sibling block — the mockup's `#keysOpen` glyph, a stylised keyboard.
+  keys: {
+    viewBox: "0 0 16 16",
+    shapes: [
+      {
+        tag: "rect",
+        attrs: {
+          x: "1.5",
+          y: "3.5",
+          width: "13",
+          height: "9",
+          rx: "1.5",
+          fill: "none",
+          stroke: "currentColor",
+          "stroke-width": "1.6",
+          "stroke-linecap": "round",
+          "stroke-linejoin": "round",
+        },
+      },
+      {
+        tag: "path",
+        attrs: {
+          d: "M4 6.5h.01M6.5 6.5h.01M9 6.5h.01M11.5 6.5h.01M4 9.5h.01M11.5 9.5h.01",
+          fill: "none",
+          stroke: "currentColor",
+          "stroke-width": "1.6",
+          "stroke-linecap": "round",
+          "stroke-linejoin": "round",
+        },
+      },
+      {
+        tag: "path",
+        attrs: {
+          d: "M6.5 9.5h3",
+          fill: "none",
+          stroke: "currentColor",
+          "stroke-width": "1.6",
           "stroke-linecap": "round",
           "stroke-linejoin": "round",
         },
@@ -247,6 +394,222 @@ export const SPRITE_ICONS = {
         tag: "path",
         attrs: {
           d: "M6.5 13h3",
+          fill: "none",
+          stroke: "currentColor",
+          "stroke-width": "1.6",
+          "stroke-linecap": "round",
+          "stroke-linejoin": "round",
+        },
+      },
+    ],
+  },
+  // The About block's own glyph, next to the two `.setlink` anchors out to
+  // this fork's and the original game's repositories.
+  link: {
+    viewBox: "0 0 16 16",
+    shapes: [
+      {
+        tag: "path",
+        attrs: {
+          d: "M9.5 3h3.5v3.5",
+          fill: "none",
+          stroke: "currentColor",
+          "stroke-width": "1.6",
+          "stroke-linecap": "round",
+          "stroke-linejoin": "round",
+        },
+      },
+      {
+        tag: "path",
+        attrs: {
+          d: "M13 3 7.5 8.5",
+          fill: "none",
+          stroke: "currentColor",
+          "stroke-width": "1.6",
+          "stroke-linecap": "round",
+          "stroke-linejoin": "round",
+        },
+      },
+      {
+        tag: "path",
+        attrs: {
+          d: "M11 9.5V12a1.5 1.5 0 0 1-1.5 1.5h-6A1.5 1.5 0 0 1 2 12V6a1.5 1.5 0 0 1 1.5-1.5H6",
+          fill: "none",
+          stroke: "currentColor",
+          "stroke-width": "1.6",
+          "stroke-linecap": "round",
+          "stroke-linejoin": "round",
+        },
+      },
+    ],
+  },
+  // `features/switch-layout`'s "code only" button — the workspace collapsed
+  // to just its editor pane.
+  "only-code": {
+    viewBox: "0 0 16 16",
+    shapes: [
+      {
+        tag: "rect",
+        attrs: {
+          x: "1.5",
+          y: "2.5",
+          width: "13",
+          height: "11",
+          rx: "1.5",
+          fill: "none",
+          stroke: "currentColor",
+          "stroke-width": "1.6",
+          "stroke-linecap": "round",
+          "stroke-linejoin": "round",
+        },
+      },
+      {
+        tag: "path",
+        attrs: {
+          d: "M5.5 6.5 3.8 8l1.7 1.5m5-3L12.2 8l-1.7 1.5",
+          fill: "none",
+          stroke: "currentColor",
+          "stroke-width": "1.6",
+          "stroke-linecap": "round",
+          "stroke-linejoin": "round",
+        },
+      },
+    ],
+  },
+  // `features/switch-layout`'s "game only" button — the workspace collapsed
+  // to just its building pane.
+  "only-game": {
+    viewBox: "0 0 16 16",
+    shapes: [
+      {
+        tag: "rect",
+        attrs: {
+          x: "1.5",
+          y: "2.5",
+          width: "13",
+          height: "11",
+          rx: "1.5",
+          fill: "none",
+          stroke: "currentColor",
+          "stroke-width": "1.6",
+          "stroke-linecap": "round",
+          "stroke-linejoin": "round",
+        },
+      },
+      {
+        tag: "path",
+        attrs: {
+          d: "M5 11V7m3 4V5m3 6V9",
+          fill: "none",
+          stroke: "currentColor",
+          "stroke-width": "1.6",
+          "stroke-linecap": "round",
+          "stroke-linejoin": "round",
+        },
+      },
+    ],
+  },
+  // The settings trigger's own glyph, `#setOpen` — sliders standing in for
+  // "preferences" the same way a gear does elsewhere.
+  slider: {
+    viewBox: "0 0 16 16",
+    shapes: [
+      {
+        tag: "path",
+        attrs: {
+          d: "M2 5h8M2 11h4",
+          fill: "none",
+          stroke: "currentColor",
+          "stroke-width": "1.6",
+          "stroke-linecap": "round",
+          "stroke-linejoin": "round",
+        },
+      },
+      {
+        tag: "circle",
+        attrs: {
+          cx: "12",
+          cy: "5",
+          r: "1.8",
+          fill: "none",
+          stroke: "currentColor",
+          "stroke-width": "1.6",
+          "stroke-linecap": "round",
+          "stroke-linejoin": "round",
+        },
+      },
+      {
+        tag: "circle",
+        attrs: {
+          cx: "8",
+          cy: "11",
+          r: "1.8",
+          fill: "none",
+          stroke: "currentColor",
+          "stroke-width": "1.6",
+          "stroke-linecap": "round",
+          "stroke-linejoin": "round",
+        },
+      },
+    ],
+  },
+  // `features/switch-layout`'s "code left" button — the divider drawn on the
+  // right two-thirds of the way across.
+  "split-left": {
+    viewBox: "0 0 16 16",
+    shapes: [
+      {
+        tag: "rect",
+        attrs: {
+          x: "1.5",
+          y: "2.5",
+          width: "13",
+          height: "11",
+          rx: "1.5",
+          fill: "none",
+          stroke: "currentColor",
+          "stroke-width": "1.6",
+          "stroke-linecap": "round",
+          "stroke-linejoin": "round",
+        },
+      },
+      {
+        tag: "path",
+        attrs: {
+          d: "M6.5 2.5v11",
+          fill: "none",
+          stroke: "currentColor",
+          "stroke-width": "1.6",
+          "stroke-linecap": "round",
+          "stroke-linejoin": "round",
+        },
+      },
+    ],
+  },
+  // `features/switch-layout`'s "code right" button — the divider drawn on the
+  // left third of the way across.
+  "split-right": {
+    viewBox: "0 0 16 16",
+    shapes: [
+      {
+        tag: "rect",
+        attrs: {
+          x: "1.5",
+          y: "2.5",
+          width: "13",
+          height: "11",
+          rx: "1.5",
+          fill: "none",
+          stroke: "currentColor",
+          "stroke-width": "1.6",
+          "stroke-linecap": "round",
+          "stroke-linejoin": "round",
+        },
+      },
+      {
+        tag: "path",
+        attrs: {
+          d: "M9.5 2.5v11",
           fill: "none",
           stroke: "currentColor",
           "stroke-width": "1.6",
@@ -297,7 +660,7 @@ export type SpriteIconName = keyof typeof SPRITE_ICONS;
 /** One shape making up a {@link SpriteIconDefinition} — a direct, typed stand-in for an SVG element. */
 interface SpriteShape {
   /** The SVG element to build. */
-  readonly tag: "circle" | "path";
+  readonly tag: "circle" | "path" | "rect";
   /** Attributes to set on it verbatim, copied from the mockup's own markup. */
   readonly attrs: Readonly<Record<string, string>>;
 }

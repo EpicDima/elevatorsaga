@@ -192,6 +192,223 @@ describe("SPRITE_ICONS", () => {
       ],
     });
   });
+
+  // design/ui-mockup.html's own <symbol id="i-book"> — copied verbatim, two
+  // shapes at the mockup's own default stroke.
+  it("reproduces the mockup's book glyph exactly", () => {
+    expect(SPRITE_ICONS.book).toEqual({
+      viewBox: "0 0 16 16",
+      shapes: [
+        {
+          tag: "path",
+          attrs: {
+            d: "M2.5 3.5h4a2 2 0 0 1 2 2v8a1.6 1.6 0 0 0-1.6-1.5H2.5v-8.5Z",
+            ...STROKE_DEFAULTS("1.6"),
+          },
+        },
+        {
+          tag: "path",
+          attrs: {
+            d: "M13.5 3.5h-4a2 2 0 0 0-2 2v8a1.6 1.6 0 0 1 1.6-1.5h4.4v-8.5Z",
+            ...STROKE_DEFAULTS("1.6"),
+          },
+        },
+      ],
+    });
+  });
+
+  // design/ui-mockup.html's own <symbol id="i-copy"> — copied verbatim.
+  it("reproduces the mockup's copy glyph exactly", () => {
+    expect(SPRITE_ICONS.copy).toEqual({
+      viewBox: "0 0 16 16",
+      shapes: [
+        {
+          tag: "rect",
+          attrs: {
+            x: "5.5",
+            y: "5.5",
+            width: "8",
+            height: "8",
+            rx: "1.5",
+            ...STROKE_DEFAULTS("1.6"),
+          },
+        },
+        { tag: "path", attrs: { d: "M10.5 3.5h-7a1 1 0 0 0-1 1v7", ...STROKE_DEFAULTS("1.6") } },
+      ],
+    });
+  });
+
+  // design/ui-mockup.html's own <symbol id="i-dice"> — copied verbatim. The
+  // three pip dots are filled solid, not stroked, unlike the outer die.
+  it("reproduces the mockup's dice glyph exactly", () => {
+    expect(SPRITE_ICONS.dice).toEqual({
+      viewBox: "0 0 16 16",
+      shapes: [
+        {
+          tag: "rect",
+          attrs: {
+            x: "2.5",
+            y: "2.5",
+            width: "11",
+            height: "11",
+            rx: "2.5",
+            ...STROKE_DEFAULTS("1.6"),
+          },
+        },
+        {
+          tag: "circle",
+          attrs: { cx: "5.8", cy: "5.8", r: ".9", fill: "currentcolor", stroke: "none" },
+        },
+        {
+          tag: "circle",
+          attrs: { cx: "10.2", cy: "10.2", r: ".9", fill: "currentcolor", stroke: "none" },
+        },
+        {
+          tag: "circle",
+          attrs: { cx: "8", cy: "8", r: ".9", fill: "currentcolor", stroke: "none" },
+        },
+      ],
+    });
+  });
+
+  // design/ui-mockup.html's own <symbol id="i-keys"> — copied verbatim.
+  it("reproduces the mockup's keys glyph exactly", () => {
+    expect(SPRITE_ICONS.keys).toEqual({
+      viewBox: "0 0 16 16",
+      shapes: [
+        {
+          tag: "rect",
+          attrs: {
+            x: "1.5",
+            y: "3.5",
+            width: "13",
+            height: "9",
+            rx: "1.5",
+            ...STROKE_DEFAULTS("1.6"),
+          },
+        },
+        {
+          tag: "path",
+          attrs: {
+            d: "M4 6.5h.01M6.5 6.5h.01M9 6.5h.01M11.5 6.5h.01M4 9.5h.01M11.5 9.5h.01",
+            ...STROKE_DEFAULTS("1.6"),
+          },
+        },
+        { tag: "path", attrs: { d: "M6.5 9.5h3", ...STROKE_DEFAULTS("1.6") } },
+      ],
+    });
+  });
+
+  // design/ui-mockup.html's own <symbol id="i-link"> — copied verbatim.
+  it("reproduces the mockup's link glyph exactly", () => {
+    expect(SPRITE_ICONS.link).toEqual({
+      viewBox: "0 0 16 16",
+      shapes: [
+        { tag: "path", attrs: { d: "M9.5 3h3.5v3.5", ...STROKE_DEFAULTS("1.6") } },
+        { tag: "path", attrs: { d: "M13 3 7.5 8.5", ...STROKE_DEFAULTS("1.6") } },
+        {
+          tag: "path",
+          attrs: {
+            d: "M11 9.5V12a1.5 1.5 0 0 1-1.5 1.5h-6A1.5 1.5 0 0 1 2 12V6a1.5 1.5 0 0 1 1.5-1.5H6",
+            ...STROKE_DEFAULTS("1.6"),
+          },
+        },
+      ],
+    });
+  });
+
+  // design/ui-mockup.html's own <symbol id="i-only-code">/<symbol id="i-only-game">
+  // — copied verbatim, sharing the same outer frame as split-left/split-right.
+  it("reproduces the mockup's only-code/only-game glyphs exactly", () => {
+    expect(SPRITE_ICONS["only-code"]).toEqual({
+      viewBox: "0 0 16 16",
+      shapes: [
+        {
+          tag: "rect",
+          attrs: {
+            x: "1.5",
+            y: "2.5",
+            width: "13",
+            height: "11",
+            rx: "1.5",
+            ...STROKE_DEFAULTS("1.6"),
+          },
+        },
+        {
+          tag: "path",
+          attrs: { d: "M5.5 6.5 3.8 8l1.7 1.5m5-3L12.2 8l-1.7 1.5", ...STROKE_DEFAULTS("1.6") },
+        },
+      ],
+    });
+    expect(SPRITE_ICONS["only-game"]).toEqual({
+      viewBox: "0 0 16 16",
+      shapes: [
+        {
+          tag: "rect",
+          attrs: {
+            x: "1.5",
+            y: "2.5",
+            width: "13",
+            height: "11",
+            rx: "1.5",
+            ...STROKE_DEFAULTS("1.6"),
+          },
+        },
+        { tag: "path", attrs: { d: "M5 11V7m3 4V5m3 6V9", ...STROKE_DEFAULTS("1.6") } },
+      ],
+    });
+  });
+
+  // design/ui-mockup.html's own <symbol id="i-slider"> — copied verbatim.
+  it("reproduces the mockup's slider glyph exactly", () => {
+    expect(SPRITE_ICONS.slider).toEqual({
+      viewBox: "0 0 16 16",
+      shapes: [
+        { tag: "path", attrs: { d: "M2 5h8M2 11h4", ...STROKE_DEFAULTS("1.6") } },
+        { tag: "circle", attrs: { cx: "12", cy: "5", r: "1.8", ...STROKE_DEFAULTS("1.6") } },
+        { tag: "circle", attrs: { cx: "8", cy: "11", r: "1.8", ...STROKE_DEFAULTS("1.6") } },
+      ],
+    });
+  });
+
+  // design/ui-mockup.html's own <symbol id="i-split-left">/<symbol id="i-split-right">
+  // — copied verbatim, sharing the same outer frame as only-code/only-game.
+  it("reproduces the mockup's split-left/split-right glyphs exactly", () => {
+    expect(SPRITE_ICONS["split-left"]).toEqual({
+      viewBox: "0 0 16 16",
+      shapes: [
+        {
+          tag: "rect",
+          attrs: {
+            x: "1.5",
+            y: "2.5",
+            width: "13",
+            height: "11",
+            rx: "1.5",
+            ...STROKE_DEFAULTS("1.6"),
+          },
+        },
+        { tag: "path", attrs: { d: "M6.5 2.5v11", ...STROKE_DEFAULTS("1.6") } },
+      ],
+    });
+    expect(SPRITE_ICONS["split-right"]).toEqual({
+      viewBox: "0 0 16 16",
+      shapes: [
+        {
+          tag: "rect",
+          attrs: {
+            x: "1.5",
+            y: "2.5",
+            width: "13",
+            height: "11",
+            rx: "1.5",
+            ...STROKE_DEFAULTS("1.6"),
+          },
+        },
+        { tag: "path", attrs: { d: "M9.5 2.5v11", ...STROKE_DEFAULTS("1.6") } },
+      ],
+    });
+  });
 });
 
 describe("createSpriteIcon", () => {
