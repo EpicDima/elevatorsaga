@@ -283,6 +283,11 @@ const CASES: readonly ChallengeTierCase[] = [
     goodOutcomes: ["lost", "lost", "lost", "lost", "lost", "lost", "lost", "lost", "lost", "lost"],
   },
   {
+    // Silver's move-count bar loosened by one move on recalibration (see
+    // challenges.ts, where the nearest-car dispatcher's 18-win sample turned
+    // out too thin), which is why GOOD_CODE_MOVE_CONSCIOUS reaches silver
+    // rather than bronze on seed `42a` below -- its move count of 58 clears
+    // the new bar of 58 but not the old one of 57.
     challengeNumber: 6,
     goodCode: GOOD_CODE_MOVE_CONSCIOUS,
     goodLabel: "GOOD_CODE_MOVE_CONSCIOUS",
@@ -308,7 +313,7 @@ const CASES: readonly ChallengeTierCase[] = [
       "silver",
       "lost",
       "lost",
-      "bronze",
+      "silver",
     ],
   },
   {
@@ -463,23 +468,15 @@ const CASES: readonly ChallengeTierCase[] = [
     goodOutcomes: ["lost", "lost", "lost", "lost", "lost", "lost", "lost", "lost", "lost", "lost"],
   },
   {
-    // Bronze is thin for DEV_TEST_CODE too here -- 14 wins in 200 -- and
-    // GOOD_CODE_BALANCED never wins it at all.
+    // Bronze was thin for DEV_TEST_CODE here too -- 14 wins in 200 -- and its
+    // tiers have since been recalibrated against a much larger sample (see
+    // challenges.ts), which is why seed `xyz` reaches gold below rather than
+    // silver: its worst wait of 13.79s clears the new gold bar of 13.9 but
+    // not the old one of 13.7. GOOD_CODE_BALANCED never wins it at all.
     challengeNumber: 13,
     goodCode: GOOD_CODE_BALANCED,
     goodLabel: "GOOD_CODE_BALANCED",
-    devOutcomes: [
-      "lost",
-      "lost",
-      "bronze",
-      "lost",
-      "lost",
-      "lost",
-      "lost",
-      "lost",
-      "silver",
-      "lost",
-    ],
+    devOutcomes: ["lost", "lost", "bronze", "lost", "lost", "lost", "lost", "lost", "gold", "lost"],
     goodOutcomes: ["lost", "lost", "lost", "lost", "lost", "lost", "lost", "lost", "lost", "lost"],
   },
   {

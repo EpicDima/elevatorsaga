@@ -437,37 +437,63 @@ export const challenges: readonly Challenge[] = [
     // The tightest bronze margin of the first five: across two hundred seeds
     // the nearest-car dispatcher only wins 27 of them and collective control
     // only 8, so a silver or gold here is a rare thing to earn by either
-    // program's own account, not just a high bar. The wait read from those
-    // few wins is real, though, and kept rather than dropped -- it is the
-    // same axis every challenge before it uses, and there is no reason a
-    // program that does win this one gets asked a different question than
-    // one that wins the last.
-    tiers: { silver: underAvgWaitTime(8.8), gold: underAvgWaitTime(8.2) },
+    // program's own account, not just a high bar. A first pass read silver
+    // and gold straight off those 27 wins -- the same thin-sample mistake
+    // challenge 10's own comment below describes making and then fixing, and
+    // this one needed the same fix: 1,532 wins measured across 15,000 seeds
+    // (700000-714999) put the nearest-car dispatcher's median avgWaitTime at
+    // 8.76s, close enough to the thin sample's 8.8 to leave silver where it
+    // was, and its fastest quarter at 8.26s, a tenth looser than the thin
+    // sample's 8.2. Collective control's distribution was never the source
+    // of either number -- it wins this building even less often, 414 of
+    // 8,000 seeds measured the same way, and stays the weaker reference at
+    // scale.
+    tiers: { silver: underAvgWaitTime(8.8), gold: underAvgWaitTime(8.3) },
   },
   {
     options: { floorCount: 4, elevatorCount: 2, spawnRate: 0.8 },
     condition: requireUserCountWithinMoves(40, 60),
     // Bronze is a move budget, so silver tightens that same budget -- but the
     // program the budget was measured against here is the nearest-car
-    // dispatcher, which wins this one only 18 times in two hundred; the
-    // collective-control program built to spend moves carefully wins it 149
-    // times and typically for fewer of them, so gold is read from that
-    // program instead, on the same axis, tightened further. Gold adds a
-    // second question bronze never asks at all -- the wait a move-frugal
-    // program can make someone sit through -- read from whichever program
-    // answers it better, which on this floor count is the nearest-car one
-    // again, at its own median.
+    // dispatcher, which wins this one only 18 times in two hundred, too thin
+    // a sample to read a threshold from safely (see challenge 10's comment
+    // below for what that mistake costs). Recalibrated the same way: 1,360
+    // wins measured across 11,000 seeds (310000-320999) put the nearest-car
+    // dispatcher's median move count at 58, a move looser than the thin
+    // sample's 57, and its median wait -- gold's second axis, below -- at
+    // 6.37s, rounding to 6.4 rather than the thin sample's 6.3. The
+    // collective-control program built to spend moves carefully wins this
+    // one 149 times in two hundred, a sample thick enough to leave alone;
+    // gold's move count is still read from it, on the same axis, tightened
+    // further. Gold adds a second question bronze never asks at all -- the
+    // wait a move-frugal program can make someone sit through -- read from
+    // whichever program answers it better, which on this floor count is the
+    // nearest-car one again, at its own, now properly measured, median.
     tiers: {
-      silver: underMoveCount(57),
-      gold: requireAll(underMoveCount(55), underAvgWaitTime(6.3)),
+      silver: underMoveCount(58),
+      gold: requireAll(underMoveCount(55), underAvgWaitTime(6.4)),
     },
   },
   {
     options: { floorCount: 3, elevatorCount: 3, spawnRate: 3.0 },
     condition: requireUserCountWithinMoves(100, 63),
+    // Same shape as challenge 6, one floor building over, and every number
+    // here comes from the nearest-car dispatcher's own distribution rather
+    // than the collective-control program's. That dispatcher wins this one
+    // only 37 times in two hundred -- thin enough that it went uncalibrated
+    // for this honestly the first time around, unlike challenges 5, 6 and 10
+    // above. Recalibrated against 1,612 wins measured across 8,000 seeds
+    // (900000-907999): the move-count numbers held exactly, median 61 and
+    // fastest quarter 59, unchanged from the thin sample. The wait did not --
+    // gold's second axis, the same "moves spent carefully but not at the
+    // cost of a terrible wait" question challenge 6 asks, comes out at 8.02s
+    // at scale, rounding to 8.0 rather than the thin sample's 7.9. The
+    // collective-control program built to spend moves carefully wins this
+    // one 88 times in two hundred but was never the source of these numbers
+    // -- the nearest-car dispatcher answers both questions better here.
     tiers: {
       silver: underMoveCount(61),
-      gold: requireAll(underMoveCount(59), underAvgWaitTime(7.9)),
+      gold: requireAll(underMoveCount(59), underAvgWaitTime(8.0)),
     },
   },
   {
@@ -539,16 +565,30 @@ export const challenges: readonly Challenge[] = [
   {
     options: { floorCount: 9, elevatorCount: 5, spawnRate: 1.1, elevatorCapacities: [5] },
     condition: requireUserCountWithMaxWaitTime(100, 15),
-    // Collective control never wins this one either, and the nearest-car
-    // dispatcher only wins 14 of two hundred -- thin enough that these
-    // numbers should be read as a floor pulled up from a handful of wins, not
-    // a settled statistic. They are still real observed wins, not a guess.
-    tiers: { silver: underMaxWaitTime(14.5), gold: underMaxWaitTime(13.7) },
+    // Collective control never wins this one, and a first pass read silver
+    // and gold off just 14 of two hundred nearest-car-dispatcher wins -- the
+    // exact thinness this comment already flagged honestly, and exactly the
+    // mistake challenge 10's own comment describes fixing. Recalibrated the
+    // same way: 1,403 wins measured across 22,000 seeds (800000-821999)
+    // settle the median at 14.39s, rounding to 14.4, a tenth tighter than
+    // the thin sample's 14.5, and the fastest quarter at 13.875s, rounding
+    // to 13.9, two tenths looser than the thin sample's 13.7 -- the thin
+    // sample had it backwards on both counts, reading silver too loose and
+    // gold too strict.
+    tiers: { silver: underMaxWaitTime(14.4), gold: underMaxWaitTime(13.9) },
   },
   {
     options: { floorCount: 9, elevatorCount: 5, spawnRate: 1.0, elevatorCapacities: [6] },
     condition: requireUserCountWithMaxWaitTime(110, 15),
-    tiers: { silver: underMaxWaitTime(14.2), gold: underMaxWaitTime(13.8) },
+    // The building one capacity size up from the challenge above, and the
+    // same shape: collective control never wins this one across two hundred
+    // seeds, and the nearest-car dispatcher only wins 34 of them -- thin
+    // enough to need the same recalibration challenges 10 and 13 needed,
+    // even though nothing here said so at the time. 1,636 wins measured
+    // across 12,000 seeds (1000000-1011999) settle the median at 14.24s,
+    // still 14.2, and the fastest quarter at 13.70s, a tenth tighter than
+    // the thin sample's 13.8.
+    tiers: { silver: underMaxWaitTime(14.2), gold: underMaxWaitTime(13.7) },
   },
   {
     options: { floorCount: 8, elevatorCount: 6, spawnRate: 0.9 },
