@@ -115,4 +115,37 @@ describe("createDisclosure", () => {
     expect(trigger.getAttribute("aria-expanded")).toBe("false");
     expect(disclosure.isOpen()).toBe(false);
   });
+
+  // The module doc names three disclosures sharing one page (the level
+  // switcher's menu, the goal bar's tier breakdown, the settings popover).
+  // Opening a second one is, from the first's own point of view, exactly the
+  // "click outside" it already closes on — so the first closes and the
+  // second opens, the same as clicking any other element outside both would
+  // do. This was the actual bug an earlier `stopPropagation()`-based
+  // implementation had: that version's second trigger click never reached
+  // the first disclosure's document listener at all, leaving the first one
+  // stuck open behind the second.
+  it("closes a still-open disclosure when a second one is opened", () => {
+    const first = setUp();
+    const second = setUp();
+
+    click(first.trigger);
+    expect(first.disclosure.isOpen()).toBe(true);
+
+    click(second.trigger);
+    expect(first.disclosure.isOpen()).toBe(false);
+    expect(second.disclosure.isOpen()).toBe(true);
+  });
+
+  it("closes every open disclosure on a click outside all of them", () => {
+    const first = setUp();
+    const second = setUp();
+
+    click(first.trigger);
+    click(second.trigger);
+    click(first.outside);
+
+    expect(first.disclosure.isOpen()).toBe(false);
+    expect(second.disclosure.isOpen()).toBe(false);
+  });
 });

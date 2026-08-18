@@ -122,7 +122,8 @@ describe("presentLevelSwitcher", () => {
       challenges: fixtureChallenges(4),
       // Unlocks tile index 1, so this exercises an ordinary open-and-current
       // tile rather than the locked-and-current edge case (which has its own
-      // coverage in "renders an open challenge tile as a real link...").
+      // dedicated coverage in "marks a locked-and-current tile as current
+      // too" below).
       bestTiers: new Map<number, ChallengeTier>([[0, "bronze"]]),
       selection: { kind: "challenge", index: 1 },
     });
@@ -133,6 +134,28 @@ describe("presentLevelSwitcher", () => {
     expect(tiles[1]?.getAttribute("aria-current")).toBe("page");
     expect(tiles[1]?.classList.contains("is-current")).toBe(true);
     expect(requireElement(".task-name", parent).textContent).toBe("Challenge 2");
+  });
+
+  it("marks a locked-and-current tile as current too, on its disabled button", () => {
+    // Empty bestTiers locks every challenge past the first (see
+    // features/switch-level's lockChallengeTiles), so tile index 1 here is
+    // both locked and, per selection below, the one actually being played —
+    // reachable via a direct link to a challenge never unlocked through the
+    // switcher itself.
+    const { parent, options } = setUp({
+      challenges: fixtureChallenges(4),
+      selection: { kind: "challenge", index: 1 },
+    });
+    presentLevelSwitcher(parent, options);
+    const [, challengeBlock] = parent.querySelectorAll(".taskblock");
+    const tiles = [...(challengeBlock?.querySelectorAll(".tasklink") ?? [])];
+
+    expect(tiles[1]?.tagName).toBe("BUTTON");
+    expect(tiles[1]?.hasAttribute("disabled")).toBe(true);
+    expect(tiles[1]?.getAttribute("aria-current")).toBe("page");
+    expect(tiles[1]?.classList.contains("is-locked")).toBe(true);
+    expect(tiles[1]?.classList.contains("is-current")).toBe(true);
+    expect(requireElement(".task-name", parent).textContent).toBe("Challenge 2, locked");
   });
 
   it("labels a cleared tutorial tile as completed", () => {

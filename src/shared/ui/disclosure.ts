@@ -46,24 +46,34 @@ export function createDisclosure(trigger: HTMLElement, panel: HTMLElement): Disc
     setOpen(false);
   }
 
-  trigger.addEventListener("click", (event) => {
-    // Without this, the same click would reach the document listener below
-    // and close the panel it had just opened.
-    event.stopPropagation();
+  trigger.addEventListener("click", () => {
     // `!!`, not a direct pass-through: newer DOM typings widen `hidden` to
     // `boolean | "hidden" | "until-found"` for the HTML attribute of that
     // name, even though `setOpen` below only ever writes a plain boolean to
     // it.
     setOpen(!!panel.hidden);
   });
-  panel.addEventListener("click", (event) => {
-    // A click on the panel itself — its caption, its empty padding — is not
-    // outside it. A click on one of its own links or buttons is welcome to
-    // call `close()` itself, the way a level tile closes the menu it was
-    // opened from before it navigates.
-    event.stopPropagation();
+  ownerDocument.addEventListener("click", (event) => {
+    // A click on `trigger` or inside `panel` is not "outside" this
+    // disclosure — the trigger's own listener above already decided what a
+    // click on it means, and a click on the panel's caption or empty padding
+    // (as opposed to one of its links or buttons, which are welcome to call
+    // `close()` themselves) is not meant to dismiss it either.
+    //
+    // This used to be `stopPropagation()` on the trigger's and panel's own
+    // listeners instead — it worked for one disclosure alone, but stopping
+    // propagation at the target swallows the click before it ever reaches
+    // *any* other disclosure's document listener too, so opening a second
+    // popover silently failed to close the first. Checking `contains()` here
+    // scopes the exemption to this disclosure only, which is what lets
+    // several disclosures share one page — the level switcher's menu, the
+    // goal bar's tier breakdown and the settings popover all at once.
+    const target = event.target;
+    if (target instanceof Node && (trigger.contains(target) || panel.contains(target))) {
+      return;
+    }
+    close();
   });
-  ownerDocument.addEventListener("click", close);
   ownerDocument.addEventListener("keydown", (event) => {
     if (event.key === "Escape") {
       close();
