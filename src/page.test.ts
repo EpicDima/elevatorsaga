@@ -107,7 +107,7 @@ describe("index.html", () => {
     // Drawn into by src/app/app.ts and src/ui/presenters.ts.
     ".challenge",
     ".controls",
-    // Drawn into by src/ui/tutorial-panel.ts, and left empty off the track.
+    // Drawn into by src/widgets/tutorial-panel/ui/tutorial-panel.ts, and left empty off the track.
     ".tutorial",
     ".innerworld",
     ".statscontainer",

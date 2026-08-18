@@ -2,7 +2,7 @@
  * The learning track's panel, in a browser.
  *
  * What the panel decides is already covered without one:
- * `src/ui/tutorial-panel.test.ts` draws every task and presses every button, and
+ * `src/widgets/tutorial-panel/ui/tutorial-panel.test.ts` draws every task and presses every button, and
  * `src/app/app.test.ts` proves the wiring. What jsdom cannot answer is whether
  * any of it is *visible*. It has no layout, so it cannot tell an empty region
  * that is hidden from one that leaves a gap above the building, cannot say

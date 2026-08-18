@@ -32,7 +32,6 @@ import {
 } from "../ui/presenters.ts";
 import type { CodeSlotsPresenter, ControlsPresenter } from "../ui/presenters.ts";
 import type { ChallengeLinkData, SeedLinkData } from "../ui/templates.ts";
-import { presentTutorial } from "../ui/tutorial-panel.ts";
 import { createParamsUrl } from "./router.ts";
 import type { RouteParams, RouteQuery } from "./router.ts";
 import {
@@ -49,6 +48,7 @@ import {
 import { DEFAULT_CODE_SLOT } from "#features/manage-code-slots/model/code-slots.ts";
 import type { CodeSlot } from "#features/manage-code-slots/model/code-slots.ts";
 import { clearChildren } from "#shared/lib/dom.ts";
+import { presentTutorial } from "#widgets/tutorial-panel/index.ts";
 
 declare global {
   interface Window {
@@ -405,7 +405,7 @@ export class App {
         this.#restart(true);
       },
       onResetCode: () => {
-        // `window.confirm`, as `src/ui/tutorial-panel.ts` explains at the one
+        // `window.confirm`, as `src/widgets/tutorial-panel/ui/tutorial-panel.ts` explains at the one
         // other place the game asks before throwing a program away. The update
         // afterwards is what puts "Undo reset" on screen: a refused reset leaves
         // nothing to undo, and asking the editor covers both outcomes without
@@ -1475,7 +1475,7 @@ export class App {
    *   with the most words in it and the one a player is most likely to be
    *   reading when they change the language, which is why it is built from
    *   message keys rather than from finished sentences: see the note at the top
-   *   of `src/ui/tutorial-panel.ts`.
+   *   of `src/widgets/tutorial-panel/ui/tutorial-panel.ts`.
    * - The statistics *labels* are shell, and `localisePage` has already dealt
    *   with them. The *figures* go through `Intl` in {@link presentStats}, so a
    *   Russian reader wants `2 675 с` where an English one has `2,675s`, and they
@@ -1506,7 +1506,7 @@ export class App {
    * that has already happened and is deliberately *not* in that group: it is
    * inside the panel this redraws, so leaving it alone was never an option --
    * the redraw would have thrown it away. It says nothing about when, so it can
-   * be said again in the new language, and `src/ui/tutorial-panel.ts` carries
+   * be said again in the new language, and `src/widgets/tutorial-panel/ui/tutorial-panel.ts` carries
    * the answer rather than the sentence across the redraw in order to say it.
    */
   relocalise(): void {

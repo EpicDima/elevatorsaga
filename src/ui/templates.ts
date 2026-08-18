@@ -652,7 +652,7 @@ interface TutorialAnswerData {
  * their own row, `.tutorialanswertools`, which exists only so that row can be
  * styled apart from `.tutorialbuttons` below: this pair acts on the code
  * beside it, and that pair leaves the task. `.tutorialcopied` is drawn empty
- * and filled in by {@link "./tutorial-panel.ts"!presentTutorial} on the click,
+ * and filled in by {@link "#widgets/tutorial-panel/index.ts"!presentTutorial} on the click,
  * for the same reason `.tutorialtaken` is: a live region has to already be in
  * the document when its text arrives, or the announcement generally does not
  * happen.
@@ -674,7 +674,7 @@ function tutorialAnswerTemplate(answer: TutorialAnswerData): string {
  * A native `<details>`, for the reasons written out at {@link seedHelpTemplate}:
  * the `<summary>` is in the tab order without a `tabindex`, Enter and Space work
  * on it, and it is announced as a disclosure with its expanded state without a
- * single ARIA attribute — on markup {@link "./tutorial-panel.ts"!presentTutorial}
+ * single ARIA attribute — on markup {@link "#widgets/tutorial-panel/index.ts"!presentTutorial}
  * rebuilds from scratch every time the language changes.
  *
  * Closed is the only defensible default here, and more so than on the seed line.
@@ -721,7 +721,7 @@ function tutorialHintTemplate(
  * one thing here that is about the track rather than about this task.
  *
  * `.tutorialtaken` is drawn empty, directly under the buttons, and filled in by
- * {@link "./tutorial-panel.ts"!presentTutorial} when "Take this program" is
+ * {@link "#widgets/tutorial-panel/index.ts"!presentTutorial} when "Take this program" is
  * pressed — an empty live region waiting for its news, which is what
  * `#save_message` in `index.html` is too, the one the editor writes its "Code
  * saved …" line into. It is here rather than created on the click for the reason
