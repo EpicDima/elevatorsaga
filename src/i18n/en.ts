@@ -177,6 +177,17 @@ export const EN_MESSAGES = {
   "game.buildingStage.floorCard.longestWait": "Longest wait: {time}",
   "game.buildingStage.floorCard.destinations.none": "No destinations chosen yet",
   "game.buildingStage.floorCard.destinations.some": "Heading to: {floors}",
+  // The stats panel's own new figures: src/widgets/stats-panel. Its other
+  // eleven tiles reuse "page.stats.*" directly, the same captions
+  // `presentStats` and the goal bar's own meters already show; these two
+  // counts have no production precedent to reuse, because `presentStats`
+  // never tracked them. Paired present-tense captions on purpose, so the
+  // two read as opposites of each other at a glance.
+  "game.statsPanel.waitingNow": "Waiting now",
+  "game.statsPanel.aboardNow": "Riding now",
+  // Summary text for the "<details>" holding the panel's nine secondary
+  // tiles.
+  "game.statsPanel.more": "All figures",
   "game.challenge.title.html": "Challenge #{number}: {description}",
   // The navigation row shows bare numbers, because twenty entries have to fit
   // across a phone; the name each one carries is what a screen reader announces

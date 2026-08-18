@@ -229,6 +229,16 @@ export const RU_MESSAGES: MessageCatalogue<"ru"> = {
   "game.buildingStage.floorCard.longestWait": "Дольше всех ждёт: {time}",
   "game.buildingStage.floorCard.destinations.none": "Направления ещё не выбраны",
   "game.buildingStage.floorCard.destinations.some": "Едут на: {floors}",
+  // Новые показатели самой панели статистики: src/widgets/stats-panel.
+  // Остальные одиннадцать плиток используют "page.stats.*" напрямую — те же
+  // подписи, что уже показывают presentStats и метры полосы цели; у этих
+  // двух счётчиков нет прообраза в продакшене, потому что presentStats их
+  // никогда не считал. Подписи нарочно в настоящем времени и парой, чтобы
+  // читались как противоположности с одного взгляда.
+  "game.statsPanel.waitingNow": "Ждут сейчас",
+  "game.statsPanel.aboardNow": "Едут сейчас",
+  // Текст сводки для «<details>» с девятью дополнительными плитками панели.
+  "game.statsPanel.more": "Все показатели",
   "game.challenge.title.html": "Задание №{number}: {description}",
   "game.challenge.nav.label": "Задания",
   "game.challenge.nav.link": "Задание {number}",
