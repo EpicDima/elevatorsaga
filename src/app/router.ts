@@ -58,7 +58,7 @@ import type { SandboxOptions } from "../game/challenges.ts";
 // task. The fitness worker pays nothing -- the same chunk to the byte -- since
 // it reaches this module for `parseQuery` alone, and Rollup drops the rest.
 import { tutorialTasks } from "../game/tutorial.ts";
-import { clampTimeScale } from "./time-scale.ts";
+import { clampTimeScale } from "#features/adjust-speed/model/time-scale.ts";
 
 /** Raw `key=value` pairs from the location hash, in the order they appeared. */
 export type RouteQuery = ReadonlyMap<string, string>;

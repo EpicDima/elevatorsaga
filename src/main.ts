@@ -30,7 +30,6 @@ import "./styles/style.css";
 import { App, readStoredTimeScale } from "./app/app.ts";
 import { describeFitnessResults, runFitnessSuite } from "./app/fitness.ts";
 import { startRouter } from "./app/router.ts";
-import { DEFAULT_TIME_SCALE } from "./app/time-scale.ts";
 import { challenges } from "./game/challenges.ts";
 import type { FitnessSuiteResult } from "./game/fitness.ts";
 import { TICK_SECONDS, createWorldController } from "./game/world-controller.ts";
@@ -41,7 +40,8 @@ import { presentLanguagePicker } from "./ui/language-picker.ts";
 import { localisePage } from "./ui/localise-page.ts";
 import { applyPreferredLocale } from "./ui/preferred-locale.ts";
 import { presentVersion } from "./ui/version.ts";
-import { requireElement } from "@shared/lib/dom.ts";
+import { DEFAULT_TIME_SCALE } from "#features/adjust-speed/model/time-scale.ts";
+import { requireElement } from "#shared/lib/dom.ts";
 
 declare global {
   interface Window {

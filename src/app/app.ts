@@ -37,14 +37,18 @@ import type { ChallengeLinkData, SeedLinkData } from "../ui/templates.ts";
 import { presentTutorial } from "../ui/tutorial-panel.ts";
 import { createParamsUrl } from "./router.ts";
 import type { RouteParams, RouteQuery } from "./router.ts";
-import { clampTimeScale, decreasedTimeScale, increasedTimeScale } from "./time-scale.ts";
 import {
   countClearedTutorialTasks,
   firstUnclearedTutorialTask,
   readClearedTutorialTasks,
   recordClearedTutorialTask,
 } from "./tutorial-progress.ts";
-import { clearChildren } from "@shared/lib/dom.ts";
+import {
+  clampTimeScale,
+  decreasedTimeScale,
+  increasedTimeScale,
+} from "#features/adjust-speed/model/time-scale.ts";
+import { clearChildren } from "#shared/lib/dom.ts";
 
 declare global {
   interface Window {

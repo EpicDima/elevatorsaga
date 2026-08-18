@@ -21,9 +21,9 @@ import {
 import { App, TIME_SCALE_STORAGE_KEY, readStoredTimeScale } from "./app.ts";
 import type { AppElements } from "./app.ts";
 import { parseQuery, resolveRoute, startRouter } from "./router.ts";
-import { DEFAULT_TIME_SCALE } from "./time-scale.ts";
 import { TUTORIAL_PROGRESS_STORAGE_KEY } from "./tutorial-progress.ts";
-import { queryAll, requireElement } from "@shared/lib/dom.ts";
+import { DEFAULT_TIME_SCALE } from "#features/adjust-speed/model/time-scale.ts";
+import { queryAll, requireElement } from "#shared/lib/dom.ts";
 
 /** A program that compiles and does nothing. */
 const INERT_CODE = "{ init: function() {}, update: function() {} }";

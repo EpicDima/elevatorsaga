@@ -13,7 +13,11 @@ import {
   type RouteQuery,
   type RouterTarget,
 } from "./router.ts";
-import { DEFAULT_TIME_SCALE, TIME_SCALE_MAX, TIME_SCALE_MIN } from "./time-scale.ts";
+import {
+  DEFAULT_TIME_SCALE,
+  TIME_SCALE_MAX,
+  TIME_SCALE_MIN,
+} from "#features/adjust-speed/model/time-scale.ts";
 
 /** The context a route is resolved against in these tests. */
 const CONTEXT = { challengeCount: 18, defaultTimeScale: DEFAULT_TIME_SCALE };

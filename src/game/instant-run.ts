@@ -3,7 +3,8 @@
  * challenge with nothing rendered along the way, as fast as the CPU allows.
  *
  * This is not the same thing as the app's time scale: that still renders,
- * only faster, and is capped at 64x by `src/app/time-scale.ts`. Here nothing
+ * only faster, and is capped at 64x by
+ * `src/features/adjust-speed/model/time-scale.ts`. Here nothing
  * is drawn at all while the simulation runs, and there is no cap other than
  * wall-clock chunking (see {@link INSTANT_RUN_BURST_BUDGET_MS}) and the
  * ceiling below.
