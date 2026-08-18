@@ -657,17 +657,18 @@ Built and unit-tested, not yet wired into `src/app/app.ts` or `index.html` —
 `presentAppBarSettings` has no caller outside its own module and its own test file yet, matching
 every widget staged so far in this migration.
 
-### `hotkeys-modal.ts` — 8 `game.hotkeys.*` keys
+### `src/features/hotkeys-help/ui/hotkeys-modal.ts` — 8 `game.hotkeys.*` keys
 
-The `hotkeys-help` feature's own dialog, built in a later commit of this same phase — the keys
-dialog `design/ui-mockup.html` draws as `<dialog class="keys">`: a title, a close button and five
-rows pairing a hotkey with what it does. Two of the five are Mod- bindings, and the mockup spells
-each as one compressed glyph — `⌘⏎`, `⌘B` — with a static paragraph underneath explaining that
-Windows and Linux read `Ctrl` for `⌘`. This port spells both as two `<kbd>`s joined by `+` instead,
-the convention `page.hint.html` and `docs.play.shortcuts.html` already use and
-`src/ui/shortcuts.ts`'s `labelModifierKeys` already resolves per visitor at runtime — which is also
-why the mockup's own hint paragraph is dropped rather than ported: relabelling per visitor is what
-makes the hint's own question not arise.
+The `hotkeys-help` feature's own dialog — the keys dialog `design/ui-mockup.html` draws as
+`<dialog class="keys">`: a title, a close button and five rows pairing a hotkey with what it does.
+Two of the five are Mod- bindings, and the mockup spells each as one compressed glyph — `⌘⏎`, `⌘B`
+— with a static paragraph underneath explaining that Windows and Linux read `Ctrl` for `⌘`. This
+port spells both as two `<kbd>`s joined by `+` instead, the convention `page.hint.html` and
+`docs.play.shortcuts.html` already use and `src/ui/shortcuts.ts`'s `labelModifierKeys` already
+resolves per visitor at runtime — which is also why the mockup's own hint paragraph is dropped
+rather than ported: relabelling per visitor is what makes the hint's own question not arise;
+whoever mounts the dialog live still has to call `labelModifierKeys` against it themselves, the
+same way `src/ui/localise-page.ts` already does for the rest of the page shell.
 
 | Key                         | English            | Notes                                                                          |
 | --------------------------- | ------------------ | ------------------------------------------------------------------------------ |
@@ -680,9 +681,13 @@ makes the hint's own question not arise.
 | `game.hotkeys.openDocs`     | Help               | the row naming `F1`                                                            |
 | `game.hotkeys.openSettings` | Settings           | the row naming `?`                                                             |
 
+Built and unit-tested against a jsdom `<dialog>` — `polyfillDialogElement`
+(`src/shared/ui/test-helpers.ts`) — but not yet wired into `src/app/app.ts` or `settings-menu.ts`'s
+`keysopen` opener, matching every widget staged so far in this migration.
+
 ### `docs-modal.ts` — 24 `game.docs.*` keys
 
-The `docs-reference` feature's own dialog, likewise built later this phase — the help dialog
+The `docs-reference` feature's own dialog, built in a later commit of this same phase — the help dialog
 `design/ui-mockup.html` draws as `<dialog class="docs">`: a search box, a guide, the code skeleton
 every program starts from, a lead paragraph, and the API reference table below (`reference.ts`,
 next). Six keys are the dialog's own chrome, including `empty`, shown in place of the guide and the
@@ -721,11 +726,10 @@ rather than the mockup's own bare `<pre>`.
 | `game.docs.intro.example.code`           | { init: function (elevators, floors) { // subscribe to events here }, update: function (dt, elevator… | code; the skeleton every program starts from; comments translated only |
 | `game.docs.lead.html`                    | elevator is an elevator: all of them live in elevators. floor is a floor, and they're in floors. Any… | markup                                                                 |
 
-Both `hotkeys-modal.ts` and `docs-modal.ts` will be built and unit-tested against a jsdom
-`<dialog>` — `src/shared/ui/modal.test.ts`'s own `polyfillDialogElement` helper — but neither is
-built yet, so neither is wired into `src/app/app.ts` or `settings-menu.ts`'s
-`docsOpenLabel`/`hotkeysOpenLabel` openers either, the same "build inert first" staging every
-widget in this migration follows so far.
+`docs-modal.ts` will be built and unit-tested the same way `hotkeys-modal.ts` above already is —
+against a jsdom `<dialog>`, through `polyfillDialogElement` — but is not built yet, so it is not
+wired into `src/app/app.ts` or `settings-menu.ts`'s `docsOpenLabel` opener either, the same "build
+inert first" staging every widget in this migration follows so far.
 
 ### `src/entities/api-reference/model/reference.ts` — 59 `game.apiRef.*` keys
 
