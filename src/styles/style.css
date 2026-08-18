@@ -216,6 +216,184 @@
   --font-mono: Consolas, Monaco, monospace;
 }
 
+/*
+ * ------------------------------------------------------------- Design tokens
+ *
+ * The palette, geometry and type scale of `design/ui-mockup.html`, staged in
+ * ahead of the widgets that will read it. Nothing below is referenced by any
+ * selector yet, so none of it changes what is on screen; each token is
+ * adopted the same commit as the widget whose CSS starts reading it, and the
+ * `--color-*`/`--shell-*`/... tokens above are deleted once nothing reads
+ * them any more, per the migration plan.
+ *
+ * Prefixed `--ds-` (design system) rather than reusing the mockup's own bare
+ * names (`--font-ui`, `--font-mono`, ...) because two of those names already
+ * exist above with different values (Oswald/Consolas, not the mockup's system
+ * font stacks) -- an unprefixed redeclaration here would silently win the
+ * cascade for every existing selector that reads them, which is exactly the
+ * "zero visual change" invariant this block exists to preserve. Everything
+ * else keeps the mockup's own names verbatim (with the prefix) so a widget's
+ * CSS can be ported by mostly find-and-replacing `var(--x)` with
+ * `var(--ds-x)`.
+ *
+ * Colour values, radii and control heights are taken as-is from the mockup;
+ * they are a design decision made there, not re-derived here.
+ *
+ * `color-scheme` is deliberately not set by either block below: unlike a
+ * custom property, it repaints native form controls and scrollbars the
+ * instant it is declared, whether or not anything reads `--ds-*` yet. It
+ * starts following the active theme once `switch-theme` exists to choose one.
+ */
+:root {
+  /* Neutral scale, background to text. */
+  --ds-n-0: #131519;
+  --ds-n-1: #191c21;
+  --ds-n-2: #1f232a;
+  --ds-n-3: #272c34;
+  --ds-n-4: #333945;
+  --ds-n-5: #48505e;
+
+  --ds-bg: var(--ds-n-0);
+  --ds-panel: var(--ds-n-1);
+  --ds-raised: var(--ds-n-2);
+  --ds-line: #262b33;
+  --ds-line-strong: #333a45;
+
+  --ds-text: #e7e9ec;
+  --ds-text-muted: #9aa3b0;
+  --ds-text-faint: #6b7482;
+
+  /* Brass: the main action, the active state, a lit call lamp. */
+  --ds-accent: #e8a33f;
+  --ds-accent-hi: #f7bd68;
+  --ds-accent-ink: #2a1c07;
+  --ds-accent-soft: rgb(232 163 63 / 14%);
+  --ds-accent-line: rgb(232 163 63 / 38%);
+
+  /* Steel: figures, scales, car load. */
+  --ds-steel: #74a9d8;
+  --ds-steel-soft: rgb(116 169 216 / 16%);
+
+  /*
+   * Level stars, three metal tones -- the one place in the mockup where
+   * colour alone carries meaning, with no label beside it.
+   */
+  --ds-tier-bronze: #cf8c4e;
+  --ds-tier-silver: #b9c3d1;
+  --ds-tier-gold: #ecc04a;
+  --ds-tier-off: var(--ds-n-4);
+
+  --ds-ok: #62c186;
+  --ds-ok-soft: rgb(98 193 134 / 14%);
+  --ds-bad: #ec6a5b;
+  --ds-bad-soft: rgb(236 106 91 / 14%);
+
+  /* The building. */
+  --ds-shaft: #101318;
+  --ds-shaft-line: #1e232b;
+  --ds-car: #333c47;
+  --ds-car-edge: #48545f;
+  --ds-person: #b9c2cf;
+
+  /* The editor. */
+  --ds-code-bg: #15181d;
+  --ds-code-text: #d5dae1;
+  --ds-code-key: #e0a46b;
+  --ds-code-fn: #7fb2e0;
+  --ds-code-str: #8fbf85;
+  --ds-code-num: #d9a05b;
+  --ds-code-com: #6b7482;
+  --ds-code-punc: #97a0ad;
+  --ds-code-line: #4a5361;
+  --ds-code-active: rgb(255 255 255 / 3.5%);
+
+  --ds-shadow: 0 10px 30px rgb(0 0 0 / 45%);
+
+  --ds-font-ui:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, "Helvetica Neue", Arial, sans-serif;
+  --ds-font-mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+
+  --ds-r-sm: 4px;
+  --ds-r-md: 7px;
+  --ds-r-lg: 11px;
+
+  --ds-bar-h: 52px;
+  /*
+   * The height of every control: buttons, steppers, fields, segments. It used
+   * to be three different heights in the mockup's own history -- 26, 30 and
+   * 32 -- and in the app bar that read as a layout defect, not a design
+   * choice. One height, declared once, so a new control in the bar lands in
+   * line on its own.
+   */
+  --ds-ctl-h: 32px;
+  /* The header row of both side panels: the goal bar and the editor pane. */
+  --ds-panelbar-h: 38px;
+  /*
+   * Fallback figures only -- the real ones are computed by the building's own
+   * layout algorithm, which has to fit anywhere from six floors to twenty-one.
+   */
+  --ds-floor-h: 66px;
+  --ds-car-h: 58px;
+  --ds-shaft-gap: 12px;
+}
+
+html[data-theme="light"] {
+  --ds-n-0: #f3f1ec;
+  --ds-n-1: #ffffff;
+  --ds-n-2: #faf8f4;
+  --ds-n-3: #eeebe4;
+  --ds-n-4: #e0dcd3;
+  --ds-n-5: #c9c4b9;
+
+  --ds-bg: var(--ds-n-0);
+  --ds-panel: var(--ds-n-1);
+  --ds-raised: var(--ds-n-2);
+  --ds-line: #e4e0d8;
+  --ds-line-strong: #d2cdc2;
+
+  --ds-text: #1e2227;
+  --ds-text-muted: #5d6570;
+  --ds-text-faint: #8b929c;
+
+  --ds-accent: #a8690c;
+  --ds-accent-hi: #8c5608;
+  --ds-accent-ink: #ffffff;
+  --ds-accent-soft: rgb(168 105 12 / 10%);
+  --ds-accent-line: rgb(168 105 12 / 34%);
+
+  --ds-steel: #2f6fa8;
+  --ds-steel-soft: rgb(47 111 168 / 12%);
+
+  --ds-tier-bronze: #a4601f;
+  --ds-tier-silver: #78828f;
+  --ds-tier-gold: #b3860f;
+  --ds-tier-off: var(--ds-n-4);
+
+  --ds-ok: #2c8455;
+  --ds-ok-soft: rgb(44 132 85 / 12%);
+  --ds-bad: #c2422e;
+  --ds-bad-soft: rgb(194 66 46 / 12%);
+
+  --ds-shaft: #e8e4db;
+  --ds-shaft-line: #d8d3c8;
+  --ds-car: #46505c;
+  --ds-car-edge: #2f3742;
+  --ds-person: #6f7885;
+
+  --ds-code-bg: #fdfbf7;
+  --ds-code-text: #23282e;
+  --ds-code-key: #9a5b12;
+  --ds-code-fn: #1f6394;
+  --ds-code-str: #2c7a4c;
+  --ds-code-num: #8a5a0c;
+  --ds-code-com: #8b929c;
+  --ds-code-punc: #6b727c;
+  --ds-code-line: #b4b0a6;
+  --ds-code-active: rgb(0 0 0 / 3%);
+
+  --ds-shadow: 0 10px 30px rgb(60 50 30 / 14%);
+}
+
 /* ---------------------------------------------------------------- Document */
 
 html,
