@@ -263,6 +263,13 @@ export const RU_MESSAGES: MessageCatalogue<"ru"> = {
     "Один и тот же сид приводит тех же пассажиров и в том же порядке — а если ещё и играть одинаково, то и весь прогон повторяется в точности: каждое движение лифта, прибытие и нажатие кнопки — один в один, независимо от частоты кадров браузера.",
   "game.seed.console":
     "Сид {seed} — тот же самый прогон один в один, независимо от частоты кадров: {url}",
+  // Настройки: features/switch-theme. "Как в системе" — не запасной вариант,
+  // а исходный: пока тему не трогали, страница темнеет и светлеет вместе с
+  // системой (см. doc comment у presentThemeSwitch про prefersDark).
+  "game.switchTheme.caption": "Тема",
+  "game.switchTheme.system": "Как в системе",
+  "game.switchTheme.light": "Светлая",
+  "game.switchTheme.dark": "Тёмная",
   "game.timeScale.decrease": "Уменьшить скорость симуляции",
   "game.timeScale.increase": "Увеличить скорость симуляции",
   "game.timeScale.value": "{value}×",

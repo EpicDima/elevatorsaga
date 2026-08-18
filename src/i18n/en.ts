@@ -237,6 +237,14 @@ export const EN_MESSAGES = {
   // URL are placeholders for the same reason they are everywhere else -- they
   // are transcribed, not read.
   "game.seed.console": "Seed {seed} — the exact same run again, whatever the frame rate: {url}",
+  // Settings: features/switch-theme. "System" is not a fallback but the
+  // starting choice: until the theme is touched, the page follows the
+  // system's own light/dark switch (see presentThemeSwitch's doc comment on
+  // prefersDark).
+  "game.switchTheme.caption": "Theme",
+  "game.switchTheme.system": "System",
+  "game.switchTheme.light": "Light",
+  "game.switchTheme.dark": "Dark",
   "game.timeScale.decrease": "Decrease simulation speed",
   "game.timeScale.increase": "Increase simulation speed",
   "game.timeScale.value": "{value}x",
