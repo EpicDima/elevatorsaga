@@ -32,6 +32,7 @@ import { highlightJavaScript } from "./code-highlight.ts";
 import { changedLines } from "./line-diff.ts";
 import { CODE_SLOTS } from "#features/manage-code-slots/model/code-slots.ts";
 import type { CodeSlot } from "#features/manage-code-slots/model/code-slots.ts";
+import { runButtonsTemplate } from "#features/run-simulation/index.ts";
 import { iconMarkup } from "#shared/ui/icon.ts";
 
 /** Markup that is inserted as-is, without escaping. */
@@ -487,37 +488,17 @@ export interface ChallengeTemplateData {
  * restore.
  *
  * Four buttons and a speed, in that order, because the four are what the player
- * came for and the speed is a setting. They were in three places before this —
- * start and speed here, "Reset"/"Undo reset" under the editor at one end of a
- * row, "Save"/"Apply" at the other — and being in three places is what made them
- * hard to tell apart: nothing about "Apply" says what it does that "Save" does
- * not, and neither of them was anywhere near the run they restart. "Save" is
- * gone because the editor has always autosaved a second after the last
- * keystroke, so the button was a promise the game had already kept; "Apply" is
- * this row's Start over.
+ * came for and the speed is a setting. The four are `#features/run-simulation`'s
+ * {@link import("#features/run-simulation/index.ts").runButtonsTemplate} —
+ * see that module for their own history and design, including why "Undo
+ * reset" ships hidden and why "Run instantly" sits beside Start rather than in
+ * a row of its own.
  *
- * "Undo reset" ships hidden and is shown by the presenter when there is a
- * program to bring back. The legacy game offered it unconditionally, which meant
- * the most dangerous-looking button on the page was live at moments when it
- * could only do nothing.
- *
- * A fifth button, "Run instantly", sits at the end of the row: the crunch
- * `src/game/instant-run.ts` drives, with nothing drawn while it runs. It is not
- * a fifth kind of thing to learn — it starts the same run the first button
- * does, just without the building — so it belongs beside Start rather than in a
- * row of its own, and disables itself for the (ordinarily imperceptible) moment
- * a crunch is actually in progress rather than hiding, since a player who
- * pressed it is exactly the player who wants to see it was heard.
- *
- * The five buttons ship without labels, which the presenter writes. It has to
- * write the first one anyway — it says Start, Pause or Restart depending on the
- * run — and having one place write all five is what makes a language change work
- * here without re-rendering anything: `presentControls` draws this once for the
- * life of the page, so a label baked in here would still be in the language the
- * page opened in. The speed buttons carry theirs as `aria-label`, which for that
- * reason the presenter rewrites too; they are written here as well so that the
- * row is never nameless, not even for the instant between this markup and the
- * first update.
+ * The speed buttons carry their name as `aria-label`, which the presenter
+ * rewrites on a language change the same way it rewrites every word this
+ * template ships without: they are written here so that the row is never
+ * nameless, not even for the instant between this markup and the first
+ * update.
  *
  * The time-scale controls used to be a `<h3>` wrapping two clickable `<i>`
  * elements. They are a plain container with real buttons now; `.timescale`
@@ -533,7 +514,10 @@ export interface ChallengeTemplateData {
  * @returns The run controls markup.
  */
 export function controlsTemplate(): string {
-  return markup`<div class="runbuttons"><button type="button" class="startstop unselectable"></button> <button type="button" class="startover unselectable"></button> <button type="button" class="resetcode unselectable"></button> <button type="button" class="undoreset unselectable" hidden></button> <button type="button" class="runinstant unselectable"></button></div><div class="timescale"><button type="button" class="timescale_decrease unselectable" aria-label="${t("game.timeScale.decrease")}">${raw(iconMarkup("minus-square"))}</button> <span class="emphasis-color timescale_value" aria-live="polite"></span> <button type="button" class="timescale_increase unselectable" aria-label="${t("game.timeScale.increase")}">${raw(iconMarkup("plus-square"))}</button></div>`;
+  return (
+    runButtonsTemplate() +
+    markup`<div class="timescale"><button type="button" class="timescale_decrease unselectable" aria-label="${t("game.timeScale.decrease")}">${raw(iconMarkup("minus-square"))}</button> <span class="emphasis-color timescale_value" aria-live="polite"></span> <button type="button" class="timescale_increase unselectable" aria-label="${t("game.timeScale.increase")}">${raw(iconMarkup("plus-square"))}</button></div>`
+  );
 }
 
 /**

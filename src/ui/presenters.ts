@@ -37,6 +37,7 @@ import {
 import type { ChallengeLinkData, SeedLinkData, UserDisplayType } from "./templates.ts";
 import { CODE_SLOTS } from "#features/manage-code-slots/model/code-slots.ts";
 import type { CodeSlot } from "#features/manage-code-slots/model/code-slots.ts";
+import { presentRunControls } from "#features/run-simulation/index.ts";
 import {
   clearChildren,
   query,
@@ -45,7 +46,6 @@ import {
   setClass,
   setTransformPos,
 } from "#shared/lib/dom.ts";
-import { createIcon } from "#shared/ui/icon.ts";
 
 /** Class on `<html>` that hides everything except the world. */
 export const FULLSCREEN_CLASS = "fullscreen-demo";
@@ -315,6 +315,11 @@ export interface ControlsPresenter {
  * every word this row shows is written there, from the catalogue, at the moment
  * it is written.
  *
+ * The four run buttons plus "Run instantly" are drawn and driven by
+ * `#features/run-simulation`'s `presentRunControls`; this function composes
+ * that with the speed stepper. The composed pair keeps the app talking to one
+ * region and one contract, the way it always has.
+ *
  * @param parent - The `.controls` element.
  * @param options - The controller to report on and the callbacks for the six
  * buttons.
@@ -326,30 +331,36 @@ export function presentControls(
 ): ControlsPresenter {
   parent.innerHTML = controlsTemplate();
 
-  const startStop = requireElement(".startstop", parent);
-  const startOver = requireElement(".startover", parent);
-  const resetCode = requireElement(".resetcode", parent);
-  const undoReset = requireElement(".undoreset", parent);
-  const runInstant = requireElement(".runinstant", parent);
+  // Forwarding closures, not the callbacks themselves: `options` is the live
+  // object the app keeps updating (a language change, a new `worldController`
+  // reference on restart), and copying a callback out of it here would freeze
+  // this call's view of it at whatever it was when `presentControls` ran.
+  const runControls = presentRunControls(parent, {
+    worldController: options.worldController,
+    challengeEnded: () => options.challengeEnded(),
+    canUndoReset: () => options.canUndoReset(),
+    onStartStop: () => {
+      options.onStartStop();
+    },
+    onStartOver: () => {
+      options.onStartOver();
+    },
+    onResetCode: () => {
+      options.onResetCode();
+    },
+    onUndoReset: () => {
+      options.onUndoReset();
+    },
+    instantRunInProgress: () => options.instantRunInProgress(),
+    onRunInstant: () => {
+      options.onRunInstant();
+    },
+  });
+
   const timeScaleValue = requireElement(".timescale_value", parent);
   const timeScaleDecrease = requireElement(".timescale_decrease", parent);
   const timeScaleIncrease = requireElement(".timescale_increase", parent);
 
-  startStop.addEventListener("click", () => {
-    options.onStartStop();
-  });
-  startOver.addEventListener("click", () => {
-    options.onStartOver();
-  });
-  resetCode.addEventListener("click", () => {
-    options.onResetCode();
-  });
-  undoReset.addEventListener("click", () => {
-    options.onUndoReset();
-  });
-  runInstant.addEventListener("click", () => {
-    options.onRunInstant();
-  });
   timeScaleDecrease.addEventListener("click", () => {
     options.onTimeScaleDecrease();
   });
@@ -359,40 +370,14 @@ export function presentControls(
 
   const presenter: ControlsPresenter = {
     update(): void {
+      runControls.update();
       timeScaleValue.textContent = formatTimeScale(options.worldController.timeScale);
       timeScaleDecrease.setAttribute("aria-label", t("game.timeScale.decrease"));
       timeScaleIncrease.setAttribute("aria-label", t("game.timeScale.increase"));
-      startOver.textContent = t("game.button.startOver");
-      resetCode.textContent = t("game.button.resetCode");
-      undoReset.textContent = t("game.button.undoResetCode");
-      if (options.challengeEnded()) {
-        // The space belongs to this line rather than to the message: it is the
-        // gap between the icon and the word, which every language needs and no
-        // translator should have to remember to type.
-        startStop.replaceChildren(createIcon("repeat"), ` ${t("game.button.restart")}`);
-      } else {
-        startStop.textContent = options.worldController.isPaused
-          ? t("game.button.start")
-          : t("game.button.pause");
-      }
-      // Hidden rather than disabled: there is nothing to explain to a player
-      // who has not reset anything, and a disabled control they can neither
-      // press nor tab to is a worse answer than one that is not there. It
-      // appears the moment a reset gives it something to do.
-      undoReset.hidden = !options.canUndoReset();
-      // Disabled rather than hidden, unlike "Undo reset" above: a crunch is
-      // ordinarily too quick to ever be seen in this state, so a player who
-      // does see it pressed the button and wants to know it was heard, not to
-      // have it vanish out from under the pointer.
-      const inProgress = options.instantRunInProgress();
-      runInstant.textContent = inProgress
-        ? t("game.button.runningInstantly")
-        : t("game.button.runInstant");
-      runInstant.toggleAttribute("disabled", inProgress);
     },
 
     focusStartStop(): void {
-      startStop.focus();
+      runControls.focusStartStop();
     },
   };
   // Before anything can take focus, so that a screen reader announces "Start"
