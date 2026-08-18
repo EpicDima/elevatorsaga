@@ -9,7 +9,19 @@
  * active locale, this module does not need to know one exists.
  */
 
-import type { MessageKey } from "#i18n/index.ts";
+import type { MessageArgs, MessageKey } from "#i18n/index.ts";
+
+/**
+ * A message key that takes no parameters.
+ *
+ * Every field below names a key `docs-modal.ts` hands straight to `t()` with
+ * no second argument, so it is typed to the keys that allow that rather than
+ * the whole of {@link MessageKey} — otherwise the call would demand a
+ * parameter object, since some member of that wider union does. The same
+ * trick, under the same name, as `#widgets/goal-bar/ui/goal-bar.ts`'s and
+ * `#widgets/stats-panel/ui/stats-panel.ts`'s own `NoParamMessageKey`.
+ */
+type NoParamMessageKey = { [K in MessageKey]: MessageArgs<K> extends [] ? K : never }[MessageKey];
 
 /** One row of the API reference: `docs-modal.ts`'s own `<details class="api">`. */
 export interface ApiReferenceEntry {
@@ -18,17 +30,17 @@ export interface ApiReferenceEntry {
   /** The method or event signature the row's own `<summary>` shows in place of a title. */
   readonly sig: string;
   /** The catalogue key for the row's one-line summary, shown collapsed. */
-  readonly shortKey: MessageKey;
+  readonly shortKey: NoParamMessageKey;
   /** The catalogue key for the row's longer explanation, shown once the row expands. */
-  readonly moreKey: MessageKey;
+  readonly moreKey: NoParamMessageKey;
   /** The catalogue key for the row's example, highlighted and shown once the row expands. */
-  readonly codeKey: MessageKey;
+  readonly codeKey: NoParamMessageKey;
 }
 
 /** One heading of the API reference, and the rows listed under it. */
 export interface ApiReferenceGroup {
   /** The catalogue key for the group's own heading. */
-  readonly labelKey: MessageKey;
+  readonly labelKey: NoParamMessageKey;
   /** The group's own rows, in display order. */
   readonly entries: readonly ApiReferenceEntry[];
 }
