@@ -4,9 +4,9 @@
   accent (#f1f2d8) that splits its doors.
 
   Original artwork, deliberately. The twelve Font Awesome outlines in
-  src/ui/icons.ts would have been the quicker answer, but they carry the SIL
-  Open Font License, and a mark that stands for the site is not something to
-  owe attribution for. Nothing here is copied from anywhere.
+  src/shared/ui/icon.ts would have been the quicker answer, but they carry the
+  SIL Open Font License, and a mark that stands for the site is not something
+  to owe attribution for. Nothing here is copied from anywhere.
 
   Three rectangles is all of it: at 16px, detail is noise. The doors read as an
   elevator at that size, which is the only size that matters.

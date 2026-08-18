@@ -1,12 +1,13 @@
 Font Awesome 4.1.0 icon artwork
 ===============================
 
-src/ui/icons.ts inlines twelve glyph outlines copied verbatim from the Font
-Awesome 4.1.0 SVG webfont this game used to load, which was vendored under
-font-awesome-4.1-1.0/ until version 2.0 dropped it (it is still readable at the
-legacy-1.x tag). The outlines ship in every build, so this notice lives with
-them rather than with the retired font. src/ui/fontawesome-glyphs.json records
-exactly which glyphs were taken and which codepoints they came from.
+src/shared/ui/icon.ts inlines twelve glyph outlines copied verbatim from the
+Font Awesome 4.1.0 SVG webfont this game used to load, which was vendored
+under font-awesome-4.1-1.0/ until version 2.0 dropped it (it is still readable
+at the legacy-1.x tag). The outlines ship in every build, so this notice
+lives with them rather than with the retired font.
+src/shared/ui/fontawesome-glyphs.json records exactly which glyphs were taken
+and which codepoints they came from.
 
 The notice shipped with the vendored release, verbatim from
 legacy-1.x:font-awesome-4.1-1.0/css/font-awesome.css, which `git show` will

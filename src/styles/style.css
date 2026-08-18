@@ -13,8 +13,9 @@
  *   horizontally inside its frame when the viewport is too narrow;
  * - buttons are reset to nothing and the two chromed groups opt back in, because
  *   the controls that used to be `<i>` elements are real buttons now;
- * - icons are inline SVG (`src/ui/icons.ts`), so what used to be glyph colour is
- *   `fill: currentColor` and what used to be `text-shadow` is `drop-shadow`.
+ * - icons are inline SVG (`src/shared/ui/icon.ts`), so what used to be glyph
+ *   colour is `fill: currentColor` and what used to be `text-shadow` is
+ *   `drop-shadow`.
  *
  * Note that `box-sizing` is deliberately left at `content-box`: the floors
  * (49px + 1px border) and the elevators (46px + 2px border) rely on borders
