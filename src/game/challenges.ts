@@ -490,13 +490,24 @@ export const challenges: readonly Challenge[] = [
   {
     options: { floorCount: 13, elevatorCount: 2, spawnRate: 1.1, elevatorCapacities: [4, 10] },
     condition: requireUserCountWithinTime(50, 70),
-    // Neither the nearest-car dispatcher nor collective control wins this
-    // building's bronze even once across two hundred measured seeds -- the
-    // two mismatched capacities and the time limit together are past what
-    // either program answers reliably here. There is no distribution of wins
-    // to read a silver or gold threshold from, so this challenge has none;
-    // that is a statement about the two reference programs, not about the
-    // limit, which is untouched.
+    // DEV_TEST_CODE never wins this building's bronze -- not once across
+    // 2,300 measured seeds, sampled independently of the two hundred every
+    // other challenge here was calibrated against, because the first two
+    // hundred tried turned up nothing to read a threshold from either.
+    // GOOD_CODE_BALANCED does win it, just rarely: sixteen wins in that same
+    // 2,300, about seven in a thousand. As with challenges 12 to 14 above,
+    // there is no second program's distribution to read silver from, so both
+    // tiers come from the one program's own sixteen wins: the median of
+    // their finishing times is silver's bar, the fastest quarter of them is
+    // gold's. This challenge's row in the tiering plan also asks for a
+    // second axis, the same avgLoadFactorOnMove challenge 16 below reads
+    // gold from -- but across these sixteen wins load factor barely tracks
+    // how fast the run finished, a correlation of about 0.28 that a sample
+    // this size cannot tell apart from noise. Compounding a second, noisy
+    // axis onto a distribution already this thin would not separate a
+    // program's play from what a lucky spawn handed it, so this challenge
+    // stays on elapsedTime alone.
+    tiers: { silver: underElapsedTime(67.8), gold: underElapsedTime(66.9) },
   },
   {
     options: { floorCount: 9, elevatorCount: 5, spawnRate: 1.1 },

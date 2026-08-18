@@ -35,13 +35,21 @@
  * reason: a seed is either a number or a string, per {@link RandomSeed}, and the
  * two are hashed differently on the way into the generator.
  *
- * **Four challenges are all "lost."** Challenges 10, 17, 18 and 19 have no
- * `tiers` field at all -- across the same two hundred calibration seeds neither
+ * **Three challenges are all "lost."** Challenges 17, 18 and 19 have no `tiers`
+ * field at all -- across the same two hundred calibration seeds neither
  * reference program ever won bronze there, so there was no distribution to read
  * a threshold from. Their rows below are complete columns of `"lost"` rather
  * than being left out, so that a change to the world's physics that makes
  * either program suddenly start winning one of them is caught here, same as any
  * other row would be.
+ *
+ * **Challenge 10 is a fourth, thinner case.** It does have a `tiers` field --
+ * GOOD_CODE_BALANCED wins its bronze about seven times in a thousand seeds, see
+ * `challenges.ts` -- but that is rare enough that none of the ten fixed seeds
+ * below happen to be among the wins either, for either program. Its row is
+ * still a full column of `"lost"`, and for the same reason as the three above:
+ * a program that starts winning this challenge on one of these ten seeds is
+ * exactly what this file exists to notice.
  */
 
 import { describe, expect, it } from "vitest";
@@ -391,9 +399,10 @@ const CASES: readonly ChallengeTierCase[] = [
     ],
   },
   {
-    // No `tiers` field -- see `challenges.ts`. Neither program won bronze even
-    // once across two hundred calibration seeds, and none of these ten seeds
-    // are an exception.
+    // Has a `tiers` field now -- see `challenges.ts` -- but GOOD_CODE_BALANCED
+    // only wins this challenge's bronze about seven times in a thousand seeds,
+    // and none of these ten fixed seeds land on one of those wins either, for
+    // either program.
     challengeNumber: 10,
     goodCode: GOOD_CODE_BALANCED,
     goodLabel: "GOOD_CODE_BALANCED",
