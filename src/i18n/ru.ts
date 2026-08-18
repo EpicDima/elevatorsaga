@@ -210,6 +210,25 @@ export const RU_MESSAGES: MessageCatalogue<"ru"> = {
   "game.floor.callDown": "Вызвать лифт вниз с этажа {floor}",
   "game.elevator.label": "Лифт {number}",
   "game.elevator.floorButton": "Ехать на этаж {floor}",
+  // Всплывающие карточки над кабиной и этажом: widgets/building-stage.
+  // src/widgets/building-stage/lib/hover-card-text.ts. У движка нет
+  // постоянного флага «двери открыты», только мгновенные события, поэтому
+  // строка состояния — всегда одно из этих трёх.
+  "game.buildingStage.elevatorState.movingUp": "Едет вверх",
+  "game.buildingStage.elevatorState.movingDown": "Едет вниз",
+  "game.buildingStage.elevatorState.stopped": "Стоит",
+  "game.buildingStage.elevatorOccupancy": "Занято: {occupied}/{capacity}",
+  "game.buildingStage.elevatorServing.up": "Обслуживает вызовы вверх",
+  "game.buildingStage.elevatorServing.down": "Обслуживает вызовы вниз",
+  "game.buildingStage.elevatorServing.both": "Обслуживает вызовы в обе стороны",
+  "game.buildingStage.elevatorServing.none": "Не обслуживает вызовы",
+  "game.buildingStage.elevatorPressed.none": "Нет нажатых этажей",
+  "game.buildingStage.elevatorPressed.some": "Нажаты этажи: {floors}",
+  "game.buildingStage.floorCard.title": "Этаж {floor}",
+  "game.buildingStage.floorCard.waiting": "Ожидают: {count}",
+  "game.buildingStage.floorCard.longestWait": "Дольше всех ждёт: {time}",
+  "game.buildingStage.floorCard.destinations.none": "Направления ещё не выбраны",
+  "game.buildingStage.floorCard.destinations.some": "Едут на: {floors}",
   "game.challenge.title.html": "Задание №{number}: {description}",
   "game.challenge.nav.label": "Задания",
   "game.challenge.nav.link": "Задание {number}",

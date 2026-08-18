@@ -104,29 +104,29 @@ Key names carry two suffixes that mean something:
 
 ## Where the strings are
 
-The catalogue holds **344 keys** in two locales. `src/i18n/en.ts` is the reference — its text is
+The catalogue holds **359 keys** in two locales. `src/i18n/en.ts` is the reference — its text is
 the English wording, extracted verbatim — and `src/i18n/ru.ts` is the Russian translation. The
 types make English the shape everything else is measured against: a Russian catalogue missing a
 key, carrying a key English does not have, or giving a plural message the wrong number of forms
 is a compile error, not a runtime surprise.
 
 ```sh
-grep -cE '^  "[^"]+":' src/i18n/en.ts                                   # 344
+grep -cE '^  "[^"]+":' src/i18n/en.ts                                   # 359
 grep -oE '^  "[^"]+"' src/i18n/en.ts | tr -d '"' | cut -d. -f1 | sort | uniq -c | sort -rn
 ```
 
-| Prefix         | Keys    | What reads them                                                                                                                                                                                                                             |
-| -------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `docs.*`       | 85      | one of them, `docs.basics.example.code`, by `src/ui/completions.ts`; the other 84 by nothing                                                                                                                                                |
-| `tutorial.*`   | 82      | `src/ui/tutorial-panel.ts`, `src/ui/templates.ts`, `src/app/app.ts`                                                                                                                                                                         |
-| `game.*`       | 60      | `src/ui/templates.ts` (18), `src/ui/presenters.ts` (11), `src/widgets/goal-bar/ui/goal-bar.ts` (22), `src/app/app.ts` (5), `src/widgets/level-switcher/ui/level-switcher.ts` (6); the two speed labels are written by both of the first two |
-| `page.*`       | 40      | `index.html`, through `data-i18n` and `data-i18n-attr`; `page.noscript` excepted, see below                                                                                                                                                 |
-| `completion.*` | 33      | `src/ui/completions.ts`                                                                                                                                                                                                                     |
-| `challenge.*`  | 15      | `src/game/challenges.ts`                                                                                                                                                                                                                    |
-| `fitness.*`    | 11      | `src/app/fitness.ts`, `src/game/fitness.ts`, `src/main.ts`, `src/cli/bench.ts`                                                                                                                                                              |
-| `error.*`      | 10      | `src/game/elevator-interface.ts`, `src/ui/presenters.ts`, `src/game/user-code.ts`, `src/game/movable.ts`                                                                                                                                    |
-| `editor.*`     | 8       | `src/main.ts`, `src/app/app.ts`, `src/ui/editor.ts`, `src/ui/default-code.ts`, `src/ui/templates.ts`, `index.html`                                                                                                                          |
-| **Total**      | **344** |                                                                                                                                                                                                                                             |
+| Prefix         | Keys    | What reads them                                                                                                                                                                                                                                                                                       |
+| -------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `docs.*`       | 85      | one of them, `docs.basics.example.code`, by `src/ui/completions.ts`; the other 84 by nothing                                                                                                                                                                                                          |
+| `tutorial.*`   | 82      | `src/ui/tutorial-panel.ts`, `src/ui/templates.ts`, `src/app/app.ts`                                                                                                                                                                                                                                   |
+| `game.*`       | 75      | `src/ui/templates.ts` (18), `src/ui/presenters.ts` (11), `src/widgets/goal-bar/ui/goal-bar.ts` (22), `src/app/app.ts` (5), `src/widgets/level-switcher/ui/level-switcher.ts` (6), `src/widgets/building-stage/lib/hover-card-text.ts` (15); the two speed labels are written by both of the first two |
+| `page.*`       | 40      | `index.html`, through `data-i18n` and `data-i18n-attr`; `page.noscript` excepted, see below                                                                                                                                                                                                           |
+| `completion.*` | 33      | `src/ui/completions.ts`                                                                                                                                                                                                                                                                               |
+| `challenge.*`  | 15      | `src/game/challenges.ts`                                                                                                                                                                                                                                                                              |
+| `fitness.*`    | 11      | `src/app/fitness.ts`, `src/game/fitness.ts`, `src/main.ts`, `src/cli/bench.ts`                                                                                                                                                                                                                        |
+| `error.*`      | 10      | `src/game/elevator-interface.ts`, `src/ui/presenters.ts`, `src/game/user-code.ts`, `src/game/movable.ts`                                                                                                                                                                                              |
+| `editor.*`     | 8       | `src/main.ts`, `src/app/app.ts`, `src/ui/editor.ts`, `src/ui/default-code.ts`, `src/ui/templates.ts`, `index.html`                                                                                                                                                                                    |
+| **Total**      | **359** |                                                                                                                                                                                                                                                                                                       |
 
 Which keys nothing reads:
 
@@ -436,7 +436,7 @@ identically in every locale. Both names repeat it because an accessible name has
 own — "1234567890, link" describes nothing.
 
 `game.seed.newDraw` appearing inside `game.seed.newDrawLink` is a constraint a translator cannot
-see: the two sit on adjacent lines of a 344-key file and nothing in the file marks them as a
+see: the two sit on adjacent lines of a 359-key file and nothing in the file marks them as a
 pair. `src/i18n/catalogue.test.ts`, under _accessible names_, is what holds it — it requires the
 spoken name to contain the visible label in every locale. Rewording «новый розыгрыш» to «новый
 сид» meant changing both, which is exactly the edit where one gets missed.
@@ -445,6 +445,39 @@ The seed explanation used to be a module constant, `SEED_EXPLANATION`. It is now
 `t("game.seed.explanation")` inside `seedHelpTemplate`, which runs per render — which is the
 point. A `const SEED_EXPLANATION = t(...)` at module scope compiles, reads correctly and freezes
 English at import time; see _Rules the wiring has to keep_.
+
+### `src/widgets/building-stage/lib/hover-card-text.ts` — 15 `game.buildingStage.*` keys
+
+The hover cards `widgets/building-stage` shows over an elevator car or a floor's queue — widget
+6b's own DOM composition, built on `entities/elevator`, `entities/floor` and `entities/passenger`.
+`Elevator` keeps no persistent "doors open" flag, only transient events, so the state line can only
+ever say one of moving up, moving down or stopped, never open or closed. `elevatorCardText` and
+`floorCardText` take a plain snapshot of engine state rather than the live objects themselves, so
+this module is unit-tested without a DOM or a running world, the same way `layout-building.ts` and
+`shaft-scale.ts` are.
+
+| Key                                              | English                          | Notes                                                                                      |
+| ------------------------------------------------ | -------------------------------- | ------------------------------------------------------------------------------------------ |
+| `game.buildingStage.elevatorState.movingUp`      | Moving up                        | `isMoving` and a negative `velocityY`, which grows downward                                |
+| `game.buildingStage.elevatorState.movingDown`    | Moving down                      | `isMoving` and a non-negative `velocityY`                                                  |
+| `game.buildingStage.elevatorState.stopped`       | Stopped                          | `!isMoving`                                                                                |
+| `game.buildingStage.elevatorOccupancy`           | Occupied: {occupied}/{capacity}  | takes `{occupied}`, `{capacity}`; riders aboard over `Elevator.maxUsers`                   |
+| `game.buildingStage.elevatorServing.up`          | Serving calls going up           | `goingUpIndicator` set, `goingDownIndicator` clear                                         |
+| `game.buildingStage.elevatorServing.down`        | Serving calls going down         | `goingDownIndicator` set, `goingUpIndicator` clear                                         |
+| `game.buildingStage.elevatorServing.both`        | Serving calls in both directions | both indicators set                                                                        |
+| `game.buildingStage.elevatorServing.none`        | Not serving any calls            | neither indicator set                                                                      |
+| `game.buildingStage.elevatorPressed.none`        | No floors requested              | `buttonStates` has no lit floor                                                            |
+| `game.buildingStage.elevatorPressed.some`        | Requested floors: {floors}       | takes `{floors}`, a `formatList` of the lit floors' own numbers                            |
+| `game.buildingStage.floorCard.title`             | Floor {floor}                    | takes `{floor}`, the level itself, numbered the same way as `game.floor.callUp`            |
+| `game.buildingStage.floorCard.waiting`           | Waiting: {count}                 | takes `{count}`; a bare figure rather than a counted noun, so it needs no plural forms     |
+| `game.buildingStage.floorCard.longestWait`       | Longest wait: {time}             | takes `{time}`, a bare `format(seconds(longestWaitSeconds, 1))`; absent while nobody waits |
+| `game.buildingStage.floorCard.destinations.none` | No destinations chosen yet       | nobody waiting has pressed a floor button yet                                              |
+| `game.buildingStage.floorCard.destinations.some` | Heading to: {floors}             | takes `{floors}`, a `formatList` of the distinct floors chosen                             |
+
+Not yet mounted anywhere the player reaches, for the same reason `game.goalBar.*` is filed here
+rather than under _Deliberately not translated_: `src/entities/elevator/index.ts` and
+`src/entities/floor/index.ts` are wired and waiting on `widgets/building-stage` to compose them
+with this module's card text, not left out on purpose.
 
 ### `src/widgets/level-switcher/ui/level-switcher.ts` — 6 `game.levelSwitcher.*` keys
 

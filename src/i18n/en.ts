@@ -158,6 +158,25 @@ export const EN_MESSAGES = {
   "game.floor.callDown": "Call an elevator going down from floor {floor}",
   "game.elevator.label": "Elevator {number}",
   "game.elevator.floorButton": "Go to floor {floor}",
+  // The hover cards `widgets/building-stage` shows over a car or a floor.
+  // src/widgets/building-stage/lib/hover-card-text.ts. The engine keeps no
+  // persistent "doors open" flag, only transient events, so the elevator's
+  // state line only ever says one of these three things.
+  "game.buildingStage.elevatorState.movingUp": "Moving up",
+  "game.buildingStage.elevatorState.movingDown": "Moving down",
+  "game.buildingStage.elevatorState.stopped": "Stopped",
+  "game.buildingStage.elevatorOccupancy": "Occupied: {occupied}/{capacity}",
+  "game.buildingStage.elevatorServing.up": "Serving calls going up",
+  "game.buildingStage.elevatorServing.down": "Serving calls going down",
+  "game.buildingStage.elevatorServing.both": "Serving calls in both directions",
+  "game.buildingStage.elevatorServing.none": "Not serving any calls",
+  "game.buildingStage.elevatorPressed.none": "No floors requested",
+  "game.buildingStage.elevatorPressed.some": "Requested floors: {floors}",
+  "game.buildingStage.floorCard.title": "Floor {floor}",
+  "game.buildingStage.floorCard.waiting": "Waiting: {count}",
+  "game.buildingStage.floorCard.longestWait": "Longest wait: {time}",
+  "game.buildingStage.floorCard.destinations.none": "No destinations chosen yet",
+  "game.buildingStage.floorCard.destinations.some": "Heading to: {floors}",
   "game.challenge.title.html": "Challenge #{number}: {description}",
   // The navigation row shows bare numbers, because twenty entries have to fit
   // across a phone; the name each one carries is what a screen reader announces
