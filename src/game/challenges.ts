@@ -14,6 +14,14 @@
  */
 
 import { decimal, exact, format, formatList, t } from "../i18n/index.ts";
+import {
+  atLeastAvgLoadFactorOnMove,
+  requireAll,
+  underAvgWaitTime,
+  underElapsedTime,
+  underMaxWaitTime,
+  underMoveCount,
+} from "./challenge-tiers.ts";
 import type { ChallengeTierRequirements } from "./challenge-tiers.ts";
 import type { WorldOptions } from "./world.ts";
 
@@ -394,74 +402,173 @@ export const challenges: readonly Challenge[] = [
   {
     options: { floorCount: 3, elevatorCount: 1, spawnRate: 0.3 },
     condition: requireUserCountWithinTime(15, 60),
+    // Bronze only asks that fifteen people arrive inside a minute, and says
+    // nothing about how long any one of them stood waiting -- a program that
+    // wins with four seconds to spare and one that wins with forty both pass
+    // it the same. Silver and gold both read the wait a bronze win never
+    // looks at, tightened from what two hundred measured runs actually
+    // produced: the plain nearest-car dispatcher clears 4.7 seconds or better
+    // in its best quarter of wins, and 5.1 or better in its typical one, so
+    // that is silver's bar and gold's.
+    tiers: { silver: underAvgWaitTime(5.1), gold: underAvgWaitTime(4.7) },
   },
   {
     options: { floorCount: 5, elevatorCount: 1, spawnRate: 0.4 },
     condition: requireUserCountWithinTime(20, 60),
+    // Same shape as the challenge before it, but here the collective-control
+    // program is the one worth chasing: across its wins its typical average
+    // wait is 9.1 seconds and its median is 9.0, both a touch better than the
+    // nearest-car dispatcher manages on this floor count.
+    tiers: { silver: underAvgWaitTime(9.1), gold: underAvgWaitTime(9.0) },
   },
   {
     options: { floorCount: 5, elevatorCount: 1, spawnRate: 0.5, elevatorCapacities: [6] },
     condition: requireUserCountWithinTime(23, 60),
+    tiers: { silver: underAvgWaitTime(10.9), gold: underAvgWaitTime(9.9) },
   },
   {
     options: { floorCount: 8, elevatorCount: 2, spawnRate: 0.6 },
     condition: requireUserCountWithinTime(28, 60),
+    tiers: { silver: underAvgWaitTime(10.2), gold: underAvgWaitTime(9.6) },
   },
   {
     options: { floorCount: 6, elevatorCount: 4, spawnRate: 1.7 },
     condition: requireUserCountWithinTime(100, 68),
+    // The tightest bronze margin of the first five: across two hundred seeds
+    // the nearest-car dispatcher only wins 27 of them and collective control
+    // only 8, so a silver or gold here is a rare thing to earn by either
+    // program's own account, not just a high bar. The wait read from those
+    // few wins is real, though, and kept rather than dropped -- it is the
+    // same axis every challenge before it uses, and there is no reason a
+    // program that does win this one gets asked a different question than
+    // one that wins the last.
+    tiers: { silver: underAvgWaitTime(8.8), gold: underAvgWaitTime(8.2) },
   },
   {
     options: { floorCount: 4, elevatorCount: 2, spawnRate: 0.8 },
     condition: requireUserCountWithinMoves(40, 60),
+    // Bronze is a move budget, so silver tightens that same budget -- but the
+    // program the budget was measured against here is the nearest-car
+    // dispatcher, which wins this one only 18 times in two hundred; the
+    // collective-control program built to spend moves carefully wins it 149
+    // times and typically for fewer of them, so gold is read from that
+    // program instead, on the same axis, tightened further. Gold adds a
+    // second question bronze never asks at all -- the wait a move-frugal
+    // program can make someone sit through -- read from whichever program
+    // answers it better, which on this floor count is the nearest-car one
+    // again, at its own median.
+    tiers: {
+      silver: underMoveCount(57),
+      gold: requireAll(underMoveCount(55), underAvgWaitTime(6.3)),
+    },
   },
   {
     options: { floorCount: 3, elevatorCount: 3, spawnRate: 3.0 },
     condition: requireUserCountWithinMoves(100, 63),
+    tiers: {
+      silver: underMoveCount(61),
+      gold: requireAll(underMoveCount(59), underAvgWaitTime(7.9)),
+    },
   },
   {
     options: { floorCount: 6, elevatorCount: 2, spawnRate: 0.4, elevatorCapacities: [5] },
     condition: requireUserCountWithMaxWaitTime(50, 21),
+    // Bronze already reads the worst wait anyone suffered; silver and gold
+    // just ask for a better worst. Both are read from the nearest-car
+    // dispatcher, which wins this one every time across two hundred seeds and
+    // does so with room under the limit -- the collective-control program
+    // wins barely half as often and with less of it, so it is not the
+    // stricter reference here even though it is the one built for later,
+    // harder buildings.
+    tiers: { silver: underMaxWaitTime(12), gold: underMaxWaitTime(11) },
   },
   {
     options: { floorCount: 7, elevatorCount: 3, spawnRate: 0.6 },
     condition: requireUserCountWithMaxWaitTime(50, 20),
+    tiers: { silver: underMaxWaitTime(12.7), gold: underMaxWaitTime(11.5) },
   },
   {
     options: { floorCount: 13, elevatorCount: 2, spawnRate: 1.1, elevatorCapacities: [4, 10] },
     condition: requireUserCountWithinTime(50, 70),
+    // Neither the nearest-car dispatcher nor collective control wins this
+    // building's bronze even once across two hundred measured seeds -- the
+    // two mismatched capacities and the time limit together are past what
+    // either program answers reliably here. There is no distribution of wins
+    // to read a silver or gold threshold from, so this challenge has none;
+    // that is a statement about the two reference programs, not about the
+    // limit, which is untouched.
   },
   {
     options: { floorCount: 9, elevatorCount: 5, spawnRate: 1.1 },
     condition: requireUserCountWithMaxWaitTime(60, 19),
+    // The nearest-car dispatcher wins this one 160 times in two hundred;
+    // collective control wins it only twice. Silver and gold are read from
+    // the program that actually clears bronze here, which keeps them
+    // meaningful, but it does mean the program this codebase otherwise treats
+    // as the stronger dispatcher will rarely reach either rank on this
+    // particular floor.
+    tiers: { silver: underMaxWaitTime(15.7), gold: underMaxWaitTime(14.3) },
   },
   {
     options: { floorCount: 9, elevatorCount: 5, spawnRate: 1.1 },
     condition: requireUserCountWithMaxWaitTime(80, 17),
+    // Collective control never wins this one across two hundred seeds; the
+    // nearest-car dispatcher wins 85 of them, and that is the only
+    // distribution silver and gold are read from.
+    tiers: { silver: underMaxWaitTime(15.4), gold: underMaxWaitTime(14.5) },
   },
   {
     options: { floorCount: 9, elevatorCount: 5, spawnRate: 1.1, elevatorCapacities: [5] },
     condition: requireUserCountWithMaxWaitTime(100, 15),
+    // Collective control never wins this one either, and the nearest-car
+    // dispatcher only wins 14 of two hundred -- thin enough that these
+    // numbers should be read as a floor pulled up from a handful of wins, not
+    // a settled statistic. They are still real observed wins, not a guess.
+    tiers: { silver: underMaxWaitTime(14.5), gold: underMaxWaitTime(13.7) },
   },
   {
     options: { floorCount: 9, elevatorCount: 5, spawnRate: 1.0, elevatorCapacities: [6] },
     condition: requireUserCountWithMaxWaitTime(110, 15),
+    tiers: { silver: underMaxWaitTime(14.2), gold: underMaxWaitTime(13.8) },
   },
   {
     options: { floorCount: 8, elevatorCount: 6, spawnRate: 0.9 },
     condition: requireUserCountWithMaxWaitTime(120, 14),
+    // Collective control wins this one only 4 times in two hundred against
+    // the nearest-car dispatcher's 171, so once again it is the latter's
+    // distribution the tiers are read from.
+    tiers: { silver: underMaxWaitTime(11.6), gold: underMaxWaitTime(11.1) },
   },
   {
     options: { floorCount: 12, elevatorCount: 4, spawnRate: 1.4, elevatorCapacities: [5, 10] },
     condition: requireUserCountWithinTime(70, 80),
+    // Both programs win this one reliably, which is why it is the one
+    // challenge among the wait-limited run above and the time-limited one
+    // below to read gold from two axes at once: finishing faster than bronze
+    // asks, the way the earliest challenges do, and also carrying a fuller
+    // car on the way, a question this building's own bronze condition never
+    // puts to a program at all. Collective control supplies both numbers --
+    // its own best quarter of finishing times ties the median this challenge
+    // already uses for silver, so gold reads a stricter point of the same
+    // distribution instead of the same number twice.
+    tiers: {
+      silver: underElapsedTime(73),
+      gold: requireAll(underElapsedTime(70.1), atLeastAvgLoadFactorOnMove(0.411)),
+    },
   },
   {
     options: { floorCount: 21, elevatorCount: 5, spawnRate: 1.9, elevatorCapacities: [10] },
     condition: requireUserCountWithinTime(110, 80),
+    // Neither program wins this building even once across two hundred
+    // measured seeds. No tiers, for the same reason the challenge four
+    // places above has none.
   },
   {
     options: { floorCount: 21, elevatorCount: 8, spawnRate: 1.5, elevatorCapacities: [6, 8] },
     condition: requireUserCountWithinTimeWithMaxWaitTime(2675, 1800, 45),
+    // Neither program wins this building even once across two hundred
+    // measured seeds either -- the largest building in the list, asking for
+    // the most people, is past both reference dispatchers here.
   },
   {
     // The building of the wait-limited challenge four places above, asked a
@@ -475,6 +582,15 @@ export const challenges: readonly Challenge[] = [
     // control that stops taking passengers on board a car once it is half full
     // costs 316 to 412 with a worst delivery of 27.2. The limits are that last
     // program's worst seed with about a tenth in hand on each.
+    //
+    // Neither of this file's two reference dispatchers wins this challenge's
+    // bronze even once across two hundred later seeds measured the same way
+    // as every challenge above -- the twenty-seed measurement above shaped
+    // the limit itself, not a program meant to reliably clear it, and the
+    // move-conscious collective control built for the rest of this file is
+    // evidently not the same program as the one that measurement describes
+    // closely enough to win here. No tiers follow from a distribution that
+    // does not exist.
     options: { floorCount: 8, elevatorCount: 6, spawnRate: 0.9 },
     condition: requireUserCountWithinMovesWithMaxWaitTime(100, 450, 30),
   },
