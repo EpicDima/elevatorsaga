@@ -18,8 +18,6 @@ import type { User } from "../game/user.ts";
 import type { World } from "../game/world.ts";
 import type { WorldController } from "../game/world-controller.ts";
 import { decimal, format, percent, quantity, seconds, t } from "../i18n/index.ts";
-import { CODE_SLOTS } from "./code-slots.ts";
-import type { CodeSlot } from "./code-slots.ts";
 import {
   challengeTemplate,
   codeSlotsTemplate,
@@ -37,6 +35,8 @@ import {
   userTemplate,
 } from "./templates.ts";
 import type { ChallengeLinkData, SeedLinkData, UserDisplayType } from "./templates.ts";
+import { CODE_SLOTS } from "#features/manage-code-slots/model/code-slots.ts";
+import type { CodeSlot } from "#features/manage-code-slots/model/code-slots.ts";
 import {
   clearChildren,
   query,

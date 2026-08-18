@@ -29,9 +29,9 @@
 import { t } from "../i18n/index.ts";
 
 import { highlightJavaScript } from "./code-highlight.ts";
-import { CODE_SLOTS } from "./code-slots.ts";
-import type { CodeSlot } from "./code-slots.ts";
 import { changedLines } from "./line-diff.ts";
+import { CODE_SLOTS } from "#features/manage-code-slots/model/code-slots.ts";
+import type { CodeSlot } from "#features/manage-code-slots/model/code-slots.ts";
 import { iconMarkup } from "#shared/ui/icon.ts";
 
 /** Markup that is inserted as-is, without escaping. */

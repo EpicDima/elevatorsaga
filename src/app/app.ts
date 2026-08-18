@@ -15,8 +15,6 @@ import { createWorld } from "../game/world.ts";
 import type { World } from "../game/world.ts";
 import type { AnimationFrameRequester, WorldController } from "../game/world-controller.ts";
 import { LOCALES, t, translateIn } from "../i18n/index.ts";
-import { DEFAULT_CODE_SLOT } from "../ui/code-slots.ts";
-import type { CodeSlot } from "../ui/code-slots.ts";
 import type { CodeEditor } from "../ui/editor.ts";
 import {
   clearAll,
@@ -48,6 +46,8 @@ import {
   decreasedTimeScale,
   increasedTimeScale,
 } from "#features/adjust-speed/model/time-scale.ts";
+import { DEFAULT_CODE_SLOT } from "#features/manage-code-slots/model/code-slots.ts";
+import type { CodeSlot } from "#features/manage-code-slots/model/code-slots.ts";
 import { clearChildren } from "#shared/lib/dom.ts";
 
 declare global {

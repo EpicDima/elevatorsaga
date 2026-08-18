@@ -27,12 +27,12 @@ import { Observable } from "../game/observable.ts";
 import { getCodeObjFromCode } from "../game/user-code.ts";
 import type { UserCodeObject } from "../game/user-code.ts";
 import { t } from "../i18n/index.ts";
-import { DEFAULT_CODE_SLOT } from "./code-slots.ts";
-import type { CodeSlot } from "./code-slots.ts";
 import { playerApiCompletionSource } from "./completions.ts";
 import { DEV_TEST_CODE, defaultCode } from "./default-code.ts";
 import { locateCodeError } from "./error-location.ts";
 import type { CodeErrorLocation } from "./error-location.ts";
+import { DEFAULT_CODE_SLOT } from "#features/manage-code-slots/model/code-slots.ts";
+import type { CodeSlot } from "#features/manage-code-slots/model/code-slots.ts";
 
 /**
  * Where the player's program is kept between visits.

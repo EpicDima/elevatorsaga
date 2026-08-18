@@ -6,7 +6,6 @@ import { User } from "../game/user.ts";
 import { createWorld } from "../game/world.ts";
 import type { World } from "../game/world.ts";
 import { DEFAULT_LOCALE, setLocale } from "../i18n/index.ts";
-import type { CodeSlot } from "./code-slots.ts";
 import {
   clearAll,
   clearCodeStatus,
@@ -27,6 +26,7 @@ import {
 import type { ChallengePresenterOptions, ControlsPresenterOptions } from "./presenters.ts";
 import type { ChallengeLinkData, SeedLinkData } from "./templates.ts";
 import { createElement } from "./test-helpers.ts";
+import type { CodeSlot } from "#features/manage-code-slots/model/code-slots.ts";
 import { queryAll, requireElement } from "#shared/lib/dom.ts";
 
 /** Builds the `.statscontainer` markup the page shell provides. */
