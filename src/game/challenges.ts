@@ -22,7 +22,7 @@ import {
   underMaxWaitTime,
   underMoveCount,
 } from "./challenge-tiers.ts";
-import type { ChallengeTierRequirements } from "./challenge-tiers.ts";
+import type { ChallengeTierRequirements, TierRequirementInfo } from "./challenge-tiers.ts";
 import type { WorldOptions } from "./world.ts";
 
 /** The statistics a challenge condition inspects. */
@@ -76,6 +76,16 @@ export interface ChallengeCondition {
    * @returns `true` when won, `false` when lost, `null` while undecided.
    */
   evaluate(world: ChallengeWorldStats): boolean | null;
+  /**
+   * The figure(s) {@link evaluate} actually reads, in the same shape a
+   * {@link "./challenge-tiers.ts"!TierPredicate}'s own `requirements` use —
+   * what lets a goal bar draw a live progress meter per figure without this
+   * module exposing a second, parallel description of the same thresholds
+   * `evaluate` enforces. Empty for a condition with nothing to meter:
+   * {@link requireDemo} and {@link requireSandbox} never resolve, so there is
+   * no "how close" for either to answer.
+   */
+  readonly requirements: readonly TierRequirementInfo[];
 }
 
 /** One playable challenge. */
@@ -123,6 +133,10 @@ export function requireUserCountWithinTime(
         return null;
       }
     },
+    requirements: [
+      { field: "transportedCounter", comparison: "atLeast", threshold: userCount },
+      { field: "elapsedTime", comparison: "atMost", threshold: timeLimit },
+    ],
   };
 }
 
@@ -156,6 +170,10 @@ export function requireUserCountWithMaxWaitTime(
         return null;
       }
     },
+    requirements: [
+      { field: "transportedCounter", comparison: "atLeast", threshold: userCount },
+      { field: "maxWaitTime", comparison: "atMost", threshold: maxWaitTime },
+    ],
   };
 }
 
@@ -195,6 +213,11 @@ export function requireUserCountWithinTimeWithMaxWaitTime(
         return null;
       }
     },
+    requirements: [
+      { field: "transportedCounter", comparison: "atLeast", threshold: userCount },
+      { field: "elapsedTime", comparison: "atMost", threshold: timeLimit },
+      { field: "maxWaitTime", comparison: "atMost", threshold: maxWaitTime },
+    ],
   };
 }
 
@@ -223,6 +246,10 @@ export function requireUserCountWithinMoves(
         return null;
       }
     },
+    requirements: [
+      { field: "transportedCounter", comparison: "atLeast", threshold: userCount },
+      { field: "moveCount", comparison: "atMost", threshold: moveLimit },
+    ],
   };
 }
 
@@ -271,6 +298,11 @@ export function requireUserCountWithinMovesWithMaxWaitTime(
         return null;
       }
     },
+    requirements: [
+      { field: "transportedCounter", comparison: "atLeast", threshold: userCount },
+      { field: "moveCount", comparison: "atMost", threshold: moveLimit },
+      { field: "maxWaitTime", comparison: "atMost", threshold: maxWaitTime },
+    ],
   };
 }
 
@@ -287,6 +319,7 @@ export function requireDemo(): ChallengeCondition {
     evaluate(): boolean | null {
       return null;
     },
+    requirements: [],
   };
 }
 
@@ -370,6 +403,7 @@ export function requireSandbox(options: SandboxOptions): ChallengeCondition {
     evaluate(): boolean | null {
       return null;
     },
+    requirements: [],
   };
 }
 

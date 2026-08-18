@@ -32,15 +32,19 @@ const INERT_CODE = "{ init: function() {}, update: function() {} }";
 const CHALLENGES: readonly Challenge[] = [
   {
     options: { floorCount: 3, elevatorCount: 1, spawnRate: 0 },
-    condition: { description: "Challenge <span>one</span>", evaluate: () => null },
+    condition: {
+      description: "Challenge <span>one</span>",
+      evaluate: () => null,
+      requirements: [],
+    },
   },
   {
     options: { floorCount: 4, elevatorCount: 2, spawnRate: 0 },
-    condition: { description: "Challenge two", evaluate: () => true },
+    condition: { description: "Challenge two", evaluate: () => true, requirements: [] },
   },
   {
     options: { floorCount: 5, elevatorCount: 1, spawnRate: 0 },
-    condition: { description: "Challenge three", evaluate: () => false },
+    condition: { description: "Challenge three", evaluate: () => false, requirements: [] },
   },
 ];
 

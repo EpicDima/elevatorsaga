@@ -81,6 +81,13 @@ describe("Challenge requirements", () => {
           "<span class='emphasis-color'>60</span> seconds or less",
       );
     });
+
+    it("exposes the same figures as structured requirements, for a goal bar to meter", () => {
+      expect(requireUserCountWithinTime(15, 60).requirements).toEqual([
+        { field: "transportedCounter", comparison: "atLeast", threshold: 15 },
+        { field: "elapsedTime", comparison: "atMost", threshold: 60 },
+      ]);
+    });
   });
 
   describe("requireUserCountWithMaxWaitTime", () => {
@@ -100,6 +107,13 @@ describe("Challenge requirements", () => {
         "Transport <span class='emphasis-color'>50</span> people and let no one take more than " +
           "<span class='emphasis-color'>21.0</span> seconds to be delivered",
       );
+    });
+
+    it("exposes the same figures as structured requirements, for a goal bar to meter", () => {
+      expect(requireUserCountWithMaxWaitTime(50, 21).requirements).toEqual([
+        { field: "transportedCounter", comparison: "atLeast", threshold: 50 },
+        { field: "maxWaitTime", comparison: "atMost", threshold: 21 },
+      ]);
     });
   });
 
@@ -128,6 +142,13 @@ describe("Challenge requirements", () => {
           "<span class='emphasis-color'>60</span> elevator moves or less",
       );
     });
+
+    it("exposes the same figures as structured requirements, for a goal bar to meter", () => {
+      expect(requireUserCountWithinMoves(40, 60).requirements).toEqual([
+        { field: "transportedCounter", comparison: "atLeast", threshold: 40 },
+        { field: "moveCount", comparison: "atMost", threshold: 60 },
+      ]);
+    });
   });
 
   describe("requireUserCountWithinTimeWithMaxWaitTime", () => {
@@ -155,6 +176,14 @@ describe("Challenge requirements", () => {
           "<span class='emphasis-color'>1,800</span> seconds or less and let no one take more " +
           "than <span class='emphasis-color'>45.0</span> seconds to be delivered",
       );
+    });
+
+    it("exposes the same figures as structured requirements, for a goal bar to meter", () => {
+      expect(requireUserCountWithinTimeWithMaxWaitTime(2675, 1800, 45).requirements).toEqual([
+        { field: "transportedCounter", comparison: "atLeast", threshold: 2675 },
+        { field: "elapsedTime", comparison: "atMost", threshold: 1800 },
+        { field: "maxWaitTime", comparison: "atMost", threshold: 45 },
+      ]);
     });
   });
 
@@ -198,6 +227,14 @@ describe("Challenge requirements", () => {
           "more than <span class='emphasis-color'>30.0</span> seconds to be delivered",
       );
     });
+
+    it("exposes the same figures as structured requirements, for a goal bar to meter", () => {
+      expect(requireUserCountWithinMovesWithMaxWaitTime(100, 450, 30).requirements).toEqual([
+        { field: "transportedCounter", comparison: "atLeast", threshold: 100 },
+        { field: "moveCount", comparison: "atMost", threshold: 450 },
+        { field: "maxWaitTime", comparison: "atMost", threshold: 30 },
+      ]);
+    });
   });
 
   describe("requireDemo", () => {
@@ -208,6 +245,10 @@ describe("Challenge requirements", () => {
       fakeWorld.elapsedTime = 1e9;
       fakeWorld.transportedCounter = 1e9;
       expect(challengeReq.evaluate(fakeWorld)).toBe(null);
+    });
+
+    it("has nothing to meter", () => {
+      expect(requireDemo().requirements).toEqual([]);
     });
   });
 
@@ -289,6 +330,10 @@ describe("Challenge requirements", () => {
       expect(requireSandbox({ ...SANDBOX, spawnRate: 10 }).description).toContain(
         "<span class='emphasis-color'>10</span> people per second",
       );
+    });
+
+    it("has nothing to meter", () => {
+      expect(requireSandbox(SANDBOX).requirements).toEqual([]);
     });
   });
 });

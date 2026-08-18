@@ -100,6 +100,7 @@ export function requireNothing(): ChallengeCondition {
     evaluate(): boolean | null {
       return null;
     },
+    requirements: [],
   };
 }
 
