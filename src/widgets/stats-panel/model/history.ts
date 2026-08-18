@@ -11,14 +11,23 @@
  * of the same sample.
  *
  * `World`'s own `stats_display_changed` event (see `world-controller.ts`)
- * already carries the second guard: it only ever fires from inside
- * `if (!this.isPaused && !world.challengeEnded && lastT !== null)`, so a
- * presenter that only calls {@link StatsHistory.push} from that handler needs
- * no running check of its own. The first guard still applies — the event can
- * fire many times a second — so {@link createStatsHistory} keeps it, gated on
- * a caller-supplied clock rather than reading one itself, which is what
- * keeps {@link StatsHistory.push} and {@link sparklinePoints} pure and
- * testable with an injected `now`.
+ * carries the second guard *from its main tick*: that call site only fires
+ * from inside `if (!this.isPaused && !world.challengeEnded && lastT !== null)`.
+ * It is not the only caller, though — `App#relocalise` (`src/app/app.ts`)
+ * re-fires the same event on every language switch, unconditionally, so text
+ * stays correctly translated even while paused. A presenter wired to the
+ * event alone therefore cannot tell a real tick from a paused relocalise and
+ * cannot rebuild the mockup's `sim.running` guard from that signal — pausing
+ * mid-run and switching languages twice, 0.2s+ apart, would push a duplicate
+ * sample and evict a genuine older one. `WorldController.isPaused` is public
+ * and is the fix, once the widget composing {@link createStatsHistory} is
+ * given a way to read it (not yet — this widget is still inert and only
+ * takes a `World`); track that at wiring time rather than guessing at an API
+ * shape here. The first guard (the 0.2s clock) still applies regardless — the
+ * event can fire many times a second — so {@link createStatsHistory} keeps
+ * it, gated on a caller-supplied clock rather than reading one itself, which
+ * is what keeps {@link StatsHistory.push} and {@link sparklinePoints} pure
+ * and testable with an injected `now`.
  */
 
 const HISTORY_KEYS = [
