@@ -1,7 +1,6 @@
 /**
- * The four buttons that drive a run: start/pause/restart, start over, reset
- * code, and undo reset — plus "Run instantly", which starts the same run
- * without drawing it.
+ * The three buttons that drive a run: start/pause/restart and start over —
+ * plus "Run instantly", which starts the same run without drawing it.
  *
  * Peeled out of `src/ui/presenters.ts`'s `presentControls`, which now composes
  * this with `#features/adjust-speed`'s speed stepper into the one `.controls`
@@ -11,21 +10,11 @@
  * only relabelled after, so a label baked into the markup would still be in
  * whatever language the page opened in after a change of language.
  *
- * These five were in three places before this row existed: start and the
- * speed in the challenge bar, "Reset"/"Undo reset" under the editor at one
- * end of a row, "Save"/"Apply" at the other. Being in three places is what
- * made them hard to tell apart — nothing about "Apply" said what it did that
- * "Save" did not, and neither was anywhere near the run it restarted. "Save"
- * is gone because the editor has always autosaved a second after the last
- * keystroke, so the button was a promise the game had already kept; "Apply"
- * is this row's Start over.
+ * "Reset code" and "Undo reset" used to live here too. They now live in
+ * `widgets/editor-pane`, beside the editor they act on rather than across the
+ * page from it — see that widget's own module comment.
  *
- * "Undo reset" ships hidden and {@link presentRunControls} shows it once
- * there is a program to bring back. The legacy game offered it
- * unconditionally, which meant the most dangerous-looking button on the page
- * was live at moments when it could only do nothing.
- *
- * "Run instantly" is not a fifth kind of thing to learn — it starts the same
+ * "Run instantly" is not a fourth kind of thing to learn — it starts the same
  * run the first button does, just without the building — so it sits beside
  * Start rather than in a row of its own, and disables itself for the
  * (ordinarily imperceptible) moment a crunch is actually in progress rather
@@ -51,7 +40,7 @@ import { markup } from "../../../ui/templates.ts";
  * row alongside the speed stepper.
  */
 export function runButtonsTemplate(): string {
-  return markup`<div class="runbuttons"><button type="button" class="startstop unselectable"></button> <button type="button" class="startover unselectable"></button> <button type="button" class="resetcode unselectable"></button> <button type="button" class="undoreset unselectable" hidden></button> <button type="button" class="runinstant unselectable"></button></div>`;
+  return markup`<div class="runbuttons"><button type="button" class="startstop unselectable"></button> <button type="button" class="startover unselectable"></button> <button type="button" class="runinstant unselectable"></button></div>`;
 }
 
 /** What the run buttons need in order to draw and drive themselves. */
@@ -66,23 +55,10 @@ export interface RunControlsOptions {
    * world it is reporting on is replaced on every restart.
    */
   readonly challengeEnded: () => boolean;
-  /**
-   * Whether there is a reset "Undo reset" could take back.
-   *
-   * Not "whether there is a program in the backup slot": see
-   * `src/ui/editor.ts`'s `CodeEditor.canUndoReset`, where the difference is
-   * the difference between a button that recovers work and one that destroys
-   * it.
-   */
-  readonly canUndoReset: () => boolean;
   /** Called when the start/pause/restart button is pressed. */
   readonly onStartStop: () => void;
   /** Called when "Start over" is pressed. */
   readonly onStartOver: () => void;
-  /** Called when "Reset code" is pressed. */
-  readonly onResetCode: () => void;
-  /** Called when "Undo reset" is pressed. */
-  readonly onUndoReset: () => void;
   /**
    * Whether a headless crunch, started by "Run instantly", is under way.
    *
@@ -98,16 +74,12 @@ export interface RunControlsOptions {
 /** The rendered run buttons. */
 export interface RunControlsPresenter {
   /**
-   * Relabels the start button, the visibility of "Undo reset" and the
-   * "Run instantly" button's label and disabled state.
+   * Relabels the start button and the "Run instantly" button's label and
+   * disabled state.
    *
    * Everything this touches is state the row reports rather than owns, so it
    * is called after anything that could have moved any of it: a pause, the
-   * end of a run, a reset, a language change — and an edit, which is the one
-   * that is easy to leave out. `canUndoReset` answers for the program on
-   * screen, so typing moves it as surely as pressing Reset does, and a row
-   * that is only refreshed by the run controls' own events would go on
-   * offering to undo a reset the player has already typed over.
+   * end of a run, a language change.
    */
   update(): void;
 
@@ -144,8 +116,6 @@ export function presentRunControls(
 ): RunControlsPresenter {
   const startStop = requireElement(".startstop", parent);
   const startOver = requireElement(".startover", parent);
-  const resetCode = requireElement(".resetcode", parent);
-  const undoReset = requireElement(".undoreset", parent);
   const runInstant = requireElement(".runinstant", parent);
 
   startStop.addEventListener("click", () => {
@@ -154,12 +124,6 @@ export function presentRunControls(
   startOver.addEventListener("click", () => {
     options.onStartOver();
   });
-  resetCode.addEventListener("click", () => {
-    options.onResetCode();
-  });
-  undoReset.addEventListener("click", () => {
-    options.onUndoReset();
-  });
   runInstant.addEventListener("click", () => {
     options.onRunInstant();
   });
@@ -167,8 +131,6 @@ export function presentRunControls(
   const presenter: RunControlsPresenter = {
     update(): void {
       startOver.textContent = t("game.button.startOver");
-      resetCode.textContent = t("game.button.resetCode");
-      undoReset.textContent = t("game.button.undoResetCode");
       if (options.challengeEnded()) {
         // The space belongs to this line rather than to the message: it is
         // the gap between the icon and the word, which every language needs
@@ -179,15 +141,10 @@ export function presentRunControls(
           ? t("game.button.start")
           : t("game.button.pause");
       }
-      // Hidden rather than disabled: there is nothing to explain to a player
-      // who has not reset anything, and a disabled control they can neither
-      // press nor tab to is a worse answer than one that is not there. It
-      // appears the moment a reset gives it something to do.
-      undoReset.hidden = !options.canUndoReset();
-      // Disabled rather than hidden, unlike "Undo reset" above: a crunch is
-      // ordinarily too quick to ever be seen in this state, so a player who
-      // does see it pressed the button and wants to know it was heard, not to
-      // have it vanish out from under the pointer.
+      // Disabled rather than hidden: a crunch is ordinarily too quick to ever
+      // be seen in this state, so a player who does see it pressed the button
+      // and wants to know it was heard, not to have it vanish out from under
+      // the pointer.
       const inProgress = options.instantRunInProgress();
       runInstant.textContent = inProgress
         ? t("game.button.runningInstantly")

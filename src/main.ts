@@ -44,6 +44,7 @@ import { presentVersion } from "./ui/version.ts";
 import { DEFAULT_TIME_SCALE } from "#features/adjust-speed/model/time-scale.ts";
 import { docsModalTemplate, presentDocsModal } from "#features/docs-reference/index.ts";
 import { hotkeysModalTemplate, presentHotkeysModal } from "#features/hotkeys-help/index.ts";
+import { DEFAULT_CODE_SLOT } from "#features/manage-code-slots/model/code-slots.ts";
 import { presentLanguagePicker } from "#features/switch-language/index.ts";
 import { requireElement } from "#shared/lib/dom.ts";
 import {
@@ -51,6 +52,7 @@ import {
   buildAppBarSkeleton,
   presentAppBarSettings,
 } from "#widgets/app-bar/index.ts";
+import { presentEditorPane } from "#widgets/editor-pane/index.ts";
 import {
   buildWorkspaceLayoutSkeleton,
   presentWorkspaceLayout,
@@ -113,7 +115,72 @@ async function main(): Promise<void> {
   // of two and nothing for the eye to catch.
   applyStoredEditorHeight(document.documentElement, localStorage);
 
-  const editor = new CodeEditor(codeMirrorView(requireElement(".code")));
+  // The editor pane's chrome -- the slot switcher, the reset/undo-reset tools,
+  // the error banner and the `.editor` mount CodeMirror needs -- has to exist
+  // before `codeMirrorView` can be built over that mount, and `CodeEditor` has
+  // to exist before the callbacks below, which act on it, can be written. Two
+  // mutable cells break that circle: the callbacks read `editorRef`/`appRef`
+  // rather than closing over `editor`/`app` themselves, so they can be written
+  // here and filled in once each object actually exists -- `editorRef` a few
+  // lines down, `appRef` once `App` is built below. Until then `canUndoReset`
+  // and `currentSlot`, the two this pane calls synchronously while drawing its
+  // own first frame, fall back to `false` and `DEFAULT_CODE_SLOT` -- not merely
+  // safe placeholders but the actually correct answers for a page that has
+  // built neither yet: there is nothing to undo, and `App`'s own `#currentSlot`
+  // field opens on the same default.
+  // eslint-disable-next-line prefer-const -- assigned once, below the closures that read it: the single write is what breaks the circle above.
+  let editorRef: CodeEditor | undefined;
+  // eslint-disable-next-line prefer-const -- see editorRef, just above.
+  let appRef: App | undefined;
+
+  const editorPane = presentEditorPane(requireElement(".code"), {
+    currentSlot: () => appRef?.currentCodeSlot ?? DEFAULT_CODE_SLOT,
+    onSelectSlot: (slot) => {
+      appRef?.selectCodeSlot(slot);
+    },
+    canUndoReset: () => editorRef?.canUndoReset() ?? false,
+    onResetCode: () => {
+      if (editorRef === undefined) {
+        return;
+      }
+      // `window.confirm`, as `src/widgets/tutorial-panel/ui/tutorial-panel.ts`
+      // explains at the one other place the game asks before throwing a
+      // program away. The update afterwards is what puts "Undo reset" on
+      // screen: a refused reset leaves nothing to undo, and asking the editor
+      // covers both outcomes without this having to know which it got.
+      if (window.confirm(t("editor.confirmReset"))) {
+        editorRef.reset();
+        editorPane.update();
+      }
+      editorRef.focus();
+    },
+    onUndoReset: () => {
+      if (editorRef === undefined) {
+        return;
+      }
+      if (window.confirm(t("editor.confirmUndoReset"))) {
+        editorRef.undoReset();
+        editorPane.update();
+      }
+      editorRef.focus();
+    },
+    onGotoLine: (line) => {
+      if (editorRef === undefined) {
+        return;
+      }
+      // `column: 1` is synthetic: the pane only ever locates a line, and
+      // `CodeEditor.markError` -- the one way to move the editor's own view --
+      // wants both. Its underline spans the column onward, so a wrong column
+      // here would draw a shorter mark than the automatic one this repeats
+      // rather than a wrong jump; what actually moves the view is the
+      // `EditorView.scrollIntoView` `markError` dispatches alongside it.
+      editorRef.markError({ line, column: 1 });
+      editorRef.focus();
+    },
+  });
+
+  const editor = new CodeEditor(codeMirrorView(editorPane.editorMount));
+  editorRef = editor;
 
   // After it, because the grip measures the box it resizes, and there is no box
   // until CodeMirror has mounted one.
@@ -153,13 +220,18 @@ async function main(): Promise<void> {
   editor.on("change", () => {
     // The measurement on show no longer describes the program in the editor.
     fitnessMessage.classList.add("faded");
+    // `canUndoReset` answers for the program on screen, so typing moves it as
+    // surely as pressing Reset does: without this, the pane would go on
+    // offering to undo a reset the player has already typed over.
+    editorPane.update();
   });
 
   // The four buttons that used to be wired here -- Save, Apply, Reset and Undo
-  // reset -- are the run controls now, drawn and driven by the app; see
-  // `presentControls` in src/ui/presenters.ts. Save has no successor: the editor
-  // has always autosaved a second after the last keystroke, so the button was a
-  // promise the game had already kept.
+  // reset -- are run controls and editor-pane tools now, drawn and driven by
+  // the app and this file respectively; see `presentControls` in
+  // `src/ui/presenters.ts` and `editorPane` above. Save has no successor: the
+  // editor has always autosaved a second after the last keystroke, so the
+  // button was a promise the game had already kept.
 
   // The skip link. Two things have to be taken off the browser: the focus,
   // which belongs inside CodeMirror rather than on the `<div>` it mounts into,
@@ -171,22 +243,34 @@ async function main(): Promise<void> {
     editor.focus();
   });
 
+  // Built here rather than found by `requireElement`, unlike every other
+  // region `App` draws into: `widgets/level-switcher` sits in the app bar
+  // alongside the brand, and the app bar itself is not assembled until further
+  // down this function -- see the comment there for why. Detached from the
+  // document until then, which costs nothing: `App`'s constructor only writes
+  // into it and wires click listeners, neither of which needs the element to
+  // be on screen yet, and the mockup's own `.task` slot is exactly where it is
+  // appended once the bar exists.
+  const levelSwitcherMount = document.createElement("div");
+  levelSwitcherMount.className = "levelswitcher";
+
   const app = new App({
     elements: {
-      challenge: requireElement(".challenge"),
       controls: requireElement(".controls"),
       tutorial: requireElement(".tutorial"),
       tutorialLink: requireElement(".tutoriallink"),
-      codeSlots: requireElement(".codeslots"),
+      levelSwitcher: levelSwitcherMount,
+      goalBar: requireElement(".challenge"),
       world: requireElement(".innerworld"),
       stats: requireElement(".statscontainer"),
       feedback: requireElement(".feedbackcontainer"),
-      codeStatus: requireElement(".codestatus"),
     },
     editor,
+    editorPane,
     worldController: createWorldController(TICK_SECONDS),
     challenges,
   });
+  appRef = app;
 
   // Wired after the app exists, because changing the language has to redraw what
   // the app has already drawn. The two halves of that are deliberately separate:
@@ -255,7 +339,7 @@ async function main(): Promise<void> {
   const hotkeysModal = presentHotkeysModal(hotkeysDialog);
 
   // The workspace shell: `.pane-game`/`.pane-code` become the new parents of
-  // the ten regions `<main>` held directly until now, in the order it held
+  // the eight regions `<main>` held directly until now, in the order it held
   // them. Moving an already-mounted element with `append` reparents it
   // without tearing anything down, CodeMirror included, so every one of them
   // keeps running exactly as built above.
@@ -272,8 +356,6 @@ async function main(): Promise<void> {
     requireElement(".world"),
   );
   workspaceElements.codePane.append(
-    requireElement(".codestatus"),
-    requireElement(".codeslots"),
     requireElement(".code"),
     requireElement(".editorresize"),
     requireElement(".hint"),
@@ -295,8 +377,9 @@ async function main(): Promise<void> {
   // so the page never holds two, and every heading-role assertion across the
   // e2e suite keeps finding the one it always has. `.headertools` moves in
   // whole: `.tutoriallink` and the old Help/Documentation/Wiki nav and
-  // language picker keep running unchanged, beside the new bar rather than
-  // inside `widgets/level-switcher`, which is no part of this phase.
+  // language picker keep running unchanged, beside the new bar. `levelSwitcherMount`
+  // goes in between the two, matching the mockup's own brand-then-`.task` order
+  // -- see its own declaration above for why it was built rather than found.
   let layoutMode: LayoutMode = readLayoutMode(localStorage);
 
   const { appBar, brand } = buildAppBarSkeleton(document, { brandName: t("page.brand") });
@@ -306,6 +389,7 @@ async function main(): Promise<void> {
   const oldH1 = requireElement("h1", oldHeader);
   oldH1.replaceChildren(brand);
   appBar.prepend(oldH1);
+  appBar.append(levelSwitcherMount);
   appBar.append(requireElement(".headertools", oldHeader));
   appBar.insertAdjacentHTML("beforeend", appBarSettingsTemplate(app.currentSeedLink));
   oldHeader.replaceWith(appBar);

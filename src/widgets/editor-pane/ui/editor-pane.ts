@@ -5,28 +5,20 @@
  * Ported from `design/ui-mockup.html`'s `.pane.pane-code` section — the
  * `.codebar` row (slots plus `.codetools`), the `.errorline` banner, and the
  * `.editor` mount point — for `widgets/workspace-layout`'s `.pane-code`,
- * which is where {@link presentEditorPane} is meant to draw once a later
- * phase mounts this widget. Nothing here is reachable yet: like every widget
- * staged ahead of it, this is built and tested, not yet called from
- * `index.html` or `src/app/app.ts`.
+ * mounted from `src/main.ts`.
  *
- * Three things this pane draws deliberately are not straight ports:
+ * Three things this pane draws are not straight ports:
  *
  * - The slot switcher is not redrawn here at all. `presentCodeSlots` already
  *   exists, in `#features/manage-code-slots`, and is composed as-is — the
  *   mockup's own markup for it (`.slots[role=group]`) is reproduced as the
  *   container this pane hands that presenter, nothing more.
- * - `.codetools`' "Reset code" and "Undo reset" are a second, independent
- *   copy of `#features/run-simulation`'s own two buttons, not a move of
- *   them. `run-controls.ts` is already mounted and live, drawn once from the
- *   app's constructor; deleting its two buttons to "relocate" them here
- *   would be a real behavioural change to a shipping control, which the
- *   inert-and-unmounted rule the rest of this widget follows does not cover.
- *   The two copies read the mockup's own rationale for wanting them beside
- *   the editor rather than the run — "Сброс кода стоял в панели прогона...
- *   а он про редактор, а не про прогон" — but only one of them can act on it
- *   before a later phase deletes the run row's own pair; see `run-controls.ts`
- *   for the button logic this one mirrors.
+ * - `.codetools`' "Reset code" and "Undo reset" are this pane's own copy of
+ *   the buttons `#features/run-simulation`'s run controls used to draw.
+ *   `run-controls.ts` no longer has them — see its own module comment —
+ *   because a control about the editor belongs beside the editor, which is
+ *   the mockup's own rationale: "Сброс кода стоял в панели прогона... а он
+ *   про редактор, а не про прогон".
  * - The mockup's `#errorGoto` is `<a href="#" ...>`, and does nothing: its
  *   `#editor` is static markup with no script wiring the link to a real
  *   position. This pane's own goto is a real `<button>`, not an `<a>` — the
@@ -37,19 +29,13 @@
  *   throw away `challenge=`/`timescale=` and restart the player on the first
  *   challenge. It calls {@link EditorPaneOptions.onGotoLine} with the line
  *   `src/ui/error-location.ts`'s `locateCodeError` found, so it does what the
- *   mockup's own link only gestured at — once a later phase gives it a
- *   caller that can move a real cursor.
+ *   mockup's own link only gestured at.
  *
- * The `.editor` mount point is left empty on purpose. `CodeEditor` is a full
- * subsystem of its own — one autosave timer, one set of storage keys, one
- * CodeMirror view — and the page has exactly one of it today, built once in
- * `src/main.ts`. Building a second live instance here, ahead of the cutover
- * that decides where the first one goes, risks two editors autosaving over
- * the same storage keys the moment both existed on a page at once. A later
- * phase — the same one that deletes the run row's own reset/undo pair —
- * decides who builds `CodeEditor` and where it hands this pane the view to
- * mount; until then, `.editor` is exactly what `buildWorkspaceLayoutSkeleton`
- * already leaves its own two panes as: a place, not a thing.
+ * The `.editor` mount point is built and handed its `CodeEditor` view by
+ * `src/main.ts`, in that order: this pane's mount has to exist before
+ * `codeMirrorView` can be built over it, and `CodeEditor` before the run/reset
+ * callbacks that close over it can be written — see `main.ts`'s own comment
+ * at the call site for how the three are sequenced.
  */
 
 import { presentCodeSlots, type CodeSlot } from "#features/manage-code-slots/index.ts";
@@ -70,7 +56,7 @@ import { markup, raw } from "../../../ui/templates.ts";
  * @returns The pane's markup, ready to mount into `.pane-code`.
  */
 export function editorPaneTemplate(): string {
-  return markup`<div class="codebar"><div class="slots" role="group" aria-label="${t("editor.slot.tablist.label")}"></div><div class="codetools"><button type="button" class="resetcode ghost"></button><button type="button" class="undoreset ghost" hidden></button></div></div><div class="errorline" aria-live="polite" hidden>${raw(iconMarkup("warning", "error-color"))}<span>${t("game.codeStatus")} <code class="errormessage"></code></span><button type="button" class="goto" hidden></button></div><div class="editor"></div>`;
+  return markup`<div class="codebar"><div class="slots" role="group" aria-label="${t("editor.slot.tablist.label")}"></div><div class="codetools"><button type="button" class="resetcode ghost"></button><button type="button" class="undoreset ghost" hidden></button></div></div><div class="errorline" aria-live="polite" hidden>${raw(iconMarkup("warning", "error-color"))}<span class="errorline-label">${t("game.codeStatus")}</span> <code class="errormessage"></code><button type="button" class="goto" hidden></button></div><div class="editor"></div>`;
 }
 
 /** What the editor pane needs in order to draw and drive itself. */
@@ -82,9 +68,10 @@ export interface EditorPaneOptions {
   /**
    * Whether there is a reset "Undo reset" could take back.
    *
-   * See `#features/run-simulation`'s own `RunControlsOptions.canUndoReset`
-   * for why this asks the caller rather than "whether there is a program in
-   * the backup slot".
+   * Not "whether there is a program in the backup slot": see
+   * `src/ui/editor.ts`'s `CodeEditor.canUndoReset`, where the difference is
+   * the difference between a button that recovers work and one that destroys
+   * it.
    */
   readonly canUndoReset: () => boolean;
   /** Called when "Reset code" is pressed. */
@@ -105,8 +92,7 @@ export interface EditorPanePresenter {
    * visibility.
    *
    * Called after anything that could have moved any of it: a reset, a slot
-   * switch, an edit, or a language change — the same list `RunControlsPresenter.update`
-   * answers for its own copy of these two buttons.
+   * switch, an edit, or a language change.
    */
   update(): void;
 
@@ -145,6 +131,7 @@ export function presentEditorPane(
   const resetCode = requireElement(".resetcode", parent);
   const undoReset = requireElement(".undoreset", parent);
   const errorLine = requireElement(".errorline", parent);
+  const errorLabel = requireElement(".errorline-label", parent);
   const errorMessage = requireElement(".errormessage", parent);
   const goto = requireElement(".goto", parent);
   const editorMount = requireElement(".editor", parent);
@@ -180,6 +167,7 @@ export function presentEditorPane(
       resetCode.textContent = t("game.button.resetCode");
       undoReset.textContent = t("game.button.undoResetCode");
       undoReset.hidden = !options.canUndoReset();
+      errorLabel.textContent = t("game.codeStatus");
     },
 
     showError(error, code): void {

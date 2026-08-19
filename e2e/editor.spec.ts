@@ -104,8 +104,13 @@ test("surfaces a program that will not compile", async ({ page }) => {
 
   await page.goto("/");
 
-  const banner = page.getByText(errorBanner);
+  // `.errorline` rather than `getByText(errorBanner)`: the label and the
+  // program's own message are two separate elements now (`.errorline-label`
+  // and `.errormessage`), so a text-content locator resolves to the label
+  // alone and never sees the message beside it.
+  const banner = page.locator(".errorline");
   await expect(banner).toBeVisible();
+  await expect(banner).toContainText(errorBanner);
   await expect(banner).toContainText("SyntaxError");
 
   // The page is still a game: the legacy version handed `null` to the world
@@ -201,8 +206,9 @@ test("surfaces a program that throws once the simulation is running", async ({ p
 
   await startButton(page).click();
 
-  const banner = page.getByText(errorBanner);
+  const banner = page.locator(".errorline");
   await expect(banner).toBeVisible();
+  await expect(banner).toContainText(errorBanner);
   await expect(banner).toContainText("e2e boom");
   // Paused, not dead: the button is offering to start again.
   await expect(startButton(page)).toBeVisible();

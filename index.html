@@ -150,7 +150,7 @@
       </noscript>
 
       <main>
-        <!-- The challenge bar, the building and the banner are drawn by src/ui/presenters.ts. -->
+        <!-- widgets/goal-bar draws the current challenge's meters and tier popover here. -->
         <div class="challenge"></div>
 
         <!--
@@ -205,98 +205,24 @@
             -->
             <div class="feedbackcontainer" role="status"></div>
             <div class="innerworld"></div>
+            <!-- widgets/stats-panel draws the run's live figures here. -->
             <div
               class="statscontainer"
               role="group"
               aria-label="Simulation statistics"
               data-i18n-attr="aria-label:page.stats.label"
-            >
-              <div class="stat">
-                <span class="key" data-i18n="page.stats.transported">Transported</span
-                ><span class="value transportedcounter"></span>
-              </div>
-              <div class="stat">
-                <span class="key" data-i18n="page.stats.elapsedTime">Elapsed time</span
-                ><span class="value elapsedtime"></span>
-              </div>
-              <div class="stat">
-                <span class="key" data-i18n="page.stats.transportedPerSec">Transported/s</span
-                ><span class="value transportedpersec"></span>
-              </div>
-              <div class="stat">
-                <span class="key" data-i18n="page.stats.avgWaitTime">Avg delivery time</span
-                ><span class="value avgwaittime"></span>
-              </div>
-              <div class="stat">
-                <span
-                  class="key"
-                  title="The clock starts when a passenger appears and stops when a car takes them, and the row below it is the rest of the journey"
-                  data-i18n="page.stats.avgPickupTime"
-                  data-i18n-attr="title:page.stats.avgPickupTimeTitle"
-                  >Avg wait for a car</span
-                ><span class="value avgpickuptime"></span>
-              </div>
-              <div class="stat">
-                <span
-                  class="key"
-                  title="The clock starts when a car takes a passenger and stops when they step out at their floor, so this and the wait above it add up to the delivery time"
-                  data-i18n="page.stats.avgRideTime"
-                  data-i18n-attr="title:page.stats.avgRideTimeTitle"
-                  >Avg ride time</span
-                ><span class="value avgridetime"></span>
-              </div>
-              <div class="stat">
-                <span class="key" data-i18n="page.stats.maxWaitTime">Max delivery time</span
-                ><span class="value maxwaittime"></span>
-              </div>
-              <div class="stat">
-                <span
-                  class="key"
-                  title="One move is counted each time a car crosses the halfway mark between one floor and the next"
-                  data-i18n="page.stats.moves"
-                  data-i18n-attr="title:page.stats.movesTitle"
-                  >Moves</span
-                ><span class="value movecount"></span>
-              </div>
-              <div class="stat">
-                <span
-                  class="key"
-                  title="One stop is counted each time a car comes to rest at a floor and opens its doors, so a car sent to the floor it is already standing on counts another one"
-                  data-i18n="page.stats.stops"
-                  data-i18n-attr="title:page.stats.stopsTitle"
-                  >Stops</span
-                ><span class="value stopcount"></span>
-              </div>
-              <div class="stat">
-                <span
-                  class="key"
-                  title="Everyone who got in or out, over the stops counted above, so opening the doors where nobody is waiting brings it down"
-                  data-i18n="page.stats.peoplePerStop"
-                  data-i18n-attr="title:page.stats.peoplePerStopTitle"
-                  >People per stop</span
-                ><span class="value peopleperstop"></span>
-              </div>
-              <div class="stat">
-                <span
-                  class="key"
-                  title="How full the cars were, averaged over the moves counted above, so a car standing still is not in the figure at all"
-                  data-i18n="page.stats.avgLoad"
-                  data-i18n-attr="title:page.stats.avgLoadTitle"
-                  >Avg load</span
-                ><span class="value avgloadfactor"></span>
-              </div>
-            </div>
+            ></div>
           </div>
         </div>
 
-        <div class="codestatus" aria-live="polite"></div>
-        <div
-          class="codeslots"
-          role="group"
-          aria-label="Code slots"
-          data-i18n-attr="aria-label:editor.slot.tablist.label"
-        ></div>
-        <!-- CodeMirror mounts here; see src/ui/editor.ts. -->
+        <!--
+          widgets/editor-pane draws the slot switcher, the reset/undo-reset
+          tools and the error banner here, and mounts CodeMirror inside its own
+          `.editor` -- see src/ui/editor.ts and the widget's own module
+          comment. `id="code"` stays on this element rather than moving to the
+          `.editor` mount two levels in, so the skip link's `href="#code"` and
+          `.editorresize`'s `aria-controls="code"` need no change.
+        -->
         <div class="code" id="code"></div>
         <!--
           The editor's bottom edge, as a control. `separator` with a tabindex is

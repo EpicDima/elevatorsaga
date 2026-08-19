@@ -18,22 +18,20 @@ import { LOCALES, t, translateIn } from "../i18n/index.ts";
 import type { CodeEditor } from "../ui/editor.ts";
 import {
   clearAll,
-  clearCodeStatus,
   containsFocus,
-  presentChallenge,
-  presentCodeSlots,
-  presentCodeStatus,
   presentControls,
-  presentFeedback,
-  presentStats,
-  presentWorld,
   relabelWorld,
   setDemoFullscreen,
 } from "../ui/presenters.ts";
-import type { CodeSlotsPresenter, ControlsPresenter } from "../ui/presenters.ts";
-import type { ChallengeLinkData, SeedLinkData } from "../ui/templates.ts";
-import { createParamsUrl } from "./router.ts";
+import type { ControlsPresenter } from "../ui/presenters.ts";
+import type { SeedLinkData } from "../ui/templates.ts";
+import { createParamsUrl, SANDBOX_CHALLENGE } from "./router.ts";
 import type { RouteParams, RouteQuery } from "./router.ts";
+import {
+  evaluateChallengeTier,
+  readBestChallengeTiers,
+  recordChallengeTier,
+} from "#entities/challenge-tier/index.ts";
 import {
   countClearedTutorialTasks,
   firstUnclearedTutorialTask,
@@ -48,7 +46,21 @@ import {
 import { DEFAULT_CODE_SLOT } from "#features/manage-code-slots/model/code-slots.ts";
 import type { CodeSlot } from "#features/manage-code-slots/model/code-slots.ts";
 import { clearChildren } from "#shared/lib/dom.ts";
+import { presentBuildingStage } from "#widgets/building-stage/index.ts";
+import type { EditorPanePresenter } from "#widgets/editor-pane/index.ts";
+import { presentGoalBar } from "#widgets/goal-bar/index.ts";
+import type { GoalBarPresenter } from "#widgets/goal-bar/index.ts";
+import { levelSwitcherTemplate, presentLevelSwitcher } from "#widgets/level-switcher/index.ts";
+import type {
+  LevelLinkTarget,
+  LevelMenuInput,
+  LevelSelection,
+  LevelSwitcherPresenter,
+} from "#widgets/level-switcher/index.ts";
+import { presentStatsPanel } from "#widgets/stats-panel/index.ts";
+import type { StatsPanelPresenter } from "#widgets/stats-panel/index.ts";
 import { presentTutorial } from "#widgets/tutorial-panel/index.ts";
+import { presentVerdictToast } from "#widgets/verdict-toast/index.ts";
 
 declare global {
   interface Window {
@@ -88,24 +100,8 @@ const NO_OP_CODE = {
   update: (): void => undefined,
 };
 
-/** The challenge bar's title, which a run outside the list rewrites once the bar is drawn. */
-const CHALLENGE_TITLE_SELECTOR = ".challengetitle";
-
 /** The link of the end-of-run overlay, whose words the last task of the track rewrites. */
 const FEEDBACK_LINK_SELECTOR = ".feedback a";
-
-/**
- * The number a run outside {@link App.challenges} is drawn with before its
- * title is rewritten.
- *
- * The bar's template renders `Challenge #{num}:` in front of every description,
- * and neither the sandbox nor a task of the learning track is challenge
- * anything. Both are given a number no challenge can have — they are one-based,
- * and the router refuses `#challenge=0` — so that if the rewrite below ever
- * fails to find the title, what shows is obviously not an invitation to type
- * `#challenge=0` into the address bar.
- */
-const UNNUMBERED_CHALLENGE_NUM = 0;
 
 /**
  * Turns the hash URL of a run into one that can be pasted somewhere else.
@@ -123,10 +119,8 @@ function absoluteUrl(hash: string): string {
 
 /** The page regions the app draws into. */
 export interface AppElements {
-  /** The challenge bar. */
-  readonly challenge: HTMLElement;
   /**
-   * The run controls: start/pause, start over, the two code buttons, the speed.
+   * The run controls: start/pause, start over, run instantly, the speed.
    *
    * The one region the app draws that is never redrawn. Everything else here is
    * emptied and written again at the start of every run; this is written once,
@@ -153,21 +147,21 @@ export interface AppElements {
    */
   readonly tutorialLink: HTMLElement;
   /**
-   * Where the code slot switcher goes.
+   * Where `widgets/level-switcher`'s trigger and popover go.
    *
-   * Shown only for a numbered challenge, never for the sandbox or a learning
-   * task: a slot is a convenience for a program a player wants to keep, and
-   * neither of those has a challenge index of its own to key one by.
+   * Drawn once, in the constructor, like {@link controls}: the switcher is not
+   * tied to a run, it reports on all of them at once, so it is never emptied
+   * between one run and the next — only its own `update()` redraws it.
    */
-  readonly codeSlots: HTMLElement;
-  /** The building. */
+  readonly levelSwitcher: HTMLElement;
+  /** Where `widgets/goal-bar` goes: the current challenge's meters and tier popover. */
+  readonly goalBar: HTMLElement;
+  /** Where `widgets/building-stage` draws the building. */
   readonly world: HTMLElement;
-  /** The statistics panel. */
+  /** Where `widgets/stats-panel` draws the run's figures. */
   readonly stats: HTMLElement;
-  /** The end-of-challenge overlay's container. */
+  /** Where `widgets/verdict-toast` draws the end-of-challenge overlay. */
   readonly feedback: HTMLElement;
-  /** The "there is a problem with your code" banner's container. */
-  readonly codeStatus: HTMLElement;
 }
 
 /** Everything the app needs to run. */
@@ -176,6 +170,15 @@ export interface AppOptions {
   readonly elements: AppElements;
   /** The player's editor. */
   readonly editor: CodeEditor;
+  /**
+   * The already-built and already-drawn `widgets/editor-pane` presenter.
+   *
+   * Built by `src/main.ts`, not here: the pane's mount has to exist before
+   * {@link editor}'s own `CodeMirror` view can be built over it, which puts its
+   * construction ahead of this class's own — see `editor-pane.ts`'s module
+   * comment and `main.ts`'s call site for how the two are sequenced.
+   */
+  readonly editorPane: EditorPanePresenter;
   /** The controller driving the simulation. */
   readonly worldController: WorldController;
   /** The challenges, in order. */
@@ -270,16 +273,42 @@ export class App {
    */
   readonly #controls: ControlsPresenter;
   /**
-   * The code slot switcher, or `undefined` before the first challenge has
-   * drawn it.
+   * The level switcher, drawn once in the constructor.
    *
-   * Built lazily, on the first {@link #drawCodeSlots} that finds a numbered
-   * challenge on screen, rather than in the constructor alongside
-   * {@link #controls}: unlike the run controls, this region does not exist on
-   * every route, and building it before the first challenge has started would
-   * have nothing to report on.
+   * Not optional and never reassigned, for the same reason {@link #controls}
+   * is not: it reports on every level at once rather than the one currently
+   * on screen, so unlike {@link #goalBar} and {@link #statsPanel} there is no
+   * per-run state for a fresh challenge to replace.
    */
-  #codeSlotsPresenter: CodeSlotsPresenter | undefined = undefined;
+  readonly #levelSwitcher: LevelSwitcherPresenter;
+  /**
+   * The editor pane, drawn once in the constructor.
+   *
+   * Not optional and never reassigned, for the same reason {@link #controls}
+   * is: the slot switcher and the codetools act on the editor across every
+   * run, not on the run itself.
+   */
+  readonly #editorPane: EditorPanePresenter;
+  /**
+   * The goal bar for the run on screen, or `undefined` before the first one
+   * has started.
+   *
+   * Rebuilt fresh by every {@link #startRun}, unlike {@link #controls} and
+   * {@link #levelSwitcher}: its meters are shaped by the challenge on screen,
+   * and it subscribes to that challenge's own world. A language change calls
+   * its `update()` instead of rebuilding it, so the tier popover's open state
+   * survives the redraw.
+   */
+  #goalBar: GoalBarPresenter | undefined = undefined;
+  /**
+   * The statistics panel for the run on screen, or `undefined` before the
+   * first one has started.
+   *
+   * Rebuilt fresh by every {@link #startRun} for the same reason
+   * {@link #goalBar} is: it subscribes to the world on screen, and a new run
+   * is a new world.
+   */
+  #statsPanel: StatsPanelPresenter | undefined = undefined;
   /**
    * The code slot open in the editor, for whichever numbered challenge is
    * current.
@@ -374,6 +403,7 @@ export class App {
   constructor(options: AppOptions) {
     this.#elements = options.elements;
     this.#editor = options.editor;
+    this.#editorPane = options.editorPane;
     this.worldController = options.worldController;
     this.challenges = options.challenges;
     this.#storage = options.storage ?? localStorage;
@@ -391,7 +421,6 @@ export class App {
     this.#controls = presentControls(this.#elements.controls, {
       worldController: this.worldController,
       challengeEnded: () => this.world?.challengeEnded === true,
-      canUndoReset: () => this.#editor.canUndoReset(),
       onStartStop: () => {
         this.startStopOrRestart();
       },
@@ -404,25 +433,6 @@ export class App {
       onStartOver: () => {
         this.#restart(true);
       },
-      onResetCode: () => {
-        // `window.confirm`, as `src/widgets/tutorial-panel/ui/tutorial-panel.ts` explains at the one
-        // other place the game asks before throwing a program away. The update
-        // afterwards is what puts "Undo reset" on screen: a refused reset leaves
-        // nothing to undo, and asking the editor covers both outcomes without
-        // this having to know which it got.
-        if (window.confirm(t("editor.confirmReset"))) {
-          this.#editor.reset();
-          this.#controls.update();
-        }
-        this.#editor.focus();
-      },
-      onUndoReset: () => {
-        if (window.confirm(t("editor.confirmUndoReset"))) {
-          this.#editor.undoReset();
-          this.#controls.update();
-        }
-        this.#editor.focus();
-      },
       onTimeScaleIncrease: () => {
         this.worldController.setTimeScale(increasedTimeScale(this.worldController.timeScale));
       },
@@ -433,6 +443,15 @@ export class App {
       onRunInstant: () => {
         this.runInstantly();
       },
+    });
+
+    // Drawn once, alongside the run controls, for the same reason: it reports
+    // on every level at once rather than on the run in progress, so it has
+    // nothing to wait for. `getInput` is read fresh on every `update()`, not
+    // captured here, since the tiers it draws move on every win.
+    this.#elements.levelSwitcher.innerHTML = levelSwitcherTemplate();
+    this.#levelSwitcher = presentLevelSwitcher(this.#elements.levelSwitcher, {
+      getInput: () => this.#levelMenuInput(),
     });
 
     // Subscribed once, for the lifetime of the app. The legacy code subscribed
@@ -454,28 +473,13 @@ export class App {
     this.#editor.on("apply_code", () => {
       this.#restart(true);
     });
-    // "Undo reset" is the only thing in the row that the program itself moves,
-    // and it moves in the direction that matters: once the player has written
-    // something over the skeleton a reset left behind, the offer to undo that
-    // reset would throw the writing away. Nothing else here watches the editor,
-    // so without this the row would keep the offer on screen until a pause or a
-    // speed change happened to refresh it.
-    //
-    // `change` is raised by the autosave rather than by the keystroke, so this
-    // is at most one pass over seven labels per second of typing, and the
-    // disclosure trails the last keystroke by the autosave delay -- during
-    // which the button still restores strictly more than it destroys, because
-    // what it would destroy is not yet in the store either.
-    this.#editor.on("change", () => {
-      this.#controls.update();
-    });
     this.#editor.on("code_success", () => {
       this.#codeError = undefined;
-      clearCodeStatus(this.#elements.codeStatus);
+      this.#editorPane.clearError();
     });
     this.#editor.on("usercode_error", (error) => {
       this.#codeError = { thrown: error };
-      presentCodeStatus(this.#elements.codeStatus, error);
+      this.#editorPane.showError(error, this.#editor.getCode());
     });
   }
 
@@ -522,14 +526,58 @@ export class App {
    * or `null` when what is being drawn is not in the list.
    * @returns One entry per challenge, in playing order.
    */
-  #challengeLinks(challengeIndex: number | null): readonly ChallengeLinkData[] {
-    const lastIndex = this.challenges.length - 1;
-    return this.challenges.map((_challenge, index) => ({
-      num: index + 1,
-      url: createParamsUrl(this.#query, { challenge: index + 1, seed: null }),
-      current: index === challengeIndex,
-      demo: index === lastIndex,
-    }));
+  #levelMenuInput(): LevelMenuInput {
+    return {
+      challenges: this.challenges,
+      tutorialTasks,
+      bestTiers: readBestChallengeTiers(this.#storage),
+      clearedTutorialTasks: readClearedTutorialTasks(this.#storage),
+      selection: this.#levelSelection(),
+      buildHref: (target) => this.#levelHref(target),
+    };
+  }
+
+  /**
+   * What is on screen right now, in the shape `widgets/level-switcher` wants
+   * it in.
+   *
+   * Read fresh on every call rather than cached alongside {@link #run}: the
+   * switcher is drawn once, before the first run has started, and a
+   * `LevelSelection` has no fourth case for "nothing yet" — so this falls
+   * back to {@link currentChallengeIndex}'s own default, the same challenge a
+   * bare reload would open.
+   */
+  #levelSelection(): LevelSelection {
+    const tutorial = this.#tutorial;
+    if (tutorial !== undefined) {
+      return { kind: "tutorial", index: tutorial.index };
+    }
+    if (this.isPlayingSandbox) {
+      return { kind: "sandbox" };
+    }
+    return { kind: "challenge", index: this.#run?.challengeIndex ?? this.currentChallengeIndex };
+  }
+
+  /**
+   * Turns a tile's {@link LevelLinkTarget} into the URL it links to, carrying
+   * the speed and every other unknown key across exactly as
+   * {@link #seedLink} and {@link #drawTutorialLink} do.
+   *
+   * @param target - What the tile links to.
+   * @returns The URL the switcher should navigate to.
+   */
+  #levelHref(target: LevelLinkTarget): string {
+    switch (target.kind) {
+      case "challenge": {
+        return createParamsUrl(this.#query, { challenge: target.number, seed: null });
+      }
+      case "tutorial": {
+        return createParamsUrl(this.#query, { challenge: target.taskId, seed: null });
+      }
+      case "sandbox": {
+        return createParamsUrl(this.#query, { challenge: SANDBOX_CHALLENGE, seed: null });
+      }
+    }
   }
 
   /**
@@ -836,13 +884,21 @@ export class App {
    * @param slot - The slot to open.
    */
   selectCodeSlot(slot: CodeSlot): void {
+    // A learning task and the sandbox have no challenge index of their own to
+    // key a slot by -- see `widgets/editor-pane`'s own slot switcher, which,
+    // unlike the presenter this replaced, has no way to hide itself while
+    // either is on screen. Silently doing nothing is what the old, hidden
+    // switcher did for free; this is the same answer for a switcher that is
+    // now visible, but inert, on both.
+    if (this.#tutorial !== undefined || this.isPlayingSandbox) {
+      return;
+    }
     if (slot === this.#currentSlot) {
       return;
     }
     this.#currentSlot = slot;
     this.#editor.openChallengeBuffer(this.currentChallengeIndex, slot);
-    this.#controls.update();
-    this.#drawCodeSlots();
+    this.#editorPane.update();
   }
 
   /** The code slot currently open in the editor. */
@@ -1131,8 +1187,12 @@ export class App {
     clearAll([this.#elements.world, this.#elements.feedback]);
     this.#run = { challenge, challengeIndex };
     this.#outcome = undefined;
-    presentStats(this.#elements.stats, world);
-    this.#drawChallengeBar(world);
+    this.#statsPanel = presentStatsPanel(this.#elements.stats, world);
+    this.#goalBar = presentGoalBar(this.#elements.goalBar, world, {
+      challenge,
+      getVerdict: () => challenge.condition.evaluate(world),
+    });
+    this.#drawChallengeBar();
     // Skipped entirely for a crunch: this is the one line that draws the
     // building, and an instant run's whole point is that nothing does. The
     // statistics panel just above is not behind this condition -- it
@@ -1141,7 +1201,7 @@ export class App {
     // run, and is left holding the final ones the moment `stats_changed`
     // below reaches a verdict.
     if (!instant) {
-      presentWorld(this.#elements.world, world);
+      presentBuildingStage(this.#elements.world, world);
     }
 
     world.on("stats_changed", () => {
@@ -1197,6 +1257,19 @@ export class App {
         // store, like every other draw of it, so the line and the record cannot
         // disagree.
         this.#drawTutorialPanel();
+      } else if (challengeStatus && challengeIndex !== null) {
+        // `true`, not `challengeStatus`: a tier is only ever asked for on a win,
+        // and `evaluateChallengeTier` returns `null` for anything else, which
+        // would make the field below need a guard this branch already is one.
+        const tier = evaluateChallengeTier(true, world, challenge.tiers);
+        if (tier !== null) {
+          recordChallengeTier(this.#storage, challengeIndex, tier);
+          // The one place the switcher has to be redrawn between two runs
+          // rather than by the next one's own `#drawChallengeBar`: the tile
+          // just earned or improved a tier, and the player may open the
+          // popover before starting anything else.
+          this.#levelSwitcher.update();
+        }
       }
       this.#showOutcome(challengeStatus);
     });
@@ -1270,46 +1343,24 @@ export class App {
   }
 
   /**
-   * Draws the challenge bar for whatever {@link #run} says is on screen.
+   * Redraws everything that depends on which run is on screen, but is not
+   * itself the goal bar's own construction: the level switcher, the editor
+   * pane, and the learning track's panel.
    *
    * Its own method because it has two callers with nothing else in common: the
-   * start of a run, and a language change. Everything it feeds the bar is asked
-   * for again here rather than remembered from the last time — the description
-   * from the condition's getter, the navigation row from {@link #challengeLinks},
-   * the seed line from {@link #seedLink} — because each of those is a sentence
-   * in the active language, and a bar rebuilt from strings captured at the start
-   * of the run would come out in the language the run started in.
-   *
-   * Safe to call over an existing bar: the presenter replaces the markup
-   * wholesale, subscribes to nothing on the world, and carries the focused
-   * control and the seed disclosure's `open` state across for itself.
-   *
-   * @param world - The run being played, consulted for its seed.
+   * start of a run, where {@link #startRun} has already built a fresh
+   * {@link #goalBar} for the world it is about to draw, and a language change,
+   * where {@link #goalBar}'s own `update()` is enough to re-translate it
+   * without rebuilding it — see that field's own doc comment.
    */
-  #drawChallengeBar(world: World): void {
-    const run = this.#run;
-    if (run === undefined) {
+  #drawChallengeBar(): void {
+    if (this.#run === undefined) {
       return;
     }
-    const { challenge, challengeIndex } = run;
-    presentChallenge(this.#elements.challenge, {
-      challengeNum: challengeIndex === null ? UNNUMBERED_CHALLENGE_NUM : challengeIndex + 1,
-      description: challenge.condition.description,
-      challengeLinks: this.#challengeLinks(challengeIndex),
-      seed: this.#seedLink(world, challengeIndex),
-    });
-    // Both retitles hang off the same `challengeIndex === null`, which is what
-    // "not one of the twenty" means; which of the two it is comes from the
-    // field, not from the index, because both unnumbered runs reach here the
-    // same way.
-    const tutorial = this.#tutorial;
-    if (tutorial !== undefined) {
-      this.#retitleAsTutorial(tutorial, challenge.condition.description);
-    } else if (challengeIndex === null) {
-      this.#retitleAsSandbox(challenge.condition.description);
-    }
+    this.#goalBar?.update();
+    this.#levelSwitcher.update();
+    this.#editorPane.update();
     this.#drawTutorialPanel();
-    this.#drawCodeSlots();
   }
 
   /**
@@ -1375,36 +1426,6 @@ export class App {
   }
 
   /**
-   * Shows which of a numbered challenge's three code slots is open, and lets
-   * the player switch between them.
-   *
-   * Hidden on a learning task and in the sandbox, the same two cases
-   * {@link #drawTutorialPanel} clears its own region for: a slot is a
-   * convenience for a program a player wants to keep across challenges, and
-   * neither a task nor the sandbox has a challenge index of its own to key one
-   * by.
-   *
-   * The presenter is built once, the first time this runs, and kept from then
-   * on: unlike {@link #controls}, which the constructor draws before a
-   * challenge exists to switch slots for, this region has nothing to draw
-   * until the first run starts, so construction waits for that first call
-   * instead of happening up front.
-   */
-  #drawCodeSlots(): void {
-    if (this.#tutorial !== undefined || this.isPlayingSandbox) {
-      clearChildren(this.#elements.codeSlots);
-      return;
-    }
-    this.#codeSlotsPresenter ??= presentCodeSlots(this.#elements.codeSlots, {
-      currentSlot: () => this.#currentSlot,
-      onSelect: (slot) => {
-        this.selectCodeSlot(slot);
-      },
-    });
-    this.#codeSlotsPresenter.update();
-  }
-
-  /**
    * Points the header's link at the task the player would want next.
    *
    * The track is reachable by address alone and, until this link existed, only
@@ -1460,8 +1481,19 @@ export class App {
       this.#showTutorialOutcome(tutorial, won);
       return;
     }
-    const challengeIndex = this.#run?.challengeIndex ?? null;
-    presentFeedback(this.#elements.feedback, {
+    const run = this.#run;
+    const world = this.world;
+    const challengeIndex = run?.challengeIndex ?? null;
+    // Recomputed from the world rather than carried from the `stats_changed`
+    // handler that first recorded it: the tier is a pure function of the
+    // world's own final figures, which do not move once `challengeEnded` is
+    // set, so asking again here is what lets `relocalise` draw the same badge
+    // in another language without a field of its own to keep in step.
+    const tier =
+      won && challengeIndex !== null && run !== undefined && world !== undefined
+        ? (evaluateChallengeTier(true, world, run.challenge.tiers) ?? undefined)
+        : undefined;
+    presentVerdictToast(this.#elements.feedback, {
       title: won ? t("game.feedback.success.title") : t("game.feedback.failure.title"),
       message: won ? t("game.feedback.success.message") : t("game.feedback.failure.message"),
       // No link after a failure, none after the last challenge, and none for the
@@ -1472,6 +1504,7 @@ export class App {
         won && challengeIndex !== null && challengeIndex + 1 < this.challenges.length
           ? createParamsUrl(this.#query, { challenge: challengeIndex + 2, seed: null })
           : "",
+      tier,
     });
   }
 
@@ -1488,24 +1521,12 @@ export class App {
    *
    * The five regions and why each is done the way it is:
    *
-   * - The challenge bar is rebuilt from scratch by {@link #drawChallengeBar},
-   *   which is cheap and correct: the bar subscribes to nothing.
-   * - The learning track's panel goes with the bar, because
-   *   {@link #drawTutorialPanel} is called from the end of it. It is the region
-   *   with the most words in it and the one a player is most likely to be
-   *   reading when they change the language, which is why it is built from
-   *   message keys rather than from finished sentences: see the note at the top
-   *   of `src/widgets/tutorial-panel/ui/tutorial-panel.ts`.
-   * - The statistics *labels* are shell, and `localisePage` has already dealt
-   *   with them. The *figures* go through `Intl` in {@link presentStats}, so a
-   *   Russian reader wants `2 675 с` where an English one has `2,675s`, and they
-   *   are written only when the world says they changed. Re-triggering that
-   *   event redraws all eleven and adds no subscription; calling `presentStats`
-   *   again would add a second one, and the panel would be written twice per
-   *   frame for the rest of the run.
-   * - The building is renamed in place by {@link relabelWorld} rather than
-   *   redrawn, because {@link presentWorld} appends and subscribes per floor,
-   *   per car and per passenger. Nothing visible in it is a word.
+   * - The goal bar, the level switcher, the editor pane and the learning
+   *   track's panel are rebuilt from scratch by {@link #drawChallengeBar},
+   *   which is cheap and correct: none of the four subscribe to the world.
+   * - The statistics panel's own `update()` relabels its captions the same
+   *   way; its *figures* go through `Intl` and are left alone, since they are
+   *   numbers rather than words and the next tick redraws them anyway.
    * - The end-of-challenge overlay is drawn again from the remembered outcome,
    *   if there is one.
    *
@@ -1530,78 +1551,24 @@ export class App {
    * the answer rather than the sentence across the redraw in order to say it.
    */
   relocalise(): void {
-    // Unconditional, unlike the bar: the run controls are on screen from the
-    // first paint, before any challenge has started, so they have words to
-    // rewrite even when there is no world to redraw around them.
+    // Unconditional, unlike the bar: the run controls and the editor pane are
+    // on screen from the first paint, before any challenge has started, so
+    // they have words to rewrite even when there is no world to redraw around
+    // them.
     this.#controls.update();
+    this.#editorPane.update();
     const world = this.world;
     if (world !== undefined) {
-      this.#drawChallengeBar(world);
+      this.#drawChallengeBar();
+      this.#statsPanel?.update();
       world.trigger("stats_display_changed");
+      relabelWorld(this.#elements.world);
     }
-    relabelWorld(this.#elements.world);
     if (this.#outcome !== undefined) {
       this.#showOutcome(this.#outcome);
     }
     if (this.#codeError !== undefined) {
-      presentCodeStatus(this.#elements.codeStatus, this.#codeError.thrown);
-    }
-  }
-
-  /**
-   * Replaces the challenge bar's title with the sandbox's own.
-   *
-   * The bar is a shared template that writes `Challenge #N: ` in front of every
-   * description, which is right for the twenty entries in the list and a lie
-   * for the sandbox: there is no challenge N to go to, and a player reading it
-   * would reasonably try. The description already names the building in full,
-   * and it stands on its own — it begins "Sandbox:" — so the prefix is dropped
-   * rather than given a number that means nothing.
-   *
-   * Done here, after the render, rather than by templating a different title,
-   * because the sandbox is the only caller that needs it and the bar's markup
-   * is not this module's to change. Missing the title is not fatal: what shows
-   * then is the description behind {@link SANDBOX_CHALLENGE_NUM}, which is
-   * wrong but readable, and a blank bar would be worse.
-   *
-   * @param description - The sandbox description, containing markup built in
-   * `src/game/challenges.ts` and never from player input.
-   */
-  #retitleAsSandbox(description: string): void {
-    const title = this.#elements.challenge.querySelector(CHALLENGE_TITLE_SELECTOR);
-    if (title !== null) {
-      title.innerHTML = description;
-    }
-  }
-
-  /**
-   * Puts a task's position into the challenge bar's title.
-   *
-   * The same repair as {@link #retitleAsSandbox} and for the same reason — the
-   * bar's template writes `Challenge #N:` in front of every description and
-   * there is no challenge N here — but the answer is the opposite one. The
-   * sandbox drops the prefix because its description already names the building;
-   * a task keeps a prefix and changes what it counts, because "task 3 of 8" is
-   * the one thing about a task that the description cannot say and that the
-   * player most wants: how far along they are.
-   *
-   * The number is the position in `tutorialTasks` rather than anything read from
-   * the task, which is the only place in the app allowed to use it — see
-   * {@link TutorialRun}. The description rides in as markup, exactly as it does
-   * for the sandbox: it is built in `src/game/challenges.ts` from the task's own
-   * condition and never from player input.
-   *
-   * @param tutorial - The task on screen and where it sits in the track.
-   * @param description - The condition's sentence, containing markup.
-   */
-  #retitleAsTutorial(tutorial: TutorialRun, description: string): void {
-    const title = this.#elements.challenge.querySelector(CHALLENGE_TITLE_SELECTOR);
-    if (title !== null) {
-      title.innerHTML = t("tutorial.bar.title.html", {
-        number: tutorial.index + 1,
-        count: tutorialTasks.length,
-        description,
-      });
+      this.#editorPane.showError(this.#codeError.thrown, this.#editor.getCode());
     }
   }
 
@@ -1654,7 +1621,7 @@ export class App {
     const isLastTask = tutorial.index + 1 >= tutorialTasks.length;
     const nextTask = tutorialTasks[tutorial.index + 1];
     const finished = won && isLastTask;
-    presentFeedback(this.#elements.feedback, {
+    presentVerdictToast(this.#elements.feedback, {
       title: finished
         ? t("tutorial.finish.title")
         : won
@@ -1674,6 +1641,10 @@ export class App {
         : won && nextTask !== undefined
           ? createParamsUrl(this.#query, { challenge: nextTask.id, seed: null })
           : "",
+      // A task's win has no tier -- tiers rank a numbered challenge's run
+      // against `challenge.tiers`, which tasks on the learning track do not
+      // carry. See {@link #showOutcome} for the numbered-challenge case.
+      tier: undefined,
     });
     if (won) {
       this.#relabelFeedbackLink(
@@ -1692,8 +1663,7 @@ export class App {
    *
    * Missing the link is not an error and is the ordinary case — there is no link
    * after a loss. What the player sees if the shape of the template ever changes
-   * under this is the template's own wording, which is wrong but readable, and
-   * the same trade {@link #retitleAsSandbox} already makes.
+   * under this is the template's own wording, which is wrong but readable.
    *
    * @param words - What the link should say, already in the active language.
    */

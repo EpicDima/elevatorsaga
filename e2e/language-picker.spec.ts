@@ -23,17 +23,7 @@
 
 import { expect, test } from "@playwright/test";
 
-import { languagePicker, startButton, statistic, statisticValue } from "./game-page.ts";
-
-/**
- * The seed of the run in the challenge bar, which names the building drawn.
- *
- * Scoped to `.challengeseed` rather than bare `.seedlink`: the settings
- * popover's own seed block, behind its still-closed `.setmenu`, reuses the
- * same class -- see its own module comment -- so the bare class now resolves
- * two elements.
- */
-const SEED_LINK = ".challengeseed .seedlink";
+import { languagePicker, seedText, startButton, statistic, statisticValue } from "./game-page.ts";
 
 /** Where the choice is remembered between visits. */
 const LOCALE_STORAGE_KEY = "elevatorLocale";
@@ -46,12 +36,12 @@ test("puts the whole page into Russian without disturbing the run", async ({ pag
   page.on("pageerror", (error) => pageErrors.push(error.message));
 
   await page.goto(RUNNING_GAME);
-  await expect(page.getByRole("heading", { name: /^Challenge #4:/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Challenge 4" })).toBeVisible();
 
   // The run has to be under way before the language changes, or "it was not
   // restarted" is a claim about nothing.
   await expect.poll(async () => statisticValue(page, "Elapsed time")).toBeGreaterThan(3);
-  const seed = (await page.locator(SEED_LINK).innerText()).trim();
+  const seed = (await (await seedText(page)).innerText()).trim();
   const elapsedBefore = await statisticValue(page, "Elapsed time");
   const transportedBefore = await statisticValue(page, "Transported");
   const callButtons = await page.getByRole("button", { name: /^Call an elevator/ }).count();
@@ -61,12 +51,17 @@ test("puts the whole page into Russian without disturbing the run", async ({ pag
 
   // The shell, rewritten from the catalogue.
   await expect(page.locator("html")).toHaveAttribute("lang", "ru");
-  await expect(page.getByText("Перевезено", { exact: true })).toBeVisible();
+  // Not `getByText`: the same caption key now labels two live elements at
+  // once, the goal bar's meter and the (currently closed) statistics panel's
+  // own tile for the same field, so a page-wide text match is ambiguous.
+  await expect(page.locator('.meter[data-kind="transportedCounter"] .cap')).toHaveText(
+    "Перевезено",
+  );
   await expect(page.getByRole("link", { name: "Документация" })).toBeVisible();
   // The challenge bar, rebuilt by the app; and the run controls, which are not
   // rebuilt at all -- they are drawn once for the life of the page, so every
   // word on them is written by the relabelling this change triggers.
-  await expect(page.getByRole("heading", { name: /^Задание №4:/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Задание 4" })).toBeVisible();
   await expect(startButton(page, "Пауза")).toBeVisible();
   await expect(page.getByRole("button", { name: "С начала" })).toBeVisible();
   // The building, renamed in place. This is the part that used to stay English
@@ -79,7 +74,7 @@ test("puts the whole page into Russian without disturbing the run", async ({ pag
 
   // The same building, and the same one: the seed names the draw, and a restart
   // would have taken another one.
-  await expect(page.locator(SEED_LINK)).toHaveText(seed);
+  await expect(await seedText(page)).toHaveText(seed);
   await expect(page.getByRole("button", { name: /^Вызвать лифт/ })).toHaveCount(callButtons);
   // The same run, still running. Time only goes forwards, and the passengers
   // already delivered stay delivered.
@@ -99,14 +94,14 @@ test("writes the figures the way a reader of the new language writes them", asyn
   // changed, so they are the half that a language change can quietly miss.
   await page.goto(RUNNING_GAME);
   await expect.poll(async () => statisticValue(page, "Elapsed time")).toBeGreaterThan(3);
-  await expect(statistic(page, "Elapsed time")).toHaveText(/s$/);
+  await expect(await statistic(page, "Elapsed time")).toHaveText(/s$/);
 
   await languagePicker(page).selectOption("ru");
 
   // A non-breaking space and «с», neither of which a glued-on "s" could produce.
   // Written as an escape rather than as the character, which is invisible in a
   // source file and would read as the ordinary space `Intl` does not use.
-  await expect(statistic(page, "Прошло времени")).toHaveText(/\u00A0с$/);
+  await expect(await statistic(page, "Прошло времени")).toHaveText(/\u00A0с$/);
 });
 
 test("remembers the language for the next visit, and only when it was chosen", async ({ page }) => {
@@ -125,7 +120,7 @@ test("remembers the language for the next visit, and only when it was chosen", a
   // should be in.
   await page.goto("/");
   await expect(page.locator("html")).toHaveAttribute("lang", "ru");
-  await expect(page.getByRole("heading", { name: /^Задание №1:/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Задание 1" })).toBeVisible();
   await expect(languagePicker(page)).toHaveValue("ru");
 });
 

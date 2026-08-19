@@ -486,13 +486,14 @@ export interface ChallengeTemplateData {
  * presses Start over is still standing on Start over afterwards, with nothing to
  * restore.
  *
- * Four buttons and a speed, in that order, because the four are what the player
- * came for and the speed is a setting. The four are
- * `#features/run-simulation`'s
+ * Three buttons and a speed, in that order, because the three are what the
+ * player came for and the speed is a setting. Reset/undo-reset moved to the
+ * editor pane's own codetools (`widgets/editor-pane`), since they act on the
+ * code rather than the run. The three are `#features/run-simulation`'s
  * {@link import("#features/run-simulation/index.ts").runButtonsTemplate} —
- * see that module for their own history and design, including why "Undo
- * reset" ships hidden and why "Run instantly" sits beside Start rather than in
- * a row of its own. The speed is `#features/adjust-speed`'s
+ * see that module for their own history and design, including why "Run
+ * instantly" sits beside Start rather than in a row of its own. The speed is
+ * `#features/adjust-speed`'s
  * {@link import("#features/adjust-speed/index.ts").speedStepperTemplate} —
  * see that module for why it is a plain container of real buttons rather than
  * the `<h3>` wrapping two clickable `<i>` elements it used to be, and for its

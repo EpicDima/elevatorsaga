@@ -117,7 +117,7 @@ test("shows the panel on a task and nothing at all off it", async ({ page }) => 
   // still a 10px gap above the building on all nineteen challenges, the sandbox
   // and the demo.
   await page.goto("/#challenge=1");
-  await expect(page.getByRole("heading", { name: /^Challenge #1:/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Challenge 1" })).toBeVisible();
   await expect(panel(page)).toHaveCount(0);
   await expect(page.locator(".tutorial")).toHaveCSS("display", "none");
   expect(await page.locator(".tutorial").boundingBox()).toBeNull();
@@ -201,7 +201,7 @@ test("hands the task's program to the editor and stays on the task", async ({ pa
 
   await panel(page).getByRole("button", { name: "Leave for the challenges" }).click();
 
-  await expect(page.getByRole("heading", { name: /^Challenge #1:/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Challenge 1" })).toBeVisible();
   await expect(panel(page)).toHaveCount(0);
   await expect(editor(page)).toContainText(TASK_1_MARKER);
 });

@@ -21,9 +21,6 @@ import { expect, test } from "@playwright/test";
 
 import { startButton } from "./game-page.ts";
 
-/** The challenge bar's heading, which the game draws rather than the shell. */
-const CHALLENGE_TITLE = ".challengetitle";
-
 test("shows the whole game in the language a link asks for", async ({ page }) => {
   await page.goto("/#lang=ru");
 
@@ -31,26 +28,38 @@ test("shows the whole game in the language a link asks for", async ({ page }) =>
   await expect(page.locator("html")).toHaveAttribute("lang", "ru");
   // The shell: shipped in English by `index.html`, rewritten from the catalogue.
   await expect(page.getByRole("link", { name: "Документация" })).toBeVisible();
-  await expect(page.getByText("Перевезено", { exact: true })).toBeVisible();
+  // Not `getByText`: the same caption key now labels two live elements at
+  // once, the goal bar's meter and the (currently closed) statistics panel's
+  // own tile for the same field, so a page-wide text match is ambiguous.
+  await expect(page.locator('.meter[data-kind="transportedCounter"] .cap')).toHaveText(
+    "Перевезено",
+  );
   // The game the shell frames, drawn through the same catalogue by the
   // presenters -- and only after it had arrived, which is what keeps the two
   // halves of the page in one language.
-  await expect(page.getByRole("heading", { name: /^Задание №1:/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Задание 1" })).toBeVisible();
   await expect(startButton(page, "Старт")).toBeVisible();
-  await expect(page.locator(CHALLENGE_TITLE)).not.toContainText("Challenge");
+  // And nothing here still says it in English -- the button above is found by
+  // its exact translated name, but a caption pasted together from two
+  // catalogue keys could still leak one's English into the other's row.
+  await expect(page.locator(".task-name")).not.toContainText("Challenge");
 });
 
 test("carries the language into the links the game builds", async ({ page }) => {
   // The reason a language that arrived in somebody else's link is not written
   // to storage: it does not need to be. The router keeps parameters it does not
-  // recognise, so `lang` survives every navigation the challenge bar offers and
+  // recognise, so `lang` survives every navigation the level switcher offers and
   // stays in the address bar to be copied out of again.
   await page.goto("/#lang=ru");
 
+  // The tile is a real link, but it sits behind the switcher's own closed
+  // popover -- opened here the way a player would, by pressing the trigger
+  // that already names the level on screen.
+  await page.getByRole("button", { name: "Задание 1" }).click();
   await page.getByRole("link", { name: "Задание 2" }).click();
 
   await expect(page).toHaveURL(/lang=ru/);
-  await expect(page.getByRole("heading", { name: /^Задание №2:/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Задание 2" })).toBeVisible();
 });
 
 test.describe("a browser that says it reads Russian", () => {
@@ -62,8 +71,13 @@ test.describe("a browser that says it reads Russian", () => {
     await page.goto("/");
 
     await expect(page.locator("html")).toHaveAttribute("lang", "ru");
-    await expect(page.getByRole("heading", { name: /^Задание №1:/ })).toBeVisible();
-    await expect(page.getByText("Перевезено", { exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Задание 1" })).toBeVisible();
+    // Not `getByText`: the same caption key now labels two live elements at
+    // once, the goal bar's meter and the (currently closed) statistics panel's
+    // own tile for the same field, so a page-wide text match is ambiguous.
+    await expect(page.locator('.meter[data-kind="transportedCounter"] .cap')).toHaveText(
+      "Перевезено",
+    );
   });
 
   test("gets the language the link names instead, when it names one", async ({ page }) => {
@@ -73,7 +87,11 @@ test.describe("a browser that says it reads Russian", () => {
     await page.goto("/#lang=en");
 
     await expect(page.locator("html")).toHaveAttribute("lang", "en");
-    await expect(page.getByRole("heading", { name: /^Challenge #1:/ })).toBeVisible();
-    await expect(page.getByText("Transported", { exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Challenge 1" })).toBeVisible();
+    // See the same-named field's own Russian-locale note above: the caption
+    // key labels two live elements at once, so this is scoped the same way.
+    await expect(page.locator('.meter[data-kind="transportedCounter"] .cap')).toHaveText(
+      "Transported",
+    );
   });
 });

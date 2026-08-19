@@ -237,22 +237,10 @@ export interface ControlsPresenterOptions {
    * is reporting on is replaced on every restart.
    */
   readonly challengeEnded: () => boolean;
-  /**
-   * Whether there is a reset "Undo reset" could take back.
-   *
-   * Not "whether there is a program in the backup slot": see
-   * {@link "./editor.ts"!CodeEditor.canUndoReset}, where the difference is the
-   * difference between a button that recovers work and one that destroys it.
-   */
-  readonly canUndoReset: () => boolean;
   /** Called when the start/pause/restart button is pressed. */
   readonly onStartStop: () => void;
   /** Called when "Start over" is pressed. */
   readonly onStartOver: () => void;
-  /** Called when "Reset code" is pressed. */
-  readonly onResetCode: () => void;
-  /** Called when "Undo reset" is pressed. */
-  readonly onUndoReset: () => void;
   /** Called when the `+` button is pressed. */
   readonly onTimeScaleIncrease: () => void;
   /** Called when the `-` button is pressed. */
@@ -272,15 +260,11 @@ export interface ControlsPresenterOptions {
 /** The rendered run controls. */
 export interface ControlsPresenter {
   /**
-   * Relabels the start button, the speed and the visibility of "Undo reset".
+   * Relabels the start button and the speed.
    *
    * Everything this touches is state the row reports rather than owns, so it is
    * called after anything that could have moved any of it: a pause, a speed
-   * change, the end of a run, a reset, a language change — and an edit, which
-   * is the one that is easy to leave out. `canUndoReset` answers for the
-   * program on screen, so typing moves it as surely as pressing Reset does, and
-   * a row that is only refreshed by the run controls' own events would go on
-   * offering to undo a reset the player has already typed over.
+   * change, the end of a run, a language change.
    */
   update(): void;
 
@@ -334,18 +318,11 @@ export function presentControls(
   const runControls = presentRunControls(parent, {
     worldController: options.worldController,
     challengeEnded: () => options.challengeEnded(),
-    canUndoReset: () => options.canUndoReset(),
     onStartStop: () => {
       options.onStartStop();
     },
     onStartOver: () => {
       options.onStartOver();
-    },
-    onResetCode: () => {
-      options.onResetCode();
-    },
-    onUndoReset: () => {
-      options.onUndoReset();
     },
     instantRunInProgress: () => options.instantRunInProgress(),
     onRunInstant: () => {

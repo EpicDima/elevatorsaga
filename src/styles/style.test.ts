@@ -1,4 +1,3 @@
-// @vitest-environment jsdom
 /**
  * What can be checked about `style.css` without a browser: the contrast of the
  * palette, and the arithmetic the statistics panel is sized by.
@@ -17,11 +16,9 @@
  * The panel's geometry is here for the same reason the colours are: the numbers
  * are all in tokens, so what they add up to is arithmetic. Whether a browser
  * then draws the panel where it was told to is `e2e/statistics-panel.spec.ts`.
- *
- * jsdom, for one line of that arithmetic: the number of rows is a count of
- * elements in `index.html`, and counting elements wants a parser. Nothing here
- * is laid out or cascaded — jsdom does neither, and the stylesheet is read as
- * text.
+ * `--stats-rows` is no longer a count of anything in `index.html` --
+ * `widgets/stats-panel` draws its rows at runtime, not as static markup --
+ * so nothing here counts elements, and nothing needs a parser for one.
  */
 
 import { readFileSync } from "node:fs";
@@ -351,44 +348,7 @@ describe("kbd and .hint", () => {
   });
 });
 
-/**
- * The game page, parsed as a browser would parse it.
- *
- * The panel's rows are markup, and how many of them there are is a number the
- * stylesheet has to be told: nothing in CSS can count elements. Parsed rather
- * than pattern-matched because the thing being counted is a class on an
- * element, and a regex counts a spelling: `<div class="stat">` and
- * `<div class="stat" title="...">` are one selector and two patterns, so a row
- * written the second way would be a row this file did not see. That is the
- * defect it is here to catch, in the form it would come back in.
- */
-const page = new DOMParser().parseFromString(
-  readFileSync(join(ROOT, "index.html"), "utf8"),
-  "text/html",
-);
-
 describe("statistics panel", () => {
-  it("is sized for as many rows as the page actually has", () => {
-    // The one number in the geometry that is a fact about somewhere else. Every
-    // other token below is the stylesheet's own business; this one is a count
-    // of elements in index.html, and adding a row there without changing it is
-    // exactly how the panel came to be taller than the box it is drawn in.
-    expect(
-      page.querySelector(".statscontainer"),
-      "index.html no longer has a .statscontainer",
-    ).not.toBeNull();
-    // Counted inside the panel, so that a `.stat` somewhere else on the page --
-    // there is none today -- would not be mistaken for a row this box has to
-    // make room for.
-    const rows = page.querySelectorAll(".statscontainer .stat").length;
-
-    expect(rows).toBeGreaterThan(0);
-    expect(
-      Number(token("stats-rows")),
-      "--stats-rows is not the number of rows in index.html",
-    ).toBe(rows);
-  });
-
   it("counts every row and both paddings into its height", () => {
     // Pinned as the expression rather than as the 216px it comes to, because
     // what matters is which quantities are in it: a height worked out from

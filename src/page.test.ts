@@ -112,19 +112,6 @@ describe("index.html", () => {
     ".innerworld",
     ".statscontainer",
     ".feedbackcontainer",
-    ".codestatus",
-    // Required by presentStats.
-    ".statscontainer .transportedcounter",
-    ".statscontainer .elapsedtime",
-    ".statscontainer .transportedpersec",
-    ".statscontainer .avgwaittime",
-    ".statscontainer .avgpickuptime",
-    ".statscontainer .avgridetime",
-    ".statscontainer .maxwaittime",
-    ".statscontainer .movecount",
-    ".statscontainer .stopcount",
-    ".statscontainer .peopleperstop",
-    ".statscontainer .avgloadfactor",
     // Filled and listened to by src/features/switch-language/ui/language-picker.ts.
     ".languagepicker",
     // The scrolling frame the world is drawn inside.
@@ -148,9 +135,6 @@ describe("index.html", () => {
     "#fitness_message",
     // The editor confirms a save (src/main.ts).
     "#save_message",
-    // The simulation reports whatever the player's program threw, at any point
-    // during a run (src/ui/presenters.ts).
-    ".codestatus",
   ])("announces %s, which is written asynchronously", (selector) => {
     const element = page.querySelector(selector);
     expect(element?.getAttribute("aria-live")).toBe("polite");
@@ -176,59 +160,6 @@ describe("index.html", () => {
       expect(element?.getAttribute("role")).not.toBe("alert");
     },
   );
-
-  it("keeps no tooltip as the only copy of what it says", () => {
-    // A `title` is a mouse-only tooltip: it never opens for a keyboard or a
-    // touch screen, and on a plain `<span>` it is not an accessible description
-    // either, because a span has no role for one to hang off. The seed's caveat
-    // was one of these and became a `<details>`; this one is left where it is,
-    // because what it says is a sentence of the documentation now as well, and
-    // a tooltip that quotes something is a shortcut to it rather than the only
-    // way to it. So the tooltip is held to being text of that paragraph, word
-    // for word, which is what stops the two copies from ever saying different
-    // things about the same number.
-    //
-    // Read from the attribute rather than from the element's text, which is
-    // the visible label "Moves" and is in the paragraph whatever the tooltip
-    // claims -- the shape this test had while it looked like it was working.
-    // The length floor is the rest of that lesson: a word or two would turn up
-    // in a paragraph of prose by accident.
-    //
-    // That the attribute here and the English message are the same string is
-    // the drift check in `localise-page.test.ts`, and is not repeated. What is
-    // added is the other language: `localisePage` replaces these attributes
-    // with the Russian messages, so a Russian tooltip has to quote the Russian
-    // paragraph the same way, or a correction lands on one language only.
-    const titled = [...page.querySelectorAll("[title]")];
-    expect(titled.map((element) => element.className)).toEqual([
-      "key",
-      "key",
-      "key",
-      "key",
-      "key",
-      "key",
-    ]);
-    // Named here as well as read off the page, so that the Russian half below
-    // is typed rather than cast, and so that a row losing its tooltip fails
-    // here instead of quietly halving what this test covers.
-    const titleKeys = [
-      "page.stats.avgPickupTimeTitle",
-      "page.stats.avgRideTimeTitle",
-      "page.stats.movesTitle",
-      "page.stats.stopsTitle",
-      "page.stats.peoplePerStopTitle",
-      "page.stats.avgLoadTitle",
-    ] as const satisfies readonly MessageKey[];
-    expect(titled.map((element) => element.getAttribute("data-i18n-attr"))).toEqual(
-      titleKeys.map((key) => `title:${key}`),
-    );
-    for (const [index, key] of titleKeys.entries()) {
-      const tooltip = titled[index]?.getAttribute("title") ?? "";
-      expect(tooltip.length, key).toBeGreaterThan(20);
-      expect(message("en", "docs.play.statistics.html"), key).toContain(tooltip);
-      expect(message("ru", "docs.play.statistics.html"), key).toContain(message("ru", key));
-    }
-  });
 
   it("lets a keyboard reach the building, which scrolls sideways", () => {
     // .world is a horizontal scroll container, and a scroll container that

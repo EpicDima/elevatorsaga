@@ -311,6 +311,16 @@ export function presentLevelSwitcher(
       const blocks = buildLevelMenu(options.getInput());
       latestBlocks = blocks;
 
+      // The grid is rebuilt from scratch below, which would otherwise drop
+      // keyboard focus to <body> out from under a player tabbing through it —
+      // the same problem, and the same fix, as `presentChallenge`'s own
+      // navigation row in `src/ui/presenters.ts`: the tile that replaces the
+      // one that was focused is the one in the same position, so position is
+      // what is restored rather than the deleted node itself.
+      const focusedTileIndex = queryAll(".tasklink", taskBlocks).findIndex(
+        (tile) => tile === document.activeElement,
+      );
+
       taskBlocks.replaceChildren(
         renderFragment(blocks.map((block) => blockTemplate(block)).join("")),
       );
@@ -321,6 +331,10 @@ export function presentLevelSwitcher(
         tile.addEventListener("click", () => {
           disclosure.close();
         });
+      }
+      const focusedTile = queryAll(".tasklink", taskBlocks)[focusedTileIndex];
+      if (focusedTile !== undefined) {
+        focusedTile.focus();
       }
 
       const current = currentTile(blocks);

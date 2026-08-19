@@ -111,20 +111,29 @@ export function languagePicker(page: Page): Locator {
 /**
  * One value from the statistics panel.
  *
- * The panel pairs a label and a value as two sibling `<span>`s with no
- * programmatic association between them, so there is no role or accessible name
- * to reach the value by; the row is found by its visible label and the value is
- * then taken positionally.
+ * The panel pairs a caption and a value as two sibling `<span>`s (`.cap` and
+ * `.tile-val`) inside a `.tile`, with no programmatic association between
+ * them, so there is no role or accessible name to reach the value by; the
+ * tile is found by its visible caption and the value is then taken
+ * positionally.
+ *
+ * Nine of the panel's eleven figures sit behind the "Все показатели"/"All
+ * figures" disclosure, closed by default -- opened directly rather than
+ * clicked, so this is idempotent regardless of which figure a spec asked for
+ * last and does not race a click against the panel's own redraw.
  *
  * @param page - The page under test.
- * @param label - The row's visible label, e.g. `"Transported"`.
- * @returns The value cell of that row.
+ * @param label - The tile's visible caption, e.g. `"Transported"`.
+ * @returns The value cell of that tile.
  */
-export function statistic(page: Page, label: string): Locator {
+export async function statistic(page: Page, label: string): Promise<Locator> {
+  await page.locator(".statspanel .more").evaluate((details) => {
+    (details as HTMLDetailsElement).open = true;
+  });
   return page
-    .locator(".stat")
+    .locator(".tile")
     .filter({ has: page.getByText(label, { exact: true }) })
-    .locator(".value");
+    .locator(".tile-val");
 }
 
 /**
@@ -133,12 +142,49 @@ export function statistic(page: Page, label: string): Locator {
  * Units are dropped, so `"12s"` reads as `12`.
  *
  * @param page - The page under test.
- * @param label - The row's visible label, e.g. `"Transported"`.
+ * @param label - The tile's visible caption, e.g. `"Transported"`.
  * @returns The value, or `NaN` while the panel is still empty.
  */
 export async function statisticValue(page: Page, label: string): Promise<number> {
-  const text = (await statistic(page, label).innerText()).replace(/[^\d.-]/g, "");
+  const value = await statistic(page, label);
+  const text = (await value.innerText()).replace(/[^\d.-]/g, "");
   return Number.parseFloat(text);
+}
+
+/**
+ * Opens the app bar's settings popover — the theme, layout, language and seed
+ * blocks all live behind it, closed by default (`.setmenu[hidden]`).
+ *
+ * Forced open directly rather than clicked, the same reason {@link statistic}
+ * forces its own disclosure open rather than clicking it: idempotent
+ * regardless of what a previous call, or a click a spec made of its own, left
+ * the popover in, and unaffected by the outside-click listener `createDisclosure`
+ * wires onto `.setopen` — a real click risks re-closing a popover a previous
+ * step already opened.
+ *
+ * @param page - The page under test.
+ */
+export async function openSettingsMenu(page: Page): Promise<void> {
+  await page.locator(".setmenu").evaluate((menu) => {
+    (menu as HTMLElement).hidden = false;
+  });
+}
+
+/**
+ * The current run's seed, as shown in the app bar's settings popover.
+ *
+ * A pinned run's seed is a link (`a.seedlink`); an unpinned one's is plain
+ * text beside the link that offers to pin it (`.seedvalue`) — see
+ * `seedPanelTemplate`'s own module comment. Only one of the two is ever in
+ * the document at once, so matching both is unambiguous rather than a guess
+ * at which one a given run drew.
+ *
+ * @param page - The page under test.
+ * @returns The seed's own text, wherever it lives.
+ */
+export async function seedText(page: Page): Promise<Locator> {
+  await openSettingsMenu(page);
+  return page.locator(".setmenu .seedvalue, .setmenu a.seedlink");
 }
 
 /**

@@ -22,9 +22,14 @@ test("boots the first challenge with an editor and a building", async ({ page })
 
   await expect(page).toHaveTitle(/Elevator Saga/);
   await expect(page.getByRole("heading", { level: 1 })).toContainText("Elevator Saga");
-  await expect(page.getByRole("heading", { name: /^Challenge #1:/ })).toContainText(
-    "Transport 15 people in 60 seconds or less",
+  // The challenge bar's own prose sentence ("Transport 15 people in 60
+  // seconds or less") is gone: `widgets/goal-bar` states the same
+  // requirement as two meters instead, one per field the condition reads.
+  await expect(page.getByRole("button", { name: "Challenge 1" })).toBeVisible();
+  await expect(page.locator('.meter[data-kind="transportedCounter"] .meter-val')).toHaveText(
+    "0 / 15",
   );
+  await expect(page.locator('.meter[data-kind="elapsedTime"] .meter-val')).toContainText("60");
 
   // The editor is the ~92% of the bundle that lives in its own chunks, so this
   // doubles as the check that they loaded: no CodeMirror, no text box.
@@ -40,8 +45,8 @@ test("boots the first challenge with an editor and a building", async ({ page })
   ).toBeVisible();
 
   await expect(startButton(page)).toBeVisible();
-  await expect(statistic(page, "Transported")).toHaveText("0");
-  await expect(statistic(page, "Elapsed time")).toHaveText("0s");
+  await expect(await statistic(page, "Transported")).toHaveText("0");
+  await expect(await statistic(page, "Elapsed time")).toHaveText("0s");
 
   expect(pageErrors).toEqual([]);
 });
@@ -53,8 +58,8 @@ test("plays a challenge to completion when Start is pressed", async ({ page }) =
   // whatever the clock says.
   await page.goto("/#challenge=1,devtest,timescale=16");
 
-  await expect(statistic(page, "Transported")).toHaveText("0");
-  await expect(statistic(page, "Moves")).toHaveText("0");
+  await expect(await statistic(page, "Transported")).toHaveText("0");
+  await expect(await statistic(page, "Moves")).toHaveText("0");
 
   await startButton(page).click();
   await expect(page.getByRole("button", { name: "Pause" })).toBeVisible();

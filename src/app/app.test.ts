@@ -21,9 +21,13 @@ import {
 import { App, TIME_SCALE_STORAGE_KEY, readStoredTimeScale } from "./app.ts";
 import type { AppElements } from "./app.ts";
 import { parseQuery, resolveRoute, startRouter } from "./router.ts";
+import { recordChallengeTier } from "#entities/challenge-tier/index.ts";
 import { TUTORIAL_PROGRESS_STORAGE_KEY } from "#entities/tutorial-task/model/progress.ts";
 import { DEFAULT_TIME_SCALE } from "#features/adjust-speed/model/time-scale.ts";
+import { DEFAULT_CODE_SLOT } from "#features/manage-code-slots/model/code-slots.ts";
 import { queryAll, requireElement } from "#shared/lib/dom.ts";
+import { presentEditorPane } from "#widgets/editor-pane/index.ts";
+import type { EditorPanePresenter } from "#widgets/editor-pane/index.ts";
 
 /** A program that compiles and does nothing. */
 const INERT_CODE = "{ init: function() {}, update: function() {} }";
@@ -53,6 +57,8 @@ interface Harness {
   app: App;
   elements: AppElements;
   editor: CodeEditor;
+  editorPane: EditorPanePresenter;
+  editorPaneMount: HTMLElement;
   view: FakeTextEditorView;
   worldController: WorldController;
   storage: Storage;
@@ -68,45 +74,30 @@ interface Harness {
  */
 function setUp(code: string = INERT_CODE, storage: Storage = new MemoryStorage()): Harness {
   const elements: AppElements = {
-    challenge: createElement("div", { className: "challenge" }),
     controls: createElement("div", { className: "controls" }),
     tutorial: createElement("div", { className: "tutorial" }),
     tutorialLink: createElement("a", { className: "tutoriallink" }),
-    codeSlots: createElement("div", { className: "codeslots" }),
+    levelSwitcher: createElement("div", { className: "levelswitcher" }),
+    goalBar: createElement("div", { className: "challenge" }),
     world: createElement("div", { className: "innerworld" }),
     stats: createElement("div", { className: "statscontainer" }),
     feedback: createElement("div", { className: "feedbackcontainer" }),
-    codeStatus: createElement("div", { className: "codestatus" }),
   };
-  for (const className of [
-    "transportedcounter",
-    "elapsedtime",
-    "transportedpersec",
-    "avgwaittime",
-    "avgpickuptime",
-    "avgridetime",
-    "maxwaittime",
-    "movecount",
-    "stopcount",
-    "peopleperstop",
-    "avgloadfactor",
-  ]) {
-    elements.stats.append(createElement("span", { className }));
-  }
+  const editorPaneMount = createElement("div", { className: "code" });
   // The address the shipped markup carries. Set here rather than left absent so
   // that a spec asserting the link was moved on is asserting a change, and so
   // that one asserting it was left alone has something to find.
   elements.tutorialLink.setAttribute("href", "#challenge=tutorial-1");
   document.body.replaceChildren(
-    elements.challenge,
     elements.controls,
     elements.tutorial,
     elements.tutorialLink,
-    elements.codeSlots,
+    elements.levelSwitcher,
+    elements.goalBar,
     elements.world,
     elements.stats,
     elements.feedback,
-    elements.codeStatus,
+    editorPaneMount,
   );
 
   let view: FakeTextEditorView | undefined;
@@ -122,16 +113,145 @@ function setUp(code: string = INERT_CODE, storage: Storage = new MemoryStorage()
   }
   view.value = code;
 
+  // Mirrors `src/main.ts`'s own `appRef`: the editor pane's callbacks need the
+  // app that owns the slot they open, and the app's own constructor needs the
+  // editor pane already built to hand it as an option.
+  // eslint-disable-next-line prefer-const -- assigned once, below the closures that read it.
+  let appRef: App | undefined;
+  const editorPane = presentEditorPane(editorPaneMount, {
+    currentSlot: () => appRef?.currentCodeSlot ?? DEFAULT_CODE_SLOT,
+    onSelectSlot: (slot) => {
+      appRef?.selectCodeSlot(slot);
+    },
+    canUndoReset: () => editor.canUndoReset(),
+    onResetCode: () => {
+      editor.reset();
+      editorPane.update();
+    },
+    onUndoReset: () => {
+      editor.undoReset();
+      editorPane.update();
+    },
+    onGotoLine: () => undefined,
+  });
+
   const worldController = createWorldController(TICK_SECONDS);
   const app = new App({
     elements,
     editor,
+    editorPane,
     worldController,
     challenges: CHALLENGES,
     storage,
     requestAnimationFrame: () => undefined,
   });
-  return { app, elements, editor, view, worldController, storage };
+  appRef = app;
+  return { app, elements, editor, editorPane, editorPaneMount, view, worldController, storage };
+}
+
+/**
+ * Unlocks challenge 2 in the level switcher, by recording the bronze tier
+ * challenge 1 would earn if it could be won — see
+ * `#features/switch-level/model/level-lock.ts`'s locking rule. `CHALLENGES[0]`
+ * never resolves (`evaluate` always returns `null`), so this is the only way
+ * a spec against this fixture reaches challenge 2 through a real `<a>` rather
+ * than the `<button disabled>` a locked tile draws.
+ *
+ * @param storage - The store the app under test was built over.
+ */
+function unlockChallenge2(storage: Storage): void {
+  recordChallengeTier(storage, 0, "bronze");
+}
+
+/**
+ * The level switcher's challenge tiles, in playing order — the same three
+ * entries `.challengelink` used to be the whole of, before the switcher also
+ * started drawing the learning track and the sandbox as `.tasklink`s in
+ * blocks either side of them.
+ *
+ * @param elements - The page shell the app was built over.
+ * @returns The challenge block's tiles, or none if the switcher has not drawn one.
+ */
+function challengeTiles(elements: AppElements): HTMLElement[] {
+  const challengeBlock = queryAll(".taskblock", elements.levelSwitcher)[1];
+  return challengeBlock === undefined ? [] : queryAll(".tasklink", challengeBlock);
+}
+
+/**
+ * The challenge block's own caption, e.g. "Challenges" -- what
+ * `.challengenav`'s `aria-label` used to carry, before the level switcher
+ * replaced the challenge bar's own navigation row.
+ *
+ * @param elements - The page shell the app was built over.
+ * @returns The caption text, or "" if the switcher has not drawn a challenge block.
+ */
+function challengeBlockCaption(elements: AppElements): string {
+  const challengeBlock = queryAll(".taskblock", elements.levelSwitcher)[1];
+  return challengeBlock === undefined ? "" : requireElement(".cap", challengeBlock).textContent;
+}
+
+/**
+ * The level switcher's own trigger label — what replaced the challenge bar's
+ * combined "Tutorial task N of M: <title>" title string. Unlike that title,
+ * this carries only the task's own position, not the track's length or the
+ * task's own sentence; see this file's specs for where the rest went.
+ *
+ * @param elements - The page shell the app was built over.
+ * @returns The trigger's own text.
+ */
+function taskName(elements: AppElements): string {
+  return requireElement(".task-name", elements.levelSwitcher).textContent;
+}
+
+/**
+ * The goal bar's own description text for a challenge with no requirements —
+ * every challenge and the sandbox in this file's fixtures. Unlike the
+ * legacy `.challengetitle`, this carries no "Challenge #N:" or "Tutorial task
+ * N of M:" prefix; see this file's own specs for where that numbering went.
+ *
+ * @param elements - The page shell the app was built over.
+ * @returns The description text, as read out of the DOM.
+ */
+function goalDescription(elements: AppElements): string {
+  return requireElement(".goalfree span", elements.goalBar).textContent;
+}
+
+/**
+ * A stat tile's live value, out of the panel `widgets/stats-panel` draws —
+ * `[data-stat="${stat}"] .tile-val`, not the bare class name `presentStats`
+ * used to write the same figure under.
+ *
+ * @param elements - The page shell the app was built over.
+ * @param stat - The tile's `data-stat`, camelCased the same as `StatsSnapshot`.
+ * @returns The tile's live text.
+ */
+function statValue(elements: AppElements, stat: string): string {
+  return requireElement(`[data-stat="${stat}"] .tile-val`, elements.stats).textContent;
+}
+
+/**
+ * The code slot switcher's own buttons, drawn inside the editor pane's mount
+ * rather than a dedicated `elements.codeSlots` region now.
+ *
+ * @param editorPaneMount - The element {@link setUp} built for the pane.
+ * @returns The slot buttons, in slot order.
+ */
+function codeSlotButtons(editorPaneMount: HTMLElement): HTMLElement[] {
+  return queryAll(".codeslot", editorPaneMount);
+}
+
+/**
+ * The editor pane's error banner text, or "" if it is hidden — the pane's
+ * own stand-in for the old `elements.codeStatus.innerHTML === ""` check,
+ * since {@link EditorPanePresenter.clearError} hides the banner rather than
+ * emptying it.
+ *
+ * @param editorPaneMount - The element {@link setUp} built for the pane.
+ * @returns The banner's message, or "" if it is not showing one.
+ */
+function codeErrorMessage(editorPaneMount: HTMLElement): string {
+  const errorLine = requireElement(".errorline", editorPaneMount);
+  return errorLine.hidden ? "" : requireElement(".errormessage", editorPaneMount).textContent;
 }
 
 beforeEach(() => {
@@ -151,12 +271,10 @@ describe("App.startChallenge", () => {
     const { app, elements } = setUp();
     app.startChallenge(0);
 
-    expect(requireElement(".challengetitle", elements.challenge).textContent).toBe(
-      "Challenge #1: Challenge one",
-    );
+    expect(goalDescription(elements)).toBe("Challenge one");
     expect(queryAll(".floor", elements.world)).toHaveLength(3);
     expect(queryAll(".elevator", elements.world)).toHaveLength(1);
-    expect(requireElement(".transportedcounter", elements.stats).textContent).toBe("0");
+    expect(statValue(elements, "transportedCounter")).toBe("0");
   });
 
   it("keeps the window.world debugging hook pointing at the live world", () => {
@@ -187,12 +305,12 @@ describe("App.startChallenge", () => {
   });
 
   it("starts even when the program does not compile", () => {
-    const { app, elements, storage } = setUp();
+    const { app, editorPaneMount, storage } = setUp();
     storage.setItem("develevateChallengeCode_0_1", "{ this is not javascript");
     app.startChallenge(0);
 
     expect(app.world).toBeDefined();
-    expect(requireElement(".errormessage", elements.codeStatus).textContent).not.toBe("");
+    expect(codeErrorMessage(editorPaneMount)).not.toBe("");
   });
 
   it("opens the first code slot by default", () => {
@@ -213,10 +331,10 @@ describe("App.startChallenge", () => {
 
 describe("App code slots", () => {
   it("draws three slot buttons for a numbered challenge, marking the open one", () => {
-    const { app, elements } = setUp();
+    const { app, editorPaneMount } = setUp();
     app.startChallenge(0);
 
-    const buttons = queryAll(".codeslot", elements.codeSlots);
+    const buttons = codeSlotButtons(editorPaneMount);
     expect(buttons.map((button) => button.textContent)).toEqual(["1", "2", "3"]);
     expect(buttons.map((button) => button.getAttribute("aria-pressed"))).toEqual([
       "true",
@@ -225,33 +343,19 @@ describe("App code slots", () => {
     ]);
   });
 
-  it("hides the switcher on the learning track and in the sandbox", () => {
-    const { app, elements } = setUp();
-    app.startChallenge(0);
-    expect(queryAll(".codeslot", elements.codeSlots)).not.toHaveLength(0);
-
-    app.startTutorial(0);
-    expect(elements.codeSlots.children).toHaveLength(0);
-
-    app.handleRoute(...routeFor("#challenge=sandbox,floors=20"));
-    expect(elements.codeSlots.children).toHaveLength(0);
-  });
-
   it("switches the editor to another slot from the panel, without touching the run", () => {
-    const { app, elements, view, storage } = setUp();
+    const { app, editorPaneMount, view, storage } = setUp();
     app.startChallenge(0);
     storage.setItem("develevateChallengeCode_0_2", "// slot two's program");
     const world = app.world;
 
-    queryAll(".codeslot", elements.codeSlots)[1]?.click();
+    codeSlotButtons(editorPaneMount)[1]?.click();
 
     expect(app.currentCodeSlot).toBe(2);
     expect(view.getValue()).toBe("// slot two's program");
     expect(app.world).toBe(world);
     expect(
-      queryAll(".codeslot", elements.codeSlots).map((button) =>
-        button.getAttribute("aria-pressed"),
-      ),
+      codeSlotButtons(editorPaneMount).map((button) => button.getAttribute("aria-pressed")),
     ).toEqual(["false", "true", "false"]);
   });
 
@@ -430,13 +534,13 @@ describe("App instant run", () => {
   });
 
   it("surfaces a player-code error during a crunch through the same banner as any other run, and recovers the button", () => {
-    const { app, elements, view } = setUp();
+    const { app, elements, editorPaneMount, view } = setUp();
     app.startChallenge(0); // never resolves on its own; only the error ends this run
     view.type("{ init: function() {}, update: function() { throw new Error('boom'); } }");
 
     app.runInstantly();
 
-    expect(requireElement(".errormessage", elements.codeStatus).textContent).toContain("boom");
+    expect(codeErrorMessage(editorPaneMount)).toContain("boom");
     // Not ended: a controller a thrown error has paused never ticks the world
     // again, so nothing driven by `stats_changed` -- a verdict, the ceiling --
     // can fire either. The challenge is left exactly as undecided as it was,
@@ -467,11 +571,12 @@ describe("App instant run", () => {
 });
 
 describe("App challenge navigation", () => {
-  it("puts a link to every challenge in the bar, marking the one being played", () => {
-    const { app, elements } = setUp();
+  it("puts a tile for every challenge in the switcher, marking the one being played", () => {
+    const { app, elements, storage } = setUp();
+    unlockChallenge2(storage);
     app.handleRoute(...routeFor("#challenge=2"));
 
-    const entries = queryAll(".challengelink", elements.challenge);
+    const entries = challengeTiles(elements);
     expect(entries.map((entry) => entry.getAttribute("aria-label"))).toEqual([
       "Challenge 1",
       "Challenge 2",
@@ -491,12 +596,11 @@ describe("App challenge navigation", () => {
     // location hash, so taking a jump throws away the speed and the autostart
     // the player arrived with. Every entry is built from the current
     // parameters instead.
-    const { app, elements } = setUp();
+    const { app, elements, storage } = setUp();
+    unlockChallenge2(storage);
     app.handleRoute(...routeFor("#challenge=1,timescale=8,autostart=true"));
 
-    expect(
-      queryAll(".challengelink", elements.challenge).map((entry) => entry.getAttribute("href")),
-    ).toEqual([
+    expect(challengeTiles(elements).map((entry) => entry.getAttribute("href"))).toEqual([
       "#challenge=1,timescale=8,autostart=true",
       "#challenge=2,timescale=8,autostart=true",
       "#challenge=3,timescale=8,autostart=true",
@@ -506,18 +610,20 @@ describe("App challenge navigation", () => {
   it("carries an unknown parameter across a jump as well", () => {
     // parseQuery keeps keys it does not understand, and createParamsUrl round
     // trips them, so a link someone hand-wrote survives being navigated from.
-    const { app, elements } = setUp();
+    const { app, elements, storage } = setUp();
+    unlockChallenge2(storage);
     app.handleRoute(...routeFor("#challenge=1,fullscreen,somethingelse=7"));
 
     expect(
-      requireElement('[aria-label="Challenge 2"]', elements.challenge).getAttribute("href"),
+      requireElement('[aria-label="Challenge 2"]', elements.levelSwitcher).getAttribute("href"),
     ).toBe("#challenge=2,fullscreen=,somethingelse=7");
   });
 
   it("starts the challenge a link names when it is clicked", async () => {
     // The whole way round: the anchor navigates, the router hears the hash
     // change and the app starts the challenge it names.
-    const { app, elements } = setUp();
+    const { app, elements, storage } = setUp();
+    unlockChallenge2(storage);
     window.location.hash = "#challenge=1,timescale=8";
     const stopRouter = startRouter(
       (params, query) => {
@@ -527,7 +633,7 @@ describe("App challenge navigation", () => {
     );
 
     try {
-      requireElement('[aria-label="Challenge 2"]', elements.challenge).click();
+      requireElement('[aria-label="Challenge 2"]', elements.levelSwitcher).click();
 
       await vi.waitFor(() => {
         expect(app.currentChallengeIndex).toBe(1);
@@ -571,22 +677,17 @@ describe("App sandbox", () => {
     const { app, elements } = setUp();
     app.handleRoute(...routeFor("#challenge=sandbox,floors=20,elevators=3,spawnrate=1.5"));
 
-    const title = requireElement(".challengetitle", elements.challenge);
-    expect(title.textContent).toBe(
+    expect(goalDescription(elements)).toBe(
       "Sandbox: 20 floors, 3 elevators of capacity 4, 1.5 people per second. " +
         "No goal, so the run never ends",
     );
-    // There is no twentieth challenge to send anybody to.
-    expect(title.textContent).not.toContain("Challenge #");
   });
 
   it("shows the clamped parameters, not the ones the url asked for", () => {
     const { app, elements } = setUp();
     app.handleRoute(...routeFor("#challenge=sandbox,floors=100000"));
 
-    expect(requireElement(".challengetitle", elements.challenge).textContent).toContain(
-      "Sandbox: 60 floors",
-    );
+    expect(goalDescription(elements)).toContain("Sandbox: 60 floors");
     expect(app.world?.floors).toHaveLength(60);
   });
 
@@ -616,7 +717,7 @@ describe("App sandbox", () => {
     const { app, elements } = setUp();
     app.handleRoute(...routeFor("#challenge=sandbox,floors=20"));
 
-    const entries = queryAll(".challengelink", elements.challenge);
+    const entries = challengeTiles(elements);
     expect(entries).toHaveLength(3);
     expect(entries.map((entry) => entry.getAttribute("aria-current"))).toEqual([null, null, null]);
   });
@@ -625,11 +726,12 @@ describe("App sandbox", () => {
     // Deliberate: `challenge` is the one key the row rewrites, so following an
     // entry leaves the sandbox by construction, while the building the player
     // configured stays in the hash, inert, and is still there on the way back.
-    const { app, elements } = setUp();
+    const { app, elements, storage } = setUp();
+    unlockChallenge2(storage);
     app.handleRoute(...routeFor("#challenge=sandbox,floors=20,timescale=8"));
 
     expect(
-      requireElement('[aria-label="Challenge 2"]', elements.challenge).getAttribute("href"),
+      requireElement('[aria-label="Challenge 2"]', elements.levelSwitcher).getAttribute("href"),
     ).toBe("#challenge=2,floors=20,timescale=8");
   });
 
@@ -640,9 +742,7 @@ describe("App sandbox", () => {
 
     expect(app.isPlayingSandbox).toBe(false);
     expect(app.world?.floors).toHaveLength(4);
-    expect(requireElement(".challengetitle", elements.challenge).textContent).toBe(
-      "Challenge #2: Challenge two",
-    );
+    expect(goalDescription(elements)).toBe("Challenge two");
   });
 
   it("stays in the sandbox when the program is applied", () => {
@@ -656,7 +756,7 @@ describe("App sandbox", () => {
 
     expect(app.isPlayingSandbox).toBe(true);
     expect(app.world?.floors).toHaveLength(20);
-    expect(requireElement(".challengetitle", elements.challenge).textContent).toContain("Sandbox:");
+    expect(goalDescription(elements)).toContain("Sandbox:");
     expect(app.worldController.isPaused).toBe(false);
   });
 
@@ -790,10 +890,10 @@ describe("App learning track", () => {
     // refuses it on, and "a new draw" would offer to stop pinning the seed the
     // task pins. A line that undoes itself is worse than no line, and the
     // console print is built from the same data.
-    const { app, elements } = setUp();
+    const { app } = setUp();
     app.startTutorial(0);
 
-    expect(elements.challenge.querySelector(".challengeseed")).toBeNull();
+    expect(app.currentSeedLink).toBeNull();
     expect(console.log).not.toHaveBeenCalled();
   });
 
@@ -809,13 +909,13 @@ describe("App learning track", () => {
     // run the previous buffer's program in this task's building for one run.
     // The stored attempt does not compile and the player's program does, so the
     // banner is here only if the switch happened first.
-    const { app, elements, storage, view } = setUp();
+    const { app, editorPaneMount, storage, view } = setUp();
     storage.setItem(TASK_2_CODE_KEY, "{ this is not javascript");
 
     app.startTutorial(1);
 
     expect(view.getValue()).toBe("{ this is not javascript");
-    expect(requireElement(".errormessage", elements.codeStatus).textContent).not.toBe("");
+    expect(codeErrorMessage(editorPaneMount)).not.toBe("");
   });
 
   it("puts the player's own program back on the way out", () => {
@@ -880,40 +980,29 @@ describe("App learning track", () => {
     expect(app.world?.challengeEnded).toBe(false);
   });
 
-  it("numbers the bar's title in the track rather than in the challenge list", () => {
+  it("numbers the track's own trigger label rather than the challenge list's", () => {
     const { app, elements } = setUp();
     app.startTutorial(2);
 
-    const title = requireElement(".challengetitle", elements.challenge);
-    expect(title.textContent).toBe(
-      `Tutorial task 3 of ${String(tutorialTasks.length)}: ` +
-        "Transport 15 people in 60 seconds or less",
-    );
-    // There is no challenge #0 to send anybody to, and the router refuses it.
-    expect(title.textContent).not.toContain("Challenge #");
+    expect(taskName(elements)).toBe("Tutorial task 3");
   });
 
-  it("keeps the task's own title through a language change mid-run", () => {
+  it("keeps the track's own numbering through a language change mid-run", () => {
     const { app, elements } = setUp();
     app.startTutorial(0);
 
     setLocale("ru");
     app.relocalise();
 
-    const title = requireElement(".challengetitle", elements.challenge);
-    expect(title.textContent).toBe(
-      `Учебное задание 1 из ${String(tutorialTasks.length)}: ` +
-        "Перевезите 10 пассажиров за 60 секунд или быстрее",
-    );
-    // What the bar's own template would have written, had the retitle not run.
-    expect(title.textContent).not.toContain("№0");
+    expect(taskName(elements)).toBe("Учебное задание 1");
   });
 
   it("leaves every challenge reachable from a task, and marks none of them current", () => {
-    const { app, elements } = setUp();
+    const { app, elements, storage } = setUp();
+    unlockChallenge2(storage);
     app.handleRoute(...routeFor("#challenge=tutorial-4,timescale=8"));
 
-    const entries = queryAll(".challengelink", elements.challenge);
+    const entries = challengeTiles(elements);
     expect(entries.map((entry) => entry.getAttribute("aria-current"))).toEqual([null, null, null]);
     expect(entries[1]?.getAttribute("href")).toBe("#challenge=2,timescale=8");
   });
@@ -1580,14 +1669,13 @@ describe("App seed", () => {
     expect(app.world?.seed).not.toBe("issue-61");
   });
 
-  it("offers the seed of the run in the bar, keeping the rest of the url", () => {
-    const { app, elements } = setUp();
+  it("offers the seed of the run, keeping the rest of the url", () => {
+    const { app } = setUp();
     app.handleRoute(...routeFor("#challenge=2,timescale=8"));
     const seed = String(app.world?.seed);
 
-    const link = requireElement(".seedlink", elements.challenge);
-    expect(link.textContent).toBe(seed);
-    expect(link.getAttribute("href")).toBe(`#challenge=2,timescale=8,seed=${seed}`);
+    expect(app.currentSeedLink?.seed).toBe(seed);
+    expect(app.currentSeedLink?.url).toBe(`#challenge=2,timescale=8,seed=${seed}`);
   });
 
   it("replaces the seed in the url rather than adding a second one", () => {
@@ -1602,31 +1690,30 @@ describe("App seed", () => {
     expect(printed.match(/seed=/g)).toHaveLength(1);
   });
 
-  it("leaves a pinned seed behind when the row jumps to another challenge", () => {
-    // A seed was drawn for one building and means nothing in another, so the row
-    // carries the speed and everything else but not this. What the row is not is
-    // the way out of a pinned run: it has no entry for the sandbox, and pressing
-    // the challenge already being played is not a move anybody would find. That
-    // is the seed line's "new draw", below.
-    const { app, elements } = setUp();
+  it("leaves a pinned seed behind when the switcher jumps to another challenge", () => {
+    // A seed was drawn for one building and means nothing in another, so a tile
+    // carries the speed and everything else but not this. A tile is not the way
+    // out of a pinned run either: none names the sandbox, and pressing the
+    // challenge already being played is not a move anybody would find. That is
+    // the seed line's "new draw", below.
+    const { app, elements, storage } = setUp();
+    unlockChallenge2(storage);
     app.handleRoute(...routeFor("#challenge=1,timescale=8,seed=issue-61"));
 
     expect(
-      requireElement('[aria-label="Challenge 2"]', elements.challenge).getAttribute("href"),
+      requireElement('[aria-label="Challenge 2"]', elements.levelSwitcher).getAttribute("href"),
     ).toBe("#challenge=2,timescale=8");
     expect(
-      requireElement('[aria-label="Challenge 1"]', elements.challenge).getAttribute("href"),
+      requireElement('[aria-label="Challenge 1"]', elements.levelSwitcher).getAttribute("href"),
     ).toBe("#challenge=1,timescale=8");
   });
 
   it("offers the seed of a sandbox run as well, building and all", () => {
-    const { app, elements } = setUp();
+    const { app } = setUp();
     app.handleRoute(...routeFor("#challenge=sandbox,floors=20"));
     const seed = String(app.world?.seed);
 
-    expect(requireElement(".seedlink", elements.challenge).getAttribute("href")).toBe(
-      `#challenge=sandbox,floors=20,seed=${seed}`,
-    );
+    expect(app.currentSeedLink?.url).toBe(`#challenge=sandbox,floors=20,seed=${seed}`);
   });
 
   it("gives both seed links an address even when the url is empty", () => {
@@ -1635,19 +1722,15 @@ describe("App seed", () => {
     // navigates, but is also the fragment meaning "the top of this document",
     // so the browser scrolls there on the way out of a pinned run. Both links
     // name the challenge, so neither ever degenerates to one.
-    const { app, elements } = setUp();
+    const { app } = setUp();
     app.handleRoute(...routeFor(""));
     const seed = String(app.world?.seed);
 
-    expect(requireElement(".seedlink", elements.challenge).getAttribute("href")).toBe(
-      `#challenge=1,seed=${seed}`,
-    );
+    expect(app.currentSeedLink?.url).toBe(`#challenge=1,seed=${seed}`);
 
     app.handleRoute(...routeFor("#seed=issue-61"));
 
-    expect(requireElement(".seednewdraw", elements.challenge).getAttribute("href")).toBe(
-      "#challenge=1",
-    );
+    expect(app.currentSeedLink?.newDrawUrl).toBe("#challenge=1");
   });
 
   it("prints the seed and a whole url at every start", () => {
@@ -1709,77 +1792,32 @@ describe("App seed", () => {
     expect(vi.mocked(console.log).mock.calls[0]?.[0]).toContain(String(app.world?.seed));
   });
 
-  it("pins the seed of the run when the link in the bar is followed", async () => {
-    // The whole way round: the anchor navigates, the router hears the hash
-    // change, and the app rebuilds the world on the seed that was on screen.
-    const { app, elements } = setUp();
-    window.location.hash = "#challenge=1";
-    const stopRouter = startRouter(
-      (params, query) => {
-        app.handleRoute(params, query);
-      },
-      { challengeCount: CHALLENGES.length, defaultTimeScale: () => DEFAULT_TIME_SCALE },
-    );
-
-    try {
-      const seed = String(app.world?.seed);
-      requireElement(".seedlink", elements.challenge).click();
-
-      // Waited on the world rather than on the hash, because the hash is the
-      // first half of the round trip and not the last: following the anchor
-      // rewrites it synchronously, and `hashchange` -- the event the router is
-      // listening for -- is dispatched after. A wait that ends at the hash can
-      // therefore end before the app has heard anything, and the assertion below
-      // catches the world still running on the number it drew at start-up rather
-      // than the string the URL now carries. Under load it did, about one run in
-      // three.
-      await vi.waitFor(() => {
-        expect(app.world?.seed).toBe(seed);
-      });
-      expect(window.location.hash).toBe(`#challenge=1,seed=${seed}`);
-      // And what it offers now is the way back out, since the way in is the URL
-      // the player is already at.
-      expect(elements.challenge.querySelector(".seedlink")).toBeNull();
-      expect(requireElement(".seednewdraw", elements.challenge).getAttribute("href")).toBe(
-        "#challenge=1",
-      );
-    } finally {
-      stopRouter();
-      window.location.hash = "";
-    }
-  });
-
-  it("offers no way out of a run nothing has pinned", () => {
+  it("offers no way back for a run nothing has pinned", () => {
     // There would be nowhere for it to go: the URL without a seed is the one
-    // the player is already at, so the link would fire no hashchange and do
-    // nothing at all.
-    const { app, elements } = setUp();
+    // the player is already at, so following it would fire no hashchange and
+    // do nothing at all.
+    const { app } = setUp();
     app.handleRoute(...routeFor("#challenge=2,timescale=8"));
 
-    expect(elements.challenge.querySelector(".seednewdraw")).toBeNull();
-    expect(requireElement(".seedlink", elements.challenge)).not.toBeNull();
+    expect(app.currentSeedLink?.newDrawUrl).toBeNull();
   });
 
   it("offers a way back to a fresh draw once the url pins the seed", () => {
     // The counterweight to pinning being one click: unpinning is one click too,
     // and neither of them needs the address bar.
-    const { app, elements } = setUp();
+    const { app } = setUp();
     app.handleRoute(...routeFor("#challenge=2,timescale=8,seed=issue-61"));
 
-    expect(requireElement(".seednewdraw", elements.challenge).getAttribute("href")).toBe(
-      "#challenge=2,timescale=8",
-    );
+    expect(app.currentSeedLink?.newDrawUrl).toBe("#challenge=2,timescale=8");
   });
 
   it("keeps the sandbox building when the pin is taken back out", () => {
-    // The case the navigation row cannot answer at all: it has no entry for the
-    // sandbox, so every entry it offers leaves the building behind.
-    const { app, elements } = setUp();
+    // The case a challenge tile cannot answer at all: none names the sandbox,
+    // so every entry it offers leaves the building behind.
+    const { app } = setUp();
     app.handleRoute(...routeFor("#challenge=sandbox,floors=20,seed=issue-61"));
 
-    expect(requireElement(".seednewdraw", elements.challenge).getAttribute("href")).toBe(
-      "#challenge=sandbox,floors=20",
-    );
+    expect(app.currentSeedLink?.newDrawUrl).toBe("#challenge=sandbox,floors=20");
   });
 
   it("treats a seed the router refused as no pin at all", () => {
@@ -1787,48 +1825,13 @@ describe("App seed", () => {
     // the router is "rush%20hour" -- which is the form written here, because a
     // fixture the app cannot be handed proves nothing about the app. The `%`
     // fails SEED_PATTERN, the router draws a fresh seed, and nothing is pinned,
-    // so there is nothing to unpin -- and the refused text must not follow the
-    // player around the bar, re-warning on arrival at every link it reaches.
-    const { app, elements } = setUp();
+    // so there is nothing to unpin.
+    const { app } = setUp();
     app.handleRoute(...routeFor("#challenge=1,seed=rush%20hour"));
     const seed = String(app.world?.seed);
 
-    expect(elements.challenge.querySelector(".seednewdraw")).toBeNull();
-    expect(requireElement(".seedlink", elements.challenge).getAttribute("href")).toBe(
-      `#challenge=1,seed=${seed}`,
-    );
-    const hrefs = queryAll("a", elements.challenge).map((link) => link.getAttribute("href") ?? "");
-    expect(hrefs.filter((href) => href.includes("rush"))).toEqual([]);
-  });
-
-  it("draws again from a new seed when the way out is followed", async () => {
-    // The whole way back: the anchor navigates to the URL without the seed, the
-    // router hears it, and the app draws a run nobody chose.
-    const { app, elements } = setUp();
-    window.location.hash = "#challenge=1,seed=issue-61";
-    const stopRouter = startRouter(
-      (params, query) => {
-        app.handleRoute(params, query);
-      },
-      { challengeCount: CHALLENGES.length, defaultTimeScale: () => DEFAULT_TIME_SCALE },
-    );
-
-    try {
-      expect(app.world?.seed).toBe("issue-61");
-      requireElement(".seednewdraw", elements.challenge).click();
-
-      await vi.waitFor(() => {
-        expect(window.location.hash).toBe("#challenge=1");
-      });
-      expect(app.world?.seed).not.toBe("issue-61");
-      // And the line offers to pin what it drew, so the round trip closes.
-      expect(requireElement(".seedlink", elements.challenge).getAttribute("href")).toBe(
-        `#challenge=1,seed=${String(app.world?.seed)}`,
-      );
-    } finally {
-      stopRouter();
-      window.location.hash = "";
-    }
+    expect(app.currentSeedLink?.newDrawUrl).toBeNull();
+    expect(app.currentSeedLink?.url).toBe(`#challenge=1,seed=${seed}`);
   });
 });
 
@@ -1860,13 +1863,14 @@ describe("App focus", () => {
     // player's feet, exactly as the next-challenge link does. They stay where
     // they were: on the entry that replaced the one they pressed, which is now
     // the current challenge.
-    const { app, elements } = setUp();
+    const { app, elements, storage } = setUp();
+    unlockChallenge2(storage);
     app.handleRoute(...routeFor("#challenge=1"));
-    requireElement('[aria-label="Challenge 2"]', elements.challenge).focus();
+    requireElement('[aria-label="Challenge 2"]', elements.levelSwitcher).focus();
 
     app.handleRoute(...routeFor("#challenge=2"));
 
-    const entry = requireElement('[aria-label="Challenge 2"]', elements.challenge);
+    const entry = requireElement('[aria-label="Challenge 2"]', elements.levelSwitcher);
     expect(document.activeElement).toBe(entry);
     expect(entry.getAttribute("aria-current")).toBe("page");
   });
@@ -1970,102 +1974,6 @@ describe("App run controls", () => {
     expect(app.currentChallengeIndex).toBe(1);
     expect(worldController.isPaused).toBe(false);
   });
-
-  it("asks before throwing the program away, and offers the way back afterwards", () => {
-    const confirm = vi.spyOn(window, "confirm").mockReturnValue(true).mockClear();
-    const { app, elements, view, storage } = setUp();
-    app.startChallenge(0);
-    view.type("// an afternoon of work");
-    const undoReset = requireElement(".undoreset", elements.controls);
-    // Nothing to bring back, so the button is not in the tab order at all --
-    // pressing "Undo reset" in a buffer never reset was the legacy game's
-    // quickest way to lose a program.
-    expect(undoReset.hidden).toBe(true);
-
-    requireElement(".resetcode", elements.controls).click();
-
-    expect(confirm).toHaveBeenCalledTimes(1);
-    expect(view.getValue()).toBe(defaultCode());
-    expect(undoReset.hidden).toBe(false);
-
-    requireElement(".undoreset", elements.controls).click();
-
-    expect(confirm).toHaveBeenCalledTimes(2);
-    expect(view.getValue()).toBe("// an afternoon of work");
-    expect(storage.getItem(CODE_STORAGE_KEY)).not.toBe(defaultCode());
-  });
-
-  it("leaves the program alone when the question is answered no", () => {
-    // Both dialogs, because both buttons destroy something: one the program on
-    // screen, the other the program written since the reset.
-    const confirm = vi.spyOn(window, "confirm").mockReturnValue(false).mockClear();
-    const { app, elements, view } = setUp();
-    app.startChallenge(0);
-    view.type("// an afternoon of work");
-
-    requireElement(".resetcode", elements.controls).click();
-
-    expect(confirm).toHaveBeenCalledTimes(1);
-    expect(view.getValue()).toBe("// an afternoon of work");
-    // And no way back is offered for a reset that never happened.
-    expect(requireElement(".undoreset", elements.controls).hidden).toBe(true);
-  });
-
-  it("puts the cursor back in the editor either way", () => {
-    // The two buttons are the only ones in the row that act on the editor, and
-    // the next thing anybody does after pressing them is type. A refused dialog
-    // gets the focus too: the player asked to be in the editor by reaching for
-    // a button about it, and changing their mind about the reset is not
-    // changing their mind about that.
-    const confirm = vi.spyOn(window, "confirm").mockReturnValue(false).mockClear();
-    const { app, elements, editor } = setUp();
-    app.startChallenge(0);
-    const focus = vi.spyOn(editor, "focus");
-
-    requireElement(".resetcode", elements.controls).click();
-    expect(focus).toHaveBeenCalledTimes(1);
-
-    confirm.mockReturnValue(true);
-    requireElement(".undoreset", elements.controls).click();
-    expect(focus).toHaveBeenCalledTimes(2);
-  });
-
-  it("takes the way back off the row once the player has written over the reset", () => {
-    // The row is redrawn by its own events -- a pause, a speed change, the end
-    // of a run -- and none of them is typing. Without the editor's `change`
-    // among them, "Undo reset" would sit there through an afternoon's work and
-    // then be pressed, at which point it discards the afternoon under a dialog
-    // that talks about a reset from before it started.
-    vi.spyOn(window, "confirm").mockReturnValue(true);
-    const { app, elements, editor, view } = setUp();
-    app.startChallenge(0);
-    view.type("// an afternoon of work");
-    requireElement(".resetcode", elements.controls).click();
-    expect(requireElement(".undoreset", elements.controls).hidden).toBe(false);
-
-    view.type("// starting again from here");
-    // What the autosave does a second after the last keystroke, and what
-    // Ctrl+S does at once; either raises `change`.
-    editor.save();
-
-    expect(requireElement(".undoreset", elements.controls).hidden).toBe(true);
-  });
-
-  it("hides the way back again when the buffer under it changes", () => {
-    // The backup slot is per buffer, so a task the player never reset must not
-    // offer to undo the reset of their own program. `canUndoReset` is asked
-    // afresh on every update rather than remembered for this reason.
-    vi.spyOn(window, "confirm").mockReturnValue(true);
-    const { app, elements, view } = setUp();
-    app.startChallenge(0);
-    view.type("// something to reset away from");
-    requireElement(".resetcode", elements.controls).click();
-    expect(requireElement(".undoreset", elements.controls).hidden).toBe(false);
-
-    app.startTutorial(0);
-
-    expect(requireElement(".undoreset", elements.controls).hidden).toBe(true);
-  });
 });
 
 describe("App time scale", () => {
@@ -2145,9 +2053,7 @@ describe("App.handleRoute", () => {
       app.handleRoute(...routeFor("#challenge=abc"));
     }).not.toThrow();
     expect(app.currentChallengeIndex).toBe(0);
-    expect(requireElement(".challengetitle", elements.challenge).textContent).toContain(
-      "Challenge #1",
-    );
+    expect(goalDescription(elements)).toBe("Challenge one");
   });
 
   it("does not freeze the world when the timescale is not a number", () => {
@@ -2216,14 +2122,14 @@ describe("App.handleRoute", () => {
 
 describe("App code status", () => {
   it("shows an error the simulation raises and clears it on the next success", () => {
-    const { app, editor, elements } = setUp();
+    const { app, editor, editorPaneMount } = setUp();
     app.startChallenge(0);
 
     app.worldController.trigger("usercode_error", new Error("boom"));
-    expect(requireElement(".errormessage", elements.codeStatus).textContent).toContain("boom");
+    expect(codeErrorMessage(editorPaneMount)).toContain("boom");
 
     editor.getCodeObj();
-    expect(elements.codeStatus.innerHTML).toBe("");
+    expect(codeErrorMessage(editorPaneMount)).toBe("");
   });
 
   it("restarts the current challenge, running, when the program is applied", () => {
@@ -2246,23 +2152,22 @@ describe("App.relocalise", () => {
     setLocale(DEFAULT_LOCALE);
   });
 
-  it("rewrites the challenge bar in the language chosen part-way through a run", () => {
+  it("rewrites the goal bar's own chrome and the level switcher's captions in the language chosen part-way through a run", () => {
     const { app, elements } = setUp();
     app.startChallenge(0);
-    expect(requireElement(".challengetitle", elements.challenge).textContent).toBe(
-      "Challenge #1: Challenge one",
-    );
+    expect(goalDescription(elements)).toBe("Challenge one");
+    expect(challengeBlockCaption(elements)).toBe("Challenges");
 
     setLocale("ru");
     app.relocalise();
 
-    // The description is the fixture's own markup and stays English; the
-    // sentence the game wraps it in, and every control beside it, do not.
-    expect(requireElement(".challengetitle", elements.challenge).textContent).toBe(
-      "Задание №1: Challenge one",
-    );
+    // The description is the fixture's own markup and stays English; every
+    // control around it does not. The level switcher redraws its tile grid
+    // from scratch on every update, so the block from before relocalise is
+    // gone -- looked up again rather than reused.
+    expect(goalDescription(elements)).toBe("Challenge one");
     expect(requireElement(".startstop", elements.controls).textContent).toBe("Старт");
-    expect(requireElement(".challengenav", elements.challenge).ariaLabel).toBe("Задания");
+    expect(challengeBlockCaption(elements)).toBe("Задания");
   });
 
   it("writes the statistics the way a reader of the new language writes numbers", () => {
@@ -2280,15 +2185,15 @@ describe("App.relocalise", () => {
     world.transportedCounter = 1234;
     world.elapsedTime = 2675;
     world.trigger("stats_display_changed");
-    expect(requireElement(".elapsedtime", elements.stats).textContent).toBe("2,675s");
+    expect(statValue(elements, "elapsedTime")).toBe("2,675s");
 
     setLocale("ru");
     app.relocalise();
 
     // A non-breaking space between the thousands and before the unit, both of
     // which `Intl` chooses and neither of which English has.
-    expect(requireElement(".elapsedtime", elements.stats).textContent).toBe("2 675 с");
-    expect(requireElement(".transportedcounter", elements.stats).textContent).toBe("1 234");
+    expect(statValue(elements, "elapsedTime")).toBe("2 675 с");
+    expect(statValue(elements, "transportedCounter")).toBe("1 234");
   });
 
   it("renames the building in place instead of drawing a second one", () => {
@@ -2318,7 +2223,7 @@ describe("App.relocalise", () => {
     // `startChallenge`: the world, its clock, its score and its seed are the
     // ones the player was playing, and the simulation is still paused or still
     // running as they left it.
-    const { app, elements, worldController } = setUp();
+    const { app, worldController } = setUp();
     app.handleRoute(...routeFor("#challenge=1,seed=issue-53,autostart=true"));
     const world = app.world;
     if (world === undefined) {
@@ -2336,7 +2241,7 @@ describe("App.relocalise", () => {
     expect(world.challengeEnded).toBe(false);
     expect(app.currentChallengeIndex).toBe(0);
     expect(worldController.isPaused).toBe(false);
-    expect(requireElement(".seedvalue", elements.challenge).textContent).toBe("issue-53");
+    expect(app.currentSeedLink?.seed).toBe("issue-53");
   });
 
   it("says the verdict again, in the new language, over one overlay", () => {
@@ -2371,19 +2276,19 @@ describe("App.relocalise", () => {
   });
 
   it("keeps the banner about a broken program, and the program's own words in it", () => {
-    const { app, elements } = setUp();
+    const { app, editorPaneMount } = setUp();
     app.startChallenge(0);
     app.worldController.trigger("usercode_error", new Error("boom"));
 
     setLocale("ru");
     app.relocalise();
 
-    expect(requireElement(".error", elements.codeStatus).textContent).toContain(
+    expect(requireElement(".errorline", editorPaneMount).textContent).toContain(
       "С вашим кодом что-то не так",
     );
     // Whatever the player's program threw is their JavaScript and is shown back
     // to them untouched.
-    expect(requireElement(".errormessage", elements.codeStatus).textContent).toContain("boom");
+    expect(codeErrorMessage(editorPaneMount)).toContain("boom");
   });
 
   it("has nothing to redraw before a challenge has been started", () => {
@@ -2396,7 +2301,7 @@ describe("App.relocalise", () => {
       app.relocalise();
     }).not.toThrow();
 
-    expect(elements.challenge.innerHTML).toBe("");
+    expect(elements.goalBar.innerHTML).toBe("");
     expect(elements.world.innerHTML).toBe("");
     expect(elements.feedback.innerHTML).toBe("");
   });

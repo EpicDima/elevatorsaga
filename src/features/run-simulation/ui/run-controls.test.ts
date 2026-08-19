@@ -25,11 +25,8 @@ function setUp(overrides: Partial<RunControlsOptions> = {}): {
     options: {
       worldController: { isPaused: true },
       challengeEnded: (): boolean => false,
-      canUndoReset: (): boolean => false,
       onStartStop: vi.fn(),
       onStartOver: vi.fn(),
-      onResetCode: vi.fn(),
-      onUndoReset: vi.fn(),
       instantRunInProgress: (): boolean => false,
       onRunInstant: vi.fn(),
       ...overrides,
@@ -38,7 +35,7 @@ function setUp(overrides: Partial<RunControlsOptions> = {}): {
 }
 
 describe("runButtonsTemplate", () => {
-  it("draws the five run buttons in one box, in the order they are read in", () => {
+  it("draws the three run buttons in one box, in the order they are read in", () => {
     const parent = document.createElement("div");
     parent.innerHTML = runButtonsTemplate();
     const buttons = [...(parent.querySelector(".runbuttons")?.children ?? [])];
@@ -46,39 +43,27 @@ describe("runButtonsTemplate", () => {
     expect(buttons.map((button) => button.className)).toEqual([
       "startstop unselectable",
       "startover unselectable",
-      "resetcode unselectable",
-      "undoreset unselectable",
       "runinstant unselectable",
     ]);
     expect(buttons.every((button) => button.getAttribute("type") === "button")).toBe(true);
   });
 
-  it("ships the five with no label at all, for the presenter to write", () => {
+  it("ships the three with no label at all, for the presenter to write", () => {
     const parent = document.createElement("div");
     parent.innerHTML = runButtonsTemplate();
     const buttons = [...(parent.querySelector(".runbuttons")?.children ?? [])];
 
-    expect(buttons.map((button) => button.textContent)).toEqual(["", "", "", "", ""]);
-  });
-
-  it("hides Undo reset until there is something to bring back", () => {
-    const parent = document.createElement("div");
-    parent.innerHTML = runButtonsTemplate();
-
-    expect(parent.querySelector(".undoreset")?.hasAttribute("hidden")).toBe(true);
-    expect(parent.querySelector(".startstop")?.hasAttribute("hidden")).toBe(false);
+    expect(buttons.map((button) => button.textContent)).toEqual(["", "", ""]);
   });
 });
 
 describe("presentRunControls", () => {
-  it("labels all four buttons plus Run instantly", () => {
+  it("labels the start button, Start over and Run instantly", () => {
     const { parent, options } = setUp();
     presentRunControls(parent, options);
 
     expect(requireElement(".startstop", parent).textContent).toBe("Start");
     expect(requireElement(".startover", parent).textContent).toBe("Start over");
-    expect(requireElement(".resetcode", parent).textContent).toBe("Reset code");
-    expect(requireElement(".undoreset", parent).textContent).toBe("Undo reset");
     expect(requireElement(".runinstant", parent).textContent).toBe("Run instantly");
   });
 
@@ -116,32 +101,16 @@ describe("presentRunControls", () => {
     expect(startStop.querySelector("svg")).not.toBeNull();
   });
 
-  it("offers Undo reset only once there is a program to bring back", () => {
-    const { parent, options } = setUp();
-    const presenter = presentRunControls(parent, options);
-    const undoReset = requireElement(".undoreset", parent);
-    expect(undoReset.hidden).toBe(true);
-
-    options.canUndoReset = (): boolean => true;
-    presenter.update();
-
-    expect(undoReset.hidden).toBe(false);
-  });
-
   it("reports button presses to the caller", () => {
     const { parent, options } = setUp();
     presentRunControls(parent, options);
 
     requireElement(".startstop", parent).click();
     requireElement(".startover", parent).click();
-    requireElement(".resetcode", parent).click();
-    requireElement(".undoreset", parent).click();
     requireElement(".runinstant", parent).click();
 
     expect(options.onStartStop).toHaveBeenCalledTimes(1);
     expect(options.onStartOver).toHaveBeenCalledTimes(1);
-    expect(options.onResetCode).toHaveBeenCalledTimes(1);
-    expect(options.onUndoReset).toHaveBeenCalledTimes(1);
     expect(options.onRunInstant).toHaveBeenCalledTimes(1);
   });
 
@@ -150,7 +119,7 @@ describe("presentRunControls", () => {
     const presenter = presentRunControls(parent, options);
 
     for (let i = 0; i < 5; i += 1) {
-      options.canUndoReset = (): boolean => i % 2 === 0;
+      options.instantRunInProgress = (): boolean => i % 2 === 0;
       presenter.update();
     }
     requireElement(".startstop", parent).click();

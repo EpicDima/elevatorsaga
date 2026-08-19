@@ -98,6 +98,6 @@ test.describe("README screenshot", () => {
 
     await page.screenshot({ path: OUTPUT_PATH, fullPage: true, animations: "disabled" });
 
-    await expect(statistic(page, "Transported")).not.toHaveText("0");
+    await expect(await statistic(page, "Transported")).not.toHaveText("0");
   });
 });

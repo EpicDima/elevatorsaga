@@ -9,7 +9,7 @@
  * The panel is toggled through `hidden` and the trigger's `aria-expanded`
  * rather than a class, so a caller that never writes a stylesheet rule for
  * either still gets working show/hide — the same reason
- * `RunControlsPresenter.update` writes `undoReset.hidden` instead of a class.
+ * `EditorPanePresenter.update` writes `undoReset.hidden` instead of a class.
  */
 
 /** A trigger and the panel it opens, already open or already closed. */

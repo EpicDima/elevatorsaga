@@ -10,18 +10,7 @@
 
 import { expect, test } from "@playwright/test";
 
-/**
- * The seed shown in the challenge bar while following it still pins the run.
- *
- * Scoped to `.challengeseed` rather than bare `.seedlink`: the settings
- * popover's own seed block, behind its still-closed `.setmenu`, reuses the
- * same class -- see its own module comment -- so the bare class now resolves
- * two elements.
- */
-const SEED_LINK = ".challengeseed .seedlink";
-
-/** The heading the challenge bar prints, which says which run is being played. */
-const CHALLENGE_TITLE = ".challengetitle";
+import { seedText } from "./game-page.ts";
 
 test("takes a parameter the game refused out of the address bar", async ({ page }) => {
   // The URL said `seed=rush hour` while the game drew somebody else, because a
@@ -32,14 +21,14 @@ test("takes a parameter the game refused out of the address bar", async ({ page 
 
   await expect(page).toHaveURL(/#challenge=4$/);
   // Still the run that was asked for, minus the part that could not be had.
-  await expect(page.locator(CHALLENGE_TITLE)).toContainText("Challenge #4");
-  await expect(page.locator(SEED_LINK)).toBeVisible();
+  await expect(page.getByRole("button", { name: "Challenge 4" })).toBeVisible();
+  await expect(await seedText(page)).toBeVisible();
 });
 
 test("empties a hash whose every parameter was refused", async ({ page }) => {
   await page.goto("/#challenge=abc");
 
-  await expect(page.locator(CHALLENGE_TITLE)).toContainText("Challenge #1");
+  await expect(page.getByRole("button", { name: "Challenge 1" })).toBeVisible();
   // Asserted on location.hash rather than on the whole URL: "#" resolves to a
   // URL whose fragment is empty, which still serialises with the "#" on the end
   // and is what page.url() would show.
@@ -52,7 +41,7 @@ test("does not leave the refused url behind the Back button", async ({ page }) =
   // be corrected again, and never get past it -- a page the player cannot leave
   // backwards.
   await page.goto("/#challenge=2");
-  await expect(page.locator(CHALLENGE_TITLE)).toContainText("Challenge #2");
+  await expect(page.getByRole("button", { name: "Challenge 2" })).toBeVisible();
 
   await page.goto("/#challenge=abc");
   expect(await page.evaluate(() => window.location.hash)).toBe("");
@@ -60,7 +49,7 @@ test("does not leave the refused url behind the Back button", async ({ page }) =
   await page.goBack();
 
   await expect(page).toHaveURL(/#challenge=2$/);
-  await expect(page.locator(CHALLENGE_TITLE)).toContainText("Challenge #2");
+  await expect(page.getByRole("button", { name: "Challenge 2" })).toBeVisible();
 });
 
 test("keeps a value it only clamped, which still names the run on screen", async ({ page }) => {
@@ -70,5 +59,8 @@ test("keeps a value it only clamped, which still names the run on screen", async
   await page.goto("/#challenge=sandbox,floors=100000");
 
   await expect(page).toHaveURL(/#challenge=sandbox,floors=100000$/);
-  await expect(page.locator(CHALLENGE_TITLE)).toContainText("60");
+  // The sandbox has no requirement to state as a meter, so `widgets/goal-bar`
+  // falls back to `.goalfree`'s own prose, the same as the old challenge bar's
+  // heading did.
+  await expect(page.locator(".goalfree")).toContainText("60");
 });

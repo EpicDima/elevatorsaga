@@ -743,6 +743,98 @@ dl dd {
   display: none;
 }
 
+/* ---------------------------------------------------------------- Workspace */
+
+/*
+ * The workspace's two panes and the splitter between them, ported from
+ * `design/ui-mockup.html`'s own `.workspace`/`.pane`/`.splitter` rules --
+ * its own comment there: no code-below-the-building layout, because both
+ * the building and the program are tall, and a horizontal split cuts into
+ * whichever one is on the bottom. `widgets/workspace-layout` builds the
+ * elements these rules style and writes `--split-x`/`data-layout` onto
+ * `<html>`; see that module's own comment for the drag/keyboard wiring.
+ *
+ * Only the four `--ds-*` tokens this block itself reads are adopted here,
+ * per the design tokens' own comment above -- the rest of the page still
+ * reads the older `--color-*`/`--shell-*` names until the widget that reads
+ * them is cut over too.
+ */
+.workspace {
+  display: grid;
+  flex: 1;
+  min-height: 0;
+}
+
+html[data-layout="right"] .workspace,
+html[data-layout="left"] .workspace {
+  grid-template-columns: var(--split-x, 62%) 1px 1fr;
+}
+
+/* Left: the same grid, its two panes swapped in source order. */
+html[data-layout="left"] .pane-code {
+  order: 1;
+}
+
+html[data-layout="left"] .splitter {
+  order: 2;
+}
+
+html[data-layout="left"] .pane-game {
+  order: 3;
+}
+
+html[data-layout="code"] .workspace {
+  grid-template-columns: 1fr;
+}
+
+html[data-layout="game"] .workspace {
+  grid-template-columns: 1fr;
+}
+
+html[data-layout="code"] .pane-game,
+html[data-layout="code"] .splitter,
+html[data-layout="game"] .pane-code,
+html[data-layout="game"] .splitter {
+  display: none;
+}
+
+.pane {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.pane-code {
+  background: var(--ds-code-bg);
+}
+
+.splitter {
+  position: relative;
+  background: var(--ds-line);
+}
+
+.splitter::after {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  z-index: 20;
+}
+
+html[data-layout="right"] .splitter,
+html[data-layout="left"] .splitter {
+  cursor: col-resize;
+}
+
+.splitter:hover,
+.splitter.is-dragging {
+  background: var(--ds-accent);
+}
+
+.splitter:focus-visible {
+  outline-offset: 0;
+}
+
 /* --------------------------------------------------------- Challenge bar */
 
 /*

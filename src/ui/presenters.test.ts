@@ -496,11 +496,8 @@ describe("presentControls", () => {
       options: {
         worldController: { isPaused: true, timeScale: 2 },
         challengeEnded: (): boolean => false,
-        canUndoReset: (): boolean => false,
         onStartStop: vi.fn(),
         onStartOver: vi.fn(),
-        onResetCode: vi.fn(),
-        onUndoReset: vi.fn(),
         onTimeScaleIncrease: vi.fn(),
         onTimeScaleDecrease: vi.fn(),
         instantRunInProgress: (): boolean => false,
@@ -510,15 +507,13 @@ describe("presentControls", () => {
     };
   }
 
-  it("draws the time scale and labels all five buttons", () => {
+  it("draws the time scale and labels the three run buttons", () => {
     const { parent, options } = setUp();
     presentControls(parent, options);
 
     expect(requireElement(".timescale_value", parent).textContent).toBe("2x");
     expect(requireElement(".startstop", parent).textContent).toBe("Start");
     expect(requireElement(".startover", parent).textContent).toBe("Start over");
-    expect(requireElement(".resetcode", parent).textContent).toBe("Reset code");
-    expect(requireElement(".undoreset", parent).textContent).toBe("Undo reset");
     expect(requireElement(".runinstant", parent).textContent).toBe("Run instantly");
   });
 
@@ -556,34 +551,18 @@ describe("presentControls", () => {
     expect(startStop.querySelector("svg")).not.toBeNull();
   });
 
-  it("offers Undo reset only once there is a program to bring back", () => {
-    const { parent, options } = setUp();
-    const presenter = presentControls(parent, options);
-    const undoReset = requireElement(".undoreset", parent);
-    expect(undoReset.hidden).toBe(true);
-
-    options.canUndoReset = (): boolean => true;
-    presenter.update();
-
-    expect(undoReset.hidden).toBe(false);
-  });
-
   it("reports button presses to the app", () => {
     const { parent, options } = setUp();
     presentControls(parent, options);
 
     requireElement(".startstop", parent).click();
     requireElement(".startover", parent).click();
-    requireElement(".resetcode", parent).click();
-    requireElement(".undoreset", parent).click();
     requireElement(".runinstant", parent).click();
     requireElement(".timescale_increase", parent).click();
     requireElement(".timescale_decrease", parent).click();
 
     expect(options.onStartStop).toHaveBeenCalledTimes(1);
     expect(options.onStartOver).toHaveBeenCalledTimes(1);
-    expect(options.onResetCode).toHaveBeenCalledTimes(1);
-    expect(options.onUndoReset).toHaveBeenCalledTimes(1);
     expect(options.onRunInstant).toHaveBeenCalledTimes(1);
     expect(options.onTimeScaleIncrease).toHaveBeenCalledTimes(1);
     expect(options.onTimeScaleDecrease).toHaveBeenCalledTimes(1);
@@ -1216,11 +1195,8 @@ describe("the language the interface comes out in", () => {
     const presenter = presentControls(parent, {
       worldController,
       challengeEnded: () => challengeEnded,
-      canUndoReset: () => true,
       onStartStop: vi.fn(),
       onStartOver: vi.fn(),
-      onResetCode: vi.fn(),
-      onUndoReset: vi.fn(),
       onTimeScaleIncrease: vi.fn(),
       onTimeScaleDecrease: vi.fn(),
       instantRunInProgress: () => false,
@@ -1234,8 +1210,6 @@ describe("the language the interface comes out in", () => {
     expect(requireElement(".timescale_value", parent).textContent).toBe("8×");
     expect(startStop.textContent).toBe("Старт");
     expect(requireElement(".startover", parent).textContent).toBe("С начала");
-    expect(requireElement(".resetcode", parent).textContent).toBe("Сбросить код");
-    expect(requireElement(".undoreset", parent).textContent).toBe("Вернуть код");
     expect(requireElement(".runinstant", parent).textContent).toBe("Прогнать мгновенно");
     expect(requireElement(".timescale_increase", parent).getAttribute("aria-label")).toBe(
       "Увеличить скорость симуляции",
