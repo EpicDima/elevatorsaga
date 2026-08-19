@@ -175,10 +175,9 @@ export function iconMarkup(name: IconName, className?: string): string {
 export const SPRITE_ICONS = {
   // The mockup draws every stroked glyph in this family through one shared
   // ".icon" CSS rule (fill: none; stroke: currentcolor; stroke-width: 1.6;
-  // round caps/joins) rather than per-shape attributes. This module has no
-  // stylesheet rule for `.ds-icon` yet (see the class doc comment above), so
-  // each stroked shape below carries that same default explicitly instead of
-  // depending on a cascade that doesn't exist here — the same reason `star`
+  // round caps/joins) rather than per-shape attributes. `style.css`'s own
+  // `.ds-icon` rule now carries that same default too, but each stroked
+  // shape below still spells it out explicitly — the same reason `star`
   // spells out its own paint rather than leaving it to inherited CSS.
   //
   // The docs opener's glyph (`#docsOpen`): an open book, split down the

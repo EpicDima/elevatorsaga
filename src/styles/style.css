@@ -531,10 +531,11 @@ dl dd {
  * `design/ui-mockup.html`'s own icon family (`spriteIconMarkup` in
  * `#shared/ui/icon.ts`) gets its own wrapper class, `ds-icon` rather than
  * `icon`, precisely so it would not inherit the rule above by accident: this
- * family is fixed-pixel, not em-relative, and `icon.ts`'s own module comment
- * says as much -- "this module has no stylesheet rule for `.ds-icon` yet."
- * Ported here from the mockup's own `.icon` rule (§1) now that a live widget
- * needs it: `widgets/app-bar`'s `.docsopen` button draws one of this family's
+ * family is fixed-pixel, not em-relative, and until this rule landed,
+ * `icon.ts`'s own module comment said as much -- "this module has no
+ * stylesheet rule for `.ds-icon` yet." Ported here from the mockup's own
+ * `.icon` rule (§1) now that a live widget needs it: `widgets/app-bar`'s
+ * `.docsopen` button draws one of this family's
  * glyphs directly inside `.header`'s `flex-direction: column`, and a
  * `viewBox`-only SVG with no intrinsic size stretches to fill whatever
  * cross-axis width that gives it. Measured live before this rule: a 16x16

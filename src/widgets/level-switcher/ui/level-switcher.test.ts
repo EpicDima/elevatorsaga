@@ -8,7 +8,7 @@ import type { LevelLinkTarget, LevelMenuInput } from "../model/level-menu.ts";
 import type { ChallengeTier } from "#entities/challenge-tier/index.ts";
 import { requireUserCountWithinTime, type Challenge } from "#game/challenges.ts";
 import { tutorialTasks } from "#game/tutorial.ts";
-import { requireElement } from "#shared/lib/dom.ts";
+import { queryAll, requireElement } from "#shared/lib/dom.ts";
 
 function fixtureChallenges(count: number): readonly Challenge[] {
   return Array.from({ length: count }, () => ({
@@ -257,5 +257,59 @@ describe("presentLevelSwitcher", () => {
     // Last tile of the tutorial block: stepping "next" must not cross into
     // the challenges block.
     expect(taskNext.hasAttribute("disabled")).toBe(true);
+  });
+
+  describe("focus", () => {
+    // The same problem, and the same fix, as `presentChallenge`'s own
+    // navigation row in `src/ui/presenters.ts` — see `level-switcher.ts`'s
+    // own comment on `update()` for why position, not node identity, is
+    // what gets restored.
+
+    it("keeps focus on the tile at the same position when the grid is rebuilt", () => {
+      const { parent, options } = setUp();
+      const presenter = presentLevelSwitcher(parent, options);
+      const target = requireElement(".tasklink:not([disabled])", parent);
+      target.focus();
+      const focusedIndex = queryAll(".tasklink", parent).indexOf(target);
+
+      presenter.update();
+
+      const rebuilt = queryAll(".tasklink", parent);
+      expect(document.activeElement).toBe(rebuilt[focusedIndex]);
+    });
+
+    it("has nowhere to put focus when the rebuild drops the tile that had it", () => {
+      let input = baseInput({ challenges: fixtureChallenges(6) });
+      const parent = document.createElement("div");
+      parent.innerHTML = levelSwitcherTemplate();
+      document.body.append(parent);
+      const presenter = presentLevelSwitcher(parent, { getInput: () => input });
+      const flat = queryAll(".tasklink", parent);
+      // The sandbox tile: always last, and always open, so it is always a
+      // real, focusable link regardless of the challenge count.
+      const sandboxTile = flat[flat.length - 1];
+      sandboxTile?.focus();
+      expect(document.activeElement).toBe(sandboxTile);
+
+      // Shrinking the challenge block from 6 tiles to 1 moves the sandbox
+      // tile several positions earlier, so nothing in the rebuilt grid
+      // stands where the focused tile did.
+      input = baseInput({ challenges: fixtureChallenges(1) });
+      presenter.update();
+
+      expect(document.activeElement).toBe(document.body);
+    });
+
+    it("leaves focus alone when nothing inside the menu had it", () => {
+      const { parent, options } = setUp();
+      const presenter = presentLevelSwitcher(parent, options);
+      const elsewhere = document.createElement("textarea");
+      document.body.append(elsewhere);
+      elsewhere.focus();
+
+      presenter.update();
+
+      expect(document.activeElement).toBe(elsewhere);
+    });
   });
 });
