@@ -389,26 +389,49 @@ GitHub Pages project sub-path, without further configuration.
 
 ## Project structure
 
+The UI follows [Feature-Sliced Design](https://feature-sliced.design/): six layers, each only
+allowed to import from the ones below it. `src/game` and `src/i18n` sit outside that stack as
+dependency-free kernel libraries every layer may import — the simulation has no business being
+UI-aware, and the message catalogue is needed everywhere.
+
 ```
 src/
-  game/     the simulation: elevators, floors, passengers, physics, challenges,
-            the event emitter, and the facades handed to player code
-  ui/       DOM presenters, markup templates, inline SVG icons, CodeMirror editor
-  app/      hash router, challenge orchestration, fitness benchmark worker
-  cli/      the benchmark as a terminal command; the only part of src/ not
-            meant for a browser
-  i18n/     message catalogue, locale detection, plural and number formatting
-  styles/   the single stylesheet
-  main.ts   entry point: wires the three layers together and starts the router
-  docs.ts   entry point for the documentation pages (styles and font only)
+  game/       the simulation: elevators, floors, passengers, physics, challenges,
+              the event emitter, and the facades handed to player code
+  i18n/       message catalogue, locale detection, plural and number formatting
+  shared/     business-agnostic primitives: DOM helpers, markup templating, icons,
+              modal/popover/disclosure widgets, geometry math
+  entities/   UI-facing concepts: challenge, challenge tier, elevator, floor,
+              passenger, tutorial task, API reference entry
+  features/   one user action each: run the simulation, adjust speed, manage code
+              slots/seed, switch level/language/theme/layout, docs search, hotkeys help
+  widgets/    composed regions of the page: app bar, level switcher, goal bar,
+              building stage, stats panel, editor pane, workspace layout, verdict toast
+  pages/game/ the game page: wires every widget above to a running challenge
+  app/        fitness benchmark worker; the only thing left here once routing and
+              orchestration moved into pages/game
+  ui/         pre-FSD holdover: the CodeMirror integration (deliberately never
+              moved — its editor.js port is untouched by this migration) plus a
+              few utility modules not yet distributed into shared/
+  cli/        the benchmark as a terminal command; the only part of src/ not
+              meant for a browser
+  styles/     the single stylesheet
+  main.ts     entry point: mounts the game page and starts it
+  docs.ts     entry point for the documentation pages (styles and font only)
 ```
 
-The layering rule is one-directional and worth keeping: **`src/game` never touches the DOM.** It
-imports nothing from `src/ui` or `src/app`, holds no element references, and has no opinion about
-how a lift is drawn. That is why the simulation runs under Vitest's plain `node` environment with no
+Each layer's boundary is enforced by hand-rolled `no-restricted-imports` rules in
+`eslint.config.js`, not just convention: `shared` cannot import from `entities` and up, `entities`
+cannot import from `features` and up, and so on through `pages`. Path aliases mirror the layers
+(`#shared/*`, `#entities/*`, `#features/*`, `#widgets/*`, `#pages/*`, `#app/*`, `#game/*`,
+`#i18n/*`, declared in `tsconfig.json` and mirrored in `vite.config.ts` and `package.json`'s
+`imports` field) — a `#`-prefix in an import always names a layer, never a relative path.
+
+The one rule that predates FSD and still matters most: **`src/game` never touches the DOM.** It
+imports nothing from any UI layer, holds no element references, and has no opinion about how a
+lift is drawn. That is why the simulation runs under Vitest's plain `node` environment with no
 jsdom and no rendering setup at all, and why the fitness benchmark can run the whole thing inside a
-web worker. `src/ui` renders what `src/game` reports; `src/app` is the glue that decides which
-challenge is running and feeds the player's code in.
+web worker.
 
 ## URL parameters
 
