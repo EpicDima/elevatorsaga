@@ -208,15 +208,6 @@ export function presentControls(
 }
 
 /**
- * Renders a time scale the way the run controls show it.
- *
- * Re-exported from `#features/adjust-speed`, which now owns it — kept
- * reachable from here too since this module's own tests still ask for it by
- * this name.
- */
-export { formatTimeScale } from "#features/adjust-speed/index.ts";
-
-/**
  * Renames a building that is already drawn, in the language active now.
  *
  * The building is the one region of the page that cannot be redrawn to change
