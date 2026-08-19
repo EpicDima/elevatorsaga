@@ -45,25 +45,16 @@
  *   error    #d54 kept on the editor      3.57:1           (needs 3)
  *   stats    #999 -> #9c9c9c on world    4.43:1 -> 4.60:1  (needs 4.5)
  *   buttons  #333 on #777 -> on #9c9c9c  2.82:1 -> 4.60:1  (needs 4.5)
- *   floor no 15% -> 60% white on a band  1.40:1 -> 3.29:1  (needs 3)
  *
  * The rest of the building is dim on purpose and stays that way: the unlit call
  * buttons, the direction arrows and the car's button panel are painted at
- * 20-30% white because it is the lit state that carries the information
- * (6.45:1 for a lit call button), and reading an unpressed button as unpressed
- * does not depend on reading it clearly. The floor numbers used to be defended
- * by that same sentence and never belonged in it: a floor number never lights
- * up, it is the only marking the floor carries, and at 32px it is large text,
- * so 1.4.3 asks 3:1 of it and it was at 1.40.
- *
- * The floor indicator inside a car was the last one short, and the only one
- * here that could not be repaired by *lightening* it: at 15px it needs 4.5:1,
- * and white -- the lightest foreground there is -- reaches 4.13 on
- * --color-elevator. That is a fact about the light side only. The car is a
- * mid-tone (relative luminance 0.204), so the dark side has the headroom the
- * light side lacks, and the number went dark instead:
- *
- *   car floor no 30% white -> #111 on the car   1.63:1 -> 4.57:1  (needs 4.5)
+ * 20-30% white (or --ds-text-faint on a floor band) because it is the lit
+ * state that carries the information, and reading an unpressed button as
+ * unpressed does not depend on reading it clearly. The floor numbers and the
+ * car's own floor indicator do not get that exemption -- a floor number never
+ * lights up, it is the only marking the floor carries, and the digit inside a
+ * car is the one thing a player reads off a moving elevator -- so both are held
+ * to a real bar instead; see --ds-text-muted and --ds-car-ink below.
  */
 :root {
   /* Palette */
@@ -93,41 +84,8 @@
    */
   --color-error: #d54;
   --color-error-on-page: #812318;
-  /*
-   * The one passenger the game is pointing at, inside the building. It is not
-   * the error colour, which is what a message is coloured: this mark has to
-   * survive three backgrounds at once and #d54 survives one of them.
-   * The measurements are with the rule that uses it, at `.user.waiting-longest`.
-   */
-  --color-attention: #ff0;
   --color-focus: #333;
-  --color-world: #333;
-  --color-elevator: #4f8686;
   --color-lit: #33ff44;
-  /*
-   * The number painted down the left edge of each floor. Translucent white, as
-   * it always was, because it has to sit on a band whose own colour changes
-   * down its height; what changed is how much of it there is. The band's
-   * lightest point is `.floor`'s gradient at 24% white over --color-world,
-   * which is #646464, and 60% white composites to #c1c1c1 on it -- 3.29:1,
-   * against the 3:1 that 32px text is asked for. Sampling the running page in
-   * Chromium reads 3.35:1, because the brightest row a number is actually
-   * drawn across is a shade below the gradient's peak; the arithmetic is the
-   * stricter of the two, which is the one worth holding. `style.test.ts`
-   * recomputes both composites from these values and the gradient beside them,
-   * so lightening the band is caught as readily as dimming the number.
-   */
-  --color-floor-number: rgb(255 255 255 / 60%);
-  /*
-   * The floor a car is at, painted inside the car. The only dark marking in the
-   * building, and dark for a reason: --color-elevator is light enough that white
-   * on it stops at 4.13:1, short of the 4.5 that 15px text is asked for, and
-   * dark enough that a near-black number clears it at 4.57. Not #000, which the
-   * palette has nowhere else and which buys half a point nobody can see; not
-   * #333 either, which is the darkest grey already here and only reaches 3.06.
-   * `style.test.ts` measures the pair against the size the number is set at.
-   */
-  --color-car-number: #111;
   --color-stats: #9c9c9c;
   --color-control: #9c9c9c;
   --color-control-border: #666;
@@ -320,6 +278,19 @@
   --ds-car: #333c47;
   --ds-car-edge: #48545f;
   --ds-person: #b9c2cf;
+  /*
+   * The car is a mid-dark surface in both themes -- #333c47 here, #46505c in
+   * the light one -- close enough in luminance that a single fixed value reads
+   * on either, unlike --ds-shaft, which flips from near-black to near-white
+   * between them. --ds-person is tuned against --ds-shaft and drops to 1.83:1
+   * on --ds-car in the light theme, so anything painted on the car itself --
+   * the floor indicator, a lit direction arrow, a rider once boarded -- needs
+   * one of these three instead, declared once with no light-theme override.
+   * `style.test.ts` checks all three against both --ds-car values.
+   */
+  --ds-car-ink: #f0f2f5;
+  --ds-car-person: #cdd5e0;
+  --ds-car-attention: #ffff00;
 
   /* The editor. */
   --ds-code-bg: #15181d;
@@ -2450,7 +2421,7 @@ kbd {
 .world {
   --color-focus: var(--color-emphasis);
 
-  background-color: var(--color-world);
+  background-color: var(--ds-shaft);
   overflow-x: auto;
   overflow-y: hidden;
 }
@@ -2495,7 +2466,7 @@ kbd {
 .innerworld {
   position: relative;
   inline-size: var(--building-width);
-  border-inline: 1px solid black;
+  border-inline: 1px solid var(--ds-line-strong);
   font-family: var(--font-body);
 }
 
@@ -2503,6 +2474,15 @@ kbd {
   position: absolute;
 }
 
+/*
+ * `.feedback .emphasis-color` counts on this overlay reading as dark
+ * regardless of what shows through it, but --world's background is --ds-shaft
+ * now, which is a light surface in the light theme -- and 60% no longer darkens
+ * it enough: composited over --ds-shaft's light value the pale emphasis colour
+ * drops to 3.99:1, short of the 4.5:1 that text is asked for. 70% keeps both
+ * themes' composites past that bar (5.27 light, 13.48 dark) without giving the
+ * dark theme's already-comfortable margin (13.98 at 60%) anywhere to go wrong.
+ */
 .feedback {
   position: absolute;
   inline-size: 1280px;
@@ -2510,7 +2490,7 @@ kbd {
   padding-block-start: 20px;
   line-height: 20px;
   text-align: center;
-  background-color: rgb(44 44 44 / 60%);
+  background-color: rgb(44 44 44 / 70%);
   overflow: hidden;
   z-index: 5;
 }
@@ -2522,14 +2502,24 @@ kbd {
   display: block;
 }
 
+/*
+ * A passenger reads against two different surfaces depending on whether they
+ * are still on a floor or already in a car: --ds-shaft (or a floor band over
+ * it), which flips light/dark with the theme, and --ds-car, which does not.
+ * `.boarded` is the DOM's own record of which one applies -- set from
+ * `user.parent` in passenger-view.ts -- so each surface gets a colour tuned
+ * against it, rather than one flat value trying to survive both (the old
+ * one-colour-for-everywhere approach is what --ds-car-ink and --ds-car-person
+ * exist to replace; see their comment in the palette above).
+ */
 .user {
-  color: white;
+  color: var(--ds-person);
   filter: drop-shadow(0 1px 3px black);
   z-index: 2;
 }
 
-.user.leaving {
-  color: #eee;
+.user.boarded {
+  color: var(--ds-car-person);
 }
 
 /*
@@ -2537,40 +2527,23 @@ kbd {
  *
  * Upstream #135 asked for this and it was never built: the panel on the right
  * says the Max delivery time is 14.6 seconds, and the player has no way to
- * tell which of thirty identical white figures that is, so it reports a
- * problem it gives no way to look at. src/game/world.ts already measured that
- * number every frame; it now remembers whose it is.
+ * tell which of thirty identical figures that is, so it reports a problem it
+ * gives no way to look at. src/game/world.ts already measured that number
+ * every frame; it now remembers whose it is, for as long as they are
+ * un-delivered -- which, per world.ts's own `#setLongestWaitingUser`, includes
+ * the ride, not just the wait for one, so this has to work boarded too.
  *
- * A passenger is a graphical object rather than text, so the bar is WCAG
- * 1.4.11's 3:1, and it has to be cleared against every surface a passenger is
- * ever drawn on -- which is three surfaces, not one. They wait on a floor,
- * whose band is --color-world under a white gradient running from 10% to 24%;
- * they ride inside a car painted --color-elevator; and they walk off the right
- * edge across the bare --color-world. The wait being counted here runs until
- * they step out, so the marked passenger passes through all of it. Measured in
- * Chromium against the composited colours:
- *
- *                              #333    #474747  #5c5c5c  #646464  #4f8686
- *                              shaft   floor 10%    20%      24%      car
- *   #ff0  --color-attention   11.77      8.65     6.23     5.51     3.84
- *   #d54  --color-error        3.28      2.41     1.74     1.54     1.07
- *   #fff  the other passengers 12.63     9.29     6.69     5.92     4.13
- *
- * Red is the colour this obviously wanted to be, and it is the one colour that
- * cannot be used: on the lit part of a floor band -- which is exactly where a
- * passenger stands while the wait being complained about accrues -- #d54 is at
- * 1.54:1, and inside a car it is at 1.07:1 and simply gone. Yellow clears the
- * bar everywhere with the car as its worst case, and being the furthest hue
- * from white it is also the easiest to pick out of a row of white figures,
- * which is the actual job. It is not --color-lit's green, which already means
- * "this button is pressed" a few pixels away.
- *
- * Colour is not the only way to find this passenger: the number it belongs to
- * is in the statistics panel, and the mark is a shortcut to it rather than the
- * only telling of it (1.4.1).
+ * A passenger is a graphical object, so the bar is WCAG 1.4.11's 3:1.
+ * --ds-accent -- the same colour the rest of the page already uses for "this
+ * needs attention" -- clears it against --ds-shaft in both themes (8.63 dark,
+ * 3.53 light) with the car handled separately below, through `.boarded`.
  */
 .user.waiting-longest {
-  color: var(--color-attention);
+  color: var(--ds-accent);
+}
+
+.user.boarded.waiting-longest {
+  color: var(--ds-car-attention);
 }
 
 /* --------------------------------------------------------------- Statistics */
@@ -2789,8 +2762,8 @@ kbd {
 
 .elevator {
   block-size: calc(var(--elevator-height) - 2 * var(--elevator-border));
-  border: var(--elevator-border) solid white;
-  background-color: var(--color-elevator);
+  border: var(--elevator-border) solid var(--ds-car-edge);
+  background-color: var(--ds-car);
   z-index: 1;
 }
 
@@ -2812,15 +2785,23 @@ kbd {
   color: rgb(255 255 255 / 20%);
 }
 
+/*
+ * The mockup lights a direction arrow with --accent-hi, the same themed accent
+ * every other "lit" indicator on the page uses -- but --ds-accent-hi is tuned
+ * against --ds-shaft, and on the light theme's --ds-car it is 1.35:1. It is
+ * drawn directly on the car body, so it gets --ds-car-ink instead, same as the
+ * floor indicator below.
+ */
 .elevator .directionindicator .icon.activated {
-  color: var(--color-lit);
+  color: var(--ds-car-ink);
 }
 
 /*
- * The floor the car is at. The one marking a player reads off a moving car, and
- * for twelve years it was 15px at 30% white on the car itself -- 1.63:1, which
- * is a shape where a digit should be. It is --color-car-number now, and the
- * arithmetic behind that value is written beside it.
+ * The floor the car is at. The one marking a player reads off a moving car,
+ * and for twelve years it was 15px at 30% white on the car itself -- 1.63:1,
+ * which is a shape where a digit should be. --ds-car-ink clears 15px's 4.5:1
+ * against both --ds-car values with real margin (9.97 dark, 7.31 light) --
+ * see its comment in the palette above.
  *
  * The size is untouched on purpose, because there is nowhere to grow into. A
  * car is ten pixels per passenger and a border: 44px at capacity 4, which is
@@ -2837,7 +2818,7 @@ kbd {
   inline-size: 100%;
   font-size: 15px;
   text-align: center;
-  color: var(--color-car-number);
+  color: var(--ds-car-ink);
 }
 
 .elevator .buttonindicator {
@@ -2865,7 +2846,7 @@ kbd {
   position: absolute;
   inline-size: 100%;
   block-size: calc(var(--floor-height) - 1px);
-  border-block-end: 1px solid var(--color-world);
+  border-block-end: 1px solid var(--ds-shaft-line);
   background: linear-gradient(
     rgb(255 255 255 / 10%),
     rgb(255 255 255 / 20%),
@@ -2877,19 +2858,33 @@ kbd {
 .floor .buttonindicator {
   padding-inline-start: 50px;
   line-height: var(--floor-height);
-  color: rgb(255 255 255 / 20%);
+  color: var(--ds-text-faint);
 }
 
+/*
+ * The mockup lights a call button with --accent, and unlike the direction
+ * arrow inside a car this one is drawn on the floor band, not the car, so the
+ * themed token survives: --ds-accent clears 3:1 against the band's own
+ * lightest point (24% white over --ds-shaft) in both themes -- 4.01 dark,
+ * 3.74 light.
+ */
 .floor .buttonindicator .activated {
-  color: rgb(55 255 55);
+  color: var(--ds-accent);
 }
 
+/*
+ * A floor number never lights up -- it is the only marking the floor carries
+ * -- so unlike the unlit call button above it does not get the "the lit state
+ * carries the information" exemption: at 32px it needs a real 3:1 against the
+ * band it sits on. --ds-text-muted clears that against the band's lightest
+ * point in both themes (3.39 dark, 4.92 light); `style.test.ts` checks it.
+ */
 .floor .floornumber {
   position: absolute;
   padding-inline-start: 10px;
   font-size: 32px;
   line-height: var(--floor-height);
-  color: var(--color-floor-number);
+  color: var(--ds-text-muted);
 }
 
 /* --------------------------------------------------------- Fullscreen demo */

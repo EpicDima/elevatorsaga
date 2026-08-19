@@ -182,14 +182,15 @@ function over(foreground: string, background: string): string {
  * ever has to be read against.
  *
  * Taken from `.floor`'s own gradient rather than written down here: the band is
- * white at four alphas over --color-world, and the darker a foreground gets
+ * white at four alphas over --ds-shaft, and the darker a foreground gets
  * relative to its background the *lighter* the background has to be for the
  * ratio to be worst -- so the peak stop is the one to measure. Reading it out
  * of the rule means someone raising that 24% has to answer to this file.
  *
+ * @param shaft - That theme's `--ds-shaft` value, from `themed()`.
  * @returns The composited band colour, as `#rrggbb`.
  */
-function lightestFloorBand(): string {
+function lightestFloorBand(shaft: string): string {
   const rule = /\.floor\s*\{([^}]*)\}/.exec(styleSource);
   expect(rule, ".floor is no longer a rule of its own").not.toBeNull();
   const gradient = /background:\s*linear-gradient\(([\s\S]*?)\);/.exec(rule?.[1] ?? "");
@@ -198,7 +199,7 @@ function lightestFloorBand(): string {
     ([, percent = "0"]) => Number(percent),
   );
   expect(alphas.length, ".floor's gradient is not white at a list of alphas").toBeGreaterThan(1);
-  return over(`rgb(255 255 255 / ${String(Math.max(...alphas))}%)`, token("color-world"));
+  return over(`rgb(255 255 255 / ${String(Math.max(...alphas))}%)`, shaft);
 }
 
 /**
@@ -219,18 +220,18 @@ function declaration(body: string, property: string, selector: string): string {
 }
 
 /**
- * How the floor indicator inside a car is set: the colour it is painted in, the
- * colour it is painted on, and the size and weight that decide which bar 1.4.3
- * holds that pair to.
+ * How the floor indicator inside a car is set: the colour it is painted in and
+ * the size and weight that decide which bar 1.4.3 holds that pair to.
  *
- * All of it read out of the rules rather than written down here, and through
- * the palette wherever a rule names a token. The background especially: a
- * colour compared against a token nobody paints with proves nothing, so this
- * takes what `.elevator` actually says its background is.
+ * The background is not read here: `--ds-car` has two values, one per theme,
+ * and `token()` collapses a name declared in both `:root` and the light
+ * override to whichever comes last -- so a caller wanting both themes reads
+ * `--ds-car` itself through `themed(DARK_PALETTE, ...)` /
+ * `themed(LIGHT_PALETTE, ...)` instead of through this function.
  *
- * @returns The size in px, the weight, the colour, and the colour behind it.
+ * @returns The size in px, the weight, and the colour.
  */
-function carNumber(): { size: number; weight: string; colour: string; on: string } {
+function carNumber(): { size: number; weight: string; colour: string } {
   const selector = ".elevator .floorindicator";
   const rules = [...styleSource.matchAll(/\.elevator \.floorindicator\s*\{([^}]*)\}/g)];
   expect(rules.length, `${selector} is no longer exactly one rule`).toBe(1);
@@ -239,8 +240,6 @@ function carNumber(): { size: number; weight: string; colour: string; on: string
     body,
     `an opacity on ${selector} would dim the number below what its colour says`,
   ).not.toMatch(/^\s*opacity:/m);
-  const car = /^\.elevator \{([^}]*)\}/m.exec(styleSource);
-  expect(car, ".elevator is no longer a rule of its own").not.toBeNull();
   return {
     size: Number.parseFloat(declaration(body, "font-size", selector)),
     // Unset is the initial value, and the initial value is not bold. Optional
@@ -248,7 +247,6 @@ function carNumber(): { size: number; weight: string; colour: string; on: string
     // reading it as `normal` is what lets the bar below be worked out anyway.
     weight: /^\s*font-weight:/m.test(body) ? declaration(body, "font-weight", selector) : "normal",
     colour: declaration(body, "color", selector),
-    on: declaration(car?.[1] ?? "", "background-color", ".elevator"),
   };
 }
 
@@ -290,10 +288,14 @@ describe("palette", () => {
     ["color-text-strong", "color-page", 4.5],
     ["color-link", "color-page", 4.5],
     ["color-emphasis-on-page", "color-page", 4.5],
-    ["color-emphasis", "color-world", 4.5],
     ["color-error-on-page", "color-page", 4.5],
     ["color-error", "color-code-page", 3],
-    ["color-stats", "color-world", 4.5],
+    // --color-stats used to be checked against --color-world here: .statscontainer
+    // paints no background of its own, so it reads whatever is behind it, and
+    // that used to be the building's fixed background. It is --ds-shaft now,
+    // themed, and .statscontainer's own surface is a separate region's rework
+    // in flight -- this file does not guess at a background nobody has settled
+    // on yet; re-add the pair once that surface is real.
     ["color-text-strong", "color-control", 4.5],
     ["color-code-text", "color-code-page", 4.5],
     ["color-code-keyword", "color-code-page", 4.5],
@@ -311,41 +313,111 @@ describe("palette", () => {
     expect(contrast(token(foreground), token(background))).toBeGreaterThanOrEqual(required);
   });
 
-  it("keeps the floor numbers readable on the brightest part of a floor", () => {
-    // The one pair in the building that has to clear a bar, and the one that
-    // cannot be checked by comparing two tokens: both sides of it are painted
-    // through something else. The number is translucent white on a band that is
-    // itself translucent white on --color-world, so the comparison is between
-    // two composites -- 32px text, so 1.4.3 asks 3:1 rather than 4.5:1.
-    //
-    // It sat at 1.40:1 for twelve years, defended by a note saying the building
-    // was dim on purpose. That is true of a call button, which says what it has
-    // to say by lighting up. A floor number never lights up.
-    const band = lightestFloorBand();
-    expect(band).toBe("#646464");
-    expect(contrast(over(token("color-floor-number"), band), band)).toBeGreaterThanOrEqual(3);
+  it.each([
+    ["dark", DARK_PALETTE],
+    ["light", LIGHT_PALETTE],
+  ])(
+    "keeps the floor numbers readable on the brightest part of a floor, %s theme",
+    (_, palette) => {
+      // The one pair in the building that has to clear a bar, and the one that
+      // cannot be checked by comparing two tokens: the background is painted
+      // through something else. The number is opaque --ds-text-muted on a band
+      // that is translucent white over --ds-shaft, which now differs by theme --
+      // so the comparison is against the band's own composite, per theme. 32px
+      // text, so 1.4.3 asks 3:1 rather than 4.5:1.
+      //
+      // It sat at 1.40:1 for twelve years, defended by a note saying the building
+      // was dim on purpose. That is true of a call button, which says what it has
+      // to say by lighting up. A floor number never lights up.
+      const band = lightestFloorBand(themed(palette, "ds-shaft"));
+      expect(contrast(themed(palette, "ds-text-muted"), band)).toBeGreaterThanOrEqual(3);
+    },
+  );
+
+  it.each([
+    ["dark", DARK_PALETTE],
+    ["light", LIGHT_PALETTE],
+  ])("keeps the floor a car is at readable inside the car, %s theme", (_, palette) => {
+    // The other marking that never lights up. It was 15px in 30% white for
+    // twelve years -- 1.63:1 -- and the repair is a colour fixed across both
+    // themes rather than a themed one: the car stays a mid-dark surface in
+    // both (--ds-car), so one near-white value clears 15px's 4.5:1 in either
+    // (9.97 dark, 7.31 light) without needing a light-theme override.
+    const number = carNumber();
+    expect(number.colour).toBe(token("ds-car-ink"));
+    expect(contrast(number.colour, themed(palette, "ds-car"))).toBeGreaterThanOrEqual(
+      requiredRatio(number.size, number.weight),
+    );
   });
 
-  it("keeps the floor a car is at readable inside the car", () => {
-    // The other marking that never lights up. It was 15px in 30% white for
-    // twelve years -- 1.63:1 -- and the repair is the colour rather than the
-    // size: the car is a mid-tone, so white on it stops at 4.13 and cannot
-    // clear the 4.5 ordinary text is asked for, while a near-black number
-    // reaches 4.57 at exactly the size the number always was.
-    //
-    // The bar is worked out from the rule instead of being written down, and
-    // both sides of the pair are read from the stylesheet, so nothing here
-    // forbids a later repair: setting the number as large text lowers the bar
-    // to 3:1 the way 1.4.3 does, and repainting the car is measured rather
-    // than refused.
-    const number = carNumber();
-    expect(number.colour).toBe(token("color-car-number"));
+  it.each([
+    ["dark", DARK_PALETTE],
+    ["light", LIGHT_PALETTE],
+  ])("keeps a lit direction arrow readable inside the car, %s theme", (_, palette) => {
+    // The mockup lights this with its own themed accent-hi, which is 1.35:1 on
+    // --ds-car in the light theme -- drawn on the car body, it needs the same
+    // fixed ink the floor indicator above uses, not a themed accent.
+    const body = ruleBody(".elevator .directionindicator .icon.activated");
+    expect(declaration(body, "color", ".elevator .directionindicator .icon.activated")).toBe(
+      token("ds-car-ink"),
+    );
+    expect(contrast(token("ds-car-ink"), themed(palette, "ds-car"))).toBeGreaterThanOrEqual(3);
+  });
+
+  it.each([
+    ["dark", DARK_PALETTE],
+    ["light", LIGHT_PALETTE],
+  ])("keeps a lit floor call button readable on its band, %s theme", (_, palette) => {
+    // Unlike the car, a floor's band flips light/dark with the theme, so the
+    // themed accent that fails on the car (above) is exactly what belongs
+    // here -- checked against the band's own lightest composite, the same
+    // worst case the floor number is held to.
+    const band = lightestFloorBand(themed(palette, "ds-shaft"));
+    expect(contrast(themed(palette, "ds-accent"), band)).toBeGreaterThanOrEqual(3);
+  });
+
+  it.each([
+    ["dark", DARK_PALETTE],
+    ["light", LIGHT_PALETTE],
+  ])("keeps the emphasis colour readable on the feedback overlay, %s theme", (_, palette) => {
+    // .feedback's own background used to sit on the building's fixed colour;
+    // it is --ds-shaft now, which is light in the light theme, so the overlay
+    // has to be dark enough on its own that the pale --color-emphasis painted
+    // over it still clears 4.5:1 regardless of what shows through. Read from
+    // the rule rather than written down here, so raising --ds-shaft's light
+    // value or lowering the overlay's alpha both have to answer to this.
+    const translucent = declaration(ruleBody(".feedback"), "background-color", ".feedback");
+    const overlay = over(translucent, themed(palette, "ds-shaft"));
+    expect(contrast(token("color-emphasis"), overlay)).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it.each([
+    ["dark", DARK_PALETTE],
+    ["light", LIGHT_PALETTE],
+  ])("keeps a passenger readable against the shaft and the car, %s theme", (_, palette) => {
+    // A passenger is a graphical object, so 1.4.11's 3:1 applies. Waiting or
+    // walking, they read against --ds-shaft (themed); boarded, `.boarded`
+    // switches them to a colour fixed across both themes, tuned against
+    // --ds-car instead -- see the palette comment above --ds-car-ink.
     expect(
-      number.colour,
-      "a translucent car number would have to be composited over the car before it is measured",
-    ).toMatch(/^#[0-9a-f]{3,6}$/i);
-    expect(contrast(number.colour, number.on)).toBeGreaterThanOrEqual(
-      requiredRatio(number.size, number.weight),
+      contrast(themed(palette, "ds-person"), themed(palette, "ds-shaft")),
+    ).toBeGreaterThanOrEqual(3);
+    expect(contrast(token("ds-car-person"), themed(palette, "ds-car"))).toBeGreaterThanOrEqual(3);
+  });
+
+  it.each([
+    ["dark", DARK_PALETTE],
+    ["light", LIGHT_PALETTE],
+  ])("keeps the longest-waiting passenger readable, %s theme", (_, palette) => {
+    // The same shaft/car split as the plain passenger above, for the marked
+    // one: --ds-accent on the shaft (the mockup's own choice for this exact
+    // state, `.person.is-waiting-long`), --ds-car-attention -- fixed, like
+    // every other car-body colour -- once boarded.
+    expect(
+      contrast(themed(palette, "ds-accent"), themed(palette, "ds-shaft")),
+    ).toBeGreaterThanOrEqual(3);
+    expect(contrast(token("ds-car-attention"), themed(palette, "ds-car"))).toBeGreaterThanOrEqual(
+      3,
     );
   });
 

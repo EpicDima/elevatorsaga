@@ -4,14 +4,17 @@
  * `src/ui/presenters.ts`.
  *
  * Built for widget 6b ("Building/stage rendering + hover cards"), wired
- * exactly as `presentUser` wired a passenger in what was `src/ui/presenters.ts` —
+ * mostly as `presentUser` wired a passenger in what was `src/ui/presenters.ts` —
  * `leaving`/`waiting-longest` classes, removal on the `removed` event — with
- * one difference: the position multiplies `worldX`/`worldY` by
+ * two differences: the position multiplies `worldX`/`worldY` by
  * {@link StageScale}'s current `scaleX`/`scaleY`, read fresh on every
  * `new_display_state` rather than cached, the same way `entities/elevator`
- * does. Unlike `presentUser`, this view does not append itself to a parent;
- * `widgets/building-stage` owns that, the same way it owns appending floors
- * and cars.
+ * does; and a `boarded` class, from `user.parent`, that `presentUser` never
+ * had reason to track — the shaft and the car are painted differently enough
+ * now (see `.user.boarded` in style.css) that a passenger's colour has to
+ * know which one it is standing on. Unlike `presentUser`, this view does not
+ * append itself to a parent; `widgets/building-stage` owns that, the same way
+ * it owns appending floors and cars.
  */
 
 import type { User } from "#game/user.ts";
@@ -71,6 +74,7 @@ export function createPassengerView(user: User, scale: StageScale): PassengerVie
     if (user.done) {
       element.classList.add("leaving");
     }
+    setClass(element, "boarded", user.parent !== null);
     setClass(element, "waiting-longest", user.waitingLongest);
   });
   user.on("removed", () => {
