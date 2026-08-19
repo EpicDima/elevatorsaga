@@ -452,6 +452,32 @@ describe("ds palette on the page background", () => {
   });
 });
 
+describe("ds code palette on the code background", () => {
+  // pre code and .cm-editor both paint --ds-code-bg now, and .tok-* (the
+  // eight tutorial answers' syntax colours) and .cm-gutters (the live
+  // editor's line numbers) paint straight onto it, at 13px and smaller --
+  // 1.4.3 asks 4.5:1 of all of it. --ds-code-key/-fn/-str/-num/-text are the
+  // mockup's own values, already clearing the bar; --ds-code-com and
+  // --ds-code-line are not the mockup's own -- see .tok-comment's and
+  // .cm-gutters's own comments in style.css for the two numbers each was
+  // retuned from.
+  it.each([
+    ["ds-code-text", "ds-code-bg", 4.5],
+    ["ds-code-key", "ds-code-bg", 4.5],
+    ["ds-code-fn", "ds-code-bg", 4.5],
+    ["ds-code-str", "ds-code-bg", 4.5],
+    ["ds-code-num", "ds-code-bg", 4.5],
+    ["ds-code-com", "ds-code-bg", 4.5],
+    ["ds-code-line", "ds-code-bg", 4.5],
+  ])("has --%s readable on --%s in both themes", (foreground, background, required) => {
+    for (const palette of [DARK_PALETTE, LIGHT_PALETTE]) {
+      expect(
+        contrast(themed(palette, foreground), themed(palette, background)),
+      ).toBeGreaterThanOrEqual(required);
+    }
+  });
+});
+
 /**
  * Reads a rule's body out of the stylesheet.
  *

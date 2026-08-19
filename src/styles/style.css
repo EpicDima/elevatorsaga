@@ -299,9 +299,9 @@
   --ds-code-fn: #7fb2e0;
   --ds-code-str: #8fbf85;
   --ds-code-num: #d9a05b;
-  --ds-code-com: #6b7482;
+  --ds-code-com: #77818f;
   --ds-code-punc: #97a0ad;
-  --ds-code-line: #4a5361;
+  --ds-code-line: #748195;
   --ds-code-active: rgb(255 255 255 / 3.5%);
 
   --ds-shadow: 0 10px 30px rgb(0 0 0 / 45%);
@@ -383,9 +383,9 @@ html[data-theme="light"] {
   --ds-code-fn: #1f6394;
   --ds-code-str: #2c7a4c;
   --ds-code-num: #8a5a0c;
-  --ds-code-com: #8b929c;
+  --ds-code-com: #6d7580;
   --ds-code-punc: #6b727c;
-  --ds-code-line: #b4b0a6;
+  --ds-code-line: #797466;
   --ds-code-active: rgb(0 0 0 / 3%);
 
   --ds-shadow: 0 10px 30px rgb(60 50 30 / 14%);
@@ -2060,12 +2060,18 @@ html[data-theme="dark"] .tasklink.is-done {
   margin-block: 8px 4px;
 }
 
+/*
+ * The chrome is `.codeslot`'s own, now: both are a button-shaped mark beside
+ * a piece of code, and `--ds-text` on `--ds-raised` clears 4.5:1 by a wide
+ * margin in both themes (12.96:1 dark, 15.07:1 light) so the swap needs no
+ * further tuning the way the editor's own tokens did.
+ */
 .tutorialcopycode {
   padding: 5px 10px;
-  border: 1px solid var(--color-control-border);
-  border-radius: 5px;
-  background-color: var(--color-control);
-  color: var(--color-text-strong);
+  border: 1px solid var(--ds-line-strong);
+  border-radius: var(--ds-r-sm);
+  background-color: var(--ds-raised);
+  color: var(--ds-text);
   font-size: 13px;
   font-weight: bold;
 }
@@ -2296,43 +2302,179 @@ kbd {
 /* ------------------------------------------------------------------- Editor */
 
 /*
- * The chrome is the run buttons' own, so every button-shaped control on the
- * page reads as one set.
+ * `widgets/editor-pane` mounts into this container -- `id="code"` in
+ * `index.html`, ahead of `widgets/workspace-layout`'s own `.pane-code`
+ * cutover, which is why the background is stated again here rather than
+ * inherited from a `.pane-code` ancestor that is not this element's parent
+ * yet. Same value either way, so the redeclaration costs nothing once the
+ * shell does move onto `.pane-code` and this rule stops matching anything.
  */
-.codeslot {
-  block-size: 30px;
-  min-inline-size: 30px;
-  padding-inline: 10px;
-  border: 1px solid var(--color-control-border);
-  border-radius: 5px;
-  background-color: var(--color-control);
-  color: var(--color-text-strong);
-  font-size: 16px;
-  font-weight: bold;
-  line-height: 16px;
-  text-shadow: 0 0 3px #aaa;
+.code {
+  background: var(--ds-code-bg);
 }
 
 /*
- * The slot open in the editor right now. The fill is the accent inverted, and
- * the underline is there so the mark is not carried by colour alone (WCAG
- * 1.4.1). It is also what survives forced-colours mode, where the system
- * repaints the fill but leaves the decoration.
+ * The header row above the editor: the slot switcher, and the tools beside
+ * it. `.codebar`/`.slots`/`.codetools`/`.errorline`/`.editor` are
+ * `widgets/editor-pane`'s own classes, ported from `design/ui-mockup.html`'s
+ * `.pane.pane-code` -- see that widget's own module comment for the three
+ * places this pane does not draw a straight copy of it.
+ */
+.codebar {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex: 0 0 auto;
+  block-size: var(--ds-panelbar-h);
+  padding: 0 10px 0 12px;
+  border-block-end: 1px solid var(--ds-line);
+  background: var(--ds-panel);
+}
+
+/*
+ * The tray `#features/manage-code-slots` draws its three `.codeslot` buttons
+ * into. Not "versions" or "attempts": three drafts a player moves between
+ * without losing any of them, per the mockup's own comment on this rule.
+ */
+.slots {
+  display: flex;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid var(--ds-line);
+  border-radius: var(--ds-r-md);
+  background: var(--ds-bg);
+}
+
+.codeslot {
+  block-size: 26px;
+  padding-inline: 10px;
+  border-radius: var(--ds-r-sm);
+  color: var(--ds-text-muted);
+  font-size: 12.5px;
+}
+
+.codeslot:hover {
+  background: var(--ds-raised);
+  color: var(--ds-text);
+}
+
+/*
+ * The slot open in the editor right now. Colour is not the only cue (WCAG
+ * 1.4.1): the mockup's own fix is the bold weight and the inset ring, and the
+ * underline is the legacy rule's fix for the same requirement, kept alongside
+ * them because forced-colours mode repaints a fill and a box-shadow alike but
+ * leaves a text-decoration standing.
  */
 .codeslot[aria-pressed="true"] {
-  border-color: var(--color-emphasis-on-page);
-  background-color: var(--color-emphasis-on-page);
-  color: var(--color-emphasis);
+  background: var(--ds-accent-soft);
+  color: var(--ds-accent);
   text-decoration: underline;
   text-underline-offset: 2px;
-  text-shadow: none;
+  font-weight: 600;
+  box-shadow: inset 0 0 0 1px var(--ds-accent-line);
+}
+
+.codetools {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  margin-inline-start: auto;
 }
 
 /*
- * The editor carries its own background and text colour rather than inheriting
- * the page's: CodeMirror 6 ships no theme of its own beyond the syntax
- * highlighting, so without these the program sits on the page colour in the
- * white `body` inherits to the building.
+ * The shape of a low-emphasis control beside something louder -- "Reset
+ * code" and "Undo reset" here, both in `widgets/editor-pane`. The mockup
+ * draws an icon plus a `.lbl` span inside; these two buttons draw text alone,
+ * which the same flex row and padding fit as readily.
+ */
+.ghost {
+  display: flex;
+  gap: 7px;
+  align-items: center;
+  block-size: var(--ds-ctl-h);
+  padding-inline: 9px;
+  border-radius: var(--ds-r-md);
+  color: var(--ds-text-muted);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.ghost:hover:not(:disabled) {
+  background: var(--ds-raised);
+  color: var(--ds-text);
+}
+
+.ghost:disabled {
+  color: var(--ds-text-faint);
+  opacity: 0.45;
+  cursor: default;
+}
+
+.ghost[aria-pressed="true"] {
+  background: var(--ds-accent-soft);
+  color: var(--ds-accent);
+}
+
+/*
+ * Same `[hidden]` gotcha as `.errorline[hidden]` below: without this, "Undo
+ * reset" stays a focusable, visible `display: flex` row while it has no undo
+ * to offer.
+ */
+.ghost[hidden] {
+  display: none;
+}
+
+/*
+ * "There is a problem with your code." The border is the mockup's own
+ * literal, `rgb(236 106 91 / 30%)`, ported as `color-mix()` over `--ds-bad`
+ * instead of restated per theme: the mockup only ever draws this in its dark
+ * palette, so the literal has no light-theme counterpart to carry forward,
+ * where the mix follows `--ds-bad` into whichever theme is active the same
+ * way `.tasklink.is-done`'s own border and background already do for
+ * `--tier-tint`.
+ */
+.errorline {
+  display: flex;
+  gap: 9px;
+  align-items: flex-start;
+  flex: 0 0 auto;
+  padding: 8px 12px;
+  border-block-end: 1px solid color-mix(in srgb, var(--ds-bad) 30%, transparent);
+  background: var(--ds-bad-soft);
+  color: var(--ds-bad);
+  font-size: 12.5px;
+}
+
+/*
+ * `[hidden]`'s UA rule is `display: none`, but the flex rule above is an
+ * author rule of equal specificity that comes later in the cascade and would
+ * otherwise win, showing an empty flex row until the first error arrives.
+ */
+.errorline[hidden] {
+  display: none;
+}
+
+.errorline .errormessage {
+  font-family: var(--ds-font-mono);
+  color: var(--ds-text);
+}
+
+.errorline .goto {
+  margin-inline-start: auto;
+  color: var(--ds-bad);
+  text-decoration: underline;
+  white-space: nowrap;
+}
+
+/*
+ * The editor carries its own background and text colour rather than
+ * inheriting `.code`'s: CodeMirror 6 ships no theme of its own beyond the
+ * syntax highlighting, so without these the program sits on the page colour
+ * in the white `body` inherits to the building. No border, no radius, no top
+ * margin either, unlike the legacy rule: the mockup's own `.editor` is
+ * borderless and flush against `.codebar` above it, one continuous surface
+ * rather than a bordered box inset a further 10px into `.code`'s own
+ * matching background.
  */
 .cm-editor {
   /*
@@ -2350,12 +2492,33 @@ kbd {
     var(--editor-height-chosen, var(--editor-height)),
     var(--editor-height-max)
   );
-  margin-block-start: 10px;
-  border: 1px solid var(--color-control-border);
-  border-radius: 4px;
-  background-color: var(--color-code-page);
-  color: var(--color-code-text);
+  background-color: var(--ds-code-bg);
+  color: var(--ds-code-text);
   overflow: hidden;
+}
+
+/*
+ * The gutter CodeMirror's own `basicSetup` already draws -- borderless and
+ * flush against `--ds-code-bg` for the same reason `.cm-editor` is, its
+ * numbers in `--ds-code-line` rather than the mockup's own value for the
+ * same shortfall `.tok-comment`'s own comment (above) describes:
+ *
+ *   gutter  #4a5361 -> #748195   2.29:1 -> 4.50:1  (dark, needs 4.5)
+ *   gutter  #b4b0a6 -> #797466   2.09:1 -> 4.51:1  (light, needs 4.5)
+ */
+.cm-gutters {
+  border-right: none;
+  background-color: var(--ds-code-bg);
+  color: var(--ds-code-line);
+}
+
+/*
+ * The line the caret is on, in the text and in the gutter beside it --
+ * `--ds-code-active` is translucent so it reads over either.
+ */
+.cm-activeLine,
+.cm-activeLineGutter {
+  background-color: var(--ds-code-active);
 }
 
 /*
@@ -2381,6 +2544,15 @@ kbd {
   touch-action: none;
 }
 
+/*
+ * `--color-control-border` rather than a `--ds-*` line token: no other
+ * `--ds-*` region has taken a position on it yet (nothing else in the file
+ * reads it as anything but this legacy value), and the mockup draws no
+ * resizable editor at all to take one from -- this grip is a production
+ * feature beyond it. Left as it was for the same reason the sitewide
+ * `:focus-visible` rule below still reads `--color-focus`: a page-wide call
+ * neither belongs to this dispatch.
+ */
 .editorresize::before {
   content: "";
   position: absolute;
@@ -2402,7 +2574,7 @@ kbd {
 }
 
 .cm-editor .cm-scroller {
-  font: 14px/1.4 var(--font-mono);
+  font: 12.5px/1.65 var(--ds-font-mono);
 }
 
 .cm-editor.cm-focused {
@@ -2939,13 +3111,20 @@ pre {
   margin-block: 0.5em;
 }
 
+/*
+ * The same surface the live editor draws now, per `design/ui-mockup.html`:
+ * one code background across the page rather than the editor's own and a
+ * second one here, which is what let `.tok-*` below adopt the mockup's own
+ * syntax colours wholesale -- they are tuned against this exact background,
+ * not the legacy Solarized one.
+ */
 pre code {
   display: block;
   padding: 8px;
-  border-radius: 4px;
-  background-color: var(--color-code-page);
-  color: var(--color-code-text);
-  font: 13px/1.4 var(--font-mono);
+  border-radius: var(--ds-r-sm);
+  background-color: var(--ds-code-bg);
+  color: var(--ds-code-text);
+  font: 13px/1.4 var(--ds-font-mono);
   overflow-x: auto;
 }
 
@@ -2953,35 +3132,46 @@ pre code {
  * The token classes `@lezer/highlight`'s `classHighlighter` assigns, styled
  * for exactly the ones the eight tutorial answers actually produce --
  * `src/ui/code-highlight.ts` names the check that keeps this list honest.
- * Operators and punctuation are left in `--color-code-text`, the colour the
+ * Operators and punctuation are left in `--ds-code-text`, the colour the
  * rest of the block is already in: the grammar tags `.`, `(`, `;` and the
  * like separately from the words either side of them, and giving every one of
  * them its own colour would be more colour than the block needs to read.
  * `tok-definition` is not its own rule -- it names a declaration site
  * (a `function` parameter, say) and always rides alongside `tok-variableName`
  * or `tok-propertyName` on the same element, which is already styled.
+ *
+ * `--ds-code-key`/`-fn`/`-str`/`-num` are the mockup's own values, taken as-is
+ * (7.74-8.44:1 dark, 5.09-6.21:1 light on `--ds-code-bg`, all clearing 4.5:1
+ * with room to spare). The mockup's comment colour does not: `--code-com`
+ * reads 3.77:1 dark / 3.04:1 light, short of the 4.5:1 that 13px text is
+ * asked for -- the same shortfall the legacy Solarized comment colour had,
+ * fixed the same way, the hue taken down (light) or up (dark) until it clears
+ * the bar:
+ *
+ *   comment  #6b7482 -> #77818f   3.77:1 -> 4.51:1  (dark, needs 4.5)
+ *   comment  #8b929c -> #6d7580   3.04:1 -> 4.51:1  (light, needs 4.5)
  */
 .tok-keyword {
-  color: var(--color-code-keyword);
+  color: var(--ds-code-key);
 }
 
 .tok-string {
-  color: var(--color-code-string);
+  color: var(--ds-code-str);
 }
 
 .tok-number,
 .tok-bool {
-  color: var(--color-code-number);
+  color: var(--ds-code-num);
 }
 
 .tok-propertyName,
 .tok-labelName,
 .tok-variableName {
-  color: var(--color-code-entity);
+  color: var(--ds-code-fn);
 }
 
 .tok-comment {
-  color: var(--color-code-comment);
+  color: var(--ds-code-com);
   font-style: italic;
 }
 
