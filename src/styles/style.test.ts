@@ -426,14 +426,16 @@ describe("kbd and .hint", () => {
 });
 
 describe("statistics panel", () => {
-  it("counts every row and both paddings into its height", () => {
-    // Pinned as the expression rather than as the 216px it comes to, because
+  it("counts the primary grid, the disclosure summary, the secondary grid and the card border into its height", () => {
+    // Pinned as the expression rather than as the 503px it comes to, because
     // what matters is which quantities are in it: a height worked out from
-    // anything less than all of the rows, or from one padding, is the same
-    // defect in a new form. The rows are laid out by the flow and carry the
-    // pitch as a margin, so this is what they occupy.
+    // less than all three regions, or missing the card's own border, is the
+    // same defect in a new form as the eleven-row panel this replaced once
+    // had, in `--stats-rows`/`--stats-row-pitch`/`--stats-padding` (above),
+    // now orphaned. Sized to the disclosure held open, the worst case -- see
+    // `style.css`'s own comment above these tokens for why.
     expect(token("stats-block-size")).toBe(
-      "calc(var(--stats-rows) * var(--stats-row-pitch) + 2 * var(--stats-padding))",
+      "calc(\n    var(--stats-primary-h) + var(--stats-summary-h) + var(--stats-secondary-h) + 2px\n  )",
     );
   });
 
@@ -449,12 +451,14 @@ describe("statistics panel", () => {
     expect(declaration(ruleBody(".worldtrack"), "min-block-size", ".worldtrack")).toBe(
       token("stats-block-size"),
     );
-    // Nothing moves on screen if this is dropped: the panel paints nothing of
-    // its own -- no background, no border -- and its rows are laid out from the
-    // padding edge either way. What it keeps is one meaning for the token in
-    // both of the lines above, the height of a whole box. Under content-box the
-    // same token would make the panel 256px against a 216px clip, and the first
-    // rule to give the panel something to paint would find 40px of it cut off.
+    // Nothing moves on screen if this is dropped today: `.statscontainer`
+    // carries no padding or border of its own any more for `box-sizing` to
+    // interpret one way or the other -- widgets/stats-panel draws its own
+    // box (`.statspanel`, in the same rule) rather than the padded text list
+    // this replaced. The assertion stays as the guard it always was, in case
+    // a later change gives the box either back: on the panel this replaced,
+    // `box-sizing: border-box` on a box with 20px padding all round was the
+    // difference between a 216px clip and 256px of panel, 40px past it.
     expect(declaration(ruleBody(".statscontainer"), "box-sizing", ".statscontainer")).toBe(
       "border-box",
     );

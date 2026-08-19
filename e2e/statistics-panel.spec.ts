@@ -3,62 +3,71 @@
  *
  * The panel is positioned out of the flow inside `.worldtrack`, which clips
  * what it holds and takes its height from the building; so in a short building
- * the rows below the roof were simply cut off, and nothing in the markup or in
+ * the tiles below the roof were simply cut off, and nothing in the markup or in
  * the panel's own rules objected. That makes it a browser question rather than
  * a stylesheet one -- the arithmetic is checked in `src/styles/style.test.ts`,
  * and what is checked here is the result of laying it out.
  *
- * Two buildings, and neither of them is whole without the fix. The learning
- * track's two-floor rooms are 100px, which takes the six rows from
- * `Avg ride time` down off the bottom of a 216px panel; the three-floor
- * challenge is 150px, which loses the last three, `Stops`, `People per stop`
- * and `Avg load`. The second was documentation rather than a guard while the
- * panel had eight rows and ended 143px down -- it fitted, barely, and it
- * stopped fitting when the panel grew, which is the argument for measuring the
- * building the game is played in rather than only the shortest one it draws.
+ * Two buildings, and neither of them is whole without the fix -- both well
+ * short of the panel's own worst case, `--stats-block-size`, sized to the
+ * "Все показатели" disclosure held open so all thirteen tiles are on screen,
+ * not only the four `.tiles-primary` leads with. Neither building's floors
+ * are a fixed height any more: `widgets/building-stage`'s own
+ * `layoutBuilding()` sizes them to whatever room the stage gives it, floored
+ * at `Math.max(160, stageHeight - 38)` so a short building is never drawn
+ * smaller than 160px regardless of the stage around it -- which the
+ * two-floor learning task and the three-floor challenge both land on
+ * exactly, `SHORTEST_BUILDING_HEIGHT` below.
  *
- * What either case can detect is one failure, the same one: `.worldtrack`
- * carries `min-block-size: var(--stats-block-size)`, so the clip these rows are
+ * What either case can detect is one failure: `.worldtrack` carries
+ * `min-block-size: var(--stats-block-size)`, so the clip these tiles are
  * measured against is held at the panel's own height whatever the building
- * does, and the margin the assertion below sees is 25px for both rather than
- * the -41px and -91px the buildings have. Widen the panel -- another row, or
- * a pitch back at the 20px it was drawn at until `ea9b51c` -- and the floor
- * rises with it, leaving `room` at `pitch + 9` for every building. What would
- * fail here is the `min-block-size` line going away.
+ * does. Widen the panel -- another secondary tile, or a taller one -- and the
+ * clip grows with it, because both read the same token; what would fail here
+ * is that wiring going away, not the token's own value.
  *
  * Nothing taller is measured because there is nothing there to measure: the
- * tallest shipped challenge is 21 floors, 1050px, nearly five times the panel,
- * and the sandbox will build 60 floors if asked.
+ * tallest shipped challenge is 21 floors, and `layoutBuilding()` never
+ * compresses a floor below its own `MIN_FLOOR`, 48px, so even fully
+ * compressed that building is at least 1008px -- comfortably over twice the
+ * panel -- and the sandbox will build 60 floors if asked.
  */
 
 import { expect, test } from "@playwright/test";
 
 import { building } from "./game-page.ts";
 
-/** The shortest buildings the game draws, and how tall each one is. */
+/**
+ * The shortest a building's total height can be, whatever the stage around it
+ * measures: `layoutBuilding()`'s own floor on the room it distributes floor
+ * height from (module doc comment, above). Both buildings below land on it
+ * exactly, at two floors and at three.
+ */
+const SHORTEST_BUILDING_HEIGHT = 160;
+
+/** The shortest buildings the game draws. */
 const SHORT_BUILDINGS = [
-  { name: "a two-floor learning task", hash: "#challenge=tutorial-1", floors: 2 },
-  { name: "a three-floor challenge", hash: "#challenge=1", floors: 3 },
+  { name: "a two-floor learning task", hash: "#challenge=tutorial-1" },
+  { name: "a three-floor challenge", hash: "#challenge=1" },
 ] as const;
 
-for (const { name, hash, floors } of SHORT_BUILDINGS) {
-  // Skipped rather than rewritten onto `.tile`/`.cap`: `widgets/stats-panel`,
-  // which now draws the panel, ships with no CSS at all yet -- see its own
-  // module comment -- so the whole premise below, that a short building's
-  // rows might be clipped by a box a stylesheet sizes, has no stylesheet to
-  // be a fact about. Re-enable once that widget has its own CSS, pointed at
-  // `.tile` in place of `.stat` and `.cap` in place of `.key`.
-  test.skip(`shows every statistic beside ${name}`, async ({ page }) => {
+for (const { name, hash } of SHORT_BUILDINGS) {
+  test(`shows every statistic beside ${name}`, async ({ page }) => {
     await page.goto(`/${hash}`);
-    // A car, and not one of the rows this test is about: the rows are written
-    // into `index.html` and are on screen before any of our code has run, so
-    // waiting for one would let the measurement below read a building the
-    // presenter has not sized yet. That is a flaky failure rather than a false
-    // pass -- the height assertion further down would catch it, and the clip
-    // would measure 216px, not 0, thanks to that same `min-block-size` -- but
-    // a test that fails for a reason it is not about is worth not writing. The
-    // cars are drawn by the presenter that sizes the building, in the same pass.
+    // A car, and not one of the tiles this test is about: the cars are drawn
+    // by the presenter that sizes the building, in the same pass that draws
+    // the panel, so waiting for one lets the measurement below read a
+    // building the presenter has already sized rather than one it has not
+    // gotten to yet. That is a flaky failure rather than a false pass -- the
+    // height assertion further down would catch it -- but a test that fails
+    // for a reason it is not about is worth not writing.
     await expect(building(page).getByRole("group", { name: "Elevator 1" })).toBeVisible();
+
+    // Closed by default, so the nine secondary tiles -- everything past
+    // "Avg wait time", "Max wait time", "Avg load" and "Rate" -- are not in
+    // the layout at all until this opens it.
+    await page.locator(".statspanel .more > summary").click();
+    await expect(page.locator(".tiles-secondary .tile").first()).toBeVisible();
 
     const measured = await page.evaluate(() => {
       const track = document.querySelector(".worldtrack");
@@ -69,24 +78,24 @@ for (const { name, hash, floors } of SHORT_BUILDINGS) {
       const clip = track.getBoundingClientRect();
       return {
         buildingHeight: Math.round(building.getBoundingClientRect().height),
-        rows: [...document.querySelectorAll(".statscontainer .stat")].map((row) => ({
-          label: (row.querySelector(".key")?.textContent ?? "").trim(),
-          // How far the row's last pixel falls short of the clip's, so that a
-          // failure names the rows that were cut and by how much rather than
-          // only reporting that a count came out wrong.
-          room: Math.round(clip.bottom - row.getBoundingClientRect().bottom),
+        tiles: [...document.querySelectorAll(".statspanel .tile")].map((tile) => ({
+          label: (tile.querySelector(".cap")?.textContent ?? "").trim(),
+          // How far the tile's last pixel falls short of the clip's, so that
+          // a failure names the tiles that were cut and by how much rather
+          // than only reporting that a count came out wrong.
+          room: Math.round(clip.bottom - tile.getBoundingClientRect().bottom),
         })),
       };
     });
 
-    // The building really is the short one this case is about: a floor is 50px,
-    // and a fix that quietly made every building taller would otherwise pass.
-    expect(measured.buildingHeight).toBe(floors * 50);
-    // That there are rows at all, so an empty panel cannot satisfy the line
-    // below. How many there should be is pinned against `index.html` in
-    // `src/styles/style.test.ts`, which is where the count is a fact about the
-    // markup rather than about what a browser did with it.
-    expect(measured.rows.length).toBeGreaterThan(0);
-    expect(measured.rows.filter((row) => row.room < 0)).toEqual([]);
+    // The building really is the short one this case is about, so a fix that
+    // quietly made every building taller would otherwise pass.
+    expect(measured.buildingHeight).toBe(SHORTEST_BUILDING_HEIGHT);
+    // That there are tiles at all, so an empty panel cannot satisfy the line
+    // below. How many there should be is a fact about `widgets/stats-panel`'s
+    // own `TILES` array, not about what a browser did with it, so it is not
+    // repeated here.
+    expect(measured.tiles.length).toBeGreaterThan(0);
+    expect(measured.tiles.filter((tile) => tile.room < 0)).toEqual([]);
   });
 }

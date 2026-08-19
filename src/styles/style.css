@@ -19,8 +19,8 @@
  *
  * Note that `box-sizing` is deliberately left at `content-box`: the floors
  * (49px + 1px border) and the elevators (46px + 2px border) rely on borders
- * adding to the box, and the statistics panel's 240px + 2 * 20px padding is what
- * makes it line up with the right-hand edge of the building.
+ * adding to the box. `.statscontainer` opts back out to `border-box` on its
+ * own rule (Statistics, below) -- its own comment there says why.
  */
 
 /*
@@ -174,31 +174,50 @@
   --elevator-height: 50px;
   --elevator-border: 2px;
   --stats-width: 240px;
+  /*
+   * `--stats-padding`, `--stats-row-height`, `--stats-row-pitch` and
+   * `--stats-rows` described the panel `widgets/stats-panel` no longer draws
+   * -- a column of eleven text rows -- and are left declared rather than
+   * deleted, per this migration's own Phase 12 cleanup convention (see the
+   * page-background token migration's note on `--color-page`). Nothing below
+   * reads them any more; `--stats-block-size` is worked out from the three
+   * tokens after them instead, for the two tile grids and the disclosure the
+   * widget draws today.
+   */
   --stats-padding: 20px;
   --stats-row-height: 10px;
-  /*
-   * 16px, where the panel was drawn at 20px for as long as it had six rows.
-   * It came down in `ea9b51c`, with the seventh row, back when a clipped panel
-   * was something to squeeze under rather than something to fix: a floor is
-   * 50px, challenges 1 and 7 are three floors, and at 20px a seventh row ran
-   * past the 150px that left. It stays at 16px now that the box below holds
-   * the panel whatever the building does, because it is the better pitch and
-   * not because anything forces it -- 12px text on a 10px line has the room,
-   * and the panel is read as a column of numbers rather than as prose.
-   */
   --stats-row-pitch: 16px;
-  /*
-   * How many rows the panel has. No longer a count of anything in
-   * `index.html` -- `widgets/stats-panel` draws its rows at runtime, not as
-   * static markup, so this is a hand-kept constant now, as
-   * `src/styles/style.test.ts` notes beside its own arithmetic. It is here
-   * because the height below has to be worked out from it, and a panel that
-   * is drawn shorter than its own contents is the bug this replaced: the
-   * rows are laid out by the flow and `.worldtrack` clips them, so nothing
-   * about the panel itself objected to being cut off in the middle.
-   */
   --stats-rows: 11;
-  --stats-block-size: calc(var(--stats-rows) * var(--stats-row-pitch) + 2 * var(--stats-padding));
+  /*
+   * The panel's own worst-case height: the disclosure open, both tile grids
+   * showing every figure at once, not just the four the default view leads
+   * with. `.worldtrack`'s clip is held open to this whatever the building
+   * does (below), and a height worked out from the closed state would let the
+   * clip cut the panel the moment a reader opened "Все показатели" -- the
+   * same defect the eleven-row panel's own comment (above) already named
+   * once, in a new shape.
+   *
+   * Measured, not hand-summed from the boxes' own declared padding and line
+   * heights: a `<details>`/`<summary>` pair's rendered height rests partly on
+   * UA marker metrics no rule here sets, so box-model arithmetic undercounted
+   * `.more`'s own summary row by five pixels against what Chromium actually
+   * laid out. `.tiles-primary`'s real height is 149.78px, `.more`'s (its own
+   * 1px border-top, the summary row, `.tiles-secondary`) is 344.95px, both
+   * read the same in English and in Russian -- the `.tiles-*` truncation
+   * rule above is what keeps that true, one `.cap` line per row regardless
+   * of caption length. Each token below rounds its own figure up with a few
+   * pixels of headroom rather than to the nearest pixel, since a UA-level
+   * measurement is exactly the kind of figure a font substitution or a
+   * rendering-engine difference could nudge. The stray `2px` at the end is
+   * neither row nor gap: it is `.statspanel`'s own top and bottom border,
+   * the one thing here no `.tiles-*`/`.more` rule accounts for.
+   */
+  --stats-primary-h: 152px;
+  --stats-summary-h: 36px;
+  --stats-secondary-h: 313px;
+  --stats-block-size: calc(
+    var(--stats-primary-h) + var(--stats-summary-h) + var(--stats-secondary-h) + 2px
+  );
   --editor-height: 320px;
 
   /*
@@ -2556,6 +2575,19 @@ kbd {
 
 /* --------------------------------------------------------------- Statistics */
 
+/*
+ * `design/ui-mockup.html`'s own `.stats` (§1) is a full-width block docked
+ * below the building, not a sidebar card -- but that layout belongs to
+ * `features/switch-layout`'s docked arrangement, which is staged for a later
+ * phase and not reachable yet (see that module's own comment). What stays
+ * here is the mechanism this box already had: an absolutely positioned
+ * corner sized to `--stats-block-size`, clipped inside `.worldtrack` (below),
+ * whatever the panel it holds draws. `padding`, `font`, `line-height` and
+ * `color` are gone because those drew the eleven-row text list this
+ * replaced; `widgets/stats-panel` draws its own box now (`.statspanel`,
+ * below), and a parent padding or color here would either double up against
+ * that box's own or bleed into content this box no longer owns.
+ */
 .statscontainer {
   position: absolute;
   inset-block-start: 0;
@@ -2563,11 +2595,194 @@ kbd {
   box-sizing: border-box;
   inline-size: var(--stats-width);
   block-size: var(--stats-block-size);
-  padding: var(--stats-padding);
-  font: 12px var(--font-mono);
-  line-height: var(--stats-row-height);
-  color: var(--color-stats);
   z-index: 1;
+}
+
+/*
+ * The card look: `.taskmenu`'s own floating-popover treatment (App bar,
+ * above), not the mockup's `.stats` (border-top plus flat background,
+ * §1 comment above) -- this box floats over the building rather than sitting
+ * in its own row, so a border and shadow read as a surface the way
+ * `.taskmenu` already does for this codebase, where the mockup's flat strip
+ * would not. `color: var(--ds-text)` is explicit for the same reason
+ * `.taskmenu`'s own family of rules state it explicitly: an unset `color` on
+ * a floated box reads whatever ancestor happens to be closest, not what this
+ * box means. Sized to its own content, not stretched to `.statscontainer`'s
+ * full (disclosure-open) height, so the closed state reads as a shorter
+ * card rather than a tall one with empty space at its foot.
+ */
+.statspanel {
+  box-sizing: border-box;
+  overflow: hidden;
+  border: 1px solid var(--ds-line-strong);
+  border-radius: var(--ds-r-lg);
+  background: var(--ds-panel);
+  box-shadow: var(--ds-shadow);
+  color: var(--ds-text);
+}
+
+/*
+ * `design/ui-mockup.html`'s own `.tiles`/`.grid-more` (§1) both collapse to
+ * two columns under `@container panel (max-width: 520px)` -- but
+ * `.statscontainer` is fixed at `--stats-width: 240px` (above), always under
+ * that threshold, so the four/three-column branch the query guards is
+ * unreachable here and left out rather than shipped as CSS nothing can
+ * exercise or a screenshot could ever show wrong. If `--stats-width` ever
+ * grows past 520px this rule -- and the arithmetic behind `--stats-primary-h`
+ * / `--stats-secondary-h` above, both worked out for two columns -- need
+ * revisiting together.
+ */
+.tiles-primary,
+.tiles-secondary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1px;
+  background: var(--ds-line);
+}
+
+.tiles-secondary {
+  border-top: 1px solid var(--ds-line);
+}
+
+/*
+ * Nine tiles over two columns leaves the last one alone on its own row;
+ * spanning both columns reads as the row the count ran out on, not as a
+ * layout with a hole in it -- `design/ui-mockup.html`'s own
+ * `.grid-more > :last-child` rule (§1), ported unconditionally for the same
+ * reason the container query above is not: this box is always the narrow
+ * case.
+ */
+.tiles-secondary > :last-child {
+  grid-column: 1 / -1;
+}
+
+.statspanel .tile {
+  padding: 9px 16px;
+  background: var(--ds-panel);
+}
+
+.tiles-secondary .tile {
+  padding: 7px 16px 8px;
+}
+
+/*
+ * The three secondary tiles with no history to chart (`elapsedTime`,
+ * `moveCount`, `stopCount` -- `widgets/stats-panel`'s own `TILES`, the ones
+ * with no `sparkKey`) get the spark's own vertical room folded into their
+ * bottom padding instead, so a row missing its chart is not a row shorter
+ * than its neighbours: `design/ui-mockup.html`'s own `.tile-sm.no-spark`
+ * (§1), which `tileMarkup` already marks these three with a `no-spark`
+ * class for.
+ */
+.tiles-secondary .tile.no-spark {
+  padding-bottom: 20px;
+}
+
+/*
+ * `.cap` (App bar, above) is scoped per box throughout this migration rather
+ * than ported as `design/ui-mockup.html`'s own shared, bare rule (§1) -- see
+ * `.taskblock .cap`'s own comment for why. Same failure here: the mockup's
+ * `--text-faint` measures 3.62:1 dark and 3.14:1 light against `--panel`,
+ * short of WCAG 1.4.3's 4.5:1 in both; `--ds-text-muted` is the nearest step
+ * up that clears it, 6.70:1 dark and 5.90:1 light. `line-height` is explicit
+ * -- the mockup leaves it to inherit, but nothing upstream of this box sets
+ * one, and `--stats-block-size`'s own arithmetic (above) needs a fixed line
+ * height to be pinned to something. `display: block` because
+ * `widgets/stats-panel`'s own markup draws a caption as a `<span>`
+ * (`tileMarkup`), not the mockup's `<div>` -- a `<span>` stacks under
+ * nothing left inline.
+ */
+.statspanel .cap {
+  display: block;
+  font-size: 10.5px;
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--ds-text-muted);
+}
+
+/*
+ * Truncated on both grids, not only `.tiles-secondary`'s own narrower tiles:
+ * `--stats-primary-h`'s arithmetic (above) prices one `.cap` line per row,
+ * and Russian's own primary captions -- "Сред. время доставки", "Макс. время
+ * доставки" -- run past a two-column tile at 10.5px without this, wrapping
+ * to a second line and pushing the row taller than that fixed variable, with
+ * the language rather than a translator's whim deciding when.
+ */
+.tiles-primary .cap,
+.tiles-secondary .cap {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/*
+ * `.tile-val` picks up `.num`'s tabular figures already (App bar, above,
+ * where that rule's own comment names this box by name) -- what is left to
+ * port is size. `display: block` for the reason `.cap` (above) states one:
+ * `tileMarkup` draws this as a `<span>` too.
+ */
+.tile-val {
+  display: block;
+  font-size: 19px;
+  line-height: 1.25;
+}
+
+.tiles-secondary .tile-val {
+  font-size: 15px;
+}
+
+.spark {
+  display: block;
+  width: 100%;
+  height: 16px;
+  margin-top: 3px;
+  stroke: var(--ds-steel);
+  stroke-width: 1.5;
+  fill: none;
+}
+
+.tiles-secondary .spark {
+  height: 12px;
+}
+
+/*
+ * The "Все показатели" disclosure. Left at the UA's own `list-item`
+ * rendering rather than the mockup's `display: flex` plus a custom `.chev`
+ * (§1) -- `widgets/stats-panel`'s own markup draws no chevron element for
+ * that rule to place, and flex would drop the native triangle with nothing
+ * to replace it, the one thing telling a reader this row opens. That would
+ * be a step down from every other disclosure this codebase already has
+ * (`.seedhelp`, `.tutorialhint`, `.tutorialexplanation` -- Run controls and
+ * Tutorial panel, further below), none of which fight that default either.
+ */
+.more {
+  border-top: 1px solid var(--ds-line);
+}
+
+.more > summary {
+  padding: 7px 16px;
+  color: var(--ds-text-muted);
+  font-size: 12.5px;
+  cursor: pointer;
+}
+
+.more > summary:hover {
+  color: var(--ds-text);
+}
+
+/*
+ * `.statspanel .cap` (above) is `display: block` for the tile captions it was
+ * written for, which stack above a value and (usually) a spark with nothing
+ * beside them on the same line. The one here has the native marker beside it
+ * instead, on the summary's own single line -- a block-level cap breaks out
+ * from under that marker onto a line of its own instead, measured 19px of
+ * dead space above the caption and a "•" sitting alone above it, not beside
+ * it.
+ */
+.more > summary .cap {
+  display: inline;
 }
 
 /* ---------------------------------------------------------------- Elevators */
