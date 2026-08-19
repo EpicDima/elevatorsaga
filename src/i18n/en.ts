@@ -258,6 +258,12 @@ export const EN_MESSAGES = {
   "game.switchLayout.right": "Code right",
   "game.switchLayout.onlyCode": "Code only",
   "game.switchLayout.onlyGame": "Building only",
+  // widgets/workspace-layout's own aria-labels: the two panes the splitter
+  // divides, and the splitter itself, which is a `role="separator"` rather
+  // than a native form control and so has no label of its own to borrow.
+  "game.workspace.gamePane": "Simulation",
+  "game.workspace.codePane": "Code editor",
+  "game.workspace.splitter": "Editor width",
   // Settings: widgets/app-bar's settings-menu.ts, the widget composing
   // switch-theme, switch-layout, switch-language and manage-seed into the one
   // popover `design/ui-mockup.html` draws. docsOpenLabel and hotkeysOpenLabel

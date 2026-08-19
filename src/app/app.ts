@@ -606,6 +606,26 @@ export class App {
     };
   }
 
+  /**
+   * The seed line for whatever is on screen, for a caller mounted once at
+   * startup rather than redrawn on every run the way {@link #drawChallengeBar}
+   * is.
+   *
+   * A snapshot rather than a subscription: nothing here notifies a caller when
+   * a later run changes the seed, because the router already resolves the
+   * first route before this can be read — see `startRouter`'s own contract —
+   * so a composition root reading this right after can rely on {@link world}
+   * and {@link #run} already being the first run's.
+   */
+  get currentSeedLink(): SeedLinkData | null {
+    const world = this.world;
+    const run = this.#run;
+    if (world === undefined || run === undefined) {
+      return null;
+    }
+    return this.#seedLink(world, run.challengeIndex);
+  }
+
   /** Remembers the current time scale for the next visit. */
   #storeTimeScale(): void {
     try {

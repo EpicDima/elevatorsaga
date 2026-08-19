@@ -576,6 +576,25 @@ dl dd {
 }
 
 /*
+ * Decision #1 (see the migration plan's own §0): the workspace shell adopts
+ * design/ui-mockup.html's own hard floor instead of reflowing for a phone --
+ * a building pane and a code pane side by side need more room than 320px has
+ * to give, and shrinking them to fit was never asked for. e2e/reflow.spec.ts's
+ * 320/390px checks are gone for this page and replaced with an assertion that
+ * this floor holds.
+ *
+ * `:not(.narrow)` rather than `body`, which the mockup itself gets away with
+ * being one page with nothing else to scope against: this stylesheet also
+ * serves the two help pages, `.container.narrow` on both of them, and neither
+ * grows a workspace that needs the room -- they are unaffected and still
+ * checked at both widths.
+ */
+.container:not(.narrow) {
+  min-inline-size: 1040px;
+  min-block-size: 600px;
+}
+
+/*
  * The title, and under it the row of tools.
  *
  * A column rather than the two at opposite ends of one wrapping row, because
@@ -1895,7 +1914,9 @@ kbd {
 }
 
 .fullscreen-demo .container > *:not(main),
-.fullscreen-demo main > *:not(.world) {
+.fullscreen-demo main > *:not(.workspace),
+.fullscreen-demo .workspace > *:not(.pane-game),
+.fullscreen-demo .pane-game > *:not(.world) {
   visibility: hidden;
 }
 

@@ -137,6 +137,15 @@ test("resizes the editor by its grip, and is still that size next visit", async 
   // A real drag: press on the grip, move 150px down the page, let go. Playwright
   // drives this through the same pointer events a mouse does, so the capture and
   // the `pointerup` are exercised rather than reasoned about.
+  //
+  // Scrolled into view first: the workspace shell that now holds the editor
+  // has no stylesheet of its own yet (that lands with the shell's own visual
+  // cutover), so the ten regions it wraps simply stack full-height, one under
+  // the next, and the grip sits well past the default viewport. `boundingBox`
+  // reports real page coordinates either way, but `mouse.move` drives an
+  // actual pointer position, which only lands on the grip once it is on
+  // screen.
+  await grip.scrollIntoViewIfNeeded();
   const gripBox = await grip.boundingBox();
   expect(gripBox).not.toBeNull();
   const gripCentre = {

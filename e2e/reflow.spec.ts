@@ -1,22 +1,39 @@
 /**
- * Reflow on a phone-sized screen (WCAG 1.4.10).
+ * Reflow on a phone-sized screen (WCAG 1.4.10) -- and, for the main game
+ * page only, the hard floor it adopted instead.
  *
- * Neither page may ask to be read by panning in two directions at 320px, the
- * width the success criterion names, or at 390px, which is what most phones in
- * use actually report. This is a browser question rather than a stylesheet one
- * -- what overflowed was a table whose columns were pinned in pixels and a row
- * of buttons that would not wrap, and neither is visible in the CSS on its own
- * -- so it is checked here, against the built site, rather than in Vitest.
+ * The two help pages may not ask to be read by panning in two directions at
+ * 320px, the width the success criterion names, or at 390px, which is what
+ * most phones in use actually report. This is a browser question rather than
+ * a stylesheet one -- what overflowed was a table whose columns were pinned
+ * in pixels and a row of buttons that would not wrap, and neither is visible
+ * in the CSS on its own -- so it is checked here, against the built site,
+ * rather than in Vitest.
  *
- * The building is deliberately not part of it: `.world` is a fixed-scale scene
- * in its own `overflow-x: auto` box and pans on its own axis, which is the
- * two-dimensional-content exception the criterion makes for diagrams.
+ * The main game page is checked differently, per decision #1 of the
+ * FSD/mockup-port migration (see the migration plan's own §0): a building
+ * pane and a code pane side by side need more room than a phone screen has
+ * to give, and shrinking them to fit was never asked for, so the page adopts
+ * `design/ui-mockup.html`'s own hard floor -- `body { min-inline-size:
+ * 1040px; min-block-size: 600px }`, in `src/styles/style.css` -- as its
+ * minimum supported viewport instead of reflowing under it. What is checked
+ * below, in place of the 320/390px sweep the other two pages still get, is
+ * that the floor holds: the page fits without horizontal overflow exactly at
+ * 1040x600, the smallest viewport it now promises to support. The seed
+ * line's own narrow-width checks and the Russian game page's are gone for
+ * the same reason -- both only ever existed to cover widths this page no
+ * longer offers to support.
+ *
+ * The building is deliberately not part of either check: `.world` is a
+ * fixed-scale scene in its own `overflow-x: auto` box and pans on its own
+ * axis, which is the two-dimensional-content exception the criterion makes
+ * for diagrams.
  */
 
 import { expect, test } from "@playwright/test";
 
 /**
- * The pages the build emits, by the path they are served from.
+ * The help pages the build emits, by the path they are served from.
  *
  * The translated page is measured separately rather than assumed to behave like
  * the one it was translated from. Russian prose runs perceptibly longer than the
@@ -25,7 +42,6 @@ import { expect, test } from "@playwright/test";
  * descriptions is exactly where that difference lands.
  */
 const PAGES = [
-  { name: "the game", path: "/" },
   { name: "the help page", path: "/documentation.html" },
   { name: "the Russian help page", path: "/documentation.ru.html" },
 ] as const;
@@ -61,96 +77,22 @@ for (const { name, path } of PAGES) {
 }
 
 /**
- * A seed as long as a URL can carry one.
+ * The main game page's own floor (decision #1), rather than the 320/390px
+ * sweep the two help pages above still get.
  *
- * `#seed=` takes whatever string is in the address, not the ten digits this game
- * happens to draw, and a seed arrives by being pasted from somewhere else at
- * least as often as it is drawn here. Sixty-four unbreakable characters is a
- * hash, which is what a program that generates seeds tends to hand out.
+ * 1040x600 is the smallest viewport the page now promises to fit -- see the
+ * file's own doc comment -- so what is worth checking is not a range of
+ * widths but that this one, the edge of what `src/styles/style.css` allows
+ * the viewport to shrink to, does not itself overflow.
  */
-const LONG_SEED = "a".repeat(64);
+test("the game fits its own 1040x600 floor", async ({ page }) => {
+  await page.setViewportSize({ width: 1040, height: 600 });
+  await page.goto("/");
+  await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
 
-/**
- * The states the challenge bar's seed line has, as the hashes that produce them.
- *
- * The line changes shape with the run rather than staying one width: it offers
- * the seed as a link while nothing is pinned, offers "new draw" once something
- * is, and holds a paragraph of prose whenever the player opens the explanation.
- * The default state fitting says nothing about the other two, and it is the
- * other two that carry the long text.
- */
-const SEED_STATES = [
-  { name: "a run nothing has pinned", hash: "#challenge=4", open: false },
-  {
-    name: "a pinned run with a 64-character seed",
-    hash: `#challenge=4,seed=${LONG_SEED}`,
-    open: false,
-  },
-  { name: "that seed with the caveat open", hash: `#challenge=4,seed=${LONG_SEED}`, open: true },
-] as const;
-
-for (const { name, hash, open } of SEED_STATES) {
-  for (const width of WIDTHS) {
-    test(`the seed line fits a ${String(width)}px screen showing ${name}`, async ({ page }) => {
-      await page.setViewportSize({ width, height: 800 });
-      await page.goto(`/${hash}`);
-      await expect(page.locator(".challengeseed")).toBeVisible();
-      if (open) {
-        await page.locator(".seedhelp > summary").click();
-        await expect(page.locator(".seedcaveat")).toBeVisible();
-      }
-
-      const measurements = await page.evaluate(() => {
-        const root = document.documentElement;
-        const line = document.querySelector(".challengeseed");
-        if (line === null) {
-          throw new Error("The challenge bar has no seed line to measure");
-        }
-        return {
-          // The page, which is what the criterion is about: an unbreakable
-          // 64-character seed is 548px of monospace, and before the line was
-          // allowed to break one it took the whole document sideways with it.
-          overflow: root.scrollWidth - root.clientWidth,
-          // And the line itself, so that "fits" cannot be satisfied by an
-          // ancestor quietly clipping the tail of the seed off the screen.
-          rightEdge: Math.round(line.getBoundingClientRect().right),
-          viewport: root.clientWidth,
-        };
-      });
-
-      expect(measurements.overflow).toBeLessThanOrEqual(0);
-      expect(measurements.rightEdge).toBeLessThanOrEqual(measurements.viewport);
-    });
-  }
-}
-
-/*
- * The game page in the other language.
- *
- * The two help pages above are measured in both languages because each is its
- * own file with its own path. The game page is one file that changes language
- * underneath itself, so `PAGES` can only reach the English it ships with -- and
- * that is precisely the gap this closes. Russian words are longer, and the
- * header's three help links in Russian were an unbreakable 367px row inside a
- * 300px container: the game page failed 1.4.10 at 320px by 57px while every
- * test here passed. The picker is used the way a player would, rather than a
- * locale being forced through the module, so what is measured is the page a
- * player actually gets.
- */
-for (const width of WIDTHS) {
-  test(`the game in Russian fits a ${String(width)}px screen`, async ({ page }) => {
-    await page.setViewportSize({ width, height: 800 });
-    await page.goto("/");
-    await page.getByLabel("Language").selectOption("ru");
-    // The heading is translated last thing in the pass over the document, so
-    // waiting for its Russian text is waiting for the relayout to have happened.
-    await expect(page.getByRole("heading", { level: 1 })).toContainText("Elevator Saga");
-    await expect(page.locator(".header nav a").first()).toHaveText("Справка");
-
-    const overflow = await page.evaluate(() => {
-      const root = document.documentElement;
-      return root.scrollWidth - root.clientWidth;
-    });
-    expect(overflow).toBeLessThanOrEqual(0);
+  const overflow = await page.evaluate(() => {
+    const root = document.documentElement;
+    return root.scrollWidth - root.clientWidth;
   });
-}
+  expect(overflow).toBeLessThanOrEqual(0);
+});

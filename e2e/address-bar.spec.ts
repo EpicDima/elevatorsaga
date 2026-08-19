@@ -10,8 +10,15 @@
 
 import { expect, test } from "@playwright/test";
 
-/** The seed shown in the challenge bar while following it still pins the run. */
-const SEED_LINK = ".seedlink";
+/**
+ * The seed shown in the challenge bar while following it still pins the run.
+ *
+ * Scoped to `.challengeseed` rather than bare `.seedlink`: the settings
+ * popover's own seed block, behind its still-closed `.setmenu`, reuses the
+ * same class -- see its own module comment -- so the bare class now resolves
+ * two elements.
+ */
+const SEED_LINK = ".challengeseed .seedlink";
 
 /** The heading the challenge bar prints, which says which run is being played. */
 const CHALLENGE_TITLE = ".challengetitle";

@@ -16,7 +16,7 @@
 import { expect, test } from "@playwright/test";
 import type { Locator, Page } from "@playwright/test";
 
-import { editor, startButton, storedCode } from "./game-page.ts";
+import { editor, languagePicker, startButton, storedCode } from "./game-page.ts";
 
 /**
  * Where task 1 lives.
@@ -66,7 +66,7 @@ function panel(page: Page, name = "Learning track"): Locator {
  * @param page - The page under test.
  */
 async function switchToRussian(page: Page): Promise<void> {
-  await page.getByLabel("Language").selectOption("ru");
+  await languagePicker(page).selectOption("ru");
 }
 
 test("opens the track from the header link, in the language on screen", async ({ page }) => {
@@ -88,18 +88,14 @@ test("opens the track from the header link, in the language on screen", async ({
 
   await switchToRussian(page);
 
-  // Still visible with the longer label. The header is where a Russian label
-  // has hurt before -- `.header nav` in the stylesheet carries the write-up --
-  // and this is a fourth thing in that row, 180px of it at the width the
-  // `.headertools` wrapper is given on a 320px screen.
+  // Still visible with the longer label, and on the same line box as the
+  // links it sits among -- both true regardless of viewport width now: per
+  // decision #1 (see the migration plan's own §0), the main game page adopted
+  // `design/ui-mockup.html`'s own 1040x600 floor instead of reflowing for a
+  // phone, so there is no narrower width left to check this at. That floor is
+  // `reflow.spec.ts`'s to hold; nothing below in this file checks a width
+  // narrower than it any more, for the same reason.
   const link = page.getByRole("link", { name: "Учебная дорожка" });
-  await expect(link).toBeVisible();
-
-  await page.setViewportSize({ width: 320, height: 800 });
-  // And on the same line box as the links it sits among, which is what stops
-  // three wrapped rows of header standing between a phone and the game. It used
-  // to be 50px here, a height that centres a link in a bar the header no longer
-  // is; the row has its own line now, so 32px is what every width gets.
   await expect(link).toBeVisible();
   await expect(link).toHaveCSS("line-height", "32px");
 
@@ -283,138 +279,13 @@ test("paints the panel's own controls as dark as the prose around them", async (
   );
 });
 
-/** Viewport widths a phone reader is likely to arrive with (see reflow.spec). */
-const WIDTHS = [320, 390] as const;
-
-/** The two languages the panel is read in, and the words that identify it. */
-const LANGUAGES = [
-  {
-    name: "English",
-    region: "Learning track",
-    hint: "Hint 3",
-    take: "Take this program into your own editor",
-    russian: false,
-  },
-  {
-    name: "Russian",
-    region: "Учебная дорожка",
-    hint: "Подсказка 3",
-    take: "Забрать программу в свой редактор",
-    russian: true,
-  },
-] as const;
-
 /**
- * How much wider than the screen the document wants to be, and how the panel
- * sits inside it.
- *
- * @param page - The page under test.
- * @returns The measurements, all in CSS pixels.
+ * The panel used to be swept at phone widths (320/390px, in both languages)
+ * the same way `reflow.spec.ts` still sweeps the two help pages -- until
+ * decision #1 (see the migration plan's own §0). The main game page, this
+ * panel included, adopted `design/ui-mockup.html`'s own 1040x600 floor
+ * instead of reflowing for a phone: a building pane and a code pane side by
+ * side need more room than either width has to give, and shrinking them to
+ * fit was never asked for. `reflow.spec.ts` now holds the floor itself; there
+ * is no narrower width left for this panel to be swept at.
  */
-function measurePanel(page: Page): Promise<{
-  overflow: number;
-  rightEdge: number;
-  viewport: number;
-  clippedAnswers: number;
-  spilledButtons: number;
-  escapedButtons: number;
-}> {
-  return page.evaluate(() => {
-    const root = document.documentElement;
-    const drawn = document.querySelector(".tutorialpanel");
-    if (drawn === null) {
-      throw new Error("The learning track drew no panel to measure");
-    }
-    const panelRight = drawn.getBoundingClientRect().right;
-    return {
-      // The document, which is what WCAG 1.4.10 is about.
-      overflow: root.scrollWidth - root.clientWidth,
-      // And the panel itself, so that "fits" cannot be satisfied by an ancestor
-      // clipping the tail of a hint off the screen.
-      rightEdge: Math.round(drawn.getBoundingClientRect().right),
-      viewport: root.clientWidth,
-      // The answer wraps at this width rather than growing a scrollbar of its
-      // own, which would answer a page that pans sideways with a block that
-      // pans sideways instead.
-      clippedAnswers: [...document.querySelectorAll(".tutorialsolution code")].filter(
-        (block) => block.scrollWidth > block.clientWidth,
-      ).length,
-      // And the buttons hold their labels: the shared chrome pins a button to a
-      // 30px content box, which is right for one line of text and wrong for a
-      // label that takes two at this width.
-      spilledButtons: [...document.querySelectorAll(".tutorialbuttons button")].filter(
-        (button) => button.scrollHeight > button.clientHeight,
-      ).length,
-      // And they stay inside the panel. A row that may not wrap keeps them on
-      // one line by squeezing each to its longest word, which does not widen
-      // the page -- so the two measurements above would both pass -- and with
-      // the three buttons the panel used to have, that squeeze was 5px wider
-      // than the panel in Russian at 320px and hung the last one over its edge.
-      // Two of them fit exactly, so this guards a hazard the panel is currently
-      // just clear of rather than one it is nowhere near.
-      escapedButtons: [...document.querySelectorAll(".tutorialbuttons button")].filter(
-        (button) => button.getBoundingClientRect().right > panelRight + 0.5,
-      ).length,
-    };
-  });
-}
-
-/**
- * The same measurement of the document alone, on a route with no panel on it.
- *
- * @param page - The page under test.
- * @returns How much wider than the screen the document wants to be.
- */
-function measureShell(page: Page): Promise<number> {
-  return page.evaluate(
-    () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
-  );
-}
-
-for (const { name, region, hint, take, russian } of LANGUAGES) {
-  for (const width of WIDTHS) {
-    test(`the panel in ${name} fits a ${String(width)}px screen`, async ({ page }) => {
-      await page.setViewportSize({ width, height: 800 });
-
-      // The shell's own width first, on a challenge, where this region is
-      // empty, so that what is asserted below is the panel's own contribution
-      // and not something the header did. It was 57px in Russian at 320px when
-      // this was written -- three unbreakable links and the picker wanting
-      // 367px inside a 300px container -- which is why the comparison is a
-      // baseline rather than a zero; `.header nav` in the stylesheet is where
-      // that was fixed, and it measures 0 in both languages at both widths
-      // today, the new track link included.
-      await page.goto("/#challenge=1");
-      if (russian) {
-        await switchToRussian(page);
-        await expect(page.getByRole("heading", { name: /^Задание №1:/ })).toBeVisible();
-      } else {
-        await expect(page.getByRole("heading", { name: /^Challenge #1:/ })).toBeVisible();
-      }
-      const shellOverflow = await measureShell(page);
-
-      await page.goto(FIRST_TASK);
-      await expect(panel(page, region)).toBeVisible();
-      // Its widest state: the answer is a line of monospace as long as any on
-      // the track, and the three buttons carry sentences rather than words.
-      await panel(page, region).getByText(hint, { exact: true }).click();
-      await expect(panel(page, region).locator(".tutorialsolution code")).toBeVisible();
-      // And with the confirmation drawn under the buttons, so that what is
-      // measured is the panel a player who pressed everything is looking at.
-      // Its Russian is 88 characters against the 98 of task 1's goal above it,
-      // and it wraps, so it cannot be what widens the document; it is here for
-      // the measurements that are not about the document -- the panel's own
-      // right edge, and the buttons staying inside it.
-      await panel(page, region).getByRole("button", { name: take }).click();
-      await expect(panel(page, region).locator(".tutorialtaken")).toBeVisible();
-
-      const measurements = await measurePanel(page);
-
-      expect(measurements.overflow).toBeLessThanOrEqual(shellOverflow);
-      expect(measurements.rightEdge).toBeLessThanOrEqual(measurements.viewport);
-      expect(measurements.clippedAnswers).toBe(0);
-      expect(measurements.spilledButtons).toBe(0);
-      expect(measurements.escapedButtons).toBe(0);
-    });
-  }
-}

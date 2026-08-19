@@ -283,6 +283,12 @@ export const RU_MESSAGES: MessageCatalogue<"ru"> = {
   "game.switchLayout.right": "Код справа",
   "game.switchLayout.onlyCode": "Только код",
   "game.switchLayout.onlyGame": "Только здание",
+  // Собственные aria-label'ы widgets/workspace-layout: две панели, которые
+  // разделяет разделитель, и сам разделитель — у него нет собственной
+  // подписи, потому что это `role="separator"`, а не обычный элемент формы.
+  "game.workspace.gamePane": "Симуляция",
+  "game.workspace.codePane": "Редактор кода",
+  "game.workspace.splitter": "Ширина редактора",
   // Настройки: widgets/app-bar's settings-menu.ts — виджет, который собирает
   // switch-theme, switch-layout, switch-language и manage-seed в одном
   // попапе, который рисует design/ui-mockup.html. docsOpenLabel и

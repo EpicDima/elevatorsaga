@@ -92,6 +92,23 @@ export function runInstantButton(page: Page, name = "Run instantly"): Locator {
 }
 
 /**
+ * The header's own language picker.
+ *
+ * By class rather than by its accessible name ("Language"/"Язык"), the other
+ * exception alongside {@link statistic}: the settings popover's language
+ * block carries the same label on a `<select>` of its own, and a locator is
+ * not narrowed by an element being behind a closed `hidden` panel, so
+ * `getByLabel` resolves both and fails as ambiguous. The two are one control
+ * apart in every other way -- this is the one the header always shows.
+ *
+ * @param page - The page under test.
+ * @returns The header's language `<select>`.
+ */
+export function languagePicker(page: Page): Locator {
+  return page.locator(".languagepicker");
+}
+
+/**
  * One value from the statistics panel.
  *
  * The panel pairs a label and a value as two sibling `<span>`s with no

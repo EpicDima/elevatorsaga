@@ -36,12 +36,44 @@ import { TICK_SECONDS, createWorldController } from "./game/world-controller.ts"
 import { formatTime, t } from "./i18n/index.ts";
 import { CodeEditor, codeMirrorView } from "./ui/editor.ts";
 import { applyStoredEditorHeight, presentEditorResize } from "./ui/editor-size.ts";
+import { presentGlobalShortcuts } from "./ui/global-shortcuts.ts";
 import { localisePage } from "./ui/localise-page.ts";
 import { applyPreferredLocale } from "./ui/preferred-locale.ts";
+import { labelModifierKeys } from "./ui/shortcuts.ts";
 import { presentVersion } from "./ui/version.ts";
 import { DEFAULT_TIME_SCALE } from "#features/adjust-speed/model/time-scale.ts";
+import { docsModalTemplate, presentDocsModal } from "#features/docs-reference/index.ts";
+import { hotkeysModalTemplate, presentHotkeysModal } from "#features/hotkeys-help/index.ts";
 import { presentLanguagePicker } from "#features/switch-language/index.ts";
 import { requireElement } from "#shared/lib/dom.ts";
+import {
+  appBarSettingsTemplate,
+  buildAppBarSkeleton,
+  presentAppBarSettings,
+} from "#widgets/app-bar/index.ts";
+import {
+  buildWorkspaceLayoutSkeleton,
+  presentWorkspaceLayout,
+  readLayoutMode,
+  type LayoutMode,
+} from "#widgets/workspace-layout/index.ts";
+
+/**
+ * Where Ctrl-B / Cmd-B takes the workspace next.
+ *
+ * A ring over `design/ui-mockup.html`'s own `.seg-fill` button order (`left`,
+ * `right`, `code`, `game`) rather than the mockup's own array-and-modulo, so
+ * the map stays exhaustive over {@link LayoutMode} and every lookup is typed
+ * as returning a mode rather than `LayoutMode | undefined` under
+ * `noUncheckedIndexedAccess` -- an index signature would need the latter; a
+ * `Record` keyed by the type itself does not.
+ */
+const NEXT_LAYOUT_MODE: Readonly<Record<LayoutMode, LayoutMode>> = {
+  right: "left",
+  left: "code",
+  code: "game",
+  game: "right",
+};
 
 declare global {
   interface Window {
@@ -195,6 +227,132 @@ async function main(): Promise<void> {
       defaultTimeScale: () => readStoredTimeScale(localStorage) ?? DEFAULT_TIME_SCALE,
     },
   );
+
+  // Everything below mounts the new shell over the run just started: the docs
+  // and hotkeys dialogs, the workspace's two panes -- holding the ten regions
+  // above exactly as they were, one level deeper -- the app bar that replaces
+  // `.header`, and the shortcuts that tie all of it together. Ordered so that
+  // nothing here composes a piece that does not exist yet: the two dialogs
+  // first, since nothing else depends on them; the workspace next, since the
+  // app bar's settings popover needs its `setLayoutMode`; the app bar third,
+  // since it needs both the workspace controller and the dialogs' own
+  // `open()`; the keyboard dispatcher last, since every shortcut but Space
+  // calls into one of the other three.
+
+  document.body.insertAdjacentHTML("beforeend", docsModalTemplate());
+  const docsDialog = requireElement(".docs");
+  if (!(docsDialog instanceof HTMLDialogElement)) {
+    throw new TypeError("Expected .docs to be a <dialog>");
+  }
+  const docsModal = presentDocsModal(docsDialog);
+
+  document.body.insertAdjacentHTML("beforeend", hotkeysModalTemplate());
+  const hotkeysDialog = requireElement(".keys");
+  if (!(hotkeysDialog instanceof HTMLDialogElement)) {
+    throw new TypeError("Expected .keys to be a <dialog>");
+  }
+  labelModifierKeys(hotkeysDialog, navigator.userAgent);
+  const hotkeysModal = presentHotkeysModal(hotkeysDialog);
+
+  // The workspace shell: `.pane-game`/`.pane-code` become the new parents of
+  // the ten regions `<main>` held directly until now, in the order it held
+  // them. Moving an already-mounted element with `append` reparents it
+  // without tearing anything down, CodeMirror included, so every one of them
+  // keeps running exactly as built above.
+  const mainRegion = requireElement("main");
+  const workspaceElements = buildWorkspaceLayoutSkeleton(document, {
+    gamePane: t("game.workspace.gamePane"),
+    codePane: t("game.workspace.codePane"),
+    splitter: t("game.workspace.splitter"),
+  });
+  workspaceElements.gamePane.append(
+    requireElement(".challenge"),
+    requireElement(".tutorial"),
+    requireElement(".controls"),
+    requireElement(".world"),
+  );
+  workspaceElements.codePane.append(
+    requireElement(".codestatus"),
+    requireElement(".codeslots"),
+    requireElement(".code"),
+    requireElement(".editorresize"),
+    requireElement(".hint"),
+    requireElement(".editorstatus"),
+  );
+  mainRegion.append(workspaceElements.workspace);
+  const workspaceController = presentWorkspaceLayout({
+    elements: workspaceElements,
+    root: document.documentElement,
+    storage: localStorage,
+  });
+
+  // The app bar: `buildAppBarSkeleton` already builds `<header class="appbar">`
+  // holding the brand, so that becomes the new header -- `.header` stays on it
+  // too, since `e2e/language-picker.spec.ts`, `e2e/documentation.spec.ts` and
+  // `e2e/reflow.spec.ts` all still look a live page up by that class. The old
+  // header's own `<h1>` is kept rather than replaced -- only its two children
+  // (`page.brand`, `page.tagline`) are swapped for the brand mark and name --
+  // so the page never holds two, and every heading-role assertion across the
+  // e2e suite keeps finding the one it always has. `.headertools` moves in
+  // whole: `.tutoriallink` and the old Help/Documentation/Wiki nav and
+  // language picker keep running unchanged, beside the new bar rather than
+  // inside `widgets/level-switcher`, which is no part of this phase.
+  let layoutMode: LayoutMode = readLayoutMode(localStorage);
+
+  const { appBar, brand } = buildAppBarSkeleton(document, { brandName: t("page.brand") });
+  appBar.classList.add("header");
+
+  const oldHeader = requireElement(".header");
+  const oldH1 = requireElement("h1", oldHeader);
+  oldH1.replaceChildren(brand);
+  appBar.prepend(oldH1);
+  appBar.append(requireElement(".headertools", oldHeader));
+  appBar.insertAdjacentHTML("beforeend", appBarSettingsTemplate(app.currentSeedLink));
+  oldHeader.replaceWith(appBar);
+
+  // `presentThemeSwitch`, composed inside `presentAppBarSettings`, never reads
+  // `matchMedia` itself -- see its own module comment -- so the popover this
+  // mounts is otherwise ignorant of the system theme changing under it.
+  const darkQuery = window.matchMedia("(prefers-color-scheme: dark)");
+  const settingsController = presentAppBarSettings(appBar, {
+    root: document.documentElement,
+    storage: localStorage,
+    prefersDark: () => darkQuery.matches,
+    initialLayoutMode: layoutMode,
+    onSelectLayout: (mode) => {
+      layoutMode = mode;
+      workspaceController.setLayoutMode(mode);
+    },
+    redrawLanguage: () => {
+      localisePage(document, navigator.userAgent);
+      app.relocalise();
+    },
+    seed: app.currentSeedLink,
+    onOpenDocs: () => {
+      docsModal.open();
+    },
+    onOpenHotkeys: () => {
+      hotkeysModal.open();
+    },
+  });
+  darkQuery.addEventListener("change", () => {
+    settingsController.notifySystemThemeChange();
+  });
+
+  presentGlobalShortcuts({
+    root: document,
+    startStopButton: requireElement(".startstop"),
+    startOverButton: requireElement(".startover"),
+    settingsOpenButton: requireElement(".setopen"),
+    onOpenDocs: () => {
+      docsModal.open();
+    },
+    onCycleLayout: () => {
+      layoutMode = NEXT_LAYOUT_MODE[layoutMode];
+      workspaceController.setLayoutMode(layoutMode);
+      settingsController.setActiveLayoutMode(layoutMode);
+    },
+  });
 }
 
 // Floating on purpose: an entry point has nobody above it to hand a promise to,

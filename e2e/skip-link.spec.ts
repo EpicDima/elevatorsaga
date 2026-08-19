@@ -3,7 +3,7 @@
  *
  * The editor is what the page is for, and it is behind everything the building
  * contains: the scroll container, and a button for every call and every floor.
- * On the eighteenth challenge that is 246 tab stops past the link, 208 of them
+ * On the eighteenth challenge that is 249 tab stops past the link, 208 of them
  * buttons. The count is measured here rather than asserted from the markup
  * because most of those stops are drawn by the presenters at run time and do
  * not exist in `index.html` at all.
@@ -56,8 +56,8 @@ test("saves a walk through the whole building", async ({ page }) => {
 
   // Exact, because a range records nothing: this file's own header claimed 208
   // while the walk was 240, and bounds of 100 and 400 had nothing to say about
-  // it. 208 of the 246 are buttons -- eight cars of 21 floors, plus a call each
-  // way -- and the other 38 are the rest of the chrome above the building, the
+  // it. 208 of the 249 are buttons -- eight cars of 21 floors, plus a call each
+  // way -- and the other 41 are the rest of the chrome above the building, the
   // building's own scroll container, the code slot switcher below it, and the
   // press that lands on the editor. Adding a challenge link, or anything else
   // above the building, moves this by one, and then the number has to be
@@ -65,6 +65,9 @@ test("saves a walk through the whole building", async ({ page }) => {
   // gained "Start over" and "Reset code", two more stops above the building,
   // 242 until the same row gained "Run instantly", a third, and 246 once the
   // code slot switcher's own three buttons landed between the building and
-  // the editor.
-  expect(stops).toBe(246);
+  // the editor. It is 249 now that the app bar's two openers (Help, Settings)
+  // sit above the building and the workspace's own splitter -- a third pane
+  // control, resizable the same way the editor's height grip is -- sits below
+  // it, between the building and the code slot switcher.
+  expect(stops).toBe(249);
 });

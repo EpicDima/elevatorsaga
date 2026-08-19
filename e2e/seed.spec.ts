@@ -11,18 +11,27 @@
 
 import { expect, test } from "@playwright/test";
 
+/**
+ * The challenge bar's seed line, everything below scopes its own selectors
+ * under: the settings popover's own seed block, behind its still-closed
+ * `.setmenu`, reuses every one of these class names verbatim -- see its own
+ * module comment -- so a bare `.seedlink`/`.seedvalue`/etc. now resolves two
+ * elements.
+ */
+const SEED_LINE = ".challengeseed";
+
 /** The seed shown in the challenge bar, while following it still pins the run. */
-const SEED_LINK = ".seedlink";
+const SEED_LINK = `${SEED_LINE} .seedlink`;
 
 /** The seed shown in the challenge bar once the URL pins it, as plain text. */
-const SEED_VALUE = ".seedvalue";
+const SEED_VALUE = `${SEED_LINE} .seedvalue`;
 
 /** The way back out of a pinned run. */
-const NEW_DRAW_LINK = ".seednewdraw";
+const NEW_DRAW_LINK = `${SEED_LINE} .seednewdraw`;
 
 /** The disclosure that explains what a seed does, and the sentence inside it. */
-const HELP_SUMMARY = ".seedhelp > summary";
-const CAVEAT = ".seedcaveat";
+const HELP_SUMMARY = `${SEED_LINE} .seedhelp > summary`;
+const CAVEAT = `${SEED_LINE} .seedcaveat`;
 
 test("pins the run a player is looking at, and replays it on reload", async ({ page }) => {
   const pageErrors: string[] = [];
@@ -78,11 +87,18 @@ test("lets a pinned run go back to a fresh draw, and back again", async ({ page 
   await expect(page.locator(SEED_VALUE)).toHaveText("issue-61");
 });
 
-test("opens the caveat from the keyboard, on a phone-sized screen", async ({ page }) => {
+test("opens the caveat from the keyboard", async ({ page }) => {
   // The sentence about what a seed does and does not bring back used to be a
   // `title` attribute, which is to say a mouse-only tooltip. This is the path it
-  // was missing: no pointer at all, and the narrowest screen WCAG 1.4.10 names.
-  await page.setViewportSize({ width: 320, height: 800 });
+  // was missing: no pointer at all.
+  //
+  // Run at the page's own width rather than at WCAG 1.4.10's narrowest named
+  // screen, the way this test used to: per decision #1 (see the migration
+  // plan's own §0), the main game page adopted `design/ui-mockup.html`'s own
+  // 1040x600 floor instead of reflowing for a phone, so 320px is no longer a
+  // width it promises to fit -- `reflow.spec.ts` holds that floor. The keyboard
+  // path itself has nothing to do with viewport width, so it is still worth
+  // its own test.
   await page.goto("/#challenge=4");
 
   await expect(page.locator(CAVEAT)).toBeHidden();
@@ -97,14 +113,6 @@ test("opens the caveat from the keyboard, on a phone-sized screen", async ({ pag
   await expect(page.locator(CAVEAT)).toBeVisible();
   await expect(page.locator(CAVEAT)).toContainText("played the same way");
 
-  // Open, it is a whole sentence of prose in a control strip; if it will not
-  // wrap into 320px the page has to be read by panning sideways.
-  const overflow = await page.evaluate(() => {
-    const root = document.documentElement;
-    return root.scrollWidth - root.clientWidth;
-  });
-  expect(overflow).toBeLessThanOrEqual(0);
-
   // The bar is rebuilt from scratch whenever a run starts, and pinning the seed
   // starts one. An explanation that closes itself while the player is reading it
   // is one they have to open again to finish the sentence.
@@ -113,120 +121,20 @@ test("opens the caveat from the keyboard, on a phone-sized screen", async ({ pag
   await expect(page.locator(CAVEAT)).toBeVisible();
 });
 
-test("does not move the caveat's own control when it is opened", async ({ page }) => {
-  // A control that leaves the pointer that clicked it behind. The seed line
-  // shared the challenge row when it fitted, the panel widened the line, the
-  // widened line no longer fitted, and the whole thing dropped below nineteen
-  // challenge links -- carrying the summary 1119px to the left and 54px down at
-  // this width. A second click then landed on whatever had taken its place.
-  //
-  // Measured in a browser because that is where it lives: nothing in the markup
-  // says it, and the rule that caused it (`[open] { flex-basis: 100% }`) looked
-  // like it was about the panel.
-  // The busiest challenge, so the row of links is as wide as it ever gets: it
-  // is the row the seed line has to fit beside, and it is what it failed to fit
-  // beside once the panel was open.
-  await page.goto("/#challenge=18,seed=issue-61");
-  const summary = page.locator(HELP_SUMMARY);
-
-  // Resized rather than navigated between the widths on purpose: the URL would
-  // not change, so `goto` would not reload, and the disclosure would still be
-  // open from the width before.
-  //
-  // The widths are the ones where the bar rearranges itself, because a control
-  // that holds still through a reflow is only worth asserting where a reflow
-  // happens; the list used to run 1280, 1024, 900, 768 and then jump straight to
-  // 320, which stepped over all of them. Bisected to the pixel on this
-  // challenge: the title takes a second line below 964px, the row of nineteen
-  // links takes another below 679px, and 638px is the narrowest window where the
-  // summary's box is still identical open and closed. So 960 and 660 are each
-  // just inside a rearrangement, and 640 is sampled rather than 638 because the
-  // last two pixels before a reflow are worth leaving to whatever a font does
-  // differently on another machine.
-  for (const width of [1280, 1024, 960, 900, 768, 700, 660, 640]) {
-    await page.setViewportSize({ width, height: 900 });
-    await expect(page.locator(CAVEAT)).toBeHidden();
-
-    const before = await summary.boundingBox();
-    await summary.click();
-    await expect(page.locator(CAVEAT)).toBeVisible();
-
-    // The whole box, not just its corner: a `<summary>` is a block, so open it
-    // stretched to the width of the panel underneath it and turned several
-    // hundred pixels of empty bar into something that closed the panel again.
-    expect(await summary.boundingBox(), `${String(width)}px`).toEqual(before);
-
-    await summary.click();
-    await expect(page.locator(CAVEAT)).toBeHidden();
-  }
-
-  // Below 638px the panel genuinely does not fit beside the seed, so the whole
-  // disclosure wraps and carries its summary along: this is the line reflowing
-  // rather than a control running away. It moves on both axes -- 21px down and
-  // 168.39px left, the same two numbers at every width from 637px to 320px -- and
-  // all three of the assertions below exist because the one that stood here
-  // compared `y` alone, which is a two-axis move reported as a one-axis one and
-  // would have passed with the control anywhere along the row.
-  await page.setViewportSize({ width: 320, height: 800 });
-
-  const seedLineGeometry = async (): Promise<{
-    left: number;
-    right: number;
-    top: number;
-    bottom: number;
-    lineLeft: number;
-  }> =>
-    page.evaluate(() => {
-      const control = document.querySelector(".seedhelp > summary");
-      const line = document.querySelector(".challengeseed");
-      if (control === null || line === null) {
-        throw new Error("The challenge bar has no seed disclosure to measure");
-      }
-      const box = control.getBoundingClientRect();
-      return {
-        left: box.left,
-        right: box.right,
-        top: box.top,
-        bottom: box.bottom,
-        lineLeft: line.getBoundingClientRect().left,
-      };
-    });
-
-  const narrowBefore = await seedLineGeometry();
-  await summary.click();
-  await expect(page.locator(CAVEAT)).toBeVisible();
-  const narrowAfter = await seedLineGeometry();
-
-  // Down one line of the seed line's own text, and not down a screenful.
-  const dropped = narrowAfter.top - narrowBefore.top;
-  expect(dropped, "pixels down").toBeGreaterThan(0);
-  expect(dropped, "pixels down").toBeLessThanOrEqual(30);
-
-  // Across to the start of its own line, which is the only x worth naming: it is
-  // a place in the layout rather than a distance that would change with the
-  // length of the words in front of it. Asserted with the width it moved, so
-  // that "it wrapped" cannot be satisfied by a control that merely shuffled
-  // sideways and left half of itself where the pointer was.
-  expect(narrowAfter.left, "left edge").toBeCloseTo(narrowAfter.lineLeft, 1);
-  expect(narrowAfter.right, "right edge").toBeLessThanOrEqual(narrowBefore.left);
-
-  // What makes the move survivable, and the reason it is left alone: nothing
-  // follows the summary into the space. A second click, or one aimed at where
-  // the words had just been, lands on bare seed line rather than on a different
-  // control -- which is the difference between a dead click and a wrong one.
-  const leftBehind = await page.evaluate(
-    (point) =>
-      document
-        .elementFromPoint(point.x, point.y)
-        ?.closest("a, button, summary, input, select, textarea")
-        ?.tagName.toLowerCase() ?? null,
-    {
-      x: (narrowBefore.left + narrowBefore.right) / 2,
-      y: (narrowBefore.top + narrowBefore.bottom) / 2,
-    },
-  );
-  expect(leftBehind, "the control left under the pointer").toBeNull();
-});
+/**
+ * "Does not move the caveat's own control when it is opened" used to sweep
+ * 1280px down to 320px looking for the widths where the challenge bar
+ * rearranges itself -- 960 and 660 were each just inside a rearrangement, 320
+ * was where the seed line itself wrapped -- and assert the disclosure's own
+ * `<summary>` held still, or moved a known amount, at each one.
+ *
+ * Removed per decision #1 (see the migration plan's own §0): the main game
+ * page adopted `design/ui-mockup.html`'s own 1040x600 floor instead of
+ * reflowing for a phone, and every width this test bisected to the pixel --
+ * 960, 900, 768, 700, 660, 640, 320 -- is now below that floor. The
+ * rearrangement it was guarding no longer happens at any width the page still
+ * promises to fit; `reflow.spec.ts` holds the floor itself.
+ */
 
 test("keeps every word of the seed line readable, in both of its states", async ({ page }) => {
   // The seed line was a `<p>`, and `p` is one of the few selectors the
@@ -251,6 +159,7 @@ test("keeps every word of the seed line readable, in both of its states", async 
         );
       };
       const page_ = luminance(getComputedStyle(document.body).backgroundColor);
+      const line = document.querySelector(".challengeseed");
       const measured: Record<string, number> = {};
       for (const selector of [
         ".seedlabel",
@@ -260,7 +169,7 @@ test("keeps every word of the seed line readable, in both of its states", async 
         ".seedhelp > summary",
         ".seedcaveat",
       ]) {
-        const element = document.querySelector(selector);
+        const element = line?.querySelector(selector) ?? null;
         if (element === null) {
           continue;
         }

@@ -23,10 +23,17 @@
 
 import { expect, test } from "@playwright/test";
 
-import { startButton, statistic, statisticValue } from "./game-page.ts";
+import { languagePicker, startButton, statistic, statisticValue } from "./game-page.ts";
 
-/** The seed of the run in the challenge bar, which names the building drawn. */
-const SEED_LINK = ".seedlink";
+/**
+ * The seed of the run in the challenge bar, which names the building drawn.
+ *
+ * Scoped to `.challengeseed` rather than bare `.seedlink`: the settings
+ * popover's own seed block, behind its still-closed `.setmenu`, reuses the
+ * same class -- see its own module comment -- so the bare class now resolves
+ * two elements.
+ */
+const SEED_LINK = ".challengeseed .seedlink";
 
 /** Where the choice is remembered between visits. */
 const LOCALE_STORAGE_KEY = "elevatorLocale";
@@ -50,7 +57,7 @@ test("puts the whole page into Russian without disturbing the run", async ({ pag
   const callButtons = await page.getByRole("button", { name: /^Call an elevator/ }).count();
   expect(callButtons).toBeGreaterThan(0);
 
-  await page.getByLabel("Language").selectOption("ru");
+  await languagePicker(page).selectOption("ru");
 
   // The shell, rewritten from the catalogue.
   await expect(page.locator("html")).toHaveAttribute("lang", "ru");
@@ -68,7 +75,7 @@ test("puts the whole page into Russian without disturbing the run", async ({ pag
   await expect(page.getByRole("button", { name: "Вызвать лифт вверх с этажа 0" })).toBeVisible();
   await expect(page.getByRole("group", { name: "Лифт 1" })).toBeVisible();
   // And the control itself, now labelled in the language it just chose.
-  await expect(page.getByLabel("Язык")).toHaveValue("ru");
+  await expect(languagePicker(page)).toHaveValue("ru");
 
   // The same building, and the same one: the seed names the draw, and a restart
   // would have taken another one.
@@ -94,7 +101,7 @@ test("writes the figures the way a reader of the new language writes them", asyn
   await expect.poll(async () => statisticValue(page, "Elapsed time")).toBeGreaterThan(3);
   await expect(statistic(page, "Elapsed time")).toHaveText(/s$/);
 
-  await page.getByLabel("Language").selectOption("ru");
+  await languagePicker(page).selectOption("ru");
 
   // A non-breaking space and «с», neither of which a glued-on "s" could produce.
   // Written as an escape rather than as the character, which is invisible in a
@@ -108,7 +115,7 @@ test("remembers the language for the next visit, and only when it was chosen", a
   await page.goto("/#challenge=4");
   expect(await page.evaluate((key) => localStorage.getItem(key), LOCALE_STORAGE_KEY)).toBeNull();
 
-  await page.getByLabel("Language").selectOption("ru");
+  await languagePicker(page).selectOption("ru");
   // Waited for rather than read straight away: the choice is written once the
   // catalogue has been fetched, and the redraw is what says it has been.
   await expect(page.locator("html")).toHaveAttribute("lang", "ru");
@@ -119,7 +126,7 @@ test("remembers the language for the next visit, and only when it was chosen", a
   await page.goto("/");
   await expect(page.locator("html")).toHaveAttribute("lang", "ru");
   await expect(page.getByRole("heading", { name: /^Задание №1:/ })).toBeVisible();
-  await expect(page.getByLabel("Язык")).toHaveValue("ru");
+  await expect(languagePicker(page)).toHaveValue("ru");
 });
 
 test("sends a Russian reader to the Russian reference page", async ({ page }) => {
@@ -129,7 +136,7 @@ test("sends a Russian reader to the Russian reference page", async ({ page }) =>
   // the same thing went to different places.
   await page.goto("/#challenge=4");
 
-  await page.getByLabel("Language").selectOption("ru");
+  await languagePicker(page).selectOption("ru");
 
   await expect(page.getByRole("link", { name: "Справка" })).toHaveAttribute(
     "href",
@@ -149,10 +156,10 @@ test("is one stop in the tab order, right after the links it sits beside", async
   await page.getByRole("link", { name: "Wiki & Solutions" }).focus();
   await page.keyboard.press("Tab");
 
-  await expect(page.getByLabel("Language")).toBeFocused();
+  await expect(languagePicker(page)).toBeFocused();
   // Both languages are offered, each named in itself: the reader who most needs
   // this control is the one who cannot read the language the page is in.
-  await expect(page.getByLabel("Language").locator("option")).toHaveText(["English", "Русский"]);
+  await expect(languagePicker(page).locator("option")).toHaveText(["English", "Русский"]);
 });
 
 /**
@@ -193,7 +200,7 @@ test("keeps the header the same height in either language", async ({ page }) => 
   // Switched with the control rather than by loading a Russian URL, because the
   // page a player sees change under them is the one that jumped.
   await page.setViewportSize({ width: PARITY_WIDTHS[0], height: 900 });
-  await page.getByLabel("Language").selectOption("ru");
+  await languagePicker(page).selectOption("ru");
   await expect(page.getByRole("link", { name: "Справка" })).toBeVisible();
 
   for (const width of PARITY_WIDTHS) {
