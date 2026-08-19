@@ -13,10 +13,24 @@
  * and cars.
  */
 
-import { userTemplate, type UserDisplayType } from "../../../ui/templates.ts";
 import type { User } from "#game/user.ts";
 import { setClass, setTransformPos } from "#shared/lib/dom.ts";
 import type { StageScale } from "#shared/lib/stage-scale.ts";
+import { iconMarkup } from "#shared/ui/icon.ts";
+
+/** How a passenger is drawn; mirrors the simulation's `UserDisplayType`. */
+export type UserDisplayType = "child" | "female" | "male";
+
+/**
+ * A passenger.
+ *
+ * @param displayType - Which person icon to draw.
+ * @param leaving - Whether the passenger has already been delivered.
+ * @returns The passenger markup.
+ */
+export function userTemplate(displayType: UserDisplayType, leaving: boolean): string {
+  return iconMarkup(displayType, leaving ? "movable user leaving" : "movable user");
+}
 
 /**
  * Parses the markup for one passenger into its element.

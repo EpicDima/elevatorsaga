@@ -2,12 +2,13 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { presentTutorial } from "./tutorial-panel.ts";
-import type { TutorialPanelData } from "./tutorial-panel.ts";
+import { presentTutorial, tutorialTemplate } from "./tutorial-panel.ts";
+import type { TutorialPanelData, TutorialTemplateData } from "./tutorial-panel.ts";
 import { tutorialTasks } from "#game/tutorial.ts";
 import type { TutorialTask } from "#game/tutorial.ts";
 import { DEFAULT_LOCALE, EN_MESSAGES, LOCALES, setLocale, translateIn } from "#i18n/index.ts";
 import { query, queryAll, requireElement } from "#shared/lib/dom.ts";
+import { renderElement } from "#shared/ui/markup.ts";
 
 import { createElement } from "../../../ui/test-helpers.ts";
 
@@ -804,6 +805,316 @@ describe("presentTutorial", () => {
         expect(uncommented(drawn), `${locale}: Cyrillic outside a comment`).not.toMatch(/[а-яё]/i);
       }
     });
+  });
+});
+
+describe("tutorialTemplate", () => {
+  afterEach(() => {
+    setLocale(DEFAULT_LOCALE);
+  });
+
+  /**
+   * A drawn panel, with everything the test is not about left plain.
+   *
+   * The words are the test's own rather than the catalogue's: what this template
+   * decides is where a string goes and whether it is escaped on the way, and a
+   * fixture made of real prose would hide both behind a paragraph of Russian.
+   *
+   * @param overrides - The fields the test is about.
+   * @returns The rendered panel.
+   */
+  function panel(overrides: Partial<TutorialTemplateData> = {}): HTMLElement {
+    return renderElement(
+      tutorialTemplate({
+        taskNumber: 1,
+        taskCount: 8,
+        clearedCount: 0,
+        title: "The elevator that goes nowhere",
+        goal: "Deliver 10 passengers",
+        hints: ["first", "second", "third"],
+        startingCode: "s",
+        solutionCode: "elevator.goToFloor(1);",
+        explanation: "why it happens",
+        ...overrides,
+      }),
+    );
+  }
+
+  it("is one region with a name, in the order a lesson is read in", () => {
+    const drawn = panel();
+
+    // A `<section>` is only a landmark when it has a name, and the name is what
+    // lets a screen-reader player jump over the panel to the building or back
+    // to it for the next hint (WCAG 1.3.1).
+    expect(drawn.tagName).toBe("SECTION");
+    expect(drawn.getAttribute("aria-label")).toBe("Learning track");
+    expect([...drawn.children].map((child) => child.className)).toEqual([
+      "tutorialposition",
+      "tutorialtitle",
+      "tutorialgoal",
+      "tutorialhint",
+      "tutorialhint",
+      "tutorialhint",
+      "tutorialexplanation",
+      "tutorialbuttons",
+      "tutorialtaken",
+      "tutorialprogress",
+    ]);
+  });
+
+  it("leaves the line about taking the program empty, and live", () => {
+    // The presenter writes into this on the click, and a live region only
+    // announces reliably when it was in the document before the text arrived --
+    // so it is drawn here, empty, rather than made when there is news. Empty is
+    // also the only honest state for a panel nobody has pressed a button on.
+    const line = requireElement(".tutorialtaken", panel());
+
+    expect(line.textContent).toBe("");
+    expect(line.getAttribute("aria-live")).toBe("polite");
+  });
+
+  it("escapes the program, whatever the answer turns out to contain", () => {
+    // The one string here that is neither text the catalogue wrote nor markup
+    // it wrote: it is JavaScript, and the parser has opinions about two of its
+    // characters. Today's eight answers hold one `<`, followed by a space, and
+    // no `&` at all -- so nothing on the track would notice this being dropped,
+    // and the ninth answer written with a `<` before a letter would lose the
+    // rest of its line into a tag nobody can see.
+    //
+    // The answer is highlighted now, which wraps each token of the line in its
+    // own `<span>` -- so "if (a &lt; b ..." is no longer one contiguous run of
+    // escaped text the way it was before highlighting existed; code-highlight.ts
+    // has its own tests for exactly how it is split. What has to hold here is
+    // the security property, not the exact bytes it is spread across: every
+    // character `escapeHtml` would have escaped is escaped somewhere, no tag
+    // parses out of the program, and the element's text reads the hostile
+    // program back whole.
+    const hostile = `if (a < b && c) { elevator.goToFloor("<img src=x onerror=alert(1)>"); }`;
+    const html = tutorialTemplate({
+      taskNumber: 1,
+      taskCount: 8,
+      clearedCount: 0,
+      title: "t",
+      goal: "g",
+      hints: ["one", "two", "three"],
+      startingCode: "s",
+      solutionCode: hostile,
+      explanation: "e",
+    });
+
+    expect(html).not.toContain("<img");
+    expect(html).toContain("&lt;");
+    expect(html).toContain("&gt;");
+    expect(html).toContain("&amp;&amp;");
+    // The string literal is one token, so its escaped text is still one
+    // contiguous run.
+    expect(html).toContain("&lt;img src=x onerror=alert(1)&gt;");
+    expect(html).toContain("&quot;");
+    const drawn = renderElement(html);
+    expect(drawn.querySelector("img")).toBeNull();
+    // Escaped on the way in and read back whole: the player is shown the program
+    // that clears the task, character for character.
+    expect(drawn.querySelector(".tutorialsolution code")?.textContent).toBe(hostile);
+  });
+
+  it("escapes the task's name and its goal", () => {
+    const drawn = panel({
+      title: `Lift & <b>shift</b>`,
+      goal: `Deliver 10 <b>passengers</b>`,
+    });
+
+    expect(drawn.querySelector("b")).toBeNull();
+    expect(drawn.querySelector(".tutorialtitle")?.textContent).toBe(`Lift & <b>shift</b>`);
+    expect(drawn.querySelector(".tutorialgoal")?.textContent).toBe(`Deliver 10 <b>passengers</b>`);
+  });
+
+  it("inserts the hints and the explanation as the markup they are", () => {
+    // Both come from this repository's own `.html` messages, and they mark up
+    // the identifier under discussion. Escaped, the player would read the tag.
+    const drawn = panel({
+      hints: [`call <span class="emphasis-color">goToFloor</span>`, "second", "third"],
+      explanation: `it queues <span class="emphasis-color">destinationQueue</span>`,
+    });
+
+    expect(drawn.querySelector(".tutorialhint .emphasis-color")?.textContent).toBe("goToFloor");
+    expect(drawn.querySelector(".tutorialexplanation .emphasis-color")?.textContent).toBe(
+      "destinationQueue",
+    );
+  });
+
+  it("prints the answer under the last hint and nowhere else", () => {
+    // The hints run from a nudge to the answer, and the program under the first
+    // of them would spend the whole lesson on one click.
+    const drawn = panel();
+    const hints = [...drawn.querySelectorAll(".tutorialhint")];
+
+    expect(hints.map((hint) => hint.querySelector(".tutorialsolution") !== null)).toEqual([
+      false,
+      false,
+      true,
+    ]);
+    expect(drawn.querySelectorAll(".tutorialsolution")).toHaveLength(1);
+    expect(hints.map((hint) => hint.querySelector("summary")?.textContent)).toEqual([
+      "Hint 1",
+      "Hint 2",
+      "Hint 3",
+    ]);
+  });
+
+  it("draws the answer as highlighted code, with the new line marked and a way to copy it", () => {
+    // startingCode is never printed -- it exists only to be diffed against
+    // solutionCode, which is what code-highlight.ts and line-diff.ts each have
+    // their own tests for. This is the wiring: that the two actually reach
+    // tutorialAnswerTemplate and come out as markup a player can read.
+    const drawn = panel({
+      startingCode: "elevator.goToFloor(0);",
+      solutionCode: "elevator.goToFloor(0);\nelevator.goToFloor(1);",
+    });
+    const code = drawn.querySelector(".tutorialsolution code");
+
+    // Real syntax highlighting, not plain text.
+    expect(code?.querySelector(".tok-propertyName")?.textContent).toBe("goToFloor");
+    expect(
+      [...(code?.querySelectorAll(".tok-number") ?? [])].map((token) => token.textContent),
+    ).toEqual(["0", "1"]);
+    // One element per line, and only the new line is a <mark>.
+    const lines = [...(code?.children ?? [])];
+    expect(lines.map((line) => line.tagName)).toEqual(["SPAN", "MARK"]);
+    expect(lines[1]?.className).toBe("tutoriallinechanged");
+    expect(lines[1]?.textContent).toBe("elevator.goToFloor(1);");
+
+    // The copy button and its live status line sit above the code, inside the
+    // same answer block.
+    const answer = drawn.querySelector(".tutorialanswer");
+    const button = answer?.querySelector("button.tutorialcopycode");
+    expect(button?.textContent).toBe("Copy this program");
+    expect(button?.getAttribute("type")).toBe("button");
+    const status = answer?.querySelector("p.tutorialcopied");
+    expect(status?.textContent).toBe("");
+    expect(status?.getAttribute("aria-live")).toBe("polite");
+  });
+
+  it("marks nothing when the answer is exactly the program the player started with", () => {
+    // Task 8 is exactly this case on the real track: it hands back task 7's own
+    // answer, unchanged, and there is nothing here for a player to be told they
+    // still have to write.
+    const drawn = panel({
+      startingCode: "elevator.goToFloor(1);",
+      solutionCode: "elevator.goToFloor(1);",
+    });
+    const code = drawn.querySelector(".tutorialsolution code");
+
+    expect(code?.querySelector("mark")).toBeNull();
+    expect(code?.querySelector(".tutoriallinechanged")).toBeNull();
+  });
+
+  it("leaves every disclosure closed", () => {
+    // A task whose answer is on screen before the goal has been read is not a
+    // task, and `<details>` opens for good once it is written open.
+    expect(panel().querySelectorAll("details[open]")).toHaveLength(0);
+    expect(panel().querySelectorAll("details")).toHaveLength(4);
+  });
+
+  it("says where the player is and how much of the track is behind them", () => {
+    const drawn = panel({ taskNumber: 3, taskCount: 8, clearedCount: 5 });
+
+    expect(drawn.querySelector(".tutorialposition")?.textContent).toBe(
+      "Learning track Task 3 of 8",
+    );
+    expect(drawn.querySelector(".tutorialprogress")?.textContent).toBe("5 of 8 tasks done");
+  });
+
+  it("counts the tasks in the plural the number calls for", () => {
+    // The plural is selected on the count of tasks, not on the count cleared:
+    // "1 of 8 tasks done" is about eight tasks.
+    expect(
+      panel({ taskCount: 1, clearedCount: 1 }).querySelector(".tutorialprogress")?.textContent,
+    ).toBe("1 of 1 task done");
+    expect(
+      panel({ taskCount: 8, clearedCount: 1 }).querySelector(".tutorialprogress")?.textContent,
+    ).toBe("1 of 8 tasks done");
+  });
+
+  it("writes down the index the panel was drawn for, zero-based", () => {
+    // Read back by the presenter after `replaceChildren` has thrown the old
+    // panel away, to decide whether the hints the player opened may stay open.
+    // Zero-based, because that is the number the presenter was called with.
+    expect(panel({ taskNumber: 6 }).getAttribute("data-task-index")).toBe("5");
+  });
+
+  it("gives the way out two real buttons, and no second Start over", () => {
+    const buttons = [...panel().querySelectorAll(".tutorialbuttons button")];
+
+    expect(buttons.map((button) => button.className)).toEqual([
+      "tutorialtakecode",
+      "tutorialleave",
+    ]);
+    expect(buttons.map((button) => button.getAttribute("type"))).toEqual(["button", "button"]);
+    expect(buttons.map((button) => button.textContent)).toEqual([
+      "Take this program into your own editor",
+      "Leave for the challenges",
+    ]);
+    // The panel had its own "Start over" until the run buttons were gathered
+    // into `controlsTemplate`, which is drawn directly under it. Two buttons on
+    // screen together under one accessible name, doing not quite the same thing,
+    // is WCAG 3.2.4; the one that went is the one only the track had.
+    expect(panel().textContent).not.toContain("Start over");
+  });
+
+  it("names the learning track's panel and everything a player presses in it, in the language active when it is drawn", () => {
+    setLocale("ru");
+    const drawn = renderElement(
+      tutorialTemplate({
+        taskNumber: 7,
+        taskCount: 8,
+        clearedCount: 6,
+        title: "Один лифт на три этажа",
+        goal: "Перевезите 20 пассажиров",
+        hints: ["раз", "два", "три"],
+        startingCode: "s",
+        solutionCode: "elevator.goToFloor(1);",
+        explanation: "почему",
+      }),
+    );
+
+    // The landmark's name is translated too. A region announced as "Learning
+    // track" in a Russian page is the one thing a screen-reader player cannot
+    // see is out of place.
+    expect(drawn.getAttribute("aria-label")).toBe("Учебная дорожка");
+    expect(drawn.querySelector(".tutorialposition")?.textContent).toBe(
+      "Учебная дорожка Задание 7 из 8",
+    );
+    expect(drawn.querySelector(".tutorialhint summary")?.textContent).toBe("Подсказка 1");
+    expect(drawn.querySelector(".tutorialexplanation summary")?.textContent).toBe(
+      "Почему так получается",
+    );
+    expect(drawn.querySelector(".tutorialprogress")?.textContent).toBe("Пройдено 6 из 8 заданий");
+    expect(
+      [...drawn.querySelectorAll(".tutorialbuttons button")].map((button) => button.textContent),
+    ).toEqual(["Забрать программу в свой редактор", "Выйти к заданиям игры"]);
+  });
+
+  it("leaves the answer in the language it is written in", () => {
+    // The program is JavaScript in every locale, and it is the string the task
+    // table holds rather than anything the catalogue says.
+    setLocale("ru");
+    const code = `elevator.goToFloor(1);\nelevator.goToFloor(0);`;
+
+    expect(
+      renderElement(
+        tutorialTemplate({
+          taskNumber: 1,
+          taskCount: 8,
+          clearedCount: 0,
+          title: "т",
+          goal: "ц",
+          hints: ["раз", "два", "три"],
+          startingCode: "s",
+          solutionCode: code,
+          explanation: "п",
+        }),
+      ).querySelector(".tutorialsolution code")?.textContent,
+    ).toBe(code);
   });
 });
 

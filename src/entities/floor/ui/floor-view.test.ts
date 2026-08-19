@@ -1,10 +1,14 @@
 // @vitest-environment jsdom
 
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 
-import { createFloorView } from "./floor-view.ts";
+import { createFloorView, floorTemplate } from "./floor-view.ts";
 import { Floor } from "#game/floor.ts";
+import { DEFAULT_LOCALE, setLocale } from "#i18n/index.ts";
 import { requireElement } from "#shared/lib/dom.ts";
+import { renderElement } from "#shared/ui/markup.ts";
+
+import { floorCallDownLabel, floorCallUpLabel } from "../../../ui/templates.ts";
 
 /** A floor with no error handler wired, for tests that never throw one. */
 function fixtureFloor(level = 2): Floor {
@@ -54,5 +58,64 @@ describe("createFloorView", () => {
 
     expect(view.element.style.top).toBe("120px");
     expect(view.element.style.height).toBe("64px");
+  });
+});
+
+describe("floorTemplate", () => {
+  it("positions the floor and shows its number", () => {
+    const floor = renderElement(floorTemplate(2, 150));
+    expect(floor.className).toBe("floor");
+    expect(floor.style.top).toBe("150px");
+    expect(floor.querySelector(".floornumber")?.textContent).toBe("2");
+  });
+
+  it("makes the call buttons real, labelled buttons", () => {
+    const floor = renderElement(floorTemplate(2, 150));
+    const up = floor.querySelector("button.up");
+    const down = floor.querySelector("button.down");
+    expect(up?.getAttribute("aria-label")).toBe("Call an elevator going up from floor 2");
+    expect(down?.getAttribute("aria-label")).toBe("Call an elevator going down from floor 2");
+    expect(up?.getAttribute("aria-pressed")).toBe("false");
+    expect(down?.getAttribute("aria-pressed")).toBe("false");
+    expect(up?.getAttribute("type")).toBe("button");
+  });
+
+  it("keeps exactly one space between the two call buttons", () => {
+    const floor = renderElement(floorTemplate(0, 0));
+    const indicator = floor.querySelector(".buttonindicator");
+    expect(indicator?.childNodes[1]?.textContent).toBe(" ");
+  });
+});
+
+describe("the two names a floor can be renamed from", () => {
+  it("hands the call buttons the very labels the relabeller writes back in", () => {
+    // relabelWorld renames a floor that is already on screen by calling
+    // floorCallUpLabel/floorCallDownLabel directly, and this template calls the
+    // same two. Two copies of a message key, one in each path, is how a renamed
+    // message ends up renaming only half a floor; there is one copy, and this
+    // is the assertion that the template still goes through it.
+    const floor = renderElement(floorTemplate(2, 150));
+    expect(floor.querySelector("button.up")?.getAttribute("aria-label")).toBe(floorCallUpLabel(2));
+    expect(floor.querySelector("button.down")?.getAttribute("aria-label")).toBe(
+      floorCallDownLabel(2),
+    );
+  });
+});
+
+describe("the language a floor's call buttons come out in", () => {
+  afterEach(() => {
+    setLocale(DEFAULT_LOCALE);
+  });
+
+  it("names the call buttons of a floor", () => {
+    setLocale("ru");
+    const floor = renderElement(floorTemplate(2, 150));
+
+    expect(floor.querySelector("button.up")?.getAttribute("aria-label")).toBe(
+      "Вызвать лифт вверх с этажа 2",
+    );
+    expect(floor.querySelector("button.down")?.getAttribute("aria-label")).toBe(
+      "Вызвать лифт вниз с этажа 2",
+    );
   });
 });

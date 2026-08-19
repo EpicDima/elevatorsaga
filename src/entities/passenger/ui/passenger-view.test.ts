@@ -2,9 +2,10 @@
 
 import { describe, expect, it } from "vitest";
 
-import { createPassengerView } from "./passenger-view.ts";
+import { createPassengerView, userTemplate } from "./passenger-view.ts";
 import { User } from "#game/user.ts";
 import type { StageScale } from "#shared/lib/stage-scale.ts";
+import { renderFragment } from "#shared/ui/markup.ts";
 
 describe("createPassengerView", () => {
   it("draws the passenger's icon for their display type", () => {
@@ -54,5 +55,19 @@ describe("createPassengerView", () => {
     user.trigger("removed");
 
     expect(view.element.isConnected).toBe(false);
+  });
+});
+
+describe("userTemplate", () => {
+  it("draws each person type as a movable user", () => {
+    for (const type of ["male", "female", "child"] as const) {
+      const user = renderFragment(userTemplate(type, false)).firstElementChild;
+      expect(user?.getAttribute("class"), type).toBe(`icon movable user`);
+    }
+  });
+
+  it("marks a delivered passenger as leaving", () => {
+    const user = renderFragment(userTemplate("male", true)).firstElementChild;
+    expect(user?.getAttribute("class")).toBe("icon movable user leaving");
   });
 });

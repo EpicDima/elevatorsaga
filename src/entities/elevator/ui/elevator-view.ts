@@ -19,14 +19,40 @@
  * off the shared scale cell.
  */
 
-import { elevatorButtonTemplate, elevatorTemplate } from "../../../ui/templates.ts";
 import type { Elevator } from "#game/elevator.ts";
 import { queryAll, requireElement, setClass, setTransformPos } from "#shared/lib/dom.ts";
 import type { StageScale } from "#shared/lib/stage-scale.ts";
-import { renderElement } from "#shared/ui/markup.ts";
+import { iconMarkup } from "#shared/ui/icon.ts";
+import { markup, raw, renderElement } from "#shared/ui/markup.ts";
+
+import { elevatorFloorButtonLabel, elevatorLabel } from "../../../ui/templates.ts";
 
 /** Selector for one in-car floor button. */
 const FLOOR_BUTTON_SELECTOR = ".buttonpress";
+
+/**
+ * One elevator car.
+ *
+ * @param width - Car width in pixels, derived from its capacity.
+ * @param index - Zero-based index of the car, used for its accessible name.
+ * @returns The elevator markup.
+ */
+export function elevatorTemplate(width: number, index: number): string {
+  return markup`<div class="elevator movable" style="width: ${width}px" role="group" aria-label="${elevatorLabel(index)}"><span class="directionindicator directionindicatorup">${raw(iconMarkup("arrow-circle-up", "up activated"))}</span><span class="floorindicator"><span></span></span><span class="directionindicator directionindicatordown">${raw(iconMarkup("arrow-circle-down", "down activated"))}</span><span class="buttonindicator"></span></div>`;
+}
+
+/**
+ * One in-car floor button.
+ *
+ * These sit flush against each other inside `.buttonindicator`, so the template
+ * must not introduce any surrounding whitespace.
+ *
+ * @param floorNum - Floor the button requests.
+ * @returns The button markup.
+ */
+export function elevatorButtonTemplate(floorNum: number): string {
+  return markup`<button type="button" class="buttonpress" aria-pressed="false" aria-label="${elevatorFloorButtonLabel(floorNum)}">${floorNum}</button>`;
+}
 
 /**
  * Reflects a lit/unlit button state in both the class and the ARIA state.

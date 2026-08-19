@@ -28,15 +28,34 @@
  * `floorTemplate`/`elevatorTemplate` always did.
  */
 
-import { floorTemplate } from "../../../ui/templates.ts";
 import type { Floor } from "#game/floor.ts";
 import { requireElement, setClass } from "#shared/lib/dom.ts";
-import { renderElement } from "#shared/ui/markup.ts";
+import { iconMarkup } from "#shared/ui/icon.ts";
+import { markup, raw, renderElement } from "#shared/ui/markup.ts";
+
+import { floorCallDownLabel, floorCallUpLabel } from "../../../ui/templates.ts";
 
 /** Selector for a floor's "call up" button. */
 const CALL_UP_SELECTOR = "button.up";
 /** Selector for a floor's "call down" button. */
 const CALL_DOWN_SELECTOR = "button.down";
+
+/**
+ * One floor of the building, with its call buttons.
+ *
+ * The call buttons used to be clickable `<i>` elements, which put them out of
+ * reach of the keyboard and made them invisible to screen readers. They are real
+ * buttons now; the stylesheet resets them so the pixels are unchanged. The
+ * single space between the two buttons is load-bearing — it is the gap the
+ * legacy markup had between the two `<i>` elements.
+ *
+ * @param level - Floor number.
+ * @param yPosition - World y of the floor, in pixels.
+ * @returns The floor markup.
+ */
+export function floorTemplate(level: number, yPosition: number): string {
+  return markup`<div class="floor" style="top: ${yPosition}px"><span class="floornumber" aria-hidden="true">${level}</span><span class="buttonindicator"><button type="button" class="up" aria-pressed="false" aria-label="${floorCallUpLabel(level)}">${raw(iconMarkup("arrow-circle-up"))}</button> <button type="button" class="down" aria-pressed="false" aria-label="${floorCallDownLabel(level)}">${raw(iconMarkup("arrow-circle-down"))}</button></span></div>`;
+}
 
 /**
  * Reflects a lit/unlit button state in both the class and the ARIA state.
