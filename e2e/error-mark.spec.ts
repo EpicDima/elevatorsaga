@@ -39,7 +39,7 @@ const THROWS_ON_LINE_4 = `{
 }`;
 
 /** The banner the app shows for any failure in the player's program. */
-const errorBanner = "There is a problem with your code";
+const errorBanner = "There is an error in your program";
 
 /** The decoration the editor draws under the failing text. */
 const errorMark = ".cm-errorMark";

@@ -39,7 +39,7 @@ const PASTED_PROGRAM = `{
 }`;
 
 /** The banner the game raises when the player's program misbehaves. */
-const errorBanner = "There is a problem with your code";
+const errorBanner = "There is an error in your program";
 
 test("keeps the player's program across a reload", async ({ page }) => {
   await page.goto("/");

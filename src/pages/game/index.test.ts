@@ -2238,7 +2238,7 @@ describe("App.relocalise", () => {
     app.relocalise();
 
     expect(requireElement(".errorline", editorPaneMount).textContent).toContain(
-      "С вашим кодом что-то не так",
+      "Ошибка в вашей программе",
     );
     // Whatever the player's program threw is their JavaScript and is shown back
     // to them untouched.

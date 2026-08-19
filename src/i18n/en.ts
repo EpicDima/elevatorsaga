@@ -508,7 +508,7 @@ elevator.goingDownIndicator(false);`,
   "game.feedback.failure.title": "Level failed",
   "game.feedback.failure.message": "Maybe your program needs an improvement?",
   "game.feedback.next": "Next level",
-  "game.codeStatus": "There is a problem with your code:",
+  "game.codeStatus": "There is an error in your program:",
 
   // The challenge bar's own meters and tier popover: `widgets/goal-bar`. Main
   // meter captions reuse "page.stats.*" directly in code rather than
@@ -746,7 +746,7 @@ elevator.goingDownIndicator(false);`,
   "fitness.scenario.large": "Large scenario",
 
   // ------------------------------------------------------------ error messages
-  // Everything that can end up in the "there is a problem with your code"
+  // Everything that can end up in the "there is an error in your program"
   // banner. Method names, event names and the values the player passed stay in
   // English: they are the API, not prose.
 

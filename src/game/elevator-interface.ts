@@ -22,7 +22,7 @@
  * argument is the *error reporter*: `elevator.triggerSafe("idle")` would route
  * a handler's exception through `report(undefined, error)`, where the resulting
  * TypeError is logged to the console and never reaches `handleUserCodeError` —
- * the player's code fails and the "problem with your code" banner never
+ * the player's code fails and the "error in your program" banner never
  * appears.
  */
 
@@ -628,7 +628,7 @@ export class ElevatorInterface {
    * @throws {TypeError} When `floorNum` is not a finite number — a missing
    * argument included. Answering `false` would be indistinguishable from a
    * genuine "no", and the mistake would be invisible; the throw reaches the
-   * player as the paused game and the "problem with your code" banner, the same
+   * player as the paused game and the "error in your program" banner, the same
    * way {@link goToFloor} reports it.
    */
   isApproachingFloor(floorNum: number): boolean {

@@ -413,7 +413,7 @@ interpolations, so a plain key is interpolated directly and an `.html` key goes 
 | `game.timeScale.decrease`   | Decrease simulation speed                                                                                      | an `aria-label`                                                                                              |
 | `game.timeScale.increase`   | Increase simulation speed                                                                                      | an `aria-label`                                                                                              |
 | `game.feedback.next`        | Next level                                                                                                     | the link in the end-of-challenge overlay                                                                     |
-| `game.codeStatus`           | There is a problem with your code:                                                                             | the message beside it is the player's own text and is never translated                                       |
+| `game.codeStatus`           | There is an error in your program:                                                                             | the message beside it is the player's own text and is never translated                                       |
 
 The seed itself is a placeholder in both accessible names and never part of the sentence: it is
 the token a player transcribes in order to hand a building to somebody else, so it reads

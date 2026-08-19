@@ -869,7 +869,7 @@ describe("Elevator interface", () => {
         // The route player code actually takes: a handler's exception goes to
         // the reporter `triggerSafe` was given, which in a real world is
         // `World`'s own `handleUserCodeError` and ends in the paused game and
-        // the "problem with your code" banner.
+        // the "error in your program" banner.
         elevInterface.on("idle", () => {
           looseGoToFloor(value);
         });

@@ -530,7 +530,7 @@ elevator.goingDownIndicator(false);`,
   "game.feedback.failure.title": "Уровень провален",
   "game.feedback.failure.message": "Может быть, программу стоит доработать?",
   "game.feedback.next": "Следующий уровень",
-  "game.codeStatus": "С вашим кодом что-то не так:",
+  "game.codeStatus": "Ошибка в вашей программе:",
 
   // Полоса цели задания и всплывающий список требований по рангам:
   // `widgets/goal-bar`. Подписи основных счётчиков берутся прямо из

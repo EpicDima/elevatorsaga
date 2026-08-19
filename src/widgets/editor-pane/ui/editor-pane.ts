@@ -105,7 +105,7 @@ export interface EditorPanePresenter {
   update(): void;
 
   /**
-   * Draws the "there is a problem with your code" banner, and points the
+   * Draws the "there is an error in your program" banner, and points the
    * goto link at the line `error` came from, if `src/ui/error-location.ts`'s
    * `locateCodeError` can find one in `code`.
    *
