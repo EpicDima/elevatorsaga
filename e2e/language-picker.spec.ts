@@ -36,7 +36,7 @@ test("puts the whole page into Russian without disturbing the run", async ({ pag
   page.on("pageerror", (error) => pageErrors.push(error.message));
 
   await page.goto(RUNNING_GAME);
-  await expect(page.getByRole("button", { name: "Challenge 4" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Level 4" })).toBeVisible();
 
   // The run has to be under way before the language changes, or "it was not
   // restarted" is a claim about nothing.
@@ -61,7 +61,7 @@ test("puts the whole page into Russian without disturbing the run", async ({ pag
   // The challenge bar, rebuilt by the app; and the run controls, which are not
   // rebuilt at all -- they are drawn once for the life of the page, so every
   // word on them is written by the relabelling this change triggers.
-  await expect(page.getByRole("button", { name: "Задание 4" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Уровень 4" })).toBeVisible();
   await expect(startButton(page, "Пауза")).toBeVisible();
   await expect(page.getByRole("button", { name: "С начала" })).toBeVisible();
   // The building, renamed in place. This is the part that used to stay English
@@ -120,7 +120,7 @@ test("remembers the language for the next visit, and only when it was chosen", a
   // should be in.
   await page.goto("/");
   await expect(page.locator("html")).toHaveAttribute("lang", "ru");
-  await expect(page.getByRole("button", { name: "Задание 1" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Уровень 1" })).toBeVisible();
   await expect(languagePicker(page)).toHaveValue("ru");
 });
 

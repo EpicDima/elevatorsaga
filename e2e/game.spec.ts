@@ -25,7 +25,7 @@ test("boots the first challenge with an editor and a building", async ({ page })
   // The challenge bar's own prose sentence ("Transport 15 people in 60
   // seconds or less") is gone: `widgets/goal-bar` states the same
   // requirement as two meters instead, one per field the condition reads.
-  await expect(page.getByRole("button", { name: "Challenge 1" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Level 1" })).toBeVisible();
   await expect(page.locator('.meter[data-kind="transportedCounter"] .meter-val')).toHaveText(
     "0 / 15",
   );
@@ -73,7 +73,7 @@ test("plays a challenge to completion when Start is pressed", async ({ page }) =
 
   // The challenge wants 15 people inside 60 simulated seconds.
   await expect(page.getByRole("heading", { name: "Success!" })).toBeVisible({ timeout: 30_000 });
-  await expect(page.getByRole("link", { name: /Next challenge/ })).toBeVisible();
+  await expect(page.getByRole("link", { name: /Next level/ })).toBeVisible();
   await expect(page.getByRole("button", { name: /Restart/ })).toBeVisible();
   expect(await statisticValue(page, "Transported")).toBeGreaterThanOrEqual(15);
 });
@@ -108,7 +108,7 @@ test("crunches a challenge instantly, with nothing drawn while it runs, and show
   // The same outcome, and the same final statistics, an animated run of this
   // challenge already proves it reaches.
   await expect(page.getByRole("heading", { name: "Success!" })).toBeVisible();
-  await expect(page.getByRole("link", { name: /Next challenge/ })).toBeVisible();
+  await expect(page.getByRole("link", { name: /Next level/ })).toBeVisible();
   expect(await statisticValue(page, "Transported")).toBeGreaterThanOrEqual(15);
 });
 

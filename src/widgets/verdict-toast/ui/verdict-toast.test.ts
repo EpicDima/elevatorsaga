@@ -32,7 +32,7 @@ describe("presentVerdictToast", () => {
     const parent = document.createElement("div");
     parent.className = "feedbackcontainer";
     presentVerdictToast(parent, {
-      title: "Challenge failed",
+      title: "Level failed",
       message: "Try again",
       url: "",
       tier: undefined,
@@ -53,7 +53,7 @@ describe("presentVerdictToast", () => {
     const parent = document.createElement("div");
     parent.className = "feedbackcontainer";
     presentVerdictToast(parent, {
-      title: "Challenge failed",
+      title: "Level failed",
       message: "Try again",
       url: "",
       tier: undefined,

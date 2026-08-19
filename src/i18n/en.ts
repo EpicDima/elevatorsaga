@@ -188,15 +188,15 @@ export const EN_MESSAGES = {
   // Summary text for the "<details>" holding the panel's nine secondary
   // tiles.
   "game.statsPanel.more": "All figures",
-  "game.challenge.title.html": "Challenge #{number}: {description}",
+  "game.challenge.title.html": "Level {number}: {description}",
   // The navigation row shows bare numbers, because twenty entries have to fit
   // across a phone; the name each one carries is what a screen reader announces
   // in their place, so it has to say what the number means on its own.
-  "game.challenge.nav.label": "Challenges",
-  "game.challenge.nav.link": "Challenge {number}",
+  "game.challenge.nav.label": "Levels",
+  "game.challenge.nav.link": "Level {number}",
   "game.challenge.nav.demo": "Demo",
   // The level switcher's own popover: `widgets/level-switcher`. Its block
-  // captions otherwise reuse "game.challenge.nav.label" (challenges) and
+  // captions otherwise reuse "game.challenge.nav.label" (levels) and
   // "tutorial.panel.label" (the learning track), so only what is new to this
   // widget is here — the sandbox's own label, the step buttons either side of
   // the popover trigger, and the two tile labels the nav row has no
@@ -207,7 +207,7 @@ export const EN_MESSAGES = {
   "game.levelSwitcher.sandboxLabel": "Sandbox",
   "game.levelSwitcher.tutorialTileLabel": "Tutorial task {number}",
   "game.levelSwitcher.tutorialTileClearedLabel": "Tutorial task {number}, completed",
-  "game.levelSwitcher.challengeTileLockedLabel": "Challenge {number}, locked",
+  "game.levelSwitcher.challengeTileLockedLabel": "Level {number}, locked",
   // The editor pane's own goto link: `widgets/editor-pane`. Points at the line
   // "src/ui/error-location.ts"'s locateCodeError found for the player's own
   // exception; the button that carries it is hidden whenever that comes back
@@ -519,10 +519,10 @@ elevator.goingDownIndicator(false);`,
   "game.button.runInstant": "Run instantly",
   "game.button.runningInstantly": "Crunching...",
   "game.feedback.success.title": "Success!",
-  "game.feedback.success.message": "Challenge completed",
-  "game.feedback.failure.title": "Challenge failed",
+  "game.feedback.success.message": "Level completed",
+  "game.feedback.failure.title": "Level failed",
   "game.feedback.failure.message": "Maybe your program needs an improvement?",
-  "game.feedback.next": "Next challenge",
+  "game.feedback.next": "Next level",
   "game.codeStatus": "There is a problem with your code:",
 
   // The challenge bar's own meters and tier popover: `widgets/goal-bar`. Main
@@ -1423,7 +1423,7 @@ elevator.goToFloor(2); // Queued anyway -- queue: 2, 3, 2`,
   "tutorial.button.takeCode": "Take this program into your own editor",
   "tutorial.button.takeCodeConfirm":
     "The game editor already holds a program of yours. Replace it with this one?",
-  "tutorial.button.leave": "Leave for the challenges",
+  "tutorial.button.leave": "Leave for the levels",
   "tutorial.solution.copy": "Copy this program",
   // The clipboard write's two outcomes, at the size and just under the answer
   // the way `tutorial.panel.codeTaken`/`codeRefused` sit under the editor
@@ -1437,7 +1437,7 @@ elevator.goToFloor(2); // Queued anyway -- queue: 2, 3, 2`,
   "tutorial.bar.title.html": "Tutorial task {number} of {count}: {description}",
   "tutorial.finish.title": "The track is finished",
   "tutorial.finish.message":
-    "Eight tasks, and the last of them was challenge 1: the same three floors, the same elevator, the same fifteen passengers in sixty seconds. The program in the editor solves it, and the panel has a button that copies it into your own editor — take it with you before you go.",
+    "Eight tasks, and the last of them was level 1: the same three floors, the same elevator, the same fifteen passengers in sixty seconds. The program in the editor solves it, and the panel has a button that copies it into your own editor — take it with you before you go.",
   "tutorial.finish.nextTask": "Next task",
-  "tutorial.finish.toChallenges": "Go to challenge 1",
+  "tutorial.finish.toChallenges": "Go to level 1",
 } as const satisfies Readonly<Record<string, string | PluralForms<"en">>>;

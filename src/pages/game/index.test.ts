@@ -202,7 +202,7 @@ function challengeTiles(elements: AppElements): HTMLElement[] {
 }
 
 /**
- * The challenge block's own caption, e.g. "Challenges" -- what
+ * The challenge block's own caption, e.g. "Levels" -- what
  * `.challengenav`'s `aria-label` used to carry, before the level switcher
  * replaced the challenge bar's own navigation row.
  *
@@ -449,7 +449,7 @@ describe("App challenge outcome", () => {
 
     app.world?.trigger("stats_changed");
 
-    expect(requireElement(".feedback h2", elements.feedback).textContent).toBe("Challenge failed");
+    expect(requireElement(".feedback h2", elements.feedback).textContent).toBe("Level failed");
     expect(elements.feedback.querySelector("a")).toBeNull();
   });
 
@@ -468,10 +468,10 @@ describe("App challenge outcome", () => {
 
     expect(requireElement(".feedback h2", won.elements.feedback).textContent).toBe("Получилось!");
     expect(requireElement(".feedback p", won.elements.feedback).textContent).toBe(
-      "Задание выполнено",
+      "Уровень пройден",
     );
     expect(requireElement(".feedback h2", lost.elements.feedback).textContent).toBe(
-      "Задание провалено",
+      "Уровень провален",
     );
     expect(requireElement(".feedback p", lost.elements.feedback).textContent).toBe(
       "Может быть, программу стоит доработать?",
@@ -559,7 +559,7 @@ describe("App instant run", () => {
     }
 
     expect(app.world?.challengeEnded).toBe(true);
-    expect(requireElement(".feedback h2", elements.feedback).textContent).toBe("Challenge failed");
+    expect(requireElement(".feedback h2", elements.feedback).textContent).toBe("Level failed");
   });
 
   it("surfaces a player-code error during a crunch through the same banner as any other run, and recovers the button", () => {
@@ -607,8 +607,8 @@ describe("App challenge navigation", () => {
 
     const entries = challengeTiles(elements);
     expect(entries.map((entry) => entry.getAttribute("aria-label"))).toEqual([
-      "Challenge 1",
-      "Challenge 2",
+      "Level 1",
+      "Level 2",
       // The last challenge is the endless demo, which is labelled rather than
       // numbered; here that is the third of the test list.
       "Demo",
@@ -644,7 +644,7 @@ describe("App challenge navigation", () => {
     app.handleRoute(...routeFor("#challenge=1,fullscreen,somethingelse=7"));
 
     expect(
-      requireElement('[aria-label="Challenge 2"]', elements.levelSwitcher).getAttribute("href"),
+      requireElement('[aria-label="Level 2"]', elements.levelSwitcher).getAttribute("href"),
     ).toBe("#challenge=2,fullscreen=,somethingelse=7");
   });
 
@@ -662,7 +662,7 @@ describe("App challenge navigation", () => {
     );
 
     try {
-      requireElement('[aria-label="Challenge 2"]', elements.levelSwitcher).click();
+      requireElement('[aria-label="Level 2"]', elements.levelSwitcher).click();
 
       await vi.waitFor(() => {
         expect(app.currentChallengeIndex).toBe(1);
@@ -760,7 +760,7 @@ describe("App sandbox", () => {
     app.handleRoute(...routeFor("#challenge=sandbox,floors=20,timescale=8"));
 
     expect(
-      requireElement('[aria-label="Challenge 2"]', elements.levelSwitcher).getAttribute("href"),
+      requireElement('[aria-label="Level 2"]', elements.levelSwitcher).getAttribute("href"),
     ).toBe("#challenge=2,floors=20,timescale=8");
   });
 
@@ -1045,14 +1045,14 @@ describe("App learning track", () => {
     expect(requireElement(".feedback h2", elements.feedback).textContent).toBe("Success!");
     const link = requireElement(".feedback a", elements.feedback);
     expect(link.getAttribute("href")).toBe(`#challenge=${taskAt(1).id}`);
-    // "Next challenge" is what the shared template writes into every such link,
+    // "Next level" is what the shared template writes into every such link,
     // and the numbered ladder is not where task 2 lives.
     expect(link.textContent.trim()).toBe("Next task");
     // The caret the template put beside the words survives being relabelled.
     expect(link.querySelector("svg")).not.toBeNull();
   });
 
-  it("ends the track by offering challenge 1", () => {
+  it("ends the track by offering level 1", () => {
     const { app, elements } = setUp();
     app.startTutorial(tutorialTasks.length - 1);
 
@@ -1063,7 +1063,7 @@ describe("App learning track", () => {
     );
     const link = requireElement(".feedback a", elements.feedback);
     expect(link.getAttribute("href")).toBe("#challenge=1");
-    expect(link.textContent.trim()).toBe("Go to challenge 1");
+    expect(link.textContent.trim()).toBe("Go to level 1");
   });
 
   it("says how long the track was in the words each catalogue counts it with", () => {
@@ -1126,7 +1126,7 @@ describe("App learning track", () => {
 
     endRun(app, false);
 
-    expect(requireElement(".feedback h2", elements.feedback).textContent).toBe("Challenge failed");
+    expect(requireElement(".feedback h2", elements.feedback).textContent).toBe("Level failed");
     expect(elements.feedback.querySelector("a")).toBeNull();
   });
 
@@ -1149,7 +1149,7 @@ describe("App learning track", () => {
     // the address of the next task rather than the next challenge, and the words
     // the template does not have. Drawing it from the outcome alone is what
     // makes that possible, and a redraw that lost any of the three would put a
-    // link labelled "Следующее задание" -- the numbered ladder -- in front of a
+    // link labelled "Следующий уровень" -- the numbered ladder -- in front of a
     // player half-way through the track.
     const { app, elements } = setUp();
     app.startTutorial(0);
@@ -1730,10 +1730,10 @@ describe("App seed", () => {
     app.handleRoute(...routeFor("#challenge=1,timescale=8,seed=issue-61"));
 
     expect(
-      requireElement('[aria-label="Challenge 2"]', elements.levelSwitcher).getAttribute("href"),
+      requireElement('[aria-label="Level 2"]', elements.levelSwitcher).getAttribute("href"),
     ).toBe("#challenge=2,timescale=8");
     expect(
-      requireElement('[aria-label="Challenge 1"]', elements.levelSwitcher).getAttribute("href"),
+      requireElement('[aria-label="Level 1"]', elements.levelSwitcher).getAttribute("href"),
     ).toBe("#challenge=1,timescale=8");
   });
 
@@ -1919,18 +1919,18 @@ describe("App focus", () => {
   });
 
   it("keeps focus in the navigation row when a challenge is taken from it", () => {
-    // Tabbing to "Challenge 2" and pressing it rebuilds the bar under the
+    // Tabbing to "Level 2" and pressing it rebuilds the bar under the
     // player's feet, exactly as the next-challenge link does. They stay where
     // they were: on the entry that replaced the one they pressed, which is now
     // the current challenge.
     const { app, elements, storage } = setUp();
     unlockChallenge2(storage);
     app.handleRoute(...routeFor("#challenge=1"));
-    requireElement('[aria-label="Challenge 2"]', elements.levelSwitcher).focus();
+    requireElement('[aria-label="Level 2"]', elements.levelSwitcher).focus();
 
     app.handleRoute(...routeFor("#challenge=2"));
 
-    const entry = requireElement('[aria-label="Challenge 2"]', elements.levelSwitcher);
+    const entry = requireElement('[aria-label="Level 2"]', elements.levelSwitcher);
     expect(document.activeElement).toBe(entry);
     expect(entry.getAttribute("aria-current")).toBe("page");
   });
@@ -2216,7 +2216,7 @@ describe("App.relocalise", () => {
     const { app, elements } = setUp();
     app.startChallenge(0);
     expect(goalDescription(elements)).toBe("Challenge one");
-    expect(challengeBlockCaption(elements)).toBe("Challenges");
+    expect(challengeBlockCaption(elements)).toBe("Levels");
 
     setLocale("ru");
     app.relocalise();
@@ -2227,7 +2227,7 @@ describe("App.relocalise", () => {
     // gone -- looked up again rather than reused.
     expect(goalDescription(elements)).toBe("Challenge one");
     expect(requireElement(".startstop", elements.controls).textContent).toBe("Старт");
-    expect(challengeBlockCaption(elements)).toBe("Задания");
+    expect(challengeBlockCaption(elements)).toBe("Уровни");
   });
 
   it("writes the statistics the way a reader of the new language writes numbers", () => {
@@ -2315,7 +2315,7 @@ describe("App.relocalise", () => {
 
     expect(queryAll(".feedback", elements.feedback)).toHaveLength(1);
     expect(requireElement(".feedback h2", elements.feedback).textContent).toBe("Получилось!");
-    expect(requireElement(".feedback p", elements.feedback).textContent).toBe("Задание выполнено");
+    expect(requireElement(".feedback p", elements.feedback).textContent).toBe("Уровень пройден");
     // Redrawn from the remembered outcome, so the way on is offered again too,
     // and to the same challenge.
     expect(requireElement(".feedback a", elements.feedback).getAttribute("href")).toBe(
@@ -2530,7 +2530,7 @@ describe("presentControls", () => {
 
   it("lands focus on the start button when the app asks it to", () => {
     // For the redraw that empties the region focus was in -- the overlay's
-    // "Next challenge" link, or the building -- which leaves focus on <body>.
+    // "Next level" link, or the building -- which leaves focus on <body>.
     const { parent, options } = setUpControls();
     document.body.append(parent);
     const presenter = presentControls(parent, options);

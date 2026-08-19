@@ -21,14 +21,14 @@ test("takes a parameter the game refused out of the address bar", async ({ page 
 
   await expect(page).toHaveURL(/#challenge=4$/);
   // Still the run that was asked for, minus the part that could not be had.
-  await expect(page.getByRole("button", { name: "Challenge 4" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Level 4" })).toBeVisible();
   await expect(await seedText(page)).toBeVisible();
 });
 
 test("empties a hash whose every parameter was refused", async ({ page }) => {
   await page.goto("/#challenge=abc");
 
-  await expect(page.getByRole("button", { name: "Challenge 1" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Level 1" })).toBeVisible();
   // Asserted on location.hash rather than on the whole URL: "#" resolves to a
   // URL whose fragment is empty, which still serialises with the "#" on the end
   // and is what page.url() would show.
@@ -41,7 +41,7 @@ test("does not leave the refused url behind the Back button", async ({ page }) =
   // be corrected again, and never get past it -- a page the player cannot leave
   // backwards.
   await page.goto("/#challenge=2");
-  await expect(page.getByRole("button", { name: "Challenge 2" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Level 2" })).toBeVisible();
 
   await page.goto("/#challenge=abc");
   expect(await page.evaluate(() => window.location.hash)).toBe("");
@@ -49,7 +49,7 @@ test("does not leave the refused url behind the Back button", async ({ page }) =
   await page.goBack();
 
   await expect(page).toHaveURL(/#challenge=2$/);
-  await expect(page.getByRole("button", { name: "Challenge 2" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Level 2" })).toBeVisible();
 });
 
 test("keeps a value it only clamped, which still names the run on screen", async ({ page }) => {

@@ -99,7 +99,7 @@ describe("presentLevelSwitcher", () => {
     presentLevelSwitcher(parent, options);
 
     const captions = [...parent.querySelectorAll(".taskblock .cap")].map((el) => el.textContent);
-    expect(captions).toEqual(["Learning track", "Challenges", "Sandbox"]);
+    expect(captions).toEqual(["Learning track", "Levels", "Sandbox"]);
   });
 
   it("renders an open challenge tile as a real link and a locked one as a disabled button", () => {
@@ -155,7 +155,7 @@ describe("presentLevelSwitcher", () => {
 
     expect(tiles[1]?.getAttribute("aria-current")).toBe("page");
     expect(tiles[1]?.classList.contains("is-current")).toBe(true);
-    expect(requireElement(".task-name", parent).textContent).toBe("Challenge 2");
+    expect(requireElement(".task-name", parent).textContent).toBe("Level 2");
   });
 
   it("marks a locked-and-current tile as current too, on its disabled button", () => {
@@ -177,7 +177,7 @@ describe("presentLevelSwitcher", () => {
     expect(tiles[1]?.getAttribute("aria-current")).toBe("page");
     expect(tiles[1]?.classList.contains("is-locked")).toBe(true);
     expect(tiles[1]?.classList.contains("is-current")).toBe(true);
-    expect(requireElement(".task-name", parent).textContent).toBe("Challenge 2, locked");
+    expect(requireElement(".task-name", parent).textContent).toBe("Level 2, locked");
   });
 
   it("labels a cleared tutorial tile as completed", () => {

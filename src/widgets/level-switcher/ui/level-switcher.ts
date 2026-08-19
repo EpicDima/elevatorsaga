@@ -235,7 +235,7 @@ function tileTemplate(tile: LevelMenuTile): string {
 
 /**
  * A block's caption. Reuses the two labels the nav row and the tutorial
- * panel already carry, rather than a third pair of "Challenges"/"Tutorial"
+ * panel already carry, rather than a third pair of "Levels"/"Tutorial"
  * strings a translator would have to keep in step with those.
  *
  * @param id - Block to caption.

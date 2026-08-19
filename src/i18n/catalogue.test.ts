@@ -289,13 +289,13 @@ describe("translate", () => {
         number: 3,
         description: "Transport 15 people",
       }),
-    ).toBe("Challenge #3: Transport 15 people");
+    ).toBe("Level 3: Transport 15 people");
     expect(
       translate("ru", RU_MESSAGES, "game.challenge.title.html", {
         number: 3,
         description: "Перевезите 15 пассажиров",
       }),
-    ).toBe("Задание №3: Перевезите 15 пассажиров");
+    ).toBe("Уровень 3: Перевезите 15 пассажиров");
   });
 
   // The reason this module exists. All four Russian categories, from the same

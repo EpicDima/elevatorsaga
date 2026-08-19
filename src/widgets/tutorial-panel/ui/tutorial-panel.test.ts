@@ -132,7 +132,7 @@ describe("presentTutorial", () => {
     expect(requireElement(".tutorialtakecode", parent).textContent).toBe(
       "Take this program into your own editor",
     );
-    expect(requireElement(".tutorialleave", parent).textContent).toBe("Leave for the challenges");
+    expect(requireElement(".tutorialleave", parent).textContent).toBe("Leave for the levels");
     expect(requireElement(".tutorialcopycode", parent).textContent).toBe("Copy this program");
   });
 
@@ -766,7 +766,7 @@ describe("presentTutorial", () => {
       expect(requireElement(".tutorialtitle", parent).textContent).toBe(
         "Лифт, который никуда не едет",
       );
-      expect(requireElement(".tutorialleave", parent).textContent).toBe("Выйти к заданиям игры");
+      expect(requireElement(".tutorialleave", parent).textContent).toBe("Выйти к уровням игры");
       expect(requireElement(".tutorialprogress", parent).textContent).toBe(
         `Пройдено 1 из ${String(tutorialTasks.length)} заданий`,
       );
@@ -1052,7 +1052,7 @@ describe("tutorialTemplate", () => {
     expect(buttons.map((button) => button.getAttribute("type"))).toEqual(["button", "button"]);
     expect(buttons.map((button) => button.textContent)).toEqual([
       "Take this program into your own editor",
-      "Leave for the challenges",
+      "Leave for the levels",
     ]);
     // The panel had its own "Start over" until the run buttons were gathered
     // into `controlsTemplate`, which is drawn directly under it. Two buttons on
@@ -1091,7 +1091,7 @@ describe("tutorialTemplate", () => {
     expect(drawn.querySelector(".tutorialprogress")?.textContent).toBe("Пройдено 6 из 8 заданий");
     expect(
       [...drawn.querySelectorAll(".tutorialbuttons button")].map((button) => button.textContent),
-    ).toEqual(["Забрать программу в свой редактор", "Выйти к заданиям игры"]);
+    ).toEqual(["Забрать программу в свой редактор", "Выйти к уровням игры"]);
   });
 
   it("leaves the answer in the language it is written in", () => {

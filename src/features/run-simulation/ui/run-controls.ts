@@ -89,7 +89,7 @@ export interface RunControlsPresenter {
    *
    * For the app, and only for the case it alone can see: a redraw that
    * emptied a region focus was inside — the end-of-challenge overlay holding
-   * the "Next challenge" link, or the building — leaves focus on `<body>` and
+   * the "Next level" link, or the building — leaves focus on `<body>` and
    * a keyboard player back at the top of the page. The start button is where
    * they were going anyway. This row is one of the two the parent controls
    * region composes that survive every redraw, which is what makes it the

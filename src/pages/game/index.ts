@@ -1467,7 +1467,7 @@ export class App {
     }
 
     // All three of these regions can hold the focused element when a challenge
-    // starts: the "Next challenge" link lives in the feedback overlay, the call
+    // starts: the "Next level" link lives in the feedback overlay, the call
     // and in-car buttons live in the building, and the learning track's panel
     // has the button that leaves the track. Emptying them deletes it, and focus
     // falls back to <body> -- so a keyboard or screen-reader player who takes
@@ -1886,7 +1886,7 @@ export class App {
    *
    * A win in the middle of the track offers the next task. It cannot use
    * `game.feedback.next`, which the template writes into every link and which
-   * says "Next challenge": the numbered ladder is not where task 4 lives, and a
+   * says "Next level": the numbered ladder is not where task 4 lives, and a
    * player who follows a link labelled that way lands somewhere they did not ask
    * for. So the link's words are replaced after the render, the way the sandbox
    * replaces the title, and for the same reason — the template is shared and its

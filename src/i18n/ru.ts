@@ -239,16 +239,16 @@ export const RU_MESSAGES: MessageCatalogue<"ru"> = {
   "game.statsPanel.aboardNow": "Едут сейчас",
   // Текст сводки для «<details>» с девятью дополнительными плитками панели.
   "game.statsPanel.more": "Все показатели",
-  "game.challenge.title.html": "Задание №{number}: {description}",
-  "game.challenge.nav.label": "Задания",
-  "game.challenge.nav.link": "Задание {number}",
+  "game.challenge.title.html": "Уровень {number}: {description}",
+  "game.challenge.nav.label": "Уровни",
+  "game.challenge.nav.link": "Уровень {number}",
   "game.challenge.nav.demo": "Демо",
   "game.levelSwitcher.prevLabel": "Предыдущий уровень",
   "game.levelSwitcher.nextLabel": "Следующий уровень",
   "game.levelSwitcher.sandboxLabel": "Песочница",
   "game.levelSwitcher.tutorialTileLabel": "Учебное задание {number}",
   "game.levelSwitcher.tutorialTileClearedLabel": "Учебное задание {number}, пройдено",
-  "game.levelSwitcher.challengeTileLockedLabel": "Задание {number}, заблокировано",
+  "game.levelSwitcher.challengeTileLockedLabel": "Уровень {number}, заблокирован",
   // Ссылка «к строке» панели редактора: widgets/editor-pane. Указывает на
   // строку, которую locateCodeError из src/ui/error-location.ts нашла для
   // исключения игрока; кнопка, которая её несёт, скрыта, если строка не
@@ -539,10 +539,10 @@ elevator.goingDownIndicator(false);`,
   "game.button.runInstant": "Прогнать мгновенно",
   "game.button.runningInstantly": "Прогоняем…",
   "game.feedback.success.title": "Получилось!",
-  "game.feedback.success.message": "Задание выполнено",
-  "game.feedback.failure.title": "Задание провалено",
+  "game.feedback.success.message": "Уровень пройден",
+  "game.feedback.failure.title": "Уровень провален",
   "game.feedback.failure.message": "Может быть, программу стоит доработать?",
-  "game.feedback.next": "Следующее задание",
+  "game.feedback.next": "Следующий уровень",
   "game.codeStatus": "С вашим кодом что-то не так:",
 
   // Полоса цели задания и всплывающий список требований по рангам:
@@ -1460,7 +1460,7 @@ elevator.goToFloor(2); // Всё равно добавится — очеред�
     "Браузер отказался сохранить программу. Скопируйте её из редактора на этой странице вручную, чтобы она не пропала.",
   "tutorial.button.takeCode": "Забрать программу в свой редактор",
   "tutorial.button.takeCodeConfirm": "В редакторе игры уже лежит ваша программа. Заменить её этой?",
-  "tutorial.button.leave": "Выйти к заданиям игры",
+  "tutorial.button.leave": "Выйти к уровням игры",
   "tutorial.solution.copy": "Скопировать программу",
   "tutorial.solution.copied": "Скопировано в буфер обмена.",
   "tutorial.solution.copyFailed":
@@ -1468,7 +1468,7 @@ elevator.goToFloor(2); // Всё равно добавится — очеред�
   "tutorial.bar.title.html": "Учебное задание {number} из {count}: {description}",
   "tutorial.finish.title": "Дорожка пройдена",
   "tutorial.finish.message":
-    "Восемь заданий, и последнее из них было заданием №1: те же три этажа, тот же лифт, те же пятнадцать пассажиров за шестьдесят секунд. Программа, которая сейчас в редакторе, его решает, а на панели есть кнопка, которая скопирует её в ваш редактор, — заберите программу с собой, прежде чем уходить.",
+    "Восемь заданий, и последнее из них было уровнем 1: те же три этажа, тот же лифт, те же пятнадцать пассажиров за шестьдесят секунд. Программа, которая сейчас в редакторе, его решает, а на панели есть кнопка, которая скопирует её в ваш редактор, — заберите программу с собой, прежде чем уходить.",
   "tutorial.finish.nextTask": "Следующее учебное задание",
-  "tutorial.finish.toChallenges": "Перейти к заданию №1",
+  "tutorial.finish.toChallenges": "Перейти к уровню 1",
 };

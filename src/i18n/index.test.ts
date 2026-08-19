@@ -205,8 +205,8 @@ describe("translateIn", () => {
 
   it("takes the same parameters whichever locale it renders", () => {
     const args = { number: 4, description: "..." } as const;
-    expect(translateIn("en", "game.challenge.title.html", args)).toBe("Challenge #4: ...");
-    expect(translateIn("ru", "game.challenge.title.html", args)).toBe("Задание №4: ...");
+    expect(translateIn("en", "game.challenge.title.html", args)).toBe("Level 4: ...");
+    expect(translateIn("ru", "game.challenge.title.html", args)).toBe("Уровень 4: ...");
   });
 });
 
