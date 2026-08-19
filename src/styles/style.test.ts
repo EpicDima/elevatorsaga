@@ -212,6 +212,49 @@ function levelsColumn(palette: ReadonlyMap<string, string>): string {
 }
 
 /**
+ * The surface the car's top strip really paints, which is what the floor number
+ * and both boarding lamps are read against.
+ *
+ * `.car-top` is a flat black wash over the car body, so neither `--ds-car` nor
+ * the wash is what is on screen there. Read out of the rule, so that changing
+ * the 22% has to answer to this file.
+ *
+ * @param palette - `DARK_PALETTE` or `LIGHT_PALETTE`.
+ * @returns The composited strip colour, as `#rrggbb`.
+ */
+function carTop(palette: ReadonlyMap<string, string>): string {
+  return over(
+    declaration(ruleBody(".car-top"), "background", ".car-top"),
+    themed(palette, "ds-car"),
+  );
+}
+
+/**
+ * The surface the order strip really paints, which is what an order mark is
+ * read against.
+ *
+ * Two washes deep: the strip's own black over the shaft's black over the
+ * building's `--ds-shaft`. The shaft's wash is the one thing here that is not
+ * the same in both themes -- 18% would swallow the light theme's pale shaft, so
+ * the stylesheet drops it to 3% there, and this has to follow that rule rather
+ * than assume either figure.
+ *
+ * @param palette - `DARK_PALETTE` or `LIGHT_PALETTE`.
+ * @returns The composited strip colour, as `#rrggbb`.
+ */
+function orderStrip(palette: ReadonlyMap<string, string>): string {
+  const lightSelector = 'html[data-theme="light"] .shaft';
+  const shaftWash =
+    palette === LIGHT_PALETTE
+      ? declaration(ruleBody(lightSelector), "background", lightSelector)
+      : declaration(ruleBody(".shaft"), "background", ".shaft");
+  return over(
+    declaration(ruleBody(".shaft-marks"), "background", ".shaft-marks"),
+    over(shaftWash, themed(palette, "ds-shaft")),
+  );
+}
+
+/**
  * How a floor's number is set: the colour, and the size and weight that decide
  * which bar 1.4.3 holds the pair to.
  *
@@ -253,22 +296,22 @@ function declaration(body: string, property: string, selector: string): string {
 }
 
 /**
- * How the floor indicator inside a car is set: the colour it is painted in and
- * the size and weight that decide which bar 1.4.3 holds that pair to.
+ * How the floor number on the car's top strip is set: the colour it is painted
+ * in and the size and weight that decide which bar 1.4.3 holds that pair to.
  *
- * The background is not read here: `--ds-car` has two values, one per theme,
- * and `token()` collapses a name declared in both `:root` and the light
- * override to whichever comes last -- so a caller wanting both themes reads
- * `--ds-car` itself through `themed(DARK_PALETTE, ...)` /
- * `themed(LIGHT_PALETTE, ...)` instead of through this function.
+ * The background is not read here: it is a composite that differs per theme,
+ * so a caller wanting both themes reads {@link carTop} instead.
+ *
+ * The size is the full-density one. `.building:not([data-density="full"])`
+ * drops it to 9.5px on squeezed floors, which is smaller and therefore held to
+ * the same 4.5:1 -- the bar only ever steps down at 24px, so measuring the
+ * larger of the two is measuring the easier case of the same requirement.
  *
  * @returns The size in px, the weight, and the colour.
  */
 function carNumber(): { size: number; weight: string; colour: string } {
-  const selector = ".elevator .floorindicator";
-  const rules = [...styleSource.matchAll(/\.elevator \.floorindicator\s*\{([^}]*)\}/g)];
-  expect(rules.length, `${selector} is no longer exactly one rule`).toBe(1);
-  const body = rules[0]?.[1] ?? "";
+  const selector = ".car-floor";
+  const body = ruleBody(selector);
   expect(
     body,
     `an opacity on ${selector} would dim the number below what its colour says`,
@@ -374,11 +417,35 @@ describe("palette", () => {
   it.each([
     ["dark", DARK_PALETTE],
     ["light", LIGHT_PALETTE],
-  ])("keeps a lit call button readable inside the car, %s theme", (_, palette) => {
-    // Fixed across both themes, like the car body's other tokens above:
-    // #33ff44, unchanged from the legacy --color-lit. 8.27:1 dark, 6.06:1
-    // light.
-    expect(contrast(token("ds-car-lit"), themed(palette, "ds-car"))).toBeGreaterThanOrEqual(4.5);
+  ])("keeps an unlit order mark findable on the shaft's own strip, %s theme", (_, palette) => {
+    // The floors a car has been asked for used to be a grid of green digits
+    // inside the cabin; they are marks along the shaft now. An unlit one is
+    // still a <button> -- clickable, tabbable and named -- so it is a control
+    // that has to be findable, not the unfilled half of a progress track that
+    // 1.4.11 would let off. The mockup paints it --shaft-line, which is the
+    // colour of the wall it is drawn on; --ds-text-muted is the same
+    // substitution the floor number and the call lamps already make.
+    expect(declaration(ruleBody(".mark"), "background", ".mark")).toBe(token("ds-text-muted"));
+    expect(contrast(themed(palette, "ds-text-muted"), orderStrip(palette))).toBeGreaterThanOrEqual(
+      3,
+    );
+  });
+
+  it.each([
+    ["dark", DARK_PALETTE],
+    ["light", LIGHT_PALETTE],
+  ])("keeps a lit order mark apart from the strip it sits on, %s theme", (_, palette) => {
+    // The mockup lights a mark with its plain --accent, which lands at 2.52:1
+    // on this composite in the light theme: the strip is two black washes
+    // darker than the --ds-shaft the accent family is tuned against.
+    // --ds-accent-hi is the same colour one step along, and it is what the
+    // mockup lights the car's own arrows with.
+    expect(declaration(ruleBody(".mark.is-lit"), "background", ".mark.is-lit")).toBe(
+      token("ds-accent-hi"),
+    );
+    expect(contrast(themed(palette, "ds-accent-hi"), orderStrip(palette))).toBeGreaterThanOrEqual(
+      3,
+    );
   });
 
   it.each([
@@ -423,15 +490,16 @@ describe("palette", () => {
   it.each([
     ["dark", DARK_PALETTE],
     ["light", LIGHT_PALETTE],
-  ])("keeps the floor a car is at readable inside the car, %s theme", (_, palette) => {
+  ])("keeps the floor a car is at readable on its top strip, %s theme", (_, palette) => {
     // The other marking that never lights up. It was 15px in 30% white for
     // twelve years -- 1.63:1 -- and the repair is a colour fixed across both
-    // themes rather than a themed one: the car stays a mid-dark surface in
-    // both (--ds-car), so one near-white value clears 15px's 4.5:1 in either
-    // (9.97 dark, 7.31 light) without needing a light-theme override.
+    // themes rather than a themed one: the strip stays a dark surface in both
+    // (a black wash over --ds-car, which is already dark in the light theme),
+    // so one near-white value clears 4.5:1 in either without needing a
+    // light-theme override.
     const number = carNumber();
     expect(number.colour).toBe(token("ds-car-ink"));
-    expect(contrast(number.colour, themed(palette, "ds-car"))).toBeGreaterThanOrEqual(
+    expect(contrast(number.colour, carTop(palette))).toBeGreaterThanOrEqual(
       requiredRatio(number.size, number.weight),
     );
   });
@@ -439,15 +507,32 @@ describe("palette", () => {
   it.each([
     ["dark", DARK_PALETTE],
     ["light", LIGHT_PALETTE],
-  ])("keeps a lit direction arrow readable inside the car, %s theme", (_, palette) => {
-    // The mockup lights this with its own themed accent-hi, which is 1.35:1 on
-    // --ds-car in the light theme -- drawn on the car body, it needs the same
-    // fixed ink the floor indicator above uses, not a themed accent.
-    const body = ruleBody(".elevator .directionindicator .icon.activated");
-    expect(declaration(body, "color", ".elevator .directionindicator .icon.activated")).toBe(
+  ])("keeps a lit boarding lamp readable on the car's top strip, %s theme", (_, palette) => {
+    // Not decoration: goingUpIndicator/goingDownIndicator are what decide who
+    // may board. The mockup lights the arrow with its own themed accent-hi,
+    // which is 1.35:1 on --ds-car in the light theme -- drawn on the car, it
+    // needs the same fixed ink the floor number above uses.
+    expect(declaration(ruleBody(".car-dir.is-on"), "color", ".car-dir.is-on")).toBe(
       token("ds-car-ink"),
     );
-    expect(contrast(token("ds-car-ink"), themed(palette, "ds-car"))).toBeGreaterThanOrEqual(3);
+    expect(contrast(token("ds-car-ink"), carTop(palette))).toBeGreaterThanOrEqual(3);
+  });
+
+  it.each([
+    ["dark", DARK_PALETTE],
+    ["light", LIGHT_PALETTE],
+  ])("keeps an unlit boarding lamp visible on the car's top strip, %s theme", (_, palette) => {
+    // An indicator that cannot be found in its off state does not indicate
+    // anything: a player reading a car has to see that there are two lamps
+    // before either one of them means something. The mockup's 22% white is
+    // about 1.5:1 on this composite, so the alpha is raised until the arrow
+    // clears 1.4.11's 3:1 -- still visibly dimmer than the lit one beside it,
+    // which is 9.5:1 on the same strip.
+    const unlit = declaration(ruleBody(".car-dir"), "color", ".car-dir");
+    expect(unlit, ".car-dir no longer states its own translucent ink").toMatch(
+      /^rgb\(.*\/\s*[\d.]+%\s*\)$/,
+    );
+    expect(contrast(over(unlit, carTop(palette)), carTop(palette))).toBeGreaterThanOrEqual(3);
   });
 
   it.each([

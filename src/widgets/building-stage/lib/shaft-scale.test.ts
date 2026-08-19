@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { computeShaftScale } from "./shaft-scale.ts";
+import { computeShaftScale, shaftPadPx } from "./shaft-scale.ts";
 
 describe("computeShaftScale", () => {
   it("returns scale 1 when there are no elevators", () => {
@@ -98,5 +98,32 @@ describe("computeShaftScale", () => {
       ],
     });
     expect(far.scaleX).toBeLessThan(near.scaleX);
+  });
+});
+
+describe("shaftPadPx", () => {
+  it("takes 8 world units per side at full size", () => {
+    expect(shaftPadPx(1)).toBe(8);
+  });
+
+  it("shrinks with the building, so the seam between two shafts shrinks with it too", () => {
+    expect(shaftPadPx(0.5)).toBe(4);
+  });
+
+  it("never rounds away to nothing", () => {
+    // The strip the order marks sit in is inside this pad. At the smallest scale
+    // the fit can reach, 8 * scaleX rounds to 1px or to 0 — which would leave the
+    // marks with nowhere to be drawn.
+    expect(shaftPadPx(0.1)).toBe(2);
+    expect(shaftPadPx(0)).toBe(2);
+  });
+
+  it("leaves a visible seam between two neighbouring shafts at every scale it floors", () => {
+    // Two cars are 20 world units apart, and each takes its pad out of that gap.
+    // The floor MIN_CAR puts on scaleX for the widest car in the game (capacity
+    // 8, so 30/80) is 0.375, and even there the seam survives.
+    for (const scaleX of [0.375, 0.5, 0.75, 1]) {
+      expect(20 * scaleX - 2 * shaftPadPx(scaleX)).toBeGreaterThan(0);
+    }
   });
 });

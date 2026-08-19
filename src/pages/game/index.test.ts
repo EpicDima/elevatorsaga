@@ -2564,12 +2564,13 @@ describe("relabelWorld", () => {
       expect(element).toBe(elementsBefore[index]);
     }
     expect(requireElement("button.up", queryAll(".floor", parent)[1] ?? parent)).toBe(called);
-    // `is-lit` on the floor's own lamp, `activated` inside the car: the two
-    // halves of the building are ported from the mockup one at a time, and a
-    // floor's call button is already the mockup's `.call.is-lit`.
+    // Both halves of the building read `is-lit` now: the floor's own call lamp
+    // and the order mark along the shaft, which is what an in-car floor button
+    // is drawn as since the cabin's grid of digits went.
     expect(called.classList.contains("is-lit")).toBe(true);
     expect(called.getAttribute("aria-pressed")).toBe("true");
-    expect(carButton?.classList.contains("activated")).toBe(true);
+    expect(carButton?.classList.contains("is-lit")).toBe(true);
+    expect(carButton?.getAttribute("aria-pressed")).toBe("true");
     expect(world.floors[1]?.buttonStates.up).toBe("activated");
     expect(world.elevators[0]?.buttonStates[2]).toBe(true);
   });

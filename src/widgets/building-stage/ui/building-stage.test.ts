@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { presentBuildingStage, type BuildingStagePresenter } from "./building-stage.ts";
 import { elevatorCardText, floorCardText } from "../lib/hover-card-text.ts";
 import { layoutBuilding } from "../lib/layout-building.ts";
-import { computeShaftScale, TRAILING_ROOM } from "../lib/shaft-scale.ts";
+import { computeShaftScale, shaftPadPx, TRAILING_ROOM } from "../lib/shaft-scale.ts";
 import { computeVerticalScale } from "../lib/vertical-scale.ts";
 import { at } from "#game/test-helpers.ts";
 import { createWorld } from "#game/world.ts";
@@ -156,8 +156,13 @@ describe("presentBuildingStage", () => {
     expect(requireElement(".tracks", parent).style.width).toBe(
       `${String(Math.round((last.worldX + last.width) * scaleX) + TRAILING_ROOM)}px`,
     );
+    // One pad short of the first car, because that pad is the shaft's own wall
+    // and the order marks inside it need the pointer events a queue drawn under
+    // it would take.
     for (const queue of queryAll(".queue", parent)) {
-      expect(queue.style.width).toBe(`${String(Math.round(first.worldX * scaleX))}px`);
+      expect(queue.style.width).toBe(
+        `${String(Math.round(first.worldX * scaleX) - shaftPadPx(scaleX))}px`,
+      );
     }
   });
 
@@ -177,24 +182,47 @@ describe("presentBuildingStage", () => {
     );
   });
 
-  it("sizes every car from the real elevator width and the computed shaft scale", () => {
+  it("stands every shaft on its own car's real coordinate, one pad wider on each side", () => {
     // Six 10-capacity cars (100px wide, 20px apart) need more room than a
-    // narrow stage has, so the shaft scale clamps down to MIN_SHAFT/100.
+    // narrow stage has, so the shaft scale clamps down to MIN_CAR/100.
     const world = createWorld({ floorCount: 4, elevatorCount: 6, elevatorCapacities: [10] });
     const { parent, stage } = mount(world, 500, 400);
 
-    const layout = expectedLayout(world, stage);
     const scaleX = expectedScaleX(world, stage);
+    const padPx = shaftPadPx(scaleX);
     expect(scaleX).toBeLessThan(1);
 
-    const cars = queryAll(".elevator", parent);
+    const shafts = queryAll(".shafts .elevator", parent);
     for (const [index, elevator] of world.elevators.entries()) {
-      expect(cars[index]?.style.width).toBe(`${String(elevator.width * scaleX)}px`);
-      expect(cars[index]?.style.height).toBe(`${String(layout.carHeight)}px`);
+      const shaft = shafts[index];
+      expect(shaft?.style.left).toBe(`${String(Math.round(elevator.worldX * scaleX) - padPx)}px`);
+      expect(shaft?.style.width).toBe(
+        `${String(Math.round(elevator.width * scaleX) + 2 * padPx)}px`,
+      );
+      expect(shaft?.style.getPropertyValue("--ds-shaft-pad")).toBe(`${String(padPx)}px`);
     }
+
+    // The shafts still stand apart: the pad comes out of the 20 world units the
+    // engine leaves between two cars, and never out of all of them.
+    const first = shafts[0];
+    const second = shafts[1];
+    expect(Number.parseFloat(second?.style.left ?? "0")).toBeGreaterThan(
+      Number.parseFloat(first?.style.left ?? "0") + Number.parseFloat(first?.style.width ?? "0"),
+    );
   });
 
-  it("positions elevators and passengers by worldX/worldY times the computed scale", () => {
+  it("centres every order mark on its own floor's band", () => {
+    const world = createWorld({ floorCount: 2, elevatorCount: 1 });
+    const { parent, stage } = mount(world, 800, 218);
+
+    const layout = expectedLayout(world, stage);
+    expect(layout.floorHeights).toEqual([90, 90]);
+
+    const bottoms = queryAll(".shafts .mark", parent).map((mark) => mark.style.bottom);
+    expect(bottoms).toEqual(["45px", "135px"]);
+  });
+
+  it("positions cars and passengers by worldX/worldY times the computed scale", () => {
     const world = createWorld({ floorCount: 3, elevatorCount: 1 });
     const { parent, stage } = mount(world, 800, 300);
 
@@ -206,9 +234,16 @@ describe("presentBuildingStage", () => {
       floorHeight: world.floorHeight,
     });
     const elevator = at(world.elevators, 0);
-    const carEl = requireElement(".elevator", parent);
+    // A car only ever moves vertically inside its shaft; the shaft is what
+    // carries the horizontal coordinate, as an inline `left` rather than a
+    // transform.
+    const shaftEl = requireElement(".shafts .elevator", parent);
+    const carEl = requireElement(".car", shaftEl);
+    expect(shaftEl.style.left).toBe(
+      `${String(Math.round(elevator.worldX * scaleX) - shaftPadPx(scaleX))}px`,
+    );
     expect(carEl.style.transform).toBe(
-      `translate3d(${String(elevator.worldX * scaleX)}px, ${String(elevator.worldY * scaleY)}px, 0)`,
+      `translate3d(0px, ${String(elevator.worldY * scaleY)}px, 0)`,
     );
 
     const user = new User(60);
@@ -227,7 +262,7 @@ describe("presentBuildingStage", () => {
     const elevator = at(world.elevators, 0);
     elevator.moveTo(200, 30);
     elevator.updateDisplayPosition();
-    const carEl = requireElement(".elevator", parent);
+    const carEl = requireElement(".shafts .elevator .car", parent);
     const beforeResize = carEl.style.transform;
 
     // Shrink the stage: room = max(160, 100-38) = 160, so unit = 160/2 = 80,

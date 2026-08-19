@@ -99,7 +99,12 @@ import {
   type FloorCardSnapshot,
   type HoverCardText,
 } from "../lib/hover-card-text.ts";
-import { computeShaftScale, TRAILING_ROOM, type ShaftScaleElevator } from "../lib/shaft-scale.ts";
+import {
+  computeShaftScale,
+  shaftPadPx,
+  TRAILING_ROOM,
+  type ShaftScaleElevator,
+} from "../lib/shaft-scale.ts";
 import { computeVerticalScale } from "../lib/vertical-scale.ts";
 import { layoutBuilding } from "../lib/layout-building.ts";
 import { createElevatorView, type ElevatorView } from "#entities/elevator/index.ts";
@@ -302,7 +307,13 @@ export function presentBuildingStage(parent: HTMLElement, world: World): Buildin
     const room = stage.scrollHeight - stage.clientHeight;
     setClass(stageWrap, "is-cut-top", stage.scrollTop > 4);
     setClass(stageWrap, "is-cut-bottom", room > 4 && stage.scrollTop < room - 4);
-    if (room > 4) {
+    // Sideways counts too, and it is not the same question: a wide building
+    // whose floors all fit on screen still has a shaft off the right-hand edge,
+    // and a keyboard has to be able to get to it. The edge shadows above are
+    // the vertical answer only, because they are the mockup's and the mockup
+    // has no sideways overflow to shade.
+    const roomX = stage.scrollWidth - stage.clientWidth;
+    if (room > 4 || roomX > 4) {
       stage.tabIndex = 0;
     } else {
       stage.removeAttribute("tabindex");
@@ -493,21 +504,42 @@ export function presentBuildingStage(parent: HTMLElement, world: World): Buildin
     // units, and how many pixels that is only this pass knows.
     building.style.setProperty("--ds-scale-x", String(scaleX));
 
+    // Each shaft is its car's own box grown by one pad on either side, and the
+    // pad is subtracted back out in CSS, so the *car* still lands exactly on
+    // `round(worldX * scaleX)` — the coordinate its riders are drawn at.
+    const padPx = shaftPadPx(scaleX);
+    // The middle of each floor's band, not the bottom of the mark that goes
+    // there: the mark centres itself on this with a half-height transform, so
+    // nothing out here has to know how tall a mark is drawn.
+    const markBottomsPx = layout.floorBottoms.map(
+      (bottom, level) => bottom + (layout.floorHeights[level] ?? 0) / 2,
+    );
     for (const [index, elevator] of world.elevators.entries()) {
       const view = elevatorViews[index];
       if (view === undefined) {
         continue;
       }
-      view.setGeometry(elevator.width * scale.scaleX, layout.carHeight);
+      view.setGeometry({
+        leftPx: Math.round(elevator.worldX * scaleX) - padPx,
+        widthPx: Math.round(elevator.width * scaleX) + 2 * padPx,
+        padPx,
+        markBottomsPx,
+      });
     }
 
     // The corridor runs from the building's own left edge to the first shaft,
     // and the world is as wide as the last car's right edge — both in the same
-    // coordinate space every passenger walks through, scaled once.
+    // coordinate space every passenger walks through, scaled once. The queue
+    // stops one pad short of the first car, because that pad is the shaft's
+    // wall: a queue drawn under it would take the pointer events the order
+    // marks inside it need.
     const lastElevator = shaftElevators.at(-1);
     const worldSpan = lastElevator === undefined ? 0 : lastElevator.worldX + lastElevator.width;
     const firstElevator = shaftElevators.at(0);
-    const corridorPx = firstElevator === undefined ? 0 : Math.round(firstElevator.worldX * scaleX);
+    const corridorPx =
+      firstElevator === undefined
+        ? 0
+        : Math.max(0, Math.round(firstElevator.worldX * scaleX) - padPx);
     tracks.style.width = `${String(Math.round(worldSpan * scaleX) + TRAILING_ROOM)}px`;
     for (const queue of queueEls) {
       queue.style.width = `${String(corridorPx)}px`;

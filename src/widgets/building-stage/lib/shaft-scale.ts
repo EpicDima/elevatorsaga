@@ -64,6 +64,45 @@ export const MIN_CAR = 30;
 export const TRAILING_ROOM = 44;
 
 /**
+ * How much of the 20 world units the engine leaves between two cars belongs to
+ * each car's own shaft, per side.
+ *
+ * `src/game/world.ts` advances `currentX` by `ELEVATOR_SPACING + width` for
+ * every elevator, so between two neighbouring cars there are exactly 20 world
+ * units of nothing. The mockup draws a shaft as a wall around its car with an
+ * order strip inside the left wall, which is room the car itself does not have
+ * — so it is taken from that gap: 8 units either side leaves 4 between two
+ * shafts, which is the seam the mockup gets from its `gap` and the last thing
+ * that still reads as two separate shafts rather than one wide one.
+ */
+const SHAFT_PAD_WORLD = 8;
+
+/**
+ * The narrowest that pad may be drawn, in pixels.
+ *
+ * The order strip lives inside it and a strip thinner than this is a line, not
+ * a track for marks to sit on. Two pixels is also small enough that it never
+ * eats the seam: the gap between two shafts is `20 * scaleX - 2 * pad`, and the
+ * floor {@link MIN_CAR} puts on `scaleX` keeps that positive.
+ */
+const MIN_SHAFT_PAD = 2;
+
+/**
+ * How wide one shaft's wall is on either side of its car, in whole pixels.
+ *
+ * Whole pixels because {@link SHAFT_PAD_WORLD} is what the shaft's left edge is
+ * shifted by *and* what the car is inset by inside it, and a fractional pad
+ * would round differently in those two places — which would put the drawn car a
+ * hair off the world coordinate its own passengers walk to.
+ *
+ * @param scaleX - The building's horizontal scale.
+ * @returns The pad in pixels.
+ */
+export function shaftPadPx(scaleX: number): number {
+  return Math.max(MIN_SHAFT_PAD, Math.round(SHAFT_PAD_WORLD * scaleX));
+}
+
+/**
  * Holds a value inside `[low, high]`.
  *
  * @param low - The lowest value to return.
