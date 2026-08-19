@@ -3,14 +3,13 @@
  * `#verdict` panel: a title with a star row beside it, a message and a link
  * to whatever comes next).
  *
- * This is a parallel copy of `../../../ui/presenters.ts`'s `presentFeedback`
- * and `../../../ui/templates.ts`'s `feedbackTemplate`, not a replacement —
- * those stay exactly as they are, still called from `App#showOutcome` and
- * `App#showTutorialOutcome`, until a later cutover phase switches the call
- * sites over to this widget. `verdictToastTemplate` reproduces their markup
- * byte-for-byte for {@link VerdictToastData.tier | tier: undefined}, so every
- * existing caller's shape keeps working unchanged; the one new capability is
- * an additive star badge, rendered beside the title, for callers that pass a
+ * Mounted live from `App#showOutcome`/`App#showTutorialOutcome` since Phase
+ * 12.2, replacing `../../../ui/presenters.ts`'s `presentFeedback` and
+ * `../../../ui/templates.ts`'s `feedbackTemplate`, both since deleted.
+ * `verdictToastTemplate` reproduced their markup byte-for-byte for {@link
+ * VerdictToastData.tier | tier: undefined}, so every existing caller's shape
+ * kept working unchanged across the cutover; the one new capability is an
+ * additive star badge, rendered beside the title, for callers that pass a
  * `tier`.
  *
  * `tier` is caller-supplied, already-evaluated (e.g. by
