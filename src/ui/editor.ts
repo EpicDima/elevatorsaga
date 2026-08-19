@@ -689,7 +689,7 @@ export class CodeEditor extends Observable<CodeEditorEvents> {
    *
    * Challenge 1's first slot specifically, never wherever the player happens to
    * be: leaving the track always lands on that slot (see
-   * {@link "../app/app.ts"!App.leaveTutorial}), so it is the one buffer
+   * {@link "../pages/game/index.ts"!App.leaveTutorial}), so it is the one buffer
    * guaranteed to be the one on screen the moment they get there.
    *
    * @param code - The program to keep as the player's own.
@@ -985,7 +985,7 @@ export class CodeEditor extends Observable<CodeEditorEvents> {
    *
    * Published so that the run controls can keep the button out of the way until
    * it can do something — see
-   * {@link "./presenters.ts"!ControlsPresenterOptions.canUndoReset}. Asked
+   * {@link "../pages/game/index.ts"!ControlsPresenterOptions.canUndoReset}. Asked
    * afresh every time rather than announced as an event, because it changes
    * with the buffer as well as with a reset: switching to another task swaps
    * the backup slot underneath it.

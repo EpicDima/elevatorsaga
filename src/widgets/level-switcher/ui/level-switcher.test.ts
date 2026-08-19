@@ -261,9 +261,9 @@ describe("presentLevelSwitcher", () => {
 
   describe("focus", () => {
     // The same problem, and the same fix, as `presentChallenge`'s own
-    // navigation row in `src/ui/presenters.ts` — see `level-switcher.ts`'s
-    // own comment on `update()` for why position, not node identity, is
-    // what gets restored.
+    // navigation row in what was `src/ui/presenters.ts` — see
+    // `level-switcher.ts`'s own comment on `update()` for why position, not
+    // node identity, is what gets restored.
 
     it("keeps focus on the tile at the same position when the grid is rebuilt", () => {
       const { parent, options } = setUp();

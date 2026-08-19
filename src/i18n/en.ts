@@ -152,7 +152,7 @@ export const EN_MESSAGES = {
     '<a href="licenses.txt">Licences</a> for the game and everything it bundles',
 
   // ------------------------------------------------------- the building view
-  // src/ui/templates.ts and src/ui/presenters.ts.
+  // src/ui/templates.ts.
 
   "game.floor.callUp": "Call an elevator going up from floor {floor}",
   "game.floor.callDown": "Call an elevator going down from floor {floor}",

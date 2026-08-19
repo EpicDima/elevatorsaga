@@ -2,11 +2,12 @@
  * The code slot switcher: three buttons choosing which of a challenge's three
  * saved programs the editor shows.
  *
- * Peeled out of `src/ui/presenters.ts`'s `presentCodeSlots` and
+ * Peeled out of what was `src/ui/presenters.ts`'s `presentCodeSlots` and
  * `src/ui/templates.ts`'s `codeSlotsTemplate`/`codeSlotTemplate`, which now
- * re-export this module's own symbols — see `presenters.ts` for why the name
- * is kept reachable there. Nothing about the switcher's behaviour changes in
- * the move; this is the same function, in a feature slice of its own.
+ * re-export this module's own symbols — see that module's history for why
+ * the name was kept reachable there. Nothing about the switcher's behaviour
+ * changes in the move; this is the same function, in a feature slice of its
+ * own.
  */
 
 import { CODE_SLOTS, type CodeSlot } from "../model/code-slots.ts";

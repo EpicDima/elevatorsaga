@@ -31,7 +31,7 @@ export const LOCALE_QUERY_KEY = "lang";
 /**
  * Where the chosen language is remembered between visits.
  *
- * Named like {@link "../app/app.ts"!TIME_SCALE_STORAGE_KEY}, the other
+ * Named like {@link "../pages/game/index.ts"!TIME_SCALE_STORAGE_KEY}, the other
  * preference this game keeps, so the pair is recognisable in a devtools storage
  * pane and cannot collide with whatever else is served from the same origin.
  */

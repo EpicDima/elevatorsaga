@@ -1,9 +1,10 @@
 /**
  * A passenger's DOM element, positioned from the responsive building's own
- * geometry rather than the fixed pixel grid `src/ui/presenters.ts` draws.
+ * geometry rather than the fixed pixel grid once drawn by what was
+ * `src/ui/presenters.ts`.
  *
  * Built for widget 6b ("Building/stage rendering + hover cards"), wired
- * exactly as `presentUser` wires a passenger in `src/ui/presenters.ts` —
+ * exactly as `presentUser` wired a passenger in what was `src/ui/presenters.ts` —
  * `leaving`/`waiting-longest` classes, removal on the `removed` event — with
  * one difference: the position multiplies `worldX`/`worldY` by
  * {@link StageScale}'s current `scaleX`/`scaleY`, read fresh on every

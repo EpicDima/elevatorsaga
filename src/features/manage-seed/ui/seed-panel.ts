@@ -23,7 +23,7 @@
  * script — it rerolls to a random word from a fixed `SEED_WORDS` list and
  * restarts the run with it — but production has no arbitrary-seed field to
  * type or reroll into in the first place: a run's seed is drawn once, from
- * the URL or from `Math.random()`, by `src/app/app.ts`'s `#seedLink`, and the
+ * the URL or from `Math.random()`, by `src/pages/game/index.ts`'s `#seedLink`, and the
  * only thing a player can do with it is pin the current draw into the address
  * bar or take a pin back out — never choose one by hand, so there is nothing
  * for a reroll button to reroll. `#seedCopy`, unlike `#seedRoll`, has no
@@ -49,7 +49,7 @@
  * phase), but so that whichever stylesheet eventually styles this panel can
  * reuse the same rules rather than duplicate them under new names.
  *
- * `presentChallenge` in `src/ui/presenters.ts` goes to some trouble to keep
+ * `presentChallenge` in what was `src/ui/presenters.ts` went to some trouble to keep
  * the seed line's `<details>` open state and the document's focus in place
  * across the challenge bar's own full-`innerHTML` rebuilds on every restart.
  * That trouble is specific to a bar that redraws itself on a timer this panel
@@ -81,7 +81,7 @@ function seedHelpTemplate(): string {
 /**
  * The settings popover's seed block, or nothing at all.
  *
- * `data` is `null` under exactly the conditions `src/app/app.ts`'s
+ * `data` is `null` under exactly the conditions `src/pages/game/index.ts`'s
  * `#seedLink` returns `null` for: a learning-track task, which has no
  * pass/fail run to name a seed for, or (test-only) a world built with a
  * ready-made random stream instead of a seed. Rendering nothing then, rather

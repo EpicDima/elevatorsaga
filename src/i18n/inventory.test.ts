@@ -181,11 +181,11 @@ const TASK_KEYS: ReadonlySet<string> = new Set(
  * `src/` spans that are deliberately not paths, with what each one is.
  *
  * Handled by name rather than by loosening check 4 to something they slip
- * through: each of the three is a real reason, and a reason that stops applying
+ * through: each of the four is a real reason, and a reason that stops applying
  * should show up as a failing test rather than as a rule that quietly covers
  * less than it says.
  *
- * There is no fourth entry for `src/i18n/inventory.test.ts`. The rebuild named
+ * There is no fifth entry for `src/i18n/inventory.test.ts`. The rebuild named
  * it as the file that ought to exist — the one reference in this document's
  * whole history to a source file that was not in the tree — and writing it is
  * what made that reference true. An excuse would have kept it false.
@@ -195,6 +195,10 @@ const NON_PATHS: ReadonlyMap<string, string> = new Map([
   ["src/ui/completions.ts:148", "the second, the one that rotted onto a plausible wrong line"],
   ["src/i18n/<code>.ts", "the placeholder in _Adding a language_, `<code>` being the locale"],
   ["src/…", "the ellipsis in check 4's own wording"],
+  [
+    "src/ui/presenters.ts",
+    "named twice as history — Phase 12.4 folded it into src/pages/game/index.ts",
+  ],
 ]);
 
 /**

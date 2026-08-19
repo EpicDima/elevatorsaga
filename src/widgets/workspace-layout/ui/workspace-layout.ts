@@ -9,7 +9,7 @@
  * double-click back to the default.
  *
  * Nothing here is reachable yet. `buildWorkspaceLayoutSkeleton` is not called
- * from `index.html` or `src/app/app.ts` — this widget is staged the way
+ * from `index.html` or `src/pages/game/index.ts` — this widget is staged the way
  * `src/styles/style.css`'s design tokens were staged, built and tested ahead
  * of anything that mounts or reads it — and `presentWorkspaceLayout`'s
  * `setLayoutMode` has no caller: the segmented control that would call it is

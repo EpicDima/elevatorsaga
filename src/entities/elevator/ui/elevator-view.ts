@@ -1,11 +1,11 @@
 /**
  * An elevator car's DOM element, positioned and sized from the responsive
- * building's own geometry rather than the fixed pixel grid
- * `src/ui/presenters.ts` draws.
+ * building's own geometry rather than the fixed pixel grid once drawn by
+ * what was `src/ui/presenters.ts`.
  *
  * Built for widget 6b ("Building/stage rendering + hover cards"). The
  * direction indicators, floor indicator, and in-car buttons are wired exactly
- * as `presentElevator` wires them in `src/ui/presenters.ts`; the position
+ * as `presentElevator` wired them in what was `src/ui/presenters.ts`; the position
  * wiring is new. The legacy view writes `elevator.worldX`/`worldY` straight
  * into a `translate3d` on every `new_display_state`; this one multiplies by
  * {@link StageScale}'s current `scaleX`/`scaleY` first, reading the scale

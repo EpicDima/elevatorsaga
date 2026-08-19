@@ -2,13 +2,14 @@
  * The three buttons that drive a run: start/pause/restart and start over —
  * plus "Run instantly", which starts the same run without drawing it.
  *
- * Peeled out of `src/ui/presenters.ts`'s `presentControls`, which now composes
- * this with `#features/adjust-speed`'s speed stepper into the one `.controls`
- * region `src/app/app.ts` draws once, for the life of the page. That is why
- * every word below is written by {@link presentRunControls}'s `update()`
- * rather than baked into {@link runButtonsTemplate}: the row is drawn once and
- * only relabelled after, so a label baked into the markup would still be in
- * whatever language the page opened in after a change of language.
+ * Peeled out of `src/pages/game/index.ts`'s `presentControls`, which now
+ * composes this with `#features/adjust-speed`'s speed stepper into the one
+ * `.controls` region that same module draws once, for the life of the page.
+ * That is why every word below is written by {@link presentRunControls}'s
+ * `update()` rather than baked into {@link runButtonsTemplate}: the row is
+ * drawn once and only relabelled after, so a label baked into the markup
+ * would still be in whatever language the page opened in after a change of
+ * language.
  *
  * "Reset code" and "Undo reset" used to live here too. They now live in
  * `widgets/editor-pane`, beside the editor they act on rather than across the
@@ -100,7 +101,7 @@ export interface RunControlsPresenter {
 /**
  * Draws the run buttons and wires them up.
  *
- * Called once, from {@link "src/ui/presenters.ts"!presentControls}, and never
+ * Called once, from {@link "#pages/game/index.ts"!presentControls}, and never
  * again — the markup never goes away, so {@link RunControlsPresenter.update}
  * is the whole of every redraw after the first.
  *

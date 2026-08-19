@@ -361,7 +361,7 @@ describe("locateCodeError", () => {
   it("says nothing when no frame belongs to the player's program", () => {
     const stack = v8Stack(
       "    at WorldController.tick (http://localhost:5173/src/game/world-controller.ts:118:22)",
-      "    at http://localhost:5173/src/app/app.ts:305:19",
+      "    at http://localhost:5173/src/pages/game/index.ts:305:19",
     );
 
     expect(locateCodeError(stack, MULTI_LINE)).toBeUndefined();

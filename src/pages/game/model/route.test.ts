@@ -103,7 +103,7 @@ describe("createParamsUrl composed with resolveRoute", () => {
 
   it("takes a player on a task off the track when the navigation row rewrites the key", () => {
     // Every entry of the row is `createParamsUrl(query, { challenge: index + 1,
-    // seed: null })` (src/app/app.ts), and `challenge` is the key a task
+    // seed: null })` (src/pages/game/index.ts), and `challenge` is the key a task
     // address is written into -- so clicking challenge 5 from task 3 replaces
     // the track rather than joining it. The row is the way out, and no separate
     // "leave the track" link is needed to build one.

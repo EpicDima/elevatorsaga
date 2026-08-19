@@ -4,7 +4,7 @@
  *
  * `#game/challenges.ts`'s own `Challenge` has no `id` or `name` — a
  * challenge's identity is its position in the array, the same rule
- * {@link "#app/app.ts"!App.#challengeLinks} already follows for today's
+ * {@link "#pages/game/index.ts"!App.#challengeLinks} already follows for today's
  * challenge row. This module exists so a second place does not reinvent that
  * rule slightly differently: {@link listChallenges} is the one function that
  * turns "index into the challenges array" into "what a tile shows,"

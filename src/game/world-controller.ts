@@ -235,10 +235,11 @@ export class WorldController extends Observable<WorldControllerEvents> {
         world.updateDisplayPositions();
         // Every frame, deliberately. `legacy-1.x:world.js:256` wanted this
         // triggered less often "for performance reasons"; there are none to
-        // recover. The sole consumer is `presentStats` in `src/ui/presenters.ts`,
-        // which writes one number into one span per row of the panel, and one
-        // dispatch of it cost about 1.3 microseconds — measured over 200k
-        // dispatches against the laid-out panel of the built page in headless
+        // recover. The sole consumer is `presentStats` in what was
+        // `src/ui/presenters.ts`, which writes one number into one span per
+        // row of the panel, and one dispatch of it cost about 1.3
+        // microseconds — measured over 200k dispatches against the laid-out
+        // panel of the built page in headless
         // Chromium 151 on an Apple Silicon Mac, of which roughly 0.2
         // microseconds was the number formatting and the rest the DOM writes.
         // That is 0.008% of a 60 Hz frame, or 78 microseconds per second of

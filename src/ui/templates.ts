@@ -1,10 +1,12 @@
 /**
  * What is left of the game view's markup templates once the ones with a
- * single consumer moved out to the entity and widget that draw them: the four
+ * single consumer moved out to the entity and widget that draw them, and
+ * `controlsTemplate` — which merely concatenated two other modules' templates
+ * into the run controls row — folded into
+ * {@link "#pages/game/index.ts"!App}, its only caller: the four
  * accessible-name label helpers a relabel has to share with the template that
- * first drew the name (see {@link floorCallUpLabel}), the seed link's plain
- * data shape, and {@link controlsTemplate}, which merely concatenates two
- * other modules' templates into the run controls row.
+ * first drew the name (see {@link floorCallUpLabel}), and the seed link's
+ * plain data shape.
  *
  * Every word these functions put on screen is asked for with `t` *inside* the
  * function that returns it, never once at module scope. A `const` holding a
@@ -19,9 +21,6 @@
 
 import { t } from "../i18n/index.ts";
 
-import { speedStepperTemplate } from "#features/adjust-speed/index.ts";
-import { runButtonsTemplate } from "#features/run-simulation/index.ts";
-
 /**
  * The accessible name of a floor's "call an elevator going up" button.
  *
@@ -33,7 +32,7 @@ import { runButtonsTemplate } from "#features/run-simulation/index.ts";
  * the page and two handlers on each event — and the only other way to get a
  * fresh one is to throw away the run in progress.
  *
- * So {@link "./presenters.ts"!relabelWorld} rewrites these four names in place.
+ * So {@link "#pages/game/index.ts"!relabelWorld} rewrites these four names in place.
  * The helpers are what keep it honest: a key spelled out both in a template and
  * in the relabeller is a key that can be changed in one of them, and the
  * building would then be renamed into a message that no longer exists — which
@@ -115,41 +114,4 @@ export interface SeedLinkData {
    * and with a seed pinned, the URL with it is.
    */
   readonly newDrawUrl: string | null;
-}
-
-/**
- * Everything that drives the run in progress, as one row.
- *
- * Drawn into its own region between the learning track's panel and the building
- * rather than into the challenge bar, which is where the start button and the
- * speed used to live. Two reasons, and the first is the one a player notices: a
- * task's panel is a screenful of prose, and with the controls above it the
- * button that starts the run sat at the top of that screenful while the building
- * it starts was at the bottom. The controls belong against the thing they
- * control.
- *
- * The second is that the challenge bar used to be rebuilt on every restart, so
- * every one of these buttons used to destroy itself when pressed — which is
- * what the challenge bar's own focus bookkeeping existed to paper over. This
- * region is drawn once for the life of the page and only relabelled, so a
- * keyboard player who presses Start over is still standing on Start over
- * afterwards, with nothing to restore.
- *
- * Three buttons and a speed, in that order, because the three are what the
- * player came for and the speed is a setting. Reset/undo-reset moved to the
- * editor pane's own codetools (`widgets/editor-pane`), since they act on the
- * code rather than the run. The three are `#features/run-simulation`'s
- * {@link import("#features/run-simulation/index.ts").runButtonsTemplate} —
- * see that module for their own history and design, including why "Run
- * instantly" sits beside Start rather than in a row of its own. The speed is
- * `#features/adjust-speed`'s
- * {@link import("#features/adjust-speed/index.ts").speedStepperTemplate} —
- * see that module for why it is a plain container of real buttons rather than
- * the `<h3>` wrapping two clickable `<i>` elements it used to be, and for its
- * `aria-live` region.
- *
- * @returns The run controls markup.
- */
-export function controlsTemplate(): string {
-  return runButtonsTemplate() + speedStepperTemplate();
 }

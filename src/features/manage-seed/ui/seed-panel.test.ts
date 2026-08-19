@@ -19,7 +19,7 @@ describe("seedPanelTemplate", () => {
 
   it("renders nothing for a run with no seed to offer", () => {
     // `data` is `null` for a learning-track task and for the test-only worlds
-    // built with a ready-made random stream -- see `src/app/app.ts`'s
+    // built with a ready-made random stream -- see `src/pages/game/index.ts`'s
     // `#seedLink` -- and there is nothing this block could usefully say about
     // either, the same reason `challengeTemplate` leaves the challenge bar's
     // own seed line out under the same condition.

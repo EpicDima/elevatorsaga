@@ -204,7 +204,7 @@ function readStoredHeight(storage: Storage, view: Window | null): number | null 
  * Remembers the height, or does not.
  *
  * Deliberately unchecked, the same trade as `#storeTimeScale` in
- * `src/app/app.ts`: a browser that refuses storage — Safari in private mode is
+ * `src/pages/game/index.ts`: a browser that refuses storage — Safari in private mode is
  * the one everybody meets — is a reason for the height not to survive the tab,
  * not a reason for it not to change now. The legacy key is dropped whenever a
  * height is written, so the migration above happens once per browser.

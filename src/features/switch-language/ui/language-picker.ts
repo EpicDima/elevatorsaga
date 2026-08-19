@@ -68,7 +68,7 @@ export interface LanguagePickerOptions {
    * comes out in the new language in one pass rather than in two. What counts as
    * a redraw is deliberately not decided here: the shell, the challenge bar, the
    * statistics and the building each have their own answer, and
-   * {@link "../app/app.ts"!App.relocalise} is where those answers live.
+   * {@link "#pages/game/index.ts"!App.relocalise} is where those answers live.
    */
   readonly redraw: () => void;
 }
@@ -145,7 +145,7 @@ async function choose(locale: Locale, options: LanguagePickerOptions): Promise<v
   // refuses to write — Safari in private mode is the one everybody meets — and
   // that is a reason for the language not to survive this tab, not a reason for
   // it not to change now. The same trade as `#storeTimeScale` in
-  // `src/app/app.ts`: a browser that refuses storage should not stop the game.
+  // `src/pages/game/index.ts`: a browser that refuses storage should not stop the game.
   storeLocale(options.storage, locale);
 
   options.redraw();

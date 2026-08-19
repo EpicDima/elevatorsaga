@@ -420,7 +420,7 @@ export function spawnUserRandomly(
  *
  * Reported with a single `console.warn`, rather than thrown or swallowed.
  * Throwing would abort `createWorld`, which the app calls while starting a run
- * (`#startRun` in src/app/app.ts), so one bad option would leave the page with
+ * (`#startRun` in src/pages/game/index.ts), so one bad option would leave the page with
  * no building at all — where the house rule for a value the engine cannot use is
  * to keep the simulation running and say so once (`#dropUnreachableDestinations`
  * in src/game/elevator-interface.ts). That pattern reports through

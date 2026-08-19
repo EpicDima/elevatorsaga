@@ -20,7 +20,7 @@ interface FakeWorld extends ControllableWorld {
  * without a real building, seed or passenger stream.
  *
  * Standing in for the `stats_changed`-driven verdict a real caller (see
- * `src/app/app.ts`'s `#startRun`) reaches on its own: `driveInstantly` never
+ * `src/pages/game/index.ts`'s `#startRun`) reaches on its own: `driveInstantly` never
  * decides a challenge is over by itself, so a fixture that wants to end one
  * has to flip `challengeEnded` the same way a caller would, from inside
  * `update`.

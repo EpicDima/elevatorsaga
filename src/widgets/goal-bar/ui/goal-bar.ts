@@ -3,7 +3,7 @@
  * popover, ported from `design/ui-mockup.html`'s `renderGoals()`/`drawGoals()`
  * and `renderTiers()`/`drawTiers()`.
  *
- * Mounted live from `src/app/app.ts` since Phase 12.2.
+ * Mounted live from `src/pages/game/index.ts` since Phase 12.2.
  *
  * The mockup draws its meters and its tier popover with two different
  * rhythms, and this module keeps that split rather than rebuilding

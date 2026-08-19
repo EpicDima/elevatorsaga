@@ -2,10 +2,11 @@
  * The learning track's panel: the block of prose between the challenge bar and
  * the building, shown while a player is working through `src/game/tutorial.ts`.
  *
- * It is a presenter in the sense `presenters.ts` uses the word — one function
- * for one region of the page, drawing it wholesale and subscribing to nothing —
- * and it is kept out of that file for the reason the track is kept out of
- * `challenges.ts`: nothing here is part of a challenge.
+ * It is a presenter in the sense the module that was `presenters.ts` used the
+ * word — one function for one region of the page, drawing it wholesale and
+ * subscribing to nothing — and it was kept out of that file for the reason
+ * the track is kept out of `challenges.ts`: nothing here is part of a
+ * challenge.
  *
  * The interface takes a task *index* rather than the words to print, and that is
  * the one design decision the rest of this file follows from. Changing language

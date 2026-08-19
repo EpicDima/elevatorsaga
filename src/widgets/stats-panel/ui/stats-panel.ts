@@ -1,9 +1,9 @@
 /**
  * The stats panel: the run's live figures plus their sparkline history,
  * ported from `design/ui-mockup.html`'s stats tiles and `presentStats`'s own
- * eleven figures (`src/ui/presenters.ts`).
+ * eleven figures (what was `src/ui/presenters.ts`).
  *
- * Mounted live from `src/app/app.ts` since Phase 12.2.
+ * Mounted live from `src/pages/game/index.ts` since Phase 12.2.
  *
  * ## Tile grouping
  *
@@ -48,9 +48,9 @@ import { requireElement } from "#shared/lib/dom.ts";
 import { markup, raw, renderElement } from "#shared/ui/markup.ts";
 
 /**
- * How the "transported per second" figure is rounded — copied from
+ * How the "transported per second" figure is rounded — copied from what was
  * `src/ui/presenters.ts`'s own `PER_SECOND_DIGITS`, whose doc comment
- * explains the choice of significant digits over decimal places.
+ * explained the choice of significant digits over decimal places.
  */
 const PER_SECOND_DIGITS: Intl.NumberFormatOptions = {
   minimumSignificantDigits: 3,

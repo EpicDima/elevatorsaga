@@ -115,7 +115,7 @@ export interface RouteParams {
    * or the sandbox parameters, and the seed has no say in them.
    *
    * The URL is the only thing that pins a seed, which is what makes the two
-   * restart paths agree: see {@link "#app/app.ts"!App.handleRoute}.
+   * restart paths agree: see {@link "../index.ts"!App.handleRoute}.
    *
    * Always `null` while {@link tutorialIndex} is set, however far the URL goes
    * to ask otherwise — a task plays the seed its own entry pins and no other.

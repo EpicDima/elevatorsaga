@@ -27,12 +27,12 @@ import "@fontsource/oswald/400.css";
 import "@fontsource/oswald/700.css";
 import "./styles/style.css";
 
-import { App, readStoredTimeScale } from "./app/app.ts";
 import { describeFitnessResults, runFitnessSuite } from "./app/fitness.ts";
 import { challenges } from "./game/challenges.ts";
 import type { FitnessSuiteResult } from "./game/fitness.ts";
 import { TICK_SECONDS, createWorldController } from "./game/world-controller.ts";
 import { formatTime, t } from "./i18n/index.ts";
+import { App, readStoredTimeScale } from "./pages/game/index.ts";
 import { startRouter } from "./pages/game/model/route.ts";
 import { CodeEditor, codeMirrorView } from "./ui/editor.ts";
 import { applyStoredEditorHeight, presentEditorResize } from "./ui/editor-size.ts";
@@ -236,7 +236,7 @@ async function main(): Promise<void> {
   // The four buttons that used to be wired here -- Save, Apply, Reset and Undo
   // reset -- are run controls and editor-pane tools now, drawn and driven by
   // the app and this file respectively; see `presentControls` in
-  // `src/ui/presenters.ts` and `editorPane` above. Save has no successor: the
+  // `src/pages/game/index.ts` and `editorPane` above. Save has no successor: the
   // editor has always autosaved a second after the last keystroke, so the
   // button was a promise the game had already kept.
 

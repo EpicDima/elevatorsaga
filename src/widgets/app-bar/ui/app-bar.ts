@@ -6,7 +6,7 @@
  * The mockup drops the tagline and adds a small building glyph before the
  * name; this module ports that glyph and name, verbatim, as their own
  * skeleton, following `widgets/workspace-layout`'s staged pattern: built and
- * tested, but not called from `index.html` or `src/app/app.ts` yet, and not
+ * tested, but not called from `index.html` or `src/pages/game/index.ts` yet, and not
  * yet the whole app bar — the mockup's `.task` level switcher that sits
  * beside the brand is a separate widget, a later phase of the same
  * migration, and can mount into {@link AppBarElements.appBar} once it

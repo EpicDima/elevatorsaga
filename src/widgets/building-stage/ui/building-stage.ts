@@ -7,8 +7,8 @@
  * geometry) and `smart-position.ts` (the card placement) and
  * `hover-card-text.ts` (the card's words) — the "DOM-wiring step" those
  * modules' own doc comments once described as not yet ported. Mounted live
- * from `src/app/app.ts` since Phase 12.2, replacing `presentWorld` in
- * `src/ui/presenters.ts`, which is no longer called.
+ * from `src/pages/game/index.ts` since Phase 12.2, replacing `presentWorld`
+ * in what was `src/ui/presenters.ts`, which is no longer called.
  *
  * ## One shared coordinate space, no separate levels column
  *

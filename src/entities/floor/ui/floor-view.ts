@@ -1,10 +1,11 @@
 /**
  * A floor's DOM element, positioned and sized from the responsive building's
- * own geometry rather than the fixed pixel grid `src/ui/presenters.ts` draws.
+ * own geometry rather than the fixed pixel grid once drawn by what was
+ * `src/ui/presenters.ts`.
  *
  * Built for widget 6b ("Building/stage rendering + hover cards"): the call
- * buttons and their lit state are wired exactly as `presentFloor` wires them
- * in `src/ui/presenters.ts`. What's new is {@link FloorView.setGeometry},
+ * buttons and their lit state are wired exactly as `presentFloor` wired them
+ * in what was `src/ui/presenters.ts`. What's new is {@link FloorView.setGeometry},
  * which lets `widgets/building-stage` reposition and resize the floor
  * whenever `layoutBuilding()` recomputes, rather than baking a position in
  * once at creation the way the legacy fixed-pixel view does.
@@ -20,7 +21,7 @@
  *
  * Relabeling on a language change is out of scope here, the same way it's
  * split out of `presentWorld` into a separate `relabelWorld` in
- * `src/ui/presenters.ts`: a floor is expensive to rebuild once its buttons
+ * `src/pages/game/index.ts`: a floor is expensive to rebuild once its buttons
  * carry live listeners. Since this widget is mounted live (Phase 12.2),
  * `relabelWorld` handles it exactly as it did the legacy view — it selects
  * by class and position, not by which function drew the markup, and

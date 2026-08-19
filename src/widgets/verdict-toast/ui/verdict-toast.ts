@@ -4,8 +4,8 @@
  * to whatever comes next).
  *
  * Mounted live from `App#showOutcome`/`App#showTutorialOutcome` since Phase
- * 12.2, replacing `../../../ui/presenters.ts`'s `presentFeedback` and
- * `../../../ui/templates.ts`'s `feedbackTemplate`, both since deleted.
+ * 12.2, replacing what was `../../../ui/presenters.ts`'s `presentFeedback`
+ * and `../../../ui/templates.ts`'s `feedbackTemplate`, both since deleted.
  * `verdictToastTemplate` reproduced their markup byte-for-byte for {@link
  * VerdictToastData.tier | tier: undefined}, so every existing caller's shape
  * kept working unchanged across the cutover; the one new capability is an

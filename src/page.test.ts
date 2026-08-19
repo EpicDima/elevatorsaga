@@ -104,7 +104,7 @@ describe("index.html", () => {
     "#editor_resize",
     "#save_message",
     "#fitness_message",
-    // Drawn into by src/app/app.ts and src/ui/presenters.ts.
+    // Drawn into by src/pages/game/index.ts.
     ".challenge",
     ".controls",
     // Drawn into by src/widgets/tutorial-panel/ui/tutorial-panel.ts, and left empty off the track.
@@ -273,7 +273,7 @@ describe("index.html", () => {
     const link = page.querySelector(".tutoriallink");
     expect(link?.tagName).toBe("A");
     // A working address in the shipped markup, before a line of JavaScript has
-    // run and for a reader with none. `src/app/app.ts` moves it on to the first
+    // run and for a reader with none. `src/pages/game/index.ts` moves it on to the first
     // task not yet cleared.
     expect(link?.getAttribute("href")).toBe("#challenge=tutorial-1");
     expect(link?.getAttribute("data-i18n")).toBe("page.tutorialLink");

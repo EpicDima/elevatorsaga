@@ -1,9 +1,9 @@
 /**
  * The speed stepper: two buttons and the multiplier they change.
  *
- * Peeled out of `src/ui/presenters.ts`'s `presentControls`, which now composes
- * this with `#features/run-simulation`'s run buttons into the one `.controls`
- * region `src/app/app.ts` draws once, for the life of the page.
+ * Peeled out of `src/pages/game/index.ts`'s `presentControls`, which now
+ * composes this with `#features/run-simulation`'s run buttons into the one
+ * `.controls` region that same module draws once, for the life of the page.
  *
  * The two buttons carry their name as `aria-label`, rewritten by
  * {@link presentSpeedStepper}'s `update()` on a language change the same way
@@ -69,7 +69,7 @@ export interface SpeedStepperPresenter {
 /**
  * Draws the speed stepper and wires it up.
  *
- * Called once, from {@link "src/ui/presenters.ts"!presentControls}, and never
+ * Called once, from {@link "#pages/game/index.ts"!presentControls}, and never
  * again — the markup never goes away, so {@link SpeedStepperPresenter.update}
  * is the whole of every redraw after the first.
  *

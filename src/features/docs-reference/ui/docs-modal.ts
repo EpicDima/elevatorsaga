@@ -48,7 +48,7 @@
  *   `#docsEmpty` likewise already carry `docs-body`/`docs-empty`.
  *
  * Built and unit-tested against a jsdom `<dialog>` — `polyfillDialogElement`
- * (`#shared/ui/test-helpers.ts`) — but not wired into `src/app/app.ts` or
+ * (`#shared/ui/test-helpers.ts`) — but not wired into `src/pages/game/index.ts` or
  * `settings-menu.ts`'s `docsopen` opener yet, matching every widget staged so
  * far in this migration.
  */

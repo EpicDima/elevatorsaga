@@ -16,8 +16,9 @@
  *
  * Built and unit-tested against a jsdom `<dialog>` —
  * `polyfillDialogElement` (`#shared/ui/test-helpers.ts`) — but not wired into
- * `src/app/app.ts` or `settings-menu.ts`'s `keysopen` opener yet, the "build
- * inert first" staging every widget in this migration has followed so far.
+ * `src/pages/game/index.ts` or `settings-menu.ts`'s `keysopen` opener yet,
+ * the "build inert first" staging every widget in this migration has
+ * followed so far.
  */
 
 import { t } from "#i18n/index.ts";

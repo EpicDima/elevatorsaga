@@ -25,9 +25,10 @@
  * `run-controls.ts`'s patch-in-place — a fixed set of tiles that only ever
  * change tag as well as content is the case that pattern does not cover.
  *
- * Mounted live from `src/app/app.ts` since Phase 12.2. A tile's tier is carried both as a bare `data-tier`
- * attribute on the tile itself, for whatever styling a later CSS pass gives
- * the tile as a whole, and as `entities/challenge-tier`'s own
+ * Mounted live from `src/pages/game/index.ts` since Phase 12.2. A tile's
+ * tier is carried both as a bare `data-tier` attribute on the tile itself,
+ * for whatever styling a later CSS pass gives the tile as a whole, and as
+ * `entities/challenge-tier`'s own
  * {@link tierBadgeMarkup} badge, for the stars a player actually reads —
  * every open, non-demo challenge tile gets one, dim stars included at zero
  * earned, matching `design/ui-mockup.html`'s `renderTaskMenu`.
@@ -312,9 +313,9 @@ export function presentLevelSwitcher(
       // The grid is rebuilt from scratch below, which would otherwise drop
       // keyboard focus to <body> out from under a player tabbing through it —
       // the same problem, and the same fix, as `presentChallenge`'s own
-      // navigation row in `src/ui/presenters.ts`: the tile that replaces the
-      // one that was focused is the one in the same position, so position is
-      // what is restored rather than the deleted node itself.
+      // navigation row in what was `src/ui/presenters.ts`: the tile that
+      // replaces the one that was focused is the one in the same position,
+      // so position is what is restored rather than the deleted node itself.
       const focusedTileIndex = queryAll(".tasklink", taskBlocks).findIndex(
         (tile) => tile === document.activeElement,
       );
