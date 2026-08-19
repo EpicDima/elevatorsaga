@@ -2829,7 +2829,17 @@ kbd {
   color: var(--ds-bad-ink);
 }
 
+/*
+ * `overflow-wrap` because the failure quoted here is the player's own text and
+ * can be one unbroken token as long as they like: a thrown 400-character string
+ * with no spaces in it laid out 3010px wide inside a 463px banner, ran off the
+ * pane, and gave the whole document a horizontal scrollbar -- nothing on the
+ * ancestor chain clips it. `anywhere` rather than `break-word` so the box's
+ * min-content width shrinks with it too, and on `.errormessage` alone so the
+ * sentence around it still breaks at spaces like ordinary prose.
+ */
 .errorline .errormessage {
+  overflow-wrap: anywhere;
   font-family: var(--ds-font-mono);
   color: var(--ds-text);
 }

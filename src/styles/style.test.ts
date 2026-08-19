@@ -737,6 +737,20 @@ describe("statistics panel", () => {
   });
 });
 
+describe("the error banner", () => {
+  it("wraps a failure that has nowhere to break", () => {
+    // The quoted failure is the player's own text and can be one unbroken
+    // token of any length -- a thrown 400-character string with no spaces in
+    // it. Nothing between the <code> and the document clips: a banner without
+    // this laid that string out 3010px wide inside a 463px pane and gave the
+    // whole page a horizontal scrollbar, which on a frame that is otherwise
+    // exactly the window is the one overflow that cannot be lived with.
+    expect(
+      declaration(ruleBody(".errorline .errormessage"), "overflow-wrap", ".errormessage"),
+    ).toBe("anywhere");
+  });
+});
+
 describe("the fullscreen demo", () => {
   it("hides everything beside the building, starting at the body's own children", () => {
     // `#fullscreen` hides the page a link at a time -- body, main, workspace,
