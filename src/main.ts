@@ -4,27 +4,22 @@
  * Everything here is wiring, which is why there is no logic to test: the parts
  * being wired together are covered by their own unit tests.
  *
- * Ported from the `$(function() { ... })` block of the legacy `app.js`. Two
- * things that used to be in `index.html` are gone: the Google Analytics snippet,
- * and the render-blocking `<link>` tags for jQuery, lodash, riot, CodeMirror 5,
- * the Font Awesome webfont and Google's copy of Oswald. The font is self-hosted
- * now, and only in the two weights the design uses.
+ * Ported from the `$(function() { ... })` block of the legacy `app.js`. What
+ * used to be in `index.html` and is gone: the Google Analytics snippet, and the
+ * render-blocking `<link>` tags for jQuery, lodash, riot, CodeMirror 5, the
+ * Font Awesome webfont and Google's copy of Oswald.
  *
- * `400.css` and `700.css` rather than the `latin-*.css` subsets those two used
- * to be. The subset files carry no `unicode-range`, so the pair of them claimed
- * the whole plane while holding Latin glyphs only, and every Cyrillic character
- * on the page fell through to the `Arial` fallback: the Russian game was not
- * set in the game's typeface at all, and being wider than condensed Oswald it
- * wrapped the header at different widths -- 537 of the 981 viewport widths
- * between 320px and 1300px gave the two locales headers of different heights.
- * These files declare every subset with the `unicode-range` the subsets omit,
- * which is what keeps the right face on the right character. The cost is eight
- * more font binaries copied into `dist/assets/`; the range gates them, so an
- * English player downloads none of them and a Russian one downloads 13 kB.
+ * Oswald outlived that as a self-hosted `@fontsource` import here, and it is
+ * gone too. `design/ui-mockup.html` sets the interface in the platform's own
+ * UI face -- `--ds-font-ui`, the system stack -- so there is no webfont left to
+ * host, no twenty binaries in `dist/assets/`, and no first paint waiting on a
+ * download. It also retires a defect the subsetting had: Oswald's `latin-*`
+ * files carried no `unicode-range`, so they claimed the whole plane while
+ * holding Latin glyphs only and every Cyrillic character fell through to
+ * `Arial`. A system stack has whatever the reader's own machine has, in every
+ * script it has it for.
  */
 
-import "@fontsource/oswald/400.css";
-import "@fontsource/oswald/700.css";
 import "./styles/style.css";
 
 import { describeFitnessResults, runFitnessSuite } from "./app/fitness.ts";

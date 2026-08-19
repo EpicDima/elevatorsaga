@@ -905,10 +905,10 @@ copyright notice are in
 [src/shared/ui/fontawesome-glyphs.json](src/shared/ui/fontawesome-glyphs.json) records which
 glyph came from which codepoint.
 
-The interface font is [Oswald](https://fonts.google.com/specimen/Oswald), copyright © 2016 The
-Oswald Project Authors, licensed under the [SIL OFL 1.1](https://scripts.sil.org/OFL) and
-self-hosted via [Fontsource](https://fontsource.org/) — which is why four `.woff`/`.woff2` files
-are copied into `dist/assets/` by a build.
+The interface is set in whatever UI face the reader's own system uses — the `--ds-font-ui` stack
+in [src/styles/style.css](src/styles/style.css), taken from
+[design/ui-mockup.html](design/ui-mockup.html). No webfont is shipped, so a build copies no font
+binaries into `dist/assets/` and the first paint waits on nothing.
 
 None of this stays in the repository only. `npm run build` collects the licence of every runtime
 dependency out of `node_modules`, adds the game's own and the Font Awesome notice, and writes the

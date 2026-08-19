@@ -14,11 +14,13 @@
  * FSD/mockup-port migration (see the migration plan's own §0): a building
  * pane and a code pane side by side need more room than a phone screen has
  * to give, and shrinking them to fit was never asked for, so the page adopts
- * `design/ui-mockup.html`'s own hard floor -- `body { min-inline-size:
+ * `design/ui-mockup.html`'s own hard floor -- `body.app { min-inline-size:
  * 1040px; min-block-size: 600px }`, in `src/styles/style.css` -- as its
- * minimum supported viewport instead of reflowing under it. What is checked
- * below, in place of the 320/390px sweep the other two pages still get, is
- * that the floor holds: the page fits without horizontal overflow exactly at
+ * minimum supported viewport instead of reflowing under it. The floor hangs
+ * off a class rather than `body` itself because the same stylesheet dresses
+ * all three pages: `src/docs.ts` imports it too, and the help pages are the
+ * ones that still owe the 320px sweep below. What is checked here, in place
+ * of that sweep, is that the floor holds: the page fits without overflow at
  * 1040x600, the smallest viewport it now promises to support. The seed
  * line's own narrow-width checks and the Russian game page's are gone for
  * the same reason -- both only ever existed to cover widths this page no

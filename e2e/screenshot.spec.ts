@@ -91,8 +91,10 @@ test.describe("README screenshot", () => {
     await page.getByRole("button", { name: "Pause" }).click();
     await expect(startButton(page)).toBeVisible();
 
-    // Oswald is self-hosted and loaded by the bundle; without this the headings
-    // can still be in the fallback face when the shutter comes down.
+    // The interface is set in the system UI face and the bundle ships no
+    // webfont, so there is normally nothing outstanding here -- but the editor
+    // asks for a monospace stack of its own, and waiting costs a tick against
+    // a promise that is already resolved.
     await page.evaluate(() => document.fonts.ready);
 
     await page.screenshot({ path: OUTPUT_PATH, fullPage: true, animations: "disabled" });

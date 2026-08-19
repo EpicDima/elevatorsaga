@@ -28,14 +28,15 @@ test("serves the licence notices from the About block's copyright line", async (
   const notices = await response.text();
 
   // The game's own terms, and the two obligations that made this file exist:
-  // MIT for CodeMirror and the packages under it, OFL for the Oswald webfont
-  // and for the Font Awesome outlines the icons are drawn from.
+  // MIT for CodeMirror and the packages under it, OFL for the Font Awesome
+  // outlines the icons are drawn from. Oswald was a third until the interface
+  // adopted the platform's own UI face; nothing here ships a webfont now, so
+  // the notice must not claim one either.
   expect(notices).toContain("The MIT License (MIT)");
   expect(notices).toContain("Magnus Wolffelt");
   expect(notices).toContain("codemirror");
   expect(notices).toContain("Marijn Haverbeke");
-  expect(notices).toContain("@fontsource/oswald");
-  expect(notices).toContain("The Oswald Project Authors");
   expect(notices).toContain("Font Awesome 4.1.0");
   expect(notices).toContain("SIL OPEN FONT LICENSE Version 1.1");
+  expect(notices).not.toContain("Oswald");
 });

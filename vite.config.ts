@@ -11,15 +11,17 @@ import packageJson from "./package.json" with { type: "json" };
  * of both.
  *
  * `dist/` is what players are actually served, and it carries MIT-licensed code
- * (CodeMirror and its Lezer parser, ~500 kB of the bundle), an OFL-licensed
- * font (Oswald, twenty binaries copied verbatim into `dist/assets/` -- five
- * subsets in two formats in each of the two weights, of which a given reader
- * downloads only the ones their language needs) and
- * OFL-licensed artwork (the Font Awesome 4 outlines inlined by
- * `src/shared/ui/icon.ts`). MIT asks for its notice to travel with substantial
- * portions of the software; OFL asks for the copyright notice and licence to be
- * bundled with the font software. Neither obligation is met by a licence file
- * that only exists in the repository, so the build has to put one in `dist/`.
+ * (CodeMirror and its Lezer parser, ~500 kB of the bundle) and OFL-licensed
+ * artwork (the Font Awesome 4 outlines inlined by `src/shared/ui/icon.ts`).
+ * MIT asks for its notice to travel with substantial portions of the software;
+ * OFL asks for the copyright notice and licence to be bundled with the font
+ * software, and those outlines are font software whatever they are drawn as.
+ * Neither obligation is met by a licence file that only exists in the
+ * repository, so the build has to put one in `dist/`.
+ *
+ * There is no webfont here any more: the interface is set in the platform's own
+ * UI face, so the twenty Oswald binaries this used to copy into `dist/assets/`
+ * are not built and the OFL entry for them is not printed.
  *
  * Generated rather than committed. A hand-written file under `public/` would be
  * simpler, but it would silently start lying the first time a dependency is
@@ -151,10 +153,10 @@ Source: ${packageJson.homepage.replace(/#.*$/, "")}`,
     readFileSync("src/shared/ui/fontawesome-license.txt", "utf8").trim() + "\n",
     section(
       "Bundled packages",
-      `The editor is CodeMirror 6 and the interface font is Oswald. Both, and the
-packages they depend on in turn, are installed from npm and end up inside the
-JavaScript, CSS and font files this site serves. Packages that ship identical
-terms are listed together, above the one copy of them.
+      `The editor is CodeMirror 6. It, and the packages it depends on in turn, are
+installed from npm and end up inside the JavaScript and CSS this site serves.
+Packages that ship identical terms are listed together, above the one copy of
+them.
 
 ${packages.join("\n\n")}`,
     ),
@@ -210,11 +212,12 @@ export default defineConfig({
     target: "es2022",
     sourcemap: true,
     emptyOutDir: true,
-    // Never inline a font, whatever its size. The default limit is 4 kB, which
-    // is just above the smallest Oswald subset, so one of the twenty was being
-    // base64'd into the stylesheet -- and a subset inlined into the stylesheet
-    // is downloaded by everybody, which is the exact thing `unicode-range`
-    // exists to prevent. Everything else keeps the default.
+    // Never inline a font, whatever its size. Nothing here ships one today --
+    // the interface is set in the platform's own UI face and the icons are
+    // inline SVG -- but the default 4 kB limit was small enough to base64 a
+    // font subset into the stylesheet, where every reader downloads it whether
+    // their language needs it or not, and that is worth refusing before it can
+    // happen again rather than after. Everything else keeps the default.
     assetsInlineLimit: (filePath: string): boolean | undefined =>
       /\.(?:woff2?|ttf|otf|eot)$/i.test(filePath) ? false : undefined,
     // `rollupOptions` is a deprecated alias Vite 8 folds into this one

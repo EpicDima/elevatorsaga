@@ -17,10 +17,9 @@
  *   colour is `fill: currentColor` and what used to be `text-shadow` is
  *   `drop-shadow`.
  *
- * Note that `box-sizing` is deliberately left at `content-box`: the floors
- * (49px + 1px border) and the elevators (46px + 2px border) rely on borders
- * adding to the box. `.statscontainer` opts back out to `border-box` on its
- * own rule (Statistics, below) -- its own comment there says why.
+ * `box-sizing` is `border-box` everywhere, per `design/ui-mockup.html` §2; the
+ * building's two rules that count borders themselves opt back out, and the
+ * Document section below says why.
  */
 
 /*
@@ -121,7 +120,6 @@
   --editor-height-min: 120px;
   --editor-height-max: 85vh;
 
-  --font-ui: Oswald, Arial, Helvetica, sans-serif;
   --font-body: Arial, Helvetica, sans-serif;
   --font-mono: Consolas, Monaco, monospace;
 }
@@ -140,11 +138,13 @@
  * `--ds-bad` instead.
  *
  * Prefixed `--ds-` (design system) rather than reusing the mockup's own bare
- * names (`--font-ui`, `--font-mono`, ...) because two of those names already
- * exist above with different values (Oswald/Consolas, not the mockup's system
- * font stacks) -- an unprefixed redeclaration here would silently win the
- * cascade for every existing selector that reads them, which is exactly the
- * "zero visual change" invariant this block exists to preserve. Everything
+ * names (`--font-mono`, ...) because some of those names already exist above
+ * with different values (Consolas, not the mockup's system font stacks) -- an
+ * unprefixed redeclaration here would silently win the cascade for every
+ * existing selector that reads them, which is exactly the "zero visual change"
+ * invariant this block exists to preserve. `--font-ui` was one of them, and is
+ * gone: the page is set in `--ds-font-ui` now, so Oswald has no reader left
+ * anywhere and the game no longer ships a webfont. Everything
  * else keeps the mockup's own names verbatim (with the prefix) so a widget's
  * CSS can be ported by mostly find-and-replacing `var(--x)` with
  * `var(--ds-x)`.
@@ -392,16 +392,94 @@ html[data-theme="light"] {
 
 /* ---------------------------------------------------------------- Document */
 
-html,
+/*
+ * `design/ui-mockup.html` §2's opening rule, and the assumption every widget
+ * ported out of that file was measured under: a `.tile` with padding and a
+ * width, a `.setmenu` with a border and a `min-inline-size`, every control the
+ * app bar sets to `--ds-ctl-h` -- each of them states the box it occupies and
+ * expects its border and padding to be inside it.
+ *
+ * The building is the one exception, and a deliberate one. `.floor` and
+ * `.elevator` state a block-size net of their borders
+ * (`calc(var(--floor-height) - 1px)`, and the car's two), because the scene's
+ * geometry has to agree to the pixel with `src/game/world.ts`, which counts in
+ * whole floors. Opting those two back out here rather than rewriting them
+ * keeps that agreement a question about one file; the opt-out goes when the
+ * stage's own rules are ported to the mockup's, which state the outer box
+ * instead.
+ */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+.floor,
+.elevator {
+  box-sizing: content-box;
+}
+
+/*
+ * The page has a floor, and below it the interface stops shrinking and starts
+ * scrolling -- the mockup's own note on this rule: «ниже него интерфейс не
+ * ужимается, а прокручивается». What scrolls is `<html>`, which is why the
+ * `overflow` is here and not on the body; `height: 100%` on both is what lets
+ * `body.app` below be a column the workspace can claim the rest of.
+ */
+html {
+  height: 100%;
+  margin: 0;
+  overflow: auto;
+}
+
 body {
   margin: 0;
   padding: 0;
   background-color: var(--ds-bg);
-  color: white;
+  color: var(--ds-text);
+  font-family: var(--ds-font-ui);
 }
 
-body {
-  font-family: var(--font-ui);
+/*
+ * The game page's own frame: the rest of the mockup's `body`, on a class
+ * because this stylesheet dresses three documents and only one of them is the
+ * game. `documentation.html` and its Russian twin are nine hundred lines that
+ * scroll; a full-height column with `overflow: hidden` would cut either off at
+ * the first screenful, and a 1040px floor would make a phone pan a page that
+ * fits one today.
+ *
+ * That floor is decision #1 (see the migration plan's own §0): a building pane
+ * and a code pane side by side need more room than 320px has to give, so the
+ * page adopts the mockup's own 1040x600 minimum instead of reflowing under it,
+ * and `e2e/reflow.spec.ts` holds it there. It sat on `.container:not(.narrow)`
+ * until this page stopped having a `.container` to sit on -- the bar and the
+ * workspace go edge to edge now, so the centred, gutter-padded wrapper had
+ * nothing left to centre.
+ */
+body.app {
+  display: flex;
+  flex-direction: column;
+  block-size: 100%;
+  min-inline-size: 1040px;
+  min-block-size: 600px;
+  overflow: hidden;
+  font-size: 14px;
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+}
+
+/*
+ * `<main>` is a landmark rather than a box: the mockup puts `.workspace`
+ * straight into its `<body>`, and this page keeps the region a screen reader
+ * jumps to between the two. So it passes the column through -- everything it
+ * is given, it gives on -- which is what makes `.workspace`'s own `flex: 1;
+ * min-height: 0` mean what it means in the mockup.
+ */
+body.app > main {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-block-size: 0;
 }
 
 h1,
@@ -436,9 +514,29 @@ a:hover {
   text-decoration: underline;
 }
 
+/*
+ * A `<button>`, a `<select>` and an `<input>` each come with a font and a
+ * colour of the platform's choosing rather than the page's, so each has to be
+ * told to inherit or the page ends up with three typefaces it did not pick.
+ * `button`'s own full reset is under Buttons below; this is the half the other
+ * two need too, and it is here because it is the mockup's §2 and belongs with
+ * the frame.
+ */
+select,
+input {
+  color: inherit;
+  font: inherit;
+}
+
+/*
+ * The ring is rounded, which is the mockup's §2 rule and not a detail: almost
+ * everything focusable on the page is a rounded control, and a square ring
+ * around a rounded button reads as a rendering fault rather than as focus.
+ */
 :focus-visible {
   outline: 2px solid var(--ds-focus);
   outline-offset: 2px;
+  border-radius: var(--ds-r-sm);
 }
 
 dl {
@@ -633,8 +731,14 @@ dl dd {
   translate: none;
 }
 
+/*
+ * The two help pages' measure: a column of prose and tables, centred, with a
+ * gutter that opens up on a phone (see the width query at the foot of this
+ * file). The game page had one of these until the app bar and the workspace
+ * went edge to edge, and `.narrow` is all that is left of the distinction --
+ * both remaining documents carry it.
+ */
 .container {
-  box-sizing: border-box;
   max-inline-size: calc(var(--shell-width) + 2 * var(--shell-gutter));
   margin-inline: auto;
   padding: 20px var(--shell-gutter) 40px;
@@ -643,25 +747,6 @@ dl dd {
 
 .container.narrow {
   --shell-width: 960px;
-}
-
-/*
- * Decision #1 (see the migration plan's own §0): the workspace shell adopts
- * design/ui-mockup.html's own hard floor instead of reflowing for a phone --
- * a building pane and a code pane side by side need more room than 320px has
- * to give, and shrinking them to fit was never asked for. e2e/reflow.spec.ts's
- * 320/390px checks are gone for this page and replaced with an assertion that
- * this floor holds.
- *
- * `:not(.narrow)` rather than `body`, which the mockup itself gets away with
- * being one page with nothing else to scope against: this stylesheet also
- * serves the two help pages, `.container.narrow` on both of them, and neither
- * grows a workspace that needs the room -- they are unaffected and still
- * checked at both widths.
- */
-.container:not(.narrow) {
-  min-inline-size: 1040px;
-  min-block-size: 600px;
 }
 
 /*

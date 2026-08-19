@@ -451,7 +451,7 @@ describe("palette", () => {
 });
 
 describe("ds palette on the page background", () => {
-  // html,body and .container paint --ds-bg now, not the fixed --color-page,
+  // body and .container paint --ds-bg now, not the fixed --color-page,
   // so the text painted directly on it -- h1-h6/p/a/dl (--ds-text),
   // .emphasis-color (--ds-accent-hi) and .error-color (--ds-bad) -- has to
   // clear 4.5:1 in both of --ds-bg's themes, not just

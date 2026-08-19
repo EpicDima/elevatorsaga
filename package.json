@@ -65,7 +65,6 @@
     "@codemirror/language": "^6.12.4",
     "@codemirror/state": "^6.7.1",
     "@codemirror/view": "^6.43.8",
-    "@fontsource/oswald": "^5.3.0",
     "@lezer/highlight": "^1.2.3",
     "@lezer/javascript": "^1.5.4",
     "codemirror": "^6.0.2"

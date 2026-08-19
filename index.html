@@ -53,7 +53,13 @@
 
     <script type="module" src="/src/main.ts"></script>
   </head>
-  <body>
+  <!--
+    `app` is what tells src/styles/style.css this is the game and not one of the
+    two help pages it also dresses: the frame below -- a full-height column that
+    does not scroll, with a 1040x600 floor under it -- would cut a nine-hundred
+    line reference page off at the first screenful.
+  -->
+  <body class="app">
     <!--
       The first thing the keyboard reaches, and the only thing before the
       building. src/main.ts intercepts it and puts the focus inside CodeMirror,
@@ -62,140 +68,138 @@
     -->
     <a class="skip-link" href="#code" data-i18n="page.skipLink">Skip to the code editor</a>
 
-    <div class="container">
+    <!--
+      The page's heading, and all that is left of the header this file used to
+      ship. src/main.ts replaces this whole element with widgets/app-bar's own
+      <header class="appbar">, whose brand name is the live page's <h1> -- so
+      there is exactly one heading and one banner before the bundle runs and
+      exactly one of each afterwards.
+
+      What stood here besides the title is gone rather than moved. The learning
+      track has a block of its own in the app bar's level switcher, so the
+      header link was a second entrance to a place already on screen; the three
+      help links are answered by the docs dialog the bar's own button opens
+      (documentation.html and documentation.ru.html are still built and still
+      readable, they are simply no longer linked from the game); and the
+      language picker moved into the settings popover, which is where
+      design/ui-mockup.html puts everything a player touches once an evening.
+    -->
+    <header>
+      <h1 data-i18n="page.brand">Elevator Saga</h1>
+    </header>
+
+    <!--
+      The one piece of the page that cannot be localised at run time, and the
+      one that does not need to be: when scripting is enabled a browser parses
+      the children of <noscript> as text, so there is no element here to write
+      a message into, and when scripting is disabled there is nothing to write
+      it with. page.noscript is in the catalogue for the day the build renders
+      this file per language.
+    -->
+    <noscript>
+      <p>
+        Your browser does not appear to support JavaScript. This page contains a browser-based
+        programming game implemented in JavaScript.
+      </p>
+    </noscript>
+
+    <main>
+      <!-- widgets/goal-bar draws the current challenge's meters and tier popover here. -->
+      <div class="challenge"></div>
+
       <!--
-        The page's heading, and all that is left of the header this file used to
-        ship. src/main.ts replaces this whole element with widgets/app-bar's own
-        <header class="appbar">, whose brand name is the live page's <h1> -- so
-        there is exactly one heading and one banner before the bundle runs and
-        exactly one of each afterwards.
-
-        What stood here besides the title is gone rather than moved. The learning
-        track has a block of its own in the app bar's level switcher, so the
-        header link was a second entrance to a place already on screen; the three
-        help links are answered by the docs dialog the bar's own button opens
-        (documentation.html and documentation.ru.html are still built and still
-        readable, they are simply no longer linked from the game); and the
-        language picker moved into the settings popover, which is where
-        design/ui-mockup.html puts everything a player touches once an evening.
+        The learning track's panel, drawn by src/ui/tutorial-panel.ts. Empty
+        on every route but the track, and the stylesheet hides it while it is
+        -- the same way the language picker is hidden while it has no options.
+        It carries no data-i18n: the presenter asks the catalogue for every
+        word at the moment it draws, so there is nothing here to translate.
       -->
-      <header>
-        <h1 data-i18n="page.brand">Elevator Saga</h1>
-      </header>
+      <div class="tutorial"></div>
 
       <!--
-        The one piece of the page that cannot be localised at run time, and the
-        one that does not need to be: when scripting is enabled a browser parses
-        the children of <noscript> as text, so there is no element here to write
-        a message into, and when scripting is disabled there is nothing to write
-        it with. page.noscript is in the catalogue for the day the build renders
-        this file per language.
+        The run controls, drawn by presentControls in src/pages/game/index.ts.
+        Here, between the panels and the building, because they act on the
+        building and belong against it; and outside everything that gets
+        redrawn, because they are the one region that has to survive a
+        restart. Empty for the same reason .tutorial is: the presenter asks
+        the catalogue for every word at the moment it writes it.
+
+        role="group" and the label are on this element rather than on
+        .runbuttons or .timescale inside it, the same way .statscontainer
+        carries one name for its rows rather than each row naming itself: a
+        screen reader landing here is told what the whole row is for before
+        it reads the buttons and the speed one at a time.
       -->
-      <noscript>
-        <p>
-          Your browser does not appear to support JavaScript. This page contains a browser-based
-          programming game implemented in JavaScript.
-        </p>
-      </noscript>
+      <div
+        class="controls"
+        role="group"
+        aria-label="Run controls"
+        data-i18n-attr="aria-label:page.controls.label"
+      ></div>
 
-      <main>
-        <!-- widgets/goal-bar draws the current challenge's meters and tier popover here. -->
-        <div class="challenge"></div>
-
-        <!--
-          The learning track's panel, drawn by src/ui/tutorial-panel.ts. Empty
-          on every route but the track, and the stylesheet hides it while it is
-          -- the same way the language picker is hidden while it has no options.
-          It carries no data-i18n: the presenter asks the catalogue for every
-          word at the moment it draws, so there is nothing here to translate.
-        -->
-        <div class="tutorial"></div>
-
-        <!--
-          The run controls, drawn by presentControls in src/pages/game/index.ts.
-          Here, between the panels and the building, because they act on the
-          building and belong against it; and outside everything that gets
-          redrawn, because they are the one region that has to survive a
-          restart. Empty for the same reason .tutorial is: the presenter asks
-          the catalogue for every word at the moment it writes it.
-
-          role="group" and the label are on this element rather than on
-          .runbuttons or .timescale inside it, the same way .statscontainer
-          carries one name for its rows rather than each row naming itself: a
-          screen reader landing here is told what the whole row is for before
-          it reads the buttons and the speed one at a time.
-        -->
-        <div
-          class="controls"
-          role="group"
-          aria-label="Run controls"
-          data-i18n-attr="aria-label:page.controls.label"
-        ></div>
-
-        <!--
-          The building is wider than the page on a narrow window and .world
-          scrolls horizontally to reach it. A scroll container is only
-          reachable by keyboard if it can take focus, so it is in the tab
-          order, and something in the tab order needs a role and a name.
-        -->
-        <div
-          class="world"
-          tabindex="0"
-          role="region"
-          aria-label="Building"
-          data-i18n-attr="aria-label:page.world.label"
-        >
-          <div class="worldtrack">
-            <!--
-              The live region is this container, which is always in the
-              document, not the .feedback overlay that presentFeedback puts
-              inside it: a role="status" that arrives already populated is
-              usually not announced.
-            -->
-            <div class="feedbackcontainer" role="status"></div>
-            <div class="innerworld"></div>
-            <!-- widgets/stats-panel draws the run's live figures here. -->
-            <div
-              class="statscontainer"
-              role="group"
-              aria-label="Simulation statistics"
-              data-i18n-attr="aria-label:page.stats.label"
-            ></div>
-          </div>
+      <!--
+        The building is wider than the page on a narrow window and .world
+        scrolls horizontally to reach it. A scroll container is only
+        reachable by keyboard if it can take focus, so it is in the tab
+        order, and something in the tab order needs a role and a name.
+      -->
+      <div
+        class="world"
+        tabindex="0"
+        role="region"
+        aria-label="Building"
+        data-i18n-attr="aria-label:page.world.label"
+      >
+        <div class="worldtrack">
+          <!--
+            The live region is this container, which is always in the
+            document, not the .feedback overlay that presentFeedback puts
+            inside it: a role="status" that arrives already populated is
+            usually not announced.
+          -->
+          <div class="feedbackcontainer" role="status"></div>
+          <div class="innerworld"></div>
+          <!-- widgets/stats-panel draws the run's live figures here. -->
+          <div
+            class="statscontainer"
+            role="group"
+            aria-label="Simulation statistics"
+            data-i18n-attr="aria-label:page.stats.label"
+          ></div>
         </div>
-
-        <!--
-          widgets/editor-pane draws the slot switcher, the reset/undo-reset
-          tools and the error banner here, and mounts CodeMirror inside its own
-          `.editor` -- see src/ui/editor.ts and the widget's own module
-          comment. `id="code"` stays on this element rather than moving to the
-          `.editor` mount two levels in, so the skip link's `href="#code"`
-          needs no change.
-        -->
-        <div class="code" id="code"></div>
-      </main>
+      </div>
 
       <!--
-        The one thing the editor still says for itself, and the only element on
-        this page that is deliberately never seen.
-
-        design/ui-mockup.html has no status line under the editor: «код
-        сохраняется сам — сообщать об этом каждый раз нечего», and the save
-        confirmation it dropped was indeed a line that reported the same
-        success every second of every session. A refused write is the opposite
-        kind of news -- the program is no longer being saved, and nothing else
-        on screen would ever say so -- so that half of the old line survives
-        here, announced rather than drawn: `role="status"` reaches a screen
-        reader, and .visually-hidden keeps the page looking exactly like the
-        mockup. src/main.ts fills it, and empties it again the moment a write
-        gets through.
-
-        Outside <main> because widgets/workspace-layout reparents everything
-        inside it into one of the two panes, and this belongs to neither; it is
-        taken out of the flow by its own class, so where it sits changes no
-        layout either way.
+        widgets/editor-pane draws the slot switcher, the reset/undo-reset
+        tools and the error banner here, and mounts CodeMirror inside its own
+        `.editor` -- see src/ui/editor.ts and the widget's own module
+        comment. `id="code"` stays on this element rather than moving to the
+        `.editor` mount two levels in, so the skip link's `href="#code"`
+        needs no change.
       -->
-      <p class="visually-hidden" id="storage_status" role="status"></p>
-    </div>
+      <div class="code" id="code"></div>
+    </main>
+
+    <!--
+      The one thing the editor still says for itself, and the only element on
+      this page that is deliberately never seen.
+
+      design/ui-mockup.html has no status line under the editor: «код
+      сохраняется сам — сообщать об этом каждый раз нечего», and the save
+      confirmation it dropped was indeed a line that reported the same
+      success every second of every session. A refused write is the opposite
+      kind of news -- the program is no longer being saved, and nothing else
+      on screen would ever say so -- so that half of the old line survives
+      here, announced rather than drawn: `role="status"` reaches a screen
+      reader, and .visually-hidden keeps the page looking exactly like the
+      mockup. src/main.ts fills it, and empties it again the moment a write
+      gets through.
+
+      Outside <main> because widgets/workspace-layout reparents everything
+      inside it into one of the two panes, and this belongs to neither; it is
+      taken out of the flow by its own class, so where it sits changes no
+      layout either way.
+    -->
+    <p class="visually-hidden" id="storage_status" role="status"></p>
   </body>
 </html>
