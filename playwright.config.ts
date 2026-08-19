@@ -15,8 +15,17 @@
 
 import { defineConfig } from "@playwright/test";
 
-/** Port `vite preview` serves the built site on for the duration of a run. */
-const PORT = 4173;
+/**
+ * Port `vite preview` serves the built site on for the duration of a run.
+ *
+ * Overridable through `E2E_PORT` because `--strictPort` and
+ * `reuseExistingServer: false` — both deliberate, see `webServer` below — make
+ * two runs on one machine collide on the fixed port. That happens whenever a
+ * checkout is worked on from more than one `git worktree` at a time, which is
+ * how larger changes are split up here. An unset variable keeps the number the
+ * suite has always used, so nothing about a plain `npx playwright test` moves.
+ */
+const PORT = Number(process.env["E2E_PORT"] ?? 4173);
 
 /** Where the tests point the browser. */
 const BASE_URL = `http://localhost:${String(PORT)}`;
