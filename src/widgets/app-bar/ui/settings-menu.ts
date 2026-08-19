@@ -77,8 +77,9 @@
 import { seedPanelTemplate } from "#features/manage-seed/index.ts";
 import { presentLanguagePicker } from "#features/switch-language/index.ts";
 import { buildLayoutSwitchSkeleton, presentLayoutSwitch } from "#features/switch-layout/index.ts";
-import type { LayoutModeId } from "#features/switch-layout/index.ts";
+import type { LayoutModeId, LayoutSwitchLabels } from "#features/switch-layout/index.ts";
 import { buildThemeSwitchSkeleton, presentThemeSwitch } from "#features/switch-theme/index.ts";
+import type { ThemeSwitchLabels } from "#features/switch-theme/index.ts";
 import { t } from "#i18n/index.ts";
 import { requireElement } from "#shared/lib/dom.ts";
 import { createDisclosure } from "#shared/ui/disclosure.ts";
@@ -118,7 +119,7 @@ export function appBarSettingsTemplate(seed: SeedLinkData | null): string {
   const originalLabel = t("game.appBar.aboutOriginalLabel");
   const copyright = t("game.appBar.aboutCopyright");
 
-  return markup`<button type="button" class="ghost docsopen" title="${docsLabel}" aria-haspopup="dialog">${raw(spriteIconMarkup("book"))}<span class="lbl">${docsLabel}</span></button><div class="setwrap"><button type="button" class="ghost setopen" aria-expanded="false" aria-haspopup="true" title="${settingsLabel}" aria-label="${settingsLabel}">${raw(spriteIconMarkup("slider"))}<span class="lbl">${settingsLabel}</span></button><div class="setmenu" hidden><div class="setblock" data-set-block="theme"><span class="cap">${themeCaption}</span></div><div class="setblock" data-set-block="layout"><span class="cap">${layoutCaption}</span></div><div class="setblock"><span class="cap">${languageCaption}</span><select class="langpick" aria-label="${languageCaption}"></select></div><div data-set-block="seed">${raw(seedPanelTemplate(seed))}</div><div class="setblock"><button type="button" class="setrow keysopen" aria-haspopup="dialog">${raw(spriteIconMarkup("keys"))}<span>${hotkeysLabel}</span>${raw(spriteIconMarkup("right", "chev"))}</button></div><div class="setblock"><span class="cap">${aboutCaption}</span><a class="setlink" href="${FORK_URL}" target="_blank" rel="noreferrer">${raw(spriteIconMarkup("link"))}<span><b>${forkLabel}</b><small>${FORK_DOMAIN}</small></span></a><a class="setlink" href="${ORIGINAL_URL}" target="_blank" rel="noreferrer">${raw(spriteIconMarkup("link"))}<span><b>${originalLabel}</b><small>${ORIGINAL_DOMAIN}</small></span></a><p class="sethint">${copyright}</p></div></div></div>`;
+  return markup`<button type="button" class="ghost docsopen" title="${docsLabel}" aria-haspopup="dialog">${raw(spriteIconMarkup("book"))}<span class="lbl">${docsLabel}</span></button><div class="setwrap"><button type="button" class="ghost setopen" aria-expanded="false" aria-haspopup="true" title="${settingsLabel}" aria-label="${settingsLabel}">${raw(spriteIconMarkup("slider"))}<span class="lbl">${settingsLabel}</span></button><div class="setmenu" hidden><div class="setblock" data-set-block="theme"><span class="cap">${themeCaption}</span></div><div class="setblock" data-set-block="layout"><span class="cap">${layoutCaption}</span></div><div class="setblock" data-set-block="language"><span class="cap">${languageCaption}</span><select class="langpick" aria-label="${languageCaption}"></select></div><div data-set-block="seed">${raw(seedPanelTemplate(seed))}</div><div class="setblock" data-set-block="hotkeys"><button type="button" class="setrow keysopen" aria-haspopup="dialog">${raw(spriteIconMarkup("keys"))}<span>${hotkeysLabel}</span>${raw(spriteIconMarkup("right", "chev"))}</button></div><div class="setblock" data-set-block="about"><span class="cap">${aboutCaption}</span><a class="setlink" href="${FORK_URL}" target="_blank" rel="noreferrer">${raw(spriteIconMarkup("link"))}<span><b>${forkLabel}</b><small>${FORK_DOMAIN}</small></span></a><a class="setlink" href="${ORIGINAL_URL}" target="_blank" rel="noreferrer">${raw(spriteIconMarkup("link"))}<span><b>${originalLabel}</b><small>${ORIGINAL_DOMAIN}</small></span></a><p class="sethint">${copyright}</p></div></div></div>`;
 }
 
 /** What {@link presentAppBarSettings} needs in order to drive the toolbar it fills in. */
@@ -159,6 +160,17 @@ export interface AppBarSettingsController {
    * draws once, at mount, from whatever run was current then.
    */
   setSeed(seed: SeedLinkData | null): void;
+  /**
+   * Re-derives every `t()`-sourced label this toolbar drew — its own
+   * captions plus the theme and layout switches' — for a caller redrawing
+   * after a language change. {@link appBarSettingsTemplate} and the theme
+   * and layout skeletons all bake their text in once, at construction; this
+   * is what keeps it current instead, the same role `RunControlsPresenter.update`
+   * plays for the run controls. Which theme is applied, which layout mode is
+   * pressed, and whether the popover is open are all untouched — this
+   * touches only text.
+   */
+  update(): void;
 }
 
 /**
@@ -185,8 +197,31 @@ export function presentAppBarSettings(
   const setMenu = requireElement(".setmenu", parent);
   const themeBlock = requireElement('[data-set-block="theme"]', parent);
   const layoutBlock = requireElement('[data-set-block="layout"]', parent);
+  const languageBlock = requireElement('[data-set-block="language"]', parent);
   const seedBlock = requireElement('[data-set-block="seed"]', parent);
+  const hotkeysBlock = requireElement('[data-set-block="hotkeys"]', parent);
+  const aboutBlock = requireElement('[data-set-block="about"]', parent);
   const keysOpen = requireElement(".keysopen", parent);
+
+  const docsLabelEl = requireElement(".lbl", docsOpen);
+  const setLabelEl = requireElement(".lbl", setOpen);
+  const themeCaptionEl = requireElement(".cap", themeBlock);
+  const layoutCaptionEl = requireElement(".cap", layoutBlock);
+  const languageCaptionEl = requireElement(".cap", languageBlock);
+  const hotkeysLabelEl = requireElement("span", hotkeysBlock);
+  const aboutCaptionEl = requireElement(".cap", aboutBlock);
+  const setLinks = aboutBlock.querySelectorAll("a.setlink");
+  const [forkLinkEl, originalLinkEl] = setLinks;
+  if (forkLinkEl === undefined || originalLinkEl === undefined) {
+    // Unreachable against `appBarSettingsTemplate`'s own markup, which always
+    // draws exactly two `a.setlink`s — guarded the same way `.langpick`'s
+    // type is guarded below, for a caller that hands this presenter some
+    // other markup instead.
+    throw new TypeError("Expected two a.setlink elements in the about block");
+  }
+  const forkLabelEl = requireElement("b", forkLinkEl);
+  const originalLabelEl = requireElement("b", originalLinkEl);
+  const copyrightEl = requireElement(".sethint", aboutBlock);
 
   const languageSelect = requireElement(".langpick", parent);
   if (!(languageSelect instanceof HTMLSelectElement)) {
@@ -197,7 +232,8 @@ export function presentAppBarSettings(
     throw new TypeError("Expected .langpick to be a <select>");
   }
 
-  const themeElements = buildThemeSwitchSkeleton(document, {
+  /** Freshly `t()`-sourced, for both the initial build and every {@link AppBarSettingsController.update}. */
+  const themeLabels = (): ThemeSwitchLabels => ({
     group: t("game.switchTheme.caption"),
     buttons: {
       system: t("game.switchTheme.system"),
@@ -205,15 +241,8 @@ export function presentAppBarSettings(
       dark: t("game.switchTheme.dark"),
     },
   });
-  themeBlock.append(themeElements.group);
-  const theme = presentThemeSwitch({
-    elements: themeElements,
-    root: options.root,
-    storage: options.storage,
-    prefersDark: options.prefersDark,
-  });
-
-  const layoutElements = buildLayoutSwitchSkeleton(document, {
+  /** Freshly `t()`-sourced, for both the initial build and every {@link AppBarSettingsController.update}. */
+  const layoutLabels = (): LayoutSwitchLabels => ({
     group: t("game.switchLayout.caption"),
     buttons: {
       left: t("game.switchLayout.left"),
@@ -222,6 +251,17 @@ export function presentAppBarSettings(
       game: t("game.switchLayout.onlyGame"),
     },
   });
+
+  const themeElements = buildThemeSwitchSkeleton(document, themeLabels());
+  themeBlock.append(themeElements.group);
+  const theme = presentThemeSwitch({
+    elements: themeElements,
+    root: options.root,
+    storage: options.storage,
+    prefersDark: options.prefersDark,
+  });
+
+  const layoutElements = buildLayoutSwitchSkeleton(document, layoutLabels());
   layoutBlock.append(layoutElements.group);
   const layout = presentLayoutSwitch({
     elements: layoutElements,
@@ -254,6 +294,30 @@ export function presentAppBarSettings(
     },
     setSeed(seed: SeedLinkData | null): void {
       seedBlock.innerHTML = seedPanelTemplate(seed);
+    },
+    update(): void {
+      const docsLabel = t("game.appBar.docsOpenLabel");
+      const settingsLabel = t("game.appBar.settingsLabel");
+      const hotkeysLabel = t("game.appBar.hotkeysOpenLabel");
+      const languageCaption = t("page.language.label");
+
+      docsOpen.title = docsLabel;
+      docsLabelEl.textContent = docsLabel;
+      setOpen.title = settingsLabel;
+      setOpen.setAttribute("aria-label", settingsLabel);
+      setLabelEl.textContent = settingsLabel;
+      themeCaptionEl.textContent = t("game.switchTheme.caption");
+      layoutCaptionEl.textContent = t("game.switchLayout.caption");
+      languageCaptionEl.textContent = languageCaption;
+      languageSelect.setAttribute("aria-label", languageCaption);
+      hotkeysLabelEl.textContent = hotkeysLabel;
+      aboutCaptionEl.textContent = t("game.appBar.aboutCaption");
+      forkLabelEl.textContent = t("game.appBar.aboutForkLabel");
+      originalLabelEl.textContent = t("game.appBar.aboutOriginalLabel");
+      copyrightEl.textContent = t("game.appBar.aboutCopyright");
+
+      theme.relabel(themeLabels());
+      layout.relabel(layoutLabels());
     },
   };
 }

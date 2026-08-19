@@ -117,6 +117,13 @@ export interface ThemeSwitchController {
    * same reason it does not call `matchMedia` itself — see the module comment.
    */
   notifySystemChange(): void;
+  /**
+   * Re-applies {@link ThemeSwitchLabels} to the group and its three buttons,
+   * for a caller redrawing after a language change — `buildThemeSwitchSkeleton`
+   * only writes them once, at construction, so nothing else keeps them current.
+   * Touches only text; which theme is chosen and applied is untouched.
+   */
+  relabel(labels: ThemeSwitchLabels): void;
 }
 
 /**
@@ -163,6 +170,12 @@ export function presentThemeSwitch(options: ThemeSwitchOptions): ThemeSwitchCont
     notifySystemChange(): void {
       if (theme === "system") {
         apply();
+      }
+    },
+    relabel(labels: ThemeSwitchLabels): void {
+      elements.group.setAttribute("aria-label", labels.group);
+      for (const candidate of THEMES) {
+        buttons[candidate].textContent = labels.buttons[candidate];
       }
     },
   };

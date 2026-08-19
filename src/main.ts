@@ -420,6 +420,10 @@ async function main(): Promise<void> {
     redrawLanguage: () => {
       localisePage(document, navigator.userAgent);
       app.relocalise();
+      docsModal.update();
+      hotkeysModal.update();
+      labelModifierKeys(hotkeysDialog, navigator.userAgent);
+      settingsController.update();
     },
     seed: app.currentSeedLink,
     onOpenDocs: () => {

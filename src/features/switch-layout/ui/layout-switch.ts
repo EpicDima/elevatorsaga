@@ -138,6 +138,13 @@ export interface LayoutSwitchController {
    * @param mode - The mode to mark pressed.
    */
   setActiveMode(mode: LayoutModeId): void;
+  /**
+   * Re-applies {@link LayoutSwitchLabels} to the group and its four buttons,
+   * for a caller redrawing after a language change — `buildLayoutSwitchSkeleton`
+   * only writes them once, at construction, so nothing else keeps them
+   * current. Touches only text; which mode is marked pressed is untouched.
+   */
+  relabel(labels: LayoutSwitchLabels): void;
 }
 
 /**
@@ -183,6 +190,13 @@ export function presentLayoutSwitch(options: LayoutSwitchOptions): LayoutSwitchC
   return {
     setActiveMode(mode: LayoutModeId): void {
       mark(mode);
+    },
+    relabel(labels: LayoutSwitchLabels): void {
+      elements.group.setAttribute("aria-label", labels.group);
+      for (const candidate of LAYOUT_MODE_IDS) {
+        buttons[candidate].title = labels.buttons[candidate];
+        buttons[candidate].setAttribute("aria-label", labels.buttons[candidate]);
+      }
     },
   };
 }

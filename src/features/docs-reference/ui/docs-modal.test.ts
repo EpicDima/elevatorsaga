@@ -4,6 +4,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 
 import { docsModalTemplate, presentDocsModal } from "./docs-modal.ts";
 import { API_REFERENCE } from "#entities/api-reference/index.ts";
+import { DEFAULT_LOCALE, setLocale } from "#i18n/index.ts";
 import { renderElement } from "#shared/ui/markup.ts";
 import { polyfillDialogElement } from "#shared/ui/test-helpers.ts";
 
@@ -246,5 +247,54 @@ describe("presentDocsModal", () => {
     modal.open();
     dialog.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     expect(dialog.open).toBe(false);
+  });
+
+  it("update() redraws the header and rebuilds .docs-body in the language now active", () => {
+    const { dialog, modal } = setUp();
+
+    setLocale("ru");
+    try {
+      modal.update();
+
+      expect(dialog.querySelector("h2")?.textContent).toBe("Справка");
+      const input = dialog.querySelector<HTMLInputElement>(".docs-find");
+      expect(input?.getAttribute("placeholder")).toBe("Поиск: goToFloor, ожидание, кнопка…");
+      const closeButton = dialog.querySelector(".docsclose");
+      expect(closeButton?.textContent).toBe("Закрыть");
+      expect(closeButton?.getAttribute("title")).toBe("Закрыть справку");
+      const headings = [...dialog.querySelectorAll(".docs-guide h3")].map((h3) => h3.textContent);
+      expect(headings[0]).toBe("Что это за игра");
+      expect(dialog.querySelectorAll(".api")).toHaveLength(TOTAL_API_ROWS);
+    } finally {
+      setLocale(DEFAULT_LOCALE);
+    }
+  });
+
+  it("update() clears an in-progress search and un-hides the guide again", () => {
+    const { dialog, modal } = setUp();
+    search(dialog, "queue");
+    expect(dialog.querySelector(".docs-guide")?.hasAttribute("hidden")).toBe(true);
+
+    modal.update();
+
+    const input = dialog.querySelector<HTMLInputElement>(".docs-find");
+    expect(input?.value).toBe("");
+    expect(dialog.querySelector(".docs-guide")?.hasAttribute("hidden")).toBe(false);
+    expect([...dialog.querySelectorAll(".api:not([hidden])")]).toHaveLength(TOTAL_API_ROWS);
+  });
+
+  it("update() keeps a row opened by hand closed again after the rebuild", () => {
+    const { dialog, modal } = setUp();
+    const row = dialog.querySelector<HTMLDetailsElement>(".api");
+    if (row === null) {
+      throw new TypeError("Expected at least one .api row");
+    }
+    row.open = true;
+    row.dispatchEvent(new Event("toggle"));
+
+    modal.update();
+
+    const rebuilt = dialog.querySelector<HTMLDetailsElement>(".api");
+    expect(rebuilt?.open).toBe(false);
   });
 });

@@ -48,9 +48,8 @@
  *   `#docsEmpty` likewise already carry `docs-body`/`docs-empty`.
  *
  * Built and unit-tested against a jsdom `<dialog>` — `polyfillDialogElement`
- * (`#shared/ui/test-helpers.ts`) — but not wired into `src/pages/game/index.ts` or
- * `settings-menu.ts`'s `docsopen` opener yet, matching every widget staged so
- * far in this migration.
+ * (`#shared/ui/test-helpers.ts`). `src/main.ts` mounts it and wires
+ * `settings-menu.ts`'s `docsopen` opener to it.
  */
 
 import { API_REFERENCE, type ApiReferenceEntry } from "#entities/api-reference/index.ts";
@@ -100,6 +99,24 @@ function guideMarkup(): string {
 }
 
 /**
+ * Markup for `.docs-body`'s own contents: the guide, the intro skeleton, the
+ * lead paragraph, the API reference table and the "nothing found" panel —
+ * everything a language change has to redraw, since every word in it is
+ * `t()`-sourced. Shared between {@link docsModalTemplate}'s initial build and
+ * {@link presentDocsModal}'s `update`, so the two can never drift apart.
+ *
+ * @returns `.docs-body`'s inner markup.
+ */
+function docsBodyMarkup(): string {
+  const introHeading = t("game.docs.intro.heading");
+  const introCode = highlightJavaScript(t("game.docs.intro.example.code"));
+  const lead = t("game.docs.lead.html");
+  const empty = t("game.docs.empty");
+
+  return markup`${raw(guideMarkup())}<h3>${introHeading}</h3><pre class="docs-intro"><code>${raw(introCode)}</code></pre><p class="docs-lead">${raw(lead)}</p>${raw(apiReferenceMarkup())}<div class="docs-empty" hidden>${empty}</div>`;
+}
+
+/**
  * The dialog's inert markup, ready for {@link presentDocsModal}.
  *
  * @returns The dialog's markup, describing exactly one `<dialog class="docs">`.
@@ -113,12 +130,40 @@ export function docsModalTemplate(): string {
   const clearSearch = t("game.docs.clearSearch");
   const closeTitle = t("game.docs.closeTitle");
   const close = t("game.docs.close");
-  const introHeading = t("game.docs.intro.heading");
-  const introCode = highlightJavaScript(t("game.docs.intro.example.code"));
-  const lead = t("game.docs.lead.html");
-  const empty = t("game.docs.empty");
 
-  return markup`<dialog class="docs" aria-labelledby="${titleId}"><div class="docs-head"><h2 id="${titleId}">${title}</h2><div class="docs-search"><input class="docs-find" type="search" placeholder="${searchPlaceholder}" spellcheck="false" autocomplete="off" /><button type="button" class="docsclear" title="${clearSearch}" aria-label="${clearSearch}" hidden>${raw(spriteIconMarkup("x"))}</button></div><button type="button" class="btn docsclose" title="${closeTitle}">${close}</button></div><div class="docs-body">${raw(guideMarkup())}<h3>${introHeading}</h3><pre class="docs-intro"><code>${raw(introCode)}</code></pre><p class="docs-lead">${raw(lead)}</p>${raw(apiReferenceMarkup())}<div class="docs-empty" hidden>${empty}</div></div></dialog>`;
+  return markup`<dialog class="docs" aria-labelledby="${titleId}"><div class="docs-head"><h2 id="${titleId}">${title}</h2><div class="docs-search"><input class="docs-find" type="search" placeholder="${searchPlaceholder}" spellcheck="false" autocomplete="off" /><button type="button" class="docsclear" title="${clearSearch}" aria-label="${clearSearch}" hidden>${raw(spriteIconMarkup("x"))}</button></div><button type="button" class="btn docsclose" title="${closeTitle}">${close}</button></div><div class="docs-body">${raw(docsBodyMarkup())}</div></dialog>`;
+}
+
+/** What a mounted docs modal hands back — a {@link Modal}, plus a way to keep its labels current. */
+export interface DocsModalController extends Modal {
+  /**
+   * Re-derives every `t()`-sourced label this dialog drew — the title, the
+   * search box, the close button and the whole of `.docs-body`, rebuilt from
+   * {@link docsBodyMarkup} — for a caller redrawing after a language change.
+   * {@link docsModalTemplate} bakes them in once, at construction; this is
+   * what keeps them current instead, the same role `RunControlsPresenter.update`
+   * plays for the run controls. An in-progress search does not survive: a
+   * query typed in one language is not a query in the next, so it is cleared
+   * and `.docs-body` reopens on the guide, the same state a fresh {@link presentDocsModal} starts in.
+   */
+  update(): void;
+}
+
+/**
+ * Reads `.api` rows out of a root, insisting every one is a `<details>` —
+ * shared between {@link presentDocsModal}'s initial wiring and its own
+ * `update`, which re-collects them after `.docs-body` is rebuilt.
+ *
+ * @param root - Where to look for `.api` rows.
+ * @returns The rows, in document order.
+ */
+function collectApiRows(root: ParentNode): HTMLDetailsElement[] {
+  return queryAll(".api", root).map((row) => {
+    if (!(row instanceof HTMLDetailsElement)) {
+      throw new TypeError("Expected .api to be a <details>");
+    }
+    return row;
+  });
 }
 
 /**
@@ -131,16 +176,17 @@ export function docsModalTemplate(): string {
  * {@link docsModalTemplate}'s markup.
  * @returns The modal, closed to start.
  */
-export function presentDocsModal(dialog: HTMLDialogElement): Modal {
+export function presentDocsModal(dialog: HTMLDialogElement): DocsModalController {
   const closeButton = requireElement(".docsclose", dialog);
   const modal = createModal(dialog, closeButton);
 
+  const titleEl = requireElement("h2", dialog);
   const docsBody = requireElement(".docs-body", dialog);
   const docsClear = requireElement(".docsclear", dialog);
-  const docsEmpty = requireElement(".docs-empty", dialog);
-  const guide = requireElement(".docs-guide", dialog);
-  const intro = requireElement(".docs-intro", dialog);
-  const lead = requireElement(".docs-lead", dialog);
+  let docsEmpty = requireElement(".docs-empty", dialog);
+  let guide = requireElement(".docs-guide", dialog);
+  let intro = requireElement(".docs-intro", dialog);
+  let lead = requireElement(".docs-lead", dialog);
 
   const docsFindElement = requireElement(".docs-find", dialog);
   if (!(docsFindElement instanceof HTMLInputElement)) {
@@ -148,12 +194,7 @@ export function presentDocsModal(dialog: HTMLDialogElement): Modal {
   }
   const docsFind = docsFindElement;
 
-  const apiRows = queryAll(".api", dialog).map((row) => {
-    if (!(row instanceof HTMLDetailsElement)) {
-      throw new TypeError("Expected .api to be a <details>");
-    }
-    return row;
-  });
+  let apiRows = collectApiRows(dialog);
 
   // Distinguishes a row a search opened -- which folds back up once the
   // search that opened it moves on -- from one a player opened by hand,
@@ -161,13 +202,16 @@ export function presentDocsModal(dialog: HTMLDialogElement): Modal {
   // `applyingSearch` flag and `dataset.bySearch` marker draw: a `toggle`
   // fired while this is true is the filter's own doing, not a click.
   let applyingSearch = false;
-  for (const row of apiRows) {
-    row.addEventListener("toggle", () => {
-      if (!applyingSearch) {
-        delete row.dataset["bySearch"];
-      }
-    });
+  function wireApiRows(): void {
+    for (const row of apiRows) {
+      row.addEventListener("toggle", () => {
+        if (!applyingSearch) {
+          delete row.dataset["bySearch"];
+        }
+      });
+    }
   }
+  wireApiRows();
 
   function filterDocs(): void {
     const query = docsFind.value.trim().toLowerCase();
@@ -274,6 +318,29 @@ export function presentDocsModal(dialog: HTMLDialogElement): Modal {
     },
     close(): void {
       modal.close();
+    },
+    update(): void {
+      titleEl.textContent = t("game.docs.title");
+      docsFind.placeholder = t("game.docs.searchPlaceholder");
+      const clearSearch = t("game.docs.clearSearch");
+      docsClear.title = clearSearch;
+      docsClear.setAttribute("aria-label", clearSearch);
+      closeButton.title = t("game.docs.closeTitle");
+      closeButton.textContent = t("game.docs.close");
+
+      docsBody.innerHTML = docsBodyMarkup();
+      docsEmpty = requireElement(".docs-empty", docsBody);
+      guide = requireElement(".docs-guide", docsBody);
+      intro = requireElement(".docs-intro", docsBody);
+      lead = requireElement(".docs-lead", docsBody);
+      apiRows = collectApiRows(docsBody);
+      wireApiRows();
+
+      docsFind.value = "";
+      docsSearching = false;
+      docsScroll = 0;
+      docsBody.scrollTop = 0;
+      filterDocs();
     },
   };
 }

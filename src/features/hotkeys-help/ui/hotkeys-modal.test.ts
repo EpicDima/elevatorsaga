@@ -3,6 +3,7 @@
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { hotkeysModalTemplate, presentHotkeysModal } from "./hotkeys-modal.ts";
+import { DEFAULT_LOCALE, setLocale } from "#i18n/index.ts";
 import { renderElement } from "#shared/ui/markup.ts";
 import { polyfillDialogElement } from "#shared/ui/test-helpers.ts";
 
@@ -105,5 +106,32 @@ describe("presentHotkeysModal", () => {
     dialog.dispatchEvent(new MouseEvent("click", { bubbles: true }));
 
     expect(dialog.open).toBe(false);
+  });
+
+  it("update() redraws every label in the language now active, leaving the kbds alone", () => {
+    const { dialog, modal } = setUp();
+
+    setLocale("ru");
+    try {
+      modal.update();
+
+      expect(dialog.querySelector("h2")?.textContent).toBe("Горячие клавиши");
+      const closeButton = dialog.querySelector(".keysclose");
+      expect(closeButton?.textContent).toBe("Закрыть");
+      expect(closeButton?.getAttribute("title")).toBe("Закрыть окно");
+      const rows = [...dialog.querySelectorAll(".keyrow")];
+      expect(rows.map((row) => row.querySelector("span")?.textContent)).toEqual([
+        "Пуск и пауза",
+        "Начать заново",
+        "Сменить раскладку",
+        "Справка",
+        "Настройки",
+      ]);
+      expect(
+        rows.map((row) => [...row.querySelectorAll("kbd")].map((kbd) => kbd.textContent)),
+      ).toEqual([["Space"], ["Ctrl", "Enter"], ["Ctrl", "B"], ["F1"], ["?"]]);
+    } finally {
+      setLocale(DEFAULT_LOCALE);
+    }
   });
 });

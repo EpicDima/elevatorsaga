@@ -7,6 +7,7 @@ import {
   presentAppBarSettings,
   type AppBarSettingsOptions,
 } from "./settings-menu.ts";
+import { DEFAULT_LOCALE, setLocale } from "#i18n/index.ts";
 import { requireElement } from "#shared/lib/dom.ts";
 import { MemoryStorage } from "../../../ui/test-helpers.ts";
 import type { SeedLinkData } from "../../../ui/templates.ts";
@@ -261,6 +262,62 @@ describe("presentAppBarSettings", () => {
       controller.setSeed(null);
 
       expect(requireElement('[data-set-block="seed"]', parent).children).toHaveLength(0);
+    });
+  });
+
+  describe("update", () => {
+    it("redraws every label in the language now active, without disturbing the switches' own state", () => {
+      const { parent, controller, options } = setUp();
+      requireElement('[data-theme-btn="dark"]', parent).click();
+      requireElement('[data-layout-btn="right"]', parent).click();
+
+      setLocale("ru");
+      try {
+        controller.update();
+
+        expect(requireElement(".docsopen", parent).getAttribute("title")).toBe("Справка");
+        expect(requireElement(".docsopen .lbl", parent).textContent).toBe("Справка");
+        const setOpen = requireElement(".setopen", parent);
+        expect(setOpen.getAttribute("title")).toBe("Настройки");
+        expect(setOpen.getAttribute("aria-label")).toBe("Настройки");
+        expect(requireElement(".setopen .lbl", parent).textContent).toBe("Настройки");
+
+        const themeBlock = requireElement('[data-set-block="theme"]', parent);
+        expect(themeBlock.querySelector(".cap")?.textContent).toBe("Тема");
+        expect(themeBlock.querySelector("[role=group]")?.getAttribute("aria-label")).toBe("Тема");
+        expect(themeBlock.querySelector('[data-theme-btn="dark"]')?.textContent).toBe("Тёмная");
+
+        const layoutBlock = requireElement('[data-set-block="layout"]', parent);
+        expect(layoutBlock.querySelector(".cap")?.textContent).toBe("Раскладка");
+        expect(layoutBlock.querySelector("[role=group]")?.getAttribute("aria-label")).toBe(
+          "Раскладка",
+        );
+        expect(layoutBlock.querySelector('[data-layout-btn="right"]')?.getAttribute("title")).toBe(
+          "Код справа",
+        );
+
+        const languageBlock = requireElement('[data-set-block="language"]', parent);
+        expect(languageBlock.querySelector(".cap")?.textContent).toBe("Язык");
+        expect(requireElement(".langpick", parent).getAttribute("aria-label")).toBe("Язык");
+
+        expect(requireElement(".keysopen", parent).textContent).toContain("Горячие клавиши");
+
+        const aboutBlock = requireElement('[data-set-block="about"]', parent);
+        expect(aboutBlock.querySelector(".cap")?.textContent).toBe("Об игре");
+        const links = [...aboutBlock.querySelectorAll("a.setlink b")];
+        expect(links.map((link) => link.textContent)).toEqual(["Этот форк", "Оригинал"]);
+        expect(aboutBlock.querySelector(".sethint")?.textContent).toBe(
+          "Elevator Saga © 2015 Magnus Wolffelt, © 2026 EpicDima, MIT.",
+        );
+
+        // The switches' own state is untouched by a relabel.
+        expect(options.root.dataset["theme"]).toBe("dark");
+        expect(
+          layoutBlock.querySelector('[data-layout-btn="right"]')?.getAttribute("aria-pressed"),
+        ).toBe("true");
+      } finally {
+        setLocale(DEFAULT_LOCALE);
+      }
     });
   });
 });
