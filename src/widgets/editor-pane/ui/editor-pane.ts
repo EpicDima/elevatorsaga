@@ -190,6 +190,10 @@ export function presentEditorPane(
 
     showError(error, code): void {
       errorLine.hidden = false;
+      // The headline of the failure, never its frames -- `describeError`'s own
+      // comment says why, and the line below is the other half of that
+      // bargain: the one thing in the stack that is about the player's program
+      // is read out of it here and drawn as the link at the end of the row.
       errorMessage.textContent = describeError(error);
       const location = locateCodeError(error, code);
       gotoLine = location?.line;

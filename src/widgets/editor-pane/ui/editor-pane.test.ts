@@ -198,6 +198,33 @@ describe("presentEditorPane", () => {
       expect(message.children).toHaveLength(0);
     });
 
+    it("puts the failure's headline in the banner and none of the stack", () => {
+      // The mockup's banner is one row high and holds one sentence. What the
+      // frames underneath the headline have to say about the player's own
+      // program is said by the goto link beside it, from the same stack; what
+      // is left in them is bundle URLs, which would triple the height of the
+      // banner to tell the player nothing they can act on.
+      const parent = document.createElement("div");
+      const presenter = presentEditorPane(parent, baseOptions());
+      const code = "{\n  init: function (elevators) { elevators[0].goToFlor(2); }\n}";
+      const error = new TypeError("elevator.goToFlor is not a function");
+      error.stack = [
+        "TypeError: elevator.goToFlor is not a function",
+        "    at Object.init (eval at getCodeObjFromCode (http://localhost:4173/assets/index-C7pQ.js:41:2418), <anonymous>:2:31)",
+        "    at WorldController.start (http://localhost:4173/assets/index-C7pQ.js:41:10233)",
+      ].join("\n");
+
+      presenter.showError(error, code);
+
+      const message = requireElement(".errormessage", parent);
+      expect(message.textContent).toBe("TypeError: elevator.goToFlor is not a function");
+      expect(message.textContent).not.toContain("\n");
+      expect(message.textContent).not.toContain("http");
+      // The line the frames did have to offer, kept -- in the link, where the
+      // mockup puts it.
+      expect(requireElement(".goto", parent).textContent).toBe("Line 2 →");
+    });
+
     it("shows the goto link and points it at the located line", () => {
       const parent = document.createElement("div");
       const presenter = presentEditorPane(parent, baseOptions());
