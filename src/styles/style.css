@@ -899,6 +899,87 @@ html[data-layout="left"] .splitter {
 }
 
 /*
+ * The bar's own row and the brand group inside it: `design/ui-mockup.html`'s
+ * `.appbar` and `.brand` (§3), the rest of the "later phase" the rule above
+ * names -- `.task`/`.taskmenu`/`.tasklink`, the level switcher the mockup
+ * groups in the same section, is still that, and comes with it.
+ *
+ * `background`/`border-bottom` are not ported here, unlike the mockup's own
+ * `.appbar` rule. `src/main.ts`'s own comment on assembling this bar keeps
+ * the old header's `<h1>` and `.headertools` mounted inside it, unchanged,
+ * "beside the new bar" -- and both still read the page-wide `h1{color:
+ * var(--color-text)}` and `a{color: var(--color-link)}` rules, `#444`,
+ * tuned to read on `--color-page`, not on `--ds-panel`. Painting an opaque
+ * panel behind them would hold that same `#444` to roughly 1.8:1 on dark
+ * theme's `--ds-panel` (`#191c21`) against the 4.5:1 both need -- so this
+ * rule stays geometry only until whatever later phase replaces the legacy
+ * markup still living in here gives its text a `--ds-*` colour to match.
+ */
+.appbar {
+  display: flex;
+  /*
+   * Stated explicitly, unlike the mockup's own rule, which leans on this
+   * being the initial value: `.header`'s own `flex-direction: column` (above)
+   * is a real declaration for the same property on the same element, and an
+   * absent one loses a cascade it is not part of -- omitting this here would
+   * leave that column standing.
+   */
+  flex-direction: row;
+  flex: 0 0 auto;
+  gap: 14px;
+  align-items: center;
+  height: var(--ds-bar-h);
+  padding: 0 12px;
+}
+
+/*
+ * `.levelswitcher` sits out of this: its `.taskmenu` popover, positioned out
+ * of flow below (next rules), still opens to its full unstyled height when
+ * `.task`/`.taskmenu` themselves get the rest of their own later phase, and a
+ * fixed height here would clip the row's box around whatever that height
+ * turns out to be. `.setmenu` doesn't need the same carve-out -- it already
+ * got `position: absolute` in an earlier phase.
+ */
+.appbar > :not(.levelswitcher) {
+  height: var(--ds-ctl-h);
+}
+
+/*
+ * Positioning only, pulled forward from `.task`/`.taskmenu`'s own later
+ * phase: without it, `.taskmenu` opens in normal flow, and its box -- sized
+ * by its buttons' natural height, not `--ds-ctl-h` -- spills past this row
+ * into whatever sits below it. The width/padding/border/background/shadow
+ * the mockup gives it stay for that later phase, along with the rest of
+ * `.task`'s own rule; `top`/`left`/`z-index` are copied as-is since they're
+ * what keeps the popover clear of the bar and above the page under it.
+ */
+.task {
+  position: relative;
+}
+
+.taskmenu {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 28px;
+  z-index: 40;
+}
+
+.brand {
+  display: flex;
+  gap: 9px;
+  align-items: center;
+  padding-right: 14px;
+  border-right: 1px solid var(--ds-line);
+}
+
+.brand-name {
+  font-size: 14px;
+  font-weight: 650;
+  letter-spacing: 0.015em;
+  white-space: nowrap;
+}
+
+/*
  * The settings popover: `design/ui-mockup.html`'s own `.setwrap`/`.setmenu`
  * rules (§A), ported the same way `.workspace`/`.pane`/`.splitter` above
  * were -- only the `--ds-*` tokens these rules themselves read are adopted
