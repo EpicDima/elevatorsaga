@@ -406,8 +406,12 @@ src/
   features/   one user action each: run the simulation, adjust speed, manage code
               slots/seed, switch level/language/theme/layout, docs search, hotkeys help
   widgets/    composed regions of the page: app bar, level switcher, goal bar,
-              building stage, stats panel, editor pane, workspace layout, verdict toast
-  pages/game/ the game page: wires every widget above to a running challenge
+              building stage, stats panel, editor pane, tutorial panel,
+              workspace layout, verdict toast
+  pages/game/ the game page: wires most of the widgets above to a running
+              challenge (the app bar, editor pane and workspace layout are
+              mounted once from main.ts instead, since they don't change
+              when the challenge does)
   app/        fitness benchmark worker; the only thing left here once routing and
               orchestration moved into pages/game
   ui/         pre-FSD holdover: the CodeMirror integration (deliberately never
@@ -427,11 +431,12 @@ cannot import from `features` and up, and so on through `pages`. Path aliases mi
 `#i18n/*`, declared in `tsconfig.json` and mirrored in `vite.config.ts` and `package.json`'s
 `imports` field) — a `#`-prefix in an import always names a layer, never a relative path.
 
-The one rule that predates FSD and still matters most: **`src/game` never touches the DOM.** It
-imports nothing from any UI layer, holds no element references, and has no opinion about how a
-lift is drawn. That is why the simulation runs under Vitest's plain `node` environment with no
-jsdom and no rendering setup at all, and why the fitness benchmark can run the whole thing inside a
-web worker.
+The one rule that predates FSD and still matters most: **`src/game` never touches the DOM.** Its
+production code imports nothing from any UI layer, holds no element references, and has no opinion
+about how a lift is drawn (one test file borrows a plain string constant from `src/ui/default-code.ts`
+as a reference program — not a DOM dependency, and not part of the shipped bundle). That is why the
+simulation runs under Vitest's plain `node` environment with no jsdom and no rendering setup at all,
+and why the fitness benchmark can run the whole thing inside a web worker.
 
 ## URL parameters
 
