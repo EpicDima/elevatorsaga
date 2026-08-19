@@ -1,8 +1,10 @@
 // @vitest-environment jsdom
 
+import { parser } from "@lezer/javascript";
+import { highlightCode } from "@lezer/highlight";
 import { describe, expect, it } from "vitest";
 
-import { CHANGED_LINE_CLASS, highlightJavaScript } from "./code-highlight.ts";
+import { CHANGED_LINE_CLASS, editorSyntaxTheme, highlightJavaScript } from "./code-highlight.ts";
 
 describe("highlightJavaScript", () => {
   it("wraps a keyword, a property, a number and a comment in their own token classes", () => {
@@ -28,8 +30,8 @@ describe("highlightJavaScript", () => {
     // classHighlighter answers "" for the whitespace between tokens, and
     // highlightJavaScript is documented to write unstyled text as plain text
     // rather than an empty-classed <span> -- so nothing here reads `class=""`,
-    // and every operator and punctuation mark is still its own token, just one
-    // `style.css` leaves the default colour rather than giving a rule of its own.
+    // while every operator and punctuation mark is still its own token, with a
+    // class `style.css` dims to `--ds-code-punc`.
     const html = highlightJavaScript("a < b;");
 
     expect(html).not.toContain('class=""');
@@ -96,5 +98,162 @@ describe("highlightJavaScript", () => {
 
     expect(container.querySelector("img")).toBeNull();
     expect(container.textContent).toBe(hostile);
+  });
+});
+
+/**
+ * A program shaped like the one the mockup fills its own `#editor` with:
+ * a declared function, a called method, a plain property, a string, a number
+ * and a comment, so that every row of the theme is exercised by real source
+ * rather than by a hand-made tag.
+ */
+const SAMPLE = `{
+    init: function (elevators, floors) {
+        function score(elevator) {
+            const queue = elevator.destinationQueue.length;
+            const load = elevator.loadFactor();
+            return load > 0.5 ? 4 : null;
+        }
+        floors.forEach((floor) => {
+            // Send the least busy car.
+            floor.on("up_button_pressed", () => score(elevators[0]));
+        });
+    },
+}`;
+
+/**
+ * Which `--ds-code-*` token the theme paints each run of a program in.
+ *
+ * `HighlightStyle` hands out generated class names, not colours, and keeps the
+ * declarations behind them in a `StyleModule` — so this reads the rules back
+ * out of that module and resolves each class to the custom property it sets.
+ * Going through the real parser and the real `highlightCode` is the point: it
+ * is what makes these assertions statements about "what colour is `loadFactor`
+ * in this program", rather than about which `Tag` object was written down.
+ *
+ * @param code - A JavaScript program.
+ * @returns One entry per highlighted run, in source order, naming the token
+ * suffix (`key`, `fn`, …) or `undefined` where the theme leaves the run in the
+ * editor's own body colour.
+ */
+function paintedRuns(code: string): { text: string; token: string | undefined }[] {
+  const declarations = new Map(
+    [...(editorSyntaxTheme.module?.getRules() ?? "").matchAll(/\.(\S+?)\s*\{([^}]*)\}/g)].map(
+      ([, cls = "", body = ""]) => [cls, body],
+    ),
+  );
+  const runs: { text: string; token: string | undefined }[] = [];
+  highlightCode(
+    code,
+    parser.parse(code),
+    editorSyntaxTheme,
+    (text, classes) => {
+      const body = classes === "" ? undefined : declarations.get(classes);
+      runs.push({ text, token: /var\(--ds-code-(\w+)\)/.exec(body ?? "")?.[1] });
+    },
+    () => {
+      // Line breaks carry no colour, and nothing here asks about them.
+    },
+  );
+  return runs;
+}
+
+/**
+ * The token every run of a given text is painted in.
+ *
+ * A set rather than the first hit: `.` and `(` occur a dozen times each in
+ * {@link SAMPLE}, and a check that looked only at the first would pass while
+ * the rest were painted otherwise.
+ *
+ * Runs are trimmed before they are compared, because `highlightCode` hands an
+ * unpainted name back glued to the spaces around it — `" queue "` for the
+ * `queue` a `const` introduces — while a painted one arrives on its own. Not
+ * trimming would make every "this name keeps the body colour" assertion pass
+ * vacuously, by finding no run at all.
+ *
+ * @param code - A JavaScript program.
+ * @param text - The source text of the runs to look at, ignoring surrounding
+ * whitespace.
+ * @returns Every token those runs were painted in, deduplicated.
+ */
+function tokensFor(code: string, text: string): string[] {
+  return [
+    ...new Set(
+      paintedRuns(code)
+        .filter((run) => run.text.trim() === text)
+        .map((run) => run.token ?? "«body»"),
+    ),
+  ];
+}
+
+describe("editorSyntaxTheme", () => {
+  it("paints keywords, strings, numbers and comments in the mockup's own tokens", () => {
+    expect(tokensFor(SAMPLE, "function")).toEqual(["key"]);
+    expect(tokensFor(SAMPLE, "const")).toEqual(["key"]);
+    expect(tokensFor(SAMPLE, "return")).toEqual(["key"]);
+    expect(tokensFor(SAMPLE, '"up_button_pressed"')).toEqual(["str"]);
+    expect(tokensFor(SAMPLE, "0.5")).toEqual(["num"]);
+    expect(tokensFor(SAMPLE, "// Send the least busy car.")).toEqual(["com"]);
+  });
+
+  it("groups the literals with the numbers rather than with the keywords", () => {
+    // `null` and `true` are `atom`s in Lezer's tag tree, and `atom` sits under
+    // `keyword` -- so this is what catches the two explicit rows going away and
+    // the literals silently taking the keyword colour with them.
+    expect(tokensFor(SAMPLE, "null")).toEqual(["num"]);
+    expect(tokensFor("const ok = true;", "true")).toEqual(["num"]);
+  });
+
+  it("colours a name where it is a function, and leaves every other name alone", () => {
+    // The mockup's own distinction: `.f` for `loadFactor()` and `score(...)`,
+    // plain body text for `destinationQueue` and for the `queue` a `const`
+    // introduces.
+    expect(tokensFor(SAMPLE, "loadFactor")).toEqual(["fn"]);
+    expect(tokensFor(SAMPLE, "forEach")).toEqual(["fn"]);
+    expect(tokensFor(SAMPLE, "on")).toEqual(["fn"]);
+    expect(tokensFor(SAMPLE, "score")).toEqual(["fn"]);
+    expect(tokensFor(SAMPLE, "destinationQueue")).toEqual(["«body»"]);
+    expect(tokensFor(SAMPLE, "queue")).toEqual(["«body»"]);
+    expect(tokensFor(SAMPLE, "elevators")).toEqual(["«body»"]);
+    expect(tokensFor(SAMPLE, "floor")).toEqual(["«body»"]);
+  });
+
+  it("colours a function-valued property where it is declared, not only where it is called", () => {
+    // The one place a real grammar knows more than the mockup's regex, pinned
+    // so that it stays a decision: `init: function (…)` names a function, and
+    // Lezer says so (`function(definition(propertyName))`), where a rule that
+    // can only look for a `(` after the name cannot. See the note in
+    // `editorSyntaxTheme`.
+    expect(tokensFor(SAMPLE, "init")).toEqual(["fn"]);
+  });
+
+  it("dims every bracket, separator and operator to the punctuation token", () => {
+    expect(tokensFor(SAMPLE, "(")).toEqual(["punc"]);
+    expect(tokensFor(SAMPLE, ")")).toEqual(["punc"]);
+    expect(tokensFor(SAMPLE, "{")).toEqual(["punc"]);
+    expect(tokensFor(SAMPLE, ";")).toEqual(["punc"]);
+    expect(tokensFor(SAMPLE, ".")).toEqual(["punc"]);
+    expect(tokensFor(SAMPLE, ",")).toEqual(["punc"]);
+    expect(tokensFor(SAMPLE, "=>")).toEqual(["punc"]);
+    expect(tokensFor(SAMPLE, ">")).toEqual(["punc"]);
+  });
+
+  it("names only tokens the stylesheet declares", () => {
+    // Every colour this theme writes is a custom property, and a typo in one
+    // would not fail anything else here: an unknown `var()` resolves to nothing
+    // and the text falls back to the editor's own colour, which looks exactly
+    // like a deliberately unpainted run.
+    const rules = editorSyntaxTheme.module?.getRules() ?? "";
+    const named = [...new Set([...rules.matchAll(/var\((--[\w-]+)\)/g)].map(([, name]) => name))];
+
+    expect(named.toSorted()).toEqual([
+      "--ds-bad",
+      "--ds-code-com",
+      "--ds-code-fn",
+      "--ds-code-key",
+      "--ds-code-num",
+      "--ds-code-punc",
+      "--ds-code-str",
+    ]);
   });
 });

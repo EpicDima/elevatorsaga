@@ -269,20 +269,26 @@ function requiredRatio(size: number, weight: string): number {
 }
 
 describe("palette", () => {
-  it("still declares --color-error, the one legacy colour with a live reader outside this file", () => {
-    expect(PALETTE.has("color-error")).toBe(true);
+  it("declares no --color-* token at all, the legacy palette having been retired", () => {
+    // The migration onto --ds-* is finished: the last holdout was
+    // --color-error, read by name from `src/ui/editor.ts` for the wavy
+    // underline under a failing line, and that rule reads --ds-bad now. This
+    // is here so the palette cannot quietly grow a page-bound colour back.
+    expect([...PALETTE.keys()].filter((name) => name.startsWith("color-"))).toEqual([]);
   });
 
   it.each([
     ["dark", DARK_PALETTE],
     ["light", LIGHT_PALETTE],
-  ])("keeps --color-error readable on the editor's real background, %s theme", (_, palette) => {
-    // The one legacy pairing left. `--color-error` is not itself themed, but
-    // the editor background it underlines a failing line on is --ds-code-bg
-    // now, which is -- so unlike every other pairing this file used to check
-    // by way of a single token() lookup, this one has to be checked per
-    // theme. A graphical indicator, so 1.4.11's 3:1 rather than 1.4.3's 4.5.
-    expect(contrast(token("color-error"), themed(palette, "ds-code-bg"))).toBeGreaterThanOrEqual(3);
+  ])("keeps the error squiggle readable on the editor's background, %s theme", (_, palette) => {
+    // `.cm-errorMark` (`src/ui/editor.ts`) underlines the failing text in
+    // --ds-bad, on --ds-code-bg. A graphical indicator, so 1.4.11's 3:1 rather
+    // than 1.4.3's 4.5 -- and it clears the stricter bar anyway, 5.74:1 dark
+    // and 4.94:1 light, which is why the mark needs no size or weight of its
+    // own to be found.
+    expect(
+      contrast(themed(palette, "ds-bad"), themed(palette, "ds-code-bg")),
+    ).toBeGreaterThanOrEqual(3);
   });
 
   it.each([
@@ -468,10 +474,11 @@ describe("ds palette on the page background", () => {
 
 describe("ds code palette on the code background", () => {
   // pre code and .cm-editor both paint --ds-code-bg now, and .tok-* (the
-  // eight tutorial answers' syntax colours) and .cm-gutters (the live
+  // eight tutorial answers' syntax colours), `editorSyntaxTheme` (the live
+  // editor's, in `src/ui/code-highlight.ts`) and .cm-gutters (the live
   // editor's line numbers) paint straight onto it, at 13px and smaller --
-  // 1.4.3 asks 4.5:1 of all of it. --ds-code-key/-fn/-str/-num/-text are the
-  // mockup's own values, already clearing the bar; --ds-code-com and
+  // 1.4.3 asks 4.5:1 of all of it. --ds-code-key/-fn/-str/-num/-text/-punc are
+  // the mockup's own values, already clearing the bar; --ds-code-com and
   // --ds-code-line are not the mockup's own -- see .tok-comment's and
   // .cm-gutters's own comments in style.css for the two numbers each was
   // retuned from.
@@ -483,6 +490,10 @@ describe("ds code palette on the code background", () => {
     ["ds-code-num", "ds-code-bg", 4.5],
     ["ds-code-com", "ds-code-bg", 4.5],
     ["ds-code-line", "ds-code-bg", 4.5],
+    // The dimmest of them by design -- brackets and operators are meant to
+    // recede behind the words -- and so the one worth measuring most: 6.73:1
+    // dark, 4.70:1 light.
+    ["ds-code-punc", "ds-code-bg", 4.5],
   ])("has --%s readable on --%s in both themes", (foreground, background, required) => {
     for (const palette of [DARK_PALETTE, LIGHT_PALETTE]) {
       expect(

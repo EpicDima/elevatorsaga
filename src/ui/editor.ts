@@ -16,7 +16,7 @@
  */
 
 import { javascript, javascriptLanguage } from "@codemirror/lang-javascript";
-import { indentUnit } from "@codemirror/language";
+import { indentUnit, syntaxHighlighting } from "@codemirror/language";
 import { EditorState, Prec, StateEffect, StateField } from "@codemirror/state";
 import type { Text } from "@codemirror/state";
 import { Decoration, EditorView, keymap } from "@codemirror/view";
@@ -27,6 +27,7 @@ import { Observable } from "../game/observable.ts";
 import { getCodeObjFromCode } from "../game/user-code.ts";
 import type { UserCodeObject } from "../game/user-code.ts";
 import { t } from "../i18n/index.ts";
+import { editorSyntaxTheme } from "./code-highlight.ts";
 import { playerApiCompletionSource } from "./completions.ts";
 import { DEV_TEST_CODE, defaultCode } from "./default-code.ts";
 import { locateCodeError } from "./error-location.ts";
@@ -1051,14 +1052,15 @@ const showErrorMark = StateEffect.define<CodeErrorLocation | undefined>();
 /**
  * How the failing text is drawn.
  *
- * A wavy underline in `--color-error` rather than a wash across the line: the
- * editor's text sits at 4.99:1 on its Solarized background, so tinting what is
- * behind it costs the program the player is reading its legibility -- even a
- * tenth-strength red takes it to 4.44:1, under the 4.5:1 that text has to keep.
- * An underline puts nothing behind the text at all, and at full strength the
- * mark itself is 3.57:1 against the same background, clear of the 3:1 a
- * graphical indicator needs. Both ratios were measured against the values in
- * `style.css`, not estimated.
+ * A wavy underline in `--ds-bad` rather than a wash across the line: tinting
+ * what is behind the text costs the program the player is reading its
+ * legibility, and the code palette has no headroom to give -- `--ds-code-com`
+ * is tuned to 4.51:1 on `--ds-code-bg`, a hundredth over the 4.5:1 that text
+ * has to keep, so any wash at all puts a comment under the bar. An underline
+ * puts nothing behind the text at all, and the mark itself reads 5.74:1 on the
+ * dark editor and 4.94:1 on the light one, well clear of the 3:1 a graphical
+ * indicator needs. Ratios measured against the values in `style.css`, not
+ * estimated; `style.test.ts` keeps measuring them.
  */
 const errorMark = Decoration.mark({ class: "cm-errorMark" });
 
@@ -1149,6 +1151,14 @@ export function codeMirrorView(parent: HTMLElement): TextEditorViewFactory {
       // source itself is what keeps that from being noisy, by offering
       // nothing outside the three contexts described in `completions.ts`.
       javascriptLanguage.data.of({ autocomplete: playerApiCompletionSource }),
+      // The design's own code colours, over `basicSetup`'s. This is a plain
+      // registration rather than a `{ fallback: true }` one, and that is the
+      // whole mechanism: `basicSetup` adds `defaultHighlightStyle` as a
+      // fallback, which `@codemirror/language` consults only while no ordinary
+      // highlighter is configured, so one line here retires a palette drawn
+      // for a white page and never re-tuned for the near-black editor the
+      // redesign gave the player. See `editorSyntaxTheme` for the mapping.
+      syntaxHighlighting(editorSyntaxTheme),
       indentUnit.of(INDENT),
       EditorState.tabSize.of(INDENT.length),
       // Read here rather than at module scope, and read afresh on every mount:
@@ -1208,11 +1218,17 @@ export function codeMirrorView(parent: HTMLElement): TextEditorViewFactory {
       EditorView.theme({
         ".cm-errorMark": {
           // `wavy` rather than a straight rule so the mark cannot be read as
-          // part of the program -- an underscore, or a link.
-          textDecoration: "underline wavy var(--color-error)",
+          // part of the program -- an underscore, or a link. `--ds-bad` is the
+          // one red the redesign has, and the same one the error banner under
+          // the code bar is drawn in, so a squiggle and the message explaining
+          // it are visibly the same report.
+          textDecoration: "underline wavy var(--ds-bad)",
           // Clear of the descenders, which the wave would otherwise run
-          // through at this amplitude.
-          textUnderlineOffset: "0.2em",
+          // through at this amplitude. A length rather than the `0.2em` this
+          // was: the mockup's `.squiggle` uses 3px, and an em here would
+          // scale the offset with the player's font size while the wave's own
+          // amplitude, which is what has to be cleared, does not.
+          textUnderlineOffset: "3px",
         },
       }),
     ];

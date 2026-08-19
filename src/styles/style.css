@@ -28,16 +28,15 @@
  *
  * The legacy page palette this once documented is gone now, migrated rule by
  * rule onto the theme-aware --ds-* tokens below, per the deletion policy the
- * design-token section itself states. One value outlives that migration:
- * `--color-error`, which still underlines a failing line inside the editor
- * (`src/ui/editor.ts`, read there by name) rather than through a `--ds-*`
- * token, because touching that file is beyond this cleanup. It is a graphical
- * indicator, so 1.4.11 asks 3:1 of it rather than 1.4.3's 4.5, and measured
- * against `--ds-code-bg` -- the editor's real background now, not the
- * Solarized cream this value was originally tuned for -- it still clears
- * that bar in both themes:
- *
- *   error  #d54 on --ds-code-bg  4.62:1 dark, 3.72:1 light  (needs 3)
+ * design-token section itself states. The last value to outlive that migration
+ * was `--color-error`, the wavy underline under a failing line inside the
+ * editor; it is gone too, now that the rule drawing it (`.cm-errorMark`, in
+ * `src/ui/editor.ts`) reads `--ds-bad` -- the one red the design has, and the
+ * same one the error banner above the editor is painted in, so a squiggle and
+ * the sentence explaining it are visibly one report rather than two. It is a
+ * graphical indicator, so 1.4.11 asks 3:1 of it rather than 1.4.3's 4.5, and
+ * `--ds-bad` clears that against `--ds-code-bg` in both themes; `style.test.ts`
+ * measures it.
  *
  * The rest of the building is dim on purpose and stays that way: the unlit call
  * buttons, the direction arrows and the car's button panel are painted at
@@ -50,15 +49,6 @@
  * to a real bar instead; see --ds-text-muted and --ds-car-ink below.
  */
 :root {
-  /* Palette. The one legacy colour left; everywhere else reads --ds-* below. */
-  /*
-   * A graphical indicator (1.4.11's 3:1, not 1.4.3's 4.5:1), underlining a
-   * failing line inside the editor -- see the palette note above, and
-   * `src/ui/editor.ts`, which reads this token by name rather than a --ds-*
-   * one.
-   */
-  --color-error: #d54;
-
   /* Geometry. The floor and elevator sizes mirror src/game/world.ts. */
   --shell-width: 1220px;
   --shell-gutter: 0px;
@@ -145,9 +135,10 @@
  * selector yet, so none of it changes what is on screen; each token is
  * adopted the same commit as the widget whose CSS starts reading it, and the
  * `--color-*`/`--shell-*`/... tokens above are deleted once nothing reads
- * them any more, per the migration plan. `--color-error` is the one still
- * standing: `src/ui/editor.ts` reads it by name, outside this stylesheet, so
- * it stays until that file adopts a `--ds-*` token in its place too.
+ * them any more, per the migration plan. The `--color-*` palette has now gone
+ * entirely: its last holdout was `--color-error`, retired when `.cm-errorMark`
+ * in `src/ui/editor.ts` -- the one reader outside this stylesheet -- took
+ * `--ds-bad` instead.
  *
  * Prefixed `--ds-` (design system) rather than reusing the mockup's own bare
  * names (`--font-ui`, `--font-mono`, ...) because two of those names already
@@ -464,10 +455,11 @@ dl dd {
  * and stands next to the sentence it decorates, so 1.4.11 exempts it and it
  * could have kept the pale value; it does not, because the exemption says the
  * icon need not be measured, not that a reader should have to hunt for it.
- * `--ds-bad` reads at 5.90:1 on dark `--ds-bg` and 4.52:1 on light -- the
- * design tokens carry only the one error colour per theme, unlike the legacy
- * pair's page/editor split, because nothing here shares this rule with the
- * editor's own background the way `--color-error` used to.
+ * `--ds-bad` reads at 5.90:1 on dark `--ds-bg` and 4.52:1 on light -- one error
+ * colour per theme, unlike the legacy palette's page/editor split, and it now
+ * paints the squiggle inside the editor as well (`.cm-errorMark`, in
+ * `src/ui/editor.ts`), so the banner and the underline it explains are the one
+ * red rather than two.
  */
 .error-color {
   color: var(--ds-bad);
@@ -3501,13 +3493,18 @@ pre code {
  * The token classes `@lezer/highlight`'s `classHighlighter` assigns, styled
  * for exactly the ones the eight tutorial answers actually produce --
  * `src/ui/code-highlight.ts` names the check that keeps this list honest.
- * Operators and punctuation are left in `--ds-code-text`, the colour the
- * rest of the block is already in: the grammar tags `.`, `(`, `;` and the
- * like separately from the words either side of them, and giving every one of
- * them its own colour would be more colour than the block needs to read.
  * `tok-definition` is not its own rule -- it names a declaration site
  * (a `function` parameter, say) and always rides alongside `tok-variableName`
  * or `tok-propertyName` on the same element, which is already styled.
+ *
+ * These are the same colours `editorSyntaxTheme` gives the live editor, on
+ * purpose and for the mockup's own stated reason: one call must not look like
+ * two different languages depending on whether the player is reading it in the
+ * help or typing it in the editor. The one place the two surfaces cannot agree
+ * is which names are blue -- `classHighlighter` maps unmodified tags only, so
+ * it cannot tell `loadFactor()` from `destinationQueue` the way the editor's
+ * theme can, and every name in an answer is blue here. `code-highlight.ts`
+ * says more about that.
  *
  * `--ds-code-key`/`-fn`/`-str`/`-num` are the mockup's own values, taken as-is
  * (7.74-8.44:1 dark, 5.09-6.21:1 light on `--ds-code-bg`, all clearing 4.5:1
@@ -3542,6 +3539,18 @@ pre code {
 .tok-comment {
   color: var(--ds-code-com);
   font-style: italic;
+}
+
+/*
+ * Dimmer than the code around it, not brighter: brackets, separators and
+ * operators are scaffolding, and pushing them back is what makes the words a
+ * player is actually looking for stand out. The mockup wraps them in its own
+ * `.p` for the same reason. Still real text at 13px, so still held to 4.5:1 --
+ * 6.73:1 dark, 4.70:1 light, measured in `style.test.ts`.
+ */
+.tok-punctuation,
+.tok-operator {
+  color: var(--ds-code-punc);
 }
 
 .doctable {
