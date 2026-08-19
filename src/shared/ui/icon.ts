@@ -694,6 +694,39 @@ export const SPRITE_ICONS = {
       },
     ],
   },
+  // `widgets/editor-pane`'s error banner glyph, `#i-warn`: a hollow triangle
+  // with a bang in it. Outlined rather than the solid Font Awesome
+  // `warning` triangle the banner drew before, so that it sits at the same
+  // weight as `undo` and `redo` a row above it, and so that the tinted
+  // `--ds-bad-soft` band shows through it instead of being blotted out by a
+  // 16px block of `--ds-bad`.
+  warn: {
+    viewBox: "0 0 16 16",
+    shapes: [
+      {
+        tag: "path",
+        attrs: {
+          d: "M8 2.5 15 14H1L8 2.5Z",
+          fill: "none",
+          stroke: "currentColor",
+          "stroke-width": "1.6",
+          "stroke-linecap": "round",
+          "stroke-linejoin": "round",
+        },
+      },
+      {
+        tag: "path",
+        attrs: {
+          d: "M8 6.5v3.2M8 11.8v.6",
+          fill: "none",
+          stroke: "currentColor",
+          "stroke-width": "1.6",
+          "stroke-linecap": "round",
+          "stroke-linejoin": "round",
+        },
+      },
+    ],
+  },
   // The tier popover's "requirement missed" mark, once a run has ended.
   x: {
     viewBox: "0 0 16 16",

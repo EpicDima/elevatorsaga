@@ -418,6 +418,30 @@ describe("SPRITE_ICONS", () => {
       shapes: [{ tag: "path", attrs: { d: "m6 3 5 5-5 5", ...STROKE_DEFAULTS("1.6") } }],
     });
   });
+
+  // design/ui-mockup.html's own <symbol id="i-undo">/<symbol id="i-warn"> —
+  // the two glyphs widgets/editor-pane draws, its "Reset code" arrow and its
+  // error banner's triangle. `redo` has no clause here on purpose: it is the
+  // one glyph in this table the mockup does not contain, mirrored out of
+  // `undo` rather than copied, so there is nothing to hold it to.
+  it("reproduces the mockup's undo and warn glyphs exactly", () => {
+    expect(SPRITE_ICONS.undo).toEqual({
+      viewBox: "0 0 16 16",
+      shapes: [
+        {
+          tag: "path",
+          attrs: { d: "M3 8h7a3 3 0 0 1 0 6H6M3 8l3-3M3 8l3 3", ...STROKE_DEFAULTS("1.6") },
+        },
+      ],
+    });
+    expect(SPRITE_ICONS.warn).toEqual({
+      viewBox: "0 0 16 16",
+      shapes: [
+        { tag: "path", attrs: { d: "M8 2.5 15 14H1L8 2.5Z", ...STROKE_DEFAULTS("1.6") } },
+        { tag: "path", attrs: { d: "M8 6.5v3.2M8 11.8v.6", ...STROKE_DEFAULTS("1.6") } },
+      ],
+    });
+  });
 });
 
 describe("createSpriteIcon", () => {

@@ -40,6 +40,22 @@ describe("editorPaneTemplate", () => {
     expect(requireElement(".goto", parent).hidden).toBe(true);
   });
 
+  it("puts a warning glyph in the error banner and keeps its wording in one item", () => {
+    // The banner is a three-item flex row -- glyph, text, "go to" link -- and
+    // not a four-item one: the label and the message are wrapped together so
+    // that the 9px gap falls between the three parts rather than inside the
+    // sentence, and so that a long message wraps under its own label instead
+    // of under the icon.
+    const parent = document.createElement("div");
+    parent.innerHTML = editorPaneTemplate();
+
+    const errorLine = requireElement(".errorline", parent);
+    expect(errorLine.querySelector("svg.ds-icon")).not.toBeNull();
+    const text = requireElement(".errorline-text", errorLine);
+    expect(text.querySelector(".errorline-label")).not.toBeNull();
+    expect(text.querySelector(".errormessage")).not.toBeNull();
+  });
+
   it("gives every button an explicit type, so none of them submit a form", () => {
     const parent = document.createElement("div");
     parent.innerHTML = editorPaneTemplate();

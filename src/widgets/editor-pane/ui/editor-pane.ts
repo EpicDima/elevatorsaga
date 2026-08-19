@@ -42,7 +42,7 @@ import { presentCodeSlots, type CodeSlot } from "#features/manage-code-slots/ind
 import { t } from "#i18n/index.ts";
 import { describeError } from "#shared/lib/describe-error.ts";
 import { requireElement } from "#shared/lib/dom.ts";
-import { iconMarkup, spriteIconMarkup } from "#shared/ui/icon.ts";
+import { spriteIconMarkup } from "#shared/ui/icon.ts";
 import { markup, raw } from "#shared/ui/markup.ts";
 
 import { locateCodeError } from "../../../ui/error-location.ts";
@@ -64,7 +64,7 @@ import { locateCodeError } from "../../../ui/error-location.ts";
  * @returns The pane's markup, ready to mount into `.pane-code`.
  */
 export function editorPaneTemplate(): string {
-  return markup`<div class="codebar"><div class="slots" role="group" aria-label="${t("editor.slot.tablist.label")}"></div><div class="codetools"><button type="button" class="resetcode ghost">${raw(spriteIconMarkup("undo"))}<span class="lbl"></span></button><button type="button" class="undoreset ghost" hidden>${raw(spriteIconMarkup("redo"))}<span class="lbl"></span></button></div></div><div class="errorline" aria-live="polite" hidden>${raw(iconMarkup("warning", "error-color"))}<span class="errorline-label">${t("game.codeStatus")}</span> <code class="errormessage"></code><button type="button" class="goto" hidden></button></div><div class="editor"></div>`;
+  return markup`<div class="codebar"><div class="slots" role="group" aria-label="${t("editor.slot.tablist.label")}"></div><div class="codetools"><button type="button" class="resetcode ghost">${raw(spriteIconMarkup("undo"))}<span class="lbl"></span></button><button type="button" class="undoreset ghost" hidden>${raw(spriteIconMarkup("redo"))}<span class="lbl"></span></button></div></div><div class="errorline" aria-live="polite" hidden>${raw(spriteIconMarkup("warn"))}<span class="errorline-text"><span class="errorline-label">${t("game.codeStatus")}</span> <code class="errormessage"></code></span><button type="button" class="goto" hidden></button></div><div class="editor"></div>`;
 }
 
 /** What the editor pane needs in order to draw and drive itself. */
