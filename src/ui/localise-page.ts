@@ -9,7 +9,7 @@
  * but it has to be replaceable once the catalogue is in memory, and nothing in
  * the shell tells a program which of its words are words rather than markup.
  *
- * Two attributes say so. `data-i18n="page.nav.help"` means the element's
+ * Two attributes say so. `data-i18n="page.brand"` means the element's
  * content is that message, and `data-i18n-attr="aria-label:page.world.label"`
  * means an attribute of it is; several attributes can be named at once,
  * separated by commas. A key ending in `.html` is written with `innerHTML`,
@@ -30,12 +30,13 @@
  * remembering what it wrote, so calling it again after
  * {@link "../i18n/index.ts"!setLocale} is all that switching language costs.
  *
- * A third attribute, `data-i18n-doc`, marks the links that go to the reference
- * page, which is published once per language. It is not a message — there is no
- * catalogue key for a URL, and there should not be, since the reader never sees
- * it — so the mapping lives in `src/ui/documentation-links.ts` and is applied
- * from here for the same reason the other two are: whatever rewrites the shell
- * has to leave all of it saying the same thing.
+ * There used to be a third attribute, `data-i18n-doc`, naming the anchor a
+ * header link into the reference page should be retargeted at once the
+ * language was known — the reference is published once per language, so an
+ * `href` written in the markup could only ever be right for one of them. The
+ * shell no longer links to it: the docs the game shows are the dialog
+ * `features/docs-reference` opens, and `documentation.html` and its Russian
+ * twin are standalone pages now. Nothing here maps URLs any more.
  */
 
 import {
@@ -50,7 +51,6 @@ import {
   type MessageKey,
 } from "../i18n/index.ts";
 
-import { localiseDocumentationLinks } from "./documentation-links.ts";
 import { labelModifierKeys } from "./shortcuts.ts";
 
 /** Names the message an element's content comes from. */
@@ -186,12 +186,6 @@ function localiseAttributes(element: Element, mappings: string): void {
  * it reads the document rather than a list of what it did last time: the shell
  * carries its own instructions, so there is no state here to fall out of step.
  *
- * The reference page's links follow {@link renderedLocale} rather than
- * {@link getLocale}, for the same reason `<html lang>` does: a catalogue that
- * could not be fetched leaves the whole page in English, and a link out of an
- * English page to a Russian document would be the one place where the interface
- * disagreed with itself about what language the reader is being served.
- *
  * The modifier keys are relabelled at the end, and that is not an aside. A
  * message written here with `innerHTML` can carry a `<kbd data-mod-key>`, and
  * writing it throws away the `⌘` that `src/ui/shortcuts.ts` had put in place of
@@ -204,8 +198,7 @@ function localiseAttributes(element: Element, mappings: string): void {
  * @param userAgent - The browser's user agent string, for the modifier keys.
  */
 export function localisePage(root: Document, userAgent: string): void {
-  const locale = renderedLocale();
-  root.documentElement.lang = htmlLang(locale);
+  root.documentElement.lang = htmlLang(renderedLocale());
 
   for (const element of root.querySelectorAll(`[${TEXT_KEY_ATTRIBUTE}]`)) {
     const key = element.getAttribute(TEXT_KEY_ATTRIBUTE) ?? "";
@@ -219,8 +212,6 @@ export function localisePage(root: Document, userAgent: string): void {
   for (const element of root.querySelectorAll(`[${ATTRIBUTE_KEY_ATTRIBUTE}]`)) {
     localiseAttributes(element, element.getAttribute(ATTRIBUTE_KEY_ATTRIBUTE) ?? "");
   }
-
-  localiseDocumentationLinks(root, locale);
 
   labelModifierKeys(root, userAgent);
 }

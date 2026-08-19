@@ -63,75 +63,24 @@
     <a class="skip-link" href="#code" data-i18n="page.skipLink">Skip to the code editor</a>
 
     <div class="container">
-      <header class="header">
-        <h1>
-          <span data-i18n="page.brand">Elevator Saga</span>
-          <em class="emphasis-color" data-i18n="page.tagline">The elevator programming game</em>
-        </h1>
-        <!--
-          The links and the language picker share a wrapper because the header
-          is laid out with `justify-content: space-between`, which puts the
-          first child at one end and the last at the other: a third child would
-          have been placed in the middle of it, between the title and the links.
-          One wrapper keeps the header two things wide however many controls end
-          up on the right of it.
-        -->
-        <div class="headertools">
-          <!--
-            The way into the learning track, and the only one: every task has an
-            address, but an address nothing links to is a feature that does not
-            exist for anybody who was not told about it.
+      <!--
+        The page's heading, and all that is left of the header this file used to
+        ship. src/main.ts replaces this whole element with widgets/app-bar's own
+        <header class="appbar">, whose brand name is the live page's <h1> -- so
+        there is exactly one heading and one banner before the bundle runs and
+        exactly one of each afterwards.
 
-            Outside the <nav> below on purpose. That landmark is named "Help and
-            reference" and holds three places to *read* about the game; the track
-            is the game, and counting it among them would make the name lie -- the
-            same objection the challenge bar makes about keeping the seed line out
-            of its own navigation row.
-
-            The href here is the first task, which is what a reader without
-            JavaScript gets and what everybody gets before the app has drawn
-            anything. src/pages/game/index.ts rewrites it to the first task not
-            yet cleared, so a player who did four yesterday is offered the fifth. It
-            is a real href either way, so opening it in a new tab, copying the
-            address and the status bar all work.
-          -->
-          <a href="#challenge=tutorial-1" class="tutoriallink" data-i18n="page.tutorialLink"
-            >Learning track</a
-          >
-          <!--
-            data-i18n-doc names the reference page's anchor, and
-            src/ui/documentation-links.ts turns it into a href in whatever
-            language the page is being read in. The English written out here is
-            what that produces for `en`, which is what a reader without
-            JavaScript follows.
-          -->
-          <nav aria-label="Help and reference" data-i18n-attr="aria-label:page.nav.label">
-            <a href="documentation.html" data-i18n="page.nav.help" data-i18n-doc="">Help</a>
-            <a
-              href="documentation.html#docs"
-              data-i18n="page.nav.documentation"
-              data-i18n-doc="docs"
-              >Documentation</a
-            >
-            <a href="https://github.com/magwo/elevatorsaga/wiki/" data-i18n="page.nav.wiki"
-              >Wiki &amp; Solutions</a
-            >
-          </nav>
-          <!--
-            Shipped empty: src/features/switch-language/ui/language-picker.ts fills it from
-            LOCALES, so a third language is the one line src/i18n/locale.ts promises and no
-            edit at all here. The options are the languages' own names and are
-            never translated, so nothing about this control changes when the
-            language does except its label. The stylesheet hides it while it is
-            empty, which is the state a reader without JavaScript sees -- and
-            the state in which it would do nothing anyway.
-          -->
-          <select
-            class="languagepicker"
-            aria-label="Language"
-            data-i18n-attr="aria-label:page.language.label"
-          ></select>
-        </div>
+        What stood here besides the title is gone rather than moved. The learning
+        track has a block of its own in the app bar's level switcher, so the
+        header link was a second entrance to a place already on screen; the three
+        help links are answered by the docs dialog the bar's own button opens
+        (documentation.html and documentation.ru.html are still built and still
+        readable, they are simply no longer linked from the game); and the
+        language picker moved into the settings popover, which is where
+        design/ui-mockup.html puts everything a player touches once an evening.
+      -->
+      <header>
+        <h1 data-i18n="page.brand">Elevator Saga</h1>
       </header>
 
       <!--

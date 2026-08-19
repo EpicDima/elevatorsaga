@@ -1,16 +1,23 @@
 /**
  * The app bar's brand mark: `design/ui-mockup.html`'s `.appbar > .brand`.
  *
- * Today's production header is a plain `<h1>` — `page.brand` next to a
- * `page.tagline` `<em>`, inside `<header class="header">` (`index.html`).
- * The mockup drops the tagline and adds a small building glyph before the
- * name; this module ports that glyph and name, verbatim, as their own
- * skeleton, following `widgets/workspace-layout`'s staged pattern: built and
- * tested, but not called from `index.html` or `src/pages/game/index.ts` yet, and not
- * yet the whole app bar — the mockup's `.task` level switcher that sits
- * beside the brand is a separate widget, a later phase of the same
- * migration, and can mount into {@link AppBarElements.appBar} once it
- * exists without this module changing.
+ * `src/main.ts` mounts this over the `<header>` `index.html` ships, so the bar
+ * built here is the live page's own banner and the brand name is its `<h1>`.
+ * The mockup writes that name as a `<span>` inside a page that has no heading
+ * at all; a game does need one, and the alternative — leaving `index.html`'s
+ * `<h1>` in place and nesting the brand inside it — puts a heading-shaped box
+ * with the user agent's own margins into a fixed-height flex row. The
+ * stylesheet's `.brand-name` says the same thing from its own side.
+ *
+ * The tagline the old header carried beside the name — "The elevator
+ * programming game", the second half of that page's one `<h1>` — is not
+ * ported: the mockup drops it, and it was the half of the title that had to
+ * wrap on a narrow bar. Its catalogue key went with it.
+ *
+ * Still only the brand. The `.task` level switcher beside it is
+ * `widgets/level-switcher`, the trailing toolbar is `settings-menu.ts`, and
+ * `src/main.ts` composes the three into one row — see the assembly there for
+ * the order and for where the run controls land.
  */
 
 /** SVG namespace, needed because the brand mark is built with `createElementNS`. */
@@ -21,13 +28,13 @@ const SVG_NS = "http://www.w3.org/2000/svg";
  * `widgets/workspace-layout`'s `WorkspaceLayoutLabels` takes its text this
  * way. */
 export interface AppBarLabels {
-  /** The game's name, shown next to the mark — `page.brand` today. */
+  /** The game's name, shown next to the mark and read as the page's heading — `page.brand` today. */
   readonly brandName: string;
 }
 
 /** The elements {@link buildAppBarSkeleton} builds. */
 export interface AppBarElements {
-  /** The bar itself, ready for later phases to append more beside the brand. */
+  /** The bar itself, ready for its caller to append the rest of the row beside the brand. */
   readonly appBar: HTMLElement;
   /** The mark and name together, as the mockup groups them. */
   readonly brand: HTMLElement;
@@ -78,7 +85,9 @@ export function buildAppBarSkeleton(document: Document, labels: AppBarLabels): A
 
   mark.append(frame, nearShaft, farShaft);
 
-  const name = document.createElement("span");
+  // The page's one `<h1>`; see this module's own comment for why the heading is
+  // the brand name itself rather than a wrapper around it.
+  const name = document.createElement("h1");
   name.className = "brand-name";
   name.textContent = labels.brandName;
 

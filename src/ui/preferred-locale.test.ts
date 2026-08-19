@@ -14,13 +14,15 @@ const USER_AGENT =
 /**
  * The message the shell in these tests is made of.
  *
- * One word, present in both catalogues, and unmistakable in either: what the
- * link says is the whole evidence of which language the page came out in.
+ * One sentence, present in both catalogues, and unmistakable in either: what
+ * the link says is the whole evidence of which language the page came out in.
+ * The skip link, because it is the one link `index.html` still ships in its own
+ * markup and so the one whose translation this file can lean on.
  */
-const LINK_KEY = "page.nav.help";
+const LINK_KEY = "page.skipLink";
 
 /** What {@link LINK_KEY} says in each of the game's languages. */
-const LINK = { en: "Help", ru: "Справка" };
+const LINK = { en: "Skip to the code editor", ru: "Перейти к редактору кода" };
 
 /** The document under test, rebuilt for each test that writes into it. */
 let page: Document;
@@ -70,7 +72,7 @@ function fakeStorage(initial: Readonly<Record<string, string>> = {}): Storage {
 function shell(): Document {
   return new DOMParser().parseFromString(
     `<!doctype html><html lang="en"><body>` +
-      `<a href="help.html" ${TEXT_KEY_ATTRIBUTE}="${LINK_KEY}">${LINK.en}</a>` +
+      `<a href="#editor" ${TEXT_KEY_ATTRIBUTE}="${LINK_KEY}">${LINK.en}</a>` +
       `</body></html>`,
     "text/html",
   );

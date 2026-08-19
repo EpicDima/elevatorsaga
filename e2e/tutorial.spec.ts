@@ -21,11 +21,11 @@ import { editor, languagePicker, startButton, storedCode } from "./game-page.ts"
 /**
  * Where task 1 lives.
  *
- * The header links here, and the test below follows that link rather than this
- * constant. Everything else goes straight to the address, because a task the
- * link does not point at can only be reached that way — and because this is the
- * address `router.ts` sends `#challenge=tutorial-9` and every other wrong one on
- * the track to.
+ * The level switcher's first tutorial tile links here, and the test below
+ * follows that tile rather than this constant. Everything else goes straight to
+ * the address, because a task no tile points at can only be reached that way —
+ * and because this is the address `router.ts` sends `#challenge=tutorial-9` and
+ * every other wrong one on the track to.
  */
 const FIRST_TASK = "/#challenge=tutorial-1";
 
@@ -66,38 +66,55 @@ function panel(page: Page, name = "Learning track"): Locator {
  * @param page - The page under test.
  */
 async function switchToRussian(page: Page): Promise<void> {
-  await languagePicker(page).selectOption("ru");
+  await (await languagePicker(page)).selectOption("ru");
 }
 
-test("opens the track from the header link, in the language on screen", async ({ page }) => {
+/**
+ * Opens the level switcher's menu, where the track's tasks are listed.
+ *
+ * Forced open rather than clicked, for the reason `openSettingsMenu` in
+ * `game-page.ts` gives: a click toggles, and this is called on both sides of a
+ * language change that redraws the switcher underneath it. The one click that
+ * proves a player can open the menu at all is in the test below, made once.
+ *
+ * @param page - The page under test.
+ */
+async function openLevelMenu(page: Page): Promise<void> {
+  await page.locator(".taskmenu").evaluate((menu) => {
+    (menu as HTMLElement).hidden = false;
+  });
+}
+
+test("opens the track from the level switcher, in the language on screen", async ({ page }) => {
   await page.goto("/");
 
-  // The only entrance there is. That the markup carries the link is `page.test.ts`'s
-  // to prove and where it points is `app.test.ts`'s; what neither can answer is
-  // whether a player can see it and whether pressing it starts a task -- the
-  // layout, the hash and the router are all outside jsdom, and a link nobody can
-  // see leaves the track exactly as undiscoverable as no link at all.
-  const english = page.getByRole("link", { name: "Learning track" });
+  // The way in. The shell used to ship a "Learning track" link of its own in
+  // the header, and the header is gone; the switcher's tutorial block is what
+  // is left, and it is the only entrance that does not involve knowing to type
+  // `#challenge=tutorial-1` into the address bar. That the tiles are built is
+  // `level-switcher.test.ts`'s to prove and where they point is the level
+  // menu model's; what neither can answer is whether a player can open the
+  // menu and see them, and whether pressing one starts a task -- the layout,
+  // the hash and the router are all outside jsdom, and a tile behind a menu
+  // that will not open leaves the track exactly as undiscoverable as no tile
+  // at all.
+  // `exact`, because the menu this opens holds a locked tile for every other
+  // level and "Level 1" is a prefix of "Level 10, locked" and nine more.
+  const opener = page.getByRole("button", { name: "Level 1", exact: true });
+  await expect(opener).toHaveAttribute("aria-expanded", "false");
+  await opener.click();
+  await expect(opener).toHaveAttribute("aria-expanded", "true");
+
+  const english = page.getByRole("link", { name: "Tutorial task 1", exact: true });
   await expect(english).toBeVisible();
-  // And dressed as the help links beside it. It is not inside their `<nav>` --
-  // that landmark is named for reading about the game, and the track is the
-  // game -- so it takes none of their rules by inheritance, and without a
-  // selector of its own it renders at the page's 16px in a row of 20px, looking
-  // like something that landed in the header by accident.
-  await expect(english).toHaveCSS("font-size", "20px");
 
   await switchToRussian(page);
 
-  // Still visible with the longer label, and on the same line box as the
-  // links it sits among -- both true regardless of viewport width now: per
-  // decision #1 (see the migration plan's own §0), the main game page adopted
-  // `design/ui-mockup.html`'s own 1040x600 floor instead of reflowing for a
-  // phone, so there is no narrower width left to check this at. That floor is
-  // `reflow.spec.ts`'s to hold; nothing below in this file checks a width
-  // narrower than it any more, for the same reason.
-  const link = page.getByRole("link", { name: "Учебная дорожка" });
+  // Still there under the longer label, on a switcher the language change
+  // rebuilt from the catalogue rather than relabelled in place.
+  await openLevelMenu(page);
+  const link = page.getByRole("link", { name: "Учебное задание 1", exact: true });
   await expect(link).toBeVisible();
-  await expect(link).toHaveCSS("line-height", "32px");
 
   await link.click();
 

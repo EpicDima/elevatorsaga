@@ -41,7 +41,6 @@ import {
 } from "#entities/challenge-tier/index.ts";
 import {
   countClearedTutorialTasks,
-  firstUnclearedTutorialTask,
   readClearedTutorialTasks,
   recordClearedTutorialTask,
 } from "#entities/tutorial-task/model/progress.ts";
@@ -422,17 +421,6 @@ export interface AppElements {
    * so a challenge and the demo are not left with a gap above the building.
    */
   readonly tutorial: HTMLElement;
-  /**
-   * The header's link into the learning track.
-   *
-   * Not a region this draws into but a single `href` it keeps current: the
-   * markup ships pointing at task 1, and {@link App} moves it on to the first
-   * task the player has not cleared. Required rather than optional, though a
-   * missing one would break nothing that is running, because the failure it
-   * prevents is silent — a page that quietly has no way into the track is
-   * exactly the state this element exists to end.
-   */
-  readonly tutorialLink: HTMLElement;
   /**
    * Where `widgets/level-switcher`'s trigger and popover go.
    *
@@ -861,7 +849,7 @@ export class App {
   /**
    * Turns a tile's {@link LevelLinkTarget} into the URL it links to, carrying
    * the speed and every other unknown key across exactly as
-   * {@link #seedLink} and {@link #drawTutorialLink} do.
+   * {@link #seedLink} does.
    *
    * @param target - What the tile links to.
    * @returns The URL the switcher should navigate to.
@@ -1705,13 +1693,6 @@ export class App {
    * panel was drawn when the store was still empty.
    */
   #drawTutorialPanel(): void {
-    // Before the early return, because the header's link has to be current on
-    // every route and not only on the track: a player looking at challenge 12 is
-    // exactly who it is there for. Riding along with the panel rather than
-    // taking call sites of its own for the reason given above, and because the
-    // two draws it needs are the two this method already gets -- the start of a
-    // run, and the win that has just moved the progress it is computed from.
-    this.#drawTutorialLink();
     const tutorial = this.#tutorial;
     if (tutorial === undefined) {
       clearChildren(this.#elements.tutorial);
@@ -1726,44 +1707,6 @@ export class App {
         this.leaveTutorial();
       },
     });
-  }
-
-  /**
-   * Points the header's link at the task the player would want next.
-   *
-   * The track is reachable by address alone and, until this link existed, only
-   * by address: a player who was never told what to type had no way to find out
-   * that eight tasks were there at all.
-   *
-   * Where it goes is the first task not yet cleared, which is what makes the
-   * link usable more than once. Always pointing at task 1 would strand a
-   * returning player who cleared four yesterday — nothing else on the page
-   * offers task 5, so they would have to win task 1 again to be shown task 2.
-   *
-   * A finished track goes back to task 1. There is no fifth option worth having:
-   * the last task is not an entrance, and a link that does nothing is worse than
-   * one that starts the track over — which is a thing a player who has finished
-   * may well want, and the panel says how far along they are either way.
-   *
-   * Built with {@link createParamsUrl} like every other link the app makes, so
-   * the speed and the sandbox building the player is carrying ride along, and
-   * the seed is dropped: it belongs to the run being left, and the router would
-   * refuse it on a task address anyway.
-   */
-  #drawTutorialLink(): void {
-    const next =
-      firstUnclearedTutorialTask(readClearedTutorialTasks(this.#storage), tutorialTasks) ??
-      tutorialTasks[0];
-    if (next === undefined) {
-      // An empty track. Unreachable with the table this build ships, and the
-      // honest answer is to leave the shipped `href` alone rather than write a
-      // link to a task that does not exist.
-      return;
-    }
-    this.#elements.tutorialLink.setAttribute(
-      "href",
-      createParamsUrl(this.#query, { challenge: next.id, seed: null }),
-    );
   }
 
   /**

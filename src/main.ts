@@ -43,7 +43,6 @@ import { DEFAULT_TIME_SCALE } from "#features/adjust-speed/model/time-scale.ts";
 import { docsModalTemplate, presentDocsModal } from "#features/docs-reference/index.ts";
 import { hotkeysModalTemplate, presentHotkeysModal } from "#features/hotkeys-help/index.ts";
 import { DEFAULT_CODE_SLOT } from "#features/manage-code-slots/model/code-slots.ts";
-import { presentLanguagePicker } from "#features/switch-language/index.ts";
 import { requireElement } from "#shared/lib/dom.ts";
 import {
   appBarSettingsTemplate,
@@ -246,7 +245,6 @@ async function main(): Promise<void> {
     elements: {
       controls: requireElement(".controls"),
       tutorial: requireElement(".tutorial"),
-      tutorialLink: requireElement(".tutoriallink"),
       levelSwitcher: levelSwitcherMount,
       goalBar: requireElement(".challenge"),
       world: requireElement(".innerworld"),
@@ -262,25 +260,6 @@ async function main(): Promise<void> {
     },
   });
   appRef = app;
-
-  // Wired after the app exists, because changing the language has to redraw what
-  // the app has already drawn. The two halves of that are deliberately separate:
-  // `localisePage` rewrites the shell, which it does by re-reading the document,
-  // and `App.relocalise` rewrites the game -- the challenge bar, the statistics
-  // figures, the building's accessible names and the end-of-challenge overlay --
-  // without tearing down the run in progress.
-  const languagePicker = requireElement(".languagepicker");
-  if (!(languagePicker instanceof HTMLSelectElement)) {
-    throw new TypeError("Expected .languagepicker to be a <select>");
-  }
-  presentLanguagePicker({
-    select: languagePicker,
-    storage: localStorage,
-    redraw: () => {
-      localisePage(document, navigator.userAgent);
-      app.relocalise();
-    },
-  });
 
   window.runFitnessSuite = async (codeStr = editor.getCode()): Promise<FitnessSuiteResult> => {
     // Printed as well as returned. The console shows a returned promise's value
@@ -311,7 +290,8 @@ async function main(): Promise<void> {
   // Everything below mounts the new shell over the run just started: the docs
   // and hotkeys dialogs, the workspace's two panes -- holding the five regions
   // above exactly as they were, one level deeper -- the app bar that replaces
-  // `.header`, and the shortcuts that tie all of it together. Ordered so that
+  // the shipped `<header>`, and the shortcuts that tie all of it together.
+  // Ordered so that
   // nothing here composes a piece that does not exist yet: the two dialogs
   // first, since nothing else depends on them; the workspace next, since the
   // app bar's settings popover needs its `setLayoutMode`; the app bar third,
@@ -359,31 +339,31 @@ async function main(): Promise<void> {
     storage: localStorage,
   });
 
-  // The app bar: `buildAppBarSkeleton` already builds `<header class="appbar">`
-  // holding the brand, so that becomes the new header -- `.header` stays on it
-  // too, since `e2e/language-picker.spec.ts`, `e2e/documentation.spec.ts` and
-  // `e2e/reflow.spec.ts` all still look a live page up by that class. The old
-  // header's own `<h1>` is kept rather than replaced -- only its two children
-  // (`page.brand`, `page.tagline`) are swapped for the brand mark and name --
-  // so the page never holds two, and every heading-role assertion across the
-  // e2e suite keeps finding the one it always has. `.headertools` moves in
-  // whole: `.tutoriallink` and the old Help/Documentation/Wiki nav and
-  // language picker keep running unchanged, beside the new bar. `levelSwitcherMount`
-  // goes in between the two, matching the mockup's own brand-then-`.task` order
-  // -- see its own declaration above for why it was built rather than found.
+  // The app bar: `buildAppBarSkeleton` builds `<header class="appbar">` holding
+  // the brand, and that replaces the `<header>` `index.html` ships whole. The
+  // shipped one is a heading and nothing else now -- the tutorial link, the help
+  // nav and the language picker that used to sit under it are each answered
+  // elsewhere in this bar, as that file's own comment records -- and the brand
+  // name the skeleton draws is itself an `<h1>`, so the document has exactly one
+  // heading before this line and exactly one after it.
+  //
+  // The order is `design/ui-mockup.html`'s own: brand, `.task` level switcher,
+  // `.barspace`, then the two trailing buttons `appBarSettingsTemplate` draws.
+  // `.barspace` is the seam. Everything appended before it is pushed left and
+  // everything after it right, so the run controls and the speed -- still drawn
+  // into `.controls` under the building at this phase -- land in the bar by
+  // being inserted ahead of it, with nothing else here having to move.
+  // `levelSwitcherMount` is built rather than found; see its own declaration
+  // above for why.
   let layoutMode: LayoutMode = readLayoutMode(localStorage);
 
-  const { appBar, brand } = buildAppBarSkeleton(document, { brandName: t("page.brand") });
-  appBar.classList.add("header");
-
-  const oldHeader = requireElement(".header");
-  const oldH1 = requireElement("h1", oldHeader);
-  oldH1.replaceChildren(brand);
-  appBar.prepend(oldH1);
+  const { appBar } = buildAppBarSkeleton(document, { brandName: t("page.brand") });
   appBar.append(levelSwitcherMount);
-  appBar.append(requireElement(".headertools", oldHeader));
+  const barSpace = document.createElement("div");
+  barSpace.className = "barspace";
+  appBar.append(barSpace);
   appBar.insertAdjacentHTML("beforeend", appBarSettingsTemplate(app.currentSeedLink));
-  oldHeader.replaceWith(appBar);
+  requireElement("header").replaceWith(appBar);
 
   // `presentThemeSwitch`, composed inside `presentAppBarSettings`, never reads
   // `matchMedia` itself -- see its own module comment -- so the popover this

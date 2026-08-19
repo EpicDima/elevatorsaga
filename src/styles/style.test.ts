@@ -295,7 +295,7 @@ describe("palette", () => {
     ["dark", DARK_PALETTE],
     ["light", LIGHT_PALETTE],
   ])("keeps the shared control-surface pairing readable, %s theme", (_, palette) => {
-    // --ds-text on --ds-raised, the pairing kbd, .skip-link, .languagepicker,
+    // --ds-text on --ds-raised, the pairing kbd, .skip-link, .task-open,
     // .runbuttons button, .tutorialbuttons button and .tutorialcopycode all
     // share now. 12.96:1 dark, 15.07:1 light -- far past the 4.5:1 that
     // matters, since none of these sit at large-text sizes.

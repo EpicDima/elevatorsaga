@@ -26,8 +26,10 @@ test("shows the whole game in the language a link asks for", async ({ page }) =>
 
   // What a screen reader picks its voice from, and what a crawler is told.
   await expect(page.locator("html")).toHaveAttribute("lang", "ru");
-  // The shell: shipped in English by `index.html`, rewritten from the catalogue.
-  await expect(page.getByRole("link", { name: "Документация" })).toBeVisible();
+  // The shell: shipped in English by `index.html`, rewritten from the
+  // catalogue. The skip link is the whole of it that is still words -- what the
+  // header used to say is the app bar's now, and the app bar writes its own.
+  await expect(page.getByRole("link", { name: "Перейти к редактору кода" })).toBeAttached();
   // Not `getByText`: the same caption key now labels two live elements at
   // once, the goal bar's meter and the (currently closed) statistics panel's
   // own tile for the same field, so a page-wide text match is ambiguous.

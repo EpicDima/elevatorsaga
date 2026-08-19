@@ -117,12 +117,6 @@ export const RU_MESSAGES: MessageCatalogue<"ru"> = {
     "Четыре лифта возят пассажиров между шестью этажами, а ниже, в редакторе, — управляющая ими программа на JavaScript.",
   "page.skipLink": "Перейти к редактору кода",
   "page.brand": "Elevator Saga",
-  "page.tagline": "Игра про программирование лифтов",
-  "page.tutorialLink": "Учебная дорожка",
-  "page.nav.label": "Справка и документация",
-  "page.nav.help": "Справка",
-  "page.nav.documentation": "Документация",
-  "page.nav.wiki": "Вики и решения",
   "page.language.label": "Язык",
   "page.noscript":
     "Похоже, ваш браузер не поддерживает JavaScript. На этой странице — игра про программирование, которая на JavaScript и написана.",

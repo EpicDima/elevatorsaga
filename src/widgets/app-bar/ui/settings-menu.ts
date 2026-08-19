@@ -24,8 +24,9 @@
  *   — the same "template leaves an empty slot, the presenter fills it" shape
  *   `presentLevelSwitcher` uses for `.taskblocks`.
  * - Language is `presentLanguagePicker`, which fills a `<select>` this
- *   module's own template already drew empty, matching `src/main.ts`'s own
- *   call to it against `index.html`'s `.languagepicker`.
+ *   module's own template already drew empty. This is the game's only language
+ *   control: the header `index.html` used to ship carried a second one, and it
+ *   went with the rest of that header.
  * - Seed is `seedPanelTemplate`, a plain markup function with nothing to
  *   wire — see its own module comment — so it is inserted with `raw()`
  *   straight into {@link appBarSettingsTemplate}'s returned markup, inside a
@@ -57,9 +58,8 @@
  * (`.docsopen`, `.setopen`, `.keysopen`), the same substitution
  * `presentLevelSwitcher` already makes for the mockup's own `.task-*` ids.
  * `.langpick` needed no substitution: the mockup already gives `#langPick`
- * that class alongside its id, and `src/main.ts`'s own lookup already
- * selects on the class (`.languagepicker`) rather than an id for the same
- * reason.
+ * that class alongside its id, which is the selector this module's own
+ * presenter uses.
  *
  * ## The About block
  *
@@ -237,9 +237,8 @@ export function presentAppBarSettings(
   const languageSelect = requireElement(".langpick", parent);
   if (!(languageSelect instanceof HTMLSelectElement)) {
     // Unreachable against `appBarSettingsTemplate`'s own markup, which always
-    // draws `.langpick` as a `<select>`; guarded the same way `src/main.ts`
-    // guards its own `.languagepicker` lookup, for a caller that hands this
-    // presenter some other markup instead.
+    // draws `.langpick` as a `<select>`; guarded all the same, for a caller
+    // that hands this presenter some other markup instead.
     throw new TypeError("Expected .langpick to be a <select>");
   }
 

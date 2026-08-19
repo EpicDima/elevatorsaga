@@ -47,17 +47,9 @@ export const EN_MESSAGES = {
   "page.imageAlt":
     "Four elevators carrying people between six floors, with the JavaScript program driving them in the editor below.",
   "page.skipLink": "Skip to the code editor",
+  // The page's `<h1>`, drawn as the app bar's brand name. The same string in
+  // both catalogues, and translated in neither: it is the game's name.
   "page.brand": "Elevator Saga",
-  "page.tagline": "The elevator programming game",
-  // The header's way into the learning track, and deliberately not one of the
-  // `page.nav.*` keys below it: those three are the links inside a landmark
-  // named "Help and reference", and this one goes to the game rather than to
-  // something to read about it.
-  "page.tutorialLink": "Learning track",
-  "page.nav.label": "Help and reference",
-  "page.nav.help": "Help",
-  "page.nav.documentation": "Documentation",
-  "page.nav.wiki": "Wiki & Solutions",
   // The picker's options are not here: a language is named in its own language,
   // so that the reader who needs Русский can find it while the interface is
   // still English. Those endonyms live in `LOCALE_NAMES`, in `./locale.ts`.

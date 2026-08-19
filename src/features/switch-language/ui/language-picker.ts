@@ -10,19 +10,21 @@
  *
  * ## A `<select>`, not a row of links
  *
- * Two links (`English` · `Русский`) would have been fewer lines and is the shape
- * the rest of the header already has. A native `<select>` was chosen instead:
+ * Two links (`English` · `Русский`) would have been fewer lines. A native
+ * `<select>` was chosen instead:
  *
- * - It is one stop in the tab order rather than one per language, in a header
- *   that already costs three, and it stays one when a third language is added.
+ * - It is one stop in the tab order rather than one per language, and it stays
+ *   one when a third language is added.
  * - It announces its own current value. A row of links has to say which one is
  *   in effect with `aria-current` and a style, and both have to be maintained;
  *   a `<select>` says "Language, combo box, Русский" with nothing added.
  * - On a phone the browser opens its own picker, which is a thing readers of
  *   this page already know how to use.
- * - It is a form control, so `data-i18n-attr="aria-label:page.language.label"`
- *   labels it the way the shell labels everything else. There was no other
- *   candidate for the key the catalogue already carried.
+ * - It is a form control, so `page.language.label` labels it the way the shell
+ *   labels everything else. There was no other candidate for the key the
+ *   catalogue already carried. The control now lives in the app bar's settings
+ *   popover, which is built at runtime and so writes that label with `t()`
+ *   rather than with a `data-i18n-attr`; the key is the same one.
  *
  * ## The options are not translated
  *
@@ -31,7 +33,8 @@
  * reader cannot read is no use to the reader who needs it most. The list is
  * built from {@link LOCALES} rather than written out, so a third language is
  * still the one-line change `src/i18n/locale.ts` promises — the control needs no
- * edit at all, and neither does `index.html`, which ships the `<select>` empty.
+ * edit at all, and neither does the settings popover's template, which draws the
+ * `<select>` empty.
  *
  * Which also means the options never need rewriting when the language changes:
  * "English" and "Русский" are the same words in both. The only thing about this

@@ -17,7 +17,7 @@ git show a5010f2:docs/i18n-inventory.md |
   while IFS=: read -r file line; do
     [ "$(git show "a5010f2:$file" | sed -n "${line}p")" = \
       "$(git show "HEAD:$file" | sed -n "${line}p")" ] && echo same || echo moved
-  done | sort | uniq -c                                          # 95 moved, 129 same
+  done | sort | uniq -c                                          # 462 moved, 129 same
 ```
 
 Two of the 95 show the range. `src/app/app.ts:207` was the `World raised code error` console
@@ -104,14 +104,14 @@ Key names carry two suffixes that mean something:
 
 ## Where the strings are
 
-The catalogue holds **468 keys** in two locales. `src/i18n/en.ts` is the reference — its text is
+The catalogue holds **462 keys** in two locales. `src/i18n/en.ts` is the reference — its text is
 the English wording, extracted verbatim — and `src/i18n/ru.ts` is the Russian translation. The
 types make English the shape everything else is measured against: a Russian catalogue missing a
 key, carrying a key English does not have, or giving a plural message the wrong number of forms
 is a compile error, not a runtime surprise.
 
 ```sh
-grep -cE '^  "[^"]+":' src/i18n/en.ts                                   # 468
+grep -cE '^  "[^"]+":' src/i18n/en.ts                                   # 462
 grep -oE '^  "[^"]+"' src/i18n/en.ts | tr -d '"' | cut -d. -f1 | sort | uniq -c | sort -rn
 ```
 
@@ -120,13 +120,13 @@ grep -oE '^  "[^"]+"' src/i18n/en.ts | tr -d '"' | cut -d. -f1 | sort | uniq -c 
 | `docs.*`       | 85      | one of them, `docs.basics.example.code`, by `src/ui/completions.ts`; the other 84 by nothing                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
 | `tutorial.*`   | 82      | `src/widgets/tutorial-panel/ui/tutorial-panel.ts`, `src/ui/templates.ts`, `src/pages/game/index.ts`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
 | `game.*`       | 191     | `src/ui/templates.ts` (18), `src/pages/game/index.ts` (11 + 5), `src/widgets/goal-bar/ui/goal-bar.ts` (22), `src/widgets/level-switcher/ui/level-switcher.ts` (6), `src/widgets/building-stage/lib/hover-card-text.ts` (15), `src/widgets/stats-panel/ui/stats-panel.ts` (3), `src/widgets/editor-pane/ui/editor-pane.ts` (3), `src/features/switch-theme` (4), `src/features/switch-layout` (5), `src/widgets/app-bar/ui/settings-menu.ts` (7), `src/main.ts` (3, the workspace pane/splitter labels); the two speed labels are written by both of the first two; the other 91, under `game.hotkeys.*`, `game.docs.*` and `game.apiRef.*`, by none of them yet — see below |
-| `page.*`       | 33      | `index.html`, through `data-i18n` and `data-i18n-attr`; `page.noscript` excepted, see below                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| `page.*`       | 27      | `index.html`, through `data-i18n` and `data-i18n-attr`; `page.noscript` excepted, see below                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 | `completion.*` | 33      | `src/ui/completions.ts`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
 | `challenge.*`  | 15      | `src/game/challenges.ts`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
 | `fitness.*`    | 11      | `src/app/fitness.ts`, `src/game/fitness.ts`, `src/main.ts`, `src/cli/bench.ts`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
 | `error.*`      | 10      | `src/game/elevator-interface.ts`, `src/pages/game/index.ts`, `src/game/user-code.ts`, `src/game/movable.ts`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 | `editor.*`     | 8       | `src/main.ts`, `src/pages/game/index.ts`, `src/ui/editor.ts`, `src/ui/default-code.ts`, `src/widgets/editor-pane/ui/editor-pane.ts`, `src/features/manage-code-slots/ui/code-slots.ts`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
-| **Total**      | **468** |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| **Total**      | **462** |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
 
 Which keys nothing reads:
 
@@ -166,54 +166,47 @@ step.
 
 ## The strings
 
-### `index.html` — the page shell, 33 `page.*` keys
+### `index.html` — the page shell, 27 `page.*` keys
 
 The shell ships its English in the markup and names the message beside it: `data-i18n` for an
 element's words, `data-i18n-attr="attribute:key"` for its attributes. `src/ui/localise-page.ts`
 walks the document and rewrites both, at start-up and again after every language change.
 
-| Key                             | English                                                                                                        | Notes                                                                                                                                                |
-| ------------------------------- | -------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `page.title`                    | Elevator Saga - the elevator programming game                                                                  | twice: the `<title>`, and the `og:title` meta                                                                                                        |
-| `page.description`              | Elevator Saga is a programming game: write JavaScript to transport people efficiently.                         | twice: the `description` meta, and the `og:description` one                                                                                          |
-| `page.imageAlt`                 | Four elevators carrying people between six floors, with the JavaScript program driving them in the editor bel… | the `og:image:alt` meta                                                                                                                              |
-| `page.skipLink`                 | Skip to the code editor                                                                                        |                                                                                                                                                      |
-| `page.brand`                    | Elevator Saga                                                                                                  | first half of the one `<h1>`; see _What could not be keyed cleanly_                                                                                  |
-| `page.tagline`                  | The elevator programming game                                                                                  | second half of the same `<h1>`                                                                                                                       |
-| `page.tutorialLink`             | Learning track                                                                                                 | the only way into the learning track; outside the `<nav>` below it, and `src/pages/game/index.ts` keeps its `href` on the first task not yet cleared |
-| `page.nav.label`                | Help and reference                                                                                             | an `aria-label`                                                                                                                                      |
-| `page.nav.help`                 | Help                                                                                                           | also carries `data-i18n-doc=""`, so the link follows the language and lands at the top                                                               |
-| `page.nav.documentation`        | Documentation                                                                                                  | also carries `data-i18n-doc="docs"`                                                                                                                  |
-| `page.nav.wiki`                 | Wiki & Solutions                                                                                               | an external link; not retargeted                                                                                                                     |
-| `page.language.label`           | Language                                                                                                       | the `aria-label` of the picker's `<select>`; its options are `LOCALE_NAMES` and are never translated                                                 |
-| `page.noscript`                 | Your browser does not appear to support JavaScript. This page contains a browser-based programming game imple… | the one key with no element, and it cannot have one: see _Where the strings are_                                                                     |
-| `page.controls.label`           | Run controls                                                                                                   | an `aria-label` on `.controls`, the run/pause/reset row and the speed together, the way `page.stats.label` names `.statscontainer`                   |
-| `page.world.label`              | Building                                                                                                       | an `aria-label`                                                                                                                                      |
-| `page.stats.label`              | Simulation statistics                                                                                          | an `aria-label`                                                                                                                                      |
-| `page.stats.transported`        | Transported                                                                                                    |                                                                                                                                                      |
-| `page.stats.elapsedTime`        | Elapsed time                                                                                                   |                                                                                                                                                      |
-| `page.stats.transportedPerSec`  | Transported/s                                                                                                  |                                                                                                                                                      |
-| `page.stats.avgWaitTime`        | Avg delivery time                                                                                              | the key names the `World` field, which is `avgWaitTime`; the label names what it measures, which is not a wait                                       |
-| `page.stats.avgPickupTime`      | Avg wait for a car                                                                                             | the first half of the row above it, and the only one of the four that is a wait: it stops when a car takes the passenger, so the ride is outside it  |
-| `page.stats.avgPickupTimeTitle` | The clock starts when a passenger appears and stops when a car takes them, and the row below it is the…        | a `title` attribute on the same cell as `page.stats.avgPickupTime`; text of `docs.play.statistics.html` word for word                                |
-| `page.stats.avgRideTime`        | Avg ride time                                                                                                  | the other half: boarding to stepping out, the span the two delivery times above it do not name                                                       |
-| `page.stats.avgRideTimeTitle`   | The clock starts when a car takes a passenger and stops when they step out at their floor, so this and…        | a `title` attribute on the same cell as `page.stats.avgRideTime`; text of `docs.play.statistics.html` word for word                                  |
-| `page.stats.maxWaitTime`        | Max delivery time                                                                                              | likewise, and this is the figure the eight wait-limited challenges are judged on                                                                     |
-| `page.stats.moves`              | Moves                                                                                                          |                                                                                                                                                      |
-| `page.stats.movesTitle`         | One move is counted each time a car crosses the halfway mark between one floor and the next                    | a `title` attribute on the same cell as `page.stats.moves`                                                                                           |
-| `page.stats.stops`              | Stops                                                                                                          | door openings rather than floors crossed, so a long trip is many of the row above and one of this one                                                |
-| `page.stats.stopsTitle`         | One stop is counted each time a car comes to rest at a floor and opens its doors, so a car sent to the…        | a `title` attribute on the same cell as `page.stats.stops`; text of `docs.play.statistics.html` word for word                                        |
-| `page.stats.peoplePerStop`      | People per stop                                                                                                | boardings and alightings together, over the stops above; both ends of a journey count, so it reads higher than the trade's figure of the same name   |
-| `page.stats.peoplePerStopTitle` | Everyone who got in or out, over the stops counted above, so opening the doors where nobody is waiting…        | a `title` attribute on the same cell as `page.stats.peoplePerStop`; text of `docs.play.statistics.html` word for word                                |
-| `page.stats.avgLoad`            | Avg load                                                                                                       | how full the cars were, as a percentage; averaged over the moves the row above counts, so a car that never moved is absent rather than empty         |
-| `page.stats.avgLoadTitle`       | How full the cars were, averaged over the moves counted above, so a car standing still is not in the…          | a `title` attribute on the same cell as `page.stats.avgLoad`; text of `docs.play.statistics.html` word for word                                      |
+| Key                             | English                                                                                                        | Notes                                                                                                                                                                 |
+| ------------------------------- | -------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `page.title`                    | Elevator Saga - the elevator programming game                                                                  | twice: the `<title>`, and the `og:title` meta                                                                                                                         |
+| `page.description`              | Elevator Saga is a programming game: write JavaScript to transport people efficiently.                         | twice: the `description` meta, and the `og:description` one                                                                                                           |
+| `page.imageAlt`                 | Four elevators carrying people between six floors, with the JavaScript program driving them in the editor bel… | the `og:image:alt` meta                                                                                                                                               |
+| `page.skipLink`                 | Skip to the code editor                                                                                        |                                                                                                                                                                       |
+| `page.brand`                    | Elevator Saga                                                                                                  | the one `<h1>`, drawn as the app bar's brand name; see _What could not be keyed cleanly_                                                                              |
+| `page.language.label`           | Language                                                                                                       | the `aria-label` of the picker's `<select>`; written by the settings popover with `t()`, not by an attribute; its options are `LOCALE_NAMES` and are never translated |
+| `page.noscript`                 | Your browser does not appear to support JavaScript. This page contains a browser-based programming game imple… | the one key with no element, and it cannot have one: see _Where the strings are_                                                                                      |
+| `page.controls.label`           | Run controls                                                                                                   | an `aria-label` on `.controls`, the run/pause/reset row and the speed together, the way `page.stats.label` names `.statscontainer`                                    |
+| `page.world.label`              | Building                                                                                                       | an `aria-label`                                                                                                                                                       |
+| `page.stats.label`              | Simulation statistics                                                                                          | an `aria-label`                                                                                                                                                       |
+| `page.stats.transported`        | Transported                                                                                                    |                                                                                                                                                                       |
+| `page.stats.elapsedTime`        | Elapsed time                                                                                                   |                                                                                                                                                                       |
+| `page.stats.transportedPerSec`  | Transported/s                                                                                                  |                                                                                                                                                                       |
+| `page.stats.avgWaitTime`        | Avg delivery time                                                                                              | the key names the `World` field, which is `avgWaitTime`; the label names what it measures, which is not a wait                                                        |
+| `page.stats.avgPickupTime`      | Avg wait for a car                                                                                             | the first half of the row above it, and the only one of the four that is a wait: it stops when a car takes the passenger, so the ride is outside it                   |
+| `page.stats.avgPickupTimeTitle` | The clock starts when a passenger appears and stops when a car takes them, and the row below it is the…        | a `title` attribute on the same cell as `page.stats.avgPickupTime`; text of `docs.play.statistics.html` word for word                                                 |
+| `page.stats.avgRideTime`        | Avg ride time                                                                                                  | the other half: boarding to stepping out, the span the two delivery times above it do not name                                                                        |
+| `page.stats.avgRideTimeTitle`   | The clock starts when a car takes a passenger and stops when they step out at their floor, so this and…        | a `title` attribute on the same cell as `page.stats.avgRideTime`; text of `docs.play.statistics.html` word for word                                                   |
+| `page.stats.maxWaitTime`        | Max delivery time                                                                                              | likewise, and this is the figure the eight wait-limited challenges are judged on                                                                                      |
+| `page.stats.moves`              | Moves                                                                                                          |                                                                                                                                                                       |
+| `page.stats.movesTitle`         | One move is counted each time a car crosses the halfway mark between one floor and the next                    | a `title` attribute on the same cell as `page.stats.moves`                                                                                                            |
+| `page.stats.stops`              | Stops                                                                                                          | door openings rather than floors crossed, so a long trip is many of the row above and one of this one                                                                 |
+| `page.stats.stopsTitle`         | One stop is counted each time a car comes to rest at a floor and opens its doors, so a car sent to the…        | a `title` attribute on the same cell as `page.stats.stops`; text of `docs.play.statistics.html` word for word                                                         |
+| `page.stats.peoplePerStop`      | People per stop                                                                                                | boardings and alightings together, over the stops above; both ends of a journey count, so it reads higher than the trade's figure of the same name                    |
+| `page.stats.peoplePerStopTitle` | Everyone who got in or out, over the stops counted above, so opening the doors where nobody is waiting…        | a `title` attribute on the same cell as `page.stats.peoplePerStop`; text of `docs.play.statistics.html` word for word                                                 |
+| `page.stats.avgLoad`            | Avg load                                                                                                       | how full the cars were, as a percentage; averaged over the moves the row above counts, so a car that never moved is absent rather than empty                          |
+| `page.stats.avgLoadTitle`       | How full the cars were, averaged over the moves counted above, so a car standing still is not in the…          | a `title` attribute on the same cell as `page.stats.avgLoad`; text of `docs.play.statistics.html` word for word                                                       |
 
-Every link into the reference page is an element of the shell rather than an `href` inside a
-message, and carries `data-i18n-doc`; `src/ui/documentation-links.ts` rewrites those from the
-attribute on every language change, which is why the header's two links no longer send a Russian
-reader to the English page. That module's own header explains why the mapping lives in `src/ui/` and not in
-`src/i18n/locale.ts`: `locale.ts` describes the languages the game speaks, this describes the
-files the build emits, and the two sets are allowed to differ.
+The shell links to the reference page nowhere. It used to: a `Learning track` link and a
+`<nav>` of three, retargeted per language by a third attribute, `data-i18n-doc`. Those went with
+the header they sat in — the help the game offers is now the docs dialog, and
+`documentation.html` and `documentation.ru.html` are standalone pages the build still emits and
+still translates key for key. Six `page.*` keys went with them.
 
 ### `documentation.html` — the reference page, 85 `docs.*` keys
 
@@ -428,7 +421,7 @@ identically in every locale. Both names repeat it because an accessible name has
 own — "1234567890, link" describes nothing.
 
 `game.seed.newDraw` appearing inside `game.seed.newDrawLink` is a constraint a translator cannot
-see: the two sit on adjacent lines of a 468-key file and nothing in the file marks them as a
+see: the two sit on adjacent lines of a 462-key file and nothing in the file marks them as a
 pair. `src/i18n/catalogue.test.ts`, under _accessible names_, is what holds it — it requires the
 spoken name to contain the visible label in every locale. Rewording «новый розыгрыш» to «новый
 сид» meant changing both, which is exactly the edit where one gets missed.
@@ -953,7 +946,7 @@ why `exact` asks for `maximumFractionDigits` rather than for significant digits:
 
 ```sh
 node -e 'const f = new Intl.NumberFormat("en");
-  console.log(f.resolvedOptions().maximumFractionDigits, f.format(0.0625))'   # 3 0.063
+  console.log(f.resolvedOptions().maximumFractionDigits, f.format(0.0625))'   # 462 0.063
 ```
 
 ### `src/ui/completions.ts` — 33 `completion.*` keys
@@ -1043,7 +1036,7 @@ either. CLDR's narrow unit pattern for Russian carries an ordinary space, and `f
 ```sh
 node -e 'const s = new Intl.NumberFormat("ru",
     { style: "unit", unit: "second", unitDisplay: "narrow" }).format(60);
-  console.log([...s].map((c) => c.codePointAt(0).toString(16)).join(" "))'   # 36 30 20 441
+  console.log([...s].map((c) => c.codePointAt(0).toString(16)).join(" "))'   # 462 30 20 441
 ```
 
 ### `src/game/user-code.ts`, `src/game/elevator-interface.ts`, `src/game/movable.ts` — 7 `error.*` keys
@@ -1169,9 +1162,12 @@ and all seven ship, so this is a record of how each was resolved rather than a p
    The space belongs to the line rather than to the message because every language needs it and
    no translator should have to remember to type it.
 
-6. **One `<h1>`, two strings.** The heading in `index.html` puts the game's name and its tagline
-   in one element. They are keyed as `page.brand` and `page.tagline`, because the brand is a name
-   that stays English and the tagline is prose that does not.
+6. **One `<h1>`, one string, and the same string in both catalogues.** `page.brand` is the whole
+   of the heading, and it is `"Elevator Saga"` in English and in Russian alike: the brand is a
+   name, and a name does not translate. The heading used to carry a tagline beside it in the same
+   element — "The elevator programming game" — and the two were keyed apart precisely because
+   that half _was_ prose and did have to move. The app bar drops the tagline, so the split it
+   forced is gone with it.
 
 7. **The docs and the editor say the same thing twice.** `completion.elevator.goToFloor` is the
    first two sentences of `docs.api.elevator.goToFloor.html` without its markup, and it is not
@@ -1324,8 +1320,8 @@ assertions are the specification of what the surviving side has to keep saying.
 One catalogue file, plus three lines the compiler demands anyway:
 
 1. Add the code to `Locale` and `LOCALES` in `src/i18n/locale.ts`, and its endonym to
-   `LOCALE_NAMES`. The language picker and `index.html` need no edit at all: the options are
-   built from `LOCALES`.
+   `LOCALE_NAMES`. The language picker needs no edit at all: the options are built from
+   `LOCALES`.
 2. Add the plural categories `Intl` gives that language to `PLURAL_CATEGORIES` in
    `src/i18n/format.ts`. `src/i18n/format.test.ts` checks the list against ICU, so a wrong guess
    fails a test rather than mistranslating a count.
@@ -1338,10 +1334,10 @@ One catalogue file, plus three lines the compiler demands anyway:
    rather than around it, so splitting the catalogue out of the bundle costs none of the
    checking.
 
-The reference page is a separate job and deliberately so: `src/ui/documentation-links.ts` maps a
-locale to the file the build emits, and the set of catalogues and the set of translated pages are
-allowed to differ. A catalogue is one file a translator can finish in an afternoon; the reference
-page is nine hundred lines of tables. Ship the interface first.
+The reference page is a separate job and deliberately so: the game no longer links to it, so the
+set of catalogues and the set of translated pages are free to differ. A catalogue is one file a
+translator can finish in an afternoon; the reference page is nine hundred lines of tables. Ship
+the interface first.
 
 The tests in `src/i18n/catalogue.test.ts` then check the new catalogue for key parity, placeholder
 parity, markup that matches the English structure, and example code identical to the English but

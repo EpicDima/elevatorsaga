@@ -20,7 +20,7 @@ interface Harness {
  * @returns The control and what it was given.
  */
 function setUp(storage: MemoryStorage = new MemoryStorage()): Harness {
-  const select = createElement("select", { className: "languagepicker" });
+  const select = createElement("select", { className: "langpick" });
   document.body.replaceChildren(select);
   const redraw = vi.fn();
   presentLanguagePicker({ select, storage, redraw });

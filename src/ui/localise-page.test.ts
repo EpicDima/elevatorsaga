@@ -114,7 +114,7 @@ describe("what index.html names", () => {
     const named = namedMessages(page);
     // A guard on the guard: a selector that matched nothing would let every
     // assertion below pass on an empty list.
-    expect(named.length).toBeGreaterThan(10);
+    expect(named.length).toBeGreaterThan(5);
     for (const { attribute, key } of named) {
       const english = ENGLISH_VALUES[key];
       expect(english, `${attribute}="${key}"`).toBeTypeOf("string");
@@ -201,14 +201,10 @@ describe("localisePage", () => {
       expect(page.title).toBe("Elevator Saga — игра про программирование лифтов");
       expect(page.documentElement.lang).toBe("ru");
       expect(textOf(page.querySelector(".skip-link"))).toBe("Перейти к редактору кода");
-      expect(textOf(page.querySelector("h1"))).toBe(
-        "Elevator Saga Игра про программирование лифтов",
-      );
-      expect([...page.querySelectorAll(".header nav a")].map((link) => textOf(link))).toEqual([
-        "Справка",
-        "Документация",
-        "Вики и решения",
-      ]);
+      // The one heading, and the one word in it that is not translated: the
+      // game's name is the game's name in either language, so `page.brand`
+      // holds the same string in both catalogues.
+      expect(textOf(page.querySelector("h1"))).toBe("Elevator Saga");
       // The statistics panel is not checked here: it is the app's, drawn at
       // runtime by `widgets/stats-panel` into a region this file leaves
       // empty, and what it says in Russian is that widget's own
@@ -224,9 +220,6 @@ describe("localisePage", () => {
 
       localisePage(page, USER_AGENTS.windows);
 
-      expect(page.querySelector(".header nav")?.getAttribute("aria-label")).toBe(
-        "Справка и документация",
-      );
       expect(page.querySelector(".world")?.getAttribute("aria-label")).toBe("Здание");
       expect(page.querySelector(".statscontainer")?.getAttribute("aria-label")).toBe(
         "Статистика симуляции",

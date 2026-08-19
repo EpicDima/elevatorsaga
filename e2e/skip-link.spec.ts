@@ -3,7 +3,7 @@
  *
  * The editor is what the page is for, and it is behind everything the building
  * contains: the scroll container, and a button for every call and every floor.
- * On the eighteenth challenge that is 249 tab stops past the link, 208 of them
+ * On the eighteenth challenge that is 258 tab stops past the link, 210 of them
  * buttons. The count is measured here rather than asserted from the markup
  * because most of those stops are drawn by the presenters at run time and do
  * not exist in `index.html` at all.
@@ -56,8 +56,8 @@ test("saves a walk through the whole building", async ({ page }) => {
 
   // Exact, because a range records nothing: this file's own header once
   // claimed 208 while the walk was 240, and bounds of 100 and 400 had nothing
-  // to say about it. 210 of the 263 are buttons -- eight cars of 21 floors,
-  // plus a call each way at every floor -- and the other 53 are the rest of
+  // to say about it. 210 of the 258 are buttons -- eight cars of 21 floors,
+  // plus a call each way at every floor -- and the other 48 are the rest of
   // the chrome above the building, the building's own scroll container, each
   // floor's own row and each car's own container, the statistics panel's
   // summary and the splitter below the building, and the code slot switcher.
@@ -70,14 +70,18 @@ test("saves a walk through the whole building", async ({ page }) => {
   // app bar's two openers (Help, Settings) sat above the building and the
   // workspace's own splitter -- a third pane control, resizable the same way
   // the editor's height grip is -- sat below it, between the building and the
-  // code slot switcher. It is 263 now that widgets/level-switcher's three
+  // code slot switcher. It was 263 once widgets/level-switcher's three
   // controls (Previous level, the switcher itself, Next level) and
-  // widgets/goal-bar's tier popover trigger stand where the old challenge
+  // widgets/goal-bar's tier popover trigger stood where the old challenge
   // bar's plain heading used to, four more stops above the building, and
-  // widgets/stats-panel's "All figures" summary sits between the building and
-  // the splitter, a fifth -- and now that Reset code has moved out of the run
-  // controls row and into widgets/editor-pane, landing after the code slot
-  // switcher instead of beside Start over: nothing added to the count, only
-  // moved within it.
-  expect(stops).toBe(263);
+  // widgets/stats-panel's "All figures" summary sat between the building and
+  // the splitter, a fifth -- and Reset code moved out of the run controls row
+  // and into widgets/editor-pane, landing after the code slot switcher
+  // instead of beside Start over, which added nothing and only moved a stop
+  // within the count. It is 258 now that the shipped header is gone: the
+  // learning-track link, the three help links and the language `<select>`
+  // were five stops between the skip link and the building, and the track is
+  // reached from the level switcher and the language from the settings
+  // popover, neither of which is a stop of its own.
+  expect(stops).toBe(258);
 });

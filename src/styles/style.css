@@ -564,10 +564,10 @@ dl dd {
  * `icon.ts`'s own module comment said as much -- "this module has no
  * stylesheet rule for `.ds-icon` yet." Ported here from the mockup's own
  * `.icon` rule (§1) now that a live widget needs it: `widgets/app-bar`'s
- * `.docsopen` button draws one of this family's
- * glyphs directly inside `.header`'s `flex-direction: column`, and a
- * `viewBox`-only SVG with no intrinsic size stretches to fill whatever
- * cross-axis width that gives it. Measured live before this rule: a 16x16
+ * `.docsopen` button draws one of this family's glyphs, and a `viewBox`-only
+ * SVG with no intrinsic size stretches to fill whatever cross-axis width its
+ * parent gives it. Measured live before this rule, with the button still
+ * inside the old stacked header (`.header`, `flex-direction: column`): a 16x16
  * book glyph rendered 1220px square, the header carrying it 2682.9px tall,
  * and `e2e/seed.spec.ts`'s "does not move the caveat's own control" failing
  * by 2548px on a control that itself never moved -- see this file's own "App
@@ -665,42 +665,26 @@ dl dd {
 }
 
 /*
- * The title, and under it the row of tools.
+ * The help pages' own header: the title and, under it, the row that carries
+ * the way back to the game and the link to the other language's copy.
  *
- * A column rather than the two at opposite ends of one wrapping row, because
- * side by side they shared a line only while both fitted -- and how much they
- * measure is a fact about the language being read. The title and the tools come
- * to 1190.9px in English and 1326.4px in Russian, against the 1220px the shell
- * is ever willing to give them, so at a desk English got a 60px header and
- * Russian a 115px one. Switching language dropped the whole page 55px, on the
- * same screen, with nothing else about it changed.
+ * `documentation.html`/`documentation.ru.html` are the only two documents left
+ * with one. The game page had a header of the same shape until the app bar
+ * replaced it, and this rule was written for the defect that shape caused
+ * there: the title and the tools side by side shared a line only while both
+ * fitted, and how much they measure is a fact about the language being read,
+ * so at a desk English got a 60px header and Russian a 115px one and switching
+ * language dropped the whole page 55px with nothing else about it changed.
+ * Stacked, no measurement decides anything -- there are two rows because there
+ * are two children, in every language and at every width.
  *
- * Stacked, no measurement decides anything: there are two rows because there are
- * two children, in every language and at every width. Swept in Chromium at every
- * width from 320px to 1440px, English and Russian used to disagree at 430 of the
- * 1121 -- the widest screen included -- and now disagree at 215, none of them
- * above 674px. Below that the words are simply longer and need more lines, which
- * is not something a stylesheet gets to fix.
- *
- * The trade is 87px of header at a desk where English had 60; Russian gets 28px
- * back. What does not change is the one place the height still grows as the
- * window widens: at 761px the title comes off the phone-sized rule at the foot
- * of this file and takes the header from 70.27px to 87px. That reversal is a
- * breakpoint doing what it was asked to, and it now happens at the same width
- * and by the same amount in both languages, which is the part that was wrong.
- *
- * `documentation.html`/`documentation.ru.html` share this rule and `.header
- * nav`, though never the defect above: each is its own static page, so a
- * reader picking a language follows a link to a different document rather
- * than watching this one move. They pay the same 27px at a desk (60px to
- * 87px) and the same 28px back at 761px regardless, because the header is
- * shared rather than duplicated for a markup that is otherwise identical
- * here -- an `<h1>` and a `nav`, no `.headertools`. That cost buys them
- * something the game page did not need: at 760px the two language pages used
- * to disagree, 35px against 80.27px, unnoticed because nothing tested it; both
- * read 70.27px now. `e2e/documentation.spec.ts` pins all three widths on both
- * pages, so the shared rule cannot drift back to a height only one of them
- * gets to see.
+ * The two help pages never had that defect and still keep the fix, because
+ * each is its own static page: a reader picking a language follows a link to a
+ * different document rather than watching this one move. What the shared rule
+ * did buy them is agreement with each other. At 760px they used to disagree,
+ * 35px against 80.27px, unnoticed because nothing tested it; both read 70.27px
+ * now, and `e2e/documentation.spec.ts` pins three widths on both pages so the
+ * rule cannot drift back to a height only one of them gets to see.
  */
 .header {
   display: flex;
@@ -715,21 +699,16 @@ dl dd {
 }
 
 /*
- * `wrap` for the same reason `.headertools` has it, one level further in.
- *
- * The wrapper being allowed to wrap only lets the picker drop below the links;
- * the links themselves were one unbreakable row, and three of them in Russian
- * do not fit a phone. Measured in Chromium before this line existed: at a 320px
- * viewport the nav laid itself out 367px wide inside a 300px container and took
- * the whole document 57px past the screen, which is WCAG 1.4.10 failed on the
- * game page in Russian. English fits either way, which is why the page that
+ * `wrap`, because three links in Russian do not fit a phone. Measured in
+ * Chromium before this line existed, on the game page's own copy of this
+ * header: at a 320px viewport the nav laid itself out 367px wide inside a
+ * 300px container and took the whole document 57px past the screen, which is
+ * WCAG 1.4.10 failed. English fits either way, which is why the page that
  * ships in English never showed it.
  *
- * Swept with the line in place: the three links take two rows up to 367px in
- * English and up to 404px in Russian, one row above that, and the document
- * overflows at no width from 320px to 1440px in either language.
- * `e2e/reflow.spec.ts` measures the Russian game page now, so this cannot come
- * back the way it arrived — by being true only of a language nobody tested.
+ * The help pages carry two links rather than three and so have more room
+ * still; the rule is kept because what it costs when nothing needs it is
+ * nothing at all, and `e2e/reflow.spec.ts` measures both pages down to 320px.
  */
 .header nav {
   display: flex;
@@ -737,80 +716,10 @@ dl dd {
   gap: 15px;
 }
 
-/*
- * The way into the learning track is dressed as one of the help links although
- * it sits outside their landmark (see the note in index.html): a reader sees one
- * row of header links, and a screen reader is told which of them are the three
- * places to read about the game. The two facts do not have to agree, and this is
- * the one place they deliberately do not.
- */
-.header nav a,
-.header .tutoriallink {
+.header nav a {
   padding-inline: 4px;
   font-size: 20px;
   line-height: 32px;
-}
-
-/*
- * The header's second row: the way into the learning track, the help links and
- * the language picker.
- *
- * A wrapper rather than three more children of `.header`, which is what makes
- * the header two rows rather than four. The rule above stacks whatever it is
- * given, so the grouping is the layout here, not a hint about it.
- *
- * `center`, because the links carry a 32px line box and the picker is a 30px
- * control: left to the baseline they would agree on, the picker hangs off the
- * bottom of the row by the difference between a link's descender and a
- * `<select>`'s.
- *
- * `wrap`, because the picker has to be allowed to fall under the links rather
- * than push the page wider than the screen. Swept in Chromium: the four sit on
- * one row down to 675px in Russian and 608px in English, and nothing overflows
- * sideways at any width from 320px up, which is the part that would have been a
- * defect rather than a cost. Those two thresholds are the same as they were when
- * this wrapper stood at the end of a row shared with the title -- once the tools
- * wrap, they get the whole width either way.
- *
- * A phone paying a row for it is the trade this takes. The alternative is
- * hiding the picker below some width, and the reader most likely to need a
- * language other than the one the page guessed is exactly the reader who cannot
- * be told to find a wider screen.
- */
-.headertools {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 15px;
-}
-
-/*
- * The picker is dressed as the page's other controls (the run row, from Start
- * to the speed arrows): same border, same fill, same corner radius. `font` is
- * inherited explicitly because form controls do not take the page's family on
- * their own, and a `<select>` in the browser's default sans-serif beside a
- * header set in Oswald is the one thing that would make it look bolted on.
- */
-.languagepicker {
-  block-size: 30px;
-  padding-inline: 6px;
-  border: 1px solid var(--ds-line-strong);
-  border-radius: 5px;
-  background-color: var(--ds-raised);
-  color: var(--ds-text);
-  font: inherit;
-  font-size: 16px;
-  cursor: pointer;
-}
-
-/*
- * `index.html` ships the control with no options in it, because the list is
- * built from `LOCALES` by `src/features/switch-language/ui/language-picker.ts`.
- * A reader with no JavaScript, and every crawler, would otherwise be shown an
- * empty combo box that opens on nothing.
- */
-.languagepicker:empty {
-  display: none;
 }
 
 /* ---------------------------------------------------------------- Workspace */
@@ -948,19 +857,12 @@ html[data-layout="left"] .splitter {
  * `background`/`border-bottom` are still not ported here, unlike the mockup's
  * own `.appbar` rule. `h1{color:...}` and `a{color:...}` (below) now read
  * `--ds-text`, not the page-tuned `#444`, so the contrast reason this rule
- * used to give no longer holds -- but painting a panel behind `src/main.ts`'s
- * still-legacy `<h1>`/`.headertools` markup is its own layout decision this
- * bug fix was not asked to make, so the rule stays geometry only regardless.
+ * used to give no longer holds -- but a panel painted behind the bar only
+ * reads as one once the page around it is the mockup's own frame, which is a
+ * later phase's to bring, so the rule stays geometry only until then.
  */
 .appbar {
   display: flex;
-  /*
-   * Stated explicitly, unlike the mockup's own rule, which leans on this
-   * being the initial value: `.header`'s own `flex-direction: column` (above)
-   * is a real declaration for the same property on the same element, and an
-   * absent one loses a cascade it is not part of -- omitting this here would
-   * leave that column standing.
-   */
   flex-direction: row;
   flex: 0 0 auto;
   gap: 14px;
@@ -988,7 +890,18 @@ html[data-layout="left"] .splitter {
   border-right: 1px solid var(--ds-line);
 }
 
+/*
+ * The mockup writes the brand name as a `<span>`; `widgets/app-bar` builds it
+ * as the page's `<h1>`, because this bar replaces the header `index.html`
+ * ships and a document with no heading at all is not a trade worth making for
+ * one element name. `margin: 0` is the whole cost of that: the user agent
+ * gives an `<h1>` 0.67em above and below, and inside `.brand`'s flex line --
+ * where margins do not collapse -- 14px of text plus 18.8px of margin does not
+ * fit the row's `--ds-ctl-h`. The size and weight below already override the
+ * rest of what the user agent has to say about an `<h1>`.
+ */
 .brand-name {
+  margin: 0;
   font-size: 14px;
   font-weight: 650;
   letter-spacing: 0.015em;
@@ -1292,6 +1205,22 @@ html[data-theme="dark"] .tasklink.is-done {
   font-family: var(--ds-font-ui);
   font-size: 13px;
   font-weight: 650;
+}
+
+/*
+ * The gap between the bar's two groups: `design/ui-mockup.html`'s own
+ * `.barspace` (§3), the first rule of the right-hand group.
+ *
+ * An empty element rather than `margin-left: auto` on the button after it,
+ * which would do the same thing today and stop doing it the moment anything
+ * is appended past that button. It is also the seam `src/main.ts` composes
+ * the bar around: whatever is inserted before it is pushed left with the
+ * brand and the level switcher, whatever comes after it stays right with the
+ * two settings buttons, and the run controls join the row without any of the
+ * three having to know about each other.
+ */
+.barspace {
+  flex: 1;
 }
 
 /*
@@ -2305,9 +2234,9 @@ html[data-theme="dark"] .tasklink.is-done {
  * empty -- `App` draws into it only while a task is on screen and empties it for
  * the nineteen challenges, the sandbox and the demo -- and an empty block with
  * margins is still 10px of gap above the building on every one of them, its own
- * two margins having collapsed into one. `.languagepicker:empty` is the same
- * rule for the same reason: markup that is present so that a presenter has
- * somewhere to draw must cost nothing on the pages where nothing is drawn.
+ * two margins having collapsed into one. The principle is general: markup that
+ * is present so that a presenter has somewhere to draw must cost nothing on the
+ * routes where nothing is drawn.
  */
 .tutorial {
   margin-block: 10px;

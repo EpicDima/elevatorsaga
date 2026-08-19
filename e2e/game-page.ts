@@ -92,20 +92,21 @@ export function runInstantButton(page: Page, name = "Run instantly"): Locator {
 }
 
 /**
- * The header's own language picker.
+ * The game's language picker, in the app bar's settings popover.
  *
- * By class rather than by its accessible name ("Language"/"Язык"), the other
- * exception alongside {@link statistic}: the settings popover's language
- * block carries the same label on a `<select>` of its own, and a locator is
- * not narrowed by an element being behind a closed `hidden` panel, so
- * `getByLabel` resolves both and fails as ambiguous. The two are one control
- * apart in every other way -- this is the one the header always shows.
+ * The page ships one, and it is behind the popover: the header that used to
+ * carry a second one is gone. Opened the same way {@link seedText} opens it,
+ * because a `<select>` inside a `hidden` panel cannot be operated. By class
+ * rather than by its accessible name ("Language"/"Язык"), the other exception
+ * alongside {@link statistic}: the name is what the specs below assert *about*
+ * this control, and a locator built out of it could not fail that assertion.
  *
  * @param page - The page under test.
- * @returns The header's language `<select>`.
+ * @returns The settings popover's language `<select>`.
  */
-export function languagePicker(page: Page): Locator {
-  return page.locator(".languagepicker");
+export async function languagePicker(page: Page): Promise<Locator> {
+  await openSettingsMenu(page);
+  return page.locator(".setmenu .langpick");
 }
 
 /**
