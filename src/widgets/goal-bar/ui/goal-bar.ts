@@ -324,6 +324,8 @@ export function presentGoalBar(
           tierBadgeMarkup(row.tier),
         )}<b>${t(TIER_NAME_KEY[row.tier])}</b><span class="tierstate"></span></div></div>`,
       );
+      setClass(rowEl, "is-held", row.state === "held");
+      setClass(rowEl, "is-lost", row.state === "lost");
       requireElement(".tierstate", rowEl).innerHTML = spriteIconMarkup(TIER_STATE_ICON[row.state]);
       for (const need of row.requirements) {
         const needEl = renderElement(

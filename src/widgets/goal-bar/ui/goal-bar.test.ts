@@ -249,6 +249,37 @@ describe("presentGoalBar", () => {
     expect(reqText).toContain("50%");
   });
 
+  it("marks a tier row is-held or is-lost by its own verdict, not just its icon", () => {
+    const world = fixtureWorld();
+    world.transportedCounter = 12;
+    world.elapsedTime = 45; // under silver's 50s budget, but not gold's 40s one
+    world.avgLoadFactorOnMove = 0.3; // misses gold's 0.5 floor too
+    const parent = setUp(TIERED_CHALLENGE, world, () => true);
+
+    requireElement(".tierbox", parent).click();
+
+    expect(
+      requireElement('.tierrow[data-tier="bronze"]', parent).classList.contains("is-held"),
+    ).toBe(true);
+    expect(
+      requireElement('.tierrow[data-tier="silver"]', parent).classList.contains("is-held"),
+    ).toBe(true);
+    expect(requireElement('.tierrow[data-tier="gold"]', parent).classList.contains("is-lost")).toBe(
+      true,
+    );
+  });
+
+  it("leaves every tier row unmarked while the run's own verdict is still undecided", () => {
+    const parent = setUp(TIERED_CHALLENGE, fixtureWorld(), () => null);
+
+    requireElement(".tierbox", parent).click();
+
+    for (const row of parent.querySelectorAll(".tierrow")) {
+      expect(row.classList.contains("is-held")).toBe(false);
+      expect(row.classList.contains("is-lost")).toBe(false);
+    }
+  });
+
   it("costs nothing while the popover stays closed, and shows fresh figures the next time it opens", () => {
     const world = fixtureWorld();
     world.transportedCounter = 12;

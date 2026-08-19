@@ -570,6 +570,18 @@ dl dd {
   stroke-linejoin: round;
 }
 
+/*
+ * `design/ui-mockup.html`'s own `.num` (§1): tabular figures for anything
+ * that ticks live -- a goal-bar meter's current/threshold pair today, a
+ * stats-panel tile once that widget's own CSS lands. Proportional digits
+ * jitter a line's width as they change; tabular ones hold it still.
+ */
+.num {
+  font-family: var(--ds-font-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
 /* ------------------------------------------------------------------- Shell */
 
 /*
@@ -1408,6 +1420,356 @@ html[data-theme="dark"] .tasklink.is-done {
  */
 .challenge {
   min-block-size: 40px;
+}
+
+/*
+ * The goal bar and its tier popover: `design/ui-mockup.html`'s own
+ * `.goalbar`/`.meter*`/`.goalright`/`.tierwrap`/`.tierbox`/`.tiermenu`/
+ * `.tierrow*`/`.tierneed`/`.tierbar` rules (§2), ported for
+ * `widgets/goal-bar`. `.stars`/`.star` themselves are already ported, above
+ * -- `entities/challenge-tier`'s `tierBadgeMarkup` draws the same markup
+ * here as it does in a level tile's own badge.
+ */
+/*
+ * `color: var(--ds-text)` here, past what the mockup itself declares, for
+ * the same reason `.setmenu` (above) carries one: `.goalbar` sits directly
+ * on `<body>`, and everything under it that is not a `<p>` or a heading --
+ * `.meter-val`'s own `<b>`, `.tierrow-head`'s own `<b>` -- falls back to
+ * `<body>`'s own `color: white` otherwise, invisible on this bar's light
+ * `--ds-panel` background. Measured live before this rule: `.meter-val b`
+ * read `rgb(255 255 255)`. `.cap`/`.tierneed`/`.tierstate`/`.tierneed .now`
+ * each already carry their own explicit colour and are unaffected; this only
+ * reaches the descendants that had none.
+ */
+.goalbar {
+  display: flex;
+  gap: 18px;
+  align-items: center;
+  flex: 0 0 auto;
+  height: var(--ds-panelbar-h);
+  padding: 0 16px;
+  border-bottom: 1px solid var(--ds-line);
+  background: var(--ds-panel);
+  color: var(--ds-text);
+}
+
+.meter {
+  flex: 1 1 0;
+  min-width: 118px;
+  max-width: 300px;
+}
+
+.meter-head {
+  display: flex;
+  gap: 8px;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 3px;
+}
+
+/*
+ * Scoped to `.meter-head`, not ported as the mockup's shared, bare `.cap` --
+ * the same reason `.taskblock .cap` (above) is not either: that base rule's
+ * own colour, `--text-faint`, measures 3.62:1 dark / 3.14:1 light against
+ * this caption's `--ds-panel` background (`getComputedStyle`, matching
+ * `.taskblock .cap`'s own measurement, since both sit on the same
+ * background) -- short of WCAG 1.4.3's 4.5:1 in both. `--ds-text-muted`
+ * clears it, 6.70:1 dark / 5.90:1 light.
+ */
+.meter-head .cap {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--ds-text-muted);
+}
+
+.meter-val {
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.meter-val b {
+  font-size: 13.5px;
+  font-weight: 650;
+}
+
+.meter-track {
+  position: relative;
+  height: 4px;
+  border-radius: 3px;
+  background: var(--ds-n-3);
+}
+
+.meter-fill {
+  height: 100%;
+  border-radius: 3px;
+  background: var(--ds-accent);
+  transition: width 0.25s linear;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .meter-fill,
+  .tierbar i {
+    transition: none;
+  }
+}
+
+/*
+ * The silver/gold tick a bronze meter's own bar draws where that tier's own
+ * requirement sits -- `goal-bar.ts`'s own `meterTicks`.
+ */
+.tick {
+  position: absolute;
+  top: -3px;
+  width: 2px;
+  height: 10px;
+  margin-left: -1px;
+  border-radius: 1px;
+  background: var(--ds-tier-silver);
+}
+
+.tick.is-gold {
+  background: var(--ds-tier-gold);
+}
+
+/*
+ * The mockup keys this off `data-kind="time"|"moves"|"wait"` (§2); the
+ * shipped widget's own `data-kind` instead carries the raw
+ * `ChallengeWorldStats` field name it reads, and `goal-bar.ts`'s own comment
+ * on `METER_FORMAT` names the only three at-most fields a bronze condition
+ * ever reaches. `transportedCounter`, the one at-least field, needs no rule
+ * here: it is exactly what `.meter-fill`'s own base colour, `--ds-accent`,
+ * already means.
+ */
+.meter[data-kind="elapsedTime"] .meter-fill,
+.meter[data-kind="maxWaitTime"] .meter-fill,
+.meter[data-kind="moveCount"] .meter-fill {
+  background: var(--ds-steel);
+}
+
+.meter.is-done .meter-fill {
+  background: var(--ds-ok);
+}
+
+.meter.is-near .meter-fill {
+  background: var(--ds-accent);
+}
+
+.meter.is-late .meter-fill {
+  background: var(--ds-bad);
+}
+
+.meter.is-late .meter-val b {
+  color: var(--ds-bad);
+}
+
+.goalfree {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  font-size: 13px;
+  color: var(--ds-text-muted);
+}
+
+/*
+ * An icon, not text: WCAG 1.4.11's 3:1 floor applies here, not 1.4.3's
+ * 4.5:1, and `--ds-text-faint` clears that against this block's own
+ * `--ds-panel` background in both themes (3.62:1 dark / 3.14:1 light).
+ */
+.goalfree .ds-icon {
+  width: 14px;
+  height: 14px;
+  color: var(--ds-text-faint);
+}
+
+.goalright {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  margin-left: auto;
+}
+
+.tierwrap {
+  position: relative;
+  display: flex;
+  gap: 14px;
+  align-items: center;
+}
+
+.tierwrap[hidden] {
+  display: none;
+}
+
+.tierwrap::before {
+  content: "";
+  width: 1px;
+  height: 20px;
+  background: var(--ds-line);
+}
+
+.tierbox {
+  display: flex;
+  align-items: center;
+  height: 28px;
+  padding: 0 9px;
+  border: 1px solid var(--ds-line);
+  border-radius: var(--ds-r-md);
+  background: var(--ds-bg);
+}
+
+.tierbox:hover {
+  border-color: var(--ds-line-strong);
+  background: var(--ds-raised);
+}
+
+.tierbox[aria-expanded="true"] {
+  border-color: var(--ds-accent-line);
+  background: var(--ds-raised);
+}
+
+.tierbox .star {
+  width: 14px;
+  height: 14px;
+}
+
+.tiermenu {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  z-index: 40;
+  width: 348px;
+  padding: 4px 13px 10px;
+  border: 1px solid var(--ds-line-strong);
+  border-radius: var(--ds-r-lg);
+  background: var(--ds-panel);
+  box-shadow: var(--ds-shadow);
+  text-align: left;
+}
+
+.tiermenu[hidden] {
+  display: none;
+}
+
+.tierrow {
+  padding: 9px 0 10px;
+  border-top: 1px solid var(--ds-line);
+}
+
+.tierrow:first-child {
+  border-top: 0;
+}
+
+.tierrow-head {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.tierrow-head b {
+  font-size: 12.5px;
+  font-weight: 650;
+}
+
+/*
+ * Held/lost, not just its own icon: `goal-bar.ts`'s `drawTierRows` sets
+ * these from `TierRow.state` precisely so this badge would not rely on its
+ * check/dash/cross glyph alone to say which -- ported from the mockup's own
+ * reasoning (§2) for the same rule, that colour says the same thing a
+ * second way.
+ */
+.tierstate {
+  display: grid;
+  place-items: center;
+  margin-left: auto;
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  background: var(--ds-n-3);
+  color: var(--ds-text-muted);
+}
+
+.tierstate .ds-icon {
+  width: 12px;
+  height: 12px;
+  stroke-width: 2.4;
+}
+
+.tierrow.is-held .tierstate {
+  background: var(--ds-ok-soft);
+  color: var(--ds-ok);
+}
+
+.tierrow.is-lost .tierstate {
+  background: var(--ds-bad-soft);
+  color: var(--ds-bad);
+}
+
+.tierneed {
+  display: grid;
+  gap: 3px 10px;
+  grid-template-columns: 1fr auto;
+  padding-left: 42px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--ds-text-muted);
+}
+
+.tierneed + .tierneed {
+  margin-top: 6px;
+}
+
+/*
+ * The mockup's own colour here is `--text-faint` too (§2), and this is text,
+ * not an icon -- it fails the same 4.5:1 floor for the same reason
+ * `.meter-head .cap` (above) does, on the same `--ds-panel` background.
+ * `--ds-text-muted` is the fix there too.
+ */
+.tierneed .now {
+  flex: 0 0 auto;
+  font-family: var(--ds-font-mono);
+  font-size: 11.5px;
+  color: var(--ds-text-muted);
+}
+
+.tierneed.is-miss .now {
+  color: var(--ds-bad);
+}
+
+.tierbar {
+  grid-column: 1 / -1;
+  height: 4px;
+  border-radius: 3px;
+  background: var(--ds-n-3);
+  overflow: hidden;
+}
+
+.tierbar i {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  background: var(--tier-tint, var(--ds-accent));
+  transition: width 0.25s linear;
+}
+
+.tierrow[data-tier="bronze"] {
+  --tier-tint: var(--ds-tier-bronze);
+}
+
+.tierrow[data-tier="silver"] {
+  --tier-tint: var(--ds-tier-silver);
+}
+
+.tierrow[data-tier="gold"] {
+  --tier-tint: var(--ds-tier-gold);
+}
+
+.tierneed.is-miss .tierbar i {
+  background: var(--ds-bad);
 }
 
 /*
