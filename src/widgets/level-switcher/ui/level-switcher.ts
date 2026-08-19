@@ -43,7 +43,7 @@ import { tierBadgeMarkup } from "#entities/challenge-tier/index.ts";
 import { t } from "#i18n/index.ts";
 import { queryAll, requireElement } from "#shared/lib/dom.ts";
 import { createDisclosure } from "#shared/ui/disclosure.ts";
-import { markup, raw, renderFragment } from "../../../ui/templates.ts";
+import { markup, raw, renderFragment } from "#shared/ui/markup.ts";
 
 /**
  * The switcher's inert skeleton: a step button either side of the trigger,

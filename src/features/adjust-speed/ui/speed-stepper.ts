@@ -28,7 +28,7 @@ import type { WorldController } from "#game/world-controller.ts";
 import { t } from "#i18n/index.ts";
 import { requireElement } from "#shared/lib/dom.ts";
 import { iconMarkup } from "#shared/ui/icon.ts";
-import { markup, raw } from "../../../ui/templates.ts";
+import { markup, raw } from "#shared/ui/markup.ts";
 
 /**
  * The speed stepper's markup: two buttons and the value between them.

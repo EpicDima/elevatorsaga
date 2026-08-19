@@ -45,7 +45,7 @@ import type { World } from "#game/world.ts";
 import { decimal, format, percent, quantity, seconds, t } from "#i18n/index.ts";
 import type { MessageArgs, MessageKey } from "#i18n/index.ts";
 import { requireElement } from "#shared/lib/dom.ts";
-import { markup, raw, renderElement } from "../../../ui/templates.ts";
+import { markup, raw, renderElement } from "#shared/ui/markup.ts";
 
 /**
  * How the "transported per second" figure is rounded — copied from

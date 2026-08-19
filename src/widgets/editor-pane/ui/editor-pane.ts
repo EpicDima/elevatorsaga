@@ -42,10 +42,10 @@ import { presentCodeSlots, type CodeSlot } from "#features/manage-code-slots/ind
 import { t } from "#i18n/index.ts";
 import { requireElement } from "#shared/lib/dom.ts";
 import { iconMarkup } from "#shared/ui/icon.ts";
+import { markup, raw } from "#shared/ui/markup.ts";
 
 import { locateCodeError } from "../../../ui/error-location.ts";
 import { describeError } from "../../../ui/presenters.ts";
-import { markup, raw } from "../../../ui/templates.ts";
 
 /**
  * The pane's static skeleton: the slots container, the two codetools

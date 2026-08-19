@@ -83,7 +83,7 @@ import { t } from "#i18n/index.ts";
 import { requireElement } from "#shared/lib/dom.ts";
 import { createDisclosure } from "#shared/ui/disclosure.ts";
 import { spriteIconMarkup } from "#shared/ui/icon.ts";
-import { markup, raw } from "../../../ui/templates.ts";
+import { markup, raw } from "#shared/ui/markup.ts";
 import type { SeedLinkData } from "../../../ui/templates.ts";
 
 /** This fork's own repository, linked from the About block. */

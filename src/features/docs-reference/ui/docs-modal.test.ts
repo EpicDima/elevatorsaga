@@ -4,8 +4,8 @@ import { beforeAll, describe, expect, it } from "vitest";
 
 import { docsModalTemplate, presentDocsModal } from "./docs-modal.ts";
 import { API_REFERENCE } from "#entities/api-reference/index.ts";
+import { renderElement } from "#shared/ui/markup.ts";
 import { polyfillDialogElement } from "#shared/ui/test-helpers.ts";
-import { renderElement } from "../../../ui/templates.ts";
 
 beforeAll(() => {
   polyfillDialogElement();

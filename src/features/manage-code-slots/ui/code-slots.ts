@@ -12,7 +12,7 @@
 import { CODE_SLOTS, type CodeSlot } from "../model/code-slots.ts";
 import { t } from "#i18n/index.ts";
 import { queryAll } from "#shared/lib/dom.ts";
-import { markup } from "../../../ui/templates.ts";
+import { markup } from "#shared/ui/markup.ts";
 
 /** Selects a code slot button, for the delegated click listener and the tests alike. */
 const CODE_SLOT_SELECTOR = ".codeslot";

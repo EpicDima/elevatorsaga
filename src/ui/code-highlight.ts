@@ -32,14 +32,15 @@ const ESCAPES: Readonly<Record<string, string>> = {
 /**
  * Escapes a string for use as element content.
  *
- * A private copy of `src/ui/templates.ts`'s `escapeHtml` rather than an
- * import of it: that module builds the page's markup and this one only ever
- * feeds a string into it (`raw(highlightJavaScript(...))`), so importing the
- * other way round would put a dependency from the templates on the
- * highlighter next to the one already running from the highlighter to the
- * templates. The two functions have to keep agreeing, and `templates.test.ts`
- * and this module's own tests both pin the same five characters, so a
- * disagreement fails a test rather than shipping quietly.
+ * A private copy of `#shared/ui/markup.ts`'s `escapeHtml` rather than an
+ * import of it: `src/ui/templates.ts` already depends on this module for
+ * `highlightJavaScript`, feeding this module's own output into
+ * `raw(highlightJavaScript(...))`, so this module reaching back up into the UI
+ * layer for a helper — even one as small and dependency-free as `escapeHtml`
+ * — would draw the boundary the wrong way round for a five-line function
+ * neither module exclusively owns. The two copies have to keep agreeing, and
+ * `markup.test.ts` and this module's own tests both pin the same five
+ * characters, so a disagreement fails a test rather than shipping quietly.
  *
  * @param value - Text to escape.
  * @returns The escaped text.

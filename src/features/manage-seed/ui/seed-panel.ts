@@ -60,8 +60,8 @@
  */
 
 import { t } from "#i18n/index.ts";
-import { markup, raw } from "../../../ui/templates.ts";
 import type { SeedLinkData } from "../../../ui/templates.ts";
+import { markup, raw } from "#shared/ui/markup.ts";
 
 /**
  * The seed block's help disclosure: what a seed promises, openable without a

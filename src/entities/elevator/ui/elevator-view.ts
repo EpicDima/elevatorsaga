@@ -19,10 +19,11 @@
  * off the shared scale cell.
  */
 
-import { elevatorButtonTemplate, elevatorTemplate, renderElement } from "../../../ui/templates.ts";
+import { elevatorButtonTemplate, elevatorTemplate } from "../../../ui/templates.ts";
 import type { Elevator } from "#game/elevator.ts";
 import { queryAll, requireElement, setClass, setTransformPos } from "#shared/lib/dom.ts";
 import type { StageScale } from "#shared/lib/stage-scale.ts";
+import { renderElement } from "#shared/ui/markup.ts";
 
 /** Selector for one in-car floor button. */
 const FLOOR_BUTTON_SELECTOR = ".buttonpress";

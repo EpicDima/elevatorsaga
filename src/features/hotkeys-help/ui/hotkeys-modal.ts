@@ -22,8 +22,8 @@
 
 import { t } from "#i18n/index.ts";
 import { requireElement } from "#shared/lib/dom.ts";
+import { markup } from "#shared/ui/markup.ts";
 import { createModal, type Modal } from "#shared/ui/modal.ts";
-import { markup } from "../../../ui/templates.ts";
 
 /** Counter for {@link hotkeysModalTemplate}'s own title id, unique per call. */
 let nextTitleId = 0;

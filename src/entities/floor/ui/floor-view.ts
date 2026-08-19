@@ -28,9 +28,10 @@
  * `floorTemplate`/`elevatorTemplate` always did.
  */
 
-import { floorTemplate, renderElement } from "../../../ui/templates.ts";
+import { floorTemplate } from "../../../ui/templates.ts";
 import type { Floor } from "#game/floor.ts";
 import { requireElement, setClass } from "#shared/lib/dom.ts";
+import { renderElement } from "#shared/ui/markup.ts";
 
 /** Selector for a floor's "call up" button. */
 const CALL_UP_SELECTOR = "button.up";

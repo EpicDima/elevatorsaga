@@ -15,7 +15,7 @@ describe("highlightJavaScript", () => {
   });
 
   it("escapes every character markup cares about, within the one token that holds them", () => {
-    // The same five characters `src/ui/templates.ts`'s own `escapeHtml` escapes,
+    // The same five characters `#shared/ui/markup.ts`'s own `escapeHtml` escapes,
     // all inside a single string literal -- which is one token, so nothing here
     // depends on where Lezer happens to split the run into spans.
     const html = highlightJavaScript(`elevator.goToFloor("<img>&'x");`);

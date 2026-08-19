@@ -3,8 +3,8 @@
 import { describe, expect, it } from "vitest";
 
 import { seedPanelTemplate } from "./seed-panel.ts";
-import { renderElement } from "../../../ui/templates.ts";
 import type { SeedLinkData } from "../../../ui/templates.ts";
+import { renderElement } from "#shared/ui/markup.ts";
 
 describe("seedPanelTemplate", () => {
   /** A run nobody pinned, and the URL that starts another run from its seed. */

@@ -58,8 +58,8 @@ import { t } from "#i18n/index.ts";
 import { queryAll, requireElement } from "#shared/lib/dom.ts";
 import { createModal, type Modal } from "#shared/ui/modal.ts";
 import { spriteIconMarkup } from "#shared/ui/icon.ts";
+import { markup, raw } from "#shared/ui/markup.ts";
 import { highlightJavaScript } from "../../../ui/code-highlight.ts";
-import { markup, raw } from "../../../ui/templates.ts";
 
 /** Counter for {@link docsModalTemplate}'s own title id, unique per call. */
 let nextTitleId = 0;

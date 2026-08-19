@@ -31,8 +31,7 @@ import type { ChallengeTier } from "#entities/challenge-tier/index.ts";
 import { tierBadgeMarkup } from "#entities/challenge-tier/index.ts";
 import { t } from "#i18n/index.ts";
 import { iconMarkup } from "#shared/ui/icon.ts";
-
-import { markup, raw, renderElement } from "../../../ui/templates.ts";
+import { markup, raw, renderElement } from "#shared/ui/markup.ts";
 
 /** What the end-of-run overlay says. */
 export interface VerdictToastData {

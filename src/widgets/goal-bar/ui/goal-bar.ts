@@ -42,10 +42,10 @@ import { clearChildren, requireElement, setClass } from "#shared/lib/dom.ts";
 import { createDisclosure } from "#shared/ui/disclosure.ts";
 import { spriteIconMarkup } from "#shared/ui/icon.ts";
 import type { SpriteIconName } from "#shared/ui/icon.ts";
+import { markup, raw, renderElement } from "#shared/ui/markup.ts";
 
 import { buildGoalMeters, type GoalMeterView } from "../model/goal-meters.ts";
 import { buildTierRows, type TierRowState } from "../model/tier-rows.ts";
-import { markup, raw, renderElement } from "../../../ui/templates.ts";
 
 /** What the goal bar needs in order to draw and drive itself. */
 export interface GoalBarOptions {

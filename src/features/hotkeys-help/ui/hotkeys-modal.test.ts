@@ -3,8 +3,8 @@
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { hotkeysModalTemplate, presentHotkeysModal } from "./hotkeys-modal.ts";
+import { renderElement } from "#shared/ui/markup.ts";
 import { polyfillDialogElement } from "#shared/ui/test-helpers.ts";
-import { renderElement } from "../../../ui/templates.ts";
 
 beforeAll(() => {
   polyfillDialogElement();

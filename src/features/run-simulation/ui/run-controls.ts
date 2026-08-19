@@ -26,7 +26,7 @@ import type { WorldController } from "#game/world-controller.ts";
 import { t } from "#i18n/index.ts";
 import { requireElement } from "#shared/lib/dom.ts";
 import { createIcon } from "#shared/ui/icon.ts";
-import { markup } from "../../../ui/templates.ts";
+import { markup } from "#shared/ui/markup.ts";
 
 /**
  * The five run buttons, in the order they are read in.

@@ -11,8 +11,7 @@
 import { CHALLENGE_TIERS } from "#game/challenge-tiers.ts";
 import type { ChallengeTier } from "#game/challenge-tiers.ts";
 import { spriteIconMarkup } from "#shared/ui/icon.ts";
-
-import { markup, raw } from "../../../ui/templates.ts";
+import { markup, raw } from "#shared/ui/markup.ts";
 
 /** Stars a badge always shows, lit or not — one per tier in {@link CHALLENGE_TIERS}. */
 const STAR_COUNT = CHALLENGE_TIERS.length;

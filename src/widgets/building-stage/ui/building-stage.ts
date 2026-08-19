@@ -90,8 +90,7 @@ import type { World } from "#game/world.ts";
 import { positionAboveAnchor, positionBesideAnchor } from "#shared/lib/smart-position.ts";
 import { requireElement, setClass } from "#shared/lib/dom.ts";
 import type { StageScale } from "#shared/lib/stage-scale.ts";
-
-import { markup } from "../../../ui/templates.ts";
+import { markup } from "#shared/ui/markup.ts";
 
 /** Builds the stage's static skeleton: the world layer and the one shared hover card. */
 export function buildingStageTemplate(): string {
