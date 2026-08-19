@@ -102,24 +102,6 @@
   --stats-block-size: calc(
     var(--stats-primary-h) + var(--stats-summary-h) + var(--stats-secondary-h) + 2px
   );
-  --editor-height: 320px;
-
-  /*
-   * The range `.cm-editor`'s own `clamp()` (below) holds the editor within.
-   * The floor is six lines at the editor's `14px/1.4` plus its padding, and
-   * the ceiling leaves the row of buttons under the editor on screen -- a
-   * control that applies the program must not be pushed out of reach by the
-   * box the program is in.
-   *
-   * The ceiling is relative to the window rather than a second pixel figure,
-   * because the complaint upstream PR #104 was written about -- "the coding
-   * area is too small for editing after a few levels" -- is about how much of
-   * the program is on screen at once, and how much screen there is is the
-   * thing this file cannot know.
-   */
-  --editor-height-min: 120px;
-  --editor-height-max: 85vh;
-
   --font-body: Arial, Helvetica, sans-serif;
   --font-mono: Consolas, Monaco, monospace;
 }
@@ -2655,8 +2637,22 @@ kbd {
  * inherited from a `.pane-code` ancestor that is not this element's parent
  * yet. Same value either way, so the redeclaration costs nothing once the
  * shell does move onto `.pane-code` and this rule stops matching anything.
+ *
+ * It is also the column the mockup draws as `.pane.pane-code` itself: the bar,
+ * the error banner and the editor stacked, with the editor taking whatever the
+ * first two leave. The pane above it is already a flex column, so this element
+ * has to be both a flex *item* that claims the leftover height and a flex
+ * *container* that hands it on -- a plain block here stopped at its content and
+ * left the editor the fixed height it had been given for a page that scrolled.
+ * `min-block-size: 0` on both axes of that relationship is what lets a long
+ * program scroll inside the editor rather than push the pane open, since a flex
+ * item's automatic minimum size is its content.
  */
 .code {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-block-size: 0;
   background: var(--ds-code-bg);
 }
 
@@ -2853,31 +2849,18 @@ kbd {
  * and both matter: `flex: 1` alone would let a long program push the pane
  * open, because a flex item's `min-height` is `auto`, which is its content.
  *
- * `block-size` is the bridge, not the design. `.pane-code` is a flex column
- * already, but the shell has not moved onto it yet -- `index.html` still
- * mounts this widget into a plain `<div class="code">` -- and in a block
- * parent the flex properties above mean nothing at all, leaving the editor to
- * grow with the program. Inside a flex column `flex-basis: 0%` is the used
- * size and this declaration is ignored, so the day the shell lands the bridge
- * stops applying by itself rather than having to be taken out.
- *
- * The `clamp()` came off `.cm-editor`, where it sized the widget rather than
- * the box holding it, and is unchanged: `--editor-height-chosen` is the height
- * the player dragged the grip to and `src/ui/editor-size.ts` writes it on
- * `<html>`, `--editor-height` is the one nobody chose, and the clamp keeps a
- * height picked in a tall window from filling a short one. Every part of that
- * goes when the pane does.
+ * This carried a `clamp()` between three `--editor-height-*` values until the
+ * shell landed, as a bridge for the days `.code` was still a plain block and
+ * the flex properties above meant nothing. The mockup gives the editor no
+ * height of its own at all -- it is whatever the window has left -- so the
+ * bridge and all three variables went out with the resize grip that was the
+ * only thing ever writing to them.
  */
 .editor {
   display: flex;
   flex-direction: column;
   flex: 1;
   min-block-size: 0;
-  block-size: clamp(
-    var(--editor-height-min),
-    var(--editor-height-chosen, var(--editor-height)),
-    var(--editor-height-max)
-  );
   overflow: hidden;
 }
 
@@ -3700,10 +3683,6 @@ pre code {
 }
 
 @media (max-width: 760px) {
-  :root {
-    --editor-height: 240px;
-  }
-
   .header h1 {
     font-size: 1.6em;
     line-height: 1.3;
