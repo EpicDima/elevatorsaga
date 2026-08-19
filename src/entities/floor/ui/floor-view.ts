@@ -1,37 +1,40 @@
 /**
- * A floor's DOM element, positioned and sized from the responsive building's
- * own geometry rather than the fixed pixel grid once drawn by what was
- * `src/ui/presenters.ts`.
+ * A floor's row in the building's floor-number column: its number, and the two
+ * call lamps standing on it.
  *
- * Built for widget 6b ("Building/stage rendering + hover cards"): the call
- * buttons and their lit state are wired exactly as `presentFloor` wired them
- * in what was `src/ui/presenters.ts`. What's new is {@link FloorView.setGeometry},
- * which lets `widgets/building-stage` reposition and resize the floor
- * whenever `layoutBuilding()` recomputes, rather than baking a position in
- * once at creation the way the legacy fixed-pixel view does.
+ * This is `design/ui-mockup.html`'s own `.level` (§"Здание"), not the legacy
+ * renderer's full-width band. The legacy floor was a striped bar spanning the
+ * whole building with a 32px number floating over the shafts and two round
+ * arrows at a fixed 50px inset; the mockup puts every floor's markings in one
+ * narrow column down the left-hand side and leaves the shaft area to the cars
+ * and the people walking to them. The class stays `floor` — `relabelWorld` in
+ * `src/pages/game/index.ts` selects `.floor` and, inside it, `button.up` and
+ * `button.down`, and indexes them by DOM order — with the mockup's `level`
+ * beside it so the stylesheet can be read against the mockup rule for rule.
  *
- * `.floor`'s stylesheet rule sizes a floor off `--floor-height`, a single
- * page-wide constant, and vertically centers its buttons and number with
- * `line-height: var(--floor-height)`. `setGeometry` overrides `top`/`height`
- * inline (inline styles win over that rule), which keeps every floor the
- * right box regardless of what `layoutBuilding()` decided — but at a floor
- * height other than the page's fixed default, the inherited vertical
- * centering drifts by a few pixels. Harmless and purely cosmetic, and still
- * a real follow-up for whichever step gives this widget its own stylesheet.
+ * The mockup omits the impossible lamp on the end floors (no "up" on the roof,
+ * no "down" in the lobby). Both are drawn here regardless: `relabelWorld`
+ * fetches each with `requireElement` on *every* floor and would throw on a row
+ * that had only one, and that function lives in a file this widget does not
+ * own. Rendering both also keeps the simulation's own API honest — a player's
+ * code can read `floor.buttonStates.up` on the top floor and gets a control
+ * that visibly exists.
+ *
+ * Vertical size comes from the widget, not from a page-wide constant:
+ * `layoutBuilding()` decides how tall a floor is for the stage it has to fit
+ * into, and pushes it here through {@link FloorView.setGeometry}. The row's
+ * *position* is no longer anyone's to set — the column is a flex stack, so a
+ * floor sits wherever the floors below it leave it.
  *
  * Relabeling on a language change is out of scope here, the same way it's
  * split out of `presentWorld` into a separate `relabelWorld` in
  * `src/pages/game/index.ts`: a floor is expensive to rebuild once its buttons
- * carry live listeners. Since this widget is mounted live (Phase 12.2),
- * `relabelWorld` handles it exactly as it did the legacy view — it selects
- * by class and position, not by which function drew the markup, and
- * `entities/floor`/`entities/elevator` render the same classes
- * `floorTemplate`/`elevatorTemplate` always did.
+ * carry live listeners.
  */
 
 import type { Floor } from "#game/floor.ts";
 import { requireElement, setClass } from "#shared/lib/dom.ts";
-import { iconMarkup } from "#shared/ui/icon.ts";
+import { spriteIconMarkup } from "#shared/ui/icon.ts";
 import { markup, raw, renderElement } from "#shared/ui/markup.ts";
 
 import { floorCallDownLabel, floorCallUpLabel } from "../../../ui/templates.ts";
@@ -42,30 +45,31 @@ const CALL_UP_SELECTOR = "button.up";
 const CALL_DOWN_SELECTOR = "button.down";
 
 /**
- * One floor of the building, with its call buttons.
+ * One floor of the building: its number and its two call lamps.
  *
  * The call buttons used to be clickable `<i>` elements, which put them out of
  * reach of the keyboard and made them invisible to screen readers. They are real
- * buttons now; the stylesheet resets them so the pixels are unchanged. The
- * single space between the two buttons is load-bearing — it is the gap the
- * legacy markup had between the two `<i>` elements.
+ * buttons now; the stylesheet resets them so the pixels are the mockup's.
  *
  * @param level - Floor number.
- * @param yPosition - World y of the floor, in pixels.
  * @returns The floor markup.
  */
-export function floorTemplate(level: number, yPosition: number): string {
-  return markup`<div class="floor" style="top: ${yPosition}px"><span class="floornumber" aria-hidden="true">${level}</span><span class="buttonindicator"><button type="button" class="up" aria-pressed="false" aria-label="${floorCallUpLabel(level)}">${raw(iconMarkup("arrow-circle-up"))}</button> <button type="button" class="down" aria-pressed="false" aria-label="${floorCallDownLabel(level)}">${raw(iconMarkup("arrow-circle-down"))}</button></span></div>`;
+export function floorTemplate(level: number): string {
+  return markup`<div class="floor level"><span class="level-num" aria-hidden="true">${level}</span><span class="calls"><button type="button" class="call up" aria-pressed="false" aria-label="${floorCallUpLabel(level)}">${raw(spriteIconMarkup("up"))}</button><button type="button" class="call down" aria-pressed="false" aria-label="${floorCallDownLabel(level)}">${raw(spriteIconMarkup("down"))}</button></span></div>`;
 }
 
 /**
  * Reflects a lit/unlit button state in both the class and the ARIA state.
  *
+ * `is-lit` is the mockup's own class for a lamp with a call standing on it,
+ * replacing the legacy `activated`; the engine's `ButtonState` still spells
+ * that word, and still means the same thing.
+ *
  * @param button - The call button.
  * @param activated - Whether the button is currently lit.
  */
 function setActivated(button: Element, activated: boolean): void {
-  setClass(button, "activated", activated);
+  setClass(button, "is-lit", activated);
   button.setAttribute("aria-pressed", String(activated));
 }
 
@@ -74,12 +78,11 @@ export interface FloorView {
   /** The floor's element, unparented until the caller appends it. */
   readonly element: HTMLElement;
   /**
-   * Repositions and resizes the floor.
+   * Resizes the floor's row to the height the building's layout gave it.
    *
-   * @param topPx - The floor's offset from the building's bottom, in pixels.
    * @param heightPx - The floor's height, in pixels.
    */
-  setGeometry(topPx: number, heightPx: number): void;
+  setGeometry(heightPx: number): void;
 }
 
 /**
@@ -89,7 +92,7 @@ export interface FloorView {
  * @returns The mounted view.
  */
 export function createFloorView(floor: Floor): FloorView {
-  const element = renderElement(floorTemplate(floor.level, 0));
+  const element = renderElement(floorTemplate(floor.level));
   const up = requireElement(CALL_UP_SELECTOR, element);
   const down = requireElement(CALL_DOWN_SELECTOR, element);
 
@@ -106,8 +109,7 @@ export function createFloorView(floor: Floor): FloorView {
 
   return {
     element,
-    setGeometry(topPx: number, heightPx: number): void {
-      element.style.top = `${String(topPx)}px`;
+    setGeometry(heightPx: number): void {
       element.style.height = `${String(heightPx)}px`;
     },
   };

@@ -21,7 +21,7 @@ describe("createFloorView", () => {
   it("draws the floor's number and unlit call buttons", () => {
     const view = createFloorView(fixtureFloor(3));
 
-    expect(requireElement(".floornumber", view.element).textContent).toBe("3");
+    expect(requireElement(".level-num", view.element).textContent).toBe("3");
     expect(requireElement("button.up", view.element).getAttribute("aria-pressed")).toBe("false");
     expect(requireElement("button.down", view.element).getAttribute("aria-pressed")).toBe("false");
   });
@@ -32,11 +32,11 @@ describe("createFloorView", () => {
     const up = requireElement("button.up", view.element);
 
     floor.pressUpButton();
-    expect(up.classList.contains("activated")).toBe(true);
+    expect(up.classList.contains("is-lit")).toBe(true);
     expect(up.getAttribute("aria-pressed")).toBe("true");
 
     floor.elevatorAvailable({ goingUpIndicator: true, goingDownIndicator: false });
-    expect(up.classList.contains("activated")).toBe(false);
+    expect(up.classList.contains("is-lit")).toBe(false);
     expect(up.getAttribute("aria-pressed")).toBe("false");
   });
 
@@ -51,26 +51,38 @@ describe("createFloorView", () => {
     expect(floor.buttonStates.down).toBe("activated");
   });
 
-  it("repositions and resizes the floor via inline style, overriding nothing else", () => {
+  it("resizes the floor's row via inline style, and never positions it", () => {
     const view = createFloorView(fixtureFloor(0));
 
-    view.setGeometry(120, 64);
+    view.setGeometry(64);
 
-    expect(view.element.style.top).toBe("120px");
     expect(view.element.style.height).toBe("64px");
+    // The column is a flex stack: a floor that positioned itself would leave
+    // the one below it drawing through it.
+    expect(view.element.style.top).toBe("");
   });
 });
 
 describe("floorTemplate", () => {
-  it("positions the floor and shows its number", () => {
-    const floor = renderElement(floorTemplate(2, 150));
-    expect(floor.className).toBe("floor");
-    expect(floor.style.top).toBe("150px");
-    expect(floor.querySelector(".floornumber")?.textContent).toBe("2");
+  it("draws the mockup's level row, number and lamps in one box", () => {
+    const floor = renderElement(floorTemplate(2));
+    expect(floor.className).toBe("floor level");
+    expect(floor.querySelector(".level-num")?.textContent).toBe("2");
+    expect(floor.querySelectorAll(".calls .call").length).toBe(2);
+  });
+
+  it("draws both lamps on every floor, including the ones a call cannot come from", () => {
+    // The mockup leaves the impossible lamp off the end floors; relabelWorld
+    // requires both on every floor. See this module's own comment.
+    for (const level of [0, 1, 20]) {
+      const floor = renderElement(floorTemplate(level));
+      expect(floor.querySelector("button.up")).not.toBeNull();
+      expect(floor.querySelector("button.down")).not.toBeNull();
+    }
   });
 
   it("makes the call buttons real, labelled buttons", () => {
-    const floor = renderElement(floorTemplate(2, 150));
+    const floor = renderElement(floorTemplate(2));
     const up = floor.querySelector("button.up");
     const down = floor.querySelector("button.down");
     expect(up?.getAttribute("aria-label")).toBe("Call an elevator going up from floor 2");
@@ -80,10 +92,11 @@ describe("floorTemplate", () => {
     expect(up?.getAttribute("type")).toBe("button");
   });
 
-  it("keeps exactly one space between the two call buttons", () => {
-    const floor = renderElement(floorTemplate(0, 0));
-    const indicator = floor.querySelector(".buttonindicator");
-    expect(indicator?.childNodes[1]?.textContent).toBe(" ");
+  it("leaves no whitespace between the two lamps", () => {
+    // `.calls` is a flex column with its own gap, so a stray text node between
+    // the two buttons would be a flex item of its own.
+    const calls = renderElement(floorTemplate(0)).querySelector(".calls");
+    expect(calls?.childNodes.length).toBe(2);
   });
 });
 
@@ -94,7 +107,7 @@ describe("the two names a floor can be renamed from", () => {
     // same two. Two copies of a message key, one in each path, is how a renamed
     // message ends up renaming only half a floor; there is one copy, and this
     // is the assertion that the template still goes through it.
-    const floor = renderElement(floorTemplate(2, 150));
+    const floor = renderElement(floorTemplate(2));
     expect(floor.querySelector("button.up")?.getAttribute("aria-label")).toBe(floorCallUpLabel(2));
     expect(floor.querySelector("button.down")?.getAttribute("aria-label")).toBe(
       floorCallDownLabel(2),
@@ -109,7 +122,7 @@ describe("the language a floor's call buttons come out in", () => {
 
   it("names the call buttons of a floor", () => {
     setLocale("ru");
-    const floor = renderElement(floorTemplate(2, 150));
+    const floor = renderElement(floorTemplate(2));
 
     expect(floor.querySelector("button.up")?.getAttribute("aria-label")).toBe(
       "Вызвать лифт вверх с этажа 2",

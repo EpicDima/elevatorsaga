@@ -316,6 +316,25 @@ export const SPRITE_ICONS = {
       },
     ],
   },
+  // The mockup's `#i-down` (§6): a floor's "call a car going down" lamp, and
+  // the lower of the two boarding lamps drawn on a car's own header. Both are
+  // the same glyph at two sizes, exactly as the mockup draws them.
+  down: {
+    viewBox: "0 0 16 16",
+    shapes: [
+      {
+        tag: "path",
+        attrs: {
+          d: "M8 3v9m0 0 4-4m-4 4-4-4",
+          fill: "none",
+          stroke: "currentColor",
+          "stroke-width": "1.6",
+          "stroke-linecap": "round",
+          "stroke-linejoin": "round",
+        },
+      },
+    ],
+  },
   // The settings popover's own trigger row for its seed help disclosure's
   // sibling block — the mockup's `#keysOpen` glyph, a stylised keyboard.
   keys: {
@@ -685,6 +704,23 @@ export const SPRITE_ICONS = {
         tag: "path",
         attrs: {
           d: "M3 8h7a3 3 0 0 1 0 6H6M3 8l3-3M3 8l3 3",
+          fill: "none",
+          stroke: "currentColor",
+          "stroke-width": "1.6",
+          "stroke-linecap": "round",
+          "stroke-linejoin": "round",
+        },
+      },
+    ],
+  },
+  // The mockup's `#i-up` (§6); see `down` above for where the pair is drawn.
+  up: {
+    viewBox: "0 0 16 16",
+    shapes: [
+      {
+        tag: "path",
+        attrs: {
+          d: "M8 13V4m0 0L4 8m4-4 4 4",
           fill: "none",
           stroke: "currentColor",
           "stroke-width": "1.6",

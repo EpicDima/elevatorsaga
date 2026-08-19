@@ -78,10 +78,18 @@ test("saves a walk through the whole building", async ({ page }) => {
   // the splitter, a fifth -- and Reset code moved out of the run controls row
   // and into widgets/editor-pane, landing after the code slot switcher
   // instead of beside Start over, which added nothing and only moved a stop
-  // within the count. It is 258 now that the shipped header is gone: the
+  // within the count. It fell to 258 when the shipped header went: the
   // learning-track link, the three help links and the language `<select>`
   // were five stops between the skip link and the building, and the track is
   // reached from the level switcher and the language from the settings
   // popover, neither of which is a stop of its own.
-  expect(stops).toBe(258);
+  //
+  // It is 259 now that the building scrolls inside its own `.stage` rather
+  // than inside `.world`. A scroll container a keyboard cannot reach is WCAG
+  // 2.1.1, so `widgets/building-stage` puts the stage in the tab order -- and
+  // only while there is something left to scroll to, which on a twenty-one
+  // floor building there always is. `.world` keeps the `tabindex` it was given
+  // back when it was the scroller, which is `index.html`'s to take away; until
+  // it does, this challenge has one stop that no longer moves anything.
+  expect(stops).toBe(259);
 });

@@ -3011,69 +3011,270 @@ kbd {
 /* -------------------------------------------------------------------- World */
 
 /*
- * The building has a fixed pixel geometry that the simulation depends on, so it
- * never shrinks: the frame scrolls instead. `.worldtrack` is the fixed-size
- * surface everything is positioned against, and it clips the oversized feedback
- * overlay the way `.world` used to.
+ * `.world` / `.worldtrack` / `.innerworld` are `index.html`'s three wrappers
+ * around the building, from the years when it was a fixed 1220x503 drawing that
+ * scrolled inside them. `widgets/building-stage` builds
+ * `design/ui-mockup.html`'s own `.stagewrap > .stage > .stagerow > .building`
+ * tree inside the innermost of the three, so the three are made layout-neutral
+ * here -- a flex chain passing the pane's height straight down -- rather than
+ * deleted, because `index.html` belongs to the page shell and not to that
+ * widget.
+ *
+ * Two of them still earn their keep until the shell is rebuilt. `.worldtrack`
+ * is the positioning context and the clip for the two boxes that are siblings
+ * of the stage and owned elsewhere: the run verdict's oversized overlay
+ * (`.feedback`, drawn 1280x2000) and the statistics panel. And `.world` carries
+ * the region role, its accessible name, and the paler focus ring below, which
+ * everything focusable inside the building inherits.
+ *
+ * The height still comes from `--stats-block-size`, because nothing above
+ * `.world` in the page bounds one -- `main` has no rule at all -- so a stage
+ * told to fill its parent would fill nothing, and a twenty-floor building would
+ * grow the page rather than scroll inside the stage. Stated as a flex basis
+ * rather than a fixed height, so the day the shell does bound the pane the
+ * stage grows and shrinks with it and this line quietly stops deciding
+ * anything.
  */
 .world {
   /*
-   * Paler than the sitewide default, and against --ds-shaft rather than the
-   * page: --ds-accent-hi clears 11.02:1 dark, 4.80:1 light there, both past
-   * the 3:1 a focus ring needs. Nothing inside .world is focusable yet -- no
-   * `.car`, no call button, no floor carries a `tabindex` -- so this is
-   * staged ahead of what will read it, the way the --ds-* design tokens
-   * themselves once sat unread before the first widget's CSS was ported.
+   * Paler than the sitewide default, and against the building's own surfaces
+   * rather than the page: --ds-accent-hi clears 11.02:1 dark and 4.80:1 light
+   * on --ds-shaft, 10.82:1 and 5.39:1 on the --ds-bg the stage paints around
+   * the building, and 10.53:1 and 5.49:1 on the floor-number column's own
+   * composite -- every one of them past the 3:1 a focus ring needs. Read by the
+   * floor rows, the call buttons, the shafts, and the stage itself whenever it
+   * has something left to scroll to.
    */
   --ds-focus: var(--ds-accent-hi);
 
-  background-color: var(--ds-shaft);
-  overflow-x: auto;
-  overflow-y: hidden;
-}
-
-/*
- * As tall as the building, and never shorter than the panel beside it.
- *
- * The height comes from `.innerworld`, which the presenter sizes to the floors
- * -- 50px each -- while the panel is positioned out of the flow and so counts
- * for nothing in it. In a two-floor building that made the clip 100px tall and
- * took the bottom three rows off the panel, the learning track's first task
- * losing `Max delivery time`, `Moves` and `Avg load` outright. The floor of
- * this box is the one thing inside it whose size is known here, so it is the
- * one thing that can hold the clip open.
- *
- * The clipping itself has to stay, for the overlay and for one direction only.
- * `.feedback` is drawn 1280px wide in a 1220px track, so with `overflow:
- * visible` the end of a challenge takes `.world` from 1220px of content to
- * 1280px -- measured -- and hands it 60px of horizontal scrolling that leads
- * nowhere. Downwards there is nothing to fix: `.world` is `overflow-y: hidden`
- * and its own height comes from this box, so the same overlay's 2000px is
- * already cut at the same line whichever way this is set, and nothing of it
- * ever reaches the page. Nor is this about the passengers, who are the other
- * thing that leaves the building: a delivered passenger walks 100px past the
- * seat they rode in, which is the shaft's x plus `2 + 10 * (capacity - 1)`,
- * so 332px into the track in challenge 1, 992px in the widest building the
- * game ships -- eight cars of capacity 6 and 8, the last of them at x=820 --
- * and 1022px in the widest one the sandbox will assemble. That last figure is
- * a packing result, not the 938px of `--building-width` plus the walk: shafts
- * start at x=200 and step by `capacity * 10 + 20`, so every right edge is a
- * multiple of ten and `fitElevatorCount` in `src/pages/game/model/route.ts` can get one to
- * 930 at best. All three are well inside the 1220px track, so nobody can be
- * walked to the edge.
- */
-.worldtrack {
-  position: relative;
-  inline-size: var(--world-width);
-  min-block-size: var(--stats-block-size);
+  display: flex;
+  flex: 1 1 auto;
+  block-size: var(--stats-block-size);
+  min-block-size: 0;
+  background-color: var(--ds-bg);
   overflow: hidden;
 }
 
-.innerworld {
+/*
+ * Still the clip, and still never shorter than the panel beside it.
+ *
+ * `padding-inline-end` reserves the column the statistics panel is positioned
+ * into, so the stage is handed the width that is really free instead of laying
+ * a building out underneath it. The panel is out of the flow and counts for
+ * nothing in this box's own height, which is why the minimum stays: back when
+ * the height came from the floors themselves, a two-floor building made this
+ * clip 100px tall and took the bottom three rows off the panel, the learning
+ * track's first task losing `Max delivery time`, `Moves` and `Avg load`
+ * outright.
+ *
+ * The clipping is for the verdict overlay. `.feedback` is drawn 1280x2000, so
+ * with `overflow: visible` the end of a challenge hands the page scrollbars
+ * that lead nowhere. The building no longer needs clipping of its own: it is
+ * `.stage` that scrolls now, and it scrolls inside itself.
+ */
+.worldtrack {
   position: relative;
-  inline-size: var(--building-width);
-  border-inline: 1px solid var(--ds-line-strong);
-  font-family: var(--font-body);
+  display: flex;
+  flex: 1;
+  min-inline-size: 0;
+  min-block-size: var(--stats-block-size);
+  padding-inline-end: var(--stats-width);
+  overflow: hidden;
+}
+
+/* Nothing of its own left to draw: the building inside it has its own frame. */
+.innerworld {
+  display: flex;
+  flex: 1;
+  min-inline-size: 0;
+}
+
+/*
+ * The stage and the building on it, ported from `design/ui-mockup.html`
+ * (§"Здание") rule for rule, with the deviations each rule's own comment
+ * names. Built by `widgets/building-stage`; the geometry the rules read --
+ * --ds-floor-h, --ds-car-h, --ds-scale-x, `data-density` -- is written onto
+ * `.building` by that widget's layout pass, since how tall a floor may be is a
+ * question only something that has measured the pane can answer.
+ */
+.stagewrap {
+  position: relative;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-inline-size: 0;
+  min-block-size: 0;
+}
+
+/*
+ * A twenty-floor building does not fit the stage, and that has to be said.
+ * Without the hint the bottom floors do not read as "further down" but as cut
+ * off: the building meets the edge of the pane exactly where the room ran out.
+ * The shadow appears only on the side that still has something behind it.
+ */
+.stagewrap::before,
+.stagewrap::after {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  z-index: 5;
+  block-size: 22px;
+  opacity: 0;
+  transition: opacity 0.15s linear;
+  pointer-events: none;
+}
+
+.stagewrap::before {
+  inset-block-start: 0;
+  background: linear-gradient(var(--ds-bg), transparent);
+}
+
+.stagewrap::after {
+  inset-block-end: 0;
+  background: linear-gradient(transparent, var(--ds-bg));
+}
+
+.stagewrap.is-cut-top::before,
+.stagewrap.is-cut-bottom::after {
+  opacity: 1;
+}
+
+/*
+ * `safe center` on both axes: while the building fits it stands in the middle
+ * of the stage, and once it stops fitting it is pushed to the start and the
+ * stage scrolls. Without `safe`, an oversized building centres itself
+ * *outwards* and its left edge -- the floor numbers -- cannot be scrolled back
+ * to.
+ */
+.stage {
+  display: grid;
+  align-content: safe center;
+  justify-items: safe center;
+  flex: 1;
+  min-block-size: 0;
+  padding: 18px 16px;
+  background:
+    radial-gradient(120% 90% at 50% 0%, rgb(255 255 255 / 2.5%), transparent 70%), var(--ds-bg);
+  overflow: auto;
+}
+
+html[data-theme="light"] .stage {
+  background: var(--ds-bg);
+}
+
+/*
+ * Inset, unlike the sitewide ring: this box is the full width and height of the
+ * pane, so a ring 2px outside it would be drawn under `.worldtrack`'s own clip
+ * and half of it would simply not appear.
+ */
+.stage:focus-visible {
+  outline-offset: -3px;
+}
+
+/*
+ * `safe center` again, for the same reason: while everything fits the row is
+ * centred, and when the building is wider than the stage the row is pushed to
+ * the start so that scrolling reaches the floor numbers instead of cropping
+ * them.
+ */
+.stagerow {
+  display: flex;
+  gap: 18px;
+  align-items: center;
+  justify-content: safe center;
+  inline-size: 100%;
+}
+
+/*
+ * The building clips its own overflow -- otherwise a car would draw through the
+ * rounded corners -- which is also why the hover card hangs off `.stagewrap`
+ * and not off anything in here.
+ */
+.building {
+  display: flex;
+  flex: 0 0 auto;
+  border: 1px solid var(--ds-line-strong);
+  border-radius: var(--ds-r-lg);
+  background: var(--ds-shaft);
+  overflow: hidden;
+}
+
+/*
+ * The floor-number column. `column-reverse` is this port's own: the mockup
+ * builds its rows from the roof down, while `relabelWorld` in
+ * `src/pages/game/index.ts` reads `.floor` elements back in DOM order and takes
+ * that order for the floor number -- so the DOM is level 0 first, and the
+ * column turns itself over instead.
+ */
+.levels {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column-reverse;
+  inline-size: 84px;
+  border-inline-end: 1px solid var(--ds-shaft-line);
+  background: color-mix(in srgb, var(--ds-panel) 55%, transparent);
+}
+
+/*
+ * The corridor and the shafts: everything the simulation actually moves things
+ * through. Its width is the world's own span scaled once (see
+ * `shaft-scale.ts`), written from the widget, so `flex` never gets a say.
+ */
+.tracks {
+  position: relative;
+  flex: 0 0 auto;
+}
+
+/*
+ * Four layers over the same coordinate space, painted in this order: the floor
+ * bands, the strips a floor's queue is pointed at, the shafts, and the people.
+ * The people are last so a rider is not lost behind the car's own doors, and
+ * they are inert so that pointing at one still points at the shaft or the
+ * corridor underneath.
+ */
+.floorlines,
+.queues,
+.shafts,
+.people {
+  position: absolute;
+  inset: 0;
+}
+
+.people {
+  pointer-events: none;
+}
+
+.floorline {
+  position: absolute;
+  box-sizing: border-box;
+  inset-inline: 0;
+  border-block-end: 1px solid var(--ds-shaft-line);
+}
+
+/* The ground floor's line would double the building's own bottom border. */
+.floorline:last-child {
+  border-block-end: 0;
+}
+
+.floorline:nth-child(odd) {
+  background: rgb(255 255 255 / 1.5%);
+}
+
+html[data-theme="light"] .floorline:nth-child(odd) {
+  background: rgb(0 0 0 / 2%);
+}
+
+/*
+ * One floor's stretch of corridor: the box a card about that floor's queue is
+ * placed against, and the reason pointing anywhere along a floor's walkway
+ * describes it. Nothing is drawn -- the passengers standing in it are in
+ * `.people`, at the world coordinates they are really walking to, not laid out
+ * in here. Sized and positioned by the widget, which is the only thing that
+ * knows where the first shaft starts.
+ */
+.queue {
+  position: absolute;
+  inset-inline-start: 0;
 }
 
 .feedbackcontainer {
@@ -3449,49 +3650,123 @@ kbd {
 
 /* ------------------------------------------------------------------- Floors */
 
+/*
+ * One floor's row in the column: its number and its two call lamps. The
+ * mockup's `.level`, under the class name `relabelWorld` still selects it by.
+ *
+ * `box-sizing` is set because this file's global box model is `content-box`
+ * (see the comment on `*` above) while the mockup's is `border-box`: the height
+ * the widget writes here has to be the height the row really occupies, or the
+ * rows drift a pixel per floor away from the floor bands drawn beside them in
+ * `.tracks`. `--ds-floor-h` is only the fallback -- floors are not all the same
+ * height, so the widget writes each row's own.
+ */
 .floor {
-  position: absolute;
-  inline-size: 100%;
-  block-size: calc(var(--floor-height) - 1px);
+  box-sizing: border-box;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: flex-end;
+  block-size: var(--ds-floor-h);
+  padding-inline-end: 10px;
   border-block-end: 1px solid var(--ds-shaft-line);
-  background: linear-gradient(
-    rgb(255 255 255 / 10%),
-    rgb(255 255 255 / 20%),
-    rgb(255 255 255 / 24%),
-    rgb(255 255 255 / 10%)
-  );
-}
-
-.floor .buttonindicator {
-  padding-inline-start: 50px;
-  line-height: var(--floor-height);
-  color: var(--ds-text-faint);
 }
 
 /*
- * The mockup lights a call button with --accent, and unlike the direction
- * arrow inside a car this one is drawn on the floor band, not the car, so the
- * themed token survives: --ds-accent clears 3:1 against the band's own
- * lightest point (24% white over --ds-shaft) in both themes -- 4.01 dark,
- * 3.74 light.
+ * The mockup drops the line under its `:last-child`, which is its ground floor;
+ * `.levels` is `column-reverse` here, so the row standing on the building's own
+ * bottom border is the first one instead.
  */
-.floor .buttonindicator .activated {
+.floor:first-child {
+  border-block-end: 0;
+}
+
+/*
+ * Inset: the row runs the full width of a column that is flush against the
+ * building's clipped edge, so an outward ring would be cut down its left side.
+ */
+.floor:focus-visible {
+  outline-offset: -2px;
+}
+
+/*
+ * The number stands in a column two digits wide, aligned to its right edge.
+ * Otherwise "20" and "9" start in different places and a twenty-floor
+ * building's column looks ragged.
+ *
+ * The mockup paints it --text-faint. That was defensible at the legacy 32px,
+ * where 1.4.3 asks a floor number for only 3:1; it is 17px at most here, where
+ * the bar is 4.5:1 and --ds-text-faint reaches 3.77:1 dark and 2.83:1 light on
+ * the column's own composite. --ds-text-muted -- the substitution this
+ * stylesheet already makes wherever a mockup literal falls short (see
+ * `.docs-body h3`) -- clears it at 6.98:1 and 5.32:1. A floor number never
+ * lights up, so unlike a call lamp it cannot claim the "the lit state carries
+ * the information" exemption. `style.test.ts` checks both themes.
+ */
+.level-num {
+  min-inline-size: 2ch;
+  font-family: var(--ds-font-mono);
+  font-size: clamp(11px, calc(var(--ds-floor-h) * 0.3), 17px);
+  text-align: end;
+  color: var(--ds-text-muted);
+}
+
+.calls {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+/*
+ * A real button now, where the legacy renderer had a clickable `<i>` -- so this
+ * resets the browser's own button chrome down to the mockup's 20x18 box.
+ *
+ * The arrow gets --ds-text-muted rather than the mockup's --text-faint for the
+ * reason the floor number above does, and for one more: unlit, the arrow is the
+ * whole of what says a control is here. The border cannot help carry that --
+ * --ds-line-strong is 1.55:1 dark and 1.43:1 light on this column, well under
+ * 1.4.11's 3:1 -- so the glyph has to clear the bar on its own, which
+ * --ds-text-muted does with room to spare in both themes.
+ */
+.call {
+  box-sizing: border-box;
+  display: grid;
+  place-items: center;
+  inline-size: 20px;
+  block-size: 18px;
+  padding: 0;
+  border: 1px solid var(--ds-line-strong);
+  border-radius: var(--ds-r-sm);
+  background: none;
+  color: var(--ds-text-muted);
+  cursor: pointer;
+}
+
+.call .ds-icon {
+  inline-size: 11px;
+  block-size: 11px;
+  stroke-width: 2.4;
+}
+
+/*
+ * Lit, the lamp says which way a waiting passenger asked to go. Unlike the
+ * direction arrow inside a car, it is drawn on the floor column rather than on
+ * the car body, so the themed accent survives the light theme: --ds-accent on
+ * its own --ds-accent-soft badge over this column is 6.45:1 dark and 3.58:1
+ * light, past the 3:1 a graphical indicator is asked for.
+ */
+.call.is-lit {
+  border-color: var(--ds-accent);
+  background: var(--ds-accent-soft);
   color: var(--ds-accent);
 }
 
 /*
- * A floor number never lights up -- it is the only marking the floor carries
- * -- so unlike the unlit call button above it does not get the "the lit state
- * carries the information" exemption: at 32px it needs a real 3:1 against the
- * band it sits on. --ds-text-muted clears that against the band's lightest
- * point in both themes (3.39 dark, 4.92 light); `style.test.ts` checks it.
+ * Only in the dark theme, where the mockup gives a lit lamp a faint bloom. In
+ * the light theme it would be a grey smudge, and there is nothing to glow.
  */
-.floor .floornumber {
-  position: absolute;
-  padding-inline-start: 10px;
-  font-size: 32px;
-  line-height: var(--floor-height);
-  color: var(--ds-text-muted);
+html[data-theme="dark"] .call.is-lit {
+  box-shadow: 0 0 8px rgb(232 163 63 / 30%);
 }
 
 /* --------------------------------------------------------- Fullscreen demo */

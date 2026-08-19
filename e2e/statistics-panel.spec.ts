@@ -11,13 +11,14 @@
  * Two buildings, and neither of them is whole without the fix -- both well
  * short of the panel's own worst case, `--stats-block-size`, sized to the
  * "Все показатели" disclosure held open so all thirteen tiles are on screen,
- * not only the four `.tiles-primary` leads with. Neither building's floors
- * are a fixed height any more: `widgets/building-stage`'s own
- * `layoutBuilding()` sizes them to whatever room the stage gives it, floored
- * at `Math.max(160, stageHeight - 38)` so a short building is never drawn
- * smaller than 160px regardless of the stage around it -- which the
- * two-floor learning task and the three-floor challenge both land on
- * exactly, `SHORTEST_BUILDING_HEIGHT` below.
+ * not only the four `.tiles-primary` leads with. Neither building's floors are
+ * a fixed height any more: `widgets/building-stage`'s own `layoutBuilding()`
+ * sizes them to whatever room the stage gives it, and with only two or three
+ * floors to spend it on they hit the *upper* clamp, 96px a floor -- which is
+ * still a building far shorter than the panel beside it, and that is the whole
+ * of what these two cases need. Measured as "shorter than the clip" rather
+ * than as a pixel count, because the count is a product of the pane's own
+ * height and the pane is the page shell's to change.
  *
  * What either case can detect is one failure: `.worldtrack` carries
  * `min-block-size: var(--stats-block-size)`, so the clip these tiles are
@@ -26,24 +27,15 @@
  * clip grows with it, because both read the same token; what would fail here
  * is that wiring going away, not the token's own value.
  *
- * Nothing taller is measured because there is nothing there to measure: the
- * tallest shipped challenge is 21 floors, and `layoutBuilding()` never
- * compresses a floor below its own `MIN_FLOOR`, 48px, so even fully
- * compressed that building is at least 1008px -- comfortably over twice the
- * panel -- and the sandbox will build 60 floors if asked.
+ * Nothing taller is measured because there is nothing there to measure: a
+ * building too tall for the stage no longer stretches the clip at all, it
+ * scrolls inside `.stage`, so the panel beside it is never the thing that
+ * gives way.
  */
 
 import { expect, test } from "@playwright/test";
 
 import { building } from "./game-page.ts";
-
-/**
- * The shortest a building's total height can be, whatever the stage around it
- * measures: `layoutBuilding()`'s own floor on the room it distributes floor
- * height from (module doc comment, above). Both buildings below land on it
- * exactly, at two floors and at three.
- */
-const SHORTEST_BUILDING_HEIGHT = 160;
 
 /** The shortest buildings the game draws. */
 const SHORT_BUILDINGS = [
@@ -71,13 +63,17 @@ for (const { name, hash } of SHORT_BUILDINGS) {
 
     const measured = await page.evaluate(() => {
       const track = document.querySelector(".worldtrack");
-      const building = document.querySelector(".innerworld");
-      if (track === null || building === null) {
+      // `.building` and not `.innerworld`: the wrappers `index.html` puts
+      // around the stage all fill the pane now, and the building is the box
+      // inside them that is really as tall as its floors.
+      const built = document.querySelector(".building");
+      if (track === null || built === null) {
         throw new Error("The page has no building to measure the panel against");
       }
       const clip = track.getBoundingClientRect();
       return {
-        buildingHeight: Math.round(building.getBoundingClientRect().height),
+        clipHeight: Math.round(clip.height),
+        buildingHeight: Math.round(built.getBoundingClientRect().height),
         tiles: [...document.querySelectorAll(".statspanel .tile")].map((tile) => ({
           label: (tile.querySelector(".cap")?.textContent ?? "").trim(),
           // How far the tile's last pixel falls short of the clip's, so that
@@ -89,8 +85,9 @@ for (const { name, hash } of SHORT_BUILDINGS) {
     });
 
     // The building really is the short one this case is about, so a fix that
-    // quietly made every building taller would otherwise pass.
-    expect(measured.buildingHeight).toBe(SHORTEST_BUILDING_HEIGHT);
+    // quietly made every building fill the pane would otherwise pass.
+    expect(measured.buildingHeight).toBeGreaterThan(0);
+    expect(measured.buildingHeight).toBeLessThan(measured.clipHeight);
     // That there are tiles at all, so an empty panel cannot satisfy the line
     // below. How many there should be is a fact about `widgets/stats-panel`'s
     // own `TILES` array, not about what a browser did with it, so it is not

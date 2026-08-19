@@ -178,28 +178,61 @@ function over(foreground: string, background: string): string {
 }
 
 /**
- * The lightest the floor band ever gets, which is the worst a floor number
- * ever has to be read against.
+ * A `#rrggbb` colour as the `rgb(r g b / n%)` {@link over} composites.
  *
- * Taken from `.floor`'s own gradient rather than written down here: the band is
- * white at four alphas over --ds-shaft, and the darker a foreground gets
- * relative to its background the *lighter* the background has to be for the
- * ratio to be worst -- so the peak stop is the one to measure. Reading it out
- * of the rule means someone raising that 24% has to answer to this file.
- *
- * @param shaft - That theme's `--ds-shaft` value, from `themed()`.
- * @returns The composited band colour, as `#rrggbb`.
+ * @param hex - The opaque colour.
+ * @param percent - The alpha to give it, 0 to 100.
+ * @returns The same colour, translucent.
  */
-function lightestFloorBand(shaft: string): string {
-  const rule = /\.floor\s*\{([^}]*)\}/.exec(styleSource);
-  expect(rule, ".floor is no longer a rule of its own").not.toBeNull();
-  const gradient = /background:\s*linear-gradient\(([\s\S]*?)\);/.exec(rule?.[1] ?? "");
-  expect(gradient, ".floor no longer paints a linear-gradient").not.toBeNull();
-  const alphas = [...(gradient?.[1] ?? "").matchAll(/rgb\(255 255 255 \/ ([\d.]+)%\)/g)].map(
-    ([, percent = "0"]) => Number(percent),
+function withAlpha(hex: string, percent: number): string {
+  const digits = hex.replace("#", "");
+  const expanded = digits.length === 3 ? digits.replace(/./g, (digit) => digit + digit) : digits;
+  const channels = (expanded.match(/../g) ?? []).map((pair) => parseInt(pair, 16));
+  return `rgb(${channels.join(" ")} / ${String(percent)}%)`;
+}
+
+/**
+ * The surface the floor-number column really paints, which is what every
+ * marking in it -- the number, both call lamps -- is read against.
+ *
+ * `.levels` is a translucent `--ds-panel` over the building's `--ds-shaft`, so
+ * neither token is what is on screen there. Read out of the rule rather than
+ * written down here, so that changing the 55% has to answer to this file, the
+ * way `.feedback`'s own alpha does below.
+ *
+ * @param palette - `DARK_PALETTE` or `LIGHT_PALETTE`.
+ * @returns The composited column colour, as `#rrggbb`.
+ */
+function levelsColumn(palette: ReadonlyMap<string, string>): string {
+  const value = declaration(ruleBody(".levels"), "background", ".levels");
+  const mix = /color-mix\(in srgb,\s*var\(--([\w-]+)\)\s*([\d.]+)%,\s*transparent\)/.exec(value);
+  expect(mix, ".levels no longer paints a token mixed with transparency").not.toBeNull();
+  const [, name = "", percent = "0"] = mix ?? [];
+  return over(withAlpha(themed(palette, name), Number(percent)), themed(palette, "ds-shaft"));
+}
+
+/**
+ * How a floor's number is set: the colour, and the size and weight that decide
+ * which bar 1.4.3 holds the pair to.
+ *
+ * The size is a `clamp()`, since a floor is not always the same height. The
+ * largest length in it is the one that matters: the bar steps *down* at 24px,
+ * so a rule that can be drawn small has to clear the small-text bar.
+ *
+ * @returns The size in px, the weight, and the colour.
+ */
+function levelNumber(): { size: number; weight: string; colour: string } {
+  const selector = ".level-num";
+  const body = ruleBody(selector);
+  const lengths = [...declaration(body, "font-size", selector).matchAll(/([\d.]+)px/g)].map(
+    ([, px = "0"]) => Number(px),
   );
-  expect(alphas.length, ".floor's gradient is not white at a list of alphas").toBeGreaterThan(1);
-  return over(`rgb(255 255 255 / ${String(Math.max(...alphas))}%)`, shaft);
+  expect(lengths.length, `${selector}'s font-size states no length at all`).toBeGreaterThan(0);
+  return {
+    size: Math.max(...lengths),
+    weight: /^\s*font-weight:/m.test(body) ? declaration(body, "font-weight", selector) : "normal",
+    colour: declaration(body, "color", selector),
+  };
 }
 
 /**
@@ -321,14 +354,21 @@ describe("palette", () => {
     ["dark", DARK_PALETTE],
     ["light", LIGHT_PALETTE],
   ])("keeps the focus ring readable inside .world, %s theme", (_, palette) => {
-    // .world redeclares --ds-focus to --ds-accent-hi, against --ds-shaft's own
-    // surface -- checked directly against the two token values, the way the
-    // lit floor call button above is, since .world does not redeclare
+    // .world redeclares --ds-focus to --ds-accent-hi, and everything focusable
+    // in the building inherits it -- checked directly against the token values,
+    // the way the lit call lamp above is, since .world does not redeclare
     // --ds-accent-hi itself for themed() to follow its own override through.
+    // Three surfaces carry a ring: --ds-shaft is the shafts a car is focused
+    // in, --ds-bg is the stage itself once it has something to scroll, and the
+    // floor-number column is where a focused floor row's ring is drawn.
     expect(paletteIn(".world").get("ds-focus")).toBe("var(--ds-accent-hi)");
-    expect(
-      contrast(themed(palette, "ds-accent-hi"), themed(palette, "ds-shaft")),
-    ).toBeGreaterThanOrEqual(3);
+    for (const surface of [
+      themed(palette, "ds-shaft"),
+      themed(palette, "ds-bg"),
+      levelsColumn(palette),
+    ]) {
+      expect(contrast(themed(palette, "ds-accent-hi"), surface)).toBeGreaterThanOrEqual(3);
+    }
   });
 
   it.each([
@@ -344,23 +384,41 @@ describe("palette", () => {
   it.each([
     ["dark", DARK_PALETTE],
     ["light", LIGHT_PALETTE],
-  ])(
-    "keeps the floor numbers readable on the brightest part of a floor, %s theme",
-    (_, palette) => {
-      // The one pair in the building that has to clear a bar, and the one that
-      // cannot be checked by comparing two tokens: the background is painted
-      // through something else. The number is opaque --ds-text-muted on a band
-      // that is translucent white over --ds-shaft, which now differs by theme --
-      // so the comparison is against the band's own composite, per theme. 32px
-      // text, so 1.4.3 asks 3:1 rather than 4.5:1.
-      //
-      // It sat at 1.40:1 for twelve years, defended by a note saying the building
-      // was dim on purpose. That is true of a call button, which says what it has
-      // to say by lighting up. A floor number never lights up.
-      const band = lightestFloorBand(themed(palette, "ds-shaft"));
-      expect(contrast(themed(palette, "ds-text-muted"), band)).toBeGreaterThanOrEqual(3);
-    },
-  );
+  ])("keeps the floor numbers readable in their own column, %s theme", (_, palette) => {
+    // Not a comparison of two tokens: the column is a translucent --ds-panel
+    // over --ds-shaft, so what the number sits on is a composite, per theme.
+    //
+    // The number sat at 1.40:1 for twelve years, defended by a note saying the
+    // building was dim on purpose. That is true of a call lamp, which says what
+    // it has to say by lighting up. A floor number never lights up -- and it is
+    // no longer 32px either, so the bar it has to clear is 1.4.3's full 4.5:1
+    // rather than the 3:1 large text is let off with. That is why the colour is
+    // read from the rule as well: --ds-text-faint, which is what
+    // design/ui-mockup.html paints it, reaches 3.77:1 dark and 2.83:1 light
+    // here, and reverting to it would still be an arithmetic pass if this
+    // measured --ds-text-muted by name instead.
+    const number = levelNumber();
+    expect(number.colour).toBe(token("ds-text-muted"));
+    expect(
+      contrast(themed(palette, "ds-text-muted"), levelsColumn(palette)),
+    ).toBeGreaterThanOrEqual(requiredRatio(number.size, number.weight));
+  });
+
+  it.each([
+    ["dark", DARK_PALETTE],
+    ["light", LIGHT_PALETTE],
+  ])("keeps an unlit call lamp visible in its own column, %s theme", (_, palette) => {
+    // The arrow is the whole of what says a control is there when the lamp is
+    // off: the border around it is --ds-line-strong, 1.55:1 dark and 1.43:1
+    // light on this column, so it carries none of that load. 1.4.11's 3:1 for a
+    // graphical object therefore has to be cleared by the glyph alone, which is
+    // the second reason .call deviates from the mockup's --text-faint (2.83:1
+    // light) to --ds-text-muted.
+    expect(declaration(ruleBody(".call"), "color", ".call")).toBe(token("ds-text-muted"));
+    expect(
+      contrast(themed(palette, "ds-text-muted"), levelsColumn(palette)),
+    ).toBeGreaterThanOrEqual(3);
+  });
 
   it.each([
     ["dark", DARK_PALETTE],
@@ -395,28 +453,33 @@ describe("palette", () => {
   it.each([
     ["dark", DARK_PALETTE],
     ["light", LIGHT_PALETTE],
-  ])("keeps a lit floor call button readable on its band, %s theme", (_, palette) => {
-    // Unlike the car, a floor's band flips light/dark with the theme, so the
-    // themed accent that fails on the car (above) is exactly what belongs
-    // here -- checked against the band's own lightest composite, the same
-    // worst case the floor number is held to.
-    const band = lightestFloorBand(themed(palette, "ds-shaft"));
-    expect(contrast(themed(palette, "ds-accent"), band)).toBeGreaterThanOrEqual(3);
+  ])("keeps a lit floor call lamp readable on its own badge, %s theme", (_, palette) => {
+    // Unlike the car, the floor column flips light/dark with the theme, so the
+    // themed accent that fails on the car (above) is exactly what belongs here.
+    // Two composites deep: the lamp lights its own --ds-accent-soft badge,
+    // which is itself translucent, over a column that is translucent over the
+    // shaft -- so neither the badge nor the column is a token this can look up.
+    const badge = over(themed(palette, "ds-accent-soft"), levelsColumn(palette));
+    expect(contrast(themed(palette, "ds-accent"), badge)).toBeGreaterThanOrEqual(3);
   });
 
   it.each([
     ["dark", DARK_PALETTE],
     ["light", LIGHT_PALETTE],
   ])("keeps the feedback ink readable on the feedback overlay, %s theme", (_, palette) => {
-    // .feedback's own background used to sit on the building's fixed colour;
-    // it is --ds-shaft now, which is light in the light theme, so the overlay
-    // has to be dark enough on its own that the pale --ds-feedback-ink painted
-    // over it still clears 4.5:1 regardless of what shows through. Read from
-    // the rule rather than written down here, so raising --ds-shaft's light
-    // value or lowering the overlay's alpha both have to answer to this.
+    // .feedback's own background used to sit on the building's fixed colour; it
+    // spans the whole track now, so what shows through it is --ds-shaft where
+    // the building stands and the stage's own --ds-bg everywhere else, both of
+    // which are light in the light theme. The overlay has to be dark enough on
+    // its own that the pale --ds-feedback-ink painted over it clears 4.5:1 over
+    // either of them (5.27:1 and 4.95:1 light, 13.48:1 and 13.44:1 dark). Read
+    // from the rule rather than written down here, so raising either surface's
+    // light value or lowering the overlay's alpha has to answer to this.
     const translucent = declaration(ruleBody(".feedback"), "background-color", ".feedback");
-    const overlay = over(translucent, themed(palette, "ds-shaft"));
-    expect(contrast(token("ds-feedback-ink"), overlay)).toBeGreaterThanOrEqual(4.5);
+    for (const surface of ["ds-shaft", "ds-bg"]) {
+      const overlay = over(translucent, themed(palette, surface));
+      expect(contrast(token("ds-feedback-ink"), overlay)).toBeGreaterThanOrEqual(4.5);
+    }
   });
 
   it.each([

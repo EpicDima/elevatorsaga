@@ -2564,7 +2564,10 @@ describe("relabelWorld", () => {
       expect(element).toBe(elementsBefore[index]);
     }
     expect(requireElement("button.up", queryAll(".floor", parent)[1] ?? parent)).toBe(called);
-    expect(called.classList.contains("activated")).toBe(true);
+    // `is-lit` on the floor's own lamp, `activated` inside the car: the two
+    // halves of the building are ported from the mockup one at a time, and a
+    // floor's call button is already the mockup's `.call.is-lit`.
+    expect(called.classList.contains("is-lit")).toBe(true);
     expect(called.getAttribute("aria-pressed")).toBe("true");
     expect(carButton?.classList.contains("activated")).toBe(true);
     expect(world.floors[1]?.buttonStates.up).toBe("activated");
@@ -2583,7 +2586,7 @@ describe("relabelWorld", () => {
     up.click();
 
     expect(world.floors[1]?.buttonStates.up).toBe("activated");
-    expect(up.classList.contains("activated")).toBe(true);
+    expect(up.classList.contains("is-lit")).toBe(true);
   });
 
   it("has nothing to say to a container with no building in it", () => {
