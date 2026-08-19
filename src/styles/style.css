@@ -26,25 +26,18 @@
 /*
  * Palette note (WCAG 1.4.3).
  *
- * The page background itself now reads the theme-aware --ds-bg, not
- * --color-page below -- see html,body and .container -- but --color-page and
- * everything measured against it here are still real: `--color-control`'s own
- * corner of the page (the run buttons, the editor's controls, kbd) and the
- * building are untouched, and this is the record of why each of their values
- * is what it is. --color-page's own relative luminance, 0.4998, is why no
- * light colour could pass on it: white, the lightest there is, reached
- * 1.91:1, so anything readable against it had to be darker than it, not
- * lighter. That is why the emphasis and the error colours each exist twice
- * below rather than once.
- * Measured against the real composited backgrounds in Chromium:
+ * The legacy page palette this once documented is gone now, migrated rule by
+ * rule onto the theme-aware --ds-* tokens below, per the deletion policy the
+ * design-token section itself states. One value outlives that migration:
+ * `--color-error`, which still underlines a failing line inside the editor
+ * (`src/ui/editor.ts`, read there by name) rather than through a `--ds-*`
+ * token, because touching that file is beyond this cleanup. It is a graphical
+ * indicator, so 1.4.11 asks 3:1 of it rather than 1.4.3's 4.5, and measured
+ * against `--ds-code-bg` -- the editor's real background now, not the
+ * Solarized cream this value was originally tuned for -- it still clears
+ * that bar in both themes:
  *
- *   text     #555 -> #444 on the page    3.90:1 -> 5.10:1  (needs 4.5)
- *   emphasis #f1f2d8 -> #33351f on page  1.68:1 -> 6.58:1  (needs 4.5)
- *   emphasis #f1f2d8 kept on the world  11.09:1            (needs 4.5)
- *   error    #d54 -> #812318 on the page  2.01:1 -> 5.03:1 (needs 4.5)
- *   error    #d54 kept on the editor      3.57:1           (needs 3)
- *   stats    #999 -> #9c9c9c on world    4.43:1 -> 4.60:1  (needs 4.5)
- *   buttons  #333 on #777 -> on #9c9c9c  2.82:1 -> 4.60:1  (needs 4.5)
+ *   error  #d54 on --ds-code-bg  4.62:1 dark, 3.72:1 light  (needs 3)
  *
  * The rest of the building is dim on purpose and stays that way: the unlit call
  * buttons, the direction arrows and the car's button panel are painted at
@@ -57,71 +50,14 @@
  * to a real bar instead; see --ds-text-muted and --ds-car-ink below.
  */
 :root {
-  /* Palette */
-  --color-page: #bfbd9f;
-  --color-text: #444;
-  --color-text-strong: #333;
-  --color-link: #444;
+  /* Palette. The one legacy colour left; everywhere else reads --ds-* below. */
   /*
-   * Emphasis is the same accent in two values: pale where it sits on the dark
-   * building and its overlay, dark where it sits on the page. The pale one is
-   * the legacy #f1f2d8; the dark one is the same hue taken down until it
-   * clears 4.5:1 on the page. `.feedback .emphasis-color` (below) still keeps
-   * the dark one as the pale one's text-shadow, on the overlay neither of
-   * these page tokens paints; `.emphasis-color` itself, on the page, no
-   * longer does -- see its own comment.
-   */
-  --color-emphasis: #f1f2d8;
-  --color-emphasis-on-page: #33351f;
-  /*
-   * The error accent, in two values for the two backgrounds it lands on, the
-   * way emphasis is. The legacy #d54 stays where it underlines a failure in the
-   * editor: that is a graphical indicator on Solarized cream, where 1.4.11 asks
-   * 3:1 and it is at 3.57. Nothing it paints on the page is a graphical
-   * indicator -- both are text, or an icon standing beside text -- and on the
-   * page it is at 2.01:1 against the 4.5 they need, so the page value is the
-   * same hue and saturation taken down to a lightness that clears the bar.
+   * A graphical indicator (1.4.11's 3:1, not 1.4.3's 4.5:1), underlining a
+   * failing line inside the editor -- see the palette note above, and
+   * `src/ui/editor.ts`, which reads this token by name rather than a --ds-*
+   * one.
    */
   --color-error: #d54;
-  --color-error-on-page: #812318;
-  --color-focus: #333;
-  --color-lit: #33ff44;
-  --color-stats: #9c9c9c;
-  --color-control: #9c9c9c;
-  --color-control-border: #666;
-  /*
-   * Code surfaces: the editor and the examples on the help page. The legacy
-   * game loaded CodeMirror 5 with `theme: "solarized light"` (`app.js:9`,
-   * `index.html:9`), which is where these two values come from; the help page's
-   * <pre><code> has always used them. The rewrite to CodeMirror 6 dropped the
-   * theme, which left the editor transparent over the page and its unhighlighted
-   * text at `body`'s white -- 1.91:1 on the program the player is reading.
-   */
-  --color-code-page: #fdf6e3;
-  --color-code-text: #586e75;
-  /*
-   * The learning track's syntax colours, for the answer under the third hint.
-   * `@lezer/highlight`'s `classHighlighter` names a token by what it is
-   * (`tok-keyword`, `tok-string`, …), not by a colour, and these are what pay
-   * each name back out. Solarized again, the way `--color-code-page` and
-   * `--color-code-text` are, but not at the legacy accent values: the raw
-   * Solarized violet, cyan, magenta and blue read at 2.5-4.3:1 on
-   * --color-code-page, all short of the 4.5:1 that 13px text is asked for.
-   * Each is the same hue and saturation taken down until it clears the bar,
-   * the way `--color-emphasis-on-page` and `--color-error-on-page` already are
-   * above:
-   *
-   *   keyword  #6c71c4 -> #6267c0   4.06:1 -> 4.61:1  (needs 4.5)
-   *   string   #2aa198 -> #207c76   2.93:1 -> 4.63:1  (needs 4.5)
-   *   number   #d33682 -> #cc2d7a   4.21:1 -> 4.61:1  (needs 4.5)
-   *   entity   #268bd2 -> #2074b0   3.41:1 -> 4.65:1  (needs 4.5)
-   *   comment  #93a1a1 -> #647272   2.48:1 -> 4.64:1  (needs 4.5)
-   */
-  --color-code-keyword: #6267c0;
-  --color-code-string: #207c76;
-  --color-code-number: #cc2d7a;
-  --color-code-entity: #2074b0;
-  --color-code-comment: #647272;
 
   /* Geometry. The floor and elevator sizes mirror src/game/world.ts. */
   --shell-width: 1220px;
@@ -136,8 +72,9 @@
    * `--stats-padding`, `--stats-row-height`, `--stats-row-pitch` and
    * `--stats-rows` described the panel `widgets/stats-panel` no longer draws
    * -- a column of eleven text rows -- and are left declared rather than
-   * deleted, per this migration's own Phase 12 cleanup convention (see the
-   * page-background token migration's note on `--color-page`). Nothing below
+   * deleted: unlike a `--color-*` token with a `--ds-*` successor reading
+   * takes over from, nothing replaces what these ever counted, so there is no
+   * "once nothing reads them any more" moment for them to wait for. Nothing below
    * reads them any more; `--stats-block-size` is worked out from the three
    * tokens after them instead, for the two tile grids and the disclosure the
    * widget draws today.
@@ -208,7 +145,9 @@
  * selector yet, so none of it changes what is on screen; each token is
  * adopted the same commit as the widget whose CSS starts reading it, and the
  * `--color-*`/`--shell-*`/... tokens above are deleted once nothing reads
- * them any more, per the migration plan.
+ * them any more, per the migration plan. `--color-error` is the one still
+ * standing: `src/ui/editor.ts` reads it by name, outside this stylesheet, so
+ * it stays until that file adopts a `--ds-*` token in its place too.
  *
  * Prefixed `--ds-` (design system) rather than reusing the mockup's own bare
  * names (`--font-ui`, `--font-mono`, ...) because two of those names already
@@ -254,6 +193,17 @@
   --ds-accent-soft: rgb(232 163 63 / 14%);
   --ds-accent-line: rgb(232 163 63 / 38%);
 
+  /*
+   * The sitewide focus ring, as one indirection point rather than a bare
+   * `var(--ds-accent)` at every `:focus-visible`: `.world` (below) redeclares
+   * this one custom property to get a paler ring against the shaft's own dark
+   * surface, and every focusable descendant picks that up automatically
+   * without its own rule needing to know it is inside `.world`. Declared once
+   * here, not per theme: `--ds-accent` is already themed, so the indirection
+   * follows it through the cascade.
+   */
+  --ds-focus: var(--ds-accent);
+
   /* Steel: figures, scales, car load. */
   --ds-steel: #74a9d8;
   --ds-steel-soft: rgb(116 169 216 / 16%);
@@ -291,6 +241,23 @@
   --ds-car-ink: #f0f2f5;
   --ds-car-person: #cdd5e0;
   --ds-car-attention: #ffff00;
+  /*
+   * An activated call button's own lit glow, fixed across both themes for the
+   * same reason the three above are: it is drawn on the car body, which does
+   * not flip light/dark with the page. The legacy #33ff44, unchanged -- 8.27:1
+   * dark, 6.06:1 light on --ds-car, clear of 1.4.3's 4.5:1.
+   */
+  --ds-car-lit: #33ff44;
+
+  /*
+   * The end-of-challenge overlay: a fixed dark scrim regardless of theme (see
+   * `.feedback`'s own comment below), so what is painted on it is fixed too,
+   * the way the car body's own tokens above are. Both are the legacy values,
+   * unchanged -- `style.test.ts` still holds the ink to 4.5:1 against the
+   * overlay's real composited colour, per theme.
+   */
+  --ds-feedback-ink: #f1f2d8;
+  --ds-feedback-shadow: #444;
 
   /* The editor. */
   --ds-code-bg: #15181d;
@@ -357,6 +324,7 @@ html[data-theme="light"] {
   --ds-accent-ink: #ffffff;
   --ds-accent-soft: rgb(168 105 12 / 10%);
   --ds-accent-line: rgb(168 105 12 / 34%);
+  --ds-focus: var(--ds-accent);
 
   --ds-steel: #2f6fa8;
   --ds-steel-soft: rgb(47 111 168 / 12%);
@@ -438,7 +406,7 @@ a:hover {
 }
 
 :focus-visible {
-  outline: 2px solid var(--color-focus);
+  outline: 2px solid var(--ds-focus);
   outline-offset: 2px;
 }
 
@@ -472,8 +440,8 @@ dl dd {
 
 /* On the dark overlay, where the pale accent reads as it always did. */
 .feedback .emphasis-color {
-  color: var(--color-emphasis);
-  text-shadow: 0 2px 0.4pt var(--color-text);
+  color: var(--ds-feedback-ink);
+  text-shadow: 0 2px 0.4pt var(--ds-feedback-shadow);
 }
 
 /*
@@ -596,10 +564,10 @@ dl dd {
   inset-block-start: 6px;
   inset-inline-start: 6px;
   padding: 8px 14px;
-  border: 1px solid var(--color-control-border);
+  border: 1px solid var(--ds-line-strong);
   border-radius: 5px;
-  background-color: var(--color-control);
-  color: var(--color-text-strong);
+  background-color: var(--ds-raised);
+  color: var(--ds-text);
   /* Twice its own height, so neither it nor its focus ring is left on screen. */
   translate: 0 -200%;
 }
@@ -769,10 +737,10 @@ dl dd {
 .languagepicker {
   block-size: 30px;
   padding-inline: 6px;
-  border: 1px solid var(--color-control-border);
+  border: 1px solid var(--ds-line-strong);
   border-radius: 5px;
-  background-color: var(--color-control);
-  color: var(--color-text-strong);
+  background-color: var(--ds-raised);
+  color: var(--ds-text);
   font: inherit;
   font-size: 16px;
   cursor: pointer;
@@ -2379,14 +2347,12 @@ html[data-theme="dark"] .tasklink.is-done {
  * The line or lines a player actually has to write, inside the answer.
  * `changedLines` (`src/ui/line-diff.ts`) is what decides which lines these
  * are, by comparing the task's starting program against this one; this rule
- * is only the paint. `--color-emphasis-on-page` is reused rather than a new
- * colour, for the same reason `.emphasis-color` reaches for it everywhere
- * else in this file: it is already "the important thing on this page" here,
- * and it is already proven at 11.66:1 on --color-code-page, which is far past
- * the 4.5:1 that matters for the border alone -- 1.4.11 asks 3:1 of a
- * graphical indicator, and `style.test.ts` holds it to that bar explicitly,
- * since a border is a new kind of pairing for the colour even though the
- * colour itself is not new.
+ * is only the paint. `--ds-accent` marks the change, the same colour the
+ * building already uses for "this is lit, this matters" -- a floor's call
+ * button, its band once pressed. Checked fresh against `--ds-code-bg`, a
+ * pairing neither of those already covers: 8.25:1 dark, 4.33:1 light, clear
+ * of the 3:1 that 1.4.11 asks of a graphical indicator; `style.test.ts` holds
+ * it to that bar explicitly.
  *
  * A `<mark>` rather than a `<span>` with the same class: it is the element
  * HTML already has for "this text matters here, against another context",
@@ -2408,7 +2374,7 @@ html[data-theme="dark"] .tasklink.is-done {
 .tutoriallinechanged {
   display: block;
   margin-inline-start: -8px;
-  border-inline-start: 3px solid var(--color-emphasis-on-page);
+  border-inline-start: 3px solid var(--ds-accent);
   padding-inline-start: 5px;
   background-color: rgb(51 53 31 / 10%);
 }
@@ -2543,10 +2509,10 @@ button[disabled] {
 .tutorialbuttons button {
   block-size: 30px;
   padding-inline: 10px;
-  border: 1px solid var(--color-control-border);
+  border: 1px solid var(--ds-line-strong);
   border-radius: 5px;
-  background-color: var(--color-control);
-  color: var(--color-text-strong);
+  background-color: var(--ds-raised);
+  color: var(--ds-text);
   font-size: 16px;
   font-weight: bold;
   line-height: 16px;
@@ -2645,19 +2611,19 @@ button[disabled] {
  * buttons' own (see .runbuttons button below), so a key reads as the same
  * kind of control-shaped mark this page already draws rather than a new
  * invention -- the conventional bordered key cap most sites reach for. The
- * pairing is --color-text-strong on --color-control, which the palette tests
- * in style.test.ts already hold to 4.5:1, so nothing new needs checking
- * there. Bold for the reason the run buttons are bold too: heavier strokes
- * are what keep a single character -- ⌘ chief among them -- legible at the
- * size a key is actually set at, without singling that one glyph out from the
- * letters beside it.
+ * pairing is --ds-text on --ds-raised, which style.test.ts holds to 4.5:1 in
+ * both themes (12.96:1 dark, 15.07:1 light) by way of .tutorialcopycode's own
+ * use of the same two tokens. Bold for the reason the run buttons are bold
+ * too: heavier strokes are what keep a single character -- ⌘ chief among
+ * them -- legible at the size a key is actually set at, without singling that
+ * one glyph out from the letters beside it.
  */
 kbd {
   padding: 1px 6px;
-  border: 1px solid var(--color-control-border);
+  border: 1px solid var(--ds-line-strong);
   border-radius: 4px;
-  background-color: var(--color-control);
-  color: var(--color-text-strong);
+  background-color: var(--ds-raised);
+  color: var(--ds-text);
   font: inherit;
   font-family: var(--font-mono);
   font-weight: bold;
@@ -2914,13 +2880,12 @@ kbd {
 }
 
 /*
- * `--color-control-border` rather than a `--ds-*` line token: no other
- * `--ds-*` region has taken a position on it yet (nothing else in the file
- * reads it as anything but this legacy value), and the mockup draws no
- * resizable editor at all to take one from -- this grip is a production
- * feature beyond it. Left as it was for the same reason the sitewide
- * `:focus-visible` rule below still reads `--color-focus`: a page-wide call
- * neither belongs to this dispatch.
+ * `--ds-line-strong`, the same dim divider the grip's legacy value
+ * (`--color-control-border`, #666) already behaved like: this is the resting
+ * state, and the hover/focus rule below already carries the bar to `--ds-text`
+ * once it matters, the way an unlit call button stays dim until it is pressed.
+ * The mockup draws no resizable editor at all, so there is no token of its
+ * own to take this from.
  */
 .editorresize::before {
   content: "";
@@ -2929,7 +2894,7 @@ kbd {
   inset-inline: 0;
   block-size: 4px;
   border-radius: 2px;
-  background-color: var(--color-control-border);
+  background-color: var(--ds-line-strong);
 }
 
 .editorresize:hover::before,
@@ -2938,7 +2903,7 @@ kbd {
 }
 
 .editorresize:focus-visible {
-  outline: 2px solid var(--color-focus);
+  outline: 2px solid var(--ds-focus);
   outline-offset: -2px;
 }
 
@@ -2947,7 +2912,7 @@ kbd {
 }
 
 .cm-editor.cm-focused {
-  outline: 2px solid var(--color-focus);
+  outline: 2px solid var(--ds-focus);
   outline-offset: 2px;
 }
 
@@ -2960,7 +2925,15 @@ kbd {
  * overlay the way `.world` used to.
  */
 .world {
-  --color-focus: var(--color-emphasis);
+  /*
+   * Paler than the sitewide default, and against --ds-shaft rather than the
+   * page: --ds-accent-hi clears 11.02:1 dark, 4.80:1 light there, both past
+   * the 3:1 a focus ring needs. Nothing inside .world is focusable yet -- no
+   * `.car`, no call button, no floor carries a `tabindex` -- so this is
+   * staged ahead of what will read it, the way the --ds-* design tokens
+   * themselves once sat unread before the first widget's CSS was ported.
+   */
+  --ds-focus: var(--ds-accent-hi);
 
   background-color: var(--ds-shaft);
   overflow-x: auto;
@@ -3377,8 +3350,9 @@ kbd {
   display: inline-block;
 }
 
+/* Fixed across both themes, like the car body's other tokens above. */
 .elevator .buttonpress.activated {
-  color: var(--color-lit);
+  color: var(--ds-car-lit);
 }
 
 /* ------------------------------------------------------------------- Floors */

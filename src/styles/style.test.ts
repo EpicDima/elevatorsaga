@@ -269,48 +269,70 @@ function requiredRatio(size: number, weight: string): number {
 }
 
 describe("palette", () => {
-  it("declares every colour it is asked about", () => {
-    expect([...PALETTE.keys()].filter((name) => name.startsWith("color-")).length).toBeGreaterThan(
-      10,
+  it("still declares --color-error, the one legacy colour with a live reader outside this file", () => {
+    expect(PALETTE.has("color-error")).toBe(true);
+  });
+
+  it.each([
+    ["dark", DARK_PALETTE],
+    ["light", LIGHT_PALETTE],
+  ])("keeps --color-error readable on the editor's real background, %s theme", (_, palette) => {
+    // The one legacy pairing left. `--color-error` is not itself themed, but
+    // the editor background it underlines a failing line on is --ds-code-bg
+    // now, which is -- so unlike every other pairing this file used to check
+    // by way of a single token() lookup, this one has to be checked per
+    // theme. A graphical indicator, so 1.4.11's 3:1 rather than 1.4.3's 4.5.
+    expect(contrast(token("color-error"), themed(palette, "ds-code-bg"))).toBeGreaterThanOrEqual(3);
+  });
+
+  it.each([
+    ["dark", DARK_PALETTE],
+    ["light", LIGHT_PALETTE],
+  ])("keeps the shared control-surface pairing readable, %s theme", (_, palette) => {
+    // --ds-text on --ds-raised, the pairing kbd, .skip-link, .languagepicker,
+    // .runbuttons button, .tutorialbuttons button and .tutorialcopycode all
+    // share now. 12.96:1 dark, 15.07:1 light -- far past the 4.5:1 that
+    // matters, since none of these sit at large-text sizes.
+    expect(
+      contrast(themed(palette, "ds-text"), themed(palette, "ds-raised")),
+    ).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it.each([
+    ["dark", DARK_PALETTE],
+    ["light", LIGHT_PALETTE],
+  ])("keeps the sitewide focus ring readable on the page, %s theme", (_, palette) => {
+    // --ds-focus is var(--ds-accent) by default -- see its own comment in
+    // style.css. A focus ring is a graphical indicator, so 1.4.11's 3:1
+    // applies, not 1.4.3's 4.5; --ds-bg is the palest of the three page
+    // surfaces it can be drawn against, so the worst case of them.
+    expect(contrast(themed(palette, "ds-focus"), themed(palette, "ds-bg"))).toBeGreaterThanOrEqual(
+      3,
     );
   });
 
-  // Foreground, background, and the ratio the pair is asked for: 4.5 for
-  // ordinary text under WCAG 1.4.3, 3 for text at 24px or 18.66px and bold, and
-  // 3 for the one graphical indicator here, which is 1.4.11's bar rather than
-  // 1.4.3's. Each pair is one that really occurs -- the emphasis colour appears
-  // twice because it sits on the page in the headings, the challenge bar and
-  // the help prose, and on the building in the end-of-challenge overlay, and
-  // the error colour twice because it is a sentence and an icon on the page and
-  // the wavy underline under a failing line in the editor.
   it.each([
-    ["color-text", "color-page", 4.5],
-    ["color-text-strong", "color-page", 4.5],
-    ["color-link", "color-page", 4.5],
-    ["color-emphasis-on-page", "color-page", 4.5],
-    ["color-error-on-page", "color-page", 4.5],
-    ["color-error", "color-code-page", 3],
-    // --color-stats used to be checked against --color-world here: .statscontainer
-    // paints no background of its own, so it reads whatever is behind it, and
-    // that used to be the building's fixed background. It is --ds-shaft now,
-    // themed, and .statscontainer's own surface is a separate region's rework
-    // in flight -- this file does not guess at a background nobody has settled
-    // on yet; re-add the pair once that surface is real.
-    ["color-text-strong", "color-control", 4.5],
-    ["color-code-text", "color-code-page", 4.5],
-    ["color-code-keyword", "color-code-page", 4.5],
-    ["color-code-string", "color-code-page", 4.5],
-    ["color-code-number", "color-code-page", 4.5],
-    ["color-code-entity", "color-code-page", 4.5],
-    ["color-code-comment", "color-code-page", 4.5],
-    // The changed-line border in the learning track's answer, 1.4.11's bar
-    // rather than 1.4.3's: nothing is written in this colour there, only drawn.
-    // --color-emphasis-on-page is proven readable as text twice already; this
-    // is the same colour meeting a background it has not been measured against
-    // before, in a role the 4.5:1 rows above do not cover.
-    ["color-emphasis-on-page", "color-code-page", 3],
-  ])("has --%s readable on --%s", (foreground, background, required) => {
-    expect(contrast(token(foreground), token(background))).toBeGreaterThanOrEqual(required);
+    ["dark", DARK_PALETTE],
+    ["light", LIGHT_PALETTE],
+  ])("keeps the focus ring readable inside .world, %s theme", (_, palette) => {
+    // .world redeclares --ds-focus to --ds-accent-hi, against --ds-shaft's own
+    // surface -- checked directly against the two token values, the way the
+    // lit floor call button above is, since .world does not redeclare
+    // --ds-accent-hi itself for themed() to follow its own override through.
+    expect(paletteIn(".world").get("ds-focus")).toBe("var(--ds-accent-hi)");
+    expect(
+      contrast(themed(palette, "ds-accent-hi"), themed(palette, "ds-shaft")),
+    ).toBeGreaterThanOrEqual(3);
+  });
+
+  it.each([
+    ["dark", DARK_PALETTE],
+    ["light", LIGHT_PALETTE],
+  ])("keeps a lit call button readable inside the car, %s theme", (_, palette) => {
+    // Fixed across both themes, like the car body's other tokens above:
+    // #33ff44, unchanged from the legacy --color-lit. 8.27:1 dark, 6.06:1
+    // light.
+    expect(contrast(token("ds-car-lit"), themed(palette, "ds-car"))).toBeGreaterThanOrEqual(4.5);
   });
 
   it.each([
@@ -379,16 +401,16 @@ describe("palette", () => {
   it.each([
     ["dark", DARK_PALETTE],
     ["light", LIGHT_PALETTE],
-  ])("keeps the emphasis colour readable on the feedback overlay, %s theme", (_, palette) => {
+  ])("keeps the feedback ink readable on the feedback overlay, %s theme", (_, palette) => {
     // .feedback's own background used to sit on the building's fixed colour;
     // it is --ds-shaft now, which is light in the light theme, so the overlay
-    // has to be dark enough on its own that the pale --color-emphasis painted
+    // has to be dark enough on its own that the pale --ds-feedback-ink painted
     // over it still clears 4.5:1 regardless of what shows through. Read from
     // the rule rather than written down here, so raising --ds-shaft's light
     // value or lowering the overlay's alpha both have to answer to this.
     const translucent = declaration(ruleBody(".feedback"), "background-color", ".feedback");
     const overlay = over(translucent, themed(palette, "ds-shaft"));
-    expect(contrast(token("color-emphasis"), overlay)).toBeGreaterThanOrEqual(4.5);
+    expect(contrast(token("ds-feedback-ink"), overlay)).toBeGreaterThanOrEqual(4.5);
   });
 
   it.each([
@@ -419,14 +441,6 @@ describe("palette", () => {
     expect(contrast(token("ds-car-attention"), themed(palette, "ds-car"))).toBeGreaterThanOrEqual(
       3,
     );
-  });
-
-  it("cannot be fixed by lightening anything that sits on the page", () => {
-    // The reason --color-emphasis-on-page exists. The page colour is light
-    // enough that white, the lightest foreground there is, reaches 1.91:1 on
-    // it: no light emphasis can pass, however it is tuned, so the emphasis on
-    // the page has to be darker than the page rather than paler.
-    expect(contrast("#ffffff", token("color-page"))).toBeLessThan(3);
   });
 });
 
@@ -543,14 +557,15 @@ describe("kbd and .hint", () => {
     // monospace font, which the rule above already sets. Reusing the run
     // buttons' own tokens (see .runbuttons button) means a key reads as the
     // same kind of control-shaped mark those buttons already draw, rather
-    // than a colour this file would have no test for. The pair is
-    // --color-text-strong on --color-control, which the "readable on" cases
-    // above already hold to 4.5:1 by way of .runbuttons button and
-    // .skip-link, both painting the same two tokens over each other.
+    // than a colour this file would have no test for. The pair is --ds-text
+    // on --ds-raised, which the shared control-surface case in
+    // describe("palette") already holds to 4.5:1 -- not read through
+    // declaration()/token() here, since both are themed and token() would
+    // silently collapse to the light theme's value only.
     const body = ruleBody("kbd");
     expect(declaration(body, "border-radius", "kbd")).toBe("4px");
-    expect(declaration(body, "color", "kbd")).toBe(token("color-text-strong"));
-    expect(declaration(body, "background-color", "kbd")).toBe(token("color-control"));
+    expect(body).toMatch(/^\s*color:\s*var\(--ds-text\);/m);
+    expect(body).toMatch(/^\s*background-color:\s*var\(--ds-raised\);/m);
     expect(body).toMatch(/^\s*font-weight:\s*bold;/m);
   });
 
