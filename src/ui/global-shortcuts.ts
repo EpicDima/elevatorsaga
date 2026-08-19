@@ -6,8 +6,8 @@
  * with "?" — the same five rows `features/hotkeys-help`'s dialog prints.
  *
  * Nothing here exists in production today. `src/ui/shortcuts.ts` only
- * relabels the `Mod-` key already printed in `page.hint.html` and the
- * hotkeys dialog; it binds nothing itself. This module is the binding,
+ * relabels the `Mod-` key already printed on the documentation page and in
+ * the hotkeys dialog; it binds nothing itself. This module is the binding,
  * mounted once from `src/main.ts` once every element and callback it drives
  * exists.
  *

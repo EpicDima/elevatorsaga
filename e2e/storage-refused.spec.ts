@@ -2,10 +2,17 @@
  * What the page says when the browser will not store the program.
  *
  * `CodeEditor` raises `storage_refused` from the one place every write goes
- * through, and `src/main.ts` turns it into the line under the editor. Between
- * them is nothing a unit test can hold: the editor's own suite proves the event
- * is raised, and the wiring that makes it visible lives in the entry point,
- * which has no unit tests by design — it is covered from here.
+ * through, and `src/main.ts` turns it into the one thing `#storage_status`
+ * ever says. Between them is nothing a unit test can hold: the editor's own
+ * suite proves the event is raised, and the wiring that carries it lives in the
+ * entry point, which has no unit tests by design — it is covered from here.
+ *
+ * Nothing here asserts about pixels, because there are none to assert about.
+ * `#storage_status` is `.visually-hidden` and `role="status"`: the mockup draws
+ * no status line under the editor, and a page whose whole height is a workspace
+ * has nowhere to put one, but a store that has stopped keeping the player's
+ * work still has to be announced. What this checks is what a screen reader is
+ * handed — the words in the live region, and the silence after them.
  *
  * The store is broken from `addInitScript`, before any of the page's own script
  * runs, so the first write the game attempts is already refused. Reads are left
@@ -15,7 +22,7 @@
  * `src/ui/editor.test.ts` against a fake.)
  */
 
-import { expect, test } from "@playwright/test";
+import { expect, test, type Locator, type Page } from "@playwright/test";
 
 import { editor } from "./game-page.ts";
 
@@ -57,7 +64,17 @@ function breakWrites(): void {
   };
 }
 
-test("says so rather than reporting a save that did not happen", async ({ page }) => {
+/**
+ * The live region the refusal is announced through.
+ *
+ * @param page - The page under test.
+ * @returns A locator for `#storage_status`.
+ */
+function storageStatus(page: Page): Locator {
+  return page.locator("#storage_status");
+}
+
+test("announces the refusal rather than reporting a save that did not happen", async ({ page }) => {
   const pageErrors: string[] = [];
   page.on("pageerror", (error) => pageErrors.push(error.message));
   await page.addInitScript(breakWrites);
@@ -71,16 +88,17 @@ test("says so rather than reporting a save that did not happen", async ({ page }
   // is not also waiting out a second of debounce.
   await page.keyboard.press("ControlOrMeta+s");
 
-  await expect(page.getByText(/^Not saved/)).toBeVisible();
-  // And not both at once: the timestamp is a promise about the next visit, and
-  // there is no next visit for this text.
-  await expect(page.getByText(/^Code saved /)).toHaveCount(0);
+  await expect(storageStatus(page)).toHaveText(/^Not saved/);
+  // Announced, not drawn: `role="status"` is what reaches a screen reader, and
+  // `.visually-hidden` is what keeps the page looking like the mockup.
+  await expect(storageStatus(page)).toHaveAttribute("role", "status");
+  await expect(storageStatus(page)).toHaveClass("visually-hidden");
   // The refusal is a fact about the store, not a crash. A game that threw on
-  // the way would have shown the message and then stopped playing.
+  // the way would have announced the message and then stopped playing.
   expect(pageErrors).toEqual([]);
 });
 
-test("takes the line back when a write gets through again", async ({ page }) => {
+test("takes the announcement back when a write gets through again", async ({ page }) => {
   await page.addInitScript(breakWrites);
 
   await page.goto("/");
@@ -88,12 +106,14 @@ test("takes the line back when a write gets through again", async ({ page }) => 
   await page.keyboard.press("ControlOrMeta+a");
   await page.keyboard.insertText("// e2e-storage-refused-b118");
   await page.keyboard.press("ControlOrMeta+s");
-  await expect(page.getByText(/^Not saved/)).toBeVisible();
+  await expect(storageStatus(page)).toHaveText(/^Not saved/);
 
   // The quota is not a permanent condition -- another tab closing, or the
-  // player clearing something out, is enough -- and a line that stays red after
-  // the writes start landing is telling them their work is at risk when it is
-  // not.
+  // player clearing something out, is enough -- and a warning left standing
+  // after the writes start landing is telling them their work is at risk when
+  // it is not. Emptying the region announces nothing, which is right for news
+  // that has stopped being news; nothing is put in its place, because a save
+  // that worked is not news either.
   await page.evaluate(() => {
     window.restoreStorageWrites();
   });
@@ -101,6 +121,5 @@ test("takes the line back when a write gets through again", async ({ page }) => 
   await page.keyboard.insertText("\n// and again");
   await page.keyboard.press("ControlOrMeta+s");
 
-  await expect(page.getByText(/^Code saved /)).toBeVisible();
-  await expect(page.getByText(/^Not saved/)).toHaveCount(0);
+  await expect(storageStatus(page)).toHaveText("");
 });

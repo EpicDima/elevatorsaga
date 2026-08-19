@@ -68,10 +68,21 @@
  * the mockup's own `.setblock`, `target="_blank" rel="noreferrer"` included.
  * The two URLs and the domain text under each link are plain constants
  * rather than catalogue keys: an address is not a translator's business, and
- * `game.appBar.aboutCopyright`'s "Elevator Saga © 2015 Magnus Wolffelt, ©
- * 2026 EpicDima, MIT." is deliberately the same string in both locales, the
+ * `game.appBar.aboutCopyright.html`'s "Elevator Saga © 2015 Magnus Wolffelt,
+ * © 2026 EpicDima, MIT." is deliberately the same string in both locales, the
  * same way the mockup's own Russian page leaves it in English — a license
  * notice names what it names regardless of the reader's language.
+ *
+ * One word of that line is a link, and that is the whole of this port's
+ * departure from the mockup here: "MIT" points at `licenses.txt`, the notice
+ * file `vite.config.ts` writes into `dist/`. The page footer that used to
+ * carry that link is gone — `design/ui-mockup.html` draws no footer, and a
+ * page whose whole height is a workspace has nowhere to put one — and MIT
+ * and OFL both ask for their notices to travel with the software, so the
+ * game needs one reachable route to the file. A third `.setlink` row would
+ * have been the obvious place and is deliberately not taken: it would change
+ * the block's shape, and the licence name in a line that already says "MIT"
+ * is the same destination for none of the space.
  */
 
 import { seedPanelTemplate } from "#features/manage-seed/index.ts";
@@ -117,9 +128,9 @@ export function appBarSettingsTemplate(seed: SeedLinkData | null): string {
   const aboutCaption = t("game.appBar.aboutCaption");
   const forkLabel = t("game.appBar.aboutForkLabel");
   const originalLabel = t("game.appBar.aboutOriginalLabel");
-  const copyright = t("game.appBar.aboutCopyright");
+  const copyright = t("game.appBar.aboutCopyright.html");
 
-  return markup`<button type="button" class="ghost docsopen" title="${docsLabel}" aria-haspopup="dialog">${raw(spriteIconMarkup("book"))}<span class="lbl">${docsLabel}</span></button><div class="setwrap"><button type="button" class="ghost setopen" aria-expanded="false" aria-haspopup="true" title="${settingsLabel}" aria-label="${settingsLabel}">${raw(spriteIconMarkup("slider"))}<span class="lbl">${settingsLabel}</span></button><div class="setmenu" hidden><div class="setblock" data-set-block="theme"><span class="cap">${themeCaption}</span></div><div class="setblock" data-set-block="layout"><span class="cap">${layoutCaption}</span></div><div class="setblock" data-set-block="language"><span class="cap">${languageCaption}</span><select class="langpick" aria-label="${languageCaption}"></select></div><div data-set-block="seed">${raw(seedPanelTemplate(seed))}</div><div class="setblock" data-set-block="hotkeys"><button type="button" class="setrow keysopen" aria-haspopup="dialog">${raw(spriteIconMarkup("keys"))}<span>${hotkeysLabel}</span>${raw(spriteIconMarkup("right", "chev"))}</button></div><div class="setblock" data-set-block="about"><span class="cap">${aboutCaption}</span><a class="setlink" href="${FORK_URL}" target="_blank" rel="noreferrer">${raw(spriteIconMarkup("link"))}<span><b>${forkLabel}</b><small>${FORK_DOMAIN}</small></span></a><a class="setlink" href="${ORIGINAL_URL}" target="_blank" rel="noreferrer">${raw(spriteIconMarkup("link"))}<span><b>${originalLabel}</b><small>${ORIGINAL_DOMAIN}</small></span></a><p class="sethint">${copyright}</p></div></div></div>`;
+  return markup`<button type="button" class="ghost docsopen" title="${docsLabel}" aria-haspopup="dialog">${raw(spriteIconMarkup("book"))}<span class="lbl">${docsLabel}</span></button><div class="setwrap"><button type="button" class="ghost setopen" aria-expanded="false" aria-haspopup="true" title="${settingsLabel}" aria-label="${settingsLabel}">${raw(spriteIconMarkup("slider"))}<span class="lbl">${settingsLabel}</span></button><div class="setmenu" hidden><div class="setblock" data-set-block="theme"><span class="cap">${themeCaption}</span></div><div class="setblock" data-set-block="layout"><span class="cap">${layoutCaption}</span></div><div class="setblock" data-set-block="language"><span class="cap">${languageCaption}</span><select class="langpick" aria-label="${languageCaption}"></select></div><div data-set-block="seed">${raw(seedPanelTemplate(seed))}</div><div class="setblock" data-set-block="hotkeys"><button type="button" class="setrow keysopen" aria-haspopup="dialog">${raw(spriteIconMarkup("keys"))}<span>${hotkeysLabel}</span>${raw(spriteIconMarkup("right", "chev"))}</button></div><div class="setblock" data-set-block="about"><span class="cap">${aboutCaption}</span><a class="setlink" href="${FORK_URL}" target="_blank" rel="noreferrer">${raw(spriteIconMarkup("link"))}<span><b>${forkLabel}</b><small>${FORK_DOMAIN}</small></span></a><a class="setlink" href="${ORIGINAL_URL}" target="_blank" rel="noreferrer">${raw(spriteIconMarkup("link"))}<span><b>${originalLabel}</b><small>${ORIGINAL_DOMAIN}</small></span></a><p class="sethint">${raw(copyright)}</p></div></div></div>`;
 }
 
 /** What {@link presentAppBarSettings} needs in order to drive the toolbar it fills in. */
@@ -314,7 +325,10 @@ export function presentAppBarSettings(
       aboutCaptionEl.textContent = t("game.appBar.aboutCaption");
       forkLabelEl.textContent = t("game.appBar.aboutForkLabel");
       originalLabelEl.textContent = t("game.appBar.aboutOriginalLabel");
-      copyrightEl.textContent = t("game.appBar.aboutCopyright");
+      // `innerHTML`, not `textContent`: the line carries the `licenses.txt`
+      // link, and the `.html` suffix is this codebase's own mark for a
+      // catalogue value that is trusted markup rather than text.
+      copyrightEl.innerHTML = t("game.appBar.aboutCopyright.html");
 
       theme.relabel(themeLabels());
       layout.relabel(layoutLabels());

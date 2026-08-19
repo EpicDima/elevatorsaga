@@ -10,9 +10,10 @@ import { localisePage, ATTRIBUTE_KEY_ATTRIBUTE, TEXT_KEY_ATTRIBUTE } from "./loc
 /**
  * User agent strings for the two answers `modifierKeyLabel` can give.
  *
- * The shortcut hint is a message written with `innerHTML`, so the platform's
- * modifier key has to be put back afterwards; a Mac string is the only way to
- * see whether it was.
+ * A message written with `innerHTML` can carry a `<kbd data-mod-key>`, and
+ * writing it throws away whatever `src/ui/shortcuts.ts` had labelled that key
+ * with, so the platform's own key has to be put back afterwards; a Mac string
+ * is the only way to see whether it was.
  */
 const USER_AGENTS = {
   mac: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
@@ -113,7 +114,7 @@ describe("what index.html names", () => {
     const named = namedMessages(page);
     // A guard on the guard: a selector that matched nothing would let every
     // assertion below pass on an empty list.
-    expect(named.length).toBeGreaterThan(20);
+    expect(named.length).toBeGreaterThan(10);
     for (const { attribute, key } of named) {
       const english = ENGLISH_VALUES[key];
       expect(english, `${attribute}="${key}"`).toBeTypeOf("string");
@@ -158,11 +159,9 @@ describe("localisePage", () => {
   it("does not touch the slots the presenters fill", () => {
     localisePage(page, USER_AGENTS.windows);
 
-    // The version is a number from package.json, written into a span of its
-    // own next to the word "Version"; the building and the statistics are
-    // drawn by widgets that mount into these two containers at runtime.
-    // Localising a label must not clear the slot beside it.
-    expect(page.querySelector(".appversion")?.textContent).toBe("");
+    // The building and the statistics are drawn by widgets that mount into
+    // these two containers at runtime. Localising a label must not clear the
+    // slot beside it.
     expect(page.querySelector(".innerworld")?.innerHTML).toBe("");
     expect(page.querySelector(".statscontainer")?.innerHTML).toBe("");
   });
@@ -218,22 +217,6 @@ describe("localisePage", () => {
       // The run buttons are not checked here: they are the app's, written by
       // `presentControls` into a region this file leaves empty, and what they
       // say in Russian is `app.test.ts`'s subject.
-      //
-      // The grip has no words of its own on screen, so its accessible name is
-      // the only thing to check -- and the only thing a reader who cannot see
-      // where it is will be given.
-      expect(page.querySelector(".editorresize")?.getAttribute("aria-label")).toBe(
-        "Высота редактора",
-      );
-      expect(textOf(page.querySelector(".helpnote"))).toBe(
-        "Не разобрались? Откройте страницу справки и документации по API",
-      );
-      expect([...page.querySelectorAll(".footer p")].map((line) => textOf(line))).toEqual([
-        "Сделали Magnus Wolffelt и другие участники",
-        "Версия",
-        "Исходный код на GitHub, форк оригинала",
-        "Лицензии игры и всего, что входит в её сборку",
-      ]);
     });
 
     it("names the things a screen reader announces in Russian too", () => {
@@ -255,17 +238,6 @@ describe("localisePage", () => {
       // affordance did not move here with the rest of the panel.
     });
 
-    it("sends a Russian reader to the Russian documentation", () => {
-      setLocale("ru");
-
-      localisePage(page, USER_AGENTS.windows);
-
-      // The link is inside the message, so the translation chooses where it
-      // points. The English note points at documentation.html and the Russian
-      // one at documentation.ru.html, which is a different file in this repo.
-      expect(page.querySelector(".helpnote a")?.getAttribute("href")).toBe("documentation.ru.html");
-    });
-
     it("tells a crawler what the page is, in the language it is being read in", () => {
       setLocale("ru");
 
@@ -279,26 +251,6 @@ describe("localisePage", () => {
       expect(content("og:title")).toBe(page.title);
       expect(content("og:image:alt")).toBe(
         "Четыре лифта возят пассажиров между шестью этажами, а ниже, в редакторе, — управляющая ими программа на JavaScript.",
-      );
-    });
-
-    it("puts the platform's own modifier key back after rewriting the hint", () => {
-      setLocale("ru");
-
-      localisePage(page, USER_AGENTS.mac);
-
-      // The hint arrives from the catalogue with "Ctrl" in it, and writing it
-      // discards whatever labelModifierKeys had done to the shipped markup. A
-      // Mac player would otherwise be told, in Russian, to press a key
-      // combination that does nothing.
-      expect(
-        [...page.querySelectorAll(".hint kbd[data-mod-key]")].map((key) => textOf(key)),
-      ).toEqual(["⌘"]);
-      expect(textOf(page.querySelector(".hint"))).toBe(
-        "В редакторе: код сохраняется сам, пока вы печатаете. ⌘+Enter запускает задание сначала " +
-          "с этим кодом. Tab добавляет отступ. Esc убирает фокус из редактора. Потяните полоску над этой " +
-          "строкой, чтобы изменить высоту редактора, или наведите на неё фокус и нажимайте ↑ и " +
-          "↓; двойной щелчок вернёт исходную высоту.",
       );
     });
   });
@@ -367,6 +319,24 @@ describe("a page shell asking for something the catalogue cannot answer", () => 
     expect(element?.getAttribute("title")).toBe(
       "One move is counted each time a car crosses the halfway mark between one floor and the next",
     );
+    expect(console.warn).not.toHaveBeenCalled();
+  });
+
+  it("puts the platform's own modifier key back after rewriting a message", () => {
+    // Nothing in index.html names a message with a `<kbd data-mod-key>` in it
+    // today, so the check is made against a scrap rather than the shell -- but
+    // the guarantee is the shell's all the same. Any message written with
+    // `innerHTML` can carry one, the reference page's own shortcut paragraph
+    // does, and a message written here would otherwise tell a Mac player to
+    // press a key their keyboard does not have.
+    const scrap = shell(`<p ${TEXT_KEY_ATTRIBUTE}="docs.play.shortcuts.html">Ctrl+Enter</p>`);
+
+    localisePage(scrap, USER_AGENTS.mac);
+
+    expect([...scrap.querySelectorAll("kbd[data-mod-key]")].map((key) => textOf(key))).toEqual([
+      "⌘",
+      "⌘",
+    ]);
     expect(console.warn).not.toHaveBeenCalled();
   });
 });

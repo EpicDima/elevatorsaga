@@ -220,90 +220,33 @@
           tools and the error banner here, and mounts CodeMirror inside its own
           `.editor` -- see src/ui/editor.ts and the widget's own module
           comment. `id="code"` stays on this element rather than moving to the
-          `.editor` mount two levels in, so the skip link's `href="#code"` and
-          `.editorresize`'s `aria-controls="code"` need no change.
+          `.editor` mount two levels in, so the skip link's `href="#code"`
+          needs no change.
         -->
         <div class="code" id="code"></div>
-        <!--
-          The editor's bottom edge, as a control. `separator` with a tabindex is
-          the window-splitter role: focusable, reporting its size, and moved with
-          the arrow keys, so the whole range of heights is reachable without a
-          pointer. The three `aria-value*` attributes are written by
-          src/ui/editor-size.ts from the box it measures; the numbers here are
-          the shipped height, for a page whose scripts have not run yet.
-
-          No `title`: a tooltip is mouse-only, and the two gestures beyond
-          dragging are exactly the ones a player without a mouse needs. They are
-          in the hint paragraph below instead, where everybody can read them.
-        -->
-        <div
-          class="editorresize"
-          id="editor_resize"
-          role="separator"
-          aria-orientation="horizontal"
-          aria-controls="code"
-          aria-valuenow="320"
-          aria-valuemin="120"
-          aria-valuemax="612"
-          tabindex="0"
-          aria-label="Editor height"
-          data-i18n-attr="aria-label:page.editorResize.label"
-        ></div>
-        <!--
-          data-mod-key marks the keys the editor binds as `Mod-`, which is
-          Command on Apple platforms; src/ui/shortcuts.ts relabels them.
-        -->
-        <p class="hint" data-i18n="page.hint.html">
-          In the editor: your code is saved as you type. <kbd data-mod-key>Ctrl</kbd>+<kbd
-            >Enter</kbd
-          >
-          starts the challenge over with it. <kbd>Tab</kbd> indents. <kbd>Esc</kbd> moves the focus
-          back out. Drag the grip above this line to resize the editor, or focus it and press
-          <kbd>↑</kbd> or <kbd>↓</kbd>; double-click it to restore the height.
-        </p>
-        <!--
-          What the editor has to say for itself. Both paragraphs are written
-          asynchronously, and neither is next to whatever the reader is looking
-          at: the fitness benchmark says it has started and then, seconds later,
-          reports its result from a worker, and the editor confirms a save. They
-          announce themselves; the building and the statistics, which change
-          every frame, deliberately do not.
-
-          Two lines rather than one row: the Russian fitness result is wider
-          than the page is allowed to be, so a row shared with anything else
-          grew by a line the moment a result landed, shoving everything below it
-          down with no resize to explain it.
-        -->
-        <div class="editorstatus">
-          <p id="fitness_message" aria-live="polite"></p>
-          <p id="save_message" aria-live="polite"></p>
-        </div>
       </main>
 
-      <p class="helpnote" data-i18n="page.helpNote.html">
-        Confused? Open the <a href="documentation.html">Help and API documentation</a> page
-      </p>
+      <!--
+        The one thing the editor still says for itself, and the only element on
+        this page that is deliberately never seen.
 
-      <footer class="footer">
-        <p data-i18n="page.footer.credits">Made by Magnus Wolffelt and contributors</p>
-        <!--
-          The word is a message and the number is not: the version comes from
-          package.json, and src/ui/version.ts writes it into the empty span. They
-          are two elements so that localising the one cannot wipe out the other.
-        -->
-        <p>
-          <span data-i18n="page.footer.version">Version</span>
-          <span class="emphasis-color appversion"></span>
-        </p>
-        <p data-i18n="page.footer.source.html">
-          <a href="https://github.com/EpicDima/elevatorsaga">Source code</a> on GitHub, forked from
-          <a href="https://github.com/magwo/elevatorsaga">the original</a>
-        </p>
-        <!-- Written into dist/ by the build; see LICENSES_FILE in vite.config.ts. -->
-        <p data-i18n="page.footer.licences.html">
-          <a href="licenses.txt">Licences</a> for the game and everything it bundles
-        </p>
-      </footer>
+        design/ui-mockup.html has no status line under the editor: «код
+        сохраняется сам — сообщать об этом каждый раз нечего», and the save
+        confirmation it dropped was indeed a line that reported the same
+        success every second of every session. A refused write is the opposite
+        kind of news -- the program is no longer being saved, and nothing else
+        on screen would ever say so -- so that half of the old line survives
+        here, announced rather than drawn: `role="status"` reaches a screen
+        reader, and .visually-hidden keeps the page looking exactly like the
+        mockup. src/main.ts fills it, and empties it again the moment a write
+        gets through.
+
+        Outside <main> because widgets/workspace-layout reparents everything
+        inside it into one of the two panes, and this belongs to neither; it is
+        taken out of the flow by its own class, so where it sits changes no
+        layout either way.
+      -->
+      <p class="visually-hidden" id="storage_status" role="status"></p>
     </div>
   </body>
 </html>

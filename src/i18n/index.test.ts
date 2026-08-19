@@ -6,7 +6,6 @@ import { RU_MESSAGES } from "./ru.ts";
 import {
   format,
   formatList,
-  formatTime,
   getLocale,
   isLocaleLoaded,
   loadLocale,
@@ -178,13 +177,6 @@ describe("the active locale", () => {
     expect(formatList(["6", "9"])).toBe("6 and 9");
     setLocale("ru");
     expect(formatList(["6", "9"])).toBe("6 и 9");
-  });
-
-  it("carries into times of day", () => {
-    const when = new Date(2024, 0, 2, 21, 3, 57);
-    expect(formatTime(when)).toMatch(/^9:03:57\s?PM$/);
-    setLocale("ru");
-    expect(formatTime(when)).toBe("21:03:57");
   });
 
   it("chooses the plural form of the language it is in", () => {

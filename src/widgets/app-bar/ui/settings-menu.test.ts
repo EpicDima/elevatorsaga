@@ -129,6 +129,11 @@ describe("appBarSettingsTemplate", () => {
     expect(links[0]?.querySelector("b")?.textContent).toBe("This fork");
     expect(links[1]?.querySelector("b")?.textContent).toBe("Original");
     expect(parent.querySelector(".sethint")?.textContent).toContain("Elevator Saga");
+    // MIT and OFL both want their notices to travel with the software, and
+    // this is the game's only route to the file the build writes them into.
+    const licences = parent.querySelector(".sethint a");
+    expect(licences?.getAttribute("href")).toBe("licenses.txt");
+    expect(licences?.textContent).toBe("MIT");
   });
 });
 

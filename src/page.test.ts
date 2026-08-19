@@ -4,7 +4,6 @@ import { join } from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
 
-import packageJson from "../package.json";
 import docsSource from "../documentation.html?raw";
 import docsRuSource from "../documentation.ru.html?raw";
 import pageSource from "../index.html?raw";
@@ -26,7 +25,6 @@ import {
   globalCompletions,
 } from "./ui/completions.ts";
 import { DOCUMENTATION_LINK_ATTRIBUTE, documentationUrl } from "./ui/documentation-links.ts";
-import { presentVersion, VERSION_SELECTOR } from "./ui/version.ts";
 import { createIcon } from "#shared/ui/icon.ts";
 
 /** The page shell, parsed as the browser would parse it. */
@@ -101,9 +99,7 @@ describe("index.html", () => {
   it.each([
     // Queried by src/main.ts.
     ".code",
-    "#editor_resize",
-    "#save_message",
-    "#fitness_message",
+    "#storage_status",
     // Drawn into by src/pages/game/index.ts.
     ".challenge",
     ".controls",
@@ -129,15 +125,16 @@ describe("index.html", () => {
     expect(container?.textContent).toBe("");
   });
 
-  it.each([
-    // The fitness benchmark says it has started and then, seconds later,
-    // reports its result from a worker (src/main.ts).
-    "#fitness_message",
-    // The editor confirms a save (src/main.ts).
-    "#save_message",
-  ])("announces %s, which is written asynchronously", (selector) => {
-    const element = page.querySelector(selector);
-    expect(element?.getAttribute("aria-live")).toBe("polite");
+  it("announces a refused write without drawing anything", () => {
+    // `design/ui-mockup.html` has no status line under the editor: a save
+    // confirmation reported the same success every second of every session,
+    // and it is gone with the footer and the hint. A refused write is the
+    // opposite kind of news -- nothing else on screen would ever say the
+    // program has stopped being saved -- so that half survives as an
+    // announcement rather than a line. See `src/main.ts`, which fills it.
+    const element = page.querySelector("#storage_status");
+    expect(element?.getAttribute("role")).toBe("status");
+    expect(element?.className).toBe("visually-hidden");
     // A live region has to be in the document before the text appears inside
     // it; one that arrives already populated is generally not announced.
     expect(element?.textContent).toBe("");
@@ -227,35 +224,17 @@ describe("index.html", () => {
     expect(existsSync(join(ROOT, "public", image))).toBe(true);
   });
 
-  it("marks the shortcut key the editor binds as Mod-", () => {
-    // Mod- is Command on Apple platforms, so the shipped "Ctrl" is wrong there
-    // and src/ui/shortcuts.ts rewrites it at load.
-    const modKeys = [...page.querySelectorAll(".hint kbd[data-mod-key]")];
-    expect(modKeys.map((key) => key.textContent)).toEqual(["Ctrl"]);
-  });
-
   it("has one landmark of each kind, and a single top-level heading", () => {
-    expect(page.querySelectorAll("header, main, footer")).toHaveLength(3);
+    // No footer: `design/ui-mockup.html` draws none, and the credits, the
+    // source link and the licence notice it carried are on the two help pages
+    // and in the settings popover's About block instead.
+    expect(page.querySelectorAll("header, main, footer")).toHaveLength(2);
     expect(page.querySelectorAll("h1")).toHaveLength(1);
   });
 
   it("no longer loads anything from a third party", () => {
     expect(thirdPartyResources(page)).toEqual([]);
     expect(page.documentElement.innerHTML).not.toContain("google-analytics");
-  });
-
-  it("shows the version from package.json in the footer", () => {
-    // The footer used to carry a hand-written copy of the version, which had
-    // to be bumped in step with package.json and silently disagreed with it
-    // whenever it was not. The slot is empty in the source now and filled from
-    // the constant Vite substitutes at build time.
-    const footer = new DOMParser().parseFromString(pageSource, "text/html");
-    expect(footer.querySelector(VERSION_SELECTOR)?.textContent).toBe("");
-
-    presentVersion(footer);
-
-    expect(footer.querySelector(VERSION_SELECTOR)?.textContent).toBe(packageJson.version);
-    expect(packageJson.version).toMatch(/^\d+\.\d+\.\d+/);
   });
 
   it("links to the documentation page", () => {
@@ -330,17 +309,7 @@ describe("index.html", () => {
     const intoDocs = [...page.querySelectorAll("a")].filter((link) =>
       (link.getAttribute("href") ?? "").startsWith("documentation"),
     );
-    // With one exception, and the reason it is one: the help note's link is
-    // written inside the message `page.helpNote.html`, so the translation
-    // chooses where it points -- the Russian note already points at
-    // documentation.ru.html -- and `localisePage` replaces that paragraph
-    // wholesale, any attribute in it included.
-    const insideAMessage = intoDocs.filter((link) => {
-      const parent = link.parentElement;
-      return parent !== null && parent.closest("[data-i18n]") !== null;
-    });
-    expect(insideAMessage.map((link) => link.textContent)).toEqual(["Help and API documentation"]);
-    expect(intoDocs.filter((link) => !insideAMessage.includes(link))).toEqual(links);
+    expect(intoDocs).toEqual(links);
   });
 
   it("ships exactly what the code would write for English, anchors and all", () => {
@@ -370,15 +339,6 @@ describe("index.html", () => {
       expect(documentationUrl(language), language).toBe(TRANSLATIONS[language]);
       expect(existsSync(join(ROOT, TRANSLATIONS[language])), language).toBe(true);
     }
-  });
-
-  it("links to the licence notices the build emits", () => {
-    // MIT wants its notice to travel with the software and OFL wants the font
-    // licence bundled with the font, so `dist/` carries `licenses.txt` (emitted
-    // by vite.config.ts). A notice nobody can reach is not a notice: the link
-    // is what makes it one, so it is asserted here rather than left to chance.
-    const targets = [...page.querySelectorAll("a")].map((link) => link.getAttribute("href"));
-    expect(targets).toContain("licenses.txt");
   });
 });
 

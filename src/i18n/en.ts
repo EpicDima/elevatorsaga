@@ -132,24 +132,6 @@ export const EN_MESSAGES = {
   "page.stats.avgLoad": "Avg load",
   "page.stats.avgLoadTitle":
     "How full the cars were, averaged over the moves counted above, so a car standing still is not in the figure at all",
-  // The last sentence is the grip's documentation. It is here, in a paragraph
-  // everybody can read, rather than in a `title` on the grip itself, because a
-  // tooltip never opens for a keyboard or a touchscreen -- and the two gestures
-  // it would have named are precisely the ones a player without a mouse needs.
-  "page.hint.html":
-    "In the editor: your code is saved as you type. <kbd data-mod-key>Ctrl</kbd>+<kbd>Enter</kbd> starts the challenge over with it. <kbd>Tab</kbd> indents. <kbd>Esc</kbd> moves the focus back out. Drag the grip above this line to resize the editor, or focus it and press <kbd>↑</kbd> or <kbd>↓</kbd>; double-click it to restore the height.",
-  // The grip under the editor. Its name is what it controls rather than what it
-  // does -- a `separator` is announced with its role and its value, so "Editor
-  // height, 320" reads as a whole where "Resize the editor, 320" would not.
-  "page.editorResize.label": "Editor height",
-  "page.helpNote.html":
-    'Confused? Open the <a href="documentation.html">Help and API documentation</a> page',
-  "page.footer.credits": "Made by Magnus Wolffelt and contributors",
-  "page.footer.version": "Version",
-  "page.footer.source.html":
-    '<a href="https://github.com/EpicDima/elevatorsaga">Source code</a> on GitHub, forked from <a href="https://github.com/magwo/elevatorsaga">the original</a>',
-  "page.footer.licences.html":
-    '<a href="licenses.txt">Licences</a> for the game and everything it bundles',
 
   // ------------------------------------------------------- the building view
   // src/ui/templates.ts.
@@ -278,7 +260,11 @@ export const EN_MESSAGES = {
   "game.appBar.aboutCaption": "About",
   "game.appBar.aboutForkLabel": "This fork",
   "game.appBar.aboutOriginalLabel": "Original",
-  "game.appBar.aboutCopyright": "Elevator Saga © 2015 Magnus Wolffelt, © 2026 EpicDima, MIT.",
+  // The one link out of the game to `licenses.txt`, the notice file the build
+  // writes into `dist/` -- see `settings-menu.ts`'s own About block comment for
+  // why it is the licence's name rather than a row of its own.
+  "game.appBar.aboutCopyright.html":
+    'Elevator Saga © 2015 Magnus Wolffelt, © 2026 EpicDima, <a href="licenses.txt">MIT</a>.',
   // Hotkeys: features/hotkeys-help's keys dialog, design/ui-mockup.html's own
   // `<dialog class="keys">`. Every Mod- binding is spelled out as two <kbd>s
   // joined by "+" (documentation.html's own <kbd data-mod-key> convention,
@@ -572,7 +558,6 @@ elevator.goingDownIndicator(false);`,
   // src/ui/editor.ts, src/main.ts and src/ui/default-code.ts.
 
   "editor.label": "Elevator program",
-  "editor.saved": "Code saved {time}",
   "editor.storageRefused":
     "Not saved — this browser will not store it. Your program is here until you close the tab.",
   "editor.confirmReset": "Do you really want to reset to the default implementation?",

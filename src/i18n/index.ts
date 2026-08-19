@@ -68,12 +68,7 @@ import { EN_MESSAGES } from "./en.ts";
 // `formatListIn` is `format.ts`'s `formatList` under the name this module gives
 // anything that takes its locale outright, as `translateIn` does. The export
 // below is the one callers want: the same thing for the locale on screen.
-import {
-  formatList as formatListIn,
-  formatTimeOfDay,
-  formatValue,
-  type ParamValue,
-} from "./format.ts";
+import { formatList as formatListIn, formatValue, type ParamValue } from "./format.ts";
 import { DEFAULT_LOCALE, type Locale } from "./locale.ts";
 
 /**
@@ -307,16 +302,6 @@ export function format(value: ParamValue): string {
 }
 
 /**
- * A time of day, in the active locale.
- *
- * @param when - The moment to show.
- * @returns The time, as a reader of the active locale writes it.
- */
-export function formatTime(when: Date): string {
-  return formatTimeOfDay(renderingLocale(), when);
-}
-
-/**
  * A list of already-rendered items, in the active locale.
  *
  * For the one thing a message cannot hold: a list whose length is not known
@@ -361,7 +346,6 @@ export {
   decimal,
   exact,
   formatNumber,
-  formatTimeOfDay,
   formatValue,
   percent,
   quantity,

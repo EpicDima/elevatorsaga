@@ -299,21 +299,6 @@ export function formatList(locale: Locale, items: readonly string[]): string {
 }
 
 /**
- * The time of day, for the locale, as a reader of it would write it.
- *
- * `Date.prototype.toTimeString` — what the editor's "Code saved" line used —
- * produces `21:03:57 GMT+0200 (Central European Standard Time)`, which is a
- * debugging format in one language pretending to be a timestamp in every other.
- *
- * @param locale - The locale to render for.
- * @param when - The moment to show.
- * @returns The time, e.g. `9:03:57 PM` or `21:03:57`.
- */
-export function formatTimeOfDay(locale: Locale, when: Date): string {
-  return new Intl.DateTimeFormat(locale, { timeStyle: "medium" }).format(when);
-}
-
-/**
  * The plural category a count falls into, for a locale.
  *
  * @param locale - The locale whose rules apply.

@@ -5,7 +5,6 @@ import {
   exact,
   formatList,
   formatNumber,
-  formatTimeOfDay,
   formatValue,
   interpolate,
   percent,
@@ -198,19 +197,6 @@ describe("formatList", () => {
     expect(formatList("en", ["<span class='emphasis-color'>6</span>", "<b>9</b>"])).toBe(
       "<span class='emphasis-color'>6</span> and <b>9</b>",
     );
-  });
-});
-
-describe("formatTimeOfDay", () => {
-  // A local-time date, so the assertion holds in every time zone the tests run in.
-  const when = new Date(2024, 0, 2, 21, 3, 57);
-
-  it("writes a Russian time the way Russian writes it", () => {
-    expect(formatTimeOfDay("ru", when)).toBe("21:03:57");
-  });
-
-  it("writes an English time the way English writes it", () => {
-    expect(formatTimeOfDay("en", when)).toMatch(/^9:03:57\s?PM$/);
   });
 });
 

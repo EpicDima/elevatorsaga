@@ -185,24 +185,6 @@ export const RU_MESSAGES: MessageCatalogue<"ru"> = {
   "page.stats.avgLoad": "Сред. загрузка",
   "page.stats.avgLoadTitle":
     "Насколько полными были кабины — в среднем по тем же перемещениям, что считаются выше, так что стоящая кабина в цифру не попадает вовсе",
-  // Последнее предложение — описание ручки. Оно в абзаце, который виден всем, а
-  // не в `title` на самой ручке: всплывающая подсказка не открывается ни с
-  // клавиатуры, ни на сенсорном экране, а названы в ней как раз те два жеста,
-  // которые нужны игроку без мыши.
-  "page.hint.html":
-    "В редакторе: код сохраняется сам, пока вы печатаете. <kbd data-mod-key>Ctrl</kbd>+<kbd>Enter</kbd> запускает задание сначала с этим кодом. <kbd>Tab</kbd> добавляет отступ. <kbd>Esc</kbd> убирает фокус из редактора. Потяните полоску над этой строкой, чтобы изменить высоту редактора, или наведите на неё фокус и нажимайте <kbd>↑</kbd> и <kbd>↓</kbd>; двойной щелчок вернёт исходную высоту.",
-  // Ручка под редактором. Названа тем, чем управляет, а не действием: роль
-  // `separator` озвучивается вместе со значением, и «Высота редактора, 320»
-  // читается целиком, а «Изменить размер редактора, 320» — нет.
-  "page.editorResize.label": "Высота редактора",
-  "page.helpNote.html":
-    'Не разобрались? Откройте страницу <a href="documentation.ru.html">справки и документации по API</a>',
-  "page.footer.credits": "Сделали Magnus Wolffelt и другие участники",
-  "page.footer.version": "Версия",
-  "page.footer.source.html":
-    '<a href="https://github.com/EpicDima/elevatorsaga">Исходный код</a> на GitHub, форк <a href="https://github.com/magwo/elevatorsaga">оригинала</a>',
-  "page.footer.licences.html":
-    '<a href="licenses.txt">Лицензии</a> игры и всего, что входит в её сборку',
 
   // ----------------------------------------------------------------- здание
 
@@ -304,7 +286,11 @@ export const RU_MESSAGES: MessageCatalogue<"ru"> = {
   "game.appBar.aboutCaption": "Об игре",
   "game.appBar.aboutForkLabel": "Этот форк",
   "game.appBar.aboutOriginalLabel": "Оригинал",
-  "game.appBar.aboutCopyright": "Elevator Saga © 2015 Magnus Wolffelt, © 2026 EpicDima, MIT.",
+  // Единственная ссылка из игры на licenses.txt — файл с уведомлениями,
+  // который сборка кладёт в dist/; почему это имя лицензии, а не отдельная
+  // строка блока, объяснено в собственном комментарии settings-menu.ts.
+  "game.appBar.aboutCopyright.html":
+    'Elevator Saga © 2015 Magnus Wolffelt, © 2026 EpicDima, <a href="licenses.txt">MIT</a>.',
   // Горячие клавиши: своё окно features/hotkeys-help, `<dialog class="keys">`
   // из design/ui-mockup.html. Каждое сочетание с Mod записано двумя <kbd>,
   // соединёнными «+» (тот же приём, что и в documentation.html через
@@ -614,7 +600,6 @@ elevator.goingDownIndicator(false);`,
   // --------------------------------------------------------------- редактор
 
   "editor.label": "Программа для лифтов",
-  "editor.saved": "Код сохранён в {time}",
   "editor.storageRefused":
     "Не сохранено — браузер отказывается хранить код. Программа останется здесь, пока открыта вкладка.",
   "editor.confirmReset": "Точно сбросить код до стандартной реализации?",

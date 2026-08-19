@@ -1392,7 +1392,7 @@ describe("CodeEditor over a real editing surface", () => {
     // unasked. The legacy game populated the editor first and only then
     // registered its autosaver (app.js:50-55, :77-81).
     const { editor, setItem } = mount("// the program the player left behind");
-    // Wired exactly as src/main.ts wires #save_message.
+    // A stand-in for whatever a page hangs off the `saved` event.
     const saveMessage = document.createElement("span");
     editor.on("saved", (savedAt) => {
       saveMessage.textContent = `Code saved ${savedAt.toTimeString()}`;

@@ -106,18 +106,17 @@
   --editor-height: 320px;
 
   /*
-   * The range the grip under the editor may drag it through. The floor is six
-   * lines at the editor's `14px/1.4` plus its padding, and the ceiling leaves
-   * the row of buttons under the editor on screen -- a control that applies the
-   * program must not be pushed out of reach by the box the program is in.
+   * The range `.cm-editor`'s own `clamp()` (below) holds the editor within.
+   * The floor is six lines at the editor's `14px/1.4` plus its padding, and
+   * the ceiling leaves the row of buttons under the editor on screen -- a
+   * control that applies the program must not be pushed out of reach by the
+   * box the program is in.
    *
-   * Relative to the window rather than a second pixel figure, because the
-   * complaint upstream PR #104 was written about -- "the coding area is too
-   * small for editing after a few levels" -- is about how much of the program is
-   * on screen at once, and how much screen there is is the thing this file
-   * cannot know. Both numbers are repeated in `src/ui/editor-size.ts`, which
-   * holds the height it hands back within the same range so that what it reports
-   * in `aria-valuenow` is what the cascade will draw.
+   * The ceiling is relative to the window rather than a second pixel figure,
+   * because the complaint upstream PR #104 was written about -- "the coding
+   * area is too small for editing after a few levels" -- is about how much of
+   * the program is on screen at once, and how much screen there is is the
+   * thing this file cannot know.
    */
   --editor-height-min: 120px;
   --editor-height-max: 85vh;
@@ -498,6 +497,31 @@ dl dd {
 
 .invisible {
   visibility: hidden;
+}
+
+/*
+ * Announced but never drawn.
+ *
+ * `.invisible` above and `display: none` both take an element out of the
+ * accessibility tree along with the layout, which is the opposite of what this
+ * is for: its one user, `#storage_status` in `index.html`, exists only to be
+ * read aloud. The recipe is the standard one -- a 1px box, clipped to nothing,
+ * still laid out and still in the tree. `clip-path` rather than the deprecated
+ * `clip`, and `white-space: nowrap` so a clipped sentence is not first wrapped
+ * into a column one character wide.
+ *
+ * Unlike `.skip-link` (Shell, below), which hides the same way but must come
+ * back on focus, nothing here is focusable and nothing brings it back.
+ */
+.visually-hidden {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 
 .faded {
@@ -1622,7 +1646,7 @@ html[data-theme="dark"] .tasklink.is-done {
  * makes them the same element the learning track's own answer is
  * (`.tutorialsolution code`), so the box itself -- background, padding,
  * radius, font -- is left to the shared `pre code` rule and its `.tok-*`
- * neighbours (Help and footer, below), already on `--ds-code-bg`/
+ * neighbours (Help page, below), already on `--ds-code-bg`/
  * `--ds-code-text` for exactly this reason; only the margin the mockup gives
  * this one specifically is stated here.
  */
@@ -2483,11 +2507,10 @@ html[data-theme="dark"] .tasklink.is-done {
 }
 
 /*
- * What "Take this program" did, at the size the editor's own "Code saved ..."
- * line uses: this is the same kind of remark about the same kind of write, and
- * the two should not look like different classes of news. Only the size is
- * repeated -- the colour is the `p` rule above, which `#save_message` now gets
- * for itself, being a paragraph as well.
+ * What "Take this program" did, one size down from the panel's own prose: a
+ * remark about a write that has already happened, not part of the task being
+ * read. It is a paragraph, so the colour comes from the `p` rule above and
+ * only the size is stated here.
  *
  * Not hidden while it is empty, though it is empty for most of a task's life. It
  * is a live region, and the announcement is only reliable when the region was
@@ -2582,66 +2605,8 @@ button[disabled] {
 }
 
 /*
- * What the editor has to say for itself: the save confirmation, and the fitness
- * benchmark's result when the console has asked for one.
- *
- * One line of height is held open whether or not anything is in it, because the
- * save confirmation arrives a second after the first keystroke and would
- * otherwise push the rest of the page down while the player was reading it. Only
- * one line: the benchmark is a console command, and the Russian result is wider
- * than the shell is allowed to be, so reserving room for it would leave every
- * player who never runs it looking at two blank lines to spare one.
- *
- * They are two paragraphs rather than two spans in a row, for the same reason:
- * side by side, the row grew by a line the moment a result landed.
- */
-.editorstatus {
-  min-block-size: 18px;
-  margin-block: 4px;
-}
-
-/* The colour is the `p` rule's, now that these two are paragraphs. */
-#save_message,
-#fitness_message {
-  margin-block: 0;
-  font-size: 12px;
-  line-height: 18px;
-}
-
-/*
- * The save line when the store has refused the write. Only the colour changes:
- * the sentence says what happened, and this line is read by a player who is
- * looking for a timestamp and finding something else, so it has to be legible
- * before it is noticeable. Nothing here depends on the colour alone -- the
- * paragraph is `aria-live`, so the message is announced whether or not it is
- * seen.
- *
- * Legible before noticeable is why it reads `--ds-bad` and not a literal red:
- * this is 12px text, so 1.4.3 asks 4.5:1 of it, which the token clears on
- * `--ds-bg` in both themes (5.90:1 dark, 4.52:1 light).
- */
-#save_message.refused {
-  color: var(--ds-bad);
-}
-
-/*
- * 12px was the smallest text on the page, and the one place it sat on a
- * combination of keys rather than a sentence -- Ctrl+Enter, Tab, Esc, and on a
- * Mac the dense single glyph of ⌘. 14px/18px is what the rest of the page's
- * secondary text is set at (.tutorialprogress among it): still the quiet
- * line under the grip rather than a heading, but no longer the smallest
- * thing here.
- */
-.hint {
-  margin-block: 4px;
-  font-size: 14px;
-  line-height: 18px;
-}
-
-/*
- * Both pages name keys with <kbd>, so the rule is not scoped to .hint: the
- * documentation page used to get the browser default, which is a monospace
- * family unrelated to the editor's.
+ * Both pages name keys with <kbd>: the documentation page used to get the
+ * browser default, which is a monospace family unrelated to the editor's.
  *
  * The browser default beyond that family is nothing: a bare <kbd> reads as
  * plain text run in with the sentence around it, which is exactly what made a
@@ -2665,11 +2630,6 @@ kbd {
   font: inherit;
   font-family: var(--font-mono);
   font-weight: bold;
-}
-
-.helpnote {
-  margin-block-start: 20px;
-  font-size: 1.17em;
 }
 
 /* ------------------------------------------------------------------- Editor */
@@ -3030,57 +2990,6 @@ kbd {
 .cm-editor .cm-selectionBackground,
 .cm-editor.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground {
   background-color: var(--ds-code-sel);
-}
-
-/*
- * The editor's bottom edge, as a control: drag it, or focus it and use the
- * arrow keys. See `src/ui/editor-size.ts` for why it is a `separator` and not a
- * button, and for what it writes.
- *
- * The box is 24px tall and the bar drawn inside it is 4px, because the box is
- * the target and the bar is only how the target says where it is: 24px is the
- * minimum WCAG 2.5.8 asks a pointer target for, and a 4px grip would have been
- * six times harder to hit than to see. It replaces the editor's 10px bottom
- * margin, so the page below it is 14px lower than it was -- the one thing paid
- * for a control that was not there before.
- *
- * `touch-action: none` is what makes the drag work on a touchscreen at all:
- * without it the browser claims the vertical gesture for a scroll and the
- * pointer events stop arriving mid-drag.
- */
-.editorresize {
-  position: relative;
-  block-size: 24px;
-  cursor: ns-resize;
-  touch-action: none;
-}
-
-/*
- * `--ds-line-strong`, the same dim divider the grip's legacy value
- * (`--color-control-border`, #666) already behaved like: this is the resting
- * state, and the hover/focus rule below already carries the bar to `--ds-text`
- * once it matters, the way an unlit call button stays dim until it is pressed.
- * The mockup draws no resizable editor at all, so there is no token of its
- * own to take this from.
- */
-.editorresize::before {
-  content: "";
-  position: absolute;
-  inset-block-start: 10px;
-  inset-inline: 0;
-  block-size: 4px;
-  border-radius: 2px;
-  background-color: var(--ds-line-strong);
-}
-
-.editorresize:hover::before,
-.editorresize:focus-visible::before {
-  background-color: var(--ds-text);
-}
-
-.editorresize:focus-visible {
-  outline: 2px solid var(--ds-focus);
-  outline-offset: -2px;
 }
 
 .cm-editor .cm-scroller {
@@ -3606,7 +3515,7 @@ kbd {
   visibility: hidden;
 }
 
-/* --------------------------------------------------------- Help and footer */
+/* ---------------------------------------------------------------- Help page */
 
 .help {
   margin-block: 20px 30px;
@@ -3616,6 +3525,13 @@ kbd {
   max-inline-size: 75%;
 }
 
+/*
+ * `documentation.html`/`documentation.ru.html` only. The game page had a
+ * footer of its own until the app bar landed -- `design/ui-mockup.html` draws
+ * none, and a page whose whole height is a workspace has nowhere to put one --
+ * but the two help pages are ordinary documents that end, and the credits, the
+ * source link and the licence notice end them.
+ */
 .footer {
   margin-block-start: 20px;
 }

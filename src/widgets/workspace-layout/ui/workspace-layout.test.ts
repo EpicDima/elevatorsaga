@@ -26,9 +26,8 @@ const LABELS = {
 /**
  * A pointer event jsdom does not have.
  *
- * Identical to the one `src/ui/editor-size.test.ts` defines for the editor's
- * own resize grip, and kept local for the same reason that one is: it is a
- * small, single-purpose stand-in, not a shared abstraction.
+ * Kept local rather than shared: it is a small, single-purpose stand-in for
+ * one API jsdom does not implement, not an abstraction.
  */
 class FakePointerEvent extends MouseEvent {
   readonly pointerId: number;
@@ -59,7 +58,7 @@ interface Harness {
  * Mounts the workspace layout over a workspace of a given pixel width.
  *
  * jsdom lays nothing out, so the workspace's box is stood in for by a fixed
- * `DOMRect` the way `src/ui/editor-size.test.ts` stands in for the editor's.
+ * `DOMRect`.
  *
  * @param options - The width to lay the workspace out at, and the store to
  * read/write; both default to values chosen so the shipped default split
@@ -78,8 +77,7 @@ function setUp(options: { readonly width?: number; readonly storage?: Storage } 
   elements.workspace.getBoundingClientRect = (): DOMRect => new DOMRect(0, 0, width, 600);
 
   // jsdom has no pointer capture; a pair that remembers the last id is enough
-  // to exercise both the release and the branch that skips it, same as
-  // `src/ui/editor-size.test.ts`.
+  // to exercise both the release and the branch that skips it.
   let captured: number | null = null;
   elements.splitter.setPointerCapture = (pointerId: number): void => {
     captured = pointerId;

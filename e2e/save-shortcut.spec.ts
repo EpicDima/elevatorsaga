@@ -47,7 +47,6 @@ test("writes the program to storage the moment the shortcut is pressed", async (
   await page.keyboard.press("ControlOrMeta+s");
 
   expect(await storedCode(page)).toBe(PROGRAM);
-  await expect(page.getByText(/^Code saved /)).toBeVisible();
 });
 
 test("keeps the browser's own save dialog out of it", async ({ page }) => {

@@ -31,16 +31,14 @@ import { describeFitnessResults, runFitnessSuite } from "./app/fitness.ts";
 import { challenges } from "./game/challenges.ts";
 import type { FitnessSuiteResult } from "./game/fitness.ts";
 import { TICK_SECONDS, createWorldController } from "./game/world-controller.ts";
-import { formatTime, t } from "./i18n/index.ts";
+import { t } from "./i18n/index.ts";
 import { App, readStoredTimeScale } from "./pages/game/index.ts";
 import { startRouter } from "./pages/game/model/route.ts";
 import { CodeEditor, codeMirrorView } from "./ui/editor.ts";
-import { applyStoredEditorHeight, presentEditorResize } from "./ui/editor-size.ts";
 import { presentGlobalShortcuts } from "./ui/global-shortcuts.ts";
 import { localisePage } from "./ui/localise-page.ts";
 import { applyPreferredLocale } from "./ui/preferred-locale.ts";
 import { labelModifierKeys } from "./ui/shortcuts.ts";
-import { presentVersion } from "./ui/version.ts";
 import { DEFAULT_TIME_SCALE } from "#features/adjust-speed/model/time-scale.ts";
 import { docsModalTemplate, presentDocsModal } from "#features/docs-reference/index.ts";
 import { hotkeysModalTemplate, presentHotkeysModal } from "#features/hotkeys-help/index.ts";
@@ -86,8 +84,10 @@ declare global {
      * The legacy `fitness.js` exposed `fitnessSuite` as a global for the same
      * purpose, and its only call site was commented out because running the
      * benchmark after every keystroke was too slow to be useful. It stays
-     * opt-in: call it from the browser console and the answer appears in the
-     * status line under the editor.
+     * opt-in: call it from the browser console, which is also where the answer
+     * now arrives -- `design/ui-mockup.html` draws no status line under the
+     * editor for it to be printed into, and a console command reporting to the
+     * console it was typed into is the shorter path anyway.
      */
     runFitnessSuite: (codeStr?: string) => Promise<FitnessSuiteResult>;
   }
@@ -104,17 +104,11 @@ async function main(): Promise<void> {
   // catalogue is fetched rather than bundled this is a round trip in front of
   // the first frame, and `src/ui/preferred-locale.ts` is where that is weighed
   // against the alternative. It also relabels the shortcut keys for the
-  // platform, which used to be a call of its own here: the hint is one of the
-  // messages the shell holds, so rewriting it and relabelling it belong
-  // together and cannot be left in an order this file happens to get right.
+  // platform, which used to be a call of its own here: a `<kbd data-mod-key>`
+  // can sit inside a message the shell rewrites, so rewriting and relabelling
+  // belong together and cannot be left in an order this file happens to get
+  // right.
   await applyPreferredLocale(document, navigator.userAgent);
-  presentVersion();
-
-  // Ahead of the editor rather than after it, because a player who left the
-  // editor tall should find it tall rather than watch it grow: the height is on
-  // `<html>` before CodeMirror measures anything, so there is one layout instead
-  // of two and nothing for the eye to catch.
-  applyStoredEditorHeight(document.documentElement, localStorage);
 
   // The editor pane's chrome -- the slot switcher, the reset/undo-reset tools,
   // the error banner and the `.editor` mount CodeMirror needs -- has to exist
@@ -189,44 +183,31 @@ async function main(): Promise<void> {
   const editor = new CodeEditor(codeMirrorView(editorPane.editorMount));
   editorRef = editor;
 
-  // After it, because the grip measures the box it resizes, and there is no box
-  // until CodeMirror has mounted one.
-  presentEditorResize({
-    handle: requireElement("#editor_resize"),
-    editor: requireElement(".cm-editor"),
-    root: document.documentElement,
-    storage: localStorage,
-  });
-  const saveMessage = requireElement("#save_message");
-  const fitnessMessage = requireElement("#fitness_message");
+  // What the editor still has to say for itself, and all of it: see
+  // `#storage_status`'s own comment in `index.html` for why the save
+  // confirmation that used to share this region is gone and this half is not.
+  const storageStatus = requireElement("#storage_status");
 
-  editor.on("saved", (savedAt) => {
-    // `Date.prototype.toTimeString` wrote "21:03:57 GMT+0300 (Moscow Standard
-    // Time)", which is a debugging format in one language pretending to be a
-    // timestamp in every other. `formatTime` is `Intl.DateTimeFormat` with
-    // `timeStyle: "medium"`, so the line now ends where a reader expects it to.
-    saveMessage.textContent = t("editor.saved", { time: formatTime(savedAt) });
-    saveMessage.classList.remove("refused");
-  });
-  // The other half of that line, and the reason `storage_refused` exists at
-  // all: until this, the event was raised by every refused write in the editor
-  // and listened to by nothing, so a store that had stopped taking programs
-  // said so nowhere on the page. The visible cost was "Reset code" -- refused,
-  // it leaves the program exactly where it was and used to look indis-
-  // tinguishable from a button that does not work -- but the silence was worse
-  // between resets, where a player types all afternoon under a line reading
-  // "Code saved 14:32" from the last write that happened to fit.
-  //
-  // `aria-live="polite"` is already on the paragraph for the save line, so this
-  // is announced as well as shown, and the two cannot contradict each other:
-  // `saved` is raised only for a write that reached the store.
+  // The reason `storage_refused` exists at all: until it was listened to, the
+  // event was raised by every refused write in the editor and heard by
+  // nothing, so a store that had stopped taking programs said so nowhere on
+  // the page. The visible cost was "Reset code" -- refused, it leaves the
+  // program exactly where it was and looked indistinguishable from a button
+  // that does not work -- but the silence was worse between resets, where a
+  // player types all afternoon believing the work is being kept.
   editor.on("storage_refused", () => {
-    saveMessage.textContent = t("editor.storageRefused");
-    saveMessage.classList.add("refused");
+    storageStatus.textContent = t("editor.storageRefused");
+  });
+  // The withdrawal, not a confirmation: nothing is written here on a
+  // successful save, because a full quota is not a permanent condition -- a
+  // tab closing or a cache being cleared is enough -- and a warning left
+  // standing after the writes start landing again tells a player their work is
+  // at risk when it is not. Emptying a `role="status"` announces nothing,
+  // which is exactly right for news that has stopped being news.
+  editor.on("saved", () => {
+    storageStatus.textContent = "";
   });
   editor.on("change", () => {
-    // The measurement on show no longer describes the program in the editor.
-    fitnessMessage.classList.add("faded");
     // `canUndoReset` answers for the program on screen, so typing moves it as
     // surely as pressing Reset does: without this, the pane would go on
     // offering to undo a reset the player has already typed over.
@@ -302,11 +283,16 @@ async function main(): Promise<void> {
   });
 
   window.runFitnessSuite = async (codeStr = editor.getCode()): Promise<FitnessSuiteResult> => {
-    fitnessMessage.classList.add("faded");
-    fitnessMessage.textContent = t("fitness.measuring");
+    // Printed as well as returned. The console shows a returned promise's value
+    // on its own, so the formatted line is the part that would otherwise be
+    // lost -- `describeFitnessResults` is what turns four scenarios' worth of
+    // numbers into a sentence, and re-deriving it from the object at the prompt
+    // is work nobody should have to do twice. The "measuring" line goes with
+    // it: the benchmark takes seconds, and a command that answers nothing until
+    // it is finished looks like a command that did nothing.
+    console.info(t("fitness.measuring"));
     const results = await runFitnessSuite(codeStr);
-    fitnessMessage.textContent = describeFitnessResults(results);
-    fitnessMessage.classList.remove("faded");
+    console.info(describeFitnessResults(results));
     return results;
   };
 
@@ -323,7 +309,7 @@ async function main(): Promise<void> {
   );
 
   // Everything below mounts the new shell over the run just started: the docs
-  // and hotkeys dialogs, the workspace's two panes -- holding the ten regions
+  // and hotkeys dialogs, the workspace's two panes -- holding the five regions
   // above exactly as they were, one level deeper -- the app bar that replaces
   // `.header`, and the shortcuts that tie all of it together. Ordered so that
   // nothing here composes a piece that does not exist yet: the two dialogs
@@ -349,7 +335,7 @@ async function main(): Promise<void> {
   const hotkeysModal = presentHotkeysModal(hotkeysDialog);
 
   // The workspace shell: `.pane-game`/`.pane-code` become the new parents of
-  // the eight regions `<main>` held directly until now, in the order it held
+  // the five regions `<main>` held directly until now, in the order it held
   // them. Moving an already-mounted element with `append` reparents it
   // without tearing anything down, CodeMirror included, so every one of them
   // keeps running exactly as built above.
@@ -365,12 +351,7 @@ async function main(): Promise<void> {
     requireElement(".controls"),
     requireElement(".world"),
   );
-  workspaceElements.codePane.append(
-    requireElement(".code"),
-    requireElement(".editorresize"),
-    requireElement(".hint"),
-    requireElement(".editorstatus"),
-  );
+  workspaceElements.codePane.append(requireElement(".code"));
   mainRegion.append(workspaceElements.workspace);
   const workspaceController = presentWorkspaceLayout({
     elements: workspaceElements,

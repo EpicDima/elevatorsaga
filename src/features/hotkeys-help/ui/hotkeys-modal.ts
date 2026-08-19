@@ -5,12 +5,12 @@
  * Two of the five rows are Mod- bindings. The mockup spells each as one
  * compressed glyph (`⌘⏎`, `⌘B`) with a static paragraph underneath explaining
  * that Windows and Linux read `Ctrl` for `⌘`; this port spells both as two
- * `<kbd>`s joined by "+" instead, `page.hint.html`'s own convention, resolved
- * per visitor at runtime by `src/ui/shortcuts.ts`'s `labelModifierKeys` —
- * which is also why the mockup's own hint paragraph is dropped: relabelling
- * per visitor is what makes the hint's own question not arise. This module
- * only draws the `data-mod-key` marker, the same as `page.hint.html` does
- * inline; whoever mounts the dialog live still has to call
+ * `<kbd>`s joined by "+" instead, `documentation.html`'s own convention,
+ * resolved per visitor at runtime by `src/ui/shortcuts.ts`'s
+ * `labelModifierKeys` — which is also why the mockup's own hint paragraph is
+ * dropped: relabelling per visitor is what makes the hint's own question not
+ * arise. This module only draws the `data-mod-key` marker, the same as
+ * `documentation.html` does inline; whoever mounts the dialog live still has to call
  * `labelModifierKeys` against it, the way `src/ui/localise-page.ts` already
  * does for the rest of the page shell.
  *

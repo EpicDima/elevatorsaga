@@ -55,8 +55,7 @@ const TRANSPORTED_BEFORE_CAPTURE = 18;
  * this steady — `tower` landed on 23 transported once and 25 twice — so the
  * steadiness is a property of the seed picked, not a promise of the mechanism,
  * and a regenerated picture that differs in a car or two is the run wobbling
- * rather than anything being wrong. The wall-clock "Code saved" line
- * under the editor is the one part no seed reaches at all.
+ * rather than anything being wrong.
  *
  * Chosen over the others tried for the composition at 1280x1000: passengers
  * left waiting on four of the six floors, cars caught at three different

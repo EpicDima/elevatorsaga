@@ -453,8 +453,8 @@ describe("palette", () => {
 describe("ds palette on the page background", () => {
   // html,body and .container paint --ds-bg now, not the fixed --color-page,
   // so the text painted directly on it -- h1-h6/p/a/dl (--ds-text),
-  // .emphasis-color (--ds-accent-hi) and .error-color/#save_message.refused
-  // (--ds-bad) -- has to clear 4.5:1 in both of --ds-bg's themes, not just
+  // .emphasis-color (--ds-accent-hi) and .error-color (--ds-bad) -- has to
+  // clear 4.5:1 in both of --ds-bg's themes, not just
   // the one --color-page ever had. Unlike the legacy pairs above, these are
   // read from :root and html[data-theme="light"] separately: PALETTE collapses
   // a token declared in both to whichever block comes last, which would silently
@@ -675,7 +675,7 @@ function ruleBody(selector: string): string {
   return rules[0]?.[1] ?? "";
 }
 
-describe("kbd and .hint", () => {
+describe("kbd", () => {
   it("draws a key cap instead of the browser default", () => {
     // <kbd> ships with no border, background or radius of its own -- only a
     // monospace font, which the rule above already sets. Reusing the run
@@ -691,15 +691,6 @@ describe("kbd and .hint", () => {
     expect(body).toMatch(/^\s*color:\s*var\(--ds-text\);/m);
     expect(body).toMatch(/^\s*background-color:\s*var\(--ds-raised\);/m);
     expect(body).toMatch(/^\s*font-weight:\s*bold;/m);
-  });
-
-  it("keeps the hint paragraph off the page's smallest text", () => {
-    // .hint used to sit at 12px, the same size as #save_message and
-    // #fitness_message -- but unlike those two, every word in it is either a
-    // key combination or the sentence naming one, including a Mac player's
-    // lone ⌘. 14px is what the rest of the page's secondary text is set at
-    // (.tutorialprogress among it).
-    expect(declaration(ruleBody(".hint"), "font-size", ".hint")).toBe("14px");
   });
 });
 

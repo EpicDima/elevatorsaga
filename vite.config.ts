@@ -201,12 +201,6 @@ export default defineConfig({
       { find: "#i18n", replacement: resolve(import.meta.dirname, "src/i18n") },
     ],
   },
-  // package.json is the only place the version is written down; src/ui/version.ts
-  // reads it from here and puts it in the footer. This is a compile-time
-  // substitution, so it reaches the built bundle and the test run alike.
-  define: {
-    __APP_VERSION__: JSON.stringify(packageJson.version),
-  },
   // Repo root is the Vite root; relative base keeps the built site working from
   // any sub-path (e.g. GitHub Pages project pages served from /<repo>/).
   root: ".",

@@ -192,14 +192,13 @@ function localiseAttributes(element: Element, mappings: string): void {
  * English page to a Russian document would be the one place where the interface
  * disagreed with itself about what language the reader is being served.
  *
- * The modifier keys are relabelled at the end, and that is not an aside. The
- * shortcut hint is one of the messages written here, it is written with
- * `innerHTML`, and that throws away the `⌘` that `src/ui/shortcuts.ts` had put
- * in place of the shipped `Ctrl` — so a Mac player would be told to press a key
- * combination that does nothing, and told it again in Russian. Anything that
- * rewrites the shell has to put the platform's own key back, and doing it here
- * makes that a property of this function instead of a rule every caller has to
- * remember.
+ * The modifier keys are relabelled at the end, and that is not an aside. A
+ * message written here with `innerHTML` can carry a `<kbd data-mod-key>`, and
+ * writing it throws away the `⌘` that `src/ui/shortcuts.ts` had put in place of
+ * the shipped `Ctrl` — so a Mac player would be told to press a key combination
+ * that does nothing, and told it again in Russian. Anything that rewrites the
+ * shell has to put the platform's own key back, and doing it here makes that a
+ * property of this function instead of a rule every caller has to remember.
  *
  * @param root - The document holding the shell.
  * @param userAgent - The browser's user agent string, for the modifier keys.

@@ -3,9 +3,8 @@
  *
  * Builds the skeleton `design/ui-mockup.html` calls `.workspace` — the
  * building's pane, the draggable/keyboard-resizable boundary, and the
- * editor's pane — and wires the boundary the same way
- * `src/ui/editor-size.ts` wires the editor's own resize grip: Pointer Events
- * with capture for the drag, the `separator` role for the keyboard, and a
+ * editor's pane — and wires the boundary three ways: Pointer Events with
+ * capture for the drag, the `separator` role for the keyboard, and a
  * double-click back to the default.
  *
  * Nothing here is reachable yet. `buildWorkspaceLayoutSkeleton` is not called
@@ -21,20 +20,19 @@
  * it literally:
  *
  * - The pointer handlers ignore a non-primary pointer and a non-primary
- *   button, exactly as `presentEditorResize` does and the mockup's splitter
- *   does not — a right-click drag on the mockup's splitter starts a drag the
- *   browser's own context menu then fights with.
+ *   button, which the mockup's splitter does not — a right-click drag on the
+ *   mockup's splitter starts a drag the browser's own context menu then
+ *   fights with.
  * - The percentage is written to storage once, when a drag or a key press
  *   ends, not on every `pointermove` — the mockup calls its equivalent of
  *   {@link import("../model/layout-mode.ts").saveSplitPercent} from inside
  *   the move handler, which can fire dozens of times a second during a single
  *   drag. The value that ends up stored is identical either way; only the
  *   number of writes differs.
- * - The keyboard handler bails on Alt/Ctrl/Meta/Shift, exactly as
- *   `presentEditorResize`'s does and the mockup's does not — the mockup's
- *   arrow-key handler calls `preventDefault()` unconditionally, which on
- *   Alt+ArrowLeft/Right also swallows the browser's own back/forward
- *   navigation.
+ * - The keyboard handler bails on Alt/Ctrl/Meta/Shift, which the mockup's does
+ *   not — the mockup's arrow-key handler calls `preventDefault()`
+ *   unconditionally, which on Alt+ArrowLeft/Right also swallows the browser's
+ *   own back/forward navigation.
  */
 
 import {
@@ -84,9 +82,8 @@ export interface WorkspaceLayoutElements {
  * module knows only where they go, not what they hold.
  *
  * @param document - The document to create the elements in, so a caller can
- * build into a document other than the global one — the same reason
- * `src/ui/editor-size.ts`'s options take an already-created `root` rather than
- * reaching for `document` themselves.
+ * build into a document other than the global one — a test builds into its own
+ * rather than reaching for the global `document`.
  * @param labels - The localised `aria-label` text for each part.
  * @returns The workspace element and the three children a caller mounts
  * content into or wires up.
@@ -136,8 +133,8 @@ export interface WorkspaceLayoutOptions {
   readonly elements: WorkspaceLayoutElements;
   /**
    * The element the split percentage and layout mode are written to —
-   * `document.documentElement` in the page, the same place
-   * `src/ui/editor-size.ts` writes the editor's chosen height.
+   * `document.documentElement` in the page, so that every rule in
+   * `src/styles/style.css` reading `--split-x`/`data-layout` sees them.
    */
   readonly root: HTMLElement;
   /** Where the mode and split are remembered between visits. */
@@ -249,8 +246,9 @@ export function presentWorkspaceLayout(options: WorkspaceLayoutOptions): Workspa
   });
 
   splitter.addEventListener("keydown", (event: KeyboardEvent) => {
-    // A modified arrow key belongs to the browser or the operating system;
-    // see `src/ui/editor-size.ts`'s identical guard for why.
+    // A modified arrow key belongs to the browser or the operating system --
+    // Alt+ArrowLeft/Right is back/forward, and claiming it here would take
+    // navigation away from a keyboard user who never touched the splitter.
     if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) {
       return;
     }
