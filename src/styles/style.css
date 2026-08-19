@@ -1731,7 +1731,7 @@ kbd {
  * and 1022px in the widest one the sandbox will assemble. That last figure is
  * a packing result, not the 938px of `--building-width` plus the walk: shafts
  * start at x=200 and step by `capacity * 10 + 20`, so every right edge is a
- * multiple of ten and `fitElevatorCount` in `src/app/router.ts` can get one to
+ * multiple of ten and `fitElevatorCount` in `src/pages/game/model/route.ts` can get one to
  * 930 at best. All three are well inside the 1220px track, so nobody can be
  * walked to the edge.
  */
