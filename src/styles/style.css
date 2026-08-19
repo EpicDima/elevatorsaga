@@ -221,6 +221,18 @@
   --ds-ok-soft: rgb(98 193 134 / 14%);
   --ds-bad: #ec6a5b;
   --ds-bad-soft: rgb(236 106 91 / 14%);
+  /*
+   * `--ds-bad` itself is tuned against a flat page surface (--ds-bg/--ds-panel,
+   * 4.5-5.9:1 across both themes -- see .error-color's own comment below) --
+   * not against --ds-bad-soft, which is *also* built from --ds-bad and pulls a
+   * composited background just close enough to the text's own hue to fall
+   * short in the light theme (4.18-4.30:1 on the two surfaces .errorline and
+   * .tierstate paint it over). --ds-bad-ink is what actual text reads instead
+   * wherever it sits on --ds-bad-soft; the icon and the badge's own border
+   * stay on --ds-bad, since 1.4.11's 3:1 is all a graphical indicator is
+   * asked for and both already clear it.
+   */
+  --ds-bad-ink: var(--ds-bad);
 
   /* The building. */
   --ds-shaft: #101318;
@@ -338,6 +350,8 @@ html[data-theme="light"] {
   --ds-ok-soft: rgb(44 132 85 / 12%);
   --ds-bad: #c2422e;
   --ds-bad-soft: rgb(194 66 46 / 12%);
+  /* 4.94:1 on .errorline's composite, 5.08:1 on .tierstate's -- see :root's own comment. */
+  --ds-bad-ink: #af3b29;
 
   --ds-shaft: #e8e4db;
   --ds-shaft-line: #d8d3c8;
@@ -1350,12 +1364,17 @@ html[data-theme="dark"] .tasklink.is-done {
 
 /*
  * `design/ui-mockup.html`'s own `.btn` (§9): a bordered control the same
- * shape as `.task-open` (above) -- same height, radius and hover treatment --
- * reused here for `.docsclose`/`.keysclose`, the one place either class is
- * drawn today (`docs-modal.ts`, `hotkeys-modal.ts`). `.btn[hidden]` restates
- * `display: none` for the reason `.taskmenu[hidden]` (above) already does:
- * `.btn` sets its own `display`, which a bare `[hidden]` attribute alone does
- * not override.
+ * shape as `.task-open` (above) -- same height, radius and resting background
+ * -- reused here for `.docsclose`/`.keysclose`, the one place either class is
+ * drawn today (`docs-modal.ts`, `hotkeys-modal.ts`). Its hover state is not
+ * shared, though: `.task-open` brightens its border to the themed accent
+ * because it opens the level switcher, the one control this bar wants a
+ * player's eye drawn to; `.btn` closes a dialog the player already opened, so
+ * the mockup's own `.btn:hover` reaches for the neutral `--n-5` instead --
+ * ported here as `--ds-n-5`, which nothing else in this file reads yet.
+ * `.btn[hidden]` restates `display: none` for the reason `.taskmenu[hidden]`
+ * (above) already does: `.btn` sets its own `display`, which a bare
+ * `[hidden]` attribute alone does not override.
  */
 .btn {
   display: flex;
@@ -1371,7 +1390,7 @@ html[data-theme="dark"] .tasklink.is-done {
 }
 
 .btn:hover {
-  border-color: var(--ds-accent-line);
+  border-color: var(--ds-n-5);
 }
 
 .btn[hidden] {
@@ -2033,7 +2052,7 @@ html[data-theme="dark"] .tasklink.is-done {
 
 .tierrow.is-lost .tierstate {
   background: var(--ds-bad-soft);
-  color: var(--ds-bad);
+  color: var(--ds-bad-ink);
 }
 
 .tierneed {
@@ -2766,7 +2785,10 @@ kbd {
  * palette, so the literal has no light-theme counterpart to carry forward,
  * where the mix follows `--ds-bad` into whichever theme is active the same
  * way `.tasklink.is-done`'s own border and background already do for
- * `--tier-tint`.
+ * `--tier-tint`. `color` here is `--ds-bad`, not `--ds-bad-ink`: it only
+ * governs the warning icon, a graphical indicator that clears 1.4.11's 3:1
+ * without the darker text ink; the label and the "go to" link below need
+ * that ink themselves, since both are real text.
  */
 .errorline {
   display: flex;
@@ -2789,6 +2811,10 @@ kbd {
   display: none;
 }
 
+.errorline .errorline-label {
+  color: var(--ds-bad-ink);
+}
+
 .errorline .errormessage {
   font-family: var(--ds-font-mono);
   color: var(--ds-text);
@@ -2796,7 +2822,7 @@ kbd {
 
 .errorline .goto {
   margin-inline-start: auto;
-  color: var(--ds-bad);
+  color: var(--ds-bad-ink);
   text-decoration: underline;
   white-space: nowrap;
 }

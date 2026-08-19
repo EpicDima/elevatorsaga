@@ -492,6 +492,35 @@ describe("ds code palette on the code background", () => {
   });
 });
 
+describe("text on a --*-soft badge", () => {
+  // .errorline and .tierrow.is-lost .tierstate both paint --ds-bad-soft as an
+  // opaque background and used to read the same --ds-bad their icon/border
+  // still does for their own text too -- close enough to the text's own hue,
+  // composited over a page surface, to fall short of 4.5:1 in the light
+  // theme even though --ds-bad on a flat page surface clears it on its own
+  // (see .error-color's comment in style.css). --ds-bad-ink is what the text
+  // reads instead; this is what catches either regressing back to --ds-bad,
+  // or the composite falling out of tolerance some other way -- raising
+  // --ds-bad-soft's alpha, for instance -- since both would still be an
+  // arithmetic pass if this measured the declared token by name instead of
+  // the composite it actually sits on.
+  it.each([
+    ["dark", DARK_PALETTE],
+    ["light", LIGHT_PALETTE],
+  ])("keeps the error line's label and link readable, %s theme", (_, palette) => {
+    const backdrop = over(themed(palette, "ds-bad-soft"), themed(palette, "ds-code-bg"));
+    expect(contrast(themed(palette, "ds-bad-ink"), backdrop)).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it.each([
+    ["dark", DARK_PALETTE],
+    ["light", LIGHT_PALETTE],
+  ])("keeps a lost tier's badge readable, %s theme", (_, palette) => {
+    const backdrop = over(themed(palette, "ds-bad-soft"), themed(palette, "ds-panel"));
+    expect(contrast(themed(palette, "ds-bad-ink"), backdrop)).toBeGreaterThanOrEqual(4.5);
+  });
+});
+
 describe("docs and hotkeys dialogs", () => {
   // The dialog's own panel, not --ds-bg: .docs/.keys paint --ds-panel, and
   // .docsclear/.keyrow kbd paint --ds-bg, the search field's own background
@@ -530,6 +559,16 @@ describe("docs and hotkeys dialogs", () => {
     for (const selector of [".docs-body h3", ".docs-empty", ".docsclear"]) {
       expect(declaration(ruleBody(selector), "color", selector)).toBe(token("ds-text-muted"));
     }
+  });
+
+  it("brightens .docsclose/.keysclose's border to the neutral --ds-n-5 on hover, not the accent", () => {
+    // .btn shares its resting shape with .task-open (style.css's own comment
+    // says so), but not its hover colour: .task-open opens the level switcher
+    // and brightens to the themed accent to draw the eye; .btn only ever
+    // closes a dialog the player already opened, and design/ui-mockup.html's
+    // own .btn:hover reaches for the neutral --n-5 instead. Regression guard
+    // for the two reading the same token by coincidence of an early port.
+    expect(declaration(ruleBody(".btn:hover"), "border-color", ".btn:hover")).toBe(token("ds-n-5"));
   });
 });
 
