@@ -527,6 +527,77 @@ export const SPRITE_ICONS = {
       },
     ],
   },
+  // A passenger, the mockup's `#i-person` (§6). Two filled shapes rather than
+  // an outline, and the only glyphs in this table whose viewBox is not 16x16:
+  // a person is drawn 11 wide by 20 tall so the figure fills its box at every
+  // size the building scales it to, from a rider squeezed into a narrow cabin
+  // to a full-height figure waiting in a roomy corridor. An outline at those
+  // sizes is the same blob `star`'s own comment describes.
+  person: {
+    viewBox: "0 0 11 20",
+    shapes: [
+      {
+        tag: "circle",
+        attrs: { cx: "5.5", cy: "3.6", r: "2.6", fill: "currentColor", stroke: "none" },
+      },
+      {
+        tag: "path",
+        attrs: {
+          d: "M5.5 7.4c-2 0-3 1.3-3 3v4.2h1.3V20h3.4v-5.4h1.3v-4.2c0-1.7-1-3-3-3Z",
+          fill: "currentColor",
+          stroke: "none",
+        },
+      },
+    ],
+  },
+  // The other two of `game/world.ts`'s three `displayType`s, which the mockup
+  // has no equivalent for at all — it draws one figure and gives its people no
+  // types. Dropping the distinction would have been the closer port and the
+  // worse one: the simulation has assigned every passenger a type since the
+  // original game, purely so a crowd on a floor reads as a crowd of people
+  // rather than a row of one repeated stamp, and a redesign is no reason to
+  // quietly delete a thing that already works. So the two extra silhouettes are
+  // drawn in this family's own flat-fill idiom rather than kept as the Font
+  // Awesome outlines they used to be (`ICONS.female`/`ICONS.child`), which read
+  // as smudges at the 9-20px a figure actually gets here.
+  //
+  // A child stands in the same 11x20 box as an adult, occupying only its lower
+  // two-thirds, so that both are sized by one CSS height and still stand on the
+  // same line — the box is the floor, not the figure.
+  "person-child": {
+    viewBox: "0 0 11 20",
+    shapes: [
+      {
+        tag: "circle",
+        attrs: { cx: "5.5", cy: "9.2", r: "2.2", fill: "currentColor", stroke: "none" },
+      },
+      {
+        tag: "path",
+        attrs: {
+          d: "M5.5 12.4c-1.7 0-2.5 1.1-2.5 2.5v2.6h1.1V20h2.8v-2.5h1.1v-2.6c0-1.4-.8-2.5-2.5-2.5Z",
+          fill: "currentColor",
+          stroke: "none",
+        },
+      },
+    ],
+  },
+  "person-female": {
+    viewBox: "0 0 11 20",
+    shapes: [
+      {
+        tag: "circle",
+        attrs: { cx: "5.5", cy: "3.6", r: "2.6", fill: "currentColor", stroke: "none" },
+      },
+      {
+        tag: "path",
+        attrs: {
+          d: "M5.5 7.4c-1.8 0-2.7 1.1-3 2.6L1.8 14.6h1.9V20h3.6v-5.4h1.9L8.5 10c-.3-1.5-1.2-2.6-3-2.6Z",
+          fill: "currentColor",
+          stroke: "none",
+        },
+      },
+    ],
+  },
   // `widgets/editor-pane`'s "Undo reset" glyph: {@link SPRITE_ICONS.undo}
   // mirrored about the middle of the box, arrowhead and all. The mockup has no
   // such button — bringing back the program a reset threw away is a production

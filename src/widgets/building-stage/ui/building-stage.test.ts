@@ -250,7 +250,7 @@ describe("presentBuildingStage", () => {
     world.trigger("new_user", user);
     user.moveTo(30, 40);
     user.updateDisplayPosition();
-    const userEl = requireElement(".people .user", parent);
+    const userEl = requireElement(".people .person", parent);
     expect(userEl.getAttribute("style")).toContain(
       `translate3d(${String(30 * scaleX)}px, ${String(40 * scaleY)}px, 0)`,
     );
@@ -417,9 +417,9 @@ describe("presentBuildingStage", () => {
 
     const user = new User(60);
     world.trigger("new_user", user);
-    expect(queryAll(".people .user", parent)).toHaveLength(1);
+    expect(queryAll(".people .person", parent)).toHaveLength(1);
 
     user.trigger("removed");
-    expect(queryAll(".people .user", parent)).toHaveLength(0);
+    expect(queryAll(".people .person", parent)).toHaveLength(0);
   });
 });

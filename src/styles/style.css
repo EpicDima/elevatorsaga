@@ -3298,30 +3298,115 @@ html[data-theme="light"] .floorline:nth-child(odd) {
   z-index: 5;
 }
 
-.movable {
+/*
+ * The hover card: one element, moved to whichever floor row or shaft is being
+ * pointed at or focused (`widgets/building-stage` places it). The mockup's own
+ * `.carcard` (§6), minus its `.row` and `.picked` rules -- those lay out
+ * label/value pairs and a strip of floor-number chips, and this card's body is
+ * not built that way. Its words come from `hover-card-text.ts`, which writes
+ * whole sentences, one per line, in whichever language the page is running in;
+ * splitting a sentence into two columns is not a layout, and chipping the
+ * floor numbers out of "Pressed: 3, 7 and 11" would mean the card's text
+ * knowing about its own markup. What is ported is the surface, which is the
+ * part the mockup was really drawing.
+ *
+ * `pointer-events: none` earns its place: the card is placed beside a shaft
+ * the pointer is standing in, and a card that could take the pointer would
+ * swallow the `pointerleave` that closes it and then flicker on and off along
+ * its own edge.
+ */
+.carcard {
   position: absolute;
-  top: 0;
-  left: 0;
+  inset-block-start: 0;
+  inset-inline-start: 0;
+  box-sizing: border-box;
+  inline-size: 176px;
+  padding: 8px 10px;
+  border: 1px solid var(--ds-line-strong);
+  border-radius: var(--ds-r-md);
+  background: var(--ds-panel);
+  box-shadow: var(--ds-shadow);
+  color: var(--ds-text);
+  font-family: var(--ds-font-ui);
+  font-size: 12px;
+  line-height: 1.5;
+  pointer-events: none;
+  z-index: 30;
+}
+
+.carcard-title {
   display: block;
+  margin-block-end: 2px;
+  font-weight: 650;
+}
+
+.carcard-lines {
+  color: var(--ds-text-muted);
+}
+
+/*
+ * A passenger: `design/ui-mockup.html`'s `.person` (§6), one flat silhouette
+ * sized from a single custom property -- the mockup's `--ph`, here
+ * `--ds-person-h`.
+ *
+ * Where the mockup can lay its people out with `align-items: flex-end` and be
+ * done, this one has to arrive at the same picture by arithmetic, because a
+ * passenger here is positioned by the simulation rather than by a flexbox: they
+ * stand at `floor.yPosition + 30` of the 50 world units a storey is tall, and
+ * that coordinate is the *top* of the box, so the figure hangs from it instead
+ * of standing on anything. What made that look right in the legacy drawing was
+ * being 16px tall in a 50px storey, which left the feet 4 world units clear of
+ * the floor line. `--ds-person-line` is that same fraction of whatever height
+ * the layout picked, and the margin below is the difference between it and the
+ * height actually drawn -- so the feet land on the line at every scale, and go
+ * on landing there when the clamp or the seat below shortens the figure. Only
+ * the clamp is the mockup's own: never smaller than a smudge, never taller than
+ * the figure was drawn.
+ *
+ * `z-index` is load-bearing and not decoration. `.car` lifts itself to 1 so it
+ * draws over its own shaft's order strip, and nothing between here and the
+ * page root establishes a stacking context, so that 1 competes with this
+ * element directly however far apart the two layers sit in the DOM. Without a
+ * 2 here every rider would be behind the doors of the car they are riding in.
+ */
+.person {
+  --ds-person-line: calc(var(--ds-floor-h) * 0.32);
+  --ds-person-tall: clamp(9px, var(--ds-person-line), 20px);
+  --ds-person-h: var(--ds-person-tall);
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-start: 0;
+  display: block;
+  /* Feet on the line, however short the figure standing on it has to be. */
+  margin-block-start: calc(var(--ds-person-line) - var(--ds-person-h));
+  /* 11 by 20 is the glyph's own box, and 0.55 is that ratio. */
+  inline-size: calc(var(--ds-person-h) * 0.55);
+  block-size: var(--ds-person-h);
+  color: var(--ds-person);
+  z-index: 2;
 }
 
 /*
  * A passenger reads against two different surfaces depending on whether they
  * are still on a floor or already in a car: --ds-shaft (or a floor band over
  * it), which flips light/dark with the theme, and --ds-car, which does not.
- * `.boarded` is the DOM's own record of which one applies -- set from
+ * `.is-rider` is the DOM's own record of which one applies -- set from
  * `user.parent` in passenger-view.ts -- so each surface gets a colour tuned
  * against it, rather than one flat value trying to survive both (the old
  * one-colour-for-everywhere approach is what --ds-car-ink and --ds-car-person
  * exist to replace; see their comment in the palette above).
+ *
+ * A rider is also the one passenger whose width is not its own business. A
+ * seat is ten world units (`Elevator.userSlots`), and how many pixels that is
+ * only the geometry pass knows, which is what it writes `--ds-scale-x` down
+ * for. A car squeezed towards the narrowest the layout will build would
+ * otherwise draw its riders overlapping each other and spilling out through
+ * the doors, so the figure shrinks to its seat instead; the 8px floor stops
+ * the very narrowest car from erasing them altogether.
  */
-.user {
-  color: var(--ds-person);
-  filter: drop-shadow(0 1px 3px black);
-  z-index: 2;
-}
+.person.is-rider {
+  --ds-person-h: min(var(--ds-person-tall), max(8px, calc(10px * var(--ds-scale-x, 1) / 0.55)));
 
-.user.boarded {
   color: var(--ds-car-person);
 }
 
@@ -3338,16 +3423,31 @@ html[data-theme="light"] .floorline:nth-child(odd) {
  *
  * A passenger is a graphical object, so the bar is WCAG 1.4.11's 3:1.
  * --ds-accent -- the same colour the rest of the page already uses for "this
- * needs attention" -- clears it against --ds-shaft in both themes (8.63 dark,
- * 3.53 light) with the car handled separately below, through `.boarded`.
+ * needs attention", and the mockup's own choice for this exact state -- clears
+ * it against --ds-shaft in both themes (8.63 dark, 3.53 light) with the car
+ * handled separately below, through `.is-rider`.
  */
-.user.waiting-longest {
+.person.is-waiting-long {
   color: var(--ds-accent);
 }
 
-.user.boarded.waiting-longest {
+.person.is-rider.is-waiting-long {
   color: var(--ds-car-attention);
 }
+
+/*
+ * `.person.is-leaving` -- a delivered passenger, walking off to the right over
+ * the second or so `User.handleExit` draws for the walk -- deliberately has no
+ * rule, and this note is here so that the next reader does not take that for an
+ * oversight and add one. The mockup fades its own `.is-leaving` to nothing, and
+ * fading is exactly what cannot be done here: --ds-person clears WCAG 1.4.11's
+ * 3:1 against the light theme's shaft by 3.52:1 and no more, so *any* alpha
+ * below 1 puts a passenger under the bar (0.85 already reads 2.82:1). The
+ * alternatives are worse than doing nothing -- a muted colour would make a
+ * finished passenger louder rather than quieter, since the light theme's muted
+ * ink is the darker of the two. The class stays because it is a real state and
+ * a real hook; what it is not is a colour.
+ */
 
 /* --------------------------------------------------------------- Statistics */
 

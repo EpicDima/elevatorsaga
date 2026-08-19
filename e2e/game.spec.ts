@@ -136,18 +136,25 @@ test("colours the passenger whose time the statistics panel is reporting", async
   // timeout waiting for an element that was not coming.
   //
   // Exactly one is marked, never two: there is one longest wait, and the mark
-  // is handed from passenger to passenger rather than handed out. Yellow rather
-  // than the white of everybody else; the value is set at
-  // `.user.waiting-longest` in src/styles/style.css, and reading it computed is
-  // the same question `toHaveCSS` asks.
+  // is handed from passenger to passenger rather than handed out.
+  //
+  // Yellow rather than the grey of everybody else. That particular value --
+  // --ds-car-attention, at `.person.is-rider.is-waiting-long` in
+  // src/styles/style.css -- is the *boarded* one, because the mark follows its
+  // passenger into the car (src/game/world.ts's `#setLongestWaitingUser` keeps
+  // it through the ride, not just through the wait) and a car needs its own
+  // colours, so the poll settles on a frame where the marked passenger is
+  // riding. Waiting, they are --ds-accent, which is themed and so not one
+  // literal to assert. Reading the colour computed is the same question
+  // `toHaveCSS` asks.
   await expect
     .poll(
       async () =>
         building(page).evaluate((where) => {
-          const marked = where.querySelectorAll(".user.waiting-longest");
+          const marked = where.querySelectorAll(".person.is-waiting-long");
           const only = marked[0];
           return {
-            inACrowd: where.querySelectorAll(".user").length > 1,
+            inACrowd: where.querySelectorAll(".person").length > 1,
             marked: marked.length,
             colour: only === undefined ? null : getComputedStyle(only).color,
           };

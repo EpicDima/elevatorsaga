@@ -572,13 +572,31 @@ describe("palette", () => {
     ["light", LIGHT_PALETTE],
   ])("keeps a passenger readable against the shaft and the car, %s theme", (_, palette) => {
     // A passenger is a graphical object, so 1.4.11's 3:1 applies. Waiting or
-    // walking, they read against --ds-shaft (themed); boarded, `.boarded`
+    // walking, they read against --ds-shaft (themed); boarded, `.is-rider`
     // switches them to a colour fixed across both themes, tuned against
     // --ds-car instead -- see the palette comment above --ds-car-ink.
+    expect(declaration(ruleBody(".person"), "color", ".person")).toBe(token("ds-person"));
+    expect(declaration(ruleBody(".person.is-rider"), "color", ".person.is-rider")).toBe(
+      token("ds-car-person"),
+    );
     expect(
       contrast(themed(palette, "ds-person"), themed(palette, "ds-shaft")),
     ).toBeGreaterThanOrEqual(3);
     expect(contrast(token("ds-car-person"), themed(palette, "ds-car"))).toBeGreaterThanOrEqual(3);
+  });
+
+  it("leaves a delivered passenger's colour alone, because no fade would clear 3:1", () => {
+    // The regression guard behind style.css's own note at `.person.is-leaving`:
+    // --ds-person has 3.52:1 of room over the light theme's shaft and nothing
+    // more, so the mockup's fade -- any fade -- takes a passenger under the bar
+    // 1.4.11 sets for a graphical object. This is what would catch someone
+    // adding one back, and the arithmetic below is why it should not be added.
+    expect(styleSource).not.toMatch(/^\.person\.is-leaving\s*\{/m);
+    const shaft = themed(LIGHT_PALETTE, "ds-shaft");
+    for (const percent of [50, 62, 85]) {
+      const faded = over(withAlpha(themed(LIGHT_PALETTE, "ds-person"), percent), shaft);
+      expect(contrast(faded, shaft), `${String(percent)}% opacity`).toBeLessThan(3);
+    }
   });
 
   it.each([
@@ -595,6 +613,28 @@ describe("palette", () => {
     expect(contrast(token("ds-car-attention"), themed(palette, "ds-car"))).toBeGreaterThanOrEqual(
       3,
     );
+  });
+
+  it.each([
+    ["dark", DARK_PALETTE],
+    ["light", LIGHT_PALETTE],
+  ])("keeps the hover card's own two inks readable on it, %s theme", (_, palette) => {
+    // The card is the one thing in the building painted on a flat --ds-panel
+    // rather than on the shaft, and its body is prose at 12px, so both inks
+    // answer to 1.4.3's 4.5:1 rather than the 3:1 everything else down here
+    // gets. Read from the rules: the title and the lines are two different
+    // tokens on purpose, and a port that collapsed them would still pass an
+    // arithmetic check that only looked tokens up by name.
+    expect(declaration(ruleBody(".carcard"), "background", ".carcard")).toBe(token("ds-panel"));
+    expect(declaration(ruleBody(".carcard"), "color", ".carcard")).toBe(token("ds-text"));
+    expect(declaration(ruleBody(".carcard-lines"), "color", ".carcard-lines")).toBe(
+      token("ds-text-muted"),
+    );
+    for (const ink of ["ds-text", "ds-text-muted"]) {
+      expect(contrast(themed(palette, ink), themed(palette, "ds-panel"))).toBeGreaterThanOrEqual(
+        4.5,
+      );
+    }
   });
 });
 
