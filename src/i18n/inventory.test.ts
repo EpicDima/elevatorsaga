@@ -181,11 +181,11 @@ const TASK_KEYS: ReadonlySet<string> = new Set(
  * `src/` spans that are deliberately not paths, with what each one is.
  *
  * Handled by name rather than by loosening check 4 to something they slip
- * through: each of the four is a real reason, and a reason that stops applying
+ * through: each of the five is a real reason, and a reason that stops applying
  * should show up as a failing test rather than as a rule that quietly covers
  * less than it says.
  *
- * There is no fifth entry for `src/i18n/inventory.test.ts`. The rebuild named
+ * There is no sixth entry for `src/i18n/inventory.test.ts`. The rebuild named
  * it as the file that ought to exist — the one reference in this document's
  * whole history to a source file that was not in the tree — and writing it is
  * what made that reference true. An excuse would have kept it false.
