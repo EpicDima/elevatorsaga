@@ -101,6 +101,81 @@ export default tseslint.config(
   // layer name and so does not match the relative-path glob.
   // This does not catch a slice reaching into a same-layer sibling's
   // internals instead of its index.ts — a known, accepted gap.
+  //
+  // "Importable from any layer" above is one-directional in practice too:
+  // `src/game`/`src/i18n` production code depends on nothing in the FSD tree
+  // except `shared`, which is as dependency-free as they are (confirmed by
+  // reading `src/shared/lib/route-query.ts`, `src/i18n/detect.ts`'s one real
+  // consumer of it — nothing circles back). Test files get one further
+  // allowance, `ui`, matching the one real case
+  // (`src/game/challenge-tiers-solutions.test.ts` borrowing the plain string
+  // constant `DEV_TEST_CODE` as a reference program): a fixture reaching
+  // across a boundary for test data is not the same risk as production code
+  // depending on a higher layer.
+  {
+    files: ["src/game/**/*.ts", "src/i18n/**/*.ts"],
+    ignores: ["src/game/**/*.test.ts", "src/i18n/**/*.test.ts"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: [
+                "**/entities/**",
+                "\\#entities/**",
+                "**/features/**",
+                "\\#features/**",
+                "**/widgets/**",
+                "\\#widgets/**",
+                "**/pages/**",
+                "\\#pages/**",
+                "**/app/**",
+                "\\#app/**",
+                // Deliberately `../ui/**`, not `**/ui/**`: game/i18n files
+                // sit one level under `src/`, so their only possible
+                // relative path into the legacy `src/ui/` is `../ui/...`,
+                // and the broader glob would also match `shared/ui`'s own
+                // directory segment inside `#shared/ui/*` — a real,
+                // legitimate import this rule must not catch.
+                "../ui/**",
+              ],
+              message:
+                "game/i18n may not import from entities, features, widgets, pages, app or ui — only shared.",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    files: ["src/game/**/*.test.ts", "src/i18n/**/*.test.ts"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: [
+                "**/entities/**",
+                "\\#entities/**",
+                "**/features/**",
+                "\\#features/**",
+                "**/widgets/**",
+                "\\#widgets/**",
+                "**/pages/**",
+                "\\#pages/**",
+                "**/app/**",
+                "\\#app/**",
+              ],
+              message:
+                "game/i18n tests may not import from entities, features, widgets, pages or app — only shared or ui.",
+            },
+          ],
+        },
+      ],
+    },
+  },
   {
     files: ["src/shared/**/*.ts"],
     rules: {
