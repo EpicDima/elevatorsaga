@@ -126,7 +126,7 @@ function renderedLocale(): Locale {
 /**
  * Reports a key the shell names and the catalogue cannot answer.
  *
- * A warning rather than a thrown error, following `src/app/router.ts`: the
+ * A warning rather than a thrown error, following `src/pages/game/model/route.ts`: the
  * element keeps the English it shipped with, which is a worse answer than the
  * player's language but a far better one than a blank page or a game that
  * refuses to start over a mistyped attribute. What stops that from being a

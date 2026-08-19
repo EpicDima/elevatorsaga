@@ -47,9 +47,9 @@ afterEach(() => {
 /**
  * The buildings the rest of the game is willing to construct.
  *
- * A restatement of `SANDBOX_LIMITS` in src/app/router.ts, which is not exported;
- * duplicated on purpose rather than reached for, because the point of the check
- * is not "the sandbox agrees" but "this building is inside the range the
+ * A restatement of `SANDBOX_LIMITS` in src/pages/game/model/route.ts, which is not
+ * exported; duplicated on purpose rather than reached for, because the point of the
+ * check is not "the sandbox agrees" but "this building is inside the range the
  * renderer, the physics and the address bar are all exercised over". A tutorial
  * building outside it would be one nothing else in the game can produce, which
  * is the definition of untested ground — and it is ground a *teaching* task can
@@ -69,8 +69,8 @@ const BUILDING_LIMITS = {
 /**
  * What a seed may look like.
  *
- * Mirrors `SEED_PATTERN` and `SEED_MAX_LENGTH` in src/app/router.ts. A tutorial
- * seed is pinned in this table rather than typed into the address bar, but a
+ * Mirrors `SEED_PATTERN` and `SEED_MAX_LENGTH` in src/pages/game/model/route.ts. A
+ * tutorial seed is pinned in this table rather than typed into the address bar, but a
  * link to a task is a thing people share, and a seed that cannot survive a
  * round trip through `location.hash` byte for byte hands the recipient a
  * different building — the one failure mode a pinned seed exists to prevent.

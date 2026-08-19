@@ -25,8 +25,6 @@ import {
 } from "../ui/presenters.ts";
 import type { ControlsPresenter } from "../ui/presenters.ts";
 import type { SeedLinkData } from "../ui/templates.ts";
-import { createParamsUrl, SANDBOX_CHALLENGE } from "./router.ts";
-import type { RouteParams, RouteQuery } from "./router.ts";
 import {
   evaluateChallengeTier,
   readBestChallengeTiers,
@@ -45,7 +43,11 @@ import {
 } from "#features/adjust-speed/model/time-scale.ts";
 import { DEFAULT_CODE_SLOT } from "#features/manage-code-slots/model/code-slots.ts";
 import type { CodeSlot } from "#features/manage-code-slots/model/code-slots.ts";
+import { SANDBOX_CHALLENGE } from "#pages/game/model/route.ts";
+import type { RouteParams } from "#pages/game/model/route.ts";
 import { clearChildren } from "#shared/lib/dom.ts";
+import { createParamsUrl } from "#shared/lib/route-query.ts";
+import type { RouteQuery } from "#shared/lib/route-query.ts";
 import { presentBuildingStage } from "#widgets/building-stage/index.ts";
 import type { EditorPanePresenter } from "#widgets/editor-pane/index.ts";
 import { presentGoalBar } from "#widgets/goal-bar/index.ts";
@@ -617,7 +619,7 @@ export class App {
    * run in the game where that is the honest answer. Both halves of the line are
    * offers about the address bar, and on a task both are refused. "The same
    * passengers again" writes `seed=` into an address the router refuses it on —
-   * `refuseSeedOnTrack` in `src/app/router.ts` — so following the game's own
+   * `refuseSeedOnTrack` in `src/pages/game/model/route.ts` — so following the game's own
    * link would warn on the console and have `startRouter` strip the key back out
    * of the bar in front of the player. "A new draw" offers to stop pinning a
    * seed that the *task* pins, which is the point of the task: `TutorialTask.seed`

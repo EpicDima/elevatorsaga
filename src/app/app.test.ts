@@ -21,12 +21,13 @@ import {
 import type { SeedLinkData } from "../ui/templates.ts";
 import { App, TIME_SCALE_STORAGE_KEY, readStoredTimeScale } from "./app.ts";
 import type { AppElements } from "./app.ts";
-import { parseQuery, resolveRoute, startRouter } from "./router.ts";
 import { recordChallengeTier } from "#entities/challenge-tier/index.ts";
 import { TUTORIAL_PROGRESS_STORAGE_KEY } from "#entities/tutorial-task/model/progress.ts";
 import { DEFAULT_TIME_SCALE } from "#features/adjust-speed/model/time-scale.ts";
 import { DEFAULT_CODE_SLOT } from "#features/manage-code-slots/model/code-slots.ts";
+import { resolveRoute, startRouter } from "#pages/game/model/route.ts";
 import { queryAll, requireElement } from "#shared/lib/dom.ts";
+import { parseQuery } from "#shared/lib/route-query.ts";
 import { presentEditorPane } from "#widgets/editor-pane/index.ts";
 import type { EditorPanePresenter } from "#widgets/editor-pane/index.ts";
 

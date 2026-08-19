@@ -327,7 +327,7 @@ export function requireDemo(): ChallengeCondition {
  * The building a sandbox run is played in.
  *
  * Every value is already validated: the sandbox is configured from the location
- * hash, so the range checking happens in `src/app/router.ts` and what arrives
+ * hash, so the range checking happens in `src/pages/game/model/route.ts` and what arrives
  * here is something the simulation can run. The fields are deliberately the
  * subset of {@link WorldOptions} the sandbox lets the player choose, spelled out
  * one by one rather than derived from it, so that an option added to the world

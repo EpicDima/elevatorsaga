@@ -29,11 +29,11 @@ import "./styles/style.css";
 
 import { App, readStoredTimeScale } from "./app/app.ts";
 import { describeFitnessResults, runFitnessSuite } from "./app/fitness.ts";
-import { startRouter } from "./app/router.ts";
 import { challenges } from "./game/challenges.ts";
 import type { FitnessSuiteResult } from "./game/fitness.ts";
 import { TICK_SECONDS, createWorldController } from "./game/world-controller.ts";
 import { formatTime, t } from "./i18n/index.ts";
+import { startRouter } from "./pages/game/model/route.ts";
 import { CodeEditor, codeMirrorView } from "./ui/editor.ts";
 import { applyStoredEditorHeight, presentEditorResize } from "./ui/editor-size.ts";
 import { presentGlobalShortcuts } from "./ui/global-shortcuts.ts";

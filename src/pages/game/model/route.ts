@@ -1,23 +1,28 @@
 /**
- * The hash router.
+ * Turning a parsed hash into the parameters the game page acts on, and
+ * keeping that done as the player navigates.
  *
- * Replaces `riot.route`. The URL format is unchanged — a `#` followed by
- * comma-separated `key=value` pairs, as in `#challenge=3,timescale=8` — and so
- * are the parameter names, so old links and bookmarks keep working.
+ * {@link "#shared/lib/route-query.ts"!parseQuery} only splits a hash into
+ * `key=value` pairs; nothing there knows a `challenge` from a `seed`, or that
+ * `floors=100000` cannot be drawn. That is this module's job: {@link
+ * resolveRoute} reads every parameter the game supports, validates or
+ * defaults each one, and hands back something always safe to act on —
+ * {@link RouteParams}. {@link startRouter} is the part that keeps doing this
+ * on every navigation, and corrects the address bar to match.
  *
- * The legacy parser was `path.split(",")` with `/(\w+)=(\w+$)/` per segment and
- * no validation of what came out, which made two malformed URLs fatal:
+ * The legacy parser was `path.split(",")` with `/(\w+)=(\w+$)/` per segment
+ * and no validation of what came out, which made two malformed URLs fatal:
  *
- * - `#challenge=abc` produced `_.parseInt("abc") - 1`, i.e. `NaN`. `NaN < 0` and
- *   `NaN >= challenges.length` are both false, so the range check passed it
- *   through to `challenges[NaN].options` and the page died with a TypeError
- *   before anything was drawn.
- * - `#timescale=abc` produced `parseFloat("abc")`, i.e. `NaN`, which became the
- *   world's time scale. Every simulated `dt` was then `NaN` and the world
+ * - `#challenge=abc` produced `_.parseInt("abc") - 1`, i.e. `NaN`. `NaN < 0`
+ *   and `NaN >= challenges.length` are both false, so the range check passed
+ *   it through to `challenges[NaN].options` and the page died with a
+ *   TypeError before anything was drawn.
+ * - `#timescale=abc` produced `parseFloat("abc")`, i.e. `NaN`, which became
+ *   the world's time scale. Every simulated `dt` was then `NaN` and the world
  *   froze, with no way back short of editing the URL by hand.
  *
- * Everything is parsed and validated here instead, and anything unusable falls
- * back to a default.
+ * Everything is validated here instead, and anything unusable falls back to a
+ * default.
  *
  * The sandbox — `#challenge=sandbox`, plus `floors`, `elevators`, `capacities`
  * and `spawnrate` — is the reason that promise has to be kept for more than two
@@ -28,7 +33,7 @@
  * The learning track — `#challenge=tutorial-1` … `#challenge=tutorial-8` — is
  * the third thing that one key can name, and the only one whose values are not
  * invented here: they are the identifiers the tasks carry in
- * {@link "../game/tutorial.ts"!tutorialTasks}. {@link resolveTutorialIndex}
+ * {@link "#game/tutorial.ts"!tutorialTasks}. {@link resolveTutorialIndex}
  * says what that buys and what a misspelled task address does instead.
  *
  * `seed` is the other half of a shared building: the sandbox parameters pin the
@@ -40,7 +45,7 @@
  * survives that trip.
  */
 
-import type { SandboxOptions } from "../game/challenges.ts";
+import type { SandboxOptions } from "#game/challenges.ts";
 // The one thing this module takes from `src/game/` as a value rather than a
 // type, and it is imported rather than handed in through {@link RouteContext}
 // because it is not a choice a caller makes: there is exactly one learning
@@ -49,19 +54,18 @@ import type { SandboxOptions } from "../game/challenges.ts";
 // do not exist, and the ids cannot be passed through a context at all without
 // moving the table into one.
 //
-// The price is a cycle -- `game/tutorial.ts` -> `game/challenges.ts` ->
-// `i18n/index.ts` -> `i18n/detect.ts` -> back here for `parseQuery` -- which is
-// inert, because nothing on either side of it is read while a module is being
-// evaluated: every use is inside a function body. The other price is the entry
-// chunk, measured at 8.3 kB with this import and without it (0.9 kB of that
-// gzipped), and paid only until `app.ts` imports the table itself to play a
-// task. The fitness worker pays nothing -- the same chunk to the byte -- since
-// it reaches this module for `parseQuery` alone, and Rollup drops the rest.
-import { tutorialTasks } from "../game/tutorial.ts";
+// This used to buy a cycle -- `game/tutorial.ts` -> `game/challenges.ts` ->
+// `i18n/index.ts` -> `i18n/detect.ts` -> back into this file for `parseQuery`
+// -- from the days `parseQuery` and this table shared one module. Splitting the
+// hash grammar out to {@link "#shared/lib/route-query.ts"} broke it:
+// `i18n/detect.ts` now reaches a module that imports nothing of its own, so
+// nothing on that path leads back to this file, and nothing that reaches for
+// `parseQuery` alone -- `i18n/detect.ts`, and through it the fitness worker --
+// pulls this table into its chunk anymore. `app.ts` pays for it regardless,
+// since it imports the table itself to play a task.
+import { tutorialTasks } from "#game/tutorial.ts";
 import { clampTimeScale } from "#features/adjust-speed/model/time-scale.ts";
-
-/** Raw `key=value` pairs from the location hash, in the order they appeared. */
-export type RouteQuery = ReadonlyMap<string, string>;
+import { createParamsUrl, parseQuery, type RouteQuery } from "#shared/lib/route-query.ts";
 
 /** The validated parameters a route resolves to. */
 export interface RouteParams {
@@ -83,7 +87,7 @@ export interface RouteParams {
   /**
    * The learning-track task asked for, or `null` for anything else.
    *
-   * A zero-based index into {@link "../game/tutorial.ts"!tutorialTasks}, so
+   * A zero-based index into {@link "#game/tutorial.ts"!tutorialTasks}, so
    * `challenge=tutorial-3` is `2`. Set when `challenge` names a task, and never
    * at the same time as {@link sandbox}: those are two of the three things one
    * key can name, and no value spells both.
@@ -111,7 +115,7 @@ export interface RouteParams {
    * or the sandbox parameters, and the seed has no say in them.
    *
    * The URL is the only thing that pins a seed, which is what makes the two
-   * restart paths agree: see {@link "./app.ts"!App.handleRoute}.
+   * restart paths agree: see {@link "#app/app.ts"!App.handleRoute}.
    *
    * Always `null` while {@link tutorialIndex} is set, however far the URL goes
    * to ask otherwise — a task plays the seed its own entry pins and no other.
@@ -167,105 +171,6 @@ export interface RouteContext {
 }
 
 /**
- * Splits a location hash into its `key=value` pairs.
- *
- * Keys are lower-cased; values are not. A hash is something people hand-write
- * and dictate to each other, and which shift key was held while writing
- * `challenge` is not a decision anybody makes on purpose — so `#SEED=abc` is
- * the seed, and `#Challenge=3` is the challenge. Values stay exactly as
- * written, because they are the data: `seed=Abc` and `seed=abc` are two
- * different passenger streams, and the one value that is folded — `sandbox` —
- * is folded where it is read, by {@link SANDBOX_CHALLENGE}'s reader, and not
- * for every parameter at once.
- *
- * Folding here is also what stops an unknown key from becoming a second copy of
- * a known one. `#SEED=abc` used to be neither read as a seed nor dropped, so it
- * rode along into every URL built from these parameters, and the result named
- * `SEED=abc` *and* `seed=…`: one hash, two seeds, one of which the router would
- * ignore on arrival. A map keyed by the folded name cannot hold both.
- *
- * Unknown keys are kept, as the legacy code kept them, and that is a decision
- * rather than an oversight. The hash is the whole of this game's shareable
- * state, so a key this version does not recognise is either one a later version
- * adds — a link built by a newer tab and pasted into an older one keeps its
- * meaning, and gets it back on the way home — or one the player is using for
- * their own purposes, which is a thing the address bar has always been for. The
- * price is that a misspelled key decorates every link built afterwards, and the
- * alternative price is throwing away, silently, something the player wrote on
- * purpose. A refused *value* of a key the router does know is a different
- * question, answered differently: see {@link startRouter}.
- *
- * A key with no `=` is accepted as a bare flag and yields an empty value, so
- * `#fullscreen` now works. The legacy regexp required a value, which meant the
- * bare forms people wrote (`#autostart`, `#devtest`) silently did nothing.
- *
- * Whitespace around a key or a value is dropped, so `#challenge=4, seed=abc`
- * and `#seed = abc` parse as they look. No browser can hand this function
- * either of those: U+0020 is in the URL Standard's fragment percent-encode set,
- * so every path into `location.hash` — typing, pasting, assigning, following an
- * anchor — writes `%20` instead, which {@link SEED_PATTERN} then refuses on
- * purpose. The leniency is for the callers that are not a browser: a hash
- * assembled in code, one that has already been through `decodeURIComponent`,
- * one written by hand in a test. It lives here rather than in each resolver so
- * that the format has one whitespace rule instead of one per parameter, and so
- * that no resolver has to explain a `trim` of its own.
- *
- * @param hash - The location hash, with or without its leading `#`.
- * @returns The parsed pairs, in order, keyed by the lower-cased name.
- */
-export function parseQuery(hash: string): RouteQuery {
-  const query = new Map<string, string>();
-  const body = hash.startsWith("#") ? hash.slice(1) : hash;
-  for (const segment of body.split(",")) {
-    const trimmed = segment.trim();
-    if (trimmed === "") {
-      continue;
-    }
-    const separator = trimmed.indexOf("=");
-    const key = (separator === -1 ? trimmed : trimmed.slice(0, separator)).trim();
-    const value = separator === -1 ? "" : trimmed.slice(separator + 1).trim();
-    if (key !== "") {
-      query.set(key.toLowerCase(), value);
-    }
-  }
-  return query;
-}
-
-/**
- * Rebuilds a hash URL from a set of parameters and some overrides.
- *
- * An override of `null` drops the parameter instead of setting it, which is how
- * a link says "everything the player is carrying except this one". The seed is
- * the parameter that needs it: it is drawn for one building, so carrying it into
- * a link that changes the building would pin a run nobody has seen, and would
- * leave a player who once followed the seed link with no way back to a fresh
- * draw short of editing the address bar.
- *
- * Override names are lower-cased, exactly as {@link parseQuery} lower-cases the
- * names it reads, so that an override always replaces the parameter it names
- * instead of coming to rest beside a differently spelled copy of it.
- *
- * @param query - The parameters currently in the URL.
- * @param overrides - Parameters to add or replace; `null` removes one.
- * @returns The new hash, including its leading `#`.
- */
-export function createParamsUrl(
-  query: RouteQuery,
-  overrides: Readonly<Record<string, string | number | null>> = {},
-): string {
-  const merged = new Map(query);
-  for (const [key, value] of Object.entries(overrides)) {
-    const name = key.toLowerCase();
-    if (value === null) {
-      merged.delete(name);
-    } else {
-      merged.set(name, String(value));
-    }
-  }
-  return `#${[...merged].map(([key, value]) => `${key}=${value}`).join(",")}`;
-}
-
-/**
  * Reads a flag parameter.
  *
  * Present means on, as it did before; an explicit `=false` means off.
@@ -298,13 +203,13 @@ export const SANDBOX_CHALLENGE = "sandbox";
  *
  * The whole of the router's copy of how a task address is spelled. The rest is
  * the table's: an address is accepted because it *is* the `id` of a task in
- * {@link "../game/tutorial.ts"!tutorialTasks} — `tutorial-1` … `tutorial-8`
+ * {@link "#game/tutorial.ts"!tutorialTasks} — `tutorial-1` … `tutorial-8`
  * today — and not because it matches a shape invented here.
  *
  * The prefix is what tells a mistyped task address from a challenge number, so
  * that `tutorial-9` is a wrong address on the track rather than a wrong
  * challenge, and lands where the player was heading. It is the one thing that
- * has to stay in step with the ids by hand; `router.test.ts` checks that it
+ * has to stay in step with the ids by hand; `route.test.ts` checks that it
  * does, because a task renamed out of this shape would become unreachable
  * rather than merely oddly named.
  *
@@ -354,7 +259,7 @@ interface SandboxRange {
  *   sandbox is then given, however many elevators it asked for.
  * - **Spawn rate.** The floor is not cosmetic, though it is no longer what
  *   stands between `#spawnrate=-1` and a frozen tab: the
- *   {@link "../game/world.ts"!World} constructor now refuses a rate the spawn
+ *   {@link "#game/world.ts"!World} constructor now refuses a rate the spawn
  *   loop could not finish running and turns it into "nobody arrives". What the
  *   floor is for here is that "nobody arrives" is a poor answer to give
  *   somebody who asked for a busy building and mistyped the sign. Clamping is
@@ -470,7 +375,7 @@ export function resolveRoute(query: RouteQuery, context: RouteContext): RoutePar
 /**
  * How long a `seed` may be.
  *
- * Not the generator's limit — {@link "../game/random.ts"!createRandomSource}
+ * Not the generator's limit — {@link "#game/random.ts"!createRandomSource}
  * hashes a seed of any length in one pass — but the page's. The seed rides in
  * the hash, and every entry of the challenge bar's navigation row is that hash
  * with `challenge` rewritten, so whatever is written here is written into the
@@ -492,8 +397,8 @@ const SEED_MAX_LENGTH = 64;
  * building: floors, elevators and capacities come from the challenge number or
  * the sandbox parameters, and the seed has no say in any of them — see
  * {@link RouteParams.seed}. A comma cannot get here at all:
- * {@link parseQuery} splits on it. What is left still spells every generated
- * seed and every label worth typing.
+ * {@link "#shared/lib/route-query.ts"!parseQuery} splits on it. What is left
+ * still spells every generated seed and every label worth typing.
  */
 const SEED_PATTERN = /^[\w.-]+$/;
 
@@ -501,7 +406,7 @@ const SEED_PATTERN = /^[\w.-]+$/;
  * Turns a `seed` parameter into something a run can be rebuilt from.
  *
  * Kept as the string the URL was written with, and never converted to a number
- * even though {@link "../game/random.ts"!RandomSeed} accepts both.
+ * even though {@link "#game/random.ts"!RandomSeed} accepts both.
  * `createRandomSource` hashes `String(seed)`, so `5` and `"5"` are the same
  * stream and the conversion would buy nothing — while `Number` would quietly
  * rewrite what the URL says: `0123`, `1e3` and `0x10` would each draw a run
@@ -511,14 +416,15 @@ const SEED_PATTERN = /^[\w.-]+$/;
  * working, and makes the round trip exact: what the player typed is what the
  * world records is what the link in the bar offers back.
  *
- * Taken exactly as {@link parseQuery} hands it over. It used to be trimmed
- * here, and the reason given was that a URL written with a trailing space
- * reaches `location.hash` with the space still in it. That does not happen:
- * U+0020 is in the fragment percent-encode set, so a browser writes `%20`
- * instead, whichever way the URL was navigated to — which is the same fact
- * {@link SEED_PATTERN} is built on, and the two comments could not both be
- * true. What whitespace tolerance the format has belongs to `parseQuery`, which
- * has it for every parameter and can say honestly who it is for.
+ * Taken exactly as {@link "#shared/lib/route-query.ts"!parseQuery} hands it
+ * over. It used to be trimmed here, and the reason given was that a URL
+ * written with a trailing space reaches `location.hash` with the space still
+ * in it. That does not happen: U+0020 is in the fragment percent-encode set,
+ * so a browser writes `%20` instead, whichever way the URL was navigated to —
+ * which is the same fact {@link SEED_PATTERN} is built on, and the two
+ * comments could not both be true. What whitespace tolerance the format has
+ * belongs to `parseQuery`, which has it for every parameter and can say
+ * honestly who it is for.
  *
  * Anything unusable is refused and replaced by a fresh seed rather than
  * repaired, for the reason `floors=8.5` is refused rather than rounded: a seed
@@ -546,7 +452,7 @@ function resolveSeed(value: string | undefined, refuse: Refuse): string | null {
  * Drops a `seed` that arrived on a task address, and says so.
  *
  * Refused rather than resolved, because on the track a seed is not the player's
- * to choose: each task pins one in {@link "../game/tutorial.ts"!tutorialTasks},
+ * to choose: each task pins one in {@link "#game/tutorial.ts"!tutorialTasks},
  * and the tasks are only teachable because of it. A task shows a program
  * failing and then the one change that fixes it, and whether the program fails
  * is a property of the passenger stream, not of the program alone — task 5's
@@ -614,10 +520,11 @@ function refuseDevTestOnTrack(query: RouteQuery, refuse: Refuse): false {
  * Whether a `challenge` parameter asks for the sandbox.
  *
  * Case is folded and whitespace is not, because whitespace has already gone:
- * {@link parseQuery} strips it from every key and every value as it reads them,
- * which is the point of "ignores whitespace around a key and around a value"
- * owning that rule alone. A `trim()` here would be a second answer to a question
- * already settled, and an untested one — nothing can reach it to prove it works.
+ * {@link "#shared/lib/route-query.ts"!parseQuery} strips it from every key and
+ * every value as it reads them, which is the point of "ignores whitespace
+ * around a key and around a value" owning that rule alone. A `trim()` here
+ * would be a second answer to a question already settled, and an untested one
+ * — nothing can reach it to prove it works.
  *
  * @param value - The parsed parameter, if it was present.
  * @returns Whether it names the sandbox, in any casing.
@@ -635,7 +542,7 @@ function isSandboxRoute(value: string | undefined): boolean {
  * {@link resolveChallengeIndex}, which would start challenge one.
  *
  * Folded exactly where {@link isSandboxRoute} folds "sandbox" — here, as the
- * value is read, and not in {@link parseQuery} for every parameter at once — so
+ * value is read, and not in `parseQuery` for every parameter at once — so
  * `#CHALLENGE=TUTORIAL-3` opens task 3 while `seed=Abc` stays the stream it
  * names.
  *
@@ -656,7 +563,7 @@ function isTutorialRoute(value: string | undefined): value is string {
  * Turns a `challenge=tutorial-…` parameter into a task that exists.
  *
  * Matched against the `id` each task carries rather than parsed as a number,
- * which is what {@link "../game/tutorial.ts"!TutorialTask.id} exists for: the
+ * which is what {@link "#game/tutorial.ts"!TutorialTask.id} exists for: the
  * position of a task in the table is the one thing about it expected to change,
  * and an address resolved by position would hand somebody who bookmarked
  * `tutorial-3` whichever task had since been inserted above it. That the ids

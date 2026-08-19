@@ -14,12 +14,13 @@
  * built later, in this widget's own `ui/` layer, the same division
  * `listChallenges` and `lockChallengeTiles` already keep.
  *
- * Building a real URL is not this module's job either: `createParamsUrl`
- * lives in `src/app/router.ts`, the `app` layer, which `src/widgets/**` may
- * not import (see `eslint.config.js`'s boundary rule for `src/widgets/**`).
- * So a caller supplies `buildHref`, and this module only ever describes
- * *what* a tile links to, through {@link LevelLinkTarget}, never the link
- * itself.
+ * Building a real URL is not this module's job either: even now that
+ * `createParamsUrl` is reachable — it lives in `src/shared/lib/route-query.ts`,
+ * not behind any boundary rule this widget cannot cross — nothing here holds
+ * the *current* query to build one from; that stays app state, owned above
+ * this module. So a caller supplies `buildHref`, and this module only ever
+ * describes *what* a tile links to, through {@link LevelLinkTarget}, never the
+ * link itself.
  */
 
 import { listChallenges, type Challenge } from "#entities/challenge/index.ts";
@@ -36,9 +37,9 @@ export type LevelSelection =
 /**
  * What a tile links to, for a caller's own `buildHref` to turn into a URL.
  *
- * Shaped after the three ways `src/app/router.ts` reads the `challenge`
- * parameter: a one-based number, a task's own id (already `tutorial-N`), or
- * {@link "#app/router.ts"!SANDBOX_CHALLENGE}.
+ * Shaped after the three ways `src/pages/game/model/route.ts` reads the
+ * `challenge` parameter: a one-based number, a task's own id (already
+ * `tutorial-N`), or {@link "#pages/game/model/route.ts"!SANDBOX_CHALLENGE}.
  */
 export type LevelLinkTarget =
   | { readonly kind: "challenge"; readonly number: number }

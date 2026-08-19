@@ -389,8 +389,8 @@ export function spawnUserRandomly(
  * `Infinity` and no accumulated time is ever greater than it, and it is the only
  * reading of "minus two passengers a second" that does not make a number up.
  * Clamping to a small positive rate instead — the sandbox's floor is 0.01 (see
- * `SANDBOX_LIMITS` in src/app/router.ts) — would spawn traffic nobody asked for,
- * with no value less arbitrary than any other.
+ * `SANDBOX_LIMITS` in src/pages/game/model/route.ts) — would spawn traffic nobody
+ * asked for, with no value less arbitrary than any other.
  *
  * `NaN` cannot hang today, because no comparison against it is true and the loop
  * is skipped, but it goes the same way here. "No comparison is true" is a

@@ -17,7 +17,7 @@
  * the way of the wiring that comes next.
  */
 
-import { parseQuery } from "../app/router.ts";
+import { parseQuery } from "../shared/lib/route-query.ts";
 import { DEFAULT_LOCALE, isLocale, type Locale } from "./locale.ts";
 
 /**

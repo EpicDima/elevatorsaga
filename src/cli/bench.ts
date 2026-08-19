@@ -255,8 +255,8 @@ function optionValue(name: string, inline: string | undefined, next: string | un
  * Splits a `--seeds` list.
  *
  * The seeds stay strings, as they do in the address bar (see `resolveSeed` in
- * `src/app/router.ts`): `createRandomSource` hashes `String(seed)`, so `5` and
- * `"5"` are the same building, and keeping them as typed means a seed is
+ * `src/pages/game/model/route.ts`): `createRandomSource` hashes `String(seed)`, so
+ * `5` and `"5"` are the same building, and keeping them as typed means a seed is
  * reported back exactly as it was given.
  *
  * @param value - The comma-separated list.
