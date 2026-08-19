@@ -3,9 +3,7 @@
  * popover, ported from `design/ui-mockup.html`'s `renderGoals()`/`drawGoals()`
  * and `renderTiers()`/`drawTiers()`.
  *
- * Ships with no CSS, matching `app-bar.ts`'s, `workspace-layout.ts`'s and
- * `level-switcher.ts`'s own staged commits: built and tested, not yet called
- * from `index.html` or `src/app/app.ts`.
+ * Mounted live from `src/app/app.ts` since Phase 12.2.
  *
  * The mockup draws its meters and its tier popover with two different
  * rhythms, and this module keeps that split rather than rebuilding

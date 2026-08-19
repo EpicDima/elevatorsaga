@@ -3,10 +3,7 @@
  * ported from `design/ui-mockup.html`'s stats tiles and `presentStats`'s own
  * eleven figures (`src/ui/presenters.ts`).
  *
- * Ships with no CSS, matching every other widget staged so far in this
- * migration (`app-bar.ts`, `goal-bar.ts`, `level-switcher.ts`,
- * `workspace-layout.ts`, `building-stage.ts`): built and tested, not yet
- * called from `index.html` or `src/app/app.ts`.
+ * Mounted live from `src/app/app.ts` since Phase 12.2.
  *
  * ## Tile grouping
  *

@@ -13,8 +13,8 @@
  * the doc comment on {@link MIN_FLOOR} for why that floor sits where it does.
  *
  * This module is the pure half — arithmetic only, no DOM reads or writes.
- * The half that measures the stage and paints the result is the (not yet
- * ported) DOM-wiring step that composes this into `widgets/building-stage`.
+ * The half that measures the stage and paints the result is the DOM-wiring
+ * step in `widgets/building-stage`, which composes this and is mounted live.
  */
 
 /**

@@ -6,11 +6,9 @@
  * with `layout-building.ts`/`shaft-scale.ts`/`vertical-scale.ts` (the
  * geometry) and `smart-position.ts` (the card placement) and
  * `hover-card-text.ts` (the card's words) — the "DOM-wiring step" those
- * modules' own doc comments describe as not yet ported. Ships with no CSS,
- * matching `app-bar.ts`'s, `goal-bar.ts`'s, `level-switcher.ts`'s and
- * `workspace-layout.ts`'s own staged commits: built and tested, not yet
- * called from `index.html` or `src/app/app.ts`. `presentWorld` in
- * `src/ui/presenters.ts` is untouched and still what a real run draws today.
+ * modules' own doc comments once described as not yet ported. Mounted live
+ * from `src/app/app.ts` since Phase 12.2, replacing `presentWorld` in
+ * `src/ui/presenters.ts`, which is no longer called.
  *
  * ## One shared coordinate space, no separate levels column
  *

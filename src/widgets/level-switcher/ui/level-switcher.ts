@@ -25,9 +25,7 @@
  * `run-controls.ts`'s patch-in-place — a fixed set of tiles that only ever
  * change tag as well as content is the case that pattern does not cover.
  *
- * Ships with no CSS, matching `app-bar.ts`'s and `workspace-layout.ts`'s own
- * staged commits: built and tested, not yet called from `index.html` or
- * `src/app/app.ts`. A tile's tier is carried both as a bare `data-tier`
+ * Mounted live from `src/app/app.ts` since Phase 12.2. A tile's tier is carried both as a bare `data-tier`
  * attribute on the tile itself, for whatever styling a later CSS pass gives
  * the tile as a whole, and as `entities/challenge-tier`'s own
  * {@link tierBadgeMarkup} badge, for the stars a player actually reads —

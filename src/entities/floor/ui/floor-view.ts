@@ -15,16 +15,17 @@
  * inline (inline styles win over that rule), which keeps every floor the
  * right box regardless of what `layoutBuilding()` decided — but at a floor
  * height other than the page's fixed default, the inherited vertical
- * centering drifts by a few pixels. Harmless and purely cosmetic — this
- * widget is not wired into the page yet — and a real follow-up for whichever
- * step gives it its own stylesheet.
+ * centering drifts by a few pixels. Harmless and purely cosmetic, and still
+ * a real follow-up for whichever step gives this widget its own stylesheet.
  *
  * Relabeling on a language change is out of scope here, the same way it's
  * split out of `presentWorld` into a separate `relabelWorld` in
  * `src/ui/presenters.ts`: a floor is expensive to rebuild once its buttons
- * carry live listeners, and nothing wires a language change into this widget
- * yet (it isn't called from `src/app/app.ts`). Whichever step wires this
- * widget live is the one that should add it.
+ * carry live listeners. Since this widget is mounted live (Phase 12.2),
+ * `relabelWorld` handles it exactly as it did the legacy view — it selects
+ * by class and position, not by which function drew the markup, and
+ * `entities/floor`/`entities/elevator` render the same classes
+ * `floorTemplate`/`elevatorTemplate` always did.
  */
 
 import { floorTemplate, renderElement } from "../../../ui/templates.ts";
