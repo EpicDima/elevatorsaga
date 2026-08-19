@@ -26,9 +26,14 @@
 /*
  * Palette note (WCAG 1.4.3).
  *
- * Everything on the page sits on --color-page, whose relative luminance is
- * 0.4998. No light colour can pass on it: white, the lightest there is, reaches
- * 1.91:1, so anything readable against it has to be darker than it, not
+ * The page background itself now reads the theme-aware --ds-bg, not
+ * --color-page below -- see html,body and .container -- but --color-page and
+ * everything measured against it here are still real: `--color-control`'s own
+ * corner of the page (the run buttons, the editor's controls, kbd) and the
+ * building are untouched, and this is the record of why each of their values
+ * is what it is. --color-page's own relative luminance, 0.4998, is why no
+ * light colour could pass on it: white, the lightest there is, reached
+ * 1.91:1, so anything readable against it had to be darker than it, not
  * lighter. That is why the emphasis and the error colours each exist twice
  * below rather than once.
  * Measured against the real composited backgrounds in Chromium:
@@ -69,9 +74,11 @@
   /*
    * Emphasis is the same accent in two values: pale where it sits on the dark
    * building and its overlay, dark where it sits on the page. The pale one is
-   * the legacy #f1f2d8; the dark one is the same hue taken down until it clears
-   * 4.5:1 on the page, and it keeps the pale one as its text-shadow so the
-   * highlight is still part of the mark.
+   * the legacy #f1f2d8; the dark one is the same hue taken down until it
+   * clears 4.5:1 on the page. `.feedback .emphasis-color` (below) still keeps
+   * the dark one as the pale one's text-shadow, on the overlay neither of
+   * these page tokens paints; `.emphasis-color` itself, on the page, no
+   * longer does -- see its own comment.
    */
   --color-emphasis: #f1f2d8;
   --color-emphasis-on-page: #33351f;
@@ -400,7 +407,7 @@ html,
 body {
   margin: 0;
   padding: 0;
-  background-color: var(--color-page);
+  background-color: var(--ds-bg);
   color: white;
 }
 
@@ -415,7 +422,7 @@ h4,
 h5,
 h6 {
   margin-block: 0.4em 0.3em;
-  color: var(--color-text);
+  color: var(--ds-text);
 }
 
 h2,
@@ -427,11 +434,11 @@ h6 {
 }
 
 p {
-  color: var(--color-text);
+  color: var(--ds-text);
 }
 
 a {
-  color: var(--color-link);
+  color: var(--ds-text);
   font-weight: bold;
   text-decoration: none;
 }
@@ -446,7 +453,7 @@ a:hover {
 }
 
 dl {
-  color: var(--color-text);
+  color: var(--ds-text);
 }
 
 dl dd {
@@ -459,15 +466,18 @@ dl dd {
 /* -------------------------------------------------------------- Utilities */
 
 /*
- * Emphasis on the page: dark text with the pale accent under it. The legacy
- * rule was the other way round -- pale text with a dark shadow -- which is the
- * one thing that cannot be made readable here, the page being too light for any
- * light foreground to reach 4.5:1 against it. Inverting the pair keeps both
- * colours and the raised look, and turns 1.68:1 into 6.58:1.
+ * Emphasis on the page. `--ds-accent-hi` rather than `--ds-accent`: the base
+ * accent only clears 4.5:1 on `--ds-bg` in dark theme (8.48:1) and falls to
+ * 3.97:1 in light theme, where the page is the near-white end of the design
+ * tokens' own scale -- the "hi" step is the one already tuned for that end
+ * (5.39:1 light, 10.82:1 dark). No shadow: that was the legacy rule's own fix
+ * for a single, page-only accent value too pale to read here on its own
+ * (1.68:1 lightened, 6.58:1 darkened); a token already readable in both
+ * themes does not need the compensation, and `design/ui-mockup.html` draws no
+ * text-shadow anywhere.
  */
 .emphasis-color {
-  color: var(--color-emphasis-on-page);
-  text-shadow: 0 2px 0.4pt var(--color-emphasis);
+  color: var(--ds-accent-hi);
 }
 
 /* On the dark overlay, where the pale accent reads as it always did. */
@@ -482,9 +492,13 @@ dl dd {
  * and stands next to the sentence it decorates, so 1.4.11 exempts it and it
  * could have kept the pale value; it does not, because the exemption says the
  * icon need not be measured, not that a reader should have to hunt for it.
+ * `--ds-bad` reads at 5.90:1 on dark `--ds-bg` and 4.52:1 on light -- the
+ * design tokens carry only the one error colour per theme, unlike the legacy
+ * pair's page/editor split, because nothing here shares this rule with the
+ * editor's own background the way `--color-error` used to.
  */
 .error-color {
-  color: var(--color-error-on-page);
+  color: var(--ds-bad);
 }
 
 .unselectable {
@@ -597,7 +611,7 @@ dl dd {
   max-inline-size: calc(var(--shell-width) + 2 * var(--shell-gutter));
   margin-inline: auto;
   padding: 20px var(--shell-gutter) 40px;
-  background-color: var(--color-page);
+  background-color: var(--ds-bg);
 }
 
 .container.narrow {
@@ -904,16 +918,12 @@ html[data-layout="left"] .splitter {
  * names -- `.task`/`.taskmenu`/`.tasklink`, the level switcher the mockup
  * groups in the same section, is still that, and comes with it.
  *
- * `background`/`border-bottom` are not ported here, unlike the mockup's own
- * `.appbar` rule. `src/main.ts`'s own comment on assembling this bar keeps
- * the old header's `<h1>` and `.headertools` mounted inside it, unchanged,
- * "beside the new bar" -- and both still read the page-wide `h1{color:
- * var(--color-text)}` and `a{color: var(--color-link)}` rules, `#444`,
- * tuned to read on `--color-page`, not on `--ds-panel`. Painting an opaque
- * panel behind them would hold that same `#444` to roughly 1.8:1 on dark
- * theme's `--ds-panel` (`#191c21`) against the 4.5:1 both need -- so this
- * rule stays geometry only until whatever later phase replaces the legacy
- * markup still living in here gives its text a `--ds-*` colour to match.
+ * `background`/`border-bottom` are still not ported here, unlike the mockup's
+ * own `.appbar` rule. `h1{color:...}` and `a{color:...}` (below) now read
+ * `--ds-text`, not the page-tuned `#444`, so the contrast reason this rule
+ * used to give no longer holds -- but painting a panel behind `src/main.ts`'s
+ * still-legacy `<h1>`/`.headertools` markup is its own layout decision this
+ * bug fix was not asked to make, so the rule stays geometry only regardless.
  */
 .appbar {
   display: flex;
@@ -1240,7 +1250,7 @@ html[data-layout="left"] .splitter {
 
 .timescale {
   font-size: 1.17em;
-  color: var(--color-text);
+  color: var(--ds-text);
   white-space: nowrap;
 }
 
@@ -1287,14 +1297,15 @@ html[data-layout="left"] .splitter {
  * size of its type, which is what sets every other region here apart.
  *
  * The colour is the whole reason this rule exists, and it is the defect written
- * up at `.setmenu`: `<body>` paints everything `white`, which is 1.91:1 on
- * this page against the 4.5:1 WCAG 1.4.3 asks for, and the document rules repair
- * that for `p` and for the headings only. The four `<summary>` elements are
- * neither, so left alone the panel's four controls would be the palest thing on
- * the page and the prose beneath them the darkest.
+ * up at `.setmenu`: `<body>` paints everything `white`, which document rules
+ * repair for `p` and for the headings only. The four `<summary>` elements are
+ * neither, so left alone the panel's four controls would fall back to that
+ * `white`, unreadable on light theme's near-white `--ds-bg` and needlessly
+ * flat against dark theme's near-black one, while the prose beneath them (a
+ * `p`) already reads `--ds-text`.
  */
 .tutorialpanel {
-  color: var(--color-text);
+  color: var(--ds-text);
 }
 
 /*
@@ -1596,13 +1607,12 @@ button[disabled] {
  * paragraph is `aria-live`, so the message is announced whether or not it is
  * seen.
  *
- * Legible before noticeable is why it is the page value and not #d54: this is
- * 12px text, so 1.4.3 asks 4.5:1 of it, and the pale red was at 2.01 -- the
- * rule said the sentence had to be readable and then painted it in the one
- * colour on the page that was not.
+ * Legible before noticeable is why it reads `--ds-bad` and not a literal red:
+ * this is 12px text, so 1.4.3 asks 4.5:1 of it, which the token clears on
+ * `--ds-bg` in both themes (5.90:1 dark, 4.52:1 light).
  */
 #save_message.refused {
-  color: var(--color-error-on-page);
+  color: var(--ds-bad);
 }
 
 /*
@@ -1753,7 +1763,7 @@ kbd {
 
 .editorresize:hover::before,
 .editorresize:focus-visible::before {
-  background-color: var(--color-text-strong);
+  background-color: var(--ds-text);
 }
 
 .editorresize:focus-visible {
@@ -2128,7 +2138,7 @@ pre code {
 .doctable {
   margin-block: 10px 20px;
   border: none;
-  color: var(--color-text);
+  color: var(--ds-text);
 }
 
 .doctable th,
@@ -2139,7 +2149,7 @@ pre code {
 
 .doctable tr td:first-child {
   padding-inline-end: 5px;
-  color: var(--color-text-strong);
+  color: var(--ds-text);
 }
 
 .doctable td {

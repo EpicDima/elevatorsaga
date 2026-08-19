@@ -267,15 +267,21 @@ test("paints the panel's own controls as dark as the prose around them", async (
   // and the document rules repair that for `p` and the headings only. A
   // `<summary>` is neither, so the four disclosures would be the palest thing on
   // the page -- 1.91:1 against this background, where WCAG 1.4.3 asks for 4.5:1.
+  //
+  // `.tutorialpanel` now reads `--ds-text` rather than the fixed `--color-text`
+  // it used to, so the colour this asserts is whichever theme Playwright's own
+  // default `colorScheme` renders here -- light, per this suite's own default --
+  // not a page-wide constant any more. `--ds-text`'s light-theme value is
+  // `#1e2227`.
   await page.goto(FIRST_TASK);
 
   await expect(panel(page).getByText("Hint 1", { exact: true })).toHaveCSS(
     "color",
-    "rgb(68, 68, 68)",
+    "rgb(30, 34, 39)",
   );
   await expect(panel(page).getByText("Why this happens", { exact: true })).toHaveCSS(
     "color",
-    "rgb(68, 68, 68)",
+    "rgb(30, 34, 39)",
   );
 });
 

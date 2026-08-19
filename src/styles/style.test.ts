@@ -53,6 +53,61 @@ const PALETTE: ReadonlyMap<string, string> = new Map(
 );
 
 /**
+ * The custom properties declared inside a top-level rule's braces, by name
+ * without the `--`, merged across every rule with that exact selector in
+ * source order (later overriding earlier, the way the cascade would for
+ * rules of equal specificity).
+ *
+ * `PALETTE` above is keyed by name across the whole file, so a token
+ * declared in both `:root` and `html[data-theme="light"]` -- every `--ds-*`
+ * token is -- collapses to whichever block comes last. This reads a given
+ * selector's own blocks, so the two themes of such a token can be told apart.
+ *
+ * Anchored to the start of a line, unindented: `:root` also appears, indented,
+ * inside the narrow-screen `@media` blocks below, redeclaring geometry tokens
+ * that have nothing to do with either theme, and those are not this.
+ *
+ * @param selector - The rule's selector, exactly as the stylesheet spells it.
+ * @returns Its declared custom properties.
+ */
+function paletteIn(selector: string): ReadonlyMap<string, string> {
+  const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const rules = [...styleSource.matchAll(new RegExp(`^${escaped}\\s*\\{([^}]*)\\}`, "gm"))];
+  expect(rules.length, `${selector} is no longer a top-level rule`).toBeGreaterThan(0);
+  const merged = new Map<string, string>();
+  for (const rule of rules) {
+    for (const [, name = "", value = ""] of (rule[1] ?? "").matchAll(
+      /^\s*--([\w-]+):\s*([^;]+);/gm,
+    )) {
+      merged.set(name, value.trim());
+    }
+  }
+  return merged;
+}
+
+/**
+ * Looks a token up in one theme's palette, following a lone `var(--token)`
+ * through the same theme's block -- the way every `--ds-bg` names its own
+ * theme's `--ds-n-0`.
+ *
+ * @param palette - `DARK_PALETTE` or `LIGHT_PALETTE`.
+ * @param name - The token's name, without the leading `--`.
+ * @returns Its value.
+ */
+function themed(palette: ReadonlyMap<string, string>, name: string): string {
+  const value = palette.get(name);
+  expect(value, `--${name} is missing from that theme's block`).toBeDefined();
+  const variable = /^var\(--([\w-]+)\)$/.exec(value ?? "");
+  return variable === null ? (value ?? "") : themed(palette, variable[1] ?? "");
+}
+
+/** `:root`'s own values, before `html[data-theme="light"]` overrides any of them. */
+const DARK_PALETTE = paletteIn(":root");
+
+/** What `html[data-theme="light"]` redeclares over `:root`. */
+const LIGHT_PALETTE = paletteIn('html[data-theme="light"]');
+
+/**
  * Relative luminance of an sRGB colour, per WCAG 2.
  *
  * @param hex - A `#rgb` or `#rrggbb` colour.
@@ -300,6 +355,28 @@ describe("palette", () => {
     // it: no light emphasis can pass, however it is tuned, so the emphasis on
     // the page has to be darker than the page rather than paler.
     expect(contrast("#ffffff", token("color-page"))).toBeLessThan(3);
+  });
+});
+
+describe("ds palette on the page background", () => {
+  // html,body and .container paint --ds-bg now, not the fixed --color-page,
+  // so the text painted directly on it -- h1-h6/p/a/dl (--ds-text),
+  // .emphasis-color (--ds-accent-hi) and .error-color/#save_message.refused
+  // (--ds-bad) -- has to clear 4.5:1 in both of --ds-bg's themes, not just
+  // the one --color-page ever had. Unlike the legacy pairs above, these are
+  // read from :root and html[data-theme="light"] separately: PALETTE collapses
+  // a token declared in both to whichever block comes last, which would silently
+  // test only one theme twice.
+  it.each([
+    ["ds-text", "ds-bg", 4.5],
+    ["ds-accent-hi", "ds-bg", 4.5],
+    ["ds-bad", "ds-bg", 4.5],
+  ])("has --%s readable on --%s in both themes", (foreground, background, required) => {
+    for (const palette of [DARK_PALETTE, LIGHT_PALETTE]) {
+      expect(
+        contrast(themed(palette, foreground), themed(palette, background)),
+      ).toBeGreaterThanOrEqual(required);
+    }
   });
 });
 
