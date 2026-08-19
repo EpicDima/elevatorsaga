@@ -8,7 +8,8 @@ import { expect, test } from "@playwright/test";
 import {
   building,
   editor,
-  runInstantButton,
+  selectInstantSpeed,
+  speedValue,
   startButton,
   statistic,
   statisticValue,
@@ -74,7 +75,11 @@ test("plays a challenge to completion when Start is pressed", async ({ page }) =
   // The challenge wants 15 people inside 60 simulated seconds.
   await expect(page.getByRole("heading", { name: "Success!" })).toBeVisible({ timeout: 30_000 });
   await expect(page.getByRole("link", { name: /Next level/ })).toBeVisible();
-  await expect(page.getByRole("button", { name: /Restart/ })).toBeVisible();
+  // The primary button says "Start" again rather than "Resume": there is
+  // nothing left to resume, and what a press offers now is to throw the
+  // result on screen away, which is what its title says in the words the
+  // label has no room for.
+  await expect(startButton(page)).toHaveAttribute("title", "Run it again from the beginning");
   expect(await statisticValue(page, "Transported")).toBeGreaterThanOrEqual(15);
 });
 
@@ -91,7 +96,11 @@ test("crunches a challenge instantly, with nothing drawn while it runs, and show
   // as any other run's would be.
   await expect(building(page).getByRole("group", { name: "Elevator 1" })).toBeVisible();
 
-  await runInstantButton(page).click();
+  // A crunch is a speed rather than a button of its own: the last stop past
+  // the fastest one, chosen before the run and realised when it starts.
+  await selectInstantSpeed(page);
+  await expect(speedValue(page)).toHaveText("∞x");
+  await startButton(page).click();
 
   // Nothing is drawn for the whole run: whatever building a normal start put
   // up is gone, and nothing replaces it while the crunch is under way.
@@ -99,11 +108,16 @@ test("crunches a challenge instantly, with nothing drawn while it runs, and show
 
   // The button waits out "Crunching..." on its own — this is one assertion
   // doing two jobs, since it can only pass once the crunch has both reached a
-  // verdict and handed the button back. Well under the 30s the animated test
-  // budgets for the same challenge: nothing here waits on simulated time
-  // passing in real time, only on however long the CPU actually needs.
-  await expect(runInstantButton(page)).toBeVisible({ timeout: 15_000 });
-  await expect(runInstantButton(page)).toBeEnabled();
+  // verdict and handed the button back. The title rather than the label,
+  // because "Start" is what the button reads at both ends of a crunch and only
+  // the ended run has something to offer running again. Well under the 30s the
+  // animated test budgets for the same challenge: nothing here waits on
+  // simulated time passing in real time, only on however long the CPU actually
+  // needs.
+  await expect(startButton(page)).toHaveAttribute("title", "Run it again from the beginning", {
+    timeout: 15_000,
+  });
+  await expect(startButton(page)).toBeEnabled();
 
   // The same outcome, and the same final statistics, an animated run of this
   // challenge already proves it reaches.

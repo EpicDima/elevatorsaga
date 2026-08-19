@@ -118,24 +118,20 @@
 
       <!--
         The run controls, drawn by presentControls in src/pages/game/index.ts.
-        Here, between the panels and the building, because they act on the
-        building and belong against it; and outside everything that gets
-        redrawn, because they are the one region that has to survive a
-        restart. Empty for the same reason .tutorial is: the presenter asks
-        the catalogue for every word at the moment it writes it.
+        Here in the markup, and in the app bar on screen: src/main.ts moves
+        this element into the bar the moment the bar exists. It is here at all
+        because presentControls runs in the App constructor, which is a long
+        way before that, and outside everything that gets redrawn because it is
+        the one region that has to survive a restart. Empty for the same reason
+        .tutorial is: the presenter asks the catalogue for every word at the
+        moment it writes it.
 
-        role="group" and the label are on this element rather than on
-        .runbuttons or .timescale inside it, the same way .statscontainer
-        carries one name for its rows rather than each row naming itself: a
-        screen reader landing here is told what the whole row is for before
-        it reads the buttons and the speed one at a time.
+        No role and no name of its own. It holds the mockup's .runbox and
+        .speed, which name themselves -- the two run buttons by their labels,
+        the speed group by its own role="group" -- and a third name wrapped
+        around them would only be one more thing to read past.
       -->
-      <div
-        class="controls"
-        role="group"
-        aria-label="Run controls"
-        data-i18n-attr="aria-label:page.controls.label"
-      ></div>
+      <div class="controls"></div>
 
       <!--
         The building is wider than the page on a narrow window and .world

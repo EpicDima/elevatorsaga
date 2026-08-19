@@ -421,6 +421,25 @@ export const SPRITE_ICONS = {
       },
     ],
   },
+  // The speed control's "slower" arrow, `#i-left` — {@link SPRITE_ICONS.right}
+  // mirrored, so that the pair either side of the speed reading reads as one
+  // control pointing two ways.
+  left: {
+    viewBox: "0 0 16 16",
+    shapes: [
+      {
+        tag: "path",
+        attrs: {
+          d: "m10 3-5 5 5 5",
+          fill: "none",
+          stroke: "currentColor",
+          "stroke-width": "1.6",
+          "stroke-linecap": "round",
+          "stroke-linejoin": "round",
+        },
+      },
+    ],
+  },
   // The About block's own glyph, next to the two `.setlink` anchors out to
   // this fork's and the original game's repositories.
   link: {
@@ -527,6 +546,25 @@ export const SPRITE_ICONS = {
       },
     ],
   },
+  // The run button's glyph while a run is playing, `#i-pause`. Two bars, drawn
+  // at 2.4 rather than the family's 1.6: a pause mark is read as two solid
+  // blocks, and at 16px the shared stroke width draws it as two hairlines.
+  pause: {
+    viewBox: "0 0 16 16",
+    shapes: [
+      {
+        tag: "path",
+        attrs: {
+          d: "M6 3.5v9M10 3.5v9",
+          fill: "none",
+          stroke: "currentColor",
+          "stroke-width": "2.4",
+          "stroke-linecap": "round",
+          "stroke-linejoin": "round",
+        },
+      },
+    ],
+  },
   // A passenger, the mockup's `#i-person` (§6). Two filled shapes rather than
   // an outline, and the only glyphs in this table whose viewBox is not 16x16:
   // a person is drawn 11 wide by 20 tall so the figure fills its box at every
@@ -598,6 +636,28 @@ export const SPRITE_ICONS = {
       },
     ],
   },
+  // The run button's glyph while a run is stopped, `#i-play`. Filled *and*
+  // stroked, unlike {@link SPRITE_ICONS.star}, which turns the family's stroke
+  // off when it turns the fill on: the mockup's own `#i-play` overrides only
+  // `fill`, so the 1.6 round-joined stroke stays and the triangle draws with
+  // the same softened corners and the same optical weight as the pause bars it
+  // swaps with.
+  play: {
+    viewBox: "0 0 16 16",
+    shapes: [
+      {
+        tag: "path",
+        attrs: {
+          d: "M5 3.5v9l8-4.5-8-4.5Z",
+          fill: "currentColor",
+          stroke: "currentColor",
+          "stroke-width": "1.6",
+          "stroke-linecap": "round",
+          "stroke-linejoin": "round",
+        },
+      },
+    ],
+  },
   // `widgets/editor-pane`'s "Undo reset" glyph: {@link SPRITE_ICONS.undo}
   // mirrored about the middle of the box, arrowhead and all. The mockup has no
   // such button — bringing back the program a reset threw away is a production
@@ -621,8 +681,29 @@ export const SPRITE_ICONS = {
       },
     ],
   },
+  // The "Start over" button's glyph, `#i-restart`: a circle open at the top
+  // with an arrowhead turning back into it. Distinct from {@link
+  // SPRITE_ICONS.undo}, which the editor pane uses for throwing an edit away —
+  // this one throws a *run* away, and the two sit in the same bar.
+  restart: {
+    viewBox: "0 0 16 16",
+    shapes: [
+      {
+        tag: "path",
+        attrs: {
+          d: "M13 8a5 5 0 1 1-1.6-3.7M13 3v3h-3",
+          fill: "none",
+          stroke: "currentColor",
+          "stroke-width": "1.6",
+          "stroke-linecap": "round",
+          "stroke-linejoin": "round",
+        },
+      },
+    ],
+  },
   // The mockup's generic disclosure chevron, `#i-right` — used by the
-  // settings popover's `keysOpen` row (`.chev`) among other places.
+  // settings popover's `keysOpen` row (`.chev`) among other places, and as the
+  // speed control's own "faster" arrow.
   right: {
     viewBox: "0 0 16 16",
     shapes: [

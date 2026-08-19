@@ -5,8 +5,11 @@ import {
   DEFAULT_TIME_SCALE,
   decreasedTimeScale,
   increasedTimeScale,
+  isFastestTimeScale,
+  isSlowestTimeScale,
   TIME_SCALE_MAX,
   TIME_SCALE_MIN,
+  TIME_SCALES,
 } from "./time-scale.ts";
 
 describe("clampTimeScale", () => {
@@ -24,76 +27,125 @@ describe("clampTimeScale", () => {
 
   it("falls back to the default for values that would freeze the world", () => {
     // `#timescale=abc` used to reach the world controller as NaN, and every
-    // simulated `dt` became NaN with it.
+    // simulated `dt` became NaN with it. Infinity is the same hazard, and the
+    // reason the speed control's own instant stop is not a time scale at all.
     expect(clampTimeScale(Number.NaN)).toBe(DEFAULT_TIME_SCALE);
     expect(clampTimeScale(Number.POSITIVE_INFINITY)).toBe(DEFAULT_TIME_SCALE);
     expect(clampTimeScale(Number.NEGATIVE_INFINITY)).toBe(DEFAULT_TIME_SCALE);
   });
 });
 
-/** Every stop the `+`/`-` buttons can reach, slowest first. */
-const LADDER = [0.1, 0.25, 0.5, 1, 2, 3, 5, 8, 13, 21, 34, 55];
-
 /** Each neighbouring pair of stops, as `[slower, faster]`. */
-const LADDER_STEPS = LADDER.flatMap((slower, index) => {
-  const faster = LADDER[index + 1];
+const LADDER_STEPS = TIME_SCALES.flatMap((slower, index) => {
+  const faster = TIME_SCALES[index + 1];
   return faster === undefined ? [] : [[slower, faster] as const];
 });
 
+describe("TIME_SCALES", () => {
+  it("is design/ui-mockup.html's own SPEEDS list, without its Infinity", () => {
+    expect([...TIME_SCALES]).toEqual([1, 2, 3, 6, 10, 20]);
+  });
+
+  it("holds only finite, positive speeds inside the runnable range", () => {
+    // The whole point of a list of stops: no press can produce a `dt`
+    // multiplier that stops or freezes the world.
+    for (const stop of TIME_SCALES) {
+      expect(Number.isFinite(stop)).toBe(true);
+      expect(stop).toBeGreaterThan(0);
+      expect(clampTimeScale(stop)).toBe(stop);
+    }
+  });
+
+  it("starts the game on one of its own stops", () => {
+    expect(TIME_SCALES).toContain(DEFAULT_TIME_SCALE);
+  });
+});
+
 describe("increasedTimeScale", () => {
-  it("steps up by the golden ratio, rounded", () => {
+  it("steps up the ladder", () => {
     expect(increasedTimeScale(1)).toBe(2);
     expect(increasedTimeScale(2)).toBe(3);
-    expect(increasedTimeScale(3)).toBe(5);
-    expect(increasedTimeScale(5)).toBe(8);
+    expect(increasedTimeScale(3)).toBe(6);
+    expect(increasedTimeScale(6)).toBe(10);
+    expect(increasedTimeScale(10)).toBe(20);
   });
 
-  it("stops offering increases at the ceiling", () => {
-    expect(increasedTimeScale(39)).toBe(63);
-    expect(increasedTimeScale(63)).toBe(63);
+  it("has nothing faster to offer at the top of the ladder", () => {
+    // The press that would go faster than 20x is the one the speed control
+    // spends on its instant stop instead; see isFastestTimeScale.
+    expect(increasedTimeScale(20)).toBe(20);
   });
 
-  it("climbs back out of the slow speeds a URL can ask for", () => {
-    expect(increasedTimeScale(TIME_SCALE_MIN)).toBe(0.25);
-    expect(increasedTimeScale(0.25)).toBe(0.5);
+  it("climbs out of a slow speed only a URL can ask for", () => {
+    expect(increasedTimeScale(TIME_SCALE_MIN)).toBe(1);
     expect(increasedTimeScale(0.5)).toBe(1);
+    expect(increasedTimeScale(0.7)).toBe(1);
   });
 
-  it("moves a speed that is not on the ladder upwards", () => {
-    // #timescale=0.7 is a perfectly legal request; pressing + must speed it up.
-    expect(increasedTimeScale(0.7)).toBe(1);
-    expect(increasedTimeScale(0.15)).toBe(0.25);
+  it("leaves a speed above the ladder where the URL put it", () => {
+    // #timescale=40 is a legal request and stays exactly 40x: rounding it onto
+    // the ladder would silently disobey the URL.
+    expect(increasedTimeScale(40)).toBe(40);
+    expect(increasedTimeScale(TIME_SCALE_MAX)).toBe(TIME_SCALE_MAX);
   });
 });
 
 describe("decreasedTimeScale", () => {
   it("steps back down through the values the increase produced", () => {
-    expect(decreasedTimeScale(63)).toBe(39);
-    expect(decreasedTimeScale(8)).toBe(5);
-    expect(decreasedTimeScale(5)).toBe(3);
+    expect(decreasedTimeScale(20)).toBe(10);
+    expect(decreasedTimeScale(10)).toBe(6);
+    expect(decreasedTimeScale(6)).toBe(3);
     expect(decreasedTimeScale(3)).toBe(2);
     expect(decreasedTimeScale(2)).toBe(1);
   });
 
-  it("keeps going below 1 instead of sticking there", () => {
-    // The `-` button used to bottom out at 1 because rounding 1 / 1.618 gives
-    // 1, so the slow half of the runnable range was unreachable by playing even
-    // though clampTimeScale allows it and #timescale= hands it out.
-    expect(decreasedTimeScale(1)).toBe(0.5);
-    expect(decreasedTimeScale(0.5)).toBe(0.25);
-    expect(decreasedTimeScale(0.25)).toBe(TIME_SCALE_MIN);
+  it("brings a speed above the ladder down to its neighbouring stop", () => {
+    expect(decreasedTimeScale(40)).toBe(20);
+    expect(decreasedTimeScale(1.2)).toBe(1);
   });
 
   it("never reaches the frozen zero the legacy button could reach", () => {
     // Legacy: Math.round(0.5 / 1.618) === 0, and 0 * 1.618 rounds to 0, so one
-    // press of `-` at a URL-supplied 0.5 stopped the world for good.
+    // press of `-` at a URL-supplied 0.5 stopped the world for good. A list of
+    // stops cannot get there at all -- below the ladder there is nowhere to go.
+    expect(decreasedTimeScale(1)).toBe(1);
+    expect(decreasedTimeScale(0.5)).toBe(0.5);
     expect(decreasedTimeScale(TIME_SCALE_MIN)).toBe(TIME_SCALE_MIN);
-    expect(decreasedTimeScale(0.05)).toBe(TIME_SCALE_MIN);
+  });
+});
+
+describe("isSlowestTimeScale", () => {
+  it("is true only at the bottom of the ladder and below it", () => {
+    expect(isSlowestTimeScale(1)).toBe(true);
+    expect(isSlowestTimeScale(0.5)).toBe(true);
+    expect(isSlowestTimeScale(TIME_SCALE_MIN)).toBe(true);
+    expect(isSlowestTimeScale(2)).toBe(false);
+    expect(isSlowestTimeScale(20)).toBe(false);
   });
 
-  it("moves a speed that is not on the ladder downwards", () => {
-    expect(decreasedTimeScale(0.7)).toBe(0.5);
-    expect(decreasedTimeScale(1.2)).toBe(1);
+  it("agrees with what a press of `-` would actually do", () => {
+    for (const timeScale of [...TIME_SCALES, 0.5, 1.2, 40]) {
+      expect(decreasedTimeScale(timeScale) === timeScale, String(timeScale)).toBe(
+        isSlowestTimeScale(timeScale),
+      );
+    }
+  });
+});
+
+describe("isFastestTimeScale", () => {
+  it("is true only at the top of the ladder and above it", () => {
+    expect(isFastestTimeScale(20)).toBe(true);
+    expect(isFastestTimeScale(40)).toBe(true);
+    expect(isFastestTimeScale(10)).toBe(false);
+    expect(isFastestTimeScale(0.5)).toBe(false);
+  });
+
+  it("agrees with what a press of `+` would actually do", () => {
+    for (const timeScale of [...TIME_SCALES, 0.5, 1.2, 40]) {
+      expect(increasedTimeScale(timeScale) === timeScale, String(timeScale)).toBe(
+        isFastestTimeScale(timeScale),
+      );
+    }
   });
 });
 
@@ -106,24 +158,24 @@ describe("the +/- ladder", () => {
   it("stays inside the runnable range at both ends", () => {
     expect(decreasedTimeScale(TIME_SCALE_MIN)).toBe(TIME_SCALE_MIN);
     expect(increasedTimeScale(TIME_SCALE_MAX)).toBe(TIME_SCALE_MAX);
-    for (const stop of LADDER) {
+    for (const stop of TIME_SCALES) {
       expect(increasedTimeScale(stop)).toBeLessThanOrEqual(TIME_SCALE_MAX);
       expect(decreasedTimeScale(stop)).toBeGreaterThanOrEqual(TIME_SCALE_MIN);
     }
   });
 
-  it("never lets a press stop the world", () => {
-    let timeScale = 2;
+  it("never lets a press stop or freeze the world", () => {
+    let timeScale = DEFAULT_TIME_SCALE;
     for (let i = 0; i < 20; i += 1) {
       timeScale = decreasedTimeScale(timeScale);
+      expect(Number.isFinite(timeScale)).toBe(true);
       expect(timeScale).toBeGreaterThan(0);
     }
-    expect(timeScale).toBe(TIME_SCALE_MIN);
+    expect(timeScale).toBe(TIME_SCALES[0]);
     for (let i = 0; i < 20; i += 1) {
       timeScale = increasedTimeScale(timeScale);
+      expect(Number.isFinite(timeScale)).toBe(true);
     }
-    // 55 is the top of the ladder: the press that reached it started at 34,
-    // below the ceiling, and 55 is above it, so `+` offers nothing more.
-    expect(timeScale).toBe(LADDER.at(-1));
+    expect(timeScale).toBe(TIME_SCALES.at(-1));
   });
 });

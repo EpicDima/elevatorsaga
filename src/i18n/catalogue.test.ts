@@ -280,7 +280,7 @@ describe("Russian typography", () => {
 describe("translate", () => {
   it("renders a message that takes no parameters", () => {
     expect(translate("en", EN_MESSAGES, "game.button.start")).toBe("Start");
-    expect(translate("ru", RU_MESSAGES, "game.button.start")).toBe("Старт");
+    expect(translate("ru", RU_MESSAGES, "game.button.start")).toBe("Запустить");
   });
 
   it("fills parameters by name", () => {

@@ -64,7 +64,10 @@ test("puts the whole page into Russian without disturbing the run", async ({ pag
   // word on them is written by the relabelling this change triggers.
   await expect(page.getByRole("button", { name: "Уровень 4" })).toBeVisible();
   await expect(startButton(page, "Пауза")).toBeVisible();
-  await expect(page.getByRole("button", { name: "С начала" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Заново" })).toBeVisible();
+  // The speed control beside them, whose group name and both arrows are
+  // written by the same relabelling.
+  await expect(page.getByRole("group", { name: "Скорость прогона" })).toBeVisible();
   // The building, renamed in place. This is the part that used to stay English
   // however the page was redrawn: these names are written when the floors are
   // drawn, and the floors are not drawn again.

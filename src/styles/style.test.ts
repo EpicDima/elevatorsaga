@@ -372,7 +372,7 @@ describe("palette", () => {
     ["light", LIGHT_PALETTE],
   ])("keeps the shared control-surface pairing readable, %s theme", (_, palette) => {
     // --ds-text on --ds-raised, the pairing kbd, .skip-link, .task-open,
-    // .runbuttons button, .tutorialbuttons button and .tutorialcopycode all
+    // .btn, .tutorialbuttons button and .tutorialcopycode all
     // share now. 12.96:1 dark, 15.07:1 light -- far past the 4.5:1 that
     // matters, since none of these sit at large-text sizes.
     expect(
@@ -866,9 +866,9 @@ function ruleBody(selector: string): string {
 describe("kbd", () => {
   it("draws a key cap instead of the browser default", () => {
     // <kbd> ships with no border, background or radius of its own -- only a
-    // monospace font, which the rule above already sets. Reusing the run
-    // buttons' own tokens (see .runbuttons button) means a key reads as the
-    // same kind of control-shaped mark those buttons already draw, rather
+    // monospace font, which the rule above already sets. Reusing the learning
+    // track's buttons' own tokens (see .tutorialbuttons button) means a key
+    // reads as the same kind of control-shaped mark those buttons draw, rather
     // than a colour this file would have no test for. The pair is --ds-text
     // on --ds-raised, which the shared control-surface case in
     // describe("palette") already holds to 4.5:1 -- not read through
@@ -879,6 +879,71 @@ describe("kbd", () => {
     expect(body).toMatch(/^\s*color:\s*var\(--ds-text\);/m);
     expect(body).toMatch(/^\s*background-color:\s*var\(--ds-raised\);/m);
     expect(body).toMatch(/^\s*font-weight:\s*bold;/m);
+  });
+});
+
+describe("run controls", () => {
+  it("keeps both run buttons one width, so the bar is not recut on every press", () => {
+    // The primary button says four different things -- Start, Pause, Resume,
+    // Crunching... -- and the widest of them is what decides the box. Without
+    // a floor under it the whole bar reflows under the pointer between two
+    // presses of the same button, which design/ui-mockup.html calls "худшее,
+    // что может случиться с шапкой".
+    const body = ruleBody(".runbox .btn");
+    expect(declaration(body, "min-width", ".runbox .btn")).toBe("152px");
+    expect(declaration(body, "justify-content", ".runbox .btn")).toBe("center");
+  });
+
+  it("gives the mount the app bar's own gap, so the pair sits where the mockup puts it", () => {
+    // .controls is this port's own wrapper -- the mockup makes .runbox and
+    // .speed direct children of .appbar -- and it earns its place by being
+    // invisible: 14px inside it is 14px between any two of the bar's own
+    // children, so the geometry is the mockup's whichever way the markup is
+    // nested.
+    expect(declaration(ruleBody(".controls"), "gap", ".controls")).toBe(
+      declaration(ruleBody(".appbar"), "gap", ".appbar"),
+    );
+  });
+
+  it("stands the speed group level with the buttons beside it", () => {
+    // 28px of button plus 1px of padding and 1px of border on each side is
+    // --ds-ctl-h exactly, which is the height .appbar > * gives everything
+    // else in the row. Asserted as the arithmetic rather than as 32px,
+    // because what would break this is one of the three moving.
+    const group = ruleBody(".speed");
+    const button = ruleBody(".speed button");
+    const height = Number.parseFloat(declaration(button, "height", ".speed button"));
+    const padding = Number.parseFloat(declaration(group, "padding", ".speed"));
+    const border = Number.parseFloat(declaration(group, "border", ".speed"));
+    expect(height + 2 * padding + 2 * border).toBe(Number.parseFloat(token("ds-ctl-h")));
+  });
+
+  it("holds the speed reading and its arrows readable against the group's own background", () => {
+    // .speed paints --ds-bg rather than the page's --ds-panel, so neither
+    // pairing is one "ds palette on the page background" above covers. The
+    // reading is text (1.4.3, 4.5:1); a resting arrow is a graphical control
+    // (1.4.11, 3:1), and hovering brightens it to the reading's own colour.
+    for (const palette of [DARK_PALETTE, LIGHT_PALETTE]) {
+      expect(contrast(themed(palette, "ds-text"), themed(palette, "ds-bg"))).toBeGreaterThanOrEqual(
+        4.5,
+      );
+      expect(
+        contrast(themed(palette, "ds-text-muted"), themed(palette, "ds-bg")),
+      ).toBeGreaterThanOrEqual(3);
+    }
+  });
+
+  it("keeps the primary button's own label readable on the accent it is painted with", () => {
+    // --ds-accent-ink on --ds-accent, and on the hover shade too: light theme
+    // darkens the accent on hover where dark theme lightens it, so the ink is
+    // only safe if both are measured.
+    for (const palette of [DARK_PALETTE, LIGHT_PALETTE]) {
+      for (const background of ["ds-accent", "ds-accent-hi"]) {
+        expect(
+          contrast(themed(palette, "ds-accent-ink"), themed(palette, background)),
+        ).toBeGreaterThanOrEqual(4.5);
+      }
+    }
   });
 });
 

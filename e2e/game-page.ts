@@ -57,15 +57,16 @@ export function building(page: Page): Locator {
 }
 
 /**
- * The button that starts, pauses and restarts the run.
+ * The button that starts, pauses and resumes the run.
  *
  * `exact` is not decoration: the same row carries "Start over", and Playwright's
  * accessible-name matching is a substring match, so `{ name: "Start" }` on its
  * own resolves to both and fails the whole locator as ambiguous.
  *
  * @param page - The page under test.
- * @param name - The button's label in the language on screen, which is `Start`,
- * `Pause` or `Restart` depending on the run.
+ * @param name - The button's label in the language on screen: `Start` before a
+ * run and once one has ended, `Pause` while the world is drawing, `Resume`
+ * where a started run stands still, `Crunching...` during an instant run.
  * @returns The start/pause button.
  */
 export function startButton(page: Page, name = "Start"): Locator {
@@ -73,22 +74,49 @@ export function startButton(page: Page, name = "Start"): Locator {
 }
 
 /**
- * The button that crunches the current challenge headlessly and shows its
- * outcome, without ever drawing the building while it runs.
- *
- * `exact` for the same reason {@link startButton} needs it: "Run instantly"
- * and "Crunching..." are not substrings of anything else in the row, but the
- * two labels this one button carries are each other's whole story, and a
- * locator that matched loosely could not tell "not running yet" from "still
- * running" apart.
+ * The run speed's group, holding both arrows and the reading between them.
  *
  * @param page - The page under test.
- * @param name - The button's label in the language on screen, `Run instantly`
- * or `Crunching...` depending on whether a crunch is under way.
- * @returns The instant-run button.
+ * @param name - The group's accessible name in the language on screen.
+ * @returns The speed control.
  */
-export function runInstantButton(page: Page, name = "Run instantly"): Locator {
-  return page.getByRole("button", { name, exact: true });
+export function speedControl(page: Page, name = "Run speed"): Locator {
+  return page.getByRole("group", { name });
+}
+
+/**
+ * The speed the control is currently on, as it is written on screen.
+ *
+ * By class, inside the group found by its name — the third exception alongside
+ * {@link statistic} and {@link languagePicker}, and for {@link statistic}'s
+ * reason: the reading is a live region rather than a control, so it has no role
+ * and no name of its own to be found by.
+ *
+ * @param page - The page under test.
+ * @param name - The group's accessible name in the language on screen.
+ * @returns The `∞x` or `8x` between the two arrows.
+ */
+export function speedValue(page: Page, name = "Run speed"): Locator {
+  return speedControl(page, name).locator(".speed-val");
+}
+
+/**
+ * Puts the speed control on its last stop, where a run is crunched headlessly
+ * to its result instead of being drawn.
+ *
+ * Pressed rather than jumped to, because there is no other way in: the stop is
+ * app state and not a time scale, so no `#timescale=` in the URL reaches it.
+ * "Faster" disables itself on arrival, which is what ends the loop — and what
+ * makes this safe to call from any speed the URL or a previous step left.
+ *
+ * @param page - The page under test.
+ * @param name - "Faster"'s accessible name in the language on screen.
+ */
+export async function selectInstantSpeed(page: Page, name = "Faster"): Promise<void> {
+  const faster = page.getByRole("button", { name, exact: true });
+  while (await faster.isEnabled()) {
+    await faster.click();
+  }
 }
 
 /**

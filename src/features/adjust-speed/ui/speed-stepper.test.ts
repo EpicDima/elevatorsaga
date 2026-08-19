@@ -8,7 +8,7 @@ import { DEFAULT_LOCALE, setLocale } from "#i18n/index.ts";
 import { requireElement } from "#shared/lib/dom.ts";
 
 /**
- * Builds a `.timescale`-holding parent and mutable speed-stepper options.
+ * Builds a `.speed`-holding parent and mutable speed-control options.
  *
  * @param overrides - Callbacks and data to replace the defaults with.
  * @returns The parent element and the options, both mutable.
@@ -25,6 +25,8 @@ function setUp(overrides: Partial<SpeedStepperOptions> = {}): {
     parent,
     options: {
       worldController: { timeScale: 2 },
+      instantSpeed: () => false,
+      instantRunInProgress: () => false,
       onTimeScaleIncrease: vi.fn(),
       onTimeScaleDecrease: vi.fn(),
       ...overrides,
@@ -33,40 +35,71 @@ function setUp(overrides: Partial<SpeedStepperOptions> = {}): {
 }
 
 describe("speedStepperTemplate", () => {
-  it("makes the time-scale controls real, labelled buttons", () => {
+  it("makes the two arrows real buttons, with a glyph each", () => {
     const parent = document.createElement("div");
     parent.innerHTML = speedStepperTemplate();
 
-    expect(parent.querySelector("button.timescale_decrease")?.getAttribute("aria-label")).toBe(
-      "Decrease simulation speed",
-    );
-    expect(parent.querySelector("button.timescale_increase")?.getAttribute("aria-label")).toBe(
-      "Increase simulation speed",
-    );
+    // Names are `presentSpeedStepper`'s to write, not the template's -- the
+    // group is drawn once and relabelled on every language change, so a name
+    // baked in here would be a name stuck in the language the page opened in.
+    for (const selector of ["button.speed-down", "button.speed-up"]) {
+      const button = parent.querySelector(selector);
+      expect(button?.getAttribute("type")).toBe("button");
+      expect(button?.querySelector("svg")).not.toBeNull();
+      expect(button?.getAttribute("aria-label")).toBeNull();
+    }
+  });
+
+  it("names the pair once, on the group, rather than twice over on the arrows", () => {
+    const parent = document.createElement("div");
+    parent.innerHTML = speedStepperTemplate();
+
+    expect(parent.querySelector(".speed")?.getAttribute("role")).toBe("group");
   });
 
   it("announces the speed as it changes, without interrupting", () => {
     const parent = document.createElement("div");
     parent.innerHTML = speedStepperTemplate();
 
-    expect(parent.querySelector(".timescale_value")?.getAttribute("aria-live")).toBe("polite");
+    expect(parent.querySelector(".speed-val")?.getAttribute("aria-live")).toBe("polite");
   });
 });
 
 describe("presentSpeedStepper", () => {
-  it("draws the current speed", () => {
+  it("draws the current speed, and names the group and both arrows", () => {
     const { parent, options } = setUp();
     presentSpeedStepper(parent, options);
 
-    expect(requireElement(".timescale_value", parent).textContent).toBe("2x");
+    expect(requireElement(".speed-val", parent).textContent).toBe("2x");
+    expect(requireElement(".speed", parent).getAttribute("aria-label")).toBe("Run speed");
+    expect(requireElement(".speed-down", parent).getAttribute("aria-label")).toBe("Slower");
+    expect(requireElement(".speed-up", parent).getAttribute("aria-label")).toBe("Faster");
+  });
+
+  it("says on each arrow, in its title, what it says in its name", () => {
+    // A pointer has no other way to ask what a bare chevron does.
+    const { parent, options } = setUp();
+    presentSpeedStepper(parent, options);
+
+    for (const selector of [".speed-down", ".speed-up"]) {
+      const button = requireElement(selector, parent);
+      expect(button.title).toBe(button.getAttribute("aria-label"));
+    }
+  });
+
+  it("explains the reading in its own title", () => {
+    const { parent, options } = setUp();
+    presentSpeedStepper(parent, options);
+
+    expect(requireElement(".speed-val", parent).title).toBe("Run speed: 2x");
   });
 
   it("reports button presses to the caller", () => {
     const { parent, options } = setUp();
     presentSpeedStepper(parent, options);
 
-    requireElement(".timescale_increase", parent).click();
-    requireElement(".timescale_decrease", parent).click();
+    requireElement(".speed-up", parent).click();
+    requireElement(".speed-down", parent).click();
 
     expect(options.onTimeScaleIncrease).toHaveBeenCalledTimes(1);
     expect(options.onTimeScaleDecrease).toHaveBeenCalledTimes(1);
@@ -76,14 +109,93 @@ describe("presentSpeedStepper", () => {
     const { parent, options } = setUp();
     const presenter = presentSpeedStepper(parent, options);
 
-    for (let i = 0; i < 5; i += 1) {
+    for (let i = 1; i <= 5; i += 1) {
       options.worldController.timeScale = i;
       presenter.update();
     }
-    requireElement(".timescale_increase", parent).click();
+    requireElement(".speed-up", parent).click();
 
-    expect(requireElement(".timescale_value", parent).textContent).toBe("4x");
+    expect(requireElement(".speed-val", parent).textContent).toBe("5x");
     expect(options.onTimeScaleIncrease).toHaveBeenCalledTimes(1);
+  });
+
+  it("dims `-` at the bottom of the ladder and `+` at the top of the control", () => {
+    // At the ends an arrow greys rather than vanishing: the group must not
+    // change width because the speed reached a limit.
+    const { parent, options } = setUp();
+    const presenter = presentSpeedStepper(parent, options);
+    const decrease = requireElement(".speed-down", parent);
+    const increase = requireElement(".speed-up", parent);
+
+    expect(decrease.hasAttribute("disabled")).toBe(false);
+    expect(increase.hasAttribute("disabled")).toBe(false);
+
+    options.worldController.timeScale = 1;
+    presenter.update();
+    expect(decrease.hasAttribute("disabled")).toBe(true);
+
+    // 20x is the top of the *ladder*, not of the control: the instant stop is
+    // one press further on, so `+` is still live here.
+    options.worldController.timeScale = 20;
+    presenter.update();
+    expect(decrease.hasAttribute("disabled")).toBe(false);
+    expect(increase.hasAttribute("disabled")).toBe(false);
+  });
+
+  it("reads the instant stop off the app rather than off the time scale", () => {
+    // The whole design of that stop: `timeScale` multiplies the frame delta,
+    // so the value the reading stands for could never be in it.
+    let instant = false;
+    const { parent, options } = setUp({ instantSpeed: () => instant });
+    const presenter = presentSpeedStepper(parent, options);
+
+    options.worldController.timeScale = 20;
+    instant = true;
+    presenter.update();
+
+    const value = requireElement(".speed-val", parent);
+    expect(value.textContent).toBe("∞x");
+    expect(value.title).toBe("Instantly: the run is counted straight through to its result");
+    // Nothing past it, and the way back is `-` -- which lands on the finite
+    // speed the control was left at.
+    expect(requireElement(".speed-up", parent).hasAttribute("disabled")).toBe(true);
+    expect(requireElement(".speed-down", parent).hasAttribute("disabled")).toBe(false);
+  });
+
+  it("leaves `-` live on the instant stop even from the bottom of the ladder", () => {
+    // `#timescale=0.5` plus one press of `+` is a legal way to arrive here,
+    // and being on the slowest speed must not trap the player on `∞x`.
+    const { parent, options } = setUp({ instantSpeed: () => true });
+    options.worldController.timeScale = 1;
+    presentSpeedStepper(parent, options);
+
+    expect(requireElement(".speed-down", parent).hasAttribute("disabled")).toBe(false);
+  });
+
+  it("dims both arrows while a crunch is under way", () => {
+    // A crunch drives a controller of its own, so there is no speed to change
+    // and nothing a press could act on until it is over.
+    const { parent, options } = setUp({ instantRunInProgress: () => true });
+    presentSpeedStepper(parent, options);
+
+    expect(requireElement(".speed-down", parent).hasAttribute("disabled")).toBe(true);
+    expect(requireElement(".speed-up", parent).hasAttribute("disabled")).toBe(true);
+  });
+
+  it("rewrites every word it draws when the language changes", () => {
+    const { parent, options } = setUp({ instantSpeed: () => true });
+    const presenter = presentSpeedStepper(parent, options);
+
+    setLocale("ru");
+    try {
+      presenter.update();
+      expect(requireElement(".speed", parent).getAttribute("aria-label")).toBe("Скорость прогона");
+      expect(requireElement(".speed-down", parent).title).toBe("Медленнее");
+      expect(requireElement(".speed-up", parent).title).toBe("Быстрее");
+      expect(requireElement(".speed-val", parent).textContent).toBe("∞×");
+    } finally {
+      setLocale(DEFAULT_LOCALE);
+    }
   });
 });
 
@@ -93,13 +205,10 @@ describe("formatTimeScale", () => {
     [1, "1x"],
     [2, "2x"],
     [3, "3x"],
-    [5, "5x"],
-    [8, "8x"],
-    [13, "13x"],
-    [21, "21x"],
-    [34, "34x"],
+    [6, "6x"],
+    [10, "10x"],
+    [20, "20x"],
     [40, "40x"],
-    [63, "63x"],
     [64, "64x"],
     // The slow half of the runnable range, which toFixed(0) misreported: 0.5
     // showed as "1x" and 0.1 as "0x", i.e. as a stopped simulation.

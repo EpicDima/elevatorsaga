@@ -410,12 +410,51 @@ describe("SPRITE_ICONS", () => {
     });
   });
 
-  // design/ui-mockup.html's own <symbol id="i-right"> — the generic
-  // disclosure chevron the settings popover's keysOpen row draws.
-  it("reproduces the mockup's right glyph exactly", () => {
+  // design/ui-mockup.html's own <symbol id="i-right">/<symbol id="i-left"> —
+  // the generic disclosure chevron the settings popover's keysOpen row draws,
+  // and its mirror, which the speed control uses as its "slower" arrow.
+  it("reproduces the mockup's right and left glyphs exactly", () => {
     expect(SPRITE_ICONS.right).toEqual({
       viewBox: "0 0 16 16",
       shapes: [{ tag: "path", attrs: { d: "m6 3 5 5-5 5", ...STROKE_DEFAULTS("1.6") } }],
+    });
+    expect(SPRITE_ICONS.left).toEqual({
+      viewBox: "0 0 16 16",
+      shapes: [{ tag: "path", attrs: { d: "m10 3-5 5 5 5", ...STROKE_DEFAULTS("1.6") } }],
+    });
+  });
+
+  // design/ui-mockup.html's own <symbol id="i-play">/<symbol id="i-pause">/
+  // <symbol id="i-restart"> — the run controls' three glyphs. `play` is the
+  // one glyph here that overrides `fill` without turning `stroke` off, so it
+  // keeps the family's stroke defaults on top of a fill; `pause` is the only
+  // one at 2.4.
+  it("reproduces the mockup's play, pause and restart glyphs exactly", () => {
+    expect(SPRITE_ICONS.play).toEqual({
+      viewBox: "0 0 16 16",
+      shapes: [
+        {
+          tag: "path",
+          attrs: {
+            d: "M5 3.5v9l8-4.5-8-4.5Z",
+            ...STROKE_DEFAULTS("1.6"),
+            fill: "currentColor",
+          },
+        },
+      ],
+    });
+    expect(SPRITE_ICONS.pause).toEqual({
+      viewBox: "0 0 16 16",
+      shapes: [{ tag: "path", attrs: { d: "M6 3.5v9M10 3.5v9", ...STROKE_DEFAULTS("2.4") } }],
+    });
+    expect(SPRITE_ICONS.restart).toEqual({
+      viewBox: "0 0 16 16",
+      shapes: [
+        {
+          tag: "path",
+          attrs: { d: "M13 8a5 5 0 1 1-1.6-3.7M13 3v3h-3", ...STROKE_DEFAULTS("1.6") },
+        },
+      ],
     });
   });
 

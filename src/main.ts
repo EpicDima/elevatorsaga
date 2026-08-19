@@ -310,8 +310,9 @@ async function main(): Promise<void> {
   const hotkeysModal = presentHotkeysModal(hotkeysDialog);
 
   // The workspace shell: `.pane-game`/`.pane-code` become the new parents of
-  // the five regions `<main>` held directly until now, in the order it held
-  // them. Moving an already-mounted element with `append` reparents it
+  // four of the five regions `<main>` held directly until now, in the order it
+  // held them -- `.controls` is the fifth, and it goes to the app bar below
+  // instead. Moving an already-mounted element with `append` reparents it
   // without tearing anything down, CodeMirror included, so every one of them
   // keeps running exactly as built above.
   const mainRegion = requireElement("main");
@@ -323,7 +324,6 @@ async function main(): Promise<void> {
   workspaceElements.gamePane.append(
     requireElement(".challenge"),
     requireElement(".tutorial"),
-    requireElement(".controls"),
     requireElement(".world"),
   );
   workspaceElements.codePane.append(requireElement(".code"));
@@ -343,17 +343,24 @@ async function main(): Promise<void> {
   // heading before this line and exactly one after it.
   //
   // The order is `design/ui-mockup.html`'s own: brand, `.task` level switcher,
-  // `.barspace`, then the two trailing buttons `appBarSettingsTemplate` draws.
-  // `.barspace` is the seam. Everything appended before it is pushed left and
-  // everything after it right, so the run controls and the speed -- still drawn
-  // into `.controls` under the building at this phase -- land in the bar by
-  // being inserted ahead of it, with nothing else here having to move.
+  // `.runbox` and `.speed`, `.barspace`, then the two trailing buttons
+  // `appBarSettingsTemplate` draws. `.barspace` is the seam. Everything
+  // appended before it is pushed left and everything after it right, so the run
+  // controls land in the bar by being inserted ahead of it.
+  //
+  // `.controls` is reparented rather than rebuilt, exactly as the workspace's
+  // four regions are above and for the same reason: it was drawn and wired in
+  // the App constructor, before this shell existed, and it is the one region
+  // the app never redraws -- see `presentControls`. Its two children are the
+  // mockup's own `.runbox` and `.speed`, and it wraps them only because one
+  // presenter composes both; the stylesheet gives it the bar's own gap so that
+  // the pair sits exactly where the mockup puts them.
   // `levelSwitcherMount` is built rather than found; see its own declaration
   // above for why.
   let layoutMode: LayoutMode = readLayoutMode(localStorage);
 
   const { appBar } = buildAppBarSkeleton(document, { brandName: t("page.brand") });
-  appBar.append(levelSwitcherMount);
+  appBar.append(levelSwitcherMount, requireElement(".controls"));
   const barSpace = document.createElement("div");
   barSpace.className = "barspace";
   appBar.append(barSpace);

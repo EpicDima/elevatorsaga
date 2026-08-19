@@ -40,7 +40,7 @@ test("shows the whole game in the language a link asks for", async ({ page }) =>
   // presenters -- and only after it had arrived, which is what keeps the two
   // halves of the page in one language.
   await expect(page.getByRole("button", { name: "Уровень 1" })).toBeVisible();
-  await expect(startButton(page, "Старт")).toBeVisible();
+  await expect(startButton(page, "Запустить")).toBeVisible();
   // And nothing here still says it in English -- the button above is found by
   // its exact translated name, but a caption pasted together from two
   // catalogue keys could still leak one's English into the other's row.

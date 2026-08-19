@@ -56,13 +56,6 @@ export const EN_MESSAGES = {
   "page.language.label": "Language",
   "page.noscript":
     "Your browser does not appear to support JavaScript. This page contains a browser-based programming game implemented in JavaScript.",
-  // Names the row for a screen reader landing in it: Start/Pause, Start over,
-  // Reset code, Undo reset and the speed, drawn by controlsTemplate. It is
-  // .controls itself that carries this, in index.html, rather than the
-  // .runbuttons and .timescale it wraps -- one name for the row a player
-  // reaches for as a set, the way .statscontainer carries one name for its
-  // rows rather than each of them naming itself.
-  "page.controls.label": "Run controls",
   "page.world.label": "Building",
   "page.stats.label": "Simulation statistics",
   "page.stats.transported": "Transported",
@@ -469,23 +462,52 @@ elevator.goingDownIndicator(false);`,
   "game.apiRef.floor.downButtonPressed.code": `floor.on("up_button_pressed down_button_pressed", () => {
   elevators[0].goToFloor(floor.floorNum());
 });`,
-  "game.timeScale.decrease": "Decrease simulation speed",
-  "game.timeScale.increase": "Increase simulation speed",
+  // The speed control. The two arrows say what they do to the run rather than
+  // what they do to a number -- "Slower", not "Decrease simulation speed" --
+  // because that is the whole of what they are for, and because both words are
+  // also the buttons' `title`, where a sentence would be a paragraph. The group
+  // around them carries `label`, so a reader arriving at either arrow hears
+  // what the pair is for first.
+  "game.timeScale.label": "Run speed",
+  "game.timeScale.decrease": "Slower",
+  "game.timeScale.increase": "Faster",
   "game.timeScale.value": "{value}x",
+  "game.timeScale.valueTitle": "Run speed: {value}",
+  // The last stop of that control, past 20x, where the run is counted straight
+  // through with nothing drawn. The infinity sign rather than an abbreviation,
+  // and it keeps the multiplication sign the finite stops carry: "8x 20x inf"
+  // reads as three different kinds of thing, "8x 20x oox" as one control at its
+  // end. The title is the only place the word "instantly" is actually written,
+  // so it also has to say what an instant run costs the player -- there is
+  // nothing to watch.
+  "game.timeScale.instant": "∞x",
+  "game.timeScale.instantTitle": "Instantly: the run is counted straight through to its result",
+  // The run cluster: two buttons, and the primary one says three things.
+  // "Start" before the first tick and again once a run has finished, "Pause"
+  // while it plays, "Resume" when it is standing still part-way through -- so
+  // the word on the button is always the thing that will happen, never the
+  // state the run is in.
   "game.button.start": "Start",
   "game.button.pause": "Pause",
-  "game.button.restart": "Restart",
-  // The other three of the run cluster. `startOver` throws away the run on
-  // screen and begins the same challenge again with whatever is in the editor,
-  // which is what the old "Apply" did; it is named for its effect rather than
-  // for the mechanism, because the program is applied on every start now and
-  // there is nothing left for the player to press "Apply" for.
+  "game.button.resume": "Resume",
+  // Said on the primary button's own `title`, and only once a run has ended:
+  // there "Start" means throwing away a result the player is still reading,
+  // which it means nowhere else on the page.
+  "game.button.startAgainTitle": "Run it again from the beginning",
+  // The second button. It throws away the run on screen and begins the same
+  // challenge again with whatever is in the editor, which is what the old
+  // "Apply" did; it is named for its effect rather than for the mechanism,
+  // because the program is applied on every start now and there is nothing
+  // left for the player to press "Apply" for. Its `title` says the part the
+  // label has no room for -- and carries the whole name once the bar is narrow
+  // enough to hide the label.
   //
   // `resetCode` and `undoResetCode` say "code" where the buttons beside them do
   // not, because they are the two in the row that act on the editor rather than
   // on the run, and "Reset" next to "Start over" would otherwise read as a
   // second way to restart the simulation.
   "game.button.startOver": "Start over",
+  "game.button.startOverTitle": "Start the run from the very beginning",
   "game.button.resetCode": "Reset code",
   "game.button.undoResetCode": "Undo reset",
   // The tooltips on those two, which the mockup gives its own reset button and
@@ -495,13 +517,12 @@ elevator.goingDownIndicator(false);`,
   // undoing each other.
   "game.button.resetCodeTitle": "Put the level's own starting program back in this slot",
   "game.button.undoResetCodeTitle": "Bring back the program this slot held before the reset",
-  // The fifth button of the row, and its label while a crunch is under way.
-  // "Instantly" rather than "fast" or "fast-forward", which is what the speed
-  // control already offers: that still draws the building, only quicker, and
-  // this draws nothing at all while it runs. `runningInstantly` echoes
-  // `fitness.measuring`'s three ASCII dots — the one other button in the game
-  // that replaces its own label while it works.
-  "game.button.runInstant": "Run instantly",
+  // What the primary button says while a crunch is under way, in place of
+  // "Start". Echoes `fitness.measuring`'s three ASCII dots — the one other
+  // button in the game that replaces its own label while it works. There is no
+  // "Run instantly" label any more: the button that carried it is gone, and
+  // asking for a crunch is now the last stop of the speed control
+  // (`game.timeScale.instant`).
   "game.button.runningInstantly": "Crunching...",
   "game.feedback.success.title": "Success!",
   "game.feedback.success.message": "Level completed",

@@ -49,6 +49,7 @@ import {
   clampTimeScale,
   decreasedTimeScale,
   increasedTimeScale,
+  isFastestTimeScale,
 } from "#features/adjust-speed/model/time-scale.ts";
 import { DEFAULT_CODE_SLOT } from "#features/manage-code-slots/model/code-slots.ts";
 import type { CodeSlot } from "#features/manage-code-slots/model/code-slots.ts";
@@ -179,35 +180,42 @@ export function containsFocus(elements: readonly Element[]): boolean {
 }
 
 /**
- * Everything that drives the run in progress, as one row.
+ * Everything that drives the run in progress, as one group.
  *
- * Drawn into its own region between the learning track's panel and the building
- * rather than into the challenge bar, which is where the start button and the
- * speed used to live. Two reasons, and the first is the one a player notices: a
- * task's panel is a screenful of prose, and with the controls above it the
- * button that starts the run sat at the top of that screenful while the building
- * it starts was at the bottom. The controls belong against the thing they
- * control.
+ * Drawn into the app bar — `design/ui-mockup.html`'s own `.runbox` and
+ * `.speed`, in that order, between the level switcher and `.barspace`. "Всё
+ * управление прогоном — здесь, и больше нигде", as the mockup's comment on
+ * that slot puts it, "в шапке, потому что оно нужно в любой раскладке, в том
+ * числе когда на экране только код": the bar is the one part of the page that
+ * is on screen in all four workspace layouts, and a run control that
+ * disappeared with the building would be a control the player cannot reach
+ * from the layout they are most likely to be in while writing the program it
+ * runs.
  *
- * The second is that the challenge bar used to be rebuilt on every restart, so
- * every one of these buttons used to destroy itself when pressed — which is
- * what the challenge bar's own focus bookkeeping existed to paper over. This
- * region is drawn once for the life of the page and only relabelled, so a
+ * It had spent one phase in a row of its own between the learning track's
+ * panel and the building, and before that it was split three ways — Start in
+ * the challenge bar, Pause under the building, the rest beside the editor.
+ * Both of those arrangements had a cost this one does not: the row under the
+ * building took a line of height from the building on every layout, and the
+ * split one made "which of these restarts?" a question only experiment could
+ * answer.
+ *
+ * What has not changed is that this is drawn once, for the life of the page,
+ * and only relabelled. The challenge bar used to be rebuilt on every restart,
+ * so every one of these buttons used to destroy itself when pressed — which is
+ * what the challenge bar's own focus bookkeeping existed to paper over. A
  * keyboard player who presses Start over is still standing on Start over
  * afterwards, with nothing to restore.
  *
- * Three buttons and a speed, in that order, because the three are what the
- * player came for and the speed is a setting. Reset/undo-reset moved to the
- * editor pane's own codetools (`widgets/editor-pane`), since they act on the
- * code rather than the run. The three are `#features/run-simulation`'s
- * {@link import("#features/run-simulation/index.ts").runButtonsTemplate} —
- * see that module for their own history and design, including why "Run
- * instantly" sits beside Start rather than in a row of its own. The speed is
- * `#features/adjust-speed`'s
- * {@link import("#features/adjust-speed/index.ts").speedStepperTemplate} —
- * see that module for why it is a plain container of real buttons rather than
- * the `<h3>` wrapping two clickable `<i>` elements it used to be, and for its
- * `aria-live` region.
+ * Two buttons and a speed. Reset/undo-reset moved to the editor pane's own
+ * codetools (`widgets/editor-pane`), since they act on the code rather than the
+ * run, and "Run instantly" became the last stop of the speed control. The
+ * buttons are `#features/run-simulation`'s
+ * {@link import("#features/run-simulation/index.ts").runButtonsTemplate} — see
+ * that module for their own history and design, including what the primary one
+ * says when. The speed is `#features/adjust-speed`'s
+ * {@link import("#features/adjust-speed/index.ts").speedStepperTemplate} — see
+ * that module for its instant stop and for its `aria-live` region.
  *
  * @returns The run controls markup.
  */
@@ -227,7 +235,20 @@ export interface ControlsPresenterOptions {
    * is reporting on is replaced on every restart.
    */
   readonly challengeEnded: () => boolean;
-  /** Called when the start/pause/restart button is pressed. */
+  /**
+   * Whether the run on screen has already ticked, so the button offers to
+   * resume rather than to start.
+   *
+   * A function for the same reason {@link challengeEnded} is one.
+   */
+  readonly runStarted: () => boolean;
+  /**
+   * Whether the speed control is on its instant stop rather than on a time
+   * scale — see `#features/adjust-speed/model/time-scale.ts` for why that is a
+   * state of the control and not a value of `timeScale`.
+   */
+  readonly instantSpeed: () => boolean;
+  /** Called when the start/pause/resume button is pressed. */
   readonly onStartStop: () => void;
   /** Called when "Start over" is pressed. */
   readonly onStartOver: () => void;
@@ -236,15 +257,13 @@ export interface ControlsPresenterOptions {
   /** Called when the `-` button is pressed. */
   readonly onTimeScaleDecrease: () => void;
   /**
-   * Whether a headless crunch, started by "Run instantly", is under way.
+   * Whether a headless crunch is under way.
    *
    * A function for the same reason {@link challengeEnded} is one: this row is
    * drawn once and outlives every run, including the private controller a
    * crunch drives itself with.
    */
   readonly instantRunInProgress: () => boolean;
-  /** Called when "Run instantly" is pressed. */
-  readonly onRunInstant: () => void;
 }
 
 /** The rendered run controls. */
@@ -265,7 +284,7 @@ export interface ControlsPresenter {
    * a region focus was inside — the end-of-challenge overlay holding the "Next
    * challenge" link, or the building — leaves focus on `<body>` and a keyboard
    * player back at the top of the page. The start button is where they were
-   * going anyway. This row is the one place on the page that survives every
+   * going anyway. This row is drawn into the app bar, which survives every
    * redraw, which is what makes it the place to land.
    */
   focusStartStop(): void;
@@ -284,14 +303,13 @@ export interface ControlsPresenter {
  * every word this row shows is written there, from the catalogue, at the moment
  * it is written.
  *
- * The four run buttons plus "Run instantly" are drawn and driven by
- * `#features/run-simulation`'s `presentRunControls`; the speed stepper by
- * `#features/adjust-speed`'s `presentSpeedStepper`. This function composes
- * the two. The composed pair keeps the app talking to one region and one
- * contract, the way it always has.
+ * The two run buttons are drawn and driven by `#features/run-simulation`'s
+ * `presentRunControls`; the speed control by `#features/adjust-speed`'s
+ * `presentSpeedStepper`. This function composes the two. The composed pair
+ * keeps the app talking to one region and one contract, the way it always has.
  *
- * @param parent - The `.controls` element.
- * @param options - The controller to report on and the callbacks for the six
+ * @param parent - The `.controls` mount in the app bar.
+ * @param options - The controller to report on and the callbacks for the four
  * buttons.
  * @returns The presenter, already drawn.
  */
@@ -308,20 +326,21 @@ export function presentControls(
   const runControls = presentRunControls(parent, {
     worldController: options.worldController,
     challengeEnded: () => options.challengeEnded(),
+    runStarted: () => options.runStarted(),
+    instantSpeed: () => options.instantSpeed(),
+    instantRunInProgress: () => options.instantRunInProgress(),
     onStartStop: () => {
       options.onStartStop();
     },
     onStartOver: () => {
       options.onStartOver();
     },
-    instantRunInProgress: () => options.instantRunInProgress(),
-    onRunInstant: () => {
-      options.onRunInstant();
-    },
   });
 
   const speedStepper = presentSpeedStepper(parent, {
     worldController: options.worldController,
+    instantSpeed: () => options.instantSpeed(),
+    instantRunInProgress: () => options.instantRunInProgress(),
     onTimeScaleIncrease: () => {
       options.onTimeScaleIncrease();
     },
@@ -406,7 +425,8 @@ export function setDemoFullscreen(enabled: boolean): void {
 /** The page regions the app draws into. */
 export interface AppElements {
   /**
-   * The run controls: start/pause, start over, run instantly, the speed.
+   * The run controls' mount in the app bar: start/pause/resume, start over, the
+   * speed.
    *
    * The one region the app draws that is never redrawn. Everything else here is
    * emptied and written again at the start of every run; this is written once,
@@ -682,6 +702,34 @@ export class App {
    * while a crunch is running abandons it rather than raced against it.
    */
   #instantRunHandle: InstantRunHandle | undefined = undefined;
+  /**
+   * Whether the speed control is on its last stop, `∞x`, rather than on a time
+   * scale.
+   *
+   * A field here rather than a value of {@link worldController}'s `timeScale`,
+   * and that is the whole design of the instant stop: `timeScale` multiplies
+   * the frame delta, so an `Infinity` in it produces a non-finite `dt` and a
+   * world that can never be ticked back to life. See
+   * `#features/adjust-speed/model/time-scale.ts`, whose module comment is about
+   * exactly that hazard.
+   *
+   * The consequences are worth having in one place, because they are what a
+   * reader coming from `#timescale=` will want:
+   *
+   * - Turning it on and off never touches `timeScale`, so it never raises
+   *   `timescale_changed`, so {@link #storeTimeScale} never writes it and
+   *   `#timescale=` never carries it. A reload comes back at the fastest finite
+   *   stop the player was on before, which is where `-` from `∞x` lands too.
+   * - It is not remembered across a reload on purpose. `∞x` is a way of asking
+   *   for one answer now, not a speed to watch the game at, and a player who
+   *   reopened the page to *see* their lifts run would find nothing drawn.
+   * - It describes how the *next* run is driven, not the one on screen: a
+   *   crunch is `src/game/instant-run.ts`'s own private controller starting the
+   *   world from zero, and `WorldController.start` runs the player's `init` on
+   *   its first unpaused frame, so there is no such thing as finishing a
+   *   half-played run instantly.
+   */
+  #instantSpeed = false;
 
   /**
    * @param options - The page regions, the editor, the controller and the
@@ -709,8 +757,21 @@ export class App {
     this.#controls = presentControls(this.#elements.controls, {
       worldController: this.worldController,
       challengeEnded: () => this.world?.challengeEnded === true,
+      runStarted: () => (this.world?.elapsedTime ?? 0) > 0,
+      instantSpeed: () => this.#instantSpeed,
+      instantRunInProgress: () => this.#instantRunHandle !== undefined,
+      // Both buttons ask the same question first — is the speed control on its
+      // instant stop? — because on that stop there is nothing to pause and
+      // nothing to resume: a crunch is a run counted through from zero by
+      // `src/game/instant-run.ts`'s own controller, so both "Start" and "Start
+      // over" mean the one thing, and the primary button says "Start"
+      // throughout to promise no more than that.
       onStartStop: () => {
-        this.startStopOrRestart();
+        if (this.#instantSpeed) {
+          this.runInstantly();
+        } else {
+          this.startStopOrRestart();
+        }
       },
       // With `autoStart`, unlike the Restart that the same row's first button
       // turns into when a run ends. The two are asking for different things: a
@@ -719,17 +780,33 @@ export class App {
       // button the legacy "Apply" became, and applying the program has always
       // started the run — Ctrl-Enter still reaches this through `apply_code`.
       onStartOver: () => {
-        this.#restart(true);
+        if (this.#instantSpeed) {
+          this.runInstantly();
+        } else {
+          this.#restart(true);
+        }
       },
+      // The instant stop is entered and left by the same two arrows that walk
+      // the ladder, and it sits one press past the top of it. Leaving it puts
+      // the run back at whatever finite speed it was already set to — the
+      // fastest stop, ordinarily, since that is the only place `+` can arrive
+      // from — rather than at a remembered one, so `+` then `-` is a round
+      // trip. Neither press touches `timeScale`, which is why neither writes
+      // the instant stop to storage or to `#timescale=`; see {@link
+      // #instantSpeed}.
       onTimeScaleIncrease: () => {
-        this.worldController.setTimeScale(increasedTimeScale(this.worldController.timeScale));
+        if (isFastestTimeScale(this.worldController.timeScale)) {
+          this.#setInstantSpeed(true);
+        } else {
+          this.worldController.setTimeScale(increasedTimeScale(this.worldController.timeScale));
+        }
       },
       onTimeScaleDecrease: () => {
-        this.worldController.setTimeScale(decreasedTimeScale(this.worldController.timeScale));
-      },
-      instantRunInProgress: () => this.#instantRunHandle !== undefined,
-      onRunInstant: () => {
-        this.runInstantly();
+        if (this.#instantSpeed) {
+          this.#setInstantSpeed(false);
+        } else {
+          this.worldController.setTimeScale(decreasedTimeScale(this.worldController.timeScale));
+        }
       },
     });
 
@@ -1048,6 +1125,25 @@ export class App {
       return;
     }
     this.#startRun(run.challenge, run.challengeIndex, true, true);
+  }
+
+  /**
+   * Moves the speed control on and off its instant stop.
+   *
+   * The redraw has to be asked for here, unlike every other way the speed
+   * moves: those all go through `setTimeScale`, which raises
+   * `timescale_changed`, and the subscription on it redraws the whole row.
+   * This state is nowhere near the controller — see {@link #instantSpeed} for
+   * why it must not be — so nothing would raise anything.
+   *
+   * Both controls are redrawn rather than only the speed, because both read
+   * it: the primary button says "Start" rather than "Resume" while this is on.
+   *
+   * @param instant - Whether the control is now on its instant stop.
+   */
+  #setInstantSpeed(instant: boolean): void {
+    this.#instantSpeed = instant;
+    this.#controls.update();
   }
 
   /**

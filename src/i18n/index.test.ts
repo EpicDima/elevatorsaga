@@ -111,7 +111,9 @@ describe("a locale whose catalogue has not arrived yet", () => {
     // The same load `setLocale` started, not a second one.
     await i18n.loadLocale("ru");
 
-    expect(i18n.t("game.button.start")).toBe("\u0421\u0442\u0430\u0440\u0442");
+    expect(i18n.t("game.button.start")).toBe(
+      "\u0417\u0430\u043f\u0443\u0441\u0442\u0438\u0442\u044c",
+    );
     expect(i18n.format(seconds(60))).toBe(`60${NBSP}\u0441`);
   });
 
@@ -158,7 +160,7 @@ describe("the active locale", () => {
     expect(t("game.button.start")).toBe("Start");
     setLocale("ru");
     expect(getLocale()).toBe("ru");
-    expect(t("game.button.start")).toBe("Старт");
+    expect(t("game.button.start")).toBe("Запустить");
   });
 
   it("carries into numbers as well as words", () => {

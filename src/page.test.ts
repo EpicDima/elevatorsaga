@@ -165,15 +165,19 @@ describe("index.html", () => {
     expect(world?.getAttribute("aria-label")).toBeTruthy();
   });
 
-  it("names the run controls as one group, the way .statscontainer does", () => {
-    // .controls holds two different kinds of thing -- four buttons and a
-    // speed -- behind one row, and presentControls fills it without ever
-    // touching the div itself. A screen reader landing here with no name would
-    // read "group" and then four buttons and a speed with nothing to say what
-    // they are collectively for.
+  it("ships the run controls' mount bare, for the app bar to adopt", () => {
+    // Empty, because presentControls writes every word of it from the
+    // catalogue at the moment it draws; and unnamed, because what it holds
+    // names itself -- the two run buttons by their own labels, the speed by
+    // its own role and label. A third name wrapped around those would be one
+    // more thing to read past on the way to them. It is in `<main>` here and
+    // in the app bar on screen: src/main.ts moves it the moment the bar
+    // exists, which is a long way after the App constructor drew into it.
     const controls = page.querySelector(".controls");
-    expect(controls?.getAttribute("role")).toBe("group");
-    expect(controls?.getAttribute("aria-label")).toBeTruthy();
+    expect(controls).not.toBeNull();
+    expect(controls?.innerHTML).toBe("");
+    expect(controls?.getAttribute("role")).toBeNull();
+    expect(controls?.getAttribute("aria-label")).toBeNull();
   });
 
   it("offers a way past the building, before anything else in the tab order", () => {

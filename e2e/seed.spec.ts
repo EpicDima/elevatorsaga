@@ -11,7 +11,7 @@
 
 import { expect, test } from "@playwright/test";
 
-import { openSettingsMenu } from "./game-page.ts";
+import { openSettingsMenu, speedValue } from "./game-page.ts";
 
 /**
  * The seed block now lives in the app bar's settings popover
@@ -84,7 +84,7 @@ test("lets a pinned run go back to a fresh draw, and back again", async ({ page 
   await expect(page).toHaveURL(/#challenge=4,timescale=8$/);
   // The speed the player chose came along, exactly as it does through the
   // navigation row.
-  await expect(page.locator(".timescale_value")).toHaveText("8x");
+  await expect(speedValue(page)).toHaveText("8x");
   // The panel already shows the fresh draw the click just navigated to --
   // see the note on `App.onSeedChange` in the test above.
   const drawn = await page.locator(SEED_LINK).innerText();

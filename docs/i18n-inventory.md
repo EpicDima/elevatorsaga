@@ -17,7 +17,7 @@ git show a5010f2:docs/i18n-inventory.md |
   while IFS=: read -r file line; do
     [ "$(git show "a5010f2:$file" | sed -n "${line}p")" = \
       "$(git show "HEAD:$file" | sed -n "${line}p")" ] && echo same || echo moved
-  done | sort | uniq -c                                          # 462 moved, 129 same
+  done | sort | uniq -c                                          # 466 moved, 129 same
 ```
 
 Two of the 95 show the range. `src/app/app.ts:207` was the `World raised code error` console
@@ -62,7 +62,7 @@ Calling it looks like this:
 ```ts
 import { format, seconds, setLocale, t } from "./i18n/index.ts";
 
-t("game.button.start"); // "Start" / "Старт"
+t("game.button.start"); // "Start" / "Запустить"
 t("game.elevator.label", { number: 3 }); // "Elevator 3" / "Лифт 3"
 t("challenge.people.html", { count: 5 }); // 5 people / 5 пассажиров
 format(seconds(60)); // "60s" / "60 с"
@@ -104,14 +104,14 @@ Key names carry two suffixes that mean something:
 
 ## Where the strings are
 
-The catalogue holds **462 keys** in two locales. `src/i18n/en.ts` is the reference — its text is
+The catalogue holds **466 keys** in two locales. `src/i18n/en.ts` is the reference — its text is
 the English wording, extracted verbatim — and `src/i18n/ru.ts` is the Russian translation. The
 types make English the shape everything else is measured against: a Russian catalogue missing a
 key, carrying a key English does not have, or giving a plural message the wrong number of forms
 is a compile error, not a runtime surprise.
 
 ```sh
-grep -cE '^  "[^"]+":' src/i18n/en.ts                                   # 462
+grep -cE '^  "[^"]+":' src/i18n/en.ts                                   # 466
 grep -oE '^  "[^"]+"' src/i18n/en.ts | tr -d '"' | cut -d. -f1 | sort | uniq -c | sort -rn
 ```
 
@@ -119,14 +119,14 @@ grep -oE '^  "[^"]+"' src/i18n/en.ts | tr -d '"' | cut -d. -f1 | sort | uniq -c 
 | -------------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `docs.*`       | 85      | one of them, `docs.basics.example.code`, by `src/ui/completions.ts`; the other 84 by nothing                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
 | `tutorial.*`   | 82      | `src/widgets/tutorial-panel/ui/tutorial-panel.ts`, `src/ui/templates.ts`, `src/pages/game/index.ts`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
-| `game.*`       | 191     | `src/ui/templates.ts` (18), `src/pages/game/index.ts` (11 + 5), `src/widgets/goal-bar/ui/goal-bar.ts` (22), `src/widgets/level-switcher/ui/level-switcher.ts` (6), `src/widgets/building-stage/lib/hover-card-text.ts` (15), `src/widgets/stats-panel/ui/stats-panel.ts` (3), `src/widgets/editor-pane/ui/editor-pane.ts` (3), `src/features/switch-theme` (4), `src/features/switch-layout` (5), `src/widgets/app-bar/ui/settings-menu.ts` (7), `src/main.ts` (3, the workspace pane/splitter labels); the two speed labels are written by both of the first two; the other 91, under `game.hotkeys.*`, `game.docs.*` and `game.apiRef.*`, by none of them yet — see below |
-| `page.*`       | 27      | `index.html`, through `data-i18n` and `data-i18n-attr`; `page.noscript` excepted, see below                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| `game.*`       | 196     | `src/ui/templates.ts` (18), `src/pages/game/index.ts` (11 + 5), `src/widgets/goal-bar/ui/goal-bar.ts` (22), `src/widgets/level-switcher/ui/level-switcher.ts` (6), `src/widgets/building-stage/lib/hover-card-text.ts` (15), `src/widgets/stats-panel/ui/stats-panel.ts` (3), `src/widgets/editor-pane/ui/editor-pane.ts` (3), `src/features/switch-theme` (4), `src/features/switch-layout` (5), `src/widgets/app-bar/ui/settings-menu.ts` (7), `src/main.ts` (3, the workspace pane/splitter labels); the two speed labels are written by both of the first two; the other 91, under `game.hotkeys.*`, `game.docs.*` and `game.apiRef.*`, by none of them yet — see below |
+| `page.*`       | 26      | `index.html`, through `data-i18n` and `data-i18n-attr`; `page.noscript` excepted, see below                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 | `completion.*` | 33      | `src/ui/completions.ts`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
 | `challenge.*`  | 15      | `src/game/challenges.ts`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
 | `fitness.*`    | 11      | `src/app/fitness.ts`, `src/game/fitness.ts`, `src/main.ts`, `src/cli/bench.ts`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
 | `error.*`      | 10      | `src/game/elevator-interface.ts`, `src/pages/game/index.ts`, `src/game/user-code.ts`, `src/game/movable.ts`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 | `editor.*`     | 8       | `src/main.ts`, `src/pages/game/index.ts`, `src/ui/editor.ts`, `src/ui/default-code.ts`, `src/widgets/editor-pane/ui/editor-pane.ts`, `src/features/manage-code-slots/ui/code-slots.ts`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
-| **Total**      | **462** |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| **Total**      | **466** |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
 
 Which keys nothing reads:
 
@@ -166,7 +166,7 @@ step.
 
 ## The strings
 
-### `index.html` — the page shell, 27 `page.*` keys
+### `index.html` — the page shell, 26 `page.*` keys
 
 The shell ships its English in the markup and names the message beside it: `data-i18n` for an
 element's words, `data-i18n-attr="attribute:key"` for its attributes. `src/ui/localise-page.ts`
@@ -181,7 +181,6 @@ walks the document and rewrites both, at start-up and again after every language
 | `page.brand`                    | Elevator Saga                                                                                                  | the one `<h1>`, drawn as the app bar's brand name; see _What could not be keyed cleanly_                                                                              |
 | `page.language.label`           | Language                                                                                                       | the `aria-label` of the picker's `<select>`; written by the settings popover with `t()`, not by an attribute; its options are `LOCALE_NAMES` and are never translated |
 | `page.noscript`                 | Your browser does not appear to support JavaScript. This page contains a browser-based programming game imple… | the one key with no element, and it cannot have one: see _Where the strings are_                                                                                      |
-| `page.controls.label`           | Run controls                                                                                                   | an `aria-label` on `.controls`, the run/pause/reset row and the speed together, the way `page.stats.label` names `.statscontainer`                                    |
 | `page.world.label`              | Building                                                                                                       | an `aria-label`                                                                                                                                                       |
 | `page.stats.label`              | Simulation statistics                                                                                          | an `aria-label`                                                                                                                                                       |
 | `page.stats.transported`        | Transported                                                                                                    |                                                                                                                                                                       |
@@ -387,7 +386,7 @@ overlay wants different words, the track's overlay changes with it for no reason
 `tutorial.finish.nextTask` is «Следующее учебное задание» and of `game.feedback.next` is «Следующий
 уровень» — two different words for two different destinations.
 
-### `src/ui/templates.ts` — 18 `game.*` keys
+### `src/ui/templates.ts` — 16 `game.*` keys
 
 Every template renders its words through `t` as it is built, which is why a language change
 cannot rewrite them in place: the presenters build them again. `markup` escapes its
@@ -410,8 +409,6 @@ interpolations, so a plain key is interpolated directly and an `.html` key goes 
 | `game.seed.helpSummary`     | what a seed does                                                                                               | the `<summary>` of the caveat disclosure                                                                     |
 | `game.seed.explanation`     | The same seed brings the same passengers, in the same order. Frame timing comes from the browser, so the run … | a paragraph inside the disclosure, not a tooltip — it used to be a `title` attribute                         |
 | `game.seed.console`         | Seed {seed} — the same passengers again, though never quite the same run: {url}                                | takes `{seed}` and `{url}`; the `console.log` printed at every start, and the one console line that is keyed |
-| `game.timeScale.decrease`   | Decrease simulation speed                                                                                      | an `aria-label`                                                                                              |
-| `game.timeScale.increase`   | Increase simulation speed                                                                                      | an `aria-label`                                                                                              |
 | `game.feedback.next`        | Next level                                                                                                     | the link in the end-of-challenge overlay                                                                     |
 | `game.codeStatus`           | There is an error in your program:                                                                             | the message beside it is the player's own text and is never translated                                       |
 
@@ -421,7 +418,7 @@ identically in every locale. Both names repeat it because an accessible name has
 own — "1234567890, link" describes nothing.
 
 `game.seed.newDraw` appearing inside `game.seed.newDrawLink` is a constraint a translator cannot
-see: the two sit on adjacent lines of a 462-key file and nothing in the file marks them as a
+see: the two sit on adjacent lines of a 466-key file and nothing in the file marks them as a
 pair. `src/i18n/catalogue.test.ts`, under _accessible names_, is what holds it — it requires the
 spoken name to contain the visible label in every locale. Rewording «новый розыгрыш» to «новый
 сид» meant changing both, which is exactly the edit where one gets missed.
@@ -477,6 +474,11 @@ disclosure summary that reveals the panel's nine secondary tiles.
 | `game.statsPanel.waitingNow` | Waiting now | takes `world.users.filter(u => u.parent === null \&\& !u.done).length`, the same test `floorSnapshot` uses |
 | `game.statsPanel.aboardNow`  | Riding now  | sums every elevator's occupied `userSlots`, the same test `elevatorSnapshot` uses                          |
 | `game.statsPanel.more`       | All figures | the summary of the native `<details class="more">` holding the nine secondary tiles                        |
+
+Every figure on those tiles goes through `Intl` rather than `toFixed` and `String`:
+`format(quantity(...))` for the per-second rate and `format(seconds(..., 1))` for the delivery
+times, the same calls `goal-bar.ts` makes for the figures it shows. That is what gives Russian
+`1,5 с`, with a non-breaking space, instead of `1.5s`.
 
 Built and unit-tested, not yet wired into `src/pages/game/index.ts`, matching every widget staged so far in
 this migration.
@@ -546,24 +548,25 @@ percentage or a rate.
 | `game.goalBar.req.avgPickupTime.html`       | average wait for a car no more than {time}            | takes `{time}`, itself `challenge.waitLimit.html`                                                                                                                                                                                                               |
 | `game.goalBar.req.avgRideTime.html`         | average ride no more than {time}                      | takes `{time}`, itself `challenge.waitLimit.html`                                                                                                                                                                                                               |
 
-### `src/widgets/editor-pane/ui/editor-pane.ts` — 3 `game.*` keys
+### `src/widgets/editor-pane/ui/editor-pane.ts` — 5 `game.*` keys
 
 The editor pane's chrome: the code slot switcher (`presentCodeSlots`, drawn as-is from
-`#features/manage-code-slots`, contributing no key of its own here), a second, independent copy of
-`run-controls.ts`'s "Reset code" and "Undo reset" buttons — reusing `game.button.resetCode` and
-`.undoResetCode` for the words on them, so neither label is a new key — and an error banner
-reusing `game.codeStatus` for its own message line.
+`#features/manage-code-slots`, contributing no key of its own here), the "Reset code" and "Undo
+reset" buttons, and an error banner reusing `game.codeStatus` for its own message line.
 
-Three keys are this pane's own. The banner's goto link, which `src/ui/error-location.ts`'s
-`locateCodeError` makes possible where the mockup's own `#errorGoto` did nothing; and a tooltip
-for each of the two buttons, saying the thing their labels have no room for — which of the two
-programs comes back. "Reset code" does not distinguish the level's own starting program from
-whatever the editor held a moment ago, and the buttons sit next to each other undoing one another.
-The mockup writes such a `title` on its own reset button, and the Russian of `resetCodeTitle` is
-its wording verbatim.
+Five keys are drawn here. The two button labels, which this pane is now the only reader of — they
+were the run controls' while the two rows were one, and `run-controls.ts` kept the run and gave
+the code away. The banner's goto link, which `src/ui/error-location.ts`'s `locateCodeError` makes
+possible where the mockup's own `#errorGoto` did nothing. And a tooltip for each of the two
+buttons, saying the thing their labels have no room for — which of the two programs comes back.
+"Reset code" does not distinguish the level's own starting program from whatever the editor held a
+moment ago, and the buttons sit next to each other undoing one another. The mockup writes such a
+`title` on its own reset button, and the Russian of `resetCodeTitle` is its wording verbatim.
 
 | Key                              | English                                                | Notes                                                                                                                             |
 | -------------------------------- | ------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------- |
+| `game.button.resetCode`          | Reset code                                             | puts the starter program back, behind a confirmation                                                                              |
+| `game.button.undoResetCode`      | Undo reset                                             | hidden until a reset has something to bring back                                                                                  |
 | `game.editorPane.gotoLine`       | Line {line} →                                          | takes `{line}`, 1-based; the label of a button hidden whenever `locateCodeError` finds no position for the player's own exception |
 | `game.button.resetCodeTitle`     | Put the level's own starting program back in this slot | the `title` on `.resetcode`; a description, the accessible name staying the visible "Reset code" (WCAG 2.5.3)                     |
 | `game.button.undoResetCodeTitle` | Bring back the program this slot held before the reset | the `title` on `.undoreset`, likewise                                                                                             |
@@ -807,29 +810,63 @@ Read by `docs-modal.ts` (above), which draws `API_REFERENCE` as the reference ta
 | `game.apiRef.floor.downButtonPressed.more`         | The same thing, downward. If direction doesn't matter yet, both events can be subscribed in one line… |                                                               |
 | `game.apiRef.floor.downButtonPressed.code`         | floor.on("up_button_pressed down_button_pressed", () => { elevators[0].goToFloor(floor.floorNum());…  | code; comments translated only, code identical across locales |
 
-### `src/pages/game/index.ts` — 11 `game.*` and 3 `error.*` keys
+### `src/features/run-simulation/ui/run-controls.ts` — 7 `game.button.*` keys
 
-| Key                            | English                       | Notes                                                                                                          |
-| ------------------------------ | ----------------------------- | -------------------------------------------------------------------------------------------------------------- |
-| `game.timeScale.value`         | {value}x                      | takes `{value}`; Russian writes `×`, not the Latin letter x                                                    |
-| `game.timeScale.decrease`      | Decrease simulation speed     | an `aria-label`, also written by `controlsTemplate`; rewritten on every update so a language change reaches it |
-| `game.timeScale.increase`      | Increase simulation speed     | likewise                                                                                                       |
-| `game.button.start`            | Start                         |                                                                                                                |
-| `game.button.pause`            | Pause                         |                                                                                                                |
-| `game.button.restart`          | Restart                       | rendered after an icon as `` ` ${t(...)}` ``; the space belongs to the call site                               |
-| `game.button.startOver`        | Start over                    | restarts the run from the program in the editor; the button "Apply" became                                     |
-| `game.button.resetCode`        | Reset code                    | puts the starter program back, behind a confirmation                                                           |
-| `game.button.undoResetCode`    | Undo reset                    | hidden until a reset has something to bring back                                                               |
-| `game.button.runInstant`       | Run instantly                 | starts a headless crunch of the run on screen; see `src/game/instant-run.ts`                                   |
-| `game.button.runningInstantly` | Crunching...                  | shown, and the button disabled, while that crunch is under way                                                 |
-| `error.thrown.emptyString`     | Thrown empty string           | what the code status bar says when a program throws something with no message                                  |
-| `error.thrown.noMessage`       | Thrown {kind} with no message | takes `{kind}`                                                                                                 |
-| `error.thrown.keys`            | {kind} with keys: {keys}      | takes `{kind}`, `{keys}`                                                                                       |
+The two buttons the app bar opens with. Only the first changes its word: "Start" before a run and
+again once the challenge is over, "Pause" while the world is drawing, "Resume" where a started run
+is standing still. What is on the button is always what the press will do, never what the run is
+doing — which is why "Pause" is absent while a headless crunch runs, since the shared controller
+is paused throughout one and `!isPaused` alone would say the opposite.
 
-Every figure in the statistics panel goes through `Intl` rather than `toFixed` and `String`:
-`format(seconds(world.elapsedTime))`, `format(quantity(...))` for the per-second rate, and
-`format(seconds(..., 1))` for the two delivery times, which is what gives Russian `1,5 с` with a
-non-breaking space instead of `1.5s`.
+Two of the seven are `title` attributes rather than labels, and each says the thing a two-word
+button has no room for. `game.button.startOverTitle` sits on "Start over" at all times.
+`game.button.startAgainTitle` is written only in the one state where the primary button's label
+repeats itself: the challenge has ended, its result is on screen, and "Start" now means throwing
+that result away.
+
+| Key                            | English                               | Notes                                                                                                             |
+| ------------------------------ | ------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `game.button.start`            | Start                                 | before the first frame, and again once the challenge has ended                                                    |
+| `game.button.pause`            | Pause                                 | only while the world on screen is being drawn                                                                     |
+| `game.button.resume`           | Resume                                | a started run standing still; never offered on the speed control's instant stop, where a press restarts from zero |
+| `game.button.startOver`        | Start over                            | restarts the run from the program in the editor; the button "Apply" became                                        |
+| `game.button.startOverTitle`   | Start the run from the very beginning | the `title` on `.startover`, the accessible name staying the visible label (WCAG 2.5.3)                           |
+| `game.button.startAgainTitle`  | Run it again from the beginning       | the `title` on `.startstop`, and only where its label reads "Start" a second time                                 |
+| `game.button.runningInstantly` | Crunching...                          | shown, and both buttons disabled, while a headless crunch is under way; see `src/game/instant-run.ts`             |
+
+### `src/features/adjust-speed/ui/speed-stepper.ts` — 7 `game.timeScale.*` keys
+
+The speed control beside them: two chevrons with the reading between them. The chevrons carry no
+word of their own, so each needs a name and the same words again as a `title`, a pointer having no
+other way to ask what a bare chevron does. The group is named once rather than the arrows twice
+over, and the reading needs a `title` because `2x` alone does not say what it counts.
+
+The stop past the fastest speed is not a speed at all: it is the instant run, a headless crunch
+straight to the result, and `game.timeScale.instant` is the `∞x` standing in for a number there.
+It is a message for the same reason `game.timeScale.value` is — Russian writes `×`, not the Latin
+letter x.
+
+| Key                           | English                                                      | Notes                                                                                                 |
+| ----------------------------- | ------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------- |
+| `game.timeScale.label`        | Run speed                                                    | the `aria-label` on the `role="group"` around all three, which is where the pair is named             |
+| `game.timeScale.value`        | {value}x                                                     | takes `{value}`; Russian writes `×`, not the Latin letter x                                           |
+| `game.timeScale.valueTitle`   | Run speed: {value}                                           | takes `{value}`, itself `game.timeScale.value` or the reading below                                   |
+| `game.timeScale.decrease`     | Slower                                                       | an `aria-label` and the identical `title`; rewritten on every update, so a language change reaches it |
+| `game.timeScale.increase`     | Faster                                                       | likewise                                                                                              |
+| `game.timeScale.instant`      | ∞x                                                           | the reading on the stop past the fastest speed                                                        |
+| `game.timeScale.instantTitle` | Instantly: the run is counted straight through to its result | the `title` there, since `∞x` names no unit and no multiple                                           |
+
+### `src/shared/lib/describe-error.ts` — 3 `error.*` keys
+
+What the code status bar says when the player's program throws something that is not an `Error`:
+an empty string, or an object with no message of its own. The text beside them is the player's own
+and is never translated, which is why `kind` and the key names are interpolated rather than keyed.
+
+| Key                        | English                       | Notes                    |
+| -------------------------- | ----------------------------- | ------------------------ |
+| `error.thrown.emptyString` | Thrown empty string           |                          |
+| `error.thrown.noMessage`   | Thrown {kind} with no message | takes `{kind}`           |
+| `error.thrown.keys`        | {kind} with keys: {keys}      | takes `{kind}`, `{keys}` |
 
 ### `src/pages/game/index.ts` — 4 `game.feedback.*` keys
 
@@ -946,7 +983,7 @@ why `exact` asks for `maximumFractionDigits` rather than for significant digits:
 
 ```sh
 node -e 'const f = new Intl.NumberFormat("en");
-  console.log(f.resolvedOptions().maximumFractionDigits, f.format(0.0625))'   # 462 0.063
+  console.log(f.resolvedOptions().maximumFractionDigits, f.format(0.0625))'   # 466 0.063
 ```
 
 ### `src/ui/completions.ts` — 33 `completion.*` keys
@@ -1036,7 +1073,7 @@ either. CLDR's narrow unit pattern for Russian carries an ordinary space, and `f
 ```sh
 node -e 'const s = new Intl.NumberFormat("ru",
     { style: "unit", unit: "second", unitDisplay: "narrow" }).format(60);
-  console.log([...s].map((c) => c.codePointAt(0).toString(16)).join(" "))'   # 462 30 20 441
+  console.log([...s].map((c) => c.codePointAt(0).toString(16)).join(" "))'   # 466 30 20 441
 ```
 
 ### `src/game/user-code.ts`, `src/game/elevator-interface.ts`, `src/game/movable.ts` — 7 `error.*` keys
@@ -1151,16 +1188,20 @@ and all seven ship, so this is a record of how each was resolved rather than a p
    which is also how six point nine is written. `formatList` gives «6 и 9», which cannot be read
    as one number — and "6 and 9" in English, which reads better anyway.
 
-5. **`" Restart"` carries a leading space.** `presentControls` in `src/pages/game/index.ts` writes
-   the label after an icon node, and the space is the gap between them. `game.button.restart` is
-   the word alone, so the call site keeps the separator:
+5. **A message that is a symbol.** `game.timeScale.instant` is `∞x` in English and `∞×` in
+   Russian, and it is in the catalogue for the sake of one character. The infinity sign is the
+   same everywhere; the multiplication sign is not, and Russian writes `×` where English writes
+   the Latin letter x — the same split `game.timeScale.value` already had. A translator opening
+   the file finds a row that looks untranslatable and is not:
 
    ```ts
-   startStop.replaceChildren(createIcon("repeat"), ` ${t("game.button.restart")}`);
+   "game.timeScale.instant": "∞x",
    ```
 
-   The space belongs to the line rather than to the message because every language needs it and
-   no translator should have to remember to type it.
+   Nothing else about the label is prose, which is why the sentence explaining what that stop
+   does is a second key, `game.timeScale.instantTitle`, rather than a longer label. A separator
+   space is no longer among these cases: the run buttons write their word into a `.lbl` span
+   beside the icon rather than as a text node after it, so the gap is the stylesheet's.
 
 6. **One `<h1>`, one string, and the same string in both catalogues.** `page.brand` is the whole
    of the heading, and it is `"Elevator Saga"` in English and in Russian alike: the brand is a

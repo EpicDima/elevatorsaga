@@ -1,81 +1,104 @@
 /**
- * The speed stepper: two buttons and the multiplier they change.
+ * The speed control: two arrows and the multiplier between them —
+ * `design/ui-mockup.html`'s own `.speed` group, drawn in the app bar beside
+ * the run buttons rather than in a row under the building.
  *
- * Peeled out of `src/pages/game/index.ts`'s `presentControls`, which now
- * composes this with `#features/run-simulation`'s run buttons into the one
- * `.controls` region that same module draws once, for the life of the page.
+ * The two buttons carry their name as `aria-label` as well as `title`,
+ * rewritten by {@link presentSpeedStepper}'s `update()` on a language change
+ * the same way it rewrites the value between them — the group is drawn once
+ * and only relabelled after, so a label baked into the markup would still be
+ * in whatever language the page opened in.
  *
- * The two buttons carry their name as `aria-label`, rewritten by
- * {@link presentSpeedStepper}'s `update()` on a language change the same way
- * it rewrites the value between them — the row is drawn once and only
- * relabelled after, so a label baked into the markup would still be in
- * whatever language the page opened in.
+ * `.speed-val` carries `aria-live="polite"`, so a screen reader hears the new
+ * speed whichever of the two buttons changed it. Polite rather than assertive:
+ * the speed can change several times a second under a held-down button, and an
+ * assertive region interrupts whatever is already being read to announce each
+ * one, which for a value that settles in well under a second is noise rather
+ * than information. `role="group"` and the group's own name are on the wrapper
+ * and nowhere else, so that a reader arriving at either arrow is told what the
+ * pair is for before hearing "slower".
  *
- * The controls used to be a `<h3>` wrapping two clickable `<i>` elements.
- * {@link speedStepperTemplate} is a plain container with real buttons now;
- * `.timescale` carries the heading's former metrics so the row looks the
- * same.
+ * ## The last stop
  *
- * `.timescale_value` carries `aria-live="polite"`, so a screen reader hears
- * the new speed whichever of the two buttons changed it. Polite rather than
- * assertive: the speed can change several times a second under a held-down
- * button, and an assertive region interrupts whatever is already being read
- * to announce each one, which for a value that settles in well under a
- * second is noise rather than information.
+ * Past 20x the control has one more stop, and it is not a speed: "instantly",
+ * written `∞x`. The run is handed to `src/game/instant-run.ts` and counted
+ * straight through to its verdict with nothing drawn.
+ *
+ * It is drawn here, as the far end of the same control, because that is what
+ * it is — the mockup puts `Infinity` in the same array as the numbers, and its
+ * comment says why a player wants it exactly where 20x already is: "ради него
+ * и сидят на 20×, глядя, как лифты ездят по уже написанной программе". What
+ * it is *not* is a value of `WorldController.timeScale`, which multiplies the
+ * frame delta; see `#features/adjust-speed/model/time-scale.ts` for that
+ * distinction and for what it buys. This module never reads a time scale to
+ * decide whether it is on that stop — the app tells it, through
+ * {@link SpeedStepperOptions.instantSpeed}.
  */
 
 import type { WorldController } from "#game/world-controller.ts";
 import { t } from "#i18n/index.ts";
 import { requireElement } from "#shared/lib/dom.ts";
-import { iconMarkup } from "#shared/ui/icon.ts";
+import { spriteIconMarkup } from "#shared/ui/icon.ts";
 import { markup, raw } from "#shared/ui/markup.ts";
+import { isSlowestTimeScale } from "../model/time-scale.ts";
 
 /**
- * The speed stepper's markup: two buttons and the value between them.
+ * The speed control's markup: two arrows and the value between them.
  *
  * Ships with no label at all — see the module comment for why
- * {@link presentSpeedStepper} writes the value and both `aria-label`s
- * instead.
+ * {@link presentSpeedStepper} writes the value, the group's name and both
+ * buttons' names instead. No glyph before the value, following the mockup:
+ * "«6×» между двумя стрелками ни на что другое не похоже".
  *
- * @returns The speed stepper's markup, to be composed into the wider
- * controls row alongside the run buttons.
+ * @returns The speed control's markup, to be composed into the app bar
+ * alongside the run buttons.
  */
 export function speedStepperTemplate(): string {
-  return markup`<div class="timescale"><button type="button" class="timescale_decrease unselectable" aria-label="${t("game.timeScale.decrease")}">${raw(iconMarkup("minus-square"))}</button> <span class="emphasis-color timescale_value" aria-live="polite"></span> <button type="button" class="timescale_increase unselectable" aria-label="${t("game.timeScale.increase")}">${raw(iconMarkup("plus-square"))}</button></div>`;
+  return markup`<div class="speed" role="group"><button type="button" class="speed-down unselectable">${raw(spriteIconMarkup("left"))}</button><span class="speed-val" aria-live="polite"></span><button type="button" class="speed-up unselectable">${raw(spriteIconMarkup("right"))}</button></div>`;
 }
 
-/** What the speed stepper needs in order to draw and drive itself. */
+/** What the speed control needs in order to draw and drive itself. */
 export interface SpeedStepperOptions {
   /** The controller being driven, consulted for `timeScale`. */
   readonly worldController: Pick<WorldController, "timeScale">;
+  /**
+   * Whether the control is on its instant stop rather than on a time scale.
+   *
+   * A function rather than a value for the same reason the run buttons ask
+   * their questions that way: this group is drawn once, for the life of the
+   * page, and the state it reports on moves under it.
+   */
+  readonly instantSpeed: () => boolean;
+  /** Whether a crunch is under way, which is the one time the speed cannot be changed. */
+  readonly instantRunInProgress: () => boolean;
   /** Called when the `+` button is pressed. */
   readonly onTimeScaleIncrease: () => void;
   /** Called when the `-` button is pressed. */
   readonly onTimeScaleDecrease: () => void;
 }
 
-/** The rendered speed stepper. */
+/** The rendered speed control. */
 export interface SpeedStepperPresenter {
   /**
-   * Relabels the value and rewrites both buttons' `aria-label`.
+   * Relabels the value and rewrites the group's and both buttons' names, and
+   * disables whichever arrow has nothing left to offer.
    *
    * Called after anything that could have moved the speed: a click of either
-   * button, a time scale restored from storage or the URL, or a language
-   * change.
+   * button, a time scale restored from storage or the URL, the start or end of
+   * a crunch, or a language change.
    */
   update(): void;
 }
 
 /**
- * Draws the speed stepper and wires it up.
+ * Draws the speed control and wires it up.
  *
  * Called once, from {@link "#pages/game/index.ts"!presentControls}, and never
  * again — the markup never goes away, so {@link SpeedStepperPresenter.update}
  * is the whole of every redraw after the first.
  *
  * @param parent - The element {@link speedStepperTemplate}'s markup was
- * written into — the `.controls` region, today, alongside the run buttons'
- * markup.
+ * written into — the app bar's `.controls` mount, alongside the run buttons.
  * @param options - The controller to report on and the callbacks for the two
  * buttons.
  * @returns The presenter, already drawn.
@@ -84,9 +107,10 @@ export function presentSpeedStepper(
   parent: HTMLElement,
   options: SpeedStepperOptions,
 ): SpeedStepperPresenter {
-  const value = requireElement(".timescale_value", parent);
-  const decrease = requireElement(".timescale_decrease", parent);
-  const increase = requireElement(".timescale_increase", parent);
+  const group = requireElement(".speed", parent);
+  const value = requireElement(".speed-val", parent);
+  const decrease = requireElement(".speed-down", parent);
+  const increase = requireElement(".speed-up", parent);
 
   decrease.addEventListener("click", () => {
     options.onTimeScaleDecrease();
@@ -97,9 +121,35 @@ export function presentSpeedStepper(
 
   const presenter: SpeedStepperPresenter = {
     update(): void {
-      value.textContent = formatTimeScale(options.worldController.timeScale);
-      decrease.setAttribute("aria-label", t("game.timeScale.decrease"));
-      increase.setAttribute("aria-label", t("game.timeScale.increase"));
+      const instant = options.instantSpeed();
+      const busy = options.instantRunInProgress();
+      const { timeScale } = options.worldController;
+
+      group.setAttribute("aria-label", t("game.timeScale.label"));
+      value.textContent = instant ? t("game.timeScale.instant") : formatTimeScale(timeScale);
+      // A `title` rather than more visible text, as in the mockup: the reading
+      // is two characters wide by design, and the sentence explaining what
+      // "instantly" does to a run would not fit the bar at any width.
+      value.title = instant
+        ? t("game.timeScale.instantTitle")
+        : t("game.timeScale.valueTitle", { value: formatTimeScale(timeScale) });
+
+      // The same word twice on each arrow: `aria-label` names the button for a
+      // reader that never sees the glyph, `title` for a pointer that has no
+      // other way to ask what it does.
+      const slower = t("game.timeScale.decrease");
+      decrease.setAttribute("aria-label", slower);
+      decrease.title = slower;
+      const faster = t("game.timeScale.increase");
+      increase.setAttribute("aria-label", faster);
+      increase.title = faster;
+
+      // At the ends of the list an arrow dims rather than disappearing --
+      // "строка не должна дёргаться от того, что скорость дошла до предела".
+      // `+` has no end of its own: the instant stop is always past the fastest
+      // finite one, so the only thing that stops it is being on it already.
+      decrease.toggleAttribute("disabled", busy || (!instant && isSlowestTimeScale(timeScale)));
+      increase.toggleAttribute("disabled", busy || instant);
     },
   };
   presenter.update();
@@ -107,12 +157,12 @@ export function presentSpeedStepper(
 }
 
 /**
- * Renders a time scale the way the run controls show it.
+ * Renders a time scale the way the speed control shows it.
  *
  * The legacy `timeScale.toFixed(0) + "x"` was fine for the whole numbers the
  * buttons produce and a lie for anything else: `#timescale=0.5` read `1x`, and
  * `#timescale=0.1` read `0x`, which says the simulation is stopped when it is
- * running at a tenth speed. Whole speeds still render as `1x` and `40x` — not
+ * running at a tenth speed. Whole speeds still render as `1x` and `20x` — not
  * `1.0x` — and fractional ones render as themselves.
  *
  * The multiplication sign is part of the message rather than appended here,

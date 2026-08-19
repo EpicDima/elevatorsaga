@@ -528,9 +528,10 @@ describe("App instant run", () => {
     // The button is back to its ready state, not stuck reading "Crunching...":
     // clearing `#instantRunHandle` when `stats_changed` reaches a verdict is
     // what a crunch gets in place of the relabelling an animated run's
-    // `setPaused` raises for free.
-    const button = requireElement(".runinstant", elements.controls);
-    expect(button.textContent).toBe("Run instantly");
+    // `setPaused` raises for free. "Start" rather than "Resume", because the
+    // run it is reporting on has ended.
+    const button = requireElement(".startstop", elements.controls);
+    expect(button.textContent).toBe("Start");
     expect(button.hasAttribute("disabled")).toBe(false);
   });
 
@@ -568,8 +569,8 @@ describe("App instant run", () => {
     // can fire either. The challenge is left exactly as undecided as it was,
     // the same as an animated run's error leaves it paused rather than lost.
     expect(app.world?.challengeEnded).toBe(false);
-    const button = requireElement(".runinstant", elements.controls);
-    expect(button.textContent).toBe("Run instantly");
+    const button = requireElement(".startstop", elements.controls);
+    expect(button.textContent).not.toBe("Crunching...");
     expect(button.hasAttribute("disabled")).toBe(false);
   });
 
@@ -585,12 +586,72 @@ describe("App instant run", () => {
     // `#instantRunHandle` still points at unconditionally, before it does
     // anything else -- so the button is never left stuck on "Crunching..."
     // for a run that is no longer the one on screen.
-    const button = requireElement(".runinstant", elements.controls);
-    expect(button.textContent).toBe("Run instantly");
+    const button = requireElement(".startstop", elements.controls);
+    expect(button.textContent).toBe("Start");
     expect(button.hasAttribute("disabled")).toBe(false);
     expect(app.world?.floors).toHaveLength(4);
   });
+
+  it("is what the primary button does once the speed control is on its instant stop", () => {
+    // The crunch has no button of its own any more. Asking for one is
+    // selecting the last stop of the speed and pressing Start -- and Start
+    // then means what it says: this run, from the beginning, with nothing
+    // drawn.
+    const { app, elements } = setUp();
+    app.startChallenge(1);
+    const before = app.world;
+    reachInstantSpeed(elements);
+
+    requireElement(".startstop", elements.controls).click();
+
+    expect(app.world).not.toBe(before);
+    expect(queryAll(".elevator", elements.world)).toHaveLength(0);
+    expect(app.world?.challengeEnded).toBe(true);
+    expect(requireElement(".feedback h2", elements.feedback).textContent).toBe("Success!");
+  });
+
+  it("is what Start over does on that stop too", () => {
+    // Both buttons mean the one thing there: a crunch always begins at the
+    // beginning, so there is no pause to resume and no half-played run for
+    // "Start over" to be different about.
+    const { app, elements } = setUp();
+    app.startChallenge(1);
+    reachInstantSpeed(elements);
+
+    requireElement(".startover", elements.controls).click();
+
+    expect(queryAll(".elevator", elements.world)).toHaveLength(0);
+    expect(app.world?.challengeEnded).toBe(true);
+  });
+
+  it("goes back to an animated run the moment the stop is left", () => {
+    const { app, elements } = setUp();
+    app.startChallenge(1);
+    reachInstantSpeed(elements);
+    requireElement(".speed-down", elements.controls).click();
+
+    requireElement(".startover", elements.controls).click();
+
+    expect(queryAll(".elevator", elements.world)).toHaveLength(2);
+    expect(app.world?.challengeEnded).toBe(false);
+  });
 });
+
+/**
+ * Walks the speed control up to its instant stop, however far up it starts.
+ *
+ * Pressed rather than set, because there is nothing to set: the stop is a
+ * state of the control, deliberately not a value of `timeScale`, and the
+ * presses are the only way in.
+ *
+ * @param elements - The page regions the app was built over.
+ */
+function reachInstantSpeed(elements: AppElements): void {
+  const increase = requireElement(".speed-up", elements.controls);
+  while (!increase.hasAttribute("disabled")) {
+    increase.click();
+  }
+}
 
 describe("App challenge navigation", () => {
   it("puts a tile for every challenge in the switcher, marking the one being played", () => {
@@ -1936,12 +1997,53 @@ describe("App time scale", () => {
     app.startChallenge(0);
     worldController.setTimeScale(2);
 
-    requireElement(".timescale_increase", elements.controls).click();
+    requireElement(".speed-up", elements.controls).click();
     expect(worldController.timeScale).toBe(3);
-    expect(requireElement(".timescale_value", elements.controls).textContent).toBe("3x");
+    expect(requireElement(".speed-val", elements.controls).textContent).toBe("3x");
 
-    requireElement(".timescale_decrease", elements.controls).click();
+    requireElement(".speed-down", elements.controls).click();
     expect(worldController.timeScale).toBe(2);
+  });
+
+  it("turns the press past the top of the ladder into the instant stop, and `-` back out of it", () => {
+    // The stop is a state of the control rather than a value of `timeScale`,
+    // which multiplies the frame delta: an Infinity in it is a world that can
+    // never be ticked back to life. So `+` at the top leaves the speed exactly
+    // where it was and only changes what the next press of Start will do.
+    const { app, worldController, elements } = setUp();
+    app.startChallenge(0);
+    worldController.setTimeScale(20);
+    const value = requireElement(".speed-val", elements.controls);
+
+    requireElement(".speed-up", elements.controls).click();
+
+    expect(value.textContent).toBe("\u221ex");
+    expect(worldController.timeScale).toBe(20);
+    expect(Number.isFinite(worldController.timeScale)).toBe(true);
+    // Nothing past it, and the primary button stops offering to resume.
+    expect(requireElement(".speed-up", elements.controls).hasAttribute("disabled")).toBe(true);
+    expect(requireElement(".startstop", elements.controls).textContent).toBe("Start");
+
+    requireElement(".speed-down", elements.controls).click();
+
+    expect(value.textContent).toBe("20x");
+    expect(worldController.timeScale).toBe(20);
+  });
+
+  it("keeps the instant stop out of storage and out of the url", () => {
+    // `#timescale=` and the stored speed both come from `timescale_changed`,
+    // which entering the stop never raises: a reload comes back at the finite
+    // speed the player was on, which is what a stop meaning "answer me now"
+    // should do rather than reopening on a game with nothing drawn.
+    const { app, worldController, storage, elements } = setUp();
+    app.startChallenge(0);
+    worldController.setTimeScale(20);
+    const setItem = vi.spyOn(storage, "setItem");
+
+    requireElement(".speed-up", elements.controls).click();
+
+    expect(setItem).not.toHaveBeenCalled();
+    expect(readStoredTimeScale(storage)).toBe(20);
   });
 
   it("remembers the chosen speed", () => {
@@ -1975,7 +2077,7 @@ describe("App time scale", () => {
     expect(worldController.timeScale).toBe(0.5);
 
     for (let i = 0; i < 5; i += 1) {
-      requireElement(".timescale_decrease", elements.controls).click();
+      requireElement(".speed-down", elements.controls).click();
     }
 
     expect(worldController.timeScale).toBeGreaterThan(0);
@@ -2120,7 +2222,7 @@ describe("App.relocalise", () => {
     // from scratch on every update, so the block from before relocalise is
     // gone -- looked up again rather than reused.
     expect(goalDescription(elements)).toBe("Challenge one");
-    expect(requireElement(".startstop", elements.controls).textContent).toBe("Старт");
+    expect(requireElement(".startstop", elements.controls).textContent).toBe("Запустить");
     expect(challengeBlockCaption(elements)).toBe("Уровни");
   });
 
@@ -2321,47 +2423,47 @@ describe("presentControls", () => {
       options: {
         worldController: { isPaused: true, timeScale: 2 },
         challengeEnded: (): boolean => false,
+        runStarted: (): boolean => false,
+        instantSpeed: (): boolean => false,
+        instantRunInProgress: (): boolean => false,
         onStartStop: vi.fn(),
         onStartOver: vi.fn(),
         onTimeScaleIncrease: vi.fn(),
         onTimeScaleDecrease: vi.fn(),
-        instantRunInProgress: (): boolean => false,
-        onRunInstant: vi.fn(),
         ...overrides,
       },
     };
   }
 
-  it("draws the time scale and labels the three run buttons", () => {
+  it("draws the speed and labels both run buttons", () => {
     const { parent, options } = setUpControls();
     presentControls(parent, options);
 
-    expect(requireElement(".timescale_value", parent).textContent).toBe("2x");
+    expect(requireElement(".speed-val", parent).textContent).toBe("2x");
     expect(requireElement(".startstop", parent).textContent).toBe("Start");
     expect(requireElement(".startover", parent).textContent).toBe("Start over");
-    expect(requireElement(".runinstant", parent).textContent).toBe("Run instantly");
   });
 
-  it("labels the instant-run button as crunching, and disables it, while a crunch is in progress", () => {
+  it("labels the primary button as crunching, and disables it, while a crunch is in progress", () => {
     const { parent, options } = setUpControls();
     const presenter = presentControls(parent, options);
-    const runInstant = requireElement(".runinstant", parent);
-    expect(runInstant.hasAttribute("disabled")).toBe(false);
+    const startStop = requireElement(".startstop", parent);
+    expect(startStop.hasAttribute("disabled")).toBe(false);
 
     options.instantRunInProgress = (): boolean => true;
     presenter.update();
 
-    expect(runInstant.textContent).toBe("Crunching...");
-    expect(runInstant.hasAttribute("disabled")).toBe(true);
+    expect(startStop.textContent).toBe("Crunching...");
+    expect(startStop.hasAttribute("disabled")).toBe(true);
 
     options.instantRunInProgress = (): boolean => false;
     presenter.update();
 
-    expect(runInstant.textContent).toBe("Run instantly");
-    expect(runInstant.hasAttribute("disabled")).toBe(false);
+    expect(startStop.textContent).toBe("Start");
+    expect(startStop.hasAttribute("disabled")).toBe(false);
   });
 
-  it("shows Pause while running and Restart once the challenge is over", () => {
+  it("shows Pause while running and Start once the challenge is over", () => {
     const { parent, options } = setUpControls();
     const presenter = presentControls(parent, options);
     const startStop = requireElement(".startstop", parent);
@@ -2372,8 +2474,22 @@ describe("presentControls", () => {
 
     options.challengeEnded = (): boolean => true;
     presenter.update();
-    expect(startStop.textContent).toBe(" Restart");
+    expect(startStop.textContent).toBe("Start");
+    expect(startStop.title).toBe("Run it again from the beginning");
     expect(startStop.querySelector("svg")).not.toBeNull();
+  });
+
+  it("passes the instant stop through to both halves at once", () => {
+    // One flag, read by two features: the speed shows the stop, and the
+    // primary button stops offering to resume a run a crunch would restart.
+    const { parent, options } = setUpControls({
+      runStarted: (): boolean => true,
+      instantSpeed: (): boolean => true,
+    });
+    presentControls(parent, options);
+
+    expect(requireElement(".speed-val", parent).textContent).toBe("\u221ex");
+    expect(requireElement(".startstop", parent).textContent).toBe("Start");
   });
 
   it("reports button presses to the app", () => {
@@ -2382,13 +2498,11 @@ describe("presentControls", () => {
 
     requireElement(".startstop", parent).click();
     requireElement(".startover", parent).click();
-    requireElement(".runinstant", parent).click();
-    requireElement(".timescale_increase", parent).click();
-    requireElement(".timescale_decrease", parent).click();
+    requireElement(".speed-up", parent).click();
+    requireElement(".speed-down", parent).click();
 
     expect(options.onStartStop).toHaveBeenCalledTimes(1);
     expect(options.onStartOver).toHaveBeenCalledTimes(1);
-    expect(options.onRunInstant).toHaveBeenCalledTimes(1);
     expect(options.onTimeScaleIncrease).toHaveBeenCalledTimes(1);
     expect(options.onTimeScaleDecrease).toHaveBeenCalledTimes(1);
   });
@@ -2397,13 +2511,13 @@ describe("presentControls", () => {
     const { parent, options } = setUpControls();
     const presenter = presentControls(parent, options);
 
-    for (let i = 0; i < 5; i += 1) {
+    for (let i = 1; i <= 5; i += 1) {
       options.worldController.timeScale = i;
       presenter.update();
     }
     requireElement(".startstop", parent).click();
 
-    expect(requireElement(".timescale_value", parent).textContent).toBe("4x");
+    expect(requireElement(".speed-val", parent).textContent).toBe("5x");
     expect(options.onStartStop).toHaveBeenCalledTimes(1);
   });
 
@@ -2623,108 +2737,95 @@ describe("the language the interface comes out in", () => {
     // an `update()` and nothing else: every word it shows is read from the
     // catalogue at the moment it is written.
     const parent = createElement("div", { className: "controls" });
-    const worldController = { isPaused: true, timeScale: 8 };
+    const worldController = { isPaused: true, timeScale: 20 };
     let challengeEnded = false;
+    let runStarted = false;
     const presenter = presentControls(parent, {
       worldController,
       challengeEnded: () => challengeEnded,
+      runStarted: () => runStarted,
+      instantSpeed: () => false,
+      instantRunInProgress: () => false,
       onStartStop: vi.fn(),
       onStartOver: vi.fn(),
       onTimeScaleIncrease: vi.fn(),
       onTimeScaleDecrease: vi.fn(),
-      instantRunInProgress: () => false,
-      onRunInstant: vi.fn(),
     });
     const startStop = requireElement(".startstop", parent);
 
     setLocale("ru");
     presenter.update();
 
-    expect(requireElement(".timescale_value", parent).textContent).toBe("8×");
-    expect(startStop.textContent).toBe("Старт");
-    expect(requireElement(".startover", parent).textContent).toBe("С начала");
-    expect(requireElement(".runinstant", parent).textContent).toBe("Прогнать мгновенно");
-    expect(requireElement(".timescale_increase", parent).getAttribute("aria-label")).toBe(
-      "Увеличить скорость симуляции",
-    );
+    expect(requireElement(".speed-val", parent).textContent).toBe("20×");
+    expect(startStop.textContent).toBe("Запустить");
+    expect(requireElement(".startover", parent).textContent).toBe("Заново");
+    expect(requireElement(".startover", parent).title).toBe("Начать прогон с самого начала");
+    expect(requireElement(".speed", parent).getAttribute("aria-label")).toBe("Скорость прогона");
+    expect(requireElement(".speed-up", parent).getAttribute("aria-label")).toBe("Быстрее");
 
     worldController.isPaused = false;
     presenter.update();
     expect(startStop.textContent).toBe("Пауза");
 
+    worldController.isPaused = true;
+    runStarted = true;
+    presenter.update();
+    expect(startStop.textContent).toBe("Продолжить");
+
     challengeEnded = true;
     presenter.update();
-    // The space in front is the gap between the icon and the word, and it is
-    // this module's own job rather than the translator's.
-    expect(startStop.textContent).toBe(" Заново");
+    expect(startStop.textContent).toBe("Запустить");
+    expect(startStop.title).toBe("Пустить прогон заново");
   });
 });
 
 describe("controlsTemplate", () => {
-  it("makes the time-scale controls real, labelled buttons", () => {
+  it("composes the two features in the order the mockup reads them", () => {
+    // `.runbox` then `.speed`: what the player came for, then the setting on
+    // how to watch it. Two elements rather than one wrapper each, because the
+    // stylesheet gives `.controls` the app bar's own gap and the pair then
+    // sits exactly where the mockup's own children of `.appbar` do.
     const fragment = renderFragment(controlsTemplate());
-    expect(fragment.querySelector("button.timescale_decrease")?.getAttribute("aria-label")).toBe(
-      "Decrease simulation speed",
-    );
-    expect(fragment.querySelector("button.timescale_increase")?.getAttribute("aria-label")).toBe(
-      "Increase simulation speed",
-    );
+
+    expect([...fragment.children].map((child) => child.className)).toEqual(["runbox", "speed"]);
   });
 
-  it("draws the three run buttons in one box, in the order they are read in", () => {
-    // Not decoration: the row wraps on a narrow page, and loose in it the
-    // three would break up one at a time. One box, so what drives the run
-    // wraps as the cluster it is -- and so the speed, which is a setting
-    // rather than a thing the player came for, stays on the far side of the
-    // row. Reset/undo-reset moved to the editor pane's own codetools (see
-    // `widgets/editor-pane`'s own tests) and are not drawn here any more.
+  it("draws both run buttons in one box, in the order they are read in", () => {
+    // One box, because these two are one thing -- the run -- where the speed
+    // beside them is a setting. Reset/undo-reset moved to the editor pane's
+    // own codetools (see `widgets/editor-pane`'s own tests), and "Run
+    // instantly" became the last stop of the speed control.
     const fragment = renderFragment(controlsTemplate());
-    const buttons = [...(fragment.querySelector(".runbuttons")?.children ?? [])];
+    const buttons = [...(fragment.querySelector(".runbox")?.children ?? [])];
 
     expect(buttons.map((button) => button.className)).toEqual([
-      "startstop unselectable",
-      "startover unselectable",
-      "runinstant unselectable",
+      "btn btn-primary startstop unselectable",
+      "btn startover unselectable",
     ]);
     expect(buttons.every((button) => button.getAttribute("type") === "button")).toBe(true);
   });
 
-  it("ships the three with no label at all, for the presenter to write", () => {
+  it("ships every word of it empty, for the presenter to write", () => {
     // The region is drawn once for the life of the page, so a label baked in
     // here would still be in the language the page opened in after a change of
-    // language. `presentControls.update` writes all three.
+    // language. `presentControls.update` writes all of them.
     const fragment = renderFragment(controlsTemplate());
-    const buttons = [...(fragment.querySelector(".runbuttons")?.children ?? [])];
 
-    expect(buttons.map((button) => button.textContent)).toEqual(["", "", ""]);
+    expect(
+      [...(fragment.querySelector(".runbox")?.children ?? [])].map((b) => b.textContent),
+    ).toEqual(["", ""]);
+    expect(fragment.querySelector(".speed-val")?.textContent).toBe("");
+    expect(fragment.querySelector(".speed")?.getAttribute("aria-label")).toBeNull();
   });
 
   it("announces the speed as it changes, without interrupting", () => {
-    // presentControls.update rewrites .timescale_value's text on every click of
+    // presentControls.update rewrites .speed-val's text on every click of
     // the two speed buttons, which without aria-live would happen in perfect
     // silence for a screen reader -- the number changes and nothing is said.
     // Polite rather than assertive: a player holding a speed button down can
     // change it several times a second, and an assertive region interrupts
     // whatever is already being read to announce each one in turn.
     const fragment = renderFragment(controlsTemplate());
-    expect(fragment.querySelector(".timescale_value")?.getAttribute("aria-live")).toBe("polite");
-  });
-});
-
-describe("the language the run controls come out in", () => {
-  afterEach(() => {
-    setLocale(DEFAULT_LOCALE);
-  });
-
-  it("names the speed controls", () => {
-    setLocale("ru");
-    const fragment = renderFragment(controlsTemplate());
-
-    expect(fragment.querySelector("button.timescale_decrease")?.getAttribute("aria-label")).toBe(
-      "Уменьшить скорость симуляции",
-    );
-    expect(fragment.querySelector("button.timescale_increase")?.getAttribute("aria-label")).toBe(
-      "Увеличить скорость симуляции",
-    );
+    expect(fragment.querySelector(".speed-val")?.getAttribute("aria-live")).toBe("polite");
   });
 });

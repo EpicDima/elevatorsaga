@@ -324,11 +324,30 @@ html[data-theme="light"] {
   --ds-text-muted: #5d6570;
   --ds-text-faint: #8b929c;
 
-  --ds-accent: #a8690c;
+  /*
+   * One percent darker than `design/ui-mockup.html`'s own `#a8690c`, and the
+   * one deviation from its light palette.
+   *
+   * White on `#a8690c` is 4.4767:1 -- WCAG 1.4.3 asks 4.5:1 for text this
+   * size, so the mockup's accent misses by 0.023. Nothing was painted with it
+   * until now: `.tasklink.is-current` (the level switcher's own entry for the
+   * level being played) has carried the pairing since Phase 12.2, and the run
+   * controls' primary button is the second and much louder use of it -- a
+   * button whose label changes on every press is not a place to be a hundredth
+   * short. `#a6680c` is the same hue and saturation with every channel scaled
+   * by 0.99, which puts it at 4.5584:1 and is not a difference the eye has any
+   * way to see beside the mockup's own.
+   *
+   * `-soft` and `-line` are the same three channels at 10% and 34%, and follow
+   * it rather than staying on the mockup's literal: they are the same colour,
+   * and two accents a percent apart in one palette is a thing a reader would
+   * have to stop and check.
+   */
+  --ds-accent: #a6680c;
   --ds-accent-hi: #8c5608;
   --ds-accent-ink: #ffffff;
-  --ds-accent-soft: rgb(168 105 12 / 10%);
-  --ds-accent-line: rgb(168 105 12 / 34%);
+  --ds-accent-soft: rgb(166 104 12 / 10%);
+  --ds-accent-line: rgb(166 104 12 / 34%);
   --ds-focus: var(--ds-accent);
 
   --ds-steel: #2f6fa8;
@@ -1395,21 +1414,21 @@ html[data-theme="dark"] .tasklink.is-done {
   white-space: nowrap;
 }
 
-/* ------------------------------------------------- Hotkeys and docs dialogs */
+/* ------------------------------------------------------------- Button chrome */
 
 /*
- * `design/ui-mockup.html`'s own `.btn` (§9): a bordered control the same
- * shape as `.task-open` (above) -- same height, radius and resting background
- * -- reused here for `.docsclose`/`.keysclose`, the one place either class is
- * drawn today (`docs-modal.ts`, `hotkeys-modal.ts`). Its hover state is not
- * shared, though: `.task-open` brightens its border to the themed accent
- * because it opens the level switcher, the one control this bar wants a
- * player's eye drawn to; `.btn` closes a dialog the player already opened, so
- * the mockup's own `.btn:hover` reaches for the neutral `--n-5` instead --
- * ported here as `--ds-n-5`, which nothing else in this file reads yet.
- * `.btn[hidden]` restates `display: none` for the reason `.taskmenu[hidden]`
- * (above) already does: `.btn` sets its own `display`, which a bare
- * `[hidden]` attribute alone does not override.
+ * `design/ui-mockup.html`'s own `.btn` (§7): a bordered control the same
+ * shape as `.task-open` (above) -- same height, radius and resting background.
+ * Three things wear it: the run controls' two buttons (`.runbox`, below), and
+ * `.docsclose`/`.keysclose` (`docs-modal.ts`, `hotkeys-modal.ts`). Its hover
+ * state is not `.task-open`'s, though: that one brightens its border to the
+ * themed accent because it opens the level switcher, the one control this bar
+ * wants a player's eye drawn to, while a `.btn` is pressed by somebody who
+ * already knows what it does -- so the mockup's own `.btn:hover` reaches for
+ * the neutral `--n-5` instead, ported here as `--ds-n-5`. `.btn[hidden]`
+ * restates `display: none` for the reason `.taskmenu[hidden]` (above) already
+ * does: `.btn` sets its own `display`, which a bare `[hidden]` attribute alone
+ * does not override.
  */
 .btn {
   display: flex;
@@ -1431,6 +1450,35 @@ html[data-theme="dark"] .tasklink.is-done {
 .btn[hidden] {
   display: none;
 }
+
+/*
+ * The one button on the page the eye is meant to land on first: the one that
+ * starts the run. Painted rather than outlined, so it is told apart from the
+ * `.btn` beside it before either is read.
+ *
+ * The mockup's `min-width: 106px` is here for completeness and is overridden
+ * wherever it is actually drawn -- `.runbox .btn` sets 152px, and specificity
+ * decides it -- because the only `.btn-primary` this port draws today is in
+ * that box. It is stated all the same, so that the next one drawn outside it
+ * does not have to rediscover the number.
+ *
+ * `.appbar > .btn-primary { flex: 0 0 auto }` is not ported. It matches nothing
+ * in the mockup either: every `.btn-primary` there is inside `.runbox`, a
+ * lesson's actions or the verdict card, and never a direct child of the bar.
+ */
+.btn-primary {
+  min-width: 106px;
+  border-color: transparent;
+  background: var(--ds-accent);
+  color: var(--ds-accent-ink);
+  font-weight: 600;
+}
+
+.btn-primary:hover {
+  background: var(--ds-accent-hi);
+}
+
+/* ------------------------------------------------- Hotkeys and docs dialogs */
 
 /*
  * The hotkeys dialog: `design/ui-mockup.html`'s own `.keys`/`.keys-*`/`.keyrow`
@@ -2232,58 +2280,140 @@ html[data-theme="dark"] .tasklink.is-done {
 /* ------------------------------------------------------------- Run controls */
 
 /*
- * What drives the run: the four buttons, and the speed.
+ * `design/ui-mockup.html`'s §7 (`.runbox`, `.speed`, `.speed-val`) and the part
+ * of its §14 that shrinks them: everything that drives the run, in the app bar.
  *
- * Its own row between the panels and the building, where the challenge bar used
- * to hold the start button and the speed and the editor held the other three.
- * The two groups sit at opposite ends because they are different kinds of
- * thing -- four things to press and one setting -- and `wrap` lets the speed
- * drop under the buttons rather than squeezing them, which is the order they
- * matter in.
+ * It had a row of its own between the learning track's panel and the building,
+ * and before that it was split between the challenge bar and the editor. Both
+ * are gone for the reason the mockup gives on this slot -- "в шапке, потому что
+ * оно нужно в любой раскладке, в том числе когда на экране только код" -- and
+ * the row cost the building a line of height on every layout besides.
+ * `#pages/game`'s `presentControls` has the rest of that history.
  *
- * The 15px column gap is the distance the speed and the start button stood apart
- * in the bar, where it was spelled as a trailing margin on the speed's `+` and a
- * leading one on the start button. The 10px row gap is what keeps the two from
- * touching once they are stacked.
+ * `.controls` is the one divergence. The mockup makes `.runbox` and `.speed`
+ * direct children of `.appbar`; here they share a mount, because one presenter
+ * composes both features and `index.html` has to ship the element it draws into
+ * (see that file). The mount takes `.appbar`'s own 14px `gap` so the pair sits
+ * exactly where the mockup puts it -- the bar spaces its children by the same
+ * distance -- and `.appbar > :not(.levelswitcher)` (§3) gives it the row's
+ * height, so nothing else about the bar has to know it is there.
  */
 .controls {
   display: flex;
-  flex-wrap: wrap;
+  gap: 14px;
   align-items: center;
-  justify-content: space-between;
-  gap: 10px 15px;
-  margin-block: 8px;
 }
 
 /*
- * Start/Pause, Start over, Reset code, Undo reset -- in that order, which is the
- * order they are reached for: the one every run needs, the one that begins the
- * run again, and then the two that act on the program rather than on the run.
- * The last of the four is `hidden` until there is a reset to undo, so this is a
- * row of three most of the time and the gap closes behind it by itself.
+ * The two run buttons. One box rather than two of the bar's own children,
+ * because the bar's 14px reads as "different things" and these two are one:
+ * "кнопки две, и они делают разное: одна ведёт прогон (пуск, пауза,
+ * продолжить), вторая начинает его с нуля".
  */
-.runbuttons {
+.runbox {
   display: flex;
-  flex-wrap: wrap;
+  gap: 6px;
   align-items: center;
-  gap: 5px;
 }
 
-.timescale {
-  font-size: 1.17em;
+/*
+ * Both run buttons one width, and a width that does not depend on what is
+ * written on them: the primary one says "Start", "Pause", "Resume" and
+ * "Crunching..." in turn, and without a floor under it the whole bar would be
+ * recut on every press -- with "Start over" beside it looking clipped. The
+ * mockup's own reason, and its own 152px.
+ *
+ * Specificity puts this over `.btn-primary`'s own `min-width` below, which is
+ * the mockup's arrangement too: 106px is what a primary button gets outside
+ * this box, and inside it both buttons match.
+ */
+.runbox .btn {
+  min-width: 152px;
+  justify-content: center;
+}
+
+/*
+ * The speed: two arrows and the reading between them, `#features/adjust-speed`.
+ *
+ * 28px buttons rather than the row's own 32: the group's 1px border and 1px of
+ * padding add two to each side, so the whole control comes to `--ds-ctl-h` and
+ * stands level with the buttons beside it.
+ */
+.speed {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 2px;
+  align-items: center;
+  padding: 1px;
+  border: 1px solid var(--ds-line);
+  border-radius: var(--ds-r-md);
+  background: var(--ds-bg);
+}
+
+.speed button {
+  display: flex;
+  width: 28px;
+  height: 28px;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--ds-r-sm);
+  color: var(--ds-text-muted);
+}
+
+.speed button:hover:not(:disabled) {
+  background: var(--ds-raised);
   color: var(--ds-text);
-  white-space: nowrap;
 }
 
-.timescale button {
-  padding: 4px;
-  line-height: 20px;
+/*
+ * At the ends of the list an arrow dims rather than disappearing: "строка не
+ * должна дёргаться от того, что скорость дошла до предела". Below 3:1 against
+ * the group behind it, and deliberately -- WCAG 1.4.11 exempts a disabled
+ * control, and dimming is the whole message.
+ */
+.speed button:disabled {
+  color: var(--ds-text-faint);
+  opacity: 0.35;
 }
 
-.timescale_value {
-  display: inline-block;
-  inline-size: 22px;
+/*
+ * Wide enough for "20x" and for the instant stop's "∞x" both, so that neither
+ * arrow moves when the reading changes under it. Monospace for the same reason
+ * the seed line is: a proportional "11x" and "20x" are different widths.
+ */
+.speed-val {
+  min-width: 36px;
+  color: var(--ds-text);
+  font-family: var(--ds-font-mono);
+  font-size: 12.5px;
   text-align: center;
+}
+
+/*
+ * The bar shrinking, step one: the labels go and the glyphs carry the buttons,
+ * with each button's `title` left to say the rest. The mockup's §14, less its
+ * `.ghost .lbl` -- the classes that rule names are the settings popover's
+ * openers, which this port draws with classes of their own and no `.lbl` inside
+ * either.
+ *
+ * The primary button keeps a floor under it, and a wider one than the 124px the
+ * mockup uses: its label is the one that changes on every press, so the row
+ * would move under the pointer without it, and this port has a fourth word for
+ * it -- "Crunching..." -- that the static page has no state for. 150px is what
+ * the longest of the four measures at this size in either language.
+ */
+@media (max-width: 1240px) {
+  .startover .lbl {
+    display: none;
+  }
+
+  .runbox .btn {
+    min-width: 0;
+  }
+
+  .startstop {
+    min-width: 150px;
+  }
 }
 
 /* ----------------------------------------------------------- Learning track */
@@ -2478,7 +2608,7 @@ html[data-theme="dark"] .tasklink.is-done {
  * the Russian for it -- and the two cannot share a line on a phone.
  *
  * What `nowrap` does here was measured rather than assumed, and it is not what
- * `.runbuttons` does: a flex item may shrink to its longest word, so the two
+ * `.runbox` does: a flex item may shrink to its longest word, so the two
  * stay on one line by becoming columns of two to four lines each. In Russian at
  * 320px that is 168.9px and 121.1px wide and 62px tall; in English it is 173.2px
  * and 116.8px wide and 46px tall. Wrapped -- what this rule actually sets --
@@ -2486,8 +2616,8 @@ html[data-theme="dark"] .tasklink.is-done {
  * second line once each has the row's full 300px to itself. Nothing overflows --
  * the squeezed pair comes to exactly the panel's 300px -- so what is lost is
  * only that a button stops looking like a button, which is enough. There were
- * three of these until the run controls were gathered into `.runbuttons`, and
- * with the third the squeeze was 5px wider than the panel and hung the last
+ * three of these until the run controls were gathered into a row of their own,
+ * and with the third the squeeze was 5px wider than the panel and hung the last
  * button over its edge; the `escapedButtons` measurement in
  * `e2e/tutorial.spec.ts` is what caught that.
  */
@@ -2558,7 +2688,6 @@ button[disabled] {
   cursor: default;
 }
 
-.runbuttons button,
 .tutorialbuttons button {
   block-size: 30px;
   padding-inline: 10px;
@@ -2570,11 +2699,6 @@ button[disabled] {
   font-weight: bold;
   line-height: 16px;
   text-shadow: 0 0 3px #aaa;
-}
-
-.startstop {
-  /* Wide enough for "Pause", "Start" and the "Restart" icon plus label. */
-  inline-size: 110px;
 }
 
 /*
@@ -2602,13 +2726,13 @@ button[disabled] {
  *
  * The browser default beyond that family is nothing: a bare <kbd> reads as
  * plain text run in with the sentence around it, which is exactly what made a
- * lone ⌘ easy to lose. The border, background and radius are the run
- * buttons' own (see .runbuttons button below), so a key reads as the same
- * kind of control-shaped mark this page already draws rather than a new
- * invention -- the conventional bordered key cap most sites reach for. The
+ * lone ⌘ easy to lose. The border, background and radius are the learning
+ * track's buttons' own (see .tutorialbuttons button below), so a key reads as
+ * the same kind of control-shaped mark this page already draws rather than a
+ * new invention -- the conventional bordered key cap most sites reach for. The
  * pairing is --ds-text on --ds-raised, which style.test.ts holds to 4.5:1 in
  * both themes (12.96:1 dark, 15.07:1 light) by way of .tutorialcopycode's own
- * use of the same two tokens. Bold for the reason the run buttons are bold
+ * use of the same two tokens. Bold for the reason those buttons are bold
  * too: heavier strokes are what keep a single character -- ⌘ chief among
  * them -- legible at the size a key is actually set at, without singling that
  * one glyph out from the letters beside it.
