@@ -90,8 +90,8 @@
 
             The href here is the first task, which is what a reader without
             JavaScript gets and what everybody gets before the app has drawn
-            anything. src/app/app.ts rewrites it to the first task not yet
-            cleared, so a player who did four yesterday is offered the fifth. It
+            anything. src/pages/game/index.ts rewrites it to the first task not
+            yet cleared, so a player who did four yesterday is offered the fifth. It
             is a real href either way, so opening it in a new tab, copying the
             address and the status bar all work.
           -->
@@ -163,7 +163,7 @@
         <div class="tutorial"></div>
 
         <!--
-          The run controls, drawn by presentControls in src/ui/presenters.ts.
+          The run controls, drawn by presentControls in src/pages/game/index.ts.
           Here, between the panels and the building, because they act on the
           building and belong against it; and outside everything that gets
           redrawn, because they are the one region that has to survive a
