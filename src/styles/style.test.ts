@@ -343,7 +343,7 @@ describe("kbd and .hint", () => {
     // #fitness_message -- but unlike those two, every word in it is either a
     // key combination or the sentence naming one, including a Mac player's
     // lone ⌘. 14px is what the rest of the page's secondary text is set at
-    // (.tutorialprogress, .challengeseed, .challengelink).
+    // (.tutorialprogress, .challengelink).
     expect(declaration(ruleBody(".hint"), "font-size", ".hint")).toBe("14px");
   });
 });

@@ -4,11 +4,9 @@
  * `app-bar.ts` already builds and the `.task` level switcher
  * `widgets/level-switcher` builds.
  *
- * Nothing here is reachable yet. `presentAppBarSettings` is built and tested
- * the same "build inert first" way every widget in this migration has been —
- * not called from `index.html` or `src/app/app.ts`, and not yet the whole app
- * bar: composing this with `app-bar.ts`'s brand and `level-switcher.ts`'s
- * `.task` into one row is later work, when the workspace shell is wired live.
+ * `presentAppBarSettings` is mounted live from `src/main.ts`, composed with
+ * `app-bar.ts`'s brand and `level-switcher.ts`'s `.task` into the one app bar
+ * row the workspace shell draws.
  *
  * ## What this composes
  *
@@ -30,8 +28,10 @@
  *   call to it against `index.html`'s `.languagepicker`.
  * - Seed is `seedPanelTemplate`, a plain markup function with nothing to
  *   wire — see its own module comment — so it is inserted with `raw()`
- *   straight into {@link appBarSettingsTemplate}'s returned markup and never
- *   touched again by the presenter half below.
+ *   straight into {@link appBarSettingsTemplate}'s returned markup, inside a
+ *   `[data-set-block="seed"]` wrapper the presenter half below re-renders
+ *   into whenever a later run's seed differs from this one, the same
+ *   fill-a-placeholder shape the theme and layout blocks use.
  *
  * ## The two openers
  *
@@ -118,7 +118,7 @@ export function appBarSettingsTemplate(seed: SeedLinkData | null): string {
   const originalLabel = t("game.appBar.aboutOriginalLabel");
   const copyright = t("game.appBar.aboutCopyright");
 
-  return markup`<button type="button" class="ghost docsopen" title="${docsLabel}" aria-haspopup="dialog">${raw(spriteIconMarkup("book"))}<span class="lbl">${docsLabel}</span></button><div class="setwrap"><button type="button" class="ghost setopen" aria-expanded="false" aria-haspopup="true" title="${settingsLabel}" aria-label="${settingsLabel}">${raw(spriteIconMarkup("slider"))}<span class="lbl">${settingsLabel}</span></button><div class="setmenu" hidden><div class="setblock" data-set-block="theme"><span class="cap">${themeCaption}</span></div><div class="setblock" data-set-block="layout"><span class="cap">${layoutCaption}</span></div><div class="setblock"><span class="cap">${languageCaption}</span><select class="langpick" aria-label="${languageCaption}"></select></div>${raw(seedPanelTemplate(seed))}<div class="setblock"><button type="button" class="setrow keysopen" aria-haspopup="dialog">${raw(spriteIconMarkup("keys"))}<span>${hotkeysLabel}</span>${raw(spriteIconMarkup("right", "chev"))}</button></div><div class="setblock"><span class="cap">${aboutCaption}</span><a class="setlink" href="${FORK_URL}" target="_blank" rel="noreferrer">${raw(spriteIconMarkup("link"))}<span><b>${forkLabel}</b><small>${FORK_DOMAIN}</small></span></a><a class="setlink" href="${ORIGINAL_URL}" target="_blank" rel="noreferrer">${raw(spriteIconMarkup("link"))}<span><b>${originalLabel}</b><small>${ORIGINAL_DOMAIN}</small></span></a><p class="sethint">${copyright}</p></div></div></div>`;
+  return markup`<button type="button" class="ghost docsopen" title="${docsLabel}" aria-haspopup="dialog">${raw(spriteIconMarkup("book"))}<span class="lbl">${docsLabel}</span></button><div class="setwrap"><button type="button" class="ghost setopen" aria-expanded="false" aria-haspopup="true" title="${settingsLabel}" aria-label="${settingsLabel}">${raw(spriteIconMarkup("slider"))}<span class="lbl">${settingsLabel}</span></button><div class="setmenu" hidden><div class="setblock" data-set-block="theme"><span class="cap">${themeCaption}</span></div><div class="setblock" data-set-block="layout"><span class="cap">${layoutCaption}</span></div><div class="setblock"><span class="cap">${languageCaption}</span><select class="langpick" aria-label="${languageCaption}"></select></div><div data-set-block="seed">${raw(seedPanelTemplate(seed))}</div><div class="setblock"><button type="button" class="setrow keysopen" aria-haspopup="dialog">${raw(spriteIconMarkup("keys"))}<span>${hotkeysLabel}</span>${raw(spriteIconMarkup("right", "chev"))}</button></div><div class="setblock"><span class="cap">${aboutCaption}</span><a class="setlink" href="${FORK_URL}" target="_blank" rel="noreferrer">${raw(spriteIconMarkup("link"))}<span><b>${forkLabel}</b><small>${FORK_DOMAIN}</small></span></a><a class="setlink" href="${ORIGINAL_URL}" target="_blank" rel="noreferrer">${raw(spriteIconMarkup("link"))}<span><b>${originalLabel}</b><small>${ORIGINAL_DOMAIN}</small></span></a><p class="sethint">${copyright}</p></div></div></div>`;
 }
 
 /** What {@link presentAppBarSettings} needs in order to drive the toolbar it fills in. */
@@ -152,6 +152,13 @@ export interface AppBarSettingsController {
   notifySystemThemeChange(): void;
   /** Marks a layout mode as the pressed one, without calling {@link AppBarSettingsOptions.onSelectLayout} — see `LayoutSwitchController.setActiveMode`. */
   setActiveLayoutMode(mode: LayoutModeId): void;
+  /**
+   * Redraws the seed block for the run now in progress, or clears it for
+   * `null` — the popover's own equivalent of {@link setActiveLayoutMode},
+   * for the one block {@link appBarSettingsTemplate} otherwise only ever
+   * draws once, at mount, from whatever run was current then.
+   */
+  setSeed(seed: SeedLinkData | null): void;
 }
 
 /**
@@ -178,6 +185,7 @@ export function presentAppBarSettings(
   const setMenu = requireElement(".setmenu", parent);
   const themeBlock = requireElement('[data-set-block="theme"]', parent);
   const layoutBlock = requireElement('[data-set-block="layout"]', parent);
+  const seedBlock = requireElement('[data-set-block="seed"]', parent);
   const keysOpen = requireElement(".keysopen", parent);
 
   const languageSelect = requireElement(".langpick", parent);
@@ -243,6 +251,9 @@ export function presentAppBarSettings(
     },
     setActiveLayoutMode(mode: LayoutModeId): void {
       layout.setActiveMode(mode);
+    },
+    setSeed(seed: SeedLinkData | null): void {
+      seedBlock.innerHTML = seedPanelTemplate(seed);
     },
   };
 }

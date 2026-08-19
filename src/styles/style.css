@@ -527,6 +527,34 @@ dl dd {
   fill: currentColor;
 }
 
+/*
+ * `design/ui-mockup.html`'s own icon family (`spriteIconMarkup` in
+ * `#shared/ui/icon.ts`) gets its own wrapper class, `ds-icon` rather than
+ * `icon`, precisely so it would not inherit the rule above by accident: this
+ * family is fixed-pixel, not em-relative, and `icon.ts`'s own module comment
+ * says as much -- "this module has no stylesheet rule for `.ds-icon` yet."
+ * Ported here from the mockup's own `.icon` rule (§1) now that a live widget
+ * needs it: `widgets/app-bar`'s `.docsopen` button draws one of this family's
+ * glyphs directly inside `.header`'s `flex-direction: column`, and a
+ * `viewBox`-only SVG with no intrinsic size stretches to fill whatever
+ * cross-axis width that gives it. Measured live before this rule: a 16x16
+ * book glyph rendered 1220px square, the header carrying it 2682.9px tall,
+ * and `e2e/seed.spec.ts`'s "does not move the caveat's own control" failing
+ * by 2548px on a control that itself never moved -- see this file's own "App
+ * bar" section, where that same test's other half is fixed, for the rest of
+ * that account.
+ */
+.ds-icon {
+  display: block;
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentcolor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
 /* ------------------------------------------------------------------- Shell */
 
 /*
@@ -835,6 +863,149 @@ html[data-layout="left"] .splitter {
   outline-offset: 0;
 }
 
+/* ------------------------------------------------------------------ App bar */
+
+/*
+ * The brand mark: `design/ui-mockup.html`'s own `.brand-mark` (§3) -- the one
+ * rule taken from that section this phase, ahead of the rest of it.
+ *
+ * `widgets/app-bar` has drawn this SVG live since the app bar itself was
+ * mounted, but nothing has sized it in the meantime -- `buildAppBarSkeleton`'s
+ * own comment calls the rest of `.appbar`/`.brand` "a later phase of the same
+ * migration," and this is the one piece of that phase this one could not wait
+ * for. An inline SVG with a `viewBox` and no `width`/`height` attribute has no
+ * intrinsic size of its own, only its viewBox's 1:1 ratio to fill whatever box
+ * it is given -- and `.header`'s `flex-direction: column` stretches its
+ * block-level children to the row's own width by default, so the mark grew to
+ * match it, square, well past a thousand pixels a side. Measured live at
+ * 1280px before this rule: the icon 1220px square, the header carrying it
+ * 2682.9px tall, and the settings control beneath it pushed far enough down
+ * the document that opening its own popover looked -- to a test measuring
+ * that control's own position -- exactly like the reflow defect this
+ * section's next rule already fixed once: `.setmenu` itself never moved, but
+ * `e2e/seed.spec.ts`'s "does not move the caveat's own control" failed by
+ * 2548px anyway, because the header above it had.
+ *
+ * `--ds-bar-h` and `--ds-ctl-h`, both declared and still unused above, are
+ * still waiting on the rest of `.appbar`/`.brand`/`.task`; this is only the
+ * one rule needed to stop an unsized replaced element from consuming the
+ * page in the meantime.
+ */
+.brand-mark {
+  width: 22px;
+  height: 22px;
+  color: var(--ds-accent);
+}
+
+/*
+ * The settings popover: `design/ui-mockup.html`'s own `.setwrap`/`.setmenu`
+ * rules (§A), ported the same way `.workspace`/`.pane`/`.splitter` above
+ * were -- only the `--ds-*` tokens these rules themselves read are adopted
+ * here, the rest of the page still on the older names until the widget that
+ * reads them is cut over too. `widgets/app-bar` builds the elements these
+ * rules style; see that module's own comment for what each block composes.
+ *
+ * `color: var(--ds-text)` is added here, past what the mockup itself
+ * declares: this popover is where the defect `.challengeseed` used to carry
+ * a fix for now lives -- an opaque `.setmenu` sitting over `<body>` needs a
+ * text colour stated on it or beneath it, or everything in it that is not a
+ * `<p>` or a heading falls back to `<body>`'s own `color: white`, which the
+ * document rules never repair. `--color-text` (#444) was that fix's own
+ * token, but it is not theme-aware, and paired with `--ds-panel`'s
+ * dark-theme value it holds at roughly 1.75:1 -- worse than the 1.91:1 this
+ * exists to fix. `--ds-text` is `--ds-panel`'s own matched companion token,
+ * at roughly 14:1 in dark and higher still in light, meeting WCAG 1.4.3 in
+ * both.
+ */
+.setwrap {
+  position: relative;
+}
+
+.setmenu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  width: 292px;
+  gap: 14px;
+  padding: 12px;
+  border: 1px solid var(--ds-line-strong);
+  border-radius: var(--ds-r-lg);
+  background: var(--ds-panel);
+  color: var(--ds-text);
+  box-shadow: var(--ds-shadow);
+}
+
+.setmenu[hidden] {
+  display: none;
+}
+
+.setblock .cap {
+  display: block;
+  margin-bottom: 7px;
+}
+
+.sethint {
+  margin: 7px 0 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--ds-text-faint);
+}
+
+.setblock .langpick {
+  width: 100%;
+}
+
+.setlink {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 6px 7px;
+  border-radius: var(--ds-r-md);
+  color: var(--ds-text-muted);
+  text-decoration: none;
+}
+
+.setlink + .setlink {
+  margin-top: 2px;
+}
+
+.setlink:hover {
+  background: var(--ds-raised);
+  color: var(--ds-text);
+}
+
+.setlink .ds-icon {
+  flex: none;
+  color: var(--ds-text-faint);
+}
+
+.setlink:hover .ds-icon {
+  color: var(--ds-accent);
+}
+
+.setlink span {
+  min-width: 0;
+}
+
+.setlink b {
+  display: block;
+  color: var(--ds-text);
+  font-size: 12.5px;
+  font-weight: 650;
+}
+
+.setlink small {
+  display: block;
+  overflow: hidden;
+  font-family: var(--ds-font-mono);
+  font-size: 11.5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 /* --------------------------------------------------------- Challenge bar */
 
 /*
@@ -973,52 +1144,6 @@ html[data-layout="left"] .splitter {
 }
 
 /*
- * The seed of the run in progress.
- *
- * Deliberately plain: no border, no fill, nothing that would make a debugging
- * aid look like one of the controls the game is played with. It is the same
- * 14px as the challenge numbers it shares a line with, because text small enough
- * to disappear is text nobody can transcribe, and the point of the thing is that
- * it gets read out and typed back.
- *
- * A flex row rather than a run of inline text, because the line carries two
- * separate things -- the seed, and the one link that acts on it -- and a word
- * space is not enough to tell a seed from what follows it. Wrapping is on: at
- * 320px they do not always fit beside each other, and a line that will not wrap
- * is a page that has to be read by panning sideways (WCAG 1.4.10).
- *
- * A basis of the full width, so that it is a line under the challenge numbers
- * rather than something that might fit beside them. It used to fit beside them,
- * and opening the disclosure at the end of it is what showed why that was wrong:
- * the panel widens this box, the widened box no longer fits next to twenty
- * challenge links, and the whole line dropped below them -- carrying the summary
- * the player had just clicked 1119px to the left and 54px down, out from under
- * the pointer that clicked it. What made that happen was the line's width being
- * a function of what was open. A full-width basis is not.
- *
- * The colour is stated rather than inherited, and that is the whole reason this
- * declaration exists: the line used to be a `<p>`, which the rule at the top of
- * this file paints with `--color-text`, and it had to become a `<div>` to hold a
- * `<details>` the parser would otherwise have thrown out of it. Everything on
- * the line that is not a link -- the word "Seed", a pinned run's seed, the
- * disclosure's own summary -- then fell back to the `color: white` on `<body>`,
- * which is 1.91:1 on this page against the 4.5:1 WCAG 1.4.3 asks for. The
- * characters that have to be transcribed are exactly the ones that went pale.
- */
-.challengeseed {
-  flex-basis: 100%;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 2px 8px;
-  margin: 0;
-  padding-block: 2px 8px;
-  color: var(--color-text);
-  font-size: 14px;
-  line-height: 18px;
-}
-
-/*
  * The seed itself, which is the part that has to be read character by character.
  * The monospace face is what tells a 1 from an l and a 0 from an O -- and it is
  * on the seed whether or not it is a link, since a pinned run's seed is plain
@@ -1058,39 +1183,25 @@ html[data-layout="left"] .splitter {
 /*
  * The disclosure that explains what a seed does and does not bring back.
  *
- * There is deliberately no rule here about where it goes. It used to have one --
- * `[open] { flex-basis: 100% }`, to give the sentence the whole line to lay out
- * across -- and that rule is what moved the summary out from under the pointer
- * that had just clicked it: opening the panel changed which line the disclosure
- * belonged on. Left alone, the panel takes the width it asks for where there is
- * room for it and wraps onto its own line where there is not, and the summary
- * stays exactly where it was at 640px and wider.
- *
- * Narrower than that it does move, and on both axes, which is worth writing down
- * because the obvious guess is that it only drops a line. Below about 590px in
- * English and a little less in Russian, the open panel no longer fits beside the
- * seed, so the whole disclosure wraps and takes its summary with it. That width
- * moves with the seed -- a drawn seed is anywhere from one digit to ten, and
- * every digit narrows the room the panel has beside it -- so it is not a number
- * worth fixing in place, and neither is how far sideways the summary had drifted
- * before the wrap: it lands back at the very start of the line, all of that
- * distance and not part of it. What is fixed is the drop -- 21px -- measured on
- * challenge 18 with the seed both pinned and freshly drawn, in both languages,
- * and the same at every width from the wrap down to 320px. What makes that
- * reflow rather than a control running away is that nothing follows it into the
- * space -- the point it left is bare `.challengeseed`, so the click that chases
- * it is a dead one rather than a different button. Pinning the summary would
- * cost a line of bar at every width, which is what the disclosure was made a
- * `<details>` to avoid.
+ * There is deliberately no rule here about where it opens. The seed block
+ * lives in `.setmenu`'s own vertical stack now, one plain block after
+ * another -- `.setblock` carries no layout of its own -- so a `<details>`
+ * opening only ever pushes what follows it in the popover further down, and
+ * never moves its own `<summary>`. That is what the old horizontal
+ * `.challengeseed` row on the challenge bar could not promise: a flex-wrap
+ * row reflows when one of its items changes size, which is exactly what
+ * used to carry this summary out from under the pointer that had just
+ * clicked it. A column has no such row to reflow within.
  *
  * The pointer cursor is the one thing the UA does not supply: `<summary>` is a
  * control, and it is the only one on this line that does not already look like
  * a link.
  *
  * `fit-content` keeps the control the size of its words. A `<summary>` is a
- * block, so open it stretches to whatever width the panel below it took -- 449px
- * of it here, of which 101px had any writing on. The rest was a control that
- * looked like empty bar and closed the panel when clicked.
+ * block, so left alone it stretches to `.setblock`'s own width -- the whole
+ * span of the popover, of which only a handful of characters had any writing
+ * on. The rest was a control that looked like empty space and closed the
+ * panel when clicked.
  */
 .seedhelp > summary {
   inline-size: fit-content;
@@ -1197,7 +1308,7 @@ html[data-layout="left"] .splitter {
  * size of its type, which is what sets every other region here apart.
  *
  * The colour is the whole reason this rule exists, and it is the defect written
- * up at `.challengeseed`: `<body>` paints everything `white`, which is 1.91:1 on
+ * up at `.setmenu`: `<body>` paints everything `white`, which is 1.91:1 on
  * this page against the 4.5:1 WCAG 1.4.3 asks for, and the document rules repair
  * that for `p` and for the headings only. The four `<summary>` elements are
  * neither, so left alone the panel's four controls would be the palest thing on
@@ -1519,9 +1630,9 @@ button[disabled] {
  * 12px was the smallest text on the page, and the one place it sat on a
  * combination of keys rather than a sentence -- Ctrl+Enter, Tab, Esc, and on a
  * Mac the dense single glyph of ⌘. 14px/18px is what the rest of the page's
- * secondary text is set at (.tutorialprogress, .challengeseed,
- * .challengelink): still the quiet line under the grip rather than a heading,
- * but no longer the smallest thing here.
+ * secondary text is set at (.tutorialprogress, .challengelink): still the
+ * quiet line under the grip rather than a heading, but no longer the
+ * smallest thing here.
  */
 .hint {
   margin-block: 4px;

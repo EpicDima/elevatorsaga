@@ -51,6 +51,7 @@ import {
   appBarSettingsTemplate,
   buildAppBarSkeleton,
   presentAppBarSettings,
+  type AppBarSettingsController,
 } from "#widgets/app-bar/index.ts";
 import { presentEditorPane } from "#widgets/editor-pane/index.ts";
 import {
@@ -132,6 +133,12 @@ async function main(): Promise<void> {
   let editorRef: CodeEditor | undefined;
   // eslint-disable-next-line prefer-const -- see editorRef, just above.
   let appRef: App | undefined;
+  // `App` is built (and runs its first route, through `startRouter`) well
+  // before `presentAppBarSettings` exists to hand its `onSeedChange` option
+  // a real target -- the popover it returns a controller for is assembled
+  // much further down, once the app bar itself is. Same cell, same reason.
+  // eslint-disable-next-line prefer-const -- see editorRef, above.
+  let settingsControllerRef: AppBarSettingsController | undefined;
 
   const editorPane = presentEditorPane(requireElement(".code"), {
     currentSlot: () => appRef?.currentCodeSlot ?? DEFAULT_CODE_SLOT,
@@ -269,6 +276,9 @@ async function main(): Promise<void> {
     editorPane,
     worldController: createWorldController(TICK_SECONDS),
     challenges,
+    onSeedChange: (seed) => {
+      settingsControllerRef?.setSeed(seed);
+    },
   });
   appRef = app;
 
@@ -419,6 +429,7 @@ async function main(): Promise<void> {
       hotkeysModal.open();
     },
   });
+  settingsControllerRef = settingsController;
   darkQuery.addEventListener("change", () => {
     settingsController.notifySystemThemeChange();
   });

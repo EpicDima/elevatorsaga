@@ -18,6 +18,7 @@ import {
   MemoryStorage,
   fullStorage,
 } from "../ui/test-helpers.ts";
+import type { SeedLinkData } from "../ui/templates.ts";
 import { App, TIME_SCALE_STORAGE_KEY, readStoredTimeScale } from "./app.ts";
 import type { AppElements } from "./app.ts";
 import { parseQuery, resolveRoute, startRouter } from "./router.ts";
@@ -70,9 +71,15 @@ interface Harness {
  * @param code - The program the editor starts with.
  * @param storage - The store the app and its editor share. A working one unless
  * a spec is about what happens when the browser's is not.
+ * @param onSeedChange - The app's `onSeedChange` option; a no-op unless a
+ * spec is about that callback itself.
  * @returns Everything the tests need to drive the app.
  */
-function setUp(code: string = INERT_CODE, storage: Storage = new MemoryStorage()): Harness {
+function setUp(
+  code: string = INERT_CODE,
+  storage: Storage = new MemoryStorage(),
+  onSeedChange: (seed: SeedLinkData | null) => void = () => undefined,
+): Harness {
   const elements: AppElements = {
     controls: createElement("div", { className: "controls" }),
     tutorial: createElement("div", { className: "tutorial" }),
@@ -144,6 +151,7 @@ function setUp(code: string = INERT_CODE, storage: Storage = new MemoryStorage()
     challenges: CHALLENGES,
     storage,
     requestAnimationFrame: () => undefined,
+    onSeedChange,
   });
   appRef = app;
   return { app, elements, editor, editorPane, editorPaneMount, view, worldController, storage };
@@ -1832,6 +1840,37 @@ describe("App seed", () => {
 
     expect(app.currentSeedLink?.newDrawUrl).toBeNull();
     expect(app.currentSeedLink?.url).toBe(`#challenge=1,seed=${seed}`);
+  });
+
+  it("tells a caller built before the first run what each later run's seed is", () => {
+    // The whole reason AppOptions.onSeedChange exists: something mounted once,
+    // ahead of `startRouter` resolving the first route, still has to learn
+    // about every run after that one -- `currentSeedLink` alone only ever
+    // answers for whatever is on screen right now.
+    const seen: (SeedLinkData | null)[] = [];
+    const { app } = setUp(INERT_CODE, new MemoryStorage(), (seed) => seen.push(seed));
+
+    app.handleRoute(...routeFor("#challenge=1,seed=issue-61"));
+    expect(seen.at(-1)?.seed).toBe("issue-61");
+
+    app.handleRoute(...routeFor("#challenge=2"));
+    expect(seen.at(-1)?.seed).not.toBe("issue-61");
+  });
+
+  it("tells that caller again on a language change, even when the seed itself did not change", () => {
+    // `seedPanelTemplate` calls `t(...)` fresh on every render, so a caller
+    // holding stale markup is stale in the same way the rest of the challenge
+    // bar would be without `relocalise`'s own call to `#drawChallengeBar`.
+    const seen: (SeedLinkData | null)[] = [];
+    const { app } = setUp(INERT_CODE, new MemoryStorage(), (seed) => seen.push(seed));
+    app.handleRoute(...routeFor("#challenge=1,seed=issue-61"));
+    const callsBeforeRelocalise = seen.length;
+
+    setLocale("ru");
+    app.relocalise();
+
+    expect(seen.length).toBeGreaterThan(callsBeforeRelocalise);
+    expect(seen.at(-1)?.seed).toBe("issue-61");
   });
 });
 

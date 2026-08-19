@@ -54,20 +54,18 @@ test("pins the run a player is looking at, and replays it on reload", async ({ p
   await seedLink.click();
   await expect(page).toHaveURL(new RegExp(`#challenge=4,timescale=8,seed=${seed}$`));
 
-  // `src/main.ts` builds the popover once, from the seed the page loaded
-  // with, and nothing re-renders it on a same-page navigation like the click
-  // just above -- see `seedPanelTemplate`'s own module comment on why it has
-  // nothing to wire. So the panel itself still shows the pre-pin shape here;
-  // a reload is what actually shows the pin took, which is also the case the
-  // feature exists for: the player comes back to the run they were failing
-  // on rather than to a fresh one.
-  await page.reload();
-  await openSettingsMenu(page);
+  // `App.onSeedChange` fires from `#drawChallengeBar`, which the router's own
+  // `hashchange` handling reaches on every navigation including this one, so
+  // the panel already shows the pin without a reload.
   await expect(page.locator(SEED_VALUE)).toHaveText(seed);
   await expect(page.locator(SEED_LINK)).toHaveCount(0);
   await expect(page.locator(NEW_DRAW_LINK)).toHaveAttribute("href", "#challenge=4,timescale=8");
 
-  // A second reload is the replay itself.
+  // A reload is the replay itself, and the case the feature exists for: the
+  // player comes back to the run they were failing on rather than to a fresh
+  // one. Kept as its own assertion, distinct from the live update above,
+  // since a page freshly loaded builds the popover from `app.currentSeedLink`
+  // directly rather than through `onSeedChange` -- both paths have to agree.
   await page.reload();
   await openSettingsMenu(page);
   await expect(page.locator(SEED_VALUE)).toHaveText(seed);
@@ -87,21 +85,15 @@ test("lets a pinned run go back to a fresh draw, and back again", async ({ page 
   // The speed the player chose came along, exactly as it does through the
   // navigation row.
   await expect(page.locator(".timescale_value")).toHaveText("8x");
-
-  // Same popover-does-not-live-update gap as the test above: reloaded so the
-  // panel actually shows the fresh draw the click already navigated to.
-  await page.reload();
-  await openSettingsMenu(page);
+  // The panel already shows the fresh draw the click just navigated to --
+  // see the note on `App.onSeedChange` in the test above.
   const drawn = await page.locator(SEED_LINK).innerText();
   expect(drawn).not.toBe("issue-61");
 
   // And the browser's own way back reaches the pinned run again, because
-  // every one of these moves is a real navigation -- reloaded once more, for
-  // the same reason as above.
+  // every one of these moves is a real navigation.
   await page.goBack();
   await expect(page).toHaveURL(/#challenge=4,timescale=8,seed=issue-61$/);
-  await page.reload();
-  await openSettingsMenu(page);
   await expect(page.locator(SEED_VALUE)).toHaveText("issue-61");
 });
 
@@ -134,10 +126,11 @@ test("opens the caveat from the keyboard", async ({ page }) => {
 
   // The old version of this test went on to click the seed link and check the
   // caveat survived the challenge bar's own full-`innerHTML` rebuild, which
-  // `presentChallenge` used to go to some trouble to preserve across. The
-  // popover this seed block lives in now is never rebuilt at all -- see the
-  // note on the same gap in the two tests above -- so there is no rebuild
-  // left here for the caveat's open state to be lost across.
+  // `presentChallenge` used to go to some trouble to preserve across. This
+  // test never clicks the link at all, so there is no rebuild here for the
+  // caveat's open state to be lost across -- `AppBarSettingsController.setSeed`
+  // does now rebuild the seed block on every run change, but only the two
+  // tests above exercise that path, and neither reopens the caveat afterwards.
 });
 
 /**
@@ -158,30 +151,22 @@ test("opens the caveat from the keyboard", async ({ page }) => {
  * by side, and opening the disclosure moved the summary by over 2000px, not
  * the hundred or so pixels the old bug moved it by.
  *
- * `widgets/workspace-layout`'s pane-splitting stylesheet has since landed --
- * `.workspace`/`.pane`/`.splitter` in `src/styles/style.css` -- which is what
- * that removal note asked the next person to come back for. But the seed
- * block itself moved in the same phase, from the challenge bar's
- * `.challengeseed` (styled) into the app bar's settings popover, and
- * `.setmenu`/`.setwrap`/`.setblock` carry no rule of their own yet --
- * confirmed by grep, and by measuring it: forcing `.setmenu` open the way
- * every test above does, the disclosure's `<summary>` sat at `y: 2846` before
- * opening the caveat and `y: 438` after, at 1280px, a jump of the same shape
- * as the bug this test exists to catch, for an unrelated reason -- the
- * popover has no `position: absolute` (`design/ui-mockup.html`'s own
- * `.setwrap`/`.setmenu` rules give it one), so it renders in normal document
- * flow and reshuffles the whole page around itself. `seedPanelTemplate`'s own
- * module comment says why style.css is not touched for this block in this
- * phase: a later stylesheet is expected to give the whole popover its real
- * shape at once, positioning included, rather than this test's fix alone
- * pre-empting part of it.
+ * `widgets/workspace-layout`'s pane-splitting stylesheet landed a phase later
+ * -- `.workspace`/`.pane`/`.splitter` in `src/styles/style.css` -- but that
+ * alone was not enough: the seed block itself had also moved, from the
+ * challenge bar's `.challengeseed` (styled) into the app bar's settings
+ * popover, and `.setmenu`/`.setwrap` carried no rule of their own yet, so it
+ * rendered in normal document flow and reshuffled the whole page around
+ * itself opening the caveat did -- the same 2000px-class jump, for the same
+ * missing-`position: absolute` reason, one level up.
  *
- * Left as `fixme` rather than deleted again, so the next person has a real
- * assertion to turn on instead of another placeholder to write from scratch:
- * whoever ports `.setwrap`/`.setmenu`'s positioning should un-`fixme` this and
- * confirm it passes at 1280 and 1040 before calling that work done.
+ * `.setwrap`/`.setmenu`'s own positioning has since been ported from
+ * `design/ui-mockup.html` into `src/styles/style.css` (see the "App bar"
+ * section there), so the popover is now a fixed-size overlay the disclosure
+ * opens inside rather than a block that reshuffles the page under itself.
+ * Un-`fixme`d and confirmed passing at both widths below.
  */
-test.fixme("does not move the caveat's own control when it is opened", async ({ page }) => {
+test("does not move the caveat's own control when it is opened", async ({ page }) => {
   await page.goto("/#challenge=4");
 
   for (const width of [1280, 1040]) {
@@ -212,28 +197,34 @@ test.fixme("does not move the caveat's own control when it is opened", async ({ 
 });
 
 /**
- * `.cap` and `.seedhelp > summary` measure `rgb(255, 255, 255)` on this
- * page's `rgb(191, 189, 159)` body -- the exact 1.91:1-class failure this
- * test was written to catch, reappeared here because `.setblock`/`.setmenu`
- * carry none of `.challengeseed`'s old `color: var(--color-text)`, and
- * `seedPanelTemplate`'s own module comment says style.css is deliberately not
- * touched for this block in this phase. Verified live, not guessed: measured
- * via `getComputedStyle` against the real popover, forced open the same way
- * every test above opens it.
+ * `.cap` and `.seedhelp > summary` used to measure `rgb(255, 255, 255)` on
+ * this page's `rgb(191, 189, 159)` body -- the exact 1.91:1-class failure
+ * this test was written to catch, reappeared here because `.setblock`/
+ * `.setmenu` carried none of `.challengeseed`'s old `color: var(--color-text)`.
+ * Verified live, not guessed: measured via `getComputedStyle` against the
+ * real popover, forced open the same way every test above opens it.
  *
- * Marked `fixme` rather than left to fail the suite, or silently loosened --
- * the assertions below are real and should stay exactly this strict.
- * Whoever gives `.setmenu`/`.setblock` their own colour rule should un-`fixme`
- * this alongside it.
+ * Fixed in `src/styles/style.css`'s "App bar" section with
+ * `color: var(--ds-text)` on `.setmenu` -- not `--color-text`, the token the
+ * defect's own original fix used: `--color-text` is not theme-aware, and
+ * paired with `--ds-panel`'s dark-theme value it holds at roughly 1.75:1,
+ * worse than the bug. `--ds-text` is `--ds-panel`'s own matched companion
+ * token, at roughly 14:1 in dark and higher still in light. See that CSS
+ * section's own comment for the full account.
+ *
+ * `page_` (measured against `document.body`) is now `panel` (measured against
+ * `.setmenu` itself): `.setmenu` gained its own opaque, positioned background
+ * in the same change, so `document.body`'s background is no longer what a
+ * reader actually sees behind this text -- `.setmenu` sits over it. Un-`fixme`d
+ * and confirmed passing.
  */
-test.fixme("keeps every word of the seed line readable, in both of its states", async ({
-  page,
-}) => {
+test("keeps every word of the seed line readable, in both of its states", async ({ page }) => {
   // The seed line was a `<p>`, and `p` is one of the few selectors the
   // stylesheet paints with `--color-text`; it had to become a `<div>` to hold
-  // the disclosure, and everything on it that is not a link fell back to the
-  // `color: white` on `<body>` -- 1.91:1 on this page, where WCAG 1.4.3 asks
-  // 4.5:1. The characters that went pale were the ones a player transcribes.
+  // the disclosure, and everything on it that is not a link fell back to
+  // whatever was behind it -- 1.91:1 on this page at the time, where WCAG
+  // 1.4.3 asks 4.5:1. The characters that went pale were the ones a player
+  // transcribes.
   //
   // Measured here rather than in `src/styles/style.css`, which checks that
   // the palette's pairs are legible but not which elements ask for them: this
@@ -250,7 +241,11 @@ test.fixme("keeps every word of the seed line readable, in both of its states", 
           0.2126 * channel(red / 255) + 0.7152 * channel(green / 255) + 0.0722 * channel(blue / 255)
         );
       };
-      const page_ = luminance(getComputedStyle(document.body).backgroundColor);
+      const setmenu = document.querySelector(".setmenu");
+      if (setmenu === null) {
+        throw new Error("No .setmenu to measure the panel's own background from");
+      }
+      const panel = luminance(getComputedStyle(setmenu).backgroundColor);
       // The seed block is one `.setblock` among several the settings popover
       // holds (theme, layout, language, seed, hotkeys, about); found by the
       // one child every other `.setblock` lacks, rather than by position,
@@ -271,7 +266,7 @@ test.fixme("keeps every word of the seed line readable, in both of its states", 
           continue;
         }
         const text = luminance(getComputedStyle(element).color);
-        const [lighter, darker] = text > page_ ? [text, page_] : [page_, text];
+        const [lighter, darker] = text > panel ? [text, panel] : [panel, text];
         measured[selector] = Math.round(((lighter + 0.05) / (darker + 0.05)) * 100) / 100;
       }
       return measured;

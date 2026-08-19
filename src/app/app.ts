@@ -196,6 +196,16 @@ export interface AppOptions {
   readonly storage?: Storage;
   /** Schedules simulation frames; defaults to `requestAnimationFrame`. */
   readonly requestAnimationFrame?: AnimationFrameRequester;
+  /**
+   * Called whenever the run on screen's seed line might have changed — a new
+   * run starting, or a language redrawing the one already on screen — with
+   * the same value {@link App.currentSeedLink} would return right after.
+   *
+   * The composition root's hook for keeping a caller built once, before the
+   * first run, in step with runs that start after it — see
+   * `AppBarSettingsController.setSeed` and its own call site in `main.ts`.
+   */
+  readonly onSeedChange: (seed: SeedLinkData | null) => void;
 }
 
 /**
@@ -265,6 +275,8 @@ export class App {
   readonly #editor: CodeEditor;
   readonly #storage: Storage;
   readonly #requestAnimationFrame: AnimationFrameRequester;
+  /** See {@link AppOptions.onSeedChange}. */
+  readonly #onSeedChange: (seed: SeedLinkData | null) => void;
   /**
    * The run controls, drawn once in the constructor.
    *
@@ -412,6 +424,7 @@ export class App {
       ((callback): void => {
         requestAnimationFrame(callback);
       });
+    this.#onSeedChange = options.onSeedChange;
 
     // Drawn before anything else the app draws, and drawn exactly once: this is
     // the region that has to be standing there when a run is torn down. Every
@@ -659,11 +672,13 @@ export class App {
    * startup rather than redrawn on every run the way {@link #drawChallengeBar}
    * is.
    *
-   * A snapshot rather than a subscription: nothing here notifies a caller when
-   * a later run changes the seed, because the router already resolves the
-   * first route before this can be read — see `startRouter`'s own contract —
-   * so a composition root reading this right after can rely on {@link world}
-   * and {@link #run} already being the first run's.
+   * A snapshot, not a subscription: reading this again after a later run
+   * returns that run's seed, but nothing here pushes the new value out on its
+   * own. {@link AppOptions.onSeedChange} is the push side, called with this
+   * same getter's value every time {@link #drawChallengeBar} runs — a caller
+   * built once, before the first run, wants both: this getter for the run the
+   * router already resolved before {@link startRouter} returns, and the
+   * callback for every run after it.
    */
   get currentSeedLink(): SeedLinkData | null {
     const world = this.world;
@@ -1361,6 +1376,7 @@ export class App {
     this.#levelSwitcher.update();
     this.#editorPane.update();
     this.#drawTutorialPanel();
+    this.#onSeedChange(this.currentSeedLink);
   }
 
   /**

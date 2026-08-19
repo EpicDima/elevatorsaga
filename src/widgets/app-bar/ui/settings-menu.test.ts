@@ -243,4 +243,24 @@ describe("presentAppBarSettings", () => {
       expect(selected).toEqual([]);
     });
   });
+
+  describe("setSeed", () => {
+    it("draws the seed block for a run that started after the popover was mounted", () => {
+      const { parent, controller } = setUp(null);
+      expect(requireElement('[data-set-block="seed"]', parent).children).toHaveLength(0);
+
+      controller.setSeed(SEED);
+
+      const seedBlock = requireElement('[data-set-block="seed"]', parent);
+      expect(seedBlock.querySelector("a.seedlink")?.textContent).toBe("1234567890");
+    });
+
+    it("clears the seed block once the run it described is gone", () => {
+      const { parent, controller } = setUp(SEED);
+
+      controller.setSeed(null);
+
+      expect(requireElement('[data-set-block="seed"]', parent).children).toHaveLength(0);
+    });
+  });
 });
