@@ -944,34 +944,13 @@ html[data-layout="left"] .splitter {
 
 /*
  * `.levelswitcher` sits out of this: its `.taskmenu` popover, positioned out
- * of flow below (next rules), still opens to its full unstyled height when
- * `.task`/`.taskmenu` themselves get the rest of their own later phase, and a
- * fixed height here would clip the row's box around whatever that height
- * turns out to be. `.setmenu` doesn't need the same carve-out -- it already
- * got `position: absolute` in an earlier phase.
+ * of flow by `.task`'s own rule below, opens to its full height regardless --
+ * padding, border and all -- and a fixed height here would clip the row's
+ * box around it. `.setmenu` doesn't need the same carve-out -- it already got
+ * `position: absolute` in an earlier phase.
  */
 .appbar > :not(.levelswitcher) {
   height: var(--ds-ctl-h);
-}
-
-/*
- * Positioning only, pulled forward from `.task`/`.taskmenu`'s own later
- * phase: without it, `.taskmenu` opens in normal flow, and its box -- sized
- * by its buttons' natural height, not `--ds-ctl-h` -- spills past this row
- * into whatever sits below it. The width/padding/border/background/shadow
- * the mockup gives it stay for that later phase, along with the rest of
- * `.task`'s own rule; `top`/`left`/`z-index` are copied as-is since they're
- * what keeps the popover clear of the bar and above the page under it.
- */
-.task {
-  position: relative;
-}
-
-.taskmenu {
-  position: absolute;
-  top: calc(100% + 8px);
-  left: 28px;
-  z-index: 40;
 }
 
 .brand {
@@ -987,6 +966,305 @@ html[data-layout="left"] .splitter {
   font-weight: 650;
   letter-spacing: 0.015em;
   white-space: nowrap;
+}
+
+/*
+ * The level switcher: `design/ui-mockup.html`'s `.task`/`.taskmenu`/
+ * `.tasklink` (§3), the rest of the "later phase" `.brand-mark` and `.appbar`
+ * above already named -- `widgets/level-switcher` has drawn this live since
+ * Phase 12.2; see that module's own comment for the markup this port targets.
+ *
+ * Two divergences from the mockup, both because the live markup is not the
+ * mockup's own:
+ *
+ * - `.task-step`, the mockup's one class for both step buttons, is not
+ *   ported: `levelSwitcherTemplate()` gives the previous and next buttons
+ *   their own classes, `.task-prev`/`.task-next`, rather than telling them
+ *   apart by position among siblings. Both take the rule the mockup gives
+ *   `.task-step`.
+ * - `.task-open b`, similarly, is ported as `.task-name` -- the mockup names
+ *   the trigger's label by tag alone (`<b id="taskName">`); the live template
+ *   gives it a class instead, the same as every other element this port
+ *   targets.
+ *
+ * The mockup's own comment on `.task` cites "§ 14" for why the bar shrinks by
+ * hiding button labels under a narrow viewport; that section only ever
+ * touches `.ghost .lbl`, `#againBtn .lbl`, `.runbox .btn` and `#runBtn` --
+ * none of them this widget's own -- so nothing from it is ported here.
+ *
+ * `.task`'s `position: relative` and `.taskmenu`'s `position`/`top`/`left`/
+ * `z-index` were already ported, pulled forward into the App bar section
+ * above the moment `.brand-mark` needed the row not to reflow under it; the
+ * rest of both rules joins them here rather than staying split across two
+ * places in the file.
+ */
+.task {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 2px;
+}
+
+/*
+ * The divider between the switcher and whatever `.appbar` draws next to it --
+ * the same rule, and the same height, as `.brand`'s own `border-right`
+ * (above), so the bar reads as one row of equally tall dividers rather than
+ * two different ones.
+ */
+.task::after {
+  content: "";
+  width: 1px;
+  height: var(--ds-ctl-h);
+  margin-left: 12px;
+  background: var(--ds-line);
+}
+
+.task-prev,
+.task-next {
+  display: grid;
+  place-items: center;
+  width: var(--ds-ctl-h);
+  height: var(--ds-ctl-h);
+  border-radius: var(--ds-r-sm);
+  color: var(--ds-text-muted);
+}
+
+.task-prev:hover:not(:disabled),
+.task-next:hover:not(:disabled) {
+  background: var(--ds-raised);
+  color: var(--ds-text);
+}
+
+.task-prev:disabled,
+.task-next:disabled {
+  color: var(--ds-n-3);
+  cursor: default;
+}
+
+/*
+ * Width fixed, at the mockup's own value and for the mockup's own reason: a
+ * label that grows and shrinks between "Level 5" and "Level 17" on every
+ * switch would drag the step button and the run controls beside it sideways
+ * with it. 118px is sized for the mockup's own longest label --
+ * "Уровень 19"/"Песочница" -- with room to spare; `.task-name`'s own
+ * `text-overflow: ellipsis` below stays for a language whose longest label
+ * does not fit it.
+ */
+.task-open {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 118px;
+  height: var(--ds-ctl-h);
+  padding: 0 10px;
+  border: 1px solid var(--ds-line-strong);
+  border-radius: var(--ds-r-md);
+  background: var(--ds-raised);
+  white-space: nowrap;
+}
+
+.task-open:hover {
+  border-color: var(--ds-accent-line);
+}
+
+.task-name {
+  overflow: hidden;
+  font-weight: 650;
+  text-overflow: ellipsis;
+}
+
+.taskmenu {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 28px;
+  z-index: 40;
+  width: 396px;
+  padding: 12px;
+  border: 1px solid var(--ds-line-strong);
+  border-radius: var(--ds-r-lg);
+  background: var(--ds-panel);
+  box-shadow: var(--ds-shadow);
+}
+
+.taskmenu[hidden] {
+  display: none;
+}
+
+.taskmenu-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 7px;
+  margin: 6px 0 0;
+}
+
+.taskblock {
+  margin-bottom: 12px;
+}
+
+.taskblock:last-child {
+  margin-bottom: 0;
+}
+
+/*
+ * The mockup's own base `.cap` rule (§1) is a caption style shared by four
+ * blocks across the page, `.setblock .cap` (Settings popover, above) among
+ * them -- but it is scoped to `.taskblock` here rather than ported as that
+ * shared, bare `.cap`, and its colour is not the mockup's own token, for the
+ * same reason: `.setblock .cap` carries no colour of its own today, so it
+ * reads `.setmenu`'s `color: var(--ds-text)`, at roughly 14:1 on `--ds-panel`
+ * -- a bare `.cap` rule would have quietly repainted it in whatever this one
+ * uses instead. The mockup's own choice, `--text-faint`, measures 3.62:1
+ * dark and 3.14:1 light against `--ds-panel` (`getComputedStyle`, not
+ * guessed, the same way `e2e/seed.spec.ts`'s own contrast test measures
+ * `.setblock .cap`'s neighbours) -- short of WCAG 1.4.3's 4.5:1 in both, the
+ * same class of failure `.setmenu`'s own comment (Settings popover, above)
+ * already names once. `--ds-text-muted` is the nearest step up that clears
+ * it in both themes, 6.70:1 dark and 5.90:1 light.
+ */
+.taskblock .cap {
+  display: block;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--ds-text-muted);
+}
+
+/*
+ * The three-star tier badge: `design/ui-mockup.html`'s own `.stars`/`.star`
+ * rules (§3), shared -- per that section's own comment -- by a level tile's
+ * badge here, the goal bar's tier popover and the verdict card, neither of
+ * the other two built yet. `entities/challenge-tier`'s `tierBadgeMarkup` is
+ * the one function drawing this markup everywhere it appears; see its own
+ * comment. `.star` targets `spriteIconMarkup`'s `ds-icon star[ is-on]`
+ * output by its second class, the same way `.tasklink .icon` (below) and
+ * `.setlink .ds-icon` (above) each pick one class off a multi-class element
+ * rather than needing a compound selector.
+ */
+.stars {
+  display: inline-flex;
+  gap: 1px;
+  align-items: center;
+}
+
+.star {
+  width: 11px;
+  height: 11px;
+  color: var(--ds-tier-off);
+}
+
+.stars[data-tier="bronze"] .star.is-on {
+  color: var(--ds-tier-bronze);
+}
+
+.stars[data-tier="silver"] .star.is-on {
+  color: var(--ds-tier-silver);
+}
+
+.stars[data-tier="gold"] .star.is-on {
+  color: var(--ds-tier-gold);
+}
+
+.tasklink {
+  position: relative;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 3px;
+  height: 54px;
+  border: 1px solid var(--ds-line);
+  border-radius: var(--ds-r-md);
+  background: var(--ds-raised);
+  color: var(--ds-text-muted);
+  font-family: var(--ds-font-mono);
+  font-size: 16px;
+}
+
+.tasklink:hover {
+  border-color: var(--ds-line-strong);
+  color: var(--ds-text);
+}
+
+.tasklink .stars {
+  gap: 0;
+}
+
+.tasklink .star {
+  width: 10px;
+  height: 10px;
+}
+
+/*
+ * `--tier-tint` stays unprefixed, unlike every other custom property this
+ * port reads: it is not a design token restated across the page, only a
+ * scratch value the next four rules pass to each other, scoped to one tile
+ * the same way a local variable would be -- `--ds-*` names the ones
+ * `:root`/`html[data-theme="light"]` (above) actually declare, and this one
+ * is not among them.
+ */
+.tasklink[data-tier="bronze"] {
+  --tier-tint: var(--ds-tier-bronze);
+}
+
+.tasklink[data-tier="silver"] {
+  --tier-tint: var(--ds-tier-silver);
+}
+
+.tasklink[data-tier="gold"] {
+  --tier-tint: var(--ds-tier-gold);
+}
+
+.tasklink.is-done {
+  border-color: color-mix(in srgb, var(--tier-tint) 45%, transparent);
+  background: color-mix(in srgb, var(--tier-tint) 10%, var(--ds-raised));
+  color: var(--ds-text);
+}
+
+html[data-theme="dark"] .tasklink.is-done {
+  border-color: color-mix(in srgb, var(--tier-tint) 55%, transparent);
+  background: color-mix(in srgb, var(--tier-tint) 17%, var(--ds-raised));
+}
+
+.tasklink.is-current {
+  border-color: var(--ds-accent);
+  background: var(--ds-accent);
+  color: var(--ds-accent-ink);
+  font-weight: 650;
+}
+
+.tasklink.is-current .star {
+  color: rgb(0 0 0 / 22%);
+}
+
+.tasklink.is-current .star.is-on {
+  color: var(--ds-accent-ink);
+}
+
+.tasklink.is-locked {
+  border-style: dashed;
+  background: transparent;
+  color: var(--ds-text-faint);
+  cursor: default;
+}
+
+/*
+ * Dead weight today: a locked tile is drawn with its number, not the
+ * mockup's lock glyph -- `tileTemplate` in `level-switcher.ts` never emits an
+ * `.icon` for one. Ported anyway, harmless unmatched, so the rule is ready
+ * the day that markup gap closes rather than a second thing to remember
+ * alongside it.
+ */
+.tasklink.is-locked .icon {
+  width: 14px;
+  height: 14px;
+}
+
+.tasklink.is-free {
+  grid-column: span 2;
+  font-family: var(--ds-font-ui);
+  font-size: 13px;
+  font-weight: 650;
 }
 
 /*
