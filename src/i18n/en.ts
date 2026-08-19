@@ -510,6 +510,13 @@ elevator.goingDownIndicator(false);`,
   "game.button.startOver": "Start over",
   "game.button.resetCode": "Reset code",
   "game.button.undoResetCode": "Undo reset",
+  // The tooltips on those two, which the mockup gives its own reset button and
+  // which say the part the label has no room for: *which* code comes back.
+  // "Reset code" alone does not distinguish the level's starting program from
+  // whatever the player had a moment ago, and the two buttons sit side by side
+  // undoing each other.
+  "game.button.resetCodeTitle": "Put the level's own starting program back in this slot",
+  "game.button.undoResetCodeTitle": "Bring back the program this slot held before the reset",
   // The fifth button of the row, and its label while a crunch is under way.
   // "Instantly" rather than "fast" or "fast-forward", which is what the speed
   // control already offers: that still draws the building, only quicker, and
@@ -571,7 +578,15 @@ elevator.goingDownIndicator(false);`,
   "editor.confirmReset": "Do you really want to reset to the default implementation?",
   "editor.confirmUndoReset": "Do you want to bring back the code as before the last reset?",
   "editor.slot.tablist.label": "Code slots",
-  "editor.slot.tab.label": "Code slot {number}",
+  // The visible word on a slot button, and its tooltip. A bare "1" says
+  // nothing about what pressing it does, which is why it used to need an
+  // `aria-label` saying it instead -- a label a sighted player never saw and a
+  // screen-reader user heard in place of the number rather than beside it. The
+  // mockup writes the noun out on the button itself, and the tooltip says what
+  // the three of them are for: drafts, not versions or attempts, so that
+  // nobody expects a history.
+  "editor.slot.tab.label": "Code {number}",
+  "editor.slot.tab.title": "Draft {number}",
   "editor.defaultCode.code": `{
     init: function(elevators, floors) {
         const elevator = elevators[0]; // Let's use the first elevator

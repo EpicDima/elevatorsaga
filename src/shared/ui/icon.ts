@@ -508,6 +508,29 @@ export const SPRITE_ICONS = {
       },
     ],
   },
+  // `widgets/editor-pane`'s "Undo reset" glyph: {@link SPRITE_ICONS.undo}
+  // mirrored about the middle of the box, arrowhead and all. The mockup has no
+  // such button — bringing back the program a reset threw away is a production
+  // affordance its static page never needed — so this is the one glyph in this
+  // table drawn rather than copied, and it is drawn from the mockup's own undo
+  // path so that the pair reads as one control turned around, which is what
+  // the two buttons are.
+  redo: {
+    viewBox: "0 0 16 16",
+    shapes: [
+      {
+        tag: "path",
+        attrs: {
+          d: "M13 8h-7a3 3 0 0 0 0 6h4M13 8l-3-3M13 8l-3 3",
+          fill: "none",
+          stroke: "currentColor",
+          "stroke-width": "1.6",
+          "stroke-linecap": "round",
+          "stroke-linejoin": "round",
+        },
+      },
+    ],
+  },
   // The mockup's generic disclosure chevron, `#i-right` — used by the
   // settings popover's `keysOpen` row (`.chev`) among other places.
   right: {
@@ -648,6 +671,25 @@ export const SPRITE_ICONS = {
           d: "M8 2 9.76 6.17 14.28 6.56 10.85 9.53 11.88 13.94 8 11.6 4.12 13.94 5.15 9.53 1.72 6.56 6.24 6.17Z",
           fill: "currentColor",
           stroke: "none",
+        },
+      },
+    ],
+  },
+  // `widgets/editor-pane`'s "Reset code" glyph, `#i-undo`: an arrow curling
+  // back on itself, the mark every editor uses for "put it back the way it
+  // was".
+  undo: {
+    viewBox: "0 0 16 16",
+    shapes: [
+      {
+        tag: "path",
+        attrs: {
+          d: "M3 8h7a3 3 0 0 1 0 6H6M3 8l3-3M3 8l3 3",
+          fill: "none",
+          stroke: "currentColor",
+          "stroke-width": "1.6",
+          "stroke-linecap": "round",
+          "stroke-linejoin": "round",
         },
       },
     ],

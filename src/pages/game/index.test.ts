@@ -364,7 +364,7 @@ describe("App code slots", () => {
     app.startChallenge(0);
 
     const buttons = codeSlotButtons(editorPaneMount);
-    expect(buttons.map((button) => button.textContent)).toEqual(["1", "2", "3"]);
+    expect(buttons.map((button) => button.textContent)).toEqual(["Code 1", "Code 2", "Code 3"]);
     expect(buttons.map((button) => button.getAttribute("aria-pressed"))).toEqual([
       "true",
       "false",

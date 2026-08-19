@@ -12,7 +12,7 @@ describe("codeSlotsTemplate", () => {
     parent.innerHTML = codeSlotsTemplate({ currentSlot: 2 });
 
     const buttons = queryAll(".codeslot", parent);
-    expect(buttons.map((button) => button.textContent)).toEqual(["1", "2", "3"]);
+    expect(buttons.map((button) => button.textContent)).toEqual(["Code 1", "Code 2", "Code 3"]);
     expect(buttons.map((button) => button.getAttribute("aria-pressed"))).toEqual([
       "false",
       "true",
@@ -20,13 +20,28 @@ describe("codeSlotsTemplate", () => {
     ]);
   });
 
-  it("labels each button with its own slot number", () => {
+  it("says on the button what it is, rather than hiding it in an aria-label", () => {
+    // WCAG 2.5.3, Label in Name: the accessible name has to contain the
+    // visible one, and a button reading "1" with an `aria-label` of "Code
+    // slot 1" -- which is what these were -- contains neither the other. The
+    // name is the visible text now, with nothing standing in its place.
     const parent = document.createElement("div");
     parent.innerHTML = codeSlotsTemplate({ currentSlot: 1 });
 
     expect(
       queryAll(".codeslot", parent).map((button) => button.getAttribute("aria-label")),
-    ).toEqual(["Code slot 1", "Code slot 2", "Code slot 3"]);
+    ).toEqual([null, null, null]);
+  });
+
+  it("says in the tooltip what three of them are for", () => {
+    const parent = document.createElement("div");
+    parent.innerHTML = codeSlotsTemplate({ currentSlot: 1 });
+
+    expect(queryAll(".codeslot", parent).map((button) => button.getAttribute("title"))).toEqual([
+      "Draft 1",
+      "Draft 2",
+      "Draft 3",
+    ]);
   });
 });
 
@@ -36,7 +51,7 @@ describe("presentCodeSlots", () => {
     presentCodeSlots(parent, { currentSlot: () => 2, onSelect: vi.fn() });
 
     const buttons = queryAll(".codeslot", parent);
-    expect(buttons.map((button) => button.textContent)).toEqual(["1", "2", "3"]);
+    expect(buttons.map((button) => button.textContent)).toEqual(["Code 1", "Code 2", "Code 3"]);
     expect(buttons.map((button) => button.getAttribute("aria-pressed"))).toEqual([
       "false",
       "true",

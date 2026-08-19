@@ -56,7 +56,7 @@ describe("presentEditorPane", () => {
     presentEditorPane(parent, baseOptions({ currentSlot: () => 2 }));
 
     const buttons = queryAll(".codeslot", parent);
-    expect(buttons.map((button) => button.textContent)).toEqual(["1", "2", "3"]);
+    expect(buttons.map((button) => button.textContent)).toEqual(["Code 1", "Code 2", "Code 3"]);
     expect(buttons.map((button) => button.getAttribute("aria-pressed"))).toEqual([
       "false",
       "true",
@@ -81,6 +81,35 @@ describe("presentEditorPane", () => {
 
     expect(requireElement(".resetcode", parent).textContent).toBe("Reset code");
     expect(requireElement(".undoreset", parent).textContent).toBe("Undo reset");
+  });
+
+  it("draws a glyph beside each codetools label without writing over it", () => {
+    // The label lives in its own span precisely so that relabelling a button
+    // cannot take its icon with it -- which is what `textContent =` on the
+    // button would do. Both are checked after an update, not only on the
+    // first draw, because the first draw is not where that goes wrong.
+    const parent = document.createElement("div");
+    const presenter = presentEditorPane(parent, baseOptions({ canUndoReset: () => true }));
+
+    presenter.update();
+
+    for (const selector of [".resetcode", ".undoreset"]) {
+      const button = requireElement(selector, parent);
+      expect(button.querySelector("svg.ds-icon")).not.toBeNull();
+      expect(requireElement(".lbl", button).textContent).not.toBe("");
+    }
+  });
+
+  it("says in each codetools tooltip which program the button brings back", () => {
+    const parent = document.createElement("div");
+    presentEditorPane(parent, baseOptions());
+
+    expect(requireElement(".resetcode", parent).getAttribute("title")).toBe(
+      "Put the level's own starting program back in this slot",
+    );
+    expect(requireElement(".undoreset", parent).getAttribute("title")).toBe(
+      "Bring back the program this slot held before the reset",
+    );
   });
 
   it("calls onResetCode when reset code is clicked", () => {

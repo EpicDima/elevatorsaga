@@ -42,7 +42,7 @@ import { presentCodeSlots, type CodeSlot } from "#features/manage-code-slots/ind
 import { t } from "#i18n/index.ts";
 import { describeError } from "#shared/lib/describe-error.ts";
 import { requireElement } from "#shared/lib/dom.ts";
-import { iconMarkup } from "#shared/ui/icon.ts";
+import { iconMarkup, spriteIconMarkup } from "#shared/ui/icon.ts";
 import { markup, raw } from "#shared/ui/markup.ts";
 
 import { locateCodeError } from "../../../ui/error-location.ts";
@@ -53,10 +53,18 @@ import { locateCodeError } from "../../../ui/error-location.ts";
  * word is written by {@link presentEditorPane}, the same reason
  * `runButtonsTemplate` and `speedStepperTemplate` ship blank.
  *
+ * Each codetools button is a glyph plus a `.lbl` span, which is the shape the
+ * mockup gives its own `.ghost` buttons and the shape `widgets/app-bar` has
+ * already ported: the label is a span of its own rather than a text node
+ * beside the `<svg>` so that a stylesheet can reach it — the mockup's own §14
+ * hides these labels under a narrow viewport and leaves the glyphs — and so
+ * that {@link presentEditorPane} can rewrite the word on a language change
+ * without touching the icon next to it.
+ *
  * @returns The pane's markup, ready to mount into `.pane-code`.
  */
 export function editorPaneTemplate(): string {
-  return markup`<div class="codebar"><div class="slots" role="group" aria-label="${t("editor.slot.tablist.label")}"></div><div class="codetools"><button type="button" class="resetcode ghost"></button><button type="button" class="undoreset ghost" hidden></button></div></div><div class="errorline" aria-live="polite" hidden>${raw(iconMarkup("warning", "error-color"))}<span class="errorline-label">${t("game.codeStatus")}</span> <code class="errormessage"></code><button type="button" class="goto" hidden></button></div><div class="editor"></div>`;
+  return markup`<div class="codebar"><div class="slots" role="group" aria-label="${t("editor.slot.tablist.label")}"></div><div class="codetools"><button type="button" class="resetcode ghost">${raw(spriteIconMarkup("undo"))}<span class="lbl"></span></button><button type="button" class="undoreset ghost" hidden>${raw(spriteIconMarkup("redo"))}<span class="lbl"></span></button></div></div><div class="errorline" aria-live="polite" hidden>${raw(iconMarkup("warning", "error-color"))}<span class="errorline-label">${t("game.codeStatus")}</span> <code class="errormessage"></code><button type="button" class="goto" hidden></button></div><div class="editor"></div>`;
 }
 
 /** What the editor pane needs in order to draw and drive itself. */
@@ -129,7 +137,9 @@ export function presentEditorPane(
 
   const slots = requireElement(".slots", parent);
   const resetCode = requireElement(".resetcode", parent);
+  const resetCodeLabel = requireElement(".lbl", resetCode);
   const undoReset = requireElement(".undoreset", parent);
+  const undoResetLabel = requireElement(".lbl", undoReset);
   const errorLine = requireElement(".errorline", parent);
   const errorLabel = requireElement(".errorline-label", parent);
   const errorMessage = requireElement(".errormessage", parent);
@@ -164,8 +174,16 @@ export function presentEditorPane(
   const presenter: EditorPanePresenter = {
     update(): void {
       codeSlots.update();
-      resetCode.textContent = t("game.button.resetCode");
-      undoReset.textContent = t("game.button.undoResetCode");
+      // The word goes in the `.lbl` span, not on the button: writing
+      // `textContent` on the button itself would take the glyph beside it out
+      // with the old text.
+      resetCodeLabel.textContent = t("game.button.resetCode");
+      undoResetLabel.textContent = t("game.button.undoResetCode");
+      // What the label has no room to say -- which of the two programs comes
+      // back. A description rather than the accessible name, which stays the
+      // visible label (WCAG 2.5.3).
+      resetCode.title = t("game.button.resetCodeTitle");
+      undoReset.title = t("game.button.undoResetCodeTitle");
       undoReset.hidden = !options.canUndoReset();
       errorLabel.textContent = t("game.codeStatus");
     },

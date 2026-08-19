@@ -2729,9 +2729,10 @@ kbd {
 
 /*
  * The shape of a low-emphasis control beside something louder -- "Reset
- * code" and "Undo reset" here, both in `widgets/editor-pane`. The mockup
- * draws an icon plus a `.lbl` span inside; these two buttons draw text alone,
- * which the same flex row and padding fit as readily.
+ * code" and "Undo reset" here, both in `widgets/editor-pane`, and the docs
+ * and settings triggers in `widgets/app-bar`. Every one of them draws the
+ * mockup's own arrangement: a 16px glyph, then the `gap`, then a `.lbl` span
+ * holding the word.
  */
 .ghost {
   display: flex;

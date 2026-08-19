@@ -104,14 +104,14 @@ Key names carry two suffixes that mean something:
 
 ## Where the strings are
 
-The catalogue holds **473 keys** in two locales. `src/i18n/en.ts` is the reference — its text is
+The catalogue holds **476 keys** in two locales. `src/i18n/en.ts` is the reference — its text is
 the English wording, extracted verbatim — and `src/i18n/ru.ts` is the Russian translation. The
 types make English the shape everything else is measured against: a Russian catalogue missing a
 key, carrying a key English does not have, or giving a plural message the wrong number of forms
 is a compile error, not a runtime surprise.
 
 ```sh
-grep -cE '^  "[^"]+":' src/i18n/en.ts                                   # 473
+grep -cE '^  "[^"]+":' src/i18n/en.ts                                   # 476
 grep -oE '^  "[^"]+"' src/i18n/en.ts | tr -d '"' | cut -d. -f1 | sort | uniq -c | sort -rn
 ```
 
@@ -119,14 +119,14 @@ grep -oE '^  "[^"]+"' src/i18n/en.ts | tr -d '"' | cut -d. -f1 | sort | uniq -c 
 | -------------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `docs.*`       | 85      | one of them, `docs.basics.example.code`, by `src/ui/completions.ts`; the other 84 by nothing                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
 | `tutorial.*`   | 82      | `src/widgets/tutorial-panel/ui/tutorial-panel.ts`, `src/ui/templates.ts`, `src/pages/game/index.ts`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
-| `game.*`       | 189     | `src/ui/templates.ts` (18), `src/pages/game/index.ts` (11 + 5), `src/widgets/goal-bar/ui/goal-bar.ts` (22), `src/widgets/level-switcher/ui/level-switcher.ts` (6), `src/widgets/building-stage/lib/hover-card-text.ts` (15), `src/widgets/stats-panel/ui/stats-panel.ts` (3), `src/widgets/editor-pane/ui/editor-pane.ts` (1), `src/features/switch-theme` (4), `src/features/switch-layout` (5), `src/widgets/app-bar/ui/settings-menu.ts` (7), `src/main.ts` (3, the workspace pane/splitter labels); the two speed labels are written by both of the first two; the other 91, under `game.hotkeys.*`, `game.docs.*` and `game.apiRef.*`, by none of them yet — see below |
+| `game.*`       | 191     | `src/ui/templates.ts` (18), `src/pages/game/index.ts` (11 + 5), `src/widgets/goal-bar/ui/goal-bar.ts` (22), `src/widgets/level-switcher/ui/level-switcher.ts` (6), `src/widgets/building-stage/lib/hover-card-text.ts` (15), `src/widgets/stats-panel/ui/stats-panel.ts` (3), `src/widgets/editor-pane/ui/editor-pane.ts` (3), `src/features/switch-theme` (4), `src/features/switch-layout` (5), `src/widgets/app-bar/ui/settings-menu.ts` (7), `src/main.ts` (3, the workspace pane/splitter labels); the two speed labels are written by both of the first two; the other 91, under `game.hotkeys.*`, `game.docs.*` and `game.apiRef.*`, by none of them yet — see below |
 | `page.*`       | 40      | `index.html`, through `data-i18n` and `data-i18n-attr`; `page.noscript` excepted, see below                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 | `completion.*` | 33      | `src/ui/completions.ts`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
 | `challenge.*`  | 15      | `src/game/challenges.ts`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
 | `fitness.*`    | 11      | `src/app/fitness.ts`, `src/game/fitness.ts`, `src/main.ts`, `src/cli/bench.ts`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
 | `error.*`      | 10      | `src/game/elevator-interface.ts`, `src/pages/game/index.ts`, `src/game/user-code.ts`, `src/game/movable.ts`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
-| `editor.*`     | 8       | `src/main.ts`, `src/pages/game/index.ts`, `src/ui/editor.ts`, `src/ui/default-code.ts`, `src/ui/templates.ts`, `index.html`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
-| **Total**      | **473** |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| `editor.*`     | 9       | `src/main.ts`, `src/pages/game/index.ts`, `src/ui/editor.ts`, `src/ui/default-code.ts`, `src/widgets/editor-pane/ui/editor-pane.ts`, `src/features/manage-code-slots/ui/code-slots.ts`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| **Total**      | **476** |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
 
 Which keys nothing reads:
 
@@ -436,7 +436,7 @@ identically in every locale. Both names repeat it because an accessible name has
 own — "1234567890, link" describes nothing.
 
 `game.seed.newDraw` appearing inside `game.seed.newDrawLink` is a constraint a translator cannot
-see: the two sit on adjacent lines of a 473-key file and nothing in the file marks them as a
+see: the two sit on adjacent lines of a 476-key file and nothing in the file marks them as a
 pair. `src/i18n/catalogue.test.ts`, under _accessible names_, is what holds it — it requires the
 spoken name to contain the visible label in every locale. Rewording «новый розыгрыш» to «новый
 сид» meant changing both, which is exactly the edit where one gets missed.
@@ -561,19 +561,27 @@ percentage or a rate.
 | `game.goalBar.req.avgPickupTime.html`       | average wait for a car no more than {time}            | takes `{time}`, itself `challenge.waitLimit.html`                                                                                                                                                                                                               |
 | `game.goalBar.req.avgRideTime.html`         | average ride no more than {time}                      | takes `{time}`, itself `challenge.waitLimit.html`                                                                                                                                                                                                               |
 
-### `src/widgets/editor-pane/ui/editor-pane.ts` — 1 `game.editorPane.*` key
+### `src/widgets/editor-pane/ui/editor-pane.ts` — 3 `game.*` keys
 
 The editor pane's chrome: the code slot switcher (`presentCodeSlots`, drawn as-is from
 `#features/manage-code-slots`, contributing no key of its own here), a second, independent copy of
 `run-controls.ts`'s "Reset code" and "Undo reset" buttons — reusing `game.button.resetCode` and
-`.undoResetCode`, so neither is a new key either — and an error banner reusing `game.codeStatus`
-for its own message line. The one new key is the banner's goto link, which
-`src/ui/error-location.ts`'s `locateCodeError` makes possible where the mockup's own `#errorGoto`
-did nothing.
+`.undoResetCode` for the words on them, so neither label is a new key — and an error banner
+reusing `game.codeStatus` for its own message line.
 
-| Key                        | English       | Notes                                                                                                                             |
-| -------------------------- | ------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| `game.editorPane.gotoLine` | Line {line} → | takes `{line}`, 1-based; the label of a button hidden whenever `locateCodeError` finds no position for the player's own exception |
+Three keys are this pane's own. The banner's goto link, which `src/ui/error-location.ts`'s
+`locateCodeError` makes possible where the mockup's own `#errorGoto` did nothing; and a tooltip
+for each of the two buttons, saying the thing their labels have no room for — which of the two
+programs comes back. "Reset code" does not distinguish the level's own starting program from
+whatever the editor held a moment ago, and the buttons sit next to each other undoing one another.
+The mockup writes such a `title` on its own reset button, and the Russian of `resetCodeTitle` is
+its wording verbatim.
+
+| Key                              | English                                                | Notes                                                                                                                             |
+| -------------------------------- | ------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------- |
+| `game.editorPane.gotoLine`       | Line {line} →                                          | takes `{line}`, 1-based; the label of a button hidden whenever `locateCodeError` finds no position for the player's own exception |
+| `game.button.resetCodeTitle`     | Put the level's own starting program back in this slot | the `title` on `.resetcode`; a description, the accessible name staying the visible "Reset code" (WCAG 2.5.3)                     |
+| `game.button.undoResetCodeTitle` | Bring back the program this slot held before the reset | the `title` on `.undoreset`, likewise                                                                                             |
 
 Built and unit-tested, not yet wired into `src/pages/game/index.ts`, matching every widget staged so far in
 this migration.
@@ -895,20 +903,27 @@ would answer for whichever locale happened to be active when the module was firs
 same file's `DEV_TEST_CODE` is deliberately outside the catalogue — nobody reaches it without
 typing `#devtest` into the address bar, and what it is for is checking that the game still plays.
 
-### `src/ui/templates.ts` and `index.html` — 2 `editor.slot.*` keys
+### `src/features/manage-code-slots/ui/code-slots.ts` — 3 `editor.slot.*` keys
 
-The code slot switcher: three buttons under the editor, one per independent scratch slot a
-challenge can hold, drawn by `codeSlotTemplate` in `src/ui/templates.ts`. `editor.slot.tablist.label` is
-static, so it is written into `index.html` the same way a `page.*` key is, through
-`data-i18n-attr`; it is prefixed `editor.` rather than `page.` because it names a control that
-belongs to the editor rather than to the page shell around it. `editor.slot.tab.label` is
-dynamic — `codeSlotTemplate` calls it once per button, with `{number}`, the same pattern
-`game.elevator.label` uses for the car index.
+The code slot switcher: three buttons in the bar above the editor, one per independent scratch
+slot a challenge can hold. All three keys are dynamic now, and none is written by `index.html`:
+`editor.slot.tablist.label` names the `.slots` group in `editorPaneTemplate`
+(`src/widgets/editor-pane/ui/editor-pane.ts`), and `codeSlotTemplate` calls the other two once per
+button, with `{number}`, the same pattern `game.elevator.label` uses for the car index. They are
+prefixed `editor.` rather than `page.` because they name a control that belongs to the editor
+rather than to the page shell around it.
 
-| Key                         | English            | Notes                                                                             |
-| --------------------------- | ------------------ | --------------------------------------------------------------------------------- |
-| `editor.slot.tablist.label` | Code slots         | the `aria-label` of `.codeslots`, written by `data-i18n-attr` like a `page.*` key |
-| `editor.slot.tab.label`     | Code slot {number} | takes `{number}`; the accessible name of one `.codeslot` button                   |
+`editor.slot.tab.label` used to read "Code slot {number}" and sit in an `aria-label` over a button
+whose visible text was the bare number. It is the visible text itself now, which is what
+`design/ui-mockup.html`'s own `.codebar` writes and what WCAG 2.5.3 (Label in Name) asks: an
+accessible name of "Code slot 1" over a visible "1" contains neither the other, so a player saying
+"click code one" was matching against a sentence nobody had shown them.
+
+| Key                         | English        | Notes                                                                                                                                       |
+| --------------------------- | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| `editor.slot.tablist.label` | Code slots     | the `aria-label` of the `.slots` group, written by `editorPaneTemplate`                                                                     |
+| `editor.slot.tab.label`     | Code {number}  | takes `{number}`; the visible text of one `.codeslot` button, and so its accessible name                                                    |
+| `editor.slot.tab.title`     | Draft {number} | takes `{number}`; the `title` on the same button — a description beside the name, saying the three are drafts rather than versions or tries |
 
 ### `src/game/challenges.ts` — 15 keys
 
