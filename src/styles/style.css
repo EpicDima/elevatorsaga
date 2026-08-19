@@ -3507,6 +3507,13 @@ kbd {
  * `#fullscreen` used to write inline styles that could never be taken back off.
  * Everything except the world is hidden rather than removed, so the world keeps
  * the vertical position it has in the normal layout.
+ *
+ * The chain starts at `body` because the game page no longer wraps its contents
+ * in a `.container` -- the app bar and the workspace go edge to edge, and the
+ * skip link, the `<header>`, the `<noscript>` and the announcement paragraph
+ * are the body's own children now. `.fullscreen-demo` itself is set on `<html>`
+ * (see `FULLSCREEN_CLASS` in `src/pages/game/index.ts`), so the first rule
+ * reaches both of the boxes the page is drawn in.
  */
 .fullscreen-demo,
 .fullscreen-demo body {
@@ -3515,14 +3522,7 @@ kbd {
   padding: 0;
 }
 
-.fullscreen-demo .container {
-  inline-size: 100%;
-  max-inline-size: none;
-  margin: 0;
-  padding: 0;
-}
-
-.fullscreen-demo .container > *:not(main),
+.fullscreen-demo body > *:not(main),
 .fullscreen-demo main > *:not(.workspace),
 .fullscreen-demo .workspace > *:not(.pane-game),
 .fullscreen-demo .pane-game > *:not(.world) {

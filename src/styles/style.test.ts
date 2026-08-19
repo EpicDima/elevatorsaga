@@ -736,3 +736,24 @@ describe("statistics panel", () => {
     expect(ruleBody(".worldtrack")).toMatch(/^\s*overflow:\s*hidden;/m);
   });
 });
+
+describe("the fullscreen demo", () => {
+  it("hides everything beside the building, starting at the body's own children", () => {
+    // `#fullscreen` hides the page a link at a time -- body, main, workspace,
+    // pane -- and each link is a selector that has to name the box the one
+    // above it actually has. The first link is the one that has already been
+    // wrong once: it read `.container > *:not(main)` while the game page still
+    // wrapped its contents in one, and unwrapping that wrapper left it
+    // matching nothing at all, so the app bar and the skip link stayed on
+    // screen through a mode whose whole purpose is that they do not. Nothing
+    // in the built page fails a check when this happens -- the demo is a route
+    // flag with no assertion of its own -- so the chain is pinned here.
+    const chain = /\.fullscreen-demo body > \*:not\(main\),\s*\.fullscreen-demo main > \*/;
+    expect(styleSource).toMatch(chain);
+    // And the wrapper is not named anywhere in the demo's rules any more. A
+    // leftover `.fullscreen-demo .container` would be dead rather than wrong,
+    // but dead in a way that reads as though the mode still covers a box the
+    // game page has not had since the app bar landed.
+    expect(styleSource).not.toMatch(/\.fullscreen-demo[^,{]*\.container/);
+  });
+});
