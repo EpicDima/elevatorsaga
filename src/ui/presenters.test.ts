@@ -2,90 +2,23 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { User } from "../game/user.ts";
 import { createWorld } from "../game/world.ts";
 import type { World } from "../game/world.ts";
 import { DEFAULT_LOCALE, setLocale } from "../i18n/index.ts";
 import {
   clearAll,
-  clearCodeStatus,
   containsFocus,
   describeError,
   formatTimeScale,
   FULLSCREEN_CLASS,
-  presentChallenge,
-  presentCodeSlots,
-  presentCodeStatus,
   presentControls,
-  presentFeedback,
-  presentStats,
-  presentWorld,
   relabelWorld,
   setDemoFullscreen,
 } from "./presenters.ts";
-import type { ChallengePresenterOptions, ControlsPresenterOptions } from "./presenters.ts";
-import type { ChallengeLinkData, SeedLinkData } from "./templates.ts";
+import type { ControlsPresenterOptions } from "./presenters.ts";
 import { createElement } from "./test-helpers.ts";
-import type { CodeSlot } from "#features/manage-code-slots/index.ts";
+import { presentBuildingStage } from "#widgets/building-stage/index.ts";
 import { queryAll, requireElement } from "#shared/lib/dom.ts";
-
-/** Builds the `.statscontainer` markup the page shell provides. */
-function statsContainer(): HTMLElement {
-  const container = createElement("div", { className: "statscontainer" });
-  for (const className of [
-    "transportedcounter",
-    "elapsedtime",
-    "transportedpersec",
-    "avgwaittime",
-    "avgpickuptime",
-    "avgridetime",
-    "maxwaittime",
-    "movecount",
-    "stopcount",
-    "peopleperstop",
-    "avgloadfactor",
-  ]) {
-    container.append(createElement("span", { className: `value ${className}` }));
-  }
-  return container;
-}
-
-/**
- * A world with predictable statistics.
- *
- * Every value is chosen so that its formatter has to round it, and to round it
- * *up*, since rounding down is what truncation looks like too. `61.4` and
- * `0.1953125` used to sit here: the first is not a number `toFixed(0)` can get
- * wrong, and the second is a binary-exact `25 / 128` that `toPrecision(3)`
- * cannot get wrong either.
- */
-function worldWithStats(): World {
-  const world = createWorld({ floorCount: 3, elevatorCount: 1 });
-  world.transportedCounter = 12;
-  world.elapsedTime = 60.7;
-  // The quotient the simulation would have computed, 0.1976935...
-  world.transportedPerSec = world.transportedCounter / world.elapsedTime;
-  world.avgWaitTime = 3.25;
-  // Below the delivery time beside it, as it has to be: the same commute with
-  // the ride taken off the end of it.
-  world.avgPickupTime = 1.75;
-  // The one figure here that is not chosen but implied: the delivery time less
-  // the wait above. It prints as it is, and the rounding this fixture is built
-  // to catch is exercised by the two either side of it instead.
-  world.avgRideTime = world.avgWaitTime - world.avgPickupTime;
-  world.maxWaitTime = 11.06;
-  world.moveCount = 7;
-  world.stopCount = 5;
-  // Both ends of a journey over the stops that served them, and a quotient
-  // `toFixed(2)` has to round up: 2.375 prints as 2.38 or the panel is cutting
-  // digits off rather than rounding them.
-  world.avgPeoplePerStop = 2.375;
-  // A load factor, so between 0 and 1, and one that a percentage has to round
-  // up and then drop the rest of: 56.94 is where multiplying by a hundred by
-  // hand and cutting the decimals off would print 56.
-  world.avgLoadFactorOnMove = 0.5694;
-  return world;
-}
 
 beforeEach(() => {
   document.body.replaceChildren();
@@ -99,83 +32,6 @@ describe("clearAll", () => {
     clearAll([a, b]);
     expect(a.innerHTML).toBe("");
     expect(b.innerHTML).toBe("");
-  });
-});
-
-describe("presentStats", () => {
-  it("fills the panel immediately, with the legacy number formats", () => {
-    const container = statsContainer();
-    presentStats(container, worldWithStats());
-
-    expect(requireElement(".transportedcounter", container).textContent).toBe("12");
-    expect(requireElement(".elapsedtime", container).textContent).toBe("61s");
-    expect(requireElement(".transportedpersec", container).textContent).toBe("0.198");
-    expect(requireElement(".avgwaittime", container).textContent).toBe("3.3s");
-    expect(requireElement(".avgpickuptime", container).textContent).toBe("1.8s");
-    expect(requireElement(".avgridetime", container).textContent).toBe("1.5s");
-    expect(requireElement(".maxwaittime", container).textContent).toBe("11.1s");
-    expect(requireElement(".movecount", container).textContent).toBe("7");
-    expect(requireElement(".stopcount", container).textContent).toBe("5");
-    expect(requireElement(".peopleperstop", container).textContent).toBe("2.38");
-    expect(requireElement(".avgloadfactor", container).textContent).toBe("57%");
-  });
-
-  it("shows a world nothing has happened in yet as zeroes", () => {
-    // The state the panel is drawn in, every time: `presentStats` fires the
-    // event itself so the rows are filled before the first frame. A figure
-    // that arrives as NaN, or as an empty cell, is worse than one that is
-    // missing -- and the averages are where that would come from, since every
-    // divisor in the panel is genuinely zero here: nobody has been picked up,
-    // nothing has moved, and no door has opened.
-    const container = statsContainer();
-    presentStats(container, createWorld({ floorCount: 3, elevatorCount: 1 }));
-
-    expect(requireElement(".transportedcounter", container).textContent).toBe("0");
-    expect(requireElement(".elapsedtime", container).textContent).toBe("0s");
-    expect(requireElement(".avgwaittime", container).textContent).toBe("0.0s");
-    expect(requireElement(".avgpickuptime", container).textContent).toBe("0.0s");
-    expect(requireElement(".avgridetime", container).textContent).toBe("0.0s");
-    expect(requireElement(".maxwaittime", container).textContent).toBe("0.0s");
-    expect(requireElement(".movecount", container).textContent).toBe("0");
-    expect(requireElement(".stopcount", container).textContent).toBe("0");
-    expect(requireElement(".peopleperstop", container).textContent).toBe("0.00");
-    expect(requireElement(".avgloadfactor", container).textContent).toBe("0%");
-  });
-
-  it("groups the thousands a long run gets to", () => {
-    // The one thing the panel shows differently than it used to. `String` and
-    // `toFixed` wrote 2675s; every reader of English writes 2,675s, and every
-    // reader of Russian writes it with a space instead, which is the whole
-    // reason these figures go through `Intl` now.
-    const container = statsContainer();
-    const world = worldWithStats();
-    world.transportedCounter = 1234;
-    world.elapsedTime = 2675;
-    world.moveCount = 10000;
-    world.stopCount = 4321;
-    presentStats(container, world);
-
-    expect(requireElement(".transportedcounter", container).textContent).toBe("1,234");
-    expect(requireElement(".elapsedtime", container).textContent).toBe("2,675s");
-    expect(requireElement(".movecount", container).textContent).toBe("10,000");
-    expect(requireElement(".stopcount", container).textContent).toBe("4,321");
-  });
-
-  it("keeps following the world", () => {
-    const container = statsContainer();
-    const world = worldWithStats();
-    presentStats(container, world);
-
-    world.transportedCounter = 13;
-    world.trigger("stats_display_changed");
-    expect(requireElement(".transportedcounter", container).textContent).toBe("13");
-  });
-
-  it("throws when the page shell is missing a value slot", () => {
-    const container = createElement("div", { className: "statscontainer" });
-    expect(() => {
-      presentStats(container, worldWithStats());
-    }).toThrow("Missing required element: .transportedcounter");
   });
 });
 
@@ -207,273 +63,6 @@ describe("formatTimeScale", () => {
 
   it("does not leak binary floating-point noise into the label", () => {
     expect(formatTimeScale(0.1 + 0.2)).toBe("0.3x");
-  });
-});
-
-describe("presentChallenge", () => {
-  /** Four challenges, the third being played and the last being the demo. */
-  const CHALLENGE_LINKS: readonly ChallengeLinkData[] = [1, 2, 3, 4].map((num) => ({
-    num,
-    url: `#challenge=${String(num)},timescale=8`,
-    current: num === 3,
-    demo: num === 4,
-  }));
-
-  /** The seed of the run being drawn, and the URL that starts it again. */
-  const SEED: SeedLinkData = {
-    seed: "1234567890",
-    url: "#challenge=3,timescale=8,seed=1234567890",
-    newDrawUrl: null,
-  };
-
-  /** The same run once the URL pins its seed, and the URL that unpins it. */
-  const PINNED_SEED: SeedLinkData = { ...SEED, newDrawUrl: "#challenge=3,timescale=8" };
-
-  /**
-   * Assembles challenge options over the four links and the seed above.
-   *
-   * @param overrides - Data to replace the defaults with.
-   * @returns The parent element and the options.
-   */
-  function setUp(overrides: Partial<ChallengePresenterOptions> = {}): {
-    parent: HTMLElement;
-    options: ChallengePresenterOptions;
-  } {
-    const parent = createElement("div", { className: "challenge" });
-    const options: ChallengePresenterOptions = {
-      challengeNum: 3,
-      description: "Transport <span class='emphasis-color'>15</span> people",
-      challengeLinks: CHALLENGE_LINKS,
-      seed: SEED,
-      ...overrides,
-    };
-    return { parent, options };
-  }
-
-  it("draws the title", () => {
-    const { parent, options } = setUp();
-    presentChallenge(parent, options);
-
-    expect(requireElement(".challengetitle", parent).textContent).toBe(
-      "Challenge #3: Transport 15 people",
-    );
-  });
-
-  it("draws a link to every challenge, marking the one being played", () => {
-    const { parent, options } = setUp();
-    presentChallenge(parent, options);
-
-    const entries = queryAll(".challengelink", parent);
-    expect(entries.map((entry) => entry.getAttribute("href"))).toEqual([
-      "#challenge=1,timescale=8",
-      "#challenge=2,timescale=8",
-      "#challenge=3,timescale=8",
-      "#challenge=4,timescale=8",
-    ]);
-    expect(entries.map((entry) => entry.getAttribute("aria-current"))).toEqual([
-      null,
-      null,
-      "page",
-      null,
-    ]);
-  });
-
-  it("leaves the links to navigate on their own", () => {
-    // Nothing is bound to them: they are hash URLs, and the router is already
-    // listening for the hash. That is what keeps the browser's own affordances
-    // — open in a new tab, copy the address — working.
-    const { parent, options } = setUp();
-    presentChallenge(parent, options);
-
-    const entries = queryAll(".challengelink", parent);
-    expect(entries.every((entry) => entry.tagName === "A")).toBe(true);
-    expect(entries.every((entry) => entry.getAttribute("href") !== "")).toBe(true);
-  });
-
-  it("draws the seed of the run as a link back to it", () => {
-    const { parent, options } = setUp();
-    presentChallenge(parent, options);
-
-    const seedLink = requireElement(".seedlink", parent);
-    expect(seedLink.textContent).toBe("1234567890");
-    expect(seedLink.getAttribute("href")).toBe("#challenge=3,timescale=8,seed=1234567890");
-  });
-
-  it("draws the way out of a pinned run in place of the way in", () => {
-    const { parent, options } = setUp({ seed: PINNED_SEED });
-    presentChallenge(parent, options);
-
-    expect(parent.querySelector(".seedlink")).toBeNull();
-    expect(requireElement(".seednewdraw", parent).getAttribute("href")).toBe(
-      "#challenge=3,timescale=8",
-    );
-  });
-
-  it("keeps the caveat open across the rebuilds a run is made of", () => {
-    // Every restart rebuilds this bar from markup, so a disclosure the player
-    // opened would close itself on each one -- and the caveat is most wanted
-    // exactly while they are restarting to see how far a seed goes.
-    const { parent, options } = setUp();
-    presentChallenge(parent, options);
-    const help = requireElement(".seedhelp", parent);
-    expect(help).toBeInstanceOf(HTMLDetailsElement);
-    if (help instanceof HTMLDetailsElement) {
-      help.open = true;
-    }
-
-    presentChallenge(parent, options);
-
-    expect(requireElement(".seedhelp", parent).hasAttribute("open")).toBe(true);
-  });
-
-  it("leaves a closed caveat closed", () => {
-    const { parent, options } = setUp();
-    presentChallenge(parent, options);
-
-    presentChallenge(parent, options);
-
-    expect(requireElement(".seedhelp", parent).hasAttribute("open")).toBe(false);
-  });
-
-  it("draws no seed line when the run has no seed", () => {
-    const { parent, options } = setUp({ seed: null });
-    presentChallenge(parent, options);
-
-    expect(parent.querySelector(".challengeseed")).toBeNull();
-  });
-
-  describe("focus", () => {
-    /**
-     * Draws a challenge bar inside the document, where focus can be moved.
-     *
-     * @param overrides - Data to replace the defaults with.
-     * @returns The parent element and the options it was drawn from.
-     */
-    function mount(overrides: Partial<ChallengePresenterOptions> = {}): {
-      parent: HTMLElement;
-      options: ChallengePresenterOptions;
-    } {
-      const { parent, options } = setUp(overrides);
-      document.body.append(parent);
-      return { parent, options };
-    }
-
-    it("takes no focus of its own on the first render", () => {
-      const { parent, options } = mount();
-      const elsewhere = document.createElement("textarea");
-      document.body.append(elsewhere);
-      elsewhere.focus();
-
-      presentChallenge(parent, options);
-
-      expect(document.activeElement).toBe(elsewhere);
-    });
-
-    it("leaves focus alone when the rebuild came from outside the bar", () => {
-      // Applying code with Ctrl-Enter also restarts the challenge. Yanking
-      // focus out of the editor every time would be worse than the bug.
-      const { parent, options } = mount();
-      presentChallenge(parent, options);
-      const elsewhere = document.createElement("textarea");
-      document.body.append(elsewhere);
-      elsewhere.focus();
-
-      presentChallenge(parent, options);
-
-      expect(document.activeElement).toBe(elsewhere);
-    });
-
-    it("keeps focus in the navigation row when a challenge is taken from it", () => {
-      // Pressing "Challenge 1" starts that challenge, which rebuilds the bar and
-      // deletes the link that was pressed. Landing on the start button would at
-      // least not be <body>, but it strands a keyboard player who was working
-      // along the row; the entry that replaced the one they pressed is where
-      // they were.
-      const { parent, options } = mount();
-      presentChallenge(parent, options);
-      queryAll(".challengelink", parent)[0]?.focus();
-
-      presentChallenge(parent, {
-        ...options,
-        challengeNum: 1,
-        challengeLinks: options.challengeLinks.map((link) => ({
-          ...link,
-          current: link.num === 1,
-        })),
-      });
-
-      const first = queryAll(".challengelink", parent)[0];
-      expect(document.activeElement).toBe(first);
-      // And it is the challenge that is now being played, so a screen reader
-      // announces the arrival rather than a link to somewhere else.
-      expect(first?.getAttribute("aria-current")).toBe("page");
-    });
-
-    it("keeps focus on the seed when following it rebuilds the bar", () => {
-      // Following the seed pins it in the hash, which restarts the run and
-      // rebuilds this bar -- so the link that was pressed is deleted every
-      // time. Landing on the start button would leave a keyboard player one
-      // press away from restarting again, having asked for no such thing.
-      const { parent, options } = mount();
-      presentChallenge(parent, options);
-      requireElement(".seedlink", parent).focus();
-
-      presentChallenge(parent, options);
-
-      expect(document.activeElement).toBe(requireElement(".seedlink", parent));
-    });
-
-    it("keeps focus on the seed line when pinning replaces the link that was followed", () => {
-      // Following the seed pins it, and the rebuilt line offers "new draw"
-      // where the seed's own link used to be. The player pressed something in
-      // that position and is still standing in that position, exactly as they
-      // would be in the navigation row.
-      const { parent, options } = mount();
-      presentChallenge(parent, options);
-      requireElement(".seedlink", parent).focus();
-
-      presentChallenge(parent, { ...options, seed: PINNED_SEED });
-
-      expect(document.activeElement).toBe(requireElement(".seednewdraw", parent));
-    });
-
-    it("keeps focus on the seed line when a new draw puts the seed's link back", () => {
-      const { parent, options } = mount({ seed: PINNED_SEED });
-      presentChallenge(parent, options);
-      requireElement(".seednewdraw", parent).focus();
-
-      presentChallenge(parent, { ...options, seed: SEED });
-
-      expect(document.activeElement).toBe(requireElement(".seedlink", parent));
-    });
-
-    it("keeps focus on the caveat when something else rebuilds the bar", () => {
-      // Reading the explanation is not itself a restart, but anything else can
-      // be one -- the editor's Ctrl-Enter, a challenge finishing -- and a
-      // keyboard player who was standing on the disclosure should still be
-      // standing on it rather than on the start button.
-      const { parent, options } = mount();
-      presentChallenge(parent, options);
-      requireElement(".seedhelp summary", parent).focus();
-
-      presentChallenge(parent, options);
-
-      expect(document.activeElement).toBe(requireElement(".seedhelp summary", parent));
-    });
-
-    it("has nowhere to put focus when the rebuild drops the seed line", () => {
-      // Nothing in the rebuilt bar stands where the seed did, so focus falls
-      // back to <body>. That is the app's cue rather than this function's: it
-      // is the one that knows the redraw happened, and `ControlsPresenter`
-      // gives it a button that outlives every rebuild to land on.
-      const { parent, options } = mount();
-      presentChallenge(parent, options);
-      requireElement(".seedlink", parent).focus();
-
-      presentChallenge(parent, { ...options, seed: null });
-
-      expect(document.activeElement).toBe(document.body);
-    });
   });
 });
 
@@ -654,173 +243,19 @@ describe("containsFocus", () => {
   });
 });
 
-describe("presentFeedback", () => {
-  it("replaces any previous feedback", () => {
-    const parent = createElement("div", { className: "feedbackcontainer" });
-    presentFeedback(parent, { title: "Challenge failed", message: "Try again", url: "" });
-    presentFeedback(parent, { title: "Success!", message: "Well done", url: "#challenge=4" });
-
-    expect(parent.children).toHaveLength(1);
-    expect(requireElement("h2", parent).textContent).toBe("Success!");
-    expect(requireElement("a", parent).getAttribute("href")).toBe("#challenge=4");
-  });
-
-  it("omits the next-challenge link when there is nowhere to go", () => {
-    const parent = createElement("div", { className: "feedbackcontainer" });
-    presentFeedback(parent, { title: "Challenge failed", message: "Try again", url: "" });
-    expect(parent.querySelector("a")).toBeNull();
-  });
-});
-
-describe("presentWorld", () => {
-  /**
-   * Draws a world into a fresh `.innerworld`.
-   *
-   * @param world - The world to draw.
-   * @returns The container it was drawn into.
-   */
-  function draw(world: World): HTMLElement {
-    const parent = createElement("div", { className: "innerworld" });
-    document.body.append(parent);
-    presentWorld(parent, world);
-    return parent;
-  }
-
-  it("sizes the building and draws every floor and elevator", () => {
-    const world = createWorld({ floorCount: 4, elevatorCount: 2 });
-    const parent = draw(world);
-
-    expect(parent.style.height).toBe("200px");
-    expect(queryAll(".floor", parent)).toHaveLength(4);
-    expect(queryAll(".elevator", parent)).toHaveLength(2);
-    expect(queryAll(".floor .floornumber", parent).map((e) => e.textContent)).toEqual([
-      "0",
-      "1",
-      "2",
-      "3",
-    ]);
-  });
-
-  it("hides the impossible call buttons and keeps them off the keyboard path", () => {
-    const world = createWorld({ floorCount: 3, elevatorCount: 1 });
-    const floors = queryAll(".floor", draw(world));
-    const first = floors.at(0);
-    const last = floors.at(-1);
-
-    const down = requireElement("button.down", first ?? document.body);
-    const up = requireElement("button.up", last ?? document.body);
-    expect(down.classList.contains("invisible")).toBe(true);
-    expect(down.hasAttribute("disabled")).toBe(true);
-    expect(up.classList.contains("invisible")).toBe(true);
-    expect(requireElement("button.up", first ?? document.body).hasAttribute("disabled")).toBe(
-      false,
-    );
-  });
-
-  it("calls the elevator when a floor button is clicked, and lights the button", () => {
-    const world = createWorld({ floorCount: 3, elevatorCount: 1 });
-    const parent = draw(world);
-    const floor = queryAll(".floor", parent)[1];
-    const up = requireElement("button.up", floor ?? document.body);
-
-    up.click();
-
-    expect(world.floors[1]?.buttonStates.up).toBe("activated");
-    expect(up.classList.contains("activated")).toBe(true);
-    expect(up.getAttribute("aria-pressed")).toBe("true");
-  });
-
-  it("gives every elevator one in-car button per floor, wired to the car", () => {
-    const world = createWorld({ floorCount: 3, elevatorCount: 1 });
-    const parent = draw(world);
-    const buttons = queryAll(".elevator .buttonpress", parent);
-    expect(buttons.map((b) => b.textContent)).toEqual(["0", "1", "2"]);
-
-    buttons[2]?.click();
-
-    expect(world.elevators[0]?.buttonStates[2]).toBe(true);
-    expect(buttons[2]?.classList.contains("activated")).toBe(true);
-    expect(buttons[2]?.getAttribute("aria-pressed")).toBe("true");
-  });
-
-  it("shows the current floor and follows the car as it moves", () => {
-    const world = createWorld({ floorCount: 3, elevatorCount: 1 });
-    const parent = draw(world);
-    const elevator = world.elevators[0];
-    const element = requireElement(".elevator", parent);
-
-    expect(requireElement(".floorindicator > span", element).textContent).toBe("0");
-
-    elevator?.moveTo(105, 20);
-    elevator?.updateDisplayPosition();
-    expect(element.style.transform).toBe("translate3d(105px, 20px, 0)");
-  });
-
-  it("lights the direction indicators", () => {
-    const world = createWorld({ floorCount: 3, elevatorCount: 1 });
-    const parent = draw(world);
-    const elevatorInterface = world.elevatorInterfaces[0];
-    const up = requireElement(".directionindicatorup .up", parent);
-    const down = requireElement(".directionindicatordown .down", parent);
-
-    elevatorInterface?.goingUpIndicator(true);
-    elevatorInterface?.goingDownIndicator(false);
-
-    expect(up.classList.contains("activated")).toBe(true);
-    expect(down.classList.contains("activated")).toBe(false);
-  });
-
-  it("draws passengers as they appear and drops them when they leave", () => {
-    const world = createWorld({ floorCount: 3, elevatorCount: 1 });
-    const parent = draw(world);
-    const user = new User(60);
-    user.displayType = "female";
-
-    world.trigger("new_user", user);
-    const element = requireElement(".user", parent);
-    expect(element.getAttribute("class")).toBe("icon movable user");
-
-    user.moveTo(30, 40);
-    user.updateDisplayPosition();
-    expect(element.getAttribute("style")).toBe("transform: translate3d(30px, 40px, 0);");
-
-    user.done = true;
-    user.updateDisplayPosition(true);
-    expect(element.classList.contains("leaving")).toBe(true);
-
-    user.trigger("removed");
-    expect(parent.querySelector(".user")).toBeNull();
-  });
-
-  it("marks the passenger who has waited longest, and unmarks them again", () => {
-    // The class the stylesheet colours. It has to come off as well as go on:
-    // the world hands the title over rather than handing it out once.
-    const world = createWorld({ floorCount: 3, elevatorCount: 1 });
-    const parent = draw(world);
-    const user = new User(60);
-    world.trigger("new_user", user);
-    const element = requireElement(".user", parent);
-
-    user.setWaitingLongest(true);
-    expect(element.classList.contains("waiting-longest")).toBe(true);
-
-    user.setWaitingLongest(false);
-    expect(element.classList.contains("waiting-longest")).toBe(false);
-  });
-});
-
 describe("relabelWorld", () => {
   afterEach(() => {
     setLocale(DEFAULT_LOCALE);
   });
 
   /**
-   * Draws a world into a fresh `.innerworld`.
+   * Draws a world into a fresh `.innerworld`, the way `widgets/building-stage`
+   * draws it live.
    *
-   * A container per call, and never a second `presentWorld` into a container
-   * that already holds a building: the presenter appends and subscribes, so
-   * drawing twice into one parent is the very thing `relabelWorld` exists to
-   * avoid.
+   * A container per call, and never a second `presentBuildingStage` into a
+   * container that already holds a building: the presenter appends and
+   * subscribes, so drawing twice into one parent is the very thing
+   * `relabelWorld` exists to avoid.
    *
    * @param world - The world to draw.
    * @returns The container it was drawn into.
@@ -828,7 +263,7 @@ describe("relabelWorld", () => {
   function draw(world: World): HTMLElement {
     const parent = createElement("div", { className: "innerworld" });
     document.body.append(parent);
-    presentWorld(parent, world);
+    presentBuildingStage(parent, world);
     return parent;
   }
 
@@ -848,8 +283,9 @@ describe("relabelWorld", () => {
   }
 
   it("renames a drawn building into exactly the names a freshly drawn one is born with", () => {
-    // The test the two paths are held together by. `presentWorld` writes these
-    // names through the templates and `relabelWorld` writes them again over a
+    // The test the two paths are held together by. `entities/floor` and
+    // `entities/elevator` write these names through the templates when the
+    // building is first drawn, and `relabelWorld` writes them again over a
     // building that is already on screen; if either one ever grows a label the
     // other does not know about, or spells one differently, these two lists stop
     // matching.
@@ -1009,112 +445,6 @@ describe("describeError", () => {
   });
 });
 
-describe("presentCodeStatus", () => {
-  it("shows the stack of a thrown error as text, never as markup", () => {
-    const parent = createElement("div", { className: "codestatus" });
-    const error = new Error("boom");
-    error.stack = "Error: <img src=x onerror=alert(1)>\n    at update";
-
-    presentCodeStatus(parent, error);
-
-    const message = requireElement(".errormessage", parent);
-    expect(message.textContent).toBe(error.stack);
-    expect(message.children).toHaveLength(0);
-  });
-
-  it("replaces any previous banner", () => {
-    const parent = createElement("div", { className: "codestatus" });
-    presentCodeStatus(parent, new Error("first"));
-    presentCodeStatus(parent, "second");
-    expect(parent.children).toHaveLength(1);
-    expect(requireElement(".errormessage", parent).textContent).toBe("second");
-  });
-
-  it("draws a banner even for a thrown undefined", () => {
-    const parent = createElement("div", { className: "codestatus" });
-    presentCodeStatus(parent, undefined);
-    expect(requireElement(".errormessage", parent).textContent).toBe("undefined");
-  });
-});
-
-describe("clearCodeStatus", () => {
-  it("clears the banner", () => {
-    const parent = createElement("div", { className: "codestatus" });
-    presentCodeStatus(parent, new Error("boom"));
-    clearCodeStatus(parent);
-    expect(parent.innerHTML).toBe("");
-  });
-});
-
-describe("presentCodeSlots", () => {
-  it("draws three buttons, marking the open one", () => {
-    const parent = createElement("div", { className: "codeslots" });
-    presentCodeSlots(parent, { currentSlot: () => 2, onSelect: vi.fn() });
-
-    const buttons = queryAll(".codeslot", parent);
-    expect(buttons.map((button) => button.textContent)).toEqual(["1", "2", "3"]);
-    expect(buttons.map((button) => button.getAttribute("aria-pressed"))).toEqual([
-      "false",
-      "true",
-      "false",
-    ]);
-  });
-
-  it("moves the mark to the new slot on the next update", () => {
-    const parent = createElement("div", { className: "codeslots" });
-    let currentSlot: CodeSlot = 1;
-    const presenter = presentCodeSlots(parent, {
-      currentSlot: () => currentSlot,
-      onSelect: vi.fn(),
-    });
-
-    currentSlot = 3;
-    presenter.update();
-
-    expect(
-      queryAll(".codeslot", parent).map((button) => button.getAttribute("aria-pressed")),
-    ).toEqual(["false", "false", "true"]);
-  });
-
-  it("reports the slot pressed, by position rather than by its label alone", () => {
-    const parent = createElement("div", { className: "codeslots" });
-    const onSelect = vi.fn();
-    presentCodeSlots(parent, { currentSlot: () => 1, onSelect });
-
-    queryAll(".codeslot", parent)[1]?.click();
-
-    expect(onSelect).toHaveBeenCalledTimes(1);
-    expect(onSelect).toHaveBeenCalledWith(2);
-  });
-
-  it("goes on hearing clicks after being rebuilt by its own update", () => {
-    // Every button is destroyed and rebuilt on `update`, unlike the run
-    // controls' -- there is no single element a listener could be bound to
-    // that survives every call, so the listener is bound to the parent
-    // instead, once, and never has to be rebound.
-    const parent = createElement("div", { className: "codeslots" });
-    const onSelect = vi.fn();
-    const presenter = presentCodeSlots(parent, { currentSlot: () => 1, onSelect });
-
-    presenter.update();
-    presenter.update();
-    queryAll(".codeslot", parent)[2]?.click();
-
-    expect(onSelect).toHaveBeenCalledTimes(1);
-    expect(onSelect).toHaveBeenCalledWith(3);
-  });
-
-  it("ignores a click that did not land on a slot button", () => {
-    const parent = createElement("div", { className: "codeslots" });
-    const onSelect = vi.fn();
-    presentCodeSlots(parent, { currentSlot: () => 1, onSelect });
-
-    parent.click();
-
-    expect(onSelect).not.toHaveBeenCalled();
-  });
-});
-
 describe("setDemoFullscreen", () => {
   it("toggles a single class on the document, and is reversible", () => {
     setDemoFullscreen(true);
@@ -1129,60 +459,11 @@ describe("the language the interface comes out in", () => {
     setLocale(DEFAULT_LOCALE);
   });
 
-  it("writes the statistics the way a reader of the locale writes numbers", () => {
-    // A decimal comma, a space instead of a comma between thousands, and the
-    // seconds abbreviated in Russian -- none of which `toFixed` and a glued-on
-    // "s" could ever have produced. The space before «с» is a non-breaking one,
-    // which is what keeps a figure and its unit on the same line; `Intl` puts an
-    // ordinary space there and `formatNumber` replaces it.
-    setLocale("ru");
-    const container = statsContainer();
-    presentStats(container, worldWithStats());
-
-    expect(requireElement(".transportedcounter", container).textContent).toBe("12");
-    expect(requireElement(".elapsedtime", container).textContent).toBe("61 с");
-    expect(requireElement(".transportedpersec", container).textContent).toBe("0,198");
-    expect(requireElement(".avgwaittime", container).textContent).toBe("3,3 с");
-    expect(requireElement(".maxwaittime", container).textContent).toBe("11,1 с");
-    expect(requireElement(".movecount", container).textContent).toBe("7");
-  });
-
-  it("groups thousands with a space rather than a comma", () => {
-    setLocale("ru");
-    const container = statsContainer();
-    const world = worldWithStats();
-    world.elapsedTime = 2675;
-    presentStats(container, world);
-
-    // U+00A0 again: Russian groups digits with a non-breaking space, and the
-    // one before «с» is the unit separator.
-    expect(requireElement(".elapsedtime", container).textContent).toBe("2 675 с");
-  });
-
   it("writes the time scale with the multiplication sign Russian uses", () => {
     setLocale("ru");
 
     expect(formatTimeScale(2)).toBe("2×");
     expect(formatTimeScale(0.5)).toBe("0,5×");
-  });
-
-  it("writes the challenge title in the language of the moment it is drawn", () => {
-    // The bar is rebuilt on every restart, so this is the title a player sees
-    // after switching language and letting the page redraw -- which is the
-    // contract `setLocale` asks its callers to keep.
-    const parent = createElement("div", { className: "challenge" });
-    setLocale("ru");
-
-    presentChallenge(parent, {
-      challengeNum: 3,
-      description: "Перевезите <span class='emphasis-color'>15</span> пассажиров",
-      challengeLinks: [],
-      seed: null,
-    });
-
-    expect(requireElement(".challengetitle", parent).textContent).toBe(
-      "Задание №3: Перевезите 15 пассажиров",
-    );
   });
 
   it("relabels every run control on the next update", () => {
@@ -1238,16 +519,6 @@ describe("the language the interface comes out in", () => {
     expect(describeError(circular)).toBe("Object с ключами: floor, self");
     expect(describeError("TypeError: elevator.goToFloor is not a function")).toBe(
       "TypeError: elevator.goToFloor is not a function",
-    );
-  });
-
-  it("puts the banner's sentence in the locale and the message beside it untouched", () => {
-    setLocale("ru");
-    const parent = createElement("div", { className: "codestatus" });
-    presentCodeStatus(parent, "Error: boom");
-
-    expect(requireElement(".error", parent).textContent).toBe(
-      " С вашим кодом что-то не так: Error: boom",
     );
   });
 });

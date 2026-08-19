@@ -12,67 +12,31 @@
  * next challenge starts.
  */
 
-import type { Elevator } from "../game/elevator.ts";
-import type { Floor } from "../game/floor.ts";
-import type { User } from "../game/user.ts";
-import type { World } from "../game/world.ts";
 import type { WorldController } from "../game/world-controller.ts";
-import { decimal, format, percent, quantity, seconds, t } from "../i18n/index.ts";
+import { t } from "../i18n/index.ts";
 import {
-  challengeTemplate,
-  codeStatusTemplate,
   controlsTemplate,
-  elevatorButtonTemplate,
   elevatorFloorButtonLabel,
   elevatorLabel,
-  elevatorTemplate,
-  feedbackTemplate,
   floorCallDownLabel,
   floorCallUpLabel,
-  floorTemplate,
-  renderElement,
-  userTemplate,
 } from "./templates.ts";
-import type { ChallengeLinkData, SeedLinkData, UserDisplayType } from "./templates.ts";
 import { presentSpeedStepper } from "#features/adjust-speed/index.ts";
 import { presentRunControls } from "#features/run-simulation/index.ts";
-import {
-  clearChildren,
-  query,
-  queryAll,
-  requireElement,
-  setClass,
-  setTransformPos,
-} from "#shared/lib/dom.ts";
+import { clearChildren, queryAll, requireElement } from "#shared/lib/dom.ts";
 
 /** Class on `<html>` that hides everything except the world. */
 export const FULLSCREEN_CLASS = "fullscreen-demo";
 
-/** Selector matching the links of the challenge bar's navigation row. */
-const CHALLENGE_LINK_SELECTOR = ".challengelink";
-
-/**
- * Selector matching the controls of the challenge bar's seed line.
- *
- * Written as "whatever the line offers" rather than by class, because what it
- * offers changes with the run: the seed's own link while the run can still be
- * pinned, `new draw` in its place once it is, and the disclosure that explains
- * what a seed does either way.
- */
-const SEED_CONTROL_SELECTOR = ".challengeseed a, .challengeseed summary";
-
-/** Selector matching the seed line's disclosure. */
-const SEED_HELP_SELECTOR = ".seedhelp";
-
 /**
  * Selectors for the parts of a drawn building.
  *
- * Constants rather than literals because two functions now look for the same
- * elements: {@link presentWorld} draws them and {@link relabelWorld} finds them
- * again to rename them. A class renamed in the template and in one of the two
- * would leave the building silently unrenameable, which is the quietest possible
- * failure — the labels are invisible to everyone who is not using a screen
- * reader.
+ * {@link relabelWorld} finds these to rename them after a language change. The
+ * classes are the same ones `entities/floor`'s and `entities/elevator`'s own
+ * view modules draw the building with, so a class renamed in one of those
+ * templates and not here would leave the building silently unrenameable,
+ * which is the quietest possible failure — the labels are invisible to
+ * everyone who is not using a screen reader.
  */
 const FLOOR_SELECTOR = ".floor";
 const CALL_UP_SELECTOR = "button.up";
@@ -110,119 +74,6 @@ export function containsFocus(elements: readonly Element[]): boolean {
   return (
     active !== null && elements.some((element) => element !== active && element.contains(active))
   );
-}
-
-/**
- * Reflects a lit/unlit button state in both the class and the ARIA state.
- *
- * @param button - The call or floor button.
- * @param activated - Whether the button is currently lit.
- */
-function setActivated(button: Element, activated: boolean): void {
-  setClass(button, "activated", activated);
-  button.setAttribute("aria-pressed", String(activated));
-}
-
-/**
- * Parses the markup for one passenger into its element.
- *
- * @param displayType - Which person icon to draw.
- * @param leaving - Whether the passenger has already been delivered.
- * @returns The passenger element.
- */
-function renderUser(displayType: UserDisplayType, leaving: boolean): SVGElement {
-  const template = document.createElement("template");
-  template.innerHTML = userTemplate(displayType, leaving);
-  const element = template.content.firstElementChild;
-  if (!(element instanceof SVGElement)) {
-    throw new Error("Expected the user template to render an SVG element");
-  }
-  return element;
-}
-
-/**
- * How the "transported per second" figure is rounded.
- *
- * Three significant digits, which is what `toPrecision(3)` gave this panel
- * before and what it should keep giving: the quotient is a small fraction, and
- * three digits of it is the difference between 0.198 and 0.2. Significant digits
- * rather than decimal places for the same reason `toPrecision` was chosen
- * originally — the figure spans two orders of magnitude over a run, and a fixed
- * three decimals reads as 0.000 for the first few seconds of one.
- *
- * `toPrecision` also switches to exponential notation once the exponent reaches
- * the precision, so 1230 came out as `1.23e+3`; `Intl` writes 1,230 instead.
- * Nothing in this game delivers a thousand passengers a second, so the
- * difference is theoretical, but the direction of it is the right one.
- */
-const PER_SECOND_DIGITS: Intl.NumberFormatOptions = {
-  minimumSignificantDigits: 3,
-  maximumSignificantDigits: 3,
-};
-
-/**
- * Keeps the statistics panel in sync with a world.
- *
- * Every figure goes through `Intl` rather than `toFixed` and `String`, so a
- * locale that writes decimals with a comma or groups thousands with a space
- * does. In English the digits are exactly the ones the panel has always shown,
- * with one deliberate exception: four figures and up are grouped, so a long
- * run's elapsed time reads 2,675s rather than 2675s.
- *
- * @param parent - The `.statscontainer` element.
- * @param world - The world to report on.
- */
-export function presentStats(parent: HTMLElement, world: World): void {
-  const transportedCounter = requireElement(".transportedcounter", parent);
-  const elapsedTime = requireElement(".elapsedtime", parent);
-  const transportedPerSec = requireElement(".transportedpersec", parent);
-  const avgWaitTime = requireElement(".avgwaittime", parent);
-  const avgPickupTime = requireElement(".avgpickuptime", parent);
-  const avgRideTime = requireElement(".avgridetime", parent);
-  const maxWaitTime = requireElement(".maxwaittime", parent);
-  const moveCount = requireElement(".movecount", parent);
-  const stopCount = requireElement(".stopcount", parent);
-  const peoplePerStop = requireElement(".peopleperstop", parent);
-  const avgLoadFactor = requireElement(".avgloadfactor", parent);
-
-  world.on("stats_display_changed", () => {
-    transportedCounter.textContent = format(world.transportedCounter);
-    elapsedTime.textContent = format(seconds(world.elapsedTime));
-    transportedPerSec.textContent = format(quantity(world.transportedPerSec, PER_SECOND_DIGITS));
-    avgWaitTime.textContent = format(seconds(world.avgWaitTime, 1));
-    avgPickupTime.textContent = format(seconds(world.avgPickupTime, 1));
-    avgRideTime.textContent = format(seconds(world.avgRideTime, 1));
-    maxWaitTime.textContent = format(seconds(world.maxWaitTime, 1));
-    moveCount.textContent = format(world.moveCount);
-    stopCount.textContent = format(world.stopCount);
-    peoplePerStop.textContent = format(decimal(world.avgPeoplePerStop, 2));
-    avgLoadFactor.textContent = format(percent(world.avgLoadFactorOnMove));
-  });
-  world.trigger("stats_display_changed");
-}
-
-/** What the challenge bar needs in order to draw and drive itself. */
-export interface ChallengePresenterOptions {
-  /** One-based challenge number. */
-  readonly challengeNum: number;
-  /** The challenge requirement; contains markup from `src/game/challenges.ts`. */
-  readonly description: string;
-  /**
-   * One entry per challenge for the navigation row, in playing order.
-   *
-   * Built by the app, which is where the current URL parameters live: every
-   * entry has to keep them, so that jumping to a challenge does not silently
-   * throw away the speed or the autostart the player arrived with.
-   */
-  readonly challengeLinks: readonly ChallengeLinkData[];
-  /**
-   * The seed of the run in progress, or `null` when there is none to show.
-   *
-   * Built by the app for the same reason the navigation row is: the URL it links
-   * to is the current one with `seed` written into it, and only the app knows
-   * what the current one is.
-   */
-  readonly seed: SeedLinkData | null;
 }
 
 /** What the run controls need in order to draw and drive themselves. */
@@ -366,251 +217,18 @@ export function presentControls(
 export { formatTimeScale } from "#features/adjust-speed/index.ts";
 
 /**
- * Draws the challenge bar.
- *
- * The legacy version re-rendered the whole bar — and re-bound all three click
- * handlers — on every `timescale_changed` event. The speed and the start button
- * have their own region now ({@link presentControls}), which is drawn once and
- * never rebuilt, so a speed change touches no markup here at all; the bar itself
- * is built once per challenge.
- *
- * Nothing is returned: everything the bar shows is settled by the time it is
- * drawn, and the one thing about it that changes during a run — the start
- * button — moved out to {@link presentControls}, which is what has an `update`.
- *
- * @param parent - The `.challenge` element.
- * @param options - The challenge number, the requirement, the navigation row and
- * the seed line.
- */
-export function presentChallenge(parent: HTMLElement, options: ChallengePresenterOptions): void {
-  // A rebuild of this bar destroys whatever inside it had focus, and following
-  // any of its links rebuilds it: each changes the hash, which restarts the run.
-  // So the two things a player can be standing on here are restored by position
-  // below. What is no longer restored here is the start button, which used to be
-  // the fallback for everything else: it is in the controls row now, which
-  // survives every rebuild, so the button a player pressed is still under them
-  // afterwards and there is nothing to put back.
-  //
-  // Taking a link out of the navigation row destroys the focused element, and
-  // the start button was the wrong landing place for that even when it was
-  // here: a player working through the row with the keyboard has to be able to
-  // carry on down it. The row is rebuilt entry for entry, so the entry that
-  // replaces the one that was pressed is the one in the same position — which is
-  // also the one now marked as current.
-  const focusedLinkIndex = queryAll(CHALLENGE_LINK_SELECTOR, parent).findIndex(
-    (link) => link === document.activeElement,
-  );
-
-  // The seed line is the one other thing in the bar a player can be standing on
-  // when it rebuilds, and following either of its links *always* rebuilds: both
-  // change the hash, which restarts the run. It is not in the row, so it needs
-  // asking about separately.
-  //
-  // Restored by position, like the row and for the same reason: the link that
-  // replaces the one that was followed is not the same link. Pinning a run
-  // turns the seed's link into "new draw", and taking the pin back out turns it
-  // back, so the control that lands where the player was standing is the one
-  // they should still be standing on. The line's disclosure is in the same list
-  // -- it starts no run itself, but a rebuild started from anywhere else deletes
-  // it just as thoroughly while a player is reading it.
-  const focusedSeedIndex = queryAll(SEED_CONTROL_SELECTOR, parent).findIndex(
-    (control) => control === document.activeElement,
-  );
-
-  // Whether the caveat about what a seed does was open. It is markup like the
-  // rest of the bar, so a rebuild would otherwise close it -- and every restart
-  // rebuilds, which would mean a player who wanted the explanation in front of
-  // them while they tried the thing it explains could not keep it there. `open`
-  // is the state of a disclosure, not the state of the run, so it is carried
-  // across by hand; nothing else in the bar has any state to lose.
-  const openedHelp = query(SEED_HELP_SELECTOR, parent);
-  const helpWasOpen = openedHelp instanceof HTMLDetailsElement && openedHelp.open;
-
-  parent.innerHTML = challengeTemplate({
-    num: options.challengeNum,
-    description: options.description,
-    links: options.challengeLinks,
-    seed: options.seed,
-  });
-
-  const rebuiltHelp = query(SEED_HELP_SELECTOR, parent);
-  if (helpWasOpen && rebuiltHelp instanceof HTMLDetailsElement) {
-    rebuiltHelp.open = true;
-  }
-
-  const focusedLink = queryAll(CHALLENGE_LINK_SELECTOR, parent)[focusedLinkIndex];
-  const focusedSeedControl = queryAll(SEED_CONTROL_SELECTOR, parent)[focusedSeedIndex];
-  if (focusedLink !== undefined) {
-    focusedLink.focus();
-  } else if (focusedSeedControl !== undefined) {
-    focusedSeedControl.focus();
-  }
-}
-
-/** What the end-of-challenge overlay says. */
-export interface FeedbackData {
-  /** Headline, e.g. `"Success!"`. */
-  readonly title: string;
-  /** Explanatory line under the headline. */
-  readonly message: string;
-  /** Link to the next challenge, or `""` for no link. */
-  readonly url: string;
-}
-
-/**
- * Draws the overlay shown when a challenge is won or lost.
- *
- * @param parent - The `.feedbackcontainer` element.
- * @param data - Headline, message and next-challenge link.
- */
-export function presentFeedback(parent: HTMLElement, data: FeedbackData): void {
-  parent.replaceChildren(renderElement(feedbackTemplate(data)));
-}
-
-/**
- * Draws one floor and wires its call buttons to the simulation.
- *
- * @param floor - The floor to draw.
- * @returns The floor element.
- */
-function presentFloor(floor: Floor): HTMLElement {
-  const element = renderElement(floorTemplate(floor.level, floor.yPosition));
-  const up = requireElement(CALL_UP_SELECTOR, element);
-  const down = requireElement(CALL_DOWN_SELECTOR, element);
-
-  floor.on("buttonstate_change", (buttonStates) => {
-    setActivated(up, buttonStates.up !== "");
-    setActivated(down, buttonStates.down !== "");
-  });
-  up.addEventListener("click", () => {
-    floor.pressUpButton();
-  });
-  down.addEventListener("click", () => {
-    floor.pressDownButton();
-  });
-  return element;
-}
-
-/**
- * Draws one elevator and wires its in-car buttons to the simulation.
- *
- * @param elevator - The elevator to draw.
- * @param index - Zero-based index of the car, used for its accessible name.
- * @returns The elevator element.
- */
-function presentElevator(elevator: Elevator, index: number): HTMLElement {
-  const element = renderElement(elevatorTemplate(elevator.width, index));
-  const buttonIndicator = requireElement(".buttonindicator", element);
-  buttonIndicator.append(
-    ...elevator.buttonStates.map((_unused, floorNum) =>
-      renderElement(elevatorButtonTemplate(floorNum)),
-    ),
-  );
-  const buttons = queryAll(FLOOR_BUTTON_SELECTOR, buttonIndicator);
-  const floorIndicator = requireElement(".floorindicator > span", element);
-  const upIndicator = requireElement(".directionindicatorup .up", element);
-  const downIndicator = requireElement(".directionindicatordown .down", element);
-
-  for (const [floorNum, button] of buttons.entries()) {
-    button.addEventListener("click", () => {
-      elevator.pressFloorButton(floorNum);
-    });
-  }
-  elevator.on("new_display_state", () => {
-    setTransformPos(element, elevator.worldX, elevator.worldY);
-  });
-  elevator.on("new_current_floor", (floorNum) => {
-    floorIndicator.textContent = String(floorNum);
-  });
-  elevator.on("floor_buttons_changed", (states, indexChanged) => {
-    const button = buttons[indexChanged];
-    if (button !== undefined) {
-      setActivated(button, states[indexChanged] === true);
-    }
-  });
-  elevator.on("indicatorstate_change", (indicatorStates) => {
-    setClass(upIndicator, "activated", indicatorStates.up);
-    setClass(downIndicator, "activated", indicatorStates.down);
-  });
-
-  elevator.trigger("new_state", elevator);
-  elevator.trigger("new_display_state", elevator);
-  elevator.trigger("new_current_floor", elevator.currentFloor);
-  return element;
-}
-
-/**
- * Draws a passenger and follows them until they leave the world.
- *
- * @param parent - The `.innerworld` element.
- * @param user - The passenger to draw.
- */
-function presentUser(parent: HTMLElement, user: User): void {
-  const element = renderUser(user.displayType ?? "male", user.done);
-
-  user.on("new_display_state", () => {
-    setTransformPos(element, user.worldX, user.worldY);
-    if (user.done) {
-      element.classList.add("leaving");
-    }
-    // Toggled rather than added, because this one is handed on: the passenger
-    // who has waited longest changes as often as the elevators reach people,
-    // and the world emits this event on both of them when it does.
-    setClass(element, "waiting-longest", user.waitingLongest);
-  });
-  user.on("removed", () => {
-    element.remove();
-  });
-  parent.append(element);
-}
-
-/**
- * Draws a whole world: its floors, its elevators and its passengers.
- *
- * @param parent - The `.innerworld` element.
- * @param world - The world to draw.
- */
-export function presentWorld(parent: HTMLElement, world: World): void {
-  parent.style.height = `${String(world.floorHeight * world.floors.length)}px`;
-  parent.append(...world.floors.map((floor) => presentFloor(floor)));
-
-  // Nobody can be called further down from the bottom floor, or further up from
-  // the top one. `.invisible` keeps the layout (and so the spacing of the other
-  // button) exactly as it is; `disabled` keeps the hidden control off the
-  // keyboard's path.
-  const floorElements = queryAll(FLOOR_SELECTOR, parent);
-  for (const [selector, floorElement] of [
-    [CALL_DOWN_SELECTOR, floorElements.at(0)],
-    [CALL_UP_SELECTOR, floorElements.at(-1)],
-  ] as const) {
-    if (floorElement === undefined) {
-      continue;
-    }
-    const button = requireElement(selector, floorElement);
-    button.classList.add("invisible");
-    button.setAttribute("disabled", "");
-  }
-
-  parent.append(...world.elevators.map((elevator, i) => presentElevator(elevator, i)));
-
-  world.on("new_user", (user) => {
-    presentUser(parent, user);
-  });
-}
-
-/**
  * Renames a building that is already drawn, in the language active now.
  *
  * The building is the one region of the page that cannot be redrawn to change
- * its language. {@link presentWorld} appends an element and subscribes to a
- * simulation object for every floor, every car and every passenger, and none of
- * that is undone until the world is torn down — so a second call would leave two
- * buildings in the page, two `buttonstate_change` handlers on every floor and
- * two of everything else, which is the defect
- * {@link "../app/app.ts"!App}'s constructor comment describes from the legacy
- * code. The alternative, starting the run again so it is drawn from scratch, is
- * worse still: it throws away the run the player is in the middle of because
- * they changed a language.
+ * its language: `widgets/building-stage` mounts one `entities/floor` view per
+ * floor and one `entities/elevator` view per car, each subscribed to a
+ * simulation object, and none of that is undone until the world is torn down
+ * — so mounting it a second time would leave two buildings in the page, two
+ * `buttonstate_change` handlers on every floor and two of everything else,
+ * which is the defect {@link "../app/app.ts"!App}'s constructor comment
+ * describes from the legacy code. The alternative, starting the run again so
+ * it is drawn from scratch, is worse still: it throws away the run the player
+ * is in the middle of because they changed a language.
  *
  * Nothing visible is touched, because nothing visible is a word: a floor shows
  * its number, a car shows the floor it is at, and an in-car button shows the
@@ -621,11 +239,12 @@ export function presentWorld(parent: HTMLElement, world: World): void {
  *
  * The numbers are taken from the positions of the drawn elements rather than
  * from a world, which is what makes this safe to call on whatever happens to be
- * on screen. It is the same arithmetic {@link presentWorld} did: floors are
- * appended in `world.floors` order, where `createFloors` gives `floors[i]` level
- * `i`; cars in `world.elevators` order; and in-car buttons in floor order within
- * each car. `presenters.test.ts` holds the two paths to producing identical
- * markup rather than leaving that to this comment.
+ * on screen: it selects by class and position, not by which module drew the
+ * markup. Floors are found in `world.floors` order, where `createFloors` gives
+ * `floors[i]` level `i`; cars in `world.elevators` order; and in-car buttons in
+ * floor order within each car — the same order the views were mounted in.
+ * `presenters.test.ts` holds this against `entities/floor`'s and
+ * `entities/elevator`'s own markup rather than leaving it to this comment.
  *
  * @param parent - The `.innerworld` element the building was drawn into.
  */
@@ -738,50 +357,6 @@ export function describeError(error: unknown): string {
     describeStructure(error)
   );
 }
-
-/**
- * Draws the "there is a problem with your code" banner.
- *
- * The message is player-authored: it is whatever their exception stringifies
- * to. It is therefore written with `textContent`, never as markup. The legacy
- * version replaced newlines with `<br>` and assigned the result as HTML; the
- * banner uses `white-space: pre-wrap` instead, so multi-line stacks still read
- * as multiple lines.
- *
- * Clearing the banner is {@link clearCodeStatus}, not a missing argument here:
- * `throw undefined` is something player code can do, and it has to reach the
- * banner like anything else.
- *
- * @param parent - The `.codestatus` element.
- * @param error - Whatever the player's code threw.
- */
-export function presentCodeStatus(parent: HTMLElement, error: unknown): void {
-  const banner = renderElement(codeStatusTemplate());
-  requireElement(".errormessage", banner).textContent = describeError(error);
-  parent.replaceChildren(banner);
-}
-
-/**
- * Removes the "there is a problem with your code" banner.
- *
- * @param parent - The `.codestatus` element.
- */
-export function clearCodeStatus(parent: HTMLElement): void {
-  clearChildren(parent);
-}
-
-/**
- * Draws the code slot switcher and wires it up.
- *
- * Re-exported from `#features/manage-code-slots`, which now owns it — kept
- * reachable from here too since this module's own tests still ask for it by
- * this name.
- */
-export {
-  presentCodeSlots,
-  type CodeSlotsPresenter,
-  type CodeSlotsPresenterOptions,
-} from "#features/manage-code-slots/index.ts";
 
 /**
  * Hides everything except the world, for the `#fullscreen` demo mode.

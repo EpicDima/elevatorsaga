@@ -122,7 +122,6 @@
    */
   --color-car-number: #111;
   --color-stats: #9c9c9c;
-  --color-stats-rule: #444;
   --color-control: #9c9c9c;
   --color-control-border: #666;
   /*
@@ -182,13 +181,14 @@
    */
   --stats-row-pitch: 16px;
   /*
-   * How many rows the panel has, which is a fact about `index.html` and not
-   * about this file -- `src/styles/style.test.ts` counts the `.stat` elements
-   * there and fails if this number is not that number. It is here because the
-   * height below has to be worked out from it, and a panel that is drawn
-   * shorter than its own contents is the bug this replaced: the rows are laid
-   * out by the flow and `.worldtrack` clips them, so nothing about the panel
-   * itself objected to being cut off in the middle.
+   * How many rows the panel has. No longer a count of anything in
+   * `index.html` -- `widgets/stats-panel` draws its rows at runtime, not as
+   * static markup, so this is a hand-kept constant now, as
+   * `src/styles/style.test.ts` notes beside its own arithmetic. It is here
+   * because the height below has to be worked out from it, and a panel that
+   * is drawn shorter than its own contents is the bug this replaced: the
+   * rows are laid out by the flow and `.worldtrack` clips them, so nothing
+   * about the panel itself objected to being cut off in the middle.
    */
   --stats-rows: 11;
   --stats-block-size: calc(var(--stats-rows) * var(--stats-row-pitch) + 2 * var(--stats-padding));
@@ -1042,109 +1042,6 @@ html[data-layout="left"] .splitter {
 }
 
 /*
- * The requirement. A line of prose across the bar, and since the controls left
- * it there is nothing beside it to divide the width with -- what stands here is
- * what a heading needs to look like the rest of the page, and the margins that
- * hold it off the row of challenge links below.
- */
-.challengetitle {
-  margin-block: 0.4em 0.3em;
-  font-size: 1.17em;
-  font-weight: normal;
-}
-
-/*
- * The rest of the bar: the row of challenge links, and the seed line under it.
- *
- * A block of the bar, which is what puts them under the title rather than beside
- * it. That used to be a `flex-basis: 100%` fighting the bar's own flex row for
- * the same result -- the row of twenty links is wide, but "wide" is not "wider
- * than whatever is left over", and on a short challenge list it would have
- * ridden up beside the title.
- *
- * A flex row so the links take the width they need and no more: 692.1px of the
- * 1220px on offer at a 1280px window, wrapping within themselves where they do
- * not fit. The seed does not share that line and cannot -- it carries a
- * `flex-basis: 100%` of its own, for the reason written where that is set -- so
- * there is one item to a line here, always, which is why nothing here aligns or
- * spaces a second one. `align-items: baseline`, `justify-content: space-between`
- * and a 12px column gap all stood here, and all of them were live while the seed
- * still rode up beside the links. Measured with each neutralised, on three
- * challenges, with the disclosure open, closed and absent, at every 20px from
- * 320px to 1280px: not one box moves.
- */
-.challengefooter {
-  display: flex;
-  flex-wrap: wrap;
-}
-
-/* Quick navigation between challenges. */
-.challengenav {
-  padding-block: 2px 8px;
-}
-
-/*
- * A wrapping flex row, not a fixed grid: twenty entries fit one line at the
- * shell's full width and fall into three at 320px, where the
- * alternative -- a row that will not wrap -- is a page that has to be read by
- * panning sideways (WCAG 1.4.10).
- */
-.challengenav ul {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-/*
- * The chrome is the run buttons', so the whole page's controls read as one set.
- * The box is 30x28 including its border, which clears the 24x24 minimum for a
- * pointer target (WCAG 2.5.8) with the gap between entries on top of it.
- */
-.challengelink {
-  display: block;
-  min-inline-size: 16px;
-  padding: 4px 6px;
-  border: 1px solid var(--color-control-border);
-  border-radius: 5px;
-  background-color: var(--color-control);
-  color: var(--color-text-strong);
-  font-size: 14px;
-  line-height: 18px;
-  text-align: center;
-  text-shadow: 0 0 3px #aaa;
-}
-
-/*
- * `a:hover` underlines by default, which would collide with the underline that
- * marks the current challenge below; the border does the hovering instead.
- */
-.challengelink:hover {
-  border-color: var(--color-text-strong);
-  text-decoration: none;
-}
-
-/*
- * The challenge being played. Driven by the same `aria-current` the screen
- * reader is, so the two cannot drift apart.
- *
- * The fill is the accent inverted -- 10.9:1, the same pair the feedback overlay
- * uses -- and the underline is there so the mark is not carried by colour alone
- * (WCAG 1.4.1). It is also what survives forced-colours mode, where the system
- * replaces the fill and the text colour but leaves the decoration.
- */
-.challengelink[aria-current] {
-  border-color: var(--color-emphasis-on-page);
-  background-color: var(--color-emphasis-on-page);
-  color: var(--color-emphasis);
-  text-decoration: underline;
-  text-underline-offset: 2px;
-  text-shadow: none;
-}
-
-/*
  * The seed itself, which is the part that has to be read character by character.
  * The monospace face is what tells a 1 from an l and a 0 from an O -- and it is
  * on the seed whether or not it is a link, since a pinned run's seed is plain
@@ -1631,9 +1528,9 @@ button[disabled] {
  * 12px was the smallest text on the page, and the one place it sat on a
  * combination of keys rather than a sentence -- Ctrl+Enter, Tab, Esc, and on a
  * Mac the dense single glyph of ⌘. 14px/18px is what the rest of the page's
- * secondary text is set at (.tutorialprogress, .challengelink): still the
- * quiet line under the grip rather than a heading, but no longer the
- * smallest thing here.
+ * secondary text is set at (.tutorialprogress among it): still the quiet
+ * line under the grip rather than a heading, but no longer the smallest
+ * thing here.
  */
 .hint {
   margin-block: 4px;
@@ -1677,42 +1574,9 @@ kbd {
 
 /* ------------------------------------------------------------------- Editor */
 
-.codestatus {
-  padding-block-start: 10px;
-}
-
 /*
- * The banner used to be an `<h5>` whose `display` was toggled; it is a paragraph
- * that is present only when there is something to say. The metrics are the ones
- * the heading had. `pre-wrap` replaces the legacy newline-to-`<br>` rewriting of
- * the stack trace, which had to treat player-authored text as markup.
- */
-.codestatus .error {
-  margin-block: 0.4em 0.3em;
-  font-size: 0.83em;
-  white-space: pre-wrap;
-}
-
-/*
- * The three code slots. `:empty` hides the row on a learning task and in the
- * sandbox, the same rule `.tutorial:empty` states at length above: markup that
- * is present so a presenter has somewhere to draw must cost nothing on the
- * routes nothing is drawn on.
- */
-.codeslots {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 5px;
-  margin-block: 8px;
-}
-
-.codeslots:empty {
-  display: none;
-}
-
-/*
- * The chrome is the run buttons' and the challenge links', so every
- * button-shaped control on the page reads as one set.
+ * The chrome is the run buttons' own, so every button-shaped control on the
+ * page reads as one set.
  */
 .codeslot {
   block-size: 30px;
@@ -1729,11 +1593,10 @@ kbd {
 }
 
 /*
- * The slot open in the editor right now. The same fill, text colour and
- * underline as `.challengelink[aria-current]`, and for the same reasons: the
- * pairing holds 4.5:1 already tested there, and the underline keeps the mark
- * from being carried by colour alone (WCAG 1.4.1) and survives forced-colours
- * mode, where the system repaints the fill but leaves the decoration.
+ * The slot open in the editor right now. The fill is the accent inverted, and
+ * the underline is there so the mark is not carried by colour alone (WCAG
+ * 1.4.1). It is also what survives forced-colours mode, where the system
+ * repaints the fill but leaves the decoration.
  */
 .codeslot[aria-pressed="true"] {
   border-color: var(--color-emphasis-on-page);
@@ -1974,19 +1837,6 @@ kbd {
   line-height: var(--stats-row-height);
   color: var(--color-stats);
   z-index: 1;
-}
-
-/*
- * Rows used to be absolutely positioned at hard-coded offsets written into the
- * markup. They are ordinary blocks now; the height, the rule and the gap add up
- * to the pitch, and the panel's padding puts the first row where it was.
- */
-.statscontainer .stat {
-  display: flex;
-  justify-content: space-between;
-  block-size: var(--stats-row-height);
-  margin-block-end: calc(var(--stats-row-pitch) - var(--stats-row-height) - 1px);
-  border-block-end: 1px solid var(--color-stats-rule);
 }
 
 /* ---------------------------------------------------------------- Elevators */

@@ -329,8 +329,8 @@ describe("kbd and .hint", () => {
     // same kind of control-shaped mark those buttons already draw, rather
     // than a colour this file would have no test for. The pair is
     // --color-text-strong on --color-control, which the "readable on" cases
-    // above already hold to 4.5:1 by way of .runbuttons button, .skip-link
-    // and .challengelink, all painting the same two tokens over each other.
+    // above already hold to 4.5:1 by way of .runbuttons button and
+    // .skip-link, both painting the same two tokens over each other.
     const body = ruleBody("kbd");
     expect(declaration(body, "border-radius", "kbd")).toBe("4px");
     expect(declaration(body, "color", "kbd")).toBe(token("color-text-strong"));
@@ -343,7 +343,7 @@ describe("kbd and .hint", () => {
     // #fitness_message -- but unlike those two, every word in it is either a
     // key combination or the sentence naming one, including a Mac player's
     // lone ⌘. 14px is what the rest of the page's secondary text is set at
-    // (.tutorialprogress, .challengelink).
+    // (.tutorialprogress among it).
     expect(declaration(ruleBody(".hint"), "font-size", ".hint")).toBe("14px");
   });
 });

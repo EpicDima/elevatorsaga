@@ -130,12 +130,11 @@ export function renderElement(source: string): HTMLElement {
  *
  * This and the three below it exist because the building is drawn once per run
  * and has to be *renamed* without being redrawn. Everything else the game puts
- * on screen is rebuilt when the language changes, but
- * {@link "./presenters.ts"!presentWorld} appends an element and subscribes to a
- * simulation object for every floor, every car and every passenger, so calling
- * it a second time would leave two buildings in the page and two handlers on
- * each event — and the only other way to get a fresh one is to throw away the
- * run in progress.
+ * on screen is rebuilt when the language changes, but `widgets/building-stage`
+ * mounts one view per floor, car and passenger and subscribes each to a
+ * simulation object, so mounting it a second time would leave two buildings in
+ * the page and two handlers on each event — and the only other way to get a
+ * fresh one is to throw away the run in progress.
  *
  * So {@link "./presenters.ts"!relabelWorld} rewrites these four names in place.
  * The helpers are what keep it honest: a key spelled out both in a template and
@@ -247,52 +246,6 @@ export function userTemplate(displayType: UserDisplayType, leaving: boolean): st
   return iconMarkup(displayType, leaving ? "movable user leaving" : "movable user");
 }
 
-/** One entry of the challenge bar's navigation row. */
-export interface ChallengeLinkData {
-  /** One-based challenge number, exactly as it appears in the URL. */
-  readonly num: number;
-  /**
-   * Where the entry goes.
-   *
-   * A whole hash URL rather than a challenge number, because it has to carry
-   * the rest of the parameters with it; the app builds it with
-   * `createParamsUrl`.
-   */
-  readonly url: string;
-  /** Whether this is the challenge being played. */
-  readonly current: boolean;
-  /** Whether this entry is the endless demo rather than a numbered challenge. */
-  readonly demo: boolean;
-}
-
-/**
- * One entry of the challenge navigation row.
- *
- * The visible label is the bare number: twenty of these have to fit across a
- * phone. The accessible name is not, because "7" on its own says nothing about
- * where the link goes, and a screen reader reading the row out would produce
- * twenty unrelated digits. The visible text is contained in the accessible
- * name, which is what WCAG 2.5.3 asks of a control whose two names differ — and
- * what lets speech input reach it by the label on screen.
- *
- * `aria-current` marks the entry being played for assistive technology; the
- * stylesheet marks the same entry for everyone else off the same attribute, so
- * the two cannot drift apart. `page` is the value rather than `true` because
- * each entry is a real link to a real URL, and following one replaces what the
- * page is showing.
- *
- * @param link - Where the entry goes, and whether it is the current one.
- * @returns The list-item markup.
- */
-function challengeLinkTemplate(link: ChallengeLinkData): string {
-  const label = link.demo ? t("game.challenge.nav.demo") : String(link.num);
-  const name = link.demo
-    ? t("game.challenge.nav.demo")
-    : t("game.challenge.nav.link", { number: link.num });
-  const current = link.current ? raw(` aria-current="page"`) : raw("");
-  return markup`<li><a class="challengelink" href="${link.url}" aria-label="${name}"${current}>${label}</a></li>`;
-}
-
 /** The seed of the run in progress, and where the line's link goes. */
 export interface SeedLinkData {
   /** The seed itself, exactly as it appears in the URL. */
@@ -323,152 +276,6 @@ export interface SeedLinkData {
 }
 
 /**
- * The seed of the run in progress, and the one thing worth doing about it.
- *
- * A real link, like the navigation row and for the same reasons: the browser's
- * own affordances are the feature here — "copy link address" is how a player
- * hands the building to somebody else, and the status bar shows where it goes
- * without anything having to be clicked.
- *
- * Which link it is depends on where the run came from, because a URL can only be
- * in one of two states and each has exactly one useful move out of it:
- *
- * - Nothing pinned. The seed itself is the link, and following it writes the
- *   seed into the address, so restarting brings these passengers back.
- * - Pinned. Following that link again would go where the player already is, so
- *   the seed is plain text and the link beside it is `new draw`, which takes the
- *   seed back out of the address. Without it, one click into a pinned run is a
- *   one-way door: the Restart button, Ctrl-Enter and a reload all keep the pin,
- *   and the address bar is the only way back out — which is the state
- *   {@link "../app/app.ts"!App.handleRoute} explains at length that this game
- *   refuses to create. The navigation row is not that way out either: it drops
- *   the seed, but it has no entry for the sandbox, and "press the challenge you
- *   are already on" is not a move any interface can expect to be found.
- *
- * Keeping the seed a link in both states was the alternative, and it was
- * rejected because the honest name for it would have been "go where you already
- * are": it fires no `hashchange`, so nothing at all happens, while its name
- * promises another run. The seed stays selectable text either way, and a pinned
- * run's address bar already holds the URL that "copy link address" would.
- *
- * The visible text is the bare seed, because that is the token that gets
- * transcribed, and it is contained in the accessible name (WCAG 2.5.3) — which
- * has to say more, since "1234567890, link" describes nothing. What the name
- * does not do is promise the run back: it says another run from this seed, and
- * {@link seedHelpTemplate} carries the caveat, which says how far that goes. The
- * same rule holds the other way round: `new draw` is two words on screen and two
- * words inside the name, in whatever language the pair is read in.
- *
- * A `<div>` rather than the `<p>` this used to be, and not as a matter of taste:
- * `<details>` is one of the tags the HTML parser closes an open `<p>` on, so the
- * disclosure would be parsed out of the line and left as a sibling of it — the
- * bar is written into the document with `innerHTML`, which is the real parser.
- *
- * @param data - The seed, the URL that starts another run from it, and the URL
- * that stops pinning it.
- * @returns The seed line's markup.
- */
-function seedTemplate(data: SeedLinkData): string {
-  const action =
-    data.newDrawUrl === null
-      ? markup`<a class="seedlink" href="${data.url}" aria-label="${t("game.seed.link", { seed: data.seed })}">${data.seed}</a>`
-      : markup`<span class="seedvalue">${data.seed}</span> <a class="seednewdraw" href="${data.newDrawUrl}" aria-label="${t("game.seed.newDrawLink", { seed: data.seed })}">${t("game.seed.newDraw")}</a>`;
-  return markup`<div class="challengeseed"><span class="seedlabel">${t("game.seed.label")}</span> ${raw(action)} ${raw(seedHelpTemplate())}</div>`;
-}
-
-/**
- * What a seed fixes, and what playing it the same way adds on top, as
- * something a player can actually open.
- *
- * The words are `game.seed.explanation` in the message catalogue, and both
- * halves of them are load-bearing; each was measured rather than assumed, so a
- * translation that drops one is dropping a finding.
- *
- * The passengers really do come back, and that is neither free nor old. Until
- * `e2cc0b5` the re-press offset in `src/game/world.ts` and the walk-off duration
- * in `src/game/user.ts` drew from the stream the passengers came from, at
- * moments the simulation's own dynamics decided — so a frame a microsecond
- * longer reordered the draws and everyone after that point was somebody else.
- * Those two have streams of their own now, and one seed brings one cast of
- * characters however the frames fall. That is what makes the affordance worth
- * having: comparing two programs means comparing them on the same people.
- *
- * The run comes back too, now, given the same play. `src/game/world-controller.ts`
- * used to drive `codeObj.update` and `world.update` off `requestAnimationFrame`'s
- * variable `dt`; both now advance in fixed `TICK_SECONDS` ticks instead, so the
- * cars are in the same places at each passenger's appearance, the player's
- * program is asked to decide at the same moments, and the outcome no longer
- * moves with the browser's frame rate — headless paths and the browser now
- * repeat a run step for step alike. What still moves the outcome is the play
- * itself: a pause or a speed change lands on whichever tick it lands on, so
- * two people running the same seed differently still get different runs.
- * "Replay this run" would need the browser to record and re-drive that play,
- * not just the seed — nothing here does that, so the promise made is scoped to
- * playing it the same way, not to an automatic replay.
- *
- * It used to be a `title` attribute on the word "Seed", which delivered it to a
- * mouse and to nothing else: `title` never appears on a touch screen, a `<span>`
- * cannot be focused so a keyboard cannot reach it either, and screen readers
- * announce `title` on a non-interactive element inconsistently at best — several
- * ignore it outright, and the ones that read it need the pointer to be resting
- * on the word. The caveat is the sentence that keeps the rest of the line
- * honest, and it was the least reachable string in the feature.
- *
- * A native `<details>` instead, because the disclosure this needs is exactly the
- * one the browser already implements: the `<summary>` is focusable and in the
- * tab order with no `tabindex`, Enter and Space open it, and it is announced as
- * a disclosure with its expanded state without a single ARIA attribute — where a
- * hand-rolled `aria-expanded` button would be four lines of wiring in
- * {@link "./presenters.ts"!presentChallenge} for the same result, on markup that
- * is rebuilt from scratch on every run.
- *
- * Closed by default, and the summary sits on the seed's own line while it is:
- * the bar stands directly above the building, so a line it always spends is a
- * line the game is pushed down by, and a player who has read the caveat once
- * does not need it in front of them for the rest of the evening.
- *
- * Alternatives that were rejected:
- *
- * - Printing the sentence into the bar unconditionally. It is a paragraph of
- *   prose in a control strip, and at 320px it is three lines of it.
- * - Keeping the `title` alongside the disclosure. The same words would then be
- *   announced from two places, and a tooltip that only some players ever see is
- *   what made this defect hard to notice in the first place.
- * - A `title` on the `<summary>`, which is focusable. Firefox and Chrome do not
- *   show a tooltip for keyboard focus, only for hover, so it would have fixed
- *   nothing for the players it is missing.
- *
- * @returns The disclosure's markup.
- */
-function seedHelpTemplate(): string {
-  return markup`<details class="seedhelp"><summary>${t("game.seed.helpSummary")}</summary><p class="seedcaveat">${t("game.seed.explanation")}</p></details>`;
-}
-
-/** Everything the challenge bar needs in order to render itself. */
-export interface ChallengeTemplateData {
-  /** One-based challenge number. */
-  readonly num: number;
-  /**
-   * The challenge requirement.
-   *
-   * Contains markup (`<span class='emphasis-color'>…</span>`) built in
-   * `src/game/challenges.ts`, i.e. in this repository's own source and never
-   * from player input, so it is inserted verbatim.
-   */
-  readonly description: string;
-  /** Every challenge, in order, for the navigation row. */
-  readonly links: readonly ChallengeLinkData[];
-  /**
-   * The seed of the run in progress, or `null` to leave the line out.
-   *
-   * `null` only happens when the world was handed a ready-made random stream
-   * instead of a seed, which in practice means a test: there is then no seed to
-   * offer and nothing that could be linked to.
-   */
-  readonly seed: SeedLinkData | null;
-}
-
-/**
  * Everything that drives the run in progress, as one row.
  *
  * Drawn into its own region between the learning track's panel and the building
@@ -479,12 +286,12 @@ export interface ChallengeTemplateData {
  * it starts was at the bottom. The controls belong against the thing they
  * control.
  *
- * The second is that the challenge bar is rebuilt on every restart, so every one
- * of these buttons used to destroy itself when pressed — which is what the focus
- * bookkeeping in `presentChallenge` exists to paper over. This region is drawn
- * once for the life of the page and only relabelled, so a keyboard player who
- * presses Start over is still standing on Start over afterwards, with nothing to
- * restore.
+ * The second is that the challenge bar used to be rebuilt on every restart, so
+ * every one of these buttons used to destroy itself when pressed — which is
+ * what the challenge bar's own focus bookkeeping existed to paper over. This
+ * region is drawn once for the life of the page and only relabelled, so a
+ * keyboard player who presses Start over is still standing on Start over
+ * afterwards, with nothing to restore.
  *
  * Three buttons and a speed, in that order, because the three are what the
  * player came for and the speed is a setting. Reset/undo-reset moved to the
@@ -503,56 +310,6 @@ export interface ChallengeTemplateData {
  */
 export function controlsTemplate(): string {
   return runButtonsTemplate() + speedStepperTemplate();
-}
-
-/**
- * The challenge bar: requirement text, the row of challenges and the seed.
- *
- * Everything here is in the order it is read in: the requirement, then the row
- * of challenges and the seed. That is not decoration. The bar used to be floats
- * — `float: right` lays the *first* element out furthest right — so the start
- * button was written before the speed controls and drawn after them, and Tab
- * walked the bar backwards against the screen (WCAG 2.4.3). Those two have their
- * own region now (see {@link controlsTemplate}); the stylesheet lays what is
- * left out with flex in document order and has no `order` or `row-reverse` in
- * it, so the two orders cannot come apart again.
- *
- * The navigation row is a `<nav>` around a list: the landmark gives it a name
- * and a way to be jumped to, and the list tells a screen reader up front how many
- * challenges there are — the one thing the row is for. Real links rather than
- * buttons, so the browser's own affordances (open in a new tab, copy the address,
- * the status bar) all work; navigation is the hash change the router already
- * listens for, so nothing has to be wired to them at all.
- *
- * The seed takes a line of its own below that row. Letting it ride up beside the
- * links wherever it fitted is the cheaper layout, and the bar has every reason
- * to want the cheaper one: the building's top edge is the bar's bottom edge, so
- * every pixel the bar grows pushes the game down the page, and the seed is only
- * a debugging aid. It was traded away because the line carries a disclosure. A
- * line that shares a row is as wide as whatever is left over, so opening the
- * disclosure widened it past what was left, dropped it under the links, and
- * carried the summary the player had just clicked out from under the pointer
- * that clicked it. A line of its own has no room left to lose, so the summary
- * now stays where it was opened at every width the panel fits beside it; the
- * height is what that cost. The seed stays outside the `<nav>` — it is not a
- * challenge, and counting it among them would make the landmark lie about how
- * many there are.
- *
- * @param data - The challenge number, the requirement, the whole challenge list
- * and the seed of the run in progress.
- * @returns The challenge bar markup.
- */
-export function challengeTemplate(data: ChallengeTemplateData): string {
-  const links = data.links.map((link) => challengeLinkTemplate(link)).join("");
-  const seed = data.seed === null ? "" : seedTemplate(data.seed);
-  // The title is one message rather than a sentence assembled here, because the
-  // requirement is inside it: Russian writes «Задание №3: ...», and a language
-  // that wanted the number after the requirement would have nowhere to put it if
-  // the order were fixed by this template. Both halves are trusted markup — the
-  // catalogue is this repository's own text, and the description comes from
-  // `src/game/challenges.ts` — so the assembled title goes in raw.
-  const title = t("game.challenge.title.html", { number: data.num, description: data.description });
-  return markup`<h2 class="challengetitle">${raw(title)}</h2><div class="challengefooter"><nav class="challengenav" aria-label="${t("game.challenge.nav.label")}"><ul>${raw(links)}</ul></nav>${raw(seed)}</div>`;
 }
 
 /** Everything the learning track's panel needs in order to render itself. */
@@ -725,10 +482,9 @@ function tutorialHintTemplate(
  * {@link "#widgets/tutorial-panel/index.ts"!presentTutorial} when "Take this program" is
  * pressed — an empty live region waiting for its news, which is what
  * `#save_message` in `index.html` is too, the one the editor writes its "Code
- * saved …" line into. It is here rather than created on the click for the reason
- * {@link feedbackTemplate} gives about its own container: a live region has to
- * be in the document before the text appears inside it, or the announcement is
- * generally not made at all.
+ * saved …" line into. It is here rather than created on the click for the same
+ * reason any live region is: it has to be in the document before the text
+ * appears inside it, or the announcement is generally not made at all.
  *
  * Empty is what it is drawn as every time, including the redraws — the task
  * changing, the run restarting, the language changing, and the task being
@@ -772,54 +528,3 @@ export function tutorialTemplate(data: TutorialTemplateData): string {
   // only place the number it was drawn for still exists.
   return markup`<section class="tutorialpanel" data-task-index="${data.taskNumber - 1}" aria-label="${t("tutorial.panel.label")}"><p class="tutorialposition"><span class="tutorialtrack">${t("tutorial.panel.label")}</span> <span class="tutorialstep">${t("tutorial.panel.position", { number: data.taskNumber, count: data.taskCount })}</span></p><h2 class="tutorialtitle">${data.title}</h2><p class="tutorialgoal">${data.goal}</p>${raw(hints)}<details class="tutorialexplanation"><summary>${t("tutorial.panel.explanationSummary")}</summary><p class="tutorialprose">${raw(data.explanation)}</p></details><div class="tutorialbuttons"><button type="button" class="tutorialtakecode">${t("tutorial.button.takeCode")}</button><button type="button" class="tutorialleave">${t("tutorial.button.leave")}</button></div><p class="tutorialtaken" aria-live="polite"></p><p class="tutorialprogress">${t("tutorial.panel.progress", { cleared: data.clearedCount, count: data.taskCount })}</p></section>`;
 }
-
-/** Everything the end-of-challenge overlay needs in order to render itself. */
-export interface FeedbackTemplateData {
-  /** Headline, e.g. `"Success!"`. */
-  readonly title: string;
-  /** Explanatory line under the headline. */
-  readonly message: string;
-  /** Link to the next challenge, or `""` for no link. */
-  readonly url: string;
-}
-
-/**
- * The overlay shown when a challenge is won or lost.
- *
- * The live region is the enclosing `.feedbackcontainer` in `index.html`, not
- * this overlay. A live region has to be in the document *before* the text
- * appears inside it for the announcement to be made: a screen reader that only
- * meets `role="status"` at the moment the element is inserted, already
- * populated, generally says nothing at all.
- *
- * @param data - Headline, message and next-challenge link.
- * @returns The overlay markup.
- */
-export function feedbackTemplate(data: FeedbackTemplateData): string {
-  const link =
-    data.url === ""
-      ? ""
-      : markup`<a href="${data.url}" class="emphasis-color">${t("game.feedback.next")} ${raw(iconMarkup("caret-right", "blink"))}</a>`;
-  return markup`<div class="feedback"><h2 class="emphasis-color">${data.title}</h2><p class="emphasis-color">${data.message}</p>${raw(link)}</div>`;
-}
-
-/**
- * The "there is a problem with your code" banner.
- *
- * The message itself is not templated: it is whatever the player's exception
- * stringifies to, so the presenter assigns it with `textContent`.
- *
- * @returns The banner markup, with an empty message slot.
- */
-export function codeStatusTemplate(): string {
-  return markup`<p class="error">${raw(iconMarkup("warning", "error-color"))} ${t("game.codeStatus")} <span class="errormessage"></span></p>`;
-}
-
-/**
- * The code slot switcher, as one row of buttons.
- *
- * Re-exported from `#features/manage-code-slots`, which now owns it — kept
- * reachable from here too since this module's own tests still ask for it by
- * this name.
- */
-export { codeSlotsTemplate, type CodeSlotsData } from "#features/manage-code-slots/index.ts";
