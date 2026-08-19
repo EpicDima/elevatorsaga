@@ -92,7 +92,7 @@ export interface CodeSlotsPresenter {
  * `update` throws away and redraws: a listener on a button `update` has just
  * removed from the document hears nothing.
  *
- * @param parent - The `.codeslots` element.
+ * @param parent - The `.slots` element.
  * @param options - Which slot is current, and the callback for picking another.
  * @returns The presenter, already drawn.
  */
