@@ -1912,14 +1912,31 @@ html[data-theme="dark"] .tasklink.is-done {
   padding: 6px 14px 14px;
 }
 
+/*
+ * `design/ui-mockup.html`'s own row is two items -- what the key does, and one
+ * `<kbd>` -- so it pushes them apart with `justify-content: space-between` and
+ * is done. Two of this port's five rows are four items, because a `Mod-`
+ * binding is spelled `<kbd>⌘</kbd>+<kbd>Enter</kbd>` here rather than as the
+ * mockup's single compressed `<kbd>⌘⏎</kbd>` -- that is what lets
+ * `src/ui/shortcuts.ts` relabel the glyph `Ctrl` off a Mac. Spread between
+ * them, `space-between` scattered the chord across the row: the modifier at
+ * the middle, the plus somewhere right of it, the key at the edge.
+ *
+ * So the description takes the free space itself and the keys pack against the
+ * right edge, one chord at one small gap. The description is the row's only
+ * `<span>`, which is also how `presentHotkeysModal` finds it.
+ */
 .keyrow {
   display: flex;
-  gap: 12px;
-  justify-content: space-between;
+  gap: 4px;
   align-items: center;
   padding: 4px 0;
   font-size: 13px;
   color: var(--ds-text-muted);
+}
+
+.keyrow > span {
+  margin-inline-end: auto;
 }
 
 /*
