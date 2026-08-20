@@ -123,6 +123,15 @@ describe("iconMarkup", () => {
       expect(parsed?.outerHTML, name).toBe(built.outerHTML);
     }
   });
+
+  it("carries the base class alone when no extra classes were asked for", () => {
+    // The class name is optional here as it is on createIcon, and an icon
+    // written without one has to come out `class="icon"` rather than
+    // `class="icon undefined"`.
+    const template = document.createElement("template");
+    template.innerHTML = iconMarkup("male");
+    expect(template.content.firstElementChild?.outerHTML).toBe(createIcon("male").outerHTML);
+  });
 });
 
 /** The mockup-family icon names, in the order `SPRITE_ICONS` declares them. */

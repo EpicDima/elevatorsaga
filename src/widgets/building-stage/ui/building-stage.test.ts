@@ -53,6 +53,40 @@ function mount(world: World, width: number, height: number): Mounted {
 }
 
 /**
+ * Stubs the scroll extents jsdom does not compute, so the stage can be asked
+ * what it does in a box the building overflows.
+ *
+ * `scrollTop` is stubbed as a real accessor rather than a value: the widget
+ * both reads it and writes to it, and jsdom's own property is a getter that
+ * answers 0 whatever is assigned to it, which would make a scroll the widget
+ * performed indistinguishable from one it declined to.
+ *
+ * @param stage - The stage the widget built, already mounted.
+ * @param extents - What the stage should report it has to scroll through.
+ */
+function stubScroll(
+  stage: HTMLElement,
+  extents: { scrollHeight?: number; scrollWidth?: number },
+): void {
+  Object.defineProperty(stage, "scrollHeight", {
+    value: extents.scrollHeight ?? 0,
+    configurable: true,
+  });
+  Object.defineProperty(stage, "scrollWidth", {
+    value: extents.scrollWidth ?? 0,
+    configurable: true,
+  });
+  let scrollTop = 0;
+  Object.defineProperty(stage, "scrollTop", {
+    configurable: true,
+    get: () => scrollTop,
+    set: (value: number) => {
+      scrollTop = value;
+    },
+  });
+}
+
+/**
  * The layout `presentBuildingStage` itself would have computed for a stage this
  * size.
  *
@@ -409,6 +443,124 @@ describe("presentBuildingStage", () => {
         destinationFloors: [],
       }).title,
     );
+  });
+
+  it("leaves an open card alone on any key but Escape", () => {
+    // The arrow keys scroll the stage, which is the whole reason it is a tab
+    // stop: reading a car's figures with the keyboard must not dismiss them.
+    const world = createWorld({ floorCount: 3, elevatorCount: 1 });
+    const { parent } = mount(world, 800, 300);
+
+    const carEl = requireElement(".elevator", parent);
+    carEl.focus();
+    carEl.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true }));
+
+    expect(requireElement(".carcard", parent).hidden).toBe(false);
+  });
+
+  it("leaves a floor's pointerleave alone once another card has taken the card over", () => {
+    // Pointing at a floor and then at a car hands the one card to the car. The
+    // floor's own pointerleave arrives after that, and it has to notice that
+    // what it was asked to hide is not what is on screen any more -- otherwise
+    // moving the pointer between the two blanks the card that just opened.
+    const world = createWorld({ floorCount: 2, elevatorCount: 1 });
+    const { parent } = mount(world, 800, 218);
+
+    const floorEl = queryAll(".levels .floor", parent)[0];
+    const carEl = requireElement(".elevator", parent);
+
+    floorEl?.dispatchEvent(new Event("pointerenter"));
+    carEl.focus();
+    floorEl?.dispatchEvent(new Event("pointerleave"));
+
+    const card = requireElement(".carcard", parent);
+    expect(card.hidden).toBe(false);
+    expect(carEl.getAttribute("aria-describedby")).toBe(card.id);
+  });
+
+  it("leaves a car's blur alone once another card has taken the card over", () => {
+    // The same question from the other side: a car that loses focus after a
+    // floor's card has replaced its own must not take the floor's card down
+    // with it.
+    const world = createWorld({ floorCount: 2, elevatorCount: 1 });
+    const { parent } = mount(world, 800, 218);
+
+    const floorEl = queryAll(".levels .floor", parent)[0];
+    const carEl = requireElement(".elevator", parent);
+
+    carEl.focus();
+    floorEl?.dispatchEvent(new Event("pointerenter"));
+    carEl.blur();
+
+    const card = requireElement(".carcard", parent);
+    expect(card.hidden).toBe(false);
+    expect(floorEl?.getAttribute("aria-describedby")).toBe(card.id);
+  });
+
+  it("opens looking at the lobby, and hands the view over once it is there", () => {
+    // The building is drawn ground-floor-last in the document, so a stage
+    // taller than its box opens looking at the roof. Every geometry pass tries
+    // again until it finds the view already at the bottom -- and from that pass
+    // on the scroll position is the player's, so a later one must not yank a
+    // player who has scrolled up back down to the lobby.
+    const world = createWorld({ floorCount: 8, elevatorCount: 1 });
+    const { stage, presenter } = mount(world, 800, 218);
+    stubScroll(stage, { scrollHeight: 1000 });
+
+    presenter.recomputeGeometry();
+    expect(stage.scrollTop).toBe(1000);
+
+    presenter.recomputeGeometry();
+    stage.scrollTop = 0;
+    presenter.recomputeGeometry();
+
+    expect(stage.scrollTop).toBe(0);
+  });
+
+  it("gives the stage a tab stop exactly while there is somewhere to scroll to", () => {
+    // A scrollable region a keyboard cannot reach is WCAG 2.1.1, and so is a
+    // tab stop that goes nowhere.
+    const world = createWorld({ floorCount: 8, elevatorCount: 1 });
+    const { stage, presenter } = mount(world, 800, 218);
+
+    // jsdom reports nothing overflowing until it is told otherwise.
+    expect(stage.hasAttribute("tabindex")).toBe(false);
+
+    stubScroll(stage, { scrollHeight: 1000 });
+    presenter.recomputeGeometry();
+
+    expect(stage.tabIndex).toBe(0);
+  });
+
+  it("gives a wide building a tab stop too, though every floor of it fits on screen", () => {
+    // Sideways is a question of its own: a building whose floors all fit
+    // vertically can still have a shaft off the right-hand edge.
+    const world = createWorld({ floorCount: 3, elevatorCount: 6 });
+    const { stage, presenter } = mount(world, 400, 400);
+    stubScroll(stage, { scrollWidth: 2000 });
+
+    presenter.recomputeGeometry();
+
+    expect(stage.tabIndex).toBe(0);
+  });
+
+  it("shades the edge the building carries on past, at whichever end that is", () => {
+    const world = createWorld({ floorCount: 8, elevatorCount: 1 });
+    const { parent, stage, presenter } = mount(world, 800, 218);
+    const wrap = requireElement(".stagewrap", parent);
+    stubScroll(stage, { scrollHeight: 1000 });
+
+    // Down at the lobby the widget opened on: seven floors above, none below.
+    presenter.recomputeGeometry();
+    expect(wrap.classList.contains("is-cut-top")).toBe(true);
+    expect(wrap.classList.contains("is-cut-bottom")).toBe(false);
+
+    // And at the roof, the other way about. Through a scroll event this time,
+    // which is the only thing that redraws the shadows while a player scrolls.
+    stage.scrollTop = 0;
+    stage.dispatchEvent(new Event("scroll"));
+    expect(wrap.classList.contains("is-cut-top")).toBe(false);
+    expect(wrap.classList.contains("is-cut-bottom")).toBe(true);
   });
 
   it("creates a passenger view for every new_user and removes it when the passenger is removed", () => {

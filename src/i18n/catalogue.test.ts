@@ -299,6 +299,19 @@ describe("translate", () => {
     expect(translate("en", EN_MESSAGES, "level.people.html", { count: 2 })).toContain("people");
   });
 
+  it("falls back to the 'other' form when the one the count asks for is missing", () => {
+    // Which categories a locale has is not something the lookup can know, so
+    // every form is optional in the shape it reads; `other` is the one category
+    // every language has, and so the one answer it can always fall back on. A
+    // Russian entry that lost its `many` still has to say something for 5.
+    const withoutMany = {
+      ...RU_MESSAGES,
+      "level.people.html": { one: "одна форма", few: "другая форма", other: "запасная форма" },
+    } as unknown as typeof RU_MESSAGES;
+    expect(translate("ru", withoutMany, "level.people.html", { count: 5 })).toBe("запасная форма");
+    expect(translate("ru", withoutMany, "level.people.html", { count: 1 })).toBe("одна форма");
+  });
+
   it("builds a level description exactly as the game builds it today", () => {
     // Byte for byte what src/game/levels.ts renders, markup included: the
     // wiring agent can swap the template for this call and change nothing on

@@ -140,6 +140,17 @@ describe("presentGlobalShortcuts", () => {
     expect(onCycleLayout).toHaveBeenCalledOnce();
   });
 
+  it("switches the layout on Ctrl-Shift-B too, and with caps lock on", () => {
+    // The browser reports the character the keyboard produced, so a player
+    // holding shift -- or one who left caps lock on -- sends "B". The same
+    // shortcut, as far as anyone pressing it is concerned.
+    const { onCycleLayout } = setUp();
+
+    keydown(document.body, { key: "B", ctrlKey: true, shiftKey: true });
+
+    expect(onCycleLayout).toHaveBeenCalledOnce();
+  });
+
   it("leaves Ctrl-B alone while typing", () => {
     const { onCycleLayout, input } = setUp();
 

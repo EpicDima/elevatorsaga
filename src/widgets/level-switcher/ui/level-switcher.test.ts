@@ -423,6 +423,24 @@ describe("presentLevelSwitcher", () => {
     expect(taskNext.hasAttribute("disabled")).toBe(true);
   });
 
+  it("navigates nowhere when an arrow is pressed with nothing to step to", () => {
+    // The arrows disable themselves at either end of a block, so this is not a
+    // click a player can make. It is still a click the handler has to survive:
+    // "disabled" is an attribute on the button and the listener is bound to the
+    // button regardless, so the two have to agree about the end of the block.
+    const { parent, options } = setUp({
+      levels: fixtureLevels(3),
+      selection: { kind: "level", index: 0 },
+    });
+    presentLevelSwitcher(parent, options);
+    const view = parent.ownerDocument.defaultView;
+    const before = view?.location.href;
+
+    requireElement(".task-prev", parent).dispatchEvent(new MouseEvent("click", { bubbles: true }));
+
+    expect(view?.location.href).toBe(before);
+  });
+
   it("names nothing and steps nowhere when the selection is outside the menu", () => {
     // `buildLevelMenu`'s own documented case: a selection that matches no tile
     // at all, which is what the router hands over for the moment between one

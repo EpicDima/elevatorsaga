@@ -63,6 +63,14 @@ describe("selectPlural", () => {
     expect(selectPlural("ru", decimal(21, 1))).toBe("other");
   });
 
+  it("counts a quantity written without formatting options", () => {
+    // `Quantity.format` is optional, so `{ value }` on its own is a legal count
+    // even though every helper here fills it in. It has to mean what a bare
+    // number means: the digits as they stand, and the category they deserve.
+    expect(selectPlural("ru", { value: 21 })).toBe("one");
+    expect(selectPlural("ru", { value: 5 })).toBe("many");
+  });
+
   it("keeps English to its two categories", () => {
     expect(selectPlural("en", 1)).toBe("one");
     expect(selectPlural("en", 0)).toBe("other");
@@ -166,6 +174,10 @@ describe("formatValue", () => {
   it("renders a bare number for the locale", () => {
     expect(formatValue("ru", 2675)).toBe(`2${NBSP}675`);
   });
+
+  it("renders a quantity written without formatting options like the bare number", () => {
+    expect(formatValue("ru", { value: 2675 })).toBe(formatValue("ru", 2675));
+  });
 });
 
 describe("formatValueParts", () => {
@@ -194,6 +206,7 @@ describe("formatValueParts", () => {
       number: "already rendered",
       unit: "",
     });
+    expect(formatValueParts("ru", { value: 2675 })).toEqual({ number: `2${NBSP}675`, unit: "" });
   });
 
   it("splits exactly what formatValue joins, for every quantity the panel draws", () => {

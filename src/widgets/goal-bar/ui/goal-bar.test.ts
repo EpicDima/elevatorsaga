@@ -5,7 +5,10 @@ import { describe, expect, it } from "vitest";
 import { goalBarTemplate, presentGoalBar } from "./goal-bar.ts";
 import type { Level } from "#entities/level/index.ts";
 import { atLeastAvgLoadFactorOnMove, requireAll, underElapsedTime } from "#game/level-tiers.ts";
-import { requireUserCountWithinTime } from "#game/levels.ts";
+import {
+  requireUserCountWithinTime,
+  requireUserCountWithinTimeWithMaxWaitTime,
+} from "#game/levels.ts";
 import { createWorld } from "#game/world.ts";
 import type { World } from "#game/world.ts";
 import { format, percent, seconds } from "#i18n/index.ts";
@@ -164,6 +167,26 @@ describe("presentGoalBar", () => {
     expect(transported.querySelectorAll(".tick")).toHaveLength(0);
   });
 
+  it("draws no tick on a bronze meter whose figure no tier measures", () => {
+    // Not the transportedCounter case above, which is skipped outright: this is
+    // a meter on a field silver and gold simply say nothing about, so there is
+    // no threshold of theirs to draw on its bar. The elapsed-time meter beside
+    // it, which they do measure, still gets both ticks.
+    const level: Level = {
+      options: {},
+      condition: requireUserCountWithinTimeWithMaxWaitTime(10, 60, 5),
+      tiers: { silver: underElapsedTime(50), gold: underElapsedTime(40) },
+    };
+    const parent = setUp(level, fixtureWorld());
+
+    expect(
+      requireElement('.meter[data-kind="maxWaitTime"]', parent).querySelectorAll(".tick"),
+    ).toHaveLength(0);
+    expect(
+      requireElement('.meter[data-kind="elapsedTime"]', parent).querySelectorAll(".tick"),
+    ).toHaveLength(2);
+  });
+
   it("suppresses a tick exactly at either edge of the 3%/98% window, not just past it", () => {
     const level: Level = {
       options: {},
@@ -192,6 +215,27 @@ describe("presentGoalBar", () => {
     const elapsed = requireElement('.meter[data-kind="elapsedTime"]', parent);
 
     expect(elapsed.querySelectorAll(".tick")).toHaveLength(2);
+  });
+
+  it("meters a figure outside the four the formats table names, in whole numbers and no unit", () => {
+    // The four are the fields today's conditions actually put a bronze bar on.
+    // A level that measures a fifth still has to draw a meter for it rather
+    // than a row of `undefined`s, which is what the fallback format is for.
+    const level: Level = {
+      options: {},
+      condition: {
+        description: "Keep the average delivery quick.",
+        evaluate: () => null,
+        requirements: [{ field: "avgWaitTime", comparison: "atMost", threshold: 8 }],
+      },
+    };
+    const world = fixtureWorld();
+    world.avgWaitTime = 4.6;
+    const parent = setUp(level, world);
+
+    const meter = requireElement('.meter[data-kind="avgWaitTime"]', parent);
+    expect(requireElement(".cap", meter).textContent).toBe("Avg delivery time");
+    expect(requireElement(".meter-val", meter).innerHTML).toBe("<b>5</b> / 8");
   });
 
   it("shows the level's own description and hides the tier trigger for a level with nothing to meter", () => {
