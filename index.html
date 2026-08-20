@@ -113,6 +113,14 @@
         -- the same way the language picker is hidden while it has no options.
         It carries no data-i18n: the presenter asks the catalogue for every
         word at the moment it draws, so there is nothing here to translate.
+
+        On screen it stands beside the building, not above it: src/main.ts
+        moves this element and .world together into a .stagearea row of the
+        game pane. It is a child of <main> here for the reason .controls
+        below is -- the App constructor draws into it long before that row
+        exists -- and the row is built above the world's own subtree rather
+        than inside it because that subtree is emptied and rebuilt on every
+        restart. See .stagearea in src/styles/style.css for the whole of it.
       -->
       <div class="tutorial"></div>
 

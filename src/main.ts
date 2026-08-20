@@ -316,20 +316,41 @@ async function main(): Promise<void> {
   // without tearing anything down, CodeMirror included, so every one of them
   // keeps running exactly as built above.
   //
-  // `.statscontainer` goes last of the game pane's four, which is the order
-  // `design/ui-mockup.html` puts them in: the goal bar, then the building,
-  // then the figures docked across the foot of the pane. `index.html` ships
-  // it in that order too, so this line only preserves what is already there.
+  // `.statscontainer` goes last of the game pane's three rows, which is the
+  // order `design/ui-mockup.html` puts them in: the goal bar, then the
+  // building, then the figures docked across the foot of the pane.
+  // `index.html` ships them in that order too, so this only preserves what is
+  // already there.
+  //
+  // The middle row is a box of its own, `.stagearea`, holding the learning
+  // track's panel and the building side by side -- the mockup's own
+  // `.stagerow`, which stands the lesson beside the building rather than above
+  // it (§11). It is built here rather than shipped in `index.html` for the
+  // reason `.workspace` itself is: it is not a region anything draws into, it
+  // is the shell those regions are arranged in, and the shell is assembled at
+  // this one point. Building it here also leaves `.controls` where the markup
+  // has it -- between `.tutorial` and `.world` -- which a wrapper written into
+  // `index.html` would have had to step over on its way to the app bar.
+  //
+  // Deliberately *not* `.stagerow` itself, which `widgets/building-stage`
+  // rebuilds inside `.innerworld` on every redraw: a restart, a change of
+  // level and a change of language all empty that subtree, and a panel living
+  // in it would be thrown away mid-lesson while the player was reading step
+  // three. The pane is the one place above the redraw, so the row is
+  // reproduced here and `.stagerow`'s geometry is reproduced in the
+  // stylesheet; see `.stagearea` there for the rest of that account.
   const mainRegion = requireElement("main");
   const workspaceElements = buildWorkspaceLayoutSkeleton(document, {
     gamePane: t("game.workspace.gamePane"),
     codePane: t("game.workspace.codePane"),
     splitter: t("game.workspace.splitter"),
   });
+  const stageArea = document.createElement("div");
+  stageArea.className = "stagearea";
+  stageArea.append(requireElement(".tutorial"), requireElement(".world"));
   workspaceElements.gamePane.append(
     requireElement(".challenge"),
-    requireElement(".tutorial"),
-    requireElement(".world"),
+    stageArea,
     requireElement(".statscontainer"),
   );
   workspaceElements.codePane.append(requireElement(".code"));

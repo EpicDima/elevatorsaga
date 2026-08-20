@@ -977,18 +977,55 @@ describe("statistics strip", () => {
   });
 
   it("leaves the building the only row of the game pane that gives way", () => {
-    // The goal bar, the learning track's panel and the figures each take their
-    // own content's height and keep it; `.world` is `flex: 1 1 auto` with a
-    // zero minimum, so a pane too short for all four shrinks the stage -- the
-    // one box here with somewhere to put a shortfall, since `.stage` scrolls.
-    // Without this the browser's own `flex: 0 1 auto` would let the strip be
-    // squeezed instead, and the figures at the foot of it cut in half.
+    // The goal bar and the figures each take their own content's height and
+    // keep it; `.stagearea` is `flex: 1 1 auto` with a zero minimum, so a pane
+    // too short for all three shrinks the stage -- the one box here with
+    // somewhere to put a shortfall, since `.stage` scrolls. Without this the
+    // browser's own `flex: 0 1 auto` would let the strip be squeezed instead,
+    // and the figures at the foot of it cut in half.
     expect(styleSource).toMatch(
-      /^\.pane-game > \.challenge,\n\.pane-game > \.tutorial,\n\.pane-game > \.statscontainer \{\n {2}flex: 0 0 auto;\n\}$/m,
+      /^\.pane-game > \.challenge,\n\.pane-game > \.statscontainer \{\n {2}flex: 0 0 auto;\n\}$/m,
     );
-    const world = ruleBody(".world");
-    expect(declaration(world, "flex", ".world")).toBe("1 1 auto");
-    expect(declaration(world, "min-block-size", ".world")).toBe("0");
+    const stageArea = ruleBody(".stagearea");
+    expect(declaration(stageArea, "flex", ".stagearea")).toBe("1 1 auto");
+    expect(declaration(stageArea, "min-block-size", ".stagearea")).toBe("0");
+    // And the learning track's panel is not a row of that column any more --
+    // it is an item of `.stagearea` beside the building. A rule putting it
+    // back among the pane's own children would be the old layout returning by
+    // the back door, with the panel sized twice and by two different boxes.
+    expect(styleSource).not.toMatch(/\.pane-game > \.tutorial\b/);
+  });
+
+  it("takes a narrow pane out of the lesson and never out of the building", () => {
+    // The two flex factors are one decision written in two places, and either
+    // half alone inverts it: the aside states a 384px basis it is allowed to
+    // shrink from, and the building states that it is not. Reversed, a pane
+    // narrower than both would hold the lesson at its full measure and clip
+    // the house the lesson is describing, which is the one box on this page
+    // that has to stay whole.
+    expect(declaration(ruleBody(".stagearea > .tutorial"), "flex", ".stagearea > .tutorial")).toBe(
+      "0 1 384px",
+    );
+    expect(declaration(ruleBody(".stagearea > .world"), "flex-shrink", ".stagearea > .world")).toBe(
+      "0",
+    );
+    // Below the width where both fit, the row stacks instead of overflowing,
+    // and it asks the pane rather than the window -- same reasoning as the
+    // figures above, and the same failure if the names disagree: an
+    // `@container` naming something no ancestor opens never matches and never
+    // says so.
+    //
+    // The container is the pane and not the row, which is the part that has
+    // already been got wrong once here: a query container is never the subject
+    // of its own query, so `container: stage` on `.stagearea` left the
+    // `flex-direction: column` inside the query matching nothing while the
+    // rules for its children matched, and a 1040px window drew a lesson at its
+    // full measure beside an 83px-wide building.
+    expect(declaration(ruleBody(".pane-game"), "container", ".pane-game")).toBe(
+      "stage / inline-size",
+    );
+    expect(ruleBody(".stagearea")).not.toMatch(/container/);
+    expect(styleSource).toMatch(/^@container stage \(max-width: 760px\) \{$/m);
   });
 
   it("keeps the clip the run verdict is drawn inside", () => {
@@ -1097,6 +1134,14 @@ describe("the fullscreen demo", () => {
     // flag with no assertion of its own -- so the chain is pinned here.
     const chain = /\.fullscreen-demo body > \*:not\(main\),\s*\.fullscreen-demo main > \*/;
     expect(styleSource).toMatch(chain);
+    // The last two links are the same hazard one box deeper. `.world` is a
+    // child of `.stagearea` now, so a chain that stopped at
+    // `.pane-game > *:not(.world)` would match the box the building is inside
+    // and hide the building with it -- the demo showing an empty pane, again
+    // with nothing in the built page to fail.
+    expect(styleSource).toMatch(
+      /\.fullscreen-demo \.pane-game > \*:not\(\.stagearea\),\s*\.fullscreen-demo \.stagearea > \*:not\(\.world\)/,
+    );
     // And the wrapper is not named anywhere in the demo's rules any more. A
     // leftover `.fullscreen-demo .container` would be dead rather than wrong,
     // but dead in a way that reads as though the mode still covers a box the
