@@ -333,6 +333,36 @@ export const SPRITE_ICONS = {
       },
     ],
   },
+  // The mockup's `#i-graduate` (§11): a mortar board over its tassel band,
+  // drawn at the head of the lesson aside beside "Task N of 8". Two open
+  // paths at the family's default stroke, copied verbatim.
+  graduate: {
+    viewBox: "0 0 16 16",
+    shapes: [
+      {
+        tag: "path",
+        attrs: {
+          d: "M8 2.5 14.5 6 8 9.5 1.5 6 8 2.5Z",
+          fill: "none",
+          stroke: "currentColor",
+          "stroke-width": "1.6",
+          "stroke-linecap": "round",
+          "stroke-linejoin": "round",
+        },
+      },
+      {
+        tag: "path",
+        attrs: {
+          d: "M4.5 7.6V11c0 1 1.6 2 3.5 2s3.5-1 3.5-2V7.6",
+          fill: "none",
+          stroke: "currentColor",
+          "stroke-width": "1.6",
+          "stroke-linecap": "round",
+          "stroke-linejoin": "round",
+        },
+      },
+    ],
+  },
   // The settings popover's own trigger row for its seed help disclosure's
   // sibling block — the mockup's `#keysOpen` glyph, a stylised keyboard.
   keys: {

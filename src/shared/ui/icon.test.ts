@@ -217,6 +217,29 @@ describe("SPRITE_ICONS", () => {
     });
   });
 
+  // design/ui-mockup.html's own <symbol id="i-graduate"> — copied verbatim,
+  // two shapes at the mockup's own default stroke. The mortar board is a
+  // closed path and the tassel band an open one, which is the difference
+  // this pins: swap them and the band fills solid.
+  it("reproduces the mockup's graduate glyph exactly", () => {
+    expect(SPRITE_ICONS.graduate).toEqual({
+      viewBox: "0 0 16 16",
+      shapes: [
+        {
+          tag: "path",
+          attrs: { d: "M8 2.5 14.5 6 8 9.5 1.5 6 8 2.5Z", ...STROKE_DEFAULTS("1.6") },
+        },
+        {
+          tag: "path",
+          attrs: {
+            d: "M4.5 7.6V11c0 1 1.6 2 3.5 2s3.5-1 3.5-2V7.6",
+            ...STROKE_DEFAULTS("1.6"),
+          },
+        },
+      ],
+    });
+  });
+
   // design/ui-mockup.html's own <symbol id="i-copy"> — copied verbatim.
   it("reproduces the mockup's copy glyph exactly", () => {
     expect(SPRITE_ICONS.copy).toEqual({
