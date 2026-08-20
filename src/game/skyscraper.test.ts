@@ -21,7 +21,10 @@
  * on the level where it would have mattered. The briefing card is the one thing
  * checked in a loop of its own, because most levels of the block do not carry
  * one: a card is for the level where a mechanic is first met, and a spec that
- * demanded one everywhere would be a spec against the block's own design.
+ * demanded one everywhere would be a spec against the block's own design. The
+ * zoned buildings are checked in a loop of their own for the same reason, and
+ * theirs is the one check here that a level can fail by being unplayable rather
+ * than by being misspelled.
  *
  * Every message is read in every language, and that is not thoroughness — it is
  * the whole of what `card` and `startingCode` being getters is for.
@@ -147,6 +150,50 @@ function cardOf(level: SkyscraperLevel): SkyscraperCard {
     throw new Error(`${level.id} has no briefing card`);
   }
   return card;
+}
+
+/**
+ * Every journey a level's traffic can ask for, as `[from, to]` pairs.
+ *
+ * `world.ts` says the same thing as two functions that draw one trip from a
+ * random stream; this says it as the set of trips those functions can produce.
+ * The difference is the point. A stream answers "which trip this time?", and the
+ * question a zoned building raises is the one no number of runs can settle --
+ * whether there exists a trip the building cannot carry at all. Enumerating is
+ * possible because every profile's reachable set is small and closed: the peaks
+ * pair the lobby with each other floor in one direction, lunch does it in both,
+ * and `"mixed"` is every ordered pair of distinct floors.
+ *
+ * Kept in step with `drawPeakTrip` and `drawMixedTrip` by hand, which is the
+ * cost of stating it as a set. It is a cost worth paying rather than a
+ * duplication to remove: a profile that grew a trip this function does not
+ * return would be a trip the invariant below stops checking, and the invariant
+ * is the only thing standing between a mistyped zone and a level nobody can
+ * finish.
+ *
+ * @param level - The level whose traffic is enumerated.
+ * @returns Where a passenger can start and where they can be going.
+ */
+function tripsOfTraffic(level: SkyscraperLevel): (readonly [number, number])[] {
+  const floorCount = level.options.floorCount ?? 0;
+  const away = Array.from({ length: Math.max(floorCount - 1, 0) }, (_unused, index) => index + 1);
+  switch (level.options.trafficProfile ?? "mixed") {
+    case "up-peak": {
+      return away.map((floor) => [0, floor] as const);
+    }
+    case "down-peak": {
+      return away.map((floor) => [floor, 0] as const);
+    }
+    case "lunch": {
+      return away.flatMap((floor) => [[0, floor] as const, [floor, 0] as const]);
+    }
+    case "mixed": {
+      const floors = Array.from({ length: floorCount }, (_unused, index) => index);
+      return floors.flatMap((from) =>
+        floors.filter((to) => to !== from).map((to) => [from, to] as const),
+      );
+    }
+  }
 }
 
 describe("Skyscraper block table", () => {
@@ -295,5 +342,40 @@ describe("the levels that carry a briefing card", () => {
     expect(russian.briefing, `${level.id}: the briefing was left in ${DEFAULT_LOCALE}`).not.toBe(
       english.briefing,
     );
+  });
+});
+
+describe("the buildings whose cars do not all go everywhere", () => {
+  const zoned = skyscraperLevels.filter(
+    (level) => level.options.elevatorServedFloors !== undefined,
+  );
+
+  it("has zoned levels at all", () => {
+    // The invariant below visits only the zoned levels, so a block that lost its
+    // zones to an editing accident would leave it green while checking nothing.
+    expect(zoned.length).toBeGreaterThan(0);
+  });
+
+  it.each(zoned)("carries every journey $id's traffic can ask for", (level) => {
+    // The one mistake a table of zones is prone to, and the one the type system
+    // cannot see: a floor left out of every car's list, or a zone split that
+    // leaves the lobby off the upper bank. Either makes the level unfinishable,
+    // and unfinishable in the worst way the engine has -- `Floor.pressUpButton`
+    // emits nothing while the lamp is already lit, and `Floor.elevatorAvailable`
+    // clears nothing when the car that arrived does not serve the floor, so the
+    // stranded floor never calls again and the run does not so much lose as
+    // stop. What a player sees is a building that goes quiet.
+    //
+    // Asked of the built world rather than of `options`, because the world is
+    // what cycles the list over the cars the way it cycles capacities: a level
+    // with two zone lists and four cars is a level whose third and fourth cars
+    // are the first two again, and it is the cars that have to serve the trip.
+    const world = createWorld(level.options, level.seed);
+    const stranded = tripsOfTraffic(level).filter(
+      ([from, to]) =>
+        !world.elevators.some((elevator) => elevator.serves(from) && elevator.serves(to)),
+    );
+
+    expect(stranded, `${level.id}: journeys no single car serves end to end`).toEqual([]);
   });
 });

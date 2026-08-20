@@ -104,14 +104,14 @@ Key names carry two suffixes that mean something:
 
 ## Where the strings are
 
-The catalogue holds **478 keys** in two locales. `src/i18n/en.ts` is the reference — its text is
+The catalogue holds **483 keys** in two locales. `src/i18n/en.ts` is the reference — its text is
 the English wording, extracted verbatim — and `src/i18n/ru.ts` is the Russian translation. The
 types make English the shape everything else is measured against: a Russian catalogue missing a
 key, carrying a key English does not have, or giving a plural message the wrong number of forms
 is a compile error, not a runtime surprise.
 
 ```sh
-grep -cE '^  "[^"]+":' src/i18n/en.ts                                   # 478
+grep -cE '^  "[^"]+":' src/i18n/en.ts                                   # 483
 grep -oE '^  "[^"]+"' src/i18n/en.ts | tr -d '"' | cut -d. -f1 | sort | uniq -c | sort -rn
 ```
 
@@ -119,7 +119,7 @@ grep -oE '^  "[^"]+"' src/i18n/en.ts | tr -d '"' | cut -d. -f1 | sort | uniq -c 
 | -------------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `docs.*`       | 87      | one of them, `docs.basics.example.code`, by `src/ui/completions.ts`; the other 86 by nothing                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
 | `tutorial.*`   | 75      | `src/game/tutorial.ts` (the 16 programs), `src/widgets/tutorial-panel/ui/tutorial-panel.ts` (the 48 prose keys and the panel's own five), `src/pages/game/index.ts` (the four of the finish overlay), `src/widgets/level-switcher/ui/level-switcher.ts` (the block caption); `tutorial.bar.title.html` is read by none of them                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
-| `skyscraper.*` | 9       | `src/game/skyscraper.ts`, whose getters read all nine; the card two of them end up on is `src/widgets/level-briefing/ui/level-briefing.ts`, which is handed the finished strings and so names no key itself. Seven of the nine are starting programs, one per level                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| `skyscraper.*` | 14      | `src/game/skyscraper.ts`, whose getters read all fourteen; the card four of them end up on is `src/widgets/level-briefing/ui/level-briefing.ts`, which is handed the finished strings and so names no key itself. Ten of the fourteen are starting programs, one per level                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
 | `game.*`       | 204     | `src/ui/templates.ts` (18), `src/pages/game/index.ts` (11 + 5), `src/widgets/goal-bar/ui/goal-bar.ts` (8), `src/entities/level-tier/ui/requirement-text.ts` (14), `src/entities/level-tier/ui/tier-hint.ts` (3), `src/widgets/verdict-toast/ui/verdict-toast.ts` (2), `src/widgets/level-switcher/ui/level-switcher.ts` (10), `src/widgets/building-stage/lib/hover-card-text.ts` (15), `src/widgets/stats-panel/ui/stats-panel.ts` (3), `src/widgets/editor-pane/ui/editor-pane.ts` (3), `src/features/switch-theme` (4), `src/features/switch-layout` (5), `src/widgets/app-bar/ui/settings-menu.ts` (7), `src/main.ts` (3, the workspace pane/splitter labels); the two speed labels are written by both of the first two; the other 91, under `game.hotkeys.*`, `game.docs.*` and `game.apiRef.*`, by none of them yet — see below |
 | `page.*`       | 26      | `index.html`, through `data-i18n` and `data-i18n-attr`; `page.noscript` excepted, see below                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
 | `completion.*` | 34      | `src/ui/completions.ts`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
@@ -127,7 +127,7 @@ grep -oE '^  "[^"]+"' src/i18n/en.ts | tr -d '"' | cut -d. -f1 | sort | uniq -c 
 | `fitness.*`    | 11      | `src/app/fitness.ts`, `src/game/fitness.ts`, `src/main.ts`, `src/cli/bench.ts`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
 | `error.*`      | 10      | `src/game/elevator-interface.ts`, `src/pages/game/index.ts`, `src/game/user-code.ts`, `src/game/movable.ts`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
 | `editor.*`     | 8       | `src/main.ts`, `src/pages/game/index.ts`, `src/ui/editor.ts`, `src/ui/default-code.ts`, `src/widgets/editor-pane/ui/editor-pane.ts`, `src/features/manage-code-slots/ui/code-slots.ts`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
-| **Total**      | **478** |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| **Total**      | **483** |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 
 Which keys nothing reads:
 
@@ -389,21 +389,21 @@ overlay wants different words, the track's overlay changes with it for no reason
 `tutorial.finish.nextLevel` is «Следующий учебный уровень» and of `game.feedback.next` is «Следующий
 уровень» — two different words for two different destinations.
 
-### `src/game/skyscraper.ts` — 9 `skyscraper.*` keys
+### `src/game/skyscraper.ts` — 14 `skyscraper.*` keys
 
 The Skyscraper block: levels built on how real lift systems are actually dispatched. One key per
 level and no more, which is the whole difference from the learning track above — a lesson there owns
 a goal, three hints, an explanation and a program measured to solve it, because it stages one
 particular mistake; a level here hands over the building.
 
-One level carries a `title` and a `briefing.html` on top of that program, and that is the rule
+Two levels carry a `title` and a `briefing.html` on top of that program, and that is the rule
 rather than an accident: a card belongs to the level where a mechanic is met for the first time,
-which so far is `sky2` and traffic profiles. The card is the widest column on the screen, and a
-block that opened one on every level would spend it restating what the level before had already
-explained — so the levels after a card are the idea being asked for rather than described, and their
-region collapses to leave the building the width. That is why `sky2`'s paragraph ends by naming the
-evening peak and lunch traffic it does not itself play: it is the only place levels 3 to 7 are
-introduced at all.
+which is `sky2` for traffic profiles and `sky8` for zoning. The card is the widest column on the
+screen, and a block that opened one on every level would spend it restating what the level before
+had already explained — so the levels after a card are the idea being asked for rather than
+described, and their region collapses to leave the building the width. That is why `sky2`'s
+paragraph ends by naming the evening peak and lunch traffic it does not itself play: it is the only
+place levels 3 to 7 are introduced at all, exactly as `sky8`'s is for 9 and 10.
 
 Every key is read by a getter on the level table, never by a widget. `src/widgets/level-briefing` is
 handed the finished `card` by `src/pages/game/index.ts`, and `src/ui/editor.ts` is handed the
@@ -416,28 +416,34 @@ The keys are spelled out in full at the entry that uses them rather than built f
 a key the type checker cannot see, and the day a level is renamed the compiler should be the one to
 notice rather than a player meeting an empty editor.
 
-| Key                                 | English                               | Notes                                                                                                                    |
-| ----------------------------------- | ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| `skyscraper.sky1.startingCode.code` | (the program the editor opens with)   | `.code`; only its `//` comment is translated, and `catalogue.test.ts` holds the JavaScript byte-identical across locales |
-| `skyscraper.sky2.title`             | Everyone starts in the lobby          | the level's name, on the briefing card and nowhere else; the switcher's 118px trigger says "Tower 2" instead             |
-| `skyscraper.sky2.briefing.html`     | Ten floors, two cars, and a building… | markup; `<em>` around all three traffic profiles, since this card introduces them for levels 2 to 7                      |
-| `skyscraper.sky2.startingCode.code` | (the round-robin dispatcher)          | `.code`; the same program as `sky1`'s apart from the `//` comment, which is the point — see below                        |
-| `skyscraper.sky3.startingCode.code` | (the sorted sweep)                    | `.code`; two `//` comment lines, and the only starter in the block a fixture also runs on other levels                   |
-| `skyscraper.sky4.startingCode.code` | (the round-robin dispatcher)          | `.code`; `sky2`'s program with a `//` comment pointing at the `idle` handler instead                                     |
-| `skyscraper.sky5.startingCode.code` | (the sorted sweep)                    | `.code`; `sky3`'s program unchanged, comments included                                                                   |
-| `skyscraper.sky6.startingCode.code` | (the round-robin dispatcher)          | `.code`; `sky2`'s program with a `//` comment pointing at `callNextElevator`                                             |
-| `skyscraper.sky7.startingCode.code` | (the round-robin dispatcher)          | `.code`; `sky2`'s program a fourth time, the `//` comment back on `floor_button_pressed`                                 |
+| Key                                  | English                               | Notes                                                                                                                    |
+| ------------------------------------ | ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `skyscraper.sky1.startingCode.code`  | (the program the editor opens with)   | `.code`; only its `//` comment is translated, and `catalogue.test.ts` holds the JavaScript byte-identical across locales |
+| `skyscraper.sky2.title`              | Everyone starts in the lobby          | the level's name, on the briefing card and nowhere else; the switcher's 118px trigger says "Tower 2" instead             |
+| `skyscraper.sky2.briefing.html`      | Ten floors, two cars, and a building… | markup; `<em>` around all three traffic profiles, since this card introduces them for levels 2 to 7                      |
+| `skyscraper.sky2.startingCode.code`  | (the round-robin dispatcher)          | `.code`; the same program as `sky1`'s apart from the `//` comment, which is the point — see below                        |
+| `skyscraper.sky3.startingCode.code`  | (the sorted sweep)                    | `.code`; two `//` comment lines, and the only starter in the block a fixture also runs on other levels                   |
+| `skyscraper.sky4.startingCode.code`  | (the round-robin dispatcher)          | `.code`; `sky2`'s program with a `//` comment pointing at the `idle` handler instead                                     |
+| `skyscraper.sky5.startingCode.code`  | (the sorted sweep)                    | `.code`; `sky3`'s program unchanged, comments included                                                                   |
+| `skyscraper.sky6.startingCode.code`  | (the round-robin dispatcher)          | `.code`; `sky2`'s program with a `//` comment pointing at `callNextElevator`                                             |
+| `skyscraper.sky7.startingCode.code`  | (the round-robin dispatcher)          | `.code`; `sky2`'s program a fourth time, the `//` comment back on `floor_button_pressed`                                 |
+| `skyscraper.sky8.title`              | Not every car goes everywhere         | the level's name, on the second and last briefing card of the block                                                      |
+| `skyscraper.sky8.briefing.html`      | Ten floors, and the two cars no long… | markup; `<em>` around _zones_ and `<code>` around `servedFloors()`, the method the mechanic is played through            |
+| `skyscraper.sky8.startingCode.code`  | (the sorted sweep)                    | `.code`; `sky3`'s program with a `//` comment saying that not every car stops at every floor — it stalls this building   |
+| `skyscraper.sky9.startingCode.code`  | (the zone-aware sweep)                | `.code`; `sky3`'s program with `callNextElevator` filtering on `servedFloors()`, which is `sky8`'s answer                |
+| `skyscraper.sky10.startingCode.code` | (the zone-aware sweep)                | `.code`; `sky9`'s program, the `//` comment moved onto the three floors both banks serve                                 |
 
-Four of the seven `.code` values are the same program with a different `//` comment, and that is
-deliberate rather than a chance to deduplicate. The block hands one dispatcher to the player under
+Four of the ten `.code` values are the same program with a different `//` comment, and three more
+are the sorted sweep under three comments, and that is deliberate rather than a chance to
+deduplicate. The block hands one dispatcher to the player under
 four rhythms so that what visibly changes between the levels is the building, not the code; a
 shared key with a per-level comment spliced in would put the comment somewhere the translator
 cannot see the line it belongs to. `catalogue.test.ts` already treats the four as unrelated values
 and holds each byte-identical across locales apart from its comment.
 
 Measured, not guessed: every one of these starters has a recorded verdict at its level's pinned
-seed — `sky1`'s loses with 35 of the 40 delivered, `sky3`'s takes silver, `sky5`'s bronze, the
-other four lose. `src/game/skyscraper.ts` records the figures that bracket each of them and
+seed — `sky1`'s loses with 35 of the 40 delivered, `sky3`'s takes silver, `sky5`'s bronze, `sky9`'s
+bronze, `sky10`'s silver, the other five lose. `src/game/skyscraper.ts` records the figures that bracket each of them and
 `src/game/skyscraper-solutions.test.ts` re-runs them, so a wording change that reaches inside the
 JavaScript fails a test rather than a level.
 

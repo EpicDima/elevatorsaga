@@ -13,11 +13,13 @@
  * sample of a distribution — it is *the* run, the same one every player of that
  * level gets, and a bar set from it is a bar with no luck in it at all.
  *
- * **Four programs, chosen for what they disagree about.**
- * - The level's own `startingCode`, which is the only one of the four a player
- *   ever sees. On four of the seven levels it is the round-robin dispatcher
- *   that sends one car to one call and is meant to lose; on the other three it
- *   is the sweep, and the level is about improving on it.
+ * **Four programs, chosen for what they disagree about**, and a fifth on the one
+ * level where four are not enough.
+ * - The level's own `startingCode`, which is the only one of them a player ever
+ *   sees. On five of the ten levels it is the round-robin dispatcher that sends
+ *   one car to one call and is meant to lose; on three it is the sweep, and the
+ *   level is about improving on it; on the last two it is the zone-aware sweep,
+ *   which is `sky-8`'s answer handed over as where `sky-9` and `sky-10` begin.
  * - {@link SWEEP_CODE}, the repair every demonstrating level is pointing at,
  *   taken from `sky-3`'s own starter rather than written again here. One sweep
  *   in the repository, and it is the one the player is handed.
@@ -27,6 +29,11 @@
  * - {@link GOOD_CODE_BALANCED}, the collective-control dispatcher
  *   `level-reference-code.ts` builds for calibration, standing in for a good
  *   answer that knows nothing about this block's profiles.
+ * - {@link ZONE_SWEEP_CODE}, the sweep with `servedFloors()` in front of the
+ *   choice of car, recorded on `sky-8` alone. Everywhere else it would be a run
+ *   already in the table: `sky-9` and `sky-10` ship it, so their `starter` cell
+ *   is that run, and in an unzoned building the filter matches every car and the
+ *   program is {@link SWEEP_CODE} to the character.
  *
  * That last one earns its place twice over. It is not the winner here: it takes
  * gold on `sky-3` and `sky-5` and only silver on `sky-7`, where the plain sweep
@@ -105,6 +112,18 @@ function levelById(id: string): SkyscraperLevel {
 const SWEEP_CODE = levelById("sky-3").startingCode;
 
 /**
+ * The same sweep, taught to skip cars that do not serve the floor calling:
+ * `sky-9`'s shipped starter.
+ *
+ * Read off a level for {@link SWEEP_CODE}'s reason and one more. `sky-9` and
+ * `sky-10` open with this program, so the text certified here as the repair for
+ * `sky-8` is not merely the same idea as the one they are handed -- it is the
+ * same string, and a change to either level's starter that broke the zoning
+ * moves a cell in `sky-8`'s row as well as in its own.
+ */
+const ZONE_SWEEP_CODE = levelById("sky-9").startingCode;
+
+/**
  * Plays one program in one level's building, at the level's own seed, and
  * reports the exact tier it reached.
  *
@@ -167,6 +186,15 @@ interface SkyscraperCase {
   readonly dev: TierOutcome;
   /** What {@link GOOD_CODE_BALANCED} reached. */
   readonly good: TierOutcome;
+  /**
+   * What {@link ZONE_SWEEP_CODE} reached, on the level where that says something
+   * the other four columns cannot.
+   *
+   * Omitted everywhere else, and omitted rather than repeated: on `sky-9` and
+   * `sky-10` it is the `starter` column under another name, and on an unzoned
+   * level it is the `sweep` column under another name.
+   */
+  readonly zone?: TierOutcome;
 }
 
 // Recorded by running each case against the real engine at the level's own
@@ -177,6 +205,14 @@ interface SkyscraperCase {
 // `sweep` cells are the same run twice. Both are still spelled out: the day one
 // of them is given a starter of its own, the row that stops agreeing with
 // itself is the one that should fail.
+//
+// `sky-8` is the row with a fifth cell, and it needs one because its `starter`
+// and `sweep` cells are both `lost` and both for the same reason -- they are the
+// same program. Nothing else in the row would show what repairs the level, and
+// "the sweep loses" is a thing this file says about levels whose answer is
+// something else entirely. `zone` is the missing half: the same sweep with
+// `servedFloors()` in front of the choice, taking bronze where the unfiltered
+// one leaves a floor calling into an empty building.
 const CASES: readonly SkyscraperCase[] = [
   { id: "sky-1", starter: "lost", sweep: "bronze", dev: "lost", good: "bronze" },
   { id: "sky-2", starter: "lost", sweep: "bronze", dev: "lost", good: "bronze" },
@@ -185,6 +221,9 @@ const CASES: readonly SkyscraperCase[] = [
   { id: "sky-5", starter: "bronze", sweep: "bronze", dev: "lost", good: "gold" },
   { id: "sky-6", starter: "lost", sweep: "bronze", dev: "lost", good: "bronze" },
   { id: "sky-7", starter: "lost", sweep: "gold", dev: "lost", good: "silver" },
+  { id: "sky-8", starter: "lost", sweep: "lost", dev: "lost", good: "bronze", zone: "bronze" },
+  { id: "sky-9", starter: "bronze", sweep: "lost", dev: "lost", good: "gold" },
+  { id: "sky-10", starter: "silver", sweep: "lost", dev: "lost", good: "gold" },
 ];
 
 describe("the recorded table", () => {
@@ -218,6 +257,14 @@ for (const testCase of CASES) {
       expect(playRun(level, GOOD_CODE_BALANCED), `${testCase.id}, GOOD_CODE_BALANCED`).toBe(
         testCase.good,
       );
+
+      // Only where the row asks for it. Running the zone-aware sweep on every
+      // level would cost ten simulations to record two columns of duplicates.
+      if (testCase.zone !== undefined) {
+        expect(playRun(level, ZONE_SWEEP_CODE), `${testCase.id}, ZONE_SWEEP_CODE`).toBe(
+          testCase.zone,
+        );
+      }
     });
   });
 }

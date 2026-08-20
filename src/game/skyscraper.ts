@@ -35,7 +35,9 @@
 
 import { t } from "../i18n/index.ts";
 import {
+  requireUserCountWithMaxWaitTime,
   requireUserCountWithinMoves,
+  requireUserCountWithinMovesWithMaxWaitTime,
   requireUserCountWithinTimeWithMaxWaitTime,
   type LevelCondition,
 } from "./levels.ts";
@@ -413,6 +415,176 @@ export const skyscraperLevels: readonly SkyscraperLevel[] = [
     seed: 0,
     get startingCode(): string {
       return t("skyscraper.sky7.startingCode.code");
+    },
+  },
+  /**
+   * Zoning, small enough to watch it go wrong: ten floors, two cars, and a
+   * building where one of them stops below the fifth floor and the other at the
+   * fifth and above. Both serve the lobby, as every real zoned building does —
+   * the split is of the floors people are going to, not of the one they are all
+   * coming from.
+   *
+   * The block's second card, because this is where `servedFloors()` is met. It
+   * is also the level where a wrong assignment does something no other level in
+   * the game does — it *strands* a floor for good, and the three sentences that
+   * explain why are the reason this entry has the longest comment in the file.
+   *
+   * A floor emits `up_button_pressed` only when its lamp goes from dark to lit
+   * (`floor.ts`), and a car that does not serve a floor clears no lamp when it
+   * arrives (`Floor.elevatorAvailable` returns before touching them). So the
+   * sequence is: a zone-blind program sends the wrong car, the passenger refuses
+   * to board and presses again, the lamp is already lit, no event is emitted,
+   * and no program of any cleverness ever hears about that floor again.
+   * `World`'s button-repressing rescue is no help either — it runs on emitted
+   * presses. The floor is simply dead for the rest of the run.
+   *
+   * Which is why the bar is a wait cap and not a move budget, and this is the
+   * one threshold in the block chosen for a mechanical reason rather than a
+   * measured one. A stranded run stops moving: `moveCount` stops growing, so
+   * `requireUserCountWithinMoves` never resolves, and the level would hang
+   * rather than lose — `skyscraper-solutions.test.ts` would report it as still
+   * undecided instead of failing the program that caused it.
+   * `requireUserCountWithMaxWaitTime` resolves it as the loss it is, because
+   * `world.maxWaitTime` keeps climbing with the people nobody is coming for.
+   *
+   * Measured at the pinned seed. Twenty people, nobody waiting over 35 seconds.
+   * Both zone-blind programs strand the building and lose on the cap with 9 and
+   * 10 delivered — the plain sweep this level ships, and `DEV_TEST_CODE`.
+   * Adding the filter is the whole repair: the same sweep, asking
+   * `servedFloors()` before it hands a call to a car, finishes in 56 moves with
+   * a longest wait of 21.48s, and `GOOD_CODE_BALANCED` — which has the filter
+   * since `level-reference-code.ts` learned about zones — in 52 with 27.36s.
+   *
+   * Small numbers on purpose. Two cars, six seats and 0.8 arrivals a second is
+   * a building nobody is short of capacity in, so the only thing that can go
+   * wrong here is the assignment, which is the one thing the level is about.
+   */
+  {
+    id: "sky-8",
+    options: {
+      floorCount: 10,
+      elevatorCount: 2,
+      spawnRate: 0.8,
+      elevatorCapacities: [6],
+      trafficProfile: "down-peak",
+      elevatorServedFloors: [
+        [0, 1, 2, 3, 4],
+        [0, 5, 6, 7, 8, 9],
+      ],
+    },
+    condition: requireUserCountWithMaxWaitTime(20, 35),
+    seed: 0,
+    get startingCode(): string {
+      return t("skyscraper.sky8.startingCode.code");
+    },
+    get card(): SkyscraperCard {
+      return {
+        title: t("skyscraper.sky8.title"),
+        briefing: t("skyscraper.sky8.briefing.html"),
+      };
+    },
+  },
+  /**
+   * Two banks at scale: sixteen floors, four cars, the low eight and the high
+   * nine, and an evening rush going down through both of them.
+   *
+   * Down-peak rather than up-peak, and that is the level's design rather than a
+   * preference. Under `"up-peak"` every call comes from floor 0, which every car
+   * serves, and the only other event a program hears is `floor_button_pressed`
+   * from inside a car whose passenger boarded it — so a zone-blind program is
+   * never once punished and the mechanic is invisible. Going down, the calls are
+   * upstairs where the zones are, and the filter is the whole game.
+   *
+   * The bar carries a wait cap for `sky-8`'s reason: a stranded run stops
+   * spending moves, and a move budget alone would leave it undecided rather than
+   * lost. Sixty people inside 310 moves, nobody over 85 seconds.
+   *
+   * Measured at the pinned seed. The plain sweep strands the building and loses
+   * on the cap with 20 delivered; `DEV_TEST_CODE` with 7. The zone-aware sweep
+   * this level ships finishes in 277 moves at 20.89s average and a longest wait
+   * of 76.00s — bronze, and not a comfortable one. `GOOD_CODE_BALANCED` takes
+   * gold in 279 moves at 14.81s average with a longest wait of 61.81s.
+   *
+   * So the medals are wait figures and not moves: the two programs that finish
+   * spend within two moves of each other, and every second of the difference
+   * between them is in who was asked to wait. Silver is a longest wait under
+   * 70s; gold under 65 with an average under 16. A move threshold here would
+   * award the same tier to both and measure nothing.
+   */
+  {
+    id: "sky-9",
+    options: {
+      floorCount: 16,
+      elevatorCount: 4,
+      spawnRate: 2.0,
+      elevatorCapacities: [8],
+      trafficProfile: "down-peak",
+      elevatorServedFloors: [
+        [0, 1, 2, 3, 4, 5, 6, 7],
+        [0, 8, 9, 10, 11, 12, 13, 14, 15],
+      ],
+    },
+    condition: requireUserCountWithinMovesWithMaxWaitTime(60, 310, 85),
+    tiers: {
+      silver: underMaxWaitTime(70),
+      gold: requireAll(underMaxWaitTime(65), underAvgWaitTime(16)),
+    },
+    seed: 2,
+    get startingCode(): string {
+      return t("skyscraper.sky9.startingCode.code");
+    },
+  },
+  /**
+   * The last of the zoned levels, and the first building whose banks overlap:
+   * fifteen floors, four cars, floors 1-5 low only, 9-14 high only, and 6, 7
+   * and 8 served by both.
+   *
+   * What the overlap adds is a decision the two disjoint banks of `sky-9` never
+   * offered. There, a call had exactly one bank that could answer it and the
+   * filter was the whole answer; here three of the fifteen floors can be
+   * answered by either, and a program that always hands them to the same bank
+   * has invented a queue for itself.
+   *
+   * Same shape of bar as `sky-9` and for the same reason — sixty people inside
+   * 300 moves with nobody over 75 seconds, the cap being what turns a stranded
+   * run into a loss rather than a hang.
+   *
+   * Measured at the pinned seed, and this is the level where the four programs
+   * spread furthest. The plain sweep runs out of moves with 42 delivered and
+   * `DEV_TEST_CODE` with 36 — neither strands the building outright, because
+   * every floor here is reachable by a car the round-robin will eventually
+   * offer it to, they simply waste the budget on cars that refuse. The
+   * zone-aware sweep this level ships finishes in 238 moves, 23.02s average,
+   * 57.31s longest — silver. `GOOD_CODE_BALANCED` finishes in the same 238
+   * moves at 16.32s average and 51.52s longest — gold.
+   *
+   * Which is exactly the shape of the overlap: identical distance travelled,
+   * six and a half seconds a person of difference in who was made to wait for
+   * it. So silver is a longest wait under 60s, and gold asks for 250 moves
+   * *and* an average under 18 — the move clause being what stops a program
+   * buying the average by driving both banks over the middle floors all run.
+   */
+  {
+    id: "sky-10",
+    options: {
+      floorCount: 15,
+      elevatorCount: 4,
+      spawnRate: 2.0,
+      elevatorCapacities: [8],
+      trafficProfile: "down-peak",
+      elevatorServedFloors: [
+        [0, 1, 2, 3, 4, 5, 6, 7, 8],
+        [0, 6, 7, 8, 9, 10, 11, 12, 13, 14],
+      ],
+    },
+    condition: requireUserCountWithinMovesWithMaxWaitTime(60, 300, 75),
+    tiers: {
+      silver: underMaxWaitTime(60),
+      gold: requireAll(underMoveCount(250), underAvgWaitTime(18)),
+    },
+    seed: 0,
+    get startingCode(): string {
+      return t("skyscraper.sky10.startingCode.code");
     },
   },
 ];

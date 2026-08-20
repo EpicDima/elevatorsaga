@@ -1861,4 +1861,202 @@ elevator.goToFloor(2); // Всё равно добавится — очеред�
     update: function(dt, elevators, floors) {
     }
 }`,
+
+  // Уровни с 8-го по 10-й — зонированные здания, в которых кабина достаёт уже
+  // не до каждого этажа. Это первые уровни блока, где программа может сделать
+  // кое-что похуже, чем плохо отыграть.
+
+  // Уровень 8. Вторая карточка блока и вторая его механика: здание, в котором
+  // не все кабины обслуживают одни и те же этажи. Десять этажей и две кабины,
+  // одна на нижнюю половину, другая на верхнюю, — в размере, при котором видно,
+  // как пассажир стоит перед открытыми дверями и остаётся стоять.
+  //
+  // Стартовая программа — развозка с третьего уровня, в которой не изменено
+  // ничего, кроме `TODO`, и здесь она не просто плохо считается, а
+  // останавливает здание. Вызов, отданный кабине, которая этот этаж не
+  // обслуживает, зажигает лампу, которую уже ничто не погасит, а этаж с горящей
+  // лампой второй раз не зовёт.
+  "skyscraper.sky8.title": "Не всякая кабина едет всюду",
+  "skyscraper.sky8.briefing.html":
+    "Десять этажей, и две кабины больше не делают одну и ту же работу: одна обслуживает холл и этажи с 1-го по 4-й, другая — холл и этажи с 5-го по 9-й. Настоящие башни устроены именно так, и причина — арифметика: кабина, которая останавливается на каждом этаже высокого здания, весь день только и делает, что останавливается, поэтому этажи делят на <em>зоны</em> и каждому банку кабин отдают свою. Попросите кабину о чужом этаже — машина не станет спорить: доедет, откроет двери, и никто не сядет. Хуже того, вызов останется висеть. Лампа на этаже уже горит, поэтому кнопка, которая позвала бы другую кабину, при повторном нажатии не делает ничего, и этот этаж будет ждать до конца рейса. <code>elevator.servedFloors()</code> — список этажей, которые кабина действительно обслуживает, и с него теперь начинается всякий выбор кабины.",
+
+  "skyscraper.sky8.startingCode.code": `{
+    init: function(elevators, floors) {
+        let next = 0;
+
+        function insertStop(elevator, floorNum) {
+            // Стоящей кабине, которую зовут на этаж, где она и так стоит,
+            // делать нечего -- кто мог сесть, тот сел.
+            if (floorNum === elevator.currentFloor() && elevator.destinationDirection() === "stopped") {
+                return;
+            }
+            const queue = elevator.destinationQueue.slice();
+            if (queue.indexOf(floorNum) === -1) {
+                queue.push(floorNum);
+            }
+            const here = elevator.currentFloor();
+            queue.sort(function(a, b) {
+                return Math.abs(a - here) - Math.abs(b - here);
+            });
+            elevator.destinationQueue = queue;
+            elevator.checkDestinationQueue();
+        }
+
+        function callNextElevator(floor) {
+            // TODO: в этом здании не каждая кабина останавливается на каждом этаже
+            insertStop(elevators[next], floor.floorNum());
+            next = (next + 1) % elevators.length;
+        }
+
+        elevators.forEach(function(elevator) {
+            elevator.on("floor_button_pressed", function(floorNum) {
+                insertStop(elevator, floorNum);
+            });
+            elevator.on("idle", function() {
+                if (elevator.currentFloor() !== 0) {
+                    elevator.goToFloor(0);
+                }
+            });
+        });
+
+        floors.forEach(function(floor) {
+            floor.on("up_button_pressed", function() {
+                callNextElevator(floor);
+            });
+            floor.on("down_button_pressed", function() {
+                callNextElevator(floor);
+            });
+        });
+    },
+    update: function(dt, elevators, floors) {
+    }
+}`,
+
+  // Уровень 9. Вечерний час пик в шестнадцатиэтажной башне, разделённой на два
+  // банка по две кабины. Уровень открывается ответом восьмого, то есть сразу с
+  // бронзой, и всё, что выше бронзы, — про того, кто ждал дольше всех: кабина
+  // нижнего банка, пустая в холле, ничем не поможет двенадцатому этажу, какая
+  // бы очередь там ни собралась.
+  "skyscraper.sky9.startingCode.code": `{
+    init: function(elevators, floors) {
+        let next = 0;
+
+        function insertStop(elevator, floorNum) {
+            // Стоящей кабине, которую зовут на этаж, где она и так стоит,
+            // делать нечего -- кто мог сесть, тот сел.
+            if (floorNum === elevator.currentFloor() && elevator.destinationDirection() === "stopped") {
+                return;
+            }
+            const queue = elevator.destinationQueue.slice();
+            if (queue.indexOf(floorNum) === -1) {
+                queue.push(floorNum);
+            }
+            const here = elevator.currentFloor();
+            queue.sort(function(a, b) {
+                return Math.abs(a - here) - Math.abs(b - here);
+            });
+            elevator.destinationQueue = queue;
+            elevator.checkDestinationQueue();
+        }
+
+        function callNextElevator(floor) {
+            // TODO: фильтр -- лёгкая половина; серебро спрашивает, кто ждал дольше всех
+            const floorNum = floor.floorNum();
+            for (let tries = 0; tries < elevators.length; tries++) {
+                const elevator = elevators[next];
+                next = (next + 1) % elevators.length;
+                if (elevator.servedFloors().includes(floorNum)) {
+                    insertStop(elevator, floorNum);
+                    return;
+                }
+            }
+        }
+
+        elevators.forEach(function(elevator) {
+            elevator.on("floor_button_pressed", function(floorNum) {
+                insertStop(elevator, floorNum);
+            });
+            elevator.on("idle", function() {
+                if (elevator.currentFloor() !== 0) {
+                    elevator.goToFloor(0);
+                }
+            });
+        });
+
+        floors.forEach(function(floor) {
+            floor.on("up_button_pressed", function() {
+                callNextElevator(floor);
+            });
+            floor.on("down_button_pressed", function() {
+                callNextElevator(floor);
+            });
+        });
+    },
+    update: function(dt, elevators, floors) {
+    }
+}`,
+
+  // Уровень 10. Тот же вечер и последний уровень блока: пятнадцать этажей, у
+  // которых банки перекрываются на этажах с 6-го по 8-й, так что у трёх этажей
+  // здания обслуживание двойное, а у остальных — половинное. Стартовая
+  // программа берёт ту кабину, чья очередь, а на общем этаже это подбрасывание
+  // монеты; золото просит ту из двух, что обойдётся дешевле.
+  "skyscraper.sky10.startingCode.code": `{
+    init: function(elevators, floors) {
+        let next = 0;
+
+        function insertStop(elevator, floorNum) {
+            // Стоящей кабине, которую зовут на этаж, где она и так стоит,
+            // делать нечего -- кто мог сесть, тот сел.
+            if (floorNum === elevator.currentFloor() && elevator.destinationDirection() === "stopped") {
+                return;
+            }
+            const queue = elevator.destinationQueue.slice();
+            if (queue.indexOf(floorNum) === -1) {
+                queue.push(floorNum);
+            }
+            const here = elevator.currentFloor();
+            queue.sort(function(a, b) {
+                return Math.abs(a - here) - Math.abs(b - here);
+            });
+            elevator.destinationQueue = queue;
+            elevator.checkDestinationQueue();
+        }
+
+        function callNextElevator(floor) {
+            // TODO: этажи с 6 по 8 обслуживают оба банка; здесь берётся тот, чья очередь
+            const floorNum = floor.floorNum();
+            for (let tries = 0; tries < elevators.length; tries++) {
+                const elevator = elevators[next];
+                next = (next + 1) % elevators.length;
+                if (elevator.servedFloors().includes(floorNum)) {
+                    insertStop(elevator, floorNum);
+                    return;
+                }
+            }
+        }
+
+        elevators.forEach(function(elevator) {
+            elevator.on("floor_button_pressed", function(floorNum) {
+                insertStop(elevator, floorNum);
+            });
+            elevator.on("idle", function() {
+                if (elevator.currentFloor() !== 0) {
+                    elevator.goToFloor(0);
+                }
+            });
+        });
+
+        floors.forEach(function(floor) {
+            floor.on("up_button_pressed", function() {
+                callNextElevator(floor);
+            });
+            floor.on("down_button_pressed", function() {
+                callNextElevator(floor);
+            });
+        });
+    },
+    update: function(dt, elevators, floors) {
+    }
+}`,
 };

@@ -1525,15 +1525,15 @@ elevator.goToFloor(2); // Queued anyway -- queue: 2, 3, 2`,
   // the building. So: the program the editor opens with — no hints, and no
   // answer, because there is no single answer to be the answer.
   //
-  // One level has a `title` and a paragraph on top, and that is the rule
+  // Two levels have a `title` and a paragraph on top, and that is the rule
   // rather than an accident: a card belongs to the level where a mechanic is
-  // first met, which so far is `sky2` and traffic profiles. A block that opened
-  // a card on every level would spend the widest
-  // column on the screen restating what the level before it already explained,
-  // and the player would learn to skip the column that matters twice. Where
-  // there is no card the region collapses and the building takes the width. So
-  // a card carries the whole of an idea rather than one level's share of it,
-  // and the levels after it are the idea being asked for rather than described.
+  // first met, which is `sky2` for traffic profiles and `sky8` for zoning. A
+  // block that opened a card on every level would spend the widest column on
+  // the screen restating what the level before it already explained, and the
+  // player would learn to skip the column that matters twice. Where there is no
+  // card the region collapses and the building takes the width. So a card
+  // carries the whole of an idea rather than one level's share of it, and the
+  // levels after it are the idea being asked for rather than described.
   //
   // The `.html` and `.code` suffixes carry the same rules they carry on the
   // track. A briefing is markup because it puts <em> and <code> around the
@@ -1843,6 +1843,204 @@ elevator.goToFloor(2); // Queued anyway -- queue: 2, 3, 2`,
             });
             elevator.on("idle", function() {
                 elevator.goToFloor(0);
+            });
+        });
+
+        floors.forEach(function(floor) {
+            floor.on("up_button_pressed", function() {
+                callNextElevator(floor);
+            });
+            floor.on("down_button_pressed", function() {
+                callNextElevator(floor);
+            });
+        });
+    },
+    update: function(dt, elevators, floors) {
+    }
+}`,
+
+  // Levels 8 to 10 are the zoned buildings, where a car no longer reaches every
+  // floor. They are the first levels in the block on which a program can do
+  // something worse than score badly.
+
+  // Level 8. The block's second card, and its second mechanic: a building whose
+  // cars do not all serve the same floors. Ten floors and two cars, one for the
+  // bottom half and one for the top, at a size where a player can watch a
+  // passenger stand in front of open doors and stay where they are.
+  //
+  // The starting program is level 3's sweep with nothing changed but the `TODO`,
+  // and here it does not merely score badly -- it stops the building. A call
+  // handed to a car that does not serve the floor lights a lamp that nothing
+  // will put out again, and a floor whose lamp is already lit does not call
+  // twice.
+  "skyscraper.sky8.title": "Not every car goes everywhere",
+  "skyscraper.sky8.briefing.html":
+    "Ten floors, and the two cars no longer do the same job: one of them serves the lobby and floors 1 to 4, the other the lobby and floors 5 to 9. Real towers are built this way, and the reason is arithmetic — a car that stops at every floor of a tall building spends its whole day stopping, so the floors are split into <em>zones</em> and each bank of cars is given one. Ask a car for a floor outside its zone and the machine does not argue: it drives there, opens its doors, and nobody gets in. Worse, the call is still outstanding. The floor's lamp is already lit, so the button that would have called somebody else does nothing when it is pressed again, and that floor waits for the rest of the run. <code>elevator.servedFloors()</code> is the list of floors a car will actually serve, and from here on choosing a car starts with it.",
+
+  "skyscraper.sky8.startingCode.code": `{
+    init: function(elevators, floors) {
+        let next = 0;
+
+        function insertStop(elevator, floorNum) {
+            // A stopped car that is asked for the floor it is already on has
+            // nothing to do -- whoever could board has boarded.
+            if (floorNum === elevator.currentFloor() && elevator.destinationDirection() === "stopped") {
+                return;
+            }
+            const queue = elevator.destinationQueue.slice();
+            if (queue.indexOf(floorNum) === -1) {
+                queue.push(floorNum);
+            }
+            const here = elevator.currentFloor();
+            queue.sort(function(a, b) {
+                return Math.abs(a - here) - Math.abs(b - here);
+            });
+            elevator.destinationQueue = queue;
+            elevator.checkDestinationQueue();
+        }
+
+        function callNextElevator(floor) {
+            // TODO: in this building not every car stops at every floor
+            insertStop(elevators[next], floor.floorNum());
+            next = (next + 1) % elevators.length;
+        }
+
+        elevators.forEach(function(elevator) {
+            elevator.on("floor_button_pressed", function(floorNum) {
+                insertStop(elevator, floorNum);
+            });
+            elevator.on("idle", function() {
+                if (elevator.currentFloor() !== 0) {
+                    elevator.goToFloor(0);
+                }
+            });
+        });
+
+        floors.forEach(function(floor) {
+            floor.on("up_button_pressed", function() {
+                callNextElevator(floor);
+            });
+            floor.on("down_button_pressed", function() {
+                callNextElevator(floor);
+            });
+        });
+    },
+    update: function(dt, elevators, floors) {
+    }
+}`,
+
+  // Level 9. The evening rush in a sixteen-floor tower split into two banks of
+  // two cars. Level 8's answer is the program this level opens with, so it opens
+  // already winning bronze, and everything above bronze is about who waited
+  // longest: a low-rise car standing empty in the lobby is no help to floor 12,
+  // whatever the queue up there has grown to.
+  "skyscraper.sky9.startingCode.code": `{
+    init: function(elevators, floors) {
+        let next = 0;
+
+        function insertStop(elevator, floorNum) {
+            // A stopped car that is asked for the floor it is already on has
+            // nothing to do -- whoever could board has boarded.
+            if (floorNum === elevator.currentFloor() && elevator.destinationDirection() === "stopped") {
+                return;
+            }
+            const queue = elevator.destinationQueue.slice();
+            if (queue.indexOf(floorNum) === -1) {
+                queue.push(floorNum);
+            }
+            const here = elevator.currentFloor();
+            queue.sort(function(a, b) {
+                return Math.abs(a - here) - Math.abs(b - here);
+            });
+            elevator.destinationQueue = queue;
+            elevator.checkDestinationQueue();
+        }
+
+        function callNextElevator(floor) {
+            // TODO: the filter is the easy half -- silver asks who waited longest
+            const floorNum = floor.floorNum();
+            for (let tries = 0; tries < elevators.length; tries++) {
+                const elevator = elevators[next];
+                next = (next + 1) % elevators.length;
+                if (elevator.servedFloors().includes(floorNum)) {
+                    insertStop(elevator, floorNum);
+                    return;
+                }
+            }
+        }
+
+        elevators.forEach(function(elevator) {
+            elevator.on("floor_button_pressed", function(floorNum) {
+                insertStop(elevator, floorNum);
+            });
+            elevator.on("idle", function() {
+                if (elevator.currentFloor() !== 0) {
+                    elevator.goToFloor(0);
+                }
+            });
+        });
+
+        floors.forEach(function(floor) {
+            floor.on("up_button_pressed", function() {
+                callNextElevator(floor);
+            });
+            floor.on("down_button_pressed", function() {
+                callNextElevator(floor);
+            });
+        });
+    },
+    update: function(dt, elevators, floors) {
+    }
+}`,
+
+  // Level 10. The same evening and the last level of the block: fifteen floors
+  // whose two banks overlap on floors 6 to 8, so three floors of the building
+  // have twice the service and the rest have half of it. The starting program
+  // takes whichever car's turn it is, which on a shared floor is a coin toss;
+  // gold asks for the cheaper of the two.
+  "skyscraper.sky10.startingCode.code": `{
+    init: function(elevators, floors) {
+        let next = 0;
+
+        function insertStop(elevator, floorNum) {
+            // A stopped car that is asked for the floor it is already on has
+            // nothing to do -- whoever could board has boarded.
+            if (floorNum === elevator.currentFloor() && elevator.destinationDirection() === "stopped") {
+                return;
+            }
+            const queue = elevator.destinationQueue.slice();
+            if (queue.indexOf(floorNum) === -1) {
+                queue.push(floorNum);
+            }
+            const here = elevator.currentFloor();
+            queue.sort(function(a, b) {
+                return Math.abs(a - here) - Math.abs(b - here);
+            });
+            elevator.destinationQueue = queue;
+            elevator.checkDestinationQueue();
+        }
+
+        function callNextElevator(floor) {
+            // TODO: floors 6 to 8 are served by both banks; this takes whichever is next
+            const floorNum = floor.floorNum();
+            for (let tries = 0; tries < elevators.length; tries++) {
+                const elevator = elevators[next];
+                next = (next + 1) % elevators.length;
+                if (elevator.servedFloors().includes(floorNum)) {
+                    insertStop(elevator, floorNum);
+                    return;
+                }
+            }
+        }
+
+        elevators.forEach(function(elevator) {
+            elevator.on("floor_button_pressed", function(floorNum) {
+                insertStop(elevator, floorNum);
+            });
+            elevator.on("idle", function() {
+                if (elevator.currentFloor() !== 0) {
+                    elevator.goToFloor(0);
+                }
             });
         });
 
