@@ -48,7 +48,8 @@ test("serves the help page, whole, at its own address", async ({ page }) => {
  * which is a fixed `--ds-bar-h` in every language and has its own guards. What
  * is left here is the rule these two pages inherited from it, and the widths
  * are the ones that caught it going wrong. 1440 is a desk and 761 the width
- * just above the phone-sized rule at the foot of `style.css`. 760 is one pixel
+ * just above the phone-sized rule at the foot of `pages/docs/ui/docs-page.css`.
+ * 760 is one pixel
  * below that rule -- where the two used to disagree with each other (35px in
  * English, 80.27px in Russian) before the shared rule changed shape for a
  * defect that was never theirs, and now agree at 70.27px. Each help page is a

@@ -14,7 +14,7 @@
  * underneath is the other half of the verdict. It is still drawn into
  * `.feedbackcontainer`, which is `index.html`'s permanent `role="status"` and
  * covers the same box the stage does — see that element's own comment, and
- * `.verdict`'s in `src/styles/style.css`.
+ * `.verdict`'s in `verdict-toast.css`.
  *
  * Everything this widget knows, it is told. The tier is caller-supplied and
  * already evaluated (by `evaluateChallengeTier`), the hint likewise (by

@@ -159,7 +159,8 @@ test("colours the passenger whose time the statistics panel is reporting", async
   //
   // Yellow rather than the grey of everybody else. That particular value --
   // --ds-car-attention, at `.person.is-rider.is-waiting-long` in
-  // src/styles/style.css -- is the *boarded* one, because the mark follows its
+  // src/entities/passenger/ui/passenger-view.css -- is the *boarded* one,
+  // because the mark follows its
   // passenger into the car (src/game/world.ts's `#setLongestWaitingUser` keeps
   // it through the ride, not just through the wait) and a car needs its own
   // colours, so the poll settles on a frame where the marked passenger is

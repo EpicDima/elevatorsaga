@@ -308,7 +308,7 @@ const CAPACITY_SEPARATOR = "-";
  * one that cannot run.
  */
 const ELEVATOR_LAYOUT = {
-  /** `--building-width` in `src/styles/style.css`: the shafts' drawing area. */
+  /** `--building-width` in `src/shared/styles/tokens.css`: the shafts' drawing area. */
   buildingWidth: 938,
   /** `FIRST_ELEVATOR_X` in `src/game/world.ts`: x of the leftmost shaft. */
   firstElevatorX: 200,

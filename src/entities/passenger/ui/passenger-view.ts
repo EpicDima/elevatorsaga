@@ -11,7 +11,8 @@
  * `new_display_state` rather than cached, the same way `entities/elevator`
  * does; and `is-rider`, from `user.parent`, that `presentUser` never had reason
  * to track — the corridor and the car are painted differently enough now (see
- * `.person.is-rider` in style.css) that a passenger's colour has to know which
+ * `.person.is-rider` in passenger-view.css) that a passenger's colour has to
+ * know which
  * one it is standing in. Unlike `presentUser`, this view does not append itself
  * to a parent; `widgets/building-stage` owns that, the same way it owns
  * appending floors and cars.

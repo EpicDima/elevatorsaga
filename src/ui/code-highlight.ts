@@ -68,7 +68,8 @@ export const CHANGED_LINE_CLASS = "tutoriallinechanged";
  *
  * One element per source line, holding the line's tokens each in their own
  * `tok-*`-classed `<span>` (the class names `classHighlighter` — Lezer's own
- * premade highlighter — assigns; `src/styles/style.css` styles the ones this
+ * premade highlighter — assigns; `src/shared/styles/code.css` styles the ones
+ * this
  * grammar actually produces for the eight tasks' programs). An unchanged line
  * is a plain `<span>`; a changed one is a `<mark>`, which is the element HTML
  * already has for "this run of text matters here, against another context" —
@@ -138,7 +139,7 @@ export function highlightJavaScript(
  * CodeMirror writes these declarations into a stylesheet once, and the
  * custom properties they read are re-resolved by the browser whenever
  * `<html data-theme>` changes, exactly as every hand-written rule in
- * `style.css` is.
+ * the stylesheets is.
  *
  * The mapping is the mockup's own, read off the spans its `#editor` is filled
  * with (`.k`, `.f`, `.s`, `.n`, `.c`, `.p`, and `.src` for everything else),

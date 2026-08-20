@@ -159,7 +159,8 @@ test("opens the caveat from the keyboard", async ({ page }) => {
  * the hundred or so pixels the old bug moved it by.
  *
  * `widgets/workspace-layout`'s pane-splitting stylesheet landed a phase later
- * -- `.workspace`/`.pane`/`.splitter` in `src/styles/style.css` -- but that
+ * -- `.workspace`/`.pane`/`.splitter`, now in
+ * `src/widgets/workspace-layout/ui/workspace-layout.css` -- but that
  * alone was not enough: the seed block itself had also moved, from the
  * challenge bar's `.challengeseed` (styled) into the app bar's settings
  * popover, and `.setmenu`/`.setwrap` carried no rule of their own yet, so it
@@ -168,8 +169,8 @@ test("opens the caveat from the keyboard", async ({ page }) => {
  * missing-`position: absolute` reason, one level up.
  *
  * `.setwrap`/`.setmenu`'s own positioning has since been ported from
- * `design/ui-mockup.html` into `src/styles/style.css` (see the "App bar"
- * section there), so the popover is now a fixed-size overlay the disclosure
+ * `design/ui-mockup.html` into `src/widgets/app-bar/ui/settings-menu.css`, so
+ * the popover is now a fixed-size overlay the disclosure
  * opens inside rather than a block that reshuffles the page under itself.
  * Un-`fixme`d and confirmed passing at both widths below.
  */
@@ -211,7 +212,7 @@ test("does not move the caveat's own control when it is opened", async ({ page }
  * Verified live, not guessed: measured via `getComputedStyle` against the
  * real popover, forced open the same way every test above opens it.
  *
- * Fixed in `src/styles/style.css`'s "App bar" section with
+ * Fixed in `src/widgets/app-bar/ui/settings-menu.css` with
  * `color: var(--ds-text)` on `.setmenu` -- not `--color-text`, the token the
  * defect's own original fix used: `--color-text` is not theme-aware, and
  * paired with `--ds-panel`'s dark-theme value it holds at roughly 1.75:1,
@@ -233,7 +234,7 @@ test("keeps every word of the seed line readable, in both of its states", async 
   // 1.4.3 asks 4.5:1. The characters that went pale were the ones a player
   // transcribes.
   //
-  // Measured here rather than in `src/styles/style.css`, which checks that
+  // Measured here rather than in `src/styles/style.test.ts`, which checks that
   // the palette's pairs are legible but not which elements ask for them: this
   // failure was an element quietly asking for neither.
   const contrasts = async (): Promise<Record<string, number>> =>

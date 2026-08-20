@@ -187,7 +187,8 @@ test("highlights the answer, marks the line it adds, and copies it to the clipbo
   // `src/ui/templates.test.ts` prove against jsdom: that the markup carries
   // `tok-*` classes and a `.tutoriallinechanged` mark, and that
   // `navigator.clipboard.writeText` is called at all. What only a real browser
-  // answers is whether `style.css` actually paints those classes as anything
+  // answers is whether `code.css` and `tutorial-panel.css` really paint those
+  // classes as anything
   // and whether the clipboard the button claims to have written to is the one
   // a player would paste from.
   await context.grantPermissions(["clipboard-read", "clipboard-write"]);
@@ -455,7 +456,8 @@ test("costs the levels nothing: the widest building in the game still fits its p
 
 test("says where the player is on the track twice: in words, and in ticks", async ({ page }) => {
   // `tutorial-panel.test.ts` proves which tick carries which class. What only a
-  // browser answers is whether `style.css` paints the three states apart at all
+  // browser answers is whether `tutorial-panel.css` paints the three states
+  // apart at all
   // -- a row of eight identical 3px bars says nothing, and says it in exactly
   // the space a progress indicator would have taken.
   await page.goto("/#challenge=tutorial-3");

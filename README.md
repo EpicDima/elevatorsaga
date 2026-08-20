@@ -906,7 +906,7 @@ copyright notice are in
 glyph came from which codepoint.
 
 The interface is set in whatever UI face the reader's own system uses — the `--ds-font-ui` stack
-in [src/styles/style.css](src/styles/style.css), taken from
+in [src/shared/styles/tokens.css](src/shared/styles/tokens.css), taken from
 [design/ui-mockup.html](design/ui-mockup.html). No webfont is shipped, so a build copies no font
 binaries into `dist/assets/` and the first paint waits on nothing.
 

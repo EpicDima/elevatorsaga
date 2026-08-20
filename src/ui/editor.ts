@@ -1059,7 +1059,7 @@ const showErrorMark = StateEffect.define<CodeErrorLocation | undefined>();
  * has to keep, so any wash at all puts a comment under the bar. An underline
  * puts nothing behind the text at all, and the mark itself reads 5.74:1 on the
  * dark editor and 4.94:1 on the light one, well clear of the 3:1 a graphical
- * indicator needs. Ratios measured against the values in `style.css`, not
+ * indicator needs. Ratios measured against the values in `tokens.css`, not
  * estimated; `style.test.ts` keeps measuring them.
  */
 const errorMark = Decoration.mark({ class: "cm-errorMark" });

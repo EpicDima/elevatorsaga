@@ -15,7 +15,7 @@
  * pane and a code pane side by side need more room than a phone screen has
  * to give, and shrinking them to fit was never asked for, so the page adopts
  * `design/ui-mockup.html`'s own hard floor -- `body.app { min-inline-size:
- * 1040px; min-block-size: 600px }`, in `src/styles/style.css` -- as its
+ * 1040px; min-block-size: 600px }`, in `src/app/styles/document.css` -- as its
  * minimum supported viewport instead of reflowing under it. The floor hangs
  * off a class rather than `body` itself because the same stylesheet dresses
  * all three pages: `src/docs.ts` imports it too, and the help pages are the
@@ -84,7 +84,8 @@ for (const { name, path } of PAGES) {
  *
  * 1040x600 is the smallest viewport the page now promises to fit -- see the
  * file's own doc comment -- so what is worth checking is not a range of
- * widths but that this one, the edge of what `src/styles/style.css` allows
+ * widths but that this one, the edge of what `src/app/styles/document.css`
+ * allows
  * the viewport to shrink to, does not itself overflow.
  */
 test("the game fits its own 1040x600 floor", async ({ page }) => {

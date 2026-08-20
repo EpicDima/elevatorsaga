@@ -25,7 +25,7 @@
 
   * The colours are written out rather than inherited. They are the palette's
     darkest neutral (ds-n-0) and the dark theme's accent (ds-accent) from
-    src/styles/style.css, named here without the two leading hyphens a custom
+    src/shared/styles/tokens.css, named here without the two leading hyphens a
     property carries, since this comment cannot hold them. A file under public/
     is copied by the build without ever meeting the stylesheet, so it could not
     read the properties themselves in any case. The dark

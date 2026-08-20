@@ -1218,7 +1218,8 @@ down_button_pressed", …)` — можно, но тогда первым арг�
 **Изменяемые файлы (12).** `index.html` (элемент панели), `src/app/router.ts` (разбор токена,
 `tutorialIndex`), `src/app/app.ts` (`startTutorial`, `#restart`, панель, экран финиша, сид задания,
 вызовы `openTutorialBuffer`/`openPlayerBuffer`), `src/ui/templates.ts` (`tutorialTemplate`),
-`src/styles/style.css`, `src/main.ts` (проводка), `src/i18n/en.ts`, `src/i18n/ru.ts`,
+`src/widgets/tutorial-panel/ui/tutorial-panel.css`, `src/main.ts` (проводка), `src/i18n/en.ts`,
+`src/i18n/ru.ts`,
 `src/page.test.ts` (новый элемент), `README.md` (раздел «What this fork adds» и параметры URL),
 `documentation.html` и `documentation.ru.html` (ссылка на дорожку). Плюс, вероятно, один e2e-смоук:
 открыть `#challenge=tutorial-1`, нажать «С начала», дождаться победы. `src/ui/editor.ts` в списке

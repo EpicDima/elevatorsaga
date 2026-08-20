@@ -31,7 +31,7 @@ describe("highlightJavaScript", () => {
     // highlightJavaScript is documented to write unstyled text as plain text
     // rather than an empty-classed <span> -- so nothing here reads `class=""`,
     // while every operator and punctuation mark is still its own token, with a
-    // class `style.css` dims to `--ds-code-punc`.
+    // class `shared/styles/code.css` dims to `--ds-code-punc`.
     const html = highlightJavaScript("a < b;");
 
     expect(html).not.toContain('class=""');

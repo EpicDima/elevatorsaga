@@ -51,8 +51,8 @@
  * («Один и тот же seed — один и тот же поток людей»); production's is a
  * paragraph about what a seed does and does not promise, which is more than
  * a panel wants open under every run. Only its `<summary>` is dressed as the
- * mockup's hint line — `class="sethint"`, and `src/styles/style.css` takes
- * the disclosure triangle off it.
+ * mockup's hint line — `class="sethint"`, and `seed-panel.css` takes the
+ * disclosure triangle off it.
  *
  * Taking the triangle off left the line reading as the mockup's inert hint
  * and behaving as a control, which is the worse half of both: nothing on
@@ -61,7 +61,7 @@
  * "right", "chev")`, the mockup's `#i-right`, the same call
  * `widgets/stats-panel`'s "All figures" shelf and the block below this one's
  * own Hotkeys row both make. The words move into a `<span>` to make room for
- * it, and `src/styles/style.css` turns it a quarter-turn on open exactly as
+ * it, and `seed-panel.css` turns it a quarter-turn on open exactly as
  * that shelf's does.
  *
  * ## Where the rest of it comes from
@@ -77,9 +77,8 @@
  * private helpers of `challengeTemplate`, which is the only thing about them
  * the challenge bar promised to any caller. What *is* reused verbatim is the
  * class names their markup already used (`seedlink`, `seedvalue`,
- * `seednewdraw`, `seedhelp`, `seedcaveat`), so `src/styles/style.css`'s
- * "Settings popover" section styles this block through one set of rules
- * rather than two under different names.
+ * `seednewdraw`, `seedhelp`, `seedcaveat`), so `seed-panel.css` styles this
+ * block through one set of rules rather than two under different names.
  *
  * `presentChallenge` in what was `src/ui/presenters.ts` went to some trouble to keep
  * the seed line's `<details>` open state and the document's focus in place
@@ -115,7 +114,7 @@ function seedHelpTemplate(): string {
  * The row's one icon button — the mockup's `#seedRoll`/`#seedCopy` shape,
  * carrying whichever of the run's two gestures is the one it has.
  *
- * `.ghost` is the chrome `src/styles/style.css` gives every low-emphasis
+ * `.ghost` is the chrome `shared/ui/button.css` gives every low-emphasis
  * control, narrowed to the row's 30x30 square by its own `.seedrow .ghost`;
  * `name` is written twice, once for a screen reader and once for a pointer,
  * because the glyph is the whole of what is on screen.

@@ -114,7 +114,7 @@ describe("seedPanelTemplate", () => {
     expect(help?.tagName).toBe("DETAILS");
     expect(help?.querySelector("summary")?.textContent).toBe("what a seed does");
     // Dressed as the mockup's one-line `.sethint` under the row, since that is
-    // the line it stands in for -- `src/styles/style.css` takes the disclosure
+    // the line it stands in for -- `seed-panel.css` takes the disclosure
     // triangle off it there.
     expect(help?.querySelector("summary")?.className).toBe("sethint");
     expect(help?.querySelector(".seedcaveat")?.textContent).toContain("The same seed brings");

@@ -54,8 +54,8 @@
     <script type="module" src="/src/main.ts"></script>
   </head>
   <!--
-    `app` is what tells src/styles/style.css this is the game and not one of the
-    two help pages it also dresses: the frame below -- a full-height column that
+    `app` is what tells src/app/styles/document.css this is the game and not one
+    of the two help pages it also dresses: the frame below -- a full-height column that
     does not scroll, with a 1040x600 floor under it -- would cut a nine-hundred
     line reference page off at the first screenful.
   -->
@@ -120,7 +120,8 @@
         below is -- the App constructor draws into it long before that row
         exists -- and the row is built above the world's own subtree rather
         than inside it because that subtree is emptied and rebuilt on every
-        restart. See .stagearea in src/styles/style.css for the whole of it.
+        restart. See .stagearea in
+        src/widgets/workspace-layout/ui/workspace-layout.css for the whole of it.
       -->
       <div class="tutorial"></div>
 
@@ -166,8 +167,9 @@
             below .innerworld is emptied and rebuilt on every redraw of the
             world, and a live region rebuilt under a screen reader announces
             nothing at all. The two boxes cover the same pixels anyway -- see
-            .feedbackcontainer's own rule in src/styles/style.css, which is
-            where the card is placed over the building.
+            .feedbackcontainer's own rule in
+            src/widgets/verdict-toast/ui/verdict-toast.css, which is where the
+            card is placed over the building.
           -->
           <div class="feedbackcontainer" role="status"></div>
           <div class="innerworld"></div>

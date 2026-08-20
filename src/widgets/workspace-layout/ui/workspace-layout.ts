@@ -9,7 +9,8 @@
  *
  * Nothing here is reachable yet. `buildWorkspaceLayoutSkeleton` is not called
  * from `index.html` or `src/pages/game/index.ts` — this widget is staged the way
- * `src/styles/style.css`'s design tokens were staged, built and tested ahead
+ * `src/shared/styles/tokens.css`'s design tokens were staged, built and tested
+ * ahead
  * of anything that mounts or reads it — and `presentWorkspaceLayout`'s
  * `setLayoutMode` has no caller: the segmented control that would call it is
  * `features/switch-layout`, a later phase of the same migration. Dragging and
@@ -134,7 +135,7 @@ export interface WorkspaceLayoutOptions {
   /**
    * The element the split percentage and layout mode are written to —
    * `document.documentElement` in the page, so that every rule in
-   * `src/styles/style.css` reading `--split-x`/`data-layout` sees them.
+   * `workspace-layout.css` reading `--split-x`/`data-layout` sees them.
    */
   readonly root: HTMLElement;
   /** Where the mode and split are remembered between visits. */

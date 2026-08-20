@@ -16,7 +16,8 @@
  * whole subtree is built here, inside the element the page hands this widget.
  * The three wrappers around it — `.world`, `.worldtrack`, `.innerworld` — are
  * `index.html`'s, not this widget's, and this widget cannot edit that file;
- * `style.css` makes them layout-neutral instead (a flex chain that passes the
+ * `building-stage.css` makes them layout-neutral instead (a flex chain that
+ * passes the
  * pane's height straight through), so a later cleanup can delete them without
  * anything here changing. Two things are still needed from them, and are the
  * reason they are neutralised rather than ignored: `.worldtrack` is what holds
@@ -464,7 +465,8 @@ export function presentBuildingStage(parent: HTMLElement, world: World): Buildin
     // Everything sized off a floor reads these two rather than being written
     // one element at a time: the floor number's own type size, the rider
     // figures, the cabin. `data-density` is the mockup's own switch for the
-    // handful of things that cannot simply scale (see `.car` in style.css).
+    // handful of things that cannot simply scale (see `.car` in
+    // `entities/elevator`'s own stylesheet).
     building.dataset["density"] = layout.density;
     building.style.setProperty("--ds-floor-h", `${String(layout.shortestFloor)}px`);
     building.style.setProperty("--ds-car-h", `${String(layout.carHeight)}px`);

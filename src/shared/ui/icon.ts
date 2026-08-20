@@ -164,7 +164,7 @@ export function iconMarkup(name: IconName, className?: string): string {
  * heavier-stroked check mark), where every {@link ICONS} entry is exactly one
  * path, flipped out of a webfont's y-up em box. A consumer gets its own
  * `ds-icon` wrapper class rather than reusing `icon` for the same reason
- * `style.css`'s design tokens went in under a `--ds-` prefix: this family's
+ * `shared/styles/tokens.css` went in under a `--ds-` prefix: this family's
  * sizing is fixed-pixel, not em-relative like the legacy glyphs already
  * styled through `.icon`, and the two would fight over that class once either
  * gets a stylesheet rule.
@@ -175,7 +175,7 @@ export function iconMarkup(name: IconName, className?: string): string {
 export const SPRITE_ICONS = {
   // The mockup draws every stroked glyph in this family through one shared
   // ".icon" CSS rule (fill: none; stroke: currentcolor; stroke-width: 1.6;
-  // round caps/joins) rather than per-shape attributes. `style.css`'s own
+  // round caps/joins) rather than per-shape attributes. `icon.css`'s own
   // `.ds-icon` rule now carries that same default too, but each stroked
   // shape below still spells it out explicitly — the same reason `star`
   // spells out its own paint rather than leaving it to inherited CSS.
