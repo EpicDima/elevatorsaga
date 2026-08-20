@@ -45,6 +45,7 @@ import type { World } from "#game/world.ts";
 import { decimal, format, percent, quantity, seconds, t } from "#i18n/index.ts";
 import type { MessageArgs, MessageKey } from "#i18n/index.ts";
 import { requireElement } from "#shared/lib/dom.ts";
+import { spriteIconMarkup } from "#shared/ui/icon.ts";
 import { markup, raw, renderElement } from "#shared/ui/markup.ts";
 
 /**
@@ -270,9 +271,20 @@ export interface StatsPanelPresenter {
   update(): void;
 }
 
-/** Builds the panel's static skeleton — no tiles, no translated text baked in. */
+/**
+ * Builds the panel's static skeleton — no tiles, no translated text baked in.
+ *
+ * The summary opens with the mockup's own disclosure chevron (`§8`, its
+ * `<svg class="icon chev">`), drawn through {@link spriteIconMarkup} rather
+ * than as raw SVG — `docs-modal.ts`'s own `.api` rows already take that route
+ * to the same `#i-right` icon, and this page ships no sprite sheet for a
+ * `<use href>` to point at. It is `aria-hidden` and unnamed: the `<summary>`
+ * beside it is the control, and the open/closed state a chevron draws is
+ * already on the `<details>` element for a screen reader to read.
+ */
 export function statsPanelTemplate(): string {
-  return markup`<div class="statspanel"><div class="tiles-primary"></div><details class="more"><summary><span class="cap"></span></summary><div class="tiles-secondary"></div></details></div>`;
+  const chevron = spriteIconMarkup("right", "chev");
+  return markup`<div class="statspanel"><div class="tiles-primary"></div><details class="more"><summary>${raw(chevron)}<span class="cap"></span></summary><div class="tiles-secondary"></div></details></div>`;
 }
 
 /** One tile's own markup: caption, value, and — for a sparked tile — its chart. */

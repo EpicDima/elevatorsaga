@@ -155,15 +155,23 @@
           -->
           <div class="feedbackcontainer" role="status"></div>
           <div class="innerworld"></div>
-          <!-- widgets/stats-panel draws the run's live figures here. -->
-          <div
-            class="statscontainer"
-            role="group"
-            aria-label="Simulation statistics"
-            data-i18n-attr="aria-label:page.stats.label"
-          ></div>
         </div>
       </div>
+
+      <!--
+        widgets/stats-panel draws the run's live figures here. A sibling of
+        .world rather than a box inside it: design/ui-mockup.html docks its
+        own .stats as the last row of the game pane, below the building and
+        the full width of it, so this element is the row and not a corner
+        floated over the stage. src/main.ts appends it to .pane-game last, in
+        this order.
+      -->
+      <div
+        class="statscontainer"
+        role="group"
+        aria-label="Simulation statistics"
+        data-i18n-attr="aria-label:page.stats.label"
+      ></div>
 
       <!--
         widgets/editor-pane draws the slot switcher, the reset/undo-reset

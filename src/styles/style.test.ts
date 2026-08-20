@@ -1,6 +1,7 @@
 /**
  * What can be checked about `style.css` without a browser: the contrast of the
- * palette, and the arithmetic the statistics panel is sized by.
+ * palette, and the handful of declarations the statistics strip's own layout
+ * hangs on.
  *
  * The stylesheet states every colour once, as a custom property, which is what
  * makes this checkable without a browser: the pairs that actually meet on
@@ -13,12 +14,15 @@
  * on a background nobody listed here, this file will not notice — re-measure in
  * a browser when the layout changes, and add the pair.
  *
- * The panel's geometry is here for the same reason the colours are: the numbers
- * are all in tokens, so what they add up to is arithmetic. Whether a browser
- * then draws the panel where it was told to is `e2e/statistics-panel.spec.ts`.
- * `--stats-rows` is no longer a count of anything in `index.html` --
- * `widgets/stats-panel` draws its rows at runtime, not as static markup --
- * so nothing here counts elements, and nothing needs a parser for one.
+ * The strip's layout is here for a narrower reason. It used to be arithmetic —
+ * a stack of `--stats-*` tokens adding up to the height of a floating card —
+ * and now it is three wirings that fail silently rather than loudly: an
+ * `@container` naming a container nobody opens never matches, a flex row left
+ * on the browser's own `flex: 0 1 auto` is squeezed instead of the box that
+ * scrolls, and a positioning context that stops clipping hands the page
+ * scrollbars from an overlay drawn 2000px tall. None of the three shows up as
+ * an error anywhere; each shows up as a layout that is merely wrong. Whether a
+ * browser then draws the strip whole is `e2e/statistics-panel.spec.ts`.
  */
 
 import { readFileSync } from "node:fs";
@@ -947,46 +951,49 @@ describe("run controls", () => {
   });
 });
 
-describe("statistics panel", () => {
-  it("counts the primary grid, the disclosure summary, the secondary grid and the card border into its height", () => {
-    // Pinned as the expression rather than as the 503px it comes to, because
-    // what matters is which quantities are in it: a height worked out from
-    // less than all three regions, or missing the card's own border, is the
-    // same defect in a new form as the eleven-row panel this replaced once
-    // had, in `--stats-rows`/`--stats-row-pitch`/`--stats-padding` (above),
-    // now orphaned. Sized to the disclosure held open, the worst case -- see
-    // `style.css`'s own comment above these tokens for why.
-    expect(token("stats-block-size")).toBe(
-      "calc(\n    var(--stats-primary-h) + var(--stats-summary-h) + var(--stats-secondary-h) + 2px\n  )",
+describe("statistics strip", () => {
+  it("measures the tile grids against the pane rather than the window", () => {
+    // The figures are as wide as the game pane, and the splitter can take two
+    // thirds of that away without the window changing by a pixel -- so the
+    // two-column fallback the grids drop to has to be asked of the strip
+    // itself. A `@media` query in its place would collapse the strip only
+    // when the whole window narrowed, which on this page is the one thing
+    // that cannot happen: `body.app` floors it at 1040px.
+    expect(declaration(ruleBody(".statscontainer"), "container", ".statscontainer")).toBe(
+      "panel / inline-size",
     );
+    // Same name in the query as in the container, which is the whole of the
+    // wiring: an `@container` naming something no ancestor opens does not
+    // fail, it silently never matches, and the four- and three-column layouts
+    // above it would then be the only ones a narrow pane ever got.
+    expect(styleSource).toMatch(/^@container panel \(max-width: 520px\) \{$/m);
   });
 
-  it("holds open the box that clips it", () => {
-    // The panel is positioned out of the flow, so it adds nothing to the height
-    // of `.worldtrack` -- and `.worldtrack` takes its height from the building
-    // and clips what does not fit. A two-floor building is 100px, which is
-    // six rows short of the panel. Both boxes are stated in the same token so
-    // that the clip cannot be left behind when the panel changes size.
-    expect(declaration(ruleBody(".statscontainer"), "block-size", ".statscontainer")).toBe(
-      token("stats-block-size"),
+  it("leaves the building the only row of the game pane that gives way", () => {
+    // The goal bar, the learning track's panel and the figures each take their
+    // own content's height and keep it; `.world` is `flex: 1 1 auto` with a
+    // zero minimum, so a pane too short for all four shrinks the stage -- the
+    // one box here with somewhere to put a shortfall, since `.stage` scrolls.
+    // Without this the browser's own `flex: 0 1 auto` would let the strip be
+    // squeezed instead, and the figures at the foot of it cut in half.
+    expect(styleSource).toMatch(
+      /^\.pane-game > \.challenge,\n\.pane-game > \.tutorial,\n\.pane-game > \.statscontainer \{\n {2}flex: 0 0 auto;\n\}$/m,
     );
-    expect(declaration(ruleBody(".worldtrack"), "min-block-size", ".worldtrack")).toBe(
-      token("stats-block-size"),
-    );
-    // Nothing moves on screen if this is dropped today: `.statscontainer`
-    // carries no padding or border of its own any more for `box-sizing` to
-    // interpret one way or the other -- widgets/stats-panel draws its own
-    // box (`.statspanel`, in the same rule) rather than the padded text list
-    // this replaced. The assertion stays as the guard it always was, in case
-    // a later change gives the box either back: on the panel this replaced,
-    // `box-sizing: border-box` on a box with 20px padding all round was the
-    // difference between a 216px clip and 256px of panel, 40px past it.
-    expect(declaration(ruleBody(".statscontainer"), "box-sizing", ".statscontainer")).toBe(
-      "border-box",
-    );
-    // And the clipping stays, for the reason `style.css` gives: the feedback
-    // overlay is wider than the track it is drawn in.
-    expect(ruleBody(".worldtrack")).toMatch(/^\s*overflow:\s*hidden;/m);
+    const world = ruleBody(".world");
+    expect(declaration(world, "flex", ".world")).toBe("1 1 auto");
+    expect(declaration(world, "min-block-size", ".world")).toBe("0");
+  });
+
+  it("keeps the clip the run verdict is drawn inside", () => {
+    // `.feedback` is positioned against `.worldtrack` and drawn 1280x2000, so
+    // with `overflow: visible` the end of a challenge hands the page
+    // scrollbars that lead nowhere. Both halves are asserted because either
+    // one alone is useless: an unclipped positioning context overflows, and a
+    // clip with no positioning context is not what the overlay is measured
+    // from.
+    const body = ruleBody(".worldtrack");
+    expect(declaration(body, "position", ".worldtrack")).toBe("relative");
+    expect(body).toMatch(/^\s*overflow:\s*hidden;/m);
   });
 });
 

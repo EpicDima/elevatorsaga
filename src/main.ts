@@ -310,11 +310,16 @@ async function main(): Promise<void> {
   const hotkeysModal = presentHotkeysModal(hotkeysDialog);
 
   // The workspace shell: `.pane-game`/`.pane-code` become the new parents of
-  // four of the five regions `<main>` held directly until now, in the order it
-  // held them -- `.controls` is the fifth, and it goes to the app bar below
+  // five of the six regions `<main>` held directly until now, in the order it
+  // held them -- `.controls` is the sixth, and it goes to the app bar below
   // instead. Moving an already-mounted element with `append` reparents it
   // without tearing anything down, CodeMirror included, so every one of them
   // keeps running exactly as built above.
+  //
+  // `.statscontainer` goes last of the game pane's four, which is the order
+  // `design/ui-mockup.html` puts them in: the goal bar, then the building,
+  // then the figures docked across the foot of the pane. `index.html` ships
+  // it in that order too, so this line only preserves what is already there.
   const mainRegion = requireElement("main");
   const workspaceElements = buildWorkspaceLayoutSkeleton(document, {
     gamePane: t("game.workspace.gamePane"),
@@ -325,6 +330,7 @@ async function main(): Promise<void> {
     requireElement(".challenge"),
     requireElement(".tutorial"),
     requireElement(".world"),
+    requireElement(".statscontainer"),
   );
   workspaceElements.codePane.append(requireElement(".code"));
   mainRegion.append(workspaceElements.workspace);
