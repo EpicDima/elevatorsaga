@@ -25,6 +25,7 @@ import {
   globalCompletions,
 } from "./ui/completions.ts";
 import { createIcon } from "#shared/ui/icon.ts";
+import { buildAppBarSkeleton } from "#widgets/app-bar/ui/app-bar.ts";
 
 /** The page shell, parsed as the browser would parse it. */
 const page = new DOMParser().parseFromString(pageSource, "text/html");
@@ -204,6 +205,53 @@ describe("index.html", () => {
     expect(icon?.getAttribute("type")).toBe("image/svg+xml");
     expect(icon?.getAttribute("href")).toBe("/favicon.svg");
     expect(faviconSource).toContain("<svg");
+  });
+
+  it("ships a favicon a browser will actually parse", () => {
+    // `toContain("<svg")` was the whole of the check above for as long as the
+    // file existed, and it passed throughout on a file no browser ever drew:
+    // the comment at the top of it used the repository's usual double hyphen
+    // for a dash, which XML does not allow inside a comment, so Chromium
+    // answered the request with "Double hyphen within comment" and every tab
+    // showed the blank-page glyph. Nothing here is HTML-forgiving -- an SVG
+    // served as image/svg+xml is parsed as XML, all or nothing -- so this
+    // parses it the strict way and insists on the drawing rather than on an
+    // error document.
+    const favicon = new DOMParser().parseFromString(faviconSource, "image/svg+xml");
+
+    expect(favicon.querySelector("parsererror")).toBeNull();
+    expect(favicon.documentElement.tagName).toBe("svg");
+  });
+
+  it("puts the app bar's own mark in the tab", () => {
+    // One drawing, two places: the tab and the bar are the same site, and a
+    // favicon that is merely in the same spirit as the brand is a thing that
+    // drifts. So this compares the two cars themselves rather than trusting
+    // the comment in either file to stay true.
+    //
+    // The cars are the two rects drawn at a depth, in both files -- neither
+    // the bar's stroked frame nor the favicon's filled plate carries an
+    // `opacity`, which is what makes that the selector rather than a count or
+    // a position among siblings. Everything else about the two files differs
+    // on purpose; public/favicon.svg says why.
+    const carShapes = (root: ParentNode): Record<string, string | null>[] =>
+      [...root.querySelectorAll("rect[opacity]")].map((car) => ({
+        x: car.getAttribute("x"),
+        y: car.getAttribute("y"),
+        width: car.getAttribute("width"),
+        height: car.getAttribute("height"),
+        rx: car.getAttribute("rx"),
+        opacity: car.getAttribute("opacity"),
+      }));
+
+    const favicon = new DOMParser().parseFromString(faviconSource, "image/svg+xml");
+    const { brand } = buildAppBarSkeleton(document, { brandName: EN_MESSAGES["page.brand"] });
+
+    expect(carShapes(favicon)).toHaveLength(2);
+    expect(carShapes(favicon)).toEqual(carShapes(brand));
+    expect(favicon.documentElement.getAttribute("viewBox")).toBe(
+      brand.querySelector(".brand-mark")?.getAttribute("viewBox"),
+    );
   });
 
   it("describes itself well enough to paste into a chat", () => {

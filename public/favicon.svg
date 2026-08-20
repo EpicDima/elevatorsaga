@@ -1,19 +1,51 @@
 <!--
-  The tab icon: an elevator car in its shaft, drawn in the game's own three
-  colours -- the dark building (#333), the teal car (#4f8686) and the pale
-  accent (#f1f2d8) that splits its doors.
+  The tab icon: the app bar's own brand mark, so the glyph in the tab strip and
+  the glyph beside the game's name are the same drawing rather than two ideas
+  about what this site looks like. `buildAppBarSkeleton` in
+  src/widgets/app-bar/ui/app-bar.ts builds that mark, and the two cars below
+  carry its coordinates unchanged; src/page.test.ts compares them, so moving one
+  without the other fails.
+
+  No double hyphen anywhere in this comment, which is why it reads as it does.
+  This file is XML, not HTML, and XML forbids one inside a comment: the favicon
+  this replaces wrote its dashes the way every other comment in the repository
+  writes them, so every browser refused the whole document ("Double hyphen
+  within comment") and every tab fell back to the blank-page glyph for as long
+  as the file existed. src/page.test.ts parses it now rather than only checking
+  that it starts with an svg tag.
+
+  Two differences from the bar's mark, both because a tab is not an app bar:
+
+  * The mark's frame is a hollow rounded rect stroked in `currentcolor`, and
+    here it is filled instead. At 16px an outline a pixel wide around two small
+    rects is mush, and a favicon needs a plate anyway: transparent artwork lands
+    on whatever colour the browser paints its tab strip, the one colour a static
+    file cannot know. The plate keeps the frame's corner in proportion (2.5 on
+    an 18-wide frame is 3 on a 22-wide plate).
+
+  * The colours are written out rather than inherited. They are the palette's
+    darkest neutral (ds-n-0) and the dark theme's accent (ds-accent) from
+    src/styles/style.css, named here without the two leading hyphens a custom
+    property carries, since this comment cannot hold them. A file under public/
+    is copied by the build without ever meeting the stylesheet, so it could not
+    read the properties themselves in any case. The dark
+    pair serves both themes on purpose: brass on near-black reads against a
+    light tab strip and a dark one alike, where the light theme's deeper brass
+    on its own pale ground would disappear into a white one.
 
   Original artwork, deliberately. The twelve Font Awesome outlines in
   src/shared/ui/icon.ts would have been the quicker answer, but they carry the
-  SIL Open Font License, and a mark that stands for the site is not something
-  to owe attribution for. Nothing here is copied from anywhere.
+  SIL Open Font License, and a mark that stands for the site is not something to
+  owe attribution for. Nothing here is copied from anywhere.
 
-  Three rectangles is all of it: at 16px, detail is noise. The doors read as an
-  elevator at that size, which is the only size that matters.
+  Two cars at two heights, and no more than that, because at 16px detail is
+  noise. The far car is dim by design, the same depth cue the bar draws, and it
+  fades to almost nothing at tab size, which is fine: one car in a shaft is
+  still an elevator.
 -->
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="Elevator Saga">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 22 22" role="img" aria-label="Elevator Saga">
   <title>Elevator Saga</title>
-  <rect width="32" height="32" rx="4" fill="#333333" />
-  <rect x="6" y="4" width="20" height="24" rx="1.5" fill="#4f8686" />
-  <rect x="15" y="4" width="2" height="24" fill="#f1f2d8" />
+  <rect width="22" height="22" rx="3" fill="#131519" />
+  <rect x="5" y="9" width="5.5" height="8.5" rx="1" fill="#e8a33f" opacity=".9" />
+  <rect x="12" y="4" width="5" height="8.5" rx="1" fill="#e8a33f" opacity=".45" />
 </svg>
