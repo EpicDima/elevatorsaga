@@ -2620,10 +2620,11 @@ describe("relabelWorld", () => {
   /**
    * Every name assistive technology can read off a drawn building.
    *
-   * In document order, which for a building is every floor's two call buttons
-   * and then every car followed by its in-car buttons -- so two of these lists
-   * compare position by position without either side saying which key produced
-   * which entry.
+   * In document order, which for a building is every floor's call buttons --
+   * two of them, except at the ends, where the lamp that could never light is
+   * not drawn -- and then every car followed by its in-car buttons, so two of
+   * these lists compare position by position without either side saying which
+   * key produced which entry.
    *
    * @param parent - A container a building has been drawn into.
    * @returns The `aria-label` of every element inside it that carries one.
@@ -2649,7 +2650,10 @@ describe("relabelWorld", () => {
     expect(names(drawnInEnglish)).toEqual(names(drawnInRussian));
     // And not vacuously: a building with no labels at all, or a `setLocale` that
     // did nothing, would satisfy the line above on its own.
-    expect(names(drawnInRussian)).toHaveLength(14);
+    // Twelve: three floors carrying four call buttons between them -- the
+    // lobby's "up", the middle floor's two, the roof's "down" -- plus two cars
+    // and their three in-car buttons each.
+    expect(names(drawnInRussian)).toHaveLength(12);
     expect(names(drawnInEnglish)).not.toEqual(english);
     expect(english[0]).toBe("Call an elevator going up from floor 0");
     expect(names(drawnInEnglish)[0]).toBe("Вызвать лифт вверх с этажа 0");

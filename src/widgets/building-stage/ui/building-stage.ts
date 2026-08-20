@@ -375,7 +375,7 @@ export function presentBuildingStage(parent: HTMLElement, world: World): Buildin
   const floorViews: FloorView[] = [];
   const queueEls: HTMLElement[] = [];
   for (const floor of world.floors) {
-    const view = createFloorView(floor);
+    const view = createFloorView(floor, world.floors.length);
     view.element.tabIndex = 0;
     const queue = document.createElement("div");
     queue.className = "queue";

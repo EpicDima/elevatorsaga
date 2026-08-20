@@ -54,7 +54,7 @@ import {
 import { DEFAULT_CODE_SLOT } from "#features/manage-code-slots/model/code-slots.ts";
 import type { CodeSlot } from "#features/manage-code-slots/model/code-slots.ts";
 import { presentRunControls, runButtonsTemplate } from "#features/run-simulation/index.ts";
-import { clearChildren, queryAll, requireElement } from "#shared/lib/dom.ts";
+import { clearChildren, query, queryAll } from "#shared/lib/dom.ts";
 import { createParamsUrl } from "#shared/lib/route-query.ts";
 import type { RouteQuery } from "#shared/lib/route-query.ts";
 import { presentBuildingStage } from "#widgets/building-stage/index.ts";
@@ -399,8 +399,10 @@ export function presentControls(
  */
 export function relabelWorld(parent: HTMLElement): void {
   for (const [level, floor] of queryAll(FLOOR_SELECTOR, parent).entries()) {
-    requireElement(CALL_UP_SELECTOR, floor).setAttribute("aria-label", floorCallUpLabel(level));
-    requireElement(CALL_DOWN_SELECTOR, floor).setAttribute("aria-label", floorCallDownLabel(level));
+    // Each lamp is looked for, not demanded: `entities/floor` draws no "up" on
+    // the roof and no "down" in the lobby, because neither could ever light.
+    query(CALL_UP_SELECTOR, floor)?.setAttribute("aria-label", floorCallUpLabel(level));
+    query(CALL_DOWN_SELECTOR, floor)?.setAttribute("aria-label", floorCallDownLabel(level));
   }
   for (const [index, elevator] of queryAll(ELEVATOR_SELECTOR, parent).entries()) {
     elevator.setAttribute("aria-label", elevatorLabel(index));

@@ -3,7 +3,7 @@
  *
  * The editor is what the page is for, and it is behind everything the building
  * contains: the scroll container, and a button for every call and every floor.
- * On the eighteenth challenge that is 258 tab stops past the link, 210 of them
+ * On the eighteenth challenge that is 256 tab stops past the link, 208 of them
  * buttons. The count is measured here rather than asserted from the markup
  * because most of those stops are drawn by the presenters at run time and do
  * not exist in `index.html` at all.
@@ -13,7 +13,7 @@ import { expect, test } from "@playwright/test";
 
 import { editor } from "./game-page.ts";
 
-/** The busiest challenge: 8 elevators, 21 floors, and a call button per floor. */
+/** The busiest challenge: 8 elevators, 21 floors, and a call button per direction. */
 const BUSIEST = "#challenge=18";
 
 test("reaches the editor in one tab stop, from the busiest challenge", async ({ page }) => {
@@ -56,8 +56,9 @@ test("saves a walk through the whole building", async ({ page }) => {
 
   // Exact, because a range records nothing: this file's own header once
   // claimed 208 while the walk was 240, and bounds of 100 and 400 had nothing
-  // to say about it. 210 of the 258 are buttons -- eight cars of 21 floors,
-  // plus a call each way at every floor -- and the other 48 are the rest of
+  // to say about it. 208 of the 256 are buttons -- eight cars of 21 floors,
+  // plus a call each way at every floor except the roof, which has no way up,
+  // and the lobby, which has no way down -- and the other 48 are the rest of
   // the chrome above the building, the building's own scroll container, each
   // floor's own row and each car's own container, the statistics panel's
   // summary and the splitter below the building, and the code slot switcher.
@@ -92,9 +93,15 @@ test("saves a walk through the whole building", async ({ page }) => {
   // back when it was the scroller, which is `index.html`'s to take away; until
   // it does, this challenge has one stop that no longer moves anything.
   //
-  // It is 258 now that "Run instantly" is a stop of the speed control rather
-  // than a button of its own: the last step past the fastest speed, reached
-  // with the "Faster" arrow that was already a stop, so the row lost one and
-  // gained none.
-  expect(stops).toBe(258);
+  // It fell to 258 when "Run instantly" became a stop of the speed control
+  // rather than a button of its own: the last step past the fastest speed,
+  // reached with the "Faster" arrow that was already a stop, so the row lost
+  // one and gained none.
+  //
+  // And to 256 once `entities/floor` stopped drawing the call that could never
+  // be made -- there is no way up from the roof and no way down from the
+  // lobby, so those two lamps were two tab stops that led to a button which
+  // could light but never mean anything. Two per building, whatever its
+  // height, which is why this fell by exactly two and not by two per floor.
+  expect(stops).toBe(256);
 });

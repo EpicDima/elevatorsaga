@@ -12,13 +12,23 @@
  * `button.down`, and indexes them by DOM order — with the mockup's `level`
  * beside it so the stylesheet can be read against the mockup rule for rule.
  *
- * The mockup omits the impossible lamp on the end floors (no "up" on the roof,
- * no "down" in the lobby). Both are drawn here regardless: `relabelWorld`
- * fetches each with `requireElement` on *every* floor and would throw on a row
- * that had only one, and that function lives in a file this widget does not
- * own. Rendering both also keeps the simulation's own API honest — a player's
- * code can read `floor.buttonStates.up` on the top floor and gets a control
- * that visibly exists.
+ * The end floors get one lamp, not two, which is why both the template and
+ * {@link createFloorView} are told how many floors the building has and not
+ * only which one this is. The mockup's own `callControls` leaves the
+ * impossible lamp off — «пустое место лучше кнопки, которая никогда не
+ * загорится» — and the engine agrees with it: `spawnUserRandomly` in
+ * `src/game/world.ts` puts every passenger on the ground floor bound upwards,
+ * or above it bound for a floor `(currentFloor + 1..floorCount-1) %
+ * floorCount`, which from the roof is always below the roof. So `User`'s own
+ * `pressFloorButton` can never reach the roof's "up" or the lobby's "down" in
+ * any run, at any seed. What is left is a player clicking one by hand, and a
+ * call in a direction the building does not go is not a thing to offer.
+ *
+ * `floor.buttonStates` still carries both directions on every floor, drawn or
+ * not — that is the engine's shape, and player code reads it. What changes is
+ * that `relabelWorld` in `src/pages/game/index.ts` now *looks for* each lamp
+ * rather than demanding it, since a row that has only one is now the normal
+ * shape of the two rows at the ends.
  *
  * Vertical size comes from the widget, not from a page-wide constant:
  * `layoutBuilding()` decides how tall a floor is for the stage it has to fit
@@ -33,7 +43,7 @@
  */
 
 import type { Floor } from "#game/floor.ts";
-import { requireElement, setClass } from "#shared/lib/dom.ts";
+import { query, setClass } from "#shared/lib/dom.ts";
 import { spriteIconMarkup } from "#shared/ui/icon.ts";
 import { markup, raw, renderElement } from "#shared/ui/markup.ts";
 
@@ -45,17 +55,27 @@ const CALL_UP_SELECTOR = "button.up";
 const CALL_DOWN_SELECTOR = "button.down";
 
 /**
- * One floor of the building: its number and its two call lamps.
+ * One floor of the building: its number and the call lamps it can light.
  *
  * The call buttons used to be clickable `<i>` elements, which put them out of
  * reach of the keyboard and made them invisible to screen readers. They are real
  * buttons now; the stylesheet resets them so the pixels are the mockup's.
  *
  * @param level - Floor number.
+ * @param floorCount - How many floors the building has, which is what decides
+ * whether this floor is the roof (no call up) or the lobby (no call down).
  * @returns The floor markup.
  */
-export function floorTemplate(level: number): string {
-  return markup`<div class="floor level"><span class="level-num" aria-hidden="true">${level}</span><span class="calls"><button type="button" class="call up" aria-pressed="false" aria-label="${floorCallUpLabel(level)}">${raw(spriteIconMarkup("up"))}</button><button type="button" class="call down" aria-pressed="false" aria-label="${floorCallDownLabel(level)}">${raw(spriteIconMarkup("down"))}</button></span></div>`;
+export function floorTemplate(level: number, floorCount: number): string {
+  const up =
+    level === floorCount - 1
+      ? ""
+      : markup`<button type="button" class="call up" aria-pressed="false" aria-label="${floorCallUpLabel(level)}">${raw(spriteIconMarkup("up"))}</button>`;
+  const down =
+    level === 0
+      ? ""
+      : markup`<button type="button" class="call down" aria-pressed="false" aria-label="${floorCallDownLabel(level)}">${raw(spriteIconMarkup("down"))}</button>`;
+  return markup`<div class="floor level"><span class="level-num" aria-hidden="true">${level}</span><span class="calls">${raw(up)}${raw(down)}</span></div>`;
 }
 
 /**
@@ -86,24 +106,34 @@ export interface FloorView {
 }
 
 /**
- * Builds a floor's view and wires its call buttons to the simulation.
+ * Builds a floor's view and wires the call buttons it has to the simulation.
+ *
+ * The two lookups are {@link query} and not `requireElement`: the roof has no
+ * "up" and the lobby no "down", so a missing lamp here is the drawn shape of
+ * an end floor rather than a template that went wrong.
  *
  * @param floor - The floor to present.
+ * @param floorCount - How many floors the building has; see
+ * {@link floorTemplate}.
  * @returns The mounted view.
  */
-export function createFloorView(floor: Floor): FloorView {
-  const element = renderElement(floorTemplate(floor.level));
-  const up = requireElement(CALL_UP_SELECTOR, element);
-  const down = requireElement(CALL_DOWN_SELECTOR, element);
+export function createFloorView(floor: Floor, floorCount: number): FloorView {
+  const element = renderElement(floorTemplate(floor.level, floorCount));
+  const up = query(CALL_UP_SELECTOR, element);
+  const down = query(CALL_DOWN_SELECTOR, element);
 
   floor.on("buttonstate_change", (buttonStates) => {
-    setActivated(up, buttonStates.up !== "");
-    setActivated(down, buttonStates.down !== "");
+    if (up !== null) {
+      setActivated(up, buttonStates.up !== "");
+    }
+    if (down !== null) {
+      setActivated(down, buttonStates.down !== "");
+    }
   });
-  up.addEventListener("click", () => {
+  up?.addEventListener("click", () => {
     floor.pressUpButton();
   });
-  down.addEventListener("click", () => {
+  down?.addEventListener("click", () => {
     floor.pressDownButton();
   });
 

@@ -44,6 +44,11 @@ test("boots the first challenge with an editor and a building", async ({ page })
   await expect(
     building(page).getByRole("button", { name: "Call an elevator going up from floor 0" }),
   ).toBeVisible();
+  // Which is the whole of the ground floor's call panel: nothing is called
+  // down from the bottom of the building, so there is no lamp there to press.
+  await expect(
+    building(page).getByRole("button", { name: "Call an elevator going down from floor 0" }),
+  ).toHaveCount(0);
 
   await expect(startButton(page)).toBeVisible();
   await expect(await statistic(page, "Transported")).toHaveText("0");
