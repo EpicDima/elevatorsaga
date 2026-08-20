@@ -15,12 +15,13 @@ moves, or 50 people with none of them taking longer than 21 seconds to deliver �
 rewriting your program until it clears them. The sandbox sets none: it is a building of your own
 size you can leave running.
 
-You play in the browser. Type your program in the editor next to the building, press **Start**,
-and watch. There is nothing to apply first: your code is saved to `localStorage` as you type, so
-closing the tab does not lose it, and every run reads whatever is in the editor at the moment it
-begins. The same button reads **Pause** while a run is going; **Start over** beside it begins the
-level again, which is what <kbd>Ctrl</kbd>+<kbd>Enter</kbd> does from inside the editor, and **Reset
-code** puts the starter program back with **Undo reset** offered next to it afterwards.
+You play in the browser, at [elevatorsaga.epicdima.com](https://elevatorsaga.epicdima.com). Type
+your program in the editor next to the building, press **Start**, and watch. There is nothing to
+apply first: your code is saved to `localStorage` as you type, so closing the tab does not lose it,
+and every run reads whatever is in the editor at the moment it begins. The same button reads
+**Pause** while a run is going; **Start over** beside it begins the level again, which is what
+<kbd>Ctrl</kbd>+<kbd>Enter</kbd> does from inside the editor, and **Reset code** puts the starter
+program back with **Undo reset** offered next to it afterwards.
 <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>S</kbd> still saves immediately rather than opening the
 browser's save dialog. The full API — every method, property and event on the elevator and floor
 objects, with examples — is in [documentation.html](documentation.html), which is served alongside
