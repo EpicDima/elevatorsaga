@@ -1391,6 +1391,93 @@ html[data-theme="dark"] .tasklink.is-done {
   color: var(--ds-text-muted);
 }
 
+/*
+ * The segmented switch: `design/ui-mockup.html`'s own `.seg`, `.seg-fill`
+ * and `.seg-text` (§3). A tray of buttons with exactly one of them pressed
+ * -- `features/switch-theme` draws the words version (`.seg.seg-text`, the
+ * three named themes), `features/switch-layout` the icons version
+ * (`.seg.seg-fill`, the four layout modes), and both hand this stylesheet
+ * the classes below without knowing anything else about the popover.
+ *
+ * Filed here rather than beside `.barspace` above, where §3 -- the mockup's
+ * own app-bar section -- declares it: the base rule is drawn bar-sized (a
+ * 30x26 button, no `flex`), but neither the mockup nor this app ever puts a
+ * segment in the bar row. Both of its users, there and here, are `.setblock`s
+ * inside this popover, which is exactly what `.seg-fill` and `.seg-text`
+ * exist to widen them for. It goes with the two blocks that draw it; lift it
+ * up to the bar's own rules the day something in that row grows one.
+ */
+.seg {
+  display: flex;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid var(--ds-line);
+  border-radius: var(--ds-r-md);
+  background: var(--ds-bg);
+}
+
+/*
+ * `--ds-text-muted`, not the mockup's own `--text-faint`: measured against
+ * `--ds-bg`, the tray's own fill, faint reads 3.87:1 dark and 2.78:1 light,
+ * and the theme switch's buttons are words, of which WCAG 1.4.3 asks 4.5:1.
+ * `--ds-text-muted` clears it at 7.17:1 and 5.22:1. The same substitution
+ * `.codeslot` (Editor, below) already makes against the same background, for
+ * the tray this one is the mockup's near-twin of.
+ */
+.seg button {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 26px;
+  border-radius: var(--ds-r-sm);
+  color: var(--ds-text-muted);
+}
+
+.seg button:hover {
+  background: var(--ds-raised);
+  color: var(--ds-text);
+}
+
+/*
+ * The one that is on. Colour is not its only cue (WCAG 1.4.1): the fill and
+ * the inset ring are the mockup's own two, and a ring survives a forced
+ * repaint that a foreground colour on its own would not.
+ *
+ * `--ds-accent-hi` where the mockup writes `--accent`. The pressed label
+ * sits on `--ds-accent-soft` over the tray's `--ds-bg`, where the base
+ * accent reads 6.65:1 dark but only 3.59:1 light -- the light palette's
+ * accent is tuned against the near-white page, and 14% of it laid over that
+ * page is very nearly the page again. `--ds-accent-hi` is the step already
+ * tuned for that end, the same swap `.emphasis-color` (Utilities, above)
+ * makes and for the same reason, and it clears 1.4.3 in both themes: 8.49:1
+ * dark, 4.79:1 light.
+ */
+.seg button[aria-pressed="true"] {
+  background: var(--ds-accent-soft);
+  color: var(--ds-accent-hi);
+  box-shadow: inset 0 0 0 1px var(--ds-accent-line);
+}
+
+/*
+ * Both spreads fill the popover's column -- the mockup's own note on
+ * `.seg-text`, «тот же сегмент словами и во всю ширину меню настроек». The
+ * icons version only stops being 30px wide; the words version needs the
+ * padding and the smaller face as well, because "Как в системе" is three
+ * words in the room one glyph had.
+ */
+.seg-fill button {
+  width: auto;
+  flex: 1;
+}
+
+.seg-text button {
+  width: auto;
+  flex: 1;
+  padding: 0 6px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
 .setblock .langpick {
   width: 100%;
 }
