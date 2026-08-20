@@ -875,16 +875,32 @@ git show legacy-1.x:libs/riot.js
 
 ### Deploying
 
-Every push to `main` publishes the site to GitHub Pages. The `deploy` job in
-`.github/workflows/ci.yml` rebuilds the bundle and uploads it with the official Pages actions, and it
-`needs` both `check` and `e2e`: a commit whose types, lint, formatting, unit tests or browser tests
-are red is never published. The same job re-publishes on demand — **Actions → CI → Run workflow**
-with `main` selected — which is the way back to a good build if a deployment itself fails.
+Every push to `main` publishes the site to <https://elevatorsaga.epicdima.com> through GitHub Pages.
+The `deploy` job in `.github/workflows/ci.yml` rebuilds the bundle and uploads it with the official
+Pages actions, and it `needs` both `check` and `e2e`: a commit whose types, lint, formatting, unit
+tests or browser tests are red is never published. The same job re-publishes on demand —
+**Actions → CI → Run workflow** with `main` selected — which is the way back to a good build if a
+deployment itself fails.
 
-One prerequisite is a repository setting rather than a file, so it has to be done by hand once: in
-**Settings → Pages → Build and deployment**, change **Source** from "Deploy from a branch" to
-**GitHub Actions**. While the source is a branch, the deploy step has nothing to publish to and
-fails the run.
+The domain is claimed by `public/CNAME`, a single line of text that Vite copies to the root of
+`dist/` and that GitHub reads as one hostname — so it holds the domain and nothing else, no comment
+and no scheme. `e2e/custom-domain.spec.ts` fetches it from the built site, because a static file
+nothing imports and no page links to is one a build can stop copying without anything else going
+red, and the cost of that is every link to the game. Serving from a domain rather than
+`epicdima.github.io/elevatorsaga/` changes nothing in the bundle: `vite.config.ts` sets
+`base: "./"`, so the pages reference their assets relatively and work at either depth.
+
+Two prerequisites are settings rather than files, so they have to be done by hand once:
+
+1. In **Settings → Pages → Build and deployment**, change **Source** from "Deploy from a branch" to
+   **GitHub Actions**. While the source is a branch, the deploy step has nothing to publish to and
+   fails the run.
+2. Point the domain at GitHub: a DNS `CNAME` record for `elevatorsaga` in the `epicdima.com` zone,
+   answering with `epicdima.github.io`. Then enter `elevatorsaga.epicdima.com` under
+   **Settings → Pages → Custom domain** and, once the certificate has been issued, tick **Enforce
+   HTTPS**. A workflow deployment reads the domain from that setting, not from the file it
+   publishes; the file is what keeps the claim in the repository, and what would carry it if the
+   site were ever published from a branch again.
 
 Deployments never overlap and are never cancelled part-way. Runs on `main` queue instead of
 superseding each other (`cancel-in-progress` is off for that branch only), and the `deploy` job
