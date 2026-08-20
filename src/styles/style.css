@@ -1508,6 +1508,70 @@ html[data-theme="dark"] .tasklink.is-done {
   width: 100%;
 }
 
+/*
+ * The row that opens the hotkeys window: `design/ui-mockup.html`'s own
+ * `.setrow` (§10). Filed here with the popover that draws it rather than
+ * with §10's window, which has a section of its own below -- the row belongs
+ * to the menu it sits in, and the mockup's own note says as much: the list
+ * of keys was a block in this menu until it took a third of the height, and
+ * what stayed behind is "одна строка, которой его открывают".
+ *
+ * The chevron is the only thing separating a row like this from a setting:
+ * it promises there is more behind it. `margin-left: auto` on the glyph is
+ * what puts it at the far edge, so the row reads icon, name, then a gap,
+ * then the chevron -- without it, all three sit together at the left and
+ * `widgets/app-bar`'s three children stack instead, which is what this
+ * missing rule looked like on screen.
+ */
+.setrow {
+  display: flex;
+  width: 100%;
+  gap: 8px;
+  align-items: center;
+  padding: 7px;
+  border: 1px solid var(--ds-line);
+  border-radius: var(--ds-r-md);
+  color: var(--ds-text-muted);
+  font-size: 13px;
+}
+
+.setrow:hover {
+  border-color: var(--ds-line-strong);
+  background: var(--ds-raised);
+  color: var(--ds-text);
+}
+
+/*
+ * The leading glyph takes the accent on hover and the chevron does not --
+ * the mockup's own note: a chevron is a direction, not the meaning of the
+ * row, and an accent one argues with the name beside it. `.chev` is the
+ * second class `spriteIconMarkup("right", "chev")` writes, picked off the
+ * same element the same way `.setlink .ds-icon` below picks the first.
+ */
+.setrow:hover .ds-icon:not(.chev) {
+  color: var(--ds-accent);
+}
+
+/*
+ * `--ds-text-muted` where the mockup writes `--text-faint`, and the one
+ * place in this popover where the reason is 1.4.11 rather than 1.4.3: a
+ * chevron is a graphical object, held to 3:1 rather than 4.5:1, and
+ * `--ds-text-faint` would have cleared that against `.setrow`'s resting
+ * `--ds-panel` (3.62:1 dark, 3.14:1 light) but not against the `--ds-raised`
+ * it is hovered onto, where the same pair reads 3.34:1 and 2.96:1. Light
+ * misses. `--ds-text-muted` holds at 6.70:1 and 5.90:1 resting, 6.19:1 and
+ * 5.56:1 hovered. What the mockup was actually saying with the pale value
+ * survives it: the chevron still refuses the accent above, and it is still a
+ * step quieter than the row's own text once that text brightens to
+ * `--ds-text`.
+ */
+.setrow .chev {
+  width: 14px;
+  height: 14px;
+  margin-left: auto;
+  color: var(--ds-text-muted);
+}
+
 .setlink {
   display: flex;
   gap: 8px;
