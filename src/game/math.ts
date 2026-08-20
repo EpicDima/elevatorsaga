@@ -154,7 +154,7 @@ export const DEFAULT_INTERPOLATOR: Interpolator = coolInterpolate;
  * @param max - Highest value that can be returned.
  * @param random - Stream to draw from. Every call site inside a
  * {@link "./world.ts"!World} is handed one, and which one depends on whether
- * the moment of the draw is fixed by the seed or moved by the frame clock:
+ * the moment of the draw is fixed by the seed or moved by the player's program:
  * spawning uses the world's own stream, while boarding slots, button
  * repressing and walk-off durations each use a separate stream derived from
  * the same seed. `src/game/world.ts` opens with the audit. The default is the

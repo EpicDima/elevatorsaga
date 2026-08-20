@@ -80,8 +80,8 @@ export class User extends Movable<UserEvents> {
    * over the stream it derives from its seed for exactly this, so that the
    * durations are replayable without being able to disturb anything else: the
    * draw is taken the moment the passenger is delivered, which is a moment the
-   * elevators — and so the frame clock — decide, and a draw like that inside
-   * the world's spawn stream shifts every later spawn (see
+   * elevators — and so the player's program — decide, and a draw like that
+   * inside the world's spawn stream shifts every later spawn (see
    * `WALK_OFF_STREAM` in src/game/world.ts). The unseeded default is only for
    * callers that build a passenger outside a world.
    */

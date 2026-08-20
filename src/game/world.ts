@@ -9,16 +9,21 @@
  * ## Every draw the simulation makes, and which stream each one comes from
  *
  * One seed drives four generators, and what decides where a draw belongs is a
- * single question: can the *moment* it is taken move? The clock the browser
- * hands {@link "./world-controller.ts"!WorldController} is a real
- * `requestAnimationFrame` delta, so no two runs of one seed ever see the same
- * sequence of step lengths, and anything that happens *because* a car reached a
- * floor or a passenger reached a destination therefore happens at a slightly
- * different point of every run. Such a draw cannot be stopped from moving. It
- * can be stopped from moving anything else, by being given a generator of its
- * own — which is what a seed's promise rests on, because a single shifting draw
- * inside the spawn stream offsets every later spawn, and from there on the Nth
- * passenger is a different person heading somewhere else.
+ * single question: can the *moment* it is taken move? The frame clock no longer
+ * moves it — {@link "./world-controller.ts"!WorldController} advances the world
+ * in fixed {@link "./world-controller.ts"!TICK_SECONDS} ticks, so one seed
+ * played one way takes the same steps at 60 Hz and at 120 Hz, which is what
+ * {@link "./determinism.test.ts"} measures. The *program* still moves it, and
+ * always will: a draw taken because a car reached a floor or a passenger
+ * reached a destination happens whenever that player's elevators make it
+ * happen, and two programs on one seed make it happen at different ticks. Such
+ * a draw cannot be stopped from moving. It can be stopped from moving anything
+ * else, by being given a generator of its own — which is what a seed's promise
+ * rests on, because a single shifting draw inside the spawn stream offsets
+ * every later spawn, and from there on the Nth passenger is a different person
+ * heading somewhere else. That is the difference between a seed two programs
+ * can be compared on and a seed that quietly deals each of them a different
+ * building's worth of people.
  *
  * The audit, complete as of this file, in the order the draws were found:
  *
@@ -47,24 +52,25 @@
  * `Math.random` is {@link "./random.ts"!generateRandomSeed}, which runs before a
  * world exists.
  *
- * What the separation buys is precisely one thing: the spawn sequence. It does
- * *not* make the other three reproduce per passenger, since their values are
- * still handed out in the order the events happen and the frame clock moves
- * that order. Two of them can be shrugged at — a boarding slot decides where a
- * passenger is drawn inside the car, a walk-off duration how long the sprite
- * takes to leave the screen, and swapping either between two passengers changes
- * no statistic. The third cannot: the repress offset ends in a real
- * `goToFloor` on a specific car, so it moves `moveCount` and the wait times,
- * which are what challenges 6 to 15 are won and lost on. It is on its own
- * stream because its moment shifts, not because it does not matter — and the
- * distinction is worth keeping straight, because "it is only cosmetic" is the
- * argument someone will one day use to add, drop or relocate that draw.
+ * What the separation buys is precisely one thing: the spawn sequence, held
+ * identical across every program the seed is played with. It does *not* make
+ * the other three reproduce per passenger between two programs, since their
+ * values are still handed out in the order the events happen and a different
+ * program orders those events differently. Two of them can be shrugged at — a
+ * boarding slot decides where a passenger is drawn inside the car, a walk-off
+ * duration how long the sprite takes to leave the screen, and swapping either
+ * between two passengers changes no statistic. The third cannot: the repress
+ * offset ends in a real `goToFloor` on a specific car, so it moves `moveCount`
+ * and the wait times, which are what challenges 6 to 15 are won and lost on. It
+ * is on its own stream because its moment shifts, not because it does not
+ * matter — and the distinction is worth keeping straight, because "it is only
+ * cosmetic" is the argument someone will one day use to add, drop or relocate
+ * that draw.
  *
- * So the honest statement of the promise is: one seed, one building, one
- * passenger sequence, whatever the frame clock does — but not one run. The
- * score a program earns on a seed still depends on the machine it ran on, as it
- * already did from the floating-point integration in
- * {@link "./elevator.ts"!Elevator.updateElevatorMovement} alone.
+ * So the statement of the promise is: one seed and one program give one run,
+ * down to the tick, whatever the frame clock does; one seed across two programs
+ * gives one building and one passenger sequence, which is what makes the two
+ * scores worth comparing at all.
  */
 
 import { Elevator } from "./elevator.ts";
@@ -592,9 +598,9 @@ export class World extends Observable<WorldEvents> {
    *
    * The one sequence a seed's promise is made of: who turns up, from where,
    * heading where, in what order. It is kept to spawning alone because spawning
-   * is the only drawing the frame clock cannot move — see the file header for
-   * the audit of the three draws that were moved out of here and why each had
-   * to be.
+   * is the only drawing the player's program cannot move — see the file header
+   * for the audit of the three draws that were moved out of here and why each
+   * had to be.
    */
   readonly #random: RandomSource;
   /**

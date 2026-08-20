@@ -1142,8 +1142,9 @@ export class App {
    * passengers in the same order from the Restart button, from Ctrl-Enter and
    * from a reload alike, while a URL without one draws a fresh seed on every one
    * of them. How far that carries into the run itself is the subject of
-   * `SEED_EXPLANATION` in `src/ui/templates.ts`: the passengers, yes; the run
-   * they arrive into, no.
+   * `game.seed.explanation` in the message catalogues: the passengers, and --
+   * since the world advances in fixed `TICK_SECONDS` ticks -- the run they
+   * arrive into as well, for as long as the program is played the same way.
    *
    * The tempting alternative — remembering the seed the last run generated and
    * reusing it on Restart, but not on reload — was rejected twice over. It would

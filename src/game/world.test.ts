@@ -1849,9 +1849,9 @@ describe("seeded runs", () => {
   it("keeps button repressing out of the stream the simulation runs on", () => {
     // The same argument as boarding slots, for the offset the re-offer sweep
     // starts at. A press happens when a passenger a car turned away tries
-    // again, which is a moment the elevators decide and the frame clock moves,
-    // so a draw taken here used to walk the spawn stream forward by an amount
-    // that depended on how the frames fell.
+    // again, which is a moment the elevators decide, so a draw taken here used
+    // to walk the spawn stream forward by an amount that depended on the
+    // program the player had written.
     const random = vi.fn(() => 0);
     const world = createWorld({ floorCount: 3, elevatorCount: 2, spawnRate: 0.001 }, random);
     for (const elevator of world.elevators) {
