@@ -61,12 +61,12 @@
  * The colour is the whole reason this rule exists, and it is the defect written
  * up at `.setmenu`: `<body>` paints everything `white`, which document rules
  * repair for `p` and for the headings only. The four `<summary>` elements are
- * neither, so left alone the panel's four controls would fall back to that
- * `white`, unreadable on light theme's near-white `--ds-bg` and needlessly
- * flat against dark theme's near-black one, while the prose beneath them (a
- * `p`) already reads `--ds-text`. Measured on the card's own `--ds-panel`
- * rather than assumed off the old background: 14.04:1 dark, 15.99:1 light,
- * both far past the 4.5:1 of WCAG 1.4.3.
+ * neither, so left alone those four would fall back to that `white`, unreadable
+ * on light theme's near-white `--ds-bg` and needlessly flat against dark
+ * theme's near-black one, while the prose beneath them (a `p`) already reads
+ * `--ds-text`. Measured on the card's own `--ds-panel` rather than assumed off
+ * the old background: 14.04:1 dark, 15.99:1 light, both far past the 4.5:1 of
+ * WCAG 1.4.3.
  */
 .tutorialpanel {
   color: var(--ds-text);

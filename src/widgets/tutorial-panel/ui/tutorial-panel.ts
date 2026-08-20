@@ -235,9 +235,11 @@ const DISCLOSURE_SELECTOR = ".tutorialhint, .tutorialexplanation";
 /**
  * Everything in the panel a player can be standing on when it is redrawn.
  *
- * The four summaries and the copy button, in document order, which is the order
- * `querySelectorAll` returns them in. Every one of them is destroyed by a
- * redraw, so every one of them needs somewhere to put the focus back.
+ * The four summaries and the copy button, which `querySelectorAll` returns in
+ * document order: the three hint summaries, then the button, which the last of
+ * those hints holds inside itself along with the answer, then the explanation's.
+ * Every one of them is destroyed by a redraw, so every one of them needs
+ * somewhere to put the focus back.
  *
  * Both halves are written against the panel rather than against the boxes the
  * controls happen to sit in today, so that a control added anywhere in the panel
@@ -572,8 +574,8 @@ export function tutorialTemplate(data: TutorialTemplateData): string {
  * Draws the learning track's panel and wires up its copy button.
  *
  * Safe to call over a panel that is already there, which is the only way it is
- * ever called after the first time: the track redraws it when the player clears
- * a level, and `App.relocalise` redraws it when the language changes. The old
+ * ever called after the first time: the page redraws it at the start of every
+ * run, and `App.relocalise` redraws it when the language changes. The old
  * panel is replaced wholesale rather than patched, so there is no state to keep
  * in step and no handler that can be bound twice.
  *
@@ -594,7 +596,7 @@ export function tutorialTemplate(data: TutorialTemplateData): string {
  *   that lands in the same position takes the focus back, the same way the level
  *   switcher puts the focus back on the tile it was standing on: the panel's
  *   controls are the same five in the same order for every level -- three hint
- *   summaries, the explanation's, and the button that copies the answer -- so
+ *   summaries, the button that copies the answer, and the explanation's -- so
  *   the position is the control.
  *
  * @param parent - The `.tutorial` element of the page shell.
@@ -642,11 +644,11 @@ export function presentTutorial(parent: HTMLElement, data: TutorialPanelData): v
     (control) => control === document.activeElement,
   );
   // Carried across a redraw of the same level, and dropped when the level
-  // changes. The redraws are the run starting again, the language changing, and
-  // the level being cleared, and none of them is news: a copy made moments ago
-  // should still say so afterwards. A different level is the one case where it
-  // has to go, because a different answer is on the button by then and nothing
-  // this line says is still true of it.
+  // changes. The redraws are the run starting again and the language changing,
+  // and neither of them is news: a copy made moments ago should still say so
+  // afterwards. A different level is the one case where it has to go, because a
+  // different answer is on the button by then and nothing this line says is
+  // still true of it.
   const copiedState = sameLevel
     ? copiedStateOf(query(COPIED_SELECTOR, parent)?.getAttribute(COPIED_STATE_ATTRIBUTE) ?? null)
     : undefined;

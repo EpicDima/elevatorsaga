@@ -529,9 +529,9 @@ export interface AppOptions {
  * the bar ask for — the identifier, the seed, the two programs, the condition —
  * is on it, and a second lookup by index is a second chance to look up the
  * wrong one. The index rides along because the track is the one part of the
- * game that is *numbered for the player*: "Lesson 3" is what the level bar
- * calls this, and it is a position in the table rather than anything stored,
- * which is why nothing but the interface is allowed to use it.
+ * game that is *numbered for the player*: "Lesson 3" is what the level
+ * switcher's trigger calls this, and it is a position in the table rather than
+ * anything stored, which is why nothing but the interface is allowed to use it.
  */
 export interface TutorialRun {
   /** The level being played. */
@@ -1514,9 +1514,9 @@ export class App {
   /**
    * The level of the learning track on screen, or `undefined` for anything else.
    *
-   * The panel's whole input: it decides from this whether to draw at all, which
-   * level's hints to show, and which number to print. Exposed read-only, because
-   * the way to change what is being played is {@link startTutorial} — a panel
+   * The panel's whole input: it decides from this whether to draw at all and
+   * which level's title, goal, hints and answer to show. Exposed read-only,
+   * because the way to change what is played is {@link startTutorial} — a panel
    * that could assign this would leave the field disagreeing with the world.
    */
   get tutorial(): TutorialRun | undefined {

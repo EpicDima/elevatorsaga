@@ -3,7 +3,7 @@
  *
  * What the panel decides is already covered without one:
  * `src/widgets/tutorial-panel/ui/tutorial-panel.test.ts` draws every level and
- * presses what it can be pressed, and `src/pages/game/index.test.ts` proves the
+ * presses everything it can press, and `src/pages/game/index.test.ts` proves the
  * wiring. What jsdom cannot answer is whether any of it is *visible*. It has no
  * layout, so it cannot tell an empty region that is hidden from one that leaves
  * a gap above the building, cannot say whether the answer under the third hint
@@ -64,8 +64,8 @@ const LEVEL_1_TITLE_RU = "Лифт, который никуда не едет";
  *
  * There is no one name the eight lessons share any more, so the default is
  * level 1's own title: naming the landmark after the track told a player who
- * jumped to it which of eight tracks they were on, which is a question nobody
- * has, and left the one they do have — which lesson is this — to be read off
+ * jumped to it that they were on the track, which they knew, and left the
+ * question they do have — which of the eight lessons is this — to be read off
  * the heading inside.
  *
  * @param page - The page under test.
@@ -275,8 +275,8 @@ test("starts the level again from the run controls without leaving the track", a
 
   // Exactly one button on the page says this. The panel used to carry a second
   // one, which restarted the level without starting it, and two buttons under one
-  // accessible name doing two things is WCAG 3.2.4 -- the panel sits directly
-  // above this row, so both were on screen at once.
+  // accessible name doing two things is WCAG 3.2.4 -- this row is in the app bar
+  // above the panel, and the page never scrolls, so both were on screen at once.
   await expect(page.getByRole("button", { name: "Start over", exact: true })).toHaveCount(1);
   await page.getByRole("button", { name: "Start over", exact: true }).click();
 

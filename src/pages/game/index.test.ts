@@ -1321,9 +1321,9 @@ describe("App learning track", () => {
 
   it("records a cleared level, and records it once however often it is cleared", () => {
     // Read back out of the store rather than off the app: nothing on the page
-    // asks `App` how far along the track a player is any more -- the level
-    // switcher reads the same key for itself when it draws its tiles -- so the
-    // store is where the record has to actually land.
+    // asks `App` how far along the track a player is any more -- what the level
+    // switcher marks its tiles from is handed to it out of this same key -- so
+    // the store is where the record has to actually land.
     const { app, storage } = setUp();
     expect(readClearedTutorialLevels(storage)).toEqual(new Set());
 

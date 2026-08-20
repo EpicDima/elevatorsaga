@@ -309,7 +309,7 @@ describe("presentTutorial", () => {
     });
 
     it("puts it back on the copy button a redraw destroyed", () => {
-      // Clearing the level redraws this panel, and that deletes whichever
+      // Starting the run again redraws this panel, and that deletes whichever
       // control was under the player's finger. Focus would fall back to the
       // document, dropping a keyboard player at the top of the page and leaving
       // them the whole of it to tab through again (WCAG 2.4.3).
@@ -325,9 +325,9 @@ describe("presentTutorial", () => {
     });
 
     it("restores by position, so a change of level lands in the same place", () => {
-      // Every level draws the same five controls in the same order -- four
-      // summaries and the copy button -- which is what makes the position the
-      // control.
+      // Every level draws the same five controls in the same order -- three hint
+      // summaries, the copy button the last of them holds, then the
+      // explanation's -- which is what makes the position the control.
       presentTutorial(parent, panelData({ levelIndex: 0 }));
       requireElement(".tutorialcopycode", parent).focus();
 
@@ -747,12 +747,12 @@ describe("tutorialTemplate", () => {
     // that used to end the lesson -- taking the program into the editor, and
     // leaving for the game's levels -- went with the head row and the footnote:
     // a lesson is about the level in front of the player, and the ways out of it
-    // are the level bar's business.
+    // are the app bar's level switcher's business.
     expect(buttons.map((button) => button.className)).toEqual(["tutorialcopycode"]);
     expect(buttons.map((button) => button.getAttribute("type"))).toEqual(["button"]);
     expect(buttons.map((button) => button.textContent)).toEqual(["Copy this program"]);
     // The panel had its own "Start over" until the run buttons were gathered
-    // into `controlsTemplate`, which is drawn directly under it. Two buttons on
+    // into `controlsTemplate`, which the app bar draws above it. Two buttons on
     // screen together under one accessible name, doing not quite the same thing,
     // is WCAG 3.2.4; the one that went is the one only the track had.
     expect(panel().textContent).not.toContain("Start over");
