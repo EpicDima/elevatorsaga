@@ -56,27 +56,27 @@ export const BACKUP_STORAGE_KEY = "develevateBackupCode";
  * this fork invents therefore lives under the fork's own prefix, as
  * {@link BACKUP_STORAGE_KEY} already does.
  *
- * The task's identifier is part of the key — one key per task, not one key
- * holding all eight — so that a player who left task 3 half-written finds their
+ * The level's identifier is part of the key — one key per level, not one key
+ * holding all eight — so that a player who left level 3 half-written finds their
  * own attempt when they come back, "start over" is an operation on exactly one
- * task, and an entry that somehow becomes unreadable cannot take the other
+ * level, and an entry that somehow becomes unreadable cannot take the other
  * seven down with it. Not exported: which keys exist, and how they are spelled,
  * is the editor's business alone.
  *
- * The identifier is the task's own `id` and goes in whole, which spells
+ * The identifier is the level's own `id` and goes in whole, which spells
  * `develevateTutorialCode_tutorial-3` and repeats the word. The repetition is
  * the cheaper half of the trade: the id is opaque here, and trimming a prefix
- * off it would be this file assuming a shape that `TutorialTask.id` explicitly
+ * off it would be this file assuming a shape that `TutorialLevel.id` explicitly
  * does not promise to keep.
  */
 const TUTORIAL_CODE_KEY_PREFIX = "develevateTutorialCode_";
 
 /**
- * Prefix of the per-task "Undo reset" backups.
+ * Prefix of the per-level "Undo reset" backups.
  *
- * Per task rather than one shared slot, for the reason the whole buffer split
- * exists: with one slot, resetting task 3 and undoing in task 4 would paste
- * task 3's program over task 4's.
+ * Per level rather than one shared slot, for the reason the whole buffer split
+ * exists: with one slot, resetting level 3 and undoing in level 4 would paste
+ * level 3's program over level 4's.
  */
 const TUTORIAL_BACKUP_KEY_PREFIX = "develevateTutorialBackupCode_";
 
@@ -84,7 +84,7 @@ const TUTORIAL_BACKUP_KEY_PREFIX = "develevateTutorialBackupCode_";
  * Prefix of the storage keys holding a level's three code slots.
  *
  * One key per `(levelIndex, slot)` pair, for the same reason the learning
- * track has one key per task: a player who left level 7 with a program in
+ * track has one key per level: a player who left level 7 with a program in
  * it must find that program again on level 7, and only there, however
  * many levels they visit in between.
  *
@@ -236,7 +236,7 @@ export interface CodeEditorOptions {
  * Three answers rather than two, and a shape the compiler makes callers open
  * before they can read the text. "There is nothing here" and "I will not tell
  * you" used to arrive as the same `null`, and the difference decides whether it
- * is safe to write: a store with nothing in it wants the task's starting point
+ * is safe to write: a store with nothing in it wants the level's starting point
  * written into it, and a store that would not answer may be holding an
  * afternoon's work that the same write would destroy.
  *
@@ -318,7 +318,7 @@ interface EditorBuffer {
    * False for the player's own key and true for the track's, deliberately: the
    * player's program is written by the player and by the explicit Save and
    * Reset buttons, and by nothing else. A brand-new player who opens a tutorial
-   * task and never types must not come back to find the game has claimed their
+   * level and never types must not come back to find the game has claimed their
    * key on their behalf — an empty key already means "the default program", so
    * writing it there would say nothing new and would only make an untouched
    * install look like a played one.
@@ -347,38 +347,38 @@ const PLAYER_BUFFER: EditorBuffer = {
 };
 
 /**
- * Describes the buffer of one learning-track task.
+ * Describes the buffer of one learning-track level.
  *
- * Keyed by the task's stable identifier rather than by its position in the
- * track, because the position is the one thing about a task that is expected to
- * change. `TutorialTask.id` in `src/game/tutorial.ts` says so itself, and the
- * program a player left half-written is precisely "a task surviving being
- * written down": key it by position and the day a ninth task is inserted at
- * number two, everybody's attempt at task 2 is handed to whoever opens the new
+ * Keyed by the level's stable identifier rather than by its position in the
+ * track, because the position is the one thing about a level that is expected to
+ * change. `TutorialLevel.id` in `src/game/tutorial.ts` says so itself, and the
+ * program a player left half-written is precisely "a level surviving being
+ * written down": key it by position and the day a ninth level is inserted at
+ * number two, everybody's attempt at level 2 is handed to whoever opens the new
  * one, and the attempts at 3 through 8 all shift by one. Nothing warns anyone —
- * the text is still there, it is simply filed under somebody else's task.
+ * the text is still there, it is simply filed under somebody else's level.
  *
  * The identifier is taken as an opaque string. This file cannot check it
- * against the task table without importing the track it is meant to know
- * nothing about; what it can do is refuse the one value that is nobody's task
+ * against the level table without importing the track it is meant to know
+ * nothing about; what it can do is refuse the one value that is nobody's level
  * and would still spell a real key, and let the caller's own lookup — which
  * must already have found the starter program below — answer the rest.
  *
- * @param taskId - The task's stable identifier, such as `tutorial-3`.
- * @param starterCode - The program the task hands the player to complete.
- * @returns The buffer for that task.
- * @throws RangeError When `taskId` has no visible characters. Identifiers reach
+ * @param levelId - The level's stable identifier, such as `tutorial-3`.
+ * @param starterCode - The program the level hands the player to complete.
+ * @returns The buffer for that level.
+ * @throws RangeError When `levelId` has no visible characters. Identifiers reach
  * the game from a URL the player can type by hand, and an empty one spells the
  * bare prefix — one shared key that every malformed route would pour its text
  * into.
  */
-function tutorialBuffer(taskId: string, starterCode: string): EditorBuffer {
-  if (taskId.trim() === "") {
-    throw new RangeError(`Tutorial task id must not be blank, got ${JSON.stringify(taskId)}`);
+function tutorialBuffer(levelId: string, starterCode: string): EditorBuffer {
+  if (levelId.trim() === "") {
+    throw new RangeError(`Tutorial level id must not be blank, got ${JSON.stringify(levelId)}`);
   }
   return {
-    codeKey: `${TUTORIAL_CODE_KEY_PREFIX}${taskId}`,
-    backupKey: `${TUTORIAL_BACKUP_KEY_PREFIX}${taskId}`,
+    codeKey: `${TUTORIAL_CODE_KEY_PREFIX}${levelId}`,
+    backupKey: `${TUTORIAL_BACKUP_KEY_PREFIX}${levelId}`,
     starterCode,
     writesStarterOnOpen: true,
   };
@@ -434,7 +434,7 @@ export class CodeEditor extends Observable<CodeEditorEvents> {
    * The editor writes on the way out of a buffer, and it must write *only* on
    * the way out of a buffer somebody edited. A second tab left open on the same
    * game holds an older program on screen and does not know it: the moment its
-   * player clicks into a task, an unconditional write would put that stale
+   * player clicks into a level, an unconditional write would put that stale
    * program into storage over the afternoon's work the first tab saved there.
    * Before there were buffers there was nothing to leave, so an idle tab wrote
    * nothing until somebody typed in it, and that is the property being kept.
@@ -540,7 +540,7 @@ export class CodeEditor extends Observable<CodeEditorEvents> {
    * off the buffer on screen is the next one, so it writes that buffer's own
    * text back over itself and announces "Code saved ..." for a save nobody
    * asked for — and it is only the writing-back-over-itself that keeps it from
-   * being one task's work under another task's key, which is a property of the
+   * being one level's work under another level's key, which is a property of the
    * switch having stored the new text a moment earlier, not of the countdown
    * being harmless.
    */
@@ -672,8 +672,8 @@ export class CodeEditor extends Observable<CodeEditorEvents> {
   /**
    * Keeps `code` as the player's own program without putting it on screen.
    *
-   * For the learning track's "take this program" button, which copies a task's
-   * program across while leaving the player on the task. Storing it through the
+   * For the learning track's "take this program" button, which copies a level's
+   * program across while leaving the player on the level. Storing it through the
    * editor rather than in the caller is not tidiness: this class reads the copy
    * it keeps of every key it has written this page *before* it reads the store
    * (see {@link CodeEditor.#read}), so a write that goes round it leaves the two
@@ -700,7 +700,7 @@ export class CodeEditor extends Observable<CodeEditorEvents> {
    * The counterpart of {@link CodeEditor.writePlayerCode}, and there for the
    * same reason: a caller that reads the key out of the store answers a
    * different question from the one it means to ask. What the player would
-   * see, and what taking a task's program would replace, is what this class
+   * see, and what taking a level's program would replace, is what this class
    * holds — the store agrees with it only while the store is accepting writes.
    * In a private window, or against a full quota, the program the player typed
    * is in this session and nowhere else, and the store's answer is that they
@@ -720,25 +720,25 @@ export class CodeEditor extends Observable<CodeEditorEvents> {
   }
 
   /**
-   * Shows one learning-track task's program, keeping whatever was on screen.
+   * Shows one learning-track level's program, keeping whatever was on screen.
    *
-   * The task's own attempt if there is one, otherwise `starterCode`. Callers
-   * name a task, never a storage key: a method taking a key can be handed the
-   * player's key together with a task's starter program, and the player's
+   * The level's own attempt if there is one, otherwise `starterCode`. Callers
+   * name a level, never a storage key: a method taking a key can be handed the
+   * player's key together with a level's starter program, and the player's
    * program is gone. There is no such call to make here.
    *
-   * @param taskId - The task's stable identifier, as `TutorialTask.id` spells
+   * @param levelId - The level's stable identifier, as `TutorialLevel.id` spells
    * it; the same string the route names, so nothing has to be derived.
-   * @param starterCode - The program the task starts from, used only when the
-   * task has nothing stored yet. Also what {@link CodeEditor.reset} restores
-   * while the task is open, so passing the text in the player's current
-   * language keeps "start over" in that language. `TutorialTask.startingCode`
+   * @param starterCode - The program the level starts from, used only when the
+   * level has nothing stored yet. Also what {@link CodeEditor.reset} restores
+   * while the level is open, so passing the text in the player's current
+   * language keeps "start over" in that language. `TutorialLevel.startingCode`
    * renders it at the moment it is read, so a caller that reads it into this
    * call is handing over the language chosen by then; the string is kept as it
-   * arrived, and a task opened again hands over a fresh one.
+   * arrived, and a level opened again hands over a fresh one.
    */
-  openTutorialBuffer(taskId: string, starterCode: string): void {
-    this.#openBuffer(tutorialBuffer(taskId, starterCode));
+  openTutorialBuffer(levelId: string, starterCode: string): void {
+    this.#openBuffer(tutorialBuffer(levelId, starterCode));
   }
 
   /**
@@ -813,11 +813,11 @@ export class CodeEditor extends Observable<CodeEditorEvents> {
       // Already on screen. Reloading it would be worse than useless: the
       // document would be replaced, moving the caret and emptying the undo
       // history, for text that is already there. Routers and interfaces repeat
-      // themselves — a re-render, a restart of the task already open, a second
+      // themselves — a re-render, a restart of the level already open, a second
       // click on the link for it — and none of that may disturb typing. The
       // description is still taken, because a starter program is a translated
       // string: `editor.defaultCode.code` for the player's own buffer and
-      // `tutorial.taskN.startingCode.code` for a task's. A repeat after a
+      // `tutorial.levelN.startingCode.code` for a level's. A repeat after a
       // language change therefore arrives carrying the newer text, and "Reset"
       // owes the player the version they can read.
       this.#buffer = next;
@@ -833,14 +833,14 @@ export class CodeEditor extends Observable<CodeEditorEvents> {
       this.#swapDocument(stored.text);
     } else {
       // Nothing to show but the starting point. Whether it may also be *written*
-      // depends on which kind of nothing this is: an empty entry is a task
+      // depends on which kind of nothing this is: an empty entry is a level
       // nobody has started, while a store that would not answer may be holding
       // an attempt this write would destroy — and destroy invisibly, since the
       // player is looking at a skeleton and has no way to know their work was
       // ever there. Showing the skeleton is unavoidable; storing it is not.
       if (stored.state === "empty" && next.writesStarterOnOpen) {
         // Stored right away rather than left to the first autosave, so that the
-        // task the player is looking at is the task they come back to even if
+        // level the player is looking at is the level they come back to even if
         // they close the tab without typing a character.
         this.#write(next.codeKey, next.starterCode);
       }
@@ -963,7 +963,7 @@ export class CodeEditor extends Observable<CodeEditorEvents> {
    * legacy game: there, "Undo reset" with nothing to undo emptied the editor
    * and the autosave a second later made that permanent. The button is offered
    * unconditionally and now every buffer has a backup slot of its own, so
-   * "nothing to bring back" became the ordinary case — pressing it in a task
+   * "nothing to bring back" became the ordinary case — pressing it in a level
    * never reset must not be the fastest way to lose an afternoon's work.
    */
   undoReset(): void {
@@ -982,7 +982,7 @@ export class CodeEditor extends Observable<CodeEditorEvents> {
    * it can do something — see
    * {@link "../pages/game/index.ts"!ControlsPresenterOptions.canUndoReset}. Asked
    * afresh every time rather than announced as an event, because it changes
-   * with the buffer as well as with a reset: switching to another task swaps
+   * with the buffer as well as with a reset: switching to another level swaps
    * the backup slot underneath it.
    *
    * The question is not whether the backup differs from the program on screen,

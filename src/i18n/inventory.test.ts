@@ -16,14 +16,14 @@
  * of what is machine-checkable about a document made mostly of prose:
  *
  * 1. every backticked token shaped like a message key is a real key;
- * 2. every key in `EN_MESSAGES` is named, bar the learning track's per-task
+ * 2. every key in `EN_MESSAGES` is named, bar the learning track's per-level
  *    keys — its prose and its two programs alike — which the document covers by
  *    their shape;
  * 3. the counts it prints are the counts the catalogue has;
  * 4. every backticked `src/…` path exists on disk;
  * 5. no `file.ts:123` pin below the section that bans them;
- * 6. the learning track's table quotes each task title as the catalogue words
- *    it, and has a row for every task.
+ * 6. the learning track's table quotes each level title as the catalogue words
+ *    it, and has a row for every level.
  *
  * What this deliberately does **not** check, because an over-claimed guard is
  * worse than a small one, and because a reader who thinks the tables are
@@ -61,7 +61,7 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
 import inventorySource from "../../docs/i18n-inventory.md?raw";
-import { tutorialTasks } from "../game/tutorial.ts";
+import { tutorialLevels } from "../game/tutorial.ts";
 import { EN_MESSAGES } from "./en.ts";
 
 /** The repository root, from this file's own location. */
@@ -130,29 +130,29 @@ function isGroupWildcard(span: string): boolean {
 }
 
 /**
- * A span standing for the learning track's per-task keys: `tutorial.taskN.goal`.
+ * A span standing for the learning track's per-level keys: `tutorial.levelN.goal`.
  *
- * The `N` is the task number and the `*` a whole task's eight keys; neither is a
+ * The `N` is the level number and the `*` a whole level's eight keys; neither is a
  * key, and the document says so where it uses them.
  *
  * @param span - A key-shaped span.
  * @returns Whether it is one of those shapes.
  */
-function isTaskShape(span: string): boolean {
-  return /^tutorial\.task(?:N|\*)(?:\.|$)/.test(span);
+function isLevelShape(span: string): boolean {
+  return /^tutorial\.level(?:N|\*)(?:\.|$)/.test(span);
 }
 
 /**
- * The eight suffixes the document says every task owns, spelled as it spells
- * them: `tutorial.taskN.hint1.html` in full, `.hint2.html` abbreviated.
+ * The eight suffixes the document says every level owns, spelled as it spells
+ * them: `tutorial.levelN.hint1.html` in full, `.hint2.html` abbreviated.
  *
- * The last two are the task's two programs, which are messages because their
+ * The last two are the level's two programs, which are messages because their
  * comments are addressed to the player. They are exempted from the naming check
  * for the same reason the other six are — the document covers the track by
  * shape rather than by sixty-four rows — and so they have to be spelled out
  * here, or the exemption would cover keys the document never mentions.
  */
-const TASK_SUFFIXES = [
+const LEVEL_SUFFIXES = [
   "title",
   "goal",
   "hint1.html",
@@ -166,14 +166,14 @@ const TASK_SUFFIXES = [
 /**
  * The keys the document covers by shape instead of by row.
  *
- * Built from `tutorialTasks`, so the exemption is exactly as wide as the track
- * really is. A ninth task's eight keys would be exempted from the naming check
+ * Built from `tutorialLevels`, so the exemption is exactly as wide as the track
+ * really is. A ninth level's eight keys would be exempted from the naming check
  * here — and caught two tests down instead, where the `tutorial.*` count the
  * document prints stops matching the catalogue.
  */
-const TASK_KEYS: ReadonlySet<string> = new Set(
-  tutorialTasks.flatMap((_, index) =>
-    TASK_SUFFIXES.map((suffix) => `tutorial.task${String(index + 1)}.${suffix}`),
+const LEVEL_KEYS: ReadonlySet<string> = new Set(
+  tutorialLevels.flatMap((_, index) =>
+    LEVEL_SUFFIXES.map((suffix) => `tutorial.level${String(index + 1)}.${suffix}`),
   ),
 );
 
@@ -221,17 +221,17 @@ const LINE_PIN = /[\w.-]+\.(?:ts|tsx|js|css|html|json|md|txt):\d+/g;
 const PIN_NOTATION = "file.ts:123";
 
 /**
- * The learning track's table of titles, as task number against quoted title.
+ * The learning track's table of titles, as level number against quoted title.
  *
  * This is the one column of prose in the document that can be compared by
  * equality, and it is worth saying why, since the header above rules the
  * English column out for the opposite reason. That column is abridged on
  * purpose — whitespace collapsed, values cut and marked `…` — so no comparison
  * with the catalogue is available. These titles are not abridged: each is a
- * whole `tutorial.taskN.title` copied across, so either it matches or it has
+ * whole `tutorial.levelN.title` copied across, so either it matches or it has
  * rotted.
  *
- * One had. The row for task 6 read "The elevator that lies to passengers" where
+ * One had. The row for level 6 read "The elevator that lies to passengers" where
  * the catalogue says "lies to its passengers", and it had sat there since the
  * table was written, through a guard specified as five checks and every one of
  * them passing. Nothing here read the column, so nothing could have noticed.
@@ -239,9 +239,9 @@ const PIN_NOTATION = "file.ts:123";
 const QUOTED_TITLES: ReadonlyMap<string, string> = new Map(
   [
     ...inventorySource
-      .slice(inventorySource.indexOf("| Task | `tutorial.taskN.title`"))
+      .slice(inventorySource.indexOf("| Level | `tutorial.levelN.title`"))
       .matchAll(/^\| (\d+) +\| (.+?) +\| /gm),
-  ].map(([, number = "", title = ""]) => [`tutorial.task${number}.title`, title]),
+  ].map(([, number = "", title = ""]) => [`tutorial.level${number}.title`, title]),
 );
 
 /** Where _How this file is anchored_ begins, and where the section after it does. */
@@ -293,26 +293,26 @@ const PRINTED_COUNTS: readonly PrintedCount[] = [
     expected: KEYS.length,
   },
   {
-    what: "the learning track's per-task keys, where the panel is described",
+    what: "the learning track's per-level keys, where the panel is described",
     pattern: /— (\d+) in all/g,
-    expected: TASK_KEYS.size,
+    expected: LEVEL_KEYS.size,
   },
   {
-    what: "the learning track's per-task keys, in _Where the strings are_",
-    pattern: /reads the (\d+)\s+`tutorial\.task\*` messages/g,
-    expected: TASK_KEYS.size,
+    what: "the learning track's per-level keys, in _Where the strings are_",
+    pattern: /reads the (\d+)\s+`tutorial\.level\*` messages/g,
+    expected: LEVEL_KEYS.size,
   },
   {
-    what: "the learning track's per-task keys, in check 2",
-    pattern: /except the (\d+) `tutorial\.taskN\.\*`/g,
-    expected: TASK_KEYS.size,
+    what: "the learning track's per-level keys, in check 2",
+    pattern: /except the (\d+) `tutorial\.levelN\.\*`/g,
+    expected: LEVEL_KEYS.size,
   },
 ];
 
 describe("the message keys the inventory names", () => {
   it("names no key the catalogue does not have", () => {
     const unknown = KEY_SHAPED_SPANS.filter(
-      (span) => !isGroupWildcard(span) && !isTaskShape(span) && !KEY_SET.has(span),
+      (span) => !isGroupWildcard(span) && !isLevelShape(span) && !KEY_SET.has(span),
     );
     expect(unknown, "backticked in docs/i18n-inventory.md, absent from EN_MESSAGES").toEqual([]);
   });
@@ -321,25 +321,25 @@ describe("the message keys the inventory names", () => {
     const empty = KEY_SHAPED_SPANS.filter(
       (span) =>
         isGroupWildcard(span) &&
-        !isTaskShape(span) &&
+        !isLevelShape(span) &&
         !KEYS.some((key) => key.startsWith(span.slice(0, -1))),
     );
     expect(empty, "wildcards in docs/i18n-inventory.md matching no key at all").toEqual([]);
   });
 
   it("names every key in the catalogue, or covers it by shape", () => {
-    const unlisted = KEYS.filter((key) => !SPAN_SET.has(key) && !TASK_KEYS.has(key));
+    const unlisted = KEYS.filter((key) => !SPAN_SET.has(key) && !LEVEL_KEYS.has(key));
     expect(unlisted, "in EN_MESSAGES, with no row in docs/i18n-inventory.md").toEqual([]);
   });
 
   it("covers the learning track by a shape that expands to real keys", () => {
-    const notReal = [...TASK_KEYS].filter((key) => !KEY_SET.has(key));
+    const notReal = [...LEVEL_KEYS].filter((key) => !KEY_SET.has(key));
     expect(notReal, "the shape docs/i18n-inventory.md covers the track with").toEqual([]);
   });
 
-  it("spells out every per-task suffix the shape stands for", () => {
-    const unnamed = TASK_SUFFIXES.filter(
-      (suffix) => !SPAN_SET.has(`tutorial.taskN.${suffix}`) && !SPAN_SET.has(`.${suffix}`),
+  it("spells out every per-level suffix the shape stands for", () => {
+    const unnamed = LEVEL_SUFFIXES.filter(
+      (suffix) => !SPAN_SET.has(`tutorial.levelN.${suffix}`) && !SPAN_SET.has(`.${suffix}`),
     );
     expect(unnamed, "exempted from the naming check, but not named in the document").toEqual([]);
   });
@@ -410,13 +410,13 @@ describe("the tutorial titles the inventory quotes", () => {
     expect(wrong, "quoted in docs/i18n-inventory.md, worded otherwise in en.ts").toEqual([]);
   });
 
-  it("gives every task in the catalogue a row", () => {
+  it("gives every level in the catalogue a row", () => {
     // The other direction, and the one that matters when the track grows: a
-    // ninth task's title would otherwise be absent from the table rather than
+    // ninth level's title would otherwise be absent from the table rather than
     // wrong in it, and a check that only walks the rows cannot see a row that
     // was never written.
     const missing = KEYS.filter(
-      (key) => /^tutorial\.task\d+\.title$/.test(key) && !QUOTED_TITLES.has(key),
+      (key) => /^tutorial\.level\d+\.title$/.test(key) && !QUOTED_TITLES.has(key),
     );
     expect(missing, "in EN_MESSAGES, with no row in the learning track's table").toEqual([]);
   });

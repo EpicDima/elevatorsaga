@@ -334,7 +334,7 @@ export const SPRITE_ICONS = {
     ],
   },
   // The mockup's `#i-graduate` (§11): a mortar board over its tassel band,
-  // drawn at the head of the lesson aside beside "Task N of 8". Two open
+  // drawn at the head of the lesson aside beside "Level N of 8". Two open
   // paths at the family's default stroke, copied verbatim.
   graduate: {
     viewBox: "0 0 16 16",

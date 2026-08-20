@@ -238,7 +238,7 @@ describe("User.elevatorAvailable", () => {
     expect(entered).not.toHaveBeenCalled();
   });
 
-  it("ignores the offer while busy with another task", () => {
+  it("ignores the offer while busy with another level", () => {
     user.wait(1.0);
     const entered = vi.fn();
     user.on("entered_elevator", entered);

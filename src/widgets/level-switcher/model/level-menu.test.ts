@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { buildLevelMenu, type LevelLinkTarget, type LevelMenuInput } from "./level-menu.ts";
 import { requireUserCountWithinTime, type Level } from "#game/levels.ts";
-import { tutorialTasks } from "#game/tutorial.ts";
+import { tutorialLevels } from "#game/tutorial.ts";
 
 function fixtureLevels(count: number): readonly Level[] {
   return Array.from({ length: count }, () => ({
@@ -18,7 +18,7 @@ function stubHref(target: LevelLinkTarget): string {
       return `#level=${String(target.number)}`;
     }
     case "tutorial": {
-      return `#level=${target.taskId}`;
+      return `#level=${target.levelId}`;
     }
     case "sandbox": {
       return "#level=sandbox";
@@ -29,9 +29,9 @@ function stubHref(target: LevelLinkTarget): string {
 function baseInput(overrides: Partial<LevelMenuInput> = {}): LevelMenuInput {
   return {
     levels: fixtureLevels(4),
-    tutorialTasks,
+    tutorialLevels,
     bestTiers: new Map(),
-    clearedTutorialTasks: new Set(),
+    clearedTutorialLevels: new Set(),
     selection: { kind: "sandbox" },
     buildHref: stubHref,
     ...overrides,
@@ -48,23 +48,25 @@ describe("buildLevelMenu", () => {
     expect(blocks.map((block) => block.id)).toEqual(["tutorial", "levels", "other"]);
   });
 
-  it("numbers tutorial tiles from one and links each to its task id", () => {
+  it("numbers tutorial tiles from one and links each to its level id", () => {
     const [tutorialBlock] = buildLevelMenu(baseInput());
-    const [firstTask] = tutorialTasks;
+    const [firstLevel] = tutorialLevels;
 
-    expect(tutorialBlock?.tiles).toHaveLength(tutorialTasks.length);
+    expect(tutorialBlock?.tiles).toHaveLength(tutorialLevels.length);
     expect(tutorialBlock?.tiles[0]).toMatchObject({
       kind: "tutorial",
       index: 0,
       number: 1,
-      href: `#level=${firstTask?.id ?? ""}`,
+      href: `#level=${firstLevel?.id ?? ""}`,
     });
   });
 
-  it("marks a tutorial tile cleared once its task id is in the cleared set", () => {
-    const [firstTask] = tutorialTasks;
+  it("marks a tutorial tile cleared once its level id is in the cleared set", () => {
+    const [firstLevel] = tutorialLevels;
     const [tutorialBlock] = buildLevelMenu(
-      baseInput({ clearedTutorialTasks: new Set(firstTask === undefined ? [] : [firstTask.id]) }),
+      baseInput({
+        clearedTutorialLevels: new Set(firstLevel === undefined ? [] : [firstLevel.id]),
+      }),
     );
 
     expect(tutorialBlock?.tiles[0]).toMatchObject({ cleared: true });

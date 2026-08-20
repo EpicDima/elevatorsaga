@@ -2,7 +2,7 @@
  * The learning track's panel, in a browser.
  *
  * What the panel decides is already covered without one:
- * `src/widgets/tutorial-panel/ui/tutorial-panel.test.ts` draws every task and presses every button, and
+ * `src/widgets/tutorial-panel/ui/tutorial-panel.test.ts` draws every level and presses every button, and
  * `src/app/app.test.ts` proves the wiring. What jsdom cannot answer is whether
  * any of it is *visible*. It has no layout, so it cannot tell an empty region
  * that is hidden from one that leaves a gap above the building, cannot say
@@ -19,30 +19,30 @@ import type { Locator, Page } from "@playwright/test";
 import { editor, languagePicker, startButton, storedCode, unlockLevel } from "./game-page.ts";
 
 /**
- * Where task 1 lives.
+ * Where level 1 lives.
  *
  * The level switcher's first tutorial tile links here, and the test below
  * follows that tile rather than this constant. Everything else goes straight to
- * the address, because a task no tile points at can only be reached that way —
+ * the address, because a level no tile points at can only be reached that way —
  * and because this is the address `router.ts` sends `#level=tutorial-9` and
  * every other wrong one on the track to.
  */
-const FIRST_TASK = "/#level=tutorial-1";
+const FIRST_LEVEL = "/#level=tutorial-1";
 
-/** A line only task 1's *starting* program has, so a copy of it is identifiable. */
-const TASK_1_MARKER = "this building has two floors";
+/** A line only level 1's *starting* program has, so a copy of it is identifiable. */
+const LEVEL_1_MARKER = "this building has two floors";
 
 /**
  * The same line of the same program, as a Russian reader is handed it.
  *
  * The programs on the track are catalogue messages like everything else a
- * player reads — `tutorial.task1.startingCode.code` — and the code inside them
+ * player reads — `tutorial.level1.startingCode.code` — and the code inside them
  * is identical in every language, so what changes between this marker and the
  * one above is the comment and nothing else. Two markers rather than one
  * because the interesting failure is not an empty editor: it is an editor
  * holding the English program on a page that is otherwise entirely Russian.
  */
-const TASK_1_MARKER_RU = "в этом доме два этажа";
+const LEVEL_1_MARKER_RU = "в этом доме два этажа";
 
 /**
  * The panel's landmark, by the name a screen reader announces it as.
@@ -93,7 +93,7 @@ async function boxOf(
 }
 
 /**
- * Opens the level switcher's menu, where the track's tasks are listed.
+ * Opens the level switcher's menu, where the track's levels are listed.
  *
  * Forced open rather than clicked, for the reason `openSettingsMenu` in
  * `game-page.ts` gives: a click toggles, and this is called on both sides of a
@@ -117,7 +117,7 @@ test("opens the track from the level switcher, in the language on screen", async
   // `#level=tutorial-1` into the address bar. That the tiles are built is
   // `level-switcher.test.ts`'s to prove and where they point is the level
   // menu model's; what neither can answer is whether a player can open the
-  // menu and see them, and whether pressing one starts a task -- the layout,
+  // menu and see them, and whether pressing one starts a level -- the layout,
   // the hash and the router are all outside jsdom, and a tile behind a menu
   // that will not open leaves the track exactly as undiscoverable as no tile
   // at all.
@@ -144,8 +144,8 @@ test("opens the track from the level switcher, in the language on screen", async
   await expect(panel(page, "Учебная дорожка")).toBeVisible();
 });
 
-test("shows the panel on a task and nothing at all off it", async ({ page }) => {
-  await page.goto(FIRST_TASK);
+test("shows the panel on a level and nothing at all off it", async ({ page }) => {
+  await page.goto(FIRST_LEVEL);
 
   await expect(panel(page)).toBeVisible();
   await expect(page.getByRole("heading", { name: "The elevator that goes nowhere" })).toBeVisible();
@@ -164,10 +164,10 @@ test("shows the panel on a task and nothing at all off it", async ({ page }) => 
 });
 
 test("keeps the answer shut until a player asks for it", async ({ page }) => {
-  await page.goto(FIRST_TASK);
+  await page.goto(FIRST_LEVEL);
 
-  // Three hints and an explanation, every one of them closed: a task whose
-  // answer is on screen before its goal has been read is not a task.
+  // Three hints and an explanation, every one of them closed: a level whose
+  // answer is on screen before its goal has been read is not a level.
   await expect(panel(page).locator("details")).toHaveCount(4);
   await expect(panel(page).locator("details[open]")).toHaveCount(0);
   await expect(panel(page).locator(".tutorialsolution code")).toBeHidden();
@@ -192,7 +192,7 @@ test("highlights the answer, marks the line it adds, and copies it to the clipbo
   // and whether the clipboard the button claims to have written to is the one
   // a player would paste from.
   await context.grantPermissions(["clipboard-read", "clipboard-write"]);
-  await page.goto(FIRST_TASK);
+  await page.goto(FIRST_LEVEL);
 
   await panel(page).getByText("Hint 3", { exact: true }).click();
 
@@ -200,7 +200,7 @@ test("highlights the answer, marks the line it adds, and copies it to the clipbo
   await expect(code).toBeVisible();
   expect(await code.locator("[class^='tok-']").count()).toBeGreaterThan(0);
 
-  // The one line task 1 actually adds, marked rather than only named in the
+  // The one line level 1 actually adds, marked rather than only named in the
   // hint's prose above it.
   const marked = code.locator(".tutoriallinechanged");
   await expect(marked).toHaveCount(1);
@@ -222,17 +222,17 @@ test("highlights the answer, marks the line it adds, and copies it to the clipbo
   expect(clipboard).toContain("elevator.goToFloor(1);");
 });
 
-test("hands the task's program to the editor and stays on the task", async ({ page }) => {
-  await page.goto(FIRST_TASK);
-  await expect(editor(page)).toContainText(TASK_1_MARKER);
-  expect((await storedCode(page)) ?? "").not.toContain(TASK_1_MARKER);
+test("hands the level's program to the editor and stays on the level", async ({ page }) => {
+  await page.goto(FIRST_LEVEL);
+  await expect(editor(page)).toContainText(LEVEL_1_MARKER);
+  expect((await storedCode(page)) ?? "").not.toContain(LEVEL_1_MARKER);
 
   await panel(page).getByRole("button", { name: "Take this program into your own editor" }).click();
 
   // Stored under the game's own key, which is where the editor looks when the
-  // player leaves the track -- and the task is still on screen, because the
+  // player leaves the track -- and the level is still on screen, because the
   // button means "I want to keep this", not "I am done here".
-  expect(await storedCode(page)).toContain(TASK_1_MARKER);
+  expect(await storedCode(page)).toContain(LEVEL_1_MARKER);
   await expect(panel(page)).toBeVisible();
   // The write went somewhere the player cannot see from here, so this line is
   // the whole of what they are told -- and `toBeVisible` is the half of that
@@ -244,41 +244,41 @@ test("hands the task's program to the editor and stays on the task", async ({ pa
 
   await expect(page.getByRole("button", { name: "Level 1" })).toBeVisible();
   await expect(panel(page)).toHaveCount(0);
-  await expect(editor(page)).toContainText(TASK_1_MARKER);
+  await expect(editor(page)).toContainText(LEVEL_1_MARKER);
 });
 
 test("hands the editor the program in the language the link asks for", async ({ page }) => {
   // `openTutorialBuffer` promises the starter "in the player's current
   // language", and this is the only place that promise can be measured whole:
   // the hash names a language, `resolveLocale` picks it, the Russian catalogue
-  // is fetched as its own chunk, and only then is the task opened and the
+  // is fetched as its own chunk, and only then is the level opened and the
   // getter on the table read. Every one of those steps is missing from jsdom,
   // and the last two are ordered -- the starter is written into storage as the
-  // buffer opens, so a task that opened before the catalogue landed would keep
+  // buffer opens, so a level that opened before the catalogue landed would keep
   // its English program for the rest of the run with the page around it in
   // Russian.
-  await page.goto(`${FIRST_TASK},lang=ru`);
+  await page.goto(`${FIRST_LEVEL},lang=ru`);
   await expect(panel(page, "Учебная дорожка")).toBeVisible();
 
   const russianEditor = editor(page, "Программа для лифтов");
-  await expect(russianEditor).toContainText(TASK_1_MARKER_RU);
-  await expect(russianEditor).not.toContainText(TASK_1_MARKER);
-  // And it is still the program, not a translation of one: the line the task
+  await expect(russianEditor).toContainText(LEVEL_1_MARKER_RU);
+  await expect(russianEditor).not.toContainText(LEVEL_1_MARKER);
+  // And it is still the program, not a translation of one: the line the level
   // is about survives the trip through the catalogue exactly as written.
   await expect(russianEditor).toContainText("elevator.goToFloor(0);");
 });
 
-test("starts the task again from the run controls without leaving the track", async ({ page }) => {
-  await page.goto(FIRST_TASK);
+test("starts the level again from the run controls without leaving the track", async ({ page }) => {
+  await page.goto(FIRST_LEVEL);
 
   // Exactly one button on the page says this. The panel used to carry a second
-  // one, which restarted the task without starting it, and two buttons under one
+  // one, which restarted the level without starting it, and two buttons under one
   // accessible name doing two things is WCAG 3.2.4 -- the panel sits directly
   // above this row, so both were on screen at once.
   await expect(page.getByRole("button", { name: "Start over", exact: true })).toHaveCount(1);
   await page.getByRole("button", { name: "Start over", exact: true }).click();
 
-  // The same task, running: "Start over" is pressed by somebody who has decided
+  // The same level, running: "Start over" is pressed by somebody who has decided
   // to go again, so it does not stop to ask a second time.
   await expect(panel(page)).toBeVisible();
   await expect(page.locator(".tutorialposition")).toHaveText("Learning track Level 1 of 8");
@@ -291,7 +291,7 @@ test("starts the task again from the run controls without leaving the track", as
 });
 
 test("draws the panel again in the language the picker asks for", async ({ page }) => {
-  await page.goto(FIRST_TASK);
+  await page.goto(FIRST_LEVEL);
   await expect(panel(page)).toBeVisible();
 
   await switchToRussian(page);
@@ -315,7 +315,7 @@ test("paints the panel's own controls as dark as the prose around them", async (
   // default `colorScheme` renders here -- light, per this suite's own default --
   // not a page-wide constant any more. `--ds-text`'s light-theme value is
   // `#1e2227`.
-  await page.goto(FIRST_TASK);
+  await page.goto(FIRST_LEVEL);
 
   await expect(panel(page).getByText("Hint 1", { exact: true })).toHaveCSS(
     "color",
@@ -376,7 +376,7 @@ test("stands the lesson beside the building where the pane has room, and above i
       } else {
         // Above, and bounded. The gap is real -- the card's bottom edge is
         // clear of the building's box -- and the building still has a box at
-        // all: task 7 with its answer open asks for 1290px of a row that has
+        // all: level 7 with its answer open asks for 1290px of a row that has
         // 399px to give here, and before the ceiling in the container query it
         // took all of it -- `.world` came out 0px tall, which is the building
         // gone from a page about a building.
@@ -407,7 +407,7 @@ test("stands the lesson beside the building where the pane has room, and above i
     }
   };
 
-  await page.goto(FIRST_TASK);
+  await page.goto(FIRST_LEVEL);
   await expect(panel(page, "Learning track")).toBeVisible();
   await measure("English");
 

@@ -7,7 +7,7 @@ import type { LevelSwitcherOptions } from "./level-switcher.ts";
 import type { LevelLinkTarget, LevelMenuInput } from "../model/level-menu.ts";
 import type { LevelTier } from "#entities/level-tier/index.ts";
 import { requireUserCountWithinTime, type Level } from "#game/levels.ts";
-import { tutorialTasks } from "#game/tutorial.ts";
+import { tutorialLevels } from "#game/tutorial.ts";
 import { queryAll, requireElement } from "#shared/lib/dom.ts";
 import { SPRITE_ICONS } from "#shared/ui/icon.ts";
 
@@ -25,7 +25,7 @@ function stubHref(target: LevelLinkTarget): string {
       return `#level=${String(target.number)}`;
     }
     case "tutorial": {
-      return `#level=${target.taskId}`;
+      return `#level=${target.levelId}`;
     }
     case "sandbox": {
       return "#level=sandbox";
@@ -36,9 +36,9 @@ function stubHref(target: LevelLinkTarget): string {
 function baseInput(overrides: Partial<LevelMenuInput> = {}): LevelMenuInput {
   return {
     levels: fixtureLevels(4),
-    tutorialTasks,
+    tutorialLevels,
     bestTiers: new Map<number, LevelTier>(),
-    clearedTutorialTasks: new Set(),
+    clearedTutorialLevels: new Set(),
     selection: { kind: "level", index: 0 },
     buildHref: stubHref,
     ...overrides,
@@ -222,10 +222,10 @@ describe("presentLevelSwitcher", () => {
     // button against «Учебный уровень 1», which wants 136px -- and the other
     // two are here so that a later change cannot quietly reintroduce a state
     // suffix through them.
-    const cleared = tutorialTasks[0];
+    const cleared = tutorialLevels[0];
     const lesson = setUp({
       selection: { kind: "tutorial", index: 0 },
-      clearedTutorialTasks: new Set(cleared === undefined ? [] : [cleared.id]),
+      clearedTutorialLevels: new Set(cleared === undefined ? [] : [cleared.id]),
     });
     presentLevelSwitcher(lesson.parent, lesson.options);
     expect(requireElement(".task-name", lesson.parent).textContent).toBe("Lesson 1");
@@ -243,10 +243,10 @@ describe("presentLevelSwitcher", () => {
   });
 
   it("labels a cleared tutorial tile as completed", () => {
-    const [firstTask] = tutorialTasks;
+    const [firstLevel] = tutorialLevels;
     const { parent, options } = setUp({
       selection: { kind: "tutorial", index: 0 },
-      clearedTutorialTasks: new Set(firstTask === undefined ? [] : [firstTask.id]),
+      clearedTutorialLevels: new Set(firstLevel === undefined ? [] : [firstLevel.id]),
     });
     presentLevelSwitcher(parent, options);
     const [tutorialBlock] = parent.querySelectorAll(".taskblock");
@@ -328,7 +328,7 @@ describe("presentLevelSwitcher", () => {
 
   it("scopes stepping to the current tile's own block", () => {
     const { parent, options } = setUp({
-      tutorialTasks: tutorialTasks.slice(0, 2),
+      tutorialLevels: tutorialLevels.slice(0, 2),
       selection: { kind: "tutorial", index: 1 },
     });
     presentLevelSwitcher(parent, options);

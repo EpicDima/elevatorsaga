@@ -58,7 +58,7 @@ describe("changedLines", () => {
     expect(changedLines("", "elevator.goToFloor(1);")).toEqual(new Set([0]));
   });
 
-  it("finds the one line task 1 actually adds", () => {
+  it("finds the one line level 1 actually adds", () => {
     // The real shape this exists for: two drafts of the same program, differing
     // by exactly the line the third hint tells a player to add.
     const before = [

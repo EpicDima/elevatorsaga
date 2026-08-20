@@ -3,7 +3,7 @@
  *
  * A level in {@link "./levels.ts"!levels} is a difficulty setting —
  * a building and a bar, and how the bar is cleared is the player's business. A
- * task here is a smaller and much stricter thing: a building tuned so that one
+ * level here is a smaller and much stricter thing: a building tuned so that one
  * *particular* wrong program cannot clear the bar and one *particular* right
  * program clears it with room to spare. That gap is the entire teaching device,
  * because the track teaches by letting somebody watch their mistake fail and
@@ -13,25 +13,25 @@
  * floors, spawn rate, threshold, seed — measured against the physics of
  * {@link "./world.ts"!World}. Nothing in a type system can hold it, so nothing
  * here asserts it; `tutorial-solutions.test.ts` replays both programs of every
- * task on ten seeds and requires the verdict each was measured to reach — the
- * loss and the win everywhere save one recorded seed of task 5, where no wait
- * limit can buy both. Ten seeds say whether a task works and cannot say how
- * often, so the three tasks whose numbers turn on that are counted over four
+ * level on ten seeds and requires the verdict each was measured to reach — the
+ * loss and the win everywhere save one recorded seed of level 5, where no wait
+ * limit can buy both. Ten seeds say whether a level works and cannot say how
+ * often, so the three levels whose numbers turn on that are counted over four
  * hundred in `tutorial-sweep.test.ts`. Every number below was chosen against
  * those measurements, and the entries whose numbers differ from
  * `docs/tutorial-plan.md` say which number moved and what forced it.
  *
  * The programs themselves are not written out here. They are messages, keyed
- * `tutorial.taskN.startingCode.code` and `tutorial.taskN.solutionCode.code`,
+ * `tutorial.levelN.startingCode.code` and `tutorial.levelN.solutionCode.code`,
  * because their `//` comments are prose addressed to the player and a Russian
  * player was reading them in English. The JavaScript is byte-identical in every
  * locale and only the comments are translated, which `src/i18n/catalogue.test.ts`
- * checks rather than trusts. Each task's lesson — what its program does wrong
+ * checks rather than trusts. Each level's lesson — what its program does wrong
  * and what the answer does instead — is still described in this file, above the
  * entry it belongs to.
  *
- * A {@link TutorialTask} is structurally a {@link "./levels.ts"!Level}:
- * `options` and `condition` are named and typed to match, so a task can be
+ * A {@link TutorialLevel} is structurally a {@link "./levels.ts"!Level}:
+ * `options` and `condition` are named and typed to match, so a level can be
  * handed straight to the machinery that runs a level. Deliberately no
  * conversion function — a converter is a second place for the building to be
  * described, and the day it disagrees with this table the player plays a world
@@ -48,13 +48,13 @@ import type { RandomSeed } from "./random.ts";
 import type { WorldOptions } from "./world.ts";
 
 /**
- * One task: a building, a bar, the program the player is given, and the program
+ * One level: a building, a bar, the program the player is given, and the program
  * that clears it.
  *
  * `solutionCode` is reached through this table rather than through the test
  * that uses it because it is two things at once. It is the third hint — the
  * answer the player is shown after the two hints that do not give it away — and
- * it is the fixture the solutions test proves the task with. Those must be the
+ * it is the fixture the solutions test proves the level with. Those must be the
  * same bytes. Keeping the answer in the test file and the shown answer
  * somewhere else would leave the suite guarding a program nobody is ever given,
  * and the drift would be invisible: both copies still compile, both still pass,
@@ -67,28 +67,28 @@ import type { WorldOptions } from "./world.ts";
  * into the catalogue did not add a copy: it moved the one that exists, and the
  * table is still the only way anything reaches it.
  */
-export interface TutorialTask {
+export interface TutorialLevel {
   /**
-   * Stable identifier, used wherever a task has to survive being written down.
+   * Stable identifier, used wherever a level has to survive being written down.
    *
    * A string rather than the position in this array, because the position is
-   * the one thing about a task that is expected to change: inserting a ninth
-   * task between two existing ones must not hand somebody the saved attempt,
-   * the progress mark or the bookmarked address of a different task.
+   * the one thing about a level that is expected to change: inserting a ninth
+   * level between two existing ones must not hand somebody the saved attempt,
+   * the progress mark or the bookmarked address of a different level.
    */
   readonly id: string;
-  /** The building the task is played in. */
+  /** The building the level is played in. */
   readonly options: WorldOptions;
   /** The bar that decides the run, built with the level constructors. */
   readonly condition: LevelCondition;
   /**
-   * The seed this task is played on.
+   * The seed this level is played on.
    *
    * Pinned rather than random, because "this program loses and that one wins"
    * is a statement about a particular stream of passengers. A random seed would
    * make the lesson a coin flip: a player could be shown a mistake that
    * happened to squeak past, which teaches the opposite of what was intended.
-   * Each task is also measured on nine other seeds, so the pin buys
+   * Each level is also measured on nine other seeds, so the pin buys
    * reproducibility rather than hiding a fluke.
    */
   readonly seed: RandomSeed;
@@ -96,7 +96,7 @@ export interface TutorialTask {
    * The program the editor is filled with; contains the mistake to be found.
    *
    * A plain string, and read every time it is asked for rather than once:
-   * {@link tutorialTasks} says why that matters.
+   * {@link tutorialLevels} says why that matters.
    */
   readonly startingCode: string;
   /** The program that wins; shown as the last hint. Read the same way. */
@@ -104,9 +104,9 @@ export interface TutorialTask {
 }
 
 /**
- * Every task of the learning track, in the order they are played.
+ * Every level of the learning track, in the order they are played.
  *
- * The buildings are small on purpose. A task has to be legible while it runs —
+ * The buildings are small on purpose. A level has to be legible while it runs —
  * the player is meant to watch the mistake happen, not read about it afterwards
  * — and every one of these is a run somebody can follow with their eyes.
  *
@@ -116,19 +116,19 @@ export interface TutorialTask {
  * table would render them while this module is being imported — before
  * `main.ts` has a body to run, and so before anything has chosen a locale,
  * freezing all sixteen in the one language nobody had asked for. A getter is
- * read at the moment somebody needs the text: the editor when a task is opened,
+ * read at the moment somebody needs the text: the editor when a level is opened,
  * the panel when the answer is drawn, the solutions test when it replays a run.
  * By then a language has been chosen, and a language chosen again later is
  * answered the next time either program is asked for.
  *
  * Every key is written out in full at the entry that uses it rather than built
  * from `id`, because a key assembled at runtime is a key the type checker
- * cannot see: the day a task is renamed, added or dropped, the compiler is the
+ * cannot see: the day a level is renamed, added or dropped, the compiler is the
  * one that should notice, not a player meeting an empty editor.
  */
-export const tutorialTasks: readonly TutorialTask[] = [
+export const tutorialLevels: readonly TutorialLevel[] = [
   /**
-   * Task 1: an elevator that only ever visits one of the two floors.
+   * Level 1: an elevator that only ever visits one of the two floors.
    *
    * The mistake is visible from the shape of the code alone — one `goToFloor`
    * where a two-floor building needs two — and it is fatal rather than merely
@@ -150,19 +150,19 @@ export const tutorialTasks: readonly TutorialTask[] = [
     // The smallest building in which "the elevator only visits one floor" can
     // even be said. The answer clears 10 deliveries by 22.8 s of its 60 on the
     // slowest of the ten measured seeds, and the starting code delivers nobody
-    // at all on any of them, so this task's margin is as wide as a task's can be.
+    // at all on any of them, so this level's margin is as wide as a level's can be.
     options: { floorCount: 2, elevatorCount: 1, spawnRate: 0.5 },
     condition: requireUserCountWithinTime(10, 60),
     seed: "tutorial-1",
     get startingCode(): string {
-      return t("tutorial.task1.startingCode.code");
+      return t("tutorial.level1.startingCode.code");
     },
     get solutionCode(): string {
-      return t("tutorial.task1.solutionCode.code");
+      return t("tutorial.level1.solutionCode.code");
     },
   },
   /**
-   * Task 2: nothing is subscribed, so nothing ever happens.
+   * Level 2: nothing is subscribed, so nothing ever happens.
    *
    * The elevator is fetched and then never told anything. Written this way rather
    * than as an empty `init` so that the first line of the answer is already on
@@ -173,25 +173,25 @@ export const tutorialTasks: readonly TutorialTask[] = [
    */
   {
     id: "tutorial-2",
-    // One floor more than task 1 and the same traffic: the step being taught is
+    // One floor more than level 1 and the same traffic: the step being taught is
     // writing the handler, not surviving a busier building. Answer: 36.5 s of
     // 60 at worst. Starting code: nobody moves, so it cannot win at any rate.
     options: { floorCount: 3, elevatorCount: 1, spawnRate: 0.5 },
     condition: requireUserCountWithinTime(15, 60),
     seed: "tutorial-2",
     get startingCode(): string {
-      return t("tutorial.task2.startingCode.code");
+      return t("tutorial.level2.startingCode.code");
     },
     get solutionCode(): string {
-      return t("tutorial.task2.solutionCode.code");
+      return t("tutorial.level2.solutionCode.code");
     },
   },
   /**
-   * Task 3: passengers get in and are never taken anywhere.
+   * Level 3: passengers get in and are never taken anywhere.
    *
    * The car returns to the ground floor and stops, which means it does open its
    * doors and does pick people up — and then ignores every button they press.
-   * That is the point of the task: the first event that comes *from* the
+   * That is the point of the level: the first event that comes *from* the
    * simulation rather than from the car's own idleness.
    *
    * The answer listens to the buttons inside the car.
@@ -205,19 +205,19 @@ export const tutorialTasks: readonly TutorialTask[] = [
     condition: requireUserCountWithinTime(15, 60),
     seed: "tutorial-3",
     get startingCode(): string {
-      return t("tutorial.task3.startingCode.code");
+      return t("tutorial.level3.startingCode.code");
     },
     get solutionCode(): string {
-      return t("tutorial.task3.solutionCode.code");
+      return t("tutorial.level3.solutionCode.code");
     },
   },
   /**
-   * Task 4: a destination queue that is filled and never started.
+   * Level 4: a destination queue that is filled and never started.
    *
-   * The only task whose bug is in the API rather than in the reasoning, and the
-   * reason it is a task at all is that assigning `destinationQueue` looks like it
+   * The only level whose bug is in the API rather than in the reasoning, and the
+   * reason it is a level at all is that assigning `destinationQueue` looks like it
    * should work and silently does not. Presented as somebody else's rewrite of
-   * the round trip from task 2, so that the player is debugging a change rather
+   * the round trip from level 2, so that the player is debugging a change rather
    * than being quizzed on a method they have never seen.
    *
    * The answer tells the car to look at the queue it was handed.
@@ -225,8 +225,8 @@ export const tutorialTasks: readonly TutorialTask[] = [
   {
     id: "tutorial-4",
     // Spawn rate 0.8, where docs/tutorial-plan.md says 0.6. At 0.6 the answer's
-    // slowest measured seed finished at 56.0 s of 60 — a task that survives by
-    // four seconds is a task that breaks the next time the physics is touched,
+    // slowest measured seed finished at 56.0 s of 60 — a level that survives by
+    // four seconds is a level that breaks the next time the physics is touched,
     // which is precisely the event this whole exercise exists to catch. Raising
     // the traffic costs the lesson nothing, because the starting code never
     // moves the car and so delivers nobody at *any* rate: only the answer's
@@ -235,18 +235,18 @@ export const tutorialTasks: readonly TutorialTask[] = [
     condition: requireUserCountWithinTime(15, 60),
     seed: "tutorial-4",
     get startingCode(): string {
-      return t("tutorial.task4.startingCode.code");
+      return t("tutorial.level4.startingCode.code");
     },
     get solutionCode(): string {
-      return t("tutorial.task4.solutionCode.code");
+      return t("tutorial.level4.solutionCode.code");
     },
   },
   /**
-   * Task 5: a sweep of all nine floors, most of which nobody is waiting on.
+   * Level 5: a sweep of all nine floors, most of which nobody is waiting on.
    *
-   * The first task that is not broken. It works, it is just slow, and it is slow
+   * The first level that is not broken. It works, it is just slow, and it is slow
    * for a reason the player can name: the car spends its time on empty floors.
-   * This is the first task judged on waiting rather than on throughput, because
+   * This is the first level judged on waiting rather than on throughput, because
    * the cost of a pointless stop is paid by the person watching the car go the
    * other way, and the clock the player is asked to think about should be theirs.
    *
@@ -283,17 +283,17 @@ export const tutorialTasks: readonly TutorialTask[] = [
     condition: requireUserCountWithMaxWaitTime(15, 37),
     seed: "tutorial-5",
     get startingCode(): string {
-      return t("tutorial.task5.startingCode.code");
+      return t("tutorial.level5.startingCode.code");
     },
     get solutionCode(): string {
-      return t("tutorial.task5.solutionCode.code");
+      return t("tutorial.level5.solutionCode.code");
     },
   },
   /**
-   * Task 6: indicators that lie, so half the building refuses to board.
+   * Level 6: indicators that lie, so half the building refuses to board.
    *
    * The subtlest failure in the track, and the one that most looks like bad luck:
-   * the program is task 5's answer, correct in every line, plus two lines that
+   * the program is level 5's answer, correct in every line, plus two lines that
    * announce the car is going up and not down. Passengers believe the indicators,
    * so everyone heading down lets the car go and presses again, and the wait
    * clock keeps running on somebody the car has already visited.
@@ -315,7 +315,7 @@ export const tutorialTasks: readonly TutorialTask[] = [
     // scrape past, it *lost*: on seed "xyz" the lying indicators are not the only
     // thing keeping people waiting, and a single car serving five floors at that
     // rate reached exactly 25.0 s of wait with 11 delivered — the correct program
-    // failing the task it is the answer to. Thinning the traffic separates the
+    // failing the level it is the answer to. Thinning the traffic separates the
     // two causes, which is the point: what should fail here is the lie, not the
     // load.
     //
@@ -335,14 +335,14 @@ export const tutorialTasks: readonly TutorialTask[] = [
     condition: requireUserCountWithMaxWaitTime(15, 28),
     seed: "tutorial-6",
     get startingCode(): string {
-      return t("tutorial.task6.startingCode.code");
+      return t("tutorial.level6.startingCode.code");
     },
     get solutionCode(): string {
-      return t("tutorial.task6.solutionCode.code");
+      return t("tutorial.level6.solutionCode.code");
     },
   },
   /**
-   * Task 7: two elevators, one of which is never used.
+   * Level 7: two elevators, one of which is never used.
    *
    * `elevators[0]` was harmless in every building so far and is exactly wrong
    * here, which is the whole lesson: the mistake is not a typo, it is an
@@ -352,13 +352,13 @@ export const tutorialTasks: readonly TutorialTask[] = [
    * The answer sends each call to the emptiest car. `loadFactor` rather than
    * queue length because it is the measure a player can check against what they
    * see on screen — a full car is drawn full. Any dispatch rule that uses both
-   * cars wins this building; the hints say so, since a task that only accepts
+   * cars wins this building; the hints say so, since a level that only accepts
    * one program teaches copying rather than dispatching.
    */
   {
     id: "tutorial-7",
     // 1.2 passengers a second over six floors. The plan had already retuned
-    // this task once; the numbers still hold. Answer: 28 delivered by 48.3 s of
+    // this level once; the numbers still hold. Answer: 28 delivered by 48.3 s of
     // 60 at worst. Starting code: 23 of the required 28 on its best seed, which
     // is the number the threshold of 28 was placed above.
     //
@@ -371,57 +371,57 @@ export const tutorialTasks: readonly TutorialTask[] = [
     // answer still wins on all ten seeds, its worst delivering 36. The bar is
     // left at the plan's 28 anyway: what this table guarantees is that the
     // given program loses and the shown answer wins, which holds either way,
-    // and how hard a task leans on its lesson is the curriculum's decision, not
+    // and how hard a level leans on its lesson is the curriculum's decision, not
     // the harness's. Measured and reported rather than quietly retuned.
     options: { floorCount: 6, elevatorCount: 2, spawnRate: 1.2 },
     condition: requireUserCountWithinTime(28, 60),
     seed: "tutorial-7",
     get startingCode(): string {
-      return t("tutorial.task7.startingCode.code");
+      return t("tutorial.level7.startingCode.code");
     },
     get solutionCode(): string {
-      return t("tutorial.task7.solutionCode.code");
+      return t("tutorial.level7.solutionCode.code");
     },
   },
   /**
-   * Task 8: an empty program, in the building level 1 is played in.
+   * Level 8: an empty program, in the building level 1 is played in.
    *
-   * The graduation task, and the only one whose starting code contains no mistake
+   * The graduation level, and the only one whose starting code contains no mistake
    * to find, because there is nothing to fix — there is something to write. An
    * empty `init` is also the most honest possible measurement of whether the
    * track worked: no scaffolding, and the same building the player walks into
    * next if they press on to the real levels.
    *
-   * The answer is task 7's answer, word for word and deliberately so.
+   * The answer is level 7's answer, word for word and deliberately so.
    */
   {
     id: "tutorial-8",
     // Level 1's building and level 1's bar, copied deliberately: the
-    // graduation task is passing the game's own first level, and a task that
+    // graduation level is passing the game's own first level, and a level that
     // was merely *similar* to it would make that claim false.
     //
-    // That identity is also why this task keeps the thinnest margin in the
+    // That identity is also why this level keeps the thinnest margin in the
     // track. At 0.3 passengers a second the 15th passenger does not exist before
     // t ≈ 46.7 s, so the entire 60-second budget contains about 13 seconds of
     // slack no program can widen; the answer's slowest measured seed finishes at
     // 58.2 s. Every way of widening it — more traffic, more floors, a lower bar
     // — widens it by no longer being level 1. Measured, not assumed: the
     // answer wins on all ten seeds, and `tutorial-solutions.test.ts` holds this
-    // one task to a smaller margin than the rest and says why.
+    // one level to a smaller margin than the rest and says why.
     //
     // On four hundred seeds it wins 399. The one it loses is t165, where 14 are
     // out by the 60-second bar and the fifteenth arrives some ten seconds later.
-    // That number is level 1's, not this task's, and it must not be tuned
+    // That number is level 1's, not this level's, and it must not be tuned
     // away: `tutorial-sweep.test.ts` plays the same answer over the same four
     // hundred seeds in the building and against the bar read out of
     // `levels.ts`, loses the same single seed, and pins both counts at
-    // exactly 399 — because anything that lifts this task to 400 does it by
-    // making the graduation task no longer the game's own first level.
+    // exactly 399 — because anything that lifts this level to 400 does it by
+    // making the graduation level no longer the game's own first level.
     //
-    // Task 8 asks for nothing new; what it measures is whether the player can
-    // now write, on an empty page, what they have spent seven tasks assembling.
-    // So its answer is task 7's, and it is written out under this task's own key
-    // rather than pointed at task 7's, so that every task owns the same eight
+    // Level 8 asks for nothing new; what it measures is whether the player can
+    // now write, on an empty page, what they have spent seven levels assembling.
+    // So its answer is level 7's, and it is written out under this level's own key
+    // rather than pointed at level 7's, so that every level owns the same eight
     // messages and a translator meets no exception. `tutorial.test.ts` holds the
     // two equal in every locale, which is what a copy needs in order to be
     // allowed to exist.
@@ -429,10 +429,10 @@ export const tutorialTasks: readonly TutorialTask[] = [
     condition: requireUserCountWithinTime(15, 60),
     seed: "tutorial-8",
     get startingCode(): string {
-      return t("tutorial.task8.startingCode.code");
+      return t("tutorial.level8.startingCode.code");
     },
     get solutionCode(): string {
-      return t("tutorial.task8.solutionCode.code");
+      return t("tutorial.level8.solutionCode.code");
     },
   },
 ];

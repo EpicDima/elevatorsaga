@@ -1,17 +1,17 @@
 /**
  * Which lines of a program are new, against an earlier draft of it.
  *
- * The learning track shows one code block per task: the answer, under the
+ * The learning track shows one code block per level: the answer, under the
  * third hint. What used to mark "this is what changed" was prose alone — hint
  * 3 already narrates the one line the player has to add or change, by hand,
- * once per task and per language. That is the thing worth not repeating: a
- * marker written into sixteen catalogue strings (eight tasks, two languages)
- * would drift the moment a task's wording moved without its marker moving
+ * once per level and per language. That is the thing worth not repeating: a
+ * marker written into sixteen catalogue strings (eight levels, two languages)
+ * would drift the moment a level's wording moved without its marker moving
  * with it, silently, because nothing checks a hand-written marker against the
  * code it claims to point at.
  *
  * This computes the same fact instead, from the two strings the track already
- * holds for every task — `startingCode` and `solutionCode` — so there is
+ * holds for every level — `startingCode` and `solutionCode` — so there is
  * exactly one source of truth for "what changed" and it cannot go stale.
  */
 
@@ -58,7 +58,7 @@ function lcsTable(before: readonly string[], after: readonly string[]): number[]
  * is still "kept" rather than "changed". That matches what the marker is for
  * — pointing at the text a player has to type, not at where it ended up.
  *
- * @param before - The program the player starts the task with.
+ * @param before - The program the player starts the level with.
  * @param after - The program that clears it.
  * @returns Zero-based indices into `after.split("\n")` that differ from every
  * line of `before`, in the sense above.

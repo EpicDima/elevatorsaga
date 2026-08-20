@@ -70,7 +70,7 @@ export const CHANGED_LINE_CLASS = "tutoriallinechanged";
  * `tok-*`-classed `<span>` (the class names `classHighlighter` — Lezer's own
  * premade highlighter — assigns; `src/shared/styles/code.css` styles the ones
  * this
- * grammar actually produces for the eight tasks' programs). An unchanged line
+ * grammar actually produces for the eight levels' programs). An unchanged line
  * is a plain `<span>`; a changed one is a `<mark>`, which is the element HTML
  * already has for "this run of text matters here, against another context" —
  * exactly what a changed line is, against the program the player started with
@@ -82,7 +82,7 @@ export const CHANGED_LINE_CLASS = "tutoriallinechanged";
  * reconstructs `code` exactly — which is what lets the copy button read the
  * program back out of the DOM instead of carrying a second copy of it, and
  * what keeps every existing test that compares `.tutorialsolution code`'s text
- * against `task.solutionCode` passing unchanged.
+ * against `level.solutionCode` passing unchanged.
  *
  * @param code - The program, exactly as it is shown, copied and diffed.
  * @param changed - Zero-based indices of lines to mark, e.g. from

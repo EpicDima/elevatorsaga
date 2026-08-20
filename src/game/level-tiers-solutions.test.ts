@@ -27,7 +27,7 @@
  * to win a fight the calibration didn't ask it to win.
  *
  * **Ten seeds, fixed.** No numbered level in `levels.ts` has a single
- * pinned seed of its own the way a `tutorialTasks` entry does, so `0` is picked
+ * pinned seed of its own the way a `tutorialLevels` entry does, so `0` is picked
  * once here to serve as the suite's own stand-in for "the seed everybody
  * plays," and reused across all nineteen levels. The other nine are the same
  * `1`-`6` and three strings `tutorial-solutions.test.ts` uses, for the same
@@ -114,7 +114,7 @@ function playRun(level: Level, code: string, seed: RandomSeed): TierOutcome {
   const worldController = createWorldController(TICK_SECONDS);
   const frameRequester = createFrameRequester(FRAME_MILLISECONDS);
   // A property on an object, not a plain `let`, for the same reason
-  // `tutorial-solutions.test.ts`'s `playTask` uses one: both reads below happen
+  // `tutorial-solutions.test.ts`'s `playLevel` uses one: both reads below happen
   // outside the callback that writes it, past where the compiler's flow
   // analysis follows, so a plain local would be narrowed to `null` at the loop
   // and the comparisons reported as always true.

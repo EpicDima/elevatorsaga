@@ -85,7 +85,7 @@ describe("createParamsUrl", () => {
     expect(createParamsUrl(parseQuery("#level=2"), { seed: null })).toBe("#level=2");
   });
 
-  it("round-trips a task address unchanged", () => {
+  it("round-trips a level address unchanged", () => {
     // The track is written into the same key as everything else, so the link in
     // the bar and the link in a chat message are the hash the player arrived on.
     const hash = "#level=tutorial-3,timescale=8,fullscreen=true";

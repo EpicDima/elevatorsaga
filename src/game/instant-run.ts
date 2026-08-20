@@ -126,11 +126,11 @@ export interface InstantRunDriverOptions {
    * Schedules the next burst once the current one has spent its budget.
    *
    * Defaults to `setTimeout(callback, 0)`. `requestIdleCallback` was
-   * considered — the task that suggested chunking named it as an option —
+   * considered — the level that suggested chunking named it as an option —
    * and rejected: it does not exist in Safari, and its whole contract is
    * "run this when the browser is otherwise idle", which is the opposite of
    * what a crunch wants. Deferring to `setTimeout` still yields to input,
-   * paint and every other pending task between bursts; it just does not wait
+   * paint and every other pending level between bursts; it just does not wait
    * for a lull before resuming.
    */
   readonly scheduleYield?: (callback: () => void) => void;

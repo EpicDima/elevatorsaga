@@ -7,7 +7,7 @@
  * this module's one piece of real logic: a write is applied only when the
  * new tier outranks whatever is already stored.
  *
- * Follows `#entities/tutorial-task/model/progress.ts`'s established
+ * Follows `#entities/tutorial-level/model/progress.ts`'s established
  * conventions for this kind of record exactly: a `develevate`-prefixed key,
  * an injectable `Storage`, and everything unreadable — a refused read, a
  * corrupt value, an unknown tier string — treated as "nothing recorded,"
@@ -45,7 +45,7 @@ function tierRank(tier: LevelTier): number {
  * @param storage - Where the record is remembered.
  * @returns Level index to its best tier, for every level with a
  * recorded win. Indices this build no longer has a level for are kept in
- * the map, same as {@link "#entities/tutorial-task/model/progress.ts"!readClearedTutorialTasks}
+ * the map, same as {@link "#entities/tutorial-level/model/progress.ts"!readClearedTutorialLevels}
  * keeps unknown identifiers — a caller filters against its own level
  * list, this module does not decide what still exists.
  */
@@ -90,7 +90,7 @@ export function readBestLevelTiers(storage: Storage): ReadonlyMap<number, LevelT
  *
  * A store that refuses the write is not an error here and nothing is
  * announced, the same treatment
- * {@link "#entities/tutorial-task/model/progress.ts"!recordClearedTutorialTask}
+ * {@link "#entities/tutorial-level/model/progress.ts"!recordClearedTutorialLevel}
  * gives a refused write: the run the player is in the middle of does not
  * depend on this succeeding.
  *

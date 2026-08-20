@@ -1,8 +1,8 @@
 /**
  * The app bar's level switcher: `design/ui-mockup.html`'s `.task` — a
  * current-level button that opens a popover of every level, plus a step
- * button either side of it. Ports `renderTaskMenu`, `neighbour` and
- * `updateTaskNav`, sitting on `#widgets/level-switcher/model/level-menu.ts`'s
+ * button either side of it. Ports `renderLevelMenu`, `neighbour` and
+ * `updateLevelNav`, sitting on `#widgets/level-switcher/model/level-menu.ts`'s
  * {@link buildLevelMenu} for what to draw rather than the fixture the mockup
  * reads from.
  *
@@ -31,7 +31,7 @@
  * `entities/level-tier`'s own
  * {@link tierBadgeMarkup} badge, for the stars a player actually reads —
  * every open level tile gets one, dim stars included at zero earned,
- * matching `design/ui-mockup.html`'s `renderTaskMenu`.
+ * matching `design/ui-mockup.html`'s `renderLevelMenu`.
  */
 
 import {
@@ -64,14 +64,14 @@ import { markup, raw, renderFragment } from "#shared/ui/markup.ts";
  * @returns The switcher markup, ready for `presentLevelSwitcher`.
  */
 export function levelSwitcherTemplate(): string {
-  return markup`<div class="task"><button type="button" class="task-prev">${raw(spriteIconMarkup("left"))}</button><button type="button" class="task-open" aria-haspopup="true" aria-expanded="false"><b class="task-name"></b></button><button type="button" class="task-next">${raw(spriteIconMarkup("right"))}</button><div class="taskmenu" hidden><div class="taskblocks"></div></div></div>`;
+  return markup`<div class="level"><button type="button" class="task-prev">${raw(spriteIconMarkup("left"))}</button><button type="button" class="task-open" aria-haspopup="true" aria-expanded="false"><b class="task-name"></b></button><button type="button" class="task-next">${raw(spriteIconMarkup("right"))}</button><div class="taskmenu" hidden><div class="taskblocks"></div></div></div>`;
 }
 
 /** What the switcher needs in order to draw and redraw itself. */
 export interface LevelSwitcherOptions {
   /**
    * Builds a fresh {@link LevelMenuInput}, read anew by every `update()` —
-   * the tier a level earned, which tasks are cleared and what is
+   * the tier a level earned, which levels are cleared and what is
    * currently selected all move between one run and the next.
    */
   readonly getInput: () => LevelMenuInput;
@@ -85,7 +85,7 @@ export interface LevelSwitcherPresenter {
    * nearest open tile either side of the current one.
    *
    * Called after anything that could have moved any of that: a level
-   * cleared, a tutorial task cleared, a run started elsewhere, a language
+   * cleared, a tutorial level cleared, a run started elsewhere, a language
    * change — the same list `RunControlsPresenter.update`'s own comment
    * gives, once for this row instead of that one.
    */
@@ -124,7 +124,7 @@ function isOpenTile(tile: LevelMenuTile): boolean {
  * Where a step button goes: the nearest open tile in the current tile's own
  * block, stepping outward from it.
  *
- * Scoped to one block on purpose — stepping from the last tutorial task
+ * Scoped to one block on purpose — stepping from the last tutorial level
  * straight into level one would cross two different kinds of level in
  * one press, which is not what either step button's arrow promises.
  *
@@ -173,7 +173,7 @@ function tileText(tile: LevelMenuTile): string {
 
 /**
  * The name assistive technology reads for a tile — what {@link tileText}
- * shows plus whatever it left out: which task this is, whether it is
+ * shows plus whatever it left out: which level this is, whether it is
  * cleared, whether it is locked and why.
  *
  * @param tile - Tile to name.
@@ -377,7 +377,7 @@ export function presentLevelSwitcher(
         renderFragment(blocks.map((block) => blockTemplate(block)).join("")),
       );
       // A tile that navigates should not leave its menu open behind it — the
-      // same close-before-`setWorld` order `renderTaskMenu`'s own click
+      // same close-before-`setWorld` order `renderLevelMenu`'s own click
       // handler keeps.
       for (const tile of queryAll(".tasklink", taskBlocks)) {
         tile.addEventListener("click", () => {

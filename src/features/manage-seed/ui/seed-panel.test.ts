@@ -30,7 +30,7 @@ describe("seedPanelTemplate", () => {
   const SEED: SeedLinkData = { seed: "1234567890", url: "#level=1,seed=1234567890" };
 
   it("renders nothing for a run with no seed to offer", () => {
-    // `data` is `null` for a learning-track task and for the test-only worlds
+    // `data` is `null` for a learning-track level and for the test-only worlds
     // built with a ready-made random stream -- see `src/pages/game/index.ts`'s
     // `#seedLink` -- and there is nothing this block could usefully say about
     // either, the same reason `levelTemplate` leaves the level bar's

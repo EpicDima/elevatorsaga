@@ -306,33 +306,33 @@ describe("CodeEditor storage", () => {
 });
 
 describe("CodeEditor buffers", () => {
-  it("gives every learning-track task a storage key of its own", () => {
+  it("gives every learning-track level a storage key of its own", () => {
     const { editor, view, storage } = setUp();
 
-    editor.openTutorialBuffer("tutorial-3", "// task 3 skeleton");
-    view.type("// my attempt at task 3");
-    editor.openTutorialBuffer("tutorial-4", "// task 4 skeleton");
+    editor.openTutorialBuffer("tutorial-3", "// level 3 skeleton");
+    view.type("// my attempt at level 3");
+    editor.openTutorialBuffer("tutorial-4", "// level 4 skeleton");
 
     // Pinned as literals for the same reason the two keys above are: the
     // spelling is what a half-finished attempt is found under a week later, and
     // asserting through the editor's own constant would let a rename pass every
     // test while quietly orphaning the work of everyone who had started.
-    expect(storage.getItem("develevateTutorialCode_tutorial-3")).toBe("// my attempt at task 3");
-    expect(storage.getItem("develevateTutorialCode_tutorial-4")).toBe("// task 4 skeleton");
+    expect(storage.getItem("develevateTutorialCode_tutorial-3")).toBe("// my attempt at level 3");
+    expect(storage.getItem("develevateTutorialCode_tutorial-4")).toBe("// level 4 skeleton");
   });
 
-  it("opens a task nobody has started with the program it hands out", () => {
+  it("opens a level nobody has started with the program it hands out", () => {
     const { editor, view, storage } = setUp();
 
     editor.openTutorialBuffer("tutorial-1", "// fill this in");
 
     expect(view.getValue()).toBe("// fill this in");
     // Stored at once, so closing the tab without typing loses nothing and does
-    // not reopen the task on someone else's text.
+    // not reopen the level on someone else's text.
     expect(storage.getItem("develevateTutorialCode_tutorial-1")).toBe("// fill this in");
   });
 
-  it("keeps the attempt a task already holds instead of the starter program", () => {
+  it("keeps the attempt a level already holds instead of the starter program", () => {
     const storage = new MemoryStorage();
     storage.setItem("develevateTutorialCode_tutorial-2", "// where I got to last time");
     const { editor, view } = setUp(storage);
@@ -365,7 +365,7 @@ describe("CodeEditor buffers", () => {
     view.type("// second thoughts");
     view.type(defaultCode());
 
-    editor.openTutorialBuffer("tutorial-1", "// task 1");
+    editor.openTutorialBuffer("tutorial-1", "// level 1");
     vi.advanceTimersByTime(AUTOSAVE_DELAY_MS * 2);
 
     expect(storage.getItem(CODE_STORAGE_KEY)).toBeNull();
@@ -374,15 +374,15 @@ describe("CodeEditor buffers", () => {
   it("hands every buffer back its own text, in both directions", () => {
     const { editor, view } = setUp();
     view.type("// my own program");
-    editor.openTutorialBuffer("tutorial-1", "// task 1");
-    view.type("// my task 1");
-    editor.openTutorialBuffer("tutorial-2", "// task 2");
-    view.type("// my task 2");
+    editor.openTutorialBuffer("tutorial-1", "// level 1");
+    view.type("// my level 1");
+    editor.openTutorialBuffer("tutorial-2", "// level 2");
+    view.type("// my level 2");
 
-    editor.openTutorialBuffer("tutorial-1", "// task 1");
-    expect(view.getValue()).toBe("// my task 1");
-    editor.openTutorialBuffer("tutorial-2", "// task 2");
-    expect(view.getValue()).toBe("// my task 2");
+    editor.openTutorialBuffer("tutorial-1", "// level 1");
+    expect(view.getValue()).toBe("// my level 1");
+    editor.openTutorialBuffer("tutorial-2", "// level 2");
+    expect(view.getValue()).toBe("// my level 2");
     editor.openPlayerBuffer();
     expect(view.getValue()).toBe("// my own program");
   });
@@ -390,9 +390,9 @@ describe("CodeEditor buffers", () => {
   it("loses nothing for a player who walks the track without typing", () => {
     const { editor, view, storage } = setUp();
 
-    editor.openTutorialBuffer("tutorial-1", "// task 1");
-    expect(view.getValue()).toBe("// task 1");
-    editor.openTutorialBuffer("tutorial-2", "// task 2");
+    editor.openTutorialBuffer("tutorial-1", "// level 1");
+    expect(view.getValue()).toBe("// level 1");
+    editor.openTutorialBuffer("tutorial-2", "// level 2");
     editor.openPlayerBuffer();
 
     expect(view.getValue()).toBe(defaultCode());
@@ -406,11 +406,11 @@ describe("CodeEditor buffers", () => {
     view.type("// the program I care about");
     editor.save();
 
-    editor.openTutorialBuffer("tutorial-1", "// task 1");
-    view.type("// my task 1");
+    editor.openTutorialBuffer("tutorial-1", "// level 1");
+    view.type("// my level 1");
     editor.reset();
     editor.undoReset();
-    editor.openTutorialBuffer("tutorial-2", "// task 2");
+    editor.openTutorialBuffer("tutorial-2", "// level 2");
     vi.advanceTimersByTime(AUTOSAVE_DELAY_MS * 2);
 
     expect(storage.getItem(CODE_STORAGE_KEY)).toBe("// the program I care about");
@@ -422,7 +422,7 @@ describe("CodeEditor buffers", () => {
     // Two tabs, one store. The second was opened before the afternoon's work
     // happened in the first and still shows the older program, with no way to
     // know. Before there were buffers an idle tab wrote nothing until somebody
-    // typed in it, and one click on a task link must not be what changes that:
+    // typed in it, and one click on a level link must not be what changes that:
     // writing the screen back on the way out of a buffer is right for text the
     // player changed and is somebody else's work destroyed for text they never
     // touched.
@@ -434,7 +434,7 @@ describe("CodeEditor buffers", () => {
 
     workingTab.view.type("// version 2, an afternoon of work");
     workingTab.editor.save();
-    idleTab.editor.openTutorialBuffer("tutorial-1", "// task 1");
+    idleTab.editor.openTutorialBuffer("tutorial-1", "// level 1");
 
     expect(storage.getItem(CODE_STORAGE_KEY)).toBe("// version 2, an afternoon of work");
     // Nor is the idle tab holding a stale copy in its own memory of what it has
@@ -445,7 +445,7 @@ describe("CodeEditor buffers", () => {
     // The working tab leaving its buffer does not write it a second time
     // either. It was written a moment ago and nothing has changed since; the
     // key is touched once, by the save the player asked for.
-    workingTab.editor.openTutorialBuffer("tutorial-1", "// task 1");
+    workingTab.editor.openTutorialBuffer("tutorial-1", "// level 1");
     expect(setItem.mock.calls.filter(([key]) => key === CODE_STORAGE_KEY)).toHaveLength(1);
   });
 
@@ -459,12 +459,12 @@ describe("CodeEditor buffers", () => {
     const { editor, view } = setUp(storage);
     view.type("// my own program");
 
-    editor.openTutorialBuffer("tutorial-1", "// task 1");
+    editor.openTutorialBuffer("tutorial-1", "// level 1");
     const writesSoFar = setItem.mock.calls.length;
-    editor.openTutorialBuffer("tutorial-2", "// task 2");
+    editor.openTutorialBuffer("tutorial-2", "// level 2");
 
-    // Task 2's own key, holding the starter it was just opened on, and nothing
-    // else: task 1 was read, looked at and left alone.
+    // Level 2's own key, holding the starter it was just opened on, and nothing
+    // else: level 1 was read, looked at and left alone.
     expect(setItem.mock.calls.slice(writesSoFar).map(([key]) => key)).toEqual([
       "develevateTutorialCode_tutorial-2",
     ]);
@@ -478,21 +478,21 @@ describe("CodeEditor buffers", () => {
     const { editor, view } = setUp(storage);
     const saved = vi.fn();
     editor.on("saved", saved);
-    editor.openTutorialBuffer("tutorial-1", "// task 1");
-    view.type("// typed in task 1");
+    editor.openTutorialBuffer("tutorial-1", "// level 1");
+    view.type("// typed in level 1");
 
-    editor.openTutorialBuffer("tutorial-2", "// task 2");
+    editor.openTutorialBuffer("tutorial-2", "// level 2");
     const writesBeforeTheCountdown = setItem.mock.calls.length;
     vi.advanceTimersByTime(AUTOSAVE_DELAY_MS * 2);
 
-    expect(storage.getItem("develevateTutorialCode_tutorial-1")).toBe("// typed in task 1");
-    expect(storage.getItem("develevateTutorialCode_tutorial-2")).toBe("// task 2");
-    expect(view.getValue()).toBe("// task 2");
+    expect(storage.getItem("develevateTutorialCode_tutorial-1")).toBe("// typed in level 1");
+    expect(storage.getItem("develevateTutorialCode_tutorial-2")).toBe("// level 2");
+    expect(view.getValue()).toBe("// level 2");
     // Cancelled, not merely harmless. A countdown left running fires with the
-    // next task open; today it would write that task's own starter program back
+    // next level open; today it would write that level's own starter program back
     // over itself, which looks like nothing, and announce "Code saved ..." for a
     // save nobody asked for. The day the switch stops seeding storage up front
-    // it would be one task's work under the other's key instead, so what is
+    // it would be one level's work under the other's key instead, so what is
     // pinned is that nothing at all happens a second after a switch.
     expect(setItem.mock.calls.length).toBe(writesBeforeTheCountdown);
     expect(saved).not.toHaveBeenCalled();
@@ -500,7 +500,7 @@ describe("CodeEditor buffers", () => {
 
   it("autosaves later typing into the buffer that is open", () => {
     const { editor, view, storage } = setUp();
-    editor.openTutorialBuffer("tutorial-1", "// task 1");
+    editor.openTutorialBuffer("tutorial-1", "// level 1");
 
     view.type("// typed after the switch");
     vi.advanceTimersByTime(AUTOSAVE_DELAY_MS);
@@ -513,12 +513,12 @@ describe("CodeEditor buffers", () => {
     // Routers and interfaces repeat themselves; a redundant open must not
     // replace the document under a player who is typing in it.
     const { editor, view, storage } = setUp();
-    editor.openTutorialBuffer("tutorial-1", "// task 1");
+    editor.openTutorialBuffer("tutorial-1", "// level 1");
     view.type("// half a thought");
     const changed = vi.fn();
     editor.on("change", changed);
 
-    editor.openTutorialBuffer("tutorial-1", "// task 1");
+    editor.openTutorialBuffer("tutorial-1", "// level 1");
 
     expect(view.getValue()).toBe("// half a thought");
     expect(changed).not.toHaveBeenCalled();
@@ -527,19 +527,19 @@ describe("CodeEditor buffers", () => {
     expect(storage.getItem("develevateTutorialCode_tutorial-1")).toBe("// half a thought");
   });
 
-  it("takes the newest starter program for the task on screen", () => {
-    // Only the comments in a task's starter program are translated, but that is
-    // enough: the same task hands over different text after a language switch,
+  it("takes the newest starter program for the level on screen", () => {
+    // Only the comments in a level's starter program are translated, but that is
+    // enough: the same level hands over different text after a language switch,
     // and "Reset" owes the player the version they can read.
     const { editor, view } = setUp();
-    editor.openTutorialBuffer("tutorial-1", "// task 1 in English");
+    editor.openTutorialBuffer("tutorial-1", "// level 1 in English");
     view.type("// half a thought");
 
-    editor.openTutorialBuffer("tutorial-1", "// task 1 in another language");
+    editor.openTutorialBuffer("tutorial-1", "// level 1 in another language");
 
     expect(view.getValue()).toBe("// half a thought");
     editor.reset();
-    expect(view.getValue()).toBe("// task 1 in another language");
+    expect(view.getValue()).toBe("// level 1 in another language");
   });
 
   it("reports the change without announcing a save nobody asked for", () => {
@@ -549,7 +549,7 @@ describe("CodeEditor buffers", () => {
     editor.on("saved", saved);
     editor.on("change", changed);
 
-    editor.openTutorialBuffer("tutorial-1", "// task 1");
+    editor.openTutorialBuffer("tutorial-1", "// level 1");
     vi.advanceTimersByTime(AUTOSAVE_DELAY_MS * 2);
 
     // The program in the editor is a different program, so anything describing
@@ -559,16 +559,16 @@ describe("CodeEditor buffers", () => {
     expect(saved).not.toHaveBeenCalled();
   });
 
-  it("refuses a task whose name is blank", () => {
+  it("refuses a level whose name is blank", () => {
     // Identifiers reach the game from a URL the player can type by hand, and an
     // empty one spells the bare prefix: one key that every malformed route
     // would pour its text into, and the first two to try it would each find the
     // other's program waiting.
     const { editor, view, storage } = setUp();
 
-    for (const taskId of ["", " ", "\t\n"]) {
+    for (const levelId of ["", " ", "\t\n"]) {
       expect(() => {
-        editor.openTutorialBuffer(taskId, "// task");
+        editor.openTutorialBuffer(levelId, "// level");
       }).toThrow(RangeError);
     }
 
@@ -577,26 +577,26 @@ describe("CodeEditor buffers", () => {
     expect(storage.getItem("develevateTutorialCode_ ")).toBeNull();
   });
 
-  it("finds a task's attempt under the task's own name, wherever it sits in the track", () => {
-    // Keyed by the task's identifier and never by its position. The track's
-    // `TutorialTask.id` exists for exactly this: the position is the one thing
-    // about a task that is expected to change, and a half-written attempt is
-    // precisely a task surviving being written down. Keyed by position, a ninth
-    // task inserted at number two would hand its opener everybody's attempt at
-    // the old task 2, and shift the six after it by one — no error, no warning,
-    // every program filed under somebody else's task.
+  it("finds a level's attempt under the level's own name, wherever it sits in the track", () => {
+    // Keyed by the level's identifier and never by its position. The track's
+    // `TutorialLevel.id` exists for exactly this: the position is the one thing
+    // about a level that is expected to change, and a half-written attempt is
+    // precisely a level surviving being written down. Keyed by position, a ninth
+    // level inserted at number two would hand its opener everybody's attempt at
+    // the old level 2, and shift the six after it by one — no error, no warning,
+    // every program filed under somebody else's level.
     const storage = new MemoryStorage();
-    storage.setItem("develevateTutorialCode_tutorial-2", "// my attempt at the old task 2");
+    storage.setItem("develevateTutorialCode_tutorial-2", "// my attempt at the old level 2");
     const { editor, view } = setUp(storage);
 
     editor.openTutorialBuffer("tutorial-9", "// the newcomer's skeleton");
     expect(view.getValue()).toBe("// the newcomer's skeleton");
 
-    editor.openTutorialBuffer("tutorial-2", "// task 2 skeleton");
-    expect(view.getValue()).toBe("// my attempt at the old task 2");
+    editor.openTutorialBuffer("tutorial-2", "// level 2 skeleton");
+    expect(view.getValue()).toBe("// my attempt at the old level 2");
   });
 
-  it("does not put a task's starting point over an attempt it could not read", () => {
+  it("does not put a level's starting point over an attempt it could not read", () => {
     // "The store has nothing" and "the store would not say" arrive as the same
     // silence and mean opposite things. Read as "nothing", a store that has
     // simply refused to answer gets the skeleton written into it, over an
@@ -609,14 +609,14 @@ describe("CodeEditor buffers", () => {
     });
     const { editor, view } = setUp(storage);
 
-    editor.openTutorialBuffer("tutorial-1", "// task 1 skeleton");
+    editor.openTutorialBuffer("tutorial-1", "// level 1 skeleton");
 
-    expect(view.getValue()).toBe("// task 1 skeleton");
+    expect(view.getValue()).toBe("// level 1 skeleton");
     expect(kept.getItem("develevateTutorialCode_tutorial-1")).toBe("// three evenings of work");
   });
 
-  it("opens a task whose stored attempt was emptied on its starting point", () => {
-    // An empty entry is no more use than a missing one, and a task that opens
+  it("opens a level whose stored attempt was emptied on its starting point", () => {
+    // An empty entry is no more use than a missing one, and a level that opens
     // on a blank page has no way back to its own starting point.
     const storage = new MemoryStorage();
     storage.setItem("develevateTutorialCode_tutorial-2", "");
@@ -629,13 +629,13 @@ describe("CodeEditor buffers", () => {
 
   it("still switches buffers when the browser refuses storage", () => {
     // Nothing can be kept past this page, but the editor must stay usable:
-    // every task opens on its starter program instead of on an exception.
+    // every level opens on its starter program instead of on an exception.
     const { editor, view } = setUp(deniedStorage());
 
     expect(() => {
-      editor.openTutorialBuffer("tutorial-1", "// task 1");
+      editor.openTutorialBuffer("tutorial-1", "// level 1");
     }).not.toThrow();
-    expect(view.getValue()).toBe("// task 1");
+    expect(view.getValue()).toBe("// level 1");
     expect(() => {
       editor.openPlayerBuffer();
     }).not.toThrow();
@@ -650,13 +650,13 @@ describe("CodeEditor buffers", () => {
     const { editor, view } = setUp(fullStorage({ [CODE_STORAGE_KEY]: "// yesterday's program" }));
     view.type("// an afternoon of work");
 
-    editor.openTutorialBuffer("tutorial-1", "// task 1");
-    view.type("// my task 1");
+    editor.openTutorialBuffer("tutorial-1", "// level 1");
+    view.type("// my level 1");
     editor.openPlayerBuffer();
     expect(view.getValue()).toBe("// an afternoon of work");
 
-    editor.openTutorialBuffer("tutorial-1", "// task 1");
-    expect(view.getValue()).toBe("// my task 1");
+    editor.openTutorialBuffer("tutorial-1", "// level 1");
+    expect(view.getValue()).toBe("// my level 1");
   });
 
   it("says nothing was saved when nothing could be", () => {
@@ -827,7 +827,7 @@ describe("CodeEditor reset", () => {
     // The legacy game emptied the editor here, and the autosave a second later
     // made that permanent. The button is offered whether or not anything was
     // reset, and now that every buffer has a backup slot of its own, "nothing
-    // to undo" is the ordinary state of every task never reset — pressing it
+    // to undo" is the ordinary state of every level never reset — pressing it
     // there must not be the quickest way to lose an afternoon's work.
     const { editor, view, storage } = setUp();
     view.type("// worth keeping");
@@ -839,35 +839,35 @@ describe("CodeEditor reset", () => {
     expect(storage.getItem(CODE_STORAGE_KEY)).toBe("// worth keeping");
   });
 
-  it("resets a learning-track task to that task's own starting point", () => {
+  it("resets a learning-track level to that level's own starting point", () => {
     const { editor, view } = setUp();
-    editor.openTutorialBuffer("tutorial-5", "// task 5 skeleton");
+    editor.openTutorialBuffer("tutorial-5", "// level 5 skeleton");
     view.type("// the wrong turn I took");
 
     editor.reset();
 
-    expect(view.getValue()).toBe("// task 5 skeleton");
+    expect(view.getValue()).toBe("// level 5 skeleton");
     editor.undoReset();
     expect(view.getValue()).toBe("// the wrong turn I took");
   });
 
   it("keeps a separate backup per buffer", () => {
     const { editor, view, storage } = setUp();
-    editor.openTutorialBuffer("tutorial-1", "// task 1");
-    view.type("// my task 1");
+    editor.openTutorialBuffer("tutorial-1", "// level 1");
+    view.type("// my level 1");
     editor.reset();
-    editor.openTutorialBuffer("tutorial-2", "// task 2");
-    view.type("// my task 2");
+    editor.openTutorialBuffer("tutorial-2", "// level 2");
+    view.type("// my level 2");
     editor.reset();
-    expect(view.getValue()).toBe("// task 2");
+    expect(view.getValue()).toBe("// level 2");
 
-    editor.openTutorialBuffer("tutorial-1", "// task 1");
+    editor.openTutorialBuffer("tutorial-1", "// level 1");
     editor.undoReset();
 
-    // Task 1's own attempt, not task 2's, and the player's backup slot is
+    // Level 1's own attempt, not level 2's, and the player's backup slot is
     // untouched by any of it.
-    expect(view.getValue()).toBe("// my task 1");
-    expect(storage.getItem("develevateTutorialBackupCode_tutorial-1")).toBe("// my task 1");
+    expect(view.getValue()).toBe("// my level 1");
+    expect(storage.getItem("develevateTutorialBackupCode_tutorial-1")).toBe("// my level 1");
     expect(storage.getItem(BACKUP_STORAGE_KEY)).toBeNull();
   });
 
@@ -969,10 +969,10 @@ describe("CodeEditor reset", () => {
     view.type("// my own program");
     editor.reset();
 
-    editor.openTutorialBuffer("tutorial-1", "// task 1");
+    editor.openTutorialBuffer("tutorial-1", "// level 1");
     editor.undoReset();
 
-    expect(view.getValue()).toBe("// task 1");
+    expect(view.getValue()).toBe("// level 1");
     editor.openPlayerBuffer();
     editor.undoReset();
     expect(view.getValue()).toBe("// my own program");
@@ -982,7 +982,7 @@ describe("CodeEditor reset", () => {
     // What the run controls hide the "Undo reset" button on, so a wrong answer
     // is either a button that does nothing or a way back that is not offered.
     // Asked of the buffer on screen rather than of the editor as a whole, for
-    // the same reason the backup slot is per buffer: a task that was reset must
+    // the same reason the backup slot is per buffer: a level that was reset must
     // not offer to undo it from the player's own program.
     const { editor, view } = setUp();
 
@@ -992,7 +992,7 @@ describe("CodeEditor reset", () => {
     editor.reset();
     expect(editor.canUndoReset()).toBe(true);
 
-    editor.openTutorialBuffer("tutorial-1", "// task 1");
+    editor.openTutorialBuffer("tutorial-1", "// level 1");
     expect(editor.canUndoReset()).toBe(false);
 
     editor.openPlayerBuffer();
@@ -1410,17 +1410,17 @@ describe("CodeEditor over a real editing surface", () => {
     // back hangs off change events.
     const { editor, storage, parent } = mount("// the program the player left behind");
 
-    editor.openTutorialBuffer("tutorial-1", "// task 1 skeleton");
-    typeLine(parent, "\n// my attempt at task 1");
+    editor.openTutorialBuffer("tutorial-1", "// level 1 skeleton");
+    typeLine(parent, "\n// my attempt at level 1");
     editor.openPlayerBuffer();
     expect(editor.getCode()).toBe("// the program the player left behind");
 
-    editor.openTutorialBuffer("tutorial-1", "// task 1 skeleton");
-    expect(editor.getCode()).toBe("// task 1 skeleton\n// my attempt at task 1");
+    editor.openTutorialBuffer("tutorial-1", "// level 1 skeleton");
+    expect(editor.getCode()).toBe("// level 1 skeleton\n// my attempt at level 1");
 
     editor.openPlayerBuffer();
     typeLine(parent, "\n// and a line of my own");
-    editor.openTutorialBuffer("tutorial-1", "// task 1 skeleton");
+    editor.openTutorialBuffer("tutorial-1", "// level 1 skeleton");
     editor.openPlayerBuffer();
     expect(editor.getCode()).toBe("// the program the player left behind\n// and a line of my own");
 
@@ -1430,7 +1430,7 @@ describe("CodeEditor over a real editing surface", () => {
       "// the program the player left behind\n// and a line of my own",
     );
     expect(storage.getItem("develevateTutorialCode_tutorial-1")).toBe(
-      "// task 1 skeleton\n// my attempt at task 1",
+      "// level 1 skeleton\n// my attempt at level 1",
     );
   });
 
@@ -1438,23 +1438,23 @@ describe("CodeEditor over a real editing surface", () => {
     // Regression, and the worst one this file has seen: a buffer switch used to
     // replace the document with an ordinary edit, which the undo history
     // recorded like any other. One Ctrl+Z with the player's own buffer open
-    // then put a tutorial task's skeleton on screen, and the autosave a second
+    // then put a tutorial level's skeleton on screen, and the autosave a second
     // later wrote it into `elevatorCrushCode_v5` — the player's program
     // destroyed by a single keystroke, with no backup written, so "Undo reset"
     // could not bring it back either. Measured before the fix: undo applied,
-    // document "// task 1 skeleton", storage the same a second later.
+    // document "// level 1 skeleton", storage the same a second later.
     //
-    // The line typed into the task is what gives the test its teeth. Undo can
+    // The line typed into the level is what gives the test its teeth. Undo can
     // only reach back through a history that has something in it, so a switch
     // made with nothing typed since the last one is undoable-in-principle and
     // harmless-in-practice, and a test that never types passes under
     // implementations that do let the history cross.
     const { editor, storage, setItem, parent } = mount("// the program the player left behind");
 
-    editor.openTutorialBuffer("tutorial-1", "// task 1 skeleton");
+    editor.openTutorialBuffer("tutorial-1", "// level 1 skeleton");
     pressUndo(parent);
     pressUndo(parent);
-    expect(editor.getCode()).toBe("// task 1 skeleton");
+    expect(editor.getCode()).toBe("// level 1 skeleton");
 
     typeLine(parent, "\n// my attempt");
     editor.openPlayerBuffer();
@@ -1471,29 +1471,29 @@ describe("CodeEditor over a real editing surface", () => {
     // ends.
     expect(playerWrites(setItem)).toEqual([]);
     expect(storage.getItem("develevateTutorialCode_tutorial-1")).toBe(
-      "// task 1 skeleton\n// my attempt",
+      "// level 1 skeleton\n// my attempt",
     );
   });
 
-  it("saves a half-typed task into that task when the player leaves mid-countdown", () => {
+  it("saves a half-typed level into that level when the player leaves mid-countdown", () => {
     // The autosave is debounced by a second, so a player who types and clicks
-    // straight through to the next task leaves with a countdown still running.
+    // straight through to the next level leaves with a countdown still running.
     // It has to be cancelled at the switch and the text written where it was
     // typed: left running, it fires with the next buffer open and writes one
-    // task's work under the other's key — and if the next buffer is the
+    // level's work under the other's key — and if the next buffer is the
     // player's own, over the program they came back for.
     const { editor, storage, setItem, parent } = mount("// the program the player left behind");
     const saved = vi.fn();
     editor.on("saved", saved);
 
-    editor.openTutorialBuffer("tutorial-2", "// task 2 skeleton");
+    editor.openTutorialBuffer("tutorial-2", "// level 2 skeleton");
     typeLine(parent, "\n// halfway through");
     vi.advanceTimersByTime(AUTOSAVE_DELAY_MS - 1);
     editor.openPlayerBuffer();
     vi.advanceTimersByTime(AUTOSAVE_DELAY_MS * 2);
 
     expect(storage.getItem("develevateTutorialCode_tutorial-2")).toBe(
-      "// task 2 skeleton\n// halfway through",
+      "// level 2 skeleton\n// halfway through",
     );
     expect(playerWrites(setItem)).toEqual([]);
     expect(editor.getCode()).toBe("// the program the player left behind");
@@ -1505,15 +1505,15 @@ describe("CodeEditor over a real editing surface", () => {
   it("still undoes the player's own typing within a buffer", () => {
     // The other half of the regression above: the cure is dropping the editing
     // history at the switch, and it has to stop there. Undo is how a player
-    // takes back the line they just wrote, in a tutorial task as anywhere else.
+    // takes back the line they just wrote, in a tutorial level as anywhere else.
     const { editor, parent } = mount();
-    editor.openTutorialBuffer("tutorial-1", "// task 1 skeleton");
+    editor.openTutorialBuffer("tutorial-1", "// level 1 skeleton");
 
     typeLine(parent, "\n// second thoughts");
-    expect(editor.getCode()).toBe("// task 1 skeleton\n// second thoughts");
+    expect(editor.getCode()).toBe("// level 1 skeleton\n// second thoughts");
     pressUndo(parent);
 
-    expect(editor.getCode()).toBe("// task 1 skeleton");
+    expect(editor.getCode()).toBe("// level 1 skeleton");
   });
 });
 

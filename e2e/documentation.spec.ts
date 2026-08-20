@@ -92,10 +92,10 @@ test("sends a beginner from the help page into the learning track", async ({ pag
   await page.goto("/documentation.html");
   await page.getByRole("link", { name: "learning track" }).click();
 
-  // `src/page.test.ts` holds the href to the first task's id; what it cannot
-  // hold is that the address still opens the task, since a task address the
-  // router cannot read lands on the track's first task anyway and only a
-  // console warning tells the two apart. Landing on the task's own title is
+  // `src/page.test.ts` holds the href to the first level's id; what it cannot
+  // hold is that the address still opens the level, since a level address the
+  // router cannot read lands on the track's first level anyway and only a
+  // console warning tells the two apart. Landing on the level's own title is
   // the difference, and it is also the only check here that the hash survives
   // being followed from a page that is not the game.
   await expect(page).toHaveURL(/\/index\.html#level=tutorial-1$/);

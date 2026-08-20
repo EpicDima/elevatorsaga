@@ -32,9 +32,9 @@
  *
  * The learning track — `#level=tutorial-1` … `#level=tutorial-8` — is
  * the third thing that one key can name, and the only one whose values are not
- * invented here: they are the identifiers the tasks carry in
- * {@link "#game/tutorial.ts"!tutorialTasks}. {@link resolveTutorialIndex}
- * says what that buys and what a misspelled task address does instead.
+ * invented here: they are the identifiers the levels carry in
+ * {@link "#game/tutorial.ts"!tutorialLevels}. {@link resolveTutorialIndex}
+ * says what that buys and what a misspelled level address does instead.
  *
  * `seed` is the other half of a shared building: the sandbox parameters pin the
  * shafts and `seed` pins who walks into them — and, played the same way, every
@@ -66,8 +66,8 @@ import type { SandboxOptions } from "#game/levels.ts";
 // The one thing this module takes from `src/game/` as a value rather than a
 // type, and it is imported rather than handed in through {@link RouteContext}
 // because it is not a choice a caller makes: there is exactly one learning
-// track, and the addresses that open its tasks are the `id`s written in this
-// table. A count in the context would let a caller claim a number of tasks that
+// track, and the addresses that open its levels are the `id`s written in this
+// table. A count in the context would let a caller claim a number of levels that
 // do not exist, and the ids cannot be passed through a context at all without
 // moving the table into one.
 //
@@ -79,8 +79,8 @@ import type { SandboxOptions } from "#game/levels.ts";
 // nothing on that path leads back to this file, and nothing that reaches for
 // `parseQuery` alone -- `i18n/detect.ts`, and through it the fitness worker --
 // pulls this table into its chunk anymore. `app.ts` pays for it regardless,
-// since it imports the table itself to play a task.
-import { tutorialTasks } from "#game/tutorial.ts";
+// since it imports the table itself to play a level.
+import { tutorialLevels } from "#game/tutorial.ts";
 import { clampTimeScale } from "#features/adjust-speed/model/time-scale.ts";
 import { createParamsUrl, parseQuery, type RouteQuery } from "#shared/lib/route-query.ts";
 import { isUsableSeed } from "#shared/lib/seed.ts";
@@ -91,7 +91,7 @@ export interface RouteParams {
    * Zero-based index into the level list.
    *
    * Meaningless while {@link sandbox} or {@link tutorialIndex} is set: neither
-   * the sandbox nor a task of the learning track is in that list.
+   * the sandbox nor a level of the learning track is in that list.
    */
   readonly levelIndex: number;
   /**
@@ -103,10 +103,10 @@ export interface RouteParams {
    */
   readonly sandbox: SandboxOptions | null;
   /**
-   * The learning-track task asked for, or `null` for anything else.
+   * The learning-track level asked for, or `null` for anything else.
    *
-   * A zero-based index into {@link "#game/tutorial.ts"!tutorialTasks}, so
-   * `level=tutorial-3` is `2`. Set when `level` names a task, and never
+   * A zero-based index into {@link "#game/tutorial.ts"!tutorialLevels}, so
+   * `level=tutorial-3` is `2`. Set when `level` names a level, and never
    * at the same time as {@link sandbox}: those are two of the three things one
    * key can name, and no value spells both.
    */
@@ -126,7 +126,7 @@ export interface RouteParams {
    * restart paths agree: see {@link "../index.ts"!App.handleRoute}.
    *
    * Always `null` while {@link tutorialIndex} is set, however far the URL goes
-   * to ask otherwise — a task plays the seed its own entry pins and no other.
+   * to ask otherwise — a level plays the seed its own entry pins and no other.
    * {@link resolveRoute} explains what a seed of the player's choosing would
    * cost the track.
    */
@@ -144,8 +144,8 @@ export interface RouteParams {
    * which is what makes correcting the address bar a rewrite that changes no
    * route. For most that means the key is simply deleted, since its absence
    * and its refusal come to the same thing. The exceptions are both spellings
-   * of `level` that land somewhere absence does not spell: a task address
-   * the router could not read, which starts the first task of the learning
+   * of `level` that land somewhere absence does not spell: a level address
+   * the router could not read, which starts the first level of the learning
    * track, and a level this player has not unlocked, which starts the
    * nearest one they have. Those are rewritten rather than dropped.
    * {@link startRouter} does both, and says why the address bar is corrected
@@ -213,7 +213,7 @@ function readFlag(query: RouteQuery, key: string): boolean {
 
 /**
  * The hash key that names what is being played: a level number, the sandbox, or
- * a task of the learning track.
+ * a level of the learning track.
  *
  * One key for all three, and the reason is the level switcher: every entry it
  * draws is `createParamsUrl(query, { level: … })`, so following any of them
@@ -250,25 +250,25 @@ export const LEGACY_LEVEL_KEY = "challenge";
 export const SANDBOX_LEVEL = "sandbox";
 
 /**
- * What every {@link LEVEL_KEY} value that names a learning-track task starts
+ * What every {@link LEVEL_KEY} value that names a learning-track level starts
  * with.
  *
- * The whole of the router's copy of how a task address is spelled. The rest is
- * the table's: an address is accepted because it *is* the `id` of a task in
- * {@link "#game/tutorial.ts"!tutorialTasks} — `tutorial-1` … `tutorial-8`
+ * The whole of the router's copy of how a level address is spelled. The rest is
+ * the table's: an address is accepted because it *is* the `id` of a level in
+ * {@link "#game/tutorial.ts"!tutorialLevels} — `tutorial-1` … `tutorial-8`
  * today — and not because it matches a shape invented here.
  *
- * The prefix is what tells a mistyped task address from a level number, so
+ * The prefix is what tells a mistyped level address from a level number, so
  * that `tutorial-9` is a wrong address on the track rather than a wrong
  * level, and lands where the player was heading. It is the one thing that
  * has to stay in step with the ids by hand; `route.test.ts` checks that it
- * does, because a task renamed out of this shape would become unreachable
+ * does, because a level renamed out of this shape would become unreachable
  * rather than merely oddly named.
  *
  * Reuses {@link LEVEL_KEY} for the same reason {@link SANDBOX_LEVEL} does:
  * it is the key the level switcher's entries overwrite, so every one of them is
  * already the way out of the track, and no second key can be left behind naming
- * a task nobody is playing.
+ * a level nobody is playing.
  */
 export const TUTORIAL_LEVEL_PREFIX = "tutorial-";
 
@@ -430,7 +430,7 @@ export function resolveRoute(rawQuery: RouteQuery, context: RouteContext): Route
   const sandbox = isSandboxRoute(level) ? resolveSandboxOptions(query, refuse) : null;
   return {
     // Resolved, and so warned about, only when it is the one being played:
-    // neither a sandbox URL nor a task address names a level number, and
+    // neither a sandbox URL nor a level address names a level number, and
     // complaining that "sandbox" or "tutorial-3" is not one would be noise.
     levelIndex:
       sandbox === null && tutorialIndex === null ? resolveLevelIndex(level, context, refuse) : 0,
@@ -438,10 +438,10 @@ export function resolveRoute(rawQuery: RouteQuery, context: RouteContext): Route
     tutorialIndex,
     timeScale: resolveTimeScale(query.get("timescale"), context.defaultTimeScale, refuse),
     fullscreen: readFlag(query, "fullscreen"),
-    // A task plays the seed its own entry pins, so a seed on a task address is
+    // A level plays the seed its own entry pins, so a seed on a level address is
     // refused rather than honoured. The track teaches by letting a program fail
     // in front of the player, and which program fails is a fact about the
-    // stream: task 5's starting sweep is measured winning on `42a`, and
+    // stream: level 5's starting sweep is measured winning on `42a`, and
     // `STARTING_CODE_WINS` in `tutorial-solutions.test.ts` records it as
     // survivable only because "the pinned seed, the only one anybody plays, is
     // not" such a seed. `#level=tutorial-5,seed=42a` is that sentence
@@ -505,13 +505,13 @@ function resolveSeed(value: string | undefined, refuse: Refuse): string | null {
 }
 
 /**
- * Drops a `seed` that arrived on a task address, and says so.
+ * Drops a `seed` that arrived on a level address, and says so.
  *
  * Refused rather than resolved, because on the track a seed is not the player's
- * to choose: each task pins one in {@link "#game/tutorial.ts"!tutorialTasks},
- * and the tasks are only teachable because of it. A task shows a program
+ * to choose: each level pins one in {@link "#game/tutorial.ts"!tutorialLevels},
+ * and the levels are only teachable because of it. A level shows a program
  * failing and then the one change that fixes it, and whether the program fails
- * is a property of the passenger stream, not of the program alone — task 5's
+ * is a property of the passenger stream, not of the program alone — level 5's
  * starting sweep is measured delivering all fifteen inside the wait limit on
  * seed `42a`, and on 76 of 400 seeds besides. Honouring `seed=` would let a
  * player land, by choice or by a copied link, on a run where the broken program
@@ -524,11 +524,11 @@ function resolveSeed(value: string | undefined, refuse: Refuse): string | null {
  * where it went rather than that it was wrong.
  *
  * Silent when there is no `seed` at all, which is every ordinary visit to a
- * task: there is nothing to tell the player about a key they did not write.
+ * level: there is nothing to tell the player about a key they did not write.
  *
  * @param query - The parsed hash, read only for `seed`.
  * @param refuse - Records the key so the address bar loses it.
- * @returns Always `null`; the task's own seed is applied downstream.
+ * @returns Always `null`; the level's own seed is applied downstream.
  */
 function refuseSeedOnTrack(query: RouteQuery, refuse: Refuse): null {
   const value = query.get("seed");
@@ -557,16 +557,16 @@ function isSandboxRoute(value: string | undefined): boolean {
 }
 
 /**
- * Whether a `level` parameter asks for a task of the learning track.
+ * Whether a `level` parameter asks for a level of the learning track.
  *
- * True of every value spelled like a task address, not only of the eight that
- * open a task: `tutorial-9` and `tutorial-` are answered by
+ * True of every value spelled like a level address, not only of the eight that
+ * open a level: `tutorial-9` and `tutorial-` are answered by
  * {@link resolveTutorialIndex}, which starts the track, rather than by
  * {@link resolveLevelIndex}, which would start level one.
  *
  * Folded exactly where {@link isSandboxRoute} folds "sandbox" — here, as the
  * value is read, and not in `parseQuery` for every parameter at once — so
- * `#LEVEL=TUTORIAL-3` opens task 3 while `seed=Abc` stays the stream it
+ * `#LEVEL=TUTORIAL-3` opens level 3 while `seed=Abc` stays the stream it
  * names.
  *
  * Narrows its argument rather than answering a plain `boolean`, so that the
@@ -576,20 +576,20 @@ function isSandboxRoute(value: string | undefined): boolean {
  * @param value - The parsed parameter, if it was present. Already free of
  * surrounding whitespace; see {@link isSandboxRoute} for why none is stripped
  * again here.
- * @returns Whether it names a task of the track, in any casing.
+ * @returns Whether it names a level of the track, in any casing.
  */
 function isTutorialRoute(value: string | undefined): value is string {
   return value?.toLowerCase().startsWith(TUTORIAL_LEVEL_PREFIX) === true;
 }
 
 /**
- * Turns a `level=tutorial-…` parameter into a task that exists.
+ * Turns a `level=tutorial-…` parameter into a level that exists.
  *
- * Matched against the `id` each task carries rather than parsed as a number,
- * which is what {@link "#game/tutorial.ts"!TutorialTask.id} exists for: the
- * position of a task in the table is the one thing about it expected to change,
+ * Matched against the `id` each level carries rather than parsed as a number,
+ * which is what {@link "#game/tutorial.ts"!TutorialLevel.id} exists for: the
+ * position of a level in the table is the one thing about it expected to change,
  * and an address resolved by position would hand somebody who bookmarked
- * `tutorial-3` whichever task had since been inserted above it. That the ids
+ * `tutorial-3` whichever level had since been inserted above it. That the ids
  * happen to spell their positions today is a fact about the table, not a rule
  * imposed here — and it is also where the eight comes from, since the addresses
  * that work are exactly the entries there are.
@@ -601,23 +601,23 @@ function isTutorialRoute(value: string | undefined): value is string {
  * `0` and `1` — the two traps {@link resolveSandboxInteger} and
  * {@link resolveLevelIndex} guard against on the other side of this branch.
  * A name is worth having precisely because it is compared and not computed, and
- * a task the URL does not spell is a task the player did not ask for.
+ * a level the URL does not spell is a level the player did not ask for.
  *
- * Anything unreadable lands on the first task rather than the first level:
+ * Anything unreadable lands on the first level rather than the first level:
  * somebody who wrote `tutorial-9` asked for the track, and where the track
  * starts is the closest thing to what they asked for. The warning is what makes
- * that a refusal rather than a silent success, since the first task is also
- * where `tutorial-1` lands. {@link startRouter} then writes the first task's
+ * that a refusal rather than a silent success, since the first level is also
+ * where `tutorial-1` lands. {@link startRouter} then writes the first level's
  * address into the bar, because deleting the key would put them on a level.
  *
- * @param value - The parsed parameter, already known to be spelled like a task
+ * @param value - The parsed parameter, already known to be spelled like a level
  * and already free of surrounding whitespace; see {@link isSandboxRoute}.
  * @param refuse - Records the key when the value cannot be used.
- * @returns A zero-based index into `tutorialTasks`; `0` for anything unusable.
+ * @returns A zero-based index into `tutorialLevels`; `0` for anything unusable.
  */
 function resolveTutorialIndex(value: string, refuse: Refuse): number {
   const id = value.toLowerCase();
-  const index = tutorialTasks.findIndex((task) => task.id === id);
+  const index = tutorialLevels.findIndex((level) => level.id === id);
   if (index === -1) {
     console.warn(`Invalid tutorial level "${value}", starting the first one instead`);
     refuse(LEVEL_KEY);
@@ -994,13 +994,13 @@ function resolveTimeScale(
  * address bar the player never made. Anything else is a landing absence cannot
  * spell, and gets written out.
  *
- * The task's id is looked up rather than hard-coded to the first task's, though
+ * The level's id is looked up rather than hard-coded to the first level's, though
  * today those are the same thing and no test can tell them apart:
  * `resolveTutorialIndex` is the only thing that refuses a `level` on the
  * track, and it refuses only in the branch where it has already fallen back to
- * `0`. Written generally anyway, because the day a task is refused for some
+ * `0`. Written generally anyway, because the day a level is refused for some
  * reason other than being unspellable — not yet unlocked, say, or withdrawn —
- * `tutorialTasks[0]` would quietly write the first task's address over whatever
+ * `tutorialLevels[0]` would quietly write the first level's address over whatever
  * they were actually given, and the URL would go back to lying about the run.
  * That is the failure the correction exists to prevent, so it should not depend
  * on which refusals happen to exist. The numbered level below is exactly
@@ -1017,7 +1017,7 @@ function resolveTimeScale(
 function levelAddress(params: RouteParams): string | null {
   const { levelIndex, tutorialIndex } = params;
   if (tutorialIndex !== null) {
-    return tutorialTasks[tutorialIndex]?.id ?? null;
+    return tutorialLevels[tutorialIndex]?.id ?? null;
   }
   return levelIndex === 0 ? null : String(levelIndex + 1);
 }
@@ -1116,8 +1116,8 @@ export interface RouterOptions {
  * A refused `level` is corrected by rewriting instead when what it landed
  * on is not what absence spells, and by that same rule rather than in spite of
  * it. There are two such landings. `#level=tutorial-9` is a wrong address
- * on the learning track, so it starts the track's first task, and the only
- * thing that spells that task is its own id; and `#level=18` typed by
+ * on the learning track, so it starts the track's first level, and the only
+ * thing that spells that level is its own id; and `#level=18` typed by
  * somebody who has cleared seven starts the eighth, which `level=8` is the
  * only spelling of. Absence spells the first level, which is somewhere
  * else entirely in both cases, so deleting the key would leave the bar

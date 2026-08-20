@@ -229,9 +229,9 @@
 /*
  * `widgets/app-bar` leaves a wrapper around the seed block so it has
  * something to redraw into when a run's seed changes, and
- * `seedPanelTemplate` renders nothing at all for a learning-track task,
+ * `seedPanelTemplate` renders nothing at all for a learning-track level,
  * which has no pass/fail run to name a seed for. An empty flex item is still
- * a flex item: without this, those tasks' popovers carry `.setmenu`'s 14px
+ * a flex item: without this, those levels' popovers carry `.setmenu`'s 14px
  * gap twice over between the language block and the hotkeys row, for a block
  * that is not there.
  */

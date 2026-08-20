@@ -25,7 +25,7 @@ export const DEFAULT_THEME: Theme = "system";
  * Where the chosen theme is remembered between visits.
  *
  * `develevate…` like this fork's other invented keys — see
- * `src/entities/tutorial-task/model/progress.ts` for why the prefix matters.
+ * `src/entities/tutorial-level/model/progress.ts` for why the prefix matters.
  */
 export const THEME_STORAGE_KEY = "develevateTheme";
 

@@ -185,7 +185,7 @@ function seedNewDrawTemplate(name: string): string {
  * The settings popover's seed block, or nothing at all.
  *
  * `data` is `null` under exactly the conditions `src/pages/game/index.ts`'s
- * `#seedLink` returns `null` for: a learning-track task, which has no
+ * `#seedLink` returns `null` for: a learning-track level, which has no
  * pass/fail run to name a seed for, or (test-only) a world built with a
  * ready-made random stream instead of a seed. Rendering nothing then, rather
  * than a block with nothing useful in it, is the same choice

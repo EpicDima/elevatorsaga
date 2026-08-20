@@ -6,7 +6,7 @@
  * a real behavior change from today's production, where every level is
  * reachable from the row regardless of what came before. Deliberately
  * narrow: this is the "Уровни" block's own rule, decided separately from
- * `#entities/tutorial-task/model/progress.ts`'s block, which keeps its
+ * `#entities/tutorial-level/model/progress.ts`'s block, which keeps its
  * documented "the track locks nothing" behavior unchanged.
  *
  * Composes two entities rather than living in either: {@link

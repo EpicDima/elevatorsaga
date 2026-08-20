@@ -39,7 +39,7 @@ const FLOOR = { width: 1040, height: 600 } as const;
 
 /** The shortest buildings the game draws. */
 const SHORT_BUILDINGS = [
-  { name: "a two-floor learning task", hash: "#level=tutorial-1" },
+  { name: "a two-floor learning level", hash: "#level=tutorial-1" },
   { name: "a three-floor level", hash: "#level=1" },
 ] as const;
 

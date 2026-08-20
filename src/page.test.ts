@@ -11,7 +11,7 @@ import { Elevator } from "./game/elevator.ts";
 import { ElevatorInterface, type ElevatorInterfaceEvents } from "./game/elevator-interface.ts";
 import { Floor } from "./game/floor.ts";
 import { FloorInterface, type FloorInterfaceEvents } from "./game/floor-interface.ts";
-import { tutorialTasks } from "./game/tutorial.ts";
+import { tutorialLevels } from "./game/tutorial.ts";
 import type { MessageKey } from "./i18n/catalogue.ts";
 import { EN_MESSAGES } from "./i18n/en.ts";
 import { setLocale, DEFAULT_LOCALE } from "./i18n/index.ts";
@@ -145,7 +145,7 @@ describe("index.html", () => {
       // bar changes under the player's own hands. Announcing any of them would
       // bury the messages that do need announcing under continuous noise. The
       // learning track's panel is redrawn whole every time the language changes
-      // or a task is cleared, so announcing it would read the entire lesson out
+      // or a level is cleared, so announcing it would read the entire lesson out
       // again; it is a named region instead, which is how it is reached on
       // purpose.
       const element = page.querySelector(selector);
@@ -979,15 +979,15 @@ describe("documentation.html and documentation.ru.html, as one document in two l
     // API yet, so it is the one place a player can arrive at already knowing
     // they are out of their depth. The track's own way in is a link in the
     // header of the *game*, which is the page they have just left.
-    const [firstTask] = tutorialTasks;
-    if (firstTask === undefined) {
-      throw new Error("The learning track has no tasks to offer");
+    const [firstLevel] = tutorialLevels;
+    if (firstLevel === undefined) {
+      throw new Error("The learning track has no levels to offer");
     }
-    // Built from the task's id rather than written out, so renaming task one
+    // Built from the level's id rather than written out, so renaming level one
     // fails here instead of leaving both pages pointing at an address that
     // resolves to the track's start with a console warning -- which is what a
-    // dead task address does, and it would look like the link still worked.
-    const href = `index.html#level=${firstTask.id}`;
+    // dead level address does, and it would look like the link still worked.
+    const href = `index.html#level=${firstLevel.id}`;
     for (const { file, document } of DOCUMENTATION_PAGES) {
       const links = [...document.querySelectorAll(`a[href="${href}"]`)];
       expect(links, file).toHaveLength(1);

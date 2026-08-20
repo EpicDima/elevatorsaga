@@ -6,8 +6,8 @@ import type { Level } from "../../game/levels.ts";
 import { atLeastAvgLoadFactorOnMove } from "../../game/level-tiers.ts";
 import type { LevelTierRequirements } from "../../game/level-tiers.ts";
 import { INSTANT_RUN_MAX_SIMULATED_SECONDS } from "../../game/instant-run.ts";
-import { tutorialTasks } from "../../game/tutorial.ts";
-import type { TutorialTask } from "../../game/tutorial.ts";
+import { tutorialLevels } from "../../game/tutorial.ts";
+import type { TutorialLevel } from "../../game/tutorial.ts";
 import { TICK_SECONDS, createWorldController } from "../../game/world-controller.ts";
 import type { WorldController } from "../../game/world-controller.ts";
 import { createWorld } from "../../game/world.ts";
@@ -246,8 +246,8 @@ function levelBlockCaption(elements: AppElements): string {
 /**
  * The level switcher's own trigger label — what replaced the level bar's
  * combined "Tutorial level N of M: <title>" title string. Unlike that title,
- * this carries only the task's own position, not the track's length or the
- * task's own sentence; see this file's specs for where the rest went.
+ * this carries only the level's own position, not the track's length or the
+ * level's own sentence; see this file's specs for where the rest went.
  *
  * @param elements - The page shell the app was built over.
  * @returns The trigger's own text.
@@ -1050,34 +1050,34 @@ describe("App learning track", () => {
   });
 
   /**
-   * The task at a position in the track.
+   * The level at a position in the track.
    *
    * Read out of the real table rather than a fixture, unlike the levels
    * these specs play, because the table is what the app plays: `startTutorial`
-   * takes a position in `tutorialTasks`, the router resolves an address against
+   * takes a position in `tutorialLevels`, the router resolves an address against
    * the same array, and a stand-in track would prove the wiring against
    * something no player can reach.
    *
    * @param index - Position in the track, counted from zero.
-   * @returns The task there.
+   * @returns The level there.
    * @throws Error When the track is shorter than that.
    */
-  function taskAt(index: number): TutorialTask {
-    const task = tutorialTasks[index];
-    if (task === undefined) {
-      throw new Error(`The learning track has no task at position ${String(index)}`);
+  function levelAt(index: number): TutorialLevel {
+    const level = tutorialLevels[index];
+    if (level === undefined) {
+      throw new Error(`The learning track has no level at position ${String(index)}`);
     }
-    return task;
+    return level;
   }
 
   /**
    * Ends the run on screen, one way or the other.
    *
    * Every condition on the track asks for passengers within a time limit, so a
-   * run is won by having delivered more than any task asks for while the clock
+   * run is won by having delivered more than any level asks for while the clock
    * is still young, and lost by letting the clock run out with nobody delivered.
    * Written into the counters rather than played out, because what these specs
-   * are about is what the app does with a verdict; that the tasks can actually
+   * are about is what the app does with a verdict; that the levels can actually
    * be lost by the program the player is handed and won by the answer they are
    * shown is what `src/game/tutorial-solutions.test.ts` proves, by playing them.
    *
@@ -1095,16 +1095,16 @@ describe("App learning track", () => {
   }
 
   /**
-   * Where the editor keeps one task's program.
+   * Where the editor keeps one level's program.
    *
    * Spelled out here as it is in `editor.test.ts`: the prefix is private to the
    * editor, and a test that imported it could not tell a renamed key from a
    * working one — the very thing the key exists to be stable about, since it
    * holds a program the player typed.
    */
-  const TASK_2_CODE_KEY = "develevateTutorialCode_tutorial-2";
+  const LEVEL_2_CODE_KEY = "develevateTutorialCode_tutorial-2";
 
-  it("plays the task the url names rather than level 1", () => {
+  it("plays the level the url names rather than level 1", () => {
     // Until the route was dispatched on `tutorialIndex`, `#level=tutorial-5`
     // fell through to the level branch, which resolves anything it does not
     // understand to level 1 -- so the game played level 1 while the
@@ -1114,27 +1114,27 @@ describe("App learning track", () => {
 
     app.handleRoute(...routeFor("#level=tutorial-5"));
 
-    expect(app.tutorial?.task.id).toBe("tutorial-5");
+    expect(app.tutorial?.level.id).toBe("tutorial-5");
     expect(app.tutorial?.index).toBe(4);
     expect(app.isPlayingSandbox).toBe(false);
-    expect(app.world?.floors.length).toBe(taskAt(4).options.floorCount);
+    expect(app.world?.floors.length).toBe(levelAt(4).options.floorCount);
     // Where a restart would send them back to, left where the level put it,
     // exactly as the sandbox leaves it: the track is not a station on the ladder.
     expect(app.currentLevelIndex).toBe(2);
   });
 
-  it("builds a task on its own pinned seed rather than a fresh draw", () => {
+  it("builds a level on its own pinned seed rather than a fresh draw", () => {
     // The lesson is "this program loses and that one wins", which is a statement
     // about a particular stream of passengers. On a random draw it would be a
     // coin flip, and a player could be shown a mistake that happened to squeak
-    // past -- the opposite of what the task is for.
+    // past -- the opposite of what the level is for.
     const { app } = setUp();
     app.handleRoute(...routeFor("#level=tutorial-3"));
-    expect(app.world?.seed).toBe(taskAt(2).seed);
+    expect(app.world?.seed).toBe(levelAt(2).seed);
   });
 
-  it("keeps the task's seed when the url is still carrying a level's", () => {
-    // The router refuses `seed` on a task address, so the two can only disagree
+  it("keeps the level's seed when the url is still carrying a level's", () => {
+    // The router refuses `seed` on a level address, so the two can only disagree
     // from inside the app -- Ctrl-Enter, "Start over", the Restart button --
     // and then it is the leftover from the level just left that has to
     // lose.
@@ -1144,13 +1144,13 @@ describe("App learning track", () => {
 
     app.startTutorial(0);
 
-    expect(app.world?.seed).toBe(taskAt(0).seed);
+    expect(app.world?.seed).toBe(levelAt(0).seed);
   });
 
   it("offers no seed line, and prints none, because both halves of it are refused", () => {
     // "The same passengers again" would write `seed=` into an address the router
     // refuses it on, and "a new draw" would offer to stop pinning the seed the
-    // task pins. A line that undoes itself is worse than no line, and the
+    // level pins. A line that undoes itself is worse than no line, and the
     // console print is built from the same data.
     const { app } = setUp();
     app.startTutorial(0);
@@ -1159,20 +1159,20 @@ describe("App learning track", () => {
     expect(console.log).not.toHaveBeenCalled();
   });
 
-  it("hands a task nobody has opened its starting program", () => {
+  it("hands a level nobody has opened its starting program", () => {
     const { app, view } = setUp();
     app.startTutorial(0);
-    expect(view.getValue()).toBe(taskAt(0).startingCode);
+    expect(view.getValue()).toBe(levelAt(0).startingCode);
   });
 
-  it("opens the task's buffer before the run compiles anything", () => {
+  it("opens the level's buffer before the run compiles anything", () => {
     // Ordering, tested by its consequence. `#startRun` compiles whatever is in
     // the editor at the moment it starts, so a buffer opened afterwards would
-    // run the previous buffer's program in this task's building for one run.
+    // run the previous buffer's program in this level's building for one run.
     // The stored attempt does not compile and the player's program does, so the
     // banner is here only if the switch happened first.
     const { app, editorPaneMount, storage, view } = setUp();
-    storage.setItem(TASK_2_CODE_KEY, "{ this is not javascript");
+    storage.setItem(LEVEL_2_CODE_KEY, "{ this is not javascript");
 
     app.startTutorial(1);
 
@@ -1209,7 +1209,7 @@ describe("App learning track", () => {
     expect(view.getValue()).toBe(INERT_CODE);
   });
 
-  it("repeats the task when the program is applied, not the last level played", () => {
+  it("repeats the level when the program is applied, not the last level played", () => {
     // `startLevel(currentLevelIndex)` was what "run this again" used to
     // mean. On the track it would apply the player's edit to a different
     // building and take the attempt they were half-way through off the screen.
@@ -1222,23 +1222,23 @@ describe("App learning track", () => {
     editor.trigger("apply_code");
 
     expect(app.world).not.toBe(before);
-    expect(app.tutorial?.task.id).toBe("tutorial-3");
-    expect(app.world?.floors.length).toBe(taskAt(2).options.floorCount);
+    expect(app.tutorial?.level.id).toBe("tutorial-3");
+    expect(app.world?.floors.length).toBe(levelAt(2).options.floorCount);
     expect(app.worldController.isPaused).toBe(false);
     // Reopening the buffer already on screen is a no-op, so the attempt being
     // applied is still there to edit.
     expect(view.getValue()).toBe("// half an answer");
   });
 
-  it("repeats the task from the bar's restart button", () => {
+  it("repeats the level from the bar's restart button", () => {
     const { app, elements } = setUp();
     app.startTutorial(1);
-    // Only reachable once the run is over, which on a task is the ordinary case.
+    // Only reachable once the run is over, which on a level is the ordinary case.
     app.world?.unWind();
 
     requireElement(".startstop", elements.controls).click();
 
-    expect(app.tutorial?.task.id).toBe("tutorial-2");
+    expect(app.tutorial?.level.id).toBe("tutorial-2");
     expect(app.world?.levelEnded).toBe(false);
   });
 
@@ -1246,7 +1246,7 @@ describe("App learning track", () => {
     const { app, elements } = setUp();
     app.startTutorial(2);
 
-    // Three, because this is the track's third task -- the number is what this
+    // Three, because this is the track's third level -- the number is what this
     // test is about. The wording is `tileTriggerName`'s: the trigger names the
     // level and leaves "completed" and "locked" to the tile in the menu.
     expect(taskName(elements)).toBe("Lesson 3");
@@ -1262,7 +1262,7 @@ describe("App learning track", () => {
     expect(taskName(elements)).toBe("Урок 1");
   });
 
-  it("leaves every level reachable from a task, and marks none of them current", () => {
+  it("leaves every level reachable from a level, and marks none of them current", () => {
     const { app, elements, storage } = setUp();
     unlockLevel2(storage);
     app.handleRoute(...routeFor("#level=tutorial-4,timescale=8"));
@@ -1272,7 +1272,7 @@ describe("App learning track", () => {
     expect(entries[1]?.getAttribute("href")).toBe("#level=2,timescale=8");
   });
 
-  it("offers the next task, by name, after a win in the middle of the track", () => {
+  it("offers the next level, by name, after a win in the middle of the track", () => {
     const { app, elements } = setUp();
     app.startTutorial(0);
 
@@ -1280,9 +1280,9 @@ describe("App learning track", () => {
 
     expect(requireElement(".verdict h3", elements.feedback).textContent).toBe("Success!");
     const link = requireElement(".verdict a", elements.feedback);
-    expect(link.getAttribute("href")).toBe(`#level=${taskAt(1).id}`);
+    expect(link.getAttribute("href")).toBe(`#level=${levelAt(1).id}`);
     // "Next level" is what the shared template writes into every such link,
-    // and the numbered ladder is not where task 2 lives.
+    // and the numbered ladder is not where level 2 lives.
     expect(link.textContent.trim()).toBe("Next tutorial level");
     // The caret the template put beside the words survives being relabelled.
     expect(link.querySelector("svg")).not.toBeNull();
@@ -1290,7 +1290,7 @@ describe("App learning track", () => {
 
   it("ends the track by offering level 1", () => {
     const { app, elements } = setUp();
-    app.startTutorial(tutorialTasks.length - 1);
+    app.startTutorial(tutorialLevels.length - 1);
 
     endRun(app, true);
 
@@ -1304,25 +1304,25 @@ describe("App learning track", () => {
 
   it("says how long the track was in the words each catalogue counts it with", () => {
     // `tutorial.finish.message` is the one sentence in the game that writes the
-    // length of the track out rather than counting `tutorialTasks.length`,
+    // length of the track out rather than counting `tutorialLevels.length`,
     // because "Eight tutorial levels" is what the sentence needs and "8 levels" is
     // not. A
-    // ninth task would leave both catalogues quietly wrong on the one screen a
+    // ninth level would leave both catalogues quietly wrong on the one screen a
     // player reaches once, so the number is pinned here against the words --
-    // add the task, add its wording, and this passes again.
+    // add the level, add its wording, and this passes again.
     const SPELLED_OUT: Readonly<Record<number, Readonly<Record<Locale, string>>>> = {
       8: { en: "Eight tutorial levels", ru: "Восемь учебных уровней" },
     };
-    const words = SPELLED_OUT[tutorialTasks.length];
+    const words = SPELLED_OUT[tutorialLevels.length];
     expect(
       words,
-      `no wording is recorded for a track of ${String(tutorialTasks.length)}`,
+      `no wording is recorded for a track of ${String(tutorialLevels.length)}`,
     ).toBeDefined();
 
     for (const locale of LOCALES) {
       setLocale(locale);
       const { app, elements } = setUp();
-      app.startTutorial(tutorialTasks.length - 1);
+      app.startTutorial(tutorialLevels.length - 1);
 
       endRun(app, true);
 
@@ -1338,10 +1338,10 @@ describe("App learning track", () => {
     // the player's own buffer back on screen. Their program is what is waiting
     // there, which is right -- nothing may overwrite it without asking -- so it
     // is the label that had to give. The winning program is not lost either; it
-    // is under the task's own key, and the panel's button is how it travels.
+    // is under the level's own key, and the panel's button is how it travels.
     const { app, elements, view, storage } = setUp();
     storage.setItem(CODE_STORAGE_KEY, "// the program I came in with");
-    app.startTutorial(tutorialTasks.length - 1);
+    app.startTutorial(tutorialLevels.length - 1);
     view.type("// the program that clears level 1");
 
     endRun(app, true);
@@ -1350,12 +1350,12 @@ describe("App learning track", () => {
 
     expect(link.textContent.trim()).not.toContain("this program");
     expect(view.getValue()).toBe("// the program I came in with");
-    expect(storage.getItem(`develevateTutorialCode_${taskAt(tutorialTasks.length - 1).id}`)).toBe(
+    expect(storage.getItem(`develevateTutorialCode_${levelAt(tutorialLevels.length - 1).id}`)).toBe(
       "// the program that clears level 1",
     );
   });
 
-  it("says a lost task is lost, and offers nothing", () => {
+  it("says a lost level is lost, and offers nothing", () => {
     // The expected first outcome on the track: the player is meant to go back to
     // the editor, where the hints are, rather than onwards.
     const { app, elements } = setUp();
@@ -1367,9 +1367,9 @@ describe("App learning track", () => {
     expect(elements.feedback.querySelector("a")).toBeNull();
   });
 
-  it("counts a cleared task, and counts it once however often it is cleared", () => {
+  it("counts a cleared level, and counts it once however often it is cleared", () => {
     const { app } = setUp();
-    expect(app.tutorialProgress()).toEqual({ cleared: 0, count: tutorialTasks.length });
+    expect(app.tutorialProgress()).toEqual({ cleared: 0, count: tutorialLevels.length });
 
     app.startTutorial(0);
     endRun(app, true);
@@ -1380,10 +1380,10 @@ describe("App learning track", () => {
     expect(app.tutorialProgress().cleared).toBe(1);
   });
 
-  it("redraws a task's verdict in the new language, link and all", () => {
+  it("redraws a level's verdict in the new language, link and all", () => {
     // `relocalise` draws the remembered outcome again, and it has to arrive back
-    // at the same three decisions: the task's overlay rather than a level's,
-    // the address of the next task rather than the next level, and the words
+    // at the same three decisions: the level's overlay rather than a level's,
+    // the address of the next level rather than the next level, and the words
     // the template does not have. Drawing it from the outcome alone is what
     // makes that possible, and a redraw that lost any of the three would put a
     // link labelled "Следующий уровень" -- the numbered ladder -- in front of a
@@ -1397,12 +1397,12 @@ describe("App learning track", () => {
 
     expect(requireElement(".verdict h3", elements.feedback).textContent).toBe("Получилось!");
     const link = requireElement(".verdict a", elements.feedback);
-    expect(link.getAttribute("href")).toBe(`#level=${taskAt(1).id}`);
+    expect(link.getAttribute("href")).toBe(`#level=${levelAt(1).id}`);
     expect(link.textContent.trim()).toBe("Следующий учебный уровень");
     expect(app.tutorialProgress().cleared).toBe(1);
   });
 
-  it("counts nothing for a task that was lost", () => {
+  it("counts nothing for a level that was lost", () => {
     const { app } = setUp();
     app.startTutorial(0);
 
@@ -1411,7 +1411,7 @@ describe("App learning track", () => {
     expect(app.tutorialProgress().cleared).toBe(0);
   });
 
-  it("knows whether taking a task's program would overwrite one of the player's", () => {
+  it("knows whether taking a level's program would overwrite one of the player's", () => {
     // Asked before the panel offers to confirm. An empty store is not a program
     // of theirs, and neither is the one the game itself put there: confirming
     // the replacement of a program nobody typed teaches players to dismiss the
@@ -1433,7 +1433,7 @@ describe("App learning track", () => {
   it("still asks when the store refused to keep the player's program", () => {
     // The program the question is about is the editor's, not the store's: when
     // the store will not take a write, the editor's own copy of the key is the
-    // only copy there is, and it is exactly what taking a task's program
+    // only copy there is, and it is exactly what taking a level's program
     // overwrites. Asking the store directly answers "there is nothing of yours
     // here" at the one moment that is both wrong and expensive -- a full quota,
     // or the private windows that hand out a `Storage` and refuse every write.
@@ -1454,18 +1454,18 @@ describe("App learning track", () => {
     expect(app.playerCodeWouldBeReplaced()).toBe(false);
   });
 
-  it("copies the program into the player's editor without leaving the task", () => {
+  it("copies the program into the player's editor without leaving the level", () => {
     // The button means "I want to keep this", not "I am done here": somebody who
-    // takes the answer to task 4 usually wants to go on reading task 4.
+    // takes the answer to level 4 usually wants to go on reading level 4.
     const { app, storage, view } = setUp();
     app.startTutorial(3);
-    view.type("// my answer to task 4");
+    view.type("// my answer to level 4");
 
     expect(app.takeTutorialCode()).toBe(true);
 
-    expect(storage.getItem("develevateChallengeCode_0_1")).toBe("// my answer to task 4");
+    expect(storage.getItem("develevateChallengeCode_0_1")).toBe("// my answer to level 4");
     expect(app.tutorial?.index).toBe(3);
-    expect(view.getValue()).toBe("// my answer to task 4");
+    expect(view.getValue()).toBe("// my answer to level 4");
   });
 
   it("hands the taken program to the editor the player comes back to", () => {
@@ -1481,19 +1481,19 @@ describe("App learning track", () => {
     editor.save();
 
     app.startTutorial(3);
-    view.type("// my answer to task 4");
+    view.type("// my answer to level 4");
     expect(app.takeTutorialCode()).toBe(true);
 
     app.leaveTutorial();
 
-    expect(view.getValue()).toBe("// my answer to task 4");
-    expect(storage.getItem("develevateChallengeCode_0_1")).toBe("// my answer to task 4");
+    expect(view.getValue()).toBe("// my answer to level 4");
+    expect(storage.getItem("develevateChallengeCode_0_1")).toBe("// my answer to level 4");
   });
 
-  it("refuses a position that does not name a task", () => {
-    // Symmetric with `startLevel`: the router resolves a task address
+  it("refuses a position that does not name a level", () => {
+    // Symmetric with `startLevel`: the router resolves a level address
     // against the same table, so this is only reachable from a caller that made
-    // the position up, and a made-up position must not quietly play task 1.
+    // the position up, and a made-up position must not quietly play level 1.
     const { app } = setUp();
     expect(() => {
       app.startTutorial(99);
@@ -1511,26 +1511,26 @@ describe("App learning track", () => {
       return elements.tutorial.querySelector(".tutorialposition")?.textContent ?? null;
     }
 
-    it("draws the panel for the task on screen", () => {
+    it("draws the panel for the level on screen", () => {
       const { app, elements } = setUp();
       app.startTutorial(2);
 
       expect(positionLine(elements)).toBe(
-        `Learning track Level 3 of ${String(tutorialTasks.length)}`,
+        `Learning track Level 3 of ${String(tutorialLevels.length)}`,
       );
       expect(requireElement(".tutorialtitle", elements.tutorial).textContent).toBe(
         "The buttons inside the car",
       );
       expect(requireElement(".tutorialsolution code", elements.tutorial).textContent).toBe(
-        taskAt(2).solutionCode,
+        levelAt(2).solutionCode,
       );
     });
 
     it("leaves the region empty everywhere else, so the page has no gap in it", () => {
       // Nineteen levels and the sandbox all go through the same
       // draw, and the stylesheet hides the region only while it is empty. The
-      // last task's hints left above level 1 would be worse than a gap: they
-      // are the answer to a task nobody is playing.
+      // last level's hints left above level 1 would be worse than a gap: they
+      // are the answer to a level nobody is playing.
       const { app, elements } = setUp();
       expect(elements.tutorial.children).toHaveLength(0);
 
@@ -1546,7 +1546,7 @@ describe("App learning track", () => {
     });
 
     it("redraws the panel when the language changes under it", () => {
-      // The panel is most of the words on the page while a task is on screen,
+      // The panel is most of the words on the page while a level is on screen,
       // so a language change that missed it would leave the game in English
       // with a Russian bar over it.
       const { app, elements } = setUp();
@@ -1556,14 +1556,14 @@ describe("App learning track", () => {
       app.relocalise();
 
       expect(positionLine(elements)).toBe(
-        `Учебная дорожка Уровень 1 из ${String(tutorialTasks.length)}`,
+        `Учебная дорожка Уровень 1 из ${String(tutorialLevels.length)}`,
       );
       expect(requireElement(".tutorialtitle", elements.tutorial).textContent).toBe(
         "Лифт, который никуда не едет",
       );
     });
 
-    it("counts the task just cleared without waiting for the next draw", () => {
+    it("counts the level just cleared without waiting for the next draw", () => {
       // The verdict is drawn over the panel, and the panel is behind it saying
       // how far along the track the player is. Without the redraw it would say
       // "0 of 8 levels done" underneath an overlay congratulating them on the
@@ -1571,21 +1571,21 @@ describe("App learning track", () => {
       const { app, elements } = setUp();
       app.startTutorial(0);
       expect(requireElement(".tutorialprogress", elements.tutorial).textContent).toBe(
-        `0 of ${String(tutorialTasks.length)} levels done`,
+        `0 of ${String(tutorialLevels.length)} levels done`,
       );
 
       endRun(app, true);
 
       expect(requireElement(".tutorialprogress", elements.tutorial).textContent).toBe(
-        `1 of ${String(tutorialTasks.length)} levels done`,
+        `1 of ${String(tutorialLevels.length)} levels done`,
       );
     });
 
-    it("leaves the run controls to be the only way to start the task again", () => {
+    it("leaves the run controls to be the only way to start the level again", () => {
       // The panel had a "Start over" of its own, and so does the row of run
       // controls drawn directly under it, with the same accessible name and
       // without the auto-start the row's has (WCAG 3.2.4). The one that went is
-      // the one only the track had; the one that stayed restarts the task from
+      // the one only the track had; the one that stayed restarts the level from
       // the track exactly as it restarts a level.
       const { app, elements } = setUp();
       app.startTutorial(1);
@@ -1595,11 +1595,11 @@ describe("App learning track", () => {
       requireElement(".startover", elements.controls).click();
 
       expect(app.world).not.toBe(before);
-      expect(app.tutorial?.task.id).toBe("tutorial-2");
+      expect(app.tutorial?.level.id).toBe("tutorial-2");
       expect(app.worldController.isPaused).toBe(false);
     });
 
-    it("takes the task's program into the player's editor from the panel", () => {
+    it("takes the level's program into the player's editor from the panel", () => {
       const { app, elements, storage, view } = setUp();
       app.startTutorial(3);
       view.type("// the answer, copied out of the hint");
@@ -1609,7 +1609,7 @@ describe("App learning track", () => {
       expect(storage.getItem("develevateChallengeCode_0_1")).toBe(
         "// the answer, copied out of the hint",
       );
-      // Still on the task: the button means "I want to keep this", not "I am
+      // Still on the level: the button means "I want to keep this", not "I am
       // done here".
       expect(app.tutorial?.index).toBe(3);
       // And the player is told, because the buffer it went into is not on screen
@@ -1638,13 +1638,13 @@ describe("App learning track", () => {
         "Your browser refused to store it. Copy the program out of the editor by hand to keep it.",
       );
       // The refusal is not an error for the player to deal with: the run they
-      // are in does not depend on this write, and they are still on the task.
+      // are in does not depend on this write, and they are still on the level.
       expect(app.tutorial?.index).toBe(3);
     });
 
-    it("keeps that confirmation on screen when the task is cleared under it", () => {
+    it("keeps that confirmation on screen when the level is cleared under it", () => {
       // The sequence this was written for: take the program, then win the run.
-      // Clearing a task redraws the panel to move its progress line on, and the
+      // Clearing a level redraws the panel to move its progress line on, and the
       // sentence the player had just been given used to go with it -- wiped at
       // the exact moment the overlay appeared over the top, so it would have
       // looked like the overlay that did it.
@@ -1663,7 +1663,7 @@ describe("App learning track", () => {
     it("asks the app, not itself, whether that would overwrite a program", () => {
       // The panel has no idea what is in the player's editor; `App` does, and
       // answers at the moment the button is pressed. A player who wrote their
-      // first program during task 5 must not have it taken away in silence.
+      // first program during level 5 must not have it taken away in silence.
       const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
       const { app, elements, storage } = setUp();
       app.startTutorial(4);

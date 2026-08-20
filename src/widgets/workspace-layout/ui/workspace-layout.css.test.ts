@@ -75,7 +75,7 @@ describe("the game pane's column", () => {
     expect(styleSource).toMatch(/^@container stage \(max-width: 760px\) \{$/m);
     // And stacked, the same priority has to be stated again in the other axis,
     // because the row's flex factors are about width and the two boxes are now
-    // competing for height. The lesson is the one with no natural end: task 7
+    // competing for height. The lesson is the one with no natural end: level 7
     // with its answer open asks for 1290px of the 399px row a 1040x600 window
     // leaves, and unbounded it took all of it -- the building measured 0px
     // tall. The ceiling is inside the query, so it is matched at that indent

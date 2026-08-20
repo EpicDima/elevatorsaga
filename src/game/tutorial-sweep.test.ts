@@ -2,10 +2,10 @@
  * The tail `tutorial-solutions.test.ts` cannot see: four hundred seeds, and the
  * win counts written down to the run.
  *
- * Ten seeds decide whether a task works. They cannot decide how *often* it
- * works, and for the two tasks judged on waiting that is the number that
- * matters: task 5's limit was 26 for as long as it was measured on ten seeds,
- * and on four hundred it rejected the task's own answer twenty-two times, a
+ * Ten seeds decide whether a level works. They cannot decide how *often* it
+ * works, and for the two levels judged on waiting that is the number that
+ * matters: level 5's limit was 26 for as long as it was measured on ten seeds,
+ * and on four hundred it rejected the level's own answer twenty-two times, a
  * player in eighteen being told their correct program had failed. Nothing in
  * the fast suite noticed, because on its ten seeds the answer clears 26 with
  * eleven seconds to spare. A distribution is what was wrong, so a distribution
@@ -21,23 +21,23 @@
  *
  * **These four hundred are not evidence, they are a tripwire.** `t0`…`t199` and
  * `u0`…`u199` were unseen while `docs/tutorial-plan.md` fitted the thresholds on
- * `s0`…`s199` — but tasks 5 and 6 were then re-tuned against these very seeds,
+ * `s0`…`s199` — but levels 5 and 6 were then re-tuned against these very seeds,
  * so their counts below are in-sample and prove nothing about a limit's
  * generality. The out-of-sample check for the two limits that moved is `v0`…
  * `v199` and `w0`…`w199`, quoted where they were spent, in the table in
- * {@link "./tutorial.ts"!tutorialTasks}. What this file guarantees is narrower
+ * {@link "./tutorial.ts"!tutorialLevels}. What this file guarantees is narrower
  * and still worth having: these programs, on these seeds, still come out to
  * these numbers.
  *
  * **Its own loop, not the fast suite's.** The harness below is that file's
- * `playTask` with the clock shifting taken out, deliberately: the slow run
- * asserts nothing about margin. Task 8's margin on its worst win is under a
+ * `playLevel` with the clock shifting taken out, deliberately: the slow run
+ * asserts nothing about margin. Level 8's margin on its worst win is under a
  * second and on seed `t165` it is negative, so a margin assertion over four
  * hundred seeds could only be either vacuous or false. Margin is a thing the
  * ten seeds check, where it is meaningful; a verdict is the only thing that
  * survives being counted.
  *
- * Three tasks of the eight, and the three are not arbitrary: 5 and 6 are the
+ * Three levels of the eight, and the three are not arbitrary: 5 and 6 are the
  * only ones whose bar measures a maximum rather than a sum, which is what gives
  * them a tail to hide in, and 8 is the only one whose answer genuinely loses a
  * seed. The other five are decided by delivery counts with margins the ten
@@ -51,7 +51,7 @@ import { describe, expect, it } from "vitest";
 import { levels, type LevelCondition } from "./levels.ts";
 import { createFrameRequester } from "./frame-requester.ts";
 import type { RandomSeed } from "./random.ts";
-import { tutorialTasks, type TutorialTask } from "./tutorial.ts";
+import { tutorialLevels, type TutorialLevel } from "./tutorial.ts";
 import { getCodeObjFromCode } from "./user-code.ts";
 import { TICK_SECONDS, createWorldController } from "./world-controller.ts";
 import { createWorld, type WorldOptions } from "./world.ts";
@@ -59,7 +59,7 @@ import { createWorld, type WorldOptions } from "./world.ts";
 /** Milliseconds per frame, at the rate most displays run at. */
 const FRAME_MILLISECONDS = 1000.0 / 60.0;
 
-/** Simulated seconds after which an undecided run is called a broken task. */
+/** Simulated seconds after which an undecided run is called a broken level. */
 const MAX_SIMULATED_SECONDS = 240.0;
 
 /** Seeds per named set. */
@@ -82,9 +82,9 @@ const SWEEP_SEEDS: readonly RandomSeed[] = ["t", "u"].flatMap((prefix) =>
 /**
  * A three-floor sweep: the dumbest program that could be called a solution.
  *
- * Here rather than in the task table because no player is ever shown it. It is
- * evidence about task 8's *building* — see the test that spends it — and the
- * table is for the two programs the task is played with.
+ * Here rather than in the level table because no player is ever shown it. It is
+ * evidence about level 8's *building* — see the test that spends it — and the
+ * table is for the two programs the level is played with.
  */
 const BLIND_SWEEP = `{
     init: function(elevators, floors) {
@@ -201,18 +201,18 @@ function sweep(options: WorldOptions, condition: LevelCondition, code: string): 
 }
 
 /**
- * The task with this identifier.
+ * The level with this identifier.
  *
  * @param id - The identifier.
- * @returns The task.
- * @throws When the track has no such task.
+ * @returns The level.
+ * @throws When the track has no such level.
  */
-function taskById(id: string): TutorialTask {
-  const task = tutorialTasks.find((candidate) => candidate.id === id);
-  if (task === undefined) {
-    throw new Error(`the learning track has no task ${id}`);
+function levelById(id: string): TutorialLevel {
+  const level = tutorialLevels.find((candidate) => candidate.id === id);
+  if (level === undefined) {
+    throw new Error(`the learning track has no level ${id}`);
   }
-  return task;
+  return level;
 }
 
 /**
@@ -254,8 +254,8 @@ function describeSweep(label: string, result: SweepResult): string {
  */
 const SWEEP_TIMEOUT_MS = 30_000;
 
-describe("Learning track task tutorial-5 over four hundred seeds", () => {
-  const task = taskById("tutorial-5");
+describe("Learning track level tutorial-5 over four hundred seeds", () => {
+  const level = levelById("tutorial-5");
 
   it(
     "never rejects its own answer",
@@ -264,7 +264,7 @@ describe("Learning track task tutorial-5 over four hundred seeds", () => {
       // it lost are the failure a learner cannot debug: the program they were
       // shown as the answer, failing. Seed t61 was the worst of them, stopping
       // the correct program at 7 of the 15 delivered.
-      const result = sweep(task.options, task.condition, task.solutionCode);
+      const result = sweep(level.options, level.condition, level.solutionCode);
       expect(result.wins, describeSweep("tutorial-5 answer", result)).toBe(400);
     },
     SWEEP_TIMEOUT_MS,
@@ -279,15 +279,15 @@ describe("Learning track task tutorial-5 over four hundred seeds", () => {
       // answer's worst leaves somebody waiting 35.88 s — so the count is written
       // down rather than wished away. It rising is not automatically a bug; it
       // moving at all is something to look at.
-      const result = sweep(task.options, task.condition, task.startingCode);
+      const result = sweep(level.options, level.condition, level.startingCode);
       expect(result.wins, describeSweep("tutorial-5 starting code", result)).toBe(76);
     },
     SWEEP_TIMEOUT_MS,
   );
 });
 
-describe("Learning track task tutorial-6 over four hundred seeds", () => {
-  const task = taskById("tutorial-6");
+describe("Learning track level tutorial-6 over four hundred seeds", () => {
+  const level = levelById("tutorial-6");
 
   it(
     "never rejects its own answer",
@@ -296,7 +296,7 @@ describe("Learning track task tutorial-6 over four hundred seeds", () => {
       // program with 14 of the 15 delivered and a worst wait of 25.02 s. The ten
       // fixed seeds could not see it and cannot see it now, which is what this
       // file is for.
-      const result = sweep(task.options, task.condition, task.solutionCode);
+      const result = sweep(level.options, level.condition, level.solutionCode);
       expect(result.wins, describeSweep("tutorial-6 answer", result)).toBe(400);
     },
     SWEEP_TIMEOUT_MS,
@@ -308,28 +308,28 @@ describe("Learning track task tutorial-6 over four hundred seeds", () => {
       // Three, at every limit from 26 to 30 — the same three seeds throughout,
       // which is what made 28 a shelf to stand in the middle of rather than a
       // point to balance on.
-      const result = sweep(task.options, task.condition, task.startingCode);
+      const result = sweep(level.options, level.condition, level.startingCode);
       expect(result.wins, describeSweep("tutorial-6 starting code", result)).toBe(3);
     },
     SWEEP_TIMEOUT_MS,
   );
 });
 
-describe("Learning track task tutorial-8 over four hundred seeds", () => {
-  const task = taskById("tutorial-8");
+describe("Learning track level tutorial-8 over four hundred seeds", () => {
+  const level = levelById("tutorial-8");
 
   it(
     "loses one seed with its own answer, and it is level 1 that loses it",
     () => {
-      // 399, and the missing one is not a defect of the task. At 0.3 passengers a
+      // 399, and the missing one is not a defect of the level. At 0.3 passengers a
       // second the fifteenth does not exist before t ≈ 46.7 s of the 60 available,
       // and on seed t165 the answer has 14 out by the bar with the last arriving
-      // some ten seconds later. This is the number to leave alone: task 8's
+      // some ten seconds later. This is the number to leave alone: level 8's
       // building and bar are level 1's, deliberately and by identity, so
-      // anything that would lift 399 to 400 does it by making the graduation task
+      // anything that would lift 399 to 400 does it by making the graduation level
       // no longer the game's own first level — which is the one thing it is
       // for. The next test makes that concrete rather than asserting it.
-      const result = sweep(task.options, task.condition, task.solutionCode);
+      const result = sweep(level.options, level.condition, level.solutionCode);
       expect(result.wins, describeSweep("tutorial-8 answer", result)).toBe(399);
       expect(result.losingSeeds).toEqual(["t165"]);
     },
@@ -341,15 +341,15 @@ describe("Learning track task tutorial-8 over four hundred seeds", () => {
     () => {
       // The claim above, measured: the same answer, over the same four hundred
       // seeds, in the building and against the bar taken from levels.ts
-      // rather than from the task table. Same 399, same seed. A future editor who
-      // "fixes" task 8 will find they have only moved it away from the level
+      // rather than from the level table. Same 399, same seed. A future editor who
+      // "fixes" level 8 will find they have only moved it away from the level
       // it is meant to rehearse.
-      const level = levels[0];
-      if (level === undefined) {
+      const levelOne = levels[0];
+      if (levelOne === undefined) {
         throw new Error("the game has no levels");
       }
-      const result = sweep(level.options, level.condition, task.solutionCode);
-      expect(result.wins, describeSweep("level 1 with task 8's answer", result)).toBe(399);
+      const result = sweep(levelOne.options, levelOne.condition, level.solutionCode);
+      expect(result.wins, describeSweep("level 1 with level 8's answer", result)).toBe(399);
       expect(result.losingSeeds).toEqual(["t165"]);
     },
     SWEEP_TIMEOUT_MS,
@@ -360,7 +360,7 @@ describe("Learning track task tutorial-8 over four hundred seeds", () => {
     () => {
       // The other end of the track's widest gap: an empty `init` moves nothing,
       // so no seed and no budget can rescue it.
-      const result = sweep(task.options, task.condition, task.startingCode);
+      const result = sweep(level.options, level.condition, level.startingCode);
       expect(result.wins, describeSweep("tutorial-8 starting code", result)).toBe(0);
     },
     SWEEP_TIMEOUT_MS,
@@ -374,9 +374,9 @@ describe("Learning track task tutorial-8 over four hundred seeds", () => {
       // building — including t165 — while the answer wins 399. The bar is low
       // enough that being *thorough* beats being *responsive* here, which is a
       // fact about level 1's building rather than about either program, and
-      // it is the reason task 8 is a rehearsal rather than a lesson: the thing it
+      // it is the reason level 8 is a rehearsal rather than a lesson: the thing it
       // teaches is that the player can now write the answer unaided.
-      const result = sweep(task.options, task.condition, BLIND_SWEEP);
+      const result = sweep(level.options, level.condition, BLIND_SWEEP);
       expect(result.wins, describeSweep("a blind three-floor sweep", result)).toBe(400);
     },
     SWEEP_TIMEOUT_MS,

@@ -8,7 +8,7 @@
  * the track is kept out of `levels.ts`: nothing here is part of a
  * level.
  *
- * The interface takes a task *index* rather than the words to print, and that is
+ * The interface takes a level *index* rather than the words to print, and that is
  * the one design decision the rest of this file follows from. Changing language
  * redraws the page by calling every region's presenter again, so a panel handed
  * finished sentences would keep the sentences it was handed and be the one
@@ -19,13 +19,13 @@
  * That in turn is why the key table below is written out by hand. A message key
  * has to reach `t` as a string literal: the parameters a message takes are
  * derived from the literal by `Placeholders<S>` in `src/i18n/catalogue.ts`, so
- * `t(`tutorial.task${n}.title`)` is not a call that can be type-checked, and
+ * `t(`tutorial.level${n}.title`)` is not a call that can be type-checked, and
  * casting one through would give up every guarantee the typed catalogue exists
  * to provide — a renamed message would then print its own key at the player
  * rather than failing the build.
  */
 
-import { tutorialTasks } from "#game/tutorial.ts";
+import { tutorialLevels } from "#game/tutorial.ts";
 import { t, type MessageKey } from "#i18n/index.ts";
 import { query, queryAll, requireElement } from "#shared/lib/dom.ts";
 import { spriteIconMarkup } from "#shared/ui/icon.ts";
@@ -35,21 +35,21 @@ import { highlightJavaScript } from "../../../ui/code-highlight.ts";
 import { changedLines } from "../../../ui/line-diff.ts";
 
 /**
- * Every task the catalogue has prose for, named by its title message.
+ * Every level the catalogue has prose for, named by its title message.
  *
  * Read out of {@link MessageKey} rather than written down, so that this is the
- * catalogue's own answer to "how many tasks are there" and not a second opinion
+ * catalogue's own answer to "how many levels are there" and not a second opinion
  * about it.
  */
-type TutorialTitleKey = Extract<MessageKey, `tutorial.task${number}.title`>;
+type TutorialTitleKey = Extract<MessageKey, `tutorial.level${number}.title`>;
 
 /**
- * The id of the task one of those keys describes.
+ * The id of the level one of those keys describes.
  *
- * `tutorial.task3.title` is the title of the task whose `id` is `tutorial-3`,
+ * `tutorial.level3.title` is the title of the level whose `id` is `tutorial-3`,
  * and the mapping is spelled out here rather than assumed, because
  * the whole point of keying the table below by id is that the number in the id
- * and the task's position in `tutorialTasks` are not the same number.
+ * and the level's position in `tutorialLevels` are not the same number.
  *
  * A named generic rather than the same conditional written inline over
  * {@link TutorialTitleKey}, so that it distributes: a conditional type is
@@ -61,63 +61,63 @@ type TutorialTitleKey = Extract<MessageKey, `tutorial.task${number}.title`>;
  * whole union at once, fails, and answers `never` for all three, where this form
  * drops the member that did not match and keeps the two that did.
  */
-type TaskIdOf<K> = K extends `tutorial.task${infer N extends number}.title`
+type LevelIdOf<K> = K extends `tutorial.level${infer N extends number}.title`
   ? `tutorial-${N}`
   : never;
 
-/** The ids of the tasks the catalogue describes. */
-type TutorialTaskId = TaskIdOf<TutorialTitleKey>;
+/** The ids of the levels the catalogue describes. */
+type TutorialLevelId = LevelIdOf<TutorialTitleKey>;
 
-/** The four things the catalogue says about one task. */
-interface TutorialTaskMessages {
+/** The four things the catalogue says about one level. */
+interface TutorialLevelMessages {
   /** Its name. */
   readonly title: MessageKey;
   /** What it asks the player to do. */
   readonly goal: MessageKey;
   /** Its three hints, from a nudge to the answer. */
   readonly hints: readonly [MessageKey, MessageKey, MessageKey];
-  /** Why the task behaves the way it does, read after it is cleared. */
+  /** Why the level behaves the way it does, read after it is cleared. */
   readonly explanation: MessageKey;
 }
 
 /**
- * Which messages describe which task.
+ * Which messages describe which level.
  *
- * Keyed by the task's id and not by where it sits in `tutorialTasks`, which is
+ * Keyed by the level's id and not by where it sits in `tutorialLevels`, which is
  * the same rule `src/game/tutorial.ts` states for the saved attempt, the
  * progress mark and the bookmarked address, and it is here for the same reason:
- * a ninth task inserted between two existing ones moves every task after it,
- * and a table read by position would then print task 3's title, goal and hints
- * over task 4's building. The answer under the last hint would not move with
- * them — it comes off the task at that index rather than out of this table — so
+ * a ninth level inserted between two existing ones moves every level after it,
+ * and a table read by position would then print level 3's title, goal and hints
+ * over level 4's building. The answer under the last hint would not move with
+ * them — it comes off the level at that index rather than out of this table — so
  * the panel would show one program and describe another, and nothing would
  * throw.
  *
- * Coming off the task is what keeps the answer in step with the building. It is
- * not what keeps it in step with the task, and it stopped being an argument that
+ * Coming off the level is what keeps the answer in step with the building. It is
+ * not what keeps it in step with the level, and it stopped being an argument that
  * this hazard lives only in this file the day the programs became messages: a
- * task reaches its own two through `tutorial.taskN.startingCode.code` and
- * `tutorial.taskN.solutionCode.code`, written out by hand at the entry that uses
+ * level reaches its own two through `tutorial.levelN.startingCode.code` and
+ * `tutorial.levelN.solutionCode.code`, written out by hand at the entry that uses
  * them, so the very slip described above is available one file away, in
  * `src/game/tutorial.ts`, and the compiler can no more see it there than here —
- * a key that belongs to the next task is still a key. What holds the sixteen
- * programs to the tasks that own them is `src/game/tutorial.test.ts`, which
- * requires no two tasks to hand out one program beyond the answer task 8 copies
- * from task 7 on purpose.
+ * a key that belongs to the next level is still a key. What holds the sixteen
+ * programs to the levels that own them is `src/game/tutorial.test.ts`, which
+ * requires no two levels to hand out one program beyond the answer level 8 copies
+ * from level 7 on purpose.
  *
  * Every key is spelled out because every one of them has to reach `t` as a
  * literal; see the note at the top of this file for why building them from the
- * task's number is not an option.
+ * level's number is not an option.
  *
  * The type is doing three separate jobs and each of them catches a different
  * mistake:
  *
- * - `TutorialTaskMessages` types each field as a {@link MessageKey}, so a
+ * - `TutorialLevelMessages` types each field as a {@link MessageKey}, so a
  *   misspelled or renamed key is a compile error here rather than the message's
  *   own name printed into the panel, which is what `t` does with a key it cannot
  *   find.
- * - `Record<TutorialTaskId, …>` demands a row for every task the catalogue
- *   describes. A ninth task's messages added to `src/i18n/en.ts` without a row
+ * - `Record<TutorialLevelId, …>` demands a row for every level the catalogue
+ *   describes. A ninth level's messages added to `src/i18n/en.ts` without a row
  *   here stops this file compiling — the alternative being a panel that draws
  *   its chrome and nothing else, which is a blank page with buttons on it.
  * - `as const` keeps the values as the literal types `t` needs. An annotation
@@ -125,78 +125,110 @@ interface TutorialTaskMessages {
  *   it takes parameters, so the parameter object would become mandatory for all
  *   of them.
  *
- * The other direction — a ninth entry in `tutorialTasks` with no prose written
- * for it — cannot be a compile error, because `tutorialTasks` is an array and
+ * The other direction — a ninth entry in `tutorialLevels` with no prose written
+ * for it — cannot be a compile error, because `tutorialLevels` is an array and
  * its length is not part of its type. It is also only half caught by the ids:
- * the union above is built from the *title* keys, so a task whose title exists
- * and whose hints do not is a compile error, and a task with no messages at all
+ * the union above is built from the *title* keys, so a level whose title exists
+ * and whose hints do not is a compile error, and a level with no messages at all
  * is not. {@link presentTutorial} throws on that one, and
- * `tutorial-panel.test.ts` draws every task on the track so that the throw is
- * met by whoever adds the task rather than by a player.
+ * `tutorial-panel.test.ts` draws every level on the track so that the throw is
+ * met by whoever adds the level rather than by a player.
  */
-const TUTORIAL_TASK_MESSAGES = {
+const TUTORIAL_LEVEL_MESSAGES = {
   "tutorial-1": {
-    title: "tutorial.task1.title",
-    goal: "tutorial.task1.goal",
-    hints: ["tutorial.task1.hint1.html", "tutorial.task1.hint2.html", "tutorial.task1.hint3.html"],
-    explanation: "tutorial.task1.explanation.html",
+    title: "tutorial.level1.title",
+    goal: "tutorial.level1.goal",
+    hints: [
+      "tutorial.level1.hint1.html",
+      "tutorial.level1.hint2.html",
+      "tutorial.level1.hint3.html",
+    ],
+    explanation: "tutorial.level1.explanation.html",
   },
   "tutorial-2": {
-    title: "tutorial.task2.title",
-    goal: "tutorial.task2.goal",
-    hints: ["tutorial.task2.hint1.html", "tutorial.task2.hint2.html", "tutorial.task2.hint3.html"],
-    explanation: "tutorial.task2.explanation.html",
+    title: "tutorial.level2.title",
+    goal: "tutorial.level2.goal",
+    hints: [
+      "tutorial.level2.hint1.html",
+      "tutorial.level2.hint2.html",
+      "tutorial.level2.hint3.html",
+    ],
+    explanation: "tutorial.level2.explanation.html",
   },
   "tutorial-3": {
-    title: "tutorial.task3.title",
-    goal: "tutorial.task3.goal",
-    hints: ["tutorial.task3.hint1.html", "tutorial.task3.hint2.html", "tutorial.task3.hint3.html"],
-    explanation: "tutorial.task3.explanation.html",
+    title: "tutorial.level3.title",
+    goal: "tutorial.level3.goal",
+    hints: [
+      "tutorial.level3.hint1.html",
+      "tutorial.level3.hint2.html",
+      "tutorial.level3.hint3.html",
+    ],
+    explanation: "tutorial.level3.explanation.html",
   },
   "tutorial-4": {
-    title: "tutorial.task4.title",
-    goal: "tutorial.task4.goal",
-    hints: ["tutorial.task4.hint1.html", "tutorial.task4.hint2.html", "tutorial.task4.hint3.html"],
-    explanation: "tutorial.task4.explanation.html",
+    title: "tutorial.level4.title",
+    goal: "tutorial.level4.goal",
+    hints: [
+      "tutorial.level4.hint1.html",
+      "tutorial.level4.hint2.html",
+      "tutorial.level4.hint3.html",
+    ],
+    explanation: "tutorial.level4.explanation.html",
   },
   "tutorial-5": {
-    title: "tutorial.task5.title",
-    goal: "tutorial.task5.goal",
-    hints: ["tutorial.task5.hint1.html", "tutorial.task5.hint2.html", "tutorial.task5.hint3.html"],
-    explanation: "tutorial.task5.explanation.html",
+    title: "tutorial.level5.title",
+    goal: "tutorial.level5.goal",
+    hints: [
+      "tutorial.level5.hint1.html",
+      "tutorial.level5.hint2.html",
+      "tutorial.level5.hint3.html",
+    ],
+    explanation: "tutorial.level5.explanation.html",
   },
   "tutorial-6": {
-    title: "tutorial.task6.title",
-    goal: "tutorial.task6.goal",
-    hints: ["tutorial.task6.hint1.html", "tutorial.task6.hint2.html", "tutorial.task6.hint3.html"],
-    explanation: "tutorial.task6.explanation.html",
+    title: "tutorial.level6.title",
+    goal: "tutorial.level6.goal",
+    hints: [
+      "tutorial.level6.hint1.html",
+      "tutorial.level6.hint2.html",
+      "tutorial.level6.hint3.html",
+    ],
+    explanation: "tutorial.level6.explanation.html",
   },
   "tutorial-7": {
-    title: "tutorial.task7.title",
-    goal: "tutorial.task7.goal",
-    hints: ["tutorial.task7.hint1.html", "tutorial.task7.hint2.html", "tutorial.task7.hint3.html"],
-    explanation: "tutorial.task7.explanation.html",
+    title: "tutorial.level7.title",
+    goal: "tutorial.level7.goal",
+    hints: [
+      "tutorial.level7.hint1.html",
+      "tutorial.level7.hint2.html",
+      "tutorial.level7.hint3.html",
+    ],
+    explanation: "tutorial.level7.explanation.html",
   },
   "tutorial-8": {
-    title: "tutorial.task8.title",
-    goal: "tutorial.task8.goal",
-    hints: ["tutorial.task8.hint1.html", "tutorial.task8.hint2.html", "tutorial.task8.hint3.html"],
-    explanation: "tutorial.task8.explanation.html",
+    title: "tutorial.level8.title",
+    goal: "tutorial.level8.goal",
+    hints: [
+      "tutorial.level8.hint1.html",
+      "tutorial.level8.hint2.html",
+      "tutorial.level8.hint3.html",
+    ],
+    explanation: "tutorial.level8.explanation.html",
   },
-} as const satisfies Readonly<Record<TutorialTaskId, TutorialTaskMessages>>;
+} as const satisfies Readonly<Record<TutorialLevelId, TutorialLevelMessages>>;
 
 /** The panel itself, once it is drawn. */
 const PANEL_SELECTOR = ".tutorialpanel";
 
 /**
- * Where the panel records the task it was drawn for.
+ * Where the panel records the level it was drawn for.
  *
  * The panel keeps no state in a variable — it is redrawn from its arguments and
  * nothing survives between calls — so the number it was last drawn for lives in
  * the markup, which is the only thing that does survive. See
  * {@link presentTutorial} for what it is used to decide.
  */
-const TASK_INDEX_ATTRIBUTE = "data-task-index";
+const LEVEL_INDEX_ATTRIBUTE = "data-level-index";
 
 /** The four disclosures, in the order they are drawn: three hints, then why. */
 const DISCLOSURE_SELECTOR = ".tutorialhint, .tutorialexplanation";
@@ -214,7 +246,7 @@ const DISCLOSURE_SELECTOR = ".tutorialhint, .tutorialexplanation";
  */
 const CONTROL_SELECTOR = ".tutorialpanel summary, .tutorialpanel button";
 
-/** The button that copies the task's program into the player's own editor. */
+/** The button that copies the level's program into the player's own editor. */
 const TAKE_CODE_SELECTOR = ".tutorialtakecode";
 
 /**
@@ -232,9 +264,9 @@ const TAKEN_SELECTOR = ".tutorialtaken";
  * language changing, and English news restored into a Russian panel would be
  * the one line of the page the picker had not translated. The *answer* survives
  * instead, and the sentence is looked up again — the same reason this file takes
- * a task index rather than the words for it.
+ * a level index rather than the words for it.
  *
- * On the markup for the same reason {@link TASK_INDEX_ATTRIBUTE} is: the panel
+ * On the markup for the same reason {@link LEVEL_INDEX_ATTRIBUTE} is: the panel
  * keeps nothing in a variable between calls, and the drawn markup is the only
  * thing that outlives one.
  */
@@ -266,7 +298,7 @@ function takenStateOf(value: string | null): TakenState | undefined {
   return value === "yes" || value === "no" ? value : undefined;
 }
 
-/** The button that copies the task's answer to the clipboard. */
+/** The button that copies the level's answer to the clipboard. */
 const COPY_CODE_SELECTOR = ".tutorialcopycode";
 
 /**
@@ -312,12 +344,12 @@ function copiedStateOf(value: string | null): CopiedState | undefined {
 }
 
 /**
- * Copies the task's answer to the clipboard, and reports whether that worked.
+ * Copies the level's answer to the clipboard, and reports whether that worked.
  *
  * The text comes off the rendered `<code>` rather than out of
  * `TutorialPanelData`, because the element's `textContent` is the program
  * exactly as `highlightJavaScript` reconstructs it — see the note there — and
- * reading it back is simpler than threading the task's solution string through
+ * reading it back is simpler than threading the level's solution string through
  * a second path to reach the same button.
  *
  * `navigator.clipboard.writeText` is wrapped in a `try`/`catch` rather than
@@ -353,12 +385,12 @@ const LEAVE_SELECTOR = ".tutorialleave";
  * Deliberately not the words: see the note at the top of this file.
  */
 export interface TutorialPanelData {
-  /** Zero-based index into `tutorialTasks`. */
-  readonly taskIndex: number;
-  /** How many tasks the player has cleared, for the progress line. */
+  /** Zero-based index into `tutorialLevels`. */
+  readonly levelIndex: number;
+  /** How many levels the player has cleared, for the progress line. */
   readonly clearedCount: number;
   /**
-   * Called when the player asks for this task's program in their own editor.
+   * Called when the player asks for this level's program in their own editor.
    *
    * Only after the confirmation has been agreed to, when one was asked for; see
    * {@link TutorialPanelData.hasOwnProgram}.
@@ -376,7 +408,7 @@ export interface TutorialPanelData {
   /**
    * Whether the player's own editor already holds a program worth keeping.
    *
-   * Taking a task's program is destructive: it replaces whatever is in the game
+   * Taking a level's program is destructive: it replaces whatever is in the game
    * editor, which for a player who arrived at the track from the levels is
    * an evening's work. `tutorial.button.takeCodeConfirm` is the question asked
    * before that happens, and this is what decides whether it needs asking — an
@@ -385,7 +417,7 @@ export interface TutorialPanelData {
    *
    * A function, and asked at the moment the button is pressed rather than at the
    * moment the panel is drawn, because the panel outlives the answer: a player
-   * who writes their first program while on task 5 would otherwise be measured
+   * who writes their first program while on level 5 would otherwise be measured
    * against the empty store the panel was drawn over and have that program taken
    * away without a word.
    *
@@ -398,17 +430,17 @@ export interface TutorialPanelData {
 }
 
 /**
- * Whether an id is one the catalogue describes a task for.
+ * Whether an id is one the catalogue describes a level for.
  *
  * A type guard rather than a cast, so the narrowing is something the runtime
  * really established: `Object.hasOwn` asks the table itself instead of trusting
- * that its rows still name the eight tasks `tutorialTasks` holds.
+ * that its rows still name the eight levels `tutorialLevels` holds.
  *
- * @param value - A task's id, from the track's own table.
- * @returns Whether {@link TUTORIAL_TASK_MESSAGES} has a row for it.
+ * @param value - A level's id, from the track's own table.
+ * @returns Whether {@link TUTORIAL_LEVEL_MESSAGES} has a row for it.
  */
-function isTaskId(value: string): value is TutorialTaskId {
-  return Object.hasOwn(TUTORIAL_TASK_MESSAGES, value);
+function isLevelId(value: string): value is TutorialLevelId {
+  return Object.hasOwn(TUTORIAL_LEVEL_MESSAGES, value);
 }
 
 /**
@@ -428,15 +460,15 @@ function takeCodeAgreed(data: TutorialPanelData): boolean {
 
 /** Everything the learning track's panel needs in order to render itself. */
 export interface TutorialTemplateData {
-  /** One-based number of the task being played, the way the player is told it. */
-  readonly taskNumber: number;
-  /** How many tasks the track holds, for the position and progress lines. */
-  readonly taskCount: number;
+  /** One-based number of the level being played, the way the player is told it. */
+  readonly levelNumber: number;
+  /** How many levels the track holds, for the position and progress lines. */
+  readonly levelCount: number;
   /** How many of them the player has cleared, for the progress line. */
   readonly clearedCount: number;
-  /** The task's name. Text, written escaped. */
+  /** The level's name. Text, written escaped. */
   readonly title: string;
-  /** What the task asks the player for. Text, written escaped. */
+  /** What the level asks the player for. Text, written escaped. */
   readonly goal: string;
   /**
    * The three hints, in the order they are offered.
@@ -448,11 +480,11 @@ export interface TutorialTemplateData {
    * A three-element tuple rather than an array, because "the last one" and "the
    * one the answer goes under" have to be the same hint: {@link tutorialTemplate}
    * prints {@link TutorialTemplateData.solutionCode} beneath the final entry, and
-   * a two-hint task would silently print the answer under hint 2.
+   * a two-hint level would silently print the answer under hint 2.
    */
   readonly hints: readonly [string, string, string];
   /**
-   * The program the task starts the player with, exactly as
+   * The program the level starts the player with, exactly as
    * `src/game/tutorial.ts` holds it.
    *
    * Printed nowhere — the panel only ever shows the answer — and read for one
@@ -465,21 +497,21 @@ export interface TutorialTemplateData {
    */
   readonly startingCode: string;
   /**
-   * The program that clears the task, exactly as `src/game/tutorial.ts` holds it.
+   * The program that clears the level, exactly as `src/game/tutorial.ts` holds it.
    *
    * Handed to {@link "../../../ui/code-highlight.ts"!highlightJavaScript} rather
    * than interpolated by {@link markup}, which is why it does not appear escaped
-   * in the template below the way the task's title and goal do: the highlighter
+   * in the template below the way the level's title and goal do: the highlighter
    * parses it as JavaScript and escapes every character of it itself as it
    * writes each token out, so the two functions have to keep agreeing on the
    * same five characters, and `code-highlight.test.ts` and this module's own
    * tests both pin them. It is the same string `tutorial-solutions.test.ts`
-   * proves the task with, which is why it comes from the task table rather than
+   * proves the level with, which is why it comes from the level table rather than
    * from the catalogue.
    */
   readonly solutionCode: string;
   /**
-   * Why the task behaves the way it does, shown after the answer.
+   * Why the level behaves the way it does, shown after the answer.
    *
    * Trusted markup, for the same reason the hints are: a `.html` message of this
    * repository's own catalogue.
@@ -489,24 +521,24 @@ export interface TutorialTemplateData {
 
 /** The two programs {@link tutorialAnswerTemplate} needs: what changed, and against what. */
 interface TutorialAnswerData {
-  /** The program the task starts the player with; see {@link changedLines}. */
+  /** The program the level starts the player with; see {@link changedLines}. */
   readonly startingCode: string;
-  /** The program that clears the task, which is what gets shown and copied. */
+  /** The program that clears the level, which is what gets shown and copied. */
   readonly solutionCode: string;
 }
 
 /**
- * The answer, under the last hint: the program that clears the task,
+ * The answer, under the last hint: the program that clears the level,
  * syntax-highlighted, with the line or lines a player has to write marked, and
  * a button that copies it.
  *
  * The mark is computed rather than written into the hint's own prose, which is
  * what named the changed line before this existed: `changedLines` compares
  * {@link TutorialAnswerData.startingCode} against
- * {@link TutorialAnswerData.solutionCode} — the two strings the task already
+ * {@link TutorialAnswerData.solutionCode} — the two strings the level already
  * holds, and the only two a diff could possibly disagree with — so there is no
- * second copy of "line 2 is new" for a task's wording to drift away from.
- * `changedLines` finds lines, not characters, because every task on the track
+ * second copy of "line 2 is new" for a level's wording to drift away from.
+ * `changedLines` finds lines, not characters, because every level on the track
  * changes the player's program by adding or rewriting whole lines; a
  * character-level diff would buy nothing here and cost a harder-to-read mark.
  *
@@ -523,12 +555,12 @@ interface TutorialAnswerData {
  * The copy button and the line that reports what it did sit above the code in
  * their own row, `.tutorialanswertools`, which exists only so that row can be
  * styled apart from `.tutorialbuttons` below: this pair acts on the code
- * beside it, and that pair leaves the task. `.tutorialcopied` is drawn empty
+ * beside it, and that pair leaves the level. `.tutorialcopied` is drawn empty
  * and filled in by {@link presentTutorial} on the click, for the same reason
  * `.tutorialtaken` is: a live region has to already be in the document when its
  * text arrives, or the announcement generally does not happen.
  *
- * @param answer - The starting program and the one that clears the task.
+ * @param answer - The starting program and the one that clears the level.
  * @returns The answer block's markup.
  */
 function tutorialAnswerTemplate(answer: TutorialAnswerData): string {
@@ -549,8 +581,8 @@ function tutorialAnswerTemplate(answer: TutorialAnswerData): string {
  * scratch every time the language changes.
  *
  * Closed is the only defensible default here, and more so than on the seed line.
- * The hints are ordered from a nudge to the answer, and a task whose answer is
- * on screen before the player has read the goal is not a task. That is also why
+ * The hints are ordered from a nudge to the answer, and a level whose answer is
+ * on screen before the player has read the goal is not a level. That is also why
  * they are three separate disclosures rather than one holding all three: opening
  * the third is a decision, and a single panel would spend it on the first.
  *
@@ -570,37 +602,37 @@ function tutorialHintTemplate(
 }
 
 /**
- * The track as a row of ticks, one per task, with the one being played lit.
+ * The track as a row of ticks, one per level, with the one being played lit.
  *
  * `design/ui-mockup.html`'s own `.steps` (§11), and its own three states: the
- * tasks already behind the player, the one in front of them, and the ones not
+ * levels already behind the player, the one in front of them, and the ones not
  * reached. It says in a glance what the line above it says in words, which is
- * why it says it to the eye only -- `aria-hidden`, because "Task 3 of 8" is
+ * why it says it to the eye only -- `aria-hidden`, because "Level 3 of 8" is
  * already there, and eight nameless list items announced one after another
  * would be eight interruptions carrying nothing new (WCAG 1.1.1 treats a
  * decoration of text already present as decorative).
  *
  * The ticks count *positions on the track*, the way the line above them does,
- * and deliberately not cleared tasks: the panel is told how many tasks are
- * cleared but not which, and a player who reached task 5 from a bookmark with
- * two tasks behind them would otherwise be shown a track marked done in places
+ * and deliberately not cleared levels: the panel is told how many levels are
+ * cleared but not which, and a player who reached level 5 from a bookmark with
+ * two levels behind them would otherwise be shown a track marked done in places
  * they have never been. How many are really cleared stays where it has always
  * been, in `.tutorialprogress` at the foot of the panel, where it is a sentence
  * and cannot be mistaken for a position.
  *
- * @param taskNumber - One-based number of the task being played.
- * @param taskCount - How many tasks the track holds.
+ * @param levelNumber - One-based number of the level being played.
+ * @param levelCount - How many levels the track holds.
  * @returns The tick row's markup.
  */
-function tutorialStepsTemplate(taskNumber: number, taskCount: number): string {
-  const ticks = Array.from({ length: taskCount }, (_unused, index) => {
+function tutorialStepsTemplate(levelNumber: number, levelCount: number): string {
+  const ticks = Array.from({ length: levelCount }, (_unused, index) => {
     // `is-done`/`is-current`, which is the mockup's own vocabulary and this
     // page's own besides -- `.call.is-lit` in the building, `.stage.has-lesson`
     // in the stage. The third state is the absence of both.
     const state =
-      index < taskNumber - 1
+      index < levelNumber - 1
         ? ' class="is-done"'
-        : index === taskNumber - 1
+        : index === levelNumber - 1
           ? ' class="is-current"'
           : "";
     return `<i${state}></i>`;
@@ -628,7 +660,7 @@ function tutorialStepsTemplate(taskNumber: number, taskCount: number): string {
  * The order is the order it is read in, and it is the order of a lesson: where
  * you are, what to do, what to try if it will not come, why it happened, and
  * only then the buttons that leave. The progress line is last because it is the
- * one thing here that is about the track rather than about this task.
+ * one thing here that is about the track rather than about this level.
  *
  * The head row and the ticks under it are `design/ui-mockup.html`'s own
  * `.lesson-head` and `.steps` (§11). The graduation cap is `aria-hidden` and
@@ -639,7 +671,7 @@ function tutorialStepsTemplate(taskNumber: number, taskCount: number): string {
  * {@link tutorialStepsTemplate} explains what the ticks count.
  *
  * The two buttons are drawn as the mockup draws a lesson's actions: the one
- * that leaves as a `.ghost` on the left, the one that acts on this task as the
+ * that leaves as a `.ghost` on the left, the one that acts on this level as the
  * `.btn-primary` pushed to the right. The mockup's reasoning is about which of
  * a pair is pressed a hundred times more often, and it applies here with the
  * pair swapped -- taking the program into the editor is a thing done on the
@@ -655,15 +687,15 @@ function tutorialStepsTemplate(taskNumber: number, taskCount: number): string {
  * be in the document before the text appears inside it, or the announcement is
  * generally not made at all.
  *
- * Empty is what it is drawn as every time, including the redraws — the task
- * changing, the run restarting, the language changing, and the task being
+ * Empty is what it is drawn as every time, including the redraws — the level
+ * changing, the run restarting, the language changing, and the level being
  * cleared, which redraws the panel to move its progress line on. Whether any of
  * those keeps the news is `presentTutorial`'s to decide, and it puts it back
  * before this markup reaches the document; the template has no opinion beyond
  * refusing to be the thing that announces it.
  *
  * Three kinds of string arrive in this template and they are written
- * differently. The task's name and its goal are text and are escaped; the
+ * differently. The level's name and its goal are text and are escaped; the
  * hints and the explanation are `.html` messages of this repository's own
  * catalogue and are inserted verbatim. The answer is the exception that looks
  * like the rule: it comes from `src/game/tutorial.ts` rather than the
@@ -672,10 +704,10 @@ function tutorialStepsTemplate(taskNumber: number, taskCount: number): string {
  * {@link "../../../ui/code-highlight.ts"!highlightJavaScript} — see the note on
  * {@link TutorialTemplateData.solutionCode}. Nothing here can carry player
  * input — the editor's contents never reach this function, and the one thing
- * that does come from outside the repository, the task index, is used to look
+ * that does come from outside the repository, the level index, is used to look
  * up messages rather than printed.
  *
- * @param data - Where the player is on the track, and everything this task says.
+ * @param data - Where the player is on the track, and everything this level says.
  * @returns The panel's markup, as exactly one element.
  */
 export function tutorialTemplate(data: TutorialTemplateData): string {
@@ -690,13 +722,13 @@ export function tutorialTemplate(data: TutorialTemplateData): string {
       ),
     )
     .join("");
-  const steps = tutorialStepsTemplate(data.taskNumber, data.taskCount);
+  const steps = tutorialStepsTemplate(data.levelNumber, data.levelCount);
   // The index is written into the markup because it is the one piece of state
   // the panel has to remember about itself: presentTutorial carries the open
-  // hints across a redraw of the same task and deliberately does not carry them
-  // across a change of task, and after `replaceChildren` the old panel is the
+  // hints across a redraw of the same level and deliberately does not carry them
+  // across a change of level, and after `replaceChildren` the old panel is the
   // only place the number it was drawn for still exists.
-  return markup`<section class="tutorialpanel" data-task-index="${data.taskNumber - 1}" aria-label="${t("tutorial.panel.label")}"><p class="tutorialposition">${raw(spriteIconMarkup("graduate"))}<span class="tutorialtrack">${t("tutorial.panel.label")}</span> <span class="tutorialstep">${t("tutorial.panel.position", { number: data.taskNumber, count: data.taskCount })}</span></p>${raw(steps)}<h2 class="tutorialtitle">${data.title}</h2><p class="tutorialgoal">${data.goal}</p>${raw(hints)}<details class="tutorialexplanation"><summary>${t("tutorial.panel.explanationSummary")}</summary><p class="tutorialprose">${raw(data.explanation)}</p></details><div class="tutorialbuttons"><button type="button" class="ghost tutorialleave">${t("tutorial.button.leave")}</button><button type="button" class="btn btn-primary tutorialtakecode">${t("tutorial.button.takeCode")}</button></div><p class="tutorialtaken" aria-live="polite"></p><p class="tutorialprogress">${t("tutorial.panel.progress", { cleared: data.clearedCount, count: data.taskCount })}</p></section>`;
+  return markup`<section class="tutorialpanel" data-level-index="${data.levelNumber - 1}" aria-label="${t("tutorial.panel.label")}"><p class="tutorialposition">${raw(spriteIconMarkup("graduate"))}<span class="tutorialtrack">${t("tutorial.panel.label")}</span> <span class="tutorialstep">${t("tutorial.panel.position", { number: data.levelNumber, count: data.levelCount })}</span></p>${raw(steps)}<h2 class="tutorialtitle">${data.title}</h2><p class="tutorialgoal">${data.goal}</p>${raw(hints)}<details class="tutorialexplanation"><summary>${t("tutorial.panel.explanationSummary")}</summary><p class="tutorialprose">${raw(data.explanation)}</p></details><div class="tutorialbuttons"><button type="button" class="ghost tutorialleave">${t("tutorial.button.leave")}</button><button type="button" class="btn btn-primary tutorialtakecode">${t("tutorial.button.takeCode")}</button></div><p class="tutorialtaken" aria-live="polite"></p><p class="tutorialprogress">${t("tutorial.panel.progress", { cleared: data.clearedCount, count: data.levelCount })}</p></section>`;
 }
 
 /**
@@ -704,64 +736,64 @@ export function tutorialTemplate(data: TutorialTemplateData): string {
  *
  * Safe to call over a panel that is already there, which is the only way it is
  * ever called after the first time: the track redraws it when the player clears
- * a task, and `App.relocalise` redraws it when the language changes. The old
+ * a level, and `App.relocalise` redraws it when the language changes. The old
  * panel is replaced wholesale rather than patched, so there is no state to keep
  * in step and no handler that can be bound twice.
  *
  * Two things do have to survive that replacement, and neither is derivable from
  * the arguments:
  *
- * - Which hints the player had opened, but only while the task stays the same. A
- *   redraw for the same task is the language changing or the run restarting, and
+ * - Which hints the player had opened, but only while the level stays the same. A
+ *   redraw for the same level is the language changing or the run restarting, and
  *   closing the hint somebody is reading in order to tell them the same thing in
  *   another language is the panel undoing the player's own work. A redraw for a
- *   *different* task is the opposite case: the third hint holds the answer, so
- *   carrying it open into the next task would hand out that task's answer before
- *   its goal had been read. The task the markup was drawn for is therefore read
+ *   *different* level is the opposite case: the third hint holds the answer, so
+ *   carrying it open into the next level would hand out that level's answer before
+ *   its goal had been read. The level the markup was drawn for is therefore read
  *   back off it before it is thrown away.
  * - The focus. A redraw destroys whichever hint or button the player was
  *   standing on, and a keyboard player would be dropped back at the top of the
  *   document with the whole page to tab through again (WCAG 2.4.3). The control
  *   that lands in the same position takes the focus back, the same way the
  *   level bar restores its navigation row: the panel's controls are the same
- *   seven in the same order for every task, so the position is the control.
+ *   seven in the same order for every level, so the position is the control.
  *
  * @param parent - The `.tutorial` element of the page shell.
- * @param data - Which task, how far along, and what its two buttons do.
- * @throws {RangeError} When the track has no task at that index.
+ * @param data - Which level, how far along, and what its two buttons do.
+ * @throws {RangeError} When the track has no level at that index.
  * @throws {Error} When it has one, but the catalogue has no prose for it.
  */
 export function presentTutorial(parent: HTMLElement, data: TutorialPanelData): void {
-  const task = tutorialTasks[data.taskIndex];
-  // The number the player is told, and deliberately not the number in the task's
-  // id: "Task 3 of 8" is a statement about where they are on the track, so it
+  const level = tutorialLevels[data.levelIndex];
+  // The number the player is told, and deliberately not the number in the level's
+  // id: "Level 3 of 8" is a statement about where they are on the track, so it
   // counts positions. The prose is looked up by id instead, and the two are
-  // different numbers the moment a task is inserted -- see
-  // TUTORIAL_TASK_MESSAGES.
-  const taskNumber = data.taskIndex + 1;
+  // different numbers the moment a level is inserted -- see
+  // TUTORIAL_LEVEL_MESSAGES.
+  const levelNumber = data.levelIndex + 1;
   // Both of these are thrown rather than drawn around, because there is nothing
-  // honest to draw: a panel with no task in it would tell the player they are on
-  // a task that does not exist. They are two throws rather than one because they
+  // honest to draw: a panel with no level in it would tell the player they are on
+  // a level that does not exist. They are two throws rather than one because they
   // are two different mistakes, and an error that names the wrong one sends
   // whoever meets it to the wrong file -- the first is a caller that made an
-  // index up, the second is a ninth task added to `tutorialTasks` with no prose
-  // written for it. See TUTORIAL_TASK_MESSAGES for why only the second can
+  // index up, the second is a ninth level added to `tutorialLevels` with no prose
+  // written for it. See TUTORIAL_LEVEL_MESSAGES for why only the second can
   // happen at all: the missing-prose direction is the one the compiler cannot
   // catch, because an array's length is not part of its type.
-  if (task === undefined) {
+  if (level === undefined) {
     // A RangeError, and worded as `App.startTutorial` words its own, so that the
-    // two ways to ask for a task that is not there fail the same way.
-    throw new RangeError(`No tutorial task with index ${String(data.taskIndex)}`);
+    // two ways to ask for a level that is not there fail the same way.
+    throw new RangeError(`No tutorial level with index ${String(data.levelIndex)}`);
   }
-  if (!isTaskId(task.id)) {
-    throw new Error(`No panel prose for tutorial task ${task.id}`);
+  if (!isLevelId(level.id)) {
+    throw new Error(`No panel prose for tutorial level ${level.id}`);
   }
-  const messages = TUTORIAL_TASK_MESSAGES[task.id];
+  const messages = TUTORIAL_LEVEL_MESSAGES[level.id];
   const [hint1, hint2, hint3] = messages.hints;
 
   const drawn = query(PANEL_SELECTOR, parent);
-  const sameTask = drawn?.getAttribute(TASK_INDEX_ATTRIBUTE) === String(data.taskIndex);
-  const wasOpen = sameTask
+  const sameLevel = drawn?.getAttribute(LEVEL_INDEX_ATTRIBUTE) === String(data.levelIndex);
+  const wasOpen = sameLevel
     ? queryAll(DISCLOSURE_SELECTOR, parent).map(
         (disclosure) => disclosure instanceof HTMLDetailsElement && disclosure.open,
       )
@@ -769,38 +801,38 @@ export function presentTutorial(parent: HTMLElement, data: TutorialPanelData): v
   const focusedControl = queryAll(CONTROL_SELECTOR, parent).findIndex(
     (control) => control === document.activeElement,
   );
-  // Carried across a redraw of the same task, and dropped when the task changes.
+  // Carried across a redraw of the same level, and dropped when the level changes.
   // Three things redraw this panel and none of them is news: the run starting
   // again, the language changing, and -- the one that made this necessary -- the
-  // task being cleared, which redraws the panel to move its counter on while the
+  // level being cleared, which redraws the panel to move its counter on while the
   // player is looking at it. Without this the confirmation they had just been
   // given would vanish underneath the overlay congratulating them. A different
-  // task is the one case where it has to go: the copy was made of a program the
+  // level is the one case where it has to go: the copy was made of a program the
   // panel is no longer showing.
-  const takenState = sameTask
+  const takenState = sameLevel
     ? takenStateOf(query(TAKEN_SELECTOR, parent)?.getAttribute(TAKEN_STATE_ATTRIBUTE) ?? null)
     : undefined;
   // Carried the same way and for the same reason as `takenState`: a copy made
   // moments ago should still say so after the panel is redrawn to move the
-  // progress line on, and a different task means a different answer was on the
+  // progress line on, and a different level means a different answer was on the
   // clipboard button, so nothing here is still true of it.
-  const copiedState = sameTask
+  const copiedState = sameLevel
     ? copiedStateOf(query(COPIED_SELECTOR, parent)?.getAttribute(COPIED_STATE_ATTRIBUTE) ?? null)
     : undefined;
 
   const panel = renderElement(
     tutorialTemplate({
-      taskNumber,
-      taskCount: tutorialTasks.length,
+      levelNumber,
+      levelCount: tutorialLevels.length,
       clearedCount: data.clearedCount,
       title: t(messages.title),
       goal: t(messages.goal),
       hints: [t(hint1), t(hint2), t(hint3)],
-      // Both straight from the task table, and deliberately not from the
-      // catalogue even though that is where the rest of this task's text now
-      // lives: the table is what `tutorial-solutions.test.ts` clears the task
+      // Both straight from the level table, and deliberately not from the
+      // catalogue even though that is where the rest of this level's text now
+      // lives: the table is what `tutorial-solutions.test.ts` clears the level
       // with, so the answer on screen and the answer that is known to work are
-      // one string read one way. Reading `tutorial.taskN.solutionCode.code`
+      // one string read one way. Reading `tutorial.levelN.solutionCode.code`
       // here as well would be a second call site for one message with nothing
       // comparing the two, and the player would be the one told something
       // untrue. The table renders it when it is asked, so this is the answer
@@ -808,8 +840,8 @@ export function presentTutorial(parent: HTMLElement, data: TutorialPanelData): v
       // reason: it is never printed, only diffed against `solutionCode` to
       // find the line the answer marks, and a diff has to compare two drafts
       // of the one program the player is actually shown.
-      startingCode: task.startingCode,
-      solutionCode: task.solutionCode,
+      startingCode: level.startingCode,
+      solutionCode: level.solutionCode,
       explanation: t(messages.explanation),
     }),
   );

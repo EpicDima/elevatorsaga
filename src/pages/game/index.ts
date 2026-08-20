@@ -18,8 +18,8 @@ import { createSandboxLevel } from "../../game/levels.ts";
 import type { Level, SandboxOptions } from "../../game/levels.ts";
 import { INSTANT_RUN_MAX_SIMULATED_SECONDS, driveInstantly } from "../../game/instant-run.ts";
 import type { InstantRunHandle } from "../../game/instant-run.ts";
-import { tutorialTasks } from "../../game/tutorial.ts";
-import type { TutorialTask } from "../../game/tutorial.ts";
+import { tutorialLevels } from "../../game/tutorial.ts";
+import type { TutorialLevel } from "../../game/tutorial.ts";
 import { createWorld } from "../../game/world.ts";
 import type { World } from "../../game/world.ts";
 import type { AnimationFrameRequester, WorldController } from "../../game/world-controller.ts";
@@ -41,10 +41,10 @@ import {
   recordLevelTier,
 } from "#entities/level-tier/index.ts";
 import {
-  countClearedTutorialTasks,
-  readClearedTutorialTasks,
-  recordClearedTutorialTask,
-} from "#entities/tutorial-task/model/progress.ts";
+  countClearedTutorialLevels,
+  readClearedTutorialLevels,
+  recordClearedTutorialLevel,
+} from "#entities/tutorial-level/model/progress.ts";
 import { presentSpeedStepper, speedStepperTemplate } from "#features/adjust-speed/index.ts";
 import {
   clampTimeScale,
@@ -122,7 +122,7 @@ const NO_OP_CODE = {
   update: (): void => undefined,
 };
 
-/** The link of the end-of-run card, whose words the last task of the track rewrites. */
+/** The link of the end-of-run card, whose words the last level of the track rewrites. */
 const FEEDBACK_LINK_SELECTOR = ".verdict a";
 
 /**
@@ -525,28 +525,28 @@ export interface AppOptions {
 }
 
 /**
- * The task of the learning track on screen, and where it sits in the track.
+ * The level of the learning track on screen, and where it sits in the track.
  *
- * The task itself rather than its index alone, because everything the panel and
+ * The level itself rather than its index alone, because everything the panel and
  * the bar ask for — the identifier, the seed, the two programs, the condition —
  * is on it, and a second lookup by index is a second chance to look up the
  * wrong one. The index rides along because the track is the one part of the
- * game that is *numbered for the player*: "Task 3 of 8" is in the bar's title
+ * game that is *numbered for the player*: "Level 3 of 8" is in the bar's title
  * and in the panel, and it is a position in the table rather than anything
  * stored, which is why nothing but the interface is allowed to use it.
  */
 export interface TutorialRun {
-  /** The task being played. */
-  readonly task: TutorialTask;
-  /** Its position in `tutorialTasks`, counted from zero. */
+  /** The level being played. */
+  readonly level: TutorialLevel;
+  /** Its position in `tutorialLevels`, counted from zero. */
   readonly index: number;
 }
 
 /** How much of the learning track this browser has cleared. */
 export interface TutorialProgress {
-  /** How many tasks have been cleared, counting each task once. */
+  /** How many levels have been cleared, counting each level once. */
   readonly cleared: number;
-  /** How many tasks the track has. */
+  /** How many levels the track has. */
   readonly count: number;
 }
 
@@ -681,7 +681,7 @@ export class App {
   /** The building the sandbox is running, or `undefined` for a level. */
   #sandbox: SandboxOptions | undefined = undefined;
   /**
-   * The task of the learning track being played, or `undefined` for anything
+   * The level of the learning track being played, or `undefined` for anything
    * else.
    *
    * The third thing that can be on screen, and the field that tells the other
@@ -698,8 +698,8 @@ export class App {
    * Read from the URL and from nowhere else, which is the whole of the restart
    * rule: see {@link handleRoute}.
    *
-   * A task of the learning track is the exception, and it does not change that
-   * sentence: the task's own seed is applied where the world is built, and this
+   * A level of the learning track is the exception, and it does not change that
+   * sentence: the level's own seed is applied where the world is built, and this
    * field goes on meaning "what the URL asked for" so that leaving the track
    * for a level finds the URL's seed still in it. See {@link #startRun}.
    */
@@ -936,9 +936,9 @@ export class App {
   #levelMenuInput(): LevelMenuInput {
     return {
       levels: this.levels,
-      tutorialTasks,
+      tutorialLevels,
       bestTiers: readBestLevelTiers(this.#storage),
-      clearedTutorialTasks: readClearedTutorialTasks(this.#storage),
+      clearedTutorialLevels: readClearedTutorialLevels(this.#storage),
       selection: this.#levelSelection(),
       buildHref: (target) => this.#levelHref(target),
     };
@@ -979,7 +979,7 @@ export class App {
         return createParamsUrl(this.#query, { [LEVEL_KEY]: target.number, seed: null });
       }
       case "tutorial": {
-        return createParamsUrl(this.#query, { [LEVEL_KEY]: target.taskId, seed: null });
+        return createParamsUrl(this.#query, { [LEVEL_KEY]: target.levelId, seed: null });
       }
       case "sandbox": {
         return createParamsUrl(this.#query, { [LEVEL_KEY]: SANDBOX_LEVEL, seed: null });
@@ -1008,23 +1008,23 @@ export class App {
    * something to decide: `features/manage-seed` draws one itself and asks
    * {@link playSeed} to play it.
    *
-   * A task of the learning track offers no seed block at all, and it is the one
+   * A level of the learning track offers no seed block at all, and it is the one
    * run in the game where that is the honest answer. Everything the block offers
-   * is an offer about a seed the player chooses, and on a task the seed is not
+   * is an offer about a seed the player chooses, and on a level the seed is not
    * theirs to choose. Typing one, or pinning one, writes `seed=` into an address
    * the router refuses it on — `refuseSeedOnTrack` in
    * `src/pages/game/model/route.ts` — so following the game's own link would warn
    * on the console and have `startRouter` strip the key back out of the bar in
-   * front of the player. A new draw would replace the seed the *task* pins, which
-   * is the point of the task: `TutorialTask.seed` records that a random one would
+   * front of the player. A new draw would replace the seed the *level* pins, which
+   * is the point of the level: `TutorialLevel.seed` records that a random one would
    * make the lesson a coin flip. A block that undoes itself is worse than no
    * block, so the block goes, and the console print built from the same data goes
    * with it — what it prints is that same refused URL. The seed is not lost: it
-   * is the task's, written down in the table.
+   * is the level's, written down in the table.
    *
    * Rendering the seed as plain text was the alternative and was rejected. It
    * would occupy the same space to say a word that means nothing to the player on
-   * the track — the seed of task 5 is `tutorial-5` — and the block exists to be
+   * the track — the seed of level 5 is `tutorial-5` — and the block exists to be
    * *acted* on. If the track ever wants the seed shown, the honest form is the
    * panel saying so in its own words, not this block with its controls taken
    * away.
@@ -1179,14 +1179,14 @@ export class App {
    * sandbox existed the only thing that could be on screen was
    * `levels[currentLevelIndex]`. Restarting through the index would now
    * throw a sandbox player back onto a numbered level, and with it the
-   * building they had configured. A task of the learning track is the same
+   * building they had configured. A level of the learning track is the same
    * hazard with a worse ending: `currentLevelIndex` is left wherever the
-   * last numbered level put it, so Ctrl-Enter on task 3 would apply the
+   * last numbered level put it, so Ctrl-Enter on level 3 would apply the
    * player's edit to level 1 — a different building, and the attempt they
    * were half-way through no longer on screen to compare against.
    *
    * The order of the three is the order of {@link handleRoute} and means the
-   * same thing: a task, or the sandbox, or a numbered level. Only one of
+   * same thing: a level, or the sandbox, or a numbered level. Only one of
    * the two fields is ever set, so the order decides nothing at runtime; it is
    * written the same way in both places so that a reader who has checked one
    * has checked the other.
@@ -1220,7 +1220,7 @@ export class App {
    *
    * Deliberately not a fourth case alongside {@link #restart}'s three, though
    * it does the same job for the same reason: {@link #run} already says which
-   * level, task or sandbox is current, however it got there, so re-reading
+   * level, level or sandbox is current, however it got there, so re-reading
    * it here is one branch instead of {@link #restart}'s three, and none of
    * `startLevel`/`startSandbox`/`startTutorial`'s own bookkeeping --
    * leaving the tutorial buffer, remembering which sandbox or level index
@@ -1306,7 +1306,7 @@ export class App {
   /**
    * Acts on a route: applies its options and starts the level it names.
    *
-   * A `seed` in the hash still outranks everything but a task's own, so `#seed=…`
+   * A `seed` in the hash still outranks everything but a level's own, so `#seed=…`
    * brings the same passengers in the same order from the Restart button, from
    * Ctrl-Enter and from a reload alike. How far that carries into the run itself
    * is the subject of `game.seed.explanation` in the message catalogues: the
@@ -1351,14 +1351,14 @@ export class App {
    * with.
    *
    * What a route names is decided in one order, and the order is stated because
-   * it is the whole of the dispatch: a route is a task of the learning track, or
+   * it is the whole of the dispatch: a route is a level of the learning track, or
    * the sandbox, or a numbered level. The router never sets more than one of
    * those — `#level=` holds one value — so this is a statement of precedence
    * rather than a decision made every time, and the precedence runs from the
    * most specific address to the least. `levelIndex` is the least, because
    * the router resolves it to level 1 for any spelling it does not
    * understand, which is exactly what an unrecognised route should play and
-   * exactly what a task's route must not: until this branch existed,
+   * exactly what a level's route must not: until this branch existed,
    * `#level=tutorial-5` played level 1 while the address bar went on
    * saying `tutorial-5`, and a reload never escaped it.
    *
@@ -1419,7 +1419,7 @@ export class App {
    * @param slot - The slot to open.
    */
   selectCodeSlot(slot: CodeSlot): void {
-    // A learning task and the sandbox have no level index of their own to
+    // A learning level and the sandbox have no level index of their own to
     // key a slot by -- see `widgets/editor-pane`'s own slot switcher, which,
     // unlike the presenter this replaced, has no way to hide itself while
     // either is on screen. Silently doing nothing is what the old, hidden
@@ -1458,47 +1458,47 @@ export class App {
   }
 
   /**
-   * Tears the current run down and starts a task of the learning track.
+   * Tears the current run down and starts a level of the learning track.
    *
-   * A {@link TutorialTask} is structurally a {@link Level} — `options` and
+   * A {@link TutorialLevel} is structurally a {@link Level} — `options` and
    * `condition` are named and typed to match, deliberately — so it is handed
    * straight to the same machinery, with `null` where a level index would
-   * go. That `null` is the whole of "a task is not a level": it is not
+   * go. That `null` is the whole of "a level is not a level": it is not
    * numbered in the bar, not marked in the navigation row, and not followed by a
    * link into the numbered ladder. {@link currentLevelIndex} is left where
    * the last numbered level put it, exactly as the sandbox leaves it, since
    * it says where the player would return to and not what is on screen.
    *
-   * The editor is switched to the task's own buffer before the run is built,
+   * The editor is switched to the level's own buffer before the run is built,
    * and the order matters: {@link #startRun} compiles whatever is in the editor
    * at the moment it starts, so opening the buffer afterwards would run the
-   * previous task's program in this task's building for one run.
+   * previous level's program in this level's building for one run.
    *
-   * @param tutorialIndex - Zero-based position of the task in `tutorialTasks`.
+   * @param tutorialIndex - Zero-based position of the level in `tutorialLevels`.
    * @param autoStart - Whether to run without waiting for the Start button.
-   * @throws RangeError When no task has that position. Symmetric with
-   * {@link startLevel}: the router resolves a task address against the same
+   * @throws RangeError When no level has that position. Symmetric with
+   * {@link startLevel}: the router resolves a level address against the same
    * table, so this can only be reached by a caller that made the index up, and
-   * a made-up index must not quietly play task 1.
+   * a made-up index must not quietly play level 1.
    */
   startTutorial(tutorialIndex: number, autoStart = false): void {
-    const task = tutorialTasks[tutorialIndex];
-    if (task === undefined) {
-      throw new RangeError(`No tutorial task with index ${String(tutorialIndex)}`);
+    const level = tutorialLevels[tutorialIndex];
+    if (level === undefined) {
+      throw new RangeError(`No tutorial level with index ${String(tutorialIndex)}`);
     }
     this.#sandbox = undefined;
-    this.#tutorial = { task, index: tutorialIndex };
-    // The task's own attempt if the player has left one, and the starting code
-    // only when they have not: somebody who half-solved task 4, wandered off to
+    this.#tutorial = { level, index: tutorialIndex };
+    // The level's own attempt if the player has left one, and the starting code
+    // only when they have not: somebody who half-solved level 4, wandered off to
     // a level and came back is owed their attempt, not the mistake again.
     //
     // Read here rather than held anywhere, because the program is a message:
-    // `TutorialTask.startingCode` renders the task's own `.code` key when it is
+    // `TutorialLevel.startingCode` renders the level's own `.code` key when it is
     // asked for, so the editor is handed the language the player has chosen by
-    // now, and starting the same task again — which is what "Start over" does —
+    // now, and starting the same level again — which is what "Start over" does —
     // hands over the language they have chosen since.
-    this.#editor.openTutorialBuffer(task.id, task.startingCode);
-    this.#startRun(task, null, autoStart);
+    this.#editor.openTutorialBuffer(level.id, level.startingCode);
+    this.#startRun(level, null, autoStart);
   }
 
   /**
@@ -1511,7 +1511,7 @@ export class App {
    * sandbox has no buffer of its own to open instead — it always shows the
    * legacy key — so this is what is left once that is its only caller.
    *
-   * Idempotent, and so safe to call when no task was running: the editor
+   * Idempotent, and so safe to call when no level was running: the editor
    * returns early when the buffer asked for is the one already on screen, which
    * is what keeps a level-to-sandbox jump from disturbing the caret or
    * emptying the undo history.
@@ -1522,10 +1522,10 @@ export class App {
   }
 
   /**
-   * The task of the learning track on screen, or `undefined` for anything else.
+   * The level of the learning track on screen, or `undefined` for anything else.
    *
    * The panel's whole input: it decides from this whether to draw at all, which
-   * task's hints to show, and which number to print. Exposed read-only, because
+   * level's hints to show, and which number to print. Exposed read-only, because
    * the way to change what is being played is {@link startTutorial} — a panel
    * that could assign this would leave the field disagreeing with the world.
    */
@@ -1545,13 +1545,13 @@ export class App {
    */
   tutorialProgress(): TutorialProgress {
     return {
-      cleared: countClearedTutorialTasks(readClearedTutorialTasks(this.#storage), tutorialTasks),
-      count: tutorialTasks.length,
+      cleared: countClearedTutorialLevels(readClearedTutorialLevels(this.#storage), tutorialLevels),
+      count: tutorialLevels.length,
     };
   }
 
   /**
-   * Whether taking a task's program would overwrite something the player wrote.
+   * Whether taking a level's program would overwrite something the player wrote.
    *
    * What the panel asks before it offers `tutorial.button.takeCodeConfirm`.
    * "Something the player wrote" is deliberately narrow: an empty store is not
@@ -1600,9 +1600,9 @@ export class App {
    * Copies the program now in the editor into the player's own buffer.
    *
    * Written to the player's key rather than by switching buffers, which is what
-   * keeps the player on the task. The button means "I want to keep this", not
-   * "I am done here": somebody who takes the answer to task 6 usually wants to
-   * go on reading task 6. The copy is waiting for them under the game's own
+   * keeps the player on the level. The button means "I want to keep this", not
+   * "I am done here": somebody who takes the answer to level 6 usually wants to
+   * go on reading level 6. The copy is waiting for them under the game's own
    * editor whenever they leave, because level 1's first slot is the buffer
    * {@link leaveTutorial} always opens.
    *
@@ -1681,12 +1681,12 @@ export class App {
       this.#instantSpeed = false;
     }
     this.world?.unWind();
-    // A task's own seed wins over the URL's, and it is the one seed in the game
-    // the player cannot override. That is what `TutorialTask.seed` is for: the
+    // A level's own seed wins over the URL's, and it is the one seed in the game
+    // the player cannot override. That is what `TutorialLevel.seed` is for: the
     // lesson is "this program loses and that one wins", which is a statement
     // about a particular stream of passengers, and a random draw would make it a
-    // coin flip. The router already refuses `seed` on a task address, so the two
-    // can disagree only when a task is started from inside the app while the URL
+    // coin flip. The router already refuses `seed` on a level address, so the two
+    // can disagree only when a level is started from inside the app while the URL
     // still carries the seed of the level just left -- and then it is the
     // leftover that has to lose.
     //
@@ -1700,7 +1700,7 @@ export class App {
     // nobody chose repeatable after the fact.
     const world = createWorld(
       level.options,
-      this.#tutorial?.task.seed ?? this.#seed ?? readStoredSeed(this.#storage) ?? undefined,
+      this.#tutorial?.level.seed ?? this.#seed ?? readStoredSeed(this.#storage) ?? undefined,
     );
     this.world = world;
     window.world = world;
@@ -1710,7 +1710,7 @@ export class App {
       // only worth anything if the seed a player ends up with becomes the seed
       // they keep, and the overwhelmingly common way to end up with one is to
       // have been given it. `#seedLink` is `null` for exactly the run whose seed
-      // is not the player's -- a task of the learning track -- so the one seed
+      // is not the player's -- a level of the learning track -- so the one seed
       // that must not be remembered is the one this cannot see.
       this.#storeSeed(seed.seed);
       // Printed at every start, because nobody knows a run is worth repeating
@@ -1765,7 +1765,7 @@ export class App {
       // reaches: past `INSTANT_RUN_MAX_SIMULATED_SECONDS` of simulated time
       // with the level's own condition still undecided, this stops
       // waiting for one and calls it a loss -- `false`, not a third outcome,
-      // because the task is exactly the same one every other failure already
+      // because the level is exactly the same one every other failure already
       // shows. Only a crunch is bounded this way; an animated run is bounded
       // by the player's own patience instead, same as it always was.
       const levelStatus =
@@ -1788,7 +1788,7 @@ export class App {
       // Recorded where the verdict is reached rather than in `#showOutcome`,
       // which `relocalise` calls again to redraw that verdict in another
       // language. Nothing miscounts today if it moves -- progress is a set of
-      // task ids, so a redraw would re-add an id that is already in it -- and
+      // level ids, so a redraw would re-add an id that is already in it -- and
       // that is exactly why the rule is worth writing down rather than leaving
       // to the type it happens to be stored in. The day progress records
       // anything a repeat would change, an attempt count, a first-cleared
@@ -1797,11 +1797,11 @@ export class App {
       // stays drawing.
       const tutorial = this.#tutorial;
       if (levelStatus && tutorial !== undefined) {
-        recordClearedTutorialTask(this.#storage, tutorial.task.id);
+        recordClearedTutorialLevel(this.#storage, tutorial.level.id);
         // The one moment the panel has to be redrawn without a run starting or a
         // language changing: the count it prints has just gone up, and the
         // player is looking at the panel while the success overlay tells them
-        // so. Without this line the panel would still say "0 of 8 tasks done"
+        // so. Without this line the panel would still say "0 of 8 levels done"
         // under an overlay congratulating them on the first. Drawn from the
         // store, like every other draw of it, so the line and the record cannot
         // disagree.
@@ -1914,12 +1914,12 @@ export class App {
 
   /**
    * Draws the learning track's panel, or empties its region when what is on
-   * screen is not a task.
+   * screen is not a level.
    *
    * Hung off the end of {@link #drawLevelBar} rather than given call sites
    * of its own, because that method's two callers are exactly the two moments
    * the panel has to be drawn again: the start of a run, which is the only
-   * thing that can change which task is on screen, and a language change, which
+   * thing that can change which level is on screen, and a language change, which
    * has to reach every word on the page — and the panel is most of the words on
    * it. The alternative, calling this from both places, is two call sites to
    * keep in step and a third to forget when a third caller appears. It runs
@@ -1928,13 +1928,13 @@ export class App {
    * Emptying is not an afterthought but the common case: nineteen levels
    * and the sandbox all reach here, and every one of them has to leave
    * the region empty, since the stylesheet hides it only while it is. Leaving
-   * the last task's hints above level 1 would be worse than a gap — they
-   * are the answer to a task the player is no longer playing.
+   * the last level's hints above level 1 would be worse than a gap — they
+   * are the answer to a level the player is no longer playing.
    *
-   * The panel has no button of its own for starting the task again, though it
+   * The panel has no button of its own for starting the level again, though it
    * had one until the run controls were gathered into a row: "Start over" in the
    * panel and "Start over" in `.controls` are two buttons with the same
-   * accessible name, on screen together on every task, and the panel's one did
+   * accessible name, on screen together on every level, and the panel's one did
    * not auto-start where the row's does. Two buttons that say the same thing
    * must not do different things (WCAG 3.2.4), and the row is directly under the
    * panel, so the one that stayed is the one a player can find from anywhere in
@@ -1947,7 +1947,7 @@ export class App {
    * The panel's `hasOwnProgram` is a function and not a boolean because it is
    * asked at the moment the player presses "take this program", not at the
    * moment the panel was drawn: a player who writes their first program during
-   * task 5 would otherwise be told nothing before it was overwritten, since the
+   * level 5 would otherwise be told nothing before it was overwritten, since the
    * panel was drawn when the store was still empty.
    */
   #drawTutorialPanel(): void {
@@ -1957,7 +1957,7 @@ export class App {
       return;
     }
     presentTutorial(this.#elements.tutorial, {
-      taskIndex: tutorial.index,
+      levelIndex: tutorial.index,
       clearedCount: this.tutorialProgress().cleared,
       hasOwnProgram: () => this.playerCodeWouldBeReplaced(),
       onTakeCode: () => this.takeTutorialCode(),
@@ -2086,27 +2086,27 @@ export class App {
   }
 
   /**
-   * Draws the end-of-run overlay for a task of the learning track.
+   * Draws the end-of-run overlay for a level of the learning track.
    *
-   * A task ends in one of three ways and the game already had words for only one
+   * A level ends in one of three ways and the game already had words for only one
    * of them. A loss is an ordinary loss and says so: the program did not clear
    * the bar, which on the track is the *expected* first outcome, so nothing here
    * treats it as special or offers a way onwards — the player is meant to go
    * back to the editor, and the panel is where the hints are.
    *
-   * A win in the middle of the track offers the next task. It cannot use
+   * A win in the middle of the track offers the next level. It cannot use
    * `game.feedback.next`, which the template writes into every link and which
-   * says "Next level": the numbered ladder is not where task 4 lives, and a
+   * says "Next level": the numbered ladder is not where level 4 lives, and a
    * player who follows a link labelled that way lands somewhere they did not ask
    * for. So the link's words are replaced after the render, the way the sandbox
    * replaces the title, and for the same reason — the template is shared and its
    * markup is not this module's to change.
    *
-   * A win on the *last* task replaces the whole overlay. Task 8 is level 1
+   * A win on the *last* level replaces the whole overlay. Level 8 is level 1
    * with the hints taken away, so what the player has in the editor at that
    * moment is a program that clears the first real level, and the only
    * useful thing to say is "take it with you". That is `tutorial.finish.*`, and
-   * its link leaves the track for level 1 rather than offering a ninth task
+   * its link leaves the track for level 1 rather than offering a ninth level
    * that does not exist.
    *
    * The link takes nothing with it, and its words no longer say it does. It is
@@ -2114,7 +2114,7 @@ export class App {
    * the way out, so what waits on level 1 is the player's own program and
    * not the one that just won. The label used to read "Go to level 1 with
    * this program", which was a promise the route does not keep — the winning
-   * program is safe under the task's own key, but the player was told it had
+   * program is safe under the level's own key, but the player was told it had
    * travelled with them and would have found their old program instead. Copying
    * it across from here was the other way to make the two agree, and it is the
    * wrong one: overwriting the player's program is the thing the panel's
@@ -2127,13 +2127,13 @@ export class App {
    * the same verdict in another language without a language change counting as
    * a second win.
    *
-   * @param tutorial - The task that just ended and where it sits in the track.
-   * @param won - Whether the task's condition was met.
+   * @param tutorial - The level that just ended and where it sits in the track.
+   * @param won - Whether the level's condition was met.
    */
   #showTutorialOutcome(tutorial: TutorialRun, won: boolean): void {
-    const isLastTask = tutorial.index + 1 >= tutorialTasks.length;
-    const nextTask = tutorialTasks[tutorial.index + 1];
-    const finished = won && isLastTask;
+    const isLastLevel = tutorial.index + 1 >= tutorialLevels.length;
+    const nextLevel = tutorialLevels[tutorial.index + 1];
+    const finished = won && isLastLevel;
     presentVerdictToast(this.#elements.feedback, {
       won,
       title: finished
@@ -2146,27 +2146,27 @@ export class App {
         : won
           ? t("game.feedback.success.message")
           : t("game.feedback.failure.message"),
-      // Nothing to be short of: a task carries no `level.tiers` for the
+      // Nothing to be short of: a level carries no `level.tiers` for the
       // hint to name a next bar out of, the same reason `tier` below is
       // `undefined`.
       hint: "",
       // The seed is dropped from both, as it is from every link the app builds:
       // it belongs to the run just finished. On the way to level 1 that is
       // also what keeps the link usable at all -- the router refuses a seed on a
-      // task address and would refuse this one on arrival if it survived.
+      // level address and would refuse this one on arrival if it survived.
       url: finished
         ? createParamsUrl(this.#query, { [LEVEL_KEY]: 1, seed: null })
-        : won && nextTask !== undefined
-          ? createParamsUrl(this.#query, { [LEVEL_KEY]: nextTask.id, seed: null })
+        : won && nextLevel !== undefined
+          ? createParamsUrl(this.#query, { [LEVEL_KEY]: nextLevel.id, seed: null })
           : "",
-      // A task's win has no tier -- tiers rank a numbered level's run
-      // against `level.tiers`, which tasks on the learning track do not
+      // A level's win has no tier -- tiers rank a numbered level's run
+      // against `level.tiers`, which levels on the learning track do not
       // carry. See {@link #showOutcome} for the numbered-level case.
       tier: undefined,
     });
     if (won) {
       this.#relabelFeedbackLink(
-        finished ? t("tutorial.finish.toLevels") : t("tutorial.finish.nextTask"),
+        finished ? t("tutorial.finish.toLevels") : t("tutorial.finish.nextLevel"),
       );
     }
   }

@@ -59,7 +59,7 @@
  * module is a widget that a caller — a test, eventually `widgets/app-bar`
  * itself — can build more than once, so each becomes a class instead
  * (`.docsopen`, `.setopen`, `.keysopen`), the same substitution
- * `presentLevelSwitcher` already makes for the mockup's own `.task-*` ids.
+ * `presentLevelSwitcher` already makes for the mockup's own `.level-*` ids.
  * `.langpick` needed no substitution: the mockup already gives `#langPick`
  * that class alongside its id, which is the selector this module's own
  * presenter uses.

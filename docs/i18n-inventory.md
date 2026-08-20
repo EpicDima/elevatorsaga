@@ -146,8 +146,8 @@ is the other, and was missed when this figure was last written: it is a paragrap
 page like its neighbours, and `src/game/world.ts` names it twice in prose explaining what the
 statistics panel measures. So the true figure is 85. The grep also needs
 `src/widgets/tutorial-panel/ui/tutorial-panel.ts` and `src/game/tutorial.ts` to be in the tree, since between them that
-is what reads the 64 `tutorial.task*` messages: the panel each task's prose, the task table each
-task's two programs.
+is what reads the 64 `tutorial.level*` messages: the panel each level's prose, the level table each
+level's two programs.
 
 **`page.noscript` cannot be wired, and the comment in `index.html` is the reason.** A browser
 running this code parses the children of `<noscript>` as text rather than as elements, so in the
@@ -308,54 +308,54 @@ case makes sure no key escapes that comparison.
 
 ### The learning track — 82 `tutorial.*` keys
 
-The track is the eight tasks in `src/game/tutorial.ts`, with ids `tutorial-1` … `tutorial-8`.
+The track is the eight levels in `src/game/tutorial.ts`, with ids `tutorial-1` … `tutorial-8`.
 Its prose is the largest single group of keys after the reference page, and it is the one group
 whose messages were committed before anything read them — the prose _is_ the teaching here, so it
 was written into both catalogues first and the panel built against it.
 
-Each task owns eight keys, numbered by position: `tutorial.taskN.title`, `tutorial.taskN.goal`,
-`tutorial.taskN.hint1.html`, `.hint2.html`, `.hint3.html`, `tutorial.taskN.explanation.html`,
-`tutorial.taskN.startingCode.code` and `tutorial.taskN.solutionCode.code` — 64 in all.
+Each level owns eight keys, numbered by position: `tutorial.levelN.title`, `tutorial.levelN.goal`,
+`tutorial.levelN.hint1.html`, `.hint2.html`, `.hint3.html`, `tutorial.levelN.explanation.html`,
+`tutorial.levelN.startingCode.code` and `tutorial.levelN.solutionCode.code` — 64 in all.
 `src/widgets/tutorial-panel/ui/tutorial-panel.ts` writes the six prose keys out as literals in
-`TUTORIAL_TASK_MESSAGES` and says why in its header: a message key has to reach `t` as a string
+`TUTORIAL_LEVEL_MESSAGES` and says why in its header: a message key has to reach `t` as a string
 literal, because the parameters a message takes are derived from the literal by `Placeholders<S>`
-in `src/i18n/catalogue.ts`. A key built as ``t(`tutorial.task${n}.title`)`` cannot be
+in `src/i18n/catalogue.ts`. A key built as ``t(`tutorial.level${n}.title`)`` cannot be
 type-checked, and casting one through would trade the whole point of the typed catalogue for
 brevity — a renamed message would then print its own key at a player instead of failing the
-build. The table is typed `Record<TutorialTaskId, …>` and keyed by the task's id rather than by
-its position, so that a ninth task inserted in the middle cannot slide one task's prose onto the
-next task's building. `TutorialTaskId` is derived from the catalogue's own `tutorial.taskN.title`
-keys, which is what makes a ninth task's messages added to `src/i18n/en.ts` without a row here
+build. The table is typed `Record<TutorialLevelId, …>` and keyed by the level's id rather than by
+its position, so that a ninth level inserted in the middle cannot slide one level's prose onto the
+next level's building. `TutorialLevelId` is derived from the catalogue's own `tutorial.levelN.title`
+keys, which is what makes a ninth level's messages added to `src/i18n/en.ts` without a row here
 stop the file compiling.
 
-The other two keys are the task's two programs, and they are messages for the same reason
+The other two keys are the level's two programs, and they are messages for the same reason
 `editor.defaultCode.code` is one: the `//` comments in them are prose written to the player —
-`// TODO: this building has two floors, and the elevator only visits one` is the whole of task
+`// TODO: this building has two floors, and the elevator only visits one` is the whole of level
 1's instruction, and it is read in the editor and again under the third hint. The JavaScript is
-byte-identical in every locale and only the comments are translated. `tutorialTasks` in
+byte-identical in every locale and only the comments are translated. `tutorialLevels` in
 `src/game/tutorial.ts` reads both through getters rather than fields, so that a program is
 rendered when the editor or the panel asks for it rather than when the module is imported, which
 is before a locale has been chosen; the keys are written out at each entry, since a key built
-from the task's id could not be type-checked either. `tutorial.task8.solutionCode.code` repeats
-task 7's program word for word — the graduation task asks for nothing new — and every task owning
+from the level's id could not be type-checked either. `tutorial.level8.solutionCode.code` repeats
+level 7's program word for word — the graduation level asks for nothing new — and every level owning
 the same eight keys is worth more than the saving; `src/game/tutorial.test.ts` holds the two
 equal in every locale.
 
-| Key                                | English                                                                                                         | Notes                                                                                                                                              |
-| ---------------------------------- | --------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `tutorial.taskN.startingCode.code` | { init: function(elevators, floors) { const elevator = elevators[0]; elevator.on("idle", function() { // TODO:… | code; only the comments are translated; the program the editor is filled with, and the one `src/game/tutorial-solutions.test.ts` proves cannot win |
-| `tutorial.taskN.solutionCode.code` | { init: function(elevators, floors) { const elevator = elevators[0]; elevator.on("idle", function() { elevator… | code; only the comments are translated; the answer, shown under the third hint and replayed as the fixture that must win                           |
+| Key                                 | English                                                                                                         | Notes                                                                                                                                              |
+| ----------------------------------- | --------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `tutorial.levelN.startingCode.code` | { init: function(elevators, floors) { const elevator = elevators[0]; elevator.on("idle", function() { // TODO:… | code; only the comments are translated; the program the editor is filled with, and the one `src/game/tutorial-solutions.test.ts` proves cannot win |
+| `tutorial.levelN.solutionCode.code` | { init: function(elevators, floors) { const elevator = elevators[0]; elevator.on("idle", function() { elevator… | code; only the comments are translated; the answer, shown under the third hint and replayed as the fixture that must win                           |
 
-| Task | `tutorial.taskN.title`                   | What the goal asks for                                                                   |
-| ---- | ---------------------------------------- | ---------------------------------------------------------------------------------------- |
-| 1    | The elevator that goes nowhere           | visit both floors and deliver 10 passengers within 60 seconds                            |
-| 2    | The same loop, written by hand           | write the `idle` handler yourself; 15 passengers within 60 seconds                       |
-| 3    | The buttons inside the car               | `floor_button_pressed`; 15 passengers within 60 seconds                                  |
-| 4    | The queue nobody read                    | the missing `checkDestinationQueue`; 15 passengers within 60 seconds                     |
-| 5    | The building grew                        | hall calls instead of a blind sweep; 15 passengers, nobody waiting over 37 seconds       |
-| 6    | The elevator that lies to its passengers | the indicators; 15 passengers, nobody waiting over 28 seconds                            |
-| 7    | The second elevator                      | `elevators.forEach`; 28 passengers within 60 seconds                                     |
-| 8    | From memory                              | the whole program on an empty page; 15 passengers within 60 seconds — level 1's building |
+| Level | `tutorial.levelN.title`                  | What the goal asks for                                                                   |
+| ----- | ---------------------------------------- | ---------------------------------------------------------------------------------------- |
+| 1     | The elevator that goes nowhere           | visit both floors and deliver 10 passengers within 60 seconds                            |
+| 2     | The same loop, written by hand           | write the `idle` handler yourself; 15 passengers within 60 seconds                       |
+| 3     | The buttons inside the car               | `floor_button_pressed`; 15 passengers within 60 seconds                                  |
+| 4     | The queue nobody read                    | the missing `checkDestinationQueue`; 15 passengers within 60 seconds                     |
+| 5     | The building grew                        | hall calls instead of a blind sweep; 15 passengers, nobody waiting over 37 seconds       |
+| 6     | The elevator that lies to its passengers | the indicators; 15 passengers, nobody waiting over 28 seconds                            |
+| 7     | The second elevator                      | `elevators.forEach`; 28 passengers within 60 seconds                                     |
+| 8     | From memory                              | the whole program on an empty page; 15 passengers within 60 seconds — level 1's building |
 
 The other eighteen are the panel and the surfaces around it.
 
@@ -375,15 +375,15 @@ The other eighteen are the panel and the surfaces around it.
 | `tutorial.solution.copied`          | Copied to your clipboard.                                                                               | `copySolution`'s `aria-live` line on a successful `navigator.clipboard.writeText`                                                       |
 | `tutorial.solution.copyFailed`      | Your browser refused to copy it. Select the code above and copy it yourself.                            | the same line, when the write refuses or the API is missing                                                                             |
 | `tutorial.bar.title.html`           | Tutorial level {number} of {count}: {description}                                                       | markup; takes `{number}`, `{count}`, `{description}`; the level bar's title on the track, counting the track rather than the level list |
-| `tutorial.finish.title`             | The track is finished                                                                                   | the overlay after the last task                                                                                                         |
+| `tutorial.finish.title`             | The track is finished                                                                                   | the overlay after the last level                                                                                                        |
 | `tutorial.finish.message`           | Eight tutorial levels, and the last of them was level 1 of the game itself: the same three floors, the… |                                                                                                                                         |
-| `tutorial.finish.nextTask`          | Next tutorial level                                                                                     | not `game.feedback.next`, which says "Next level" — see the note below                                                                  |
+| `tutorial.finish.nextLevel`         | Next tutorial level                                                                                     | not `game.feedback.next`, which says "Next level" — see the note below                                                                  |
 | `tutorial.finish.toLevels`          | Go to level 1                                                                                           | the finish overlay's link out of the track; it carries no program, which is why it no longer says it does                               |
 
-`tutorial.finish.nextTask` and `game.feedback.next` are separate keys even though both are "next X"
+`tutorial.finish.nextLevel` and `game.feedback.next` are separate keys even though both are "next X"
 links in English. Two features sharing one key is a key neither can reword: the day the level
 overlay wants different words, the track's overlay changes with it for no reason. The Russian of
-`tutorial.finish.nextTask` is «Следующий учебный уровень» and of `game.feedback.next` is «Следующий
+`tutorial.finish.nextLevel` is «Следующий учебный уровень» and of `game.feedback.next` is «Следующий
 уровень» — two different words for two different destinations.
 
 ### `src/ui/templates.ts` — 16 `game.*` keys
@@ -498,7 +498,7 @@ The app bar's level-switcher popover, and its step buttons either side of the tr
 three block captions reuse `tutorial.panel.label` and `game.level.nav.label`, and an open
 level tile reuses `game.level.nav.link` — this prefix only holds what those cannot say:
 the third block's caption and the tile inside it, the two step buttons, the two tile labels the
-level list has no counterpart for — it never names a learning-track task or a locked level — and
+level list has no counterpart for — it never names a learning-track level or a locked level — and
 the trigger's own name for a lesson.
 
 | Key                                           | English                            | Notes                                                                                                                |
@@ -1343,7 +1343,7 @@ is `src/i18n/inventory.test.ts`, which reads this file with `?raw` and checks it
 1. Every backticked token in this file shaped like a message key — dotted, and with a first
    segment that is one of the catalogue's prefixes — is a real `MessageKey`. This catches a key
    renamed in the catalogue and left behind here.
-2. Every key in `EN_MESSAGES` appears somewhere in this file, except the 64 `tutorial.taskN.*`
+2. Every key in `EN_MESSAGES` appears somewhere in this file, except the 64 `tutorial.levelN.*`
    keys the learning track section covers by their shape — its prose and its two programs alike.
    This catches a message added without a row.
 3. The **Keys** column of _Where the strings are_ equals the number of `EN_MESSAGES` keys under
@@ -1354,9 +1354,9 @@ is `src/i18n/inventory.test.ts`, which reads this file with `?raw` and checks it
 5. No `file.ts:123` pin below _How this file is anchored_, so the convention cannot quietly
    lapse. The two in that section are the examples of what it prevents, and are meant to stay
    wrong.
-6. The learning track's table quotes each task title as `EN_MESSAGES` words it, and carries a row
-   for every task in it. This is the one column of prose comparable by equality — the titles are
-   copied whole rather than abridged — and it had already rotted when the check was added: task
+6. The learning track's table quotes each level title as `EN_MESSAGES` words it, and carries a row
+   for every level in it. This is the one column of prose comparable by equality — the titles are
+   copied whole rather than abridged — and it had already rotted when the check was added: level
    6's row said "lies to passengers" where the catalogue says "lies to its passengers", through
    five checks that all passed because none of them read the column.
 

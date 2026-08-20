@@ -142,7 +142,7 @@ html[data-layout="game"] .splitter {
  * and rebuilt on every redraw of the world: a restart, a change of level, a
  * change of language. A panel parented into `.stagerow` would be thrown away
  * by the restart button the app bar offers while the player is halfway
- * through a task, and the two orderings that would have to hold to put it
+ * through a level, and the two orderings that would have to hold to put it
  * back are not ones this page can promise -- the panel is drawn before
  * `presentBuildingStage`, and an instant run skips `presentBuildingStage`
  * altogether, so on a crunch there would be no `.stagerow` to re-mount into
@@ -173,7 +173,7 @@ html[data-layout="game"] .splitter {
  * That pair draws a card as tall as the building with the buttons pinned to its
  * foot, and in the mockup it is a card very nearly full: measured, 578px of
  * card around 576px of content, the `auto` margin resolving to 74px. Here the
- * same pair would draw a 663px card around the 435px a task actually measures
+ * same pair would draw a 663px card around the 435px a level actually measures
  * at the default split -- 228px of empty panel, with the action a player is
  * reaching for a third of a screen below the sentence that sent them to it. The
  * declaration would match the mockup and the appearance would not, which is the
@@ -261,9 +261,9 @@ html[data-layout="game"] .splitter {
  * see there for why the row cannot open one for itself and be measured by it.
  * The threshold is measured rather than borrowed
  * from the mockup's viewport number: the widest house the learning track
- * builds is task 7's two-shaft one at 430px, and 430 plus `.stage`'s 32px of
+ * builds is level 7's two-shaft one at 430px, and 430 plus `.stage`'s 32px of
  * inline padding plus the 18px gap plus the 260px the lesson may shrink to
- * comes to 740. 760 is that with room for a future task with a wider house;
+ * comes to 740. 760 is that with room for a future level with a wider house;
  * under it the row would have to overflow the pane rather than fit in it.
  */
 @container stage (max-width: 760px) {
@@ -275,7 +275,7 @@ html[data-layout="game"] .splitter {
   /*
    * Half the stage, and no more. Stacked, the two boxes are competing for the
    * pane's height rather than its width, and the lesson is the one with no
-   * natural end to it: with the answer open task 7 asks for 1290px against the
+   * natural end to it: with the answer open level 7 asks for 1290px against the
    * 399px this row gets at the 1040x600 floor, and a lesson allowed to take
    * what it asks for takes all of it -- measured, the building came out
    * 0px tall, which is the building gone.

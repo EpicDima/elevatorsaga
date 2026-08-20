@@ -184,9 +184,9 @@ interface JudgedRunResult {
  * level's own condition, and reports what happened rather than asserting
  * anything itself -- the caller decides what a verdict of `null` means.
  *
- * The same shape as `tutorial-solutions.test.ts`'s `playTask`, with one
- * deliberate difference: `playTask` throws when a run is still undecided at
- * its bound, because for a learning-track task an undecided run is always a
+ * The same shape as `tutorial-solutions.test.ts`'s `playLevel`, with one
+ * deliberate difference: `playLevel` throws when a run is still undecided at
+ * its bound, because for a learning-track level an undecided run is always a
  * broken test. Here an undecided run *is* the finding the smoke check below
  * exists to make, so this returns `verdict: null` instead of throwing, and
  * lets the assertion -- with a message describing exactly how far the run
@@ -294,7 +294,7 @@ const SMOKE_MAX_SIMULATED_SECONDS = 500;
  *
  * The regression above is one exact reproduction of one defect; this is the
  * check meant to catch the *class* of bug that defect belonged to, the way
- * `tutorial-sweep.test.ts` catches more than the one seed a tutorial task
+ * `tutorial-sweep.test.ts` catches more than the one seed a tutorial level
  * happened to be measured on. It does not require either preset to *win* --
  * {@link GOOD_CODE_BALANCED} is not calibrated for the move-budget levels
  * here any more than {@link GOOD_CODE_MOVE_CONSCIOUS} is for the others, and

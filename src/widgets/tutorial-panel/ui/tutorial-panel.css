@@ -17,7 +17,7 @@
  * that is left here is what the region is on the routes that have no lesson.
  *
  * Every route but the track leaves this element empty -- `App` draws into it
- * only while a task is on screen and empties it for the nineteen levels, the
+ * only while a level is on screen and empties it for the nineteen levels, the
  * sandbox and the demo -- and an empty flex item is not free: on its stated
  * `flex-basis` it would hold 384px of the row open beside every building in
  * the game, with a 16px inset and an 18px gap around the nothing inside it.
@@ -83,7 +83,7 @@
  *
  * The position is `--ds-text-muted` and the track's name is not, because they
  * are two different sentences sharing a line: the name says which panel this
- * is, and only the position changes from task to task. Muted measures 6.70:1
+ * is, and only the position changes from level to level. Muted measures 6.70:1
  * dark and 5.90:1 light on the card, past 4.5:1; the mockup's own
  * `--text-faint` would have been 3.62:1 dark and 3.14:1 light there, short of
  * it in both themes, and it is not used for text anywhere on this page for
@@ -125,14 +125,14 @@
 }
 
 /*
- * The track as ticks, one per task: the mockup's `.steps` (§11). See
+ * The track as ticks, one per level: the mockup's `.steps` (§11). See
  * `tutorialStepsTemplate` for what the three states mean and why the row says
  * it to the eye only.
  *
  * `--ds-n-3` for a tick not yet reached is the mockup's own `--n-3`, and it is
  * the one colour here that is neither text nor a control: 1.4.11 asks 3:1 of a
  * graphical object only when it carries information not available elsewhere,
- * and every one of these is a restatement of "Task 3 of 8" one line above. An
+ * and every one of these is a restatement of "Level 3 of 8" one line above. An
  * unreached tick measures 1.22:1 dark and 1.19:1 light against the card, which
  * is the intent -- it is the groove the other two are drawn in, not a mark. The
  * two that do carry the eye -- `--ds-ok` behind and `--ds-accent` here -- are
@@ -161,7 +161,7 @@
 }
 
 /*
- * The task's own name: the mockup's `.lesson h2`. The weight has to be stated
+ * The level's own name: the mockup's `.lesson h2`. The weight has to be stated
  * because this page sets every heading below `h1` to `normal` (see the
  * document rules above), and a 16px heading at the weight of the prose under
  * it is not a heading.
@@ -174,7 +174,7 @@
 
 /*
  * The prose: the mockup's `.lesson p`, one size below the page's own and
- * muted, which is what makes the task's name and the ticks above it the two
+ * muted, which is what makes the level's name and the ticks above it the two
  * things read first. `--ds-text-muted` measures 6.70:1 dark and 5.90:1 light
  * on the card, and 6.19:1 dark / 5.56:1 light on the `--ds-raised` inside an
  * open hint, both past the 4.5:1 of WCAG 1.4.3.
@@ -197,7 +197,7 @@
 }
 
 /*
- * The four disclosures: three hints, then why the task behaves as it does.
+ * The four disclosures: three hints, then why the level behaves as it does.
  * The mockup's `.hint` (§11) -- a raised, hairlined box the whole width of the
  * card, with its summary as the lid.
  *
@@ -270,7 +270,7 @@
  * `pre code` already paints the surface in the page's own code colours and
  * wraps it below 760px; what is stated here is the mockup's tighter padding
  * and its one-size-smaller type, and a ceiling. The longest line in any of the
- * eight answers is 68 characters (task 7, which task 8 shows again), so a
+ * eight answers is 68 characters (level 7, which level 8 shows again), so a
  * block any wider than that is a code surface with nothing in the right-hand
  * half of it. The ceiling is on the `<code>`, where a `ch` is a character of
  * the monospace face that is about to be measured out in it.
@@ -288,7 +288,7 @@
 /*
  * The line or lines a player actually has to write, inside the answer.
  * `changedLines` (`src/ui/line-diff.ts`) is what decides which lines these
- * are, by comparing the task's starting program against this one; this rule
+ * are, by comparing the level's starting program against this one; this rule
  * is only the paint. `--ds-accent` marks the change, the same colour the
  * building already uses for "this is lit, this matters" -- a floor's call
  * button, its band once pressed. Checked fresh against `--ds-code-bg`, a
@@ -298,7 +298,7 @@
  *
  * A `<mark>` rather than a `<span>` with the same class: it is the element
  * HTML already has for "this text matters here, against another context",
- * which is exactly what a changed line is against the program the task
+ * which is exactly what a changed line is against the program the level
  * started with -- see `code-highlight.ts`. The border sits on the inline
  * *start* edge, which is where reading begins in every language this page
  * ships (English and Russian both read left to right), so `border-inline-start`
@@ -327,9 +327,9 @@
  * The row above the answer: a button that copies it to the clipboard, and the
  * line that says whether that worked, in that order -- the line reports on the
  * button beside it, the way `.tutorialtaken` reports on "Take this program"
- * below. Not part of `.tutorialbuttons`: that row leaves the task, and this
+ * below. Not part of `.tutorialbuttons`: that row leaves the level, and this
  * button acts on the code beside it instead, so it stays with the code rather
- * than joining the buttons that end the task.
+ * than joining the buttons that end the level.
  *
  * Inset 11px like everything else inside an open hint, so the button, the
  * prose above it and the code below it stand on one line.
@@ -387,7 +387,7 @@
 }
 
 /*
- * The two things a player can do with a task once they have read it: the
+ * The two things a player can do with a level once they have read it: the
  * mockup's `.lesson-acts` (§11), and its own hierarchy -- the quiet one on the
  * left, the painted one pushed to the far right by `margin-inline-start: auto`.
  * The mockup's reasoning for the gap between them is that the two are not
@@ -403,7 +403,7 @@
  * Still a wrapping row, and now for a sharper reason than the phone it was
  * written for. These labels are sentences -- "Take this program into your own
  * editor", and the Russian for it -- and the card they now sit in is 374px
- * wide at the default split, 314px on task 7 whose building is 60px wider, and
+ * wide at the default split, 314px on level 7 whose building is 60px wider, and
  * 260px at its floor. The measurements are at `.tutorialbuttons .btn` below,
  * where the height they force is settled; the short of it is that the pair is
  * 414px against a 344px content box even at the widest of those, so they take
@@ -427,13 +427,13 @@
 
 /*
  * What "Take this program" did, one size down from the panel's own prose: a
- * remark about a write that has already happened, not part of the task being
+ * remark about a write that has already happened, not part of the level being
  * read. Muted for the same reason it is small -- the eye coming back to the card
  * is looking for the next step, not for the receipt of the last one -- which is
  * `--ds-text-muted` on the card's `--ds-panel`, measured at 6.70:1 dark and
  * 5.90:1 light, past the 4.5:1 of WCAG 1.4.3.
  *
- * Not hidden while it is empty, though it is empty for most of a task's life. It
+ * Not hidden while it is empty, though it is empty for most of a level's life. It
  * is a live region, and the announcement is only reliable when the region was
  * already rendered before the text arrived -- `display: none` up to the moment
  * of the update is the case screen readers most often miss. An empty `<p>` has
@@ -456,10 +456,10 @@
 }
 
 /*
- * The one line here that is about the track rather than about this task, and the
- * only place the count of cleared tasks is shown. Last, smallest and muted: it
+ * The one line here that is about the track rather than about this level, and the
+ * only place the count of cleared levels is shown. Last, smallest and muted: it
  * is the footnote of the card, and it is the one line on it that does not change
- * between the steps of a task. It used to be set at 14px, larger than the
+ * between the steps of a level. It used to be set at 14px, larger than the
  * lesson's own prose and its head row both, which on a card this narrow read as
  * the loudest thing below the title.
  *

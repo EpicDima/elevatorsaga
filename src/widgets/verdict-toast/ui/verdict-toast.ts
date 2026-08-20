@@ -42,7 +42,7 @@ import { markup, raw, renderElement } from "#shared/ui/markup.ts";
 export interface VerdictToastData {
   /**
    * Whether the run cleared its level. Drives the check/cross mark and
-   * `.is-fail`, and is not inferable from {@link tier}: a task on the learning
+   * `.is-fail`, and is not inferable from {@link tier}: a level on the learning
    * track wins without one.
    */
   readonly won: boolean;
@@ -62,7 +62,7 @@ export interface VerdictToastData {
   readonly url: string;
   /**
    * The tier earned, for a badge beside the title — `undefined` to draw no
-   * badge at all (a loss, a tutorial task, or any run with no tier concept).
+   * badge at all (a loss, a tutorial level, or any run with no tier concept).
    */
   readonly tier: LevelTier | undefined;
 }

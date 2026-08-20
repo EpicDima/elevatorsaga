@@ -5,10 +5,10 @@
  * text: it composes {@link "#entities/level/index.ts"!listLevels}'s
  * ordering, {@link "#entities/level-tier/index.ts"} 's best-tier record
  * and {@link "#features/switch-level/index.ts"!lockLevelTiles}'s locking
- * rule for the "Уровни" block; {@link "#game/tutorial.ts"!tutorialTasks} and
- * the caller's cleared-task record for the "Обучение" block, which stays
+ * rule for the "Уровни" block; {@link "#game/tutorial.ts"!tutorialLevels} and
+ * the caller's cleared-level record for the "Обучение" block, which stays
  * unlocked on purpose — see
- * {@link "#entities/tutorial-task/model/progress.ts"}'s own documented "the
+ * {@link "#entities/tutorial-level/model/progress.ts"}'s own documented "the
  * track locks nothing" rule; and a single always-open tile for free play.
  * Every string a player reads — labels, tooltips, accessible names — is
  * built later, in this widget's own `ui/` layer, the same division
@@ -26,7 +26,7 @@
 import { listLevels, type Level } from "#entities/level/index.ts";
 import type { LevelTier } from "#entities/level-tier/index.ts";
 import { lockLevelTiles } from "#features/switch-level/index.ts";
-import type { TutorialTask } from "#game/tutorial.ts";
+import type { TutorialLevel } from "#game/tutorial.ts";
 
 /** What is being played right now, if any tile in this menu names it. */
 export type LevelSelection =
@@ -38,12 +38,12 @@ export type LevelSelection =
  * What a tile links to, for a caller's own `buildHref` to turn into a URL.
  *
  * Shaped after the three ways `src/pages/game/model/route.ts` reads the
- * `level` parameter: a one-based number, a task's own id (already
+ * `level` parameter: a one-based number, a level's own id (already
  * `tutorial-N`), or {@link "#pages/game/model/route.ts"!SANDBOX_LEVEL}.
  */
 export type LevelLinkTarget =
   | { readonly kind: "level"; readonly number: number }
-  | { readonly kind: "tutorial"; readonly taskId: string }
+  | { readonly kind: "tutorial"; readonly levelId: string }
   | { readonly kind: "sandbox" };
 
 /** One tile of the "Уровни" block. */
@@ -96,12 +96,12 @@ export interface LevelMenuBlock {
 export interface LevelMenuInput {
   /** The numbered levels, in playing order — {@link "#game/levels.ts"!levels}. */
   readonly levels: readonly Level[];
-  /** The learning track, in playing order — {@link "#game/tutorial.ts"!tutorialTasks}. */
-  readonly tutorialTasks: readonly TutorialTask[];
+  /** The learning track, in playing order — {@link "#game/tutorial.ts"!tutorialLevels}. */
+  readonly tutorialLevels: readonly TutorialLevel[];
   /** This browser's best-recorded tier per level index. */
   readonly bestTiers: ReadonlyMap<number, LevelTier>;
-  /** This browser's cleared learning-track task ids. */
-  readonly clearedTutorialTasks: ReadonlySet<string>;
+  /** This browser's cleared learning-track level ids. */
+  readonly clearedTutorialLevels: ReadonlySet<string>;
   /** What is being played right now, if anything this menu offers is. */
   readonly selection: LevelSelection;
   /** Turns a tile's {@link LevelLinkTarget} into the URL it links to. */
@@ -111,13 +111,13 @@ export interface LevelMenuInput {
 function buildTutorialBlock(input: LevelMenuInput): LevelMenuBlock {
   return {
     id: "tutorial",
-    tiles: input.tutorialTasks.map((task, index) => ({
+    tiles: input.tutorialLevels.map((level, index) => ({
       kind: "tutorial",
       index,
       number: index + 1,
       current: input.selection.kind === "tutorial" && input.selection.index === index,
-      cleared: input.clearedTutorialTasks.has(task.id),
-      href: input.buildHref({ kind: "tutorial", taskId: task.id }),
+      cleared: input.clearedTutorialLevels.has(level.id),
+      href: input.buildHref({ kind: "tutorial", levelId: level.id }),
     })),
   };
 }

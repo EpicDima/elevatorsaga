@@ -1,16 +1,16 @@
 /**
  * The claim the whole learning track rests on, measured rather than asserted:
- * every task's answer wins, and every task's starting code loses wherever a
+ * every level's answer wins, and every level's starting code loses wherever a
  * threshold exists that can make it lose — see {@link STARTING_CODE_WINS} for
  * the one place none does.
  *
- * A task in {@link "./tutorial.ts"!tutorialTasks} is a promise about the
+ * A level in {@link "./tutorial.ts"!tutorialLevels} is a promise about the
  * simulation — "this mistake cannot pass, this fix can" — and nothing but the
  * simulation can keep it. Spawn timing, elevator acceleration, boarding, the
  * wait clock and the thresholds in {@link "./levels.ts"!levels} all
  * feed into it, and every one of them is somebody's legitimate next commit. The
  * failure this file exists to catch is quiet: the physics shifts by a few
- * percent, a task the player is told is impossible starts passing, and the only
+ * percent, a level the player is told is impossible starts passing, and the only
  * symptom is that the lesson has become a lie. Nothing else in the suite would
  * notice.
  *
@@ -25,16 +25,16 @@
  * a condition, so it can say how well a program did but not whether it won, and
  * "did it win" is the entire question here.
  *
- * **Ten seeds, not one.** A task proven on its pinned seed alone is a task
+ * **Ten seeds, not one.** A level proven on its pinned seed alone is a level
  * proven against one stream of passengers; the pin exists so the player's run is
  * reproducible, not so the measurement can be cheap. The other nine are the
  * plan's: `1`–`6` and three that exercise the string half of
  * {@link "./random.ts"!RandomSeed}.
  *
- * **Every language, not the default one.** A task hands out one program per
+ * **Every language, not the default one.** A level hands out one program per
  * locale: the two programs are catalogue messages, because the `//` comments in
  * them are prose written to the player and translated like any other, so
- * `task.solutionCode` answers in whatever language was last set. Read only
+ * `level.solutionCode` answers in whatever language was last set. Read only
  * under {@link "../i18n/locale.ts"!DEFAULT_LOCALE}, this file measured the
  * English programs and left the Russian ones — the program a Russian player is
  * handed in the editor, and the one shown to them as the answer — never once
@@ -42,9 +42,9 @@
  *
  * The gap could be argued away and should not be. `catalogue.test.ts` holds the
  * two locales' code identical once the comments are emptied, and
- * `tutorial.test.ts` parses both programs of every task in every language, so a
- * Russian program that lost a task would have to get past both. But that is an
- * inference across two other files' invariants about *text*, and what a task
+ * `tutorial.test.ts` parses both programs of every level in every language, so a
+ * Russian program that lost a level would have to get past both. But that is an
+ * inference across two other files' invariants about *text*, and what a level
  * promises is about a *run*: this mistake cannot pass, this fix can, in the
  * language the player is reading. Measuring it costs another 328 runs and about
  * three tenths of a second — the whole file is some 660 runs of at most a few
@@ -60,8 +60,8 @@
  * run at all is a question ten seeds answer as well as four hundred, and they
  * answer it here.
  *
- * **With margin.** A task whose answer scrapes past with three seconds to spare
- * is a task that will break, and it should be retuned now rather than discovered
+ * **With margin.** A level whose answer scrapes past with three seconds to spare
+ * is a level that will break, and it should be retuned now rather than discovered
  * later, so the margin is asserted rather than left to the next reader to
  * measure. {@link judgeWithClockShift} explains how that is done without this
  * file having to know what any particular threshold is.
@@ -73,13 +73,13 @@ import { DEFAULT_LOCALE, LOCALES, setLocale, type Locale } from "../i18n/index.t
 import type { LevelCondition, LevelWorldStats } from "./levels.ts";
 import { createFrameRequester } from "./frame-requester.ts";
 import type { RandomSeed } from "./random.ts";
-import { tutorialTasks, type TutorialTask } from "./tutorial.ts";
+import { tutorialLevels, type TutorialLevel } from "./tutorial.ts";
 import { getCodeObjFromCode } from "./user-code.ts";
 import { TICK_SECONDS, createWorldController } from "./world-controller.ts";
 import { createWorld } from "./world.ts";
 
 afterEach(() => {
-  // Every spec below names a language and leaves it named, and the task table
+  // Every spec below names a language and leaves it named, and the level table
   // answers in whatever language was set last.
   setLocale(DEFAULT_LOCALE);
 });
@@ -88,9 +88,9 @@ afterEach(() => {
 const FRAME_MILLISECONDS = 1000.0 / 60.0;
 
 /**
- * Simulated seconds after which an undecided run is called a broken task.
+ * Simulated seconds after which an undecided run is called a broken level.
  *
- * Not a time limit on the tasks — every condition here resolves on its own well
+ * Not a time limit on the levels — every condition here resolves on its own well
  * inside it — but a bound on the loop that drives them: a condition that never
  * resolves would otherwise spin the test runner for good, with no output, which
  * is the least debuggable way for a suite to fail.
@@ -98,7 +98,7 @@ const FRAME_MILLISECONDS = 1000.0 / 60.0;
 const MAX_SIMULATED_SECONDS = 240.0;
 
 /**
- * The seeds every task is measured on, besides its own.
+ * The seeds every level is measured on, besides its own.
  *
  * Six numbers and three strings, because {@link RandomSeed} accepts both and
  * they take different paths into the generator: a number is hashed as its
@@ -107,29 +107,29 @@ const MAX_SIMULATED_SECONDS = 240.0;
 const EXTRA_SEEDS: readonly RandomSeed[] = [1, 2, 3, 4, 5, 6, "abc", "xyz", "42a"];
 
 /**
- * Seconds of margin a task is required to hold, on both sides.
+ * Seconds of margin a level is required to hold, on both sides.
  *
  * Three is not a derived number; it is roughly a fifth of the shortest budget
- * any task is judged on, which is enough that a physics change big enough to
+ * any level is judged on, which is enough that a physics change big enough to
  * cross it is a change somebody meant to make. The measured margins are far
- * wider — the tightest of the seven ordinary tasks is task 6, which clears by
- * 11.33 seconds on seed 5, and task 7 is next at 11.75 on seed 4 — so this
+ * wider — the tightest of the seven ordinary levels is level 6, which clears by
+ * 11.33 seconds on seed 5, and level 7 is next at 11.75 on seed 4 — so this
  * bound is a tripwire, not a target.
  *
  * It said 6.6 seconds until that was re-measured and found to belong to nothing
- * in the file: it was task 5's worst margin back when its wait limit was 26
+ * in the file: it was level 5's worst margin back when its wait limit was 26
  * (6.55 seconds on seed 3), and the limit moved to 37 without the sentence
- * following it. Quoted with the task and the seed now, because a bare number
+ * following it. Quoted with the level and the seed now, because a bare number
  * here is exactly what went stale — a margin no longer attached to the run that
  * produced it cannot be re-checked, only believed.
  */
 const MARGIN_SECONDS = 3.0;
 
 /**
- * The margin task 8 is held to instead, and the reason it is smaller.
+ * The margin level 8 is held to instead, and the reason it is smaller.
  *
- * Task 8 is played in level 1's building because being level 1 is the
- * point of it — the graduation task is the game's own first level — and at
+ * Level 8 is played in level 1's building because being level 1 is the
+ * point of it — the graduation level is the game's own first level — and at
  * 0.3 passengers a second the fifteenth passenger does not exist before about
  * 46.7 seconds of the 60 available. The slack is arithmetic, not programming:
  * no program can widen it, and every way of widening the building widens it by
@@ -139,8 +139,8 @@ const MARGIN_SECONDS = 3.0;
  */
 const TIGHT_MARGIN_SECONDS = 1.5;
 
-/** Tasks whose margin is structurally limited; see {@link TIGHT_MARGIN_SECONDS}. */
-const TIGHT_MARGIN_TASK_IDS: ReadonlySet<string> = new Set(["tutorial-8"]);
+/** Levels whose margin is structurally limited; see {@link TIGHT_MARGIN_SECONDS}. */
+const TIGHT_MARGIN_LEVEL_IDS: ReadonlySet<string> = new Set(["tutorial-8"]);
 
 /**
  * A clock shift no condition built on time or waiting can ignore.
@@ -151,14 +151,14 @@ const TIGHT_MARGIN_TASK_IDS: ReadonlySet<string> = new Set(["tutorial-8"]);
 const ABSURD_SHIFT_SECONDS = 1000.0;
 
 /**
- * Seeds on which a task's starting code is measured to *win*, by task.
+ * Seeds on which a level's starting code is measured to *win*, by level.
  *
- * Task 5 is the only entry, and it is the only task that could have one: it is
+ * Level 5 is the only entry, and it is the only level that could have one: it is
  * judged on waiting rather than on throughput, and on four hundred seeds the
  * ranges overlap. The nine-floor sweep's best run delivers all fifteen having
  * made nobody wait longer than 25.03 s, while the answer's worst makes somebody
  * wait 35.88 s, so no wait limit both accepts every answer and rejects every
- * sweep — the task's own entry in {@link "./tutorial.ts"!tutorialTasks} works
+ * sweep — the level's own entry in {@link "./tutorial.ts"!tutorialLevels} works
  * through the numbers. Its limit of 37 is the end of that trade the track
  * chose: never reject the answer, and let the sweep through on the seeds where
  * it happens to do well. `42a` is such a seed — 15 delivered, worst wait
@@ -233,13 +233,13 @@ function judgeWithClockShift(
 }
 
 /**
- * Plays one program in one task's building on one seed, and reports the verdict.
+ * Plays one program in one level's building on one seed, and reports the verdict.
  *
- * @param task - The task supplying the building, the bar and the seed's role.
+ * @param level - The level supplying the building, the bar and the seed's role.
  * @param code - The player program to run, as the player would be given it.
  * @param seed - The passengers to run against.
  * @param shiftSeconds - Handicap applied to both clocks; see
- * {@link judgeWithClockShift}. Zero plays the task exactly as the player does.
+ * {@link judgeWithClockShift}. Zero plays the level exactly as the player does.
  * @param locale - The language `code` was read in. Nothing here reads it but
  * the failure messages, and they need it: "the program threw" is a different
  * report depending on which language's copy of the program threw.
@@ -247,15 +247,15 @@ function judgeWithClockShift(
  * @throws When the program throws, or when the run reaches
  * {@link MAX_SIMULATED_SECONDS} undecided.
  */
-function playTask(
-  task: TutorialTask,
+function playLevel(
+  level: TutorialLevel,
   code: string,
   seed: RandomSeed,
   shiftSeconds: number,
   locale: Locale,
 ): RunOutcome {
   const codeObj = getCodeObjFromCode(code);
-  const world = createWorld(task.options, seed);
+  const world = createWorld(level.options, seed);
   const worldController = createWorldController(TICK_SECONDS);
   const frameRequester = createFrameRequester(FRAME_MILLISECONDS);
   // One object rather than two `let` bindings: both are written from inside
@@ -269,7 +269,7 @@ function playTask(
   };
 
   // A program that throws is neither a win nor a loss, and silently reading it
-  // as a loss is how a task could keep "passing" on a broken answer: the
+  // as a loss is how a level could keep "passing" on a broken answer: the
   // controller pauses the world and the run would simply stop advancing.
   worldController.on("usercode_error", (e) => {
     run.userCodeError ??= e;
@@ -279,7 +279,7 @@ function playTask(
     if (run.verdict !== null) {
       return;
     }
-    const status = judgeWithClockShift(task.condition, world, shiftSeconds);
+    const status = judgeWithClockShift(level.condition, world, shiftSeconds);
     if (status === null) {
       return;
     }
@@ -300,15 +300,15 @@ function playTask(
   }
 
   if (run.userCodeError !== null) {
-    throw new Error(`${task.id}: the ${locale} program threw at seed ${String(seed)}`, {
+    throw new Error(`${level.id}: the ${locale} program threw at seed ${String(seed)}`, {
       cause: run.userCodeError,
     });
   }
   if (run.verdict === null) {
     throw new Error(
-      `${task.id}: the ${locale} run was still undecided after ` +
+      `${level.id}: the ${locale} run was still undecided after ` +
         `${String(MAX_SIMULATED_SECONDS)} simulated seconds at seed ${String(seed)}, ` +
-        `so the task decides nothing`,
+        `so the level decides nothing`,
     );
   }
   return {
@@ -320,44 +320,44 @@ function playTask(
 }
 
 /**
- * Every seed a task is measured on: its own first, then the shared nine.
+ * Every seed a level is measured on: its own first, then the shared nine.
  *
- * @param task - The task.
+ * @param level - The level.
  * @returns The seeds.
  */
-function seedsFor(task: TutorialTask): readonly RandomSeed[] {
-  return [task.seed, ...EXTRA_SEEDS];
+function seedsFor(level: TutorialLevel): readonly RandomSeed[] {
+  return [level.seed, ...EXTRA_SEEDS];
 }
 
 /**
- * The margin a task is required to clear by.
+ * The margin a level is required to clear by.
  *
- * @param task - The task.
+ * @param level - The level.
  * @returns Seconds of margin.
  */
-function marginFor(task: TutorialTask): number {
-  return TIGHT_MARGIN_TASK_IDS.has(task.id) ? TIGHT_MARGIN_SECONDS : MARGIN_SECONDS;
+function marginFor(level: TutorialLevel): number {
+  return TIGHT_MARGIN_LEVEL_IDS.has(level.id) ? TIGHT_MARGIN_SECONDS : MARGIN_SECONDS;
 }
 
 /**
  * The verdict the starting code was measured to reach on a seed.
  *
- * @param task - The task.
+ * @param level - The level.
  * @param seed - The seed being played.
  * @returns `true` where the win is recorded in {@link STARTING_CODE_WINS}.
  */
-function startingCodeWins(task: TutorialTask, seed: RandomSeed): boolean {
-  return STARTING_CODE_WINS.get(task.id)?.has(String(seed)) ?? false;
+function startingCodeWins(level: TutorialLevel, seed: RandomSeed): boolean {
+  return STARTING_CODE_WINS.get(level.id)?.has(String(seed)) ?? false;
 }
 
 /**
  * A run, spelled out for a failure message.
  *
- * The numbers are the ones needed to retune the task without re-running
+ * The numbers are the ones needed to retune the level without re-running
  * anything: whoever reads this failure wants to know how far off it was, not
  * merely that it was. The language comes first for the same reason, and it is
- * the thing to reach for first when only one of the two is failing: a task that
- * loses in one language and wins in the other is not a task that needs
+ * the thing to reach for first when only one of the two is failing: a level that
+ * loses in one language and wins in the other is not a level that needs
  * retuning, it is a program whose translation has changed a line.
  *
  * @param locale - The language the program was read in.
@@ -373,20 +373,20 @@ function describeRun(locale: Locale, seed: RandomSeed, outcome: RunOutcome): str
   );
 }
 
-for (const task of tutorialTasks) {
-  describe(`Learning track task ${task.id}`, () => {
+for (const level of tutorialLevels) {
+  describe(`Learning track level ${level.id}`, () => {
     it("cannot be passed by the program the player is given, except where recorded, in every language", () => {
       for (const locale of LOCALES) {
         setLocale(locale);
-        for (const seed of seedsFor(task)) {
-          const outcome = playTask(task, task.startingCode, seed, 0, locale);
-          const recorded = startingCodeWins(task, seed);
+        for (const seed of seedsFor(level)) {
+          const outcome = playLevel(level, level.startingCode, seed, 0, locale);
+          const recorded = startingCodeWins(level, seed);
           expect(
             outcome.verdict,
             recorded
-              ? `${task.id} starting code no longer wins a seed it is recorded as winning, so ` +
+              ? `${level.id} starting code no longer wins a seed it is recorded as winning, so ` +
                   `STARTING_CODE_WINS is out of date — ${describeRun(locale, seed, outcome)}`
-              : `${task.id} starting code unexpectedly won — ${describeRun(locale, seed, outcome)}`,
+              : `${level.id} starting code unexpectedly won — ${describeRun(locale, seed, outcome)}`,
           ).toBe(recorded);
         }
       }
@@ -395,32 +395,32 @@ for (const task of tutorialTasks) {
     it("is passed by the reference answer, in every language", () => {
       for (const locale of LOCALES) {
         setLocale(locale);
-        for (const seed of seedsFor(task)) {
-          const outcome = playTask(task, task.solutionCode, seed, 0, locale);
+        for (const seed of seedsFor(level)) {
+          const outcome = playLevel(level, level.solutionCode, seed, 0, locale);
           expect(
             outcome.verdict,
-            `${task.id} answer unexpectedly lost — ${describeRun(locale, seed, outcome)}`,
+            `${level.id} answer unexpectedly lost — ${describeRun(locale, seed, outcome)}`,
           ).toBe(true);
         }
       }
     });
 
     it("cannot be passed by the starting code with seconds to spare, except where recorded, in every language", () => {
-      // The starting code losing by a hair would mean the task teaches by
+      // The starting code losing by a hair would mean the level teaches by
       // accident: a slightly faster elevator, or a seed nobody measured, and the
       // mistake starts passing.
-      const margin = marginFor(task);
+      const margin = marginFor(level);
       for (const locale of LOCALES) {
         setLocale(locale);
-        for (const seed of seedsFor(task)) {
-          const outcome = playTask(task, task.startingCode, seed, -margin, locale);
-          const recorded = startingCodeWins(task, seed);
+        for (const seed of seedsFor(level)) {
+          const outcome = playLevel(level, level.startingCode, seed, -margin, locale);
+          const recorded = startingCodeWins(level, seed);
           expect(
             outcome.verdict,
             recorded
-              ? `${task.id} starting code no longer wins a seed it is recorded as winning, and ` +
+              ? `${level.id} starting code no longer wins a seed it is recorded as winning, and ` +
                   `grace cannot take a win away — ${describeRun(locale, seed, outcome)}`
-              : `${task.id} starting code won when given ${String(margin)}s of grace — ` +
+              : `${level.id} starting code won when given ${String(margin)}s of grace — ` +
                   describeRun(locale, seed, outcome),
           ).toBe(recorded);
         }
@@ -428,14 +428,14 @@ for (const task of tutorialTasks) {
     });
 
     it("is passed by the reference answer with seconds to spare, in every language", () => {
-      const margin = marginFor(task);
+      const margin = marginFor(level);
       for (const locale of LOCALES) {
         setLocale(locale);
-        for (const seed of seedsFor(task)) {
-          const outcome = playTask(task, task.solutionCode, seed, margin, locale);
+        for (const seed of seedsFor(level)) {
+          const outcome = playLevel(level, level.solutionCode, seed, margin, locale);
           expect(
             outcome.verdict,
-            `${task.id} answer had less than ${String(margin)}s of margin — ` +
+            `${level.id} answer had less than ${String(margin)}s of margin — ` +
               describeRun(locale, seed, outcome),
           ).toBe(true);
         }
@@ -447,25 +447,25 @@ for (const task of tutorialTasks) {
       // before them. They measure margin by shifting the clocks, which does
       // nothing to a condition that reads neither of them --
       // `requireUserCountWithinMoves` is one, and it is as plausible a bar for a
-      // future task as any. Were that to happen the margin tests would still
+      // future level as any. Were that to happen the margin tests would still
       // pass, and would be measuring nothing at all. A shift no threshold on
       // either clock can survive has to lose; if it wins, the shift is inert.
       //
       // One language, unlike the four above, and deliberately: what is under
-      // test here is the task's condition, which is built in `tutorial.ts` out
+      // test here is the level's condition, which is built in `tutorial.ts` out
       // of numbers and knows nothing about any catalogue. The program is only
       // the thing that makes the world produce statistics to judge.
-      const outcome = playTask(
-        task,
-        task.solutionCode,
-        task.seed,
+      const outcome = playLevel(
+        level,
+        level.solutionCode,
+        level.seed,
         ABSURD_SHIFT_SECONDS,
         DEFAULT_LOCALE,
       );
       expect(
         outcome.verdict,
-        `${task.id}: the answer still won with ${String(ABSURD_SHIFT_SECONDS)}s added to both ` +
-          `clocks, so this task's condition ignores them and its margin is unmeasured`,
+        `${level.id}: the answer still won with ${String(ABSURD_SHIFT_SECONDS)}s added to both ` +
+          `clocks, so this level's condition ignores them and its margin is unmeasured`,
       ).toBe(false);
     });
   });

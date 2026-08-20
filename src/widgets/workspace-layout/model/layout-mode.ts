@@ -56,7 +56,7 @@ export const SPLIT_STEP_PERCENT = 2;
  * Where the chosen layout mode is remembered between visits.
  *
  * `develevate…` like this fork's other invented keys — see
- * `src/entities/tutorial-task/model/progress.ts` for why the prefix matters.
+ * `src/entities/tutorial-level/model/progress.ts` for why the prefix matters.
  */
 export const LAYOUT_MODE_STORAGE_KEY = "develevateLayoutMode";
 
@@ -77,7 +77,7 @@ function isLayoutMode(value: string): value is LayoutMode {
  * The layout mode remembered from a previous visit.
  *
  * Anything unreadable or unrecognised is treated as "nothing chosen yet"
- * rather than reported, the same trade `readClearedTutorialTasks` makes: there
+ * rather than reported, the same trade `readClearedTutorialLevels` makes: there
  * is nothing a player can do about a corrupt entry, and the next choice
  * overwrites it.
  *

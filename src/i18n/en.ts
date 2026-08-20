@@ -845,10 +845,10 @@ elevator.goingDownIndicator(false);`,
   "docs.play.heading": "How to play",
   // The first thing under "How to play", because a reader who has arrived here
   // not knowing the API has already found the one page that assumes they do.
-  // The address is written out rather than assembled from `tutorialTasks`: the
+  // The address is written out rather than assembled from `tutorialLevels`: the
   // reference pages are static HTML with no script of their own, so the same
   // text has to be spellable by hand into both of them. `src/page.test.ts`
-  // holds the pages and this key to the first task's real id.
+  // holds the pages and this key to the first level's real id.
   "docs.play.track.html":
     'If you have never written one of these programs before, start on the <a href="index.html#level=tutorial-1">learning track</a>, which is also the <span class="emphasis-color">Learning track</span> link at the top of the game. It is eight small buildings that introduce this API one mistake at a time: each hands you a program that loses, and asks you to find the one thing wrong with it, with hints and an explanation of what the run was actually doing.',
   "docs.play.start.html":
@@ -1026,23 +1026,23 @@ elevator.goToFloor(2); // Queued anyway -- queue: 2, 3, 2`,
 })`,
 
   // ------------------------------------------------------ the learning track
-  // The eight tasks themselves live in src/game/tutorial.ts — the building, the
+  // The eight levels themselves live in src/game/tutorial.ts — the building, the
   // bar, the seed and the two programs — and everything the player reads around
   // them lives here. Every number quoted below is the number in that table
   // rather than the one in docs/tutorial-plan.md, which is older in three
-  // places: task 4 runs at 0.8 passengers a second, task 5 is nine floors with
-  // a wait limit of 37, and task 6 is 0.25 a second with a limit of 28.
+  // places: level 4 runs at 0.8 passengers a second, level 5 is nine floors with
+  // a wait limit of 37, and level 6 is 0.25 a second with a limit of 28.
   //
-  // Every per-task message ends in `.html`, uniformly, including the ones whose
+  // Every per-level message ends in `.html`, uniformly, including the ones whose
   // value is plain text. Two reasons, and the second is the one a later reader
   // will otherwise try to "fix". First, the panel builds these key names by
-  // interpolating the task number and the hint number, so a suffix that varied
-  // from task to task could not be built at all. Second, it is legal:
+  // interpolating the level number and the hint number, so a suffix that varied
+  // from level to level could not be built at all. Second, it is legal:
   // `catalogue.test.ts` only forbids markup under a key that is *not* `.html`,
   // and its tag-matching test is satisfied by two empty tag lists, so a plain
   // value under a `.html` key breaks nothing.
   //
-  // Both programs of every task are here as well, under `.code` keys, and the
+  // Both programs of every level are here as well, under `.code` keys, and the
   // suffix is the whole argument: only the `//` comments in them are
   // translated, the JavaScript being byte-identical in every locale, and
   // `catalogue.test.ts` checks that rather than trusting it. They belong here
@@ -1056,32 +1056,32 @@ elevator.goToFloor(2); // Queued anyway -- queue: 2, 3, 2`,
   // Still one copy of each program, not two. src/game/tutorial.ts reads these
   // keys and everything else reads that table, so the program the editor is
   // filled with, the program the panel shows as the answer and the program
-  // `tutorial-solutions.test.ts` proves the task with are one string in one
+  // `tutorial-solutions.test.ts` proves the level with are one string in one
   // place. A copy nothing compares was the thing to avoid and still is:
-  // `tutorial.task8.solutionCode.code` is task 7's program word for word,
-  // because task 8 asks for nothing new, and `src/game/tutorial.test.ts` holds
+  // `tutorial.level8.solutionCode.code` is level 7's program word for word,
+  // because level 8 asks for nothing new, and `src/game/tutorial.test.ts` holds
   // the two equal in every locale rather than leaving them to be edited apart.
   //
-  // The two code keys come last in each task's group, so that the prose keys
+  // The two code keys come last in each level's group, so that the prose keys
   // stay next to one another: a translator reads the two catalogues side by
   // side, and a twelve-line program between two sentences is twelve lines of
   // scrolling. The Russian typography rules draw the same line — a code block
   // is indented, and "has no double spaces" applies to every key that does not
   // end in `.code`.
 
-  "tutorial.task1.title": "The elevator that goes nowhere",
-  "tutorial.task1.goal":
+  "tutorial.level1.title": "The elevator that goes nowhere",
+  "tutorial.level1.goal":
     "Make the elevator visit both floors of this building and deliver 10 passengers within 60 seconds.",
-  "tutorial.task1.hint1.html":
+  "tutorial.level1.hint1.html":
     "Look at the building rather than at the code. The elevator is standing on floor 0, and floor 0 is the only thing in its queue. How many floors does this building have?",
-  "tutorial.task1.hint2.html":
+  "tutorial.level1.hint2.html":
     'Floors are numbered from zero, so the top floor here is <span class="emphasis-color">1</span>. The same handler needs one more line beside the one already in it.',
-  "tutorial.task1.hint3.html":
+  "tutorial.level1.hint3.html":
     'The answer: add <span class="emphasis-color">elevator.goToFloor(1);</span> after the line that is already there, so that every time the elevator falls idle it queues both floors.',
-  "tutorial.task1.explanation.html":
+  "tutorial.level1.explanation.html":
     "goToFloor does not drive anywhere. It appends the floor to the end of destinationQueue and calls checkDestinationQueue, and the elevator works through that queue on its own. So goToFloor(0) while the car is already on floor 0 is a legal trip of zero length: the car arrives where it stands, opens its doors, people get in, the queue is empty again, idle fires again, and the same thing happens again. That is why the car fills up while the moves counter stays at zero. A passenger boards on arrival and gets out on the floor they asked for, and this elevator never reaches it. One more thing worth saying out loud: a floor number outside the building is not an error, it is quietly clamped to the nearest real floor. Somebody who counts floors from one writes goToFloor(2) here and wins as well, because 2 becomes 1.",
 
-  "tutorial.task1.startingCode.code": `{
+  "tutorial.level1.startingCode.code": `{
     init: function(elevators, floors) {
         const elevator = elevators[0];
 
@@ -1093,7 +1093,7 @@ elevator.goToFloor(2); // Queued anyway -- queue: 2, 3, 2`,
     update: function(dt, elevators, floors) {
     }
 }`,
-  "tutorial.task1.solutionCode.code": `{
+  "tutorial.level1.solutionCode.code": `{
     init: function(elevators, floors) {
         const elevator = elevators[0];
 
@@ -1106,19 +1106,19 @@ elevator.goToFloor(2); // Queued anyway -- queue: 2, 3, 2`,
     }
 }`,
 
-  "tutorial.task2.title": "The same loop, written by hand",
-  "tutorial.task2.goal":
+  "tutorial.level2.title": "The same loop, written by hand",
+  "tutorial.level2.goal":
     "Write the handler that sends the elevator round all three floors, and deliver 15 passengers within 60 seconds.",
-  "tutorial.task2.hint1.html":
+  "tutorial.level2.hint1.html":
     "Everything you need was on the first tutorial level: you saw it there, you just did not write it. The event that fires when the elevator has run out of destinations is called idle.",
-  "tutorial.task2.hint2.html":
+  "tutorial.level2.hint2.html":
     'A subscription looks like <span class="emphasis-color">elevator.on("idle", …)</span> — the name of the event as a string, the handler as a function. Inside the handler goes one goToFloor call per floor of the building.',
-  "tutorial.task2.hint3.html":
+  "tutorial.level2.hint3.html":
     'The answer: subscribe to <span class="emphasis-color">idle</span> and queue floors 0, 1 and 2 inside the handler, the way tutorial level 1 did it for two floors.',
-  "tutorial.task2.explanation.html":
+  "tutorial.level2.explanation.html":
     "init is called once, on the first frame of the run and before the world has taken a single step, and all it normally does is subscribe to events. The first idle is sent by the game itself, on the line right after your init returns, so subscribing is enough to set the whole thing going. The other function, update(dt, elevators, floors), is called on every simulated tick instead — 100 times a game second. The track never uses it, and that is deliberate: asking the building about its state on every tick gives worse programs than answering the events it sends you. Worse, not forbidden — polling will get you through any level on this track.",
 
-  "tutorial.task2.startingCode.code": `{
+  "tutorial.level2.startingCode.code": `{
     init: function(elevators, floors) {
         const elevator = elevators[0];
 
@@ -1127,7 +1127,7 @@ elevator.goToFloor(2); // Queued anyway -- queue: 2, 3, 2`,
     update: function(dt, elevators, floors) {
     }
 }`,
-  "tutorial.task2.solutionCode.code": `{
+  "tutorial.level2.solutionCode.code": `{
     init: function(elevators, floors) {
         const elevator = elevators[0];
 
@@ -1141,19 +1141,19 @@ elevator.goToFloor(2); // Queued anyway -- queue: 2, 3, 2`,
     }
 }`,
 
-  "tutorial.task3.title": "The buttons inside the car",
-  "tutorial.task3.goal":
+  "tutorial.level3.title": "The buttons inside the car",
+  "tutorial.level3.goal":
     "Take the people who are already aboard where they asked to go, and deliver 15 passengers within 60 seconds.",
-  "tutorial.task3.hint1.html":
+  "tutorial.level3.hint1.html":
     "The floor buttons inside the car are lit, which means the game has already announced them. The events an elevator sends are listed in the editor completion popup and on the help page.",
-  "tutorial.task3.hint2.html":
+  "tutorial.level3.hint2.html":
     'The event is <span class="emphasis-color">floor_button_pressed</span>, and the floor that was pressed arrives as the argument of the handler.',
-  "tutorial.task3.hint3.html":
+  "tutorial.level3.hint3.html":
     'The answer: subscribe to <span class="emphasis-color">floor_button_pressed</span> on the elevator and send it to the floor the handler was given. Leave the idle handler where it is.',
-  "tutorial.task3.explanation.html":
+  "tutorial.level3.explanation.html":
     "A passenger who has got in presses their own floor, and the game reports it with floor_button_pressed, carrying the floor number as the argument. The lit buttons can also be read by polling them yourself, with getPressedFloors(), but reacting to the event is the habit worth building. Notice that the goToFloor(0) in the idle handler is no longer in anybody's way: now that the cabin buttons are answered, it simply means the car goes back to the ground floor when it has nothing else to do.",
 
-  "tutorial.task3.startingCode.code": `{
+  "tutorial.level3.startingCode.code": `{
     init: function(elevators, floors) {
         const elevator = elevators[0];
 
@@ -1166,7 +1166,7 @@ elevator.goToFloor(2); // Queued anyway -- queue: 2, 3, 2`,
     update: function(dt, elevators, floors) {
     }
 }`,
-  "tutorial.task3.solutionCode.code": `{
+  "tutorial.level3.solutionCode.code": `{
     init: function(elevators, floors) {
         const elevator = elevators[0];
 
@@ -1182,19 +1182,19 @@ elevator.goToFloor(2); // Queued anyway -- queue: 2, 3, 2`,
     }
 }`,
 
-  "tutorial.task4.title": "The queue nobody read",
-  "tutorial.task4.goal":
+  "tutorial.level4.title": "The queue nobody read",
+  "tutorial.level4.goal":
     "Find the one line this program is missing and deliver 15 passengers within 60 seconds.",
-  "tutorial.task4.hint1.html":
+  "tutorial.level4.hint1.html":
     "Watch the elevator for twenty seconds. It is not merely standing still: nobody is getting in. So it has never once arrived.",
-  "tutorial.task4.hint2.html":
+  "tutorial.level4.hint2.html":
     'The queue is not empty, but the elevator knows nothing about it. Once <span class="emphasis-color">destinationQueue</span> has been changed by hand, the game has to be told, and the method that tells it is in the list of the elevator methods.',
-  "tutorial.task4.hint3.html":
+  "tutorial.level4.hint3.html":
     'The answer is one line: call <span class="emphasis-color">elevator.checkDestinationQueue();</span> straight after the assignment, inside the same idle handler.',
-  "tutorial.task4.explanation.html":
+  "tutorial.level4.explanation.html":
     "A full car standing still and an empty car standing still differ the way an elevator that arrived and opened its doors differs from an elevator that never arrived at all. Boarding happens on arrival, and nowhere else. Someone who presses a button beside a standing car usually nudges it: the game re-offers the floor to the car with goToFloor(floor, true), and on tutorial levels 1 to 3 that is what kept filling the cabin. Here the nudge does nothing. The queue is not empty, it holds 0, 1, 2, 3, and goToFloor drops a request that equals the adjacent end of a non-empty queue before it ever gets as far as checking the queue: floor 0 is asked for, floor 0 is already at the head, and the call returns. The car stands there for the rest of the run. goToFloor calls checkDestinationQueue for you; assigning the queue does not.",
 
-  "tutorial.task4.startingCode.code": `{
+  "tutorial.level4.startingCode.code": `{
     init: function(elevators, floors) {
         const elevator = elevators[0];
 
@@ -1210,7 +1210,7 @@ elevator.goToFloor(2); // Queued anyway -- queue: 2, 3, 2`,
     update: function(dt, elevators, floors) {
     }
 }`,
-  "tutorial.task4.solutionCode.code": `{
+  "tutorial.level4.solutionCode.code": `{
     init: function(elevators, floors) {
         const elevator = elevators[0];
 
@@ -1227,19 +1227,19 @@ elevator.goToFloor(2); // Queued anyway -- queue: 2, 3, 2`,
     }
 }`,
 
-  "tutorial.task5.title": "The building grew",
-  "tutorial.task5.goal":
+  "tutorial.level5.title": "The building grew",
+  "tutorial.level5.goal":
     "Send the elevator where it is actually called: deliver 15 passengers, and let nobody's delivery take longer than 37 seconds.",
-  "tutorial.task5.hint1.html":
+  "tutorial.level5.hint1.html":
     "The trouble is not how fast the elevator goes, it is that it goes to floors where nobody is standing. Who in this game knows that somebody is waiting? The second argument of init has not been used once so far.",
-  "tutorial.task5.hint2.html":
+  "tutorial.level5.hint2.html":
     'Walk the floors with <span class="emphasis-color">floors.forEach</span> and subscribe each one to <span class="emphasis-color">up_button_pressed</span> and <span class="emphasis-color">down_button_pressed</span>. A floor knows its own number: <span class="emphasis-color">floor.floorNum()</span>. Once the calls are answered the sweep is no longer needed — delete it.',
-  "tutorial.task5.hint3.html":
+  "tutorial.level5.hint3.html":
     'The answer: keep the <span class="emphasis-color">floor_button_pressed</span> handler, throw the sweep out entirely, and inside <span class="emphasis-color">floors.forEach</span> subscribe to both call buttons, each of them sending the elevator to <span class="emphasis-color">floor.floorNum()</span>.',
-  "tutorial.task5.explanation.html":
+  "tutorial.level5.explanation.html":
     'A blind sweep does not scale: its worst waiting time is the length of one lap, and the lap grows with the building. Floors can call an elevator themselves. Both events hand the floor over as the argument, so floor.floorNum() can come from the argument or from the closure, whichever reads better. Subscribing to both events in one line is possible — floor.on("up_button_pressed down_button_pressed", …) — but then the first argument is the name of the event that fired and the floor moves along into second place; that is why there are two separate handlers here. And to be honest about the result: the new program makes more moves than the sweep did, not fewer. It wins by no longer carrying air.',
 
-  "tutorial.task5.startingCode.code": `{
+  "tutorial.level5.startingCode.code": `{
     init: function(elevators, floors) {
         const elevator = elevators[0];
 
@@ -1257,7 +1257,7 @@ elevator.goToFloor(2); // Queued anyway -- queue: 2, 3, 2`,
     update: function(dt, elevators, floors) {
     }
 }`,
-  "tutorial.task5.solutionCode.code": `{
+  "tutorial.level5.solutionCode.code": `{
     init: function(elevators, floors) {
         const elevator = elevators[0];
 
@@ -1278,19 +1278,19 @@ elevator.goToFloor(2); // Queued anyway -- queue: 2, 3, 2`,
     }
 }`,
 
-  "tutorial.task6.title": "The elevator that lies to its passengers",
-  "tutorial.task6.goal":
+  "tutorial.level6.title": "The elevator that lies to its passengers",
+  "tutorial.level6.goal":
     "Work out why half the building refuses to board, and deliver 15 passengers with nobody's delivery taking longer than 28 seconds.",
-  "tutorial.task6.hint1.html":
+  "tutorial.level6.hint1.html":
     "Do not watch the counters, watch the call arrows. One of them lights up partway through the run and never goes out again. Which way was the person who pressed it planning to go?",
-  "tutorial.task6.hint2.html":
+  "tutorial.level6.hint2.html":
     "An elevator whose going-down indicator is off is telling passengers that it will not go down, and they let it pass. Both indicators are on to begin with.",
-  "tutorial.task6.hint3.html":
+  "tutorial.level6.hint3.html":
     'The answer: <span class="emphasis-color">elevator.goingDownIndicator(true);</span> instead of <span class="emphasis-color">false</span>. Deleting both indicator lines gives exactly the same run, because a car is built with both of them lit. Switching both of them off is a different program altogether, and one that nobody boards at all.',
-  "tutorial.task6.explanation.html":
+  "tutorial.level6.explanation.html":
     "A passenger only gets into a car that suits the trip they are making: the game asks isSuitableForTravelBetween, and that looks at the indicators. A passenger turned away presses the call button again. The arrow stays lit for a separate reason, and it is the same reason the symptom is visible at all: an arriving elevator clears only the call buttons that correspond to the indicators it has lit, so a car with the down arrow dark physically cannot clear a call to go down. Worse, a standing car is not re-offered either — the game nudges a standing car only when its indicator matches the direction of the call. Both indicators are on to begin with, so those two lines fix nothing. They only break.",
 
-  "tutorial.task6.startingCode.code": `{
+  "tutorial.level6.startingCode.code": `{
     init: function(elevators, floors) {
         const elevator = elevators[0];
 
@@ -1314,7 +1314,7 @@ elevator.goToFloor(2); // Queued anyway -- queue: 2, 3, 2`,
     update: function(dt, elevators, floors) {
     }
 }`,
-  "tutorial.task6.solutionCode.code": `{
+  "tutorial.level6.solutionCode.code": `{
     init: function(elevators, floors) {
         const elevator = elevators[0];
 
@@ -1338,18 +1338,18 @@ elevator.goToFloor(2); // Queued anyway -- queue: 2, 3, 2`,
     }
 }`,
 
-  "tutorial.task7.title": "The second elevator",
-  "tutorial.task7.goal": "Put both elevators to work and deliver 28 passengers within 60 seconds.",
-  "tutorial.task7.hint1.html":
+  "tutorial.level7.title": "The second elevator",
+  "tutorial.level7.goal": "Put both elevators to work and deliver 28 passengers within 60 seconds.",
+  "tutorial.level7.hint1.html":
     "There are people sitting in the second elevator and it is going nowhere: nobody has told it anything. How many times does this program say elevators[0]?",
-  "tutorial.task7.hint2.html":
+  "tutorial.level7.hint2.html":
     'Register the cabin button handler inside <span class="emphasis-color">elevators.forEach</span>, so that every car listens to its own buttons. A call from a floor has to pick a car: the least loaded one, by <span class="emphasis-color">loadFactor()</span>, for instance.',
-  "tutorial.task7.hint3.html":
+  "tutorial.level7.hint3.html":
     'The answer: a small function that walks <span class="emphasis-color">elevators</span> and returns the car with the lowest <span class="emphasis-color">loadFactor()</span>; the cabin button handler registered on every car through <span class="emphasis-color">elevators.forEach</span>; and both call buttons of every floor sending the chosen car to <span class="emphasis-color">floor.floorNum()</span>. Any rule that keeps both cars working clears this building.',
-  "tutorial.task7.explanation.html":
+  "tutorial.level7.explanation.html":
     "elevators[0] is not the elevator, it is the first elevator. This building has two of them, and the last levels of the game have eight. A program written with elevators.forEach works with one car and with eight alike, and it is the program you will carry into the real levels. Choosing by loadFactor() is the cheapest sensible rule: 0 is empty, 1 is full. It is not the only rule that clears this building, anything that keeps both cars busy will do, but a rule you can check against the picture on screen is easier to debug.",
 
-  "tutorial.task7.startingCode.code": `{
+  "tutorial.level7.startingCode.code": `{
     init: function(elevators, floors) {
         const elevator = elevators[0];
 
@@ -1369,7 +1369,7 @@ elevator.goToFloor(2); // Queued anyway -- queue: 2, 3, 2`,
     update: function(dt, elevators, floors) {
     }
 }`,
-  "tutorial.task7.solutionCode.code": `{
+  "tutorial.level7.solutionCode.code": `{
     init: function(elevators, floors) {
         function pickElevator() {
             let best = elevators[0];
@@ -1400,19 +1400,19 @@ elevator.goToFloor(2); // Queued anyway -- queue: 2, 3, 2`,
     }
 }`,
 
-  "tutorial.task8.title": "From memory",
-  "tutorial.task8.goal":
+  "tutorial.level8.title": "From memory",
+  "tutorial.level8.goal":
     "Write the program on an empty page and deliver 15 passengers within 60 seconds.",
-  "tutorial.task8.hint1.html":
+  "tutorial.level8.hint1.html":
     "The program falls into two halves: telling a car where to go, and finding out that somebody is waiting for one. You have written both. Which of the two functions is called once, and which one on every frame?",
-  "tutorial.task8.hint2.html":
+  "tutorial.level8.hint2.html":
     "The game announces the people inside a car and the people waiting on a floor with different events, and the two are subscribed in different places: on the elevator, and on every floor.",
-  "tutorial.task8.hint3.html":
+  "tutorial.level8.hint3.html":
     'The answer is the program from tutorial level 7, unchanged — it works just as well with one elevator. Subscribe to <span class="emphasis-color">floor_button_pressed</span> on every car, subscribe to both call buttons on every floor, and send a car to <span class="emphasis-color">floor.floorNum()</span>. Write the whole of it: the half where a car simply parks at floor 0 and knows nothing but its own cabin buttons is the half that loses runs.',
-  "tutorial.task8.explanation.html":
+  "tutorial.level8.explanation.html":
     "Nothing here is new, and that is the point. This is the building of level 1 and the bar of level 1, copied deliberately: three floors, one elevator, 15 passengers in 60 seconds. Win here and level 1 is already solved, by the very program now in the editor. The margin here is also the thinnest on the track, and that is not the track's doing: at 0.3 passengers a second the fifteenth passenger does not appear in the building until about the forty-seventh second of the sixty, so the minute is tighter than it looks. That is a property of level 1, and you have met it early.",
 
-  "tutorial.task8.startingCode.code": `{
+  "tutorial.level8.startingCode.code": `{
     init: function(elevators, floors) {
         // TODO: nothing here is new. You have written all of it already.
     },
@@ -1424,7 +1424,7 @@ elevator.goToFloor(2); // Queued anyway -- queue: 2, 3, 2`,
   // rather than pointed at, so that every level owns the same eight keys and a
   // translator meets no exception; `src/game/tutorial.test.ts` holds the two
   // equal in every locale, which is what a copy needs to be allowed to exist.
-  "tutorial.task8.solutionCode.code": `{
+  "tutorial.level8.solutionCode.code": `{
     init: function(elevators, floors) {
         function pickElevator() {
             let best = elevators[0];
@@ -1503,6 +1503,6 @@ elevator.goToFloor(2); // Queued anyway -- queue: 2, 3, 2`,
   "tutorial.finish.title": "The track is finished",
   "tutorial.finish.message":
     "Eight tutorial levels, and the last of them was level 1 of the game itself: the same three floors, the same elevator, the same fifteen passengers in sixty seconds. The program in the editor solves it, and the panel has a button that copies it into your own editor — take it with you before you go.",
-  "tutorial.finish.nextTask": "Next tutorial level",
+  "tutorial.finish.nextLevel": "Next tutorial level",
   "tutorial.finish.toLevels": "Go to level 1",
 } as const satisfies Readonly<Record<string, string | PluralForms<"en">>>;

@@ -13,7 +13,7 @@
  *
  * Fixed vocabulary; the same English word is the same Russian word everywhere,
  * and the one word that is not says so in its own row. The first eight were
- * given with the task, the rest are chosen here and written down so the next
+ * given with the level, the rest are chosen here and written down so the next
  * translator does not have to guess:
  *
  * | English            | Русский              |
@@ -60,10 +60,10 @@
  *
  * «Здание» is the game's word for a building and «дом» the learning track's,
  * which is the one place the table above is not a single word. Not variety: the
- * hints of a task and the `//` comments of the program the player is editing
+ * hints of a level and the `//` comments of the program the player is editing
  * have to name the thing on screen with the same word, and they do —
- * `tutorial.task1.hint1.html` asks «Сколько всего этажей в этом доме?» about
- * the building `tutorial.task1.startingCode.code` calls «этот дом», which is
+ * `tutorial.level1.hint1.html` asks «Сколько всего этажей в этом доме?» about
+ * the building `tutorial.level1.startingCode.code` calls «этот дом», which is
  * also the line `e2e/tutorial.spec.ts` looks for to tell a Russian editor from
  * an English one. «Дом» is the shorter, plainer word, and the track points at a
  * building the player is watching rather than describing buildings in general,
@@ -1123,19 +1123,19 @@ elevator.goToFloor(2); // Всё равно добавится — очеред�
   // в панели, и «этот дом», «круг», «объезд» должны в обоих местах означать
   // одно и то же.
 
-  "tutorial.task1.title": "Лифт, который никуда не едет",
-  "tutorial.task1.goal":
+  "tutorial.level1.title": "Лифт, который никуда не едет",
+  "tutorial.level1.goal":
     "Сделайте так, чтобы лифт заезжал на оба этажа этого дома, и перевезите 10 пассажиров за 60 секунд.",
-  "tutorial.task1.hint1.html":
+  "tutorial.level1.hint1.html":
     "Смотрите не в код, а на дом. Лифт стоит на нулевом этаже, и в очереди у него тот же нулевой этаж. Сколько всего этажей в этом доме?",
-  "tutorial.task1.hint2.html":
+  "tutorial.level1.hint2.html":
     'Этажи нумеруются с нуля, поэтому верхний этаж здесь — <span class="emphasis-color">1</span>. В том же обработчике нужна ещё одна строка рядом с уже написанной.',
-  "tutorial.task1.hint3.html":
+  "tutorial.level1.hint3.html":
     'Ответ: добавьте <span class="emphasis-color">elevator.goToFloor(1);</span> следом за уже написанной строкой — тогда лифт, освободившись, будет ставить в очередь оба этажа.',
-  "tutorial.task1.explanation.html":
+  "tutorial.level1.explanation.html":
     "goToFloor никуда не едет. Он дописывает этаж в конец destinationQueue и вызывает checkDestinationQueue, а дальше лифт разбирает очередь сам. Поэтому goToFloor(0), когда кабина и так стоит на нулевом этаже, — это законная поездка нулевой длины: лифт приезжает туда, где стоит, открывает двери, люди заходят, очередь снова пуста, снова срабатывает idle, и снова происходит то же самое. Вот почему кабина наполняется, а счётчик перемещений держится на нуле. Пассажир садится в момент приезда и выходит на том этаже, который попросил, а этот лифт до него не доезжает. И ещё одно, о чём стоит сказать вслух: номер этажа за пределами дома — не ошибка, его молча приводят к ближайшему настоящему этажу. Тот, кто считает этажи с единицы, напишет здесь goToFloor(2) и тоже выиграет, потому что 2 превратится в 1.",
 
-  "tutorial.task1.startingCode.code": `{
+  "tutorial.level1.startingCode.code": `{
     init: function(elevators, floors) {
         const elevator = elevators[0];
 
@@ -1147,7 +1147,7 @@ elevator.goToFloor(2); // Всё равно добавится — очеред�
     update: function(dt, elevators, floors) {
     }
 }`,
-  "tutorial.task1.solutionCode.code": `{
+  "tutorial.level1.solutionCode.code": `{
     init: function(elevators, floors) {
         const elevator = elevators[0];
 
@@ -1160,19 +1160,19 @@ elevator.goToFloor(2); // Всё равно добавится — очеред�
     }
 }`,
 
-  "tutorial.task2.title": "Тот же круг, но своими руками",
-  "tutorial.task2.goal":
+  "tutorial.level2.title": "Тот же круг, но своими руками",
+  "tutorial.level2.goal":
     "Напишите обработчик, который гоняет лифт по всем трём этажам, и перевезите 15 пассажиров за 60 секунд.",
-  "tutorial.task2.hint1.html":
+  "tutorial.level2.hint1.html":
     "Всё нужное было на первом учебном уровне: вы это видели, но не писали сами. Событие, которое случается, когда у лифта кончились цели, называется idle.",
-  "tutorial.task2.hint2.html":
+  "tutorial.level2.hint2.html":
     'Подписка выглядит так: <span class="emphasis-color">elevator.on("idle", …)</span> — имя события строкой, обработчик функцией. Внутри обработчика — столько вызовов goToFloor, сколько в доме этажей.',
-  "tutorial.task2.hint3.html":
+  "tutorial.level2.hint3.html":
     'Ответ: подпишитесь на <span class="emphasis-color">idle</span> и поставьте внутри обработчика в очередь этажи 0, 1 и 2 — так же, как на первом учебном уровне это было сделано для двух этажей.',
-  "tutorial.task2.explanation.html":
+  "tutorial.level2.explanation.html":
     "init вызывают один раз, на первом кадре прогона и до того, как мир сделает хоть один шаг, и обычно он только подписывается на события. Первое idle игра посылает сама, строкой сразу после того, как ваш init вернул управление, поэтому одной подписки хватает, чтобы всё завертелось. Вторая функция, update(dt, elevators, floors), наоборот, вызывается на каждом шаге симуляции — 100 раз в игровую секунду. Дорожка ей ни разу не пользуется, и это намеренно: опрашивать состояние дома на каждом шаге — путь к программам похуже тех, которые просто отвечают на события. Похуже, но не запрещено: опросом проходится любой уровень дорожки.",
 
-  "tutorial.task2.startingCode.code": `{
+  "tutorial.level2.startingCode.code": `{
     init: function(elevators, floors) {
         const elevator = elevators[0];
 
@@ -1181,7 +1181,7 @@ elevator.goToFloor(2); // Всё равно добавится — очеред�
     update: function(dt, elevators, floors) {
     }
 }`,
-  "tutorial.task2.solutionCode.code": `{
+  "tutorial.level2.solutionCode.code": `{
     init: function(elevators, floors) {
         const elevator = elevators[0];
 
@@ -1195,19 +1195,19 @@ elevator.goToFloor(2); // Всё равно добавится — очеред�
     }
 }`,
 
-  "tutorial.task3.title": "Кнопки внутри кабины",
-  "tutorial.task3.goal":
+  "tutorial.level3.title": "Кнопки внутри кабины",
+  "tutorial.level3.goal":
     "Отвезите тех, кто уже в кабине, туда, куда они попросили, и перевезите 15 пассажиров за 60 секунд.",
-  "tutorial.task3.hint1.html":
+  "tutorial.level3.hint1.html":
     "В кабине горят кнопки этажей — значит, игра о них уже сообщила. События, которые присылает лифт, перечислены во всплывающей подсказке редактора и на странице справки.",
-  "tutorial.task3.hint2.html":
+  "tutorial.level3.hint2.html":
     'Событие называется <span class="emphasis-color">floor_button_pressed</span>, а нажатый этаж приходит аргументом обработчика.',
-  "tutorial.task3.hint3.html":
+  "tutorial.level3.hint3.html":
     'Ответ: подпишитесь на <span class="emphasis-color">floor_button_pressed</span> у лифта и отправляйте его на тот этаж, который пришёл обработчику. Обработчик idle оставьте как есть.',
-  "tutorial.task3.explanation.html":
+  "tutorial.level3.explanation.html":
     "Пассажир, который зашёл в кабину, нажимает свой этаж, и игра сообщает об этом событием floor_button_pressed, передавая номер этажа аргументом. Горящие кнопки можно опрашивать и самому, через getPressedFloors(), но привычку стоит заводить другую: отвечать на событие. Заметьте, что goToFloor(0) в обработчике idle теперь никому не мешает — раз кнопки кабины обработаны, эта строка просто означает «вернуться на нулевой этаж, когда делать нечего».",
 
-  "tutorial.task3.startingCode.code": `{
+  "tutorial.level3.startingCode.code": `{
     init: function(elevators, floors) {
         const elevator = elevators[0];
 
@@ -1220,7 +1220,7 @@ elevator.goToFloor(2); // Всё равно добавится — очеред�
     update: function(dt, elevators, floors) {
     }
 }`,
-  "tutorial.task3.solutionCode.code": `{
+  "tutorial.level3.solutionCode.code": `{
     init: function(elevators, floors) {
         const elevator = elevators[0];
 
@@ -1236,19 +1236,19 @@ elevator.goToFloor(2); // Всё равно добавится — очеред�
     }
 }`,
 
-  "tutorial.task4.title": "Очередь, которую никто не прочитал",
-  "tutorial.task4.goal":
+  "tutorial.level4.title": "Очередь, которую никто не прочитал",
+  "tutorial.level4.goal":
     "Найдите строку, которой не хватает этой программе, и перевезите 15 пассажиров за 60 секунд.",
-  "tutorial.task4.hint1.html":
+  "tutorial.level4.hint1.html":
     "Посмотрите на лифт секунд двадцать. Он не просто стоит: в него никто не заходит. Значит, он ни разу не приехал.",
-  "tutorial.task4.hint2.html":
+  "tutorial.level4.hint2.html":
     'Очередь не пуста, но лифт о ней ничего не знает. После того как <span class="emphasis-color">destinationQueue</span> изменили вручную, игре надо об этом сообщить, и нужный метод есть в списке методов лифта.',
-  "tutorial.task4.hint3.html":
+  "tutorial.level4.hint3.html":
     'Ответ — одна строка: вызовите <span class="emphasis-color">elevator.checkDestinationQueue();</span> сразу после присваивания, в том же обработчике idle.',
-  "tutorial.task4.explanation.html":
+  "tutorial.level4.explanation.html":
     "Стоящая полная кабина и стоящая пустая кабина отличаются так же, как лифт, который приехал и открыл двери, отличается от лифта, который не приехал ни разу. Посадка происходит в момент приезда, и больше нигде. Тот, кто нажал кнопку рядом со стоящей кабиной, обычно эту кабину и подталкивает: игра заново предлагает ей этот этаж вызовом goToFloor(floor, true), и на учебных уровнях с первого по третий кабину наполняло именно это. Здесь толчок не делает ничего. Очередь не пуста, в ней 0, 1, 2, 3, а goToFloor отбрасывает просьбу, совпадающую с ближним концом непустой очереди, ещё до того, как дело дойдёт до проверки очереди: просят нулевой этаж, нулевой этаж и так первый в очереди, вызов возвращается. И кабина стоит так до конца прогона. goToFloor вызывает checkDestinationQueue за вас, а присваивание очереди — нет.",
 
-  "tutorial.task4.startingCode.code": `{
+  "tutorial.level4.startingCode.code": `{
     init: function(elevators, floors) {
         const elevator = elevators[0];
 
@@ -1264,7 +1264,7 @@ elevator.goToFloor(2); // Всё равно добавится — очеред�
     update: function(dt, elevators, floors) {
     }
 }`,
-  "tutorial.task4.solutionCode.code": `{
+  "tutorial.level4.solutionCode.code": `{
     init: function(elevators, floors) {
         const elevator = elevators[0];
 
@@ -1281,19 +1281,19 @@ elevator.goToFloor(2); // Всё равно добавится — очеред�
     }
 }`,
 
-  "tutorial.task5.title": "Дом вырос",
-  "tutorial.task5.goal":
+  "tutorial.level5.title": "Дом вырос",
+  "tutorial.level5.goal":
     "Отправляйте лифт туда, куда его действительно зовут: перевезите 15 пассажиров так, чтобы доставка каждого не длилась дольше 37 секунд.",
-  "tutorial.task5.hint1.html":
+  "tutorial.level5.hint1.html":
     "Дело не в скорости лифта, а в том, что он ездит туда, где никто не стоит. Кто в этой игре знает, что человек ждёт? Второй аргумент init до сих пор ни разу не понадобился.",
-  "tutorial.task5.hint2.html":
+  "tutorial.level5.hint2.html":
     'Пройдите по этажам через <span class="emphasis-color">floors.forEach</span> и подпишите каждый на <span class="emphasis-color">up_button_pressed</span> и <span class="emphasis-color">down_button_pressed</span>. Свой номер этаж знает сам: <span class="emphasis-color">floor.floorNum()</span>. Когда вызовы обрабатываются, объезд больше не нужен — удалите его.',
-  "tutorial.task5.hint3.html":
+  "tutorial.level5.hint3.html":
     'Ответ: обработчик <span class="emphasis-color">floor_button_pressed</span> оставьте, объезд выбросите целиком, а внутри <span class="emphasis-color">floors.forEach</span> подпишитесь на обе кнопки вызова, и пусть каждая отправляет лифт на <span class="emphasis-color">floor.floorNum()</span>.',
-  "tutorial.task5.explanation.html":
+  "tutorial.level5.explanation.html":
     'Слепой объезд не масштабируется: в худшем случае человек ждёт целый круг, а круг растёт вместе с домом. Этажи умеют звать лифт сами. Оба события передают этаж аргументом, так что floor.floorNum() можно взять хоть из аргумента, хоть из замыкания — как читается лучше. Подписаться на оба события одной строкой тоже можно, floor.on("up_button_pressed down_button_pressed", …), но тогда первым аргументом придёт имя сработавшего события, а этаж сдвинется на второе место; поэтому здесь два отдельных обработчика. И честно о результате: новая программа делает не меньше перемещений, чем объезд, а больше. Выигрывает она тем, что больше не возит воздух.',
 
-  "tutorial.task5.startingCode.code": `{
+  "tutorial.level5.startingCode.code": `{
     init: function(elevators, floors) {
         const elevator = elevators[0];
 
@@ -1311,7 +1311,7 @@ elevator.goToFloor(2); // Всё равно добавится — очеред�
     update: function(dt, elevators, floors) {
     }
 }`,
-  "tutorial.task5.solutionCode.code": `{
+  "tutorial.level5.solutionCode.code": `{
     init: function(elevators, floors) {
         const elevator = elevators[0];
 
@@ -1332,19 +1332,19 @@ elevator.goToFloor(2); // Всё равно добавится — очеред�
     }
 }`,
 
-  "tutorial.task6.title": "Лифт, который врёт пассажирам",
-  "tutorial.task6.goal":
+  "tutorial.level6.title": "Лифт, который врёт пассажирам",
+  "tutorial.level6.goal":
     "Разберитесь, почему половина дома не садится в лифт, и перевезите 15 пассажиров так, чтобы доставка каждого не длилась дольше 28 секунд.",
-  "tutorial.task6.hint1.html":
+  "tutorial.level6.hint1.html":
     "Смотрите не на счётчики, а на стрелки вызова. Одна из них загорается по ходу прогона и больше не гаснет. В какую сторону собирался ехать тот, кто её нажал?",
-  "tutorial.task6.hint2.html":
+  "tutorial.level6.hint2.html":
     "Лифт с погашенным индикатором «вниз» говорит пассажирам, что вниз он не поедет, и они его пропускают. Изначально оба индикатора включены.",
-  "tutorial.task6.hint3.html":
+  "tutorial.level6.hint3.html":
     'Ответ: <span class="emphasis-color">elevator.goingDownIndicator(true);</span> вместо <span class="emphasis-color">false</span>. Удалить обе строки с индикаторами — ровно то же самое, потому что лифт и так создаётся с обоими включёнными. А вот выключить оба — совсем другая программа, в которую вообще никто не садится.',
-  "tutorial.task6.explanation.html":
+  "tutorial.level6.explanation.html":
     "Пассажир садится только в тот лифт, который подходит для его поездки: игра спрашивает isSuitableForTravelBetween, а тот смотрит на индикаторы. Кого не пустили, тот жмёт кнопку вызова снова. Стрелка не гаснет по отдельной причине, и по этой же причине симптом вообще видно: приехавший лифт гасит только те кнопки вызова, которые соответствуют его горящим индикаторам, так что кабина с потухшей стрелкой «вниз» физически не может погасить вызов вниз. Хуже того, стоящей кабине этаж и не предлагают заново: игра подталкивает стоящую кабину только тогда, когда её индикатор совпадает с направлением вызова. Оба индикатора включены изначально, так что эти две строки ничего не чинят. Они только ломают.",
 
-  "tutorial.task6.startingCode.code": `{
+  "tutorial.level6.startingCode.code": `{
     init: function(elevators, floors) {
         const elevator = elevators[0];
 
@@ -1368,7 +1368,7 @@ elevator.goToFloor(2); // Всё равно добавится — очеред�
     update: function(dt, elevators, floors) {
     }
 }`,
-  "tutorial.task6.solutionCode.code": `{
+  "tutorial.level6.solutionCode.code": `{
     init: function(elevators, floors) {
         const elevator = elevators[0];
 
@@ -1392,18 +1392,18 @@ elevator.goToFloor(2); // Всё равно добавится — очеред�
     }
 }`,
 
-  "tutorial.task7.title": "Второй лифт",
-  "tutorial.task7.goal": "Заставьте работать оба лифта и перевезите 28 пассажиров за 60 секунд.",
-  "tutorial.task7.hint1.html":
+  "tutorial.level7.title": "Второй лифт",
+  "tutorial.level7.goal": "Заставьте работать оба лифта и перевезите 28 пассажиров за 60 секунд.",
+  "tutorial.level7.hint1.html":
     "Во втором лифте сидят люди, и он никуда не едет: ему никто ничего не сказал. Сколько раз в этой программе написано elevators[0]?",
-  "tutorial.task7.hint2.html":
+  "tutorial.level7.hint2.html":
     'Обработчик кнопок кабины подпишите внутри <span class="emphasis-color">elevators.forEach</span>, чтобы каждый лифт слушал свои кнопки. А для вызова с этажа лифт надо выбрать: например, наименее загруженный по <span class="emphasis-color">loadFactor()</span>.',
-  "tutorial.task7.hint3.html":
+  "tutorial.level7.hint3.html":
     'Ответ: маленькая функция, которая проходит по <span class="emphasis-color">elevators</span> и возвращает кабину с наименьшим <span class="emphasis-color">loadFactor()</span>; обработчик кнопок кабины, подписанный на каждый лифт через <span class="emphasis-color">elevators.forEach</span>; и обе кнопки вызова на каждом этаже, отправляющие выбранную кабину на <span class="emphasis-color">floor.floorNum()</span>. Подойдёт любое правило, при котором работают оба лифта.',
-  "tutorial.task7.explanation.html":
+  "tutorial.level7.explanation.html":
     "elevators[0] — это не «лифт», это «первый лифт». В этом доме их два, а на последних уровнях игры их восемь. Программа, написанная через elevators.forEach, одинаково работает и с одной кабиной, и с восемью, и именно её вы унесёте на настоящие уровни. Выбирать по loadFactor() — самое дешёвое разумное правило: 0 — пусто, 1 — полно. Оно не единственное рабочее, годится что угодно, лишь бы обе кабины были при деле, но правило, которое сверяется с картинкой на экране, отлаживать легче.",
 
-  "tutorial.task7.startingCode.code": `{
+  "tutorial.level7.startingCode.code": `{
     init: function(elevators, floors) {
         const elevator = elevators[0];
 
@@ -1423,7 +1423,7 @@ elevator.goToFloor(2); // Всё равно добавится — очеред�
     update: function(dt, elevators, floors) {
     }
 }`,
-  "tutorial.task7.solutionCode.code": `{
+  "tutorial.level7.solutionCode.code": `{
     init: function(elevators, floors) {
         function pickElevator() {
             let best = elevators[0];
@@ -1454,19 +1454,19 @@ elevator.goToFloor(2); // Всё равно добавится — очеред�
     }
 }`,
 
-  "tutorial.task8.title": "По памяти",
-  "tutorial.task8.goal":
+  "tutorial.level8.title": "По памяти",
+  "tutorial.level8.goal":
     "Напишите программу с чистого листа и перевезите 15 пассажиров за 60 секунд.",
-  "tutorial.task8.hint1.html":
+  "tutorial.level8.hint1.html":
     "Программа делится на две половины: сказать кабине, куда ехать, и узнать, что лифта кто-то ждёт. Обе вы уже писали. Какая из двух функций вызывается один раз, а какая — каждый кадр?",
-  "tutorial.task8.hint2.html":
+  "tutorial.level8.hint2.html":
     "О людях внутри кабины и о людях, ждущих на этаже, игра сообщает разными событиями, и подписываться на них надо в разных местах: на лифте и на каждом этаже.",
-  "tutorial.task8.hint3.html":
+  "tutorial.level8.hint3.html":
     'Ответ — программа с седьмого учебного уровня без изменений: с одним лифтом она работает не хуже. Подпишитесь на <span class="emphasis-color">floor_button_pressed</span> у каждой кабины, подпишитесь на обе кнопки вызова у каждого этажа и отправляйте кабину на <span class="emphasis-color">floor.floorNum()</span>. Пишите программу целиком: та половина, где кабина просто стоит на нулевом этаже и знает только свои кнопки, прогоны проигрывает.',
-  "tutorial.task8.explanation.html":
+  "tutorial.level8.explanation.html":
     "Здесь нет ничего нового, и в этом всё дело. Это дом уровня 1 и планка уровня 1, взятые намеренно: три этажа, один лифт, 15 пассажиров за 60 секунд. Выиграв здесь, вы уже прошли уровень 1 — той самой программой, которая сейчас в редакторе. И запас времени здесь самый маленький на дорожке, причём дорожка тут ни при чём: при 0,3 пассажира в секунду пятнадцатый человек появляется в доме примерно на сорок седьмой секунде из шестидесяти, так что минута теснее, чем кажется. Это свойство уровня 1, и вы столкнулись с ним заранее.",
 
-  "tutorial.task8.startingCode.code": `{
+  "tutorial.level8.startingCode.code": `{
     init: function(elevators, floors) {
         // TODO: здесь нет ничего нового. Всё это вы уже писали.
     },
@@ -1477,7 +1477,7 @@ elevator.goToFloor(2); // Всё равно добавится — очеред�
   // нового. Выписан целиком, а не подставлен ссылкой, чтобы у каждого уровня
   // были одни и те же восемь ключей и переводчик не встречал исключений;
   // равенство двух ответов держит `src/game/tutorial.test.ts`.
-  "tutorial.task8.solutionCode.code": `{
+  "tutorial.level8.solutionCode.code": `{
     init: function(elevators, floors) {
         function pickElevator() {
             let best = elevators[0];
@@ -1541,6 +1541,6 @@ elevator.goToFloor(2); // Всё равно добавится — очеред�
   "tutorial.finish.title": "Дорожка пройдена",
   "tutorial.finish.message":
     "Восемь учебных уровней, и последний из них был уровнем 1 самой игры: те же три этажа, тот же лифт, те же пятнадцать пассажиров за шестьдесят секунд. Программа, которая сейчас в редакторе, его решает, а на панели есть кнопка, которая скопирует её в ваш редактор, — заберите программу с собой, прежде чем уходить.",
-  "tutorial.finish.nextTask": "Следующий учебный уровень",
+  "tutorial.finish.nextLevel": "Следующий учебный уровень",
   "tutorial.finish.toLevels": "Перейти к уровню 1",
 };
