@@ -3,7 +3,7 @@
  *
  * Four sources, in falling order of how deliberate they are:
  *
- * 1. `lang` in the location hash — `#challenge=3,lang=ru`. Explicit, and it is
+ * 1. `lang` in the location hash — `#level=3,lang=ru`. Explicit, and it is
  *    what a shared link carries, so it wins even over a stored preference: the
  *    person who sent the link chose the language on purpose.
  * 2. `localStorage` — what this player picked last time, on this machine.

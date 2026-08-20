@@ -4,12 +4,15 @@
  *
  * The format is unchanged from the legacy `riot.route`-based router this
  * replaced — a `#` followed by comma-separated `key=value` pairs, as in
- * `#challenge=3,timescale=8` — and so are the parameter names, so old links
- * and bookmarks keep working.
+ * `#level=3,timescale=8` — and so are all but one of the parameter names, so
+ * old links and bookmarks keep working. The exception is the key that names
+ * what is being played, once `challenge` and now `level`, which the layer above
+ * goes on reading under both spellings for exactly that reason; see
+ * {@link "#pages/game/model/route.ts"!LEGACY_LEVEL_KEY}.
  *
  * Nothing here knows what a key means, or whether a value is one the game can
  * use: that is `{@link "#pages/game/model/route.ts"!resolveRoute}`'s job, one
- * layer up, where the parameters the game page actually supports — `challenge`,
+ * layer up, where the parameters the game page actually supports — `level`,
  * `seed`, the sandbox dimensions and the rest — are read, validated and
  * defaulted. What lives here is the syntax underneath that, and it is shared by
  * more than the game page: {@link parseQuery} alone is also how
@@ -25,8 +28,8 @@ export type RouteQuery = ReadonlyMap<string, string>;
  *
  * Keys are lower-cased; values are not. A hash is something people hand-write
  * and dictate to each other, and which shift key was held while writing
- * `challenge` is not a decision anybody makes on purpose — so `#SEED=abc` is
- * the seed, and `#Challenge=3` is the challenge. Values stay exactly as
+ * `level` is not a decision anybody makes on purpose — so `#SEED=abc` is
+ * the seed, and `#Level=3` is the level. Values stay exactly as
  * written, because they are the data: `seed=Abc` and `seed=abc` are two
  * different passenger streams, and the one value that is folded — `sandbox` —
  * is folded where it is read, by
@@ -55,7 +58,7 @@ export type RouteQuery = ReadonlyMap<string, string>;
  * `#fullscreen` now works. The legacy regexp required a value, which meant the
  * bare form people wrote silently did nothing.
  *
- * Whitespace around a key or a value is dropped, so `#challenge=4, seed=abc`
+ * Whitespace around a key or a value is dropped, so `#level=4, seed=abc`
  * and `#seed = abc` parse as they look. No browser can hand this function
  * either of those: U+0020 is in the URL Standard's fragment percent-encode set,
  * so every path into `location.hash` — typing, pasting, assigning, following an

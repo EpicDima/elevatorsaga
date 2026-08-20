@@ -24,10 +24,10 @@ import { editor, languagePicker, startButton, storedCode, unlockLevel } from "./
  * The level switcher's first tutorial tile links here, and the test below
  * follows that tile rather than this constant. Everything else goes straight to
  * the address, because a task no tile points at can only be reached that way —
- * and because this is the address `router.ts` sends `#challenge=tutorial-9` and
+ * and because this is the address `router.ts` sends `#level=tutorial-9` and
  * every other wrong one on the track to.
  */
-const FIRST_TASK = "/#challenge=tutorial-1";
+const FIRST_TASK = "/#level=tutorial-1";
 
 /** A line only task 1's *starting* program has, so a copy of it is identifiable. */
 const TASK_1_MARKER = "this building has two floors";
@@ -114,7 +114,7 @@ test("opens the track from the level switcher, in the language on screen", async
   // The way in. The shell used to ship a "Learning track" link of its own in
   // the header, and the header is gone; the switcher's tutorial block is what
   // is left, and it is the only entrance that does not involve knowing to type
-  // `#challenge=tutorial-1` into the address bar. That the tiles are built is
+  // `#level=tutorial-1` into the address bar. That the tiles are built is
   // `level-switcher.test.ts`'s to prove and where they point is the level
   // menu model's; what neither can answer is whether a player can open the
   // menu and see them, and whether pressing one starts a task -- the layout,
@@ -156,7 +156,7 @@ test("shows the panel on a task and nothing at all off it", async ({ page }) => 
   // is what has to take it out of the flow: an empty block with margins is
   // still a 10px gap above the building on all nineteen challenges and the
   // sandbox.
-  await page.goto("/#challenge=1");
+  await page.goto("/#level=1");
   await expect(page.getByRole("button", { name: "Level 1" })).toBeVisible();
   await expect(panel(page)).toHaveCount(0);
   await expect(page.locator(".tutorial")).toHaveCSS("display", "none");
@@ -441,7 +441,7 @@ test("costs the levels nothing: the widest building in the game still fits its p
     [1040, 600],
   ] as const) {
     await page.setViewportSize({ width, height });
-    await page.goto("/#challenge=18");
+    await page.goto("/#level=18");
     await expect(page.locator(".building")).toBeVisible();
 
     const fit = await page.locator(".pane-game").evaluate((pane) => {
@@ -466,7 +466,7 @@ test("says where the player is on the track twice: in words, and in ticks", asyn
   // apart at all
   // -- a row of eight identical 3px bars says nothing, and says it in exactly
   // the space a progress indicator would have taken.
-  await page.goto("/#challenge=tutorial-3");
+  await page.goto("/#level=tutorial-3");
 
   const ticks = panel(page).locator(".tutorialsteps i");
   await expect(ticks).toHaveCount(8);

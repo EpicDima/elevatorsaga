@@ -68,7 +68,7 @@ test("plays a challenge to completion when Start is pressed", async ({ page }) =
   // real seconds without changing the physics, which are substepped at a fixed
   // rate whatever the clock says.
   await seedCode(page, DEV_TEST_CODE);
-  await page.goto("/#challenge=1,timescale=16");
+  await page.goto("/#level=1,timescale=16");
 
   await expect(await statistic(page, "Transported")).toHaveText("0");
   await expect(await statistic(page, "Moves")).toHaveText("0");
@@ -102,7 +102,7 @@ test("crunches a challenge instantly and shows the outcome over the building it 
   // differs. No `timescale`: that only paces animation, and a crunch draws
   // none, so it would change nothing here.
   await seedCode(page, DEV_TEST_CODE);
-  await page.goto("/#challenge=1");
+  await page.goto("/#level=1");
 
   // Before the crunch, the reference solution's elevator is on screen exactly
   // as any other run's would be.
@@ -150,7 +150,7 @@ test("does not offer the instant stop in the sandbox, and plays it animated at t
   // the ceiling `driveInstantly` gives up at and announce a failure for a run
   // with no goal to fail. The stop is withheld instead, which makes 20x the end
   // of the control rather than the top of the ladder.
-  await page.goto("/#challenge=sandbox");
+  await page.goto("/#level=sandbox");
   await expect(building(page).getByRole("group", { name: "Elevator 1" })).toBeVisible();
 
   // Presses "Faster" until it dims, wherever that turns out to be.
@@ -175,7 +175,7 @@ test("colours the passenger whose time the statistics panel is reporting", async
   // colour. Only the last of those three is out of reach of the unit tests, and
   // it is the only one the player can see.
   await seedCode(page, DEV_TEST_CODE);
-  await page.goto("/#challenge=1,timescale=16");
+  await page.goto("/#level=1,timescale=16");
   await startButton(page).click();
 
   // Everything in one evaluation -- the crowd, the mark, and the colour of the

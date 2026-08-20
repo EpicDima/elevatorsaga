@@ -61,7 +61,7 @@ original is scored by the same rules.
   on one problem instead of on two different ones. A second link drops the seed again when you are
   done with it. It does not make a run frame-for-frame identical: the browser decides how long a
   frame is.
-- **A sandbox building.** `#challenge=sandbox` takes `floors`, `elevators`, `capacities` and
+- **A sandbox building.** `#level=sandbox` takes `floors`, `elevators`, `capacities` and
   `spawnrate`, so you can build the case your program is failing on rather than looking for a
   shipped challenge that resembles it. See [URL parameters](#url-parameters).
 - **Three more methods on the elevator.** `isFull()`, `isEmpty()` and `isApproachingFloor(n)` —
@@ -103,7 +103,7 @@ original is scored by the same rules.
 Challenge 1 hands you a building, a starter program that sends one elevator between two floors and
 never explains itself, and a reference page that assumes you already know which of its methods you
 are looking for. The track is what comes before that: eight small buildings, behind the **Learning
-track** link in the header or at `#challenge=tutorial-1`, each one built around a single mistake.
+track** link in the header or at `#level=tutorial-1`, each one built around a single mistake.
 
 Every task starts with a program that runs and loses, and asks you to find out why. The elevator
 that only ever visits one of two floors; the handler nobody subscribed; the passengers whose buttons
@@ -132,7 +132,7 @@ from the first visit.
 A task refuses one thing you can write in the URL, with a console warning and taken back out of the
 address bar: `seed`, because whether the given program really loses is a fact about the passenger
 stream as much as about the program — task 5's sweep does win on some seeds — so
-`#challenge=tutorial-5,seed=42a` would sit a player in front of a broken program winning. Because
+`#level=tutorial-5,seed=42a` would sit a player in front of a broken program winning. Because
 the seed is the task's rather than yours, the bar above the building
 shows no seed line while a task is open — there is nothing there to pin and nothing to unpin — and
 Restart brings back the same passengers rather than a fresh draw. An address that names no task,
@@ -442,18 +442,23 @@ and why the fitness benchmark can run the whole thing inside a web worker.
 ## URL parameters
 
 Everything after the `#` is a comma-separated list of `key=value` pairs, for example
-`#challenge=7,timescale=8,fullscreen`. Anything unrecognized is left alone and carried into the
+`#level=7,timescale=8,fullscreen`. Anything unrecognized is left alone and carried into the
 "next challenge" link. Anything malformed falls back to a sane default with a console warning
 rather than breaking the page.
 
-| Parameter               | Effect                                                                                                                                                                                                                                                   |
-| ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `#challenge=N`          | Starts challenge `N`, counting from 1. Out of range, missing, or unreadable as a number and not one of the two names below: challenge 1. A challenge you have not unlocked starts the furthest one you have, and the address bar is rewritten to say so. |
-| `#challenge=sandbox`    | Starts a building of your own instead of a numbered challenge. See below.                                                                                                                                                                                |
-| `#challenge=tutorial-N` | Starts task `N` of the learning track, from `tutorial-1` to `tutorial-8`. A `tutorial-` address no task has starts the first one. See [The learning track](#the-learning-track).                                                                         |
-| `#timescale=X`          | Simulation speed multiplier. Clamped to `0.1`–`64`. Fractions such as `1.5` work. Without it, the speed you last chose is used again — it is kept in `localStorage` under `elevatorTimeScale` — and `2` when there is none.                              |
-| `#seed=S`               | Pins the seed the passenger stream is drawn from. Not the building. Refused on a learning task. See below.                                                                                                                                               |
-| `#fullscreen`           | Hides everything except the building.                                                                                                                                                                                                                    |
+| Parameter           | Effect                                                                                                                                                                                                                                                   |
+| ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `#level=N`          | Starts challenge `N`, counting from 1. Out of range, missing, or unreadable as a number and not one of the two names below: challenge 1. A challenge you have not unlocked starts the furthest one you have, and the address bar is rewritten to say so. |
+| `#level=sandbox`    | Starts a building of your own instead of a numbered challenge. See below.                                                                                                                                                                                |
+| `#level=tutorial-N` | Starts task `N` of the learning track, from `tutorial-1` to `tutorial-8`. A `tutorial-` address no task has starts the first one. See [The learning track](#the-learning-track).                                                                         |
+| `#timescale=X`      | Simulation speed multiplier. Clamped to `0.1`–`64`. Fractions such as `1.5` work. Without it, the speed you last chose is used again — it is kept in `localStorage` under `elevatorTimeScale` — and `2` when there is none.                              |
+| `#seed=S`           | Pins the seed the passenger stream is drawn from. Not the building. Refused on a learning task. See below.                                                                                                                                               |
+| `#fullscreen`       | Hides everything except the building.                                                                                                                                                                                                                    |
+
+`#level` was spelled `#challenge` until the game started calling its challenges levels, and every
+link shared before then says so. Those addresses still work — the old spelling is read wherever the
+new one would be — and the address bar is rewritten to the new one on arrival, so a link followed
+once goes on being shared under the name the game uses now.
 
 `fullscreen` is a flag: on when present and off when explicitly set to `false`
 (`#fullscreen=false`). Bare flags now work: in the original, `#fullscreen` without a value was
@@ -502,7 +507,7 @@ from the next. Anything outside the set is refused with a console warning and a 
 
 ### Sandbox
 
-`#challenge=sandbox` replaces the numbered challenge with a building you specify. It has no success
+`#level=sandbox` replaces the numbered challenge with a building you specify. It has no success
 condition — nothing to win, and nothing to fail — so it is for reproducing a case and watching what
 your program does with it.
 
@@ -513,8 +518,8 @@ your program does with it.
 | `capacities=A-B-C` | Passengers each car holds, cycled over the cars; hyphen-separated | 1–30    | 4       |
 | `spawnrate=X`      | Passengers appearing per simulated second                         | 0.01–10 | 0.6     |
 
-The defaults are challenge 4's building, so a bare `#challenge=sandbox` starts something known to
-be playable. Every bound is either a value the simulation cannot survive or one the page cannot
+The defaults are challenge 4's building, so a bare `#level=sandbox` starts something known to be
+playable. Every bound is either a value the simulation cannot survive or one the page cannot
 draw — a one-floor building sends passengers to a floor that does not exist, and cars are drawn ten
 pixels per unit of capacity, so how many elevators fit depends on how wide the capacities make
 them. Values outside a range are clamped and warned about; values that are not numbers fall back.
@@ -663,8 +668,8 @@ Four more, without upstream issues:
   what the same unchanged number has always been. The waiting time upstream meant by the old name is
   on the panel too, in a row of its own between them, with the ride it leaves out in the row under
   it — see [What this fork adds](#what-this-fork-adds).
-- A malformed `#challenge` or `#timescale` used to be fatal. `#challenge=abc` indexed the challenge
-  list with `NaN` and killed the page before anything was drawn; `#timescale=abc` set the world's
+- A malformed `#level` or `#timescale` used to be fatal. `#level=abc` indexed the challenge list
+  with `NaN` and killed the page before anything was drawn; `#timescale=abc` set the world's
   time scale to `NaN`, which froze the simulation with no way out short of editing the URL by hand.
   Both are validated and fall back to a default now.
 - `goToFloor(NaN)` — or `undefined`, or `"abc"`, or a typo that evaluated to an object — used to
@@ -726,7 +731,7 @@ granted here rather than having to work it out from a feature list.
   differ by a nanosecond. The reporter also asked that a replayed challenge not count as passed;
   it does count here, because the seed changes who arrives and not what winning takes.
 - [#103](https://github.com/magwo/elevatorsaga/issues/103) — a playground without a challenge's
-  constraints, "just random popup guests", to debug a program against. `#challenge=sandbox` is a
+  constraints, "just random popup guests", to debug a program against. `#level=sandbox` is a
   building with no success condition and four parameters to shape it.
 - [#68](https://github.com/magwo/elevatorsaga/issues/68) — <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>S</kbd>
   should save the code rather than open the browser's save dialog. It does: the editor takes the

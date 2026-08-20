@@ -847,7 +847,7 @@ elevator.goingDownIndicator(false);`,
   // text has to be spellable by hand into both of them. `src/page.test.ts`
   // holds the pages and this key to the first task's real id.
   "docs.play.track.html":
-    'If you have never written one of these programs before, start on the <a href="index.html#challenge=tutorial-1">learning track</a>, which is also the <span class="emphasis-color">Learning track</span> link at the top of the game. It is eight small buildings that introduce this API one mistake at a time: each hands you a program that loses, and asks you to find the one thing wrong with it, with hints and an explanation of what the run was actually doing.',
+    'If you have never written one of these programs before, start on the <a href="index.html#level=tutorial-1">learning track</a>, which is also the <span class="emphasis-color">Learning track</span> link at the top of the game. It is eight small buildings that introduce this API one mistake at a time: each hands you a program that loses, and asks you to find the one thing wrong with it, with hints and an explanation of what the run was actually doing.',
   "docs.play.start.html":
     'Enter your code in the input window below the game view, and press the <span class="emphasis-color">Start</span> button to run it. There is nothing to apply first: your program is saved as you type, and every run reads it afresh. While a run is going that button reads <span class="emphasis-color">Pause</span>, and <span class="emphasis-color">Start over</span> beside it throws the run away and begins the challenge again with whatever the editor holds by then.<br /> You can increase or decrease the speed of time by pressing the {increase} and {decrease} buttons.',
   "docs.play.statistics.html":

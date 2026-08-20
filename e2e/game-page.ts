@@ -48,7 +48,7 @@ export const CHALLENGE_TIER_STORAGE_KEY = "develevateChallengeTiers";
  *
  * A numbered level is shut until the one before it has been cleared — in the
  * switcher, which draws it as a disabled button, and in the router, which
- * answers `#challenge=18` from a browser that has cleared nothing with the
+ * answers `#level=18` from a browser that has cleared nothing with the
  * first level and a warning. Every spec that opens a level past the first has
  * to be a player who could have opened it, and this is how it becomes one: a
  * bronze on record for each level below, written before any of the page's own

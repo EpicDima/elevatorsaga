@@ -2,7 +2,7 @@
  * What a seed promises, measured against a frame clock that is never the same
  * twice.
  *
- * The game pins a run with `#challenge=4,seed=12345` and tells the player that
+ * The game pins a run with `#level=4,seed=12345` and tells the player that
  * the same seed gives the same building, the same passengers, and now — since
  * both {@link "./world-controller.ts"!UserCodeObject.update} and the world's
  * physics advance in fixed {@link "./world-controller.ts"!TICK_SECONDS} ticks

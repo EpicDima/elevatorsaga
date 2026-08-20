@@ -32,7 +32,7 @@ import {
   floorCallUpLabel,
 } from "../../ui/templates.ts";
 import type { SeedLinkData } from "../../ui/templates.ts";
-import { SANDBOX_CHALLENGE } from "./model/route.ts";
+import { LEVEL_KEY, SANDBOX_CHALLENGE } from "./model/route.ts";
 import type { RouteParams } from "./model/route.ts";
 import {
   evaluateChallengeTier,
@@ -977,13 +977,13 @@ export class App {
   #levelHref(target: LevelLinkTarget): string {
     switch (target.kind) {
       case "challenge": {
-        return createParamsUrl(this.#query, { challenge: target.number, seed: null });
+        return createParamsUrl(this.#query, { [LEVEL_KEY]: target.number, seed: null });
       }
       case "tutorial": {
-        return createParamsUrl(this.#query, { challenge: target.taskId, seed: null });
+        return createParamsUrl(this.#query, { [LEVEL_KEY]: target.taskId, seed: null });
       }
       case "sandbox": {
-        return createParamsUrl(this.#query, { challenge: SANDBOX_CHALLENGE, seed: null });
+        return createParamsUrl(this.#query, { [LEVEL_KEY]: SANDBOX_CHALLENGE, seed: null });
       }
     }
   }
@@ -1067,7 +1067,7 @@ export class App {
    * @returns The hash URL.
    */
   #seedHref(seed: string, challengeIndex: number | null): string {
-    const at = challengeIndex === null ? {} : { challenge: challengeIndex + 1 };
+    const at = challengeIndex === null ? {} : { [LEVEL_KEY]: challengeIndex + 1 };
     return createParamsUrl(this.#query, { ...at, seed });
   }
 
@@ -1354,13 +1354,13 @@ export class App {
    * What a route names is decided in one order, and the order is stated because
    * it is the whole of the dispatch: a route is a task of the learning track, or
    * the sandbox, or a numbered challenge. The router never sets more than one of
-   * those — `#challenge=` holds one value — so this is a statement of precedence
+   * those — `#level=` holds one value — so this is a statement of precedence
    * rather than a decision made every time, and the precedence runs from the
    * most specific address to the least. `challengeIndex` is the least, because
    * the router resolves it to challenge 1 for any spelling it does not
    * understand, which is exactly what an unrecognised route should play and
    * exactly what a task's route must not: until this branch existed,
-   * `#challenge=tutorial-5` played challenge 1 while the address bar went on
+   * `#level=tutorial-5` played challenge 1 while the address bar went on
    * saying `tutorial-5`, and a reload never escaped it.
    *
    * @param params - The validated route parameters.
@@ -2025,7 +2025,7 @@ export class App {
       // belongs to the building just completed, not to the next one.
       url:
         won && challengeIndex !== null && challengeIndex + 1 < this.challenges.length
-          ? createParamsUrl(this.#query, { challenge: challengeIndex + 2, seed: null })
+          ? createParamsUrl(this.#query, { [LEVEL_KEY]: challengeIndex + 2, seed: null })
           : "",
       tier,
     });
@@ -2165,9 +2165,9 @@ export class App {
       // also what keeps the link usable at all -- the router refuses a seed on a
       // task address and would refuse this one on arrival if it survived.
       url: finished
-        ? createParamsUrl(this.#query, { challenge: 1, seed: null })
+        ? createParamsUrl(this.#query, { [LEVEL_KEY]: 1, seed: null })
         : won && nextTask !== undefined
-          ? createParamsUrl(this.#query, { challenge: nextTask.id, seed: null })
+          ? createParamsUrl(this.#query, { [LEVEL_KEY]: nextTask.id, seed: null })
           : "",
       // A task's win has no tier -- tiers rank a numbered challenge's run
       // against `challenge.tiers`, which tasks on the learning track do not

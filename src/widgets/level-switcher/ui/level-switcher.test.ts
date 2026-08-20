@@ -22,13 +22,13 @@ function fixtureChallenges(count: number): readonly Challenge[] {
 function stubHref(target: LevelLinkTarget): string {
   switch (target.kind) {
     case "challenge": {
-      return `#challenge=${String(target.number)}`;
+      return `#level=${String(target.number)}`;
     }
     case "tutorial": {
-      return `#challenge=${target.taskId}`;
+      return `#level=${target.taskId}`;
     }
     case "sandbox": {
-      return "#challenge=sandbox";
+      return "#level=sandbox";
     }
   }
 }
@@ -147,7 +147,7 @@ describe("presentLevelSwitcher", () => {
     ]);
     expect(tiles[1]?.hasAttribute("disabled")).toBe(true);
     expect(tiles[1]?.getAttribute("href")).toBeNull();
-    expect(tiles[0]?.getAttribute("href")).toBe("#challenge=1");
+    expect(tiles[0]?.getAttribute("href")).toBe("#level=1");
   });
 
   it("badges every open challenge tile with its tier stars", () => {
@@ -263,7 +263,7 @@ describe("presentLevelSwitcher", () => {
 
     expect(tile?.tagName).toBe("A");
     expect(tile?.textContent).toBe("Sandbox");
-    expect(tile?.getAttribute("href")).toBe("#challenge=sandbox");
+    expect(tile?.getAttribute("href")).toBe("#level=sandbox");
   });
 
   it("closes the popover when a tile is clicked", () => {
@@ -323,7 +323,7 @@ describe("presentLevelSwitcher", () => {
     expect(taskNext.hasAttribute("disabled")).toBe(false);
     taskNext.click();
 
-    expect(parent.ownerDocument.defaultView?.location.hash).toBe("#challenge=5");
+    expect(parent.ownerDocument.defaultView?.location.hash).toBe("#level=5");
   });
 
   it("scopes stepping to the current tile's own block", () => {

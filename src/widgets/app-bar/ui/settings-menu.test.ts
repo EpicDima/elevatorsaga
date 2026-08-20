@@ -13,7 +13,7 @@ import { MemoryStorage } from "../../../ui/test-helpers.ts";
 import type { SeedLinkData } from "../../../ui/templates.ts";
 
 /** A run, the same fixture `seed-panel.test.ts` uses. */
-const SEED: SeedLinkData = { seed: "1234567890", url: "#challenge=1,seed=1234567890" };
+const SEED: SeedLinkData = { seed: "1234567890", url: "#level=1,seed=1234567890" };
 
 /**
  * A mounted toolbar, its parent and the options it was built with.
@@ -277,7 +277,7 @@ describe("presentAppBarSettings", () => {
       const onSeed = vi.fn();
       const { parent, controller } = setUp(SEED, { onSeed });
 
-      controller.setSeed({ seed: "later", url: "#challenge=1,seed=later" });
+      controller.setSeed({ seed: "later", url: "#level=1,seed=later" });
       requireElement(".seednewdraw", parent).click();
 
       expect(onSeed).toHaveBeenCalledTimes(1);
@@ -292,7 +292,7 @@ describe("presentAppBarSettings", () => {
       const field = requireElement(".seedvalue", parent);
       field.focus();
 
-      controller.setSeed({ seed: "later", url: "#challenge=1,seed=later" });
+      controller.setSeed({ seed: "later", url: "#level=1,seed=later" });
 
       const replacement = requireElement(".seedvalue", parent);
       expect(replacement).not.toBe(field);
@@ -304,7 +304,7 @@ describe("presentAppBarSettings", () => {
       const elsewhere = requireElement(".setopen", parent);
       elsewhere.focus();
 
-      controller.setSeed({ seed: "later", url: "#challenge=1,seed=later" });
+      controller.setSeed({ seed: "later", url: "#level=1,seed=later" });
 
       expect(document.activeElement).toBe(elsewhere);
     });

@@ -39,8 +39,8 @@ const FLOOR = { width: 1040, height: 600 } as const;
 
 /** The shortest buildings the game draws. */
 const SHORT_BUILDINGS = [
-  { name: "a two-floor learning task", hash: "#challenge=tutorial-1" },
-  { name: "a three-floor challenge", hash: "#challenge=1" },
+  { name: "a two-floor learning task", hash: "#level=tutorial-1" },
+  { name: "a three-floor challenge", hash: "#level=1" },
 ] as const;
 
 /**
@@ -120,7 +120,7 @@ test("takes its own height out of the pane before the building takes any", async
   // default 1280x900 there is room for all four and every arrangement looks the
   // same.
   await page.setViewportSize({ ...FLOOR });
-  await page.goto("/#challenge=tutorial-1");
+  await page.goto("/#level=tutorial-1");
   await openEveryFigure(page);
 
   const measured = await page.evaluate(() => {

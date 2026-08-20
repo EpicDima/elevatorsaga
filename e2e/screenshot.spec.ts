@@ -95,7 +95,7 @@ test.describe("README screenshot", () => {
     // that key is gone.
     await seedLevelCode(page, LEVEL, DEV_TEST_CODE);
 
-    await page.goto(`/#challenge=${String(LEVEL)},timescale=6,seed=${SEED}`);
+    await page.goto(`/#level=${String(LEVEL)},timescale=6,seed=${SEED}`);
 
     // The seed took. A seed the router refuses is swapped for a fresh one with
     // nothing but a console warning to show for it, and the picture would go

@@ -56,11 +56,11 @@ describe("presentVerdictToast", () => {
   it("replaces any previous verdict", () => {
     const parent = container();
     presentVerdictToast(parent, baseData({ won: false, title: "Level failed" }));
-    presentVerdictToast(parent, baseData({ url: "#challenge=4" }));
+    presentVerdictToast(parent, baseData({ url: "#level=4" }));
 
     expect(parent.children).toHaveLength(1);
     expect(parent.querySelector("h3")?.textContent).toBe("Success!");
-    expect(parent.querySelector("a")?.getAttribute("href")).toBe("#challenge=4");
+    expect(parent.querySelector("a")?.getAttribute("href")).toBe("#level=4");
   });
 
   it("omits the next-challenge link when there is nowhere to go", () => {
@@ -182,7 +182,7 @@ describe("verdictToastTemplate", () => {
     // whatever the outcome, and dismissing it is all the button promises --
     // restarting the run is the bar's own control, and offering it twice would
     // be one promise too many.
-    for (const url of ["", "#challenge=4"]) {
+    for (const url of ["", "#level=4"]) {
       const element = parse(verdictToastTemplate(baseData({ url })));
       const close = element.querySelector(".acts .verdict-close");
       expect(close?.getAttribute("type")).toBe("button");

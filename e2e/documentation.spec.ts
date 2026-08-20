@@ -98,7 +98,7 @@ test("sends a beginner from the help page into the learning track", async ({ pag
   // console warning tells the two apart. Landing on the task's own title is
   // the difference, and it is also the only check here that the hash survives
   // being followed from a page that is not the game.
-  await expect(page).toHaveURL(/\/index\.html#challenge=tutorial-1$/);
+  await expect(page).toHaveURL(/\/index\.html#level=tutorial-1$/);
   await expect(
     page.getByRole("heading", { level: 2, name: "The elevator that goes nowhere" }),
   ).toBeVisible();

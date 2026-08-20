@@ -107,7 +107,7 @@ describe("the language the page starts in", () => {
     storage.setItem(LOCALE_STORAGE_KEY, "en");
 
     await applyPreferredLocale(page, USER_AGENT, {
-      hash: "#challenge=3,lang=ru",
+      hash: "#level=3,lang=ru",
       storage,
       languages: ["en-GB", "en"],
     });
@@ -121,7 +121,7 @@ describe("the language the page starts in", () => {
     storage.setItem(LOCALE_STORAGE_KEY, "ru");
 
     await applyPreferredLocale(page, USER_AGENT, {
-      hash: "#challenge=3",
+      hash: "#level=3",
       storage,
       languages: ["en"],
     });
@@ -145,7 +145,7 @@ describe("the language the page starts in", () => {
 
   it("is English when no source names a language the game speaks", async () => {
     await applyPreferredLocale(page, USER_AGENT, {
-      hash: "#challenge=3",
+      hash: "#level=3",
       storage,
       languages: ["fr", "de-AT"],
     });

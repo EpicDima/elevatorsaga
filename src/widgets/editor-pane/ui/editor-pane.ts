@@ -26,7 +26,7 @@
  *   controls no longer being an `<h3>` of clickable `<i>` elements, and
  *   specifically not an `<a href="#">`: the hash belongs to the router (see
  *   `src/main.ts`'s `.skip-link` handler), and a real navigation to it would
- *   throw away `challenge=`/`timescale=` and restart the player on the first
+ *   throw away `level=`/`timescale=` and restart the player on the first
  *   challenge. It calls {@link EditorPaneOptions.onGotoLine} with the line
  *   `src/ui/error-location.ts`'s `locateCodeError` found, so it does what the
  *   mockup's own link only gestured at.

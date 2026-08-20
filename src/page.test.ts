@@ -987,7 +987,7 @@ describe("documentation.html and documentation.ru.html, as one document in two l
     // fails here instead of leaving both pages pointing at an address that
     // resolves to the track's start with a console warning -- which is what a
     // dead task address does, and it would look like the link still worked.
-    const href = `index.html#challenge=${firstTask.id}`;
+    const href = `index.html#level=${firstTask.id}`;
     for (const { file, document } of DOCUMENTATION_PAGES) {
       const links = [...document.querySelectorAll(`a[href="${href}"]`)];
       expect(links, file).toHaveLength(1);

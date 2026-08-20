@@ -89,8 +89,8 @@ describe("localeFromQuery", () => {
   it.each([
     ["#lang=ru", "ru"],
     ["lang=ru", "ru"],
-    ["#challenge=3,lang=ru", "ru"],
-    ["#lang=ru,challenge=3,timescale=8", "ru"],
+    ["#level=3,lang=ru", "ru"],
+    ["#lang=ru,level=3,timescale=8", "ru"],
     ["#lang=RU", "ru"],
     ["#lang=ru-RU", "ru"],
     ["#lang=en", "en"],
@@ -98,18 +98,12 @@ describe("localeFromQuery", () => {
     expect(localeFromQuery(hash)).toBe(expected);
   });
 
-  it.each([
-    "",
-    "#",
-    "#challenge=3",
-    "#lang",
-    "#lang=",
-    "#lang=de",
-    "#lang=russian",
-    "#language=ru",
-  ])("reads no locale from %s", (hash) => {
-    expect(localeFromQuery(hash)).toBeUndefined();
-  });
+  it.each(["", "#", "#level=3", "#lang", "#lang=", "#lang=de", "#lang=russian", "#language=ru"])(
+    "reads no locale from %s",
+    (hash) => {
+      expect(localeFromQuery(hash)).toBeUndefined();
+    },
+  );
 });
 
 describe("readStoredLocale", () => {
@@ -172,9 +166,7 @@ describe("resolveLocale", () => {
   });
 
   it("takes the stored preference when the hash says nothing", () => {
-    expect(resolveLocale({ hash: "#challenge=3", storage: storage(), languages: ["de"] })).toBe(
-      "ru",
-    );
+    expect(resolveLocale({ hash: "#level=3", storage: storage(), languages: ["de"] })).toBe("ru");
   });
 
   it("takes the browser's languages when nothing is stored", () => {
@@ -182,7 +174,7 @@ describe("resolveLocale", () => {
   });
 
   it("falls back to English when no source has an answer", () => {
-    expect(resolveLocale({ hash: "#challenge=3", storage: fakeStorage(), languages: ["de"] })).toBe(
+    expect(resolveLocale({ hash: "#level=3", storage: fakeStorage(), languages: ["de"] })).toBe(
       "en",
     );
     expect(resolveLocale({})).toBe("en");
@@ -191,9 +183,9 @@ describe("resolveLocale", () => {
 
   it("carries on past a storage that throws", () => {
     // The whole order still runs: the unreadable source is skipped, not fatal.
-    expect(
-      resolveLocale({ hash: "#challenge=3", storage: hostileStorage(), languages: ["ru"] }),
-    ).toBe("ru");
+    expect(resolveLocale({ hash: "#level=3", storage: hostileStorage(), languages: ["ru"] })).toBe(
+      "ru",
+    );
     expect(resolveLocale({ storage: hostileStorage() })).toBe("en");
     expect(resolveLocale({ hash: "#lang=ru", storage: hostileStorage() })).toBe("ru");
   });

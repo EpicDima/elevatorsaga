@@ -27,7 +27,7 @@ describe("seedPanelTemplate", () => {
   }
 
   /** A run, and the URL that puts it in the address bar. */
-  const SEED: SeedLinkData = { seed: "1234567890", url: "#challenge=1,seed=1234567890" };
+  const SEED: SeedLinkData = { seed: "1234567890", url: "#level=1,seed=1234567890" };
 
   it("renders nothing for a run with no seed to offer", () => {
     // `data` is `null` for a learning-track task and for the test-only worlds
@@ -83,7 +83,7 @@ describe("seedPanelTemplate", () => {
   it("offers to put the run in the address bar, as a real link", () => {
     const seedLink = renderElement(seedPanelTemplate(SEED)).querySelector("a.seedlink");
 
-    expect(seedLink?.getAttribute("href")).toBe("#challenge=1,seed=1234567890");
+    expect(seedLink?.getAttribute("href")).toBe("#level=1,seed=1234567890");
     // The mockup's `#seedCopy`, glyph and all: pinning a draw into the address
     // bar is the same gesture its copy button offers.
     expect(seedLink?.innerHTML).toBe(iconHtml("copy"));
@@ -172,7 +172,7 @@ describe("seedPanelTemplate", () => {
 
 describe("presentSeedPanel", () => {
   /** The run every case here starts from. */
-  const SEED_FIXTURE: SeedLinkData = { seed: "1234567890", url: "#challenge=1,seed=1234567890" };
+  const SEED_FIXTURE: SeedLinkData = { seed: "1234567890", url: "#level=1,seed=1234567890" };
 
   /**
    * The block wired up, in the wrapper the settings popover really gives it.
@@ -292,7 +292,7 @@ describe("presentSeedPanel", () => {
     // so handlers attached to the controls would last exactly one choice.
     const { block, onSeed } = panel();
 
-    block.innerHTML = seedPanelTemplate({ seed: "later", url: "#challenge=1,seed=later" });
+    block.innerHTML = seedPanelTemplate({ seed: "later", url: "#level=1,seed=later" });
     commit(fieldIn(block), "later-still");
 
     expect(onSeed).toHaveBeenCalledExactlyOnceWith("later-still");

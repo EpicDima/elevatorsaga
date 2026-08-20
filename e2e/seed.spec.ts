@@ -59,7 +59,7 @@ test("puts the run a player is looking at in the address bar, and replays it on 
   page.on("pageerror", (error) => pageErrors.push(error.message));
 
   await unlockLevel(page, SEEDED_LEVEL);
-  await page.goto("/#challenge=4,timescale=8");
+  await page.goto("/#level=4,timescale=8");
   await openSettingsMenu(page);
 
   const seedLink = page.locator(SEED_LINK);
@@ -69,10 +69,10 @@ test("puts the run a player is looking at in the address bar, and replays it on 
 
   // The link carries the rest of the URL, so naming the seed does not throw
   // away the challenge or the speed the player had chosen.
-  await expect(seedLink).toHaveAttribute("href", `#challenge=4,timescale=8,seed=${seed}`);
+  await expect(seedLink).toHaveAttribute("href", `#level=4,timescale=8,seed=${seed}`);
 
   await seedLink.click();
-  await expect(page).toHaveURL(new RegExp(`#challenge=4,timescale=8,seed=${seed}$`));
+  await expect(page).toHaveURL(new RegExp(`#level=4,timescale=8,seed=${seed}$`));
 
   // `App.onSeedChange` fires from `#drawChallengeBar`, which the router's own
   // `hashchange` handling reaches on every navigation including this one, so
@@ -101,13 +101,13 @@ test("plays the seed a player types into the field", async ({ page }) => {
   // Enter in a text field outside any `<form>` is what commits the value, and
   // whether `change` fires there at all is the browser's business.
   await unlockLevel(page, SEEDED_LEVEL);
-  await page.goto("/#challenge=4,timescale=8");
+  await page.goto("/#level=4,timescale=8");
   await openSettingsMenu(page);
 
   await page.locator(SEED_VALUE).fill("hand-picked");
   await page.locator(SEED_VALUE).press("Enter");
 
-  await expect(page).toHaveURL(/#challenge=4,timescale=8,seed=hand-picked$/);
+  await expect(page).toHaveURL(/#level=4,timescale=8,seed=hand-picked$/);
   await expect(page.locator(SEED_VALUE)).toHaveValue("hand-picked");
   // The speed came along, exactly as it does through the navigation row.
   await expect(speedValue(page)).toHaveText("8x");
@@ -117,7 +117,7 @@ test("refuses a typed seed the address bar could not carry, and stays where it w
   page,
 }) => {
   await unlockLevel(page, SEEDED_LEVEL);
-  await page.goto("/#challenge=4,seed=issue-61");
+  await page.goto("/#level=4,seed=issue-61");
   await openSettingsMenu(page);
 
   await page.locator(SEED_VALUE).fill("rush hour");
@@ -125,7 +125,7 @@ test("refuses a typed seed the address bar could not carry, and stays where it w
 
   // No navigation, and the field says so itself: `pattern` marks it invalid and
   // the presenter puts the reason on it, in the player's own language.
-  await expect(page).toHaveURL(/#challenge=4,seed=issue-61$/);
+  await expect(page).toHaveURL(/#level=4,seed=issue-61$/);
   await expect(page.locator(SEED_VALUE)).toHaveJSProperty(
     "validationMessage",
     "A seed can be up to 64 letters, digits, dots, hyphens or underscores.",
@@ -138,13 +138,13 @@ test("draws a new seed from the dice and pins it in the address bar", async ({ p
   // address meant one; the seed is the player's own now, so the draw happens
   // here and the address follows it.
   await unlockLevel(page, SEEDED_LEVEL);
-  await page.goto("/#challenge=4,timescale=8,seed=issue-61");
+  await page.goto("/#level=4,timescale=8,seed=issue-61");
   await openSettingsMenu(page);
   await expect(page.locator(SEED_VALUE)).toHaveValue("issue-61");
 
   await page.locator(NEW_DRAW).click();
 
-  await expect(page).toHaveURL(/#challenge=4,timescale=8,seed=\w+$/);
+  await expect(page).toHaveURL(/#level=4,timescale=8,seed=\w+$/);
   await expect(page).not.toHaveURL(/seed=issue-61$/);
   // The speed the player chose came along, exactly as it does through the
   // navigation row.
@@ -154,7 +154,7 @@ test("draws a new seed from the dice and pins it in the address bar", async ({ p
   // And the browser's own way back reaches the earlier run again, because
   // every one of these moves is a real navigation.
   await page.goBack();
-  await expect(page).toHaveURL(/#challenge=4,timescale=8,seed=issue-61$/);
+  await expect(page).toHaveURL(/#level=4,timescale=8,seed=issue-61$/);
   await expect(page.locator(SEED_VALUE)).toHaveValue("issue-61");
 });
 
@@ -171,7 +171,7 @@ test("opens the caveat from the keyboard", async ({ page }) => {
   // path itself has nothing to do with viewport width, so it is still worth
   // its own test.
   await unlockLevel(page, SEEDED_LEVEL);
-  await page.goto("/#challenge=4");
+  await page.goto("/#level=4");
   await openSettingsMenu(page);
 
   await expect(page.locator(CAVEAT)).toBeHidden();
@@ -223,7 +223,7 @@ test("opens the caveat from the keyboard", async ({ page }) => {
  */
 test("does not move the caveat's own control when it is opened", async ({ page }) => {
   await unlockLevel(page, SEEDED_LEVEL);
-  await page.goto("/#challenge=4");
+  await page.goto("/#level=4");
 
   for (const width of [1280, 1040]) {
     await page.setViewportSize({ width, height: 900 });
@@ -291,7 +291,7 @@ test("keeps every word of the seed line readable", async ({ page }) => {
   // elements ask for them: this failure was an element quietly asking for
   // neither.
   await unlockLevel(page, SEEDED_LEVEL);
-  await page.goto("/#challenge=4,seed=issue-61");
+  await page.goto("/#level=4,seed=issue-61");
   await openSettingsMenu(page);
   await page.locator(HELP_SUMMARY).click();
 
@@ -366,7 +366,7 @@ test("keeps the player's own seed across a reload that names none", async ({ pag
   // records the whole of the decision and why it was reversed rather than
   // worked around.
   await unlockLevel(page, SEEDED_LEVEL);
-  await page.goto("/#challenge=4");
+  await page.goto("/#level=4");
   await openSettingsMenu(page);
   const first = await page.locator(SEED_VALUE).inputValue();
   expect(first).not.toBe("");
@@ -389,13 +389,13 @@ test("prints the seed and a whole URL to the console as a run starts", async ({ 
   });
 
   await unlockLevel(page, SEEDED_LEVEL);
-  await page.goto("/#challenge=4,seed=issue-61");
+  await page.goto("/#level=4,seed=issue-61");
 
   const seedLine = logs.find((line) => line.includes("issue-61"));
   expect(seedLine).toBeDefined();
   // Absolute, because a console line cannot be copied as a link -- the whole
   // point is that it can be pasted somewhere else and still work.
-  expect(seedLine).toContain(`${new URL(page.url()).origin}/#challenge=4,seed=issue-61`);
+  expect(seedLine).toContain(`${new URL(page.url()).origin}/#level=4,seed=issue-61`);
 });
 
 test("refuses a seed the address bar would have mangled", async ({ page }) => {
@@ -410,7 +410,7 @@ test("refuses a seed the address bar would have mangled", async ({ page }) => {
   });
 
   await unlockLevel(page, SEEDED_LEVEL);
-  await page.goto("/#challenge=4,seed=rush hour");
+  await page.goto("/#level=4,seed=rush hour");
   await openSettingsMenu(page);
 
   await expect(page.locator(SEED_LINK)).toBeVisible();

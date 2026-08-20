@@ -457,9 +457,7 @@ describe("App challenge outcome", () => {
 
     expect(app.world?.challengeEnded).toBe(true);
     expect(requireElement(".verdict h3", elements.feedback).textContent).toBe("Success!");
-    expect(requireElement(".verdict a", elements.feedback).getAttribute("href")).toBe(
-      "#challenge=3",
-    );
+    expect(requireElement(".verdict a", elements.feedback).getAttribute("href")).toBe("#level=3");
   });
 
   it("says so, without a link, on a loss", () => {
@@ -508,12 +506,12 @@ describe("App challenge outcome", () => {
 
   it("keeps the rest of the url in the next-challenge link", () => {
     const { app, elements } = setUp();
-    app.handleRoute(...routeFor("#challenge=2,timescale=8,fullscreen=true"));
+    app.handleRoute(...routeFor("#level=2,timescale=8,fullscreen=true"));
 
     app.world?.trigger("stats_changed");
 
     expect(requireElement(".verdict a", elements.feedback).getAttribute("href")).toBe(
-      "#challenge=3,timescale=8,fullscreen=true",
+      "#level=3,timescale=8,fullscreen=true",
     );
   });
 
@@ -521,12 +519,12 @@ describe("App challenge outcome", () => {
     // Everything else the player is carrying rides along; the seed does not,
     // because it was drawn for the building they have finished with.
     const { app, elements } = setUp();
-    app.handleRoute(...routeFor("#challenge=2,timescale=8,seed=issue-61"));
+    app.handleRoute(...routeFor("#level=2,timescale=8,seed=issue-61"));
 
     app.world?.trigger("stats_changed");
 
     expect(requireElement(".verdict a", elements.feedback).getAttribute("href")).toBe(
-      "#challenge=3,timescale=8",
+      "#level=3,timescale=8",
     );
   });
 
@@ -781,7 +779,7 @@ describe("App challenge navigation", () => {
   it("puts a tile for every challenge in the switcher, marking the one being played", () => {
     const { app, elements, storage } = setUp();
     unlockChallenge2(storage);
-    app.handleRoute(...routeFor("#challenge=2"));
+    app.handleRoute(...routeFor("#level=2"));
 
     const entries = challengeTiles(elements);
     expect(entries.map((entry) => entry.getAttribute("aria-label"))).toEqual([
@@ -806,12 +804,12 @@ describe("App challenge navigation", () => {
     // parameters instead.
     const { app, elements, storage } = setUp();
     unlockEveryChallenge(storage);
-    app.handleRoute(...routeFor("#challenge=1,timescale=8,fullscreen=true"));
+    app.handleRoute(...routeFor("#level=1,timescale=8,fullscreen=true"));
 
     expect(challengeTiles(elements).map((entry) => entry.getAttribute("href"))).toEqual([
-      "#challenge=1,timescale=8,fullscreen=true",
-      "#challenge=2,timescale=8,fullscreen=true",
-      "#challenge=3,timescale=8,fullscreen=true",
+      "#level=1,timescale=8,fullscreen=true",
+      "#level=2,timescale=8,fullscreen=true",
+      "#level=3,timescale=8,fullscreen=true",
     ]);
   });
 
@@ -820,11 +818,11 @@ describe("App challenge navigation", () => {
     // trips them, so a link someone hand-wrote survives being navigated from.
     const { app, elements, storage } = setUp();
     unlockChallenge2(storage);
-    app.handleRoute(...routeFor("#challenge=1,fullscreen,somethingelse=7"));
+    app.handleRoute(...routeFor("#level=1,fullscreen,somethingelse=7"));
 
     expect(
       requireElement('[aria-label="Level 2"]', elements.levelSwitcher).getAttribute("href"),
-    ).toBe("#challenge=2,fullscreen=,somethingelse=7");
+    ).toBe("#level=2,fullscreen=,somethingelse=7");
   });
 
   it("starts the challenge a link names when it is clicked", async () => {
@@ -832,7 +830,7 @@ describe("App challenge navigation", () => {
     // change and the app starts the challenge it names.
     const { app, elements, storage } = setUp();
     unlockChallenge2(storage);
-    window.location.hash = "#challenge=1,timescale=8";
+    window.location.hash = "#level=1,timescale=8";
     const stopRouter = startRouter(
       (params, query) => {
         app.handleRoute(params, query);
@@ -855,7 +853,7 @@ describe("App challenge navigation", () => {
       await vi.waitFor(() => {
         expect(app.currentChallengeIndex).toBe(1);
       });
-      expect(window.location.hash).toBe("#challenge=2,timescale=8");
+      expect(window.location.hash).toBe("#level=2,timescale=8");
       expect(app.worldController.timeScale).toBe(8);
     } finally {
       stopRouter();
@@ -867,7 +865,7 @@ describe("App challenge navigation", () => {
 describe("App sandbox", () => {
   it("builds the building the url describes", () => {
     const { app } = setUp();
-    app.handleRoute(...routeFor("#challenge=sandbox,floors=20,elevators=3,capacities=6-9"));
+    app.handleRoute(...routeFor("#level=sandbox,floors=20,elevators=3,capacities=6-9"));
 
     expect(app.isPlayingSandbox).toBe(true);
     expect(app.world?.floors).toHaveLength(20);
@@ -880,19 +878,19 @@ describe("App sandbox", () => {
     // world starts one spawn interval behind (1.001 / spawnRate), so a first
     // second at 2/s is three passengers and at 0.5/s is one.
     const fast = setUp().app;
-    fast.handleRoute(...routeFor("#challenge=sandbox,spawnrate=2"));
+    fast.handleRoute(...routeFor("#level=sandbox,spawnrate=2"));
     fast.world?.update(1.0);
     expect(fast.world?.users).toHaveLength(3);
 
     const slow = setUp().app;
-    slow.handleRoute(...routeFor("#challenge=sandbox,spawnrate=0.5"));
+    slow.handleRoute(...routeFor("#level=sandbox,spawnrate=0.5"));
     slow.world?.update(1.0);
     expect(slow.world?.users).toHaveLength(1);
   });
 
   it("titles the bar with the parameters in effect, and not as a challenge", () => {
     const { app, elements } = setUp();
-    app.handleRoute(...routeFor("#challenge=sandbox,floors=20,elevators=3,spawnrate=1.5"));
+    app.handleRoute(...routeFor("#level=sandbox,floors=20,elevators=3,spawnrate=1.5"));
 
     expect(goalDescription(elements)).toBe(
       "Sandbox: 20 floors, 3 elevators of capacity 4, 1.5 people per second. " +
@@ -902,7 +900,7 @@ describe("App sandbox", () => {
 
   it("shows the clamped parameters, not the ones the url asked for", () => {
     const { app, elements } = setUp();
-    app.handleRoute(...routeFor("#challenge=sandbox,floors=100000"));
+    app.handleRoute(...routeFor("#level=sandbox,floors=100000"));
 
     expect(goalDescription(elements)).toContain("Sandbox: 60 floors");
     expect(app.world?.floors).toHaveLength(60);
@@ -910,7 +908,7 @@ describe("App sandbox", () => {
 
   it("never ends, however long the run goes on", () => {
     const { app, elements } = setUp();
-    app.handleRoute(...routeFor("#challenge=sandbox,floors=3,spawnrate=2"));
+    app.handleRoute(...routeFor("#level=sandbox,floors=3,spawnrate=2"));
     const world = app.world;
 
     for (let i = 0; i < 50; i += 1) {
@@ -932,7 +930,7 @@ describe("App sandbox", () => {
 
   it("leaves every challenge reachable, and marks none of them as current", () => {
     const { app, elements } = setUp();
-    app.handleRoute(...routeFor("#challenge=sandbox,floors=20"));
+    app.handleRoute(...routeFor("#level=sandbox,floors=20"));
 
     const entries = challengeTiles(elements);
     expect(entries).toHaveLength(3);
@@ -945,17 +943,17 @@ describe("App sandbox", () => {
     // configured stays in the hash, inert, and is still there on the way back.
     const { app, elements, storage } = setUp();
     unlockChallenge2(storage);
-    app.handleRoute(...routeFor("#challenge=sandbox,floors=20,timescale=8"));
+    app.handleRoute(...routeFor("#level=sandbox,floors=20,timescale=8"));
 
     expect(
       requireElement('[aria-label="Level 2"]', elements.levelSwitcher).getAttribute("href"),
-    ).toBe("#challenge=2,floors=20,timescale=8");
+    ).toBe("#level=2,floors=20,timescale=8");
   });
 
   it("stops being the sandbox once a numbered challenge is started", () => {
     const { app, elements } = setUp();
-    app.handleRoute(...routeFor("#challenge=sandbox,floors=20"));
-    app.handleRoute(...routeFor("#challenge=2,floors=20"));
+    app.handleRoute(...routeFor("#level=sandbox,floors=20"));
+    app.handleRoute(...routeFor("#level=2,floors=20"));
 
     expect(app.isPlayingSandbox).toBe(false);
     expect(app.world?.floors).toHaveLength(4);
@@ -967,7 +965,7 @@ describe("App sandbox", () => {
     // mean, and it would drop a sandbox player back onto a numbered challenge
     // -- losing the building they had just configured -- on every Ctrl-Enter.
     const { app, editor, elements } = setUp();
-    app.handleRoute(...routeFor("#challenge=sandbox,floors=20"));
+    app.handleRoute(...routeFor("#level=sandbox,floors=20"));
 
     editor.trigger("apply_code");
 
@@ -979,7 +977,7 @@ describe("App sandbox", () => {
 
   it("stays in the sandbox when the world is restarted from the bar", () => {
     const { app, elements } = setUp();
-    app.handleRoute(...routeFor("#challenge=sandbox,floors=20"));
+    app.handleRoute(...routeFor("#level=sandbox,floors=20"));
     // Only reachable once the world has been torn down; the sandbox itself
     // never ends.
     app.world?.unWind();
@@ -996,7 +994,7 @@ describe("App sandbox", () => {
     // building with no goal to fail. The honest answer is not to offer it: `+`
     // ends the ladder at the fastest real speed instead.
     const { app, elements } = setUp();
-    app.handleRoute(...routeFor("#challenge=sandbox,floors=20"));
+    app.handleRoute(...routeFor("#level=sandbox,floors=20"));
 
     reachInstantSpeed(elements);
 
@@ -1020,13 +1018,13 @@ describe("App sandbox", () => {
     // The speed in the address is carried in with everything else, and it is
     // the top of the ladder here so that the control has somewhere to sit that
     // would have stepped on to `∞x` a moment ago.
-    app.handleRoute(...routeFor("#challenge=sandbox,floors=20,timescale=20"));
+    app.handleRoute(...routeFor("#level=sandbox,floors=20,timescale=20"));
 
     expect(requireElement(".speed-val", elements.controls).textContent).toBe("20x");
     expect(requireElement(".speed-up", elements.controls).hasAttribute("disabled")).toBe(true);
 
     // Nothing is lost by it: the stop is on offer again on the next real run.
-    app.handleRoute(...routeFor("#challenge=1,timescale=20"));
+    app.handleRoute(...routeFor("#level=1,timescale=20"));
     expect(requireElement(".speed-up", elements.controls).hasAttribute("disabled")).toBe(false);
   });
 
@@ -1035,7 +1033,7 @@ describe("App sandbox", () => {
     // the state saying so rather than the click -- a hotkey, a stale handler or
     // a later caller must not start a run that can only end in the ceiling.
     const { app, elements } = setUp();
-    app.handleRoute(...routeFor("#challenge=sandbox,floors=20,spawnrate=2"));
+    app.handleRoute(...routeFor("#level=sandbox,floors=20,spawnrate=2"));
     const world = app.world;
 
     app.runInstantly();
@@ -1109,14 +1107,14 @@ describe("App learning track", () => {
   const TASK_2_CODE_KEY = "develevateTutorialCode_tutorial-2";
 
   it("plays the task the url names rather than challenge 1", () => {
-    // Until the route was dispatched on `tutorialIndex`, `#challenge=tutorial-5`
+    // Until the route was dispatched on `tutorialIndex`, `#level=tutorial-5`
     // fell through to the challenge branch, which resolves anything it does not
     // understand to challenge 1 -- so the game played challenge 1 while the
     // address bar went on saying `tutorial-5`, and a reload never escaped it.
     const { app } = setUp();
-    app.handleRoute(...routeFor("#challenge=3"));
+    app.handleRoute(...routeFor("#level=3"));
 
-    app.handleRoute(...routeFor("#challenge=tutorial-5"));
+    app.handleRoute(...routeFor("#level=tutorial-5"));
 
     expect(app.tutorial?.task.id).toBe("tutorial-5");
     expect(app.tutorial?.index).toBe(4);
@@ -1133,7 +1131,7 @@ describe("App learning track", () => {
     // coin flip, and a player could be shown a mistake that happened to squeak
     // past -- the opposite of what the task is for.
     const { app } = setUp();
-    app.handleRoute(...routeFor("#challenge=tutorial-3"));
+    app.handleRoute(...routeFor("#level=tutorial-3"));
     expect(app.world?.seed).toBe(taskAt(2).seed);
   });
 
@@ -1143,7 +1141,7 @@ describe("App learning track", () => {
     // and then it is the leftover from the challenge just left that has to
     // lose.
     const { app } = setUp();
-    app.handleRoute(...routeFor("#challenge=2,seed=issue-61"));
+    app.handleRoute(...routeFor("#level=2,seed=issue-61"));
     expect(app.world?.seed).toBe("issue-61");
 
     app.startTutorial(0);
@@ -1206,7 +1204,7 @@ describe("App learning track", () => {
     storage.setItem(CODE_STORAGE_KEY, INERT_CODE);
     app.startTutorial(2);
 
-    app.handleRoute(...routeFor("#challenge=sandbox,floors=20"));
+    app.handleRoute(...routeFor("#level=sandbox,floors=20"));
 
     expect(app.tutorial).toBeUndefined();
     expect(app.isPlayingSandbox).toBe(true);
@@ -1218,7 +1216,7 @@ describe("App learning track", () => {
     // mean. On the track it would apply the player's edit to a different
     // building and take the attempt they were half-way through off the screen.
     const { app, editor, view } = setUp();
-    app.handleRoute(...routeFor("#challenge=3"));
+    app.handleRoute(...routeFor("#level=3"));
     app.startTutorial(2);
     view.type("// half an answer");
     const before = app.world;
@@ -1269,11 +1267,11 @@ describe("App learning track", () => {
   it("leaves every challenge reachable from a task, and marks none of them current", () => {
     const { app, elements, storage } = setUp();
     unlockChallenge2(storage);
-    app.handleRoute(...routeFor("#challenge=tutorial-4,timescale=8"));
+    app.handleRoute(...routeFor("#level=tutorial-4,timescale=8"));
 
     const entries = challengeTiles(elements);
     expect(entries.map((entry) => entry.getAttribute("aria-current"))).toEqual([null, null, null]);
-    expect(entries[1]?.getAttribute("href")).toBe("#challenge=2,timescale=8");
+    expect(entries[1]?.getAttribute("href")).toBe("#level=2,timescale=8");
   });
 
   it("offers the next task, by name, after a win in the middle of the track", () => {
@@ -1284,7 +1282,7 @@ describe("App learning track", () => {
 
     expect(requireElement(".verdict h3", elements.feedback).textContent).toBe("Success!");
     const link = requireElement(".verdict a", elements.feedback);
-    expect(link.getAttribute("href")).toBe(`#challenge=${taskAt(1).id}`);
+    expect(link.getAttribute("href")).toBe(`#level=${taskAt(1).id}`);
     // "Next level" is what the shared template writes into every such link,
     // and the numbered ladder is not where task 2 lives.
     expect(link.textContent.trim()).toBe("Next task");
@@ -1302,7 +1300,7 @@ describe("App learning track", () => {
       "The track is finished",
     );
     const link = requireElement(".verdict a", elements.feedback);
-    expect(link.getAttribute("href")).toBe("#challenge=1");
+    expect(link.getAttribute("href")).toBe("#level=1");
     expect(link.textContent.trim()).toBe("Go to level 1");
   });
 
@@ -1400,7 +1398,7 @@ describe("App learning track", () => {
 
     expect(requireElement(".verdict h3", elements.feedback).textContent).toBe("Получилось!");
     const link = requireElement(".verdict a", elements.feedback);
-    expect(link.getAttribute("href")).toBe(`#challenge=${taskAt(1).id}`);
+    expect(link.getAttribute("href")).toBe(`#level=${taskAt(1).id}`);
     expect(link.textContent.trim()).toBe("Следующее учебное задание");
     expect(app.tutorialProgress().cleared).toBe(1);
   });
@@ -1544,7 +1542,7 @@ describe("App learning track", () => {
       expect(elements.tutorial.children).toHaveLength(0);
 
       app.startTutorial(2);
-      app.handleRoute(...routeFor("#challenge=sandbox,floors=20"));
+      app.handleRoute(...routeFor("#level=sandbox,floors=20"));
       expect(elements.tutorial.children).toHaveLength(0);
     });
 
@@ -1746,13 +1744,13 @@ describe("App seed", () => {
 
   it("builds the world from the seed the url pins", () => {
     const { app } = setUp();
-    app.handleRoute(...routeFor("#challenge=1,seed=issue-61"));
+    app.handleRoute(...routeFor("#level=1,seed=issue-61"));
     expect(app.world?.seed).toBe("issue-61");
   });
 
   it("draws a seed of its own when the url pins none, and records it", () => {
     const { app, storage } = setUp();
-    app.handleRoute(...routeFor("#challenge=1"));
+    app.handleRoute(...routeFor("#level=1"));
     expect(typeof app.world?.seed).toBe("number");
     // Recorded in two places, and this is the second: the console line names it
     // for a player who wants it back, and storage keeps it for the next run
@@ -1776,9 +1774,9 @@ describe("App seed", () => {
     // spawn accumulator crosses its threshold at frame boundaries -- so the two
     // are compared as far as they both go.
     const first = setUp().app;
-    first.handleRoute(...routeFor("#challenge=sandbox,floors=8,spawnrate=2,seed=issue-61"));
+    first.handleRoute(...routeFor("#level=sandbox,floors=8,spawnrate=2,seed=issue-61"));
     const second = setUp().app;
-    second.handleRoute(...routeFor("#challenge=sandbox,floors=8,spawnrate=2,seed=issue-61"));
+    second.handleRoute(...routeFor("#level=sandbox,floors=8,spawnrate=2,seed=issue-61"));
 
     const slow = passengerStream(first, 10, 1.0);
     const fast = passengerStream(second, 10, 0.25);
@@ -1790,9 +1788,9 @@ describe("App seed", () => {
 
   it("gives two unseeded runs different passengers", () => {
     const first = setUp().app;
-    first.handleRoute(...routeFor("#challenge=sandbox,floors=8,spawnrate=2"));
+    first.handleRoute(...routeFor("#level=sandbox,floors=8,spawnrate=2"));
     const second = setUp().app;
-    second.handleRoute(...routeFor("#challenge=sandbox,floors=8,spawnrate=2"));
+    second.handleRoute(...routeFor("#level=sandbox,floors=8,spawnrate=2"));
 
     expect(first.world?.seed).not.toBe(second.world?.seed);
     expect(passengerStream(second, 10)).not.toEqual(passengerStream(first, 10));
@@ -1803,7 +1801,7 @@ describe("App seed", () => {
     // Restart button and Ctrl-Enter both have to give back the run they were
     // comparing programs on.
     const { app, editor, elements } = setUp();
-    app.handleRoute(...routeFor("#challenge=3,seed=issue-61"));
+    app.handleRoute(...routeFor("#level=3,seed=issue-61"));
 
     app.world?.trigger("stats_changed");
     requireElement(".startstop", elements.controls).click();
@@ -1823,7 +1821,7 @@ describe("App seed", () => {
     // full of the same people, twice in a row. See `handleRoute`'s own comment
     // for the whole of the reversal.
     const { app, elements } = setUp();
-    app.handleRoute(...routeFor("#challenge=3"));
+    app.handleRoute(...routeFor("#level=3"));
     const first = String(app.world?.seed);
 
     app.world?.trigger("stats_changed");
@@ -1843,7 +1841,7 @@ describe("App seed", () => {
     storage.setItem(SEED_STORAGE_KEY, "issue-61");
     const { app } = setUp(INERT_CODE, storage);
 
-    app.handleRoute(...routeFor("#challenge=1"));
+    app.handleRoute(...routeFor("#level=1"));
 
     expect(app.world?.seed).toBe("issue-61");
   });
@@ -1854,9 +1852,9 @@ describe("App seed", () => {
     // played. The player's *choice of stream* is not that claim, and it comes
     // along.
     const { app } = setUp();
-    app.handleRoute(...routeFor("#challenge=1,seed=issue-61"));
+    app.handleRoute(...routeFor("#level=1,seed=issue-61"));
 
-    app.handleRoute(...routeFor("#challenge=2"));
+    app.handleRoute(...routeFor("#level=2"));
 
     expect(app.world?.seed).toBe("issue-61");
   });
@@ -1869,7 +1867,7 @@ describe("App seed", () => {
     storage.setItem(SEED_STORAGE_KEY, "rush hour");
     const { app } = setUp(INERT_CODE, storage);
 
-    app.handleRoute(...routeFor("#challenge=1"));
+    app.handleRoute(...routeFor("#level=1"));
 
     expect(app.world?.seed).not.toBe("rush hour");
     expect(typeof app.world?.seed).toBe("number");
@@ -1887,15 +1885,15 @@ describe("App seed", () => {
     vi.spyOn(storage, "setItem").mockImplementation(refuse);
     vi.spyOn(storage, "getItem").mockImplementation(refuse);
 
-    app.handleRoute(...routeFor("#challenge=1,seed=issue-61"));
+    app.handleRoute(...routeFor("#level=1,seed=issue-61"));
 
     expect(app.world?.seed).toBe("issue-61");
   });
 
   it("keeps the pinned seed when another challenge is started", () => {
     const { app } = setUp();
-    app.handleRoute(...routeFor("#challenge=1,seed=issue-61"));
-    app.handleRoute(...routeFor("#challenge=2,seed=issue-61"));
+    app.handleRoute(...routeFor("#level=1,seed=issue-61"));
+    app.handleRoute(...routeFor("#level=2,seed=issue-61"));
     expect(app.world?.seed).toBe("issue-61");
   });
 
@@ -1906,29 +1904,29 @@ describe("App seed", () => {
     // is to ask for one -- the field or the dice -- rather than to arrive
     // somewhere that asks for nothing.
     const { app } = setUp();
-    app.handleRoute(...routeFor("#challenge=1,seed=issue-61"));
-    app.handleRoute(...routeFor("#challenge=1"));
+    app.handleRoute(...routeFor("#level=1,seed=issue-61"));
+    app.handleRoute(...routeFor("#level=1"));
     expect(app.world?.seed).toBe("issue-61");
   });
 
   it("offers the seed of the run, keeping the rest of the url", () => {
     const { app } = setUp();
-    app.handleRoute(...routeFor("#challenge=2,timescale=8"));
+    app.handleRoute(...routeFor("#level=2,timescale=8"));
     const seed = String(app.world?.seed);
 
     expect(app.currentSeedLink?.seed).toBe(seed);
-    expect(app.currentSeedLink?.url).toBe(`#challenge=2,timescale=8,seed=${seed}`);
+    expect(app.currentSeedLink?.url).toBe(`#level=2,timescale=8,seed=${seed}`);
   });
 
   it("replaces the seed in the url rather than adding a second one", () => {
     const { app } = setUp();
-    app.handleRoute(...routeFor("#challenge=2,seed=issue-61"));
+    app.handleRoute(...routeFor("#level=2,seed=issue-61"));
 
     // The bar does not offer to pin a run the URL already pins, so what carries
     // the address of a pinned run is the line printed as it starts -- and it has
     // to name the seed once, not twice.
     const printed = String(vi.mocked(console.log).mock.calls[0]?.[0]);
-    expect(printed).toContain("#challenge=2,seed=issue-61");
+    expect(printed).toContain("#level=2,seed=issue-61");
     expect(printed.match(/seed=/g)).toHaveLength(1);
   });
 
@@ -1940,22 +1938,22 @@ describe("App seed", () => {
     // the seed line's "new draw", below.
     const { app, elements, storage } = setUp();
     unlockChallenge2(storage);
-    app.handleRoute(...routeFor("#challenge=1,timescale=8,seed=issue-61"));
+    app.handleRoute(...routeFor("#level=1,timescale=8,seed=issue-61"));
 
     expect(
       requireElement('[aria-label="Level 2"]', elements.levelSwitcher).getAttribute("href"),
-    ).toBe("#challenge=2,timescale=8");
+    ).toBe("#level=2,timescale=8");
     expect(
       requireElement('[aria-label="Level 1"]', elements.levelSwitcher).getAttribute("href"),
-    ).toBe("#challenge=1,timescale=8");
+    ).toBe("#level=1,timescale=8");
   });
 
   it("offers the seed of a sandbox run as well, building and all", () => {
     const { app } = setUp();
-    app.handleRoute(...routeFor("#challenge=sandbox,floors=20"));
+    app.handleRoute(...routeFor("#level=sandbox,floors=20"));
     const seed = String(app.world?.seed);
 
-    expect(app.currentSeedLink?.url).toBe(`#challenge=sandbox,floors=20,seed=${seed}`);
+    expect(app.currentSeedLink?.url).toBe(`#level=sandbox,floors=20,seed=${seed}`);
   });
 
   it("gives the seed link an address even when the url is empty", () => {
@@ -1967,7 +1965,7 @@ describe("App seed", () => {
     app.handleRoute(...routeFor(""));
     const seed = String(app.world?.seed);
 
-    expect(app.currentSeedLink?.url).toBe(`#challenge=1,seed=${seed}`);
+    expect(app.currentSeedLink?.url).toBe(`#level=1,seed=${seed}`);
   });
 
   it("prints the seed and a whole url at every start", () => {
@@ -1975,11 +1973,11 @@ describe("App seed", () => {
     // until it has already gone wrong, and by then this line is the only record
     // of what it was.
     const { app } = setUp();
-    app.handleRoute(...routeFor("#challenge=1,seed=issue-61"));
+    app.handleRoute(...routeFor("#level=1,seed=issue-61"));
 
     expect(console.log).toHaveBeenCalledWith(
       `Seed issue-61 — the exact same run again, whatever the frame rate: ` +
-        `${window.location.origin}/#challenge=1,seed=issue-61`,
+        `${window.location.origin}/#level=1,seed=issue-61`,
     );
   });
 
@@ -1992,11 +1990,11 @@ describe("App seed", () => {
     // gap as an English sentence anywhere else on the page.
     setLocale("ru");
     const { app } = setUp();
-    app.handleRoute(...routeFor("#challenge=1,seed=issue-61"));
+    app.handleRoute(...routeFor("#level=1,seed=issue-61"));
 
     expect(console.log).toHaveBeenCalledWith(
       `Сид issue-61 — тот же самый прогон один в один, независимо от частоты кадров: ` +
-        `${window.location.origin}/#challenge=1,seed=issue-61`,
+        `${window.location.origin}/#level=1,seed=issue-61`,
     );
   });
 
@@ -2009,7 +2007,7 @@ describe("App seed", () => {
     // fitness suite, the tests) alike repeat a run step for step, played the
     // same way.
     const { app } = setUp();
-    app.handleRoute(...routeFor("#challenge=1,seed=issue-61"));
+    app.handleRoute(...routeFor("#level=1,seed=issue-61"));
 
     const printed = vi.mocked(console.log).mock.calls.map(([message]) => String(message));
     expect(printed).toHaveLength(1);
@@ -2019,7 +2017,7 @@ describe("App seed", () => {
 
   it("prints a fresh line for every run, including a restart", () => {
     const { app, elements } = setUp();
-    app.handleRoute(...routeFor("#challenge=3"));
+    app.handleRoute(...routeFor("#level=3"));
     vi.mocked(console.log).mockClear();
 
     app.world?.trigger("stats_changed");
@@ -2036,13 +2034,13 @@ describe("App seed", () => {
     // A fresh draw is a decision the panel makes for itself now, so what is
     // left here is the one thing an address is for.
     const { app } = setUp();
-    app.handleRoute(...routeFor("#challenge=2,timescale=8"));
+    app.handleRoute(...routeFor("#level=2,timescale=8"));
     const drawn = String(app.world?.seed);
-    expect(app.currentSeedLink?.url).toBe(`#challenge=2,timescale=8,seed=${drawn}`);
+    expect(app.currentSeedLink?.url).toBe(`#level=2,timescale=8,seed=${drawn}`);
 
-    app.handleRoute(...routeFor("#challenge=2,timescale=8,seed=issue-61"));
+    app.handleRoute(...routeFor("#level=2,timescale=8,seed=issue-61"));
 
-    expect(app.currentSeedLink?.url).toBe("#challenge=2,timescale=8,seed=issue-61");
+    expect(app.currentSeedLink?.url).toBe("#level=2,timescale=8,seed=issue-61");
   });
 
   it("keeps the sandbox building in the seed's own address", () => {
@@ -2050,9 +2048,9 @@ describe("App seed", () => {
     // sandbox, so a link that dropped the building would land somewhere else
     // entirely.
     const { app } = setUp();
-    app.handleRoute(...routeFor("#challenge=sandbox,floors=20,seed=issue-61"));
+    app.handleRoute(...routeFor("#level=sandbox,floors=20,seed=issue-61"));
 
-    expect(app.currentSeedLink?.url).toBe("#challenge=sandbox,floors=20,seed=issue-61");
+    expect(app.currentSeedLink?.url).toBe("#level=sandbox,floors=20,seed=issue-61");
   });
 
   it("treats a seed the router refused as no seed at all", () => {
@@ -2062,11 +2060,11 @@ describe("App seed", () => {
     // fails SEED_PATTERN, so the router draws a fresh seed, and the run offers
     // that one instead.
     const { app } = setUp();
-    app.handleRoute(...routeFor("#challenge=1,seed=rush%20hour"));
+    app.handleRoute(...routeFor("#level=1,seed=rush%20hour"));
     const seed = String(app.world?.seed);
 
     expect(seed).not.toContain("rush");
-    expect(app.currentSeedLink?.url).toBe(`#challenge=1,seed=${seed}`);
+    expect(app.currentSeedLink?.url).toBe(`#level=1,seed=${seed}`);
   });
 
   describe("playSeed", () => {
@@ -2081,20 +2079,20 @@ describe("App seed", () => {
       // chose is the run the address bar says they are playing -- which is what
       // makes a chosen run shareable at the moment it is chosen.
       const { app } = setUp();
-      app.handleRoute(...routeFor("#challenge=2,timescale=8"));
+      app.handleRoute(...routeFor("#level=2,timescale=8"));
 
       app.playSeed("hand-picked");
 
-      expect(window.location.hash).toBe("#challenge=2,timescale=8,seed=hand-picked");
+      expect(window.location.hash).toBe("#level=2,timescale=8,seed=hand-picked");
     });
 
     it("keeps the sandbox's building when a seed is chosen inside it", () => {
       const { app } = setUp();
-      app.handleRoute(...routeFor("#challenge=sandbox,floors=20"));
+      app.handleRoute(...routeFor("#level=sandbox,floors=20"));
 
       app.playSeed("hand-picked");
 
-      expect(window.location.hash).toBe("#challenge=sandbox,floors=20,seed=hand-picked");
+      expect(window.location.hash).toBe("#level=sandbox,floors=20,seed=hand-picked");
     });
   });
 
@@ -2106,15 +2104,15 @@ describe("App seed", () => {
     const seen: (SeedLinkData | null)[] = [];
     const { app } = setUp(INERT_CODE, new MemoryStorage(), (seed) => seen.push(seed));
 
-    app.handleRoute(...routeFor("#challenge=1,seed=issue-61"));
+    app.handleRoute(...routeFor("#level=1,seed=issue-61"));
     expect(seen.at(-1)?.seed).toBe("issue-61");
 
     // A second run on a seed of its own, because a second run on the *same*
-    // seed -- which is what `#challenge=2` alone now plays -- would prove only
+    // seed -- which is what `#level=2` alone now plays -- would prove only
     // that nothing had changed.
-    app.handleRoute(...routeFor("#challenge=2,seed=issue-62"));
+    app.handleRoute(...routeFor("#level=2,seed=issue-62"));
     expect(seen.at(-1)?.seed).toBe("issue-62");
-    expect(seen.at(-1)?.url).toBe("#challenge=2,seed=issue-62");
+    expect(seen.at(-1)?.url).toBe("#level=2,seed=issue-62");
   });
 
   it("tells that caller again on a language change, even when the seed itself did not change", () => {
@@ -2123,7 +2121,7 @@ describe("App seed", () => {
     // bar would be without `relocalise`'s own call to `#drawChallengeBar`.
     const seen: (SeedLinkData | null)[] = [];
     const { app } = setUp(INERT_CODE, new MemoryStorage(), (seed) => seen.push(seed));
-    app.handleRoute(...routeFor("#challenge=1,seed=issue-61"));
+    app.handleRoute(...routeFor("#level=1,seed=issue-61"));
     const callsBeforeRelocalise = seen.length;
 
     setLocale("ru");
@@ -2142,14 +2140,14 @@ describe("App focus", () => {
     // the next challenge is dropped at the top of the page instead of arriving
     // at it.
     const { app, elements } = setUp();
-    app.handleRoute(...routeFor("#challenge=2"));
+    app.handleRoute(...routeFor("#level=2"));
     app.world?.trigger("stats_changed");
     const link = requireElement(".verdict a", elements.feedback);
     link.focus();
     expect(document.activeElement).toBe(link);
 
     // What the router does once the link's hash navigation arrives.
-    app.handleRoute(...routeFor("#challenge=3"));
+    app.handleRoute(...routeFor("#level=3"));
 
     const startStop = requireElement(".startstop", elements.controls);
     expect(document.activeElement).toBe(startStop);
@@ -2164,10 +2162,10 @@ describe("App focus", () => {
     // the current challenge.
     const { app, elements, storage } = setUp();
     unlockChallenge2(storage);
-    app.handleRoute(...routeFor("#challenge=1"));
+    app.handleRoute(...routeFor("#level=1"));
     requireElement('[aria-label="Level 2"]', elements.levelSwitcher).focus();
 
-    app.handleRoute(...routeFor("#challenge=2"));
+    app.handleRoute(...routeFor("#level=2"));
 
     const entry = requireElement('[aria-label="Level 2"]', elements.levelSwitcher);
     expect(document.activeElement).toBe(entry);
@@ -2394,15 +2392,15 @@ function routeFor(hash: string): Parameters<App["handleRoute"]> {
 describe("App.handleRoute", () => {
   it("starts the challenge the url names", () => {
     const { app } = setUp();
-    app.handleRoute(...routeFor("#challenge=3"));
+    app.handleRoute(...routeFor("#level=3"));
     expect(app.currentChallengeIndex).toBe(2);
   });
 
   it("does not blank the page when the challenge is not a number", () => {
-    // #challenge=abc used to reach challenges[NaN].options and throw.
+    // #level=abc used to reach challenges[NaN].options and throw.
     const { app, elements } = setUp();
     expect(() => {
-      app.handleRoute(...routeFor("#challenge=abc"));
+      app.handleRoute(...routeFor("#level=abc"));
     }).not.toThrow();
     expect(app.currentChallengeIndex).toBe(0);
     expect(goalDescription(elements)).toBe("Challenge one");
@@ -2421,7 +2419,7 @@ describe("App.handleRoute", () => {
     app.handleRoute(...routeFor("#fullscreen=true"));
     expect(document.documentElement.classList.contains("fullscreen-demo")).toBe(true);
 
-    app.handleRoute(...routeFor("#challenge=1"));
+    app.handleRoute(...routeFor("#level=1"));
     expect(document.documentElement.classList.contains("fullscreen-demo")).toBe(false);
   });
 });
@@ -2530,7 +2528,7 @@ describe("App.relocalise", () => {
     // ones the player was playing, and the simulation is still paused or still
     // running as they left it.
     const { app, worldController } = setUp();
-    app.handleRoute(...routeFor("#challenge=1,seed=issue-53"));
+    app.handleRoute(...routeFor("#level=1,seed=issue-53"));
     // Going rather than waiting on the Start button, which is the half of "as
     // they left it" that a paused world would not prove.
     worldController.setPaused(false);
@@ -2567,9 +2565,7 @@ describe("App.relocalise", () => {
     expect(requireElement(".verdict p", elements.feedback).textContent).toBe("Уровень пройден");
     // Redrawn from the remembered outcome, so the way on is offered again too,
     // and to the same challenge.
-    expect(requireElement(".verdict a", elements.feedback).getAttribute("href")).toBe(
-      "#challenge=3",
-    );
+    expect(requireElement(".verdict a", elements.feedback).getAttribute("href")).toBe("#level=3");
   });
 
   it("does not announce an outcome to a run that has not reached one", () => {

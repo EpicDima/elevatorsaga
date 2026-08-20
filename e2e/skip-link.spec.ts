@@ -14,7 +14,7 @@ import { expect, test } from "@playwright/test";
 import { editor, unlockLevel } from "./game-page.ts";
 
 /** The busiest challenge: 8 elevators, 21 floors, and a call button per direction. */
-const BUSIEST = "#challenge=18";
+const BUSIEST = "#level=18";
 
 /** Which level {@link BUSIEST} names, for the browser that has to have earned it. */
 const BUSIEST_NUMBER = 18;
@@ -37,7 +37,7 @@ test("reaches the editor in one tab stop, from the busiest challenge", async ({ 
   await expect(editor(page)).toBeFocused();
 
   // The hash belongs to the router, not to the fragment: following the link as
-  // a link would drop `challenge=18` and restart the player on the first one.
+  // a link would drop `level=18` and restart the player on the first one.
   expect(new URL(page.url()).hash).toBe(BUSIEST);
 });
 

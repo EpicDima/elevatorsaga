@@ -40,7 +40,7 @@ const LOCALE_STORAGE_KEY = "elevatorLocale";
  * simulated clock. Started by pressing Start, which is the only way in now
  * that `#autostart` has been retired.
  */
-const RUNNING_GAME = "/#challenge=4,timescale=8";
+const RUNNING_GAME = "/#level=4,timescale=8";
 
 /** The level both of those addresses name, which a browser has to have earned. */
 const RUNNING_GAME_LEVEL = 4;
@@ -133,7 +133,7 @@ test("remembers the language for the next visit, and only when it was chosen", a
   // Start-up writes nothing: a language found in the browser's own preferences
   // or in somebody else's link is not a choice made here. This is.
   await unlockLevel(page, RUNNING_GAME_LEVEL);
-  await page.goto("/#challenge=4");
+  await page.goto("/#level=4");
   expect(await page.evaluate((key) => localStorage.getItem(key), LOCALE_STORAGE_KEY)).toBeNull();
 
   await (await languagePicker(page)).selectOption("ru");
@@ -156,7 +156,7 @@ test("is a keyboard-operable control inside the settings popover", async ({ page
   // and forcing the popover open would answer it for the test rather than for
   // the page. The helper's own forcing afterwards is then a no-op.
   await unlockLevel(page, RUNNING_GAME_LEVEL);
-  await page.goto("/#challenge=4");
+  await page.goto("/#level=4");
 
   await page.getByRole("button", { name: "Settings" }).click();
   const picker = await languagePicker(page);

@@ -15,13 +15,13 @@ function fixtureChallenges(count: number): readonly Challenge[] {
 function stubHref(target: LevelLinkTarget): string {
   switch (target.kind) {
     case "challenge": {
-      return `#challenge=${String(target.number)}`;
+      return `#level=${String(target.number)}`;
     }
     case "tutorial": {
-      return `#challenge=${target.taskId}`;
+      return `#level=${target.taskId}`;
     }
     case "sandbox": {
-      return "#challenge=sandbox";
+      return "#level=sandbox";
     }
   }
 }
@@ -57,7 +57,7 @@ describe("buildLevelMenu", () => {
       kind: "tutorial",
       index: 0,
       number: 1,
-      href: `#challenge=${firstTask?.id ?? ""}`,
+      href: `#level=${firstTask?.id ?? ""}`,
     });
   });
 
@@ -88,7 +88,7 @@ describe("buildLevelMenu", () => {
     expect(tiles.map((tile) => (tile.kind === "challenge" ? tile.number : null))).toEqual([
       1, 2, 3, 4,
     ]);
-    expect(tiles[0]?.href).toBe("#challenge=1");
+    expect(tiles[0]?.href).toBe("#level=1");
   });
 
   it("locks a challenge tile until the one before it has any tier on record", () => {
@@ -138,7 +138,7 @@ describe("buildLevelMenu", () => {
     );
 
     expect(sandboxBlock?.tiles).toEqual([
-      { kind: "sandbox", current: false, href: "#challenge=sandbox" },
+      { kind: "sandbox", current: false, href: "#level=sandbox" },
     ]);
   });
 
