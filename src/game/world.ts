@@ -27,13 +27,28 @@
  *
  * The audit, complete as of this file, in the order the draws were found:
  *
- * - **Spawning**, {@link spawnUserRandomly} from {@link World.update}: five to
- *   eight draws per passenger, depending on which branches the draws themselves
- *   take. Fires only when the spawn accumulator crosses `1 / spawnRate`, and
- *   that accumulator is a sum of `dt` and nothing else, so no elevator and no
- *   player program can add, drop or reorder a spawn. This is the sequence the
- *   seed's promise is about, and it keeps the world's own stream — the point of
- *   the exercise is to leave it alone.
+ * - **Spawning**, {@link spawnUserRandomly} from {@link World.update}: the
+ *   passenger themselves and their spawn offset, then the trip. The first part
+ *   is three draws or four — a passenger drawn as a child never has a gender
+ *   drawn for them — and the trip's cost depends on the building's
+ *   {@link TrafficProfile}. Under the default `"mixed"` the trip is two draws to
+ *   four, depending on which branches the draws themselves take, for five to
+ *   eight in all: the count every seed measured before the profile existed was
+ *   measured with, and still is. The peaks spend a flat count instead, having no
+ *   branch to take — one draw for `"up-peak"` and `"down-peak"`, two for
+ *   `"lunch"`, so four to six in all. Fires only when the spawn
+ *   accumulator crosses `1 / spawnRate`, and that accumulator is a sum of `dt`
+ *   and nothing else, so no elevator and no player program can add, drop or
+ *   reorder a spawn. This is the sequence the seed's promise is about, and it
+ *   keeps the world's own stream — the point of the exercise is to leave it
+ *   alone.
+ *
+ *   A profile is fixed when the world is built and cannot change while it runs,
+ *   which is what keeps "how many draws does a passenger cost here" answerable
+ *   at all. Two worlds on one seed under different profiles are two different
+ *   buildings and were never meant to match; a `"mixed"` world matches itself
+ *   across the change that introduced the option, and that is the promise that
+ *   was kept.
  * - **Button repressing**, `World.handleButtonRepressing`: one draw per emitted
  *   floor-button press. A passenger a full or wrongly signposted car turns away
  *   presses the button again, which is a moment the elevators decide. See
@@ -88,6 +103,26 @@ import {
 } from "./random.ts";
 import { User } from "./user.ts";
 
+/**
+ * Which way a building's passengers are mostly travelling.
+ *
+ * A real building does not draw the same crowd all day, and the difference is
+ * the whole reason lift engineers talk about traffic patterns at all: the
+ * strategy that answers a morning rush — park the cars low, because everyone
+ * arriving needs picking up from one floor — is the exact opposite of the one
+ * that answers an evening one. A dispatcher tuned for `"mixed"` is tuned for
+ * neither, which is what makes these worth playing on.
+ *
+ * The peaks are pure rather than weighted: at `"up-peak"` *nobody* travels
+ * down, and at `"down-peak"` nobody travels up. Real up-peak traffic is more
+ * like 85% incoming, and the missing 15% was left out on purpose. It would make
+ * the pattern a matter of noticing a bias over many runs rather than something
+ * a player sees in the first ten seconds, and a level that teaches a pattern has
+ * to show it outright. Levels built on the pure form can still be lost — the
+ * cars are what is scarce, not the variety.
+ */
+export type TrafficProfile = "mixed" | "up-peak" | "down-peak" | "lunch";
+
 /** Options a level may set on the world it runs in. */
 export interface WorldOptions {
   /** Height of one floor in world units. */
@@ -100,6 +135,12 @@ export interface WorldOptions {
   spawnRate?: number;
   /** Per-elevator capacities, cycled if shorter than the elevator count. */
   elevatorCapacities?: number[];
+  /**
+   * Which way this building's passengers mostly travel. Defaults to `"mixed"`,
+   * which is what every level written before this option existed draws, down to
+   * the individual draw.
+   */
+  trafficProfile?: TrafficProfile;
 }
 
 /** Events emitted by {@link World}. */
@@ -120,7 +161,8 @@ const DEFAULT_OPTIONS = {
   floorCount: 4,
   elevatorCount: 2,
   spawnRate: 0.5,
-} as const;
+  trafficProfile: "mixed",
+} as const satisfies WorldOptions;
 
 /** Default elevator capacity list, used when a level sets none. */
 const DEFAULT_ELEVATOR_CAPACITIES: readonly number[] = [4];
@@ -326,36 +368,38 @@ export function createRandomUser(random: RandomSource, walkOffRandom: RandomSour
   return user;
 }
 
+/** Where a spawned passenger starts and where they are heading. */
+interface Trip {
+  /** The floor they appear on. */
+  readonly currentFloor: number;
+  /** The floor they want. */
+  readonly destinationFloor: number;
+}
+
 /**
- * Creates a passenger and places them on a random floor with a random trip.
+ * Draws the trip a `"mixed"` building's passenger takes.
  *
  * Half of all passengers start in the lobby and travel up; the rest usually
  * head back down to the lobby.
  *
- * The draws happen in the order `legacy-1.x:world.js:46-55` made them — spawn
- * offset, "start in the lobby?", origin floor, then the destination — and the
- * short-circuit in the origin line means a passenger who starts in the lobby
- * costs one draw fewer than one who does not. That is load-bearing for replay,
- * so it stays exactly as it is.
+ * The draws happen in the order `legacy-1.x:world.js:46-55` made them — "start
+ * in the lobby?", origin floor, then the destination — and the short-circuit in
+ * the origin line means a passenger who starts in the lobby costs one draw fewer
+ * than one who does not. That is load-bearing for replay, so it stays exactly as
+ * it is.
+ *
+ * These lines were lifted out of {@link spawnUserRandomly} character for
+ * character when {@link TrafficProfile} arrived, and that is the only reason
+ * every seed played before it still deals the same building. Any tidying here —
+ * folding the `if` into an expression, hoisting a bound, sharing a line with
+ * {@link drawPeakTrip} — reorders or removes a draw, and the golden counts in
+ * `tutorial-sweep.test.ts` are what would notice.
  *
  * @param floorCount - Number of floors in the building.
- * @param _floorHeight - Unused; part of the legacy signature.
- * @param floors - The building's floors, indexed by floor number.
- * @param random - Stream to draw from; the world hands over its own.
- * @param walkOffRandom - Stream the passenger will draw their walk-off duration
- * from; passed straight to {@link createRandomUser}, which explains why it is
- * neither `random` nor optional.
- * @returns The new passenger, already waiting for an elevator.
+ * @param random - Stream to draw from.
+ * @returns Where the passenger starts and where they are going.
  */
-export function spawnUserRandomly(
-  floorCount: number,
-  _floorHeight: number,
-  floors: readonly Floor[],
-  random: RandomSource,
-  walkOffRandom: RandomSource,
-): User {
-  const user = createRandomUser(random, walkOffRandom);
-  user.moveTo(105 + randomInt(0, 40, random), 0);
+function drawMixedTrip(floorCount: number, random: RandomSource): Trip {
   const currentFloor = randomInt(0, 1, random) === 0 ? 0 : randomInt(0, floorCount - 1, random);
   let destinationFloor: number;
   if (currentFloor === 0) {
@@ -369,6 +413,95 @@ export function spawnUserRandomly(
       destinationFloor = 0;
     }
   }
+  return { currentFloor, destinationFloor };
+}
+
+/**
+ * Draws the trip a passenger takes in a building under one of the peaks.
+ *
+ * Deliberately shares no line with {@link drawMixedTrip}, though two of the
+ * three cases below plainly resemble parts of it. A helper spanning both — the
+ * tempting `const goingUp = profile === "up-peak" || randomInt(…)` — is exactly
+ * how the mixed draw order would come to depend on a profile that did not exist
+ * when the seeds were measured. The duplication is the guarantee; the file
+ * header's audit is what it is guaranteeing.
+ *
+ * Each case is written to draw a fixed number of times, so a profile's stream
+ * stays predictable in the way `"mixed"`'s is not:
+ *
+ * - `"up-peak"`: one draw. Everyone arrives at the lobby and rides up, so there
+ *   is no origin to draw.
+ * - `"down-peak"`: one draw. Everyone leaves from somewhere and rides down to
+ *   the lobby, so there is no destination to draw.
+ * - `"lunch"`: two draws, direction and then the floor that is not the lobby.
+ *   Both directions at once, which is what makes it the hardest of the three to
+ *   dispatch: a car committed to one direction is wrong for half the building,
+ *   and unlike `"mixed"` there is no interfloor traffic to soften it.
+ *
+ * @param profile - Which peak the building is under. Never `"mixed"`; that is
+ * {@link drawMixedTrip}'s, and the type says so.
+ * @param floorCount - Number of floors in the building.
+ * @param random - Stream to draw from.
+ * @returns Where the passenger starts and where they are going.
+ */
+function drawPeakTrip(
+  profile: Exclude<TrafficProfile, "mixed">,
+  floorCount: number,
+  random: RandomSource,
+): Trip {
+  switch (profile) {
+    case "up-peak": {
+      return { currentFloor: 0, destinationFloor: randomInt(1, floorCount - 1, random) };
+    }
+    case "down-peak": {
+      return { currentFloor: randomInt(1, floorCount - 1, random), destinationFloor: 0 };
+    }
+    case "lunch": {
+      const goingUp = randomInt(0, 1, random) === 0;
+      const away = randomInt(1, floorCount - 1, random);
+      return goingUp
+        ? { currentFloor: 0, destinationFloor: away }
+        : { currentFloor: away, destinationFloor: 0 };
+    }
+  }
+}
+
+/**
+ * Creates a passenger and places them on a random floor with a trip drawn for
+ * the building's traffic profile.
+ *
+ * The first two draws — the passenger themselves and their spawn offset — are
+ * made before the profile is consulted and are the same for every profile.
+ * Which of the two trip functions runs is decided by comparing strings, which
+ * takes nothing from the stream, so a `"mixed"` world draws exactly what it drew
+ * before the profile existed.
+ *
+ * @param floorCount - Number of floors in the building.
+ * @param _floorHeight - Unused; part of the legacy signature.
+ * @param floors - The building's floors, indexed by floor number.
+ * @param random - Stream to draw from; the world hands over its own.
+ * @param walkOffRandom - Stream the passenger will draw their walk-off duration
+ * from; passed straight to {@link createRandomUser}, which explains why it is
+ * neither `random` nor optional.
+ * @param trafficProfile - Which way this building's passengers mostly travel.
+ * Last and defaulted so that every call written before it existed compiles
+ * unchanged and draws what it always drew.
+ * @returns The new passenger, already waiting for an elevator.
+ */
+export function spawnUserRandomly(
+  floorCount: number,
+  _floorHeight: number,
+  floors: readonly Floor[],
+  random: RandomSource,
+  walkOffRandom: RandomSource,
+  trafficProfile: TrafficProfile = DEFAULT_OPTIONS.trafficProfile,
+): User {
+  const user = createRandomUser(random, walkOffRandom);
+  user.moveTo(105 + randomInt(0, 40, random), 0);
+  const { currentFloor, destinationFloor } =
+    trafficProfile === "mixed"
+      ? drawMixedTrip(floorCount, random)
+      : drawPeakTrip(trafficProfile, floorCount, random);
   user.appearOnFloor(requireAt(floors, currentFloor, "floor"), destinationFloor);
   return user;
 }
@@ -594,6 +727,15 @@ export class World extends Observable<WorldEvents> {
    */
   readonly #spawnRate: number;
   /**
+   * Which way this building's passengers mostly travel.
+   *
+   * Fixed for the life of the world, like the rate above it: a profile that
+   * could change mid-run would mean two halves of one seed drawing different
+   * numbers of times per passenger, and the second half would stop being
+   * replayable from the seed alone.
+   */
+  readonly #trafficProfile: TrafficProfile;
+  /**
    * The spawn stream, and nothing else.
    *
    * The one sequence a seed's promise is made of: who turns up, from where,
@@ -656,6 +798,10 @@ export class World extends Observable<WorldEvents> {
     this.floorHeight = options.floorHeight ?? DEFAULT_OPTIONS.floorHeight;
     this.#floorCount = options.floorCount ?? DEFAULT_OPTIONS.floorCount;
     this.#spawnRate = resolveSpawnRate(options.spawnRate ?? DEFAULT_OPTIONS.spawnRate);
+    // Read here with the rest of them, though nothing is drawn until the first
+    // spawn: the constructor takes no draws at all, so where this line sits
+    // among its neighbours cannot move the stream.
+    this.#trafficProfile = options.trafficProfile ?? DEFAULT_OPTIONS.trafficProfile;
     const elevatorCount = options.elevatorCount ?? DEFAULT_OPTIONS.elevatorCount;
 
     const handleUserCodeError = (e: unknown): void => {
@@ -882,6 +1028,7 @@ export class World extends Observable<WorldEvents> {
           this.floors,
           this.#random,
           this.#walkOffRandom,
+          this.#trafficProfile,
         ),
       );
     }

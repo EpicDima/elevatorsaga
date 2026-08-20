@@ -370,6 +370,134 @@ describe("spawnUserRandomly", () => {
     );
     expect(fromAbove.values).toHaveLength(7);
   });
+
+  it("draws the same whether the profile is omitted or spelled out", () => {
+    // What this pins, exactly: the default is `"mixed"` and choosing between the
+    // two trip functions costs nothing from the stream. Those are the two ways
+    // adding the parameter could have moved an existing level's passengers
+    // without touching a line of the drawing itself.
+    //
+    // It deliberately does **not** prove the `"mixed"` lines were lifted into
+    // `drawMixedTrip` character for character -- it cannot, since both sides of
+    // the comparison run that same function, so any edit to it moves both
+    // equally. That property is held by the golden counts over four hundred
+    // seeds in `tutorial-sweep.test.ts`, by `tutorial-solutions.test.ts` and
+    // `level-tiers-solutions.test.ts`, and by "spends one draw fewer on a
+    // passenger who starts in the lobby" above. All five were confirmed to fail
+    // against a deliberately reordered draw; this one was not, which is why the
+    // distinction is written down rather than assumed.
+    //
+    // Two hundred passengers rather than one, because the branches inside a
+    // mixed trip cost different numbers of draws: a single spawn exercises one
+    // of them, and a wrong count shows up as a cumulative offset.
+    const floors = createFloors(6, 50, () => undefined);
+    const omitted = recordDraws(createRandomSource("profile-parity"));
+    const explicit = recordDraws(createRandomSource("profile-parity"));
+
+    for (let i = 0; i < 200; ++i) {
+      spawnUserRandomly(6, 50, floors, omitted.random, WALK_OFF_UNUSED);
+      spawnUserRandomly(6, 50, floors, explicit.random, WALK_OFF_UNUSED, "mixed");
+    }
+
+    expect(explicit.values).toEqual(omitted.values);
+    // Guards the assertion above against passing on two empty lists, which is
+    // what it would do if `recordDraws` ever stopped recording.
+    expect(omitted.values.length).toBeGreaterThanOrEqual(200 * 5);
+  });
+
+  it("sends everyone up out of the lobby at the morning peak", () => {
+    const floorCount = 6;
+    const floors = createFloors(floorCount, 50, () => undefined);
+    const random = createRandomSource("up-peak");
+
+    for (let i = 0; i < 300; ++i) {
+      const user = spawnUserRandomly(floorCount, 50, floors, random, WALK_OFF_UNUSED, "up-peak");
+      expect(user.currentFloor).toBe(0);
+      expect(user.destinationFloor).toBeGreaterThan(0);
+      expect(user.destinationFloor).toBeLessThan(floorCount);
+    }
+
+    // The invariant stated as a player would see it: in three hundred spawns
+    // not one down button lit anywhere in the building, the lobby's included.
+    for (const floor of floors) {
+      expect(floor.buttonStates.down).toBe("");
+    }
+  });
+
+  it("brings everyone down to the lobby at the evening peak", () => {
+    const floorCount = 6;
+    const floors = createFloors(floorCount, 50, () => undefined);
+    const random = createRandomSource("down-peak");
+
+    for (let i = 0; i < 300; ++i) {
+      const user = spawnUserRandomly(floorCount, 50, floors, random, WALK_OFF_UNUSED, "down-peak");
+      expect(user.currentFloor).toBeGreaterThan(0);
+      expect(user.currentFloor).toBeLessThan(floorCount);
+      expect(user.destinationFloor).toBe(0);
+    }
+
+    for (const floor of floors) {
+      expect(floor.buttonStates.up).toBe("");
+    }
+  });
+
+  it("runs both ways at lunch, and every trip touches the lobby", () => {
+    const floorCount = 6;
+    const floors = createFloors(floorCount, 50, () => undefined);
+    const random = createRandomSource("lunch");
+    let up = 0;
+    let down = 0;
+
+    for (let i = 0; i < 300; ++i) {
+      const user = spawnUserRandomly(floorCount, 50, floors, random, WALK_OFF_UNUSED, "lunch");
+      // What makes lunch lunch, and what makes it the hardest of the three to
+      // dispatch: one end of every trip is the lobby, but which end is not
+      // settled, so a car committed to a direction is wrong for half the crowd.
+      expect(Math.min(user.currentFloor, user.destinationFloor)).toBe(0);
+      expect(Math.max(user.currentFloor, user.destinationFloor)).toBeGreaterThan(0);
+      if (user.currentFloor === 0) {
+        up += 1;
+      } else {
+        down += 1;
+      }
+    }
+
+    // Both directions actually occur; a profile that had quietly collapsed into
+    // one of the single-direction peaks would still satisfy everything above.
+    expect(up).toBeGreaterThan(0);
+    expect(down).toBeGreaterThan(0);
+  });
+
+  it("spends a flat number of draws under a peak, whichever passenger it is", () => {
+    // A mixed trip costs two draws to four depending on the branches it takes,
+    // which is what the file header's audit calls five to eight in all. A peak
+    // has no branch, so the only thing that still varies is whether the
+    // passenger was drawn as a child -- which skips the gender roll. Pinned
+    // here for the same reason the mixed counts are: how many draws a spawn
+    // costs decides what every later spawn of the same run sees.
+    const floors = createFloors(4, 50, () => undefined);
+    // Weight, child roll (not a child), gender roll, spawn offset, then the
+    // trip: one draw for the two single-direction peaks, two for lunch.
+    const adult = [0, 0.5, 0.5, 0];
+
+    const upPeak = recordDraws(scriptedRandom([...adult, 0.5]));
+    spawnUserRandomly(4, 50, floors, upPeak.random, WALK_OFF_UNUSED, "up-peak");
+    expect(upPeak.values).toHaveLength(5);
+
+    const downPeak = recordDraws(scriptedRandom([...adult, 0.5]));
+    spawnUserRandomly(4, 50, floors, downPeak.random, WALK_OFF_UNUSED, "down-peak");
+    expect(downPeak.values).toHaveLength(5);
+
+    const lunch = recordDraws(scriptedRandom([...adult, 0.5, 0.5]));
+    spawnUserRandomly(4, 50, floors, lunch.random, WALK_OFF_UNUSED, "lunch");
+    expect(lunch.values).toHaveLength(6);
+
+    // The child branch is the one thing a peak still varies by, and it takes
+    // one draw fewer -- the gender roll never happens.
+    const child = recordDraws(scriptedRandom([0, 0 /* child */, 0, 0.5]));
+    spawnUserRandomly(4, 50, floors, child.random, WALK_OFF_UNUSED, "up-peak");
+    expect(child.values).toHaveLength(4);
+  });
 });
 
 describe("World", () => {
