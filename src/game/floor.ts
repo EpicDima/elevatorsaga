@@ -32,6 +32,19 @@ export interface FloorElevator {
   readonly goingUpIndicator: boolean;
   /** Whether the elevator advertises that it is going down. */
   readonly goingDownIndicator: boolean;
+  /**
+   * Whether the elevator serves a floor at all.
+   *
+   * Required rather than optional, though every car built before zoning
+   * existed answers `true` to everything. This interface is the contract — the
+   * specs build `FloorElevator` literals directly rather than real elevators —
+   * so an optional method would be a rule that only the real class states, and
+   * a branch nothing here can reach.
+   *
+   * @param floorNum - Floor to ask about.
+   * @returns `true` when the elevator serves that floor.
+   */
+  serves(floorNum: number): boolean;
 }
 
 /** Events emitted by {@link Floor}. */
@@ -132,9 +145,18 @@ export class Floor extends Observable<FloorEvents> {
    * Only the buttons matching the elevator's lit indicators are cleared, and a
    * separate `buttonstate_change` is emitted for each, as in the original.
    *
+   * A car that does not serve this floor clears nothing, whatever its
+   * indicators say. It can still arrive here — player code may send a car
+   * anywhere, and `World.#handleButtonRepressing` sends a standing car to its
+   * own floor — and a lamp cleared by a car nobody on this floor may board is
+   * a passenger the building has forgotten about.
+   *
    * @param elevator - The elevator that just became available.
    */
   elevatorAvailable(elevator: FloorElevator): void {
+    if (!elevator.serves(this.level)) {
+      return;
+    }
     if (elevator.goingUpIndicator && this.buttonStates.up !== "") {
       this.buttonStates.up = "";
       this.#tryTrigger("buttonstate_change", this.buttonStates);

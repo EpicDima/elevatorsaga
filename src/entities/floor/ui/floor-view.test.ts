@@ -43,7 +43,11 @@ describe("createFloorView", () => {
     expect(up.classList.contains("is-lit")).toBe(true);
     expect(up.getAttribute("aria-pressed")).toBe("true");
 
-    floor.elevatorAvailable({ goingUpIndicator: true, goingDownIndicator: false });
+    floor.elevatorAvailable({
+      goingUpIndicator: true,
+      goingDownIndicator: false,
+      serves: () => true,
+    });
     expect(up.classList.contains("is-lit")).toBe(false);
     expect(up.getAttribute("aria-pressed")).toBe("false");
   });

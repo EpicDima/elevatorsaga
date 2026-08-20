@@ -292,6 +292,72 @@ describe("Elevator object", () => {
     expect(e.isSuitableForTravelBetween(2, 2)).toBe(true);
   });
 
+  describe("zones", () => {
+    /** A car serving the bottom half of a four-floor building. */
+    function zoned(servedFloors: readonly number[]): Elevator {
+      const zonedElevator = new Elevator(
+        1.5,
+        FLOOR_COUNT,
+        FLOOR_HEIGHT,
+        undefined,
+        undefined,
+        servedFloors,
+      );
+      zonedElevator.setFloorPosition(0);
+      return zonedElevator;
+    }
+
+    it("serves every floor when no zone was given", () => {
+      for (let floor = 0; floor < FLOOR_COUNT; floor++) {
+        expect(e.serves(floor)).toBe(true);
+      }
+    });
+
+    it("serves every floor when the zone is empty", () => {
+      // The second half of the one convention: an empty list at a position in
+      // `elevatorServedFloors` has to mean the same as no list at all, so that
+      // a level zoning one car of three can leave the other two alone.
+      const unzoned = zoned([]);
+      for (let floor = 0; floor < FLOOR_COUNT; floor++) {
+        expect(unzoned.serves(floor)).toBe(true);
+      }
+    });
+
+    it("serves the floors of its zone and no others", () => {
+      const lower = zoned([0, 1]);
+      expect(lower.serves(0)).toBe(true);
+      expect(lower.serves(1)).toBe(true);
+      expect(lower.serves(2)).toBe(false);
+      expect(lower.serves(3)).toBe(false);
+    });
+
+    it("refuses a trip with either end outside its zone, however the indicators are set", () => {
+      const lower = zoned([0, 1]);
+      lower.goingUpIndicator = true;
+      lower.goingDownIndicator = true;
+
+      expect(lower.isSuitableForTravelBetween(0, 1)).toBe(true);
+      expect(lower.isSuitableForTravelBetween(0, 2), "destination outside").toBe(false);
+      expect(lower.isSuitableForTravelBetween(3, 1), "origin outside").toBe(false);
+      // Even the no-op trip, which the indicators alone always allow.
+      expect(lower.isSuitableForTravelBetween(2, 2), "both ends outside").toBe(false);
+    });
+
+    it("still drives to a floor it does not serve", () => {
+      // Deliberate, and the decision most likely to be "fixed" by someone who
+      // has not read why: a zone is a rule about service, not about the shaft.
+      // `goToFloor` is the most-used call in the whole API, and one that
+      // silently stopped moving the car would be a level nobody can debug. The
+      // wasted trip is charged to `moveCount`, which is how the game already
+      // punishes a pointless journey.
+      const lower = zoned([0, 1]);
+      lower.goToFloor(3);
+      stepElevator(lower, 10.0, 0.015);
+      expect(lower.currentFloor).toBe(3);
+      expect(lower.serves(3)).toBe(false);
+    });
+  });
+
   it("reports pressed floor buttons", () => {
     e.pressFloorButton(2);
     e.pressFloorButton(3);

@@ -223,6 +223,41 @@ describe("createElevators", () => {
     expect(elevators.map((e) => e.maxUsers)).toEqual([2, 3, 2, 3, 2]);
   });
 
+  it("leaves every elevator serving every floor when no zones are given", () => {
+    const elevators = createElevators(2, 4, 50);
+    for (const elevator of elevators) {
+      expect([0, 1, 2, 3].every((floor) => elevator.serves(floor))).toBe(true);
+    }
+  });
+
+  it("cycles the zone list when it is shorter than the elevator count", () => {
+    // The same rule as the capacities, and stated here rather than assumed:
+    // two conventions for two lists on the same options object is one more
+    // than anybody can remember.
+    const elevators = createElevators(3, 4, 50, undefined, undefined, [
+      [0, 1],
+      [0, 2, 3],
+    ]);
+    expect(elevators.map((e) => [0, 1, 2, 3].filter((floor) => e.serves(floor)))).toEqual([
+      [0, 1],
+      [0, 2, 3],
+      [0, 1],
+    ]);
+  });
+
+  it("reads an empty zone as every floor", () => {
+    const elevators = createElevators(2, 4, 50, undefined, undefined, [[0, 1], []]);
+    expect(at(elevators, 0).serves(3)).toBe(false);
+    expect(at(elevators, 1).serves(3)).toBe(true);
+  });
+
+  it("leaves every elevator serving every floor when the zone list is empty", () => {
+    const elevators = createElevators(2, 4, 50, undefined, undefined, []);
+    for (const elevator of elevators) {
+      expect([0, 1, 2, 3].every((floor) => elevator.serves(floor))).toBe(true);
+    }
+  });
+
   it("gives each elevator the building's floor count and height", () => {
     const elevators = createElevators(1, 6, 40);
     const elevator = at(elevators, 0);
@@ -1477,7 +1512,11 @@ describe("World", () => {
       second.appearOnFloor(floor, 0);
       // Clear the call the way an arriving elevator would, so the press below
       // is a fresh one that really dispatches.
-      floor.elevatorAvailable({ goingUpIndicator: false, goingDownIndicator: true });
+      floor.elevatorAvailable({
+        goingUpIndicator: false,
+        goingDownIndicator: true,
+        serves: () => true,
+      });
       expect(floor.buttonStates.down).toBe("");
 
       // Typical player code: serve the direction that was called for.

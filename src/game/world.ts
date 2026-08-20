@@ -136,6 +136,16 @@ export interface WorldOptions {
   /** Per-elevator capacities, cycled if shorter than the elevator count. */
   elevatorCapacities?: number[];
   /**
+   * Per-elevator zones — the floors each car serves — cycled if shorter than
+   * the elevator count, exactly as {@link elevatorCapacities} is.
+   *
+   * Omitting the option, and an empty list at any position in it, both mean
+   * "every floor". One tested convention rather than two: a level that zones
+   * half its cars writes `[[0, 1, 2, 3], []]` and the second car serves the
+   * whole building, without a second spelling to remember.
+   */
+  elevatorServedFloors?: number[][];
+  /**
    * Which way this building's passengers mostly travel. Defaults to `"mixed"`,
    * which is what every level written before this option existed draws, down to
    * the individual draw.
@@ -292,6 +302,9 @@ export function createFloors(
  * {@link BOARDING_SLOT_STREAM}). Omitting it leaves the elevators on the
  * unseeded default, which only a caller building elevators outside a world
  * should want.
+ * @param elevatorServedFloors - Zones, cycled if shorter than the count, as the
+ * capacities are. Omitted — or empty at a position — means the car serves every
+ * floor.
  * @returns The elevators, already positioned at floor 0.
  */
 export function createElevators(
@@ -300,8 +313,15 @@ export function createElevators(
   floorHeight: number,
   elevatorCapacities?: readonly number[],
   random?: RandomSource,
+  elevatorServedFloors?: readonly (readonly number[])[],
 ): Elevator[] {
   const capacities = elevatorCapacities ?? DEFAULT_ELEVATOR_CAPACITIES;
+  // Cycled the same way the capacities are, except that there is no default
+  // list to fall back on: an absent or empty list has to reach the elevator as
+  // `undefined`, which is how it spells "every floor". Guarding here rather
+  // than indexing and hoping, because `zones[i % 0]` is `zones[NaN]`, and a
+  // building that quietly works because of that is a building nobody can read.
+  const zones = elevatorServedFloors;
   let currentX = FIRST_ELEVATOR_X;
   return Array.from({ length: elevatorCount }, (_unused, i) => {
     const elevator = new Elevator(
@@ -310,6 +330,7 @@ export function createElevators(
       floorHeight,
       capacities[i % capacities.length],
       random,
+      zones === undefined || zones.length === 0 ? undefined : zones[i % zones.length],
     );
 
     // Park on the bottom floor first, then slide into the shaft.
@@ -815,6 +836,7 @@ export class World extends Observable<WorldEvents> {
       this.floorHeight,
       options.elevatorCapacities,
       deriveRandomSource(derivedSeed, BOARDING_SLOT_STREAM),
+      options.elevatorServedFloors,
     );
     this.elevatorInterfaces = this.elevators.map(
       (e) => new ElevatorInterface(e, this.#floorCount, handleUserCodeError),

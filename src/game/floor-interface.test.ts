@@ -150,7 +150,11 @@ describe("FloorInterface", () => {
       floorInterface.off("up_button_pressed", removed);
 
       floor.pressUpButton();
-      floor.elevatorAvailable({ goingUpIndicator: true, goingDownIndicator: true });
+      floor.elevatorAvailable({
+        goingUpIndicator: true,
+        goingDownIndicator: true,
+        serves: () => true,
+      });
       floor.pressUpButton();
 
       expect(once).toHaveBeenCalledTimes(1);
@@ -239,7 +243,11 @@ describe("FloorInterface", () => {
 
       expect(floorInterface.one("up_button_pressed", handler)).toBe(floorInterface);
       floor.pressUpButton();
-      floor.elevatorAvailable({ goingUpIndicator: true, goingDownIndicator: true });
+      floor.elevatorAvailable({
+        goingUpIndicator: true,
+        goingDownIndicator: true,
+        serves: () => true,
+      });
       floor.pressUpButton();
 
       expect(handler).toHaveBeenCalledTimes(1);
@@ -306,7 +314,11 @@ describe("FloorInterface", () => {
         floor.pressUpButton();
         floorInterface.on("hall_button_pressed", hallPressed);
 
-        floor.elevatorAvailable({ goingUpIndicator: true, goingDownIndicator: true });
+        floor.elevatorAvailable({
+          goingUpIndicator: true,
+          goingDownIndicator: true,
+          serves: () => true,
+        });
 
         expect(floorInterface.buttonStates).toEqual({ up: "", down: "" });
         expect(hallPressed).not.toHaveBeenCalled();

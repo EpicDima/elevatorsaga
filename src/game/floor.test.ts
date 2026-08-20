@@ -2,9 +2,14 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { Floor, type FloorElevator, type FloorErrorHandler } from "./floor.ts";
 
-/** An elevator stand-in: a floor only reads the two indicator flags. */
+/**
+ * An elevator stand-in.
+ *
+ * `serves` answers `true` to everything, which is what an unzoned car does and
+ * what every spec below assumes; the specs that care build their own literal.
+ */
 function indicators(up: boolean, down: boolean): FloorElevator {
-  return { goingUpIndicator: up, goingDownIndicator: down };
+  return { goingUpIndicator: up, goingDownIndicator: down, serves: () => true };
 }
 
 describe("Floor", () => {
@@ -136,6 +141,40 @@ describe("Floor", () => {
 
       expect(buttonStateChange).not.toHaveBeenCalled();
       expect(floor.buttonStates).toEqual({ up: "activated", down: "activated" });
+    });
+
+    it("clears nothing when the elevator does not serve this floor", () => {
+      // The floor is number 2, and this car's zone is the two below it. Both
+      // indicators are lit, so without the service check every lamp here would
+      // go out for a car nobody standing here may board -- and a passenger
+      // whose lamp was cleared by a car that will not take them is a passenger
+      // the building has stopped looking for.
+      floor.pressUpButton();
+      floor.pressDownButton();
+      const buttonStateChange = vi.fn();
+      floor.on("buttonstate_change", buttonStateChange);
+
+      floor.elevatorAvailable({
+        goingUpIndicator: true,
+        goingDownIndicator: true,
+        serves: (floorNum) => floorNum < 2,
+      });
+
+      expect(buttonStateChange).not.toHaveBeenCalled();
+      expect(floor.buttonStates).toEqual({ up: "activated", down: "activated" });
+    });
+
+    it("clears as usual when the elevator does serve this floor", () => {
+      floor.pressUpButton();
+      floor.pressDownButton();
+
+      floor.elevatorAvailable({
+        goingUpIndicator: true,
+        goingDownIndicator: true,
+        serves: (floorNum) => floorNum >= 2,
+      });
+
+      expect(floor.buttonStates).toEqual({ up: "", down: "" });
     });
   });
 

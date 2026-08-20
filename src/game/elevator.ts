@@ -190,6 +190,21 @@ export class Elevator extends Movable<ElevatorEvents> {
   readonly #random: RandomSource;
 
   /**
+   * The floors this car is allowed to serve, or `null` when it serves them all.
+   *
+   * A set built once rather than the array it arrived as, because
+   * {@link serves} is asked on every floor of every passenger on every door
+   * opening — `World.#handleElevAvailability` walks the whole building — and a
+   * linear scan there is a cost the unzoned levels would pay for a feature they
+   * do not use.
+   *
+   * `null` rather than a set of every floor, so that the common case is a
+   * single reference comparison and an unzoned car cannot be slowed down by a
+   * building that happens to be tall.
+   */
+  readonly #servedFloors: ReadonlySet<number> | null;
+
+  /**
    * @param speedFloorsPerSec - Top speed expressed in floors per second.
    * @param floorCount - Number of floors in the world.
    * @param floorHeight - Height of one floor in world units.
@@ -199,6 +214,10 @@ export class Elevator extends Movable<ElevatorEvents> {
    * the stream it derives from its seed for exactly this, so that a replay
    * stands every passenger where they stood before; the unseeded default is
    * only for callers that build an elevator outside a world.
+   * @param servedFloors - The floors this car serves, for a zoned building.
+   * Omitted or empty means every floor, which is what every level written
+   * before zoning existed gets: one spelling of "no restriction", so that a
+   * caller never has to decide between two ways of saying nothing.
    */
   constructor(
     speedFloorsPerSec: number,
@@ -206,9 +225,12 @@ export class Elevator extends Movable<ElevatorEvents> {
     floorHeight: number,
     maxUsers?: number,
     random: RandomSource = systemRandom,
+    servedFloors?: readonly number[],
   ) {
     super();
     this.#random = random;
+    this.#servedFloors =
+      servedFloors === undefined || servedFloors.length === 0 ? null : new Set(servedFloors);
     this.ACCELERATION = floorHeight * 2.1;
     this.DECELERATION = floorHeight * 2.6;
     this.MAXSPEED = floorHeight * speedFloorsPerSec;
@@ -554,13 +576,38 @@ export class Elevator extends Movable<ElevatorEvents> {
   }
 
   /**
+   * Whether this car serves a floor at all.
+   *
+   * A rule about service, not about movement: a car can still be *driven* to a
+   * floor it does not serve — {@link goToFloor} takes any floor of the
+   * building, deliberately — and the shaft is the same shaft either way. What
+   * this decides is who may board and whose call button the car's arrival
+   * clears.
+   *
+   * @param floorNum - Floor to ask about.
+   * @returns `true` when the car serves that floor, and always `true` for a car
+   * with no zone of its own.
+   */
+  serves(floorNum: number): boolean {
+    return this.#servedFloors === null || this.#servedFloors.has(floorNum);
+  }
+
+  /**
    * Whether the indicators invite a passenger making this trip to board.
+   *
+   * A zoned car turns the trip down before the indicators are consulted:
+   * boarding a car that does not serve the destination is a ride that cannot
+   * end, and boarding one that does not serve the origin cannot begin.
    *
    * @param fromFloorNum - Floor the passenger is waiting on.
    * @param toFloorNum - Floor the passenger wants to reach.
-   * @returns `true` when the matching indicator is lit, or the trip is a no-op.
+   * @returns `true` when the car serves both ends and the matching indicator is
+   * lit, or the trip is a no-op.
    */
   isSuitableForTravelBetween(fromFloorNum: number, toFloorNum: number): boolean {
+    if (!this.serves(fromFloorNum) || !this.serves(toFloorNum)) {
+      return false;
+    }
     if (fromFloorNum > toFloorNum) {
       return this.goingDownIndicator;
     }
