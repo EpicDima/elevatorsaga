@@ -247,7 +247,7 @@ function challengeBlockCaption(elements: AppElements): string {
 
 /**
  * The level switcher's own trigger label — what replaced the challenge bar's
- * combined "Tutorial task N of M: <title>" title string. Unlike that title,
+ * combined "Tutorial level N of M: <title>" title string. Unlike that title,
  * this carries only the task's own position, not the track's length or the
  * task's own sentence; see this file's specs for where the rest went.
  *
@@ -261,7 +261,7 @@ function taskName(elements: AppElements): string {
 /**
  * The goal bar's own description text for a challenge with no requirements —
  * every challenge and the sandbox in this file's fixtures. Unlike the
- * legacy `.challengetitle`, this carries no "Challenge #N:" or "Tutorial task
+ * legacy `.challengetitle`, this carries no "Challenge #N:" or "Tutorial level
  * N of M:" prefix; see this file's own specs for where that numbering went.
  *
  * @param elements - The page shell the app was built over.
@@ -1251,7 +1251,7 @@ describe("App learning track", () => {
     // Three, because this is the track's third task -- the number is what this
     // test is about. The wording is `tileTriggerName`'s: the trigger names the
     // level and leaves "completed" and "locked" to the tile in the menu.
-    expect(taskName(elements)).toBe("Task 3");
+    expect(taskName(elements)).toBe("Lesson 3");
   });
 
   it("keeps the track's own numbering through a language change mid-run", () => {
@@ -1261,7 +1261,7 @@ describe("App learning track", () => {
     setLocale("ru");
     app.relocalise();
 
-    expect(taskName(elements)).toBe("Задание 1");
+    expect(taskName(elements)).toBe("Урок 1");
   });
 
   it("leaves every challenge reachable from a task, and marks none of them current", () => {
@@ -1285,7 +1285,7 @@ describe("App learning track", () => {
     expect(link.getAttribute("href")).toBe(`#level=${taskAt(1).id}`);
     // "Next level" is what the shared template writes into every such link,
     // and the numbered ladder is not where task 2 lives.
-    expect(link.textContent.trim()).toBe("Next task");
+    expect(link.textContent.trim()).toBe("Next tutorial level");
     // The caret the template put beside the words survives being relabelled.
     expect(link.querySelector("svg")).not.toBeNull();
   });
@@ -1307,12 +1307,13 @@ describe("App learning track", () => {
   it("says how long the track was in the words each catalogue counts it with", () => {
     // `tutorial.finish.message` is the one sentence in the game that writes the
     // length of the track out rather than counting `tutorialTasks.length`,
-    // because "Eight tasks" is what the sentence needs and "8 tasks" is not. A
+    // because "Eight tutorial levels" is what the sentence needs and "8 levels" is
+    // not. A
     // ninth task would leave both catalogues quietly wrong on the one screen a
     // player reaches once, so the number is pinned here against the words --
     // add the task, add its wording, and this passes again.
     const SPELLED_OUT: Readonly<Record<number, Readonly<Record<Locale, string>>>> = {
-      8: { en: "Eight tasks", ru: "Восемь заданий" },
+      8: { en: "Eight tutorial levels", ru: "Восемь учебных уровней" },
     };
     const words = SPELLED_OUT[tutorialTasks.length];
     expect(
@@ -1399,7 +1400,7 @@ describe("App learning track", () => {
     expect(requireElement(".verdict h3", elements.feedback).textContent).toBe("Получилось!");
     const link = requireElement(".verdict a", elements.feedback);
     expect(link.getAttribute("href")).toBe(`#level=${taskAt(1).id}`);
-    expect(link.textContent.trim()).toBe("Следующее учебное задание");
+    expect(link.textContent.trim()).toBe("Следующий учебный уровень");
     expect(app.tutorialProgress().cleared).toBe(1);
   });
 
@@ -1517,7 +1518,7 @@ describe("App learning track", () => {
       app.startTutorial(2);
 
       expect(positionLine(elements)).toBe(
-        `Learning track Task 3 of ${String(tutorialTasks.length)}`,
+        `Learning track Level 3 of ${String(tutorialTasks.length)}`,
       );
       expect(requireElement(".tutorialtitle", elements.tutorial).textContent).toBe(
         "The buttons inside the car",
@@ -1557,7 +1558,7 @@ describe("App learning track", () => {
       app.relocalise();
 
       expect(positionLine(elements)).toBe(
-        `Учебная дорожка Задание 1 из ${String(tutorialTasks.length)}`,
+        `Учебная дорожка Уровень 1 из ${String(tutorialTasks.length)}`,
       );
       expect(requireElement(".tutorialtitle", elements.tutorial).textContent).toBe(
         "Лифт, который никуда не едет",
@@ -1567,18 +1568,18 @@ describe("App learning track", () => {
     it("counts the task just cleared without waiting for the next draw", () => {
       // The verdict is drawn over the panel, and the panel is behind it saying
       // how far along the track the player is. Without the redraw it would say
-      // "0 of 8 tasks done" underneath an overlay congratulating them on the
+      // "0 of 8 levels done" underneath an overlay congratulating them on the
       // first, until they started something else.
       const { app, elements } = setUp();
       app.startTutorial(0);
       expect(requireElement(".tutorialprogress", elements.tutorial).textContent).toBe(
-        `0 of ${String(tutorialTasks.length)} tasks done`,
+        `0 of ${String(tutorialTasks.length)} levels done`,
       );
 
       endRun(app, true);
 
       expect(requireElement(".tutorialprogress", elements.tutorial).textContent).toBe(
-        `1 of ${String(tutorialTasks.length)} tasks done`,
+        `1 of ${String(tutorialTasks.length)} levels done`,
       );
     });
 

@@ -486,11 +486,11 @@
  * Both of those classes were drawn for labels of one or two words -- a fixed
  * `var(--ds-ctl-h)` and `white-space: nowrap`. The labels on this row are
  * sentences. Measured in the card at the default split: "Take this program into
- * your own editor" is 271px and its Russian 270px, "Leave for the levels" 135px
- * and its Russian 161px, against a 344px content box. Together with the gap they
- * are 414px, so `.tutorialbuttons`'s own `flex-wrap` gives them a line each --
- * which is what the wrap is for, and why the primary keeps its right edge on the
- * second line rather than the pair being centred.
+ * your own editor" is 271px and its Russian 270px, "Leave for the game's levels"
+ * 182px and its Russian 161px, against a 344px content box. Together with the
+ * gap they are 461px, so `.tutorialbuttons`'s own `flex-wrap` gives them a line
+ * each -- which is what the wrap is for, and why the primary keeps its right
+ * edge on the second line rather than the pair being centred.
  *
  * The floor rather than the fixed height is for the width below that. Squeezed
  * to the lesson's 260px, a label that no longer fits one line has to be allowed

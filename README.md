@@ -2,59 +2,58 @@
 
 [![CI](https://github.com/EpicDima/elevatorsaga/actions/workflows/ci.yml/badge.svg)](https://github.com/EpicDima/elevatorsaga/actions/workflows/ci.yml)
 
-![Challenge 5 in progress: four elevators carrying people between six floors, passengers waiting on
+![Level 5 in progress: four elevators carrying people between six floors, passengers waiting on
 the landings and riding in the cars, one of the riders marked yellow as the one behind the panel's
 Max delivery time, the statistics counting them along the bottom of the building, and the JavaScript
 program driving it all in the editor to the right](public/images/screenshot.png)
 
 Elevator Saga is a programming game. You are given a building, a few elevators and a stream of
 impatient people, and the only control you have is a small JavaScript program: an object with an
-`init` function that runs once and an `update` function that runs repeatedly. Each of the 19
-challenges sets a target — transport 15 people in 60 seconds, or 100 people using no more than 63
-elevator moves, or 50 people with none of them taking longer than 21 seconds to deliver — and you
-keep rewriting your program until it clears them. The sandbox sets none: it is a building of your
-own size you can leave running.
+`init` function that runs once and an `update` function that runs repeatedly. Each of the 19 levels
+sets a target — transport 15 people in 60 seconds, or 100 people using no more than 63 elevator
+moves, or 50 people with none of them taking longer than 21 seconds to deliver — and you keep
+rewriting your program until it clears them. The sandbox sets none: it is a building of your own
+size you can leave running.
 
 You play in the browser. Type your program in the editor next to the building, press **Start**,
 and watch. There is nothing to apply first: your code is saved to `localStorage` as you type, so
 closing the tab does not lose it, and every run reads whatever is in the editor at the moment it
 begins. The same button reads **Pause** while a run is going; **Start over** beside it begins the
-challenge again, which is what <kbd>Ctrl</kbd>+<kbd>Enter</kbd> does from inside the editor, and
-**Reset code** puts the starter program back with **Undo reset** offered next to it afterwards.
+level again, which is what <kbd>Ctrl</kbd>+<kbd>Enter</kbd> does from inside the editor, and **Reset
+code** puts the starter program back with **Undo reset** offered next to it afterwards.
 <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>S</kbd> still saves immediately rather than opening the
-browser's save dialog. The full API — every method,
-property and event on the elevator and floor objects, with examples — is in
-[documentation.html](documentation.html), which is served alongside the game
-([in Russian](documentation.ru.html)). If challenge 1 and a starter program you are left to reverse
-engineer are not where you want to begin, [the learning track](#the-learning-track) teaches the same
-API one small mistake at a time.
+browser's save dialog. The full API — every method, property and event on the elevator and floor
+objects, with examples — is in [documentation.html](documentation.html), which is served alongside
+the game ([in Russian](documentation.ru.html)). If level 1 and a starter program you are left to
+reverse engineer are not where you want to begin, [the learning track](#the-learning-track) teaches
+the same API one small mistake at a time.
 
 This is a modernized fork of [Magnus Wolffelt's original](https://github.com/magwo/elevatorsaga),
-which is still playable at [play.elevatorsaga.com](https://play.elevatorsaga.com/). The challenges,
-the physics and the scoring are unchanged; the code underneath is not. jQuery, lodash, riot and
+which is still playable at [play.elevatorsaga.com](https://play.elevatorsaga.com/). The levels, the
+physics and the scoring are unchanged; the code underneath is not. jQuery, lodash, riot and
 CodeMirror 5 are gone, the simulation is TypeScript with unit tests, and a pile of long-standing
 bugs are fixed. If you are bringing a solution over from the original, read
 [Breaking changes for player code](#breaking-changes-for-player-code) first.
 
 ## What this fork adds
 
-Everything here is additive: no challenge got easier or harder, and a program written for the
-original is scored by the same rules.
+Everything here is additive: no level got easier or harder, and a program written for the original
+is scored by the same rules.
 
-- **A learning track.** Eight small buildings that teach the API before the challenges ask for it,
+- **A learning track.** Eight small buildings that teach the API before the levels ask for it,
   behind the **Learning track** link in the header. Seven of them hand you a program that runs and
   loses, and ask you to work out why: an elevator that only visits one floor, a destination queue
   that is filled and never started, indicators that lie to the passengers. Three hints are there
   when you want them — the third is the answer — beside a note on what the run was actually doing.
-  The track remembers what you have cleared, so the header link takes you to the first task you
-  have not, and the eighth task is challenge 1's building and challenge 1's bar, so the program
-  that clears it is one you can take straight into challenge 1. See
+  The track remembers what you have cleared, so the header link takes you to the first level you
+  have not, and the eighth of them is level 1's building and level 1's bar, so the program that
+  clears it is one you can take straight into level 1. See
   [The learning track](#the-learning-track).
-- **A jump list for the challenges.** Every challenge you have opened is a link in the bar above the
-  building, so going back to challenge 3 to try another program on it is one click rather than an
-  edit to the address bar. Clearing a challenge at all — bronze is enough — opens the next one, and
-  one you have not opened yet is drawn shut in the list and refused in the URL. The one being played
-  is marked, and free play sits in a block of its own under the numbered ones.
+- **A jump list for the levels.** Every level you have opened is a link in the bar above the
+  building, so going back to level 3 to try another program on it is one click rather than an edit
+  to the address bar. Clearing a level at all — bronze is enough — opens the next one, and one you
+  have not opened yet is drawn shut in the list and refused in the URL. The one being played is
+  marked, and free play sits in a block of its own under the numbered ones.
 - **Repeatable runs.** Every run draws its passengers from a seed, which is shown in the bar and
   printed to the console as the run starts. Following the seed link, or writing `#seed=…` yourself,
   brings the same people back in the same order to every restart — enough to compare two programs
@@ -63,7 +62,7 @@ original is scored by the same rules.
   frame is.
 - **A sandbox building.** `#level=sandbox` takes `floors`, `elevators`, `capacities` and
   `spawnrate`, so you can build the case your program is failing on rather than looking for a
-  shipped challenge that resembles it. See [URL parameters](#url-parameters).
+  shipped level that resembles it. See [URL parameters](#url-parameters).
 - **Three more methods on the elevator.** `isFull()`, `isEmpty()` and `isApproachingFloor(n)` —
   the three checks nearly every published solution had already written by hand out of `loadFactor`
   and `destinationQueue`.
@@ -100,44 +99,44 @@ original is scored by the same rules.
 
 ## The learning track
 
-Challenge 1 hands you a building, a starter program that sends one elevator between two floors and
-never explains itself, and a reference page that assumes you already know which of its methods you
-are looking for. The track is what comes before that: eight small buildings, behind the **Learning
+Level 1 hands you a building, a starter program that sends one elevator between two floors and never
+explains itself, and a reference page that assumes you already know which of its methods you are
+looking for. The track is what comes before that: eight small buildings, behind the **Learning
 track** link in the header or at `#level=tutorial-1`, each one built around a single mistake.
 
-Every task starts with a program that runs and loses, and asks you to find out why. The elevator
-that only ever visits one of two floors; the handler nobody subscribed; the passengers whose buttons
-are ignored; the destination queue that is filled and never started; the car that sweeps nine floors
-because it never asked who was waiting; the indicators that tell everybody it is going up, so half
-the building refuses to board; the second elevator that stands still all run. The eighth is an empty
-`init` in challenge 1's building, against challenge 1's bar.
+Every level of it starts with a program that runs and loses, and asks you to find out why. The
+elevator that only ever visits one of two floors; the handler nobody subscribed; the passengers
+whose buttons are ignored; the destination queue that is filled and never started; the car that
+sweeps nine floors because it never asked who was waiting; the indicators that tell everybody it is
+going up, so half the building refuses to board; the second elevator that stands still all run. The
+eighth is an empty `init` in level 1's building, against level 1's bar.
 
-The buildings are tuned so that the lesson is not a coin flip. Each task pins the seed it is played
-on, and on that seed the program you are handed loses and the task's own answer wins — both
-measured, not hoped for. `src/game/tutorial-solutions.test.ts` replays both programs of every task
-on ten seeds, and `src/game/tutorial-sweep.test.ts` replays three of them on four hundred: the two
+The buildings are tuned so that the lesson is not a coin flip. Each level pins the seed it is played
+on, and on that seed the program you are handed loses and the level's own answer wins — both
+measured, not hoped for. `src/game/tutorial-solutions.test.ts` replays both programs of every one of
+them on ten seeds, and `src/game/tutorial-sweep.test.ts` replays three on four hundred: the two
 whose bar is a worst case rather than a total, where one unlucky passenger decides the run, and the
 one whose answer is measured losing a seed. A change to the physics that quietly turns a lesson
 upside down fails the suite instead of reaching a player.
 
-Each task carries three hints, folded away until you want one — the third is the answer in full,
+Each of them carries three hints, folded away until you want one — the third is the answer in full,
 because a hint you cannot get past is not a hint — and a **Why this happens** note on what the run
-was really doing. The editor belongs to the task: what you write is kept per task and your own
-program in the game's editor is left alone until you press **Take this program into your own
-editor**, which copies what is in front of you across for when you leave. Cleared tasks are
-remembered in `localStorage`, so the header link goes to the first one you have not cleared — back
-to task 1 once there is none — and nothing is ever locked: every task is playable by its address
-from the first visit.
+was really doing. The editor belongs to the track: what you write is kept per tutorial level and
+your own program in the game's editor is left alone until you press **Take this program into your
+own editor**, which copies what is in front of you across for when you leave. Cleared ones are
+remembered in `localStorage`, so the header link goes to the first you have not cleared — back to
+the first of all once there is none — and nothing is ever locked: every one of them is playable by
+its address from the first visit.
 
-A task refuses one thing you can write in the URL, with a console warning and taken back out of the
-address bar: `seed`, because whether the given program really loses is a fact about the passenger
-stream as much as about the program — task 5's sweep does win on some seeds — so
-`#level=tutorial-5,seed=42a` would sit a player in front of a broken program winning. Because
-the seed is the task's rather than yours, the bar above the building
-shows no seed line while a task is open — there is nothing there to pin and nothing to unpin — and
-Restart brings back the same passengers rather than a fresh draw. An address that names no task,
-such as `tutorial-9`, starts the first task rather than challenge 1: whoever wrote it was asking for
-the track.
+The track refuses one thing you can write in the URL, with a console warning and taken back out of
+the address bar: `seed`, because whether the given program really loses is a fact about the
+passenger stream as much as about the program — the fifth level's sweep does win on some seeds — so
+`#level=tutorial-5,seed=42a` would sit a player in front of a broken program winning. Because the
+seed is the level's rather than yours, the bar above the building shows no seed line while a
+tutorial level is open — there is nothing there to pin and nothing to unpin — and Restart brings
+back the same passengers rather than a fresh draw. An address the track has no level for, such as
+`tutorial-9`, starts the first of them rather than level 1: whoever wrote it was asking for the
+track.
 
 The whole track — titles, goals, hints and explanations — is translated, so it can be played in
 Russian as well as English.
@@ -443,17 +442,17 @@ and why the fitness benchmark can run the whole thing inside a web worker.
 
 Everything after the `#` is a comma-separated list of `key=value` pairs, for example
 `#level=7,timescale=8,fullscreen`. Anything unrecognized is left alone and carried into the
-"next challenge" link. Anything malformed falls back to a sane default with a console warning
+"next level" link. Anything malformed falls back to a sane default with a console warning
 rather than breaking the page.
 
-| Parameter           | Effect                                                                                                                                                                                                                                                   |
-| ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `#level=N`          | Starts challenge `N`, counting from 1. Out of range, missing, or unreadable as a number and not one of the two names below: challenge 1. A challenge you have not unlocked starts the furthest one you have, and the address bar is rewritten to say so. |
-| `#level=sandbox`    | Starts a building of your own instead of a numbered challenge. See below.                                                                                                                                                                                |
-| `#level=tutorial-N` | Starts task `N` of the learning track, from `tutorial-1` to `tutorial-8`. A `tutorial-` address no task has starts the first one. See [The learning track](#the-learning-track).                                                                         |
-| `#timescale=X`      | Simulation speed multiplier. Clamped to `0.1`–`64`. Fractions such as `1.5` work. Without it, the speed you last chose is used again — it is kept in `localStorage` under `elevatorTimeScale` — and `2` when there is none.                              |
-| `#seed=S`           | Pins the seed the passenger stream is drawn from. Not the building. Refused on a learning task. See below.                                                                                                                                               |
-| `#fullscreen`       | Hides everything except the building.                                                                                                                                                                                                                    |
+| Parameter           | Effect                                                                                                                                                                                                                                       |
+| ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `#level=N`          | Starts level `N`, counting from 1. Out of range, missing, or unreadable as a number and not one of the two names below: level 1. A level you have not unlocked starts the furthest one you have, and the address bar is rewritten to say so. |
+| `#level=sandbox`    | Starts a building of your own instead of a numbered level. See below.                                                                                                                                                                        |
+| `#level=tutorial-N` | Starts level `N` of the learning track, from `tutorial-1` to `tutorial-8`. A `tutorial-` address the track has no level for starts the first one. See [The learning track](#the-learning-track).                                             |
+| `#timescale=X`      | Simulation speed multiplier. Clamped to `0.1`–`64`. Fractions such as `1.5` work. Without it, the speed you last chose is used again — it is kept in `localStorage` under `elevatorTimeScale` — and `2` when there is none.                  |
+| `#seed=S`           | Pins the seed the passenger stream is drawn from. Not the building. Refused on a tutorial level. See below.                                                                                                                                  |
+| `#fullscreen`       | Hides everything except the building.                                                                                                                                                                                                        |
 
 `#level` was spelled `#challenge` until the game started calling its challenges levels, and every
 link shared before then says so. Those addresses still work — the old spelling is read wherever the
@@ -478,19 +477,19 @@ and from a reload alike.
 You do not have to type it. When the URL pins no seed, the seed in the bar is a link that pins the
 one currently running, so a run worth keeping is one click away after you have seen it. When the URL
 does pin one, the bar shows the value with a **new draw** link beside it, which drops the seed and
-starts again on fresh passengers. Both links name the challenge as well as the seed, so either one
+starts again on fresh passengers. Both links name the level as well as the seed, so either one
 is a complete address you can paste at someone.
 
 A URL with no `seed` draws a fresh one on every restart, which is deliberate: a run you cannot get
-away from is not what you want when you are stuck on a challenge.
+away from is not what you want when you are stuck on a level.
 
-None of this applies on the learning track, where the seed belongs to the task rather than to you:
+None of this applies on the learning track, where the seed belongs to the level rather than to you:
 there is no seed line in the bar, nothing is printed, and every restart replays the same passengers.
 See [The learning track](#the-learning-track).
 
 **What a seed fixes is the passenger stream, and only that.** The building — how many floors, how
-many elevators, how large they are — comes from the challenge number or from the sandbox parameters,
-and the seed has no say in it. Two URLs with the same seed and different `challenge` values are two
+many elevators, how large they are — comes from the level number or from the sandbox parameters,
+and the seed has no say in it. Two URLs with the same seed and different `level` values are two
 different buildings. Frame lengths come from the browser too, so your program is asked to decide at
 slightly different moments each time and two interactive runs of one seed still diverge in their
 timing. Only the headless paths — the fitness benchmark and the test suite, which drive the clock
@@ -507,7 +506,7 @@ from the next. Anything outside the set is refused with a console warning and a 
 
 ### Sandbox
 
-`#level=sandbox` replaces the numbered challenge with a building you specify. It has no success
+`#level=sandbox` replaces the numbered level with a building you specify. It has no success
 condition — nothing to win, and nothing to fail — so it is for reproducing a case and watching what
 your program does with it.
 
@@ -518,7 +517,7 @@ your program does with it.
 | `capacities=A-B-C` | Passengers each car holds, cycled over the cars; hyphen-separated | 1–30    | 4       |
 | `spawnrate=X`      | Passengers appearing per simulated second                         | 0.01–10 | 0.6     |
 
-The defaults are challenge 4's building, so a bare `#level=sandbox` starts something known to be
+The defaults are level 4's building, so a bare `#level=sandbox` starts something known to be
 playable. Every bound is either a value the simulation cannot survive or one the page cannot
 draw — a one-floor building sends passengers to a floor that does not exist, and cars are drawn ten
 pixels per unit of capacity, so how many elevators fit depends on how wide the capacities make
@@ -606,24 +605,25 @@ easy to miss because what they do is not new: riot's observable and the `unobser
 of it each define `on`, `off`, `one` and `trigger` and no other method, so those two names are this
 emitter's spellings of `one()` and `off("*")` rather than the original's.
 
-**Your saved code survives, and each challenge now keeps its own.** Every numbered challenge has its
-own program — under `develevateChallengeCode_<challenge>_<slot>` in `localStorage` — instead of all
-nineteen sharing the one buffer the legacy key held, so changing your answer on challenge 8 no longer
-touches what you left on challenge 7. Each challenge also offers three interchangeable slots for a
-program you want to keep, switched with the buttons above the editor: nothing built into them means
-"attempt" or "goal", they are just three places to put code so you never have to lose one to try
-another. The legacy key, `elevatorCrushCode_v5`, is read once as the starting point for challenge 1's
-first slot — the one slot a player who saved code before slots existed will find it under — and stays
-in use for the sandbox, which has no challenge index of its own to key a slot by. The reset backup
-follows the same split, one per challenge and slot rather than the single `develevateBackupCode` it
-used to share. Reads and writes are wrapped in `try`/`catch`, so a browser that refuses storage
-degrades instead of crashing.
+**Your saved code survives, and each level now keeps its own.** Every numbered level has its own
+program — under `develevateChallengeCode_<level>_<slot>` in `localStorage`, a prefix left spelled
+the way it was so that nothing saved before the rename went missing — instead of all nineteen
+sharing the one buffer the legacy key held, so changing your answer on level 8 no longer touches
+what you left on level 7. Each level also offers three interchangeable slots for a program you want
+to keep, switched with the buttons above the editor: nothing built into them means "attempt" or
+"goal", they are just three places to put code so you never have to lose one to try another. The
+legacy key, `elevatorCrushCode_v5`, is read once as the starting point for level 1's first slot —
+the one slot a player who saved code before slots existed will find it under — and stays in use for
+the sandbox, which has no level index of its own to key a slot by. The reset backup follows the same
+split, one per level and slot rather than the single `develevateBackupCode` it used to share. Reads
+and writes are wrapped in `try`/`catch`, so a browser that refuses storage degrades instead of
+crashing.
 
 ## Fixed bugs
 
 The modernization closed a number of issues from the
 [upstream tracker](https://github.com/magwo/elevatorsaga/issues). Several of these change simulation
-outcomes, so a solution that scraped past a challenge before may now behave differently — usually
+outcomes, so a solution that scraped past a level before may now behave differently — usually
 better.
 
 - [#59](https://github.com/magwo/elevatorsaga/issues/59) /
@@ -641,9 +641,9 @@ better.
   now covers the re-offer as well, so an elevator can no longer accept a passenger and drive off in
   the same frame.
 - [#117](https://github.com/magwo/elevatorsaga/issues/117) /
-  [#20](https://github.com/magwo/elevatorsaga/issues/20) — elevators no longer start the challenge
+  [#20](https://github.com/magwo/elevatorsaga/issues/20) — elevators no longer start the level
   with `moveCount === 1`. Their initial placement was being counted as a move, which quietly taxed
-  every "move as little as possible" challenge.
+  every "move as little as possible" level.
 - [#110](https://github.com/magwo/elevatorsaga/issues/110) — a passenger who is refused boarding
   because the elevator is heading the wrong way presses the call button again, instead of waiting
   in silence for a call that was never registered.
@@ -656,8 +656,8 @@ Four more, without upstream issues:
 
 - `maxWaitTime` counted the walk-away animation of passengers who had already been delivered,
   inflating the statistic by a random 1–1.5 seconds per person. Delivered passengers are now
-  excluded, which makes the statistic deterministic and the challenges it decides — 8, 9, 11 to 15
-  and 18 — marginally easier than the same challenges upstream. **A score from here is not
+  excluded, which makes the statistic deterministic and the levels it decides — 8, 9, 11 to 15
+  and 18 — marginally easier than the same levels upstream. **A score from here is not
   comparable with a score from [play.elevatorsaga.com](https://play.elevatorsaga.com/)**, and a
   solution posted on the upstream wiki that cleared one of them by a fraction of a second may not
   be doing the same work here that it did there. What the figure is has not changed and will not:
@@ -668,7 +668,7 @@ Four more, without upstream issues:
   what the same unchanged number has always been. The waiting time upstream meant by the old name is
   on the panel too, in a row of its own between them, with the ride it leaves out in the row under
   it — see [What this fork adds](#what-this-fork-adds).
-- A malformed `#level` or `#timescale` used to be fatal. `#level=abc` indexed the challenge list
+- A malformed `#level` or `#timescale` used to be fatal. `#level=abc` indexed the level list
   with `NaN` and killed the page before anything was drawn; `#timescale=abc` set the world's
   time scale to `NaN`, which froze the simulation with no way out short of editing the URL by hand.
   Both are validated and fall back to a default now.
@@ -685,8 +685,8 @@ Four more, without upstream issues:
   every pass subtracted a negative number, so the clock ran backwards, the condition never became
   false, and the loop went on creating passengers until the tab died. A rate that is not a positive
   number is now read as "nobody arrives", reported once on the console. Nothing in the shipped
-  challenges asked for one, and `#spawnrate` in the URL is clamped before it gets this far — it was
-  reachable by building a `World` directly, which is what the challenge definitions and anyone
+  levels asked for one, and `#spawnrate` in the URL is clamped before it gets this far — it was
+  reachable by building a `World` directly, which is what the level definitions and anyone
   embedding the engine do.
 
 ### Reported, reproduced, and not a bug here
@@ -728,9 +728,9 @@ granted here rather than having to work it out from a feature list.
   same passengers", so that a case can be reproduced instead of waited for. That is what the seed
   is: `#seed=…` brings the same people back in the same order to every restart, and
   `src/game/determinism.test.ts` holds three seeds to it across frame rates that differ, wander and
-  differ by a nanosecond. The reporter also asked that a replayed challenge not count as passed;
+  differ by a nanosecond. The reporter also asked that a replayed level not count as passed;
   it does count here, because the seed changes who arrives and not what winning takes.
-- [#103](https://github.com/magwo/elevatorsaga/issues/103) — a playground without a challenge's
+- [#103](https://github.com/magwo/elevatorsaga/issues/103) — a playground without a level's
   constraints, "just random popup guests", to debug a program against. `#level=sandbox` is a
   building with no success condition and four parameters to shape it.
 - [#68](https://github.com/magwo/elevatorsaga/issues/68) — <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>S</kbd>
@@ -807,7 +807,7 @@ a stack trace — and neither builds anything to put on a page.
 cannot: does the thing that actually ships come up in a real browser? So they run against the
 **production build** — `npm run test:e2e` builds the site and serves `dist/` with `vite preview`
 before the first test — and they stay few on purpose: fourteen files. What they cover is everything
-whose proof is the browser itself. The game comes up and a challenge is played through to
+whose proof is the browser itself. The game comes up and a level is played through to
 "Success!"; a program survives a reload in `localStorage`, a pasted block keeps the indentation it
 arrived with, <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>S</kbd> writes it the moment it is pressed without
 the browser's own save dialog opening, and a program that will not compile or throws
@@ -815,11 +815,11 @@ mid-simulation raises the error banner instead of failing silently. Then the par
 real once an address bar and a browser are involved: a pinned seed brings the same passengers back
 on reload while an unpinned run draws a new building each time, a parameter the router refused
 leaves the address bar without breaking the Back button, the page arrives in the language the
-browser asks for and follows the picker to the other one, and a learning task shows its panel,
+browser asks for and follows the picker to the other one, and a tutorial level shows its panel,
 keeps its answer folded until asked, and hands its program to the editor. Finally the flat
 statements: the help page and the licence notices are reachable from the footer, the link preview
 points at an image that is really served, both pages reflow onto a 320 px phone, and the keyboard
-reaches the editor in one tab stop from the busiest challenge. Behaviour is covered in depth by the
+reaches the editor in one tab stop from the busiest level. Behaviour is covered in depth by the
 Vitest suite; repeating it through a browser would only buy slower, flakier versions of tests that
 already exist.
 

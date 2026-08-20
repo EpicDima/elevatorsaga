@@ -167,7 +167,7 @@ export const EN_MESSAGES = {
   // widget is here — the third block's caption and the tile inside it, the
   // step buttons either side of the popover trigger, and the two tile labels
   // the level list has no counterpart for, since it never names a
-  // learning-track task or a locked level.
+  // learning-track level or a locked one.
   "game.levelSwitcher.prevLabel": "Previous level",
   "game.levelSwitcher.nextLabel": "Next level",
   // Caption and tile, and deliberately not the same word: the block is
@@ -176,16 +176,19 @@ export const EN_MESSAGES = {
   // twice over and promise nothing else will ever join it.
   "game.levelSwitcher.otherBlockLabel": "Other",
   "game.levelSwitcher.sandboxLabel": "Sandbox",
-  "game.levelSwitcher.tutorialTileLabel": "Tutorial task {number}",
-  "game.levelSwitcher.tutorialTileClearedLabel": "Tutorial task {number}, completed",
+  "game.levelSwitcher.tutorialTileLabel": "Tutorial level {number}",
+  "game.levelSwitcher.tutorialTileClearedLabel": "Tutorial level {number}, completed",
   "game.levelSwitcher.challengeTileLockedLabel": "Level {number}, locked",
   // What the 118px trigger says while a lesson is the level being played. The
   // tile labels above are written for a grid, where the state on the end of
-  // them is the point; on the trigger they overflow, and "Tutorial" is a word
-  // the block heading over the tiles has already said. A challenge and the
-  // sandbox need no key of their own here -- "Level {number}" and "Sandbox"
-  // are already what they are called.
-  "game.levelSwitcher.tutorialTriggerLabel": "Task {number}",
+  // them is the point, and on the trigger they overflow. Shortening them to
+  // "Level {number}" is what the numbered levels are already called, and the
+  // trigger is the only thing on screen that says where the player is at all
+  // times, so the track's levels are named by the other word for them here --
+  // a lesson, which is what the help page calls the panel each one comes with.
+  // A numbered level and the sandbox need no key of their own: "Level
+  // {number}" and "Sandbox" are already what they are called.
+  "game.levelSwitcher.tutorialTriggerLabel": "Lesson {number}",
   // The editor pane's own goto link: `widgets/editor-pane`. Points at the line
   // "src/ui/error-location.ts"'s locateCodeError found for the player's own
   // exception; the button that carries it is hidden whenever that comes back
@@ -772,9 +775,9 @@ elevator.goingDownIndicator(false);`,
   "completion.global.skeleton":
     "Your code must declare an object containing at least two functions called init and update.",
   "completion.global.init":
-    "Called when the challenge starts. Normally you will put most of your code in here, to set up event listeners and logic.",
+    "Called when the level starts. Normally you will put most of your code in here, to set up event listeners and logic.",
   "completion.global.update":
-    "Called repeatedly during the challenge, at a fixed rate of 100 times per game second. dt is always that fixed step.",
+    "Called repeatedly during the level, at a fixed rate of 100 times per game second. dt is always that fixed step.",
   "completion.initSkeleton.code": `init: function(elevators, floors) {
     // Do stuff with the elevators and floors, which are both arrays of objects
 }`,
@@ -838,7 +841,7 @@ elevator.goingDownIndicator(false);`,
   "docs.about.p1.html":
     'This is a game of programming!<br /> Your task is to program the movement of elevators, by writing a program in <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide">JavaScript</a>.',
   "docs.about.p2.html":
-    "The goal is to transport people in an efficient manner.<br /> Depending on how well you do it, you can progress through the ever more difficult challenges.<br /> Only the very best programs will be able to complete all the challenges.",
+    "The goal is to transport people in an efficient manner.<br /> Depending on how well you do it, you can progress through the ever more difficult levels.<br /> Only the very best programs will be able to complete all the levels.",
   "docs.play.heading": "How to play",
   // The first thing under "How to play", because a reader who has arrived here
   // not knowing the API has already found the one page that assumes they do.
@@ -849,11 +852,11 @@ elevator.goingDownIndicator(false);`,
   "docs.play.track.html":
     'If you have never written one of these programs before, start on the <a href="index.html#level=tutorial-1">learning track</a>, which is also the <span class="emphasis-color">Learning track</span> link at the top of the game. It is eight small buildings that introduce this API one mistake at a time: each hands you a program that loses, and asks you to find the one thing wrong with it, with hints and an explanation of what the run was actually doing.',
   "docs.play.start.html":
-    'Enter your code in the input window below the game view, and press the <span class="emphasis-color">Start</span> button to run it. There is nothing to apply first: your program is saved as you type, and every run reads it afresh. While a run is going that button reads <span class="emphasis-color">Pause</span>, and <span class="emphasis-color">Start over</span> beside it throws the run away and begins the challenge again with whatever the editor holds by then.<br /> You can increase or decrease the speed of time by pressing the {increase} and {decrease} buttons.',
+    'Enter your code in the input window below the game view, and press the <span class="emphasis-color">Start</span> button to run it. There is nothing to apply first: your program is saved as you type, and every run reads it afresh. While a run is going that button reads <span class="emphasis-color">Pause</span>, and <span class="emphasis-color">Start over</span> beside it throws the run away and begins the level again with whatever the editor holds by then.<br /> You can increase or decrease the speed of time by pressing the {increase} and {decrease} buttons.',
   "docs.play.statistics.html":
-    'Beside the building is a panel that keeps score while a run is going. Eight of its rows need a word. <span class="emphasis-color">Moves</span> first. One move is counted each time a car crosses the halfway mark between one floor and the next, so a trip of three floors is three moves. A car that turns round mid-flight pays twice for the mark it crosses and re-crosses, and braking carries a car on across a mark it was turned back just short of. Three of the challenges are judged on that number, totalled over every car in the building, as well as on the people delivered, so on those a car that shuttles about empty can lose the run. Under it, <span class="emphasis-color">Stops</span>, which counts something quite different. One stop is counted each time a car comes to rest at a floor and opens its doors, so a car sent to the floor it is already standing on counts another one. That trip of three floors is three moves and a single stop, and the two rows are worth reading against each other — a program that sends a car off to every call the moment it lights up shows many stops for few moves, and one that lets a car finish what it is already doing shows the reverse. Then <span class="emphasis-color">People per stop</span>. Everyone who got in or out, over the stops counted above, so opening the doors where nobody is waiting brings it down. Both ends of a journey count here, the boarding and the getting out, so the figure sits higher than the number a lift engineer would quote for the same building; what it is good for is the direction it moves in rather than the size of it. Then the clocks. <span class="emphasis-color">Avg delivery time</span> and <span class="emphasis-color">Max delivery time</span> both run from the moment a passenger appears in the building to the moment they step out of a car at the floor they asked for, so the ride counts in them as much as the wait for it does: somebody who walks straight into a car already standing at their floor, and waits not one second for it, still adds every second of a nineteen-floor journey to both. Nine of the challenges and two of the tasks on the learning track are judged on the second of them, which is the largest total any one passenger has reached — it keeps climbing while somebody is still on their way, and once reached it never comes down again. Between the two of them sit the two halves that neither one names. <span class="emphasis-color">Avg wait for a car</span> first. The clock starts when a passenger appears and stops when a car takes them, and the row below it is the rest of the journey. Only the passengers a car has already reached are in that average, so it is not where somebody left standing on a floor turns up — the maximum is. The row below it is <span class="emphasis-color">Avg ride time</span>. The clock starts when a car takes a passenger and stops when they step out at their floor, so this and the wait above it add up to the delivery time. The three of them are the three spans the lift industry measures a real building by, and they only add up exactly once nobody is in flight: a passenger still riding has already put their wait into the one average and has nothing yet to put into the other. Last, <span class="emphasis-color">Avg load</span>. How full the cars were, averaged over the moves counted above, so a car standing still is not in the figure at all — parking costs nothing here, and in several of the challenges it is the right thing to do. In an ordinary run the figure sits far below full, and that is not a fault to be fixed: cars are rarely full, and nothing in the game pays for filling them. Nor does a higher figure mean better play. Of three programs run on the same eighteen-floor building, the one that holds a car at its floor until it is nearly full before setting off got its cars to about 70% and delivered the fewest people of the three, at nearly twice the wait of the best of them, while the program that delivered the most carried the emptiest cars of all, under a half. What the number is good for is comparing two programs that deliver about the same: at equal numbers delivered, the one with the higher load did it with fewer trips that carried nobody.',
+    'Beside the building is a panel that keeps score while a run is going. Eight of its rows need a word. <span class="emphasis-color">Moves</span> first. One move is counted each time a car crosses the halfway mark between one floor and the next, so a trip of three floors is three moves. A car that turns round mid-flight pays twice for the mark it crosses and re-crosses, and braking carries a car on across a mark it was turned back just short of. Three of the levels are judged on that number, totalled over every car in the building, as well as on the people delivered, so on those a car that shuttles about empty can lose the run. Under it, <span class="emphasis-color">Stops</span>, which counts something quite different. One stop is counted each time a car comes to rest at a floor and opens its doors, so a car sent to the floor it is already standing on counts another one. That trip of three floors is three moves and a single stop, and the two rows are worth reading against each other — a program that sends a car off to every call the moment it lights up shows many stops for few moves, and one that lets a car finish what it is already doing shows the reverse. Then <span class="emphasis-color">People per stop</span>. Everyone who got in or out, over the stops counted above, so opening the doors where nobody is waiting brings it down. Both ends of a journey count here, the boarding and the getting out, so the figure sits higher than the number a lift engineer would quote for the same building; what it is good for is the direction it moves in rather than the size of it. Then the clocks. <span class="emphasis-color">Avg delivery time</span> and <span class="emphasis-color">Max delivery time</span> both run from the moment a passenger appears in the building to the moment they step out of a car at the floor they asked for, so the ride counts in them as much as the wait for it does: somebody who walks straight into a car already standing at their floor, and waits not one second for it, still adds every second of a nineteen-floor journey to both. Nine of the game\'s levels and two of the tutorial ones are judged on the second of them, which is the largest total any one passenger has reached — it keeps climbing while somebody is still on their way, and once reached it never comes down again. Between the two of them sit the two halves that neither one names. <span class="emphasis-color">Avg wait for a car</span> first. The clock starts when a passenger appears and stops when a car takes them, and the row below it is the rest of the journey. Only the passengers a car has already reached are in that average, so it is not where somebody left standing on a floor turns up — the maximum is. The row below it is <span class="emphasis-color">Avg ride time</span>. The clock starts when a car takes a passenger and stops when they step out at their floor, so this and the wait above it add up to the delivery time. The three of them are the three spans the lift industry measures a real building by, and they only add up exactly once nobody is in flight: a passenger still riding has already put their wait into the one average and has nothing yet to put into the other. Last, <span class="emphasis-color">Avg load</span>. How full the cars were, averaged over the moves counted above, so a car standing still is not in the figure at all — parking costs nothing here, and in several of the levels it is the right thing to do. In an ordinary run the figure sits far below full, and that is not a fault to be fixed: cars are rarely full, and nothing in the game pays for filling them. Nor does a higher figure mean better play. Of three programs run on the same eighteen-floor building, the one that holds a car at its floor until it is nearly full before setting off got its cars to about 70% and delivered the fewest people of the three, at nearly twice the wait of the best of them, while the program that delivered the most carried the emptiest cars of all, under a half. What the number is good for is comparing two programs that deliver about the same: at equal numbers delivered, the one with the higher load did it with fewer trips that carried nobody.',
   "docs.play.shortcuts.html":
-    'Inside the editor, <kbd data-mod-key>Ctrl</kbd>+<kbd>Enter</kbd> starts the challenge again with what you have written, which is what the <span class="emphasis-color">Start over</span> button does; <kbd data-mod-key>Ctrl</kbd>+<kbd>S</kbd> writes the program to storage at once instead of waiting for the autosave, and keeps your browser\'s own save dialog out of the way; <kbd>Tab</kbd> indents, and <kbd>Esc</kbd> moves the focus back out of the editor.',
+    'Inside the editor, <kbd data-mod-key>Ctrl</kbd>+<kbd>Enter</kbd> starts the level again with what you have written, which is what the <span class="emphasis-color">Start over</span> button does; <kbd data-mod-key>Ctrl</kbd>+<kbd>S</kbd> writes the program to storage at once instead of waiting for the autosave, and keeps your browser\'s own save dialog out of the way; <kbd>Tab</kbd> indents, and <kbd>Esc</kbd> moves the focus back out of the editor.',
   "docs.play.debugging.html":
     'If your program contains an error, you can use the developer tools in your web browser to try and debug it. If you want to start over with the code, press the <span class="emphasis-color">Reset code</span> button. This will revert the code to a working but simplistic implementation, and an <span class="emphasis-color">Undo reset</span> button appears beside it for as long as there is something to bring back.<br /> If you have a favorite text editor, such as <a href="https://www.sublimetext.com/">Sublime Text</a>, feel free to edit the code there and paste it into the game editor.<br /> Your code is automatically saved in your local storage, so don\'t worry - it doesn\'t disappear if you accidentally close the browser.',
 
@@ -873,7 +876,7 @@ elevator.goingDownIndicator(false);`,
     }
 }`,
   "docs.basics.called.html":
-    'These functions will then be called by the game during the challenge.<br /> <span class="emphasis-color">init</span> runs once, on the first frame of the run rather than at the moment you apply your code, and <span class="emphasis-color">update</span> runs on that same frame and on every simulated step after it — 100 times per game second, on a fixed schedule tied to game time rather than to how often the browser draws. That means <span class="emphasis-color">dt</span> is always the same value, and two runs of the same seed and the same play take the exact same sequence of steps whether the browser is fast or slow. Both functions are handed the same two arrays — one holding every elevator in the building, one holding every floor — so <span class="emphasis-color">elevators.length</span> is how many cars you have to work with, and neither array is replaced between calls. Both are called on the object you declared, so <span class="emphasis-color">this</span> inside them is that object: anything your program needs to remember from one frame to the next can live on <span class="emphasis-color">this</span> instead of in a variable outside. That holds as long as you write them with <span class="emphasis-color">function</span> — an arrow function keeps the <span class="emphasis-color">this</span> of wherever it was written, which here is the page rather than your object.',
+    'These functions will then be called by the game during the level.<br /> <span class="emphasis-color">init</span> runs once, on the first frame of the run rather than at the moment you apply your code, and <span class="emphasis-color">update</span> runs on that same frame and on every simulated step after it — 100 times per game second, on a fixed schedule tied to game time rather than to how often the browser draws. That means <span class="emphasis-color">dt</span> is always the same value, and two runs of the same seed and the same play take the exact same sequence of steps whether the browser is fast or slow. Both functions are handed the same two arrays — one holding every elevator in the building, one holding every floor — so <span class="emphasis-color">elevators.length</span> is how many cars you have to work with, and neither array is replaced between calls. Both are called on the object you declared, so <span class="emphasis-color">this</span> inside them is that object: anything your program needs to remember from one frame to the next can live on <span class="emphasis-color">this</span> instead of in a variable outside. That holds as long as you write them with <span class="emphasis-color">function</span> — an arrow function keeps the <span class="emphasis-color">this</span> of wherever it was written, which here is the page rather than your object.',
   "docs.basics.initPurpose.html":
     'Normally you will put most of your code in the <span class="emphasis-color">init</span> function, to set up event listeners and logic.',
   "docs.basics.noLibraries.html":
@@ -928,7 +931,7 @@ elevator.off("*"); // Every listener, of every event`,
   "docs.api.events.offAll.html":
     'Remove every listener <em>you</em> registered, for every event, on that elevator or floor. The listeners the game itself needs are separate, so the object keeps working — anything you register afterwards still fires. This is <span class="emphasis-color">off("*")</span> with a name of its own.',
   "docs.api.events.outro.html":
-    'You rarely need to remove listeners: the elevators and floors are thrown away when a challenge restarts, and your <span class="emphasis-color">init</span> is called afresh on the new ones. Removing is useful when you want a listener to apply only for a while.',
+    'You rarely need to remove listeners: the elevators and floors are thrown away when a level restarts, and your <span class="emphasis-color">init</span> is called afresh on the new ones. Removing is useful when you want a listener to apply only for a while.',
 
   "docs.api.elevator.heading": "Elevator object",
   "docs.api.elevator.goToFloor.html":
@@ -1107,13 +1110,13 @@ elevator.goToFloor(2); // Queued anyway -- queue: 2, 3, 2`,
   "tutorial.task2.goal":
     "Write the handler that sends the elevator round all three floors, and deliver 15 passengers within 60 seconds.",
   "tutorial.task2.hint1.html":
-    "Everything you need was in the first task: you saw it there, you just did not write it. The event that fires when the elevator has run out of destinations is called idle.",
+    "Everything you need was on the first tutorial level: you saw it there, you just did not write it. The event that fires when the elevator has run out of destinations is called idle.",
   "tutorial.task2.hint2.html":
     'A subscription looks like <span class="emphasis-color">elevator.on("idle", …)</span> — the name of the event as a string, the handler as a function. Inside the handler goes one goToFloor call per floor of the building.',
   "tutorial.task2.hint3.html":
-    'The answer: subscribe to <span class="emphasis-color">idle</span> and queue floors 0, 1 and 2 inside the handler, the way task 1 did it for two floors.',
+    'The answer: subscribe to <span class="emphasis-color">idle</span> and queue floors 0, 1 and 2 inside the handler, the way tutorial level 1 did it for two floors.',
   "tutorial.task2.explanation.html":
-    "init is called once, on the first frame of the run and before the world has taken a single step, and all it normally does is subscribe to events. The first idle is sent by the game itself, on the line right after your init returns, so subscribing is enough to set the whole thing going. The other function, update(dt, elevators, floors), is called on every simulated tick instead — 100 times a game second. The track never uses it, and that is deliberate: asking the building about its state on every tick gives worse programs than answering the events it sends you. Worse, not forbidden — polling will get you through any task on this track.",
+    "init is called once, on the first frame of the run and before the world has taken a single step, and all it normally does is subscribe to events. The first idle is sent by the game itself, on the line right after your init returns, so subscribing is enough to set the whole thing going. The other function, update(dt, elevators, floors), is called on every simulated tick instead — 100 times a game second. The track never uses it, and that is deliberate: asking the building about its state on every tick gives worse programs than answering the events it sends you. Worse, not forbidden — polling will get you through any level on this track.",
 
   "tutorial.task2.startingCode.code": `{
     init: function(elevators, floors) {
@@ -1189,7 +1192,7 @@ elevator.goToFloor(2); // Queued anyway -- queue: 2, 3, 2`,
   "tutorial.task4.hint3.html":
     'The answer is one line: call <span class="emphasis-color">elevator.checkDestinationQueue();</span> straight after the assignment, inside the same idle handler.',
   "tutorial.task4.explanation.html":
-    "A full car standing still and an empty car standing still differ the way an elevator that arrived and opened its doors differs from an elevator that never arrived at all. Boarding happens on arrival, and nowhere else. Someone who presses a button beside a standing car usually nudges it: the game re-offers the floor to the car with goToFloor(floor, true), and in tasks 1 to 3 that is what kept filling the cabin. Here the nudge does nothing. The queue is not empty, it holds 0, 1, 2, 3, and goToFloor drops a request that equals the adjacent end of a non-empty queue before it ever gets as far as checking the queue: floor 0 is asked for, floor 0 is already at the head, and the call returns. The car stands there for the rest of the run. goToFloor calls checkDestinationQueue for you; assigning the queue does not.",
+    "A full car standing still and an empty car standing still differ the way an elevator that arrived and opened its doors differs from an elevator that never arrived at all. Boarding happens on arrival, and nowhere else. Someone who presses a button beside a standing car usually nudges it: the game re-offers the floor to the car with goToFloor(floor, true), and on tutorial levels 1 to 3 that is what kept filling the cabin. Here the nudge does nothing. The queue is not empty, it holds 0, 1, 2, 3, and goToFloor drops a request that equals the adjacent end of a non-empty queue before it ever gets as far as checking the queue: floor 0 is asked for, floor 0 is already at the head, and the call returns. The car stands there for the rest of the run. goToFloor calls checkDestinationQueue for you; assigning the queue does not.",
 
   "tutorial.task4.startingCode.code": `{
     init: function(elevators, floors) {
@@ -1344,7 +1347,7 @@ elevator.goToFloor(2); // Queued anyway -- queue: 2, 3, 2`,
   "tutorial.task7.hint3.html":
     'The answer: a small function that walks <span class="emphasis-color">elevators</span> and returns the car with the lowest <span class="emphasis-color">loadFactor()</span>; the cabin button handler registered on every car through <span class="emphasis-color">elevators.forEach</span>; and both call buttons of every floor sending the chosen car to <span class="emphasis-color">floor.floorNum()</span>. Any rule that keeps both cars working clears this building.',
   "tutorial.task7.explanation.html":
-    "elevators[0] is not the elevator, it is the first elevator. This building has two of them, and the last challenges of the game have eight. A program written with elevators.forEach works with one car and with eight alike, and it is the program you will carry into the real challenges. Choosing by loadFactor() is the cheapest sensible rule: 0 is empty, 1 is full. It is not the only rule that clears this building, anything that keeps both cars busy will do, but a rule you can check against the picture on screen is easier to debug.",
+    "elevators[0] is not the elevator, it is the first elevator. This building has two of them, and the last levels of the game have eight. A program written with elevators.forEach works with one car and with eight alike, and it is the program you will carry into the real levels. Choosing by loadFactor() is the cheapest sensible rule: 0 is empty, 1 is full. It is not the only rule that clears this building, anything that keeps both cars busy will do, but a rule you can check against the picture on screen is easier to debug.",
 
   "tutorial.task7.startingCode.code": `{
     init: function(elevators, floors) {
@@ -1405,9 +1408,9 @@ elevator.goToFloor(2); // Queued anyway -- queue: 2, 3, 2`,
   "tutorial.task8.hint2.html":
     "The game announces the people inside a car and the people waiting on a floor with different events, and the two are subscribed in different places: on the elevator, and on every floor.",
   "tutorial.task8.hint3.html":
-    'The answer is the program from task 7, unchanged — it works just as well with one elevator. Subscribe to <span class="emphasis-color">floor_button_pressed</span> on every car, subscribe to both call buttons on every floor, and send a car to <span class="emphasis-color">floor.floorNum()</span>. Write the whole of it: the half where a car simply parks at floor 0 and knows nothing but its own cabin buttons is the half that loses runs.',
+    'The answer is the program from tutorial level 7, unchanged — it works just as well with one elevator. Subscribe to <span class="emphasis-color">floor_button_pressed</span> on every car, subscribe to both call buttons on every floor, and send a car to <span class="emphasis-color">floor.floorNum()</span>. Write the whole of it: the half where a car simply parks at floor 0 and knows nothing but its own cabin buttons is the half that loses runs.',
   "tutorial.task8.explanation.html":
-    "Nothing here is new, and that is the point. This is the building of challenge 1 and the bar of challenge 1, copied deliberately: three floors, one elevator, 15 passengers in 60 seconds. Win here and challenge 1 is already solved, by the very program now in the editor. The margin here is also the thinnest on the track, and that is not the track's doing: at 0.3 passengers a second the fifteenth passenger does not appear in the building until about the forty-seventh second of the sixty, so the minute is tighter than it looks. That is a property of challenge 1, and you have met it early.",
+    "Nothing here is new, and that is the point. This is the building of level 1 and the bar of level 1, copied deliberately: three floors, one elevator, 15 passengers in 60 seconds. Win here and level 1 is already solved, by the very program now in the editor. The margin here is also the thinnest on the track, and that is not the track's doing: at 0.3 passengers a second the fifteenth passenger does not appear in the building until about the forty-seventh second of the sixty, so the minute is tighter than it looks. That is a property of level 1, and you have met it early.",
 
   "tutorial.task8.startingCode.code": `{
     init: function(elevators, floors) {
@@ -1416,11 +1419,11 @@ elevator.goToFloor(2); // Queued anyway -- queue: 2, 3, 2`,
     update: function(dt, elevators, floors) {
     }
 }`,
-  // Task 7's answer, word for word, which is the answer task 8 is measured
-  // against: the graduation task asks for nothing new. Written out rather than
-  // pointed at, so that every task owns the same eight keys and a translator
-  // meets no exception; `src/game/tutorial.test.ts` holds the two equal in
-  // every locale, which is what a copy needs to be allowed to exist.
+  // Tutorial level 7's answer, word for word, which is the answer level 8 is
+  // measured against: the graduation level asks for nothing new. Written out
+  // rather than pointed at, so that every level owns the same eight keys and a
+  // translator meets no exception; `src/game/tutorial.test.ts` holds the two
+  // equal in every locale, which is what a copy needs to be allowed to exist.
   "tutorial.task8.solutionCode.code": `{
     init: function(elevators, floors) {
         function pickElevator() {
@@ -1452,15 +1455,25 @@ elevator.goToFloor(2); // Queued anyway -- queue: 2, 3, 2`,
     }
 }`,
 
-  // The panel around the tasks, the bar above them and the screen after the
+  // The panel around the levels, the bar above them and the screen after the
   // last one. The seed line, the statistics and the editor are the game's own
   // and say the same things here as everywhere else.
+  //
+  // "Tutorial level" is a level of the track and "level {number}" is a level of
+  // the game; the first is qualified so that the player cannot read one for the
+  // other, and `tutorial.button.leave` says whose levels it leaves for on the
+  // same grounds.
+  //
+  // The position line below is the exception. It follows the name of the track
+  // in the same line, in bold, so the qualifying is already done -- repeating it
+  // gave "Learning track Tutorial level 7 of 8". Over the building,
+  // `tutorial.bar.title.html` has no track name beside it, so there it stays.
 
   "tutorial.panel.label": "Learning track",
-  "tutorial.panel.position": "Task {number} of {count}",
+  "tutorial.panel.position": "Level {number} of {count}",
   "tutorial.panel.progress": {
-    one: "{cleared} of {count} task done",
-    other: "{cleared} of {count} tasks done",
+    one: "{cleared} of {count} level done",
+    other: "{cleared} of {count} levels done",
   },
   "tutorial.panel.hintSummary": "Hint {number}",
   "tutorial.panel.explanationSummary": "Why this happens",
@@ -1475,7 +1488,7 @@ elevator.goToFloor(2); // Queued anyway -- queue: 2, 3, 2`,
   "tutorial.button.takeCode": "Take this program into your own editor",
   "tutorial.button.takeCodeConfirm":
     "The game editor already holds a program of yours. Replace it with this one?",
-  "tutorial.button.leave": "Leave for the levels",
+  "tutorial.button.leave": "Leave for the game's levels",
   "tutorial.solution.copy": "Copy this program",
   // The clipboard write's two outcomes, at the size and just under the answer
   // the way `tutorial.panel.codeTaken`/`codeRefused` sit under the editor
@@ -1486,10 +1499,10 @@ elevator.goToFloor(2); // Queued anyway -- queue: 2, 3, 2`,
   "tutorial.solution.copied": "Copied to your clipboard.",
   "tutorial.solution.copyFailed":
     "Your browser refused to copy it. Select the code above and copy it yourself.",
-  "tutorial.bar.title.html": "Tutorial task {number} of {count}: {description}",
+  "tutorial.bar.title.html": "Tutorial level {number} of {count}: {description}",
   "tutorial.finish.title": "The track is finished",
   "tutorial.finish.message":
-    "Eight tasks, and the last of them was level 1: the same three floors, the same elevator, the same fifteen passengers in sixty seconds. The program in the editor solves it, and the panel has a button that copies it into your own editor — take it with you before you go.",
-  "tutorial.finish.nextTask": "Next task",
+    "Eight tutorial levels, and the last of them was level 1 of the game itself: the same three floors, the same elevator, the same fifteen passengers in sixty seconds. The program in the editor solves it, and the panel has a button that copies it into your own editor — take it with you before you go.",
+  "tutorial.finish.nextTask": "Next tutorial level",
   "tutorial.finish.toChallenges": "Go to level 1",
 } as const satisfies Readonly<Record<string, string | PluralForms<"en">>>;

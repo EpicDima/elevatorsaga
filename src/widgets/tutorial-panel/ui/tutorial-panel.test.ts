@@ -132,7 +132,9 @@ describe("presentTutorial", () => {
     expect(requireElement(".tutorialtakecode", parent).textContent).toBe(
       "Take this program into your own editor",
     );
-    expect(requireElement(".tutorialleave", parent).textContent).toBe("Leave for the levels");
+    expect(requireElement(".tutorialleave", parent).textContent).toBe(
+      "Leave for the game's levels",
+    );
     expect(requireElement(".tutorialcopycode", parent).textContent).toBe("Copy this program");
   });
 
@@ -167,10 +169,10 @@ describe("presentTutorial", () => {
 
     const count = String(tutorialTasks.length);
     expect(requireElement(".tutorialposition", parent).textContent).toBe(
-      `Learning track Task 3 of ${count}`,
+      `Learning track Level 3 of ${count}`,
     );
     expect(requireElement(".tutorialprogress", parent).textContent).toBe(
-      `5 of ${count} tasks done`,
+      `5 of ${count} levels done`,
     );
   });
 
@@ -208,7 +210,7 @@ describe("presentTutorial", () => {
         "",
       );
       expect(requireElement(".tutorialposition", parent).textContent).toContain(
-        `Task ${String(index + 1)} of`,
+        `Level ${String(index + 1)} of`,
       );
       // The answer is the program `tutorial-solutions.test.ts` clears the task
       // with, not a copy of it, and it survives being escaped and parsed again.
@@ -268,7 +270,7 @@ describe("presentTutorial", () => {
     expect(() => {
       presentTutorial(parent, panelData({ taskIndex: tutorialTasks.length }));
     }).toThrow(RangeError);
-    expect(requireElement(".tutorialposition", parent).textContent).toContain("Task 2 of");
+    expect(requireElement(".tutorialposition", parent).textContent).toContain("Level 2 of");
   });
 
   describe("the hints a player has opened", () => {
@@ -768,7 +770,7 @@ describe("presentTutorial", () => {
       );
       expect(requireElement(".tutorialleave", parent).textContent).toBe("Выйти к уровням игры");
       expect(requireElement(".tutorialprogress", parent).textContent).toBe(
-        `Пройдено 1 из ${String(tutorialTasks.length)} заданий`,
+        `Пройдено 1 из ${String(tutorialTasks.length)} уровней`,
       );
     });
 
@@ -1020,9 +1022,9 @@ describe("tutorialTemplate", () => {
     const drawn = panel({ taskNumber: 3, taskCount: 8, clearedCount: 5 });
 
     expect(drawn.querySelector(".tutorialposition")?.textContent).toBe(
-      "Learning track Task 3 of 8",
+      "Learning track Level 3 of 8",
     );
-    expect(drawn.querySelector(".tutorialprogress")?.textContent).toBe("5 of 8 tasks done");
+    expect(drawn.querySelector(".tutorialprogress")?.textContent).toBe("5 of 8 levels done");
   });
 
   it("draws one tick per task, with the ones behind the player apart from the one under them", () => {
@@ -1076,13 +1078,13 @@ describe("tutorialTemplate", () => {
 
   it("counts the tasks in the plural the number calls for", () => {
     // The plural is selected on the count of tasks, not on the count cleared:
-    // "1 of 8 tasks done" is about eight tasks.
+    // "1 of 8 levels done" is about eight tasks.
     expect(
       panel({ taskCount: 1, clearedCount: 1 }).querySelector(".tutorialprogress")?.textContent,
-    ).toBe("1 of 1 task done");
+    ).toBe("1 of 1 level done");
     expect(
       panel({ taskCount: 8, clearedCount: 1 }).querySelector(".tutorialprogress")?.textContent,
-    ).toBe("1 of 8 tasks done");
+    ).toBe("1 of 8 levels done");
   });
 
   it("writes down the index the panel was drawn for, zero-based", () => {
@@ -1106,7 +1108,7 @@ describe("tutorialTemplate", () => {
     ]);
     expect(buttons.map((button) => button.getAttribute("type"))).toEqual(["button", "button"]);
     expect(buttons.map((button) => button.textContent)).toEqual([
-      "Leave for the levels",
+      "Leave for the game's levels",
       "Take this program into your own editor",
     ]);
     // The panel had its own "Start over" until the run buttons were gathered
@@ -1137,13 +1139,13 @@ describe("tutorialTemplate", () => {
     // see is out of place.
     expect(drawn.getAttribute("aria-label")).toBe("Учебная дорожка");
     expect(drawn.querySelector(".tutorialposition")?.textContent).toBe(
-      "Учебная дорожка Задание 7 из 8",
+      "Учебная дорожка Уровень 7 из 8",
     );
     expect(drawn.querySelector(".tutorialhint summary")?.textContent).toBe("Подсказка 1");
     expect(drawn.querySelector(".tutorialexplanation summary")?.textContent).toBe(
       "Почему так получается",
     );
-    expect(drawn.querySelector(".tutorialprogress")?.textContent).toBe("Пройдено 6 из 8 заданий");
+    expect(drawn.querySelector(".tutorialprogress")?.textContent).toBe("Пройдено 6 из 8 уровней");
     expect(
       [...drawn.querySelectorAll(".tutorialbuttons button")].map((button) => button.textContent),
     ).toEqual(["Выйти к уровням игры", "Забрать программу в свой редактор"]);

@@ -63,9 +63,11 @@ test("carries the language into the links the game builds", async ({ page }) => 
 
   // The tile is a real link, but it sits behind the switcher's own closed
   // popover -- opened here the way a player would, by pressing the trigger
-  // that already names the level on screen.
+  // that already names the level on screen. `exact`, because the open popover
+  // also holds the track's own tiles and "Учебный уровень 2" contains the
+  // numbered one's whole name.
   await page.getByRole("button", { name: "Уровень 1" }).click();
-  await page.getByRole("link", { name: "Уровень 2" }).click();
+  await page.getByRole("link", { name: "Уровень 2", exact: true }).click();
 
   await expect(page).toHaveURL(/lang=ru/);
   await expect(page.getByRole("button", { name: "Уровень 2" })).toBeVisible();

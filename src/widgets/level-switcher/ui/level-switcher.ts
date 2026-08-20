@@ -208,9 +208,9 @@ function tileAccessibleName(tile: LevelMenuTile): string {
  * `design/ui-mockup.html` sizes `.task-open` for the longest thing it ever
  * puts there, and every world in that file is named `Уровень {n}` with no
  * state on the end. Borrowed onto the trigger those names overflow: measured
- * in Chromium, «Учебное задание 1» wants 133px of the 96px inside the button,
- * so the whole learning track read «Учебное за...» in Russian, and a cleared
- * task truncated in English too.
+ * in Chromium, «Учебный уровень 1» wants 136px of the 96px inside the button,
+ * so the whole learning track read «Учебный уро...» in Russian, and a cleared
+ * level truncated in English too.
  *
  * Widening the button was the other way out and was not taken: the width is
  * the mockup's, the row it sits in is already tight at 1040px, and a control

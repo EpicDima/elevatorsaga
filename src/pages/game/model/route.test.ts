@@ -276,7 +276,7 @@ describe("resolveRoute challenge validation", () => {
     for (const value of ["3abc", "3.5", "3px", "0x"]) {
       expect(route(`#level=${value}`).challengeIndex, value).toBe(0);
       expect(console.warn).toHaveBeenCalledWith(
-        `Invalid challenge "${value}", starting the first challenge instead`,
+        `Invalid level "${value}", starting the first level instead`,
       );
     }
   });
@@ -288,7 +288,7 @@ describe("resolveRoute challenge validation", () => {
     // was said. What makes it a refusal is the warning.
     expect(route("#level=1e9").challengeIndex).toBe(0);
     expect(console.warn).toHaveBeenCalledWith(
-      `Invalid challenge "1e9", starting the first challenge instead`,
+      `Invalid level "1e9", starting the first level instead`,
     );
   });
 });
@@ -312,7 +312,7 @@ describe("resolveRoute challenge locking", () => {
     expect(params.challengeIndex).toBe(7);
     expect(params.refusedKeys).toEqual(["level"]);
     expect(console.warn).toHaveBeenCalledWith(
-      `Challenge "18" has not been unlocked yet, starting challenge 8 instead`,
+      `Level "18" has not been unlocked yet, starting level 8 instead`,
     );
   });
 
@@ -360,7 +360,7 @@ describe("resolveRoute challenge locking", () => {
 
     expect(params.challengeIndex).toBe(0);
     expect(console.warn).toHaveBeenCalledWith(
-      `Invalid challenge "99", starting the first challenge instead`,
+      `Invalid level "99", starting the first level instead`,
     );
   });
 
@@ -683,7 +683,7 @@ describe("resolveRoute tutorial selection", () => {
       expect(params.tutorialIndex, value).toBeNull();
       expect(params.challengeIndex, value).toBe(0);
       expect(console.warn).toHaveBeenCalledWith(
-        `Invalid challenge "${value}", starting the first challenge instead`,
+        `Invalid level "${value}", starting the first level instead`,
       );
     }
   });
@@ -708,7 +708,7 @@ describe("resolveRoute tutorial validation", () => {
       expect(params.tutorialIndex, value).toBe(0);
       expect(params.refusedKeys, value).toEqual(["level"]);
       expect(console.warn).toHaveBeenCalledWith(
-        `Invalid tutorial task "${value}", starting the first task instead`,
+        `Invalid tutorial level "${value}", starting the first one instead`,
       );
     }
   });
@@ -728,7 +728,7 @@ describe("resolveRoute tutorial validation", () => {
       expect(params.tutorialIndex, value).toBe(0);
       expect(params.refusedKeys, value).toEqual(["level"]);
       expect(console.warn).toHaveBeenCalledWith(
-        `Invalid tutorial task "${value}", starting the first task instead`,
+        `Invalid tutorial level "${value}", starting the first one instead`,
       );
     }
   });
@@ -905,7 +905,7 @@ describe("resolveRoute seed on the learning track", () => {
   it("says where the seed went rather than that it was wrong", () => {
     route("#level=tutorial-5,seed=42a");
     expect(console.warn).toHaveBeenCalledWith(
-      `Ignoring seed "42a": a learning task plays its own pinned seed`,
+      `Ignoring seed "42a": a tutorial level plays its own pinned seed`,
     );
   });
 
@@ -926,7 +926,7 @@ describe("resolveRoute seed on the learning track", () => {
     expect(params.seed).toBeNull();
     expect(params.refusedKeys).toEqual(["seed"]);
     expect(console.warn).toHaveBeenCalledWith(
-      `Ignoring seed "": a learning task plays its own pinned seed`,
+      `Ignoring seed "": a tutorial level plays its own pinned seed`,
     );
   });
 

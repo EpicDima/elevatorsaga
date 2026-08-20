@@ -128,7 +128,7 @@ test("opens the track from the level switcher, in the language on screen", async
   await opener.click();
   await expect(opener).toHaveAttribute("aria-expanded", "true");
 
-  const english = page.getByRole("link", { name: "Tutorial task 1", exact: true });
+  const english = page.getByRole("link", { name: "Tutorial level 1", exact: true });
   await expect(english).toBeVisible();
 
   await switchToRussian(page);
@@ -136,7 +136,7 @@ test("opens the track from the level switcher, in the language on screen", async
   // Still there under the longer label, on a switcher the language change
   // rebuilt from the catalogue rather than relabelled in place.
   await openLevelMenu(page);
-  const link = page.getByRole("link", { name: "Учебное задание 1", exact: true });
+  const link = page.getByRole("link", { name: "Учебный уровень 1", exact: true });
   await expect(link).toBeVisible();
 
   await link.click();
@@ -149,8 +149,8 @@ test("shows the panel on a task and nothing at all off it", async ({ page }) => 
 
   await expect(panel(page)).toBeVisible();
   await expect(page.getByRole("heading", { name: "The elevator that goes nowhere" })).toBeVisible();
-  await expect(page.locator(".tutorialposition")).toHaveText("Learning track Task 1 of 8");
-  await expect(page.locator(".tutorialprogress")).toHaveText("0 of 8 tasks done");
+  await expect(page.locator(".tutorialposition")).toHaveText("Learning track Level 1 of 8");
+  await expect(page.locator(".tutorialprogress")).toHaveText("0 of 8 levels done");
 
   // The region stays in the page shell on every other route, so the stylesheet
   // is what has to take it out of the flow: an empty block with margins is
@@ -240,7 +240,7 @@ test("hands the task's program to the editor and stays on the task", async ({ pa
   // until the press, are `tutorial-panel.test.ts`'s and are not repeated here.
   await expect(panel(page).locator(".tutorialtaken")).toBeVisible();
 
-  await panel(page).getByRole("button", { name: "Leave for the levels" }).click();
+  await panel(page).getByRole("button", { name: "Leave for the game's levels" }).click();
 
   await expect(page.getByRole("button", { name: "Level 1" })).toBeVisible();
   await expect(panel(page)).toHaveCount(0);
@@ -281,7 +281,7 @@ test("starts the task again from the run controls without leaving the track", as
   // The same task, running: "Start over" is pressed by somebody who has decided
   // to go again, so it does not stop to ask a second time.
   await expect(panel(page)).toBeVisible();
-  await expect(page.locator(".tutorialposition")).toHaveText("Learning track Task 1 of 8");
+  await expect(page.locator(".tutorialposition")).toHaveText("Learning track Level 1 of 8");
   await expect(startButton(page, "Pause")).toBeVisible();
   // And the button survives the restart it caused, so the focus never leaves it.
   // The panel is redrawn whole underneath, but the run controls are drawn once
@@ -300,7 +300,7 @@ test("draws the panel again in the language the picker asks for", async ({ page 
   // panel a sighted player cannot see is still in English.
   await expect(panel(page, "Учебная дорожка")).toBeVisible();
   await expect(page.getByRole("heading", { name: "Лифт, который никуда не едет" })).toBeVisible();
-  await expect(page.locator(".tutorialprogress")).toHaveText("Пройдено 0 из 8 заданий");
+  await expect(page.locator(".tutorialprogress")).toHaveText("Пройдено 0 из 8 уровней");
 });
 
 test("paints the panel's own controls as dark as the prose around them", async ({ page }) => {

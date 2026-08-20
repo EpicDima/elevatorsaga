@@ -535,7 +535,7 @@ function resolveSeed(value: string | undefined, refuse: Refuse): string | null {
 function refuseSeedOnTrack(query: RouteQuery, refuse: Refuse): null {
   const value = query.get("seed");
   if (value !== undefined) {
-    console.warn(`Ignoring seed "${value}": a learning task plays its own pinned seed`);
+    console.warn(`Ignoring seed "${value}": a tutorial level plays its own pinned seed`);
     refuse("seed");
   }
   return null;
@@ -621,7 +621,7 @@ function resolveTutorialIndex(value: string, refuse: Refuse): number {
   const id = value.toLowerCase();
   const index = tutorialTasks.findIndex((task) => task.id === id);
   if (index === -1) {
-    console.warn(`Invalid tutorial task "${value}", starting the first task instead`);
+    console.warn(`Invalid tutorial level "${value}", starting the first one instead`);
     refuse(LEVEL_KEY);
     return 0;
   }
@@ -906,7 +906,7 @@ function resolveChallengeIndex(
   }
   const index = Number(value) - 1;
   if (!Number.isInteger(index) || index < 0 || index >= context.challengeCount) {
-    console.warn(`Invalid challenge "${value}", starting the first challenge instead`);
+    console.warn(`Invalid level "${value}", starting the first level instead`);
     refuse(LEVEL_KEY);
     return 0;
   }
@@ -955,7 +955,7 @@ function fallBackToOpenChallenge(
     open -= 1;
   }
   console.warn(
-    `Challenge "${value}" has not been unlocked yet, starting challenge ${String(open + 1)} instead`,
+    `Level "${value}" has not been unlocked yet, starting level ${String(open + 1)} instead`,
   );
   refuse(LEVEL_KEY);
   return open;

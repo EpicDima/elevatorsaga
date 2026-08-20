@@ -219,7 +219,7 @@ describe("presentLevelSwitcher", () => {
   it("keeps the trigger to the level's plain name, whatever the tile calls it", () => {
     // Three kinds of tile, one rule: the trigger names the level and leaves
     // its state to the tile. The lesson is the case that forced it -- 118px of
-    // button against «Учебное задание 1», which wants 133px -- and the other
+    // button against «Учебный уровень 1», which wants 136px -- and the other
     // two are here so that a later change cannot quietly reintroduce a state
     // suffix through them.
     const cleared = tutorialTasks[0];
@@ -228,7 +228,7 @@ describe("presentLevelSwitcher", () => {
       clearedTutorialTasks: new Set(cleared === undefined ? [] : [cleared.id]),
     });
     presentLevelSwitcher(lesson.parent, lesson.options);
-    expect(requireElement(".task-name", lesson.parent).textContent).toBe("Task 1");
+    expect(requireElement(".task-name", lesson.parent).textContent).toBe("Lesson 1");
 
     const sandbox = setUp({ selection: { kind: "sandbox" } });
     presentLevelSwitcher(sandbox.parent, sandbox.options);
@@ -252,7 +252,7 @@ describe("presentLevelSwitcher", () => {
     const [tutorialBlock] = parent.querySelectorAll(".taskblock");
     const firstTile = tutorialBlock?.querySelector(".tasklink");
 
-    expect(firstTile?.getAttribute("aria-label")).toBe("Tutorial task 1, completed");
+    expect(firstTile?.getAttribute("aria-label")).toBe("Tutorial level 1, completed");
   });
 
   it("labels the sandbox tile and links it through buildHref", () => {
