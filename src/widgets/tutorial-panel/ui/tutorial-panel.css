@@ -293,8 +293,8 @@
  * building already uses for "this is lit, this matters" -- a floor's call
  * button, its band once pressed. Checked fresh against `--ds-code-bg`, a
  * pairing neither of those already covers: 8.25:1 dark, 4.33:1 light, clear
- * of the 3:1 that 1.4.11 asks of a graphical indicator; `style.test.ts` holds
- * it to that bar explicitly.
+ * of the 3:1 that 1.4.11 asks of a graphical indicator; the last row of
+ * `tutorial-panel.css.test.ts`'s own table holds it to that bar explicitly.
  *
  * A `<mark>` rather than a `<span>` with the same class: it is the element
  * HTML already has for "this text matters here, against another context",

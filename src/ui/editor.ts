@@ -1060,7 +1060,9 @@ const showErrorMark = StateEffect.define<CodeErrorLocation | undefined>();
  * puts nothing behind the text at all, and the mark itself reads 5.74:1 on the
  * dark editor and 4.94:1 on the light one, well clear of the 3:1 a graphical
  * indicator needs. Ratios measured against the values in `tokens.css`, not
- * estimated; `style.test.ts` keeps measuring them.
+ * estimated, and both keep being measured: the mark's own pair in
+ * `src/widgets/editor-pane/ui/editor-pane.css.test.ts`, the comment's in
+ * `src/shared/styles/code.css.test.ts`.
  */
 const errorMark = Decoration.mark({ class: "cm-errorMark" });
 

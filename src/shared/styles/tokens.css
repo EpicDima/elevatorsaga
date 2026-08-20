@@ -5,8 +5,9 @@
  * Dark is the default, declared on `:root`; `html[data-theme="light"]` restates
  * only the values that differ. Nothing else in this directory declares a
  * colour literal, so a theme is a change to this file alone -- and the pairs
- * that carry text are measured against WCAG 1.4.3 by `src/styles/style.test.ts`
- * rather than eyeballed.
+ * that carry text are measured against WCAG 1.4.3 rather than eyeballed: the
+ * sitewide ones in `tokens.css.test.ts` beside this file, and the rest in the
+ * `*.css.test.ts` beside whichever slice paints them.
  *
  * First in `index.css` because a custom property has to be declared before the
  * rule that reads it is applied, and because `--shell-width` is read by
@@ -25,8 +26,8 @@
  * same one the error banner above the editor is painted in, so a squiggle and
  * the sentence explaining it are visibly one report rather than two. It is a
  * graphical indicator, so 1.4.11 asks 3:1 of it rather than 1.4.3's 4.5, and
- * `--ds-bad` clears that against `--ds-code-bg` in both themes; `style.test.ts`
- * measures it.
+ * `--ds-bad` clears that against `--ds-code-bg` in both themes;
+ * `src/widgets/editor-pane/ui/editor-pane.css.test.ts` measures it.
  *
  * The rest of the building is dim on purpose and stays that way: the unlit call
  * buttons, the direction arrows and the car's button panel are painted at
@@ -179,7 +180,9 @@
    * on --ds-car in the light theme, so anything painted on the car itself --
    * the floor indicator, a lit direction arrow, a rider once boarded -- needs
    * one of these three instead, declared once with no light-theme override.
-   * `style.test.ts` checks all three against both --ds-car values.
+   * The car's own two are checked against both --ds-car values by
+   * `entities/elevator/ui/elevator-view.css.test.ts`, the rider's and the
+   * marked passenger's by `entities/passenger/ui/passenger-view.css.test.ts`.
    */
   --ds-car-ink: #f0f2f5;
   --ds-car-person: #cdd5e0;
@@ -215,7 +218,8 @@
    * it cannot be made up for in the text, for the reason above. What is shipped
    * instead is bounded and stated: every token stays past 3:1 for as long as a
    * selection is *held*, which is while the player is acting on the text rather
-   * than reading it, and one keystroke ends it. `style.test.ts` holds that 3:1.
+   * than reading it, and one keystroke ends it. `code.css.test.ts`, beside this
+   * file, holds that 3:1.
    * The alternative on offer was CodeMirror's own default, `#d7d4f0` -- a
    * near-white slab under near-white text, 1.02:1, which is not a shortfall but
    * an erasure.

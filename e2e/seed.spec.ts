@@ -234,9 +234,10 @@ test("keeps every word of the seed line readable, in both of its states", async 
   // 1.4.3 asks 4.5:1. The characters that went pale were the ones a player
   // transcribes.
   //
-  // Measured here rather than in `src/styles/style.test.ts`, which checks that
-  // the palette's pairs are legible but not which elements ask for them: this
-  // failure was an element quietly asking for neither.
+  // Measured here rather than in the `*.css.test.ts` file beside each slice's
+  // stylesheet, which check that the palette's pairs are legible but not which
+  // elements ask for them: this failure was an element quietly asking for
+  // neither.
   const contrasts = async (): Promise<Record<string, number>> =>
     page.evaluate(() => {
       const channel = (value: number): number =>

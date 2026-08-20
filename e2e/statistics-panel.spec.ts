@@ -11,8 +11,9 @@
  * it are cut off by `body.app`'s `overflow: hidden` with nothing in the markup
  * or in the panel's own rules objecting. That makes it a browser question
  * rather than a stylesheet one -- the declarations are checked in
- * `src/styles/style.test.ts`, and what is checked here is the result of laying
- * them out.
+ * `src/widgets/workspace-layout/ui/workspace-layout.css.test.ts` (the column's
+ * own flex factors) and in the strip's own `stats-panel.css.test.ts`, and what
+ * is checked here is the result of laying them out.
  *
  * Two buildings, both far shorter than the pane, because a short building is
  * what used to break the panel beside it: the strip has to be whole whether the

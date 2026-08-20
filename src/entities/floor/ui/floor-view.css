@@ -55,7 +55,8 @@
  * stylesheet already makes wherever a mockup literal falls short (see
  * `.docs-body h3`) -- clears it at 6.98:1 and 5.32:1. A floor number never
  * lights up, so unlike a call lamp it cannot claim the "the lit state carries
- * the information" exemption. `style.test.ts` checks both themes.
+ * the information" exemption. `floor-view.css.test.ts`, beside this file,
+ * checks both themes.
  */
 .level-num {
   min-inline-size: 2ch;

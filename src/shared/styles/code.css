@@ -89,7 +89,7 @@ pre code {
  * player is actually looking for stand out. The mockup wraps them in its own
  * `.p` for the same reason. Still real text at 13px, so still held to 4.5:1 --
  * 6.73:1 dark, 4.98:1 light, and 6.18:1 / 4.65:1 on the editor's active line,
- * all measured in `style.test.ts`. The light value is the mockup's own taken a
+ * all measured in `code.css.test.ts`. The light value is the mockup's own taken a
  * shade darker for that second pair, the way `--ds-code-com` above is.
  */
 .tok-punctuation,

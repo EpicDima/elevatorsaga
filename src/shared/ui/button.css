@@ -109,8 +109,9 @@ button[disabled] {
  * chrome this page already draws -- .btn, .task-open and .skip-link all wear the
  * same --ds-line-strong hairline over --ds-raised -- so a key reads as the
  * conventional bordered key cap most sites reach for rather than a new
- * invention. The pairing is --ds-text on --ds-raised, which style.test.ts holds
- * to 4.5:1 in both themes (12.96:1 dark, 15.07:1 light). Bold for the reason
+ * invention. The pairing is --ds-text on --ds-raised, which
+ * `shared/styles/tokens.css.test.ts` holds to 4.5:1 in both themes (12.96:1
+ * dark, 15.07:1 light). Bold for the reason
  * .tutorialcopycode is bold too: heavier strokes are what keep a single
  * character -- ⌘ chief among
  * them -- legible at the size a key is actually set at, without singling that
