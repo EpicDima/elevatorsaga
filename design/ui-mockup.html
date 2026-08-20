@@ -4600,8 +4600,8 @@ elevator.goingDownIndicator(false);`,
        */
       function isOpen(entry) {
         if (entry.free !== "") return true; // песочница открыта всегда
-        const index = CHALLENGES_IDS.indexOf(entry.id);
-        return index <= 0 || best.has(CHALLENGES_IDS[index - 1]);
+        const index = GAME_LEVEL_IDS.indexOf(entry.id);
+        return index <= 0 || best.has(GAME_LEVEL_IDS[index - 1]);
       }
 
       function renderTaskMenu() {
@@ -4728,7 +4728,7 @@ elevator.goingDownIndicator(false);`,
             // чтобы посмотреть здания целиком. Звёзды при этом раздаются
             // вразнобой: одинаковый ряд из трёх золотых ничего не покажет.
             best = new Map(
-              CHALLENGES_IDS.map((id, index) => [id, TIER_ORDER[(index * 2 + 1) % 3]]),
+              GAME_LEVEL_IDS.map((id, index) => [id, TIER_ORDER[(index * 2 + 1) % 3]]),
             );
             renderTaskMenu();
             updateTaskNav();
@@ -4888,7 +4888,7 @@ elevator.goingDownIndicator(false);`,
       const DOOR_TIME = 0.75; // секунд с открытыми дверями
 
       /* --- Уровни ----------------------------------------------------------
-         Здания и условия списаны с src/game/challenges.ts. Не ради точности —
+         Здания и условия списаны с src/game/levels.ts. Не ради точности —
          ради того, чтобы макет проверялся на том, что в игре действительно
          бывает: от трёх этажей с одним лифтом до двадцати одного с восемью, от
          кабины на четверых до кабины на десятерых, и от «перевезти столько-то
@@ -4905,7 +4905,7 @@ elevator.goingDownIndicator(false);`,
       const goalLoad = (min) => ({ kind: "load", min });
       const goalRate = (min) => ({ kind: "rate", min });
 
-      const CHALLENGES = [
+      const GAME_LEVELS = [
         { floors: 3, cars: 1, rate: 0.3, goals: [goalPeople(15), goalTime(60)] },
         { floors: 5, cars: 1, rate: 0.4, goals: [goalPeople(20), goalTime(60)] },
         { floors: 5, cars: 1, caps: [6], rate: 0.5, goals: [goalPeople(23), goalTime(60)] },
@@ -5028,14 +5028,14 @@ elevator.goingDownIndicator(false);`,
       }
 
       const WORLDS = [
-        ...CHALLENGES.map((spec, index) =>
+        ...GAME_LEVELS.map((spec, index) =>
           makeWorld(spec, String(index + 1), `Уровень ${index + 1}`),
         ),
         ...FREE_WORLDS.map((spec) => makeWorld(spec, spec.id, spec.name)),
       ];
 
       // Порядок уровней: по нему считается, что уже открыто.
-      const CHALLENGES_IDS = CHALLENGES.map((_, index) => String(index + 1));
+      const GAME_LEVEL_IDS = GAME_LEVELS.map((_, index) => String(index + 1));
 
       const BLOCKS = [
         { name: "Обучение", ids: ["1", "2", "3", "4"] },
