@@ -337,12 +337,22 @@ test("stands the lesson beside the building where the pane has room, and above i
   // a short pane and leave the building nothing, and the statistics strip can
   // be pushed off the bottom of the window by the pair of them.
   //
-  // Two widths, because the row has two shapes and each has its own way of
-  // failing. 1280x900 is the default window and a 794px pane, wide enough for
-  // the 384px aside and the widest house the track builds; 1040x600 is the
-  // floor `design/ui-mockup.html` builds to, and there the pane is 645px and
-  // the row stacks -- which is the mockup's own answer at that width, measured
-  // in it: its `.stagerow` computes to `column` at 1040 and to `row` at 1280.
+  // Three widths, because the row has two shapes and the edge between them is
+  // its own way of failing. 1280x900 is the default window and a 794px pane,
+  // wide enough for the 384px aside and the widest house the track builds;
+  // 1040x600 is the floor `design/ui-mockup.html` builds to, and there the pane
+  // is 645px and the row stacks -- which is the mockup's own answer at that
+  // width, measured in it: its `.stagerow` computes to `column` at 1040 and to
+  // `row` at 1280.
+  //
+  // 1213x900 is the one between them, and the only one of the three that has
+  // ever failed. The shipped 62% split makes it a 752px pane: 12px above the
+  // 740px a row needs at its narrowest, and 8px below the 760px the container
+  // query used to stack at, because that threshold was the 740 rounded up
+  // against a house wider than any the track builds. Inside that 20px the
+  // lesson stood above the building with room beside it going spare, and both
+  // of the widths above are outside it -- which is how a reported bug sat in a
+  // suite that measures this row at two widths and says nothing.
   //
   // Both languages, because the Russian labels are the long ones -- "Забрать
   // программу в свой редактор" is half again the English -- and they are what
@@ -353,9 +363,10 @@ test("stands the lesson beside the building where the pane has room, and above i
   // is a same-document navigation, so a second route asking for a language the
   // page is not already in would be measured before anything had redrawn.
   const measure = async (language: string): Promise<void> => {
-    for (const [width, height] of [
-      [1280, 900],
-      [1040, 600],
+    for (const [width, height, shape] of [
+      [1280, 900, "beside"],
+      [1213, 900, "beside"],
+      [1040, 600, "above"],
     ] as const) {
       await page.setViewportSize({ width, height });
 
@@ -364,7 +375,7 @@ test("stands the lesson beside the building where the pane has room, and above i
       const lesson = await boxOf(card, `the lesson card on ${where}`);
       const world = await boxOf(page.locator(".world"), `the building on ${where}`);
 
-      if (width >= 1280) {
+      if (shape === "beside") {
         // Beside, not above: the card ends before the building begins, and the
         // two share the row rather than following one another down it. Not an
         // equal `y` -- the card carries its own 18px margin and the building

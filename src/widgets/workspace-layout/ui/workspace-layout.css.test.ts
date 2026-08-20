@@ -72,7 +72,16 @@ describe("the game pane's column", () => {
       "stage / inline-size",
     );
     expect(ruleBody(".stagearea")).not.toMatch(/container/);
-    expect(styleSource).toMatch(/^@container stage \(max-width: 760px\) \{$/m);
+    //
+    // 740 is that width exactly, and not that width rounded up: level 7's 430px
+    // house plus `.stage`'s 32px of inline padding, plus the lesson's 16px
+    // margin, the 2px gap and the 260px it may shrink to. It read 760 once --
+    // the same sum with 20px added against some future wider house -- and the
+    // padding was the bug rather than the insurance. The shipped 62% split
+    // makes this pane 752px at a 1213px window, which is inside the padding and
+    // outside the sum, so the query stacked a lesson that had room to stand
+    // beside its building. A wider house would have moved the sum anyway.
+    expect(styleSource).toMatch(/^@container stage \(max-width: 740px\) \{$/m);
     // And stacked, the same priority has to be stated again in the other axis,
     // because the row's flex factors are about width and the two boxes are now
     // competing for height. The lesson is the one with no natural end: level 7
