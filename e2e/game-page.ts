@@ -31,6 +31,57 @@ export const CODE_STORAGE_KEY = "elevatorCrushCode_v5";
 export const CHALLENGE_ONE_SLOT_ONE_STORAGE_KEY = "develevateChallengeCode_0_1";
 
 /**
+ * Where the tier earned on each numbered level is remembered between visits,
+ * and so where the game reads what this browser has unlocked.
+ *
+ * Spelled out rather than imported from
+ * `src/entities/challenge-tier/model/best-tier.ts` for the reason
+ * {@link CODE_STORAGE_KEY} is: a spec that read the key from the code under
+ * test would go on passing after a rename that had silently reset every
+ * player's progress.
+ */
+export const CHALLENGE_TIER_STORAGE_KEY = "develevateChallengeTiers";
+
+/**
+ * Makes this browser one that has already earned its way to a level, so a spec
+ * may open the level it is actually about.
+ *
+ * A numbered level is shut until the one before it has been cleared — in the
+ * switcher, which draws it as a disabled button, and in the router, which
+ * answers `#challenge=18` from a browser that has cleared nothing with the
+ * first level and a warning. Every spec that opens a level past the first has
+ * to be a player who could have opened it, and this is how it becomes one: a
+ * bronze on record for each level below, written before any of the page's own
+ * scripts run.
+ *
+ * Bronze because the rule reads presence and not rank — clearing at all is
+ * what opens the next one — so this asserts nothing about how well the levels
+ * below were played.
+ *
+ * The record is left alone when there already is one, which matters because an
+ * init script runs again on every navigation: a spec that wins a level and then
+ * reloads would otherwise have the win overwritten by this fixture on the way
+ * back in.
+ *
+ * @param page - The page under test, before its first `goto`.
+ * @param number - The level to open, counting from 1.
+ */
+export async function unlockLevel(page: Page, number: number): Promise<void> {
+  const earned: Record<number, string> = {};
+  for (let index = 0; index < number - 1; index += 1) {
+    earned[index] = "bronze";
+  }
+  await page.addInitScript(
+    (record: { key: string; tiers: string }) => {
+      if (localStorage.getItem(record.key) === null) {
+        localStorage.setItem(record.key, record.tiers);
+      }
+    },
+    { key: CHALLENGE_TIER_STORAGE_KEY, tiers: JSON.stringify(earned) },
+  );
+}
+
+/**
  * The CodeMirror editing surface.
  *
  * Found by the name it is announced under, which is a translated string like

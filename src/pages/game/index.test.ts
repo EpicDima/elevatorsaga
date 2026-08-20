@@ -38,9 +38,10 @@ import {
   setDemoFullscreen,
 } from "./index.ts";
 import type { AppElements, ControlsPresenterOptions } from "./index.ts";
-import { recordChallengeTier } from "#entities/challenge-tier/index.ts";
+import { readBestChallengeTiers, recordChallengeTier } from "#entities/challenge-tier/index.ts";
 import { DEFAULT_TIME_SCALE } from "#features/adjust-speed/model/time-scale.ts";
 import { DEFAULT_CODE_SLOT } from "#features/manage-code-slots/model/code-slots.ts";
+import { isChallengeLocked } from "#features/switch-level/index.ts";
 import { resolveRoute, startRouter } from "#pages/game/model/route.ts";
 import { queryAll, requireElement } from "#shared/lib/dom.ts";
 import { parseQuery } from "#shared/lib/route-query.ts";
@@ -811,7 +812,16 @@ describe("App challenge navigation", () => {
       (params, query) => {
         app.handleRoute(params, query);
       },
-      { challengeCount: CHALLENGES.length, defaultTimeScale: () => DEFAULT_TIME_SCALE },
+      {
+        challengeCount: CHALLENGES.length,
+        defaultTimeScale: () => DEFAULT_TIME_SCALE,
+        // Wired exactly as `src/main.ts` wires it, over the same store the app
+        // was built on: the tile being clicked is only an `<a>` at all because
+        // `unlockChallenge2` put a tier on record, and the router has to reach
+        // the same conclusion from the same record or the click would land on
+        // challenge 1.
+        isChallengeLocked: (index) => isChallengeLocked(index, readBestChallengeTiers(storage)),
+      },
     );
 
     try {
@@ -2292,7 +2302,19 @@ describe("App time scale", () => {
  */
 function routeFor(hash: string): Parameters<App["handleRoute"]> {
   const query = parseQuery(hash);
-  return [resolveRoute(query, { challengeCount: 3, defaultTimeScale: DEFAULT_TIME_SCALE }), query];
+  return [
+    resolveRoute(query, {
+      challengeCount: 3,
+      defaultTimeScale: DEFAULT_TIME_SCALE,
+      // Nothing is locked here on purpose. Whether a challenge may be opened is
+      // the router's question, answered against a browser's own record and
+      // proved in `model/route.test.ts`; `handleRoute` is handed a challenge
+      // that has already passed it, and a spec about what the app does with
+      // challenge 3 should not have to earn its way there first.
+      isChallengeLocked: () => false,
+    }),
+    query,
+  ];
 }
 
 describe("App.handleRoute", () => {

@@ -210,8 +210,7 @@ function tileAccessibleName(tile: LevelMenuTile): string {
  * state on the end. Borrowed onto the trigger those names overflow: measured
  * in Chromium, «Учебное задание 1» wants 133px of the 96px inside the button,
  * so the whole learning track read «Учебное за...» in Russian, and a cleared
- * task or a level opened by URL before it was unlocked truncated in English
- * too.
+ * task truncated in English too.
  *
  * Widening the button was the other way out and was not taken: the width is
  * the mockup's, the row it sits in is already tight at 1040px, and a control
@@ -242,11 +241,16 @@ function tileTriggerName(tile: LevelMenuTile): string {
  * non-navigable `<button disabled>` while a challenge tile is locked — see
  * this module's own comment for why a locked tile is never an anchor.
  *
- * `aria-current` is written either way: a direct link can select a locked
- * challenge as `current` — {@link "../model/level-menu.ts"!LevelMenuInput}'s
- * `selection` names whatever is actually being played, regardless of what
- * the switcher would let a player open from here — and a player who *is*
- * there deserves to see that on a tile that otherwise reads as unreachable.
+ * `aria-current` is written either way, on the disabled button as much as on
+ * the anchor. A direct link used to be able to select a locked challenge as
+ * `current`, and cannot any more: `src/pages/game/model/route.ts` asks the
+ * same question of an address that this widget asks of a tile, and answers a
+ * level nobody has unlocked with the furthest one they have. But
+ * {@link "../model/level-menu.ts"!LevelMenuInput}'s `selection` still names
+ * whatever is actually being played, whoever chose it and by whatever route,
+ * and the promise that it is never a locked level is the router's rather than
+ * this widget's — so the mark goes on the tile that is current, and a state
+ * this module cannot rule out is a state it can still draw.
  *
  * @param tile - Tile to draw.
  * @returns The tile's markup.

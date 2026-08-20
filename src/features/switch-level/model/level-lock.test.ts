@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { lockChallengeTiles } from "./level-lock.ts";
+import { isChallengeLocked, lockChallengeTiles } from "./level-lock.ts";
 import { listChallenges } from "#entities/challenge/index.ts";
 import { requireUserCountWithinTime, type Challenge } from "#game/challenges.ts";
 
@@ -17,6 +17,45 @@ function fixtureChallenges(count: number): readonly Challenge[] {
     condition: requireUserCountWithinTime(5, 60),
   }));
 }
+
+describe("isChallengeLocked", () => {
+  it("leaves the first challenge open to a browser that has cleared nothing", () => {
+    expect(isChallengeLocked(0, new Map())).toBe(false);
+  });
+
+  it("shuts a challenge whose predecessor has never been finished", () => {
+    expect(isChallengeLocked(1, new Map())).toBe(true);
+    expect(isChallengeLocked(17, new Map())).toBe(true);
+  });
+
+  it("opens a challenge on any tier at all recorded for the one before it", () => {
+    expect(isChallengeLocked(1, new Map([[0, "bronze"]]))).toBe(false);
+    expect(isChallengeLocked(1, new Map([[0, "gold"]]))).toBe(false);
+  });
+
+  it("reads only the record immediately before the challenge asked about", () => {
+    // The record a browser hands over is not necessarily a run of clears from
+    // the first challenge: it may predate the locking rule, when every
+    // challenge was reachable from the row, or have been edited by hand. Each
+    // index is answered on its own, so a lone clear opens exactly one door.
+    const sparse = new Map<number, "gold">([[5, "gold"]]);
+
+    expect(isChallengeLocked(6, sparse)).toBe(false);
+    expect(isChallengeLocked(5, sparse)).toBe(true);
+    expect(isChallengeLocked(7, sparse)).toBe(true);
+  });
+
+  it("answers the same question the tiles are drawn from", () => {
+    // The rule has one copy, and this is what says so: whatever the switcher
+    // draws shut is what an address is refused for.
+    const bestTiers = new Map<number, "silver">([[0, "silver"]]);
+    const tiles = lockChallengeTiles(listChallenges(fixtureChallenges(4)), bestTiers);
+
+    expect(tiles.map((tile) => tile.locked)).toEqual(
+      tiles.map((tile) => isChallengeLocked(tile.index, bestTiers)),
+    );
+  });
+});
 
 describe("lockChallengeTiles", () => {
   it("never locks the first challenge", () => {

@@ -34,10 +34,12 @@ import { presentGlobalShortcuts } from "./ui/global-shortcuts.ts";
 import { localisePage } from "./ui/localise-page.ts";
 import { applyPreferredLocale } from "./ui/preferred-locale.ts";
 import { labelModifierKeys } from "./ui/shortcuts.ts";
+import { readBestChallengeTiers } from "#entities/challenge-tier/index.ts";
 import { DEFAULT_TIME_SCALE } from "#features/adjust-speed/model/time-scale.ts";
 import { docsModalTemplate, presentDocsModal } from "#features/docs-reference/index.ts";
 import { hotkeysModalTemplate, presentHotkeysModal } from "#features/hotkeys-help/index.ts";
 import { DEFAULT_CODE_SLOT } from "#features/manage-code-slots/model/code-slots.ts";
+import { isChallengeLocked } from "#features/switch-level/index.ts";
 import { requireElement } from "#shared/lib/dom.ts";
 import {
   appBarSettingsTemplate,
@@ -279,6 +281,12 @@ async function main(): Promise<void> {
     {
       challengeCount: challenges.length,
       defaultTimeScale: () => readStoredTimeScale(localStorage) ?? DEFAULT_TIME_SCALE,
+      // The record is read on each call rather than once here, for the same
+      // reason the time scale above is: both move while the page is open, and
+      // the call that matters most is the one right after a win, when the
+      // "Next level" link is followed and the challenge it names has been
+      // unlocked by the very run that drew the link.
+      isChallengeLocked: (index) => isChallengeLocked(index, readBestChallengeTiers(localStorage)),
     },
   );
 

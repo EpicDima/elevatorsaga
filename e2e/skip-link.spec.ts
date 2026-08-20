@@ -11,12 +11,16 @@
 
 import { expect, test } from "@playwright/test";
 
-import { editor } from "./game-page.ts";
+import { editor, unlockLevel } from "./game-page.ts";
 
 /** The busiest challenge: 8 elevators, 21 floors, and a call button per direction. */
 const BUSIEST = "#challenge=18";
 
+/** Which level {@link BUSIEST} names, for the browser that has to have earned it. */
+const BUSIEST_NUMBER = 18;
+
 test("reaches the editor in one tab stop, from the busiest challenge", async ({ page }) => {
+  await unlockLevel(page, BUSIEST_NUMBER);
   await page.goto(`/${BUSIEST}`);
   await expect(editor(page)).toBeVisible();
 
@@ -38,6 +42,7 @@ test("reaches the editor in one tab stop, from the busiest challenge", async ({ 
 });
 
 test("saves a walk through the whole building", async ({ page }) => {
+  await unlockLevel(page, BUSIEST_NUMBER);
   await page.goto(`/${BUSIEST}`);
   await expect(editor(page)).toBeVisible();
 

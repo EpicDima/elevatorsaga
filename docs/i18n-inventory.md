@@ -512,10 +512,12 @@ the trigger's own name for a lesson.
 | `game.levelSwitcher.challengeTileLockedLabel` | Level {number}, locked            | takes `{number}`; accessible name of a locked challenge tile, drawn as a `<button disabled>` rather than an `<a>`    |
 | `game.levelSwitcher.tutorialTriggerLabel`     | Task {number}                     | takes `{number}`; what the 118px trigger reads while a lesson is being played, where the tile labels overflow        |
 
-A locked challenge tile can still be `current` — reached by a direct link to a challenge the
-player has not unlocked through the switcher itself — and `tileAccessibleName` in
-`level-switcher.ts` keeps naming it as locked even then, rather than switching to
-`game.challenge.nav.link` once it is also the one on screen.
+`tileAccessibleName` in `level-switcher.ts` names a locked tile as locked even when it is also
+`current`, rather than switching to `game.challenge.nav.link` once it is the one on screen. That
+pairing used to be reachable — a direct link to a challenge the player had not unlocked through
+the switcher — and is not any more, since the router sends such an address back to the furthest
+level this browser has earned; the string is still written for it because the widget does not own
+that promise.
 
 ### `src/widgets/goal-bar/ui/goal-bar.ts` and `src/entities/challenge-tier/ui/requirement-text.ts` — 22 `game.goalBar.*` keys
 

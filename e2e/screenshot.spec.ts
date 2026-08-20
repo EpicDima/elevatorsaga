@@ -13,7 +13,7 @@
 
 import { expect, test } from "@playwright/test";
 
-import { startButton, statistic, statisticValue } from "./game-page.ts";
+import { startButton, statistic, statisticValue, unlockLevel } from "./game-page.ts";
 
 /**
  * Where the README expects to find it.
@@ -71,25 +71,43 @@ test.describe("README screenshot", () => {
   test.use({ viewport: { width: 1280, height: 1000 } });
 
   test("captures the game mid-challenge", async ({ page }) => {
+    // The line the page prints as a run starts, which is what the seed is read
+    // from below. Registered before the first navigation, because the run this
+    // address autostarts is already going by the time `goto` resolves.
+    const logs: string[] = [];
+    page.on("console", (message) => {
+      if (message.type() === "log") {
+        logs.push(message.text());
+      }
+    });
+
+    // A browser that has played its way to level 5, because the router now
+    // answers an address for a level nobody has earned with the furthest one
+    // they have — and the picture would quietly become level 1.
+    await unlockLevel(page, 5);
+
     // The reference solution, so the editor shows a real program rather than
     // the two-line starter, running the challenge the original screenshot used.
     await page.goto(`/#challenge=5,devtest,timescale=6,autostart,seed=${SEED}`);
 
     // The seed took. A seed the router refuses is swapped for a fresh one with
     // nothing but a console warning to show for it, and the picture would go
-    // quietly back to being a different game on every capture. The `new draw`
-    // link is the tell: it exists only when the route pins a seed, and its
-    // accessible name is the seed it would drop.
-    await expect(page.getByRole("link", { name: new RegExp(`^Seed ${SEED}\\b`) })).toBeVisible();
+    // quietly back to being a different game on every capture. Read from the
+    // console rather than from the seed row in the settings popover, which is
+    // where the seed is written on screen: the popover is closed in the picture
+    // and opening it to read the row would put it in the picture too.
+    await expect.poll(() => logs.some((line) => line.includes(SEED))).toBe(true);
 
     await expect
       .poll(async () => statisticValue(page, "Transported"), { timeout: 60_000 })
       .toBeGreaterThanOrEqual(TRANSPORTED_BEFORE_CAPTURE);
 
     // Freeze the simulation so nothing is halfway through a transition, and so
-    // the numbers in the panel match the pixels above them.
+    // the numbers in the panel match the pixels above them. The button reads
+    // "Resume" rather than "Start" afterwards: the run is standing still
+    // part-way through rather than waiting to begin.
     await page.getByRole("button", { name: "Pause" }).click();
-    await expect(startButton(page)).toBeVisible();
+    await expect(startButton(page, "Resume")).toBeVisible();
 
     // The interface is set in the system UI face and the bundle ships no
     // webfont, so there is normally nothing outstanding here -- but the editor

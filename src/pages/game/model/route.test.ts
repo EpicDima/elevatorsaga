@@ -17,8 +17,24 @@ import {
   type RouterTarget,
 } from "./route.ts";
 
+/**
+ * A browser that has cleared every challenge there is.
+ *
+ * The default everywhere below, so that the specs about *reading* a URL are
+ * about reading it and nothing else. What happens to an address for a
+ * challenge that is still shut has a context of its own, in "resolveRoute
+ * challenge locking".
+ *
+ * @returns Always `false`: nothing is locked.
+ */
+const EVERY_CHALLENGE_OPEN = (): boolean => false;
+
 /** The context a route is resolved against in these tests. */
-const CONTEXT = { challengeCount: 18, defaultTimeScale: DEFAULT_TIME_SCALE };
+const CONTEXT = {
+  challengeCount: 18,
+  defaultTimeScale: DEFAULT_TIME_SCALE,
+  isChallengeLocked: EVERY_CHALLENGE_OPEN,
+};
 
 /**
  * Resolves a location hash the way the running game does.
@@ -28,6 +44,26 @@ const CONTEXT = { challengeCount: 18, defaultTimeScale: DEFAULT_TIME_SCALE };
  */
 function route(hash: string): ReturnType<typeof resolveRoute> {
   return resolveRoute(parseQuery(hash), CONTEXT);
+}
+
+/**
+ * Resolves a hash for a browser that has cleared `count` challenges, from the
+ * first.
+ *
+ * The record itself is not built here — the rule that reads it belongs to
+ * `#features/switch-level`, and this file is about what the router does with
+ * its answer — so the predicate is written out directly: challenges up to and
+ * including the `count`th are open, everything past them is shut.
+ *
+ * @param hash - The location hash.
+ * @param count - How many challenges this browser has finished.
+ * @returns The validated route parameters.
+ */
+function routeAfterClearing(hash: string, count: number): ReturnType<typeof resolveRoute> {
+  return resolveRoute(parseQuery(hash), {
+    ...CONTEXT,
+    isChallengeLocked: (index) => index > count,
+  });
 }
 
 /** A window stand-in whose hash and events the test drives. */
@@ -206,6 +242,93 @@ describe("resolveRoute challenge validation", () => {
     expect(console.warn).toHaveBeenCalledWith(
       `Invalid challenge "1e9", starting the first challenge instead`,
     );
+  });
+});
+
+describe("resolveRoute challenge locking", () => {
+  it("opens a challenge this browser has earned", () => {
+    // Cleared four, so the fifth is the one the switcher offers next and the
+    // furthest a URL may reach.
+    expect(routeAfterClearing("#challenge=5", 4).challengeIndex).toBe(4);
+    expect(routeAfterClearing("#challenge=5", 4).refusedKeys).toEqual([]);
+    expect(console.warn).not.toHaveBeenCalled();
+  });
+
+  it("refuses a challenge the player has not unlocked", () => {
+    // The hole this closes. The switcher draws challenge 18 as a disabled
+    // button until the seventeen before it are done, and `#challenge=18` used
+    // to open it regardless -- so the progression was something the interface
+    // believed rather than something the game enforced.
+    const params = routeAfterClearing("#challenge=18", 7);
+
+    expect(params.challengeIndex).toBe(7);
+    expect(params.refusedKeys).toEqual(["challenge"]);
+    expect(console.warn).toHaveBeenCalledWith(
+      `Challenge "18" has not been unlocked yet, starting challenge 8 instead`,
+    );
+  });
+
+  it("lands on the furthest challenge the player has reached, not on the first", () => {
+    // A refusal that dropped them back to challenge 1 would be its own kind of
+    // wrong: they asked to go on, and this is as far on as they have earned.
+    for (const cleared of [0, 1, 9, 16]) {
+      expect(routeAfterClearing("#challenge=18", cleared).challengeIndex, String(cleared)).toBe(
+        cleared,
+      );
+    }
+  });
+
+  it("never walks forward to a challenge further on than the one refused", () => {
+    // A browser whose record is not a run from the first -- cleared challenge 6
+    // alone, back when every challenge was reachable from the row -- has
+    // challenge 7 open with 2 through 6 shut. Walking to the nearest open
+    // challenge in *either* direction would answer an address for 5 with 7,
+    // which is the same hole with a step in it.
+    const params = resolveRoute(parseQuery("#challenge=5"), {
+      ...CONTEXT,
+      isChallengeLocked: (index) => index !== 0 && index !== 6,
+    });
+
+    expect(params.challengeIndex).toBe(0);
+  });
+
+  it("says nothing about a locked challenge on an address that names none", () => {
+    // The sandbox and the learning track are not on the ladder, and the first
+    // challenge is open to everybody, so none of the three can be refused for
+    // being shut.
+    expect(routeAfterClearing("", 0).challengeIndex).toBe(0);
+    expect(routeAfterClearing("#challenge=1", 0).challengeIndex).toBe(0);
+    expect(routeAfterClearing("#challenge=sandbox", 0).sandbox).not.toBeNull();
+    expect(routeAfterClearing("#challenge=tutorial-8", 0).tutorialIndex).toBe(7);
+    expect(routeAfterClearing("#challenge=tutorial-8", 0).refusedKeys).toEqual([]);
+    expect(console.warn).not.toHaveBeenCalled();
+  });
+
+  it("refuses a number that does not exist before asking whether it is open", () => {
+    // Order, and the reason `isChallengeLocked` is documented as taking an
+    // index that exists: `#challenge=99` is not a locked challenge, it is not a
+    // challenge, and the locking rule has no opinion to offer about one.
+    const params = routeAfterClearing("#challenge=99", 7);
+
+    expect(params.challengeIndex).toBe(0);
+    expect(console.warn).toHaveBeenCalledWith(
+      `Invalid challenge "99", starting the first challenge instead`,
+    );
+  });
+
+  it("keeps the rest of the url while it refuses the challenge", () => {
+    // A speed, a seed and an autostart are choices about how to play, not about
+    // which level -- and the level that opens is one the player is allowed to
+    // be on, so there is nothing about those that has to be dropped with it.
+    const params = routeAfterClearing("#challenge=18,timescale=8,seed=issue-61,autostart", 7);
+
+    expect(params).toMatchObject({
+      challengeIndex: 7,
+      timeScale: 8,
+      seed: "issue-61",
+      autoStart: true,
+      refusedKeys: ["challenge"],
+    });
   });
 });
 
@@ -667,6 +790,12 @@ describe("resolveRoute refusals", () => {
     // What makes dropping a refused key from the url a rewrite that changes no
     // route. If this ever stops holding, correcting the address bar starts
     // changing the run the player is watching.
+    //
+    // The two refusals that land where absence does not spell -- a task address
+    // no task has, and a challenge this browser has not unlocked -- are not
+    // exempt from that: the corrected url has to resolve to the run on screen
+    // either way, so those are rewritten rather than dropped, and `startRouter`
+    // is where each is checked against the run it left the player in.
     const refused = route("#challenge=abc,timescale=fast,seed=rush hour,floors=none");
     const absent = route("");
     expect(refused.refusedKeys.length).toBeGreaterThan(0);
@@ -847,6 +976,7 @@ describe("startRouter", () => {
 
     startRouter(onRoute, {
       challengeCount: 18,
+      isChallengeLocked: EVERY_CHALLENGE_OPEN,
       defaultTimeScale: () => DEFAULT_TIME_SCALE,
       target,
     });
@@ -860,6 +990,7 @@ describe("startRouter", () => {
     const onRoute = vi.fn();
     startRouter(onRoute, {
       challengeCount: 18,
+      isChallengeLocked: EVERY_CHALLENGE_OPEN,
       defaultTimeScale: () => DEFAULT_TIME_SCALE,
       target,
     });
@@ -876,6 +1007,7 @@ describe("startRouter", () => {
     const onRoute = vi.fn();
     startRouter(onRoute, {
       challengeCount: 18,
+      isChallengeLocked: EVERY_CHALLENGE_OPEN,
       defaultTimeScale: () => DEFAULT_TIME_SCALE,
       target,
     });
@@ -892,6 +1024,7 @@ describe("startRouter", () => {
     let defaultTimeScale = 2;
     startRouter(onRoute, {
       challengeCount: 18,
+      isChallengeLocked: EVERY_CHALLENGE_OPEN,
       defaultTimeScale: () => defaultTimeScale,
       target,
     });
@@ -908,6 +1041,7 @@ describe("startRouter", () => {
     const onRoute = vi.fn();
     startRouter(onRoute, {
       challengeCount: 18,
+      isChallengeLocked: EVERY_CHALLENGE_OPEN,
       defaultTimeScale: () => DEFAULT_TIME_SCALE,
       target,
     });
@@ -926,6 +1060,7 @@ describe("startRouter", () => {
 
     startRouter(onRoute, {
       challengeCount: 18,
+      isChallengeLocked: EVERY_CHALLENGE_OPEN,
       defaultTimeScale: () => DEFAULT_TIME_SCALE,
       target,
     });
@@ -947,6 +1082,7 @@ describe("startRouter", () => {
 
     startRouter(onRoute, {
       challengeCount: 18,
+      isChallengeLocked: EVERY_CHALLENGE_OPEN,
       defaultTimeScale: () => DEFAULT_TIME_SCALE,
       target,
     });
@@ -972,6 +1108,7 @@ describe("startRouter", () => {
 
     startRouter(onRoute, {
       challengeCount: 18,
+      isChallengeLocked: EVERY_CHALLENGE_OPEN,
       defaultTimeScale: () => DEFAULT_TIME_SCALE,
       target,
     });
@@ -989,12 +1126,76 @@ describe("startRouter", () => {
     expect(route(target.location.hash)).toEqual({ ...params, refusedKeys: [] });
   });
 
+  it("corrects a locked challenge to the one that opened instead of dropping it", () => {
+    // The same rule as the task address above, arriving on the other branch:
+    // deleting the key would say "challenge 1", and the player is on challenge
+    // 8. Only the number they cannot have is rewritten -- the speed they chose
+    // is still theirs.
+    const target = new FakeTarget();
+    target.location = { hash: "#challenge=18,timescale=8" };
+    const onRoute = vi.fn();
+
+    startRouter(onRoute, {
+      challengeCount: 18,
+      isChallengeLocked: (index) => index > 7,
+      defaultTimeScale: () => DEFAULT_TIME_SCALE,
+      target,
+    });
+
+    expect(target.replaced).toEqual(["#challenge=8,timescale=8"]);
+    const params = onRoute.mock.calls[0]?.[0] as RouteParams | undefined;
+    expect(params).toMatchObject({ challengeIndex: 7, refusedKeys: ["challenge"] });
+    // What the address bar says now is a challenge this player may open, so
+    // reading it again refuses nothing and the correction settles in one pass.
+    expect(routeAfterClearing(target.location.hash, 7)).toEqual({ ...params, refusedKeys: [] });
+  });
+
+  it("empties the hash when the locked challenge fell all the way back", () => {
+    // Absence spells challenge 1, so a fallback that lands there is a deletion
+    // like any other refusal -- writing `challenge=1` would put a choice in the
+    // bar that the player never made.
+    const target = new FakeTarget();
+    target.location = { hash: "#challenge=4" };
+
+    startRouter(vi.fn(), {
+      challengeCount: 18,
+      isChallengeLocked: (index) => index > 0,
+      defaultTimeScale: () => DEFAULT_TIME_SCALE,
+      target,
+    });
+
+    expect(target.replaced).toEqual(["#"]);
+  });
+
+  it("asks again on every navigation, so a challenge just cleared opens", () => {
+    // The reason this is a callback rather than a set handed over once: the
+    // "Next level" link in the verdict card is followed a moment after the win
+    // that unlocked what it points at.
+    const target = new FakeTarget();
+    let cleared = 0;
+    const onRoute = vi.fn();
+
+    startRouter(onRoute, {
+      challengeCount: 18,
+      isChallengeLocked: (index) => index > cleared,
+      defaultTimeScale: () => DEFAULT_TIME_SCALE,
+      target,
+    });
+
+    cleared = 1;
+    target.navigate("#challenge=2");
+
+    expect(onRoute.mock.calls[1]?.[0]).toMatchObject({ challengeIndex: 1, refusedKeys: [] });
+    expect(target.replaced).toEqual([]);
+  });
+
   it("still deletes the other refusals it finds on the track", () => {
     const target = new FakeTarget();
     target.location = { hash: "#challenge=tutorial-9,seed=rush%20hour" };
 
     startRouter(vi.fn(), {
       challengeCount: 18,
+      isChallengeLocked: EVERY_CHALLENGE_OPEN,
       defaultTimeScale: () => DEFAULT_TIME_SCALE,
       target,
     });
@@ -1008,6 +1209,7 @@ describe("startRouter", () => {
 
     startRouter(vi.fn(), {
       challengeCount: 18,
+      isChallengeLocked: EVERY_CHALLENGE_OPEN,
       defaultTimeScale: () => DEFAULT_TIME_SCALE,
       target,
     });
@@ -1027,6 +1229,7 @@ describe("startRouter", () => {
 
     startRouter(vi.fn(), {
       challengeCount: 18,
+      isChallengeLocked: EVERY_CHALLENGE_OPEN,
       defaultTimeScale: () => DEFAULT_TIME_SCALE,
       target,
     });
@@ -1053,6 +1256,7 @@ describe("startRouter", () => {
 
     startRouter(vi.fn(), {
       challengeCount: 18,
+      isChallengeLocked: EVERY_CHALLENGE_OPEN,
       defaultTimeScale: () => DEFAULT_TIME_SCALE,
       target,
     });
@@ -1066,6 +1270,7 @@ describe("startRouter", () => {
     const onRoute = vi.fn();
     startRouter(onRoute, {
       challengeCount: 18,
+      isChallengeLocked: EVERY_CHALLENGE_OPEN,
       defaultTimeScale: () => DEFAULT_TIME_SCALE,
       target,
     });
@@ -1085,6 +1290,7 @@ describe("startRouter", () => {
     const onRoute = vi.fn();
     startRouter(onRoute, {
       challengeCount: 18,
+      isChallengeLocked: EVERY_CHALLENGE_OPEN,
       defaultTimeScale: () => DEFAULT_TIME_SCALE,
       target,
     });
@@ -1102,6 +1308,7 @@ describe("startRouter", () => {
     const target = new FakeTarget();
     const stop = startRouter(vi.fn(), {
       challengeCount: 18,
+      isChallengeLocked: EVERY_CHALLENGE_OPEN,
       defaultTimeScale: () => DEFAULT_TIME_SCALE,
       target,
     });

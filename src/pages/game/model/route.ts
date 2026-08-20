@@ -43,6 +43,16 @@
  * back out of the address bar byte for byte, since a seed that changed on the
  * way through draws somebody else.
  * {@link "#shared/lib/seed.ts"!SEED_PATTERN} says what survives that trip.
+ *
+ * One of those validations is not about whether a value can be read but about
+ * whether it may be acted on: a numbered challenge has to be one this player
+ * has unlocked. Until it was checked here, the level switcher drew challenge 18
+ * shut and `#challenge=18` opened it anyway, which made the progression an
+ * opinion the interface held rather than a rule the game had.
+ * {@link fallBackToOpenChallenge} is the whole of the answer to such an
+ * address, and the rule it defers to belongs to
+ * {@link "#features/switch-level/index.ts"!isChallengeLocked} rather than to
+ * this file.
  */
 
 import type { SandboxOptions } from "#game/challenges.ts";
@@ -135,13 +145,14 @@ export interface RouteParams {
    *
    * Every key in here resolved to exactly what the corrected URL resolves to,
    * which is what makes correcting the address bar a rewrite that changes no
-   * route. For all but one that means the key is simply deleted, since its
-   * absence and its refusal come to the same thing. The exception is a task
-   * address the router could not read: it lands on the first task of the
-   * learning track, which absence does not spell, so that key is rewritten
-   * rather than dropped. {@link startRouter} does both, and says why the
-   * address bar is corrected at all rather than left describing a run that is
-   * not being played.
+   * route. For most that means the key is simply deleted, since its absence
+   * and its refusal come to the same thing. The exceptions are both spellings
+   * of `challenge` that land somewhere absence does not spell: a task address
+   * the router could not read, which starts the first task of the learning
+   * track, and a challenge this player has not unlocked, which starts the
+   * nearest one they have. Those are rewritten rather than dropped.
+   * {@link startRouter} does both, and says why the address bar is corrected
+   * at all rather than left describing a run that is not being played.
    *
    * A value that was *clamped* is not in here. `floors=100000` still names the
    * building on screen — it resolves to sixty floors every time it is read, and
@@ -169,6 +180,24 @@ export interface RouteContext {
   readonly challengeCount: number;
   /** Time scale to use when the URL does not ask for one. */
   readonly defaultTimeScale: number;
+  /**
+   * Whether a challenge is still shut to this player.
+   *
+   * Handed in rather than worked out here, for the reason
+   * {@link challengeCount} is: what a browser has cleared is stored state, and
+   * this module reads a URL. `src/main.ts` supplies
+   * {@link "#features/switch-level/index.ts"!isChallengeLocked} over this
+   * browser's own record, which is the same call the level switcher makes to
+   * decide which tiles to draw shut.
+   *
+   * Asked on every route rather than once, because the answer moves while the
+   * page is open: clearing a challenge unlocks the next one, and the "Next
+   * level" link in the verdict card is followed a moment later.
+   *
+   * @param index - Zero-based index of the challenge, already known to exist.
+   * @returns Whether it refuses to open.
+   */
+  readonly isChallengeLocked: (index: number) => boolean;
 }
 
 /**
@@ -344,7 +373,7 @@ export function resolveRoute(query: RouteQuery, context: RouteContext): RoutePar
     // complaining that "sandbox" or "tutorial-3" is not one would be noise.
     challengeIndex:
       sandbox === null && tutorialIndex === null
-        ? resolveChallengeIndex(challenge, context.challengeCount, refuse)
+        ? resolveChallengeIndex(challenge, context, refuse)
         : 0,
     sandbox,
     tutorialIndex,
@@ -832,26 +861,82 @@ function resolveElevatorCapacities(value: string | undefined, refuse: Refuse): n
  * resolvers: `Number("")` is `0`, and challenge zero does not exist, so the
  * range check below refuses it along with everything else out of range.
  *
+ * A challenge that exists is not yet a challenge this player may open, and the
+ * second check is the one that closes what used to be a hole: the level
+ * switcher draws a challenge shut until the one before it has been cleared,
+ * and typing `#challenge=18` opened it anyway. A URL is not a way around the
+ * game's own progression — {@link fallBackToOpenChallenge} says where such an
+ * address lands instead.
+ *
  * @param value - The raw parameter, if it was present.
- * @param challengeCount - How many challenges exist.
+ * @param context - The challenge count and this browser's locking rule.
  * @param refuse - Records the key when the value cannot be used.
- * @returns A valid zero-based index; `0` for anything unusable.
+ * @returns A zero-based index that exists and is open; `0` for anything
+ * unusable.
  */
 function resolveChallengeIndex(
   value: string | undefined,
-  challengeCount: number,
+  context: RouteContext,
   refuse: Refuse,
 ): number {
   if (value === undefined) {
     return 0;
   }
   const index = Number(value) - 1;
-  if (!Number.isInteger(index) || index < 0 || index >= challengeCount) {
+  if (!Number.isInteger(index) || index < 0 || index >= context.challengeCount) {
     console.warn(`Invalid challenge "${value}", starting the first challenge instead`);
     refuse("challenge");
     return 0;
   }
+  if (context.isChallengeLocked(index)) {
+    return fallBackToOpenChallenge(value, index, context.isChallengeLocked, refuse);
+  }
   return index;
+}
+
+/**
+ * Answers an address for a locked challenge with the nearest one that is open.
+ *
+ * Walks *back* from what was asked for, never forward, and stops at the first
+ * challenge that opens — which is as far along the row as this player has
+ * earned on the way to their destination. Walking forward could hand somebody
+ * a challenge further on than the one they were refused, which is the same
+ * hole with an extra step in it; and there is always somewhere to land, since
+ * the first challenge is open to everyone.
+ *
+ * Nothing here assumes the open challenges are a run from the first: a browser
+ * that cleared challenge 6 alone, back when every challenge was reachable from
+ * the row, has challenge 7 open and 2 through 6 shut, and an address for 12
+ * lands on 7. See
+ * {@link "#features/switch-level/index.ts"!isChallengeLocked} for why a record
+ * can look like that.
+ *
+ * The key is refused, so the address bar stops naming a challenge nobody is
+ * playing — {@link startRouter} rewrites it to the one that opened rather than
+ * deleting it, since deleting would say "challenge one" and that is a third
+ * place the player never asked to be.
+ *
+ * @param value - The raw parameter, for the warning.
+ * @param index - The locked challenge that was asked for.
+ * @param isChallengeLocked - This browser's locking rule.
+ * @param refuse - Records the key so the address bar loses the refused number.
+ * @returns The nearest open challenge at or before `index`.
+ */
+function fallBackToOpenChallenge(
+  value: string,
+  index: number,
+  isChallengeLocked: (index: number) => boolean,
+  refuse: Refuse,
+): number {
+  let open = index;
+  while (open > 0 && isChallengeLocked(open)) {
+    open -= 1;
+  }
+  console.warn(
+    `Challenge "${value}" has not been unlocked yet, starting challenge ${String(open + 1)} instead`,
+  );
+  refuse("challenge");
+  return open;
 }
 
 /**
@@ -877,6 +962,44 @@ function resolveTimeScale(
     return clampTimeScale(defaultTimeScale);
   }
   return clampTimeScale(timeScale);
+}
+
+/**
+ * How the `challenge` key has to be written to name what is being played, or
+ * `null` when it does not have to be written at all.
+ *
+ * The whole of {@link startRouter}'s "delete or rewrite" decision. `null` means
+ * delete: the first challenge is what an absent key already spells, and a
+ * correction that wrote `challenge=1` would be putting a choice into the
+ * address bar the player never made. Anything else is a landing absence cannot
+ * spell, and gets written out.
+ *
+ * The task's id is looked up rather than hard-coded to the first task's, though
+ * today those are the same thing and no test can tell them apart:
+ * `resolveTutorialIndex` is the only thing that refuses a `challenge` on the
+ * track, and it refuses only in the branch where it has already fallen back to
+ * `0`. Written generally anyway, because the day a task is refused for some
+ * reason other than being unspellable — not yet unlocked, say, or withdrawn —
+ * `tutorialTasks[0]` would quietly write the first task's address over whatever
+ * they were actually given, and the URL would go back to lying about the run.
+ * That is the failure the correction exists to prevent, so it should not depend
+ * on which refusals happen to exist. The numbered challenge below is exactly
+ * that day arriving on the other branch.
+ *
+ * There is no sandbox case, and it is not an omission: `challenge=sandbox` is
+ * decided before any of the three values is parsed, so nothing on that route
+ * ever calls {@link resolveChallengeIndex} and `challenge` cannot be among a
+ * sandbox route's refusals.
+ *
+ * @param params - What the route resolved to.
+ * @returns The value to write, or `null` to drop the key.
+ */
+function challengeAddress(params: RouteParams): string | null {
+  const { challengeIndex, tutorialIndex } = params;
+  if (tutorialIndex !== null) {
+    return tutorialTasks[tutorialIndex]?.id ?? null;
+  }
+  return challengeIndex === 0 ? null : String(challengeIndex + 1);
 }
 
 /** Called with every route the player navigates to. */
@@ -934,6 +1057,16 @@ export interface RouterOptions {
    * buttons survives moving to the next challenge.
    */
   readonly defaultTimeScale: () => number;
+  /**
+   * Whether a challenge is still shut to this player.
+   *
+   * Re-read on every navigation for the reason {@link RouteContext.isChallengeLocked}
+   * gives: a challenge cleared a moment ago is a challenge that opens now.
+   *
+   * @param index - Zero-based index of the challenge, already known to exist.
+   * @returns Whether it refuses to open.
+   */
+  readonly isChallengeLocked: (index: number) => boolean;
   /** The window whose location and events to follow; defaults to `window`. */
   readonly target?: RouterTarget;
 }
@@ -960,14 +1093,18 @@ export interface RouterOptions {
  * route it is correcting, which is what makes it safe to do without routing
  * again.
  *
- * A refused task address is the one key corrected by rewriting instead, and by
- * that same rule rather than in spite of it: `#challenge=tutorial-9` is a wrong
- * address on the learning track, so it starts the track's first task, and the
- * only thing that spells that task is its own id. Absence spells the first
- * challenge, which is somewhere else entirely, so deleting the key here would
- * leave the bar describing a run nobody is watching and a reload would take the
- * player to it. It becomes `challenge=tutorial-1`, which is not a choice
- * invented for them: they chose the track, and this is where the track starts.
+ * A refused `challenge` is corrected by rewriting instead when what it landed
+ * on is not what absence spells, and by that same rule rather than in spite of
+ * it. There are two such landings. `#challenge=tutorial-9` is a wrong address
+ * on the learning track, so it starts the track's first task, and the only
+ * thing that spells that task is its own id; and `#challenge=18` typed by
+ * somebody who has cleared seven starts the eighth, which `challenge=8` is the
+ * only spelling of. Absence spells the first challenge, which is somewhere
+ * else entirely in both cases, so deleting the key would leave the bar
+ * describing a run nobody is watching and a reload would take the player to
+ * it. Neither correction invents a choice for them: they chose the track, and
+ * this is where the track starts; they asked to go on, and this is as far on as
+ * they have earned.
  *
  * The handler is handed the corrected parameters rather than the ones that were
  * written, so that everything built from them is clean as well. The level
@@ -992,33 +1129,18 @@ export function startRouter(onRoute: RouteHandler, options: RouterOptions): () =
    * @returns The parameters that survived, which the URL now names.
    */
   const correct = (query: RouteQuery, params: RouteParams): RouteQuery => {
-    const { refusedKeys, tutorialIndex } = params;
+    const { refusedKeys } = params;
     if (refusedKeys.length === 0) {
       return query;
     }
-    // The task being played when a task address was refused, and the only
-    // spelling of it. `undefined` when the route is not on the learning track,
-    // and unreachable when it is: the index came out of this table.
-    //
-    // Indexed rather than hard-coded to the first task, though today those are
-    // the same thing and no test can tell them apart: `resolveTutorialIndex` is
-    // the only thing that refuses a `challenge` on the track, and it refuses
-    // only in the branch where it has already fallen back to `0`. So a refused
-    // task address always means task one. Written generally anyway, because the
-    // day a task is refused for some reason other than being unspellable -- not
-    // yet unlocked, say, or withdrawn -- `tutorialTasks[0]` would quietly write
-    // the first task's address over whatever they were actually given, and the
-    // URL would go back to lying about the run. That is the failure this whole
-    // function exists to prevent, so it should not depend on which refusals
-    // happen to exist.
-    const task = tutorialIndex === null ? undefined : tutorialTasks[tutorialIndex];
+    const address = challengeAddress(params);
     const kept = new Map(query);
     for (const key of refusedKeys) {
-      if (key === "challenge" && task !== undefined) {
+      if (key === "challenge" && address !== null) {
         // Set rather than deleted and re-added, so the corrected URL still
         // reads in the order it was written: a `Map` leaves a key it already
         // has where it is.
-        kept.set(key, task.id);
+        kept.set(key, address);
       } else {
         kept.delete(key);
       }
@@ -1046,6 +1168,7 @@ export function startRouter(onRoute: RouteHandler, options: RouterOptions): () =
     const params = resolveRoute(query, {
       challengeCount: options.challengeCount,
       defaultTimeScale: options.defaultTimeScale(),
+      isChallengeLocked: options.isChallengeLocked,
     });
     onRoute(params, correct(query, params));
   };

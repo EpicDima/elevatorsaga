@@ -10,13 +10,19 @@
 
 import { expect, test } from "@playwright/test";
 
-import { seedText } from "./game-page.ts";
+import { seedText, unlockLevel } from "./game-page.ts";
 
 test("takes a parameter the game refused out of the address bar", async ({ page }) => {
   // The URL said `seed=rush hour` while the game drew somebody else, because a
   // browser writes the space as %20 and a percent sign is not a seed. A URL
   // that names a run nobody is playing is the one a player bookmarks and
   // shares.
+  //
+  // Earned first, because level 4 is one of the addresses a browser has to have
+  // played its way to: without this the router would refuse the level as well,
+  // and the test would be watching the wrong refusal.
+  await unlockLevel(page, 4);
+
   await page.goto("/#challenge=4,seed=rush hour");
 
   await expect(page).toHaveURL(/#challenge=4$/);
@@ -35,11 +41,30 @@ test("empties a hash whose every parameter was refused", async ({ page }) => {
   expect(await page.evaluate(() => window.location.hash)).toBe("");
 });
 
+test("sends a level this browser has not earned back to the one it has", async ({ page }) => {
+  // The switcher has always drawn level 18 shut until 17 is cleared, and this
+  // address used to open it regardless, which made the progression an opinion
+  // the interface held rather than a rule of the game.
+  //
+  // The refusal cannot be a deletion the way `seed=rush hour` is above: a hash
+  // with no `challenge` in it means level 1, not the furthest one reached. So
+  // the key is rewritten to the level that opened instead, and the bar goes on
+  // naming the game on screen.
+  await unlockLevel(page, 4);
+
+  await page.goto("/#challenge=18,timescale=8");
+
+  await expect(page).toHaveURL(/#challenge=4,timescale=8$/);
+  await expect(page.getByRole("button", { name: "Level 4" })).toBeVisible();
+});
+
 test("does not leave the refused url behind the Back button", async ({ page }) => {
   // The reason the correction is `replaceState`. Written as a navigation it
   // would push an entry, so Back would land on the URL that was just refused,
   // be corrected again, and never get past it -- a page the player cannot leave
   // backwards.
+  await unlockLevel(page, 2);
+
   await page.goto("/#challenge=2");
   await expect(page.getByRole("button", { name: "Level 2" })).toBeVisible();
 

@@ -50,9 +50,11 @@ original is scored by the same rules.
   have not, and the eighth task is challenge 1's building and challenge 1's bar, so the program
   that clears it is one you can take straight into challenge 1. See
   [The learning track](#the-learning-track).
-- **A jump list for the challenges.** Every challenge is a link in the bar above the building, so
-  reaching challenge 12 no longer means either winning eleven of them or hand-editing the address
-  bar. The one being played is marked, and the last entry is the endless demo.
+- **A jump list for the challenges.** Every challenge you have opened is a link in the bar above the
+  building, so going back to challenge 3 to try another program on it is one click rather than an
+  edit to the address bar. Clearing a challenge at all — bronze is enough — opens the next one, and
+  one you have not opened yet is drawn shut in the list and refused in the URL. The one being played
+  is marked, and the last entry is the endless demo.
 - **Repeatable runs.** Every run draws its passengers from a seed, which is shown in the bar and
   printed to the console as the run starts. Following the seed link, or writing `#seed=…` yourself,
   brings the same people back in the same order to every restart — enough to compare two programs
@@ -445,16 +447,16 @@ Everything after the `#` is a comma-separated list of `key=value` pairs, for exa
 "next challenge" link. Anything malformed falls back to a sane default with a console warning
 rather than breaking the page.
 
-| Parameter               | Effect                                                                                                                                                                                                                      |
-| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `#challenge=N`          | Starts challenge `N`, counting from 1. Out of range, missing, or unreadable as a number and not one of the two names below: challenge 1.                                                                                    |
-| `#challenge=sandbox`    | Starts a building of your own instead of a numbered challenge. See below.                                                                                                                                                   |
-| `#challenge=tutorial-N` | Starts task `N` of the learning track, from `tutorial-1` to `tutorial-8`. A `tutorial-` address no task has starts the first one. See [The learning track](#the-learning-track).                                            |
-| `#autostart`            | Starts the simulation immediately instead of waiting for the Start button.                                                                                                                                                  |
-| `#timescale=X`          | Simulation speed multiplier. Clamped to `0.1`–`64`. Fractions such as `1.5` work. Without it, the speed you last chose is used again — it is kept in `localStorage` under `elevatorTimeScale` — and `2` when there is none. |
-| `#seed=S`               | Pins the seed the passenger stream is drawn from. Not the building. Refused on a learning task. See below.                                                                                                                  |
-| `#devtest`              | Loads the built-in reference solution into the editor, replacing what is there. Refused on a learning task.                                                                                                                 |
-| `#fullscreen`           | Hides everything except the building.                                                                                                                                                                                       |
+| Parameter               | Effect                                                                                                                                                                                                                                                   |
+| ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `#challenge=N`          | Starts challenge `N`, counting from 1. Out of range, missing, or unreadable as a number and not one of the two names below: challenge 1. A challenge you have not unlocked starts the furthest one you have, and the address bar is rewritten to say so. |
+| `#challenge=sandbox`    | Starts a building of your own instead of a numbered challenge. See below.                                                                                                                                                                                |
+| `#challenge=tutorial-N` | Starts task `N` of the learning track, from `tutorial-1` to `tutorial-8`. A `tutorial-` address no task has starts the first one. See [The learning track](#the-learning-track).                                                                         |
+| `#autostart`            | Starts the simulation immediately instead of waiting for the Start button.                                                                                                                                                                               |
+| `#timescale=X`          | Simulation speed multiplier. Clamped to `0.1`–`64`. Fractions such as `1.5` work. Without it, the speed you last chose is used again — it is kept in `localStorage` under `elevatorTimeScale` — and `2` when there is none.                              |
+| `#seed=S`               | Pins the seed the passenger stream is drawn from. Not the building. Refused on a learning task. See below.                                                                                                                                               |
+| `#devtest`              | Loads the built-in reference solution into the editor, replacing what is there. Refused on a learning task.                                                                                                                                              |
+| `#fullscreen`           | Hides everything except the building.                                                                                                                                                                                                                    |
 
 The three flags — `autostart`, `devtest` and `fullscreen` — are on when present and off when
 explicitly set to `false` (`#autostart=false`). Bare flags now work: in the original, `#fullscreen`

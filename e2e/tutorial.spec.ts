@@ -16,7 +16,7 @@
 import { expect, test } from "@playwright/test";
 import type { Locator, Page } from "@playwright/test";
 
-import { editor, languagePicker, startButton, storedCode } from "./game-page.ts";
+import { editor, languagePicker, startButton, storedCode, unlockLevel } from "./game-page.ts";
 
 /**
  * Where task 1 lives.
@@ -430,6 +430,12 @@ test("costs the levels nothing: the widest building in the game still fits its p
   //
   // Measured at both widths, because the pane is what the ceiling is a
   // percentage of and the splitter can change it without the window moving.
+  //
+  // Unlocked first: the widest house is the last level, so a browser that has
+  // cleared nothing is sent back to the first one and this would be measuring
+  // a two-shaft building.
+  await unlockLevel(page, 18);
+
   for (const [width, height] of [
     [1280, 900],
     [1040, 600],
