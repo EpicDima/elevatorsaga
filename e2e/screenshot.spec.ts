@@ -118,6 +118,15 @@ test.describe("README screenshot", () => {
     await page.getByRole("button", { name: "Pause" }).click();
     await expect(startButton(page, "Resume")).toBeVisible();
 
+    // The panel as a player finds it. Reading a statistic forces the "All
+    // figures" disclosure open, which is right for a test asking what a number
+    // is and wrong for a picture: it is shut on arrival, and left open it fills
+    // the lower half of the frame with the nine figures behind it while the
+    // building the game is about shrinks to fit what is left.
+    await page.locator(".statspanel .more").evaluate((details) => {
+      (details as HTMLDetailsElement).open = false;
+    });
+
     // The interface is set in the system UI face and the bundle ships no
     // webfont, so there is normally nothing outstanding here -- but the editor
     // asks for a monospace stack of its own, and waiting costs a tick against
