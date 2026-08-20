@@ -1518,13 +1518,22 @@ elevator.goToFloor(2); // Queued anyway -- queue: 2, 3, 2`,
   // dispatched: `design/elevator-dispatch-research.md` is where each one comes
   // from.
   //
-  // Three keys per level and no more, which is the whole difference from the
+  // One key per level and no more, which is the whole difference from the
   // learning track above. A lesson there owns a goal, three hints, an
   // explanation and a program measured to solve it, because it stages one
-  // particular mistake and walks the player out of it. A level here names an
-  // idea and hands over the building. So: a `title`, one paragraph saying what
-  // the idea is, and the program the editor opens with — no hints, and no
+  // particular mistake and walks the player out of it. A level here hands over
+  // the building. So: the program the editor opens with — no hints, and no
   // answer, because there is no single answer to be the answer.
+  //
+  // One level has a `title` and a paragraph on top, and that is the rule
+  // rather than an accident: a card belongs to the level where a mechanic is
+  // first met, which so far is `sky2` and traffic profiles. A block that opened
+  // a card on every level would spend the widest
+  // column on the screen restating what the level before it already explained,
+  // and the player would learn to skip the column that matters twice. Where
+  // there is no card the region collapses and the building takes the width. So
+  // a card carries the whole of an idea rather than one level's share of it,
+  // and the levels after it are the idea being asked for rather than described.
   //
   // The `.html` and `.code` suffixes carry the same rules they carry on the
   // track. A briefing is markup because it puts <em> and <code> around the
@@ -1543,15 +1552,12 @@ elevator.goToFloor(2); // Queued anyway -- queue: 2, 3, 2`,
   // — and the copy nobody remembers to change is this one. It says what the
   // building is like and what is hard about it; the bar says what winning is.
 
-  // Level 1. Named for what its starting program does rather than for the
-  // building, because the building is the ordinary one and the habit is the
-  // thing being broken: on three floors, sending a car across the building for
-  // one passenger is barely a mistake, and this is the first level where it is
-  // the whole difference between winning and losing.
-  "skyscraper.sky1.title": "Eleven floors for one passenger",
-  "skyscraper.sky1.briefing.html":
-    'Twelve floors, three cars, and a run judged in moves rather than seconds. A building this tall is the first one in the game where a car spends more of its life travelling than loading, and the loop it repeats — out to a call, round its stops, back again — is what lift engineers call the <em>round-trip time</em>. Every later level in this block is a different way of making that loop shorter. This one gives you nothing new to do it with: the program you start with sends the next car in turn straight to whoever called, and a car that answers a call on the eleventh floor climbs eleven floors to carry <span class="emphasis-color">one</span> person back down. The cars are not too slow and there are not too few of them. They are being sent one errand at a time.',
-
+  // Level 1. The block's opener, and a level whose subject is a habit rather
+  // than a mechanic, which is why it has no card: the building is the ordinary
+  // one and only the program is new. On three floors, sending a car across the
+  // building for one passenger is barely a mistake; this is the first level
+  // where it is the whole difference between winning and losing, and the `TODO`
+  // in the program is where that is said.
   "skyscraper.sky1.startingCode.code": `{
     init: function(elevators, floors) {
         let next = 0;
@@ -1597,9 +1603,15 @@ elevator.goToFloor(2); // Queued anyway -- queue: 2, 3, 2`,
   // Level 2. The morning up-peak, small enough to watch: every passenger of the
   // run appears in the lobby, so the interesting decision is not which car to
   // send but when to let one leave.
+  //
+  // One of the block's two cards, and it introduces traffic profiles for all of
+  // levels 2 to 7 rather than for this one alone -- which is why it ends by
+  // naming the evening and midday rhythms it does not itself play. Those levels
+  // have no card, so this paragraph is the only place a player is told that the
+  // crowd has a shape and that it changes.
   "skyscraper.sky2.title": "Everyone starts in the lobby",
   "skyscraper.sky2.briefing.html":
-    'Ten floors, two cars, and a building that has just opened its doors. This is the <em>morning up-peak</em>: for as long as the run lasts every passenger appears in the lobby and every one of them is going up. The buttons upstairs stay dark, so "which floor called?" is a question with one answer, and picking a car for the call decides almost nothing. What decides the run is the trip back. A car returns to the lobby empty whatever you do, so the only figure you can change is how many people it carried on the way out — and the program you start with sends a car off the moment the first passenger presses a button.',
+    'Ten floors, two cars, and a building that has just opened its doors. Every level from here on sets the crowd a rhythm of its own, and this one is the <em>morning up-peak</em>: for as long as the run lasts every passenger appears in the lobby and every one of them is going up. The buttons upstairs stay dark, so "which floor called?" is a question with one answer, and picking a car for the call decides almost nothing. What decides the run is the trip back. A car returns to the lobby empty whatever you do, so the only figure you can change is how many people it carried on the way out — and the program you start with sends a car off the moment the first passenger presses a button. The levels after this one turn the rhythm around: an <em>evening down-peak</em> with the whole building trying to reach the street, and <em>lunch traffic</em> running both ways at once.',
 
   "skyscraper.sky2.startingCode.code": `{
     init: function(elevators, floors) {
@@ -1634,12 +1646,8 @@ elevator.goToFloor(2); // Queued anyway -- queue: 2, 3, 2`,
 }`,
 
   // Level 3. The same morning in a tower, and the first level of the block to
-  // award silver and gold. Named for the hour rather than the mechanic because
-  // the mechanic is level 2's and this is where it is asked for at scale.
-  "skyscraper.sky3.title": "Sixteen floors before nine",
-  "skyscraper.sky3.briefing.html":
-    "Sixteen floors, four cars with room for ten, and the heaviest morning in the building. Everything level 2 said still holds and now it costs: the lobby fills faster than any one car can empty it, and a car that leaves half full has spent a whole round trip carrying half a load. You do not start from nothing this time — the program in the editor is the sweep, answering each call as the car passes it rather than driving out to it. That is enough to finish the run. Silver and gold ask for something else on top: not just fewer floors crossed, but a lobby nobody stands in for long.",
-
+  // award silver and gold. No card: the mechanic is level 2's, and this is
+  // where it is asked for at scale rather than explained again.
   "skyscraper.sky3.startingCode.code": `{
     init: function(elevators, floors) {
         let next = 0;
@@ -1691,13 +1699,10 @@ elevator.goToFloor(2); // Queued anyway -- queue: 2, 3, 2`,
     }
 }`,
 
-  // Level 4. The morning run backwards. Named for the reversal itself, because
-  // the starting program is not wrong in any way it was wrong before -- it is
-  // the same habit, in a building where the habit has changed sides.
-  "skyscraper.sky4.title": "Now the lobby is the destination",
-  "skyscraper.sky4.briefing.html":
-    "Twelve floors, two cars, and the same building at the end of the day. The <em>evening down-peak</em> is the morning played backwards: nobody appears in the lobby any more and everybody is trying to reach it. Which means a car with nothing to do is in the wrong place — the program you start with sends it home to the lobby, which was exactly right this morning and is now the one floor in the building with nobody standing on it. Every wait in this run begins with a car climbing back up to fetch somebody, and every one of those climbs is a trip you have already paid for once.",
-
+  // Level 4. The morning run backwards. The starting program is not wrong in
+  // any way it was wrong before -- it is the same habit in a building where the
+  // habit has changed sides, and the `TODO` on its `idle` handler is the whole
+  // of what the level has to say.
   "skyscraper.sky4.startingCode.code": `{
     init: function(elevators, floors) {
         let next = 0;
@@ -1733,10 +1738,6 @@ elevator.goToFloor(2); // Queued anyway -- queue: 2, 3, 2`,
   // Level 5. The evening at scale, and the one level of the block judged on the
   // clock and on the longest wait rather than on floors crossed -- because what
   // a down-peak does badly is not waste distance, it is forget somebody.
-  "skyscraper.sky5.title": "Fourteen floors, all going down",
-  "skyscraper.sky5.briefing.html":
-    "Fourteen floors, three cars, and everybody leaving at once. This run is judged on the clock and on the longest wait any single passenger suffers, which is the pair of figures a real building watches at going-home time: a car filling up on its way down passes the floors below it with no room left, and the person it passes is the one the run is measured by. The editor opens with the sweep from level 3. It gets everyone downstairs. Whether it gets the last of them downstairs in time is the question.",
-
   "skyscraper.sky5.startingCode.code": `{
     init: function(elevators, floors) {
         let next = 0;
@@ -1791,10 +1792,6 @@ elevator.goToFloor(2); // Queued anyway -- queue: 2, 3, 2`,
   // Level 6. Both peaks at once. The short one: nine floors, five to a car, and
   // the first building in the block where a car has somewhere useful to be in
   // both directions.
-  "skyscraper.sky6.title": "Lunch runs both ways",
-  "skyscraper.sky6.briefing.html":
-    "Nine floors at midday. <em>Lunch traffic</em> is the two peaks happening at the same time: half the building is going down to the street and the other half is coming back up, so every trip touches the lobby in one direction or the other. That is the first good news the block has offered you — a car no longer has an empty leg it cannot avoid. It also means the mistake has changed shape again. A car that drops its passengers off and then goes looking for the next call has thrown away the half of the journey it was already going to make.",
-
   "skyscraper.sky6.startingCode.code": `{
     init: function(elevators, floors) {
         let next = 0;
@@ -1830,10 +1827,6 @@ elevator.goToFloor(2); // Queued anyway -- queue: 2, 3, 2`,
   // Level 7. The last of the traffic levels, and the one that pays back the
   // whole block: with demand in both directions, the round trip level 1
   // introduced can be made to carry somebody the entire way round.
-  "skyscraper.sky7.title": "Neither half of the trip is free",
-  "skyscraper.sky7.briefing.html":
-    "Twelve floors, three cars, and the midday rhythm in a building big enough for it to cost. Everything a car does here it does twice: out of the lobby with a load, back to the lobby with another one, and the run is judged in <em>moves</em> — floors crossed — so a leg that carries nobody is the only thing there is to lose. You are back to the one-errand-at-a-time program the block opened with, which is the wrong dispatcher in every building so far and is at its worst here. Gold on this level is what the block has been about since its first line: the same passengers, the same cars, and the shortest round trip you can arrange for them.",
-
   "skyscraper.sky7.startingCode.code": `{
     init: function(elevators, floors) {
         let next = 0;

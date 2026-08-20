@@ -4,9 +4,16 @@
  *
  * Those levels are each built on a real lift-dispatch idea -- traffic profiles,
  * zoning, destination dispatch -- that the numbered levels 1 to 19 know nothing
- * about, so a player arriving at one needs a sentence about the idea before the
- * goal bar's "deliver 20 people in 60 seconds" means anything. That sentence is
- * the whole of this widget.
+ * about, so a player meeting one of those ideas for the first time needs a
+ * sentence about it before the goal bar's "deliver 20 people in 60 seconds"
+ * means anything. That sentence is the whole of this widget.
+ *
+ * Drawn on the level where an idea is introduced and on no other, which is why
+ * `SkyscraperLevel.card` is optional and most levels answer `undefined`: the
+ * levels that follow are the idea being asked for rather than explained again,
+ * and this card is the widest column on the screen to spend on saying so twice.
+ * The page simply does not call this function for them, and the region it would
+ * have drawn into stays empty and hidden, so the building takes the width.
  *
  * It is not the learning track's lesson card, and the difference is machinery
  * rather than size. `widgets/tutorial-panel` carries three disclosures a player

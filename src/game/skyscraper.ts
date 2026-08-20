@@ -98,29 +98,52 @@ export interface SkyscraperLevel {
    */
   readonly startingCode: string;
   /**
-   * The level's name, shown on the card beside the building.
+   * The card drawn beside the building, on the levels that have one.
    *
-   * Needed because nothing else on screen can carry it. The switcher's trigger
-   * is 118px wide and says "Tower 3" — its own message comment explains why the
-   * longer labels overflow there — and the goal bar says what the level asks
-   * for, not what it is about. Without this the block would be a row of
-   * numbered tiles whose ideas are never named.
+   * Most do not, and that is the point of the field being optional. A card is
+   * for the level where a player meets a mechanic for the first time — `sky-2`,
+   * where traffic profiles are — and a block where every level carried one
+   * would be a block that stops the player to explain something on every visit,
+   * spending the widest column on the screen to say what the previous level
+   * already said. Where there is no card the region collapses and the building
+   * takes the space back.
+   *
+   * One optional object rather than two optional strings, so that "a title and
+   * a paragraph, or neither" is the shape of the type rather than a rule
+   * somebody has to remember: a level cannot end up with a heading over an
+   * empty card, and the page has one question to ask rather than two.
+   */
+  readonly card?: SkyscraperCard;
+}
+
+/** The name and the paragraph of a level that introduces something new. */
+export interface SkyscraperCard {
+  /**
+   * The level's name.
+   *
+   * Carried here because nothing else on screen can carry it. The switcher's
+   * trigger is 118px wide and says "Tower 3" — its own message comment explains
+   * why the longer labels overflow there — and the goal bar says what the level
+   * asks for, not what it is about.
    */
   readonly title: string;
-  /** The paragraph shown beside the building, saying what this level is about. */
+  /** One paragraph on the idea the level is built on. Catalogue markup. */
   readonly briefing: string;
 }
 
 /**
  * Every level of the Skyscraper block, in the order they are played.
  *
- * `startingCode`, `title` and `briefing` are getters rather than fields, for the
- * reason `tutorial.ts` spells out at `tutorialLevels`: all three are messages,
- * and a field here would render them while this module is being imported —
- * before anything has chosen a locale, freezing them in the one language nobody
- * asked for. A getter is read at the moment somebody needs the text, by which
- * time a language has been chosen, and a language chosen again later is
- * answered the next time any of them is asked for.
+ * `startingCode` and `card` are getters rather than fields, for the reason
+ * `tutorial.ts` spells out at `tutorialLevels`: both are messages, and a field
+ * here would render them while this module is being imported — before anything
+ * has chosen a locale, freezing them in the one language nobody asked for. A
+ * getter is read at the moment somebody needs the text, by which time a
+ * language has been chosen, and a language chosen again later is answered the
+ * next time either of them is asked for. A `card` getter builds a fresh object
+ * on every read for that same reason: the object is two messages, so it has to
+ * be composed in the language being drawn rather than once, in whichever
+ * language came first.
  *
  * Every key is written out in full at the entry that uses it rather than built
  * from `id`, again for `tutorialLevels`' reason: a key assembled at runtime is
@@ -170,12 +193,6 @@ export const skyscraperLevels: readonly SkyscraperLevel[] = [
     get startingCode(): string {
       return t("skyscraper.sky1.startingCode.code");
     },
-    get title(): string {
-      return t("skyscraper.sky1.title");
-    },
-    get briefing(): string {
-      return t("skyscraper.sky1.briefing.html");
-    },
   },
   /**
    * Up-peak, small enough to watch: ten floors, two cars, six seats, and a
@@ -208,11 +225,11 @@ export const skyscraperLevels: readonly SkyscraperLevel[] = [
     get startingCode(): string {
       return t("skyscraper.sky2.startingCode.code");
     },
-    get title(): string {
-      return t("skyscraper.sky2.title");
-    },
-    get briefing(): string {
-      return t("skyscraper.sky2.briefing.html");
+    get card(): SkyscraperCard {
+      return {
+        title: t("skyscraper.sky2.title"),
+        briefing: t("skyscraper.sky2.briefing.html"),
+      };
     },
   },
   /**
@@ -252,12 +269,6 @@ export const skyscraperLevels: readonly SkyscraperLevel[] = [
     get startingCode(): string {
       return t("skyscraper.sky3.startingCode.code");
     },
-    get title(): string {
-      return t("skyscraper.sky3.title");
-    },
-    get briefing(): string {
-      return t("skyscraper.sky3.briefing.html");
-    },
   },
   /**
    * Down-peak, small: twelve floors, two cars, and the lobby as everybody's
@@ -290,12 +301,6 @@ export const skyscraperLevels: readonly SkyscraperLevel[] = [
     seed: 2,
     get startingCode(): string {
       return t("skyscraper.sky4.startingCode.code");
-    },
-    get title(): string {
-      return t("skyscraper.sky4.title");
-    },
-    get briefing(): string {
-      return t("skyscraper.sky4.briefing.html");
     },
   },
   /**
@@ -335,12 +340,6 @@ export const skyscraperLevels: readonly SkyscraperLevel[] = [
     get startingCode(): string {
       return t("skyscraper.sky5.startingCode.code");
     },
-    get title(): string {
-      return t("skyscraper.sky5.title");
-    },
-    get briefing(): string {
-      return t("skyscraper.sky5.briefing.html");
-    },
   },
   /**
    * Lunch, small: nine floors, two cars, five seats, and demand in both
@@ -374,12 +373,6 @@ export const skyscraperLevels: readonly SkyscraperLevel[] = [
     seed: 0,
     get startingCode(): string {
       return t("skyscraper.sky6.startingCode.code");
-    },
-    get title(): string {
-      return t("skyscraper.sky6.title");
-    },
-    get briefing(): string {
-      return t("skyscraper.sky6.briefing.html");
     },
   },
   /**
@@ -420,12 +413,6 @@ export const skyscraperLevels: readonly SkyscraperLevel[] = [
     seed: 0,
     get startingCode(): string {
       return t("skyscraper.sky7.startingCode.code");
-    },
-    get title(): string {
-      return t("skyscraper.sky7.title");
-    },
-    get briefing(): string {
-      return t("skyscraper.sky7.briefing.html");
     },
   },
 ];

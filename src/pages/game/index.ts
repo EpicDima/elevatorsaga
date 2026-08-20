@@ -556,7 +556,7 @@ export interface TutorialRun {
  * A separate type rather than a shared one over both blocks, because the levels
  * are separate types with different promises: only a `TutorialLevel` carries a
  * `solutionCode` for the lesson panel to show, and only a `SkyscraperLevel`
- * carries a `briefing`. Unifying them would mean the widest of both, and every
+ * carries a `card`. Unifying them would mean the widest of both, and every
  * reader of either would have to ask which half of it was real.
  */
 export interface SkyscraperRun {
@@ -1993,8 +1993,8 @@ export class App {
 
   /**
    * Draws whichever card the level on screen has earned the region beside the
-   * building — the learning track's lesson panel, or a Skyscraper level's
-   * briefing — and empties it when the level has neither.
+   * building — the learning track's lesson panel, or the briefing card of a
+   * Skyscraper level that has one — and empties it when the level has neither.
    *
    * Two widgets, one element, and exactly one of them ever drawn: both write
    * into `#elements.tutorial`, and each presenter replaces the region's contents
@@ -2019,9 +2019,11 @@ export class App {
    * keep in step and a third to forget when a third caller appears. It runs
    * after the bar so that the page is written in the order it is read.
    *
-   * Emptying is not an afterthought but the common case: nineteen levels
-   * and the sandbox all reach here, and every one of them has to leave
-   * the region empty, since the stylesheet hides it only while it is. Leaving
+   * Emptying is not an afterthought but the common case: nineteen levels, the
+   * sandbox and most of the Skyscraper block all reach here, and every one of
+   * them has to leave the region empty, since the stylesheet hides it only
+   * while it is — which is how a level with nothing to explain gives the width
+   * back to the building rather than to a blank card. Leaving
    * the last level's hints above level 1 would be worse than a gap — they
    * are the answer to a level the player is no longer playing.
    *
@@ -2048,17 +2050,15 @@ export class App {
       presentTutorial(this.#elements.tutorial, { levelIndex: tutorial.index });
       return;
     }
-    const skyscraper = this.#skyscraper;
-    if (skyscraper !== undefined) {
-      // Both strings read here, on the way in, rather than passed as a level
-      // id for the widget to look up. They are getters over the message
-      // catalogue, so reading them at the moment of drawing is what puts the
-      // card in the language being drawn -- which is the whole reason this
-      // method is called again on a language change.
-      presentLevelBriefing(this.#elements.tutorial, {
-        title: skyscraper.level.title,
-        briefing: skyscraper.level.briefing,
-      });
+    // Read here, on the way in, rather than passed as a level id for the widget
+    // to look up. `card` is a getter over the message catalogue, so reading it
+    // at the moment of drawing is what puts the card in the language being drawn
+    // -- which is the whole reason this method is called again on a language
+    // change. Most levels of the block answer `undefined` and fall through to
+    // the emptying below, which is what leaves the building the space.
+    const card = this.#skyscraper?.level.card;
+    if (card !== undefined) {
+      presentLevelBriefing(this.#elements.tutorial, card);
       return;
     }
     clearChildren(this.#elements.tutorial);

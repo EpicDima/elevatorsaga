@@ -1,8 +1,8 @@
 /**
  * The Skyscraper table is a table: ids that survive being written down,
  * buildings the game can actually construct, bars that decide nothing before a
- * run has begun and can still be cleared, and three messages per level that
- * arrive in the language they are read in.
+ * run has begun and can still be cleared, and messages that arrive in the
+ * language they are read in.
  *
  * Everything here is about the *shape* of
  * {@link "./skyscraper.ts"!skyscraperLevels}. Whether a level is worth playing
@@ -15,13 +15,16 @@
  *
  * Written as a loop over the table rather than as a set of specs about `sky-1`,
  * because this block is the part of the game that is expected to grow. A level
- * added tomorrow arrives with its id, its building, its bar and its three
- * messages already checked, instead of arriving with a note asking somebody to
+ * added tomorrow arrives with its id, its building, its bar and its starting
+ * program already checked, instead of arriving with a note asking somebody to
  * write these specs again by hand — which is the kind of note that gets skipped
- * on the level where it would have mattered.
+ * on the level where it would have mattered. The briefing card is the one thing
+ * checked in a loop of its own, because most levels of the block do not carry
+ * one: a card is for the level where a mechanic is first met, and a spec that
+ * demanded one everywhere would be a spec against the block's own design.
  *
  * Every message is read in every language, and that is not thoroughness — it is
- * the whole of what `title`, `briefing` and `startingCode` being getters is for.
+ * the whole of what `card` and `startingCode` being getters is for.
  * A field there would be rendered while the module is being imported, before
  * anything has chosen a language, and would answer in that one language for the
  * rest of the session. What that failure looks like from outside is the English
@@ -34,7 +37,7 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import { DEFAULT_LOCALE, LOCALES, setLocale } from "../i18n/index.ts";
 import type { Level, LevelWorldStats } from "./levels.ts";
-import { skyscraperLevels, type SkyscraperLevel } from "./skyscraper.ts";
+import { skyscraperLevels, type SkyscraperCard, type SkyscraperLevel } from "./skyscraper.ts";
 import { at } from "./test-helpers.ts";
 import { getCodeObjFromCode } from "./user-code.ts";
 import { createWorld } from "./world.ts";
@@ -125,6 +128,27 @@ function expectConditionIsReachable(level: SkyscraperLevel): void {
   );
 }
 
+/**
+ * Reads the card off a level that is expected to carry one.
+ *
+ * The specs below are handed levels already filtered to the ones with a card,
+ * so the `undefined` arm is unreachable from them; it is written as a throw
+ * rather than an assertion so that the reader gets a `SkyscraperCard` and not
+ * an optional one, and so that a filter which stopped filtering fails by name
+ * rather than by a confusing message about a property of `undefined`.
+ *
+ * @param level - A level of the block.
+ * @returns Its card, read in whatever language is current.
+ * @throws When the level has no card.
+ */
+function cardOf(level: SkyscraperLevel): SkyscraperCard {
+  const card = level.card;
+  if (card === undefined) {
+    throw new Error(`${level.id} has no briefing card`);
+  }
+  return card;
+}
+
 describe("Skyscraper block table", () => {
   it("has levels to play at all", () => {
     // The loop below is the whole of this file, and a loop over an empty table
@@ -195,44 +219,17 @@ describe.each(skyscraperLevels)("Skyscraper level $id", (level) => {
     expectConditionIsReachable(level);
   });
 
-  it("names itself, says what it is about and fills the editor, in every language", () => {
-    // All three are getters over message keys, and a key written under the
-    // wrong entry, a key deleted from one catalogue, or a getter that stopped
-    // reading the catalogue at all shows up here as an empty string -- in
-    // whichever language it happened in, which is why every one is asked.
+  it("fills the editor in every language", () => {
+    // A getter over a message key, and a key written under the wrong entry, a
+    // key deleted from one catalogue, or a getter that stopped reading the
+    // catalogue at all shows up here as an empty string -- in whichever
+    // language it happened in, which is why every one is asked.
     for (const locale of LOCALES) {
       setLocale(locale);
-      expect(level.title.length, `${level.id} title in ${locale}`).toBeGreaterThan(0);
-      expect(level.briefing.length, `${level.id} briefing in ${locale}`).toBeGreaterThan(0);
       expect(level.startingCode.length, `${level.id} starting code in ${locale}`).toBeGreaterThan(
         0,
       );
     }
-  });
-
-  it("renders its card in the language it is read in", () => {
-    // The spec the getters exist for. Read as fields, the two would freeze in
-    // whatever language was active while this module was being evaluated -- and
-    // that is no language at all, since the table is built before anything has
-    // chosen one. The failure is silent by construction: a frozen title is a
-    // perfectly good title, in one language, forever. What gives it away is
-    // being the *same* title in both.
-    //
-    // `startingCode` is not held to this. Only the comments in a program are
-    // translated, so a starter written without one is legitimately the same
-    // text in both languages; where a translation of it goes wrong is by
-    // ceasing to be a program, which the spec below is what catches.
-    setLocale(DEFAULT_LOCALE);
-    const english = { title: level.title, briefing: level.briefing };
-    setLocale("ru");
-    const russian = { title: level.title, briefing: level.briefing };
-
-    expect(russian.title, `${level.id}: the title was left in ${DEFAULT_LOCALE}`).not.toBe(
-      english.title,
-    );
-    expect(russian.briefing, `${level.id}: the briefing was left in ${DEFAULT_LOCALE}`).not.toBe(
-      english.briefing,
-    );
   });
 
   it("opens the editor with a program that runs, in every language", () => {
@@ -248,5 +245,55 @@ describe.each(skyscraperLevels)("Skyscraper level $id", (level) => {
         "function",
       );
     }
+  });
+});
+
+describe("the levels that carry a briefing card", () => {
+  const carded = skyscraperLevels.filter((level) => level.card !== undefined);
+
+  it("has cards to draw at all", () => {
+    // Every spec below visits only the levels that carry one, so a block whose
+    // cards were lost to an editing accident would leave them all green while
+    // the levels that introduce a mechanic explain nothing. Most levels having
+    // no card is the design; none having one is a mistake.
+    expect(carded.length).toBeGreaterThan(0);
+  });
+
+  it.each(carded)("says what $id is about, in every language", (level) => {
+    // Both halves are getters over message keys, and a key written under the
+    // wrong entry or deleted from one catalogue shows up here as an empty
+    // string -- in whichever language it happened in, which is why every one is
+    // asked.
+    for (const locale of LOCALES) {
+      setLocale(locale);
+      const card = cardOf(level);
+      expect(card.title.length, `${level.id} title in ${locale}`).toBeGreaterThan(0);
+      expect(card.briefing.length, `${level.id} briefing in ${locale}`).toBeGreaterThan(0);
+    }
+  });
+
+  it.each(carded)("renders $id's card in the language it is read in", (level) => {
+    // The spec the getter exists for. Read as a field, the card would freeze in
+    // whatever language was active while the module was being evaluated -- and
+    // that is no language at all, since the table is built before anything has
+    // chosen one. The failure is silent by construction: a frozen title is a
+    // perfectly good title, in one language, forever. What gives it away is
+    // being the *same* title in both.
+    //
+    // `startingCode` is not held to this. Only the comments in a program are
+    // translated, so a starter written without one is legitimately the same
+    // text in both languages; where a translation of it goes wrong is by
+    // ceasing to be a program, which the spec above is what catches.
+    setLocale(DEFAULT_LOCALE);
+    const english = cardOf(level);
+    setLocale("ru");
+    const russian = cardOf(level);
+
+    expect(russian.title, `${level.id}: the title was left in ${DEFAULT_LOCALE}`).not.toBe(
+      english.title,
+    );
+    expect(russian.briefing, `${level.id}: the briefing was left in ${DEFAULT_LOCALE}`).not.toBe(
+      english.briefing,
+    );
   });
 });

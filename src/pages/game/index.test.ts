@@ -7,7 +7,7 @@ import { atLeastAvgLoadFactorOnMove } from "../../game/level-tiers.ts";
 import type { LevelTierRequirements } from "../../game/level-tiers.ts";
 import { INSTANT_RUN_MAX_SIMULATED_SECONDS } from "../../game/instant-run.ts";
 import { skyscraperLevels } from "../../game/skyscraper.ts";
-import type { SkyscraperLevel } from "../../game/skyscraper.ts";
+import type { SkyscraperCard, SkyscraperLevel } from "../../game/skyscraper.ts";
 import { tutorialLevels } from "../../game/tutorial.ts";
 import type { TutorialLevel } from "../../game/tutorial.ts";
 import { TICK_SECONDS, createWorldController } from "../../game/world-controller.ts";
@@ -1523,6 +1523,26 @@ describe("App Skyscraper block", () => {
   }
 
   /**
+   * The briefing card of a level expected to carry one.
+   *
+   * Most of the block's levels have none, so `card` is optional and the specs
+   * about the card would otherwise be written against `string | undefined` —
+   * which is a spec that passes when the card has silently gone away. Throwing
+   * here means the position, not the assertion, is what fails.
+   *
+   * @param index - The level's position in `skyscraperLevels`.
+   * @returns Its card, read in whatever language is current.
+   * @throws When the level at that position introduces nothing and has no card.
+   */
+  function cardAt(index: number): SkyscraperCard {
+    const card = levelAt(index).card;
+    if (card === undefined) {
+      throw new Error(`The Skyscraper level at position ${String(index)} carries no card`);
+    }
+    return card;
+  }
+
+  /**
    * Ends the run on screen, one way or the other.
    *
    * `sky-1` is judged in moves rather than in seconds — `requireUserCountWithinMoves`
@@ -1776,27 +1796,47 @@ describe("App Skyscraper block", () => {
   });
 
   describe("the briefing card beside the building", () => {
+    // Position 1 rather than 0 throughout: `sky-2` is where traffic profiles are
+    // met and so is one of the levels that carries a card at all. `sky-1` is the
+    // spec below about a level that carries none.
+    const CARD_LEVEL = 1;
+
     it("draws the level's name and the paragraph it is about", () => {
       const { app, elements } = setUp();
-      app.startSkyscraperLevel(0);
+      app.startSkyscraperLevel(CARD_LEVEL);
 
       expect(requireElement(".briefingtitle", elements.tutorial).textContent).toBe(
-        "Eleven floors for one passenger",
+        "Everyone starts in the lobby",
       );
-      // Compared as markup rather than as text: the briefing carries `<em>` and
-      // `<span class="emphasis-color">` around the terms it introduces, and a
-      // card that escaped them would print the tags at the player.
+      // Compared as markup rather than as text: the briefing carries `<em>`
+      // around the terms it introduces, and a card that escaped them would
+      // print the tags at the player.
       expect(requireElement(".briefingtext", elements.tutorial).innerHTML).toBe(
-        levelAt(0).briefing,
+        cardAt(CARD_LEVEL).briefing,
       );
       // The two cards share this one element, so the lesson panel must not be
       // standing under the briefing.
       expect(elements.tutorial.querySelector(".tutorialpanel")).toBeNull();
     });
 
+    it("draws nothing at all on a level with nothing to introduce", () => {
+      // Most of the block is like this, and the empty region is the point: the
+      // stylesheet hides it only while it is empty, so a level that explains
+      // nothing hands the width back to the building instead of spending it on
+      // a card restating the level before.
+      const { app, elements } = setUp();
+      app.startSkyscraperLevel(CARD_LEVEL);
+      expect(elements.tutorial.children).toHaveLength(1);
+
+      app.startSkyscraperLevel(0);
+
+      expect(levelAt(0).card).toBeUndefined();
+      expect(elements.tutorial.children).toHaveLength(0);
+    });
+
     it("gives the region back to the lesson panel on the way to a lesson", () => {
       const { app, elements } = setUp();
-      app.startSkyscraperLevel(0);
+      app.startSkyscraperLevel(CARD_LEVEL);
 
       app.startTutorial(2);
 
@@ -1811,7 +1851,7 @@ describe("App Skyscraper block", () => {
       // left above level 1 would be a paragraph about a building the player is
       // no longer in.
       const { app, elements } = setUp();
-      app.startSkyscraperLevel(0);
+      app.startSkyscraperLevel(CARD_LEVEL);
       expect(elements.tutorial.children).toHaveLength(1);
 
       app.startLevel(0);
@@ -1825,16 +1865,16 @@ describe("App Skyscraper block", () => {
       // so a language change that missed this redraw would leave the one column
       // still in English.
       const { app, elements } = setUp();
-      app.startSkyscraperLevel(0);
+      app.startSkyscraperLevel(CARD_LEVEL);
 
       setLocale("ru");
       app.relocalise();
 
       expect(requireElement(".briefingtitle", elements.tutorial).textContent).toBe(
-        "Одиннадцать этажей ради одного пассажира",
+        "Все начинают в холле",
       );
       expect(requireElement(".briefingtext", elements.tutorial).textContent).toContain(
-        "временем кругового рейса",
+        "утренний пик",
       );
     });
   });
