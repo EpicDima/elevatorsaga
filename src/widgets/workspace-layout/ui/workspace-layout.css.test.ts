@@ -2,10 +2,12 @@
  * Which box gives way when the game pane runs short, in both axes.
  *
  * Every rule here fails silently rather than loudly: a flex row left on the
- * browser's own `flex: 0 1 auto` is squeezed instead of the box that scrolls,
- * and an `@container` naming a container nobody opens never matches and never
- * says so. None of it shows up as an error anywhere; each shows up as a layout
- * that is merely wrong.
+ * browser's own `flex: 0 1 auto` is squeezed instead of the box that scrolls, a
+ * shrink order written backwards takes a narrow pane out of the house instead
+ * of out of the card explaining it, and the two rules from another slice that
+ * this row's floor rests on can be withdrawn by someone with no reason to read
+ * this file. None of it shows up as an error anywhere; each shows up as a
+ * layout that is merely wrong.
  */
 
 import { describe, expect, it } from "vitest";
@@ -33,62 +35,55 @@ describe("the game pane's column", () => {
     expect(styleSource).not.toMatch(/\.pane-game > \.tutorial\b/);
   });
 
-  it("takes a narrow pane out of the lesson and never out of the building", () => {
+  it("takes a narrow pane out of the lesson first and out of the building last", () => {
     // The two flex factors are one decision written in two places, and either
-    // half alone inverts it: the aside states a 384px basis it is allowed to
-    // shrink from, and the building states that it is not. Reversed, a pane
-    // narrower than both would hold the lesson at its full measure and clip
-    // the house the lesson is describing, which is the one box on this page
-    // that has to stay whole.
-    expect(declaration(ruleBody(".stagearea > .tutorial"), "flex", ".stagearea > .tutorial")).toBe(
-      "0 1 384px",
-    );
-    expect(declaration(ruleBody(".stagearea > .world"), "flex-shrink", ".stagearea > .world")).toBe(
-      "0",
-    );
-    // The ceiling is the other half of that refusal, and it is what keeps it
-    // from turning into a licence: a zero shrink factor on an `auto` basis is a
-    // *content* size, and this box's content is a building. Level 18's is
-    // 1030px wide, and unbounded it made a 1062px `.world` inside a 794px pane
-    // -- 268px of it clipped away with nothing to scroll, because `.stage` only
-    // scrolls what it is narrower than. Capped at the row, the stage is
-    // narrower again and its own `ResizeObserver` compresses the shafts to fit.
-    expect(
-      declaration(ruleBody(".stagearea > .world"), "max-inline-size", ".stagearea > .world"),
-    ).toBe("100%");
-    // Below the width where both fit, the row stacks instead of overflowing,
-    // and it asks the pane rather than the window -- same reasoning as the
-    // figures in `widgets/stats-panel`, and the same failure if the names
-    // disagree: an `@container` naming something no ancestor opens never
-    // matches and never says so.
+    // half alone inverts it. A shrink factor is weighed in proportion to the
+    // basis it stands against, so the aside's `8` against 384px comes to 3072
+    // and the building's `1` against 387px to 387 -- near enough eight to one
+    // in favour of taking a shortfall out of the card. Reversed, a pane
+    // narrower than both would hold the lesson at its full measure and squeeze
+    // the house the lesson is describing, which is the box being explained.
+    const aside = ruleBody(".stagearea > .tutorial");
+    const world = ruleBody(".stagearea > .world");
+    expect(declaration(aside, "flex", ".stagearea > .tutorial")).toBe("0 8 384px");
+    expect(declaration(world, "flex", ".stagearea > .world")).toBe("1 1 387px");
+    // The card's floor, which is what makes the order above finite. Measured
+    // at the shipped split, the lesson holds its full 384px down to a 1280px
+    // window, is 257px at 1040px, and reaches 220px on a pane of 468px -- a
+    // splitter dragged well past the middle. Below that the building gives
+    // way instead, and `.stage` scrolls, which is the one thing on this page
+    // that can absorb a shortfall without hiding anything.
+    expect(declaration(aside, "min-inline-size", ".stagearea > .tutorial")).toBe("220px");
+    // Two rules in `widgets/building-stage` are what let the other side give
+    // way at all, and both are written for something else, so both can be
+    // taken away by someone with no reason to look here. A flex item's
+    // automatic minimum is its content's, which on `.world` would be a floor
+    // computed from a house; it is zero only because `.world` clips, and a
+    // flex item that clips has no content-based minimum. And the shortfall has
+    // to land somewhere -- `.stage` scrolls it. Measured without that
+    // `overflow` on a 380px pane, level 7's house drew 229px of itself across
+    // the splitter and over the editor, with nothing to scroll it back.
+    expect(ruleBody(".world")).toMatch(/^\s*overflow:\s*hidden;/m);
+    expect(declaration(ruleBody(".stage"), "overflow", ".stage")).toBe("auto");
+  });
+
+  it("never stands the lesson above the building", () => {
+    // This port had a container query that turned the row into a column below
+    // 740px of pane -- the mockup's own `@media (max-width: 1180px)`, measured
+    // against the pane rather than the window. It is gone on the player's
+    // instruction, and the reason is arithmetic: at the shipped 62% split a
+    // 740px pane is a 1213px window, so a window merely a little small, a
+    // browser at 125% zoom, or a splitter nudged towards the editor each put
+    // the lesson back on top of the house it is about. The whole point of the
+    // card is that the two are read together.
     //
-    // The container is the pane and not the row, which is the part that has
-    // already been got wrong once here: a query container is never the subject
-    // of its own query, so `container: stage` on `.stagearea` left the
-    // `flex-direction: column` inside the query matching nothing while the
-    // rules for its children matched, and a 1040px window drew a lesson at its
-    // full measure beside an 83px-wide building.
-    expect(declaration(ruleBody(".pane-game"), "container", ".pane-game")).toBe(
-      "stage / inline-size",
-    );
-    expect(ruleBody(".stagearea")).not.toMatch(/container/);
-    //
-    // 740 is that width exactly, and not that width rounded up: level 7's 430px
-    // house plus `.stage`'s 32px of inline padding, plus the lesson's 16px
-    // margin, the 2px gap and the 260px it may shrink to. It read 760 once --
-    // the same sum with 20px added against some future wider house -- and the
-    // padding was the bug rather than the insurance. The shipped 62% split
-    // makes this pane 752px at a 1213px window, which is inside the padding and
-    // outside the sum, so the query stacked a lesson that had room to stand
-    // beside its building. A wider house would have moved the sum anyway.
-    expect(styleSource).toMatch(/^@container stage \(max-width: 740px\) \{$/m);
-    // And stacked, the same priority has to be stated again in the other axis,
-    // because the row's flex factors are about width and the two boxes are now
-    // competing for height. The lesson is the one with no natural end: level 7
-    // with its answer open asks for 1290px of the 399px row a 1040x600 window
-    // leaves, and unbounded it took all of it -- the building measured 0px
-    // tall. The ceiling is inside the query, so it is matched at that indent
-    // rather than through `ruleBody`, which reads the unstacked rule.
-    expect(styleSource).toMatch(/^ {2}\.stagearea > \.tutorial \{[^}]*\n {4}max-block-size: 50%;/m);
+    // Nothing may bring the branch back, and there are three ways in: opening
+    // the container it queried, writing the query, or standing the row on its
+    // side by any other route. A stacked lesson is also the one failure here
+    // that looks deliberate rather than broken, so nothing else would report
+    // it.
+    expect(styleSource).not.toMatch(/container: stage\b/);
+    expect(styleSource).not.toMatch(/@container stage\b/);
+    expect(styleSource).not.toMatch(/\.stagearea\b[^{}]*\{[^{}]*flex-direction/);
   });
 });

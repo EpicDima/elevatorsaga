@@ -91,18 +91,19 @@
  * 6.19:1 dark / 5.56:1 light on the `--ds-raised` inside an open hint, both
  * past the 4.5:1 of WCAG 1.4.3.
  *
- * The measure stays, for the reason `.seedcaveat` has one: a line of prose
- * read by losing your place in it. 384px of card is 45 characters and never
- * reaches the ceiling, but the narrow layout below 740px of pane stands the
- * lesson across the pane at up to 560px, and there it does. It is deliberately
- * not on `.tutorialpanel` itself, which would take the answer under the last
- * hint down with it: that block is code, its longest line is 68 characters,
- * and a measure set for prose would put a scrollbar under it.
+ * There is no measure on these lines any more, because the card is its own.
+ * There was one -- 62ch, for the reason `.seedcaveat` has one: a long line of
+ * prose is read by losing your place in it -- and what could draw a long line
+ * here was the layout that stacked the lesson across the whole pane below
+ * 740px of it, up to 560px wide. That layout is gone (`.stagearea > .tutorial`
+ * in `widgets/workspace-layout`): the card asks for 384px, may only shrink from
+ * there, and leaves this prose 354px of content at its widest. Measured
+ * against that, the 62ch ceiling computed to 508px -- 154px it could never
+ * reach, which is a declaration that reads as a decision and is not one.
  */
 .tutorialgoal,
 .tutorialprose {
   margin: 0 0 11px;
-  max-inline-size: 62ch;
   color: var(--ds-text-muted);
   font-size: 13px;
   line-height: 1.5;
