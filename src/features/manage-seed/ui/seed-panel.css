@@ -1,0 +1,193 @@
+/*
+ * The seed block inside the settings popover: the row the seed is read out of,
+ * the control beside it, and the disclosure explaining what a seed does and
+ * does not bring back.
+ *
+ * The last two rules -- `.seedhelp > summary` and `.seedcaveat` -- were filed
+ * under the challenge bar's section in the single stylesheet, from the years
+ * when this block was a row on that bar. They are the same feature's, and this
+ * is where they belong; both are less specific than the `.setblock` rules above
+ * them, which is what decides between the two either way.
+ */
+
+/*
+ * The seed block's own row: `design/ui-mockup.html`'s `.seedrow` (§A) -- the
+ * run's seed in a box, with the one thing a player can do about it beside
+ * it. `features/manage-seed`'s own module comment holds the full account of
+ * how the mockup's three controls became these two; the short of it is that
+ * production has no arbitrary-seed field, so the mockup's editable
+ * `#seedVal` is a `<span>` here, and its `#seedRoll`/`#seedCopy` pair is one
+ * icon button at a time, because a run is either pinned or it is not.
+ */
+.seedrow {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+/*
+ * The box the seed is read out of. Three departures from the mockup's own
+ * `.val`, all of them the same departure: it is a `<span>`, not an `<input>`.
+ *
+ * `display: flex` with `align-items: center` is the centring a text field
+ * got from the engine for nothing. `min-block-size` replaces its `height`,
+ * and `overflow-wrap` comes along, because a seed is whatever string the URL
+ * carries -- `#seed=` accepts a sentence or a 64-character hash, not just
+ * the ten digits this game draws -- and one unbreakable token that long is
+ * 548px of monospace trying to fit a 292px popover. An input scrolls its own
+ * overflow; a span pushes the page sideways instead, which is what WCAG
+ * 1.4.10 is about, so the box grows downward and the seed wraps inside it.
+ * And the mockup's `.val:focus` border is not ported at all: there is
+ * nothing here to type, so there is nothing here to focus.
+ *
+ * `--ds-font-mono` is the point of the box. A seed gets transcribed
+ * character by character, and the monospace face is what tells a 1 from an l
+ * and a 0 from an O.
+ */
+.seedrow .val {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  min-height: 30px;
+  padding: 4px 8px;
+  align-items: center;
+  border: 1px solid var(--ds-line-strong);
+  border-radius: var(--ds-r-md);
+  background: var(--ds-bg);
+  font-family: var(--ds-font-mono);
+  font-size: 12.5px;
+  color: var(--ds-text);
+  overflow-wrap: anywhere;
+}
+
+/*
+ * The row's one button, at the mockup's own 30x30 square with a border the
+ * plain `.ghost` (`shared/ui/button.css`) does not carry: a lone glyph beside
+ * a boxed value needs an edge of its own to read as a control at all.
+ */
+.seedrow .ghost {
+  inline-size: 30px;
+  block-size: 30px;
+  justify-content: center;
+  padding-inline: 0;
+  border: 1px solid var(--ds-line);
+}
+
+/*
+ * The mockup's hint under this row is a plain `<p class="sethint">`; ours is
+ * the `<summary>` of the `<details>` that holds the longer explanation
+ * production has instead, wearing the same class -- see
+ * `features/manage-seed` for why the disclosure stays.
+ *
+ * The UA's own triangle comes off, in both spellings a browser might still
+ * want -- the same pair `.api > summary` (`features/docs-reference`)
+ * uses. It is the one list marker anywhere in this panel, and it is what made
+ * the line read as raw machinery rather than as the hint it is.
+ *
+ * What replaces it is the chevron `.more > summary` (`widgets/stats-panel`) and
+ * the Hotkeys row above both already use, laid out the way that shelf lays
+ * its own out: the glyph first, the words after it, the pair on one baseline.
+ * A hint that opens something has to look different from a hint that does
+ * not, and the About block's copyright notice two blocks down wears this very
+ * class and opens nothing.
+ *
+ * The pointer cursor and the `fit-content` width that keep this control the
+ * size of its words are on the bare `.seedhelp > summary` further down, where
+ * the reasoning for both is written out; a flex line still takes its width
+ * from that rule, and now has the chevron to fit as well as the words.
+ */
+.setblock .seedhelp > summary {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  list-style: none;
+}
+
+.setblock .seedhelp > summary::-webkit-details-marker {
+  display: none;
+}
+
+.setblock .seedhelp > summary:hover {
+  color: var(--ds-text);
+}
+
+/*
+ * 12px against `.more`'s 13, because the words beside it are 12px where that
+ * shelf's are 12.5 -- the chevron is sized to the line it sits on, not to a
+ * constant. `--ds-text-muted` comes down from the summary, past 1.4.11's 3:1
+ * for a graphic at 6.70:1 dark and 5.90:1 light on `--ds-panel`, and the
+ * hover above takes glyph and words to full `--ds-text` together.
+ */
+.setblock .seedhelp > summary .chev {
+  flex: none;
+  width: 12px;
+  height: 12px;
+  transition: transform 0.15s ease;
+}
+
+.setblock .seedhelp[open] > summary .chev {
+  transform: rotate(90deg);
+}
+
+/*
+ * What opens is the rest of the hint, so it is set as the hint: `.sethint`'s
+ * own three declarations (`widgets/app-bar`), which the summary above gets
+ * from that class and this paragraph cannot, being the thing the summary
+ * introduces rather than a
+ * second one beside it. Left alone it arrived at the popover's full body size
+ * in full `--ds-text` -- louder than the line that offered it, and the widest
+ * thing in a 320px panel.
+ *
+ * The gap is `margin-block-start`, not the summary's `margin-block-end`: a
+ * closed disclosure is only its summary, and a bottom margin there would push
+ * the Hotkeys row down by a space that had nothing in it.
+ *
+ * `.seedcaveat`'s own 62ch measure further down is wider than this panel ever
+ * gets and does nothing here; it is on that rule for the challenge bar, where
+ * the line had a thousand pixels to run along.
+ */
+.setblock .seedcaveat {
+  margin-block-start: 6px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--ds-text-muted);
+}
+
+/*
+ * The disclosure that explains what a seed does and does not bring back.
+ *
+ * There is deliberately no rule here about where it opens. The seed block
+ * lives in `.setmenu`'s own vertical stack now, one plain block after
+ * another -- `.setblock` carries no layout of its own -- so a `<details>`
+ * opening only ever pushes what follows it in the popover further down, and
+ * never moves its own `<summary>`. That is what the old horizontal
+ * `.challengeseed` row on the challenge bar could not promise: a flex-wrap
+ * row reflows when one of its items changes size, which is exactly what
+ * used to carry this summary out from under the pointer that had just
+ * clicked it. A column has no such row to reflow within.
+ *
+ * The pointer cursor is the one thing the UA does not supply: `<summary>` is a
+ * control, and it is the only one on this line that does not already look like
+ * a link.
+ *
+ * `fit-content` keeps the control the size of its words. A `<summary>` is a
+ * block, so left alone it stretches to `.setblock`'s own width -- the whole
+ * span of the popover, of which only a handful of characters had any writing
+ * on. The rest was a control that looked like empty space and closed the
+ * panel when clicked.
+ */
+.seedhelp > summary {
+  inline-size: fit-content;
+  cursor: pointer;
+}
+
+/*
+ * A measure rather than the full width: at a desk the bar is a thousand pixels
+ * wide, and a line of prose that long is read by losing your place in it. The
+ * margin goes because the line's own flex `gap` already spaces it, and a `<p>`
+ * arrives with one.
+ */
+.seedcaveat {
+  max-inline-size: 62ch;
+  margin: 0;
+}

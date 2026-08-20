@@ -1,7 +1,7 @@
 /**
- * What can be checked about `style.css` without a browser: the contrast of the
- * palette, and the handful of declarations the statistics strip's own layout
- * hangs on.
+ * What can be checked about the stylesheet without a browser: the contrast of
+ * the palette, and the handful of declarations the statistics strip's own
+ * layout hangs on.
  *
  * The stylesheet states every colour once, as a custom property, which is what
  * makes this checkable without a browser: the pairs that actually meet on
@@ -31,7 +31,7 @@
  * until a player tries to press a call button.
  */
 
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
@@ -47,12 +47,25 @@ import { describe, expect, it } from "vitest";
 const ROOT = process.cwd();
 
 /**
- * The stylesheet, as text.
+ * The paths `src/styles/index.css` imports, in the order it imports them, as
+ * repository-relative paths.
+ *
+ * The index is the one place the cascade is stated, so reading it is how this
+ * file measures the same stylesheet a browser assembles rather than a set of
+ * files that happen to be on disk.
+ */
+const IMPORTED: readonly string[] = [
+  ...readFileSync(join(ROOT, "src/styles/index.css"), "utf8").matchAll(/^@import "([^"]+)";$/gm),
+].map(([, path = ""]) => join("src/styles", path));
+
+/**
+ * The stylesheet, as text: every imported file concatenated in the index's own
+ * order, which is the order the cascade sees them in.
  *
  * Read from disk rather than imported: Vitest does not process CSS, and hands
- * back an empty string for `style.css?raw` as readily as for `style.css`.
+ * back an empty string for `index.css?raw` as readily as for `index.css`.
  */
-const styleSource = readFileSync(join(ROOT, "src/styles/style.css"), "utf8");
+const styleSource = IMPORTED.map((path) => readFileSync(join(ROOT, path), "utf8")).join("\n");
 
 /** The custom properties declared on `:root`, by name without the `--`. */
 const PALETTE: ReadonlyMap<string, string> = new Map(
@@ -155,7 +168,7 @@ function contrast(one: string, other: string): number {
  */
 function token(name: string): string {
   const value = PALETTE.get(name);
-  expect(value, `--${name} is missing from style.css`).toBeDefined();
+  expect(value, `--${name} is missing from the palette`).toBeDefined();
   return value ?? "";
 }
 
@@ -354,6 +367,33 @@ function requiredRatio(size: number, weight: string): number {
   return size >= 24 || (bold && size >= 18.66) ? 3 : 4.5;
 }
 
+describe("the index", () => {
+  it("imports every stylesheet in the source tree, exactly once each", () => {
+    // The cascade is stated in one place, and a slice's stylesheet only reaches
+    // a browser because the index names it. A new file that nobody wired up is
+    // the failure this guards: it costs nothing at build time, breaks no test
+    // of its own, and simply is not there on screen -- which reads as a widget
+    // whose CSS "did not work" rather than as CSS that was never loaded.
+    const found: string[] = [];
+    const walk = (directory: string): void => {
+      for (const entry of readdirSync(join(ROOT, directory), { withFileTypes: true })) {
+        const path = join(directory, entry.name);
+        if (entry.isDirectory()) walk(path);
+        else if (entry.name.endsWith(".css") && path !== join("src", "styles", "index.css")) {
+          found.push(path);
+        }
+      }
+    };
+    walk("src");
+    expect([...IMPORTED].sort()).toEqual(found.sort());
+    expect(new Set(IMPORTED).size, "an @import is repeated").toBe(IMPORTED.length);
+  });
+
+  it("puts the tokens first, because a rule cannot read a property not yet declared", () => {
+    expect(IMPORTED[0]).toBe(join("src", "shared", "styles", "tokens.css"));
+  });
+});
+
 describe("palette", () => {
   it("declares no --color-* token at all, the legacy palette having been retired", () => {
     // The migration onto --ds-* is finished: the last holdout was
@@ -394,7 +434,7 @@ describe("palette", () => {
     ["light", LIGHT_PALETTE],
   ])("keeps the sitewide focus ring readable on the page, %s theme", (_, palette) => {
     // --ds-focus is var(--ds-accent) by default -- see its own comment in
-    // style.css. A focus ring is a graphical indicator, so 1.4.11's 3:1
+    // tokens.css. A focus ring is a graphical indicator, so 1.4.11's 3:1
     // applies, not 1.4.3's 4.5; --ds-bg is the palest of the three page
     // surfaces it can be drawn against, so the worst case of them.
     expect(contrast(themed(palette, "ds-focus"), themed(palette, "ds-bg"))).toBeGreaterThanOrEqual(
@@ -576,7 +616,7 @@ describe("palette", () => {
   });
 
   it("leaves a delivered passenger's colour alone, because no fade would clear 3:1", () => {
-    // The regression guard behind style.css's own note at `.person.is-leaving`:
+    // The regression guard behind passenger-view.css's note at `.person.is-leaving`:
     // --ds-person has 3.52:1 of room over the light theme's shaft and nothing
     // more, so the mockup's fade -- any fade -- takes a passenger under the bar
     // 1.4.11 sets for a graphical object. This is what would catch someone
@@ -655,7 +695,7 @@ describe("ds palette on the lesson card", () => {
   // inside it: the card itself, the --ds-raised box of an open hint, and the
   // --ds-n-3 fill of the button that copies the answer. Every pair below was
   // measured with `getComputedStyle` in Chromium before it was written down --
-  // the figures are in the rules' own comments in style.css -- and this is what
+  // the figures are in the rules' own comments -- and this is what
   // keeps a later change to a token from quietly taking one of them under the
   // bar. Listed as pairs rather than as rules for the reason the block above
   // gives: what fails here is arithmetic, and arithmetic is what jsdom can do.
@@ -719,7 +759,7 @@ describe("ds code palette on the code background", () => {
   // 1.4.3 asks 4.5:1 of all of it. --ds-code-key/-fn/-str/-num/-text/-punc are
   // the mockup's own values, already clearing the bar; --ds-code-com and
   // --ds-code-line are not the mockup's own -- see .tok-comment's and
-  // .cm-gutters's own comments in style.css for the two numbers each was
+  // .cm-gutters's own comments in editor-pane.css for the two numbers each was
   // retuned from.
   it.each([
     ["ds-code-text", "ds-code-bg", 4.5],
@@ -775,7 +815,7 @@ describe("ds code palette on the code background", () => {
   });
 
   // 3:1, not 4.5:1, and deliberately: see --ds-code-sel's own comment in
-  // style.css for why a selection cannot be held to 1.4.3 the way the two
+  // tokens.css for why a selection cannot be held to 1.4.3 the way the two
   // surfaces above are -- CodeMirror's drawSelection paints behind the text,
   // so no value here can recolour what is selected. The floor exists so that
   // the shortfall stays the bounded, documented one and cannot quietly
@@ -802,7 +842,7 @@ describe("text on a --*-soft badge", () => {
   // still does for their own text too -- close enough to the text's own hue,
   // composited over a page surface, to fall short of 4.5:1 in the light
   // theme even though --ds-bad on a flat page surface clears it on its own
-  // (see .error-color's comment in style.css). --ds-bad-ink is what the text
+  // (see .error-color's comment in utilities.css). --ds-bad-ink is what the text
   // reads instead; this is what catches either regressing back to --ds-bad,
   // or the composite falling out of tolerance some other way -- raising
   // --ds-bad-soft's alpha, for instance -- since both would still be an
@@ -867,7 +907,7 @@ describe("docs and hotkeys dialogs", () => {
     // The one place this file's own --ds-text-faint still appears: a
     // rotating icon, which WCAG 1.4.11 holds to 3:1 rather than 1.4.3's
     // 4.5:1 -- the bar the same pair clears without --ds-text-muted's help
-    // (style.css's own comment on .docs-body h3 has the numbers for both).
+    // (docs-modal.css's own comment on .docs-body h3 has the numbers for both).
     for (const palette of [DARK_PALETTE, LIGHT_PALETTE]) {
       expect(
         contrast(themed(palette, "ds-text-faint"), themed(palette, "ds-panel")),
@@ -876,7 +916,7 @@ describe("docs and hotkeys dialogs", () => {
   });
 
   it("keeps the group heading, the empty-search message and the clear icon off --ds-text-faint", () => {
-    // Regression guard for the deviations style.css's own comments document:
+    // Regression guard for the deviations the rules' own comments document:
     // a revert to --ds-text-faint would still be an arithmetic pass if this
     // read the token by name instead of the declaration, since nothing would
     // then stop it from measuring the *wrong* token.
@@ -886,7 +926,7 @@ describe("docs and hotkeys dialogs", () => {
   });
 
   it("brightens .docsclose/.keysclose's border to the neutral --ds-n-5 on hover, not the accent", () => {
-    // .btn shares its resting shape with .task-open (style.css's own comment
+    // .btn shares its resting shape with .task-open (button.css's own comment
     // says so), but not its hover colour: .task-open opens the level switcher
     // and brightens to the themed accent to draw the eye; .btn only ever
     // closes a dialog the player already opened, and design/ui-mockup.html's

@@ -1,0 +1,121 @@
+/*
+ * The bar across the top of the game page: its row, the brand mark and name,
+ * and `.barspace`, the empty flex item the bar is composed around.
+ *
+ * `.barspace` is filed here rather than after the level switcher, where it used
+ * to sit in the single stylesheet, because it is the seam `src/main.ts` inserts
+ * around and not part of the switcher: whatever goes in before it is pushed
+ * left with the brand, whatever comes after stays right with the settings
+ * buttons. Nothing else in this directory matches the element, so where it is
+ * declared cannot change what it does.
+ */
+
+/*
+ * The brand mark: `design/ui-mockup.html`'s own `.brand-mark` (§3) -- the one
+ * rule taken from that section this phase, ahead of the rest of it.
+ *
+ * `widgets/app-bar` has drawn this SVG live since the app bar itself was
+ * mounted, but nothing has sized it in the meantime -- `buildAppBarSkeleton`'s
+ * own comment calls the rest of `.appbar`/`.brand` "a later phase of the same
+ * migration," and this is the one piece of that phase this one could not wait
+ * for. An inline SVG with a `viewBox` and no `width`/`height` attribute has no
+ * intrinsic size of its own, only its viewBox's 1:1 ratio to fill whatever box
+ * it is given -- and `.header`'s `flex-direction: column` stretches its
+ * block-level children to the row's own width by default, so the mark grew to
+ * match it, square, well past a thousand pixels a side. Measured live at
+ * 1280px before this rule: the icon 1220px square, the header carrying it
+ * 2682.9px tall, and the settings control beneath it pushed far enough down
+ * the document that opening its own popover looked -- to a test measuring
+ * that control's own position -- exactly like the reflow defect this
+ * section's next rule already fixed once: `.setmenu` itself never moved, but
+ * `e2e/seed.spec.ts`'s "does not move the caveat's own control" failed by
+ * 2548px anyway, because the header above it had.
+ *
+ * `--ds-bar-h` and `--ds-ctl-h`, both declared in `shared/styles/tokens.css`
+ * and unused at the time, were waiting on the rest of `.appbar`/`.brand`/
+ * `.task`; this is only the one rule needed to stop an unsized replaced
+ * element from consuming the page in the meantime.
+ */
+.brand-mark {
+  width: 22px;
+  height: 22px;
+  color: var(--ds-accent);
+}
+
+/*
+ * The bar's own row and the brand group inside it: `design/ui-mockup.html`'s
+ * `.appbar` and `.brand` (§3), the rest of the "later phase" the rule above
+ * names -- `.task`/`.taskmenu`/`.tasklink`, the level switcher the mockup
+ * groups in the same section, was ported alongside it and stands next door in
+ * `widgets/level-switcher`.
+ *
+ * `background`/`border-bottom` are still not ported here, unlike the mockup's
+ * own `.appbar` rule. `h1{color:...}` and `a{color:...}` (below) now read
+ * `--ds-text`, not the page-tuned `#444`, so the contrast reason this rule
+ * used to give no longer holds -- but a panel painted behind the bar only
+ * reads as one once the page around it is the mockup's own frame, which is a
+ * later phase's to bring, so the rule stays geometry only until then.
+ */
+.appbar {
+  display: flex;
+  flex-direction: row;
+  flex: 0 0 auto;
+  gap: 14px;
+  align-items: center;
+  height: var(--ds-bar-h);
+  padding: 0 12px;
+}
+
+/*
+ * `.levelswitcher` sits out of this: its `.taskmenu` popover, positioned out
+ * of flow by `.task`'s own rule (`widgets/level-switcher`), opens to its full
+ * height regardless -- padding, border and all -- and a fixed height here
+ * would clip the row's
+ * box around it. `.setmenu` doesn't need the same carve-out -- it already got
+ * `position: absolute` in an earlier phase.
+ */
+.appbar > :not(.levelswitcher) {
+  height: var(--ds-ctl-h);
+}
+
+.brand {
+  display: flex;
+  gap: 9px;
+  align-items: center;
+  padding-right: 14px;
+  border-right: 1px solid var(--ds-line);
+}
+
+/*
+ * The mockup writes the brand name as a `<span>`; `widgets/app-bar` builds it
+ * as the page's `<h1>`, because this bar replaces the header `index.html`
+ * ships and a document with no heading at all is not a trade worth making for
+ * one element name. `margin: 0` is the whole cost of that: the user agent
+ * gives an `<h1>` 0.67em above and below, and inside `.brand`'s flex line --
+ * where margins do not collapse -- 14px of text plus 18.8px of margin does not
+ * fit the row's `--ds-ctl-h`. The size and weight below already override the
+ * rest of what the user agent has to say about an `<h1>`.
+ */
+.brand-name {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 650;
+  letter-spacing: 0.015em;
+  white-space: nowrap;
+}
+
+/*
+ * The gap between the bar's two groups: `design/ui-mockup.html`'s own
+ * `.barspace` (§3), the first rule of the right-hand group.
+ *
+ * An empty element rather than `margin-left: auto` on the button after it,
+ * which would do the same thing today and stop doing it the moment anything
+ * is appended past that button. It is also the seam `src/main.ts` composes
+ * the bar around: whatever is inserted before it is pushed left with the
+ * brand and the level switcher, whatever comes after it stays right with the
+ * two settings buttons, and the run controls join the row without any of the
+ * three having to know about each other.
+ */
+.barspace {
+  flex: 1;
+}

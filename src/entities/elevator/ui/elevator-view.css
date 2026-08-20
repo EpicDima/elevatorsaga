@@ -1,0 +1,282 @@
+/*
+ * One elevator: its shaft, the strip of order marks beside it, the car, and the
+ * doors that open on it.
+ *
+ * The `.building:not([data-density="full"])` rules are the same car drawn in a
+ * building too crowded to give every part of it room; the stage sets that
+ * attribute, this file decides what it costs.
+ */
+
+/*
+ * One elevator's shaft, ported from `design/ui-mockup.html` (§"Здание").
+ *
+ * The mockup lays its shafts out with flexbox and a `gap`; these are placed one
+ * by one, on the coordinates the simulation really uses, because passengers
+ * walk to them (see `building-stage.ts`'s own comment). So `inline-size` and
+ * `inset-inline-start` are written by the widget, and `box-sizing` is set
+ * because the page's global box model is `content-box` while the mockup's is
+ * `border-box`: the width written here counts the two side borders, and without
+ * this every shaft would be drawn two pixels wider than the car inside it.
+ *
+ * `--ds-shaft-pad` is the widget's too -- the wall on either side of the car,
+ * taken out of the 20 world units the engine leaves between two cars.
+ */
+.shaft {
+  position: absolute;
+  box-sizing: border-box;
+  inset-block: 0;
+  background: rgb(0 0 0 / 18%);
+  border-inline: 1px solid var(--ds-shaft-line);
+}
+
+html[data-theme="light"] .shaft {
+  background: rgb(0 0 0 / 3%);
+}
+
+/*
+ * Inset, like the floor rows: a shaft can stand hard against the building's
+ * clipped edge, and an outward ring would be cut off down one side.
+ */
+.shaft:focus-visible {
+  outline-offset: -2px;
+}
+
+/*
+ * The order strip: which floors this car has been asked for, each marked at its
+ * own floor's height. It replaces the grid of digits that used to be inside the
+ * cabin, which fit in a six-floor building and turned to mush in a twenty-one
+ * floor one.
+ *
+ * The mockup's strip is a flat 6px with a 1px rule down its inner edge. Here it
+ * is exactly the room the car leaves it -- the shaft's wall less the pixel the
+ * car's own border stands on -- so it shrinks with the building rather than
+ * eating into the cabin when the whole thing is scaled down. The rule goes with
+ * it: at half scale the strip is three pixels wide and a border would be a
+ * third of it.
+ */
+.shaft-marks {
+  position: absolute;
+  box-sizing: border-box;
+  inset-block: 0;
+  inset-inline-start: 0;
+  inline-size: max(2px, calc(var(--ds-shaft-pad, 8px) - 1px));
+  background: rgb(0 0 0 / 12%);
+}
+
+/*
+ * One floor's mark. The widget writes the middle of that floor's band into
+ * `inset-block-end` and the translate centres the mark on it -- vertically, so
+ * nothing outside this file has to know how tall a mark is drawn, and
+ * horizontally, so that the mockup's 4px tick narrows to whatever the strip has
+ * left instead of overflowing it at half scale.
+ *
+ * The mockup marks an unrequested floor with --shaft-line, which is the same
+ * colour as the wall it is drawn on and reads as nothing at all. These are
+ * `<button>`s -- clickable, tabbable, and named -- so an unlit one has to be
+ * findable: --ds-text-muted is the substitution this port has already made
+ * twice for --text-faint, and it is the only pair that clears 3:1 against both
+ * this strip's dark composite and its light one.
+ */
+.mark {
+  position: absolute;
+  box-sizing: border-box;
+  inset-inline-start: 50%;
+  inline-size: min(4px, 100%);
+  block-size: 3px;
+  padding: 0;
+  transform: translate(-50%, 50%);
+  border: 0;
+  border-radius: 1px;
+  background: var(--ds-text-muted);
+  cursor: pointer;
+}
+
+/*
+ * The mockup lights a mark with --accent. That is the right colour and the
+ * wrong tone by one step: --ds-accent is 2.52:1 on this strip's light-theme
+ * composite, because the strip is two black washes darker than the --ds-shaft
+ * the accent family is tuned against. --ds-accent-hi is the same colour with
+ * the contrast the tuning was for -- 3.43:1 light, 11.45:1 dark -- and it is
+ * already what the mockup itself lights the car's own arrows with.
+ */
+.mark.is-lit {
+  background: var(--ds-accent-hi);
+}
+
+html[data-theme="dark"] .mark.is-lit {
+  box-shadow: 0 0 6px rgb(232 163 63 / 55%);
+}
+
+/*
+ * The car. One cabin serves every floor, so its height comes from the shortest
+ * floor in the building rather than from whichever one it is standing at, and
+ * it is centred in that floor's band -- which is what the mockup's own 4px
+ * bottom inset works out to, written here as the arithmetic it is so that it
+ * stays centred when `layoutBuilding()` picks a different pair.
+ *
+ * It rides on a transform the view writes from `worldY` every tick. There is no
+ * transition on it: a car's vertical position is simulated, at whatever speed
+ * the challenge gives it, and interpolating on top of that would draw a car
+ * that is not where the game says it is.
+ */
+.car {
+  --ds-car-top-h: 17px;
+  position: absolute;
+  box-sizing: border-box;
+  inset-block-start: calc((var(--ds-floor-h) - var(--ds-car-h)) / 2);
+  inset-inline: calc(var(--ds-shaft-pad, 8px) - 1px);
+  block-size: var(--ds-car-h);
+  border: 1px solid var(--ds-car-edge);
+  border-radius: var(--ds-r-md);
+  background: var(--ds-car);
+  overflow: hidden;
+  cursor: default;
+  z-index: 1;
+}
+
+/*
+ * The strip with the floor number and the arrows is the one thing a car never
+ * loses: a floor is never shorter than 48px, and the strip still reads in the
+ * 36px car that leaves. On squeezed floors it used to simply disappear.
+ */
+.building:not([data-density="full"]) .car {
+  --ds-car-top-h: 14px;
+}
+
+/*
+ * Aimed at the shaft rather than at the car: hitting a moving cabin with a
+ * pointer is target practice. The focus ring is the shaft's too, for the same
+ * reason -- it is the shaft that is in the tab order.
+ */
+.shaft:hover .car,
+.shaft:focus-visible .car {
+  border-color: var(--ds-accent);
+}
+
+/*
+ * The mockup's top strip, with one thing added: the parts have to be allowed to
+ * shrink. Its own cars are 62px wide and its own comment puts the floor at
+ * 36px of content; a real car is ten pixels per seat times the building's
+ * scale, and challenge 18 draws one 30px wide -- 28px of content, into which
+ * `4px + 9 + "18" + 9 + 4px` does not go. Unshrinkable, `overflow: hidden`
+ * takes the whole answer out of the second arrow and the car reads as having
+ * one lamp.
+ */
+.car-top {
+  display: flex;
+  box-sizing: border-box;
+  gap: 2px;
+  align-items: center;
+  justify-content: space-between;
+  block-size: var(--ds-car-top-h);
+  padding-inline: 4px;
+  border-block-end: 1px solid rgb(0 0 0 / 30%);
+  background: rgb(0 0 0 / 22%);
+  overflow: hidden;
+}
+
+.building:not([data-density="full"]) .car-top {
+  gap: 0;
+  padding-inline: 2px;
+}
+
+/*
+ * The floor the car is at -- the one marking a player reads off a moving car,
+ * and for twelve years it was 15px at 30% white on the car body itself, which
+ * is 1.63:1. --ds-car-ink clears 4.5:1 against both --ds-car values with real
+ * margin (9.97 dark, 7.31 light) and keeps it over the darkened top strip; see
+ * its comment in the palette above.
+ */
+.car-floor {
+  flex: none;
+  font-family: var(--ds-font-mono);
+  font-size: 11px;
+  color: var(--ds-car-ink);
+}
+
+.building:not([data-density="full"]) .car-floor {
+  font-size: 9.5px;
+}
+
+/*
+ * The boarding lamps, and not decoration: `goingUpIndicator`/`goingDownIndicator`
+ * are what decide who is allowed to board, and until now the only way to see
+ * one was to read it back in code.
+ *
+ * The mockup draws an unlit arrow at 22% white, which composites to about
+ * 1.5:1 on the top strip -- an indicator nobody can find is not an indicator.
+ * 45% is the same idea at a contrast an off state can be read at (3.54:1 on the
+ * light theme's car, more on the dark one), still visibly dimmer than the lit
+ * one beside it. The lit colour is --ds-car-ink rather than the mockup's
+ * --accent-hi for the reason the floor number above gives: --ds-accent-hi is
+ * tuned against --ds-shaft and lands at 1.35:1 on the light theme's car.
+ */
+.car-dir {
+  /*
+   * The one part of the strip that gives way when the car is too narrow for all
+   * of it (see `.car-top`): the floor number is the reading, and an arrow that
+   * is a pixel or two smaller still points the way it pointed. `min-inline-size`
+   * has to be stated because a flex item's automatic minimum is its own width,
+   * which would refuse the shrink and clip the arrow off the end instead.
+   */
+  flex: 0 1 auto;
+  min-inline-size: 0;
+  inline-size: 11px;
+  block-size: 11px;
+  color: rgb(255 255 255 / 45%);
+  stroke-width: 2.6;
+}
+
+.building:not([data-density="full"]) .car-dir {
+  inline-size: 9px;
+  block-size: 9px;
+}
+
+.car-dir.is-on {
+  color: var(--ds-car-ink);
+}
+
+.car-cabin {
+  position: relative;
+  block-size: calc(100% - var(--ds-car-top-h));
+}
+
+/*
+ * The doors, open exactly while the car is standing still on a floor -- which
+ * is exactly when the simulation offers boarding. They are drawn under the
+ * riders rather than over them: a rider is a real passenger element in the
+ * stage's own `.people` layer, walking through world coordinates that happen to
+ * be inside this cabin, and it cannot be clipped by a box it does not live in.
+ * The mockup, whose riders are drawn inside the cabin, does not have that
+ * constraint -- and does not have passengers either.
+ */
+.doors {
+  position: absolute;
+  inset: 0;
+  display: flex;
+}
+
+.door {
+  flex: 1;
+  background: linear-gradient(180deg, rgb(255 255 255 / 9%), rgb(255 255 255 / 3%));
+  border-inline-end: 1px solid rgb(0 0 0 / 25%);
+  transition: transform 0.35s ease;
+}
+
+.car.is-open .door:first-child {
+  transform: translateX(-100%);
+}
+
+.car.is-open .door:last-child {
+  transform: translateX(100%);
+}
+
+/*
+ * The doors still open and close -- that is state, not decoration -- they just
+ * stop sliding to get there. Same treatment `.meter-fill` already gets.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .door {
+    transition: none;
+  }
+}

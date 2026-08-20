@@ -1,0 +1,327 @@
+/*
+ * The building and the frame around it: `index.html`'s three legacy wrappers
+ * made layout-neutral, the stage, the floor column, the shaft tracks, and the
+ * hover card that follows the pointer along them.
+ *
+ * The cars, the floors and the passengers standing in it each have a file of
+ * their own under `src/entities`; what is here is the stage they are drawn on.
+ */
+
+/*
+ * `.world` / `.worldtrack` / `.innerworld` are `index.html`'s three wrappers
+ * around the building, from the years when it was a fixed 1220x503 drawing that
+ * scrolled inside them. `widgets/building-stage` builds
+ * `design/ui-mockup.html`'s own `.stagewrap > .stage > .stagerow > .building`
+ * tree inside the innermost of the three, so the three are made layout-neutral
+ * here -- a flex chain passing the pane's height straight down -- rather than
+ * deleted, because `index.html` belongs to the page shell and not to that
+ * widget.
+ *
+ * Two of them still earn their keep until the shell is rebuilt. `.worldtrack`
+ * is the positioning context for the one box that is a sibling of the stage
+ * and owned elsewhere: `.feedbackcontainer`, the live region the run's verdict
+ * card is drawn into (`widgets/verdict-toast`). And `.world` carries the
+ * region role, its accessible name, and the paler focus ring below, which
+ * everything focusable inside the building inherits.
+ *
+ * The height is whatever the pane has left after its three fixed rows -- see
+ * `.pane-game`'s own column rule (`widgets/workspace-layout`). There is no
+ * `block-size` here any more: this box used to state one because nothing above
+ * it bounded one, so a stage told to fill its parent would have filled
+ * nothing, and it
+ * carried the statistics panel's own worst-case height for the lack of a
+ * better number. The pane is a bounded column now and the figures have a row
+ * of their own at the foot of it, so `flex: 1 1 auto` is the whole answer:
+ * the stage takes the room the goal bar, the learning track's panel and the
+ * figures leave, and scrolls inside itself when a twenty-floor building wants
+ * more than that.
+ */
+.world {
+  /*
+   * Paler than the sitewide default, and against the building's own surfaces
+   * rather than the page: --ds-accent-hi clears 11.02:1 dark and 4.80:1 light
+   * on --ds-shaft, 10.82:1 and 5.39:1 on the --ds-bg the stage paints around
+   * the building, and 10.53:1 and 5.49:1 on the floor-number column's own
+   * composite -- every one of them past the 3:1 a focus ring needs. Read by the
+   * floor rows, the call buttons, the shafts, and the stage itself whenever it
+   * has something left to scroll to.
+   */
+  --ds-focus: var(--ds-accent-hi);
+
+  display: flex;
+  flex: 1 1 auto;
+  min-block-size: 0;
+  background-color: var(--ds-bg);
+  overflow: hidden;
+}
+
+/*
+ * Still the clip, and now nothing else.
+ *
+ * It held two reservations for the statistics panel, and the panel has left:
+ * a `padding-inline-end` of `--stats-width` keeping the stage clear of the
+ * 240px corner the panel was positioned into, and a `min-block-size` holding
+ * the clip open to the panel's own worst-case height, because a panel out of
+ * the flow counted for nothing in this box's and a two-floor building made it
+ * 100px tall -- the learning track's first task losing `Max delivery time`,
+ * `Moves` and `Avg load` off the bottom outright. The figures are a row of the
+ * pane now, above nothing and beside nothing, so neither reservation has
+ * anything left to reserve.
+ *
+ * `position: relative` and the clipping both stay, for the verdict card:
+ * `.feedbackcontainer` is positioned against this box, and what it holds is
+ * the one thing on the stage with a size of its own rather than the pane's --
+ * `.verdict` is floored at 420px wide and carries a 30px-blur shadow past
+ * that. With `overflow: visible` a narrow enough pane would hand the page
+ * scrollbars that lead nowhere at the end of every run. The building itself no
+ * longer needs clipping: it is `.stage` that scrolls now, and it scrolls
+ * inside itself.
+ */
+.worldtrack {
+  position: relative;
+  display: flex;
+  flex: 1;
+  min-inline-size: 0;
+  overflow: hidden;
+}
+
+/* Nothing of its own left to draw: the building inside it has its own frame. */
+.innerworld {
+  display: flex;
+  flex: 1;
+  min-inline-size: 0;
+}
+
+/*
+ * The stage and the building on it, ported from `design/ui-mockup.html`
+ * (§"Здание") rule for rule, with the deviations each rule's own comment
+ * names. Built by `widgets/building-stage`; the geometry the rules read --
+ * --ds-floor-h, --ds-car-h, --ds-scale-x, `data-density` -- is written onto
+ * `.building` by that widget's layout pass, since how tall a floor may be is a
+ * question only something that has measured the pane can answer.
+ */
+.stagewrap {
+  position: relative;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-inline-size: 0;
+  min-block-size: 0;
+}
+
+/*
+ * A twenty-floor building does not fit the stage, and that has to be said.
+ * Without the hint the bottom floors do not read as "further down" but as cut
+ * off: the building meets the edge of the pane exactly where the room ran out.
+ * The shadow appears only on the side that still has something behind it.
+ */
+.stagewrap::before,
+.stagewrap::after {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  z-index: 5;
+  block-size: 22px;
+  opacity: 0;
+  transition: opacity 0.15s linear;
+  pointer-events: none;
+}
+
+.stagewrap::before {
+  inset-block-start: 0;
+  background: linear-gradient(var(--ds-bg), transparent);
+}
+
+.stagewrap::after {
+  inset-block-end: 0;
+  background: linear-gradient(transparent, var(--ds-bg));
+}
+
+.stagewrap.is-cut-top::before,
+.stagewrap.is-cut-bottom::after {
+  opacity: 1;
+}
+
+/*
+ * `safe center` on both axes: while the building fits it stands in the middle
+ * of the stage, and once it stops fitting it is pushed to the start and the
+ * stage scrolls. Without `safe`, an oversized building centres itself
+ * *outwards* and its left edge -- the floor numbers -- cannot be scrolled back
+ * to.
+ */
+.stage {
+  display: grid;
+  align-content: safe center;
+  justify-items: safe center;
+  flex: 1;
+  min-block-size: 0;
+  padding: 18px 16px;
+  background:
+    radial-gradient(120% 90% at 50% 0%, rgb(255 255 255 / 2.5%), transparent 70%), var(--ds-bg);
+  overflow: auto;
+}
+
+html[data-theme="light"] .stage {
+  background: var(--ds-bg);
+}
+
+/*
+ * Inset, unlike the sitewide ring: this box is the full width and height of the
+ * pane, so a ring 2px outside it would be drawn under `.worldtrack`'s own clip
+ * and half of it would simply not appear.
+ */
+.stage:focus-visible {
+  outline-offset: -3px;
+}
+
+/*
+ * `safe center` again, for the same reason: while everything fits the row is
+ * centred, and when the building is wider than the stage the row is pushed to
+ * the start so that scrolling reaches the floor numbers instead of cropping
+ * them.
+ */
+.stagerow {
+  display: flex;
+  gap: 18px;
+  align-items: center;
+  justify-content: safe center;
+  inline-size: 100%;
+}
+
+/*
+ * The building clips its own overflow -- otherwise a car would draw through the
+ * rounded corners -- which is also why the hover card hangs off `.stagewrap`
+ * and not off anything in here.
+ */
+.building {
+  display: flex;
+  flex: 0 0 auto;
+  border: 1px solid var(--ds-line-strong);
+  border-radius: var(--ds-r-lg);
+  background: var(--ds-shaft);
+  overflow: hidden;
+}
+
+/*
+ * The floor-number column. `column-reverse` is this port's own: the mockup
+ * builds its rows from the roof down, while `relabelWorld` in
+ * `src/pages/game/index.ts` reads `.floor` elements back in DOM order and takes
+ * that order for the floor number -- so the DOM is level 0 first, and the
+ * column turns itself over instead.
+ */
+.levels {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column-reverse;
+  inline-size: 84px;
+  border-inline-end: 1px solid var(--ds-shaft-line);
+  background: color-mix(in srgb, var(--ds-panel) 55%, transparent);
+}
+
+/*
+ * The corridor and the shafts: everything the simulation actually moves things
+ * through. Its width is the world's own span scaled once (see
+ * `shaft-scale.ts`), written from the widget, so `flex` never gets a say.
+ */
+.tracks {
+  position: relative;
+  flex: 0 0 auto;
+}
+
+/*
+ * Four layers over the same coordinate space, painted in this order: the floor
+ * bands, the strips a floor's queue is pointed at, the shafts, and the people.
+ * The people are last so a rider is not lost behind the car's own doors, and
+ * they are inert so that pointing at one still points at the shaft or the
+ * corridor underneath.
+ */
+.floorlines,
+.queues,
+.shafts,
+.people {
+  position: absolute;
+  inset: 0;
+}
+
+.people {
+  pointer-events: none;
+}
+
+.floorline {
+  position: absolute;
+  box-sizing: border-box;
+  inset-inline: 0;
+  border-block-end: 1px solid var(--ds-shaft-line);
+}
+
+/* The ground floor's line would double the building's own bottom border. */
+.floorline:last-child {
+  border-block-end: 0;
+}
+
+.floorline:nth-child(odd) {
+  background: rgb(255 255 255 / 1.5%);
+}
+
+html[data-theme="light"] .floorline:nth-child(odd) {
+  background: rgb(0 0 0 / 2%);
+}
+
+/*
+ * One floor's stretch of corridor: the box a card about that floor's queue is
+ * placed against, and the reason pointing anywhere along a floor's walkway
+ * describes it. Nothing is drawn -- the passengers standing in it are in
+ * `.people`, at the world coordinates they are really walking to, not laid out
+ * in here. Sized and positioned by the widget, which is the only thing that
+ * knows where the first shaft starts.
+ */
+.queue {
+  position: absolute;
+  inset-inline-start: 0;
+}
+
+/*
+ * The hover card: one element, moved to whichever floor row or shaft is being
+ * pointed at or focused (`widgets/building-stage` places it). The mockup's own
+ * `.carcard` (§6), minus its `.row` and `.picked` rules -- those lay out
+ * label/value pairs and a strip of floor-number chips, and this card's body is
+ * not built that way. Its words come from `hover-card-text.ts`, which writes
+ * whole sentences, one per line, in whichever language the page is running in;
+ * splitting a sentence into two columns is not a layout, and chipping the
+ * floor numbers out of "Pressed: 3, 7 and 11" would mean the card's text
+ * knowing about its own markup. What is ported is the surface, which is the
+ * part the mockup was really drawing.
+ *
+ * `pointer-events: none` earns its place: the card is placed beside a shaft
+ * the pointer is standing in, and a card that could take the pointer would
+ * swallow the `pointerleave` that closes it and then flicker on and off along
+ * its own edge.
+ */
+.carcard {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-start: 0;
+  box-sizing: border-box;
+  inline-size: 176px;
+  padding: 8px 10px;
+  border: 1px solid var(--ds-line-strong);
+  border-radius: var(--ds-r-md);
+  background: var(--ds-panel);
+  box-shadow: var(--ds-shadow);
+  color: var(--ds-text);
+  font-family: var(--ds-font-ui);
+  font-size: 12px;
+  line-height: 1.5;
+  pointer-events: none;
+  z-index: 30;
+}
+
+.carcard-title {
+  display: block;
+  margin-block-end: 2px;
+  font-weight: 650;
+}
+
+.carcard-lines {
+  color: var(--ds-text-muted);
+}

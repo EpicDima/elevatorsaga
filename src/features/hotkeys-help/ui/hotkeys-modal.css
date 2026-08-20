@@ -1,0 +1,92 @@
+/*
+ * The hotkeys window: the dialog, its head row and the list of key rows.
+ *
+ * `.keyrow kbd` is a scoped override of the shared key cap in
+ * `shared/ui/button.css`, not a replacement for it.
+ */
+
+/*
+ * The hotkeys dialog: `design/ui-mockup.html`'s own `.keys`/`.keys-*`/`.keyrow`
+ * (§9a), ported onto `--ds-*` tokens. The backdrop colour is the mockup's own
+ * literal, `rgb(8 10 14 / 55%)` -- it does not vary between the mockup's two
+ * themes either, so there is no token to name it with.
+ */
+.keys {
+  width: min(320px, 92vw);
+  padding: 0;
+  border: 1px solid var(--ds-line-strong);
+  border-radius: var(--ds-r-lg);
+  background: var(--ds-panel);
+  color: var(--ds-text);
+  box-shadow: var(--ds-shadow);
+}
+
+.keys::backdrop {
+  background: rgb(8 10 14 / 55%);
+}
+
+.keys-head {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--ds-line);
+}
+
+.keys-head h2 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 650;
+  white-space: nowrap;
+}
+
+.keys-body {
+  padding: 6px 14px 14px;
+}
+
+/*
+ * `design/ui-mockup.html`'s own row is two items -- what the key does, and one
+ * `<kbd>` -- so it pushes them apart with `justify-content: space-between` and
+ * is done. Two of this port's five rows are four items, because a `Mod-`
+ * binding is spelled `<kbd>⌘</kbd>+<kbd>Enter</kbd>` here rather than as the
+ * mockup's single compressed `<kbd>⌘⏎</kbd>` -- that is what lets
+ * `src/ui/shortcuts.ts` relabel the glyph `Ctrl` off a Mac. Spread between
+ * them, `space-between` scattered the chord across the row: the modifier at
+ * the middle, the plus somewhere right of it, the key at the edge.
+ *
+ * So the description takes the free space itself and the keys pack against the
+ * right edge, one chord at one small gap. The description is the row's only
+ * `<span>`, which is also how `presentHotkeysModal` finds it.
+ */
+.keyrow {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  padding: 4px 0;
+  font-size: 13px;
+  color: var(--ds-text-muted);
+}
+
+.keyrow > span {
+  margin-inline-end: auto;
+}
+
+/*
+ * A scoped override, not a change to the page's own `kbd` rule
+ * (`shared/ui/button.css`): that one is the key cap the whole app wears, and it
+ * is sized to the body text it runs in, since every other `<kbd>` stands in a
+ * sentence. These stand alone in a right-aligned column, at 11px and against
+ * the dialog's own `--ds-bg` rather than `--ds-raised`, which is the mockup's
+ * arrangement for this dialog and nobody else's.
+ */
+.keyrow kbd {
+  padding: 1px 6px;
+  border: 1px solid var(--ds-line-strong);
+  border-radius: 4px;
+  background: var(--ds-bg);
+  font-family: var(--ds-font-mono);
+  font-size: 11px;
+  color: var(--ds-text);
+  white-space: nowrap;
+}

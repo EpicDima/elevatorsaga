@@ -1,0 +1,91 @@
+/*
+ * The run's two buttons in the app bar, and the mount they share with the speed
+ * stepper.
+ *
+ * `.controls` is that mount. The mockup makes the two groups direct children of
+ * the bar; here one presenter composes both features into a box `index.html`
+ * ships, so the box takes the bar's own gap and stands where the mockup puts
+ * them. The width query at the end is this feature's alone -- every selector in
+ * it is one of these buttons.
+ */
+
+/*
+ * `design/ui-mockup.html`'s §7 (`.runbox`, `.speed`, `.speed-val`) and the part
+ * of its §14 that shrinks them: everything that drives the run, in the app bar.
+ *
+ * It had a row of its own between the learning track's panel and the building,
+ * and before that it was split between the challenge bar and the editor. Both
+ * are gone for the reason the mockup gives on this slot -- "в шапке, потому что
+ * оно нужно в любой раскладке, в том числе когда на экране только код" -- and
+ * the row cost the building a line of height on every layout besides.
+ * `#pages/game`'s `presentControls` has the rest of that history.
+ *
+ * `.controls` is the one divergence. The mockup makes `.runbox` and `.speed`
+ * direct children of `.appbar`; here they share a mount, because one presenter
+ * composes both features and `index.html` has to ship the element it draws into
+ * (see that file). The mount takes `.appbar`'s own 14px `gap` so the pair sits
+ * exactly where the mockup puts it -- the bar spaces its children by the same
+ * distance -- and `.appbar > :not(.levelswitcher)` (§3) gives it the row's
+ * height, so nothing else about the bar has to know it is there.
+ */
+.controls {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+}
+
+/*
+ * The two run buttons. One box rather than two of the bar's own children,
+ * because the bar's 14px reads as "different things" and these two are one:
+ * "кнопки две, и они делают разное: одна ведёт прогон (пуск, пауза,
+ * продолжить), вторая начинает его с нуля".
+ */
+.runbox {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+/*
+ * Both run buttons one width, and a width that does not depend on what is
+ * written on them: the primary one says "Start", "Pause", "Resume" and
+ * "Crunching..." in turn, and without a floor under it the whole bar would be
+ * recut on every press -- with "Start over" beside it looking clipped. The
+ * mockup's own reason, and its own 152px.
+ *
+ * Specificity puts this over `.btn-primary`'s own `min-width`
+ * (`shared/ui/button.css`), which is the mockup's arrangement too: 106px is
+ * what a primary button gets outside this box, and inside it both buttons
+ * match.
+ */
+.runbox .btn {
+  min-width: 152px;
+  justify-content: center;
+}
+
+/*
+ * The bar shrinking, step one: the labels go and the glyphs carry the buttons,
+ * with each button's `title` left to say the rest. The mockup's §14, less its
+ * `.ghost .lbl` -- the classes that rule names are the settings popover's
+ * openers, which this port draws with classes of their own and no `.lbl` inside
+ * either.
+ *
+ * The primary button keeps a floor under it, and a wider one than the 124px the
+ * mockup uses: its label is the one that changes on every press, so the row
+ * would move under the pointer without it, and this port has a fourth word for
+ * it -- "Crunching..." -- that the static page has no state for. 150px is what
+ * the longest of the four measures at this size in either language.
+ */
+@media (max-width: 1240px) {
+  .startover .lbl {
+    display: none;
+  }
+
+  .runbox .btn {
+    min-width: 0;
+  }
+
+  .startstop {
+    min-width: 150px;
+  }
+}

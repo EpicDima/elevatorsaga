@@ -9,7 +9,7 @@
  * see the note in src/main.ts.
  */
 
-import "./styles/style.css";
+import "./styles/index.css";
 
 import { labelModifierKeys } from "./ui/shortcuts.ts";
 

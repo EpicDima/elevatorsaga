@@ -1,0 +1,44 @@
+/*
+ * The three-star tier badge `tierBadgeMarkup` draws, wherever it appears: a
+ * level tile in the switcher, the goal bar's tier popover and the verdict card.
+ *
+ * The base rules only. Each of the three places it is used states its own size
+ * and colour for it, and every one of those selectors is more specific than
+ * these, so this file can be imported before or after them without changing
+ * what is drawn.
+ */
+
+/*
+ * The three-star tier badge: `design/ui-mockup.html`'s own `.stars`/`.star`
+ * rules (§3), shared -- per that section's own comment -- by a level tile's
+ * badge here, the goal bar's tier popover and the verdict card, neither of
+ * the other two built yet. `entities/challenge-tier`'s `tierBadgeMarkup` is
+ * the one function drawing this markup everywhere it appears; see its own
+ * comment. `.star` targets `spriteIconMarkup`'s `ds-icon star[ is-on]`
+ * output by its second class, the same way `.tasklink .icon` (below) and
+ * `.setlink .ds-icon` (above) each pick one class off a multi-class element
+ * rather than needing a compound selector.
+ */
+.stars {
+  display: inline-flex;
+  gap: 1px;
+  align-items: center;
+}
+
+.star {
+  width: 11px;
+  height: 11px;
+  color: var(--ds-tier-off);
+}
+
+.stars[data-tier="bronze"] .star.is-on {
+  color: var(--ds-tier-bronze);
+}
+
+.stars[data-tier="silver"] .star.is-on {
+  color: var(--ds-tier-silver);
+}
+
+.stars[data-tier="gold"] .star.is-on {
+  color: var(--ds-tier-gold);
+}

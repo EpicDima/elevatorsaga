@@ -1,0 +1,124 @@
+/*
+ * One floor's row in the column beside the building: its number and its two
+ * call lamps, lit and unlit.
+ */
+
+/*
+ * One floor's row in the column: its number and its two call lamps. The
+ * mockup's `.level`, under the class name `relabelWorld` still selects it by.
+ *
+ * `box-sizing` is set because the page's global box model is `content-box`
+ * (see the comment on `*` in `app/styles/document.css`) while the mockup's is
+ * `border-box`: the height
+ * the widget writes here has to be the height the row really occupies, or the
+ * rows drift a pixel per floor away from the floor bands drawn beside them in
+ * `.tracks`. `--ds-floor-h` is only the fallback -- floors are not all the same
+ * height, so the widget writes each row's own.
+ */
+.floor {
+  box-sizing: border-box;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: flex-end;
+  block-size: var(--ds-floor-h);
+  padding-inline-end: 10px;
+  border-block-end: 1px solid var(--ds-shaft-line);
+}
+
+/*
+ * The mockup drops the line under its `:last-child`, which is its ground floor;
+ * `.levels` is `column-reverse` here, so the row standing on the building's own
+ * bottom border is the first one instead.
+ */
+.floor:first-child {
+  border-block-end: 0;
+}
+
+/*
+ * Inset: the row runs the full width of a column that is flush against the
+ * building's clipped edge, so an outward ring would be cut down its left side.
+ */
+.floor:focus-visible {
+  outline-offset: -2px;
+}
+
+/*
+ * The number stands in a column two digits wide, aligned to its right edge.
+ * Otherwise "20" and "9" start in different places and a twenty-floor
+ * building's column looks ragged.
+ *
+ * The mockup paints it --text-faint. That was defensible at the legacy 32px,
+ * where 1.4.3 asks a floor number for only 3:1; it is 17px at most here, where
+ * the bar is 4.5:1 and --ds-text-faint reaches 3.77:1 dark and 2.83:1 light on
+ * the column's own composite. --ds-text-muted -- the substitution this
+ * stylesheet already makes wherever a mockup literal falls short (see
+ * `.docs-body h3`) -- clears it at 6.98:1 and 5.32:1. A floor number never
+ * lights up, so unlike a call lamp it cannot claim the "the lit state carries
+ * the information" exemption. `style.test.ts` checks both themes.
+ */
+.level-num {
+  min-inline-size: 2ch;
+  font-family: var(--ds-font-mono);
+  font-size: clamp(11px, calc(var(--ds-floor-h) * 0.3), 17px);
+  text-align: end;
+  color: var(--ds-text-muted);
+}
+
+.calls {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+/*
+ * A real button now, where the legacy renderer had a clickable `<i>` -- so this
+ * resets the browser's own button chrome down to the mockup's 20x18 box.
+ *
+ * The arrow gets --ds-text-muted rather than the mockup's --text-faint for the
+ * reason the floor number above does, and for one more: unlit, the arrow is the
+ * whole of what says a control is here. The border cannot help carry that --
+ * --ds-line-strong is 1.55:1 dark and 1.43:1 light on this column, well under
+ * 1.4.11's 3:1 -- so the glyph has to clear the bar on its own, which
+ * --ds-text-muted does with room to spare in both themes.
+ */
+.call {
+  box-sizing: border-box;
+  display: grid;
+  place-items: center;
+  inline-size: 20px;
+  block-size: 18px;
+  padding: 0;
+  border: 1px solid var(--ds-line-strong);
+  border-radius: var(--ds-r-sm);
+  background: none;
+  color: var(--ds-text-muted);
+  cursor: pointer;
+}
+
+.call .ds-icon {
+  inline-size: 11px;
+  block-size: 11px;
+  stroke-width: 2.4;
+}
+
+/*
+ * Lit, the lamp says which way a waiting passenger asked to go. Unlike the
+ * direction arrow inside a car, it is drawn on the floor column rather than on
+ * the car body, so the themed accent survives the light theme: --ds-accent on
+ * its own --ds-accent-soft badge over this column is 6.45:1 dark and 3.58:1
+ * light, past the 3:1 a graphical indicator is asked for.
+ */
+.call.is-lit {
+  border-color: var(--ds-accent);
+  background: var(--ds-accent-soft);
+  color: var(--ds-accent);
+}
+
+/*
+ * Only in the dark theme, where the mockup gives a lit lamp a faint bloom. In
+ * the light theme it would be a grey smudge, and there is nothing to glow.
+ */
+html[data-theme="dark"] .call.is-lit {
+  box-shadow: 0 0 8px rgb(232 163 63 / 30%);
+}

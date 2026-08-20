@@ -1,0 +1,167 @@
+/*
+ * The document itself: the elements a browser draws before any widget mounts --
+ * `html`, `body`, the headings, links, form controls, the focus ring and the
+ * definition lists the two help pages use.
+ *
+ * `app` rather than `shared` because these rules are global by construction:
+ * they are element selectors with nobody to import them, and the layer that
+ * owns the page is the one that gets to set them.
+ */
+
+/*
+ * `design/ui-mockup.html` §2's opening rule, and the assumption every widget
+ * ported out of that file was measured under: a `.tile` with padding and a
+ * width, a `.setmenu` with a border and a `min-inline-size`, every control the
+ * app bar sets to `--ds-ctl-h` -- each of them states the box it occupies and
+ * expects its border and padding to be inside it.
+ *
+ * The building is the one exception, and a deliberate one. `.floor` and
+ * `.elevator` state a block-size net of their borders
+ * (`calc(var(--floor-height) - 1px)`, and the car's two), because the scene's
+ * geometry has to agree to the pixel with `src/game/world.ts`, which counts in
+ * whole floors. Opting those two back out here rather than rewriting them
+ * keeps that agreement a question about one file; the opt-out goes when the
+ * stage's own rules are ported to the mockup's, which state the outer box
+ * instead.
+ */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+.floor,
+.elevator {
+  box-sizing: content-box;
+}
+
+/*
+ * The page has a floor, and below it the interface stops shrinking and starts
+ * scrolling -- the mockup's own note on this rule: «ниже него интерфейс не
+ * ужимается, а прокручивается». What scrolls is `<html>`, which is why the
+ * `overflow` is here and not on the body; `height: 100%` on both is what lets
+ * `body.app` below be a column the workspace can claim the rest of.
+ */
+html {
+  height: 100%;
+  margin: 0;
+  overflow: auto;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background-color: var(--ds-bg);
+  color: var(--ds-text);
+  font-family: var(--ds-font-ui);
+}
+
+/*
+ * The game page's own frame: the rest of the mockup's `body`, on a class
+ * because this stylesheet dresses three documents and only one of them is the
+ * game. `documentation.html` and its Russian twin are nine hundred lines that
+ * scroll; a full-height column with `overflow: hidden` would cut either off at
+ * the first screenful, and a 1040px floor would make a phone pan a page that
+ * fits one today.
+ *
+ * That floor is decision #1 (see the migration plan's own §0): a building pane
+ * and a code pane side by side need more room than 320px has to give, so the
+ * page adopts the mockup's own 1040x600 minimum instead of reflowing under it,
+ * and `e2e/reflow.spec.ts` holds it there. It sat on `.container:not(.narrow)`
+ * until this page stopped having a `.container` to sit on -- the bar and the
+ * workspace go edge to edge now, so the centred, gutter-padded wrapper had
+ * nothing left to centre.
+ */
+body.app {
+  display: flex;
+  flex-direction: column;
+  block-size: 100%;
+  min-inline-size: 1040px;
+  min-block-size: 600px;
+  overflow: hidden;
+  font-size: 14px;
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+}
+
+/*
+ * `<main>` is a landmark rather than a box: the mockup puts `.workspace`
+ * straight into its `<body>`, and this page keeps the region a screen reader
+ * jumps to between the two. So it passes the column through -- everything it
+ * is given, it gives on -- which is what makes `.workspace`'s own `flex: 1;
+ * min-height: 0` mean what it means in the mockup.
+ */
+body.app > main {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-block-size: 0;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  margin-block: 0.4em 0.3em;
+  color: var(--ds-text);
+}
+
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-weight: normal;
+}
+
+p {
+  color: var(--ds-text);
+}
+
+a {
+  color: var(--ds-text);
+  font-weight: bold;
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+/*
+ * A `<button>`, a `<select>` and an `<input>` each come with a font and a
+ * colour of the platform's choosing rather than the page's, so each has to be
+ * told to inherit or the page ends up with three typefaces it did not pick.
+ * `button`'s own full reset is in `shared/ui/button.css`; this is the half
+ * the other two need too, and it is here because it is the mockup's §2 and
+ * belongs with the frame.
+ */
+select,
+input {
+  color: inherit;
+  font: inherit;
+}
+
+/*
+ * The ring is rounded, which is the mockup's §2 rule and not a detail: almost
+ * everything focusable on the page is a rounded control, and a square ring
+ * around a rounded button reads as a rendering fault rather than as focus.
+ */
+:focus-visible {
+  outline: 2px solid var(--ds-focus);
+  outline-offset: 2px;
+  border-radius: var(--ds-r-sm);
+}
+
+dl {
+  color: var(--ds-text);
+}
+
+dl dd {
+  margin-block-end: 1em;
+  margin-inline-start: 1em;
+  font: 15px var(--font-body);
+  max-inline-size: 40%;
+}

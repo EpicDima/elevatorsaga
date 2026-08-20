@@ -1,0 +1,51 @@
+/*
+ * The two icon shapes `src/shared/ui/icon.ts` emits: `.icon`, the inline SVG
+ * that replaced the Font Awesome webfont and is still sized in `em` so it
+ * scales with the text around it, and `.ds-icon`, the mockup's own 16px
+ * stroked glyph.
+ *
+ * Beside the module that writes the markup, not in `shared/styles`, because
+ * these two rules and `iconMarkup`/`spriteIconMarkup` are one component
+ * expressed in two files.
+ */
+
+/*
+ * Icons are inline SVG sized in `em`, so they scale with the surrounding text
+ * exactly as the webfont glyphs did. The baseline offset is the Font Awesome
+ * descent, 256 of 1792 units per em.
+ */
+.icon {
+  display: inline-block;
+  block-size: 1em;
+  vertical-align: -0.143em;
+  fill: currentColor;
+}
+
+/*
+ * `design/ui-mockup.html`'s own icon family (`spriteIconMarkup` in
+ * `#shared/ui/icon.ts`) gets its own wrapper class, `ds-icon` rather than
+ * `icon`, precisely so it would not inherit the rule above by accident: this
+ * family is fixed-pixel, not em-relative, and until this rule landed,
+ * `icon.ts`'s own module comment said as much -- "this module has no
+ * stylesheet rule for `.ds-icon` yet." Ported here from the mockup's own
+ * `.icon` rule (§1) now that a live widget needs it: `widgets/app-bar`'s
+ * `.docsopen` button draws one of this family's glyphs, and a `viewBox`-only
+ * SVG with no intrinsic size stretches to fill whatever cross-axis width its
+ * parent gives it. Measured live before this rule, with the button still
+ * inside the old stacked header (`.header`, `flex-direction: column`): a 16x16
+ * book glyph rendered 1220px square, the header carrying it 2682.9px tall,
+ * and `e2e/seed.spec.ts`'s "does not move the caveat's own control" failing
+ * by 2548px on a control that itself never moved -- see `widgets/app-bar`'s
+ * own `.brand-mark` note, where that same test's other half is fixed, for the
+ * rest of that account.
+ */
+.ds-icon {
+  display: block;
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentcolor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}

@@ -20,7 +20,7 @@
  * script it has it for.
  */
 
-import "./styles/style.css";
+import "./styles/index.css";
 
 import { describeFitnessResults, runFitnessSuite } from "./app/fitness.ts";
 import { challenges } from "./game/challenges.ts";

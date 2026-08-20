@@ -1,0 +1,42 @@
+/*
+ * What the game page states about itself rather than about any widget in it:
+ * the fullscreen demo, where everything except the world is hidden rather than
+ * removed so the building keeps the position it has in the normal layout.
+ *
+ * `FULLSCREEN_CLASS` in `src/pages/game/index.ts` is what sets the class these
+ * rules hang off.
+ */
+
+/*
+ * `#fullscreen` used to write inline styles that could never be taken back off.
+ * Everything except the world is hidden rather than removed, so the world keeps
+ * the vertical position it has in the normal layout.
+ *
+ * The chain starts at `body` because the game page no longer wraps its contents
+ * in a `.container` -- the app bar and the workspace go edge to edge, and the
+ * skip link, the `<header>`, the `<noscript>` and the announcement paragraph
+ * are the body's own children now. `.fullscreen-demo` itself is set on `<html>`
+ * (see `FULLSCREEN_CLASS` in `src/pages/game/index.ts`), so the first rule
+ * reaches both of the boxes the page is drawn in.
+ *
+ * It gained a link when the learning track's panel moved beside the building:
+ * `.world` is a child of `.stagearea` now, not of the pane, so the pane's
+ * step has to spare that box and a step of its own has to hide the panel
+ * inside it. The demo route never has a lesson to hide -- `.tutorial:empty`
+ * has already taken it out of the flow -- but the chain is written to hold
+ * whatever the box happens to contain rather than to rely on that.
+ */
+.fullscreen-demo,
+.fullscreen-demo body {
+  inline-size: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+.fullscreen-demo body > *:not(main),
+.fullscreen-demo main > *:not(.workspace),
+.fullscreen-demo .workspace > *:not(.pane-game),
+.fullscreen-demo .pane-game > *:not(.stagearea),
+.fullscreen-demo .stagearea > *:not(.world) {
+  visibility: hidden;
+}

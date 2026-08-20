@@ -1,0 +1,172 @@
+/*
+ * Every button on both pages, and the `<kbd>` key caps beside them.
+ *
+ * A button is reset to nothing, because most of them replace elements that used
+ * to be non-interactive `<i>` glyphs and must not pick up any chrome; the two
+ * shapes that are meant to look like controls opt back in. `.btn` is the
+ * bordered one -- the run controls, and each dialog's close button -- and
+ * `.ghost` the low-emphasis one beside something louder, worn by the editor's
+ * two tools, the bar's docs and settings triggers, and the learning track's
+ * "Leave" button.
+ *
+ * The four groups came from four places in the single stylesheet and are one
+ * file here because they are one component. Their order among themselves is
+ * unchanged, and nothing between them ever competed: no element wears both
+ * `.btn` and `.ghost`, and the two element selectors lose to every class rule
+ * on specificity wherever they are declared.
+ */
+
+/*
+ * `design/ui-mockup.html`'s own `.btn` (§7): a bordered control the same
+ * shape as `.task-open` (`widgets/level-switcher`) -- same height, radius and
+ * resting background. Three things wear it: the run controls' two buttons
+ * (`.runbox`, `features/run-simulation`), and
+ * `.docsclose`/`.keysclose` (`docs-modal.ts`, `hotkeys-modal.ts`). Its hover
+ * state is not `.task-open`'s, though: that one brightens its border to the
+ * themed accent because it opens the level switcher, the one control this bar
+ * wants a player's eye drawn to, while a `.btn` is pressed by somebody who
+ * already knows what it does -- so the mockup's own `.btn:hover` reaches for
+ * the neutral `--n-5` instead, ported here as `--ds-n-5`. `.btn[hidden]`
+ * restates `display: none` for the reason `.taskmenu[hidden]` (above) already
+ * does: `.btn` sets its own `display`, which a bare `[hidden]` attribute alone
+ * does not override.
+ */
+.btn {
+  display: flex;
+  gap: 7px;
+  align-items: center;
+  height: var(--ds-ctl-h);
+  padding: 0 13px;
+  border: 1px solid var(--ds-line-strong);
+  border-radius: var(--ds-r-md);
+  background: var(--ds-raised);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.btn:hover {
+  border-color: var(--ds-n-5);
+}
+
+.btn[hidden] {
+  display: none;
+}
+
+/*
+ * The one button on the page the eye is meant to land on first: the one that
+ * starts the run. Painted rather than outlined, so it is told apart from the
+ * `.btn` beside it before either is read.
+ *
+ * The mockup's `min-width: 106px` is here for completeness and is overridden
+ * wherever it is actually drawn -- `.runbox .btn` sets 152px, and specificity
+ * decides it -- because the only `.btn-primary` this port draws today is in
+ * that box. It is stated all the same, so that the next one drawn outside it
+ * does not have to rediscover the number.
+ *
+ * `.appbar > .btn-primary { flex: 0 0 auto }` is not ported. It matches nothing
+ * in the mockup either: every `.btn-primary` there is inside `.runbox`, a
+ * lesson's actions or the verdict card, and never a direct child of the bar.
+ */
+.btn-primary {
+  min-width: 106px;
+  border-color: transparent;
+  background: var(--ds-accent);
+  color: var(--ds-accent-ink);
+  font-weight: 600;
+}
+
+.btn-primary:hover {
+  background: var(--ds-accent-hi);
+}
+
+/*
+ * Buttons are reset to nothing: most of them replace elements that used to be
+ * non-interactive `<i>` glyphs, and must not pick up any button chrome. The
+ * three groups that are meant to look like buttons opt in below.
+ */
+button {
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: inherit;
+  cursor: pointer;
+}
+
+button[disabled] {
+  cursor: default;
+}
+
+/*
+ * Both pages name keys with <kbd>: the documentation page used to get the
+ * browser default, which is a monospace family unrelated to the editor's.
+ *
+ * The browser default beyond that family is nothing: a bare <kbd> reads as
+ * plain text run in with the sentence around it, which is exactly what made a
+ * lone ⌘ easy to lose. The border, background and radius are the shared control
+ * chrome this page already draws -- .btn, .task-open and .skip-link all wear the
+ * same --ds-line-strong hairline over --ds-raised -- so a key reads as the
+ * conventional bordered key cap most sites reach for rather than a new
+ * invention. The pairing is --ds-text on --ds-raised, which style.test.ts holds
+ * to 4.5:1 in both themes (12.96:1 dark, 15.07:1 light). Bold for the reason
+ * .tutorialcopycode is bold too: heavier strokes are what keep a single
+ * character -- ⌘ chief among
+ * them -- legible at the size a key is actually set at, without singling that
+ * one glyph out from the letters beside it.
+ */
+kbd {
+  padding: 1px 6px;
+  border: 1px solid var(--ds-line-strong);
+  border-radius: 4px;
+  background-color: var(--ds-raised);
+  color: var(--ds-text);
+  font: inherit;
+  font-family: var(--font-mono);
+  font-weight: bold;
+}
+
+/*
+ * The shape of a low-emphasis control beside something louder -- "Reset
+ * code" and "Undo reset" here, both in `widgets/editor-pane`, and the docs
+ * and settings triggers in `widgets/app-bar`. Every one of them draws the
+ * mockup's own arrangement: a 16px glyph, then the `gap`, then a `.lbl` span
+ * holding the word.
+ */
+.ghost {
+  display: flex;
+  gap: 7px;
+  align-items: center;
+  block-size: var(--ds-ctl-h);
+  padding-inline: 9px;
+  border-radius: var(--ds-r-md);
+  color: var(--ds-text-muted);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.ghost:hover:not(:disabled) {
+  background: var(--ds-raised);
+  color: var(--ds-text);
+}
+
+.ghost:disabled {
+  color: var(--ds-text-faint);
+  opacity: 0.45;
+  cursor: default;
+}
+
+.ghost[aria-pressed="true"] {
+  background: var(--ds-accent-soft);
+  color: var(--ds-accent);
+}
+
+/*
+ * Same `[hidden]` gotcha as `.errorline[hidden]` below: without this, "Undo
+ * reset" stays a focusable, visible `display: flex` row while it has no undo
+ * to offer.
+ */
+.ghost[hidden] {
+  display: none;
+}

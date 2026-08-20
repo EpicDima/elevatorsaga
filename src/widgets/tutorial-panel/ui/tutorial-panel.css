@@ -1,0 +1,509 @@
+/*
+ * The learning track's card: its head row and step pips, the title and prose,
+ * the hint and explanation disclosures, the answer and the tools for copying
+ * it, and the two actions that close the card.
+ *
+ * The last rule lets those two actions take a second line. It sat in the
+ * stylesheet's own "Buttons" section, with the shared chrome it overrides; it
+ * is this widget's override and belongs to this widget, and it is still
+ * declared after `.tutorialbuttons .btn-primary` above, which is the only rule
+ * here it shares specificity with.
+ */
+
+/*
+ * The region the panel is drawn into. Its size and its margins are the row's
+ * business and are stated at `.stagearea > .tutorial`
+ * (`widgets/workspace-layout`), beside the gap they have to agree with; all
+ * that is left here is what the region is on the routes that have no lesson.
+ *
+ * Every route but the track leaves this element empty -- `App` draws into it
+ * only while a task is on screen and empties it for the nineteen levels, the
+ * sandbox and the demo -- and an empty flex item is not free: on its stated
+ * `flex-basis` it would hold 384px of the row open beside every building in
+ * the game, with a 16px inset and an 18px gap around the nothing inside it.
+ * The principle is general: markup that is present so that a presenter has
+ * somewhere to draw must cost nothing on the routes where nothing is drawn.
+ */
+.tutorial:empty {
+  display: none;
+}
+
+/*
+ * And what the region looks like on the eight routes that do draw into it:
+ * `design/ui-mockup.html`'s own `.lesson` card (§11) -- 14px of padding, a
+ * strong hairline, the large radius, and `--ds-panel` behind it.
+ *
+ * The card is on the region rather than on the `.tutorialpanel` inside it
+ * because the region is the box that scrolls: the row gives this element a
+ * ceiling and `overflow: auto` (see `.stagearea > .tutorial`), and a border
+ * drawn on a child of a scroll container scrolls away with the writing, which
+ * leaves a lesson longer than the stage looking like an unbounded column of
+ * text tucked behind the building. Drawn here, the frame stays where it is and
+ * the prose moves inside it.
+ *
+ * A card at all, where the panel deliberately had no surface before: it used to
+ * be a block of prose in the pane's own column with nothing beside it, and
+ * edges would have made it the only bordered box on the page. Beside the
+ * building it is one of two things sharing a row, and the frame is what says
+ * where the lesson ends and the building begins.
+ */
+.tutorial {
+  padding: 14px;
+  border: 1px solid var(--ds-line-strong);
+  border-radius: var(--ds-r-lg);
+  background-color: var(--ds-panel);
+}
+
+/*
+ * The panel inside that card.
+ *
+ * The colour is the whole reason this rule exists, and it is the defect written
+ * up at `.setmenu`: `<body>` paints everything `white`, which document rules
+ * repair for `p` and for the headings only. The four `<summary>` elements are
+ * neither, so left alone the panel's four controls would fall back to that
+ * `white`, unreadable on light theme's near-white `--ds-bg` and needlessly
+ * flat against dark theme's near-black one, while the prose beneath them (a
+ * `p`) already reads `--ds-text`. Measured on the card's own `--ds-panel`
+ * rather than assumed off the old background: 14.04:1 dark, 15.99:1 light,
+ * both far past the 4.5:1 of WCAG 1.4.3.
+ */
+.tutorialpanel {
+  color: var(--ds-text);
+}
+
+/*
+ * The head row: the mockup's `.lesson-head` (§11). A graduation cap, the name
+ * of the track, and where in it the player is.
+ *
+ * The cap is `--ds-accent`, which is the mockup's own `.lesson-head .icon`
+ * colour and needs no measuring as text -- it is `aria-hidden` decoration
+ * beside a line that says the same thing in words, which 1.4.11 exempts -- but
+ * it is measured anyway, because an icon nobody can find is an icon that was
+ * not worth drawing: 7.92:1 dark and 4.56:1 light on `--ds-panel`.
+ *
+ * The position is `--ds-text-muted` and the track's name is not, because they
+ * are two different sentences sharing a line: the name says which panel this
+ * is, and only the position changes from task to task. Muted measures 6.70:1
+ * dark and 5.90:1 light on the card, past 4.5:1; the mockup's own
+ * `--text-faint` would have been 3.62:1 dark and 3.14:1 light there, short of
+ * it in both themes, and it is not used for text anywhere on this page for
+ * exactly that reason.
+ */
+.tutorialposition {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin: 0 0 10px;
+  font-size: 13px;
+  line-height: 18px;
+}
+
+/*
+ * `flex: none` because the cap is 16px of drawing and not a column of the row:
+ * `.ds-icon` states a width, and a flex item with a width is still allowed to
+ * shrink below it, which in a card squeezed to its 260px floor by a long
+ * Russian position line would leave the mortar board an oval.
+ */
+.tutorialposition .ds-icon {
+  flex: none;
+  color: var(--ds-accent);
+}
+
+/*
+ * The name takes the slack, so the position sits against the right edge of the
+ * card the way the mockup's step counter does. 650 rather than `bold`: it is
+ * the weight the mockup sets on every one of these small headings, and Oswald
+ * has the intermediate weights to draw it.
+ */
+.tutorialtrack {
+  flex: 1;
+  font-weight: 650;
+}
+
+.tutorialstep {
+  color: var(--ds-text-muted);
+}
+
+/*
+ * The track as ticks, one per task: the mockup's `.steps` (§11). See
+ * `tutorialStepsTemplate` for what the three states mean and why the row says
+ * it to the eye only.
+ *
+ * `--ds-n-3` for a tick not yet reached is the mockup's own `--n-3`, and it is
+ * the one colour here that is neither text nor a control: 1.4.11 asks 3:1 of a
+ * graphical object only when it carries information not available elsewhere,
+ * and every one of these is a restatement of "Task 3 of 8" one line above. An
+ * unreached tick measures 1.22:1 dark and 1.19:1 light against the card, which
+ * is the intent -- it is the groove the other two are drawn in, not a mark. The
+ * two that do carry the eye -- `--ds-ok` behind and `--ds-accent` here -- are
+ * measured on the card all the same: 7.72:1 and 7.92:1 dark, 4.63:1 and 4.56:1
+ * light.
+ */
+.tutorialsteps {
+  display: flex;
+  gap: 4px;
+  margin-block-end: 14px;
+}
+
+.tutorialsteps i {
+  flex: 1;
+  block-size: 3px;
+  border-radius: 2px;
+  background-color: var(--ds-n-3);
+}
+
+.tutorialsteps i.is-done {
+  background-color: var(--ds-ok);
+}
+
+.tutorialsteps i.is-current {
+  background-color: var(--ds-accent);
+}
+
+/*
+ * The task's own name: the mockup's `.lesson h2`. The weight has to be stated
+ * because this page sets every heading below `h1` to `normal` (see the
+ * document rules above), and a 16px heading at the weight of the prose under
+ * it is not a heading.
+ */
+.tutorialtitle {
+  margin: 0 0 5px;
+  font-size: 16px;
+  font-weight: 650;
+}
+
+/*
+ * The prose: the mockup's `.lesson p`, one size below the page's own and
+ * muted, which is what makes the task's name and the ticks above it the two
+ * things read first. `--ds-text-muted` measures 6.70:1 dark and 5.90:1 light
+ * on the card, and 6.19:1 dark / 5.56:1 light on the `--ds-raised` inside an
+ * open hint, both past the 4.5:1 of WCAG 1.4.3.
+ *
+ * The measure stays, for the reason `.seedcaveat` has one: a line of prose
+ * read by losing your place in it. 384px of card is 45 characters and never
+ * reaches the ceiling, but the narrow layout below 760px of pane stands the
+ * lesson across the pane at up to 560px, and there it does. It is deliberately
+ * not on `.tutorialpanel` itself, which would take the answer under the last
+ * hint down with it: that block is code, its longest line is 68 characters,
+ * and a measure set for prose would put a scrollbar under it.
+ */
+.tutorialgoal,
+.tutorialprose {
+  margin: 0 0 11px;
+  max-inline-size: 62ch;
+  color: var(--ds-text-muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+/*
+ * The four disclosures: three hints, then why the task behaves as it does.
+ * The mockup's `.hint` (§11) -- a raised, hairlined box the whole width of the
+ * card, with its summary as the lid.
+ *
+ * The summary fills that box rather than shrinking to its words, which is the
+ * opposite of what this rule used to say and is right for the opposite reason:
+ * the warning at `.seedhelp > summary` is that a full-width `<summary>` gives
+ * a control an invisible half nobody can see is clickable, and a bordered lid
+ * with a marker on it has no invisible half. The pointer is the other half of
+ * that rule and stays: `<summary>` is a control and the UA gives it no cursor.
+ */
+.tutorialhint,
+.tutorialexplanation {
+  margin-block-end: 6px;
+  border: 1px solid var(--ds-line);
+  border-radius: var(--ds-r-md);
+  background-color: var(--ds-raised);
+}
+
+.tutorialhint > summary,
+.tutorialexplanation > summary {
+  padding: 8px 11px;
+  font-size: 13px;
+  list-style: none;
+  cursor: pointer;
+}
+
+/*
+ * The marker is drawn rather than left to the UA, which is what `list-style:
+ * none` above asks for everywhere except WebKit, where the triangle is a
+ * pseudo-element that ignores it. Both are needed; either alone leaves one
+ * engine drawing two markers.
+ *
+ * `--ds-text-muted` and not the mockup's `--text-faint`: the character is
+ * typography rather than an icon -- it inherits the summary's size and sits on
+ * its baseline -- so it is measured against 1.4.3's 4.5:1 rather than 1.4.11's
+ * 3:1, and faint would be 3.34:1 dark / 2.96:1 light on `--ds-raised`. Muted
+ * is 6.19:1 dark and 5.56:1 light there.
+ */
+.tutorialhint > summary::-webkit-details-marker,
+.tutorialexplanation > summary::-webkit-details-marker {
+  display: none;
+}
+
+.tutorialhint > summary::before,
+.tutorialexplanation > summary::before {
+  content: "▸ ";
+  color: var(--ds-text-muted);
+}
+
+.tutorialhint[open] > summary::before,
+.tutorialexplanation[open] > summary::before {
+  content: "▾ ";
+}
+
+/*
+ * Inside an open hint the prose lines up under its summary's text, which is
+ * what the mockup's `.hint p` does: the lid's own 11px, and the bottom padding
+ * the box would otherwise not have.
+ */
+.tutorialhint .tutorialprose,
+.tutorialexplanation .tutorialprose {
+  margin: 0;
+  padding: 0 11px 10px;
+}
+
+/*
+ * The answer, under the third hint: the mockup's `.hint pre`, inset to the
+ * same 11px as the prose above it.
+ *
+ * `pre code` already paints the surface in the page's own code colours and
+ * wraps it below 760px; what is stated here is the mockup's tighter padding
+ * and its one-size-smaller type, and a ceiling. The longest line in any of the
+ * eight answers is 68 characters (task 7, which task 8 shows again), so a
+ * block any wider than that is a code surface with nothing in the right-hand
+ * half of it. The ceiling is on the `<code>`, where a `ch` is a character of
+ * the monospace face that is about to be measured out in it.
+ */
+.tutorialsolution {
+  margin: 0 11px 11px;
+}
+
+.tutorialsolution code {
+  padding: 9px 11px;
+  max-inline-size: 72ch;
+  font-size: 12px;
+}
+
+/*
+ * The line or lines a player actually has to write, inside the answer.
+ * `changedLines` (`src/ui/line-diff.ts`) is what decides which lines these
+ * are, by comparing the task's starting program against this one; this rule
+ * is only the paint. `--ds-accent` marks the change, the same colour the
+ * building already uses for "this is lit, this matters" -- a floor's call
+ * button, its band once pressed. Checked fresh against `--ds-code-bg`, a
+ * pairing neither of those already covers: 8.25:1 dark, 4.33:1 light, clear
+ * of the 3:1 that 1.4.11 asks of a graphical indicator; `style.test.ts` holds
+ * it to that bar explicitly.
+ *
+ * A `<mark>` rather than a `<span>` with the same class: it is the element
+ * HTML already has for "this text matters here, against another context",
+ * which is exactly what a changed line is against the program the task
+ * started with -- see `code-highlight.ts`. The border sits on the inline
+ * *start* edge, which is where reading begins in every language this page
+ * ships (English and Russian both read left to right), so `border-inline-start`
+ * rather than `border-left`.
+ *
+ * The negative margin and the compensating padding cancel out exactly:
+ * `.tutorialsolution code` above pads its content 11px in from its own edge,
+ * this element's `display: block` makes it as wide as that content box
+ * regardless of which side its margin comes from, and `-11px` pulls its own box
+ * back out into that padding so the 3px border can sit inside it. Without the
+ * 8px given back the text of a changed line would sit 3px to the left of every
+ * other line's; with it, both start at the same 11px from the code block's own
+ * edge, and the mark is the only line with anything in the gutter to its left.
+ * The two numbers are the code block's padding and that padding less the
+ * border, so they move whenever it does.
+ */
+.tutoriallinechanged {
+  display: block;
+  margin-inline-start: -11px;
+  border-inline-start: 3px solid var(--ds-accent);
+  padding-inline-start: 8px;
+  background-color: rgb(51 53 31 / 10%);
+}
+
+/*
+ * The row above the answer: a button that copies it to the clipboard, and the
+ * line that says whether that worked, in that order -- the line reports on the
+ * button beside it, the way `.tutorialtaken` reports on "Take this program"
+ * below. Not part of `.tutorialbuttons`: that row leaves the task, and this
+ * button acts on the code beside it instead, so it stays with the code rather
+ * than joining the buttons that end the task.
+ *
+ * Inset 11px like everything else inside an open hint, so the button, the
+ * prose above it and the code below it stand on one line.
+ */
+.tutorialanswertools {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 8px 11px 4px;
+}
+
+/*
+ * The chrome is `.codeslot`'s own -- both are a button-shaped mark beside a
+ * piece of code -- with one token changed, and the change is the whole point of
+ * this comment. That button is `--ds-raised` because it stands on a `--ds-panel`
+ * bar; this one stands inside an open hint, and the hint is `--ds-raised` too, so
+ * copied verbatim the button's surface measured 1.00:1 against the box under it
+ * in both themes: a control with no shape at all. One step further up the
+ * neutral ramp is `--ds-n-3`, which is what the tier popover's own `.tierstate`
+ * pill does on the same surface, and it puts the button back at 1.12:1 against
+ * the hint in both themes -- faint, but a shape.
+ *
+ * That is as far as the chrome goes, and the honest reading of WCAG 1.4.11 is
+ * that it does not have to go further. The border measures 1.38:1 dark and
+ * 1.49:1 light against the hint, well under 3:1, exactly as `--ds-line-strong`
+ * does everywhere else it is drawn on a raised surface (see `.call`); a
+ * hairline at this weight is decoration and cannot be what identifies the
+ * control. What identifies it is its label, and 1.4.11 asks nothing more of a
+ * component a player can read the name of. So the ink is where the bar has to
+ * be cleared, and `--ds-text` on that fill clears 1.4.3's 4.5:1 outright:
+ * 11.54:1 dark, 13.43:1 light.
+ */
+.tutorialcopycode {
+  padding: 5px 10px;
+  border: 1px solid var(--ds-line-strong);
+  border-radius: var(--ds-r-sm);
+  background-color: var(--ds-n-3);
+  color: var(--ds-text);
+  font-size: 13px;
+  font-weight: bold;
+}
+
+/*
+ * Sized and drawn exactly the way `.tutorialtaken` below is, for the reason
+ * given there. The surface underneath is the open hint's `--ds-raised` rather
+ * than the card's `--ds-panel`, so the colour is measured again against it:
+ * 6.19:1 dark and 5.56:1 light, past 4.5:1.
+ */
+.tutorialcopied {
+  margin-block: 0;
+  color: var(--ds-text-muted);
+  font-size: 12px;
+  line-height: 16px;
+}
+
+/*
+ * The two things a player can do with a task once they have read it: the
+ * mockup's `.lesson-acts` (§11), and its own hierarchy -- the quiet one on the
+ * left, the painted one pushed to the far right by `margin-inline-start: auto`.
+ * The mockup's reasoning for the gap between them is that the two are not
+ * pressed equally often and the rare one must not sit under the hand aiming
+ * for the common one; here the common one is taking the program into the
+ * editor, and the rare one leaves the track altogether.
+ *
+ * `margin-inline-start` rather than the mockup's `margin-left`, because the
+ * whole of this page is written in logical properties, and this one really is
+ * about the reading direction: the primary action belongs at the end of the
+ * line, wherever the line ends.
+ *
+ * Still a wrapping row, and now for a sharper reason than the phone it was
+ * written for. These labels are sentences -- "Take this program into your own
+ * editor", and the Russian for it -- and the card they now sit in is 374px
+ * wide at the default split, 314px on task 7 whose building is 60px wider, and
+ * 260px at its floor. The measurements are at `.tutorialbuttons .btn` below,
+ * where the height they force is settled; the short of it is that the pair is
+ * 414px against a 344px content box even at the widest of those, so they take
+ * a line each and the primary keeps its right edge. Without the wrap the card,
+ * which scrolls, would grow a horizontal scrollbar under a lesson. The
+ * `escapedButtons` measurement in `e2e/tutorial.spec.ts` is what watches for
+ * that.
+ */
+.tutorialbuttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin: 0;
+  padding-block-start: 12px;
+}
+
+.tutorialbuttons .btn-primary {
+  margin-inline-start: auto;
+}
+
+/*
+ * What "Take this program" did, one size down from the panel's own prose: a
+ * remark about a write that has already happened, not part of the task being
+ * read. Muted for the same reason it is small -- the eye coming back to the card
+ * is looking for the next step, not for the receipt of the last one -- which is
+ * `--ds-text-muted` on the card's `--ds-panel`, measured at 6.70:1 dark and
+ * 5.90:1 light, past the 4.5:1 of WCAG 1.4.3.
+ *
+ * Not hidden while it is empty, though it is empty for most of a task's life. It
+ * is a live region, and the announcement is only reliable when the region was
+ * already rendered before the text arrived -- `display: none` up to the moment
+ * of the update is the case screen readers most often miss. An empty `<p>` has
+ * no line box, so with no block margin it costs nothing until there is something
+ * to read; the margin below it appears with the text, which is why it is on
+ * `:not(:empty)` rather than on the element. The line does push the building
+ * down by its own height when it arrives, which is the price of not reserving
+ * space for a sentence that is one line in English and two in Russian on a
+ * phone.
+ */
+.tutorialtaken {
+  margin-block: 0;
+  color: var(--ds-text-muted);
+  font-size: 12px;
+  line-height: 16px;
+}
+
+.tutorialtaken:not(:empty) {
+  margin-block-end: 10px;
+}
+
+/*
+ * The one line here that is about the track rather than about this task, and the
+ * only place the count of cleared tasks is shown. Last, smallest and muted: it
+ * is the footnote of the card, and it is the one line on it that does not change
+ * between the steps of a task. It used to be set at 14px, larger than the
+ * lesson's own prose and its head row both, which on a card this narrow read as
+ * the loudest thing below the title.
+ *
+ * The space above it is its own rather than the button row's because the element
+ * between the two is a live region that is empty most of the time
+ * (`.tutorialtaken`): stated here it collapses with that region's own bottom
+ * margin, so the footnote stands exactly 10px below whatever is above it whether
+ * or not there is a receipt in between, and a card with a `padding-block-end`
+ * elsewhere would have had to state the number twice.
+ */
+.tutorialprogress {
+  margin-block: 10px 0;
+  color: var(--ds-text-muted);
+  font-size: 12px;
+  line-height: 16px;
+}
+
+/*
+ * The learning track's two actions no longer have chrome of their own: they wear
+ * `.ghost` and `.btn.btn-primary`, which is what `design/ui-mockup.html` puts in
+ * `.lesson-acts` (§11), so the whole of their paint is settled above. All that
+ * is left here is permission to take two lines.
+ *
+ * Both of those classes were drawn for labels of one or two words -- a fixed
+ * `var(--ds-ctl-h)` and `white-space: nowrap`. The labels on this row are
+ * sentences. Measured in the card at the default split: "Take this program into
+ * your own editor" is 271px and its Russian 270px, "Leave for the levels" 135px
+ * and its Russian 161px, against a 344px content box. Together with the gap they
+ * are 414px, so `.tutorialbuttons`'s own `flex-wrap` gives them a line each --
+ * which is what the wrap is for, and why the primary keeps its right edge on the
+ * second line rather than the pair being centred.
+ *
+ * The floor rather than the fixed height is for the width below that. Squeezed
+ * to the lesson's 260px, a label that no longer fits one line has to be allowed
+ * two, and `block-size: var(--ds-ctl-h)` would draw the second of them outside
+ * the box; 32px kept as a *minimum* means a label that does fit still measures
+ * exactly what every other control on the page does. `e2e/tutorial.spec.ts`
+ * measures the other half at the 1040x600 floor: no button wider than the card,
+ * and no horizontal overflow on a card that already scrolls vertically.
+ */
+.tutorialbuttons .btn,
+.tutorialbuttons .ghost {
+  block-size: auto;
+  min-block-size: var(--ds-ctl-h);
+  padding-block: 6px;
+  white-space: normal;
+}

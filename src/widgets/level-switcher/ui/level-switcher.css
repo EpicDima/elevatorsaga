@@ -1,0 +1,273 @@
+/*
+ * The level switcher in the app bar: the trigger and its two step arrows, the
+ * popover, and the tiles inside it in each of their states -- locked, cleared,
+ * current, and the free-play tile that closes the list.
+ *
+ * See `level-switcher.ts` for the markup these rules target, and
+ * `tier-badge.css` for the star badge a tile carries; the `.tasklink .star`
+ * rules here are this widget's own overrides of it.
+ */
+
+/*
+ * The level switcher: `design/ui-mockup.html`'s `.task`/`.taskmenu`/
+ * `.tasklink` (§3), the rest of the "later phase" `.brand-mark` and `.appbar`
+ * already named next door in `widgets/app-bar` -- `widgets/level-switcher` has
+ * drawn this live since Phase 12.2; see that module's own comment for the
+ * markup this port targets.
+ *
+ * Two divergences from the mockup, both because the live markup is not the
+ * mockup's own:
+ *
+ * - `.task-step`, the mockup's one class for both step buttons, is not
+ *   ported: `levelSwitcherTemplate()` gives the previous and next buttons
+ *   their own classes, `.task-prev`/`.task-next`, rather than telling them
+ *   apart by position among siblings. Both take the rule the mockup gives
+ *   `.task-step`.
+ * - `.task-open b`, similarly, is ported as `.task-name` -- the mockup names
+ *   the trigger's label by tag alone (`<b id="taskName">`); the live template
+ *   gives it a class instead, the same as every other element this port
+ *   targets.
+ *
+ * The mockup's own comment on `.task` cites "§ 14" for why the bar shrinks by
+ * hiding button labels under a narrow viewport; that section only ever
+ * touches `.ghost .lbl`, `#againBtn .lbl`, `.runbox .btn` and `#runBtn` --
+ * none of them this widget's own -- so nothing from it is ported here.
+ *
+ * `.task`'s `position: relative` and `.taskmenu`'s `position`/`top`/`left`/
+ * `z-index` were ported ahead of the rest, the moment `.brand-mark` needed
+ * the row not to reflow under it; they were filed in the app bar's own section
+ * then, and the split brought them back beside the rules they belong with.
+ */
+.task {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 2px;
+}
+
+/*
+ * The divider between the switcher and whatever `.appbar` draws next to it --
+ * the same rule, and the same height, as `.brand`'s own `border-right`
+ * (`widgets/app-bar`), so the bar reads as one row of equally tall dividers
+ * rather than two different ones.
+ */
+.task::after {
+  content: "";
+  width: 1px;
+  height: var(--ds-ctl-h);
+  margin-left: 12px;
+  background: var(--ds-line);
+}
+
+.task-prev,
+.task-next {
+  display: grid;
+  place-items: center;
+  width: var(--ds-ctl-h);
+  height: var(--ds-ctl-h);
+  border-radius: var(--ds-r-sm);
+  color: var(--ds-text-muted);
+}
+
+.task-prev:hover:not(:disabled),
+.task-next:hover:not(:disabled) {
+  background: var(--ds-raised);
+  color: var(--ds-text);
+}
+
+.task-prev:disabled,
+.task-next:disabled {
+  color: var(--ds-n-3);
+  cursor: default;
+}
+
+/*
+ * Width fixed, at the mockup's own value and for the mockup's own reason: a
+ * label that grows and shrinks between "Level 5" and "Level 17" on every
+ * switch would drag the step button and the run controls beside it sideways
+ * with it. 118px is sized for the mockup's own longest label --
+ * "Уровень 19"/"Песочница" -- with room to spare; `.task-name`'s own
+ * `text-overflow: ellipsis` below stays for a language whose longest label
+ * does not fit it.
+ */
+.task-open {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 118px;
+  height: var(--ds-ctl-h);
+  padding: 0 10px;
+  border: 1px solid var(--ds-line-strong);
+  border-radius: var(--ds-r-md);
+  background: var(--ds-raised);
+  white-space: nowrap;
+}
+
+.task-open:hover {
+  border-color: var(--ds-accent-line);
+}
+
+.task-name {
+  overflow: hidden;
+  font-weight: 650;
+  text-overflow: ellipsis;
+}
+
+.taskmenu {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 28px;
+  z-index: 40;
+  width: 396px;
+  padding: 12px;
+  border: 1px solid var(--ds-line-strong);
+  border-radius: var(--ds-r-lg);
+  background: var(--ds-panel);
+  box-shadow: var(--ds-shadow);
+}
+
+.taskmenu[hidden] {
+  display: none;
+}
+
+.taskmenu-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 7px;
+  margin: 6px 0 0;
+}
+
+.taskblock {
+  margin-bottom: 12px;
+}
+
+.taskblock:last-child {
+  margin-bottom: 0;
+}
+
+/*
+ * The mockup's own base `.cap` rule (§1) is a caption style shared by four
+ * blocks across the page, `.setblock .cap` (`widgets/app-bar`) among
+ * them -- but it is scoped to `.taskblock` here rather than ported as that
+ * shared, bare `.cap`, and its colour is not the mockup's own token, for the
+ * same reason: `.setblock .cap` carries no colour of its own today, so it
+ * reads `.setmenu`'s `color: var(--ds-text)`, at roughly 14:1 on `--ds-panel`
+ * -- a bare `.cap` rule would have quietly repainted it in whatever this one
+ * uses instead. The mockup's own choice, `--text-faint`, measures 3.62:1
+ * dark and 3.14:1 light against `--ds-panel` (`getComputedStyle`, not
+ * guessed, the same way `e2e/seed.spec.ts`'s own contrast test measures
+ * `.setblock .cap`'s neighbours) -- short of WCAG 1.4.3's 4.5:1 in both, the
+ * same class of failure `.setmenu`'s own comment (`widgets/app-bar`)
+ * already names once. `--ds-text-muted` is the nearest step up that clears
+ * it in both themes, 6.70:1 dark and 5.90:1 light.
+ */
+.taskblock .cap {
+  display: block;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--ds-text-muted);
+}
+
+.tasklink {
+  position: relative;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 3px;
+  height: 54px;
+  border: 1px solid var(--ds-line);
+  border-radius: var(--ds-r-md);
+  background: var(--ds-raised);
+  color: var(--ds-text-muted);
+  font-family: var(--ds-font-mono);
+  font-size: 16px;
+}
+
+.tasklink:hover {
+  border-color: var(--ds-line-strong);
+  color: var(--ds-text);
+}
+
+.tasklink .stars {
+  gap: 0;
+}
+
+.tasklink .star {
+  width: 10px;
+  height: 10px;
+}
+
+/*
+ * `--tier-tint` stays unprefixed, unlike every other custom property this
+ * port reads: it is not a design token restated across the page, only a
+ * scratch value the next four rules pass to each other, scoped to one tile
+ * the same way a local variable would be -- `--ds-*` names the ones
+ * `:root`/`html[data-theme="light"]` (above) actually declare, and this one
+ * is not among them.
+ */
+.tasklink[data-tier="bronze"] {
+  --tier-tint: var(--ds-tier-bronze);
+}
+
+.tasklink[data-tier="silver"] {
+  --tier-tint: var(--ds-tier-silver);
+}
+
+.tasklink[data-tier="gold"] {
+  --tier-tint: var(--ds-tier-gold);
+}
+
+.tasklink.is-done {
+  border-color: color-mix(in srgb, var(--tier-tint) 45%, transparent);
+  background: color-mix(in srgb, var(--tier-tint) 10%, var(--ds-raised));
+  color: var(--ds-text);
+}
+
+html[data-theme="dark"] .tasklink.is-done {
+  border-color: color-mix(in srgb, var(--tier-tint) 55%, transparent);
+  background: color-mix(in srgb, var(--tier-tint) 17%, var(--ds-raised));
+}
+
+.tasklink.is-current {
+  border-color: var(--ds-accent);
+  background: var(--ds-accent);
+  color: var(--ds-accent-ink);
+  font-weight: 650;
+}
+
+.tasklink.is-current .star {
+  color: rgb(0 0 0 / 22%);
+}
+
+.tasklink.is-current .star.is-on {
+  color: var(--ds-accent-ink);
+}
+
+.tasklink.is-locked {
+  border-style: dashed;
+  background: transparent;
+  color: var(--ds-text-faint);
+  cursor: default;
+}
+
+/*
+ * Dead weight today: a locked tile is drawn with its number, not the
+ * mockup's lock glyph -- `tileTemplate` in `level-switcher.ts` never emits an
+ * `.icon` for one. Ported anyway, harmless unmatched, so the rule is ready
+ * the day that markup gap closes rather than a second thing to remember
+ * alongside it.
+ */
+.tasklink.is-locked .icon {
+  width: 14px;
+  height: 14px;
+}
+
+.tasklink.is-free {
+  grid-column: span 2;
+  font-family: var(--ds-font-ui);
+  font-size: 13px;
+  font-weight: 650;
+}

@@ -1,0 +1,69 @@
+/*
+ * Elevator Saga's stylesheet: the one file both entry points import, and the
+ * order the rest of them are read in.
+ *
+ * There is a file per slice, next to the module that draws the markup it
+ * paints, the way the TypeScript is laid out -- shared, entities, features,
+ * widgets, pages, and app for what belongs to the page's own frame. Nothing
+ * imports its own CSS: an @import here is resolved at build time, so this list
+ * is the single place the cascade is decided, and a rule's position in it is
+ * something a reader can see rather than something the module graph happens to
+ * arrive at.
+ *
+ * The order below is the order the rules were in when they were one file, and
+ * deliberately not the layer ladder. Cascade order is behaviour: two rules of
+ * equal specificity are settled by which came second, so re-sorting this list
+ * into shared-first order would be a change to what is drawn, dressed up as
+ * tidying. Where a slice's rules did come from more than one place, the file's
+ * own header says which rules moved and why nothing could notice -- in every
+ * case because the rules they used to sit among differ in specificity, which
+ * outranks order. Tokens are the one entry that has to be first, and were.
+ *
+ * What is expressed differently here than in the version this inherited from:
+ *
+ * - the palette and the geometry of the building are custom properties, so the
+ *   numbers that must agree with `src/game/world.ts` are stated once;
+ * - vendor prefixes are gone (`user-select`, `animation`, `@keyframes`);
+ * - logical properties replace their physical equivalents;
+ * - the shell is `max-inline-size` + `margin-inline: auto` rather than a fixed
+ *   1220px, while the world itself keeps its exact pixel geometry and scrolls
+ *   horizontally inside its frame when the viewport is too narrow;
+ * - buttons are reset to nothing and the two chromed groups opt back in, because
+ *   the controls that used to be `<i>` elements are real buttons now;
+ * - icons are inline SVG (`src/shared/ui/icon.ts`), so what used to be glyph
+ *   colour is `fill: currentColor` and what used to be `text-shadow` is
+ *   `drop-shadow`.
+ *
+ * `box-sizing` is `border-box` everywhere, per `design/ui-mockup.html` §2; the
+ * building's two rules that count borders themselves opt back out, and
+ * `app/styles/document.css` says why.
+ */
+
+@import "../shared/styles/tokens.css";
+@import "../app/styles/document.css";
+@import "../shared/styles/utilities.css";
+@import "../shared/ui/icon.css";
+@import "../app/styles/skip-link.css";
+@import "../widgets/workspace-layout/ui/workspace-layout.css";
+@import "../widgets/app-bar/ui/app-bar.css";
+@import "../entities/challenge-tier/ui/tier-badge.css";
+@import "../widgets/level-switcher/ui/level-switcher.css";
+@import "../widgets/app-bar/ui/settings-menu.css";
+@import "../features/manage-seed/ui/seed-panel.css";
+@import "../shared/ui/button.css";
+@import "../features/hotkeys-help/ui/hotkeys-modal.css";
+@import "../features/docs-reference/ui/docs-modal.css";
+@import "../widgets/goal-bar/ui/goal-bar.css";
+@import "../features/run-simulation/ui/run-controls.css";
+@import "../features/adjust-speed/ui/speed-stepper.css";
+@import "../widgets/tutorial-panel/ui/tutorial-panel.css";
+@import "../widgets/editor-pane/ui/editor-pane.css";
+@import "../widgets/building-stage/ui/building-stage.css";
+@import "../entities/passenger/ui/passenger-view.css";
+@import "../widgets/verdict-toast/ui/verdict-toast.css";
+@import "../widgets/stats-panel/ui/stats-panel.css";
+@import "../entities/elevator/ui/elevator-view.css";
+@import "../entities/floor/ui/floor-view.css";
+@import "../pages/game/ui/game-page.css";
+@import "../shared/styles/code.css";
+@import "../pages/docs/ui/docs-page.css";

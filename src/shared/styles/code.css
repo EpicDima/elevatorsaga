@@ -1,0 +1,98 @@
+/*
+ * Code as it is printed rather than typed: the `<pre>` blocks and the `.tok-*`
+ * spans `src/ui/code-highlight.ts` wraps around them.
+ *
+ * Read by both entry points -- the API reference dialog inside the game and the
+ * two help pages -- which is why it is `shared` and not either page's. The
+ * colours are tuned against `--ds-code-bg`, the same surface the live editor
+ * draws, so a sample on a page and a program in the editor read alike.
+ */
+
+pre {
+  margin-block: 0.5em;
+}
+
+/*
+ * The same surface the live editor draws now, per `design/ui-mockup.html`:
+ * one code background across the page rather than the editor's own and a
+ * second one here, which is what let `.tok-*` below adopt the mockup's own
+ * syntax colours wholesale -- they are tuned against this exact background,
+ * not the legacy Solarized one.
+ */
+pre code {
+  display: block;
+  padding: 8px;
+  border-radius: var(--ds-r-sm);
+  background-color: var(--ds-code-bg);
+  color: var(--ds-code-text);
+  font: 13px/1.4 var(--ds-font-mono);
+  overflow-x: auto;
+}
+
+/*
+ * The token classes `@lezer/highlight`'s `classHighlighter` assigns, styled
+ * for exactly the ones the eight tutorial answers actually produce --
+ * `src/ui/code-highlight.ts` names the check that keeps this list honest.
+ * `tok-definition` is not its own rule -- it names a declaration site
+ * (a `function` parameter, say) and always rides alongside `tok-variableName`
+ * or `tok-propertyName` on the same element, which is already styled.
+ *
+ * These are the same colours `editorSyntaxTheme` gives the live editor, on
+ * purpose and for the mockup's own stated reason: one call must not look like
+ * two different languages depending on whether the player is reading it in the
+ * help or typing it in the editor. The one place the two surfaces cannot agree
+ * is which names are blue -- `classHighlighter` maps unmodified tags only, so
+ * it cannot tell `loadFactor()` from `destinationQueue` the way the editor's
+ * theme can, and every name in an answer is blue here. `code-highlight.ts`
+ * says more about that.
+ *
+ * `--ds-code-key`/`-fn`/`-str`/`-num` are the mockup's own values, taken as-is
+ * (7.74-8.44:1 dark, 5.09-6.21:1 light on `--ds-code-bg`, all clearing 4.5:1
+ * with room to spare). The mockup's comment colour does not: `--code-com`
+ * reads 3.77:1 dark / 3.04:1 light, short of the 4.5:1 that 13px text is
+ * asked for -- the same shortfall the legacy Solarized comment colour had,
+ * fixed the same way, the hue taken down (light) or up (dark) until it clears
+ * the bar. It is taken one step further than that, because the live editor
+ * paints `--ds-code-active` across the line the caret is on and a comment has
+ * to clear 4.5:1 *there* too, on a background the wash has already moved:
+ *
+ *   comment  #6b7482 -> #808996   3.77:1 -> 5.03:1  (dark, 4.62:1 lit)
+ *   comment  #8b929c -> #686f79   3.04:1 -> 4.91:1  (light, 4.58:1 lit)
+ */
+.tok-keyword {
+  color: var(--ds-code-key);
+}
+
+.tok-string {
+  color: var(--ds-code-str);
+}
+
+.tok-number,
+.tok-bool {
+  color: var(--ds-code-num);
+}
+
+.tok-propertyName,
+.tok-labelName,
+.tok-variableName {
+  color: var(--ds-code-fn);
+}
+
+.tok-comment {
+  color: var(--ds-code-com);
+  font-style: italic;
+}
+
+/*
+ * Dimmer than the code around it, not brighter: brackets, separators and
+ * operators are scaffolding, and pushing them back is what makes the words a
+ * player is actually looking for stand out. The mockup wraps them in its own
+ * `.p` for the same reason. Still real text at 13px, so still held to 4.5:1 --
+ * 6.73:1 dark, 4.98:1 light, and 6.18:1 / 4.65:1 on the editor's active line,
+ * all measured in `style.test.ts`. The light value is the mockup's own taken a
+ * shade darker for that second pair, the way `--ds-code-com` above is.
+ */
+.tok-punctuation,
+.tok-operator {
+  color: var(--ds-code-punc);
+}

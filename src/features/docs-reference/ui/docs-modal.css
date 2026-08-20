@@ -1,0 +1,280 @@
+/*
+ * The API reference window: the dialog, its search field, the body, and each
+ * entry's disclosure.
+ *
+ * The code samples inside it are painted by `shared/styles/code.css`, which the
+ * two help pages read too -- this file only states what is different about a
+ * sample inside a dialog.
+ */
+
+/*
+ * The docs dialog: `design/ui-mockup.html`'s own `.docs`/`.docs-*`/`.api*`
+ * (§10б), ported onto `--ds-*` tokens for `docs-modal.ts`'s markup -- see that
+ * module's own "Departures from the mockup" for the class/id substitutions
+ * this CSS reads against (`.docsclear`/`.docsclose` for `#docsClear`/
+ * `#docsClose`, `.ds-icon`/`.chev` for the mockup's raw `.icon`/`.icon.chev`).
+ */
+.docs {
+  width: min(760px, 92vw);
+  max-height: 82vh;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--ds-line-strong);
+  border-radius: var(--ds-r-lg);
+  background: var(--ds-panel);
+  color: var(--ds-text);
+  box-shadow: var(--ds-shadow);
+}
+
+.docs[open] {
+  display: flex;
+  flex-direction: column;
+}
+
+.docs::backdrop {
+  background: rgb(8 10 14 / 55%);
+}
+
+.docs-head {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 10px;
+  align-items: center;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--ds-line);
+}
+
+.docs-head h2 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 650;
+  white-space: nowrap;
+}
+
+.docs-search {
+  position: relative;
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  align-items: center;
+}
+
+.docs-find {
+  flex: 1;
+  min-width: 0;
+  height: 30px;
+  padding: 0 32px 0 10px;
+  border: 1px solid var(--ds-line-strong);
+  border-radius: var(--ds-r-md);
+  background: var(--ds-bg);
+  font-size: 13px;
+}
+
+/* A crest of its own instead of the browser's: that one shows up on its own
+   rules and looks different in every engine. */
+.docs-find::-webkit-search-cancel-button {
+  appearance: none;
+}
+
+/*
+ * `--ds-text-faint`, the mockup's own colour for this icon, measures 3.87:1
+ * dark and 2.78:1 light against `--ds-bg` -- the search field's own
+ * background, not the dialog's `--ds-panel` -- short of even WCAG 1.4.11's
+ * 3:1 floor for a graphical control, in the light theme. `--ds-text-muted`
+ * clears both comfortably, 7.17:1 dark and 5.22:1 light.
+ */
+.docsclear {
+  position: absolute;
+  right: 5px;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: var(--ds-r-sm);
+  color: var(--ds-text-muted);
+}
+
+.docsclear[hidden] {
+  display: none;
+}
+
+.docsclear:hover {
+  background: var(--ds-raised);
+  color: var(--ds-text);
+}
+
+.docsclear .ds-icon {
+  width: 13px;
+  height: 13px;
+}
+
+.docs-body {
+  flex: 1;
+  min-height: 0;
+  padding: 4px 14px 14px;
+  overflow: auto;
+}
+
+/*
+ * `--ds-text-faint`, the mockup's own colour for this heading and for
+ * `.docs-empty` below, measures 3.62:1 dark and 3.14:1 light against
+ * `--ds-panel` -- short of WCAG 1.4.3's 4.5:1 for real text, the same
+ * shortfall `.taskblock .cap`'s own comment (above) already found for the
+ * same token against the same background. `--ds-text-muted` clears it in
+ * both, 6.70:1 dark and 5.90:1 light, and is what both read instead.
+ * `--ds-text-faint` stays below for `.api > summary .chev`, a graphical
+ * chevron 1.4.11 holds to 3:1 rather than 4.5:1, which the same 3.62:1/3.14:1
+ * pair clears.
+ */
+.docs-body h3 {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  margin: 0;
+  padding: 12px 0 6px;
+  background: var(--ds-panel);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--ds-text-muted);
+}
+
+/*
+ * The intro code skeleton and every API row's own example (`.api-more pre`,
+ * below) are both a bare `<pre><code>`, `highlightJavaScript`'s own markup --
+ * `docs-modal.ts`'s "Departures from the mockup" names the substitution. That
+ * makes them the same element the learning track's own answer is
+ * (`.tutorialsolution code`), so the box itself -- background, padding,
+ * radius, font -- is left to the shared `pre code` rule and its `.tok-*`
+ * neighbours (`shared/styles/code.css`), already on `--ds-code-bg`/
+ * `--ds-code-text` for exactly this reason; only the margin the mockup gives
+ * this one specifically is stated here.
+ */
+.docs-intro {
+  margin: 12px 0 0;
+}
+
+.api {
+  border-top: 1px solid var(--ds-line);
+  font-size: 13px;
+  color: var(--ds-text-muted);
+}
+
+.api > summary {
+  display: grid;
+  /* Column width follows the longest signature: checkDestinationQueue()
+     must not wrap at its own parenthesis. */
+  grid-template-columns: 18px 254px 1fr;
+  gap: 4px 10px;
+  align-items: baseline;
+  padding: 7px 0;
+  cursor: pointer;
+  list-style: none;
+}
+
+.api > summary::-webkit-details-marker {
+  display: none;
+}
+
+.api > summary:hover {
+  color: var(--ds-text);
+}
+
+.api > summary .chev {
+  width: 12px;
+  height: 12px;
+  align-self: center;
+  color: var(--ds-text-faint);
+  transition: transform 0.12s ease;
+}
+
+.api[open] > summary .chev {
+  transform: rotate(90deg);
+}
+
+.api code {
+  font-family: var(--ds-font-mono);
+  font-size: 12.5px;
+  color: var(--ds-code-fn);
+}
+
+.api-more {
+  padding: 0 0 12px 28px;
+}
+
+/*
+ * The global `p` rule (`app/styles/document.css`) paints every `<p>` in
+ * `--ds-text`, which would otherwise win over the `--ds-text-muted` this row
+ * inherits from
+ * `.api`: a rule naming the element itself always beats one inherited from an
+ * ancestor, whatever either one's specificity is. Restated here so this
+ * paragraph reads as muted body text, the way the mockup's own (inheritance
+ * only, no such global rule to out-rank) already does.
+ */
+.api-more p {
+  max-width: 74ch;
+  margin: 0 0 8px;
+  line-height: 1.6;
+  color: var(--ds-text-muted);
+}
+
+/* See .docs-intro (above): the box is the shared pre code rule's. */
+.api-more pre {
+  margin: 0;
+}
+
+.api[hidden] {
+  display: none;
+}
+
+.docs-guide p,
+.docs-guide li {
+  max-width: 74ch;
+  margin: 0 0 7px;
+  font-size: 13px;
+  line-height: 1.65;
+  color: var(--ds-text-muted);
+}
+
+.docs-steps {
+  margin: 0;
+  padding-left: 19px;
+}
+
+.docs-guide b {
+  color: var(--ds-text);
+  font-weight: 600;
+}
+
+.docs-lead {
+  margin: 12px 0 0;
+  max-width: 74ch;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--ds-text-muted);
+}
+
+.docs-lead code {
+  font-family: var(--ds-font-mono);
+  font-size: 12.5px;
+  color: var(--ds-code-fn);
+}
+
+.docs-empty {
+  padding: 18px 0;
+  color: var(--ds-text-muted);
+  font-size: 13px;
+}
+
+@media (max-width: 1240px) {
+  .api > summary {
+    grid-template-columns: 18px 1fr;
+    gap: 2px 10px;
+  }
+
+  .api > summary code,
+  .api > summary span {
+    grid-column: 2;
+  }
+}
