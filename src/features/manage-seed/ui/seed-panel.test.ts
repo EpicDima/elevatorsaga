@@ -124,6 +124,24 @@ describe("seedPanelTemplate", () => {
     expect(help?.hasAttribute("open")).toBe(false);
   });
 
+  it("says it opens with the chevron the rest of the app says it with", () => {
+    // The stylesheet takes the UA's triangle off this summary so it reads as
+    // the mockup's plain hint line. Something has to be left saying there is a
+    // paragraph behind it, and the app already spells that `#i-right`: the
+    // statistics shelf's "All figures" and the Hotkeys row beneath this block
+    // both wear it. It leads the line, as that shelf's does.
+    const summary = renderElement(seedPanelTemplate(SEED)).querySelector(".seedhelp > summary");
+    const chevron = summary?.firstElementChild;
+
+    expect(chevron?.tagName).toBe("svg");
+    expect(chevron?.getAttribute("class")).toBe("ds-icon chev");
+    expect(chevron?.getAttribute("aria-hidden")).toBe("true");
+    // The words move into an element of their own to sit beside it, and the
+    // line still reads as just the words.
+    expect(summary?.querySelector("span")?.textContent).toBe("what a seed does");
+    expect(summary?.textContent).toBe("what a seed does");
+  });
+
   it("carries the same disclosure whether or not the run is pinned", () => {
     const help = renderElement(seedPanelTemplate(PINNED_SEED)).querySelector(".seedhelp");
 

@@ -1578,19 +1578,79 @@ html[data-theme="dark"] .tasklink.is-done {
  * The mockup's hint under this row is a plain `<p class="sethint">`; ours is
  * the `<summary>` of the `<details>` that holds the longer explanation
  * production has instead, wearing the same class -- see
- * `features/manage-seed` for why the disclosure stays. All that is left to
- * do here is take off the marker: a UA disclosure triangle is the one list
- * marker anywhere in this panel, and it is what made the line read as raw
- * machinery rather than as the hint it is. Suppressed in both spellings a
- * browser might still want, the same pair `.api > summary` (Hotkeys and docs
- * dialogs, below) uses.
+ * `features/manage-seed` for why the disclosure stays.
+ *
+ * The UA's own triangle comes off, in both spellings a browser might still
+ * want -- the same pair `.api > summary` (Hotkeys and docs dialogs, below)
+ * uses. It is the one list marker anywhere in this panel, and it is what made
+ * the line read as raw machinery rather than as the hint it is.
+ *
+ * What replaces it is the chevron `.more > summary` (statistics, below) and
+ * the Hotkeys row above both already use, laid out the way that shelf lays
+ * its own out: the glyph first, the words after it, the pair on one baseline.
+ * A hint that opens something has to look different from a hint that does
+ * not, and the About block's copyright notice two blocks down wears this very
+ * class and opens nothing.
+ *
+ * The pointer cursor and the `fit-content` width that keep this control the
+ * size of its words are on the bare `.seedhelp > summary` further down, where
+ * the reasoning for both is written out; a flex line still takes its width
+ * from that rule, and now has the chevron to fit as well as the words.
  */
 .setblock .seedhelp > summary {
+  display: flex;
+  gap: 6px;
+  align-items: center;
   list-style: none;
 }
 
 .setblock .seedhelp > summary::-webkit-details-marker {
   display: none;
+}
+
+.setblock .seedhelp > summary:hover {
+  color: var(--ds-text);
+}
+
+/*
+ * 12px against `.more`'s 13, because the words beside it are 12px where that
+ * shelf's are 12.5 -- the chevron is sized to the line it sits on, not to a
+ * constant. `--ds-text-muted` comes down from the summary, past 1.4.11's 3:1
+ * for a graphic at 6.70:1 dark and 5.90:1 light on `--ds-panel`, and the
+ * hover above takes glyph and words to full `--ds-text` together.
+ */
+.setblock .seedhelp > summary .chev {
+  flex: none;
+  width: 12px;
+  height: 12px;
+  transition: transform 0.15s ease;
+}
+
+.setblock .seedhelp[open] > summary .chev {
+  transform: rotate(90deg);
+}
+
+/*
+ * What opens is the rest of the hint, so it is set as the hint: `.sethint`'s
+ * own three declarations, which the summary above gets from that class and
+ * this paragraph cannot, being the thing the summary introduces rather than a
+ * second one beside it. Left alone it arrived at the popover's full body size
+ * in full `--ds-text` -- louder than the line that offered it, and the widest
+ * thing in a 320px panel.
+ *
+ * The gap is `margin-block-start`, not the summary's `margin-block-end`: a
+ * closed disclosure is only its summary, and a bottom margin there would push
+ * the Hotkeys row down by a space that had nothing in it.
+ *
+ * `.seedcaveat`'s own 62ch measure further down is wider than this panel ever
+ * gets and does nothing here; it is on that rule for the challenge bar, where
+ * the line had a thousand pixels to run along.
+ */
+.setblock .seedcaveat {
+  margin-block-start: 6px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--ds-text-muted);
 }
 
 /*

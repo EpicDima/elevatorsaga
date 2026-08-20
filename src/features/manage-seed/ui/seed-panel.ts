@@ -54,6 +54,16 @@
  * mockup's hint line — `class="sethint"`, and `src/styles/style.css` takes
  * the disclosure triangle off it.
  *
+ * Taking the triangle off left the line reading as the mockup's inert hint
+ * and behaving as a control, which is the worse half of both: nothing on
+ * screen said there was a paragraph behind it. So it carries the chevron the
+ * rest of the app already spells "this opens" with — `spriteIconMarkup(
+ * "right", "chev")`, the mockup's `#i-right`, the same call
+ * `widgets/stats-panel`'s "All figures" shelf and the block below this one's
+ * own Hotkeys row both make. The words move into a `<span>` to make room for
+ * it, and `src/styles/style.css` turns it a quarter-turn on open exactly as
+ * that shelf's does.
+ *
  * ## Where the rest of it comes from
  *
  * `src/ui/templates.ts`'s exported {@link SeedLinkData} type and five of the
@@ -98,7 +108,7 @@ import { markup, raw } from "#shared/ui/markup.ts";
  * @returns The disclosure's markup.
  */
 function seedHelpTemplate(): string {
-  return markup`<details class="seedhelp"><summary class="sethint">${t("game.seed.helpSummary")}</summary><p class="seedcaveat">${t("game.seed.explanation")}</p></details>`;
+  return markup`<details class="seedhelp"><summary class="sethint">${raw(spriteIconMarkup("right", "chev"))}<span>${t("game.seed.helpSummary")}</span></summary><p class="seedcaveat">${t("game.seed.explanation")}</p></details>`;
 }
 
 /**
