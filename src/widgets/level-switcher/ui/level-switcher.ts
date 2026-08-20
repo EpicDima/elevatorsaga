@@ -61,10 +61,27 @@ import { markup, raw, renderFragment } from "#shared/ui/markup.ts";
  * costs nothing to redraw — the label is what changes with the language,
  * and the presenter already sets that.
  *
+ * The root's class is `task`, not `level`, and that is load-bearing rather
+ * than a leftover: every class in here is `level-switcher.css`'s, copied from
+ * `design/ui-mockup.html` §3, and the root's own rule is what makes this
+ * widget work at all. `.task` is the `position: relative` that `.taskmenu`'s
+ * `position: absolute` measures its `top`/`left` from, and the `display: flex`
+ * that lays the trigger and its two chevrons out as a row. Renaming it to
+ * `level` — which the «уровень» sweep did, and this is the repair — costs
+ * both: the chevrons stack into a column that the app bar clips away, and the
+ * popover falls back to the initial containing block and opens a full page
+ * below the fold, where clicking the trigger looks like it does nothing at
+ * all. `level` is also already spoken for twice over — the goal bar's own
+ * mount in `index.html` and every floor `floorTemplate` draws — so the sweep
+ * did not just unstyle this root, it dropped it into two other widgets'
+ * namespace. `level-switcher.test.ts` pins the root against a second
+ * sweep, and `e2e/level-switcher.spec.ts` pins the popover's position on
+ * screen against any other cause.
+ *
  * @returns The switcher markup, ready for `presentLevelSwitcher`.
  */
 export function levelSwitcherTemplate(): string {
-  return markup`<div class="level"><button type="button" class="task-prev">${raw(spriteIconMarkup("left"))}</button><button type="button" class="task-open" aria-haspopup="true" aria-expanded="false"><b class="task-name"></b></button><button type="button" class="task-next">${raw(spriteIconMarkup("right"))}</button><div class="taskmenu" hidden><div class="taskblocks"></div></div></div>`;
+  return markup`<div class="task"><button type="button" class="task-prev">${raw(spriteIconMarkup("left"))}</button><button type="button" class="task-open" aria-haspopup="true" aria-expanded="false"><b class="task-name"></b></button><button type="button" class="task-next">${raw(spriteIconMarkup("right"))}</button><div class="taskmenu" hidden><div class="taskblocks"></div></div></div>`;
 }
 
 /** What the switcher needs in order to draw and redraw itself. */

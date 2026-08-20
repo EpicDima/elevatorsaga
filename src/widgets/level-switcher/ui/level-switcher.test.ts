@@ -1,5 +1,8 @@
 // @vitest-environment jsdom
 
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+
 import { describe, expect, it } from "vitest";
 
 import { levelSwitcherTemplate, presentLevelSwitcher } from "./level-switcher.ts";
@@ -97,6 +100,44 @@ describe("levelSwitcherTemplate", () => {
 
     expect(drawn(".task-prev")).toBe(SPRITE_ICONS.left.shapes[0].attrs.d);
     expect(drawn(".task-next")).toBe(SPRITE_ICONS.right.shapes[0].attrs.d);
+  });
+
+  /*
+   * The second regression this file did not have, and the more expensive of
+   * the two: the «уровень» sweep renamed the root from `task` to `level`,
+   * which no test noticed because every other assertion here reaches for a
+   * child by class and every child kept its name. The stylesheet did not
+   * follow, and could not -- `.task` is `design/ui-mockup.html`'s own name,
+   * cited by that file across the widget -- so the root simply stopped being
+   * styled: `display: flex` went, and the trigger and its two chevrons
+   * stacked into a column the app bar clipped; `position: relative` went with
+   * it, and `.taskmenu`'s `position: absolute` measured `top: calc(100% + 8px)`
+   * from the initial containing block instead, opening the popover a page
+   * below the fold. On screen that is a switcher with no arrows whose button
+   * does nothing at all, which is how it was reported.
+   *
+   * Read out of the stylesheet rather than hard-coded on both sides, since a
+   * literal `"task"` written twice in this file would agree with itself just
+   * as happily while the rules that actually lay the widget out named
+   * something else.
+   */
+  it("roots the widget in the class its own stylesheet positions the popover from", () => {
+    const parent = document.createElement("div");
+    parent.innerHTML = levelSwitcherTemplate();
+    const root = parent.firstElementChild;
+
+    // Read off disk rather than imported: vitest stubs a CSS import out to
+    // an empty string, `?raw` and all, which would make the pattern below
+    // match nothing and the assertion pass for the wrong reason.
+    const stylesheet = readFileSync(
+      join(process.cwd(), "src/widgets/level-switcher/ui/level-switcher.css"),
+      "utf8",
+    );
+    const rootRule = /^\.(?<name>[\w-]+)\s*\{[^}]*position:\s*relative[^}]*\}/mu.exec(stylesheet);
+
+    expect(rootRule?.groups?.["name"]).toBe("task");
+    expect(root?.className).toBe(rootRule?.groups?.["name"]);
+    expect(requireElement(".taskmenu", parent).parentElement).toBe(root);
   });
 });
 
