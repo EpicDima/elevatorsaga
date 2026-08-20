@@ -49,7 +49,22 @@
  * a button pressed, an elevator arriving, an elevator running out of
  * things to do — and there is nothing left to poll for in between.
  *
- * **Assigning a call.** `pickElevatorForCall` first looks for a car that is
+ * **Assigning a call.** `pickElevatorForCall` starts from the cars that serve
+ * the calling floor at all — {@link "./elevator-interface.ts"!ElevatorInterface.servedFloors}
+ * — and every widening step below picks from that set rather than from the
+ * whole building. In a building without zones every car serves every floor, so
+ * the filter admits everyone and this program makes exactly the decisions it
+ * made before it existed; in a zoned one it is the difference between a
+ * dispatcher and a program that sends cars to floors where nobody may board
+ * them. Sending the wrong car is not merely wasteful there:
+ * {@link "./floor.ts"!Floor.elevatorAvailable} leaves the call button lit for a
+ * car that does not serve the floor, and a lit button is not pressed again, so
+ * the call is never re-offered and the floor is simply forgotten. Should no car
+ * serve the floor the call goes unanswered rather than crashing on an empty
+ * list — a building nobody can leave is a level's mistake to fix, not this
+ * program's to paper over, and `skyscraper.test.ts` is where it is caught.
+ *
+ * Among the cars that qualify, the search first looks for one that is
  * under `loadCutoff` *and* already sweeping toward the call in the call's
  * own direction — an idle car counts too, since it has no sweep to
  * contradict. Among those, the least loaded car is chosen, so that repeated
@@ -69,9 +84,9 @@
  * the cutoff regardless of direction, then — since a car that is merely over
  * the cutoff can usually still take one more passenger, and a car that is
  * genuinely full never can — to any car that is not full at all, and only if
- * every car in the building is full does it fall back to the least loaded of
- * them. A call is never left unassigned — the building always has at least
- * one elevator, and the last fallback has no precondition left to fail — but
+ * every car serving the floor is full does it fall back to the least loaded of
+ * them. A call from a floor some car serves is never left unassigned — the
+ * last fallback has no precondition left to fail — but
  * the widening degrades one qualification at a time rather than jumping
  * straight from "ideal" to "whichever car has the smallest number," which
  * matters most exactly where a cutoff is most likely to bind: a building
@@ -177,23 +192,29 @@ export function buildGoodDispatcherCode(loadCutoff: number): string {
         }
 
         function pickElevatorForCall(floorNum, callDirection) {
-            var onTheWay = elevators.filter(function(elevator) {
+            var serving = elevators.filter(function(elevator) {
+                return elevator.servedFloors().indexOf(floorNum) !== -1;
+            });
+            if (serving.length === 0) {
+                return null;
+            }
+            var onTheWay = serving.filter(function(elevator) {
                 return isUnderCutoff(elevator) && isHeadingTowardCall(elevator, floorNum, callDirection);
             });
             if (onTheWay.length > 0) {
                 return leastLoaded(onTheWay);
             }
-            var underCutoff = elevators.filter(isUnderCutoff);
+            var underCutoff = serving.filter(isUnderCutoff);
             if (underCutoff.length > 0) {
                 return leastLoaded(underCutoff);
             }
-            var notFull = elevators.filter(function(elevator) {
+            var notFull = serving.filter(function(elevator) {
                 return !elevator.isFull();
             });
             if (notFull.length > 0) {
                 return leastLoaded(notFull);
             }
-            return leastLoaded(elevators);
+            return leastLoaded(serving);
         }
 
         function insertStop(elevator, floorNum) {
@@ -250,11 +271,15 @@ export function buildGoodDispatcherCode(loadCutoff: number): string {
         floors.forEach(function(floor) {
             floor.on("up_button_pressed", function() {
                 var elevator = pickElevatorForCall(floor.floorNum(), "up");
-                insertStop(elevator, floor.floorNum());
+                if (elevator !== null) {
+                    insertStop(elevator, floor.floorNum());
+                }
             });
             floor.on("down_button_pressed", function() {
                 var elevator = pickElevatorForCall(floor.floorNum(), "down");
-                insertStop(elevator, floor.floorNum());
+                if (elevator !== null) {
+                    insertStop(elevator, floor.floorNum());
+                }
             });
         });
 
