@@ -12,12 +12,8 @@ import { requireElement } from "#shared/lib/dom.ts";
 import { MemoryStorage } from "../../../ui/test-helpers.ts";
 import type { SeedLinkData } from "../../../ui/templates.ts";
 
-/** A run nobody pinned, the same fixture `seed-panel.test.ts` uses. */
-const SEED: SeedLinkData = {
-  seed: "1234567890",
-  url: "#challenge=1,seed=1234567890",
-  newDrawUrl: null,
-};
+/** A run, the same fixture `seed-panel.test.ts` uses. */
+const SEED: SeedLinkData = { seed: "1234567890", url: "#challenge=1,seed=1234567890" };
 
 /**
  * A mounted toolbar, its parent and the options it was built with.
@@ -47,6 +43,7 @@ function setUp(
     onSelectLayout: () => undefined,
     redrawLanguage: () => undefined,
     seed,
+    onSeed: () => undefined,
     onOpenDocs: () => undefined,
     onOpenHotkeys: () => undefined,
     ...overrides,
@@ -101,7 +98,9 @@ describe("appBarSettingsTemplate", () => {
     const parent = document.createElement("div");
     parent.innerHTML = appBarSettingsTemplate(SEED);
 
-    expect(parent.querySelector(".seedrow > .seedvalue")?.textContent).toBe("1234567890");
+    expect(parent.querySelector<HTMLInputElement>(".seedrow > .seedvalue")?.value).toBe(
+      "1234567890",
+    );
     expect(parent.querySelector("a.seedlink")).not.toBeNull();
   });
 
@@ -259,7 +258,9 @@ describe("presentAppBarSettings", () => {
       controller.setSeed(SEED);
 
       const seedBlock = requireElement('[data-set-block="seed"]', parent);
-      expect(seedBlock.querySelector(".seedrow > .seedvalue")?.textContent).toBe("1234567890");
+      expect(seedBlock.querySelector<HTMLInputElement>(".seedrow > .seedvalue")?.value).toBe(
+        "1234567890",
+      );
     });
 
     it("clears the seed block once the run it described is gone", () => {
@@ -268,6 +269,44 @@ describe("presentAppBarSettings", () => {
       controller.setSeed(null);
 
       expect(requireElement('[data-set-block="seed"]', parent).children).toHaveLength(0);
+    });
+
+    it("keeps the row wired after the rebuild, so a second seed can be chosen too", () => {
+      // The presenter is wired onto the wrapper, not onto the row inside it,
+      // precisely so that this redraw does not take the listeners with it.
+      const onSeed = vi.fn();
+      const { parent, controller } = setUp(SEED, { onSeed });
+
+      controller.setSeed({ seed: "later", url: "#challenge=1,seed=later" });
+      requireElement(".seednewdraw", parent).click();
+
+      expect(onSeed).toHaveBeenCalledTimes(1);
+    });
+
+    it("puts focus back on the control the player was holding", () => {
+      // Choosing a seed is usually done from this very row, so the rebuild it
+      // triggers lands under the player's own hands. Dropping focus to <body>
+      // would leave a keyboard player with an open popover and nothing in it
+      // reachable without tabbing in from the top of the page.
+      const { parent, controller } = setUp(SEED);
+      const field = requireElement(".seedvalue", parent);
+      field.focus();
+
+      controller.setSeed({ seed: "later", url: "#challenge=1,seed=later" });
+
+      const replacement = requireElement(".seedvalue", parent);
+      expect(replacement).not.toBe(field);
+      expect(document.activeElement).toBe(replacement);
+    });
+
+    it("leaves focus where it was when it was never this block's to move", () => {
+      const { parent, controller } = setUp(SEED);
+      const elsewhere = requireElement(".setopen", parent);
+      elsewhere.focus();
+
+      controller.setSeed({ seed: "later", url: "#challenge=1,seed=later" });
+
+      expect(document.activeElement).toBe(elsewhere);
     });
   });
 

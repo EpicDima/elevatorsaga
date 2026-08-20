@@ -27,12 +27,15 @@
  *   module's own template already drew empty. This is the game's only language
  *   control: the header `index.html` used to ship carried a second one, and it
  *   went with the rest of that header.
- * - Seed is `seedPanelTemplate`, a plain markup function with nothing to
- *   wire — see its own module comment — so it is inserted with `raw()`
- *   straight into {@link appBarSettingsTemplate}'s returned markup, inside a
+ * - Seed is `seedPanelTemplate`, inserted with `raw()` straight into
+ *   {@link appBarSettingsTemplate}'s returned markup, inside a
  *   `[data-set-block="seed"]` wrapper the presenter half below re-renders
  *   into whenever a later run's seed differs from this one, the same
- *   fill-a-placeholder shape the theme and layout blocks use.
+ *   fill-a-placeholder shape the theme and layout blocks use. Its own
+ *   `presentSeedPanel` is then wired *onto that wrapper* rather than onto the
+ *   markup inside it, because the markup inside it is what
+ *   {@link AppBarSettingsController.setSeed} throws away — see that slice's
+ *   module comment.
  *
  * ## The two openers
  *
@@ -85,7 +88,7 @@
  * is the same destination for none of the space.
  */
 
-import { seedPanelTemplate } from "#features/manage-seed/index.ts";
+import { presentSeedPanel, seedPanelTemplate } from "#features/manage-seed/index.ts";
 import { presentLanguagePicker } from "#features/switch-language/index.ts";
 import { buildLayoutSwitchSkeleton, presentLayoutSwitch } from "#features/switch-layout/index.ts";
 import type { LayoutModeId, LayoutSwitchLabels } from "#features/switch-layout/index.ts";
@@ -152,6 +155,14 @@ export interface AppBarSettingsOptions {
   readonly redrawLanguage: () => void;
   /** The run in progress' seed, or `null` — must match whatever {@link appBarSettingsTemplate} was called with. */
   readonly seed: SeedLinkData | null;
+  /**
+   * Called with a seed the player chose in the seed row — typed into its field
+   * or drawn by its dice — already checked against `#shared/lib/seed.ts`.
+   *
+   * Passed straight through to `presentSeedPanel`; this widget has no more idea
+   * what playing a seed involves than it has what a layout mode does.
+   */
+  readonly onSeed: (seed: string) => void;
   /** Called when `docsOpen` is pressed. Does nothing here yet — see this module's own comment on the two openers. */
   readonly onOpenDocs: () => void;
   /** Called when the popover's `keysOpen` row is pressed, after the popover has already closed. */
@@ -285,6 +296,8 @@ export function presentAppBarSettings(
     redraw: options.redrawLanguage,
   });
 
+  presentSeedPanel(seedBlock, { onSeed: options.onSeed });
+
   const disclosure = createDisclosure(setOpen, setMenu);
 
   docsOpen.addEventListener("click", () => {
@@ -303,7 +316,33 @@ export function presentAppBarSettings(
       layout.setActiveMode(mode);
     },
     setSeed(seed: SeedLinkData | null): void {
+      // The one rebuild in this popover that can happen under the player's own
+      // hands: the seed row is what changes a run's seed, so the control that
+      // asked for the change is usually still focused when the new row replaces
+      // it. Without this, choosing a seed drops focus to <body> -- which for a
+      // keyboard player means the popover is still open and nothing in it is
+      // reachable except by tabbing in from the top of the page again.
+      //
+      // Restored by selector rather than by node, since every node here is
+      // about to be discarded, and only for a control this block actually owns:
+      // an element focused elsewhere in the document is none of this method's
+      // business.
+      const focused = seedBlock.ownerDocument.activeElement;
+      const owned =
+        focused instanceof HTMLElement && seedBlock.contains(focused)
+          ? [".seedvalue", ".seednewdraw", ".seedlink", ".seedhelp > summary"].find((selector) =>
+              focused.matches(selector),
+            )
+          : undefined;
+
       seedBlock.innerHTML = seedPanelTemplate(seed);
+
+      if (owned !== undefined) {
+        const replacement = seedBlock.querySelector(owned);
+        if (replacement instanceof HTMLElement) {
+          replacement.focus();
+        }
+      }
     },
     update(): void {
       const docsLabel = t("game.appBar.docsOpenLabel");

@@ -26,11 +26,13 @@ import type { SeedLinkData } from "../../ui/templates.ts";
 import {
   App,
   FULLSCREEN_CLASS,
+  SEED_STORAGE_KEY,
   TIME_SCALE_STORAGE_KEY,
   clearAll,
   containsFocus,
   controlsTemplate,
   presentControls,
+  readStoredSeed,
   readStoredTimeScale,
   relabelWorld,
   setDemoFullscreen,
@@ -1665,9 +1667,13 @@ describe("App seed", () => {
   });
 
   it("draws a seed of its own when the url pins none, and records it", () => {
-    const { app } = setUp();
+    const { app, storage } = setUp();
     app.handleRoute(...routeFor("#challenge=1"));
     expect(typeof app.world?.seed).toBe("number");
+    // Recorded in two places, and this is the second: the console line names it
+    // for a player who wants it back, and storage keeps it for the next run
+    // without their having to ask.
+    expect(storage.getItem(SEED_STORAGE_KEY)).toBe(String(app.world?.seed));
   });
 
   it("brings one seed's passengers back whatever the frame length", () => {
@@ -1723,20 +1729,83 @@ describe("App seed", () => {
     expect(app.world?.seed).toBe("issue-61");
   });
 
-  it("draws a fresh seed on every restart when the url pins none", () => {
-    // Deliberate, and the counterpart of the rule above: reusing the last
-    // generated seed would leave a player who is stuck on a challenge stuck on
-    // one passenger stream, with no way to another draw short of editing the
-    // address bar. The seed of every run is printed, so pinning after the fact
-    // is a click away.
+  it("restarts an unpinned run on the seed it was already playing", () => {
+    // This used to draw a fresh seed, on the reasoning that reusing the last
+    // one would leave a player stuck on a challenge stuck on one passenger
+    // stream, with no way out short of editing the address bar. That reasoning
+    // had one premise, and the seed field took it away: there is a way out, it
+    // is the dice beside the field, and it is one press. What the old rule cost
+    // was the thing a player fixing a bug actually needs -- the same building
+    // full of the same people, twice in a row. See `handleRoute`'s own comment
+    // for the whole of the reversal.
     const { app, elements } = setUp();
     app.handleRoute(...routeFor("#challenge=3"));
-    const first = app.world?.seed;
+    const first = String(app.world?.seed);
 
     app.world?.trigger("stats_changed");
     requireElement(".startstop", elements.controls).click();
 
-    expect(app.world?.seed).not.toBe(first);
+    // Compared as text, because a seed nobody named is drawn as a number and
+    // comes back out of storage as the string of that number. `createRandomSource`
+    // hashes `String(seed)`, so the two are the same stream and the same run --
+    // the type is the only thing that differs, and nothing reads it.
+    expect(String(app.world?.seed)).toBe(first);
+  });
+
+  it("plays the seed this browser last played, on a visit that names none", () => {
+    // The whole of what "the seed is the player's own" comes to: a second
+    // evening opens on the run the first one ended on.
+    const storage = new MemoryStorage();
+    storage.setItem(SEED_STORAGE_KEY, "issue-61");
+    const { app } = setUp(INERT_CODE, storage);
+
+    app.handleRoute(...routeFor("#challenge=1"));
+
+    expect(app.world?.seed).toBe("issue-61");
+  });
+
+  it("carries the player's own seed into the building a tile opens", () => {
+    // A level link drops `seed=` deliberately -- a URL's seed is a claim about
+    // one particular run, and a link to another building names a run nobody has
+    // played. The player's *choice of stream* is not that claim, and it comes
+    // along.
+    const { app } = setUp();
+    app.handleRoute(...routeFor("#challenge=1,seed=issue-61"));
+
+    app.handleRoute(...routeFor("#challenge=2"));
+
+    expect(app.world?.seed).toBe("issue-61");
+  });
+
+  it("ignores a remembered seed the address bar could never carry", () => {
+    // As editable as the address bar is -- a console reaches it, and so does an
+    // older build -- so it is validated on the way out rather than trusted. What
+    // fails is nothing stored at all.
+    const storage = new MemoryStorage();
+    storage.setItem(SEED_STORAGE_KEY, "rush hour");
+    const { app } = setUp(INERT_CODE, storage);
+
+    app.handleRoute(...routeFor("#challenge=1"));
+
+    expect(app.world?.seed).not.toBe("rush hour");
+    expect(typeof app.world?.seed).toBe("number");
+  });
+
+  it("keeps playing when the browser refuses to remember anything", () => {
+    // Private browsing, a full quota, a locked-down profile: a `Storage` that
+    // throws on both sides of the conversation. The seed is still in the run,
+    // in the console line and on the panel, and only the *next* run loses it.
+    const storage = new MemoryStorage();
+    const { app } = setUp(INERT_CODE, storage);
+    const refuse = (): never => {
+      throw new Error("The quota is exhausted");
+    };
+    vi.spyOn(storage, "setItem").mockImplementation(refuse);
+    vi.spyOn(storage, "getItem").mockImplementation(refuse);
+
+    app.handleRoute(...routeFor("#challenge=1,seed=issue-61"));
+
+    expect(app.world?.seed).toBe("issue-61");
   });
 
   it("keeps the pinned seed when another challenge is started", () => {
@@ -1746,11 +1815,16 @@ describe("App seed", () => {
     expect(app.world?.seed).toBe("issue-61");
   });
 
-  it("stops pinning as soon as the url stops asking", () => {
+  it("takes a seed the url stops naming as still the player's own", () => {
+    // A URL without `seed=` used to mean "draw one". It means "whatever I am
+    // playing" now, which is what lets a level tile drop the key without
+    // throwing the player's choice away with it. The way to a different stream
+    // is to ask for one -- the field or the dice -- rather than to arrive
+    // somewhere that asks for nothing.
     const { app } = setUp();
     app.handleRoute(...routeFor("#challenge=1,seed=issue-61"));
     app.handleRoute(...routeFor("#challenge=1"));
-    expect(app.world?.seed).not.toBe("issue-61");
+    expect(app.world?.seed).toBe("issue-61");
   });
 
   it("offers the seed of the run, keeping the rest of the url", () => {
@@ -1800,21 +1874,16 @@ describe("App seed", () => {
     expect(app.currentSeedLink?.url).toBe(`#challenge=sandbox,floors=20,seed=${seed}`);
   });
 
-  it("gives both seed links an address even when the url is empty", () => {
-    // A first visit has no hash at all. "Everything you are carrying, minus the
-    // seed" is then nothing at all, and a hash can only spell that `#` -- which
-    // navigates, but is also the fragment meaning "the top of this document",
-    // so the browser scrolls there on the way out of a pinned run. Both links
-    // name the challenge, so neither ever degenerates to one.
+  it("gives the seed link an address even when the url is empty", () => {
+    // A first visit has no hash at all, so a link built as "everything you are
+    // carrying, plus this seed" would leave the run's own identity to a default
+    // -- and a default that later changes is a link that later means a
+    // different building. The challenge is named outright for that reason.
     const { app } = setUp();
     app.handleRoute(...routeFor(""));
     const seed = String(app.world?.seed);
 
     expect(app.currentSeedLink?.url).toBe(`#challenge=1,seed=${seed}`);
-
-    app.handleRoute(...routeFor("#seed=issue-61"));
-
-    expect(app.currentSeedLink?.newDrawUrl).toBe("#challenge=1");
   });
 
   it("prints the seed and a whole url at every start", () => {
@@ -1876,46 +1945,73 @@ describe("App seed", () => {
     expect(vi.mocked(console.log).mock.calls[0]?.[0]).toContain(String(app.world?.seed));
   });
 
-  it("offers no way back for a run nothing has pinned", () => {
-    // There would be nowhere for it to go: the URL without a seed is the one
-    // the player is already at, so following it would fire no hashchange and
-    // do nothing at all.
+  it("offers the run's own address whether or not the url already names it", () => {
+    // One link now, not two. It used to be this URL *or* this URL with `seed=`
+    // taken out, depending on which of the two the run was in -- and the second
+    // of those was a new draw only while a seedless address meant a new draw.
+    // A fresh draw is a decision the panel makes for itself now, so what is
+    // left here is the one thing an address is for.
     const { app } = setUp();
     app.handleRoute(...routeFor("#challenge=2,timescale=8"));
+    const drawn = String(app.world?.seed);
+    expect(app.currentSeedLink?.url).toBe(`#challenge=2,timescale=8,seed=${drawn}`);
 
-    expect(app.currentSeedLink?.newDrawUrl).toBeNull();
-  });
-
-  it("offers a way back to a fresh draw once the url pins the seed", () => {
-    // The counterweight to pinning being one click: unpinning is one click too,
-    // and neither of them needs the address bar.
-    const { app } = setUp();
     app.handleRoute(...routeFor("#challenge=2,timescale=8,seed=issue-61"));
 
-    expect(app.currentSeedLink?.newDrawUrl).toBe("#challenge=2,timescale=8");
+    expect(app.currentSeedLink?.url).toBe("#challenge=2,timescale=8,seed=issue-61");
   });
 
-  it("keeps the sandbox building when the pin is taken back out", () => {
-    // The case a challenge tile cannot answer at all: none names the sandbox,
-    // so every entry it offers leaves the building behind.
+  it("keeps the sandbox building in the seed's own address", () => {
+    // The case a challenge tile cannot answer at all: no tile names the
+    // sandbox, so a link that dropped the building would land somewhere else
+    // entirely.
     const { app } = setUp();
     app.handleRoute(...routeFor("#challenge=sandbox,floors=20,seed=issue-61"));
 
-    expect(app.currentSeedLink?.newDrawUrl).toBe("#challenge=sandbox,floors=20");
+    expect(app.currentSeedLink?.url).toBe("#challenge=sandbox,floors=20,seed=issue-61");
   });
 
-  it("treats a seed the router refused as no pin at all", () => {
+  it("treats a seed the router refused as no seed at all", () => {
     // A browser percent-encodes the space in "#seed=rush hour", so what reaches
     // the router is "rush%20hour" -- which is the form written here, because a
     // fixture the app cannot be handed proves nothing about the app. The `%`
-    // fails SEED_PATTERN, the router draws a fresh seed, and nothing is pinned,
-    // so there is nothing to unpin.
+    // fails SEED_PATTERN, so the router draws a fresh seed, and the run offers
+    // that one instead.
     const { app } = setUp();
     app.handleRoute(...routeFor("#challenge=1,seed=rush%20hour"));
     const seed = String(app.world?.seed);
 
-    expect(app.currentSeedLink?.newDrawUrl).toBeNull();
+    expect(seed).not.toContain("rush");
     expect(app.currentSeedLink?.url).toBe(`#challenge=1,seed=${seed}`);
+  });
+
+  describe("playSeed", () => {
+    // The one method here that writes to the address bar rather than returning a
+    // string, so the bar has to be put back for whatever runs next.
+    afterEach(() => {
+      window.location.hash = "";
+    });
+
+    it("puts the seed the player chose in the address bar", () => {
+      // Navigating rather than restarting in place, so that the run a player
+      // chose is the run the address bar says they are playing -- which is what
+      // makes a chosen run shareable at the moment it is chosen.
+      const { app } = setUp();
+      app.handleRoute(...routeFor("#challenge=2,timescale=8"));
+
+      app.playSeed("hand-picked");
+
+      expect(window.location.hash).toBe("#challenge=2,timescale=8,seed=hand-picked");
+    });
+
+    it("keeps the sandbox's building when a seed is chosen inside it", () => {
+      const { app } = setUp();
+      app.handleRoute(...routeFor("#challenge=sandbox,floors=20"));
+
+      app.playSeed("hand-picked");
+
+      expect(window.location.hash).toBe("#challenge=sandbox,floors=20,seed=hand-picked");
+    });
   });
 
   it("tells a caller built before the first run what each later run's seed is", () => {
@@ -1929,8 +2025,12 @@ describe("App seed", () => {
     app.handleRoute(...routeFor("#challenge=1,seed=issue-61"));
     expect(seen.at(-1)?.seed).toBe("issue-61");
 
-    app.handleRoute(...routeFor("#challenge=2"));
-    expect(seen.at(-1)?.seed).not.toBe("issue-61");
+    // A second run on a seed of its own, because a second run on the *same*
+    // seed -- which is what `#challenge=2` alone now plays -- would prove only
+    // that nothing had changed.
+    app.handleRoute(...routeFor("#challenge=2,seed=issue-62"));
+    expect(seen.at(-1)?.seed).toBe("issue-62");
+    expect(seen.at(-1)?.url).toBe("#challenge=2,seed=issue-62");
   });
 
   it("tells that caller again on a language change, even when the seed itself did not change", () => {
@@ -2485,6 +2585,39 @@ describe("readStoredTimeScale", () => {
     expect(readStoredTimeScale(storage)).toBeUndefined();
     storage.setItem(TIME_SCALE_STORAGE_KEY, "not a number");
     expect(readStoredTimeScale(storage)).toBeUndefined();
+  });
+});
+
+describe("readStoredSeed", () => {
+  it("reads back what the app stored", () => {
+    const storage = new MemoryStorage();
+    storage.setItem(SEED_STORAGE_KEY, "issue-61");
+    expect(readStoredSeed(storage)).toBe("issue-61");
+  });
+
+  it("ignores a missing value", () => {
+    expect(readStoredSeed(new MemoryStorage())).toBeUndefined();
+  });
+
+  it.each(["rush hour", "", "a".repeat(65), "%20"])(
+    "refuses %o, because no link could ever express it",
+    (stored) => {
+      // Validated on the way out rather than trusted, for the reason `#seed=`
+      // is: this value is as editable as the address bar, and a stored string
+      // the router would turn away would become a seed the game plays and can
+      // never name.
+      const storage = new MemoryStorage();
+      storage.setItem(SEED_STORAGE_KEY, stored);
+      expect(readStoredSeed(storage)).toBeUndefined();
+    },
+  );
+
+  it("treats a browser that refuses to be read as one with nothing stored", () => {
+    const storage = new MemoryStorage();
+    vi.spyOn(storage, "getItem").mockImplementation(() => {
+      throw new Error("The profile is locked down");
+    });
+    expect(readStoredSeed(storage)).toBeUndefined();
   });
 });
 

@@ -416,6 +416,9 @@ async function main(): Promise<void> {
       settingsController.update();
     },
     seed: app.currentSeedLink,
+    onSeed: (seed) => {
+      app.playSeed(seed);
+    },
     onOpenDocs: () => {
       docsModal.open();
     },

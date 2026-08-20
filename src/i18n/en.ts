@@ -191,22 +191,34 @@ export const EN_MESSAGES = {
   // exception; the button that carries it is hidden whenever that comes back
   // empty.
   "game.editorPane.gotoLine": "Line {line} →",
-  // The seed line, which is two lines really: a control that says what the run
-  // is, and a disclosure that says how far the promise goes. The seed itself is
-  // a placeholder rather than part of the sentence — it is the token a player
-  // transcribes, and it must read the same in every language.
+  // The seed row, which is two rows really: three controls that say what the
+  // run is and let the player say what it should be, and a disclosure that says
+  // how far the promise goes. The seed itself is a placeholder rather than part
+  // of the sentence — it is the token a player transcribes, and it must read the
+  // same in every language.
   //
-  // `link` and `newDrawLink` name the row's one icon button, on `aria-label`
-  // and on `title` both, and that glyph is all there is to go on: nothing about
-  // it says which of the two gestures it carries, or which seed it carries it
-  // for. So each names the seed as well as the gesture — a name has to stand on
-  // its own, and "1234567890, link" describes nothing.
+  // `link` and `newDrawLink` name the row's two icon buttons, on `aria-label`
+  // and on `title` both, and the glyph is all there is to go on: nothing about a
+  // pair of dice or a pair of pages says which seed it acts on. So each names
+  // the seed as well as the gesture — a name has to stand on its own, and
+  // "1234567890, link" describes nothing.
+  //
+  // `inputLabel` names the field between them, which has no visible label of its
+  // own: the block's "Seed" caption is a `<span>` beside it, not a `<label>`
+  // for it. It says what the field holds *and* what typing in it does, because
+  // a text box that navigates on Enter is not what a text box usually is.
   "game.seed.label": "Seed",
-  "game.seed.link": "Seed {seed}: start another run from this seed",
-  "game.seed.newDrawLink": "Seed {seed}: new draw, start again without it",
+  "game.seed.inputLabel": "This run's seed — type another one to play it",
+  "game.seed.link": "Seed {seed}: put this run in the address bar",
+  "game.seed.newDrawLink": "Seed {seed}: draw a new one and start again",
+  // Shown by the field itself, through `setCustomValidity`, when what was typed
+  // could not survive the address bar. Says which characters rather than "wrong
+  // format", because the player has to fix it: the browser's own message for a
+  // `pattern` names no pattern.
+  "game.seed.invalid": "A seed can be up to 64 letters, digits, dots, hyphens or underscores.",
   "game.seed.helpSummary": "what a seed does",
   "game.seed.explanation":
-    "The same seed brings the same passengers, in the same order — and, played the same way, the exact same run: every elevator movement, arrival and button press repeats exactly, whatever the browser's frame rate.",
+    "The same seed brings the same passengers, in the same order — and, played the same way, the exact same run: every elevator movement, arrival and button press repeats exactly, whatever the browser's frame rate. The seed stays yours across restarts, reloads and levels until you type another one or draw one with the dice.",
   // The same sentence the disclosure makes, compressed onto the console line
   // printed at every start. It is keyed and the other console strings are not,
   // because it is not a diagnostic: the rest report a bug, a malformed URL or a

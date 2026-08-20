@@ -64,7 +64,10 @@ test("puts the whole page into Russian without disturbing the run", async ({ pag
   // word on them is written by the relabelling this change triggers.
   await expect(page.getByRole("button", { name: "Уровень 4" })).toBeVisible();
   await expect(startButton(page, "Пауза")).toBeVisible();
-  await expect(page.getByRole("button", { name: "Заново" })).toBeVisible();
+  // `exact`, because the settings popover's dice button offers to «взять новый
+  // и начать заново» and an accessible name is matched by substring: this line
+  // is about the run control, and the two are different buttons.
+  await expect(page.getByRole("button", { name: "Заново", exact: true })).toBeVisible();
   // The speed control beside them, whose group name and both arrows are
   // written by the same relabelling.
   await expect(page.getByRole("group", { name: "Скорость прогона" })).toBeVisible();

@@ -1,12 +1,13 @@
 /**
- * The seed of a run, from the bar to the address bar and back.
+ * The seed of a run, from the settings popover to the address bar and back.
  *
- * `src/app/app.test.ts` proves all of this against a jsdom document, which is
- * enough for the wiring. What it cannot prove is the part that belongs to the
- * browser: that a real anchor with a hash `href` navigates, that navigating
- * fires `hashchange` rather than reloading, and that the router hears it. Those
- * three are the whole mechanism by which a player pins a run, and jsdom
- * implements each of them approximately.
+ * `src/pages/game/index.test.ts` proves most of this against a jsdom document,
+ * which is enough for the wiring. What it cannot prove is the part that belongs
+ * to the browser: that a real anchor with a hash `href` navigates, that
+ * navigating fires `hashchange` rather than reloading, that the router hears it,
+ * and that a real `<input>` commits on Enter. Those are the whole mechanism by
+ * which a player chooses a run, and jsdom implements each of them
+ * approximately.
  */
 
 import { expect, test } from "@playwright/test";
@@ -26,23 +27,25 @@ import { openSettingsMenu, speedValue } from "./game-page.ts";
 const SEED_LINK = ".setmenu .seedlink";
 
 /**
- * The seed itself, in the row's own box.
+ * The seed itself, in the row's own box — an `<input>`, so it is read with
+ * `inputValue`/`toHaveValue` and never with `innerText`.
  *
- * Always present and never a control: the block draws the seed as a `<span>`
- * whether or not the run is pinned, and puts the one gesture it offers on the
- * icon link beside it. So this, and not either link, is where the seed is
- * written -- the two links carry no text at all.
+ * It was a read-only `<span>` for as long as a seed was drawn for the player
+ * rather than chosen by them. Both of the row's controls carry no text at all,
+ * so this is still the only place the seed is written down on screen.
  */
 const SEED_VALUE = ".setmenu .seedvalue";
 
-/** The way back out of a pinned run. */
-const NEW_DRAW_LINK = ".setmenu .seednewdraw";
+/** The dice: a `<button>` that draws a seed, not a link to an address. */
+const NEW_DRAW = ".setmenu .seednewdraw";
 
 /** The disclosure that explains what a seed does, and the sentence inside it. */
 const HELP_SUMMARY = ".setmenu .seedhelp > summary";
 const CAVEAT = ".setmenu .seedcaveat";
 
-test("pins the run a player is looking at, and replays it on reload", async ({ page }) => {
+test("puts the run a player is looking at in the address bar, and replays it on reload", async ({
+  page,
+}) => {
   const pageErrors: string[] = [];
   page.on("pageerror", (error) => pageErrors.push(error.message));
 
@@ -51,10 +54,10 @@ test("pins the run a player is looking at, and replays it on reload", async ({ p
 
   const seedLink = page.locator(SEED_LINK);
   await expect(seedLink).toBeVisible();
-  const seed = (await page.locator(SEED_VALUE).innerText()).trim();
+  const seed = (await page.locator(SEED_VALUE).inputValue()).trim();
   expect(seed).not.toBe("");
 
-  // The link carries the rest of the URL, so pinning the seed does not throw
+  // The link carries the rest of the URL, so naming the seed does not throw
   // away the challenge or the speed the player had chosen.
   await expect(seedLink).toHaveAttribute("href", `#challenge=4,timescale=8,seed=${seed}`);
 
@@ -63,10 +66,13 @@ test("pins the run a player is looking at, and replays it on reload", async ({ p
 
   // `App.onSeedChange` fires from `#drawChallengeBar`, which the router's own
   // `hashchange` handling reaches on every navigation including this one, so
-  // the panel already shows the pin without a reload.
-  await expect(page.locator(SEED_VALUE)).toHaveText(seed);
-  await expect(page.locator(SEED_LINK)).toHaveCount(0);
-  await expect(page.locator(NEW_DRAW_LINK)).toHaveAttribute("href", "#challenge=4,timescale=8");
+  // the panel is redrawn without a reload -- on the same seed, since the click
+  // asked for the run already playing.
+  await expect(page.locator(SEED_VALUE)).toHaveValue(seed);
+  // Both controls stay: they no longer name two states of one run, they name
+  // two different things to do.
+  await expect(page.locator(SEED_LINK)).toBeVisible();
+  await expect(page.locator(NEW_DRAW)).toBeVisible();
 
   // A reload is the replay itself, and the case the feature exists for: the
   // player comes back to the run they were failing on rather than to a fresh
@@ -75,33 +81,68 @@ test("pins the run a player is looking at, and replays it on reload", async ({ p
   // directly rather than through `onSeedChange` -- both paths have to agree.
   await page.reload();
   await openSettingsMenu(page);
-  await expect(page.locator(SEED_VALUE)).toHaveText(seed);
+  await expect(page.locator(SEED_VALUE)).toHaveValue(seed);
 
   expect(pageErrors).toEqual([]);
 });
 
-test("lets a pinned run go back to a fresh draw, and back again", async ({ page }) => {
-  // The other half of the one-way door: pinning costs one click, so unpinning
-  // has to, or the address bar is the only way out of the run a player pinned.
+test("plays the seed a player types into the field", async ({ page }) => {
+  // The gesture the row was rebuilt around, and the one jsdom cannot vouch for:
+  // Enter in a text field outside any `<form>` is what commits the value, and
+  // whether `change` fires there at all is the browser's business.
+  await page.goto("/#challenge=4,timescale=8");
+  await openSettingsMenu(page);
+
+  await page.locator(SEED_VALUE).fill("hand-picked");
+  await page.locator(SEED_VALUE).press("Enter");
+
+  await expect(page).toHaveURL(/#challenge=4,timescale=8,seed=hand-picked$/);
+  await expect(page.locator(SEED_VALUE)).toHaveValue("hand-picked");
+  // The speed came along, exactly as it does through the navigation row.
+  await expect(speedValue(page)).toHaveText("8x");
+});
+
+test("refuses a typed seed the address bar could not carry, and stays where it was", async ({
+  page,
+}) => {
+  await page.goto("/#challenge=4,seed=issue-61");
+  await openSettingsMenu(page);
+
+  await page.locator(SEED_VALUE).fill("rush hour");
+  await page.locator(SEED_VALUE).press("Enter");
+
+  // No navigation, and the field says so itself: `pattern` marks it invalid and
+  // the presenter puts the reason on it, in the player's own language.
+  await expect(page).toHaveURL(/#challenge=4,seed=issue-61$/);
+  await expect(page.locator(SEED_VALUE)).toHaveJSProperty(
+    "validationMessage",
+    "A seed can be up to 64 letters, digits, dots, hyphens or underscores.",
+  );
+});
+
+test("draws a new seed from the dice and pins it in the address bar", async ({ page }) => {
+  // The way out of a run that is not going anywhere. It used to be a link to
+  // this address without `seed=`, which was a fresh draw only while a seedless
+  // address meant one; the seed is the player's own now, so the draw happens
+  // here and the address follows it.
   await page.goto("/#challenge=4,timescale=8,seed=issue-61");
   await openSettingsMenu(page);
-  await expect(page.locator(SEED_VALUE)).toHaveText("issue-61");
+  await expect(page.locator(SEED_VALUE)).toHaveValue("issue-61");
 
-  await page.locator(NEW_DRAW_LINK).click();
-  await expect(page).toHaveURL(/#challenge=4,timescale=8$/);
+  await page.locator(NEW_DRAW).click();
+
+  await expect(page).toHaveURL(/#challenge=4,timescale=8,seed=\w+$/);
+  await expect(page).not.toHaveURL(/seed=issue-61$/);
   // The speed the player chose came along, exactly as it does through the
   // navigation row.
   await expect(speedValue(page)).toHaveText("8x");
-  // The panel already shows the fresh draw the click just navigated to --
-  // see the note on `App.onSeedChange` in the test above.
-  const drawn = await page.locator(SEED_VALUE).innerText();
-  expect(drawn).not.toBe("issue-61");
+  await expect(page.locator(SEED_VALUE)).not.toHaveValue("issue-61");
 
-  // And the browser's own way back reaches the pinned run again, because
+  // And the browser's own way back reaches the earlier run again, because
   // every one of these moves is a real navigation.
   await page.goBack();
   await expect(page).toHaveURL(/#challenge=4,timescale=8,seed=issue-61$/);
-  await expect(page.locator(SEED_VALUE)).toHaveText("issue-61");
+  await expect(page.locator(SEED_VALUE)).toHaveValue("issue-61");
 });
 
 test("opens the caveat from the keyboard", async ({ page }) => {
@@ -121,23 +162,15 @@ test("opens the caveat from the keyboard", async ({ page }) => {
 
   await expect(page.locator(CAVEAT)).toBeHidden();
 
-  // Reached by tabbing from the seed rather than focused directly: "can be
-  // focused" and "is in the tab order" are different questions, and it was the
-  // second one that had no answer before.
+  // Reached by tabbing from the last of the row's controls rather than focused
+  // directly: "can be focused" and "is in the tab order" are different
+  // questions, and it was the second one that had no answer before.
   await page.locator(SEED_LINK).focus();
   await page.keyboard.press("Tab");
   await expect(page.locator(HELP_SUMMARY)).toBeFocused();
   await page.keyboard.press("Enter");
   await expect(page.locator(CAVEAT)).toBeVisible();
   await expect(page.locator(CAVEAT)).toContainText("played the same way");
-
-  // The old version of this test went on to click the seed link and check the
-  // caveat survived the challenge bar's own full-`innerHTML` rebuild, which
-  // `presentChallenge` used to go to some trouble to preserve across. This
-  // test never clicks the link at all, so there is no rebuild here for the
-  // caveat's open state to be lost across -- `AppBarSettingsController.setSeed`
-  // does now rebuild the seed block on every run change, but only the two
-  // tests above exercise that path, and neither reopens the caveat afterwards.
 });
 
 /**
@@ -225,8 +258,12 @@ test("does not move the caveat's own control when it is opened", async ({ page }
  * in the same change, so `document.body`'s background is no longer what a
  * reader actually sees behind this text -- `.setmenu` sits over it. Un-`fixme`d
  * and confirmed passing.
+ *
+ * The seed itself is measured against the field's own `--ds-bg` fill rather
+ * than against the panel, because the field paints one: it is the one thing in
+ * this block that is not read straight off `.setmenu`.
  */
-test("keeps every word of the seed line readable, in both of its states", async ({ page }) => {
+test("keeps every word of the seed line readable", async ({ page }) => {
   // The seed line was a `<p>`, and `p` is one of the few selectors the
   // stylesheet paints with `--color-text`; it had to become a `<div>` to hold
   // the disclosure, and everything on it that is not a link fell back to
@@ -238,86 +275,89 @@ test("keeps every word of the seed line readable, in both of its states", async 
   // stylesheet, which check that the palette's pairs are legible but not which
   // elements ask for them: this failure was an element quietly asking for
   // neither.
-  const contrasts = async (): Promise<Record<string, number>> =>
-    page.evaluate(() => {
-      const channel = (value: number): number =>
-        value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
-      const luminance = (color: string): number => {
-        const [red = 0, green = 0, blue = 0] = [...color.matchAll(/\d+(?:\.\d+)?/g)].map((match) =>
-          Number(match[0]),
-        );
-        return (
-          0.2126 * channel(red / 255) + 0.7152 * channel(green / 255) + 0.0722 * channel(blue / 255)
-        );
-      };
-      const setmenu = document.querySelector(".setmenu");
-      if (setmenu === null) {
-        throw new Error("No .setmenu to measure the panel's own background from");
-      }
-      const panel = luminance(getComputedStyle(setmenu).backgroundColor);
-      // The seed block is one `.setblock` among several the settings popover
-      // holds (theme, layout, language, seed, hotkeys, about); found by the
-      // one child every other `.setblock` lacks -- and the one this block has
-      // in either state -- rather than by position, which
-      // `appBarSettingsTemplate` makes no promise about.
-      const line = document.querySelector(".setmenu .seedvalue")?.closest(".setblock") ?? null;
-      const measured: Record<string, number> = {};
-      for (const selector of [
-        ".cap",
-        ".seedvalue",
-        ".seedlink",
-        ".seednewdraw",
-        ".seedhelp > summary",
-        ".seedcaveat",
-      ]) {
-        const element = line?.querySelector(selector) ?? null;
-        if (element === null) {
-          continue;
-        }
-        const text = luminance(getComputedStyle(element).color);
-        const [lighter, darker] = text > panel ? [text, panel] : [panel, text];
-        measured[selector] = Math.round(((lighter + 0.05) / (darker + 0.05)) * 100) / 100;
-      }
-      return measured;
-    });
-
-  // Unpinned: the row offers `.seedlink`. Both links are icons now, so 4.5:1
-  // is stricter than WCAG asks of them -- 1.4.11 wants 3:1 of a glyph -- but
-  // they inherit `.ghost`'s own text colour and there is no reason to hold
-  // them to less than the words beside them.
-  await page.goto("/#challenge=4");
-  await openSettingsMenu(page);
-  await page.locator(HELP_SUMMARY).click();
-  const unpinned = await contrasts();
-  expect(Object.keys(unpinned)).toContain(".seedlink");
-  for (const [selector, ratio] of Object.entries(unpinned)) {
-    expect(ratio, selector).toBeGreaterThanOrEqual(4.5);
-  }
-
-  // Pinned: `.seednewdraw` in the link's place, and the same `.seedvalue`
-  // characters -- plain text in both states, which is the state that failed.
   await page.goto("/#challenge=4,seed=issue-61");
   await openSettingsMenu(page);
   await page.locator(HELP_SUMMARY).click();
-  const pinned = await contrasts();
-  expect(Object.keys(pinned)).toContain(".seedvalue");
-  for (const [selector, ratio] of Object.entries(pinned)) {
-    expect(ratio, selector).toBeGreaterThanOrEqual(4.5);
+
+  const measured = await page.evaluate(() => {
+    const channel = (value: number): number =>
+      value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
+    const luminance = (color: string): number => {
+      const [red = 0, green = 0, blue = 0] = [...color.matchAll(/\d+(?:\.\d+)?/g)].map((match) =>
+        Number(match[0]),
+      );
+      return (
+        0.2126 * channel(red / 255) + 0.7152 * channel(green / 255) + 0.0722 * channel(blue / 255)
+      );
+    };
+    const ratio = (one: number, other: number): number => {
+      const [lighter, darker] = one > other ? [one, other] : [other, one];
+      return Math.round(((lighter + 0.05) / (darker + 0.05)) * 100) / 100;
+    };
+    const setmenu = document.querySelector(".setmenu");
+    if (setmenu === null) {
+      throw new Error("No .setmenu to measure the panel's own background from");
+    }
+    const panel = luminance(getComputedStyle(setmenu).backgroundColor);
+    // The seed block is one `.setblock` among several the settings popover
+    // holds (theme, layout, language, seed, hotkeys, about); found by the
+    // one child every other `.setblock` lacks rather than by position, which
+    // `appBarSettingsTemplate` makes no promise about.
+    const line = document.querySelector(".setmenu .seedvalue")?.closest(".setblock") ?? null;
+    const found: Record<string, number> = {};
+    for (const selector of [
+      ".cap",
+      ".seedvalue",
+      ".seedlink",
+      ".seednewdraw",
+      ".seedhelp > summary",
+      ".seedcaveat",
+    ]) {
+      const element = line?.querySelector(selector) ?? null;
+      if (element === null) {
+        continue;
+      }
+      const style = getComputedStyle(element);
+      // The field paints a fill of its own; everything else on the row is read
+      // straight off the panel.
+      const behind =
+        style.backgroundColor === "rgba(0, 0, 0, 0)" ? panel : luminance(style.backgroundColor);
+      found[selector] = ratio(luminance(style.color), behind);
+    }
+    return found;
+  });
+
+  // Both controls are icons, so 4.5:1 is stricter than WCAG asks of them --
+  // 1.4.11 wants 3:1 of a glyph -- but they inherit `.ghost`'s own text colour
+  // and there is no reason to hold them to less than the words beside them.
+  expect(Object.keys(measured)).toEqual([
+    ".cap",
+    ".seedvalue",
+    ".seedlink",
+    ".seednewdraw",
+    ".seedhelp > summary",
+    ".seedcaveat",
+  ]);
+  for (const [selector, found] of Object.entries(measured)) {
+    expect(found, selector).toBeGreaterThanOrEqual(4.5);
   }
 });
 
-test("gives an unpinned run a fresh building on every reload", async ({ page }) => {
-  // The counterpart, and the reason the seed is not remembered on its own: a
-  // player stuck on a challenge has to be able to get another draw without
-  // editing the address bar.
+test("keeps the player's own seed across a reload that names none", async ({ page }) => {
+  // The reversal this feature turns on. A seedless URL used to mean "draw one",
+  // so a reload dealt a different building; it means "whatever I am playing"
+  // now, and the way to a different one is the dice. `handleRoute`'s own comment
+  // records the whole of the decision and why it was reversed rather than
+  // worked around.
   await page.goto("/#challenge=4");
   await openSettingsMenu(page);
-  const first = await page.locator(SEED_VALUE).innerText();
+  const first = await page.locator(SEED_VALUE).inputValue();
+  expect(first).not.toBe("");
 
   await page.reload();
   await openSettingsMenu(page);
 
-  await expect(page.locator(SEED_VALUE)).not.toHaveText(first);
+  await expect(page.locator(SEED_VALUE)).toHaveValue(first);
 });
 
 test("prints the seed and a whole URL to the console as a run starts", async ({ page }) => {
@@ -355,6 +395,6 @@ test("refuses a seed the address bar would have mangled", async ({ page }) => {
   await openSettingsMenu(page);
 
   await expect(page.locator(SEED_LINK)).toBeVisible();
-  await expect(page.locator(SEED_VALUE)).not.toHaveText(/rush/);
+  await expect(page.locator(SEED_VALUE)).not.toHaveValue(/rush/);
   expect(warnings.some((warning) => warning.includes("Invalid seed"))).toBe(true);
 });

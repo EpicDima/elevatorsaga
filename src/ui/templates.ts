@@ -92,26 +92,23 @@ export interface SeedLinkData {
   /** The seed itself, exactly as it appears in the URL. */
   readonly seed: string;
   /**
-   * A hash URL that starts another run from this seed.
+   * A hash URL that names this run outright, seed and all.
    *
    * The whole hash rather than the seed alone, for the reason every navigation
    * entry is: the app builds it with `createParamsUrl`, so the challenge, the
    * speed and anything else the player arrived with ride along. The building has
    * to ride along, since a seed means nothing without one.
    *
-   * Given even when the URL already pins this seed, where the line no longer
-   * offers it: it is still the run's address, and the console prints it as such
+   * Given even when the URL already pins this seed, where following it goes
+   * nowhere: it is still the run's address, and the console prints it as such
    * at every start.
+   *
+   * There used to be a second URL beside it, `newDrawUrl` — this hash with the
+   * seed taken back out, which was how a player asked for a different draw for
+   * as long as an address without a seed meant a fresh one. It means the seed
+   * the player already owns now (`src/pages/game/index.ts`'s `handleRoute`),
+   * so a new draw is no longer somewhere to go: `features/manage-seed` draws
+   * one itself, on a button.
    */
   readonly url: string;
-  /**
-   * A hash URL that starts the same challenge with no seed pinned, or `null`
-   * when the URL pins none and there is nothing to take out.
-   *
-   * The pair is exclusive on purpose, and the line renders one link or the
-   * other. Offering both would mean offering one that goes where the player
-   * already is: with nothing pinned, the URL without a seed is the current one,
-   * and with a seed pinned, the URL with it is.
-   */
-  readonly newDrawUrl: string | null;
 }

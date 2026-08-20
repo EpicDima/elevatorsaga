@@ -1,1 +1,1 @@
-export { seedPanelTemplate } from "./ui/seed-panel.ts";
+export { presentSeedPanel, seedPanelTemplate, type SeedPanelOptions } from "./ui/seed-panel.ts";

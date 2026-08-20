@@ -12,12 +12,11 @@
 
 /*
  * The seed block's own row: `design/ui-mockup.html`'s `.seedrow` (§A) -- the
- * run's seed in a box, with the one thing a player can do about it beside
- * it. `features/manage-seed`'s own module comment holds the full account of
- * how the mockup's three controls became these two; the short of it is that
- * production has no arbitrary-seed field, so the mockup's editable
- * `#seedVal` is a `<span>` here, and its `#seedRoll`/`#seedCopy` pair is one
- * icon button at a time, because a run is either pinned or it is not.
+ * run's seed in a box a player can type into, with the two things they can do
+ * to it beside it. All three of the mockup's controls, in the mockup's order;
+ * `features/manage-seed`'s own module comment holds the account of how each
+ * one arrived, and of the years this row spent as a read-only `<span>` with a
+ * single link, back when a seed was not the player's to choose.
  */
 .seedrow {
   display: flex;
@@ -26,42 +25,70 @@
 }
 
 /*
- * The box the seed is read out of. Three departures from the mockup's own
- * `.val`, all of them the same departure: it is a `<span>`, not an `<input>`.
+ * The box the seed is read out of and typed into: the mockup's own `.val`. It
+ * is an `<input>` here as it is there, so the geometry ports across as
+ * written; only the focus treatment did not, for the reason given under the
+ * gap where its rule would have been.
  *
- * `display: flex` with `align-items: center` is the centring a text field
- * got from the engine for nothing. `min-block-size` replaces its `height`,
- * and `overflow-wrap` comes along, because a seed is whatever string the URL
- * carries -- `#seed=` accepts a sentence or a 64-character hash, not just
- * the ten digits this game draws -- and one unbreakable token that long is
- * 548px of monospace trying to fit a 292px popover. An input scrolls its own
- * overflow; a span pushes the page sideways instead, which is what WCAG
- * 1.4.10 is about, so the box grows downward and the seed wraps inside it.
- * And the mockup's `.val:focus` border is not ported at all: there is
- * nothing here to type, so there is nothing here to focus.
+ * `--ds-font-mono` is the point of the box. A seed gets transcribed character
+ * by character, and the monospace face is what tells a 1 from an l and a 0
+ * from an O.
  *
- * `--ds-font-mono` is the point of the box. A seed gets transcribed
- * character by character, and the monospace face is what tells a 1 from an l
- * and a 0 from an O.
+ * `min-width: 0` is what keeps a long one from pushing the popover sideways.
+ * `#seed=` accepts a 64-character token, and one unbreakable token that long
+ * is some 548px of monospace inside a 292px panel; a flex item's default
+ * `min-width: auto` would let it demand every one of those pixels, and WCAG
+ * 1.4.10 is what that costs. An input scrolls its own overflow once it is
+ * allowed to be narrower than its content, which is exactly the behaviour
+ * wanted here: the row keeps its shape and the seed scrolls under the caret.
  */
 .seedrow .val {
-  display: flex;
   flex: 1;
   min-width: 0;
-  min-height: 30px;
-  padding: 4px 8px;
-  align-items: center;
+  height: 30px;
+  padding: 0 8px;
   border: 1px solid var(--ds-line-strong);
   border-radius: var(--ds-r-md);
   background: var(--ds-bg);
   font-family: var(--ds-font-mono);
   font-size: 12.5px;
   color: var(--ds-text);
-  overflow-wrap: anywhere;
 }
 
 /*
- * The row's one button, at the mockup's own 30x30 square with a border the
+ * The one part of the mockup's `.val` that did not port: its focus treatment
+ * drops the ring (`outline: none`) and tints the border `--ds-accent-line`
+ * instead. Measured against the `--ds-bg` the field is filled with, that
+ * border is 2.24:1 dark and 1.53:1 light -- under WCAG 1.4.11's 3:1 for a
+ * focus indicator in both themes, and under it in the light theme by a
+ * distance no tweak to this rule would close. So there is no `:focus` rule
+ * here at all, and the document's own `:focus-visible` ring
+ * (`app/styles/document.css`) is what marks this field, as it marks every
+ * other control on the page. `.seedrow .val` outweighs that rule's
+ * `border-radius`, so the ring follows the box's own `--ds-r-md` corners.
+ */
+
+/*
+ * A seed that cannot be played, marked once the player has actually edited the
+ * field: `presentSeedPanel` reports the reason when the edit is committed, and
+ * this is what says on the way there that there will be one.
+ *
+ * `:user-invalid` rather than `:invalid`, and the difference is the whole
+ * point. `required` makes an empty field invalid, and the ordinary way to
+ * replace a seed is to select all and type -- which passes through empty.
+ * `:invalid` would flash the box red at the start of every edit, including the
+ * edits that end in a perfectly good seed. `:user-invalid` waits for the
+ * player to be done with it.
+ *
+ * What the row renders is always a seed a run was actually built from, so this
+ * is only ever seen on a field that has been typed into.
+ */
+.seedrow .val:user-invalid {
+  border-color: var(--ds-bad);
+}
+
+/*
+ * The row's two buttons, at the mockup's own 30x30 square with a border the
  * plain `.ghost` (`shared/ui/button.css`) does not carry: a lone glyph beside
  * a boxed value needs an edge of its own to read as a control at all.
  */

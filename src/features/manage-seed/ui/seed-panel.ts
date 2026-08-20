@@ -2,41 +2,56 @@
  * The settings popover's seed block: `design/ui-mockup.html`'s `.setblock`
  * captioned "Seed" (§A).
  *
- * A single template function rather than a skeleton builder and a presenter,
- * unlike its `features/switch-theme` and `features/switch-layout` siblings.
- * Both of them wire a `click` listener onto DOM they hand out, because a
- * theme or a layout is chosen from a fixed set of buttons they draw
- * themselves. This block has nothing to wire: its one control is a real link
- * with a real `href`, and the disclosure that explains what a seed does is a
- * native `<details>` that needs no script at all — see `seedHelpTemplate` in
- * `src/ui/templates.ts` for why. A skeleton would have nothing for its
- * presenter half to do.
+ * A template and a presenter, the shape its `features/switch-theme` and
+ * `features/switch-layout` siblings have always had. It was a lone template
+ * function for as long as the block had nothing to wire — its one control was
+ * a real link with a real `href`, and the disclosure explaining what a seed
+ * does is a native `<details>` that needs no script at all. The field below
+ * changed that: a seed the player types is a decision this block has to hand
+ * somewhere, and so is a new draw.
  *
  * ## The mockup's row, and what this renders in it
  *
  * `design/ui-mockup.html` draws this block as a `.seedrow`: an editable
- * `#seedVal` text field between a `#seedRoll` dice button and a `#seedCopy`
- * copy-link button, with a one-line `.sethint` under the three.
+ * `#seedVal` text field, a `#seedRoll` dice button and a `#seedCopy`
+ * copy-link button, with a one-line `.sethint` under the three. All three are
+ * here, in that order.
  *
- * The field is the one part production cannot have. A run's seed is drawn
- * once, from the URL or from `Math.random()`, by `src/pages/game/index.ts`'s
- * `#seedLink`; the game has no arbitrary-seed input anywhere, so there is
- * nothing to type into and nothing for a reroll to reroll *to* — the
- * mockup's own `#seedRoll` handler picks a word out of a fixed `SEED_WORDS`
- * list, which is a demo, not a feature. The value is a
- * `<span class="val seedvalue">` instead: the mockup's box, in the mockup's
- * monospace, with the caret taken out.
+ * The field is the newest of them, and for a long time it was the one part
+ * production could not have: a run's seed was drawn once, from the URL or
+ * from `Math.random()`, and the game had no arbitrary-seed input anywhere, so
+ * there was nothing to type into and nothing for a reroll to reroll *to*. The
+ * seed is the player's own now — `src/pages/game/index.ts` remembers it and
+ * `handleRoute`'s own comment records why that decision was reversed — and a
+ * thing the player owns is a thing they can set. So the mockup's `<input>` is
+ * an `<input>` again, holding what the run is playing and taking what the
+ * player wants to play next.
+ *
+ * What it accepts is `#shared/lib/seed.ts`'s rule, not one of its own:
+ * `maxlength` and `pattern` come from the same two constants the router
+ * validates `#seed=` with, so the field cannot accept a seed the address bar
+ * is about to refuse. Committing is a `change` — Enter, or leaving a field
+ * that was edited — which is what the language `<select>` two blocks up
+ * already means by "chosen", and there is no separate confirm button for the
+ * same reason that one has none.
  *
  * The two buttons survive nearly intact, because production's two real
  * affordances turn out to be the same two gestures under other names.
- * `.seedlink` — pin this draw into the address bar, which is to say a link
- * to this exact run — is `#seedCopy`, and takes its `copy` glyph.
- * `.seednewdraw` — throw this draw away and start again without it — is
- * `#seedRoll`, and takes its `dice` glyph. `#shared/ui/icon.ts` has kept
- * both sprites since the icon family was ported, for exactly this. Where the
- * mockup shows the pair at once, this shows one at a time: a run is either
- * pinned or it is not, and the gesture the absent button would offer is the
- * state the run is already in.
+ * `.seedlink` — put this run in the address bar, which is to say a link to
+ * this exact run — is `#seedCopy`, and takes its `copy` glyph. `.seednewdraw`
+ * — throw this draw away and take another — is `#seedRoll`, and takes its
+ * `dice` glyph. `#shared/ui/icon.ts` has kept both sprites since the icon
+ * family was ported, for exactly this.
+ *
+ * `.seednewdraw` is a `<button>` and not the link it used to be. As a link it
+ * meant "the same address without `seed=`", which was a new draw for as long
+ * as an address without a seed drew one; now an address without a seed plays
+ * the seed the player already owns, and the same link would be a button that
+ * does nothing. So it draws the seed itself —
+ * {@link "#game/random.ts"!generateRandomSeed}, the same call the world makes
+ * when nobody supplies one — and hands it over the same way a typed one goes.
+ * Both controls are shown at once, as the mockup shows them: they no longer
+ * name two states of one run, they name two different things to do.
  *
  * Icon-only, as the mockup draws them, so each carries its accessible name
  * on `aria-label` — one for a screen reader — and on `title` — one for a
@@ -49,10 +64,10 @@
  *
  * The hint line stays a `<details>`. The mockup's is a single sentence
  * («Один и тот же seed — один и тот же поток людей»); production's is a
- * paragraph about what a seed does and does not promise, which is more than
- * a panel wants open under every run. Only its `<summary>` is dressed as the
- * mockup's hint line — `class="sethint"`, and `seed-panel.css` takes the
- * disclosure triangle off it.
+ * paragraph about what a seed promises and how long it stays yours, which is
+ * more than a panel wants open under every run. Only its `<summary>` is
+ * dressed as the mockup's hint line — `class="sethint"`, and `seed-panel.css`
+ * takes the disclosure triangle off it.
  *
  * Taking the triangle off left the line reading as the mockup's inert hint
  * and behaving as a control, which is the worse half of both: nothing on
@@ -66,10 +81,9 @@
  *
  * ## Where the rest of it comes from
  *
- * `src/ui/templates.ts`'s exported {@link SeedLinkData} type and five of the
- * `game.seed.*` catalogue keys the challenge bar's seed line already read
- * (`label`, `link`, `newDrawLink`, `helpSummary`, `explanation`), so this
- * block says what that line said, in the settings popover's own
+ * `src/ui/templates.ts`'s exported {@link SeedLinkData} type and the
+ * `game.seed.*` catalogue keys the challenge bar's seed line already read, so
+ * this block says what that line said, in the settings popover's own
  * `.setblock`/`.cap` shape instead of the challenge bar's
  * `.challengeseed`/`.seedlabel` one. The markup itself is recomposed here
  * rather than called into, because the challenge bar's own `seedTemplate`
@@ -86,11 +100,16 @@
  * That trouble is specific to a bar that redraws itself on a timer this panel
  * does not share. `AppBarSettingsController.setSeed` does rebuild this block,
  * but only when a run's seed actually changes, which is a navigation the
- * player asked for — most often by pressing this block's own link — rather
- * than a redraw arriving under a pointer that was busy with something else.
+ * player asked for — most often from this very row — rather than a redraw
+ * arriving under a pointer that was busy with something else. Focus is the one
+ * thing that rebuild does carry across, and it is carried in that method
+ * rather than here: this block's controls are now the ones a player is most
+ * likely to be holding when a run changes, because they are what changed it.
  */
 
+import { generateRandomSeed } from "#game/random.ts";
 import { t } from "#i18n/index.ts";
+import { isUsableSeed, SEED_INPUT_PATTERN, SEED_MAX_LENGTH } from "#shared/lib/seed.ts";
 import type { SeedLinkData } from "../../../ui/templates.ts";
 import { spriteIconMarkup } from "#shared/ui/icon.ts";
 import { markup, raw } from "#shared/ui/markup.ts";
@@ -111,28 +130,55 @@ function seedHelpTemplate(): string {
 }
 
 /**
- * The row's one icon button — the mockup's `#seedRoll`/`#seedCopy` shape,
- * carrying whichever of the run's two gestures is the one it has.
+ * The row's field: the seed the run is playing, and where another one is typed.
+ *
+ * `maxlength` and `pattern` are `#shared/lib/seed.ts`'s own, so that what this
+ * accepts and what `#seed=` accepts cannot drift apart — the field would
+ * otherwise take a seed the router refuses on arrival, and the player would
+ * watch their run reload into somebody else's passengers. `required` is what
+ * makes an emptied field invalid rather than a seed of no characters.
+ *
+ * The four "leave this alone" attributes are the mockup's, minus its
+ * `spellcheck` shorthand: a seed is an opaque token, and a phone that
+ * capitalises it, a browser that corrects it or a password manager that fills
+ * it has each turned it into a different run.
+ *
+ * @param seed - The seed the run on screen is playing.
+ * @returns The field's markup.
+ */
+function seedFieldTemplate(seed: string): string {
+  return markup`<input type="text" class="val seedvalue" value="${seed}" maxlength="${SEED_MAX_LENGTH}" pattern="${SEED_INPUT_PATTERN}" required spellcheck="false" autocomplete="off" autocapitalize="off" autocorrect="off" aria-label="${t("game.seed.inputLabel")}">`;
+}
+
+/**
+ * A row button: the mockup's `#seedRoll`/`#seedCopy` shape.
  *
  * `.ghost` is the chrome `shared/ui/button.css` gives every low-emphasis
  * control, narrowed to the row's 30x30 square by its own `.seedrow .ghost`;
  * `name` is written twice, once for a screen reader and once for a pointer,
  * because the glyph is the whole of what is on screen.
  *
- * @param className - `seedlink` or `seednewdraw`, the class the specs and the
- * stylesheet know this control by.
+ * The two are different elements for the reason they do different things: one
+ * goes to an address, and an address is a link; the other decides a value here
+ * and now, and has nowhere to point.
+ *
  * @param href - Where pressing it takes the player.
  * @param name - Its accessible name, already naming the seed.
- * @param icon - The sprite that draws it.
  * @returns The link's markup.
  */
-function seedActionTemplate(
-  className: "seedlink" | "seednewdraw",
-  href: string,
-  name: string,
-  icon: "copy" | "dice",
-): string {
-  return markup`<a class="ghost ${className}" href="${href}" title="${name}" aria-label="${name}">${raw(spriteIconMarkup(icon))}</a>`;
+function seedLinkTemplate(href: string, name: string): string {
+  return markup`<a class="ghost seedlink" href="${href}" title="${name}" aria-label="${name}">${raw(spriteIconMarkup("copy"))}</a>`;
+}
+
+/**
+ * The row's other button: a fresh draw, which is a decision rather than a
+ * destination — see {@link seedLinkTemplate}.
+ *
+ * @param name - Its accessible name, already naming the seed.
+ * @returns The button's markup.
+ */
+function seedNewDrawTemplate(name: string): string {
+  return markup`<button type="button" class="ghost seednewdraw" title="${name}" aria-label="${name}">${raw(spriteIconMarkup("dice"))}</button>`;
 }
 
 /**
@@ -145,22 +191,86 @@ function seedActionTemplate(
  * than a block with nothing useful in it, is the same choice
  * `challengeTemplate` already makes for the challenge bar's own seed line.
  *
- * @param data - The seed of the run in progress and where its pin/un-pin link
- * goes, or `null` to render nothing.
+ * @param data - The seed of the run in progress and where its address is, or
+ * `null` to render nothing.
  * @returns The block's markup, or the empty string.
  */
 export function seedPanelTemplate(data: SeedLinkData | null): string {
   if (data === null) {
     return "";
   }
-  const action =
-    data.newDrawUrl === null
-      ? seedActionTemplate("seedlink", data.url, t("game.seed.link", { seed: data.seed }), "copy")
-      : seedActionTemplate(
-          "seednewdraw",
-          data.newDrawUrl,
-          t("game.seed.newDrawLink", { seed: data.seed }),
-          "dice",
-        );
-  return markup`<div class="setblock"><span class="cap">${t("game.seed.label")}</span><div class="seedrow"><span class="val seedvalue">${data.seed}</span>${raw(action)}</div>${raw(seedHelpTemplate())}</div>`;
+  const field = seedFieldTemplate(data.seed);
+  const newDraw = seedNewDrawTemplate(t("game.seed.newDrawLink", { seed: data.seed }));
+  const link = seedLinkTemplate(data.url, t("game.seed.link", { seed: data.seed }));
+  return markup`<div class="setblock"><span class="cap">${t("game.seed.label")}</span><div class="seedrow">${raw(field)}${raw(newDraw)}${raw(link)}</div>${raw(seedHelpTemplate())}</div>`;
+}
+
+/** What {@link presentSeedPanel} needs in order to act on the row's two decisions. */
+export interface SeedPanelOptions {
+  /**
+   * Called with a seed the player has chosen — typed into the field, or drawn
+   * by the dice — already known to be one the address bar can carry.
+   *
+   * Not called with the seed already on screen: a `change` event only fires
+   * for a value that changed, and a caller that navigates would be navigating
+   * to where the player already is.
+   */
+  readonly onSeed: (seed: string) => void;
+}
+
+/**
+ * Wires the row's field and its dice button.
+ *
+ * Both listeners are delegated from `block` — the stable
+ * `[data-set-block="seed"]` wrapper `appBarSettingsTemplate` draws — rather
+ * than attached to the controls themselves, because
+ * `AppBarSettingsController.setSeed` replaces everything inside that wrapper
+ * on every run whose seed differs from the last. Handlers on the controls
+ * would go with the first rebuild, which is to say with the first seed the
+ * player chose.
+ *
+ * @param block - The wrapper {@link seedPanelTemplate}'s markup is written into.
+ * @param options - What to do with a seed the player chooses.
+ */
+export function presentSeedPanel(block: HTMLElement, options: SeedPanelOptions): void {
+  /** The row's field, if that is what an event came from. */
+  const fieldOf = (target: EventTarget | null): HTMLInputElement | null =>
+    target instanceof HTMLInputElement && target.classList.contains("seedvalue") ? target : null;
+
+  block.addEventListener("input", (event) => {
+    // A message set below outlives the value that earned it, and a field that
+    // stays invalid while it is being corrected reports the wrong thing at the
+    // next commit. Cleared on the first keystroke, which is the browser's own
+    // convention for a custom message.
+    fieldOf(event.target)?.setCustomValidity("");
+  });
+
+  block.addEventListener("change", (event) => {
+    const field = fieldOf(event.target);
+    if (field === null) {
+      return;
+    }
+    // Trimmed because a seed is pasted at least as often as it is typed, and
+    // what comes off a chat line or a console print often carries a space at
+    // one end. Trimming cannot change which run is meant: a space is not a
+    // character a seed may contain, so a value with one was never a seed.
+    const seed = field.value.trim();
+    if (!isUsableSeed(seed)) {
+      // `pattern` and `required` already mark the field invalid; what the
+      // browser says about it on its own is "match the requested format",
+      // which names no format. This says which characters, in the player's
+      // own language, and `reportValidity` is what puts it on screen -- the
+      // field is not inside a `<form>`, so nothing else would.
+      field.setCustomValidity(t("game.seed.invalid"));
+      field.reportValidity();
+      return;
+    }
+    options.onSeed(seed);
+  });
+
+  block.addEventListener("click", (event) => {
+    if (event.target instanceof Element && event.target.closest(".seednewdraw") !== null) {
+      options.onSeed(String(generateRandomSeed()));
+    }
+  });
 }

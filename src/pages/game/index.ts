@@ -58,6 +58,7 @@ import { presentRunControls, runButtonsTemplate } from "#features/run-simulation
 import { clearChildren, query, queryAll } from "#shared/lib/dom.ts";
 import { createParamsUrl } from "#shared/lib/route-query.ts";
 import type { RouteQuery } from "#shared/lib/route-query.ts";
+import { isUsableSeed } from "#shared/lib/seed.ts";
 import { presentBuildingStage } from "#widgets/building-stage/index.ts";
 import type { EditorPanePresenter } from "#widgets/editor-pane/index.ts";
 import { presentGoalBar } from "#widgets/goal-bar/index.ts";
@@ -98,6 +99,15 @@ declare global {
 
 /** Where the chosen simulation speed is remembered between visits. */
 export const TIME_SCALE_STORAGE_KEY = "elevatorTimeScale";
+
+/**
+ * Where the player's own seed is remembered between runs, levels and visits.
+ *
+ * Holds whatever seed the last run outside the learning track was built from,
+ * drawn ones included — see {@link App.handleRoute} for why a seed nobody chose
+ * is still worth keeping, and what that reverses.
+ */
+export const SEED_STORAGE_KEY = "elevatorSeed";
 
 /**
  * Stands in for a program that did not compile.
@@ -552,6 +562,33 @@ export function readStoredTimeScale(storage: Storage): number | undefined {
   return Number.isFinite(timeScale) ? clampTimeScale(timeScale) : undefined;
 }
 
+/**
+ * Reads the seed this browser last played, if it is still one that can be
+ * played.
+ *
+ * Validated on the way out rather than trusted, for the reason `#seed=` is:
+ * this value is as editable as the address bar — a devtools console reaches it,
+ * and so does an older or newer build of the game — and a stored string that
+ * the router would refuse would otherwise become a seed no link could ever
+ * express. What fails the check is treated as nothing stored at all, which
+ * draws a fresh seed and overwrites it.
+ *
+ * @param storage - Where the seed is remembered.
+ * @returns The remembered seed, or `undefined` when there is no usable one.
+ */
+export function readStoredSeed(storage: Storage): string | undefined {
+  let stored: string | null;
+  try {
+    stored = storage.getItem(SEED_STORAGE_KEY);
+  } catch {
+    return undefined;
+  }
+  if (stored === null || !isUsableSeed(stored)) {
+    return undefined;
+  }
+  return stored;
+}
+
 /** Runs the game. */
 export class App {
   /** The challenges being played, in order. */
@@ -867,15 +904,18 @@ export class App {
    * `autostart`, `devtest` and anything else the URL is carrying, so a player
    * who had chosen 8x speed would silently lose it by opening another level.
    *
-   * `seed` is the exception, and is dropped: it was drawn for the building
-   * being left, so carrying it into another level would pin a run nobody has
-   * played. What a tile carries across are *preferences* — the speed, the
-   * autostart, the sandbox building they may come back to — and a seed is not
-   * one. It names a single run, and naming a run that has not been played yet
-   * is meaningless. Dropping it here is not the way back out of a pinned run:
-   * that is the seed line's own `new draw` link ({@link #seedLink}), because
-   * "press the level you are already on" is not a move any interface can
-   * expect to be found.
+   * `seed` is the exception, and is dropped *from the link*: a URL naming a seed
+   * names one particular run, and a link to another building names a run nobody
+   * has played. What a tile carries across are *preferences* — the speed, the
+   * autostart, the sandbox building they may come back to — and a URL's seed is
+   * not one of those.
+   *
+   * The player's seed is, and it does carry across: {@link #startRun} falls back
+   * to {@link readStoredSeed}, which no link touches, so the same seed plays in
+   * the building the tile opens. The two are not in tension — this drops a
+   * *claim about a run*, and storage keeps a *choice about a stream*. See
+   * {@link handleRoute} for the whole of that arrangement, and for the decision
+   * it reverses.
    *
    * @returns The switcher's input, as of this call.
    */
@@ -943,41 +983,43 @@ export class App {
    *
    * Built with {@link createParamsUrl}, so the challenge, the speed, the sandbox
    * building and every unknown key survive into the link, exactly as they do in
-   * the navigation row. Unlike the row, these are the two links in the interface
-   * whose job is the seed itself: one adds it, one takes it away.
+   * the navigation row. Unlike the row, this is the one link in the interface
+   * whose job is the seed itself.
    *
-   * The `new draw` URL is offered only when the route pins a seed, which is the
-   * only state it goes anywhere from — and it is {@link #seed}, the seed the
-   * router accepted, that decides. A seed the router refused (`#seed=rush hour`,
-   * which a browser percent-encodes on the way in) leaves the run unpinned and
-   * the line offering to pin the seed that was actually drawn, which is what
-   * happened.
+   * There used to be a second URL here, and the panel rendered one or the other:
+   * `newDrawUrl`, this hash with `seed=` taken back out, which drew a fresh run
+   * for as long as an address without a seed meant a fresh run. It does not mean
+   * that any more — {@link handleRoute} falls back to the seed this browser
+   * remembers — so "a new draw" stopped being somewhere to go and became
+   * something to decide: `features/manage-seed` draws one itself and asks
+   * {@link playSeed} to play it.
    *
-   * A task of the learning track offers no seed line at all, and it is the one
-   * run in the game where that is the honest answer. Both halves of the line are
-   * offers about the address bar, and on a task both are refused. "The same
-   * passengers again" writes `seed=` into an address the router refuses it on —
-   * `refuseSeedOnTrack` in `src/pages/game/model/route.ts` — so following the game's own
-   * link would warn on the console and have `startRouter` strip the key back out
-   * of the bar in front of the player. "A new draw" offers to stop pinning a
-   * seed that the *task* pins, which is the point of the task: `TutorialTask.seed`
-   * records that a random one would make the lesson a coin flip. A line that
-   * undoes itself is worse than no line, so the line goes, and the console print
-   * built from the same data goes with it — what it prints is that same refused
-   * URL. The seed is not lost: it is the task's, written down in the table.
+   * A task of the learning track offers no seed block at all, and it is the one
+   * run in the game where that is the honest answer. Everything the block offers
+   * is an offer about a seed the player chooses, and on a task the seed is not
+   * theirs to choose. Typing one, or pinning one, writes `seed=` into an address
+   * the router refuses it on — `refuseSeedOnTrack` in
+   * `src/pages/game/model/route.ts` — so following the game's own link would warn
+   * on the console and have `startRouter` strip the key back out of the bar in
+   * front of the player. A new draw would replace the seed the *task* pins, which
+   * is the point of the task: `TutorialTask.seed` records that a random one would
+   * make the lesson a coin flip. A block that undoes itself is worse than no
+   * block, so the block goes, and the console print built from the same data goes
+   * with it — what it prints is that same refused URL. The seed is not lost: it
+   * is the task's, written down in the table.
    *
    * Rendering the seed as plain text was the alternative and was rejected. It
-   * would occupy the same space in the bar to say a word that means nothing to
-   * the player on the track — the seed of task 5 is `tutorial-5` — and the line
-   * exists to be *acted* on. If the track ever wants the seed shown, the honest
-   * form is the panel saying so in its own words, not the bar's link with its
-   * href taken away.
+   * would occupy the same space to say a word that means nothing to the player on
+   * the track — the seed of task 5 is `tutorial-5` — and the block exists to be
+   * *acted* on. If the track ever wants the seed shown, the honest form is the
+   * panel saying so in its own words, not this block with its controls taken
+   * away.
    *
    * @param world - The run that has just been built.
    * @param challengeIndex - Its index in {@link challenges}, or `null` for the
    * sandbox, which the URL addresses by its building instead.
-   * @returns Its seed, the URL that starts another run from it and the URL that
-   * stops pinning it, or `null` when it has no seed to offer.
+   * @returns Its seed and the URL that names this run outright, or `null` when it
+   * has no seed to offer.
    */
   #seedLink(world: World, challengeIndex: number | null): SeedLinkData | null {
     if (this.#tutorial !== undefined) {
@@ -985,26 +1027,61 @@ export class App {
     }
     if (world.seed === null) {
       // Only reachable when a caller handed the world a ready-made random
-      // stream, which the app never does; a test that does gets no seed line
+      // stream, which the app never does; a test that does gets no seed block
       // rather than a link with nothing to pin.
       return null;
     }
     const seed = String(world.seed);
-    // Both links name the challenge, as every other link this class builds
-    // does, and here it is load-bearing rather than tidy. A first visit has no
-    // hash at all, so "everything you are carrying, minus the seed" is nothing
-    // at all, and a hash cannot spell that except as a bare `#`. That does work
-    // — the hash changes, so a fresh run is drawn — but `#` is also the
-    // fragment meaning "the top of this document", so the browser scrolls there
-    // on the way out of a pinned run. Naming the challenge makes it an address.
-    // Where the URL already carries a challenge, which is every route the game
-    // writes itself, this replaces it with the same value and changes nothing.
+    return { seed, url: this.#seedHref(seed, challengeIndex) };
+  }
+
+  /**
+   * The address of this building played on `seed`.
+   *
+   * The challenge is named, as it is in every other link this class builds, and
+   * here it is load-bearing rather than tidy. A first visit has no hash at all,
+   * so "everything you are carrying, plus this seed" would leave the run's own
+   * identity to a default — and a default that later changes is a link that
+   * later means a different building. Where the URL already carries a challenge,
+   * which is every route the game writes itself, this replaces it with the same
+   * value and changes nothing.
+   *
+   * @param seed - The seed the address should play.
+   * @param challengeIndex - The challenge to name, or `null` for the sandbox,
+   * which the URL addresses by its building instead.
+   * @returns The hash URL.
+   */
+  #seedHref(seed: string, challengeIndex: number | null): string {
     const at = challengeIndex === null ? {} : { challenge: challengeIndex + 1 };
-    return {
-      seed,
-      url: createParamsUrl(this.#query, { ...at, seed }),
-      newDrawUrl: this.#seed === null ? null : createParamsUrl(this.#query, { ...at, seed: null }),
-    };
+    return createParamsUrl(this.#query, { ...at, seed });
+  }
+
+  /**
+   * Plays `seed` on the building already on screen.
+   *
+   * The settings panel's own two decisions arrive here as one: a seed typed into
+   * its field, and a seed its dice drew. Both are seeds the player chose, and
+   * this class has nothing to say about which of the two it was.
+   *
+   * Done by navigating rather than by restarting in place, so that the seed a
+   * player chose is the seed the address bar says they are playing — the same
+   * rule the rest of this class keeps, and the one thing that makes a chosen run
+   * shareable at the moment it is chosen. The router hears the `hashchange`,
+   * resolves the route, and the run restarts through the same path a reload
+   * takes. A seed equal to the one already in the hash changes nothing and
+   * navigates nowhere, which is the correct answer to being asked for the run
+   * that is already playing.
+   *
+   * The seed is not written to storage here. {@link #startRun} writes whatever
+   * seed a run was actually built from, so a seed that arrives by this route is
+   * remembered by having been played — and one the router refuses on the way is
+   * not remembered at all, which is what should happen to it.
+   *
+   * @param seed - A seed the address bar can carry; `features/manage-seed`
+   * checks that against `#shared/lib/seed.ts` before calling.
+   */
+  playSeed(seed: string): void {
+    window.location.hash = this.#seedHref(seed, this.#run?.challengeIndex ?? null);
   }
 
   /**
@@ -1027,6 +1104,21 @@ export class App {
       return null;
     }
     return this.#seedLink(world, run.challengeIndex);
+  }
+
+  /**
+   * Remembers a seed as this player's own, for the next run and the next visit.
+   *
+   * @param seed - The seed the run that has just started was built from.
+   */
+  #storeSeed(seed: string): void {
+    try {
+      this.#storage.setItem(SEED_STORAGE_KEY, seed);
+    } catch {
+      // A browser that refuses storage should not stop the game -- the seed is
+      // still in the run, in the console line and on the panel, and only the
+      // next run loses it.
+    }
   }
 
   /** Remembers the current time scale for the next visit. */
@@ -1137,30 +1229,49 @@ export class App {
   /**
    * Acts on a route: applies its options and starts the challenge it names.
    *
-   * The URL also decides, alone, whether the same people walk in again. A `seed`
-   * in the hash pins one and nothing else does, so `#seed=…` brings the same
-   * passengers in the same order from the Restart button, from Ctrl-Enter and
-   * from a reload alike, while a URL without one draws a fresh seed on every one
-   * of them. How far that carries into the run itself is the subject of
-   * `game.seed.explanation` in the message catalogues: the passengers, and --
-   * since the world advances in fixed `TICK_SECONDS` ticks -- the run they
-   * arrive into as well, for as long as the program is played the same way.
+   * A `seed` in the hash still outranks everything but a task's own, so `#seed=…`
+   * brings the same passengers in the same order from the Restart button, from
+   * Ctrl-Enter and from a reload alike. How far that carries into the run itself
+   * is the subject of `game.seed.explanation` in the message catalogues: the
+   * passengers, and -- since the world advances in fixed `TICK_SECONDS` ticks --
+   * the run they arrive into as well, for as long as the program is played the
+   * same way.
    *
-   * The tempting alternative — remembering the seed the last run generated and
-   * reusing it on Restart, but not on reload — was rejected twice over. It would
-   * strand a player who is stuck on a challenge with the same passenger stream
-   * however often they restart, and no way back to another draw short of editing
-   * the address bar. And it would make the two ways of saying "again" mean
-   * different things from one URL, which is exactly the kind of hidden state
-   * this app keeps out of the game: the hash is what is being played. Pinning
-   * after the fact costs one click on the seed in the bar, and every run prints
-   * its seed as it starts, so the case that matters — the run that has already
-   * gone wrong — stays recoverable.
+   * ## The seed a URL does not name
    *
-   * What makes that trade honest is that the click undoes: a pinned run's seed
-   * line offers `new draw`, which is the same URL without the seed. Whichever
-   * state the player is in, one click in the bar reaches the other, and neither
-   * needs the address bar.
+   * This is where a decision recorded here for a long time was reversed rather
+   * than worked around, so it is worth stating what it was. Remembering the seed
+   * a run was built from and reusing it was rejected twice over: it would strand
+   * a player stuck on a challenge with the same passenger stream however often
+   * they restart, with no way back to another draw short of editing the address
+   * bar; and it would put state behind the player's back, where this app's rule
+   * has always been that the hash is what is being played.
+   *
+   * Both objections were answered by the same thing, and it is the reason the
+   * decision could change: the settings panel grew a seed row that can be *acted*
+   * on (`features/manage-seed`). A player is no longer stranded by a sticky seed,
+   * because a new draw is one click on the dice beside the field, and a specific
+   * seed is one line typed into the field — neither of which existed when a
+   * remembered seed would have been a trap. The hidden state is not hidden: the
+   * row shows the seed the run is on, which is the same place the player would go
+   * to change it.
+   *
+   * What the reversal buys is the question that prompted it — why a player's seed
+   * should be different every time they open the game. It should not. Two
+   * programs are worth comparing when they are compared on one building's worth
+   * of people, and a fresh draw on every visit means the run a player debugged
+   * yesterday is gone. So {@link #startRun} falls back to
+   * {@link readStoredSeed}, and writes back whatever seed a run was actually
+   * built from — a URL's, a typed one, a drawn one alike. A seed becomes the
+   * player's own by being played, and stays theirs across restarts, reloads and
+   * levels until they ask for another.
+   *
+   * The URL's own role narrows to what a URL is for: naming a run to somebody
+   * else, or to yourself later. That is why `#levelHref` still drops `seed` from
+   * every link between levels — the seed a player carries across is not the
+   * business of a link to another building — and the player carries it anyway,
+   * through storage, which is the layer that has no address to mislead anyone
+   * with.
    *
    * What a route names is decided in one order, and the order is stated because
    * it is the whole of the dispatch: a route is a task of the learning track, or
@@ -1522,17 +1633,29 @@ export class App {
     // still carries the seed of the challenge just left -- and then it is the
     // leftover that has to lose.
     //
+    // Then the seed this browser last played, which is the player's own and
+    // outlives the URL that introduced it -- see `handleRoute` for what that
+    // reverses and why. It ranks below `#seed` so that a link somebody was sent
+    // plays the run it names rather than the run they were already on.
+    //
     // `undefined`, not `null`: the world generates a seed of its own when it is
-    // given none, and records it either way, which is what makes an unpinned run
-    // repeatable after the fact.
+    // given none, and records it either way, which is what makes even a run
+    // nobody chose repeatable after the fact.
     const world = createWorld(
       challenge.options,
-      this.#tutorial?.task.seed ?? this.#seed ?? undefined,
+      this.#tutorial?.task.seed ?? this.#seed ?? readStoredSeed(this.#storage) ?? undefined,
     );
     this.world = world;
     window.world = world;
     const seed = this.#seedLink(world, challengeIndex);
     if (seed !== null) {
+      // Written back on every start, drawn seeds included: the fallback above is
+      // only worth anything if the seed a player ends up with becomes the seed
+      // they keep, and the overwhelmingly common way to end up with one is to
+      // have been given it. `#seedLink` is `null` for exactly the run whose seed
+      // is not the player's -- a task of the learning track -- so the one seed
+      // that must not be remembered is the one this cannot see.
+      this.#storeSeed(seed.seed);
       // Printed at every start, because nobody knows a run is worth repeating
       // until it has already gone wrong -- by which time the only record of what
       // it was is this line.
