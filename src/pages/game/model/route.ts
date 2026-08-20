@@ -37,12 +37,12 @@
  * says what that buys and what a misspelled task address does instead.
  *
  * `seed` is the other half of a shared building: the sandbox parameters pin the
- * shafts and `seed` pins who walks into them. It pins them for as long as the
- * two runs stay in step, which is not the whole run — `src/ui/templates.ts`
- * spells out where they part company and why. It is also the one parameter that
- * has to come back out of the address bar byte for byte, since a seed that
- * changed on the way through draws somebody else. {@link SEED_PATTERN} says what
- * survives that trip.
+ * shafts and `seed` pins who walks into them — and, played the same way, every
+ * tick of the run they walk into, which is what `game.seed.explanation` in the
+ * message catalogues promises. It is also the one parameter that has to come
+ * back out of the address bar byte for byte, since a seed that changed on the
+ * way through draws somebody else.
+ * {@link "#shared/lib/seed.ts"!SEED_PATTERN} says what survives that trip.
  */
 
 import type { SandboxOptions } from "#game/challenges.ts";
@@ -66,6 +66,7 @@ import type { SandboxOptions } from "#game/challenges.ts";
 import { tutorialTasks } from "#game/tutorial.ts";
 import { clampTimeScale } from "#features/adjust-speed/model/time-scale.ts";
 import { createParamsUrl, parseQuery, type RouteQuery } from "#shared/lib/route-query.ts";
+import { isUsableSeed } from "#shared/lib/seed.ts";
 
 /** The validated parameters a route resolves to. */
 export interface RouteParams {
@@ -373,36 +374,6 @@ export function resolveRoute(query: RouteQuery, context: RouteContext): RoutePar
 }
 
 /**
- * How long a `seed` may be.
- *
- * Not the generator's limit — {@link "#game/random.ts"!createRandomSource}
- * hashes a seed of any length in one pass — but the page's. The seed rides in
- * the hash, and every entry of the challenge bar's navigation row is that hash
- * with `challenge` rewritten, so whatever is written here is written into the
- * document some twenty times over. Sixty-four characters is room for a generated
- * seed (ten digits), a UUID (thirty-six) or a label somebody can read down a
- * phone line, and far too few to bloat the bar.
- */
-const SEED_MAX_LENGTH = 64;
-
-/**
- * What a `seed` may contain: ASCII letters, digits, `.`, `-` and `_`.
- *
- * Narrow because the seed has to survive a round trip through the address bar
- * unchanged, and only an ASCII token does. A browser percent-encodes everything
- * else on its way into `location.hash` — a space becomes `%20` and a non-Latin
- * letter three bytes of `%xx` — so `#seed=rush hour` would come back as
- * `rush%20hour`, hash to something else entirely, and send *different people*
- * into the building than the ones the link was shared for. Not a different
- * building: floors, elevators and capacities come from the challenge number or
- * the sandbox parameters, and the seed has no say in any of them — see
- * {@link RouteParams.seed}. A comma cannot get here at all:
- * {@link "#shared/lib/route-query.ts"!parseQuery} splits on it. What is left
- * still spells every generated seed and every label worth typing.
- */
-const SEED_PATTERN = /^[\w.-]+$/;
-
-/**
  * Turns a `seed` parameter into something a run can be rebuilt from.
  *
  * Kept as the string the URL was written with, and never converted to a number
@@ -421,8 +392,8 @@ const SEED_PATTERN = /^[\w.-]+$/;
  * written with a trailing space reaches `location.hash` with the space still
  * in it. That does not happen: U+0020 is in the fragment percent-encode set,
  * so a browser writes `%20` instead, whichever way the URL was navigated to —
- * which is the same fact {@link SEED_PATTERN} is built on, and the two
- * comments could not both be true. What whitespace tolerance the format has
+ * which is the same fact {@link "#shared/lib/seed.ts"!SEED_PATTERN} is built
+ * on, and the two comments could not both be true. What whitespace tolerance the format has
  * belongs to `parseQuery`, which has it for every parameter and can say
  * honestly who it is for.
  *
@@ -430,7 +401,10 @@ const SEED_PATTERN = /^[\w.-]+$/;
  * repaired, for the reason `floors=8.5` is refused rather than rounded: a seed
  * is the one passenger stream it names or it is not that stream at all, and
  * quietly playing a neighbouring one is how a player ends up debugging against
- * a run nobody can reproduce.
+ * a run nobody can reproduce. What counts as usable is
+ * {@link "#shared/lib/seed.ts"!isUsableSeed}, and it is read from there rather
+ * than stated here because the settings panel's own seed field asks the same
+ * question of the same string a moment earlier.
  *
  * @param value - The raw parameter, if it was present.
  * @param refuse - Records the key when the value cannot be used.
@@ -440,7 +414,7 @@ function resolveSeed(value: string | undefined, refuse: Refuse): string | null {
   if (value === undefined) {
     return null;
   }
-  if (value === "" || value.length > SEED_MAX_LENGTH || !SEED_PATTERN.test(value)) {
+  if (!isUsableSeed(value)) {
     console.warn(`Invalid seed "${value}", using a fresh one instead`);
     refuse("seed");
     return null;
