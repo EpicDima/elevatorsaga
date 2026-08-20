@@ -845,7 +845,7 @@ the game shows that change rather than a fresh crowd; the spec says which seed a
 Before opening a pull request, run what CI runs: `npm run typecheck`, `npm run lint`,
 `npm run format:check`, `npm test`, `npm run build` and `npm run test:e2e`. CI runs the same five
 checks — `npm run test:coverage` in place of `npm test`, which is the same suite plus a coverage
-report — on Node 24 for every push to `master` and every pull request, and runs the end-to-end tests
+report — on Node 24 for every push to `main` and every pull request, and runs the end-to-end tests
 alongside them in a job of their own, so a browser download never holds up the fast checks. One Node
 version, and the newer LTS line, because nothing here is version-specific and a second leg only paid
 twice for the same answer; `engines` still asks for 22 or newer and the package still runs there, but
@@ -889,7 +889,7 @@ To make it automatic instead:
    ```yaml
    on:
      push:
-       branches: [master]
+       branches: [main]
      workflow_dispatch:
    ```
 

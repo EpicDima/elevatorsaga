@@ -12,7 +12,7 @@ name: Deploy to GitHub Pages
 #      workflow's deploy step has nothing to publish to and will fail.
 #   2. Add a push trigger below, next to `workflow_dispatch:`:
 #        push:
-#          branches: [master]
+#          branches: [main]
 on:
   workflow_dispatch:
 
