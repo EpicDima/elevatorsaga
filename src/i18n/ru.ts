@@ -845,6 +845,8 @@ elevator.goingDownIndicator(false);`,
   "completion.elevator.checkDestinationQueue":
     "Смотрит, не появилось ли в очереди этажей новых пунктов назначения. Вызывать это нужно, только если вы меняли очередь вручную.",
   "completion.elevator.getPressedFloors": "Возвращает массив номеров нажатых этажей.",
+  "completion.elevator.servedFloors":
+    "Возвращает массив этажей, которые обслуживает лифт, по возрастанию. В здании с зонами лифт возит пассажиров только между этажами своей зоны, а на остальных этажах его приезд не гасит кнопку вызова. goToFloor по-прежнему увезёт его куда угодно, но в такой поездке никто не поедет, а ходы за неё всё равно спишутся. Лифт без своей зоны возвращает все этажи здания.",
   "completion.floor.floorNum": "Возвращает номер этажа.",
   "completion.elevator.event.idle": "Срабатывает, когда лифт выполнил все задачи и ничем не занят.",
   "completion.elevator.event.floorButtonPressed":
@@ -1073,6 +1075,12 @@ elevator.goToFloor(2); // Всё равно добавится — очеред�
   "docs.api.elevator.getPressedFloors": "Возвращает массив номеров нажатых этажей.",
   "docs.api.elevator.getPressedFloors.example.code": `if(elevator.getPressedFloors().length > 0) {
     // Может, сначала заехать на один из выбранных этажей?
+}`,
+  "docs.api.elevator.servedFloors":
+    "Возвращает массив этажей, которые обслуживает лифт, по возрастанию. В здании с зонами лифт возит пассажиров только между этажами своей зоны, а на остальных этажах его приезд не гасит кнопку вызова. goToFloor по-прежнему увезёт его куда угодно, но в такой поездке никто не поедет, а ходы за неё всё равно спишутся. Лифт без своей зоны возвращает все этажи здания.",
+  "docs.api.elevator.servedFloors.example.code": `if(elevator.servedFloors().includes(floorNum)) {
+    // На любой другой этаж это поездка, в которой никто не поедет.
+    elevator.goToFloor(floorNum);
 }`,
   "docs.api.elevator.idle": "Срабатывает, когда лифт выполнил все задачи и ничем не занят.",
   "docs.api.elevator.floorButtonPressed": "Срабатывает, когда пассажир нажал кнопку внутри лифта.",

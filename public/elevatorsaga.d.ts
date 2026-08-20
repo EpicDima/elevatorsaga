@@ -275,6 +275,23 @@ declare namespace ElevatorSaga {
     getPressedFloors(): number[];
 
     /**
+     * The floors this elevator serves.
+     *
+     * In a zoned building a car only carries passengers between the floors of
+     * its own zone: a trip with either end outside them is refused, and the
+     * car's arrival clears no call button on a floor it does not serve. It can
+     * still be sent anywhere with {@link Elevator.goToFloor} — a zone is a rule
+     * about service, not about the shaft — but such a trip carries nobody and
+     * still costs moves.
+     *
+     * An elevator with no zone of its own reports every floor in the building,
+     * so there is no special case to write for the levels without zoning.
+     *
+     * @returns The served floor numbers, in ascending order.
+     */
+    servedFloors(): number[];
+
+    /**
      * The lowest pressed floor button.
      *
      * @deprecated Undocumented legacy API, scheduled for removal. It is

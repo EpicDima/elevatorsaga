@@ -649,6 +649,25 @@ elevator.checkDestinationQueue();</code></pre>
 }</code></pre>
               </td>
             </tr>
+            <tr>
+              <td>servedFloors</td>
+              <td>function</td>
+              <td>
+                <small
+                  >Gets the floors this elevator serves, as an array in ascending order. In a zoned
+                  building an elevator only carries passengers between the floors of its own zone,
+                  and its arrival clears no call button elsewhere. goToFloor will still send it
+                  anywhere, but such a trip carries nobody and still costs moves. An elevator with
+                  no zone of its own reports every floor in the building.</small
+                >
+              </td>
+              <td>
+                <pre><code>if(elevator.servedFloors().includes(floorNum)) {
+    // Sending it anywhere else is a trip that carries nobody.
+    elevator.goToFloor(floorNum);
+}</code></pre>
+              </td>
+            </tr>
             <!--
               Two more members are reachable on the elevator object and are left
               out of this table on purpose; src/page.test.ts holds the omissions

@@ -566,6 +566,8 @@ const EXERCISING_PROGRAM = `
     var lowest = elevator.getFirstPressedFloor();
     /** @type {number[]} */
     var pressed = elevator.getPressedFloors();
+    /** @type {number[]} */
+    var served = elevator.servedFloors();
     /** @type {boolean} */
     var full = elevator.isFull();
     /** @type {boolean} */

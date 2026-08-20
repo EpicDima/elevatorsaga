@@ -89,6 +89,7 @@ describe("Elevator interface", () => {
       "on",
       "once",
       "one",
+      "servedFloors",
       "stop",
       "trigger",
     ]);
@@ -709,6 +710,50 @@ describe("Elevator interface", () => {
       expect(elevInterface.currentFloor()).toBe(2);
       expect(elevInterface.maxPassengerCount()).toBe(e.maxUsers);
       expect(elevInterface.getPressedFloors()).toEqual([1, 3]);
+    });
+
+    describe("servedFloors", () => {
+      /** The facade over a car serving `servedFloors` of the same building. */
+      function facadeOver(servedFloors: readonly number[]): ElevatorInterface {
+        return new ElevatorInterface(
+          new Elevator(1.5, FLOOR_COUNT, FLOOR_HEIGHT, undefined, undefined, servedFloors),
+          FLOOR_COUNT,
+          errorHandler,
+        );
+      }
+
+      it("reports every floor of the building for a car with no zone", () => {
+        // Never an empty array and never nothing: one shape always, so
+        // `servedFloors().includes(n)` is the whole idiom and the levels
+        // without zoning are not a special case for player code to remember.
+        expect(elevInterface.servedFloors()).toEqual([0, 1, 2, 3]);
+      });
+
+      it("reports a zoned car's own floors, in ascending order", () => {
+        expect(facadeOver([2, 0]).servedFloors()).toEqual([0, 2]);
+      });
+
+      it("reports every floor for a car whose zone is empty", () => {
+        expect(facadeOver([]).servedFloors()).toEqual([0, 1, 2, 3]);
+      });
+
+      it("hands out a fresh array each call", () => {
+        // The reason getPressedFloors does: player code sorting or splicing the
+        // answer must not be able to reach into the engine.
+        const zoned = facadeOver([1, 2]);
+        const first = zoned.servedFloors();
+        first.length = 0;
+        expect(zoned.servedFloors()).toEqual([1, 2]);
+        expect(zoned.servedFloors()).not.toBe(first);
+      });
+
+      it("says nothing about where the car can be sent", () => {
+        // A zone is a rule about service, not about the shaft: goToFloor takes
+        // any floor of the building whether the car serves it or not.
+        const zoned = facadeOver([0, 1]);
+        zoned.goToFloor(3);
+        expect(zoned.destinationQueue).toEqual([3]);
+      });
     });
 
     it("forwards the deprecated getFirstPressedFloor", () => {

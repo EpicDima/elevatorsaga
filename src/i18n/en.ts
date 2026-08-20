@@ -770,6 +770,8 @@ elevator.goingDownIndicator(false);`,
   "completion.elevator.checkDestinationQueue":
     "Checks the destination queue for any new destinations to go to. Note that you only need to call this if you modify the destination queue explicitly.",
   "completion.elevator.getPressedFloors": "Gets the currently pressed floor numbers as an array.",
+  "completion.elevator.servedFloors":
+    "Gets the floors this elevator serves, as an array in ascending order. In a zoned building an elevator only carries passengers between the floors of its own zone, and its arrival clears no call button elsewhere. goToFloor will still send it anywhere, but such a trip carries nobody and still costs moves. An elevator with no zone of its own reports every floor in the building.",
   "completion.floor.floorNum": "Gets the floor number of the floor object.",
   "completion.elevator.event.idle":
     "Triggered when the elevator has completed all its tasks and is not doing anything.",
@@ -998,6 +1000,12 @@ elevator.goToFloor(2); // Queued anyway -- queue: 2, 3, 2`,
   "docs.api.elevator.getPressedFloors": "Gets the currently pressed floor numbers as an array.",
   "docs.api.elevator.getPressedFloors.example.code": `if(elevator.getPressedFloors().length > 0) {
     // Maybe go to some chosen floor first?
+}`,
+  "docs.api.elevator.servedFloors":
+    "Gets the floors this elevator serves, as an array in ascending order. In a zoned building an elevator only carries passengers between the floors of its own zone, and its arrival clears no call button elsewhere. goToFloor will still send it anywhere, but such a trip carries nobody and still costs moves. An elevator with no zone of its own reports every floor in the building.",
+  "docs.api.elevator.servedFloors.example.code": `if(elevator.servedFloors().includes(floorNum)) {
+    // Sending it anywhere else is a trip that carries nobody.
+    elevator.goToFloor(floorNum);
 }`,
   "docs.api.elevator.idle":
     "Triggered when the elevator has completed all its tasks and is not doing anything.",

@@ -270,6 +270,12 @@ const ELEVATOR_MEMBERS: readonly KeyedCompletion[] = [
     info: "completion.elevator.getPressedFloors",
     type: "method",
   },
+  {
+    label: "servedFloors",
+    detail: "servedFloors() -> number[]",
+    info: "completion.elevator.servedFloors",
+    type: "method",
+  },
   ...EVENT_METHODS,
 ];
 

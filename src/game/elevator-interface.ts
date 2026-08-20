@@ -5,10 +5,10 @@
  * every method name, arity and return value here is a compatibility contract
  * with every solution people have already written — see `documentation.html`.
  * The contract runs one way: nothing legacy published may change, while a
- * read-only query over state the engine already keeps — `isFull`, `isEmpty`
- * and `isApproachingFloor` — can be added, because no existing solution can
- * notice a method it never called, and none of them can make the simulation do
- * anything it would not have done anyway.
+ * read-only query over state the engine already keeps — `isFull`, `isEmpty`,
+ * `isApproachingFloor` and `servedFloors` — can be added, because no existing
+ * solution can notice a method it never called, and none of them can make the
+ * simulation do anything it would not have done anyway.
  *
  * It hides the actual elevator object behind a more robust facade, while also
  * exposing relevant events, and providing some helper queue functions that
@@ -526,6 +526,41 @@ export class ElevatorInterface {
    */
   getPressedFloors(): number[] {
     return this.#elevator.getPressedFloors();
+  }
+
+  /**
+   * The floors this elevator serves.
+   *
+   * In a zoned building a car is only allowed to carry passengers between the
+   * floors of its own zone: a trip with either end outside them is refused, and
+   * the car's arrival clears no call button on a floor it does not serve. A
+   * dispatcher picking a car for a call has to know which one that is, so this
+   * is the method that answers it.
+   *
+   * It says nothing about where the car can *go*. {@link goToFloor} takes any
+   * floor of the building whether the car serves it or not — a zone is a rule
+   * about service, not about the shaft — so sending a car outside its zone is a
+   * journey that carries nobody and still costs moves.
+   *
+   * A car with no zone of its own reports every floor in the building rather
+   * than an empty array or nothing at all. One shape always, so that
+   * `elevator.servedFloors().includes(n)` is the whole idiom and levels without
+   * zoning are not a special case to remember.
+   *
+   * A fresh array each call, for the reason {@link getPressedFloors} returns
+   * one: sorting or splicing the answer must not be able to reach into the
+   * engine.
+   *
+   * @returns The served floor numbers, in ascending order.
+   */
+  servedFloors(): number[] {
+    const floors: number[] = [];
+    for (let floorNum = 0; floorNum < this.#floorCount; floorNum++) {
+      if (this.#elevator.serves(floorNum)) {
+        floors.push(floorNum);
+      }
+    }
+    return floors;
   }
 
   /**
