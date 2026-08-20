@@ -8,16 +8,22 @@ on:
 
 # A newer push to the same branch or pull request makes the run already in
 # flight irrelevant, so let it go rather than paying for it twice.
+#
+# Except on `main`, where the run ends in a deployment: cancelling it half way
+# through `deploy-pages` would leave the published site in whatever state the
+# upload had reached. There a second push waits for the first run to finish
+# instead, which costs some wall-clock on a burst of pushes and never publishes
+# a partial site.
 concurrency:
   group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 permissions:
   contents: read
 
 jobs:
-  # One leg, on the newer LTS line, which is also what `deploy.yml` publishes
-  # the site with and what the `e2e` job below runs: a second leg on 22 doubled
+  # One leg, on the newer LTS line, which is also what the `e2e` and `deploy`
+  # jobs below run: a second leg on 22 doubled
   # the minutes every push costs to re-answer a question the first one had
   # already answered, since nothing here is version-specific — the same
   # TypeScript compiles it, the same Vite builds it, and the only Node feature
@@ -162,3 +168,78 @@ jobs:
           path: playwright-report/
           retention-days: 14
           if-no-files-found: warn
+
+  # Publishes `main` to GitHub Pages, and only `main`: on a pull request
+  # `github.ref` is `refs/pull/<n>/merge`, which never matches, so the condition
+  # covers both the push that lands a commit and a manual re-publish from
+  # Actions -> CI -> "Run workflow" with `main` selected.
+  #
+  # A job here rather than a workflow of its own so that `needs` can do the
+  # gating: a `workflow_run` trigger would fire after CI finished whatever its
+  # result, and re-checking that result from inside the deployment is a worse
+  # version of the edge this already has. Nothing is published unless the
+  # checks and the browser tests both went green on these exact bytes.
+  #
+  # One prerequisite lives outside this file and cannot be set from it: Settings
+  # -> Pages -> Build and deployment -> Source has to be "GitHub Actions". While
+  # it says "Deploy from a branch" the last step below has nothing to publish to
+  # and fails the run.
+  deploy:
+    name: Deploy to GitHub Pages
+    needs: [check, e2e]
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    # Overrides the workflow-wide `contents: read` for this job alone, so the
+    # token that can write a deployment exists only where one is written.
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+
+    # Never deploy two versions of the site at once, and never cancel a
+    # deployment that is already in flight — a half-published site is worse than
+    # a stale one. Separate from the workflow-wide group above, which serialises
+    # runs; this serialises the deployments within them, including any left over
+    # from a run started before that rule was in place.
+    concurrency:
+      group: pages
+      cancel-in-progress: false
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v7
+
+      - name: Set up Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v6
+
+      # Built again rather than carried over from `check` as an artifact: that
+      # would upload and re-download ~2 MB of `dist/` on every pull request too,
+      # to save a step that takes seconds. `vite.config.ts` sets `base: "./"`,
+      # so the bundle already works from a project sub-path such as /<repo>/ and
+      # needs no base-path injection here.
+      - name: Build the site
+        run: npm run build
+
+      - name: Upload the built site
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: dist
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v5

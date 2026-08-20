@@ -875,23 +875,21 @@ git show legacy-1.x:libs/riot.js
 
 ### Deploying
 
-`.github/workflows/deploy.yml` builds the site and publishes it with the official GitHub Pages
-actions, but it is **manual only** — run it from the Actions tab. Pages has to be pointed at Actions
-in the repository settings before a push trigger would publish anything.
+Every push to `main` publishes the site to GitHub Pages. The `deploy` job in
+`.github/workflows/ci.yml` rebuilds the bundle and uploads it with the official Pages actions, and it
+`needs` both `check` and `e2e`: a commit whose types, lint, formatting, unit tests or browser tests
+are red is never published. The same job re-publishes on demand — **Actions → CI → Run workflow**
+with `main` selected — which is the way back to a good build if a deployment itself fails.
 
-To make it automatic instead:
+One prerequisite is a repository setting rather than a file, so it has to be done by hand once: in
+**Settings → Pages → Build and deployment**, change **Source** from "Deploy from a branch" to
+**GitHub Actions**. While the source is a branch, the deploy step has nothing to publish to and
+fails the run.
 
-1. In **Settings → Pages → Build and deployment**, change **Source** from "Deploy from a branch" to
-   **GitHub Actions**. Do this first: while the source is a branch, the workflow's deploy step has
-   nothing to publish to and will fail.
-2. Add a push trigger to `.github/workflows/deploy.yml`, alongside `workflow_dispatch:`:
-
-   ```yaml
-   on:
-     push:
-       branches: [main]
-     workflow_dispatch:
-   ```
+Deployments never overlap and are never cancelled part-way. Runs on `main` queue instead of
+superseding each other (`cancel-in-progress` is off for that branch only), and the `deploy` job
+takes a `pages` concurrency group on top of that, so a half-uploaded site cannot replace a working
+one. Pull requests keep the cheaper behaviour, where a new push cancels the run it made irrelevant.
 
 ## Credits and licence
 
