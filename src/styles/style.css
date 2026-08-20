@@ -4110,22 +4110,25 @@ html[data-theme="light"] .floorline:nth-child(odd) {
 }
 
 /*
- * Truncated on both grids, where `design/ui-mockup.html` truncates only the
- * narrower ones (§8's `.tile-sm .cap`) -- because the mockup's own four
- * primary captions are its own four short Russian words and this game's are
- * not. At the 1040x600 floor the strip is 645px wide, so a primary tile is
- * 160px with 128px inside its 16px padding, and "Сред. время доставки" asks
- * for 153px of it, "Макс. время доставки" for 155. English is shorter and fits
- * there -- "Max delivery time", its longest, wants 121px -- but not on every
- * strip the splitter can make: under about 615px a four-column tile drops
- * below that, and the container query above does not fold the grid in two
- * until 520px.
+ * Truncated on both grids, where `design/ui-mockup.html` truncates on neither
+ * -- its `.cap` wraps, and its own "Человек в секунду" duly takes two lines at
+ * the 1040x600 floor while the three beside it take one.
  *
- * Wrapping instead was the alternative and is worse: two of the four captions
- * would take a second line and the other two would not, which drops those two
- * tiles' figures half a line below their neighbours' -- a row of numbers meant
- * to be read across, no longer on one line. Nothing is lost to a screen
- * reader either way; `text-overflow` clips the drawing, not the text node.
+ * That is the thing to avoid here rather than to copy. A caption on two lines
+ * pushes its own figure half a line below its neighbours', and these four
+ * figures are a row read across. So the captions are kept to one line, and
+ * kept short enough that one line is enough: at the floor the strip is 645px,
+ * a primary tile 160px, 128px of it inside the padding, and the longest
+ * caption in either language is "Max delivery time" at 121px. Russian's two
+ * longest were 153px and 155px until `src/i18n/ru.ts` shortened them to
+ * "Сред. доставка" (107) and "Макс. доставка" (109) -- see the note there,
+ * which has the reasoning and the measurements.
+ *
+ * What is left for this rule to do is the narrower strips the splitter can
+ * make below the floor: under about 615px a four-column tile drops past
+ * English's 121px, and the container query above does not fold the grid in
+ * two until 520px. Nothing is lost to a screen reader when it fires;
+ * `text-overflow` clips the drawing, not the text node.
  */
 .tiles-primary .cap,
 .tiles-secondary .cap {
