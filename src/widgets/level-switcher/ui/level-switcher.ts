@@ -44,6 +44,7 @@ import { tierBadgeMarkup } from "#entities/challenge-tier/index.ts";
 import { t } from "#i18n/index.ts";
 import { queryAll, requireElement } from "#shared/lib/dom.ts";
 import { createDisclosure } from "#shared/ui/disclosure.ts";
+import { spriteIconMarkup } from "#shared/ui/icon.ts";
 import { markup, raw, renderFragment } from "#shared/ui/markup.ts";
 
 /**
@@ -53,10 +54,17 @@ import { markup, raw, renderFragment } from "#shared/ui/markup.ts";
  * Ships with no text at all, the same choice `runButtonsTemplate` makes and
  * for the same reason — see this module's own comment.
  *
+ * The two chevrons are the one exception, and they are not text: `#i-left`
+ * and `#i-right`, exactly as `design/ui-mockup.html`'s own `#taskPrev` and
+ * `#taskNext` draw them. A step button is a glyph and an `aria-label` with
+ * nothing else in it, so drawing the glyph here rather than in `update()`
+ * costs nothing to redraw — the label is what changes with the language,
+ * and the presenter already sets that.
+ *
  * @returns The switcher markup, ready for `presentLevelSwitcher`.
  */
 export function levelSwitcherTemplate(): string {
-  return markup`<div class="task"><button type="button" class="task-prev"></button><button type="button" class="task-open" aria-haspopup="true" aria-expanded="false"><b class="task-name"></b></button><button type="button" class="task-next"></button><div class="taskmenu" hidden><div class="taskblocks"></div></div></div>`;
+  return markup`<div class="task"><button type="button" class="task-prev">${raw(spriteIconMarkup("left"))}</button><button type="button" class="task-open" aria-haspopup="true" aria-expanded="false"><b class="task-name"></b></button><button type="button" class="task-next">${raw(spriteIconMarkup("right"))}</button><div class="taskmenu" hidden><div class="taskblocks"></div></div></div>`;
 }
 
 /** What the switcher needs in order to draw and redraw itself. */

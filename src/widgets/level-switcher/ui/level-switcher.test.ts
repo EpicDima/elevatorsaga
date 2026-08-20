@@ -9,6 +9,7 @@ import type { ChallengeTier } from "#entities/challenge-tier/index.ts";
 import { requireUserCountWithinTime, type Challenge } from "#game/challenges.ts";
 import { tutorialTasks } from "#game/tutorial.ts";
 import { queryAll, requireElement } from "#shared/lib/dom.ts";
+import { SPRITE_ICONS } from "#shared/ui/icon.ts";
 
 function fixtureChallenges(count: number): readonly Challenge[] {
   return Array.from({ length: count }, () => ({
@@ -75,6 +76,27 @@ describe("levelSwitcherTemplate", () => {
     expect(taskOpen.getAttribute("aria-expanded")).toBe("false");
     expect(requireElement(".taskmenu", parent).hasAttribute("hidden")).toBe(true);
     expect(requireElement(".taskblocks", parent).children).toHaveLength(0);
+  });
+
+  /*
+   * The regression this file did not have: both step buttons shipped empty
+   * from the day the widget landed. They are styled and sized, they take
+   * focus, they carry an `aria-label` and they navigate -- and they drew
+   * nothing at all, so the bar showed two blank 32px gaps where the mockup
+   * shows a chevron either side of the level's name. Asserted by the path
+   * each sprite is actually made of rather than by the class both share,
+   * because `ds-icon` is what told the empty buttons apart from nothing:
+   * both had it on neither of them.
+   */
+  it("draws a chevron in each step button, pointing the way it steps", () => {
+    const parent = document.createElement("div");
+    parent.innerHTML = levelSwitcherTemplate();
+
+    const drawn = (selector: string): string | null =>
+      requireElement(`${selector} svg.ds-icon path`, parent).getAttribute("d");
+
+    expect(drawn(".task-prev")).toBe(SPRITE_ICONS.left.shapes[0].attrs.d);
+    expect(drawn(".task-next")).toBe(SPRITE_ICONS.right.shapes[0].attrs.d);
   });
 });
 
