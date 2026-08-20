@@ -599,17 +599,18 @@ describe("App instant run", () => {
     setLocale(DEFAULT_LOCALE);
   });
 
-  it("crunches the current challenge headlessly, drawing nothing while it runs, and shows the same outcome overlay an animated run would", () => {
+  it("crunches the current challenge headlessly and shows the same outcome overlay an animated run would", () => {
     const { app, elements } = setUp();
     app.startChallenge(1);
     expect(queryAll(".elevator", elements.world)).toHaveLength(2);
 
     app.runInstantly();
 
-    // `presentWorld` is skipped entirely for a crunch -- the building the
-    // earlier animated start drew is torn down, and nothing replaces it.
-    expect(queryAll(".floor", elements.world)).toHaveLength(0);
-    expect(queryAll(".elevator", elements.world)).toHaveLength(0);
+    // `presentWorld` is skipped while the crunch runs -- nothing is drawn for
+    // frames nobody watches -- and run once at the end, so the state the
+    // verdict is about is on screen behind it.
+    expect(queryAll(".floor", elements.world)).toHaveLength(4);
+    expect(queryAll(".elevator", elements.world)).toHaveLength(2);
     expect(app.world?.challengeEnded).toBe(true);
     expect(requireElement(".verdict h3", elements.feedback).textContent).toBe("Success!");
     // The button is back to its ready state, not stuck reading "Crunching...":
@@ -692,7 +693,6 @@ describe("App instant run", () => {
     requireElement(".startstop", elements.controls).click();
 
     expect(app.world).not.toBe(before);
-    expect(queryAll(".elevator", elements.world)).toHaveLength(0);
     expect(app.world?.challengeEnded).toBe(true);
     expect(requireElement(".verdict h3", elements.feedback).textContent).toBe("Success!");
   });
@@ -707,8 +707,45 @@ describe("App instant run", () => {
 
     requireElement(".startover", elements.controls).click();
 
-    expect(queryAll(".elevator", elements.world)).toHaveLength(0);
     expect(app.world?.challengeEnded).toBe(true);
+  });
+
+  it("draws the finished building whichever way the crunch ended", () => {
+    // The crunch drives a world nothing is mounted on, so every floor and car
+    // it made exists only in memory until this redraw. Before it, the verdict
+    // card announced a result over an empty pane -- which the card, a corner
+    // one since `widgets/verdict-toast`, no longer covers up. The people in
+    // that world are drawn by the same call; these fixtures spawn none, so
+    // that half is `widgets/building-stage`'s to pin down.
+    const { app, elements } = setUp();
+
+    app.startChallenge(1); // resolves at once
+    app.runInstantly();
+    expect(queryAll(".floor", elements.world)).toHaveLength(4);
+    expect(queryAll(".elevator", elements.world)).toHaveLength(2);
+
+    // And the same for a run that ends the other way: a verdict is a verdict.
+    app.startChallenge(2); // fails at once
+    app.runInstantly();
+    expect(requireElement(".verdict h3", elements.feedback).textContent).toBe("Level failed");
+    expect(queryAll(".floor", elements.world)).toHaveLength(5);
+    expect(queryAll(".elevator", elements.world)).toHaveLength(1);
+  });
+
+  it("draws the building again when a crunch is stopped by an error in the program", () => {
+    // Not a verdict, so not the path above: the world is left mid-run and
+    // undecided, and the player is looking at a banner about their code. The
+    // building behind it is the state that code stopped in, and leaving the
+    // pane empty would make an error look like the run vanishing.
+    const { app, elements, view } = setUp();
+    app.startChallenge(0); // never resolves on its own
+    view.type("{ init: function() {}, update: function() { throw new Error('boom'); } }");
+
+    app.runInstantly();
+
+    expect(app.world?.challengeEnded).toBe(false);
+    expect(queryAll(".floor", elements.world)).toHaveLength(3);
+    expect(queryAll(".elevator", elements.world)).toHaveLength(1);
   });
 
   it("goes back to an animated run the moment the stop is left", () => {
@@ -951,6 +988,61 @@ describe("App sandbox", () => {
 
     expect(app.isPlayingSandbox).toBe(true);
     expect(app.world?.floors).toHaveLength(20);
+  });
+
+  it("does not offer the instant stop, because there is no end to crunch to", () => {
+    // Free play has no condition to resolve, so a crunch there could only run
+    // out the ceiling `driveInstantly` gives up at and print a failure over a
+    // building with no goal to fail. The honest answer is not to offer it: `+`
+    // ends the ladder at the fastest real speed instead.
+    const { app, elements } = setUp();
+    app.handleRoute(...routeFor("#challenge=sandbox,floors=20"));
+
+    reachInstantSpeed(elements);
+
+    // The reading is the whole of the state: `∞x` is what being on that stop
+    // looks like, and it is not a `timeScale` there is a number to check.
+    expect(requireElement(".speed-val", elements.controls).textContent).toBe("20x");
+    expect(app.worldController.timeScale).toBe(20);
+    expect(requireElement(".speed-up", elements.controls).hasAttribute("disabled")).toBe(true);
+  });
+
+  it("leaves the instant stop on the way in, and offers it again on the way out", () => {
+    // The stop is app state rather than a time scale, so it survives a change
+    // of run -- which is what a player crunching level after level wants, and
+    // wrong here: the control would sit on `∞x` promising an answer free play
+    // does not have.
+    const { app, elements } = setUp();
+    app.startChallenge(0);
+    reachInstantSpeed(elements);
+    expect(requireElement(".speed-val", elements.controls).textContent).toBe("∞x");
+
+    // The speed in the address is carried in with everything else, and it is
+    // the top of the ladder here so that the control has somewhere to sit that
+    // would have stepped on to `∞x` a moment ago.
+    app.handleRoute(...routeFor("#challenge=sandbox,floors=20,timescale=20"));
+
+    expect(requireElement(".speed-val", elements.controls).textContent).toBe("20x");
+    expect(requireElement(".speed-up", elements.controls).hasAttribute("disabled")).toBe(true);
+
+    // Nothing is lost by it: the stop is on offer again on the next real run.
+    app.handleRoute(...routeFor("#challenge=1,timescale=20"));
+    expect(requireElement(".speed-up", elements.controls).hasAttribute("disabled")).toBe(false);
+  });
+
+  it("ignores a crunch asked for by any other route", () => {
+    // The button that reaches `runInstantly` is already dimmed here; this is
+    // the state saying so rather than the click -- a hotkey, a stale handler or
+    // a later caller must not start a run that can only end in the ceiling.
+    const { app, elements } = setUp();
+    app.handleRoute(...routeFor("#challenge=sandbox,floors=20,spawnrate=2"));
+    const world = app.world;
+
+    app.runInstantly();
+
+    expect(app.world).toBe(world);
+    expect(app.world?.challengeEnded).toBe(false);
+    expect(elements.feedback.innerHTML).toBe("");
   });
 });
 
@@ -2619,6 +2711,7 @@ describe("presentControls", () => {
         challengeEnded: (): boolean => false,
         runStarted: (): boolean => false,
         instantSpeed: (): boolean => false,
+        instantAvailable: (): boolean => true,
         instantRunInProgress: (): boolean => false,
         onStartStop: vi.fn(),
         onStartOver: vi.fn(),
@@ -2943,6 +3036,7 @@ describe("the language the interface comes out in", () => {
       challengeEnded: () => challengeEnded,
       runStarted: () => runStarted,
       instantSpeed: () => false,
+      instantAvailable: () => true,
       instantRunInProgress: () => false,
       onStartStop: vi.fn(),
       onStartOver: vi.fn(),

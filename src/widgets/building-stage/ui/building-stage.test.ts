@@ -422,4 +422,24 @@ describe("presentBuildingStage", () => {
     user.trigger("removed");
     expect(queryAll(".people .person", parent)).toHaveLength(0);
   });
+
+  it("draws the passengers a world already has, not only the ones who arrive after", () => {
+    // The case is `src/pages/game/index.ts` drawing the building a crunch has
+    // just finished running: every `new_user` of that run was triggered while
+    // nothing was mounted to hear it, so a stage that only subscribed would
+    // show floors and cars in an empty building.
+    const world = createWorld({ floorCount: 3, elevatorCount: 1 });
+    const waiting = new User(60);
+    const riding = new User(60);
+    world.users.push(waiting, riding);
+
+    const { parent } = mount(world, 800, 300);
+
+    expect(queryAll(".people .person", parent)).toHaveLength(2);
+
+    // And they are live views rather than a snapshot: the subscriptions a
+    // passenger drawn on arrival gets are the ones these have too.
+    waiting.trigger("removed");
+    expect(queryAll(".people .person", parent)).toHaveLength(1);
+  });
 });

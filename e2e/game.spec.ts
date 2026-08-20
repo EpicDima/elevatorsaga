@@ -94,7 +94,7 @@ test("plays a challenge to completion when Start is pressed", async ({ page }) =
   expect(await statisticValue(page, "Transported")).toBeGreaterThanOrEqual(15);
 });
 
-test("crunches a challenge instantly, with nothing drawn while it runs, and shows the outcome", async ({
+test("crunches a challenge instantly and shows the outcome over the building it ended in", async ({
   page,
 }) => {
   // Same program and challenge as the animated run above, so the two tests are
@@ -114,10 +114,6 @@ test("crunches a challenge instantly, with nothing drawn while it runs, and show
   await expect(speedValue(page)).toHaveText("∞x");
   await startButton(page).click();
 
-  // Nothing is drawn for the whole run: whatever building a normal start put
-  // up is gone, and nothing replaces it while the crunch is under way.
-  await expect(building(page).getByRole("group", { name: /^Elevator/ })).toHaveCount(0);
-
   // The button waits out "Crunching..." on its own — this is one assertion
   // doing two jobs, since it can only pass once the crunch has both reached a
   // verdict and handed the button back. The title rather than the label,
@@ -136,6 +132,41 @@ test("crunches a challenge instantly, with nothing drawn while it runs, and show
   await expect(page.getByRole("heading", { name: "Success!" })).toBeVisible();
   await expect(page.getByRole("link", { name: /Next level/ })).toBeVisible();
   expect(await statisticValue(page, "Transported")).toBeGreaterThanOrEqual(15);
+
+  // And the run it is reporting on is on screen behind it. Nothing is drawn
+  // for the frames of a crunch, which nobody watches; the last one is drawn
+  // once it is over, because the verdict is a card in the corner and the pane
+  // it leaves uncovered has to be the building the verdict is about --
+  // passengers included, since a challenge is won long before its stream of
+  // them dries up.
+  await expect(building(page).getByRole("group", { name: "Elevator 1" })).toBeVisible();
+  await expect(building(page).locator(".person").first()).toBeVisible();
+});
+
+test("does not offer the instant stop in the sandbox, and plays it animated at the fastest speed", async ({
+  page,
+}) => {
+  // Free play has no condition to resolve, so a crunch there could only run out
+  // the ceiling `driveInstantly` gives up at and announce a failure for a run
+  // with no goal to fail. The stop is withheld instead, which makes 20x the end
+  // of the control rather than the top of the ladder.
+  await page.goto("/#challenge=sandbox");
+  await expect(building(page).getByRole("group", { name: "Elevator 1" })).toBeVisible();
+
+  // Presses "Faster" until it dims, wherever that turns out to be.
+  await selectInstantSpeed(page);
+  await expect(speedValue(page)).toHaveText("20x");
+
+  await startButton(page).click();
+
+  // An ordinary animated run: the building stays on screen and time passes in
+  // it, and no verdict is ever reached, which is the whole point of the place.
+  await expect(page.getByRole("button", { name: "Pause" })).toBeVisible();
+  await expect
+    .poll(async () => statisticValue(page, "Elapsed time"), { timeout: 15_000 })
+    .toBeGreaterThan(5);
+  await expect(building(page).getByRole("group", { name: "Elevator 1" })).toBeVisible();
+  await expect(page.locator(".verdict")).toHaveCount(0);
 });
 
 test("colours the passenger whose time the statistics panel is reporting", async ({ page }) => {

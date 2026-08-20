@@ -259,6 +259,13 @@ export interface ControlsPresenterOptions {
    * state of the control and not a value of `timeScale`.
    */
   readonly instantSpeed: () => boolean;
+  /**
+   * Whether the run on screen is one the instant stop is offered on at all.
+   *
+   * A function for the same reason {@link challengeEnded} is one. See
+   * {@link App.canRunInstantly} for the single run it is false on and why.
+   */
+  readonly instantAvailable: () => boolean;
   /** Called when the start/pause/resume button is pressed. */
   readonly onStartStop: () => void;
   /** Called when "Start over" is pressed. */
@@ -351,6 +358,7 @@ export function presentControls(
   const speedStepper = presentSpeedStepper(parent, {
     worldController: options.worldController,
     instantSpeed: () => options.instantSpeed(),
+    instantAvailable: () => options.instantAvailable(),
     instantRunInProgress: () => options.instantRunInProgress(),
     onTimeScaleIncrease: () => {
       options.onTimeScaleIncrease();
@@ -799,6 +807,7 @@ export class App {
       challengeEnded: () => this.world?.challengeEnded === true,
       runStarted: () => (this.world?.elapsedTime ?? 0) > 0,
       instantSpeed: () => this.#instantSpeed,
+      instantAvailable: () => this.canRunInstantly,
       instantRunInProgress: () => this.#instantRunHandle !== undefined,
       // Both buttons ask the same question first — is the speed control on its
       // instant stop? — because on that stop there is nothing to pause and
@@ -836,7 +845,13 @@ export class App {
       // #instantSpeed}.
       onTimeScaleIncrease: () => {
         if (isFastestTimeScale(this.worldController.timeScale)) {
-          this.#setInstantSpeed(true);
+          // Guarded as well as dimmed: the arrow the stepper disables where
+          // {@link canRunInstantly} is false is the only way to press this,
+          // but a disabled button is a statement about a click and this is
+          // the statement about the state.
+          if (this.canRunInstantly) {
+            this.#setInstantSpeed(true);
+          }
         } else {
           this.worldController.setTimeScale(increasedTimeScale(this.worldController.timeScale));
         }
@@ -1136,6 +1151,27 @@ export class App {
   }
 
   /**
+   * Whether the run on screen is one a crunch could reach the end of.
+   *
+   * Everything but the sandbox is. `requireSandbox` is the last condition in
+   * the game that never resolves — `challenges.ts` says so where it is
+   * defined, and the endless demo that was the other one is gone — so free
+   * play is the one run with no answer to skip to. Handed a crunch it could
+   * only ever run out the clock at
+   * {@link INSTANT_RUN_MAX_SIMULATED_SECONDS} and call that a loss, which is
+   * what it did: half an hour of simulated traffic, nothing drawn while it
+   * ran, and «Уровень провален» over a building that has no goal to fail.
+   *
+   * So the instant stop is not offered here at all, which is the honest
+   * version of the same answer: the speed control stops at its fastest finite
+   * step, and the arrow past it dims the way both arrows already dim at the
+   * ends of the ladder.
+   */
+  get canRunInstantly(): boolean {
+    return !this.isPlayingSandbox;
+  }
+
+  /**
    * Starts whatever is currently on screen again, from the beginning.
    *
    * Its three callers — the run row's "Start over", the same row's first button
@@ -1201,10 +1237,52 @@ export class App {
    */
   runInstantly(): void {
     const run = this.#run;
-    if (run === undefined) {
+    // `canRunInstantly` for the same reason `onTimeScaleIncrease` checks it:
+    // the control that reaches this is already dimmed on a run with no end to
+    // crunch to, and this is the state saying so rather than the click.
+    if (run === undefined || !this.canRunInstantly) {
       return;
     }
     this.#startRun(run.challenge, run.challengeIndex, true, true);
+  }
+
+  /**
+   * Closes a crunch out: marks it finished, draws the building it ran, and
+   * relabels the row.
+   *
+   * One method rather than three lines at each of the two places a crunch can
+   * end — a verdict, or the player's program throwing — because until this
+   * existed the two agreed on the bookkeeping and neither drew anything, and
+   * the empty pane that left was the whole defect.
+   *
+   * ## Why the building is drawn here and not before
+   *
+   * A crunch's premise is that nothing is drawn while it runs: {@link
+   * #startRun} skips {@link presentBuildingStage} for exactly that reason, and
+   * it is what makes half an hour of simulated traffic take a fraction of a
+   * second instead of a fraction of an hour. What it is not a reason for is
+   * leaving the pane empty afterwards. A run that is over is a still picture,
+   * and drawing it costs one layout: `presentBuildingStage` renders the world
+   * it is handed in whatever state it is in — cars where they stopped, the
+   * queues that were still waiting — so the player gets the building back at
+   * the moment it ended, under the verdict, beside the figures.
+   *
+   * This was invisible until the run's verdict stopped being a full-screen
+   * curtain and became a card in the corner (`widgets/verdict-toast`): the
+   * curtain covered the empty pane the crunch left, and the card shows it.
+   *
+   * Clearing the handle is what marks this crunch finished rather than
+   * abandoned — `#instantRunHandle` is {@link driveInstantly}'s own stopping
+   * signal for nothing except a still-running one — and the explicit
+   * `update()` is this path's replacement for the relabelling an animated run
+   * gets for free from `setPaused`'s `timescale_changed`.
+   *
+   * @param world - The world the crunch was driving, now standing still.
+   */
+  #endInstantRun(world: World): void {
+    this.#instantRunHandle = undefined;
+    presentBuildingStage(this.#elements.world, world);
+    this.#controls.update();
   }
 
   /**
@@ -1599,6 +1677,19 @@ export class App {
     // Start over or a route change was what actually happened next.
     this.#instantRunHandle?.cancel();
     this.#instantRunHandle = undefined;
+    // Off the instant stop, if the run being started is one that stop means
+    // nothing on. The stop is app state rather than a time scale, so it
+    // survives every change of run -- which is right for the ladder, where a
+    // player who crunched level 4 means to crunch level 5, and wrong for the
+    // sandbox, where the control would sit on `∞x` promising an answer that
+    // free play does not have. Placed here rather than in `startSandbox`
+    // because every way into a run passes through this method, the route and
+    // Start over included, and `#sandbox` is already set by the time it does.
+    // The field rather than `#setInstantSpeed`, whose whole job is the redraw
+    // this method already ends with.
+    if (this.#instantSpeed && !this.canRunInstantly) {
+      this.#instantSpeed = false;
+    }
     this.world?.unWind();
     // A task's own seed wins over the URL's, and it is the one seed in the game
     // the player cannot override. That is what `TutorialTask.seed` is for: the
@@ -1699,14 +1790,8 @@ export class App {
         // private controller nothing else touches (see
         // `src/game/instant-run.ts`), so pausing the shared one here would
         // pause whatever *that* is doing instead and raise a `timescale_changed`
-        // nobody asked for. Clearing the handle is what marks this crunch
-        // finished rather than abandoned -- `#instantRunHandle` is
-        // {@link driveInstantly}'s own stopping signal for nothing except a
-        // still-running one -- and the explicit `update()` is this path's
-        // replacement for the relabelling an animated run gets for free from
-        // `setPaused`'s `timescale_changed`.
-        this.#instantRunHandle = undefined;
-        this.#controls.update();
+        // nobody asked for.
+        this.#endInstantRun(world);
       } else {
         this.worldController.setPaused(true);
       }
@@ -1770,11 +1855,10 @@ export class App {
             // this crunch rather than merely halting it. `stats_changed` will
             // not do this instead: it is `world.update` that raises it, and
             // `WorldController.start`'s own tick loop stops calling that the
-            // moment `codeObj.update` has thrown. Clearing the field here, not
+            // moment `codeObj.update` has thrown. Ending the crunch here, not
             // just relying on the guard below, is what recovers a run whose
             // very first tick is the one that throws -- see that guard.
-            this.#instantRunHandle = undefined;
-            this.#controls.update();
+            this.#endInstantRun(world);
           });
         },
       });

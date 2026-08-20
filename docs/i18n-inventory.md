@@ -867,7 +867,8 @@ over, and the reading needs a `title` because `2x` alone does not say what it co
 The stop past the fastest speed is not a speed at all: it is the instant run, a headless crunch
 straight to the result, and `game.timeScale.instant` is the `∞x` standing in for a number there.
 It is a message for the same reason `game.timeScale.value` is — Russian writes `×`, not the Latin
-letter x.
+letter x. Neither of the two `instant*` keys is ever read in the sandbox: free play has no
+condition to crunch to, so the stop is not offered there and the reading stays on a number.
 
 | Key                           | English                                                      | Notes                                                                                                 |
 | ----------------------------- | ------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------- |

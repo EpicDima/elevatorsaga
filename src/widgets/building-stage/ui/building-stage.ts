@@ -113,6 +113,7 @@ import { createFloorView, type FloorView } from "#entities/floor/index.ts";
 import { createPassengerView } from "#entities/passenger/index.ts";
 import type { Elevator } from "#game/elevator.ts";
 import type { Floor } from "#game/floor.ts";
+import type { User } from "#game/user.ts";
 import type { World } from "#game/world.ts";
 import { positionAboveAnchor, positionBesideAnchor } from "#shared/lib/smart-position.ts";
 import { requireElement, setClass } from "#shared/lib/dom.ts";
@@ -439,10 +440,27 @@ export function presentBuildingStage(parent: HTMLElement, world: World): Buildin
     elevatorViews.push(view);
   }
 
-  world.on("new_user", (user) => {
+  function addPassenger(user: User): void {
     const view = createPassengerView(user, scale);
     people.append(view.element);
-  });
+  }
+
+  // Everyone already in the building, and only then everyone who arrives
+  // later. For a world mounted before it has ticked -- which is every animated
+  // run -- the first loop finds nothing and the subscription does all the
+  // work. It is the other case this is here for: `src/pages/game/index.ts`
+  // draws the building a headless crunch has just finished running, and that
+  // world is full of people who were carried, boarded and left standing while
+  // nothing was mounted to hear a single `new_user`. Without this the final
+  // state would show its floors and its cars in an empty building.
+  //
+  // `world.users` is exactly the passengers still in play: a delivered one is
+  // spliced out of it by `World.update`, so nobody is drawn twice and no ghost
+  // is drawn at all.
+  for (const user of world.users) {
+    addPassenger(user);
+  }
+  world.on("new_user", addPassenger);
 
   /**
    * Re-lays-out the building for the stage's current size.

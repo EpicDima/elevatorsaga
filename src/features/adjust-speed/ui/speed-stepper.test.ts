@@ -26,6 +26,7 @@ function setUp(overrides: Partial<SpeedStepperOptions> = {}): {
     options: {
       worldController: { timeScale: 2 },
       instantSpeed: () => false,
+      instantAvailable: () => true,
       instantRunInProgress: () => false,
       onTimeScaleIncrease: vi.fn(),
       onTimeScaleDecrease: vi.fn(),
@@ -140,6 +141,23 @@ describe("presentSpeedStepper", () => {
     presenter.update();
     expect(decrease.hasAttribute("disabled")).toBe(false);
     expect(increase.hasAttribute("disabled")).toBe(false);
+  });
+
+  it("ends the ladder at the fastest speed where the instant stop is not on offer", () => {
+    // The sandbox: a crunch there has no goal to resolve, so the stop past 20x
+    // is withheld and 20x becomes the top of the control rather than the top of
+    // the ladder. `+` dims there the way `-` dims at the slowest speed.
+    const { parent, options } = setUp({ instantAvailable: () => false });
+    const presenter = presentSpeedStepper(parent, options);
+    const increase = requireElement(".speed-up", parent);
+
+    expect(increase.hasAttribute("disabled")).toBe(false);
+
+    options.worldController.timeScale = 20;
+    presenter.update();
+    expect(increase.hasAttribute("disabled")).toBe(true);
+    // Only `+` is affected: the way back down the ladder is as open as ever.
+    expect(requireElement(".speed-down", parent).hasAttribute("disabled")).toBe(false);
   });
 
   it("reads the instant stop off the app rather than off the time scale", () => {

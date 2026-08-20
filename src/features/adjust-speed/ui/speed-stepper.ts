@@ -40,7 +40,7 @@ import { t } from "#i18n/index.ts";
 import { requireElement } from "#shared/lib/dom.ts";
 import { spriteIconMarkup } from "#shared/ui/icon.ts";
 import { markup, raw } from "#shared/ui/markup.ts";
-import { isSlowestTimeScale } from "../model/time-scale.ts";
+import { isFastestTimeScale, isSlowestTimeScale } from "../model/time-scale.ts";
 
 /**
  * The speed control's markup: two arrows and the value between them.
@@ -69,6 +69,16 @@ export interface SpeedStepperOptions {
    * page, and the state it reports on moves under it.
    */
   readonly instantSpeed: () => boolean;
+  /**
+   * Whether the last stop is on offer for the run on screen.
+   *
+   * False on a run a crunch could never reach the end of — the sandbox, which
+   * has no goal to resolve — and there `+` stops at the fastest finite step
+   * instead of stepping past it. A function for the same reason
+   * {@link instantSpeed} is one: the answer changes with the run, and this
+   * group is drawn once.
+   */
+  readonly instantAvailable: () => boolean;
   /** Whether a crunch is under way, which is the one time the speed cannot be changed. */
   readonly instantRunInProgress: () => boolean;
   /** Called when the `+` button is pressed. */
@@ -146,10 +156,17 @@ export function presentSpeedStepper(
 
       // At the ends of the list an arrow dims rather than disappearing --
       // "строка не должна дёргаться от того, что скорость дошла до предела".
-      // `+` has no end of its own: the instant stop is always past the fastest
-      // finite one, so the only thing that stops it is being on it already.
+      // `+` ordinarily has no end of its own, because the instant stop is
+      // always one past the fastest finite one, so the only thing that stops
+      // it is being on it already. Where that stop is not on offer -- see
+      // {@link SpeedStepperOptions.instantAvailable} -- the fastest finite
+      // step becomes the end of the ladder, and `+` dims there the way `-`
+      // dims at the slowest.
       decrease.toggleAttribute("disabled", busy || (!instant && isSlowestTimeScale(timeScale)));
-      increase.toggleAttribute("disabled", busy || instant);
+      increase.toggleAttribute(
+        "disabled",
+        busy || instant || (!options.instantAvailable() && isFastestTimeScale(timeScale)),
+      );
     },
   };
   presenter.update();
