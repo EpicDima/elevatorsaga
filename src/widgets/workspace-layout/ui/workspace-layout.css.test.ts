@@ -1,12 +1,13 @@
 /**
  * Which box gives way when the game pane runs short, in both axes.
  *
- * Every rule here fails silently rather than loudly: a flex row left on the
- * browser's own `flex: 0 1 auto` is squeezed instead of the box that scrolls, a
- * shrink order written backwards takes a narrow pane out of the house instead
- * of out of the card explaining it, and the two rules from another slice that
- * this row's floor rests on can be withdrawn by someone with no reason to read
- * this file. None of it shows up as an error anywhere; each shows up as a
+ * Every rule here fails silently rather than loudly: a row of the pane left on
+ * the browser's own `flex: 0 1 auto` is squeezed instead of the box that
+ * scrolls, a card or a house left shrinkable is squeezed instead of scrolled
+ * to, an `overflow` written on one axis when it was meant for the other hands
+ * the building a scrollbar it does not need, and the two rules from another
+ * slice that this column rests on can be withdrawn by someone with no reason to
+ * read this file. None of it shows up as an error anywhere; each shows up as a
  * layout that is merely wrong.
  */
 
@@ -29,61 +30,95 @@ describe("the game pane's column", () => {
     expect(declaration(stageArea, "flex", ".stagearea")).toBe("1 1 auto");
     expect(declaration(stageArea, "min-block-size", ".stagearea")).toBe("0");
     // And the learning track's panel is not a row of that column any more --
-    // it is an item of `.stagearea` beside the building. A rule putting it
-    // back among the pane's own children would be the old layout returning by
-    // the back door, with the panel sized twice and by two different boxes.
+    // it is an item of `.stagearea`, above the building and inside the same
+    // scroll. A rule putting it back among the pane's own children would be
+    // the old layout returning by the back door, with the panel sized twice
+    // and by two different boxes, and taking its height out of the stage on
+    // every route that shows it.
     expect(styleSource).not.toMatch(/\.pane-game > \.tutorial\b/);
   });
 
-  it("takes a narrow pane out of the lesson first and out of the building last", () => {
-    // The two flex factors are one decision written in two places, and either
-    // half alone inverts it. A shrink factor is weighed in proportion to the
-    // basis it stands against, so the aside's `8` against 384px comes to 3072
-    // and the building's `1` against 387px to 387 -- near enough eight to one
-    // in favour of taking a shortfall out of the card. Reversed, a pane
-    // narrower than both would hold the lesson at its full measure and squeeze
-    // the house the lesson is describing, which is the box being explained.
-    const aside = ruleBody(".stagearea > .tutorial");
+  it("scrolls the card and the building as one box, and only down the page", () => {
+    // The whole of the feature: one scroll over both boxes, so a lesson longer
+    // than the pane is scrolled through rather than squeezed into a column
+    // beside the house, and a player who has read down to step three gets back
+    // to the building the same way they got to the step.
+    const stageArea = ruleBody(".stagearea");
+    expect(declaration(stageArea, "flex-direction", ".stagearea")).toBe("column");
+    // `hidden auto` and not `auto`: the inline axis belongs to `.stage`, which
+    // scrolls a building wider than the pane inside itself without taking the
+    // card along with it. Nor may the axis go unwritten -- a pair with
+    // `visible` on one axis and anything else on the other is not honoured,
+    // the `visible` computing to `auto` -- so silence here is a second
+    // scrollbar under the building rather than none.
+    expect(declaration(stageArea, "overflow", ".stagearea")).toBe("hidden auto");
+    // And the card is not a scroll container of its own any more. It used to
+    // carry a ceiling and an `overflow`, which is the layout this replaced: a
+    // lesson scrolling inside a box that was itself inside a pane that did
+    // not, two scrollbars a few pixels apart with the wheel answering
+    // whichever one the pointer happened to be over. Either declaration coming
+    // back to either of the card's two rules brings that with it.
+    for (const selector of [".stagearea > .tutorial", ".tutorial"]) {
+      const card = ruleBody(selector);
+      expect(card, `${selector} scrolls inside itself again`).not.toMatch(/^\s*overflow/m);
+      expect(card, `${selector} has a height ceiling again`).not.toMatch(/^\s*max-block-size/m);
+    }
+  });
+
+  it("gives the building a whole screenful whatever the card above it is doing", () => {
+    // A stated height, and what it prevents is invisible in a screenshot:
+    // `.stage` re-lays the building out to the height it is given, through a
+    // `ResizeObserver`, so a box sized from whatever the card leaves would
+    // redraw the whole house every time a player opened a hint -- the floors
+    // changing height under the cursor at the moment the lesson is telling
+    // them to look at one.
     const world = ruleBody(".stagearea > .world");
-    expect(declaration(aside, "flex", ".stagearea > .tutorial")).toBe("0 8 384px");
-    expect(declaration(world, "flex", ".stagearea > .world")).toBe("1 1 387px");
-    // The card's floor, which is what makes the order above finite. Measured
-    // at the shipped split, the lesson holds its full 384px down to a 1280px
-    // window, is 257px at 1040px, and reaches 220px on a pane of 468px -- a
-    // splitter dragged well past the middle. Below that the building gives
-    // way instead, and `.stage` scrolls, which is the one thing on this page
-    // that can absorb a shortfall without hiding anything.
-    expect(declaration(aside, "min-inline-size", ".stagearea > .tutorial")).toBe("220px");
-    // Two rules in `widgets/building-stage` are what let the other side give
-    // way at all, and both are written for something else, so both can be
-    // taken away by someone with no reason to look here. A flex item's
-    // automatic minimum is its content's, which on `.world` would be a floor
-    // computed from a house; it is zero only because `.world` clips, and a
-    // flex item that clips has no content-based minimum. And the shortfall has
-    // to land somewhere -- `.stage` scrolls it. Measured without that
-    // `overflow` on a 380px pane, level 7's house drew 229px of itself across
-    // the splitter and over the editor, with nothing to scroll it back.
+    expect(declaration(world, "block-size", ".stagearea > .world")).toBe("100%");
+    // Rigid, both of them, because this column overflows on purpose. `.world`
+    // states `min-block-size: 0` in `widgets/building-stage`, so left
+    // shrinkable it has no content-based floor to be stopped at and would give
+    // a long lesson's overflow straight back out of the house; the card's own
+    // automatic minimum is the height of wrapping prose, which is very nearly
+    // nothing. What an over-full column here has to do is scroll.
+    expect(declaration(world, "flex", ".stagearea > .world")).toBe("0 0 auto");
+    expect(declaration(ruleBody(".stagearea > .tutorial"), "flex", ".stagearea > .tutorial")).toBe(
+      "0 0 auto",
+    );
+    // Two rules in `widgets/building-stage` that this column rests on, both
+    // written for something else and so removable by someone with no reason to
+    // look here: `.world` clips, which is what keeps a house wider than the
+    // pane from drawing itself across the splitter and over the editor --
+    // measured at 229px of level 7 on a 380px pane -- and `.stage` scrolls,
+    // which is where that width goes instead.
     expect(ruleBody(".world")).toMatch(/^\s*overflow:\s*hidden;/m);
     expect(declaration(ruleBody(".stage"), "overflow", ".stage")).toBe("auto");
   });
 
-  it("never stands the lesson above the building", () => {
-    // This port had a container query that turned the row into a column below
-    // 740px of pane -- the mockup's own `@media (max-width: 1180px)`, measured
-    // against the pane rather than the window. It is gone on the player's
-    // instruction, and the reason is arithmetic: at the shipped 62% split a
-    // 740px pane is a 1213px window, so a window merely a little small, a
-    // browser at 125% zoom, or a splitter nudged towards the editor each put
-    // the lesson back on top of the house it is about. The whole point of the
-    // card is that the two are read together.
-    //
-    // Nothing may bring the branch back, and there are three ways in: opening
-    // the container it queried, writing the query, or standing the row on its
-    // side by any other route. A stacked lesson is also the one failure here
-    // that looks deliberate rather than broken, so nothing else would report
-    // it.
+  it("states the card's width once, with no threshold anywhere", () => {
+    // 640px is the width of the widest thing a lesson holds: 68 characters of
+    // 12px monospace in the longest of the eight answers, inside that block's
+    // padding, `.tutorialsolution`'s margins and the card's own. The
+    // arithmetic is written out at the rule; what matters here is that it is
+    // one number at every width of pane, and centred rather than stretched.
+    const card = ruleBody(".stagearea > .tutorial");
+    expect(declaration(card, "inline-size", ".stagearea > .tutorial")).toBe(
+      "min(640px, 100% - 32px)",
+    );
+    expect(declaration(card, "margin-inline", ".stagearea > .tutorial")).toBe("auto");
+    // `inline-size` and not `max-inline-size`, which is how a centred card is
+    // usually written and which would size this one from its own content
+    // instead: auto margins on the cross axis stop a flex item stretching, so
+    // a step whose prose is short would draw a narrower frame than the step
+    // before it, and opening a hint would widen the card under the cursor.
+    expect(card, "the card is sized by its own content again").not.toMatch(/^\s*max-inline-size/m);
+    // This port had a container query that changed the layout below 740px of
+    // pane -- the mockup's own `@media (max-width: 1180px)`, measured against
+    // the pane rather than the window -- and it is gone on the player's
+    // instruction. The reason outlives the shape it was deleted from: at the
+    // shipped 62% split a 740px pane is a 1213px window, so a window merely a
+    // little small, a browser at 125% zoom or a splitter nudged towards the
+    // editor each redrew the page as something else. One shape at every width.
     expect(styleSource).not.toMatch(/container: stage\b/);
     expect(styleSource).not.toMatch(/@container stage\b/);
-    expect(styleSource).not.toMatch(/\.stagearea\b[^{}]*\{[^{}]*flex-direction/);
   });
 });

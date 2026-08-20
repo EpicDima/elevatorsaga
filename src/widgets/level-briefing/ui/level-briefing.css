@@ -9,11 +9,11 @@
  * sees is painted on `.tutorial`, the element in `index.html` that this widget
  * and `widgets/tutorial-panel` are both drawn into, by that widget's stylesheet;
  * the surface is on the region rather than on the panel inside it because the
- * region is the box that scrolls, and a border drawn on a child of a scroll
- * container scrolls away with the writing. So a briefing arrives already inside
- * a 14px, hairlined, `--ds-r-lg` card on `--ds-panel`, and every declaration of
- * that here would draw a second card inside the first: a doubled border with
- * 28px between the prose and the edge of it.
+ * region is the box the layout sizes and the one box the two widgets share. So a
+ * briefing arrives already inside a 14px, hairlined, `--ds-r-lg` card on
+ * `--ds-panel`, and every declaration of that here would draw a second card
+ * inside the first: a doubled border with 28px between the prose and the edge of
+ * it.
  *
  * There is no rule for `.briefingpanel` either, for a smaller reason.
  * `.tutorialpanel` exists to set `color`, because four `<summary>` elements are
@@ -67,9 +67,11 @@
  * on the card's `--ds-panel`, past the 4.5:1 of WCAG 1.4.3.
  *
  * The measure stays, for the reason the lesson's prose has one: a line this long
- * is read by losing your place in it. 384px of card is 45 characters and never
- * reaches the ceiling, but the narrow layout below 740px of pane stands the card
- * across the pane at up to 560px, and there it does.
+ * is read by losing your place in it. It was written when the card stood beside
+ * the building at 384px, where 45 characters a line never reached the ceiling
+ * and it was a promise about a layout rather than a limit on anything; the card
+ * stands above the building at 640px now, which is 610px of content and about
+ * 74 characters, so the ceiling is what these lines are really set to.
  *
  * The one place this parts company with `.tutorialgoal` is the block-end margin,
  * which is `0` here and 11px there. There, the goal has three hints under it and

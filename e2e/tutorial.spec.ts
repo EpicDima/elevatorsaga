@@ -335,32 +335,30 @@ test("paints the panel's own controls as dark as the prose around them", async (
   );
 });
 
-test("stands the lesson beside the building at every width, down to the narrowest pane the splitter allows", async ({
+test("stands the lesson across the pane above the building, in one scroll with it, at every width", async ({
   page,
 }) => {
-  // Four things can go wrong in this row and jsdom can see none of them: the
-  // card can be pushed under the building, a line longer than the card can push
-  // a horizontal scrollbar into a box that already scrolls vertically, a lesson
-  // with no ceiling can take the whole of a short pane and leave the building
-  // nothing, and the statistics strip can be pushed off the bottom of the
-  // window by the pair of them.
+  // Five things can go wrong in this column and jsdom can see none of them: the
+  // card can end up beside the building again and back at the 384px that made
+  // its answers unreadable, it can be squeezed instead of scrolled to, it can
+  // be left scrolling inside itself so that the pane has two scrollbars a few
+  // pixels apart, a line longer than the card can push a horizontal scrollbar
+  // into a box that is only meant to scroll down, and the statistics strip can
+  // be pushed off the bottom of the window by any of it.
   //
-  // The row used to have two shapes, and this test asserted the second of them
-  // as the right answer: a container query stood the lesson above the building
-  // below 740px of pane. It is gone on the player's own instruction -- the
-  // lesson and the house it is about are meant to be read together, and a
-  // threshold anywhere puts the lesson back on top on a window that is merely a
-  // little small -- so every measurement below asserts one shape now, and the
-  // widths are kept because of where that edge used to be rather than to
-  // straddle it.
+  // The layout used to be a row, and this test asserted that shape: the lesson
+  // beside the house, the two read together at every width. It is a column on
+  // the player's own instruction -- 384px of card is 45 characters of prose and
+  // an answer that has to be scrolled sideways to be read at all -- and the
+  // scroll is what pays for it, so what the widths below check now is that one
+  // box scrolls over both and that the card is as wide as the pane allows
+  // wherever the splitter is put.
   //
-  // 1280x900 is the default window and a 794px pane, wide enough for the 384px
-  // aside and the widest house the track builds. 1213x900 is a 752px pane, and
-  // it is where the reported bug lived: 12px above the 740px a row needs at its
-  // narrowest and 8px below the 760px the query actually stacked at, so twenty
-  // pixels of pane stood the lesson above a building with room beside it going
-  // spare. 1040x600 is the floor `design/ui-mockup.html` builds to, and the
-  // width that used to stack outright.
+  // 1280x900 is the default window and a 794px pane, wide enough for the card's
+  // whole 640px. 1213x900 is a 752px pane and 1040x600 is the floor
+  // `design/ui-mockup.html` builds to; both are kept from when this test
+  // straddled a container query's threshold, and they are still the two widths
+  // where a card sized from anything but a stated number would show it.
   //
   // The splitter pass is the narrow end of the same promise, and dragging is
   // the only way to reach it: a window has to be under 600px wide before its
@@ -368,8 +366,8 @@ test("stands the lesson beside the building at every width, down to the narrowes
   // the split bottoms out at 36.5%, because neither pane may be driven under
   // 380px, and fifteen presses of a 2% step get there with room to spare -- the
   // handler clamps rather than accumulates, so the extra presses land on the
-  // bound instead of past it. The card is at its 220px floor there, the
-  // building has 142px, and they are still side by side.
+  // bound instead of past it. The card is the pane less its 32px of inset
+  // there, and it is still the full width of what there is.
   //
   // Both languages, because the Russian is the long one: every line of this
   // card is prose or a disclosure's summary, the Russian of each runs half
@@ -387,37 +385,52 @@ test("stands the lesson beside the building at every width, down to the narrowes
     const lesson = await boxOf(card, `the lesson card on ${where}`);
     const world = await boxOf(page.locator(".world"), `the building on ${where}`);
 
-    // Beside, not above: the card ends before the building begins, and the two
-    // share the row rather than following one another down it. Not an equal
-    // `y` -- the card carries its own 18px margin and the building takes the
-    // same inset from inside `.stage`, so the boxes start 18px apart and the
-    // two *contents* start on one line.
-    expect(lesson.x + lesson.width, `the lesson card on ${where}`).toBeLessThanOrEqual(world.x);
-    expect(lesson.y, `the lesson card on ${where}`).toBeLessThan(world.y + world.height);
-    expect(world.y, `the building on ${where}`).toBeLessThan(lesson.y + lesson.height);
+    // Above, not beside: the card ends before the building's box begins, and
+    // the two follow one another down the column rather than dividing its
+    // width between them. The building's box starts where the card's margin
+    // ends and pads itself from inside `.stage`, which is where the 18px
+    // between them comes from.
+    expect(lesson.y + lesson.height, `the lesson card on ${where}`).toBeLessThanOrEqual(world.y);
+    expect(lesson.x, `the lesson card on ${where}`).toBeGreaterThanOrEqual(world.x);
+    expect(lesson.x + lesson.width, `the lesson card on ${where}`).toBeLessThanOrEqual(
+      world.x + world.width,
+    );
 
-    // And neither box was narrowed away to make that true, which is the way a
-    // row with no threshold can still lose the same argument. 220px is the
-    // card's stated floor. The building's side has no floor of its own -- it
-    // takes what the card leaves and `.stage` scrolls the rest -- so 120px is
-    // a tripwire under the flex weights rather than a figure the design names:
-    // measured, the narrowest reachable pane leaves it 142px.
-    expect(lesson.width, `the lesson card on ${where}`).toBeGreaterThanOrEqual(220);
-    expect(world.width, `the building on ${where}`).toBeGreaterThanOrEqual(120);
+    // And it is as wide as this pane allows: 640px, or the whole of the box
+    // less the 16px it is inset by on each side, whichever is smaller. Read
+    // off `.stagearea`'s own content width rather than the window's, because a
+    // classic scrollbar takes its 15px out of exactly that and the percentage
+    // in the rule is resolved against what is left.
+    const room = await page
+      .locator(".stagearea")
+      .evaluate((area) => (area as HTMLElement).clientWidth);
+    expect(lesson.width, `the lesson card on ${where}`).toBeCloseTo(Math.min(640, room - 32), 0);
 
-    // Nothing escapes the card sideways. `scrollWidth` is what a horizontal
-    // scrollbar is made of, and this box already scrolls vertically, so a
-    // second bar across the bottom of a column of prose is the failure. It
-    // used to be measured against the two buttons under the answer as well --
-    // the only children with labels long enough to make one -- and they are
-    // gone; everything left is prose that wraps, a summary that wraps, or the
-    // answer's own `<pre>`, which scrolls inside itself.
-    const overflow = await card.evaluate((element) => element.scrollWidth - element.clientWidth);
-    expect(overflow, `the lesson card on ${where}`).toBe(0);
+    // One scroll, and it is the box holding both. There is always something to
+    // scroll here -- the building is a whole screenful on its own and the card
+    // stands above it -- and it is only ever down: the inline axis belongs to
+    // `.stage`, which scrolls a house wider than the pane inside itself.
+    const shared = await page.locator(".stagearea").evaluate((area) => ({
+      down: area.scrollHeight - area.clientHeight,
+      across: area.scrollWidth - area.clientWidth,
+    }));
+    expect(shared.down, `the stage area on ${where}`).toBeGreaterThan(0);
+    expect(shared.across, `the stage area on ${where}`).toBe(0);
 
-    // And the whole of the stage row fits the window, which is what moving the
-    // lesson into a row of its own bought: the statistics strip under it used
-    // to be pushed off the bottom of a 600px window by a lesson with a
+    // And the card is not a second scroll container inside the first. Either
+    // number above zero is the layout this replaced: a lesson scrolling inside
+    // its own frame, with the wheel answering whichever box the pointer
+    // happened to be over.
+    const inside = await card.evaluate((element) => ({
+      down: element.scrollHeight - element.clientHeight,
+      across: element.scrollWidth - element.clientWidth,
+    }));
+    expect(inside, `the lesson card on ${where}`).toEqual({ down: 0, across: 0 });
+
+    // And the figures still stand at the foot of the pane rather than under
+    // the window, which is what keeping the card out of the pane's own column
+    // bought and what keeping the scroll inside `.stagearea` keeps: the strip
+    // used to be pushed off the bottom of a 600px window by a lesson with a
     // disclosure open.
     const stats = await boxOf(page.locator(".statscontainer"), `the statistics on ${where}`);
     expect(stats.y + stats.height, `the statistics on ${where}`).toBeLessThanOrEqual(height);
@@ -458,23 +471,124 @@ test("stands the lesson beside the building at every width, down to the narrowes
   await measure("Russian");
 });
 
+test("shows the longest answer on the track without panning it sideways", async ({ page }) => {
+  // The complaint the column was built for, measured on the level that proves
+  // it. Level 7's answer is the longest of the eight at 68 characters, and
+  // level 8 shows the same program again. Beside the building the card was
+  // 384px wide, which left the code block 310px -- so more than half of every
+  // line of the answer stood behind a horizontal scrollbar, and a player was
+  // asked to drag a `<pre>` to read the thing the lesson had just told them to
+  // read. `pre code` keeps its `overflow-x: auto` (`shared/styles/code.css`)
+  // for a pane that really is too narrow; what is asserted here is that the
+  // window the game is played in is not one of them.
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto("/#level=tutorial-7");
+  // The answer is under the third hint and a shut `<details>` has no layout to
+  // measure, so it is opened the way the test below opens all four: through the
+  // DOM, because which disclosure holds the answer is the panel's business and
+  // is asserted where the panel is.
+  await page
+    .locator(".tutorialhint")
+    .last()
+    .evaluate((hint) => {
+      (hint as HTMLDetailsElement).open = true;
+    });
+  await expect(page.locator(".tutorialsolution code")).toBeVisible();
+
+  const measured = await page.locator(".tutorialsolution code").evaluate((block) => ({
+    spill: block.scrollWidth - block.clientWidth,
+    longest: Math.max(...block.textContent.split("\n").map((line) => line.length)),
+  }));
+  // The tripwire under the measurement. If the answers are ever rewritten
+  // shorter, the line above goes on passing while measuring nothing at all, and
+  // the width the card is stated at would have lost the thing holding it up.
+  expect(measured.longest, "the longest line of level 7's answer").toBeGreaterThanOrEqual(60);
+  expect(measured.spill, "level 7's answer pans sideways").toBe(0);
+});
+
+test("scrolls down to the building and back up to the lesson in one box", async ({ page }) => {
+  // The other half of what was asked for: a card too tall for the pane is
+  // scrolled past rather than scrolled *inside*, and the building is still
+  // whole when the scroll gets there. Level 7 with everything open is the
+  // longest the track goes -- three hints, the answer and the explanation --
+  // and it is taller than the pane, which is the case the old layout answered
+  // by squeezing the card into a column of its own beside the house.
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto("/#level=tutorial-7");
+  await expect(page.locator(".tutorialpanel")).toBeVisible();
+  // Opened through the DOM rather than by clicking four summaries: which
+  // disclosure holds what is the panel's business and is asserted where the
+  // panel is, and the state survives because nothing here redraws it. There is
+  // no accordion in this widget -- a redraw restores whatever was open
+  // (`tutorial-panel.ts`), and nothing closes one disclosure when another
+  // opens -- so setting all four is a state a player can also reach.
+  await page.locator(".tutorial details").evaluateAll((all) => {
+    for (const disclosure of all) {
+      (disclosure as HTMLDetailsElement).open = true;
+    }
+  });
+
+  const scrolled = await page.locator(".stagearea").evaluate((area) => {
+    const card = area.querySelector(".tutorial");
+    const world = area.querySelector(".world");
+    if (card === null || world === null) {
+      throw new Error("the stage area is missing the card or the building");
+    }
+    const view = area.getBoundingClientRect();
+    const start = card.getBoundingClientRect().top - view.top;
+    area.scrollTop = area.scrollHeight;
+    const foot = world.getBoundingClientRect();
+    area.scrollTop = 0;
+    return {
+      room: area.scrollHeight - area.clientHeight,
+      taller: card.getBoundingClientRect().height - area.clientHeight,
+      start,
+      back: card.getBoundingClientRect().top - view.top,
+      worldTop: foot.top - view.top,
+      worldBottom: foot.bottom - view.bottom,
+    };
+  });
+
+  expect(scrolled.room, "the stage area has nothing to scroll").toBeGreaterThan(0);
+  expect(scrolled.taller, "level 7 with every hint open still fits the pane").toBeGreaterThan(0);
+  // At the foot of the scroll the building fills the box exactly: it is a
+  // stated screenful and it is the last thing in the column, so both of its
+  // edges land on the box's. A house that stopped short of the bottom would be
+  // one sized from what the card left it instead.
+  expect(Math.abs(scrolled.worldTop), "the building at the foot of the scroll").toBeLessThanOrEqual(
+    1,
+  );
+  expect(
+    Math.abs(scrolled.worldBottom),
+    "the building at the foot of the scroll",
+  ).toBeLessThanOrEqual(1);
+  // And back is the way it came -- the lesson at the top of the box again,
+  // under the 18px `.stagearea` insets it by. Scrolling back to the step being
+  // read is what the shared box was asked for: one wheel over both, and no
+  // reading position lost between them.
+  expect(scrolled.start, "the lesson card before the scroll").toBeCloseTo(18, 0);
+  expect(scrolled.back, "the lesson card after scrolling back").toBeCloseTo(scrolled.start, 0);
+});
+
 test("costs the levels nothing: the widest building in the game still fits its pane", async ({
   page,
 }) => {
-  // The row this feature added is on every route, lesson or no lesson, and the
+  // The box this feature added is on every route, lesson or no lesson, and the
   // levels are where it can do damage without anyone on the learning track ever
   // seeing it. Level 18 builds the widest house in the game -- 1030px of it --
-  // and `.stagearea > .world` was once left on `flex: 1 1 auto`, which in a
-  // flex row is a basis read off the box's own content, and this box's content
-  // is a building: the world sized itself to the house instead of to the pane,
-  // 1062px inside a 794px pane, 268px of it clipped away by the pane's own
-  // overflow, and `.stage` with nothing to scroll because it was never narrower
-  // than what was inside it. Two whole shafts were unreachable. The basis is a
-  // stated 387px now, so the row sizes this box and the stage scrolls whatever
-  // will not fit.
+  // and `.stagearea > .world` was once left on `flex: 1 1 auto`, which while
+  // this box was a flex row was a basis read off its own content, and this
+  // box's content is a building: the world sized itself to the house instead of
+  // to the pane, 1062px inside a 794px pane, 268px of it clipped away by the
+  // pane's own overflow, and `.stage` with nothing to scroll because it was
+  // never narrower than what was inside it. Two whole shafts were unreachable.
+  // The column states both of this box's sizes now -- the pane's width from the
+  // default `align-items: stretch`, a screenful of height from its own rule --
+  // so nothing here is read off a house and the stage scrolls whatever will not
+  // fit.
   //
-  // Measured at both widths, because what this box gets is the pane's leftover
-  // and the splitter can change that without the window moving.
+  // Measured at both widths, because the splitter can change what this box gets
+  // without the window moving.
 
   for (const [width, height] of [
     [1280, 900],

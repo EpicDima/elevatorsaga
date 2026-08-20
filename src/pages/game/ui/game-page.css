@@ -19,7 +19,7 @@
  * (see `FULLSCREEN_CLASS` in `src/pages/game/index.ts`), so the first rule
  * reaches both of the boxes the page is drawn in.
  *
- * It gained a link when the learning track's panel moved beside the building:
+ * It gained a link when the learning track's panel moved in with the building:
  * `.world` is a child of `.stagearea` now, not of the pane, so the pane's
  * step has to spare that box and a step of its own has to hide the panel
  * inside it. The demo route never has a lesson to hide -- `.tutorial:empty`

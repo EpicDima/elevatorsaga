@@ -12,18 +12,21 @@
  */
 
 /*
- * The region the panel is drawn into. Its size and its margins are the row's
- * business and are stated at `.stagearea > .tutorial`
- * (`widgets/workspace-layout`), beside the gap they have to agree with; all
- * that is left here is what the region is on the routes that have no lesson.
+ * The region the panel is drawn into. Its width, its margins and its place in
+ * the pane are the column's business and are stated at `.stagearea > .tutorial`
+ * (`widgets/workspace-layout`), next to the arithmetic that produced the 640px;
+ * all that is left here is what the region is on the routes that draw no card
+ * into it at all.
  *
- * Every route but the track leaves this element empty -- `App` draws into it
- * only while a level is on screen and empties it for the nineteen levels, the
- * sandbox and the demo -- and an empty flex item is not free: on its stated
- * `flex-basis` it would hold 384px of the row open beside every building in
- * the game, with a 16px inset and an 18px gap around the nothing inside it.
- * The principle is general: markup that is present so that a presenter has
- * somewhere to draw must cost nothing on the routes where nothing is drawn.
+ * Every route but the track and the Skyscraper levels that have a briefing
+ * leaves this element empty -- `App` draws into it only while one of those is
+ * on screen, and empties it for the nineteen levels, the sandbox and the demo
+ * -- and an empty flex item is not free: it would draw its own 14px of padding
+ * inside its own hairline above every building in the game, 48px of bordered
+ * nothing counting the margin above it, and 48px of scroll under the pane that
+ * leads to it. The principle is general: markup that is present so that a
+ * presenter has somewhere to draw must cost nothing on the routes where nothing
+ * is drawn.
  */
 .tutorial:empty {
   display: none;
@@ -35,18 +38,24 @@
  * strong hairline, the large radius, and `--ds-panel` behind it.
  *
  * The card is on the region rather than on the `.tutorialpanel` inside it
- * because the region is the box that scrolls: the row gives this element a
- * ceiling and `overflow: auto` (see `.stagearea > .tutorial`), and a border
- * drawn on a child of a scroll container scrolls away with the writing, which
- * leaves a lesson longer than the stage looking like an unbounded column of
- * text tucked behind the building. Drawn here, the frame stays where it is and
- * the prose moves inside it.
+ * because the region is the box the layout sizes, and because it is the box
+ * both widgets share: `widgets/level-briefing` draws a Skyscraper level's
+ * briefing into this same element and deliberately states no surface of its own,
+ * so a frame moved inside would have to be drawn twice, from two slices, and
+ * could drift in one of them.
+ *
+ * It was also here for a reason that has since gone, and the difference is
+ * worth stating so nobody restores the old one. The region used to be the box
+ * that scrolled -- the row gave it a ceiling and an `overflow` of its own -- and
+ * a border drawn on a child of a scroll container scrolls away with the writing,
+ * so the frame had to be on the box that stayed put. `.stagearea` is the scroll
+ * now, one level up, and the whole card moves inside it, frame and all. That is
+ * what the frame is for on a pane that scrolls between two boxes: it is the line
+ * that says where the lesson ends and the building begins.
  *
  * A card at all, where the panel deliberately had no surface before: it used to
  * be a block of prose in the pane's own column with nothing beside it, and
- * edges would have made it the only bordered box on the page. Beside the
- * building it is one of two things sharing a row, and the frame is what says
- * where the lesson ends and the building begins.
+ * edges would have made it the only bordered box on the page.
  */
 .tutorial {
   padding: 14px;
@@ -91,19 +100,21 @@
  * 6.19:1 dark / 5.56:1 light on the `--ds-raised` inside an open hint, both
  * past the 4.5:1 of WCAG 1.4.3.
  *
- * There is no measure on these lines any more, because the card is its own.
- * There was one -- 62ch, for the reason `.seedcaveat` has one: a long line of
- * prose is read by losing your place in it -- and what could draw a long line
- * here was the layout that stacked the lesson across the whole pane below
- * 740px of it, up to 560px wide. That layout is gone (`.stagearea > .tutorial`
- * in `widgets/workspace-layout`): the card asks for 384px, may only shrink from
- * there, and leaves this prose 354px of content at its widest. Measured
- * against that, the 62ch ceiling computed to 508px -- 154px it could never
- * reach, which is a declaration that reads as a decision and is not one.
+ * The measure is the same 62ch `.seedcaveat` has, and it is here for that
+ * rule's reason: a line this long is read by losing your place in it. It was
+ * taken off for a while and put back with the card's own width, which is the
+ * only thing that decides whether a measure is a decision or a dead
+ * declaration. Beside the building the card asked for 384px and could only
+ * shrink from there, leaving this prose 354px at its widest against a ceiling
+ * that computes to 508px -- 154px it could never reach. Above the building the
+ * card is 640px (`.stagearea > .tutorial` in `widgets/workspace-layout`), which
+ * leaves 610px of content and 588px of it inside an open hint, and the ceiling
+ * is what the lines are actually set to.
  */
 .tutorialgoal,
 .tutorialprose {
   margin: 0 0 11px;
+  max-inline-size: 62ch;
   color: var(--ds-text-muted);
   font-size: 13px;
   line-height: 1.5;

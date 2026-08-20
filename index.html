@@ -114,13 +114,14 @@
         It carries no data-i18n: the presenter asks the catalogue for every
         word at the moment it draws, so there is nothing here to translate.
 
-        On screen it stands beside the building, not above it: src/main.ts
-        moves this element and .world together into a .stagearea row of the
-        game pane. It is a child of <main> here for the reason .controls
-        below is -- the App constructor draws into it long before that row
-        exists -- and the row is built above the world's own subtree rather
-        than inside it because that subtree is emptied and rebuilt on every
-        restart. See .stagearea in
+        On screen it stands above the building and inside the same box:
+        src/main.ts moves this element and .world together into .stagearea, a
+        column of the game pane that scrolls over both, so a lesson longer than
+        the pane is scrolled through rather than squeezed. It is a child of
+        <main> here for the reason .controls below is -- the App constructor
+        draws into it long before that box exists -- and the box is built above
+        the world's own subtree rather than inside it because that subtree is
+        emptied and rebuilt on every restart. See .stagearea in
         src/widgets/workspace-layout/ui/workspace-layout.css for the whole of it.
       -->
       <div class="tutorial"></div>

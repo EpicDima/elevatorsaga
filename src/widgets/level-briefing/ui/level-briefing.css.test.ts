@@ -80,8 +80,8 @@ describe("the briefing card", () => {
   });
 
   it("holds the briefing to a measure, as the lesson beside it is held", () => {
-    // 384px of card never reaches this ceiling; the narrow layout, which stands
-    // the card across the pane at up to 560px, does.
+    // 384px of card beside the building never reached this ceiling; 640px of
+    // card above it -- 610px of content, about 74 characters -- does.
     expect(declaration(ruleBody(".briefingtext"), "max-inline-size", ".briefingtext")).toMatch(
       /^\d+ch$/,
     );

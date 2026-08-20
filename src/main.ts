@@ -322,22 +322,25 @@ async function main(): Promise<void> {
   // `index.html` ships them in that order too, so this only preserves what is
   // already there.
   //
-  // The middle row is a box of its own, `.stagearea`, holding the learning
-  // track's panel and the building side by side -- the mockup's own
-  // `.stagerow`, which stands the lesson beside the building rather than above
-  // it (§11). It is built here rather than shipped in `index.html` for the
+  // The middle row is a box of its own, `.stagearea`, holding whichever card
+  // the level has earned -- the learning track's lesson, a Skyscraper level's
+  // briefing -- above the building and inside one scroll with it, so the card
+  // is as wide as the pane allows and the house below it keeps its whole
+  // screenful. It is built here rather than shipped in `index.html` for the
   // reason `.workspace` itself is: it is not a region anything draws into, it
   // is the shell those regions are arranged in, and the shell is assembled at
   // this one point. Building it here also leaves `.controls` where the markup
   // has it -- between `.tutorial` and `.world` -- which a wrapper written into
   // `index.html` would have had to step over on its way to the app bar.
   //
-  // Deliberately *not* `.stagerow` itself, which `widgets/building-stage`
-  // rebuilds inside `.innerworld` on every redraw: a restart, a change of
-  // level and a change of language all empty that subtree, and a panel living
-  // in it would be thrown away mid-lesson while the player was reading step
-  // three. The pane is the one place above the redraw, so the row is
-  // reproduced here and `.stagerow`'s geometry is reproduced in the
+  // Deliberately *not* `.stage` or the `.stagerow` inside it, which
+  // `widgets/building-stage` rebuilds inside `.innerworld` on every redraw: a
+  // restart, a change of level and a change of language all empty that
+  // subtree, and a panel living in it would be thrown away mid-lesson while
+  // the player was reading step three. That is why the shared scroll is this
+  // box and not the stage's own, which is otherwise the obvious place to put a
+  // card that scrolls with the building. The pane is the one place above the
+  // redraw, so the box is built here and its geometry is stated in the
   // stylesheet; see `.stagearea` there for the rest of that account.
   const mainRegion = requireElement("main");
   const workspaceElements = buildWorkspaceLayoutSkeleton(document, {
