@@ -278,10 +278,12 @@ function tileTemplate(tile: LevelMenuTile): string {
 }
 
 /**
- * A block's caption. The first two reuse the labels the nav row and the
- * tutorial panel already carry, rather than a second pair of
- * "Levels"/"Tutorial" strings a translator would have to keep in step with
- * those.
+ * A block's caption. The first two are `tutorial.panel.label` and the label the
+ * nav row carries, rather than a second pair of "Levels"/"Tutorial" strings a
+ * translator would have to keep in step with those. The first of them is named
+ * after a panel that no longer says it: the lesson card was renamed after the
+ * level it teaches, and this caption is the one place left that names the track
+ * in words.
  *
  * The third has a string of its own, and does not reuse the sandbox tile's:
  * captioning a block with the name of the single tile in it says the same

@@ -2,12 +2,12 @@
  * The learning track's panel, in a browser.
  *
  * What the panel decides is already covered without one:
- * `src/widgets/tutorial-panel/ui/tutorial-panel.test.ts` draws every level and presses every button, and
- * `src/app/app.test.ts` proves the wiring. What jsdom cannot answer is whether
- * any of it is *visible*. It has no layout, so it cannot tell an empty region
- * that is hidden from one that leaves a gap above the building, cannot say
- * whether the answer under the third hint fits a phone or whether a button grew
- * to hold a label of six words, and cannot see that the region is announced as a
+ * `src/widgets/tutorial-panel/ui/tutorial-panel.test.ts` draws every level and
+ * presses what it can be pressed, and `src/pages/game/index.test.ts` proves the
+ * wiring. What jsdom cannot answer is whether any of it is *visible*. It has no
+ * layout, so it cannot tell an empty region that is hidden from one that leaves
+ * a gap above the building, cannot say whether the answer under the third hint
+ * fits the pane it is given, and cannot see that the region is announced as a
  * landmark a player can jump to. Those are the things measured here, in both
  * languages, because the Russian strings are materially longer than the English
  * they render and this panel is more prose than anything else on the page.
@@ -16,7 +16,7 @@
 import { expect, test } from "@playwright/test";
 import type { Locator, Page } from "@playwright/test";
 
-import { editor, languagePicker, startButton, storedCode } from "./game-page.ts";
+import { editor, languagePicker, startButton } from "./game-page.ts";
 
 /**
  * Where level 1 lives.
@@ -29,7 +29,7 @@ import { editor, languagePicker, startButton, storedCode } from "./game-page.ts"
  */
 const FIRST_LEVEL = "/#level=tutorial-1";
 
-/** A line only level 1's *starting* program has, so a copy of it is identifiable. */
+/** A line only level 1's *starting* program has, and only in English. */
 const LEVEL_1_MARKER = "this building has two floors";
 
 /**
@@ -45,6 +45,16 @@ const LEVEL_1_MARKER = "this building has two floors";
 const LEVEL_1_MARKER_RU = "в этом доме два этажа";
 
 /**
+ * What level 1 is called, in both languages.
+ *
+ * The panel is named after the level it is teaching rather than after the
+ * track, so these are also the name its landmark is announced under, and the
+ * level the tests below open is level 1 unless they say otherwise.
+ */
+const LEVEL_1_TITLE = "The elevator that goes nowhere";
+const LEVEL_1_TITLE_RU = "Лифт, который никуда не едет";
+
+/**
  * The panel's landmark, by the name a screen reader announces it as.
  *
  * By role and name rather than by class, for the reason `game-page.ts` gives:
@@ -52,11 +62,17 @@ const LEVEL_1_MARKER_RU = "в этом доме два этажа";
  * name is not a region at all — it stops being announced and stops being
  * something to jump to, with nothing on screen changing.
  *
+ * There is no one name the eight lessons share any more, so the default is
+ * level 1's own title: naming the landmark after the track told a player who
+ * jumped to it which of eight tracks they were on, which is a question nobody
+ * has, and left the one they do have — which lesson is this — to be read off
+ * the heading inside.
+ *
  * @param page - The page under test.
  * @param name - The landmark's accessible name in the language on screen.
  * @returns The panel.
  */
-function panel(page: Page, name = "Learning track"): Locator {
+function panel(page: Page, name = LEVEL_1_TITLE): Locator {
   return page.getByRole("region", { name });
 }
 
@@ -141,16 +157,27 @@ test("opens the track from the level switcher, in the language on screen", async
 
   await link.click();
 
-  await expect(panel(page, "Учебная дорожка")).toBeVisible();
+  await expect(panel(page, LEVEL_1_TITLE_RU)).toBeVisible();
 });
 
 test("shows the panel on a level and nothing at all off it", async ({ page }) => {
   await page.goto(FIRST_LEVEL);
 
   await expect(panel(page)).toBeVisible();
-  await expect(page.getByRole("heading", { name: "The elevator that goes nowhere" })).toBeVisible();
-  await expect(page.locator(".tutorialposition")).toHaveText("Learning track Level 1 of 8");
-  await expect(page.locator(".tutorialprogress")).toHaveText("0 of 8 levels done");
+  await expect(page.getByRole("heading", { name: LEVEL_1_TITLE })).toBeVisible();
+
+  // And nothing at all about the track the level belongs to. The card used to
+  // open on a row naming the track and counting the player's place in it, close
+  // on a footnote counting the cleared levels again, and carry two buttons that
+  // left the level between the two; the app bar's level switcher says all of
+  // that already, so on the one surface whose whole job is the level in front of
+  // the player none of it is left. Counted here rather than only in jsdom
+  // because it is the rendered page that is asked, and a rule or a template that
+  // put any of it back would be answered here whichever of the two did it.
+  await expect(
+    panel(page).locator(".tutorialposition, .tutorialsteps, .tutorialprogress, .tutorialtaken"),
+  ).toHaveCount(0);
+  await expect(panel(page).locator("button")).toHaveCount(1);
 
   // The region stays in the page shell on every other route, so the stylesheet
   // is what has to take it out of the flow: an empty block with margins is
@@ -222,31 +249,6 @@ test("highlights the answer, marks the line it adds, and copies it to the clipbo
   expect(clipboard).toContain("elevator.goToFloor(1);");
 });
 
-test("hands the level's program to the editor and stays on the level", async ({ page }) => {
-  await page.goto(FIRST_LEVEL);
-  await expect(editor(page)).toContainText(LEVEL_1_MARKER);
-  expect((await storedCode(page)) ?? "").not.toContain(LEVEL_1_MARKER);
-
-  await panel(page).getByRole("button", { name: "Take this program into your own editor" }).click();
-
-  // Stored under the game's own key, which is where the editor looks when the
-  // player leaves the track -- and the level is still on screen, because the
-  // button means "I want to keep this", not "I am done here".
-  expect(await storedCode(page)).toContain(LEVEL_1_MARKER);
-  await expect(panel(page)).toBeVisible();
-  // The write went somewhere the player cannot see from here, so this line is
-  // the whole of what they are told -- and `toBeVisible` is the half of that
-  // jsdom cannot answer. That it holds the right sentence, and that it is empty
-  // until the press, are `tutorial-panel.test.ts`'s and are not repeated here.
-  await expect(panel(page).locator(".tutorialtaken")).toBeVisible();
-
-  await panel(page).getByRole("button", { name: "Leave for the game's levels" }).click();
-
-  await expect(page.getByRole("button", { name: "Level 1" })).toBeVisible();
-  await expect(panel(page)).toHaveCount(0);
-  await expect(editor(page)).toContainText(LEVEL_1_MARKER);
-});
-
 test("hands the editor the program in the language the link asks for", async ({ page }) => {
   // `openTutorialBuffer` promises the starter "in the player's current
   // language", and this is the only place that promise can be measured whole:
@@ -258,7 +260,7 @@ test("hands the editor the program in the language the link asks for", async ({ 
   // its English program for the rest of the run with the page around it in
   // Russian.
   await page.goto(`${FIRST_LEVEL},lang=ru`);
-  await expect(panel(page, "Учебная дорожка")).toBeVisible();
+  await expect(panel(page, LEVEL_1_TITLE_RU)).toBeVisible();
 
   const russianEditor = editor(page, "Программа для лифтов");
   await expect(russianEditor).toContainText(LEVEL_1_MARKER_RU);
@@ -279,9 +281,10 @@ test("starts the level again from the run controls without leaving the track", a
   await page.getByRole("button", { name: "Start over", exact: true }).click();
 
   // The same level, running: "Start over" is pressed by somebody who has decided
-  // to go again, so it does not stop to ask a second time.
+  // to go again, so it does not stop to ask a second time. `panel` finds it by
+  // level 1's own name, so the panel being there is also the panel being drawn
+  // for the level that was restarted rather than for another one.
   await expect(panel(page)).toBeVisible();
-  await expect(page.locator(".tutorialposition")).toHaveText("Learning track Level 1 of 8");
   await expect(startButton(page, "Pause")).toBeVisible();
   // And the button survives the restart it caused, so the focus never leaves it.
   // The panel is redrawn whole underneath, but the run controls are drawn once
@@ -296,11 +299,16 @@ test("draws the panel again in the language the picker asks for", async ({ page 
 
   await switchToRussian(page);
 
-  // The landmark's own name is translated too, which is the one part of this
-  // panel a sighted player cannot see is still in English.
-  await expect(panel(page, "Учебная дорожка")).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Лифт, который никуда не едет" })).toBeVisible();
-  await expect(page.locator(".tutorialprogress")).toHaveText("Пройдено 0 из 8 уровней");
+  // The landmark's own name is the level's title, so the two are translated by
+  // the same redraw or not at all -- and that they still agree is the one part
+  // of this panel a sighted player cannot see.
+  await expect(panel(page, LEVEL_1_TITLE_RU)).toBeVisible();
+  await expect(page.getByRole("heading", { name: LEVEL_1_TITLE_RU })).toBeVisible();
+  // And the prose under the heading, which is the bulk of what a language
+  // change has to redraw here.
+  await expect(
+    panel(page, LEVEL_1_TITLE_RU).getByText("Подсказка 1", { exact: true }),
+  ).toBeVisible();
 });
 
 test("paints the panel's own controls as dark as the prose around them", async ({ page }) => {
@@ -332,7 +340,7 @@ test("stands the lesson beside the building where the pane has room, and above i
 }) => {
   // Four things can go wrong in this row and jsdom can see none of them: the
   // card can be pushed under the building where there was room beside it, a
-  // label longer than the card can push a horizontal scrollbar into a box that
+  // line longer than the card can push a horizontal scrollbar into a box that
   // already scrolls vertically, a lesson with no ceiling can take the whole of
   // a short pane and leave the building nothing, and the statistics strip can
   // be pushed off the bottom of the window by the pair of them.
@@ -354,9 +362,10 @@ test("stands the lesson beside the building where the pane has room, and above i
   // of the widths above are outside it -- which is how a reported bug sat in a
   // suite that measures this row at two widths and says nothing.
   //
-  // Both languages, because the Russian labels are the long ones -- "Забрать
-  // программу в свой редактор" is half again the English -- and they are what
-  // the wrap in `.tutorialbuttons .btn` was written for.
+  // Both languages, because the Russian is the long one: every line of this
+  // card is prose or a disclosure's summary, the Russian of each runs half
+  // again the English, and a card whose whole height is prose is a card whose
+  // height the language sets.
   //
   // One document for all four measurements, and the language changed through
   // the picker rather than the address bar: a `goto` differing only in the hash
@@ -396,18 +405,14 @@ test("stands the lesson beside the building where the pane has room, and above i
       }
 
       // Nothing escapes the card sideways. `scrollWidth` is what a horizontal
-      // scrollbar is made of, and the buttons are the only children long enough
-      // to make one.
-      const escapedButtons = await card.evaluate((element) => {
-        const box = element.getBoundingClientRect();
-        return {
-          overflow: element.scrollWidth - element.clientWidth,
-          wider: [...element.querySelectorAll(".tutorialbuttons button")].filter(
-            (button) => button.getBoundingClientRect().width > box.width,
-          ).length,
-        };
-      });
-      expect(escapedButtons).toEqual({ overflow: 0, wider: 0 });
+      // scrollbar is made of, and this box already scrolls vertically, so a
+      // second bar across the bottom of a column of prose is the failure. It
+      // used to be measured against the two buttons under the answer as well --
+      // the only children with labels long enough to make one -- and they are
+      // gone; everything left is prose that wraps, a summary that wraps, or the
+      // answer's own `<pre>`, which scrolls inside itself.
+      const overflow = await card.evaluate((element) => element.scrollWidth - element.clientWidth);
+      expect(overflow, `the lesson card on ${where}`).toBe(0);
 
       // And the whole of the stage row fits the window, which is what moving
       // the lesson into a row of its own bought: the statistics strip under it
@@ -419,11 +424,11 @@ test("stands the lesson beside the building where the pane has room, and above i
   };
 
   await page.goto(FIRST_LEVEL);
-  await expect(panel(page, "Learning track")).toBeVisible();
+  await expect(panel(page, LEVEL_1_TITLE)).toBeVisible();
   await measure("English");
 
   await switchToRussian(page);
-  await expect(panel(page, "Учебная дорожка")).toBeVisible();
+  await expect(panel(page, LEVEL_1_TITLE_RU)).toBeVisible();
   await measure("Russian");
 });
 
@@ -464,22 +469,6 @@ test("costs the levels nothing: the widest building in the game still fits its p
     });
     expect(fit).toEqual({ paneOverflow: 0, buildingEscapes: false });
   }
-});
-
-test("says where the player is on the track twice: in words, and in ticks", async ({ page }) => {
-  // `tutorial-panel.test.ts` proves which tick carries which class. What only a
-  // browser answers is whether `tutorial-panel.css` paints the three states
-  // apart at all
-  // -- a row of eight identical 3px bars says nothing, and says it in exactly
-  // the space a progress indicator would have taken.
-  await page.goto("/#level=tutorial-3");
-
-  const ticks = panel(page).locator(".tutorialsteps i");
-  await expect(ticks).toHaveCount(8);
-  // --ds-ok, --ds-accent and --ds-n-3, light theme -- this suite's default.
-  await expect(ticks.nth(0)).toHaveCSS("background-color", "rgb(44, 132, 85)");
-  await expect(ticks.nth(2)).toHaveCSS("background-color", "rgb(166, 104, 12)");
-  await expect(ticks.nth(3)).toHaveCSS("background-color", "rgb(238, 235, 228)");
 });
 
 /**

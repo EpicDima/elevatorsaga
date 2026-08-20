@@ -327,7 +327,7 @@ export const EN_MESSAGES = {
     "Clearing a level earns bronze — that's exactly its own condition. Silver and gold come from <em>how</em> it was cleared: with room to spare, without running elevators empty, without making people wait. The card on the right, in the goal bar, shows exactly what each star needs — and which of them are being held right now. Stars gate nothing: every level is open from the first visit, and silver and gold stay on the list to come back for.",
   "game.docs.guide.tutorialLevels.heading": "The first levels come with an explanation",
   "game.docs.guide.tutorialLevels.body":
-    "Tutorial levels have a lesson standing next to the building: step by step, what's happening, which event a program sees it through, and what answering it looks like. A button above the building collapses it and brings it back.",
+    "Tutorial levels have a lesson standing next to the building: step by step, what's happening, which event a program sees it through, and what answering it looks like. The hints open one at a time, and the last of them holds a working program with a button that copies it.",
   // The code skeleton every program starts from, and the one paragraph naming
   // elevator/elevators/floor/floors before the reference dives into each --
   // design/ui-mockup.html's own docsBody.innerHTML assembly, between the
@@ -1454,44 +1454,29 @@ elevator.goToFloor(2); // Queued anyway -- queue: 2, 3, 2`,
     }
 }`,
 
-  // The panel around the levels, the bar above them and the screen after the
-  // last one. The seed line, the statistics and the editor are the game's own
-  // and say the same things here as everywhere else.
+  // The panel around the levels, the bar that used to stand above them and the
+  // screen after the last one. The seed line, the statistics and the editor are
+  // the game's own and say the same things here as everywhere else.
   //
   // "Tutorial level" is a level of the track and "level {number}" is a level of
   // the game; the first is qualified so that the player cannot read one for the
-  // other, and `tutorial.button.leave` says whose levels it leaves for on the
-  // same grounds.
+  // other.
   //
-  // The position line below is the exception. It follows the name of the track
-  // in the same line, in bold, so the qualifying is already done -- repeating it
-  // gave "Learning track Tutorial level 7 of 8". Over the building,
-  // `tutorial.bar.title.html` has no track name beside it, so there it stays.
+  // `tutorial.panel.label` is the caption over the level switcher's block of
+  // lessons, and nothing else — the name is what is left of a panel that used
+  // to open on it. The panel itself now says nothing about the track: it is
+  // named after the level it is teaching, because eight lessons that each begin
+  // by saying which of eight they are put the track between the player and the
+  // level in front of them. Where they are on it is the app bar's level
+  // switcher: its trigger reads `game.levelSwitcher.tutorialTriggerLabel`, and
+  // the tiles behind it say which lessons are done.
 
   "tutorial.panel.label": "Learning track",
-  "tutorial.panel.position": "Level {number} of {count}",
-  "tutorial.panel.progress": {
-    one: "{cleared} of {count} level done",
-    other: "{cleared} of {count} levels done",
-  },
   "tutorial.panel.hintSummary": "Hint {number}",
   "tutorial.panel.explanationSummary": "Why this happens",
-  // What the panel says after "Take this program" — the button writes into a
-  // buffer the player cannot see from here, so without a line of its own it is
-  // a button that does nothing visible. The refusal is worth its own key rather
-  // than silence: the copy is gone and the program is still on screen, so the
-  // one useful thing to say is how to keep it by hand.
-  "tutorial.panel.codeTaken": "Copied into the game editor, waiting when you leave the track.",
-  "tutorial.panel.codeRefused":
-    "Your browser refused to store it. Copy the program out of the editor by hand to keep it.",
-  "tutorial.button.takeCode": "Take this program into your own editor",
-  "tutorial.button.takeCodeConfirm":
-    "The game editor already holds a program of yours. Replace it with this one?",
-  "tutorial.button.leave": "Leave for the game's levels",
   "tutorial.solution.copy": "Copy this program",
   // The clipboard write's two outcomes, at the size and just under the answer
-  // the way `tutorial.panel.codeTaken`/`codeRefused` sit under the editor
-  // button they report on. `navigator.clipboard.writeText` can refuse for
+  // the button sits on. `navigator.clipboard.writeText` can refuse for
   // reasons a player has no way to fix from here — no permission, no secure
   // context — so the refusal says what to do instead rather than only that it
   // failed: the program is still on screen, right above the line saying so.
@@ -1501,7 +1486,7 @@ elevator.goToFloor(2); // Queued anyway -- queue: 2, 3, 2`,
   "tutorial.bar.title.html": "Tutorial level {number} of {count}: {description}",
   "tutorial.finish.title": "The track is finished",
   "tutorial.finish.message":
-    "Eight tutorial levels, and the last of them was level 1 of the game itself: the same three floors, the same elevator, the same fifteen passengers in sixty seconds. The program in the editor solves it, and the panel has a button that copies it into your own editor — take it with you before you go.",
+    "Eight tutorial levels, and the last of them was level 1 of the game itself: the same three floors, the same elevator, the same fifteen passengers in sixty seconds. The program in the editor solves it. Level 1 opens with a program of its own, so copy this one out of the editor before you go if you would rather start from it.",
   "tutorial.finish.nextLevel": "Next tutorial level",
   "tutorial.finish.toLevels": "Go to level 1",
 } as const satisfies Readonly<Record<string, string | PluralForms<"en">>>;

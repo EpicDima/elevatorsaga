@@ -4,10 +4,9 @@
  * The track locks nothing. Every level is reachable by its own address whether
  * or not the ones before it have been cleared, deliberately: locking a teaching
  * track buys one class of "let me back in" complaint and no teaching at all. So
- * nothing here grants permission to play anything. What is kept is the one
- * sentence the panel says about the track as a whole —
- * `tutorial.panel.progress`, "3 of 8 levels done" — and, through it, the reason
- * a player who comes back tomorrow can see they were here.
+ * nothing here grants permission to play anything. What is kept is the mark the
+ * level switcher draws on a lesson it has been told was cleared — and, through
+ * it, the reason a player who comes back tomorrow can see they were here.
  *
  * It is browser memory, honestly: it goes when the store is cleared and it does
  * not travel between devices, exactly like the saved program and the chosen
@@ -17,8 +16,6 @@
  * run of the track that outlives the tab, and because every line of it exists
  * for a store that answers with nothing, with rubbish, or by throwing.
  */
-
-import type { TutorialLevel } from "#game/tutorial.ts";
 
 /**
  * Where the cleared levels are remembered between visits.
@@ -39,9 +36,9 @@ export const TUTORIAL_PROGRESS_STORAGE_KEY = "develevateTutorialProgress";
  * that is expected to change — `TutorialLevel.id` says so itself — so a ninth
  * level inserted at number two would silently hand every stored number to a
  * different lesson. And "furthest" is a lie about a track that locks nothing: a
- * player who opens level 6 from a link, clears it and nothing else would be
- * congratulated on six levels they have not played, and would then watch the
- * count stand still through levels 1 to 5.
+ * player who opens level 6 from a link, clears it and nothing else would find
+ * levels 1 to 5 marked cleared in the switcher without having played one of
+ * them, and would then watch those marks stand still as they did.
  *
  * Everything unreadable is treated as "nothing cleared yet" rather than
  * reported: there is nothing a player can do about a corrupt entry, no run
@@ -49,7 +46,7 @@ export const TUTORIAL_PROGRESS_STORAGE_KEY = "develevateTutorialProgress";
  *
  * @param storage - Where progress is remembered.
  * @returns The identifiers found, which may include levels this build does not
- * have; see {@link countClearedTutorialLevels}.
+ * have; see {@link recordClearedTutorialLevel} for why those are kept.
  */
 export function readClearedTutorialLevels(storage: Storage): ReadonlySet<string> {
   let stored: string | null;
@@ -89,8 +86,9 @@ export function readClearedTutorialLevels(storage: Storage): ReadonlySet<string>
  *
  * A store that refuses the write is not an error here and nothing is announced.
  * The run the player is in the middle of is what matters, and it does not
- * depend on this; the consequence is that the count does not move between
- * visits, exactly as a refused write means the chosen speed is not remembered.
+ * depend on this; the consequence is that the lesson stands unmarked again on
+ * the next visit, exactly as a refused write means the chosen speed is not
+ * remembered.
  *
  * @param storage - Where progress is remembered.
  * @param levelId - The identifier of the level that was just cleared.
@@ -107,24 +105,4 @@ export function recordClearedTutorialLevel(storage: Storage, levelId: string): v
   } catch {
     // A browser that refuses storage should not stop the game.
   }
-}
-
-/**
- * Counts how many of the levels that exist have been cleared.
- *
- * The intersection rather than the size of the stored set, and both halves of
- * that matter. An identifier that no longer names a level — a renamed one, or
- * one from a newer build — must not be counted, or the panel says "9 of 8 levels
- * done"; and it must not be deleted to make the arithmetic work either, which
- * is why {@link recordClearedTutorialLevel} keeps it.
- *
- * @param cleared - The identifiers read back from the store.
- * @param levels - The levels this build has, in playing order.
- * @returns How many of `levels` appear in `cleared`.
- */
-export function countClearedTutorialLevels(
-  cleared: ReadonlySet<string>,
-  levels: readonly TutorialLevel[],
-): number {
-  return levels.filter((level) => cleared.has(level.id)).length;
 }

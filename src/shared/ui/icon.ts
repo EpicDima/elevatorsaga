@@ -333,9 +333,16 @@ export const SPRITE_ICONS = {
       },
     ],
   },
-  // The mockup's `#i-graduate` (§11): a mortar board over its tassel band,
-  // drawn at the head of the lesson aside beside "Level N of 8". Two open
-  // paths at the family's default stroke, copied verbatim.
+  // The mockup's `#i-graduate` (§11): a mortar board over its tassel band. Two
+  // open paths at the family's default stroke, copied verbatim.
+  //
+  // Nothing draws it. It stood at the head of the lesson aside beside "Level N
+  // of 8", and that whole row went when the card was cut back to the level it
+  // teaches. Kept because this table is the mockup's icon family transcribed
+  // rather than the set the page happens to draw today, and `icon.test.ts` pins
+  // it against §11 on those terms. It is two paths of dead data in the bundle --
+  // a property of an exported object literal is not something a bundler can drop
+  // -- and that is the price of not transcribing it again.
   graduate: {
     viewBox: "0 0 16 16",
     shapes: [

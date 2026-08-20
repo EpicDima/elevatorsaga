@@ -23,7 +23,7 @@ import type { TutorialLevel } from "../../game/tutorial.ts";
 import { createWorld } from "../../game/world.ts";
 import type { World } from "../../game/world.ts";
 import type { AnimationFrameRequester, WorldController } from "../../game/world-controller.ts";
-import { LOCALES, t, translateIn } from "../../i18n/index.ts";
+import { t } from "../../i18n/index.ts";
 import type { CodeEditor } from "../../ui/editor.ts";
 import {
   elevatorFloorButtonLabel,
@@ -41,7 +41,6 @@ import {
   recordLevelTier,
 } from "#entities/level-tier/index.ts";
 import {
-  countClearedTutorialLevels,
   readClearedTutorialLevels,
   recordClearedTutorialLevel,
 } from "#entities/tutorial-level/model/progress.ts";
@@ -504,10 +503,9 @@ export interface AppOptions {
    * remembered; defaults to `localStorage`.
    *
    * The player's program is deliberately not on that list, though it lives in
-   * the same store: it is the editor's, and asking it for one
-   * ({@link App.playerCodeWouldBeReplaced}) goes through the editor so that the
-   * answer is the program the player would actually see. Everything here is
-   * something no other object owns.
+   * the same store: it is the editor's, and it is the editor that is asked for
+   * it, so that what comes back is the program the player would actually see.
+   * Everything here is something no other object owns.
    */
   readonly storage?: Storage;
   /** Schedules simulation frames; defaults to `requestAnimationFrame`. */
@@ -531,23 +529,15 @@ export interface AppOptions {
  * the bar ask for — the identifier, the seed, the two programs, the condition —
  * is on it, and a second lookup by index is a second chance to look up the
  * wrong one. The index rides along because the track is the one part of the
- * game that is *numbered for the player*: "Level 3 of 8" is in the bar's title
- * and in the panel, and it is a position in the table rather than anything
- * stored, which is why nothing but the interface is allowed to use it.
+ * game that is *numbered for the player*: "Lesson 3" is what the level bar
+ * calls this, and it is a position in the table rather than anything stored,
+ * which is why nothing but the interface is allowed to use it.
  */
 export interface TutorialRun {
   /** The level being played. */
   readonly level: TutorialLevel;
   /** Its position in `tutorialLevels`, counted from zero. */
   readonly index: number;
-}
-
-/** How much of the learning track this browser has cleared. */
-export interface TutorialProgress {
-  /** How many levels have been cleared, counting each level once. */
-  readonly cleared: number;
-  /** How many levels the track has. */
-  readonly count: number;
 }
 
 /**
@@ -1534,117 +1524,6 @@ export class App {
   }
 
   /**
-   * How much of the learning track this browser has cleared.
-   *
-   * Read from the store on every call rather than cached, which costs one
-   * `getItem` per draw and buys the one thing a cache would lose: the count is
-   * right after the win that has just happened, in a second tab, and after the
-   * player clears their storage mid-session. Nothing here is on a frame path.
-   *
-   * @returns The cleared count and the size of the track.
-   */
-  tutorialProgress(): TutorialProgress {
-    return {
-      cleared: countClearedTutorialLevels(readClearedTutorialLevels(this.#storage), tutorialLevels),
-      count: tutorialLevels.length,
-    };
-  }
-
-  /**
-   * Whether taking a level's program would overwrite something the player wrote.
-   *
-   * What the panel asks before it offers `tutorial.button.takeCodeConfirm`.
-   * "Something the player wrote" is deliberately narrow: an empty store is not
-   * it, and neither is the starting program the game itself put there, because
-   * confirming the replacement of a program nobody typed teaches players to
-   * dismiss the question — and the one time it matters is the time they do it
-   * without reading.
-   *
-   * Compared against `editor.defaultCode.code` rather than remembered, since the
-   * player may have arrived on the track without ever opening the editor, in
-   * which case what is in the store is whatever the last version of this game
-   * wrote there.
-   *
-   * Checked in every locale {@link LOCALES} names, not only the one on screen:
-   * the slot this reads is written the moment level 1 is first opened (see
-   * {@link "../../ui/editor.ts"!EditorBuffer.writesStarterOnOpen}), in whichever
-   * language was active then, and a reader who switches language afterwards
-   * must not be asked to confirm overwriting a program that is still exactly
-   * the one the game put there — only in a language it no longer shows.
-   * {@link translateIn} renders a locale that has not loaded as English rather
-   * than throwing, so a language fetched later than this check costs nothing
-   * beyond comparing against English twice.
-   *
-   * Asked of the editor rather than of the store this class also holds, because
-   * the program at risk is the editor's: it keeps its own copy of every key it
-   * has written this page and reads that first, so against a full quota — or in
-   * the private windows that hand out a `Storage` and refuse every write — the
-   * player's program is in the editor and the store says they never wrote one.
-   * Reading the store directly answered "nothing of theirs here" in exactly the
-   * case where the copy about to be overwritten is the only one left.
-   *
-   * @returns Whether the player's own buffer holds a program of theirs.
-   */
-  playerCodeWouldBeReplaced(): boolean {
-    const stored = this.#editor.readPlayerCode();
-    if (stored === null || stored.trim() === "") {
-      return false;
-    }
-    const trimmed = stored.trim();
-    return !LOCALES.some(
-      (locale) => trimmed === translateIn(locale, "editor.defaultCode.code").trim(),
-    );
-  }
-
-  /**
-   * Copies the program now in the editor into the player's own buffer.
-   *
-   * Written to the player's key rather than by switching buffers, which is what
-   * keeps the player on the level. The button means "I want to keep this", not
-   * "I am done here": somebody who takes the answer to level 6 usually wants to
-   * go on reading level 6. The copy is waiting for them under the game's own
-   * editor whenever they leave, because level 1's first slot is the buffer
-   * {@link leaveTutorial} always opens.
-   *
-   * Through {@link CodeEditor.writePlayerCode} rather than into `#storage` here,
-   * even though this class holds the same store: the editor reads its own copy
-   * of a key before the store's, so a write from outside it is a copy the editor
-   * does not have and will overwrite. See that method.
-   *
-   * Throws nothing when the store refuses the write, for the reason every other
-   * write in this class swallows its own: the run the player is in is what
-   * matters, and it does not depend on this. The refusal is not swallowed
-   * though — it is the return value, and the panel is what tells them either
-   * way. That is the whole point of the boolean; a caller that drops it turns
-   * the button into one that silently does nothing when the store throws. Which
-   * it does on a full quota, and in the private-browsing modes that hand out a
-   * `Storage` object and refuse every write to it. Storage being *switched off*
-   * is not on the list: `src/main.ts` reads `localStorage` bare, so a browser
-   * that throws on the property has already stopped the game from starting, and
-   * there is no button to press.
-   *
-   * @returns Whether the program was stored.
-   */
-  takeTutorialCode(): boolean {
-    return this.#editor.writePlayerCode(this.#editor.getCode());
-  }
-
-  /**
-   * Leaves the learning track for the numbered levels.
-   *
-   * Level one and not `currentLevelIndex`, which is where a player who
-   * came to the track from level 12 would be sent back to. The track is what
-   * somebody plays before they have a level to go back to, so the useful
-   * exit is the beginning of the game; a player who did arrive from level 12
-   * has that address in their history and in the navigation row.
-   *
-   * @param autoStart - Whether to run without waiting for the Start button.
-   */
-  leaveTutorial(autoStart = false): void {
-    this.startLevel(0, autoStart);
-  }
-
-  /**
    * Builds a world for a level, draws it, and hands it to the controller.
    *
    * @param level - What to play: one of {@link levels}, or the sandbox
@@ -1798,14 +1677,13 @@ export class App {
       const tutorial = this.#tutorial;
       if (levelStatus && tutorial !== undefined) {
         recordClearedTutorialLevel(this.#storage, tutorial.level.id);
-        // The one moment the panel has to be redrawn without a run starting or a
-        // language changing: the count it prints has just gone up, and the
-        // player is looking at the panel while the success overlay tells them
-        // so. Without this line the panel would still say "0 of 8 levels done"
-        // under an overlay congratulating them on the first. Drawn from the
-        // store, like every other draw of it, so the line and the record cannot
-        // disagree.
-        this.#drawTutorialPanel();
+        // This lesson's tile in the switcher is drawn as cleared from now on,
+        // and the player may open the menu before starting anything else --
+        // the same reason the numbered branch below redraws it on a tier. The
+        // panel is deliberately left standing: nothing it shows depends on
+        // what has been cleared, and redrawing it would shut every hint the
+        // player had opened at the moment they were told they had won.
+        this.#levelSwitcher.update();
       } else if (levelStatus && levelIndex !== null) {
         // `true`, not `levelStatus`: a tier is only ever asked for on a win,
         // and `evaluateLevelTier` returns `null` for anything else, which
@@ -1940,15 +1818,13 @@ export class App {
    * panel, so the one that stayed is the one a player can find from anywhere in
    * the game rather than only on the track.
    *
-   * The two callbacks that are left are closures over this object rather than
-   * public methods for the panel to call, so that the panel needs to know
-   * nothing about how leaving the track or copying a program is carried out.
-   *
-   * The panel's `hasOwnProgram` is a function and not a boolean because it is
-   * asked at the moment the player presses "take this program", not at the
-   * moment the panel was drawn: a player who writes their first program during
-   * level 5 would otherwise be told nothing before it was overwritten, since the
-   * panel was drawn when the store was still empty.
+   * Nothing is handed to the panel but the index, and no callback at all. It
+   * had two -- one that copied the level's program into the player's own editor
+   * and one that left the track for level 1 -- and both were buttons the panel
+   * drew under its prose. Neither was a thing a lesson has to say: the app bar's
+   * level switcher already leaves for any level in the game, and the answer the
+   * panel shows already carries a button that copies it to the clipboard. What
+   * is left is a lesson, and a lesson only needs to know which one it is.
    */
   #drawTutorialPanel(): void {
     const tutorial = this.#tutorial;
@@ -1956,15 +1832,7 @@ export class App {
       clearChildren(this.#elements.tutorial);
       return;
     }
-    presentTutorial(this.#elements.tutorial, {
-      levelIndex: tutorial.index,
-      clearedCount: this.tutorialProgress().cleared,
-      hasOwnProgram: () => this.playerCodeWouldBeReplaced(),
-      onTakeCode: () => this.takeTutorialCode(),
-      onLeave: () => {
-        this.leaveTutorial();
-      },
-    });
+    presentTutorial(this.#elements.tutorial, { levelIndex: tutorial.index });
   }
 
   /**
@@ -2117,10 +1985,11 @@ export class App {
    * program is safe under the level's own key, but the player was told it had
    * travelled with them and would have found their old program instead. Copying
    * it across from here was the other way to make the two agree, and it is the
-   * wrong one: overwriting the player's program is the thing the panel's
-   * `tutorial.button.takeCode` asks about first, and a link that did it silently
-   * would be the one path on the track that takes a program without asking. So
-   * the message names that button instead.
+   * wrong one: what is under the player's own key is a program they wrote, and
+   * a link out of the track that overwrote it on the way would be the one path
+   * in the game that throws away an evening's work without asking. So the words
+   * were corrected instead, and `tutorial.finish.message` says where the winning
+   * program is rather than promising to carry it.
    *
    * Nothing is recorded here. {@link #startRun} records the clear where the
    * condition resolves, so that {@link relocalise} can call this again to redraw

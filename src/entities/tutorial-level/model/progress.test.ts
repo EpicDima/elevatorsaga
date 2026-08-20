@@ -3,12 +3,9 @@ import { describe, expect, it } from "vitest";
 import { MemoryStorage } from "../../../ui/test-helpers.ts";
 import {
   TUTORIAL_PROGRESS_STORAGE_KEY,
-  countClearedTutorialLevels,
   readClearedTutorialLevels,
   recordClearedTutorialLevel,
 } from "./progress.ts";
-import { tutorialLevels } from "#game/tutorial.ts";
-import type { TutorialLevel } from "#game/tutorial.ts";
 
 /**
  * A `Storage` that throws from everything, as Safari does in private mode.
@@ -164,33 +161,5 @@ describe("readClearedTutorialLevels", () => {
     );
 
     expect(readClearedTutorialLevels(storage)).toEqual(new Set(["tutorial-2"]));
-  });
-});
-
-describe("countClearedTutorialLevels", () => {
-  it("counts the levels of the track that were cleared", () => {
-    const cleared = new Set(["tutorial-1", "tutorial-3"]);
-    expect(countClearedTutorialLevels(cleared, tutorialLevels)).toBe(2);
-  });
-
-  it("counts nothing twice and nothing that is not on the track", () => {
-    // Otherwise the panel says "9 of 8 levels done" to a player who once ran a
-    // newer deployment.
-    const cleared = new Set(["tutorial-1", "tutorial-9", "elevatorCrushCode_v5"]);
-    expect(countClearedTutorialLevels(cleared, tutorialLevels)).toBe(1);
-  });
-
-  it("counts every level when the whole track has been cleared", () => {
-    const cleared = new Set(tutorialLevels.map((level) => level.id));
-    expect(countClearedTutorialLevels(cleared, tutorialLevels)).toBe(tutorialLevels.length);
-  });
-
-  it("follows the levels it is given, so a reordered track still counts one each", () => {
-    // The count is an intersection by identifier: reversing the table changes
-    // nothing, which is the property a stored position would not have.
-    const reordered: readonly TutorialLevel[] = [...tutorialLevels].reverse();
-    const cleared = new Set(["tutorial-8"]);
-
-    expect(countClearedTutorialLevels(cleared, reordered)).toBe(1);
   });
 });

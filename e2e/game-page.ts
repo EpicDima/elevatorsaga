@@ -23,7 +23,7 @@ export const CODE_STORAGE_KEY = "elevatorCrushCode_v5";
 
 /**
  * Where level 1's first code slot is persisted — the buffer open on the
- * default route, and the one every "take this program" action writes into.
+ * default route, and so the one a program typed with no level named lands in.
  *
  * Spelled out for the same reason {@link CODE_STORAGE_KEY} is: a rename in
  * `src/ui/editor.ts` should fail a test here rather than pass unnoticed.

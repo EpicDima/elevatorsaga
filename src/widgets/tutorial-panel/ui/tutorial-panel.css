@@ -1,13 +1,14 @@
 /*
- * The learning track's card: its head row and step pips, the title and prose,
- * the hint and explanation disclosures, the answer and the tools for copying
- * it, and the two actions that close the card.
+ * The lesson's card: the level's name and prose, the hint and explanation
+ * disclosures, and the answer with the tools for copying it.
  *
- * The last rule lets those two actions take a second line. It sat in the
- * stylesheet's own "Buttons" section, with the shared chrome it overrides; it
- * is this widget's override and belongs to this widget, and it is still
- * declared after `.tutorialbuttons .btn-primary` above, which is the only rule
- * here it shares specificity with.
+ * There is nothing here about the track the level belongs to, and that is the
+ * shape of the card rather than an omission. It used to open with a head row
+ * naming the track and counting the player's place in it, close on a footnote
+ * counting it again, and carry two buttons that left the level; all of it said
+ * the same thing the app bar's level switcher already says, on the one surface
+ * whose whole job is the level in front of the player. What is left is a
+ * lesson.
  */
 
 /*
@@ -72,95 +73,6 @@
 }
 
 /*
- * The head row: the mockup's `.lesson-head` (§11). A graduation cap, the name
- * of the track, and where in it the player is.
- *
- * The cap is `--ds-accent`, which is the mockup's own `.lesson-head .icon`
- * colour and needs no measuring as text -- it is `aria-hidden` decoration
- * beside a line that says the same thing in words, which 1.4.11 exempts -- but
- * it is measured anyway, because an icon nobody can find is an icon that was
- * not worth drawing: 7.92:1 dark and 4.56:1 light on `--ds-panel`.
- *
- * The position is `--ds-text-muted` and the track's name is not, because they
- * are two different sentences sharing a line: the name says which panel this
- * is, and only the position changes from level to level. Muted measures 6.70:1
- * dark and 5.90:1 light on the card, past 4.5:1; the mockup's own
- * `--text-faint` would have been 3.62:1 dark and 3.14:1 light there, short of
- * it in both themes, and it is not used for text anywhere on this page for
- * exactly that reason.
- */
-.tutorialposition {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  margin: 0 0 10px;
-  font-size: 13px;
-  line-height: 18px;
-}
-
-/*
- * `flex: none` because the cap is 16px of drawing and not a column of the row:
- * `.ds-icon` states a width, and a flex item with a width is still allowed to
- * shrink below it, which in a card squeezed to its 260px floor by a long
- * Russian position line would leave the mortar board an oval.
- */
-.tutorialposition .ds-icon {
-  flex: none;
-  color: var(--ds-accent);
-}
-
-/*
- * The name takes the slack, so the position sits against the right edge of the
- * card the way the mockup's step counter does. 650 rather than `bold`: it is
- * the weight the mockup sets on every one of these small headings, and Oswald
- * has the intermediate weights to draw it.
- */
-.tutorialtrack {
-  flex: 1;
-  font-weight: 650;
-}
-
-.tutorialstep {
-  color: var(--ds-text-muted);
-}
-
-/*
- * The track as ticks, one per level: the mockup's `.steps` (§11). See
- * `tutorialStepsTemplate` for what the three states mean and why the row says
- * it to the eye only.
- *
- * `--ds-n-3` for a tick not yet reached is the mockup's own `--n-3`, and it is
- * the one colour here that is neither text nor a control: 1.4.11 asks 3:1 of a
- * graphical object only when it carries information not available elsewhere,
- * and every one of these is a restatement of "Level 3 of 8" one line above. An
- * unreached tick measures 1.22:1 dark and 1.19:1 light against the card, which
- * is the intent -- it is the groove the other two are drawn in, not a mark. The
- * two that do carry the eye -- `--ds-ok` behind and `--ds-accent` here -- are
- * measured on the card all the same: 7.72:1 and 7.92:1 dark, 4.63:1 and 4.56:1
- * light.
- */
-.tutorialsteps {
-  display: flex;
-  gap: 4px;
-  margin-block-end: 14px;
-}
-
-.tutorialsteps i {
-  flex: 1;
-  block-size: 3px;
-  border-radius: 2px;
-  background-color: var(--ds-n-3);
-}
-
-.tutorialsteps i.is-done {
-  background-color: var(--ds-ok);
-}
-
-.tutorialsteps i.is-current {
-  background-color: var(--ds-accent);
-}
-
-/*
  * The level's own name: the mockup's `.lesson h2`. The weight has to be stated
  * because this page sets every heading below `h1` to `normal` (see the
  * document rules above), and a 16px heading at the weight of the prose under
@@ -174,14 +86,14 @@
 
 /*
  * The prose: the mockup's `.lesson p`, one size below the page's own and
- * muted, which is what makes the level's name and the ticks above it the two
- * things read first. `--ds-text-muted` measures 6.70:1 dark and 5.90:1 light
- * on the card, and 6.19:1 dark / 5.56:1 light on the `--ds-raised` inside an
- * open hint, both past the 4.5:1 of WCAG 1.4.3.
+ * muted, which is what makes the level's name above it the first thing read.
+ * `--ds-text-muted` measures 6.70:1 dark and 5.90:1 light on the card, and
+ * 6.19:1 dark / 5.56:1 light on the `--ds-raised` inside an open hint, both
+ * past the 4.5:1 of WCAG 1.4.3.
  *
  * The measure stays, for the reason `.seedcaveat` has one: a line of prose
  * read by losing your place in it. 384px of card is 45 characters and never
- * reaches the ceiling, but the narrow layout below 760px of pane stands the
+ * reaches the ceiling, but the narrow layout below 740px of pane stands the
  * lesson across the pane at up to 560px, and there it does. It is deliberately
  * not on `.tutorialpanel` itself, which would take the answer under the last
  * hint down with it: that block is code, its longest line is 68 characters,
@@ -326,10 +238,8 @@
 /*
  * The row above the answer: a button that copies it to the clipboard, and the
  * line that says whether that worked, in that order -- the line reports on the
- * button beside it, the way `.tutorialtaken` reports on "Take this program"
- * below. Not part of `.tutorialbuttons`: that row leaves the level, and this
- * button acts on the code beside it instead, so it stays with the code rather
- * than joining the buttons that end the level.
+ * button beside it, and the pair sits with the code it acts on rather than
+ * anywhere else on the card.
  *
  * Inset 11px like everything else inside an open hint, so the button, the
  * prose above it and the code below it stand on one line.
@@ -374,136 +284,25 @@
 }
 
 /*
- * Sized and drawn exactly the way `.tutorialtaken` below is, for the reason
- * given there. The surface underneath is the open hint's `--ds-raised` rather
- * than the card's `--ds-panel`, so the colour is measured again against it:
- * 6.19:1 dark and 5.56:1 light, past 4.5:1.
+ * What the button beside it did, one size down from the panel's own prose: a
+ * remark about a copy that has already happened, not part of the level being
+ * read. Muted for the same reason it is small -- the eye coming back to the
+ * card is looking for the next step, not for the receipt of the last one. The
+ * surface underneath is the open hint's `--ds-raised` rather than the card's
+ * `--ds-panel`, so the colour is measured against that: 6.19:1 dark and 5.56:1
+ * light, past the 4.5:1 of WCAG 1.4.3.
+ *
+ * No block margin at all, and that is what lets it be drawn while it is still
+ * empty -- which it is for most of a level's life. It is a live region, and the
+ * announcement is only reliable when the region was already in the document
+ * before the text arrived; `display: none` up to the moment of the update is
+ * the case screen readers most often miss. An empty `<p>` has no line box, so
+ * with nothing above or below it the region costs the row nothing until there
+ * is something in it to read.
  */
 .tutorialcopied {
   margin-block: 0;
   color: var(--ds-text-muted);
   font-size: 12px;
   line-height: 16px;
-}
-
-/*
- * The two things a player can do with a level once they have read it: the
- * mockup's `.lesson-acts` (§11), and its own hierarchy -- the quiet one on the
- * left, the painted one pushed to the far right by `margin-inline-start: auto`.
- * The mockup's reasoning for the gap between them is that the two are not
- * pressed equally often and the rare one must not sit under the hand aiming
- * for the common one; here the common one is taking the program into the
- * editor, and the rare one leaves the track altogether.
- *
- * `margin-inline-start` rather than the mockup's `margin-left`, because the
- * whole of this page is written in logical properties, and this one really is
- * about the reading direction: the primary action belongs at the end of the
- * line, wherever the line ends.
- *
- * Still a wrapping row, and now for a sharper reason than the phone it was
- * written for. These labels are sentences -- "Take this program into your own
- * editor", and the Russian for it -- and the card they now sit in is 374px
- * wide at the default split, 314px on level 7 whose building is 60px wider, and
- * 260px at its floor. The measurements are at `.tutorialbuttons .btn` below,
- * where the height they force is settled; the short of it is that the pair is
- * 414px against a 344px content box even at the widest of those, so they take
- * a line each and the primary keeps its right edge. Without the wrap the card,
- * which scrolls, would grow a horizontal scrollbar under a lesson. The
- * `escapedButtons` measurement in `e2e/tutorial.spec.ts` is what watches for
- * that.
- */
-.tutorialbuttons {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  align-items: center;
-  margin: 0;
-  padding-block-start: 12px;
-}
-
-.tutorialbuttons .btn-primary {
-  margin-inline-start: auto;
-}
-
-/*
- * What "Take this program" did, one size down from the panel's own prose: a
- * remark about a write that has already happened, not part of the level being
- * read. Muted for the same reason it is small -- the eye coming back to the card
- * is looking for the next step, not for the receipt of the last one -- which is
- * `--ds-text-muted` on the card's `--ds-panel`, measured at 6.70:1 dark and
- * 5.90:1 light, past the 4.5:1 of WCAG 1.4.3.
- *
- * Not hidden while it is empty, though it is empty for most of a level's life. It
- * is a live region, and the announcement is only reliable when the region was
- * already rendered before the text arrived -- `display: none` up to the moment
- * of the update is the case screen readers most often miss. An empty `<p>` has
- * no line box, so with no block margin it costs nothing until there is something
- * to read; the margin below it appears with the text, which is why it is on
- * `:not(:empty)` rather than on the element. The line does push the building
- * down by its own height when it arrives, which is the price of not reserving
- * space for a sentence that is one line in English and two in Russian on a
- * phone.
- */
-.tutorialtaken {
-  margin-block: 0;
-  color: var(--ds-text-muted);
-  font-size: 12px;
-  line-height: 16px;
-}
-
-.tutorialtaken:not(:empty) {
-  margin-block-end: 10px;
-}
-
-/*
- * The one line here that is about the track rather than about this level, and the
- * only place the count of cleared levels is shown. Last, smallest and muted: it
- * is the footnote of the card, and it is the one line on it that does not change
- * between the steps of a level. It used to be set at 14px, larger than the
- * lesson's own prose and its head row both, which on a card this narrow read as
- * the loudest thing below the title.
- *
- * The space above it is its own rather than the button row's because the element
- * between the two is a live region that is empty most of the time
- * (`.tutorialtaken`): stated here it collapses with that region's own bottom
- * margin, so the footnote stands exactly 10px below whatever is above it whether
- * or not there is a receipt in between, and a card with a `padding-block-end`
- * elsewhere would have had to state the number twice.
- */
-.tutorialprogress {
-  margin-block: 10px 0;
-  color: var(--ds-text-muted);
-  font-size: 12px;
-  line-height: 16px;
-}
-
-/*
- * The learning track's two actions no longer have chrome of their own: they wear
- * `.ghost` and `.btn.btn-primary`, which is what `design/ui-mockup.html` puts in
- * `.lesson-acts` (§11), so the whole of their paint is settled above. All that
- * is left here is permission to take two lines.
- *
- * Both of those classes were drawn for labels of one or two words -- a fixed
- * `var(--ds-ctl-h)` and `white-space: nowrap`. The labels on this row are
- * sentences. Measured in the card at the default split: "Take this program into
- * your own editor" is 271px and its Russian 270px, "Leave for the game's levels"
- * 182px and its Russian 161px, against a 344px content box. Together with the
- * gap they are 461px, so `.tutorialbuttons`'s own `flex-wrap` gives them a line
- * each -- which is what the wrap is for, and why the primary keeps its right
- * edge on the second line rather than the pair being centred.
- *
- * The floor rather than the fixed height is for the width below that. Squeezed
- * to the lesson's 260px, a label that no longer fits one line has to be allowed
- * two, and `block-size: var(--ds-ctl-h)` would draw the second of them outside
- * the box; 32px kept as a *minimum* means a label that does fit still measures
- * exactly what every other control on the page does. `e2e/tutorial.spec.ts`
- * measures the other half at the 1040x600 floor: no button wider than the card,
- * and no horizontal overflow on a card that already scrolls vertically.
- */
-.tutorialbuttons .btn,
-.tutorialbuttons .ghost {
-  block-size: auto;
-  min-block-size: var(--ds-ctl-h);
-  padding-block: 6px;
-  white-space: normal;
 }

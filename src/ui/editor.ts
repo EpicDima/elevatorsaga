@@ -670,56 +670,6 @@ export class CodeEditor extends Observable<CodeEditorEvents> {
   }
 
   /**
-   * Keeps `code` as the player's own program without putting it on screen.
-   *
-   * For the learning track's "take this program" button, which copies a level's
-   * program across while leaving the player on the level. Storing it through the
-   * editor rather than in the caller is not tidiness: this class reads the copy
-   * it keeps of every key it has written this page *before* it reads the store
-   * (see {@link CodeEditor.#read}), so a write that goes round it leaves the two
-   * disagreeing, with the store holding the taken program and the editor still
-   * believing the player's old one. {@link CodeEditor.openLevelBuffer} would
-   * then put that old program back on screen the moment the player left the
-   * track, and the next save would write it over the copy they had just taken.
-   *
-   * Level 1's first slot specifically, never wherever the player happens to
-   * be: leaving the track always lands on that slot (see
-   * {@link "../pages/game/index.ts"!App.leaveTutorial}), so it is the one buffer
-   * guaranteed to be the one on screen the moment they get there.
-   *
-   * @param code - The program to keep as the player's own.
-   * @returns Whether it reached the store, and so the player's next visit.
-   */
-  writePlayerCode(code: string): boolean {
-    return this.#write(levelCodeKey(0, DEFAULT_CODE_SLOT), code);
-  }
-
-  /**
-   * The program {@link CodeEditor.writePlayerCode} would put on screen.
-   *
-   * The counterpart of {@link CodeEditor.writePlayerCode}, and there for the
-   * same reason: a caller that reads the key out of the store answers a
-   * different question from the one it means to ask. What the player would
-   * see, and what taking a level's program would replace, is what this class
-   * holds — the store agrees with it only while the store is accepting writes.
-   * In a private window, or against a full quota, the program the player typed
-   * is in this session and nowhere else, and the store's answer is that they
-   * have never written one. That is the moment they have most to lose.
-   *
-   * Level 1's first slot specifically, never whichever buffer is on screen:
-   * which buffer is on screen makes no difference to what this returns, so the
-   * learning track can ask about the program waiting behind it.
-   *
-   * @returns The program, or `null` when neither this session nor the store has
-   * one — including when the store refuses to say, which is not the same fact
-   * but leads to the same answer: nothing recoverable is known to be there.
-   */
-  readPlayerCode(): string | null {
-    const stored = this.#read(levelCodeKey(0, DEFAULT_CODE_SLOT));
-    return stored.state === "text" ? stored.text : null;
-  }
-
-  /**
    * Shows one learning-track level's program, keeping whatever was on screen.
    *
    * The level's own attempt if there is one, otherwise `starterCode`. Callers

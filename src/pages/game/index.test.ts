@@ -14,14 +14,8 @@ import { createWorld } from "../../game/world.ts";
 import type { World } from "../../game/world.ts";
 import { DEFAULT_LOCALE, LOCALES, setLocale } from "../../i18n/index.ts";
 import type { Locale } from "../../i18n/index.ts";
-import { defaultCode } from "../../ui/default-code.ts";
 import { CODE_STORAGE_KEY, CodeEditor } from "../../ui/editor.ts";
-import {
-  createElement,
-  FakeTextEditorView,
-  MemoryStorage,
-  fullStorage,
-} from "../../ui/test-helpers.ts";
+import { createElement, FakeTextEditorView, MemoryStorage } from "../../ui/test-helpers.ts";
 import type { SeedLinkData } from "../../ui/templates.ts";
 import {
   App,
@@ -38,6 +32,7 @@ import {
   setDemoFullscreen,
 } from "./index.ts";
 import type { AppElements, ControlsPresenterOptions } from "./index.ts";
+import { readClearedTutorialLevels } from "#entities/tutorial-level/model/progress.ts";
 import { DEFAULT_TIME_SCALE } from "#features/adjust-speed/model/time-scale.ts";
 import { DEFAULT_CODE_SLOT } from "#features/manage-code-slots/model/code-slots.ts";
 import { resolveRoute, startRouter } from "#pages/game/model/route.ts";
@@ -1139,18 +1134,18 @@ describe("App learning track", () => {
   });
 
   it("puts the player's own program back on the way out", () => {
+    // The track plays out of its own buffer, one per level, so the program the
+    // player came in with has to be waiting again the moment they leave -- and
+    // leaving is a route now that the panel has no button of its own.
     const { app, storage, view } = setUp();
     storage.setItem(CODE_STORAGE_KEY, INERT_CODE);
     app.startTutorial(0);
     expect(view.getValue()).not.toBe(INERT_CODE);
 
-    app.leaveTutorial();
+    app.handleRoute(...routeFor("#level=1"));
 
     expect(app.tutorial).toBeUndefined();
     expect(view.getValue()).toBe(INERT_CODE);
-    // Level one, and not wherever the player came from: the track is what
-    // somebody plays before they have a level to go back to.
-    expect(app.currentLevelIndex).toBe(0);
   });
 
   it("leaves the track for the sandbox as readily as for a level", () => {
@@ -1324,17 +1319,21 @@ describe("App learning track", () => {
     expect(elements.feedback.querySelector("a")).toBeNull();
   });
 
-  it("counts a cleared level, and counts it once however often it is cleared", () => {
-    const { app } = setUp();
-    expect(app.tutorialProgress()).toEqual({ cleared: 0, count: tutorialLevels.length });
+  it("records a cleared level, and records it once however often it is cleared", () => {
+    // Read back out of the store rather than off the app: nothing on the page
+    // asks `App` how far along the track a player is any more -- the level
+    // switcher reads the same key for itself when it draws its tiles -- so the
+    // store is where the record has to actually land.
+    const { app, storage } = setUp();
+    expect(readClearedTutorialLevels(storage)).toEqual(new Set());
 
     app.startTutorial(0);
     endRun(app, true);
-    expect(app.tutorialProgress().cleared).toBe(1);
+    expect(readClearedTutorialLevels(storage)).toEqual(new Set([levelAt(0).id]));
 
     app.startTutorial(0);
     endRun(app, true);
-    expect(app.tutorialProgress().cleared).toBe(1);
+    expect(readClearedTutorialLevels(storage)).toEqual(new Set([levelAt(0).id]));
   });
 
   it("redraws a level's verdict in the new language, link and all", () => {
@@ -1356,95 +1355,15 @@ describe("App learning track", () => {
     const link = requireElement(".verdict a", elements.feedback);
     expect(link.getAttribute("href")).toBe(`#level=${levelAt(1).id}`);
     expect(link.textContent.trim()).toBe("Следующий учебный уровень");
-    expect(app.tutorialProgress().cleared).toBe(1);
   });
 
-  it("counts nothing for a level that was lost", () => {
-    const { app } = setUp();
+  it("records nothing for a level that was lost", () => {
+    const { app, storage } = setUp();
     app.startTutorial(0);
 
     endRun(app, false);
 
-    expect(app.tutorialProgress().cleared).toBe(0);
-  });
-
-  it("knows whether taking a level's program would overwrite one of the player's", () => {
-    // Asked before the panel offers to confirm. An empty store is not a program
-    // of theirs, and neither is the one the game itself put there: confirming
-    // the replacement of a program nobody typed teaches players to dismiss the
-    // question, and the one time it matters is the time they do it without
-    // reading.
-    const { app, storage } = setUp();
-    expect(app.playerCodeWouldBeReplaced()).toBe(false);
-
-    storage.setItem("develevateChallengeCode_0_1", defaultCode());
-    expect(app.playerCodeWouldBeReplaced()).toBe(false);
-
-    storage.setItem("develevateChallengeCode_0_1", "   \n  ");
-    expect(app.playerCodeWouldBeReplaced()).toBe(false);
-
-    storage.setItem("develevateChallengeCode_0_1", INERT_CODE);
-    expect(app.playerCodeWouldBeReplaced()).toBe(true);
-  });
-
-  it("still asks when the store refused to keep the player's program", () => {
-    // The program the question is about is the editor's, not the store's: when
-    // the store will not take a write, the editor's own copy of the key is the
-    // only copy there is, and it is exactly what taking a level's program
-    // overwrites. Asking the store directly answers "there is nothing of yours
-    // here" at the one moment that is both wrong and expensive -- a full quota,
-    // or the private windows that hand out a `Storage` and refuse every write.
-    const { app, editor, view } = setUp(INERT_CODE, fullStorage());
-    app.startLevel(0);
-    view.type("// the program I wrote in a private window");
-    editor.save();
-
-    expect(app.playerCodeWouldBeReplaced()).toBe(true);
-  });
-
-  it("does not ask about a program nobody wrote, however the store behaves", () => {
-    // The other half of the same rule: a store that cannot be read is not a
-    // store holding something to lose, and a confirmation nobody can act on is
-    // the kind players learn to dismiss.
-    const { app } = setUp(INERT_CODE, fullStorage());
-
-    expect(app.playerCodeWouldBeReplaced()).toBe(false);
-  });
-
-  it("copies the program into the player's editor without leaving the level", () => {
-    // The button means "I want to keep this", not "I am done here": somebody who
-    // takes the answer to level 4 usually wants to go on reading level 4.
-    const { app, storage, view } = setUp();
-    app.startTutorial(3);
-    view.type("// my answer to level 4");
-
-    expect(app.takeTutorialCode()).toBe(true);
-
-    expect(storage.getItem("develevateChallengeCode_0_1")).toBe("// my answer to level 4");
-    expect(app.tutorial?.index).toBe(3);
-    expect(view.getValue()).toBe("// my answer to level 4");
-  });
-
-  it("hands the taken program to the editor the player comes back to", () => {
-    // The copy is only worth taking if it is the one waiting under the game's
-    // own editor afterwards. It was not: the write went straight to storage,
-    // around the copy the editor keeps of every key it has written this page,
-    // and that copy is what level 1's slot 1 buffer reads first. A player
-    // who had saved anything at all before visiting the track got their old
-    // program back on leaving, and the next autosave wrote it over the taken one.
-    const { app, editor, storage, view } = setUp();
-    app.startLevel(0);
-    view.type("// the program I came in with");
-    editor.save();
-
-    app.startTutorial(3);
-    view.type("// my answer to level 4");
-    expect(app.takeTutorialCode()).toBe(true);
-
-    app.leaveTutorial();
-
-    expect(view.getValue()).toBe("// my answer to level 4");
-    expect(storage.getItem("develevateChallengeCode_0_1")).toBe("// my answer to level 4");
+    expect(readClearedTutorialLevels(storage)).toEqual(new Set());
   });
 
   it("refuses a position that does not name a level", () => {
@@ -1457,24 +1376,28 @@ describe("App learning track", () => {
     }).toThrow(RangeError);
   });
 
-  describe("the panel between the bar and the building", () => {
+  describe("the panel beside the building", () => {
     /**
-     * What the panel says about where the player is, if it is drawn at all.
+     * The level the panel on screen was drawn for, if it is drawn at all.
+     *
+     * The attribute rather than anything the panel prints: the card says which
+     * lesson this is in the level's own words and nothing about where on the
+     * track it sits, so its position is only legible here.
      *
      * @param elements - The page shell the app was built over.
-     * @returns The position line's text, or `null` when the region is empty.
+     * @returns The zero-based index, or `null` when the region is empty.
      */
-    function positionLine(elements: AppElements): string | null {
-      return elements.tutorial.querySelector(".tutorialposition")?.textContent ?? null;
+    function drawnLevelIndex(elements: AppElements): string | null {
+      return (
+        elements.tutorial.querySelector(".tutorialpanel")?.getAttribute("data-level-index") ?? null
+      );
     }
 
     it("draws the panel for the level on screen", () => {
       const { app, elements } = setUp();
       app.startTutorial(2);
 
-      expect(positionLine(elements)).toBe(
-        `Learning track Level 3 of ${String(tutorialLevels.length)}`,
-      );
+      expect(drawnLevelIndex(elements)).toBe("2");
       expect(requireElement(".tutorialtitle", elements.tutorial).textContent).toBe(
         "The buttons inside the car",
       );
@@ -1512,30 +1435,39 @@ describe("App learning track", () => {
       setLocale("ru");
       app.relocalise();
 
-      expect(positionLine(elements)).toBe(
-        `Учебная дорожка Уровень 1 из ${String(tutorialLevels.length)}`,
-      );
+      expect(drawnLevelIndex(elements)).toBe("0");
       expect(requireElement(".tutorialtitle", elements.tutorial).textContent).toBe(
         "Лифт, который никуда не едет",
       );
+      expect(requireElement(".tutorialhint summary", elements.tutorial).textContent).toBe(
+        "Подсказка 1",
+      );
     });
 
-    it("counts the level just cleared without waiting for the next draw", () => {
-      // The verdict is drawn over the panel, and the panel is behind it saying
-      // how far along the track the player is. Without the redraw it would say
-      // "0 of 8 levels done" underneath an overlay congratulating them on the
-      // first, until they started something else.
+    it("marks the cleared lesson in the switcher without shutting the hints under it", () => {
+      // Two halves of one moment. Nothing the card prints depends on what has
+      // been cleared any more, so redrawing it on a win would rebuild every
+      // disclosure the player had opened -- including the hint they are still
+      // reading while the overlay tells them they have won. What did move is the
+      // tile: the switcher names a cleared lesson "completed", and the menu is
+      // one click from that overlay.
       const { app, elements } = setUp();
       app.startTutorial(0);
-      expect(requireElement(".tutorialprogress", elements.tutorial).textContent).toBe(
-        `0 of ${String(tutorialLevels.length)} levels done`,
-      );
+      const hint = requireElement(".tutorialhint", elements.tutorial);
+      if (!(hint instanceof HTMLDetailsElement)) {
+        throw new TypeError("A hint is a disclosure");
+      }
+      hint.open = true;
+      const tile = (): HTMLElement =>
+        requireElement(`[href="#level=${levelAt(0).id}"]`, elements.levelSwitcher);
+      expect(tile().getAttribute("aria-label")).toBe("Tutorial level 1");
 
       endRun(app, true);
 
-      expect(requireElement(".tutorialprogress", elements.tutorial).textContent).toBe(
-        `1 of ${String(tutorialLevels.length)} levels done`,
-      );
+      // The same element, still open: not a fresh one that happens to match.
+      expect(requireElement(".tutorialhint", elements.tutorial)).toBe(hint);
+      expect(hint.open).toBe(true);
+      expect(tile().getAttribute("aria-label")).toBe("Tutorial level 1, completed");
     });
 
     it("leaves the run controls to be the only way to start the level again", () => {
@@ -1554,113 +1486,6 @@ describe("App learning track", () => {
       expect(app.world).not.toBe(before);
       expect(app.tutorial?.level.id).toBe("tutorial-2");
       expect(app.worldController.isPaused).toBe(false);
-    });
-
-    it("takes the level's program into the player's editor from the panel", () => {
-      const { app, elements, storage, view } = setUp();
-      app.startTutorial(3);
-      view.type("// the answer, copied out of the hint");
-
-      requireElement(".tutorialtakecode", elements.tutorial).click();
-
-      expect(storage.getItem("develevateChallengeCode_0_1")).toBe(
-        "// the answer, copied out of the hint",
-      );
-      // Still on the level: the button means "I want to keep this", not "I am
-      // done here".
-      expect(app.tutorial?.index).toBe(3);
-      // And the player is told, because the buffer it went into is not on screen
-      // from the track: without this line the button is one that visibly does
-      // nothing.
-      expect(requireElement(".tutorialtaken", elements.tutorial).textContent).toBe(
-        "Copied into the game editor, waiting when you leave the track.",
-      );
-    });
-
-    it("tells the player when the store refused, instead of claiming it worked", () => {
-      // A store that throws on the write is what `takeTutorialCode` answers
-      // `false` for -- a full quota, as here, or a private-browsing mode that
-      // hands out a `Storage` and refuses every write to it -- and the panel is
-      // where that answer is spent: the program is not waiting for them, and the
-      // useful thing to say is how to keep it by hand.
-      const { app, elements, storage } = setUp();
-      app.startTutorial(3);
-      vi.spyOn(storage, "setItem").mockImplementation(() => {
-        throw new Error("The quota is exhausted");
-      });
-
-      requireElement(".tutorialtakecode", elements.tutorial).click();
-
-      expect(requireElement(".tutorialtaken", elements.tutorial).textContent).toBe(
-        "Your browser refused to store it. Copy the program out of the editor by hand to keep it.",
-      );
-      // The refusal is not an error for the player to deal with: the run they
-      // are in does not depend on this write, and they are still on the level.
-      expect(app.tutorial?.index).toBe(3);
-    });
-
-    it("keeps that confirmation on screen when the level is cleared under it", () => {
-      // The sequence this was written for: take the program, then win the run.
-      // Clearing a level redraws the panel to move its progress line on, and the
-      // sentence the player had just been given used to go with it -- wiped at
-      // the exact moment the overlay appeared over the top, so it would have
-      // looked like the overlay that did it.
-      const { app, elements } = setUp();
-      app.startTutorial(3);
-      requireElement(".tutorialtakecode", elements.tutorial).click();
-
-      endRun(app, true);
-
-      expect(app.tutorialProgress().cleared).toBe(1);
-      expect(requireElement(".tutorialtaken", elements.tutorial).textContent).toBe(
-        "Copied into the game editor, waiting when you leave the track.",
-      );
-    });
-
-    it("asks the app, not itself, whether that would overwrite a program", () => {
-      // The panel has no idea what is in the player's editor; `App` does, and
-      // answers at the moment the button is pressed. A player who wrote their
-      // first program during level 5 must not have it taken away in silence.
-      const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
-      const { app, elements, storage } = setUp();
-      app.startTutorial(4);
-      requireElement(".tutorialtakecode", elements.tutorial).click();
-      expect(confirm).not.toHaveBeenCalled();
-
-      storage.setItem("develevateChallengeCode_0_1", INERT_CODE);
-      requireElement(".tutorialtakecode", elements.tutorial).click();
-
-      expect(confirm).toHaveBeenCalledTimes(1);
-      expect(storage.getItem("develevateChallengeCode_0_1")).toBe(INERT_CODE);
-    });
-
-    it("leaves the track from the panel's own button", () => {
-      const { app, elements, storage, view } = setUp();
-      storage.setItem(CODE_STORAGE_KEY, INERT_CODE);
-      app.startTutorial(2);
-
-      requireElement(".tutorialleave", elements.tutorial).click();
-
-      expect(app.tutorial).toBeUndefined();
-      expect(app.currentLevelIndex).toBe(0);
-      expect(elements.tutorial.children).toHaveLength(0);
-      expect(view.getValue()).toBe(INERT_CODE);
-    });
-
-    it("keeps the focus on the page when the button pressed was in the panel", () => {
-      // Leaving the track deletes the button that was pressed along with the
-      // rest of the panel, and the focus would fall back to the document -- the
-      // whole page to tab through again (WCAG 2.4.3). The bar is drawn before
-      // the panel is emptied, and it is the bar that catches the focus, exactly
-      // as it does when the Restart button destroys itself.
-      const { app, elements } = setUp();
-      app.startTutorial(2);
-      const leave = requireElement(".tutorialleave", elements.tutorial);
-      leave.focus();
-
-      leave.click();
-
-      expect(document.activeElement).toBe(requireElement(".startstop", elements.controls));
     });
   });
 });

@@ -1,6 +1,6 @@
 /**
- * The learning track's panel: the block of prose between the level bar and
- * the building, shown while a player is working through `src/game/tutorial.ts`.
+ * The learning track's panel: the block of prose beside the building, shown
+ * while a player is working through `src/game/tutorial.ts`.
  *
  * It is a presenter in the sense the module that was `presenters.ts` used the
  * word — one function for one region of the page, drawing it wholesale and
@@ -28,7 +28,6 @@
 import { tutorialLevels } from "#game/tutorial.ts";
 import { t, type MessageKey } from "#i18n/index.ts";
 import { query, queryAll, requireElement } from "#shared/lib/dom.ts";
-import { spriteIconMarkup } from "#shared/ui/icon.ts";
 import { markup, raw, renderElement } from "#shared/ui/markup.ts";
 
 import { highlightJavaScript } from "../../../ui/code-highlight.ts";
@@ -236,18 +235,18 @@ const DISCLOSURE_SELECTOR = ".tutorialhint, .tutorialexplanation";
 /**
  * Everything in the panel a player can be standing on when it is redrawn.
  *
- * The four summaries and the two buttons, in document order, which is the
- * order `querySelectorAll` returns them in. Every one of them is destroyed by a
+ * The four summaries and the copy button, in document order, which is the order
+ * `querySelectorAll` returns them in. Every one of them is destroyed by a
  * redraw, so every one of them needs somewhere to put the focus back.
  *
- * Both halves are written against the panel rather than one against the panel
- * and one against the button row, so that a control added anywhere in the panel
+ * Both halves are written against the panel rather than against the boxes the
+ * controls happen to sit in today, so that a control added anywhere in the panel
  * later is covered by this without anybody having to remember it exists.
  */
 const CONTROL_SELECTOR = ".tutorialpanel summary, .tutorialpanel button";
 
-/** The button that copies the level's program into the player's own editor. */
-const TAKE_CODE_SELECTOR = ".tutorialtakecode";
+/** The button that copies the level's answer to the clipboard. */
+const COPY_CODE_SELECTOR = ".tutorialcopycode";
 
 /**
  * The line that says whether that copy happened.
@@ -255,7 +254,7 @@ const TAKE_CODE_SELECTOR = ".tutorialtakecode";
  * Drawn empty by {@link tutorialTemplate} and written to on the click; see the
  * note there for why it is not created at the moment there is something to say.
  */
-const TAKEN_SELECTOR = ".tutorialtaken";
+const COPIED_SELECTOR = ".tutorialcopied";
 
 /**
  * What that line is currently saying, in a form a redraw can act on.
@@ -270,7 +269,7 @@ const TAKEN_SELECTOR = ".tutorialtaken";
  * keeps nothing in a variable between calls, and the drawn markup is the only
  * thing that outlives one.
  */
-const TAKEN_STATE_ATTRIBUTE = "data-taken";
+const COPIED_STATE_ATTRIBUTE = "data-copied";
 
 /**
  * The two things that line can say, by the answer that produces them.
@@ -279,51 +278,6 @@ const TAKEN_STATE_ATTRIBUTE = "data-taken";
  * attribute is not a place a key can be misspelled: {@link t} is reached only
  * through this table, and a renamed message fails the build here as it does
  * everywhere else.
- */
-const TAKEN_MESSAGES = {
-  yes: "tutorial.panel.codeTaken",
-  no: "tutorial.panel.codeRefused",
-} as const satisfies Readonly<Record<string, MessageKey>>;
-
-/** The answers {@link TAKEN_MESSAGES} has a sentence for. */
-type TakenState = keyof typeof TAKEN_MESSAGES;
-
-/**
- * Reads back what a drawn panel's line was saying.
- *
- * @param value - The attribute's value, or null when the line said nothing.
- * @returns The answer it recorded, or `undefined` when it recorded none.
- */
-function takenStateOf(value: string | null): TakenState | undefined {
-  return value === "yes" || value === "no" ? value : undefined;
-}
-
-/** The button that copies the level's answer to the clipboard. */
-const COPY_CODE_SELECTOR = ".tutorialcopycode";
-
-/**
- * The line that says whether that copy happened.
- *
- * Drawn empty by {@link tutorialTemplate} and written to on the click, the way
- * {@link TAKEN_SELECTOR}'s line is; see the note there for why it is not
- * created at the moment there is something to say.
- */
-const COPIED_SELECTOR = ".tutorialcopied";
-
-/**
- * What that line is currently saying, in a form a redraw can act on.
- *
- * See {@link TAKEN_STATE_ATTRIBUTE} for why this is an attribute on the
- * markup rather than a variable, and for why it is the answer that is carried
- * across a redraw rather than the sentence itself.
- */
-const COPIED_STATE_ATTRIBUTE = "data-copied";
-
-/**
- * The two things that line can say, by the answer that produces them.
- *
- * A token in the markup rather than the message key itself, for the reason
- * {@link TAKEN_MESSAGES} is.
  */
 const COPIED_MESSAGES = {
   yes: "tutorial.solution.copied",
@@ -376,57 +330,18 @@ async function copySolution(parent: HTMLElement): Promise<void> {
   line.textContent = t(COPIED_MESSAGES[state]);
 }
 
-/** The button that leaves the track for the numbered levels. */
-const LEAVE_SELECTOR = ".tutorialleave";
-
 /**
- * What the panel needs in order to draw itself and to be acted on.
+ * What the panel needs in order to draw itself.
  *
- * Deliberately not the words: see the note at the top of this file.
+ * One field, and deliberately still an object rather than a bare number: the
+ * panel is drawn from the catalogue at the moment of drawing (see the note at
+ * the top of this file), so what a caller supplies is only ever "which level",
+ * and a named field says which number that is where a positional argument would
+ * not.
  */
 export interface TutorialPanelData {
   /** Zero-based index into `tutorialLevels`. */
   readonly levelIndex: number;
-  /** How many levels the player has cleared, for the progress line. */
-  readonly clearedCount: number;
-  /**
-   * Called when the player asks for this level's program in their own editor.
-   *
-   * Only after the confirmation has been agreed to, when one was asked for; see
-   * {@link TutorialPanelData.hasOwnProgram}.
-   *
-   * @returns Whether the program was really stored. The panel says one thing or
-   * the other on the strength of this, so a caller that cannot fail still has to
-   * answer `true` rather than nothing: the write goes to a buffer the player
-   * cannot see from the track, and a confirmation is the only evidence they get
-   * that the button did anything. Silence on refusal was the old behaviour and
-   * it left them believing an afternoon's work was saved when it was not.
-   */
-  readonly onTakeCode: () => boolean;
-  /** Called when the player asks to leave the track for the levels. */
-  readonly onLeave: () => void;
-  /**
-   * Whether the player's own editor already holds a program worth keeping.
-   *
-   * Taking a level's program is destructive: it replaces whatever is in the game
-   * editor, which for a player who arrived at the track from the levels is
-   * an evening's work. `tutorial.button.takeCodeConfirm` is the question asked
-   * before that happens, and this is what decides whether it needs asking — an
-   * empty editor has nothing to lose, and a confirmation with no cost behind it
-   * is the kind players learn to dismiss without reading.
-   *
-   * A function, and asked at the moment the button is pressed rather than at the
-   * moment the panel is drawn, because the panel outlives the answer: a player
-   * who writes their first program while on level 5 would otherwise be measured
-   * against the empty store the panel was drawn over and have that program taken
-   * away without a word.
-   *
-   * Required, though every other way of getting this wrong is silent, because
-   * the only wrong default is one that skips the question: a caller that forgets
-   * it should not compile rather than overwrite the player's work. `App` answers
-   * it with `playerCodeWouldBeReplaced()`.
-   */
-  readonly hasOwnProgram: () => boolean;
 }
 
 /**
@@ -443,29 +358,16 @@ function isLevelId(value: string): value is TutorialLevelId {
   return Object.hasOwn(TUTORIAL_LEVEL_MESSAGES, value);
 }
 
-/**
- * Asks the player before overwriting the program they wrote themselves.
- *
- * @param data - The panel's data, for the callback that knows whether the
- * editor holds anything.
- * @returns Whether taking the program should go ahead.
- */
-function takeCodeAgreed(data: TutorialPanelData): boolean {
-  // `window.confirm` rather than a dialog of the game's own, matching the two
-  // questions the run controls already ask before throwing a program away. It is
-  // modal, focusable and readable by every assistive technology without a line
-  // of code here, which a hand-built one would not be.
-  return !data.hasOwnProgram() || window.confirm(t("tutorial.button.takeCodeConfirm"));
-}
-
 /** Everything the learning track's panel needs in order to render itself. */
 export interface TutorialTemplateData {
-  /** One-based number of the level being played, the way the player is told it. */
+  /**
+   * One-based number of the level being played.
+   *
+   * Not printed. It is written into the markup as
+   * {@link LEVEL_INDEX_ATTRIBUTE}, which is how a redraw tells a redraw of the
+   * same level from a move to the next one; see {@link presentTutorial}.
+   */
   readonly levelNumber: number;
-  /** How many levels the track holds, for the position and progress lines. */
-  readonly levelCount: number;
-  /** How many of them the player has cleared, for the progress line. */
-  readonly clearedCount: number;
   /** The level's name. Text, written escaped. */
   readonly title: string;
   /** What the level asks the player for. Text, written escaped. */
@@ -553,12 +455,12 @@ interface TutorialAnswerData {
  * on {@link TutorialTemplateData.solutionCode}.
  *
  * The copy button and the line that reports what it did sit above the code in
- * their own row, `.tutorialanswertools`, which exists only so that row can be
- * styled apart from `.tutorialbuttons` below: this pair acts on the code
- * beside it, and that pair leaves the level. `.tutorialcopied` is drawn empty
- * and filled in by {@link presentTutorial} on the click, for the same reason
- * `.tutorialtaken` is: a live region has to already be in the document when its
- * text arrives, or the announcement generally does not happen.
+ * their own row, `.tutorialanswertools`, so that the pair reads as one control
+ * and its receipt rather than as two things that happen to be near the answer.
+ * `.tutorialcopied` is drawn empty and filled in by {@link presentTutorial} on
+ * the click, and not created at the moment there is something to say: a live
+ * region has to already be in the document when its text arrives, or the
+ * announcement generally does not happen.
  *
  * @param answer - The starting program and the one that clears the level.
  * @returns The answer block's markup.
@@ -602,97 +504,33 @@ function tutorialHintTemplate(
 }
 
 /**
- * The track as a row of ticks, one per level, with the one being played lit.
- *
- * `design/ui-mockup.html`'s own `.steps` (§11), and its own three states: the
- * levels already behind the player, the one in front of them, and the ones not
- * reached. It says in a glance what the line above it says in words, which is
- * why it says it to the eye only -- `aria-hidden`, because "Level 3 of 8" is
- * already there, and eight nameless list items announced one after another
- * would be eight interruptions carrying nothing new (WCAG 1.1.1 treats a
- * decoration of text already present as decorative).
- *
- * The ticks count *positions on the track*, the way the line above them does,
- * and deliberately not cleared levels: the panel is told how many levels are
- * cleared but not which, and a player who reached level 5 from a bookmark with
- * two levels behind them would otherwise be shown a track marked done in places
- * they have never been. How many are really cleared stays where it has always
- * been, in `.tutorialprogress` at the foot of the panel, where it is a sentence
- * and cannot be mistaken for a position.
- *
- * @param levelNumber - One-based number of the level being played.
- * @param levelCount - How many levels the track holds.
- * @returns The tick row's markup.
- */
-function tutorialStepsTemplate(levelNumber: number, levelCount: number): string {
-  const ticks = Array.from({ length: levelCount }, (_unused, index) => {
-    // `is-done`/`is-current`, which is the mockup's own vocabulary and this
-    // page's own besides -- `.call.is-lit` in the building, `.stage.has-lesson`
-    // in the stage. The third state is the absence of both.
-    const state =
-      index < levelNumber - 1
-        ? ' class="is-done"'
-        : index === levelNumber - 1
-          ? ' class="is-current"'
-          : "";
-    return `<i${state}></i>`;
-  }).join("");
-  return `<div class="tutorialsteps" aria-hidden="true">${ticks}</div>`;
-}
-
-/**
- * The learning track's panel: where the player is, what to do, and the way out.
+ * The learning track's panel: what this level asks, and what to try.
  *
  * Drawn as a `<section>` with a name, which makes it a region landmark: the
- * track puts a block of prose between the level bar and the building, and
- * without a landmark a screen-reader player has no way to jump over it to the
- * game or back to it for the next hint. A `<section>` with no name is not a
- * landmark at all, so the name is what the element is for (WCAG 1.3.1: the
- * structure a sighted player can see has to be there in the markup too).
+ * track puts a block of prose beside the building, and without a landmark a
+ * screen-reader player has no way to jump over it to the game or back to it for
+ * the next hint. A `<section>` with no name is not a landmark at all, so the
+ * name is what the element is for (WCAG 1.3.1: the structure a sighted player
+ * can see has to be there in the markup too).
  *
- * The name is `tutorial.panel.label`, and the same message is also the first
- * thing written inside the panel, so the words announced on the way in are the
- * words on the screen. `aria-labelledby` pointing at that line would name the
- * landmark from one string instead of two — but it is one string already, since
- * both come from the same `t()` call, and the id it would need is a second thing
- * that has to stay unique in a page this panel does not own.
+ * The name is the level's own title, which is also the heading immediately
+ * inside it, so the words announced on the way in are the words on the screen.
+ * `aria-labelledby` pointing at that heading would name the landmark from one
+ * string instead of two — but it is one string already, since both are
+ * {@link TutorialTemplateData.title}, and the id it would need is a second
+ * thing that has to stay unique in a page this panel does not own.
  *
- * The order is the order it is read in, and it is the order of a lesson: where
- * you are, what to do, what to try if it will not come, why it happened, and
- * only then the buttons that leave. The progress line is last because it is the
- * one thing here that is about the track rather than about this level.
+ * Naming it after the level and not after the track is the same decision the
+ * rest of this panel now makes: eight lessons that each say "Learning track" at
+ * the top, over a row of ticks counting how far along the eight the player is,
+ * put the track between the player and the level they are actually on. What a
+ * lesson is for is the one level in front of it, so the panel says what that
+ * level is called, what it asks, what to try, and why it happens -- and where
+ * the player is on the track is left to the app bar's level switcher, which is
+ * where the game says that about every other level too.
  *
- * The head row and the ticks under it are `design/ui-mockup.html`'s own
- * `.lesson-head` and `.steps` (§11). The graduation cap is `aria-hidden` and
- * carries no meaning of its own: it says "lesson" beside a line that already
- * says so in words, and it is there because the panel now stands beside the
- * building as a card of its own and needs to be told apart from the building
- * at a glance rather than read (WCAG 1.1.1 — a decoration of adjacent text).
- * {@link tutorialStepsTemplate} explains what the ticks count.
- *
- * The two buttons are drawn as the mockup draws a lesson's actions: the one
- * that leaves as a `.ghost` on the left, the one that acts on this level as the
- * `.btn-primary` pushed to the right. The mockup's reasoning is about which of
- * a pair is pressed a hundred times more often, and it applies here with the
- * pair swapped -- taking the program into the editor is a thing done on the
- * track, and leaving it is done once. They are in that order in the markup too,
- * and not merely painted in it, so that the tab order and the reading order
- * agree with what is on screen (WCAG 1.3.2, 2.4.3).
- *
- * `.tutorialtaken` is drawn empty, directly under the buttons, and filled in by
- * {@link presentTutorial} when "Take this program" is pressed — an empty live
- * region waiting for its news, which is what `#save_message` in `index.html` is
- * too, the one the editor writes its "Code saved …" line into. It is here rather
- * than created on the click for the same reason any live region is: it has to
- * be in the document before the text appears inside it, or the announcement is
- * generally not made at all.
- *
- * Empty is what it is drawn as every time, including the redraws — the level
- * changing, the run restarting, the language changing, and the level being
- * cleared, which redraws the panel to move its progress line on. Whether any of
- * those keeps the news is `presentTutorial`'s to decide, and it puts it back
- * before this markup reaches the document; the template has no opinion beyond
- * refusing to be the thing that announces it.
+ * The order is the order it is read in, and it is the order of a lesson: what
+ * this is, what to do, what to try if it will not come, and why it happened.
  *
  * Three kinds of string arrive in this template and they are written
  * differently. The level's name and its goal are text and are escaped; the
@@ -707,7 +545,7 @@ function tutorialStepsTemplate(levelNumber: number, levelCount: number): string 
  * that does come from outside the repository, the level index, is used to look
  * up messages rather than printed.
  *
- * @param data - Where the player is on the track, and everything this level says.
+ * @param data - Which level it is drawing, and everything that level says.
  * @returns The panel's markup, as exactly one element.
  */
 export function tutorialTemplate(data: TutorialTemplateData): string {
@@ -722,17 +560,16 @@ export function tutorialTemplate(data: TutorialTemplateData): string {
       ),
     )
     .join("");
-  const steps = tutorialStepsTemplate(data.levelNumber, data.levelCount);
   // The index is written into the markup because it is the one piece of state
   // the panel has to remember about itself: presentTutorial carries the open
   // hints across a redraw of the same level and deliberately does not carry them
   // across a change of level, and after `replaceChildren` the old panel is the
   // only place the number it was drawn for still exists.
-  return markup`<section class="tutorialpanel" data-level-index="${data.levelNumber - 1}" aria-label="${t("tutorial.panel.label")}"><p class="tutorialposition">${raw(spriteIconMarkup("graduate"))}<span class="tutorialtrack">${t("tutorial.panel.label")}</span> <span class="tutorialstep">${t("tutorial.panel.position", { number: data.levelNumber, count: data.levelCount })}</span></p>${raw(steps)}<h2 class="tutorialtitle">${data.title}</h2><p class="tutorialgoal">${data.goal}</p>${raw(hints)}<details class="tutorialexplanation"><summary>${t("tutorial.panel.explanationSummary")}</summary><p class="tutorialprose">${raw(data.explanation)}</p></details><div class="tutorialbuttons"><button type="button" class="ghost tutorialleave">${t("tutorial.button.leave")}</button><button type="button" class="btn btn-primary tutorialtakecode">${t("tutorial.button.takeCode")}</button></div><p class="tutorialtaken" aria-live="polite"></p><p class="tutorialprogress">${t("tutorial.panel.progress", { cleared: data.clearedCount, count: data.levelCount })}</p></section>`;
+  return markup`<section class="tutorialpanel" data-level-index="${data.levelNumber - 1}" aria-label="${data.title}"><h2 class="tutorialtitle">${data.title}</h2><p class="tutorialgoal">${data.goal}</p>${raw(hints)}<details class="tutorialexplanation"><summary>${t("tutorial.panel.explanationSummary")}</summary><p class="tutorialprose">${raw(data.explanation)}</p></details></section>`;
 }
 
 /**
- * Draws the learning track's panel and wires up its three buttons.
+ * Draws the learning track's panel and wires up its copy button.
  *
  * Safe to call over a panel that is already there, which is the only way it is
  * ever called after the first time: the track redraws it when the player clears
@@ -754,21 +591,24 @@ export function tutorialTemplate(data: TutorialTemplateData): string {
  * - The focus. A redraw destroys whichever hint or button the player was
  *   standing on, and a keyboard player would be dropped back at the top of the
  *   document with the whole page to tab through again (WCAG 2.4.3). The control
- *   that lands in the same position takes the focus back, the same way the
- *   level bar restores its navigation row: the panel's controls are the same
- *   seven in the same order for every level, so the position is the control.
+ *   that lands in the same position takes the focus back, the same way the level
+ *   switcher puts the focus back on the tile it was standing on: the panel's
+ *   controls are the same five in the same order for every level -- three hint
+ *   summaries, the explanation's, and the button that copies the answer -- so
+ *   the position is the control.
  *
  * @param parent - The `.tutorial` element of the page shell.
- * @param data - Which level, how far along, and what its two buttons do.
+ * @param data - Which level to draw.
  * @throws {RangeError} When the track has no level at that index.
  * @throws {Error} When it has one, but the catalogue has no prose for it.
  */
 export function presentTutorial(parent: HTMLElement, data: TutorialPanelData): void {
   const level = tutorialLevels[data.levelIndex];
-  // The number the player is told, and deliberately not the number in the level's
-  // id: "Level 3 of 8" is a statement about where they are on the track, so it
-  // counts positions. The prose is looked up by id instead, and the two are
-  // different numbers the moment a level is inserted -- see
+  // A position on the track, and deliberately not the number in the level's id:
+  // it is what `data-level-index` is written from, and that attribute answers
+  // "is this the same level I was just drawn for", which is a question about
+  // positions in `tutorialLevels`. The prose is looked up by id instead, and the
+  // two are different numbers the moment a level is inserted -- see
   // TUTORIAL_LEVEL_MESSAGES.
   const levelNumber = data.levelIndex + 1;
   // Both of these are thrown rather than drawn around, because there is nothing
@@ -801,21 +641,12 @@ export function presentTutorial(parent: HTMLElement, data: TutorialPanelData): v
   const focusedControl = queryAll(CONTROL_SELECTOR, parent).findIndex(
     (control) => control === document.activeElement,
   );
-  // Carried across a redraw of the same level, and dropped when the level changes.
-  // Three things redraw this panel and none of them is news: the run starting
-  // again, the language changing, and -- the one that made this necessary -- the
-  // level being cleared, which redraws the panel to move its counter on while the
-  // player is looking at it. Without this the confirmation they had just been
-  // given would vanish underneath the overlay congratulating them. A different
-  // level is the one case where it has to go: the copy was made of a program the
-  // panel is no longer showing.
-  const takenState = sameLevel
-    ? takenStateOf(query(TAKEN_SELECTOR, parent)?.getAttribute(TAKEN_STATE_ATTRIBUTE) ?? null)
-    : undefined;
-  // Carried the same way and for the same reason as `takenState`: a copy made
-  // moments ago should still say so after the panel is redrawn to move the
-  // progress line on, and a different level means a different answer was on the
-  // clipboard button, so nothing here is still true of it.
+  // Carried across a redraw of the same level, and dropped when the level
+  // changes. The redraws are the run starting again, the language changing, and
+  // the level being cleared, and none of them is news: a copy made moments ago
+  // should still say so afterwards. A different level is the one case where it
+  // has to go, because a different answer is on the button by then and nothing
+  // this line says is still true of it.
   const copiedState = sameLevel
     ? copiedStateOf(query(COPIED_SELECTOR, parent)?.getAttribute(COPIED_STATE_ATTRIBUTE) ?? null)
     : undefined;
@@ -823,8 +654,6 @@ export function presentTutorial(parent: HTMLElement, data: TutorialPanelData): v
   const panel = renderElement(
     tutorialTemplate({
       levelNumber,
-      levelCount: tutorialLevels.length,
-      clearedCount: data.clearedCount,
       title: t(messages.title),
       goal: t(messages.goal),
       hints: [t(hint1), t(hint2), t(hint3)],
@@ -846,19 +675,13 @@ export function presentTutorial(parent: HTMLElement, data: TutorialPanelData): v
     }),
   );
 
-  if (takenState !== undefined) {
+  if (copiedState !== undefined) {
     // Written while the panel is still detached, which is what makes this a
     // restoration rather than a second announcement: a live region that is
     // inserted with its text already in it is generally not read out, and the
     // player heard this sentence when they pressed the button. The click below
     // writes into the region once it is in the document, which is the case where
     // being read out is the whole point.
-    const line = requireElement(TAKEN_SELECTOR, panel);
-    line.setAttribute(TAKEN_STATE_ATTRIBUTE, takenState);
-    line.textContent = t(TAKEN_MESSAGES[takenState]);
-  }
-  if (copiedState !== undefined) {
-    // The same restoration, for the copy button's line.
     const line = requireElement(COPIED_SELECTOR, panel);
     line.setAttribute(COPIED_STATE_ATTRIBUTE, copiedState);
     line.textContent = t(COPIED_MESSAGES[copiedState]);
@@ -871,27 +694,8 @@ export function presentTutorial(parent: HTMLElement, data: TutorialPanelData): v
     }
   });
 
-  // Nothing is said when the question was asked and answered no, which is the
-  // one case here that needs no line: the player was shown a dialog about this
-  // and dismissed it themselves.
-  requireElement(TAKE_CODE_SELECTOR, parent).addEventListener("click", () => {
-    if (takeCodeAgreed(data)) {
-      // The copy is made before the line to report it is looked up, and not in
-      // the same expression. An assignment resolves the element it assigns to
-      // first, so an `onTakeCode` that redrew the panel -- it is supplied by the
-      // object that owns the redrawing -- would leave this writing news into a
-      // paragraph that had already been thrown away.
-      const state: TakenState = data.onTakeCode() ? "yes" : "no";
-      const line = requireElement(TAKEN_SELECTOR, parent);
-      line.setAttribute(TAKEN_STATE_ATTRIBUTE, state);
-      line.textContent = t(TAKEN_MESSAGES[state]);
-    }
-  });
   requireElement(COPY_CODE_SELECTOR, parent).addEventListener("click", () => {
     void copySolution(parent);
-  });
-  requireElement(LEAVE_SELECTOR, parent).addEventListener("click", () => {
-    data.onLeave();
   });
 
   // `findIndex` answers -1 when the focus was somewhere else entirely -- in the

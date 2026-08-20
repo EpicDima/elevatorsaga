@@ -31,35 +31,21 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  // A spy outlives the spec that installed it, and `window.confirm` is only
-  // spied on by the specs about taking a program. jsdom's own implementation
-  // never answers `true`, so a spy left behind saying it does would quietly
-  // change what a later spec measures.
-  vi.restoreAllMocks();
   setLocale(DEFAULT_LOCALE);
 });
 
 /**
- * Panel data for the first level, with nothing to lose in the editor.
+ * Panel data for the first level.
  *
- * `hasOwnProgram` answers `false` by default, which keeps the confirmation out
- * of the way of every spec that is not about it: an empty editor is the state in
- * which taking a program simply happens. `onTakeCode` answers `true` for the
- * same reason — a store that accepts the write is the ordinary case, and it is
- * what the panel's confirmation line is drawn from.
+ * One field, so this is barely a helper — it is here so that the specs read as
+ * "the panel, drawn for level 3" rather than as an object literal, and so that a
+ * second field arriving later has one place to acquire a default.
  *
  * @param overrides - The fields the spec is about.
  * @returns Data for one draw of the panel.
  */
 function panelData(overrides: Partial<TutorialPanelData> = {}): TutorialPanelData {
-  return {
-    levelIndex: 0,
-    clearedCount: 0,
-    hasOwnProgram: () => false,
-    onTakeCode: vi.fn(() => true),
-    onLeave: vi.fn(),
-    ...overrides,
-  };
+  return { levelIndex: 0, ...overrides };
 }
 
 /**
@@ -114,7 +100,7 @@ function uncommented(code: string): string {
 }
 
 describe("presentTutorial", () => {
-  it("draws the level, its goal, its hints and the way out", () => {
+  it("draws the level, its goal and its hints", () => {
     presentTutorial(parent, panelData());
 
     expect(requireElement(".tutorialtitle", parent).textContent).toBe(
@@ -128,12 +114,6 @@ describe("presentTutorial", () => {
     );
     expect(requireElement(".tutorialexplanation summary", parent).textContent).toBe(
       "Why this happens",
-    );
-    expect(requireElement(".tutorialtakecode", parent).textContent).toBe(
-      "Take this program into your own editor",
-    );
-    expect(requireElement(".tutorialleave", parent).textContent).toBe(
-      "Leave for the game's levels",
     );
     expect(requireElement(".tutorialcopycode", parent).textContent).toBe("Copy this program");
   });
@@ -161,18 +141,21 @@ describe("presentTutorial", () => {
     }
   });
 
-  it("says where on the track the player is, and how much of the track is done", () => {
-    // Two numbers about two different things. The position is where this level
-    // sits; the progress is what this browser has ever cleared. A player who
-    // starts level 1 again after clearing five is not back to having cleared one.
-    presentTutorial(parent, panelData({ levelIndex: 2, clearedCount: 5 }));
+  it("says nothing about the track the level belongs to", () => {
+    // The panel used to open on "Learning track / Level 3 of 8" over a row of
+    // ticks and close on "5 of 8 levels done", all of it about the eight lessons
+    // rather than about the one in front of the player -- and all of it a
+    // restatement of what the app bar's level switcher already says. What is
+    // left is the lesson, which is what a player on level 3 opened.
+    presentTutorial(parent, panelData({ levelIndex: 2 }));
 
-    const count = String(tutorialLevels.length);
-    expect(requireElement(".tutorialposition", parent).textContent).toBe(
-      `Learning track Level 3 of ${count}`,
-    );
-    expect(requireElement(".tutorialprogress", parent).textContent).toBe(
-      `5 of ${count} levels done`,
+    expect(query(".tutorialposition", parent)).toBeNull();
+    expect(query(".tutorialsteps", parent)).toBeNull();
+    expect(query(".tutorialprogress", parent)).toBeNull();
+    // The level's own name is the first thing in the card, with nothing above it
+    // to read first.
+    expect(requireElement(".tutorialpanel", parent).firstElementChild?.className).toBe(
+      "tutorialtitle",
     );
   });
 
@@ -209,8 +192,8 @@ describe("presentTutorial", () => {
       expect(requireElement(".tutorialexplanation .tutorialprose", parent).textContent).not.toBe(
         "",
       );
-      expect(requireElement(".tutorialposition", parent).textContent).toContain(
-        `Level ${String(index + 1)} of`,
+      expect(requireElement(".tutorialpanel", parent).getAttribute("data-level-index")).toBe(
+        String(index),
       );
       // The answer is the program `tutorial-solutions.test.ts` clears the level
       // with, not a copy of it, and it survives being escaped and parsed again.
@@ -270,7 +253,7 @@ describe("presentTutorial", () => {
     expect(() => {
       presentTutorial(parent, panelData({ levelIndex: tutorialLevels.length }));
     }).toThrow(RangeError);
-    expect(requireElement(".tutorialposition", parent).textContent).toContain("Level 2 of");
+    expect(requireElement(".tutorialpanel", parent).getAttribute("data-level-index")).toBe("1");
   });
 
   describe("the hints a player has opened", () => {
@@ -314,22 +297,6 @@ describe("presentTutorial", () => {
   });
 
   describe("focus", () => {
-    it("puts it back on the button a redraw destroyed", () => {
-      // Clearing the level redraws this panel to move its progress line on, and
-      // that deletes whichever button was under the player's finger. Focus would
-      // fall back to the document, dropping a keyboard player at the top of the
-      // page and leaving them the whole of it to tab through again (WCAG 2.4.3).
-      presentTutorial(parent, panelData());
-      const pressed = requireElement(".tutorialtakecode", parent);
-      pressed.focus();
-
-      presentTutorial(parent, panelData());
-
-      const redrawn = requireElement(".tutorialtakecode", parent);
-      expect(redrawn).not.toBe(pressed);
-      expect(document.activeElement).toBe(redrawn);
-    });
-
     it("puts it back on the summary a redraw destroyed", () => {
       // A `<summary>` is in the tab order without a `tabindex`, so a player can
       // be standing on hint 2 when the language changes under them.
@@ -342,23 +309,31 @@ describe("presentTutorial", () => {
     });
 
     it("puts it back on the copy button a redraw destroyed", () => {
+      // Clearing the level redraws this panel, and that deletes whichever
+      // control was under the player's finger. Focus would fall back to the
+      // document, dropping a keyboard player at the top of the page and leaving
+      // them the whole of it to tab through again (WCAG 2.4.3).
       presentTutorial(parent, panelData());
-      requireElement(".tutorialcopycode", parent).focus();
+      const pressed = requireElement(".tutorialcopycode", parent);
+      pressed.focus();
 
       presentTutorial(parent, panelData());
 
-      expect(document.activeElement).toBe(requireElement(".tutorialcopycode", parent));
+      const redrawn = requireElement(".tutorialcopycode", parent);
+      expect(redrawn).not.toBe(pressed);
+      expect(document.activeElement).toBe(redrawn);
     });
 
     it("restores by position, so a change of level lands in the same place", () => {
-      // Every level draws the same seven controls in the same order, which is
-      // what makes the position the control.
+      // Every level draws the same five controls in the same order -- four
+      // summaries and the copy button -- which is what makes the position the
+      // control.
       presentTutorial(parent, panelData({ levelIndex: 0 }));
-      requireElement(".tutorialleave", parent).focus();
+      requireElement(".tutorialcopycode", parent).focus();
 
       presentTutorial(parent, panelData({ levelIndex: 1 }));
 
-      expect(document.activeElement).toBe(requireElement(".tutorialleave", parent));
+      expect(document.activeElement).toBe(requireElement(".tutorialcopycode", parent));
     });
 
     it("does not take it on the first draw", () => {
@@ -379,247 +354,6 @@ describe("presentTutorial", () => {
       presentTutorial(parent, panelData());
 
       expect(document.activeElement).toBe(elsewhere);
-    });
-  });
-
-  describe("the two buttons", () => {
-    it("reports a press of the one that cannot destroy anything", () => {
-      const data = panelData();
-      presentTutorial(parent, data);
-
-      requireElement(".tutorialleave", parent).click();
-
-      expect(data.onLeave).toHaveBeenCalledTimes(1);
-      expect(data.onTakeCode).not.toHaveBeenCalled();
-    });
-
-    it("takes the program without a question when there is nothing to lose", () => {
-      // A confirmation with no cost behind it is the kind players learn to
-      // dismiss without reading, and the one time it matters is the time they
-      // dismiss it without reading.
-      const confirm = vi.spyOn(window, "confirm").mockReturnValue(true);
-      const data = panelData({ hasOwnProgram: () => false });
-      presentTutorial(parent, data);
-
-      requireElement(".tutorialtakecode", parent).click();
-
-      expect(confirm).not.toHaveBeenCalled();
-      expect(data.onTakeCode).toHaveBeenCalledTimes(1);
-    });
-
-    it("asks before overwriting a program the player wrote", () => {
-      const confirm = vi.spyOn(window, "confirm").mockReturnValue(true);
-      const data = panelData({ hasOwnProgram: () => true });
-      presentTutorial(parent, data);
-
-      requireElement(".tutorialtakecode", parent).click();
-
-      expect(confirm).toHaveBeenCalledWith(
-        "The game editor already holds a program of yours. Replace it with this one?",
-      );
-      expect(data.onTakeCode).toHaveBeenCalledTimes(1);
-    });
-
-    it("does nothing at all when that question is refused", () => {
-      const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
-      const data = panelData({ hasOwnProgram: () => true });
-      presentTutorial(parent, data);
-
-      requireElement(".tutorialtakecode", parent).click();
-
-      expect(confirm).toHaveBeenCalledTimes(1);
-      expect(data.onTakeCode).not.toHaveBeenCalled();
-    });
-
-    it("asks whether there is anything to lose when the button is pressed, not when the panel is drawn", () => {
-      // A player who writes their first program while on level 5 would otherwise
-      // be measured against the empty editor the panel was drawn over, and have
-      // that program taken away without a word.
-      const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
-      let wroteSomething = false;
-      const data = panelData({ hasOwnProgram: () => wroteSomething });
-      presentTutorial(parent, data);
-      wroteSomething = true;
-
-      requireElement(".tutorialtakecode", parent).click();
-
-      expect(confirm).toHaveBeenCalledTimes(1);
-      expect(data.onTakeCode).not.toHaveBeenCalled();
-    });
-
-    it("belongs to the panel on screen and not to the one it replaced", () => {
-      // The panel is replaced wholesale rather than patched, so no handler can
-      // be bound twice and the callbacks of the previous draw cannot be reached
-      // at all.
-      const first = panelData();
-      presentTutorial(parent, first);
-      const second = panelData();
-      presentTutorial(parent, second);
-
-      requireElement(".tutorialleave", parent).click();
-
-      expect(first.onLeave).not.toHaveBeenCalled();
-      expect(second.onLeave).toHaveBeenCalledTimes(1);
-    });
-  });
-
-  describe("what the panel says about taking the program", () => {
-    it("is a live region that is already there, and empty, before there is news", () => {
-      // Both halves are the point. A screen reader that first meets a live
-      // region at the moment it is inserted with text already in it generally
-      // says nothing, so the element has to be drawn empty and written to later
-      // -- and an element drawn with a sentence in it would be a panel claiming
-      // a program was taken before anybody pressed the button.
-      presentTutorial(parent, panelData());
-
-      const line = requireElement(".tutorialtaken", parent);
-      expect(line.getAttribute("aria-live")).toBe("polite");
-      expect(line.textContent).toBe("");
-    });
-
-    it("says the program was taken, into the region a screen reader is watching", () => {
-      // The write goes to a buffer that is not on screen from the track, so this
-      // line is the only evidence the player gets that the button did anything.
-      //
-      // The element is held from before the click, because *which* node the
-      // sentence lands in is the whole design: a handler that built a new
-      // paragraph and swapped it in would read the same from the outside and
-      // would announce nothing at all, the live region having been met by the
-      // screen reader with its text already in it.
-      const data = panelData();
-      presentTutorial(parent, data);
-      const line = requireElement(".tutorialtaken", parent);
-
-      requireElement(".tutorialtakecode", parent).click();
-
-      expect(line.textContent).toBe(
-        "Copied into the game editor, waiting when you leave the track.",
-      );
-      expect(line.isConnected).toBe(true);
-      expect(requireElement(".tutorialtaken", parent)).toBe(line);
-    });
-
-    it("says the store refused rather than letting the player believe it worked", () => {
-      // Answering `false` is a store that took the write and threw: a quota that
-      // is full, or the private-browsing mode that accepts a `Storage` object
-      // and refuses every write to it. The old panel said the same nothing to
-      // that as it did to success, and the player walked away believing their
-      // program was waiting for them.
-      const data = panelData({ onTakeCode: vi.fn(() => false) });
-      presentTutorial(parent, data);
-
-      requireElement(".tutorialtakecode", parent).click();
-
-      expect(requireElement(".tutorialtaken", parent).textContent).toBe(
-        "Your browser refused to store it. Copy the program out of the editor by hand to keep it.",
-      );
-    });
-
-    it("stays quiet when the player answered the question with no", () => {
-      // The one case that needs no line: they were asked about this in a dialog
-      // and dismissed it themselves, so nothing happened that they do not know.
-      vi.spyOn(window, "confirm").mockReturnValue(false);
-      presentTutorial(parent, panelData({ hasOwnProgram: () => true }));
-
-      requireElement(".tutorialtakecode", parent).click();
-
-      expect(requireElement(".tutorialtaken", parent).textContent).toBe("");
-    });
-
-    it("keeps the news across a redraw of the same level", () => {
-      // Carried like the open hints beside it. The redraw that made this
-      // necessary is the level being cleared: the panel is drawn again to move
-      // its counter on, and the confirmation the player had just been given
-      // would otherwise vanish under the overlay congratulating them.
-      presentTutorial(parent, panelData());
-      requireElement(".tutorialtakecode", parent).click();
-
-      presentTutorial(parent, panelData({ clearedCount: 1 }));
-
-      expect(requireElement(".tutorialtaken", parent).textContent).toBe(
-        "Copied into the game editor, waiting when you leave the track.",
-      );
-    });
-
-    it("keeps a refusal across that redraw too, not only good news", () => {
-      // The half a player most needs to still be able to read: the program is
-      // not waiting for them anywhere, and the line is where it says so.
-      const refusing = { onTakeCode: vi.fn(() => false) };
-      presentTutorial(parent, panelData(refusing));
-      requireElement(".tutorialtakecode", parent).click();
-
-      presentTutorial(parent, panelData({ ...refusing, clearedCount: 1 }));
-
-      expect(requireElement(".tutorialtaken", parent).textContent).toBe(
-        "Your browser refused to store it. Copy the program out of the editor by hand to keep it.",
-      );
-    });
-
-    it("restores the news without announcing it a second time", () => {
-      // The counterpart of drawing the line empty: this text was read out when
-      // the button was pressed, so on the way back it has to be in the paragraph
-      // before the paragraph is in the page. A live region met already populated
-      // is generally not announced, which is the failure everywhere else in this
-      // panel and the requirement here.
-      presentTutorial(parent, panelData());
-      requireElement(".tutorialtakecode", parent).click();
-      const observer = new MutationObserver(() => undefined);
-      observer.observe(parent, { childList: true, characterData: true, subtree: true });
-
-      presentTutorial(parent, panelData({ clearedCount: 1 }));
-
-      // `takeRecords` rather than the callback: the callback is a microtask, and
-      // a spec that awaited one would be asserting after the assertion could
-      // still be made. Everything the redraw did is in here synchronously.
-      const records = observer.takeRecords();
-      observer.disconnect();
-      // One record is expected -- the whole panel being swapped into `parent` --
-      // and that is the one that carries the text in, unannounced. What must not
-      // be here is a mutation of the line itself, which is a write to a live
-      // region that is already in the document, and is read out.
-      const line = requireElement(".tutorialtaken", parent);
-      expect(records.filter((record) => line.contains(record.target))).toEqual([]);
-      expect(records).not.toEqual([]);
-    });
-
-    it("drops the news when the panel moves to another level", () => {
-      // The one case where the sentence would be describing a copy made of a
-      // program the panel is no longer showing.
-      presentTutorial(parent, panelData());
-      requireElement(".tutorialtakecode", parent).click();
-
-      presentTutorial(parent, panelData({ levelIndex: 1 }));
-
-      expect(requireElement(".tutorialtaken", parent).textContent).toBe("");
-    });
-
-    it("says it in the language the player is reading, at the moment it says it", () => {
-      // The catalogue is asked when the sentence is written, not when the panel
-      // was drawn -- the same rule the rest of this file follows. A draw-time
-      // lookup would be a line in the language the player *had been* reading.
-      presentTutorial(parent, panelData());
-      setLocale("ru");
-
-      requireElement(".tutorialtakecode", parent).click();
-
-      expect(requireElement(".tutorialtaken", parent).textContent).toBe(
-        "Программа скопирована в редактор игры — она будет ждать вас, когда вы выйдете с дорожки.",
-      );
-    });
-
-    it("says the restored news in the language the panel is now drawn in", () => {
-      // The reason the answer is what survives a redraw and not the sentence:
-      // changing the language redraws the panel, and English news restored into
-      // a Russian panel would be the one line the picker had not translated.
-      presentTutorial(parent, panelData());
-      requireElement(".tutorialtakecode", parent).click();
-      setLocale("ru");
-
-      presentTutorial(parent, panelData());
-
-      expect(requireElement(".tutorialtaken", parent).textContent).toBe(
-        "Программа скопирована в редактор игры — она будет ждать вас, когда вы выйдете с дорожки.",
-      );
     });
   });
 
@@ -718,7 +452,7 @@ describe("presentTutorial", () => {
         expect(requireElement(".tutorialcopied", parent).textContent).not.toBe("");
       });
 
-      presentTutorial(parent, panelData({ clearedCount: 1 }));
+      presentTutorial(parent, panelData());
 
       expect(requireElement(".tutorialcopied", parent).textContent).toBe(
         "Copied to your clipboard.",
@@ -760,18 +494,16 @@ describe("presentTutorial", () => {
       // this is the whole reason: `App.relocalise` draws it again, and a panel
       // that had kept the sentences it was given the first time would be the one
       // block of the page still in English.
-      presentTutorial(parent, panelData({ clearedCount: 1 }));
+      presentTutorial(parent, panelData());
       setLocale("ru");
 
-      presentTutorial(parent, panelData({ clearedCount: 1 }));
+      presentTutorial(parent, panelData());
 
       expect(requireElement(".tutorialtitle", parent).textContent).toBe(
         "Лифт, который никуда не едет",
       );
-      expect(requireElement(".tutorialleave", parent).textContent).toBe("Выйти к уровням игры");
-      expect(requireElement(".tutorialprogress", parent).textContent).toBe(
-        `Пройдено 1 из ${String(tutorialLevels.length)} уровней`,
-      );
+      expect(requireElement(".tutorialhint summary", parent).textContent).toBe("Подсказка 1");
+      expect(requireElement(".tutorialcopycode", parent).textContent).toBe("Скопировать программу");
     });
 
     it("draws this level's own answer, out of the catalogue of the language it draws in", () => {
@@ -829,8 +561,6 @@ describe("tutorialTemplate", () => {
     return renderElement(
       tutorialTemplate({
         levelNumber: 1,
-        levelCount: 8,
-        clearedCount: 0,
         title: "The elevator that goes nowhere",
         goal: "Deliver 10 passengers",
         hints: ["first", "second", "third"],
@@ -849,31 +579,18 @@ describe("tutorialTemplate", () => {
     // lets a screen-reader player jump over the panel to the building or back
     // to it for the next hint (WCAG 1.3.1).
     expect(drawn.tagName).toBe("SECTION");
-    expect(drawn.getAttribute("aria-label")).toBe("Learning track");
+    // Named after the level rather than after the track: the words announced on
+    // the way into the landmark are the words at the top of the card, and they
+    // say which lesson this is rather than which of eight it is.
+    expect(drawn.getAttribute("aria-label")).toBe("The elevator that goes nowhere");
     expect([...drawn.children].map((child) => child.className)).toEqual([
-      "tutorialposition",
-      "tutorialsteps",
       "tutorialtitle",
       "tutorialgoal",
       "tutorialhint",
       "tutorialhint",
       "tutorialhint",
       "tutorialexplanation",
-      "tutorialbuttons",
-      "tutorialtaken",
-      "tutorialprogress",
     ]);
-  });
-
-  it("leaves the line about taking the program empty, and live", () => {
-    // The presenter writes into this on the click, and a live region only
-    // announces reliably when it was in the document before the text arrived --
-    // so it is drawn here, empty, rather than made when there is news. Empty is
-    // also the only honest state for a panel nobody has pressed a button on.
-    const line = requireElement(".tutorialtaken", panel());
-
-    expect(line.textContent).toBe("");
-    expect(line.getAttribute("aria-live")).toBe("polite");
   });
 
   it("escapes the program, whatever the answer turns out to contain", () => {
@@ -895,8 +612,6 @@ describe("tutorialTemplate", () => {
     const hostile = `if (a < b && c) { elevator.goToFloor("<img src=x onerror=alert(1)>"); }`;
     const html = tutorialTemplate({
       levelNumber: 1,
-      levelCount: 8,
-      clearedCount: 0,
       title: "t",
       goal: "g",
       hints: ["one", "two", "three"],
@@ -1018,75 +733,6 @@ describe("tutorialTemplate", () => {
     expect(panel().querySelectorAll("details")).toHaveLength(4);
   });
 
-  it("says where the player is and how much of the track is behind them", () => {
-    const drawn = panel({ levelNumber: 3, levelCount: 8, clearedCount: 5 });
-
-    expect(drawn.querySelector(".tutorialposition")?.textContent).toBe(
-      "Learning track Level 3 of 8",
-    );
-    expect(drawn.querySelector(".tutorialprogress")?.textContent).toBe("5 of 8 levels done");
-  });
-
-  it("draws one tick per level, with the ones behind the player apart from the one under them", () => {
-    // The mockup's `.steps`: the same "Level 3 of 8" said to the eye. It counts
-    // positions on the track and deliberately not cleared levels -- this panel is
-    // told how many are cleared but never which, and a player who opened level 3
-    // from a bookmark with nothing behind them must not be shown two levels
-    // marked done in places they have never been. Note the arguments: five
-    // cleared, and still exactly two ticks behind the third.
-    const drawn = panel({ levelNumber: 3, levelCount: 8, clearedCount: 5 });
-    const row = requireElement(".tutorialsteps", drawn);
-
-    expect([...row.children].map((tick) => tick.className)).toEqual([
-      "is-done",
-      "is-done",
-      "is-current",
-      "",
-      "",
-      "",
-      "",
-      "",
-    ]);
-    // Eight nameless items read out one after another would be eight
-    // interruptions carrying nothing the line above them does not already say
-    // in words (WCAG 1.1.1 treats a decoration of adjacent text as decorative).
-    expect(row.getAttribute("aria-hidden")).toBe("true");
-  });
-
-  it("puts no tick behind the player on the first level, and none in front on the last", () => {
-    const first = requireElement(".tutorialsteps", panel({ levelNumber: 1, levelCount: 3 }));
-    const last = requireElement(".tutorialsteps", panel({ levelNumber: 3, levelCount: 3 }));
-
-    expect([...first.children].map((tick) => tick.className)).toEqual(["is-current", "", ""]);
-    expect([...last.children].map((tick) => tick.className)).toEqual([
-      "is-done",
-      "is-done",
-      "is-current",
-    ]);
-  });
-
-  it("marks the head row with a graduation cap nobody has to hear about", () => {
-    // The panel is a card beside the building now, and the cap is what tells the
-    // two apart before either is read. It says "lesson" next to a line that
-    // already says so in words, so it is decoration (WCAG 1.1.1).
-    const icon = requireElement(".tutorialposition .ds-icon", panel());
-
-    expect(icon.tagName.toLowerCase()).toBe("svg");
-    expect(icon.getAttribute("aria-hidden")).toBe("true");
-    expect(icon.getAttribute("focusable")).toBe("false");
-  });
-
-  it("counts the levels in the plural the number calls for", () => {
-    // The plural is selected on the count of levels, not on the count cleared:
-    // "1 of 8 levels done" is about eight levels.
-    expect(
-      panel({ levelCount: 1, clearedCount: 1 }).querySelector(".tutorialprogress")?.textContent,
-    ).toBe("1 of 1 level done");
-    expect(
-      panel({ levelCount: 8, clearedCount: 1 }).querySelector(".tutorialprogress")?.textContent,
-    ).toBe("1 of 8 levels done");
-  });
-
   it("writes down the index the panel was drawn for, zero-based", () => {
     // Read back by the presenter after `replaceChildren` has thrown the old
     // panel away, to decide whether the hints the player opened may stay open.
@@ -1094,23 +740,17 @@ describe("tutorialTemplate", () => {
     expect(panel({ levelNumber: 6 }).getAttribute("data-level-index")).toBe("5");
   });
 
-  it("gives the way out two real buttons, and no second Start over", () => {
-    const buttons = [...panel().querySelectorAll(".tutorialbuttons button")];
+  it("gives the lesson one button, and no second Start over", () => {
+    const buttons = [...panel().querySelectorAll("button")];
 
-    // The quiet one first and the painted one second, in the markup and not
-    // merely in the paint: `design/ui-mockup.html`'s lesson puts the action a
-    // player takes on every level at the end of the row, and a tab order that
-    // disagreed with the row would be WCAG 1.3.2/2.4.3. `.ghost` and
-    // `.btn.btn-primary` are the mockup's own two button shapes.
-    expect(buttons.map((button) => button.className)).toEqual([
-      "ghost tutorialleave",
-      "btn btn-primary tutorialtakecode",
-    ]);
-    expect(buttons.map((button) => button.getAttribute("type"))).toEqual(["button", "button"]);
-    expect(buttons.map((button) => button.textContent)).toEqual([
-      "Leave for the game's levels",
-      "Take this program into your own editor",
-    ]);
+    // One control on the card, and it acts on the answer beside it. The pair
+    // that used to end the lesson -- taking the program into the editor, and
+    // leaving for the game's levels -- went with the head row and the footnote:
+    // a lesson is about the level in front of the player, and the ways out of it
+    // are the level bar's business.
+    expect(buttons.map((button) => button.className)).toEqual(["tutorialcopycode"]);
+    expect(buttons.map((button) => button.getAttribute("type"))).toEqual(["button"]);
+    expect(buttons.map((button) => button.textContent)).toEqual(["Copy this program"]);
     // The panel had its own "Start over" until the run buttons were gathered
     // into `controlsTemplate`, which is drawn directly under it. Two buttons on
     // screen together under one accessible name, doing not quite the same thing,
@@ -1118,13 +758,11 @@ describe("tutorialTemplate", () => {
     expect(panel().textContent).not.toContain("Start over");
   });
 
-  it("names the learning track's panel and everything a player presses in it, in the language active when it is drawn", () => {
+  it("names the lesson and everything a player presses in it, in the language active when it is drawn", () => {
     setLocale("ru");
     const drawn = renderElement(
       tutorialTemplate({
         levelNumber: 7,
-        levelCount: 8,
-        clearedCount: 6,
         title: "Один лифт на три этажа",
         goal: "Перевезите 20 пассажиров",
         hints: ["раз", "два", "три"],
@@ -1134,21 +772,17 @@ describe("tutorialTemplate", () => {
       }),
     );
 
-    // The landmark's name is translated too. A region announced as "Learning
-    // track" in a Russian page is the one thing a screen-reader player cannot
-    // see is out of place.
-    expect(drawn.getAttribute("aria-label")).toBe("Учебная дорожка");
-    expect(drawn.querySelector(".tutorialposition")?.textContent).toBe(
-      "Учебная дорожка Уровень 7 из 8",
-    );
+    // The landmark's name is the level's own title, so it is translated by
+    // whoever hands the title in -- and a region announced in English inside a
+    // Russian page is the one thing a screen-reader player cannot see is out of
+    // place. Everything the panel words itself is asked of the catalogue here,
+    // at the moment of drawing.
+    expect(drawn.getAttribute("aria-label")).toBe("Один лифт на три этажа");
     expect(drawn.querySelector(".tutorialhint summary")?.textContent).toBe("Подсказка 1");
     expect(drawn.querySelector(".tutorialexplanation summary")?.textContent).toBe(
       "Почему так получается",
     );
-    expect(drawn.querySelector(".tutorialprogress")?.textContent).toBe("Пройдено 6 из 8 уровней");
-    expect(
-      [...drawn.querySelectorAll(".tutorialbuttons button")].map((button) => button.textContent),
-    ).toEqual(["Выйти к уровням игры", "Забрать программу в свой редактор"]);
+    expect(drawn.querySelector(".tutorialcopycode")?.textContent).toBe("Скопировать программу");
   });
 
   it("leaves the answer in the language it is written in", () => {
@@ -1161,8 +795,6 @@ describe("tutorialTemplate", () => {
       renderElement(
         tutorialTemplate({
           levelNumber: 1,
-          levelCount: 8,
-          clearedCount: 0,
           title: "т",
           goal: "ц",
           hints: ["раз", "два", "три"],

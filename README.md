@@ -122,12 +122,13 @@ upside down fails the suite instead of reaching a player.
 
 Each of them carries three hints, folded away until you want one — the third is the answer in full,
 because a hint you cannot get past is not a hint — and a **Why this happens** note on what the run
-was really doing. The editor belongs to the track: what you write is kept per tutorial level and
-your own program in the game's editor is left alone until you press **Take this program into your
-own editor**, which copies what is in front of you across for when you leave. Cleared ones are
-remembered in `localStorage`, so the header link goes to the first you have not cleared — back to
-the first of all once there is none — and nothing is ever locked: every one of them is playable by
-its address from the first visit.
+was really doing. That card is the lesson and nothing else — no header naming the track, no counter
+of what you have finished, no buttons under the prose: what is true of the whole track is the level
+menu's business, and this is the level. The editor belongs to the track too: what you write is kept
+per tutorial level and your own program in the game's editor is never written to, so what leaves the
+track is whatever you copy out with the **Copy this program** button beside the answer. Cleared ones
+are remembered in `localStorage` and the menu marks them cleared, and nothing is ever locked: every
+one of them is playable by its address from the first visit.
 
 The track refuses one thing you can write in the URL, with a console warning and taken back out of
 the address bar: `seed`, because whether the given program really loses is a fact about the

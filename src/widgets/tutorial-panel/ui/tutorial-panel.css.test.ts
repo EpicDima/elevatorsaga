@@ -16,10 +16,10 @@ describe("ds palette on the lesson card", () => {
   // bar. Listed as pairs rather than as rules because what fails here is
   // arithmetic, and arithmetic is what a test without a browser can do.
   it.each([
-    // The panel's own ink, and the muted one its prose, its step counter, its
-    // markers and its two receipts all share: 14.04:1 and 6.70:1 dark, 15.99:1
-    // and 5.90:1 light. The mockup's --text-faint was measured on the same
-    // surface and refused at 3.62:1 dark / 3.14:1 light.
+    // The panel's own ink, and the muted one its prose, its disclosure markers
+    // and its copy receipt all share: 14.04:1 and 6.70:1 dark, 15.99:1 and
+    // 5.90:1 light. The mockup's --text-faint was measured on the same surface
+    // and refused at 3.62:1 dark / 3.14:1 light.
     ["ds-text", "ds-panel", 4.5],
     ["ds-text-muted", "ds-panel", 4.5],
     // Inside an open hint, one surface up: 6.19:1 dark, 5.56:1 light. (--ds-text
@@ -32,13 +32,6 @@ describe("ds palette on the lesson card", () => {
     // near 1.4.11's 3:1, so a label that stopped clearing 1.4.3 would leave a
     // button with nothing left to find it by.
     ["ds-text", "ds-n-3", 4.5],
-    // The two lit states of the progress ticks, against the card behind them:
-    // 7.72:1 and 7.92:1 dark, 4.63:1 and 4.56:1 light. Graphical objects, so
-    // 1.4.11's 3:1 -- and a restatement of the words above them either way,
-    // which is why the third state is allowed to be the 1.22:1 groove they are
-    // drawn in.
-    ["ds-ok", "ds-panel", 3],
-    ["ds-accent", "ds-panel", 3],
     // The 3px rule down the start edge of a line the player has to write,
     // inside the answer -- the one thing this panel paints on the code
     // background rather than on its own card, so a pairing neither the card
