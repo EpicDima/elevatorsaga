@@ -1478,6 +1478,32 @@ html[data-theme="dark"] .tasklink.is-done {
   white-space: nowrap;
 }
 
+/*
+ * The language `<select>`: `design/ui-mockup.html`'s own `.langpick` (§3),
+ * filed here for the reason `.seg` above is -- the mockup declares it in its
+ * app-bar section beside `.ghost`, and its one user, there and here, is this
+ * popover's language block, which `.setblock .langpick` below then widens to
+ * the full column.
+ *
+ * Every declaration is load-bearing, which a `<select>` is unusual in
+ * making true. Left alone the control is drawn by the engine in the
+ * platform's own light chrome -- a white-bordered box with a greyed label
+ * inside it, sitting in a dark panel -- because this app deliberately does
+ * not set `color-scheme` yet (see the palette's own note above), so the
+ * engine has nothing else to go on. Stating the box's background, border
+ * and colour is what puts it back into the panel's palette, its drop-down
+ * arrow included: the arrow is painted in `currentColor`.
+ */
+.langpick {
+  height: 30px;
+  padding: 0 6px;
+  border: 1px solid var(--ds-line);
+  border-radius: var(--ds-r-md);
+  background: var(--ds-bg);
+  color: var(--ds-text-muted);
+  font-size: 13px;
+}
+
 .setblock .langpick {
   width: 100%;
 }
