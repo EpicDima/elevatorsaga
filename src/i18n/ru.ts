@@ -1590,4 +1590,285 @@ elevator.goToFloor(2); // Всё равно добавится — очеред�
     update: function(dt, elevators, floors) {
     }
 }`,
+
+  // Уровни со 2-го по 7-й идут парами: короткий уровень показывает профиль
+  // трафика, длинный по нему судит. Четыре из шести открываются одной и той же
+  // стартовой программой — той развозкой по одному поручению за раз, с которой
+  // начинается первый уровень, — и это повтор нарочный, а не недосмотр: одна и
+  // та же программа промахивается впритирку на утреннем пике, проваливается на
+  // вечернем и ведёт себя третьим образом в обед, а игрок, который правит одни
+  // и те же тридцать строк четыре раза, видит, что изменился ритм здания, а не
+  // код. Между этими четырьмя ключами отличается только комментарий `//` —
+  // единственная часть значения `.code`, которая переводится.
+
+  // Уровень 2. Утренний пик, взятый в размере, за которым можно уследить: все
+  // пассажиры рейса появляются в холле, поэтому интересно не то, какую кабину
+  // послать, а то, когда её отпустить.
+  "skyscraper.sky2.title": "Все начинают в холле",
+  "skyscraper.sky2.briefing.html":
+    "Десять этажей, две кабины и здание, которое только что открыло двери. Это <em>утренний пик</em>: пока идёт рейс, каждый пассажир появляется в холле и каждый едет вверх. Кнопки на этажах не горят, поэтому у вопроса «кто вызвал?» один ответ, и выбор кабины под вызов не решает почти ничего. Решает обратный путь. Кабина возвращается в холл пустой, что бы вы ни делали, так что единственное число, которое вы можете изменить, — сколько человек она увезла наверх. А программа, с которой вы начинаете, отправляет кабину в путь, едва первый пассажир нажал кнопку.",
+
+  "skyscraper.sky2.startingCode.code": `{
+    init: function(elevators, floors) {
+        let next = 0;
+
+        function callNextElevator(floor) {
+            elevators[next].goToFloor(floor.floorNum());
+            next = (next + 1) % elevators.length;
+        }
+
+        elevators.forEach(function(elevator) {
+            elevator.on("floor_button_pressed", function(floorNum) {
+                // TODO: кабина уезжает, едва внутри оказался один человек
+                elevator.goToFloor(floorNum);
+            });
+            elevator.on("idle", function() {
+                elevator.goToFloor(0);
+            });
+        });
+
+        floors.forEach(function(floor) {
+            floor.on("up_button_pressed", function() {
+                callNextElevator(floor);
+            });
+            floor.on("down_button_pressed", function() {
+                callNextElevator(floor);
+            });
+        });
+    },
+    update: function(dt, elevators, floors) {
+    }
+}`,
+
+  // Уровень 3. То же утро в башне и первый уровень блока с серебром и золотом.
+  // Назван по часу, а не по механике, потому что механика тут со второго
+  // уровня, а нового — то, что её спрашивают в полный рост.
+  "skyscraper.sky3.title": "Шестнадцать этажей до девяти утра",
+  "skyscraper.sky3.briefing.html":
+    "Шестнадцать этажей, четыре кабины по десять мест и самое тяжёлое утро в этом здании. Всё, что сказано на прошлом уровне, остаётся в силе — и теперь за это платят: холл наполняется быстрее, чем его успевает разгрузить одна кабина, а кабина, уехавшая полупустой, потратила целый круговой рейс на половину загрузки. На этот раз вы начинаете не с нуля: в редакторе развозка, которая отвечает на вызов по пути, а не едет к нему отдельно. Этого хватает, чтобы закрыть рейс. Серебро и золото просят сверх того — не только меньше пройденных этажей, но и холл, в котором никто не стоит подолгу.",
+
+  "skyscraper.sky3.startingCode.code": `{
+    init: function(elevators, floors) {
+        let next = 0;
+
+        function insertStop(elevator, floorNum) {
+            // Стоящей кабине, которую зовут на этаж, где она и так стоит,
+            // делать нечего -- кто мог сесть, тот сел.
+            if (floorNum === elevator.currentFloor() && elevator.destinationDirection() === "stopped") {
+                return;
+            }
+            const queue = elevator.destinationQueue.slice();
+            if (queue.indexOf(floorNum) === -1) {
+                queue.push(floorNum);
+            }
+            const here = elevator.currentFloor();
+            queue.sort(function(a, b) {
+                return Math.abs(a - here) - Math.abs(b - here);
+            });
+            elevator.destinationQueue = queue;
+            elevator.checkDestinationQueue();
+        }
+
+        function callNextElevator(floor) {
+            insertStop(elevators[next], floor.floorNum());
+            next = (next + 1) % elevators.length;
+        }
+
+        elevators.forEach(function(elevator) {
+            elevator.on("floor_button_pressed", function(floorNum) {
+                insertStop(elevator, floorNum);
+            });
+            elevator.on("idle", function() {
+                if (elevator.currentFloor() !== 0) {
+                    elevator.goToFloor(0);
+                }
+            });
+        });
+
+        floors.forEach(function(floor) {
+            floor.on("up_button_pressed", function() {
+                callNextElevator(floor);
+            });
+            floor.on("down_button_pressed", function() {
+                callNextElevator(floor);
+            });
+        });
+    },
+    update: function(dt, elevators, floors) {
+    }
+}`,
+
+  // Уровень 4. То же утро наоборот. Назван по самому развороту: стартовая
+  // программа не стала неправильной как-то по-новому — это та же привычка в
+  // здании, где привычка поменяла сторону.
+  "skyscraper.sky4.title": "Теперь холл — это пункт назначения",
+  "skyscraper.sky4.briefing.html":
+    "Двенадцать этажей, две кабины и то же здание в конце дня. <em>Вечерний пик</em> — это утро, проигранное задом наперёд: в холле больше никто не появляется, и все пытаются в него попасть. А значит, кабина без дела стоит не там: программа, с которой вы начинаете, отправляет её домой, в холл, — утром это было ровно правильно, а теперь это единственный этаж в здании, на котором никто не ждёт. Каждое ожидание в этом рейсе начинается с того, что кабина лезет обратно наверх за человеком, и каждый такой подъём вы уже один раз оплатили.",
+
+  "skyscraper.sky4.startingCode.code": `{
+    init: function(elevators, floors) {
+        let next = 0;
+
+        function callNextElevator(floor) {
+            elevators[next].goToFloor(floor.floorNum());
+            next = (next + 1) % elevators.length;
+        }
+
+        elevators.forEach(function(elevator) {
+            elevator.on("floor_button_pressed", function(floorNum) {
+                elevator.goToFloor(floorNum);
+            });
+            elevator.on("idle", function() {
+                // TODO: в холле сегодня вечером никто не ждёт
+                elevator.goToFloor(0);
+            });
+        });
+
+        floors.forEach(function(floor) {
+            floor.on("up_button_pressed", function() {
+                callNextElevator(floor);
+            });
+            floor.on("down_button_pressed", function() {
+                callNextElevator(floor);
+            });
+        });
+    },
+    update: function(dt, elevators, floors) {
+    }
+}`,
+
+  // Уровень 5. Вечер в полный рост и единственный уровень блока, который судят
+  // по часам и по самому долгому ожиданию, а не по пройденным этажам: вечерний
+  // пик плох не тем, что мотает расстояние, а тем, что забывает человека.
+  "skyscraper.sky5.title": "Четырнадцать этажей, и все вниз",
+  "skyscraper.sky5.briefing.html":
+    "Четырнадцать этажей, три кабины, и все уходят разом. Этот рейс судится по часам и по самому долгому ожиданию, которое достаётся одному пассажиру, — это та самая пара чисел, за которой настоящее здание следит в час окончания работы: кабина, набравшая людей по дороге вниз, проезжает нижние этажи без единого свободного места, и тот, мимо кого она проехала, и есть человек, по которому мерят рейс. В редакторе — развозка с прошлого боевого уровня. Всех она вниз увозит. Вопрос в том, успевает ли она увезти последнего.",
+
+  "skyscraper.sky5.startingCode.code": `{
+    init: function(elevators, floors) {
+        let next = 0;
+
+        function insertStop(elevator, floorNum) {
+            // Стоящей кабине, которую зовут на этаж, где она и так стоит,
+            // делать нечего -- кто мог сесть, тот сел.
+            if (floorNum === elevator.currentFloor() && elevator.destinationDirection() === "stopped") {
+                return;
+            }
+            const queue = elevator.destinationQueue.slice();
+            if (queue.indexOf(floorNum) === -1) {
+                queue.push(floorNum);
+            }
+            const here = elevator.currentFloor();
+            queue.sort(function(a, b) {
+                return Math.abs(a - here) - Math.abs(b - here);
+            });
+            elevator.destinationQueue = queue;
+            elevator.checkDestinationQueue();
+        }
+
+        function callNextElevator(floor) {
+            insertStop(elevators[next], floor.floorNum());
+            next = (next + 1) % elevators.length;
+        }
+
+        elevators.forEach(function(elevator) {
+            elevator.on("floor_button_pressed", function(floorNum) {
+                insertStop(elevator, floorNum);
+            });
+            elevator.on("idle", function() {
+                if (elevator.currentFloor() !== 0) {
+                    elevator.goToFloor(0);
+                }
+            });
+        });
+
+        floors.forEach(function(floor) {
+            floor.on("up_button_pressed", function() {
+                callNextElevator(floor);
+            });
+            floor.on("down_button_pressed", function() {
+                callNextElevator(floor);
+            });
+        });
+    },
+    update: function(dt, elevators, floors) {
+    }
+}`,
+
+  // Уровень 6. Оба пика сразу. Короткий: девять этажей, пять мест в кабине и
+  // первое здание блока, где кабине есть куда деться с пользой в обе стороны.
+  "skyscraper.sky6.title": "Обед едет в обе стороны",
+  "skyscraper.sky6.briefing.html":
+    "Девять этажей в середине дня. <em>Обеденный трафик</em> — это оба пика одновременно: половина здания спускается на улицу, а другая половина поднимается обратно, поэтому каждый рейс так или иначе задевает холл. Это первая хорошая новость, которую блок вам сообщил: у кабины больше нет холостого плеча, которого не избежать. И это же значит, что ошибка снова сменила форму. Кабина, которая высадила пассажиров и поехала искать следующий вызов, выбросила ту половину пути, которую и так собиралась проделать.",
+
+  "skyscraper.sky6.startingCode.code": `{
+    init: function(elevators, floors) {
+        let next = 0;
+
+        function callNextElevator(floor) {
+            // TODO: вызовы горят и в холле, и наверху одновременно
+            elevators[next].goToFloor(floor.floorNum());
+            next = (next + 1) % elevators.length;
+        }
+
+        elevators.forEach(function(elevator) {
+            elevator.on("floor_button_pressed", function(floorNum) {
+                elevator.goToFloor(floorNum);
+            });
+            elevator.on("idle", function() {
+                elevator.goToFloor(0);
+            });
+        });
+
+        floors.forEach(function(floor) {
+            floor.on("up_button_pressed", function() {
+                callNextElevator(floor);
+            });
+            floor.on("down_button_pressed", function() {
+                callNextElevator(floor);
+            });
+        });
+    },
+    update: function(dt, elevators, floors) {
+    }
+}`,
+
+  // Уровень 7. Последний из уровней на трафике и тот, ради которого писался
+  // весь блок: когда спрос идёт в обе стороны, круговой рейс с первого уровня
+  // можно заставить везти кого-нибудь всю дорогу.
+  "skyscraper.sky7.title": "Ни одна половина рейса не бесплатна",
+  "skyscraper.sky7.briefing.html":
+    "Двенадцать этажей, три кабины и обеденный ритм в здании, достаточно большом, чтобы он дорого стоил. Всё, что кабина здесь делает, она делает дважды: из холла с загрузкой и обратно в холл с другой, а рейс судится в <em>перемещениях</em> — пройденных этажах, — так что плечо, которое никого не везёт, и есть единственное, что тут можно потерять. Вы снова начинаете с той развозки по одному поручению за раз, с которой открылся блок: она была неправильной в каждом здании до сих пор и хуже всего работает здесь. Золото на этом уровне — то, ради чего блок писался с первой своей строки: те же пассажиры, те же кабины и самый короткий круговой рейс, который вы сумеете для них устроить.",
+
+  "skyscraper.sky7.startingCode.code": `{
+    init: function(elevators, floors) {
+        let next = 0;
+
+        function callNextElevator(floor) {
+            elevators[next].goToFloor(floor.floorNum());
+            next = (next + 1) % elevators.length;
+        }
+
+        elevators.forEach(function(elevator) {
+            elevator.on("floor_button_pressed", function(floorNum) {
+                // TODO: одно поручение за раз, и каждое пересекает всё здание
+                elevator.goToFloor(floorNum);
+            });
+            elevator.on("idle", function() {
+                elevator.goToFloor(0);
+            });
+        });
+
+        floors.forEach(function(floor) {
+            floor.on("up_button_pressed", function() {
+                callNextElevator(floor);
+            });
+            floor.on("down_button_pressed", function() {
+                callNextElevator(floor);
+            });
+        });
+    },
+    update: function(dt, elevators, floors) {
+    }
+}`,
 };

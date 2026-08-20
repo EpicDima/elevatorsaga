@@ -1575,4 +1575,286 @@ elevator.goToFloor(2); // Queued anyway -- queue: 2, 3, 2`,
     update: function(dt, elevators, floors) {
     }
 }`,
+
+  // Levels 2 to 7 come in pairs -- a short level that shows a traffic profile,
+  // then a long one judged on it. Four of the six open with the same starting
+  // program, the one-errand-at-a-time dispatcher level 1 begins with, and that
+  // repetition is the point rather than an oversight: the same program is a
+  // near-miss at the morning peak, a disaster at the evening one and something
+  // else again at midday, and a player who edits the same thirty lines four
+  // times is being shown that the building's rhythm, not the code, is what
+  // changed. Only the `//` comment differs between those four keys, and a
+  // comment is the one part of a `.code` value that is translated.
+
+  // Level 2. The morning up-peak, small enough to watch: every passenger of the
+  // run appears in the lobby, so the interesting decision is not which car to
+  // send but when to let one leave.
+  "skyscraper.sky2.title": "Everyone starts in the lobby",
+  "skyscraper.sky2.briefing.html":
+    'Ten floors, two cars, and a building that has just opened its doors. This is the <em>morning up-peak</em>: for as long as the run lasts every passenger appears in the lobby and every one of them is going up. The buttons upstairs stay dark, so "which floor called?" is a question with one answer, and picking a car for the call decides almost nothing. What decides the run is the trip back. A car returns to the lobby empty whatever you do, so the only figure you can change is how many people it carried on the way out — and the program you start with sends a car off the moment the first passenger presses a button.',
+
+  "skyscraper.sky2.startingCode.code": `{
+    init: function(elevators, floors) {
+        let next = 0;
+
+        function callNextElevator(floor) {
+            elevators[next].goToFloor(floor.floorNum());
+            next = (next + 1) % elevators.length;
+        }
+
+        elevators.forEach(function(elevator) {
+            elevator.on("floor_button_pressed", function(floorNum) {
+                // TODO: the car leaves the instant one person is aboard
+                elevator.goToFloor(floorNum);
+            });
+            elevator.on("idle", function() {
+                elevator.goToFloor(0);
+            });
+        });
+
+        floors.forEach(function(floor) {
+            floor.on("up_button_pressed", function() {
+                callNextElevator(floor);
+            });
+            floor.on("down_button_pressed", function() {
+                callNextElevator(floor);
+            });
+        });
+    },
+    update: function(dt, elevators, floors) {
+    }
+}`,
+
+  // Level 3. The same morning in a tower, and the first level of the block to
+  // award silver and gold. Named for the hour rather than the mechanic because
+  // the mechanic is level 2's and this is where it is asked for at scale.
+  "skyscraper.sky3.title": "Sixteen floors before nine",
+  "skyscraper.sky3.briefing.html":
+    "Sixteen floors, four cars with room for ten, and the heaviest morning in the building. Everything level 2 said still holds and now it costs: the lobby fills faster than any one car can empty it, and a car that leaves half full has spent a whole round trip carrying half a load. You do not start from nothing this time — the program in the editor is the sweep, answering each call as the car passes it rather than driving out to it. That is enough to finish the run. Silver and gold ask for something else on top: not just fewer floors crossed, but a lobby nobody stands in for long.",
+
+  "skyscraper.sky3.startingCode.code": `{
+    init: function(elevators, floors) {
+        let next = 0;
+
+        function insertStop(elevator, floorNum) {
+            // A stopped car that is asked for the floor it is already on has
+            // nothing to do -- whoever could board has boarded.
+            if (floorNum === elevator.currentFloor() && elevator.destinationDirection() === "stopped") {
+                return;
+            }
+            const queue = elevator.destinationQueue.slice();
+            if (queue.indexOf(floorNum) === -1) {
+                queue.push(floorNum);
+            }
+            const here = elevator.currentFloor();
+            queue.sort(function(a, b) {
+                return Math.abs(a - here) - Math.abs(b - here);
+            });
+            elevator.destinationQueue = queue;
+            elevator.checkDestinationQueue();
+        }
+
+        function callNextElevator(floor) {
+            insertStop(elevators[next], floor.floorNum());
+            next = (next + 1) % elevators.length;
+        }
+
+        elevators.forEach(function(elevator) {
+            elevator.on("floor_button_pressed", function(floorNum) {
+                insertStop(elevator, floorNum);
+            });
+            elevator.on("idle", function() {
+                if (elevator.currentFloor() !== 0) {
+                    elevator.goToFloor(0);
+                }
+            });
+        });
+
+        floors.forEach(function(floor) {
+            floor.on("up_button_pressed", function() {
+                callNextElevator(floor);
+            });
+            floor.on("down_button_pressed", function() {
+                callNextElevator(floor);
+            });
+        });
+    },
+    update: function(dt, elevators, floors) {
+    }
+}`,
+
+  // Level 4. The morning run backwards. Named for the reversal itself, because
+  // the starting program is not wrong in any way it was wrong before -- it is
+  // the same habit, in a building where the habit has changed sides.
+  "skyscraper.sky4.title": "Now the lobby is the destination",
+  "skyscraper.sky4.briefing.html":
+    "Twelve floors, two cars, and the same building at the end of the day. The <em>evening down-peak</em> is the morning played backwards: nobody appears in the lobby any more and everybody is trying to reach it. Which means a car with nothing to do is in the wrong place — the program you start with sends it home to the lobby, which was exactly right this morning and is now the one floor in the building with nobody standing on it. Every wait in this run begins with a car climbing back up to fetch somebody, and every one of those climbs is a trip you have already paid for once.",
+
+  "skyscraper.sky4.startingCode.code": `{
+    init: function(elevators, floors) {
+        let next = 0;
+
+        function callNextElevator(floor) {
+            elevators[next].goToFloor(floor.floorNum());
+            next = (next + 1) % elevators.length;
+        }
+
+        elevators.forEach(function(elevator) {
+            elevator.on("floor_button_pressed", function(floorNum) {
+                elevator.goToFloor(floorNum);
+            });
+            elevator.on("idle", function() {
+                // TODO: the lobby is where nobody is waiting this evening
+                elevator.goToFloor(0);
+            });
+        });
+
+        floors.forEach(function(floor) {
+            floor.on("up_button_pressed", function() {
+                callNextElevator(floor);
+            });
+            floor.on("down_button_pressed", function() {
+                callNextElevator(floor);
+            });
+        });
+    },
+    update: function(dt, elevators, floors) {
+    }
+}`,
+
+  // Level 5. The evening at scale, and the one level of the block judged on the
+  // clock and on the longest wait rather than on floors crossed -- because what
+  // a down-peak does badly is not waste distance, it is forget somebody.
+  "skyscraper.sky5.title": "Fourteen floors, all going down",
+  "skyscraper.sky5.briefing.html":
+    "Fourteen floors, three cars, and everybody leaving at once. This run is judged on the clock and on the longest wait any single passenger suffers, which is the pair of figures a real building watches at going-home time: a car filling up on its way down passes the floors below it with no room left, and the person it passes is the one the run is measured by. The editor opens with the sweep from level 3. It gets everyone downstairs. Whether it gets the last of them downstairs in time is the question.",
+
+  "skyscraper.sky5.startingCode.code": `{
+    init: function(elevators, floors) {
+        let next = 0;
+
+        function insertStop(elevator, floorNum) {
+            // A stopped car that is asked for the floor it is already on has
+            // nothing to do -- whoever could board has boarded.
+            if (floorNum === elevator.currentFloor() && elevator.destinationDirection() === "stopped") {
+                return;
+            }
+            const queue = elevator.destinationQueue.slice();
+            if (queue.indexOf(floorNum) === -1) {
+                queue.push(floorNum);
+            }
+            const here = elevator.currentFloor();
+            queue.sort(function(a, b) {
+                return Math.abs(a - here) - Math.abs(b - here);
+            });
+            elevator.destinationQueue = queue;
+            elevator.checkDestinationQueue();
+        }
+
+        function callNextElevator(floor) {
+            insertStop(elevators[next], floor.floorNum());
+            next = (next + 1) % elevators.length;
+        }
+
+        elevators.forEach(function(elevator) {
+            elevator.on("floor_button_pressed", function(floorNum) {
+                insertStop(elevator, floorNum);
+            });
+            elevator.on("idle", function() {
+                if (elevator.currentFloor() !== 0) {
+                    elevator.goToFloor(0);
+                }
+            });
+        });
+
+        floors.forEach(function(floor) {
+            floor.on("up_button_pressed", function() {
+                callNextElevator(floor);
+            });
+            floor.on("down_button_pressed", function() {
+                callNextElevator(floor);
+            });
+        });
+    },
+    update: function(dt, elevators, floors) {
+    }
+}`,
+
+  // Level 6. Both peaks at once. The short one: nine floors, five to a car, and
+  // the first building in the block where a car has somewhere useful to be in
+  // both directions.
+  "skyscraper.sky6.title": "Lunch runs both ways",
+  "skyscraper.sky6.briefing.html":
+    "Nine floors at midday. <em>Lunch traffic</em> is the two peaks happening at the same time: half the building is going down to the street and the other half is coming back up, so every trip touches the lobby in one direction or the other. That is the first good news the block has offered you — a car no longer has an empty leg it cannot avoid. It also means the mistake has changed shape again. A car that drops its passengers off and then goes looking for the next call has thrown away the half of the journey it was already going to make.",
+
+  "skyscraper.sky6.startingCode.code": `{
+    init: function(elevators, floors) {
+        let next = 0;
+
+        function callNextElevator(floor) {
+            // TODO: the calls are in the lobby and upstairs at the same time
+            elevators[next].goToFloor(floor.floorNum());
+            next = (next + 1) % elevators.length;
+        }
+
+        elevators.forEach(function(elevator) {
+            elevator.on("floor_button_pressed", function(floorNum) {
+                elevator.goToFloor(floorNum);
+            });
+            elevator.on("idle", function() {
+                elevator.goToFloor(0);
+            });
+        });
+
+        floors.forEach(function(floor) {
+            floor.on("up_button_pressed", function() {
+                callNextElevator(floor);
+            });
+            floor.on("down_button_pressed", function() {
+                callNextElevator(floor);
+            });
+        });
+    },
+    update: function(dt, elevators, floors) {
+    }
+}`,
+
+  // Level 7. The last of the traffic levels, and the one that pays back the
+  // whole block: with demand in both directions, the round trip level 1
+  // introduced can be made to carry somebody the entire way round.
+  "skyscraper.sky7.title": "Neither half of the trip is free",
+  "skyscraper.sky7.briefing.html":
+    "Twelve floors, three cars, and the midday rhythm in a building big enough for it to cost. Everything a car does here it does twice: out of the lobby with a load, back to the lobby with another one, and the run is judged in <em>moves</em> — floors crossed — so a leg that carries nobody is the only thing there is to lose. You are back to the one-errand-at-a-time program the block opened with, which is the wrong dispatcher in every building so far and is at its worst here. Gold on this level is what the block has been about since its first line: the same passengers, the same cars, and the shortest round trip you can arrange for them.",
+
+  "skyscraper.sky7.startingCode.code": `{
+    init: function(elevators, floors) {
+        let next = 0;
+
+        function callNextElevator(floor) {
+            elevators[next].goToFloor(floor.floorNum());
+            next = (next + 1) % elevators.length;
+        }
+
+        elevators.forEach(function(elevator) {
+            elevator.on("floor_button_pressed", function(floorNum) {
+                // TODO: one errand at a time, and every errand crosses the building
+                elevator.goToFloor(floorNum);
+            });
+            elevator.on("idle", function() {
+                elevator.goToFloor(0);
+            });
+        });
+
+        floors.forEach(function(floor) {
+            floor.on("up_button_pressed", function() {
+                callNextElevator(floor);
+            });
+            floor.on("down_button_pressed", function() {
+                callNextElevator(floor);
+            });
+        });
+    },
+    update: function(dt, elevators, floors) {
+    }
+}`,
 } as const satisfies Readonly<Record<string, string | PluralForms<"en">>>;
