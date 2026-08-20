@@ -1670,6 +1670,32 @@ html[data-theme="dark"] .tasklink.is-done {
   color: var(--ds-text-muted);
 }
 
+/*
+ * The About block's two source links: `design/ui-mockup.html`'s own `.setlink`
+ * (§A), ported declaration for declaration -- a glyph, whose repository it is,
+ * and the address itself under it. The mockup's own note carries the two
+ * decisions in it. There is no underline, because two underlined links one
+ * above the other turn the block into a picket fence, and the glyph plus the
+ * hover state already say these are links. And the address is shown in full
+ * rather than hidden behind the name, because it is a thing people sometimes
+ * copy out by hand rather than click -- which is also why `.setlink small` is
+ * the popover's second monospace face, after the seed's.
+ *
+ * `font-weight: normal` and the `text-decoration: none` on the hover state are
+ * the two declarations the mockup does not need and this stylesheet does. The
+ * document rules above give every `<a>` on the page `font-weight: bold` and an
+ * underline on hover, which the mockup has no equivalent of at all -- so the
+ * address line under each name rendered bold where the mockup draws it plain,
+ * and both rows grew the underline this rule's own comment exists to say they
+ * must not have. The base rule's `text-decoration: none` was already losing:
+ * `a:hover` outweighs a bare `.setlink`, and only `.setlink:hover` outweighs
+ * it back. Nothing else here departs: `--ds-text-muted` on the row is the
+ * mockup's own `--text-muted`, and the `--ds-text-faint` glyph is a graphical
+ * object (WCAG 1.4.11, 3:1) reading 3.62:1 dark and 3.14:1 light against
+ * `--ds-panel`. The pale value never has to survive the hover it would fail
+ * on -- `--ds-text-faint` on `--ds-raised` is 2.96:1 light -- because
+ * `.setlink:hover .ds-icon` takes the accent before that surface appears.
+ */
 .setlink {
   display: flex;
   gap: 8px;
@@ -1677,6 +1703,7 @@ html[data-theme="dark"] .tasklink.is-done {
   padding: 6px 7px;
   border-radius: var(--ds-r-md);
   color: var(--ds-text-muted);
+  font-weight: normal;
   text-decoration: none;
 }
 
@@ -1687,6 +1714,7 @@ html[data-theme="dark"] .tasklink.is-done {
 .setlink:hover {
   background: var(--ds-raised);
   color: var(--ds-text);
+  text-decoration: none;
 }
 
 .setlink .ds-icon {
