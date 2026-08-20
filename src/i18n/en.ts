@@ -533,6 +533,23 @@ elevator.goingDownIndicator(false);`,
   "game.feedback.failure.title": "Level failed",
   "game.feedback.failure.message": "Maybe your program needs an improvement?",
   "game.feedback.next": "Next level",
+  // The verdict card's close button. It puts the card away and does nothing
+  // else — "Got it" rather than "Close" because that is what the player is
+  // saying, and deliberately not a word that could be read as offering the run
+  // again: that is the app bar's own button, and one promise of it is enough.
+  "game.feedback.dismiss": "Got it",
+  // The line under the message: what the run would have to do for its next
+  // star. One sentence per tier rather than one with the tier's name
+  // interpolated, because Russian declines it — «до серебра», «до золота» —
+  // and a name lifted out of `game.goalBar.tier.*` would arrive nominative.
+  // `{needs}` is the unmet requirements, punctuated by `formatList`; each of
+  // them is `game.feedback.more.need.html`, which pairs what was asked with
+  // where the run actually finished. Without that second figure the line is a
+  // reproach rather than a hint, which is `design/ui-mockup.html`'s own
+  // reasoning for printing it.
+  "game.feedback.more.silver.html": "For silver: {needs}",
+  "game.feedback.more.gold.html": "For gold: {needs}",
+  "game.feedback.more.need.html": "{req} (now {now})",
   "game.codeStatus": "There is an error in your program:",
 
   // The challenge bar's own meters and tier popover: `widgets/goal-bar`. Main

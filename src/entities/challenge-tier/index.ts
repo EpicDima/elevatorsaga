@@ -10,6 +10,7 @@ export {
 } from "./model/tier-progress.ts";
 export { tierRequirementNow, tierRequirementText } from "./ui/requirement-text.ts";
 export { tierBadgeMarkup } from "./ui/tier-badge.ts";
+export { nextTierHint } from "./ui/tier-hint.ts";
 export {
   CHALLENGE_TIERS,
   evaluateChallengeTier,
