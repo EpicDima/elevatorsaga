@@ -68,7 +68,13 @@ import { EN_MESSAGES } from "./en.ts";
 // `formatListIn` is `format.ts`'s `formatList` under the name this module gives
 // anything that takes its locale outright, as `translateIn` does. The export
 // below is the one callers want: the same thing for the locale on screen.
-import { formatList as formatListIn, formatValue, type ParamValue } from "./format.ts";
+import {
+  formatList as formatListIn,
+  formatValue,
+  formatValueParts,
+  type ParamValue,
+  type QuantityParts,
+} from "./format.ts";
 import { DEFAULT_LOCALE, type Locale } from "./locale.ts";
 
 /**
@@ -302,6 +308,21 @@ export function format(value: ParamValue): string {
 }
 
 /**
+ * The same rendering as {@link format}, with the unit handed back on its own.
+ *
+ * For a caller that sets the unit differently from the digits — the statistics
+ * tiles, where the mockup drops it a size and a shade — and for nothing else:
+ * anything writing a figure into a sentence wants {@link format}, which is the
+ * two halves already joined.
+ *
+ * @param value - What to render.
+ * @returns Its digits and its unit in the active locale.
+ */
+export function formatParts(value: ParamValue): QuantityParts {
+  return formatValueParts(renderingLocale(), value);
+}
+
+/**
  * A list of already-rendered items, in the active locale.
  *
  * For the one thing a message cannot hold: a list whose length is not known
@@ -347,6 +368,7 @@ export {
   exact,
   formatNumber,
   formatValue,
+  formatValueParts,
   percent,
   quantity,
   seconds,
@@ -357,6 +379,7 @@ export {
   type PluralCategory,
   type PluralForms,
   type Quantity,
+  type QuantityParts,
 } from "./format.ts";
 export {
   htmlLang,

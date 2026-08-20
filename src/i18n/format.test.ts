@@ -6,6 +6,7 @@ import {
   formatList,
   formatNumber,
   formatValue,
+  formatValueParts,
   interpolate,
   percent,
   quantity,
@@ -164,6 +165,57 @@ describe("formatValue", () => {
 
   it("renders a bare number for the locale", () => {
     expect(formatValue("ru", 2675)).toBe(`2${NBSP}675`);
+  });
+});
+
+describe("formatValueParts", () => {
+  it("hands back the digits and the unit apart, with the gap on the unit's side", () => {
+    // The gap belongs to the unit because that is what gets styled: the
+    // statistics tiles set the unit a size down, and a space left on the
+    // digits' side would be set at the digits' size.
+    expect(formatValueParts("ru", seconds(3.9, 1))).toEqual({
+      number: "3,9",
+      unit: `${NBSP}с`,
+    });
+    expect(formatValueParts("en", seconds(3.9, 1))).toEqual({ number: "3.9", unit: "s" });
+  });
+
+  it("counts a percent sign as the unit, in either locale's punctuation", () => {
+    // Russian writes «23 %» with a space and English writes "23%" without one,
+    // and neither of those is this module's decision to make.
+    expect(formatValueParts("ru", percent(0.23))).toEqual({ number: "23", unit: `${NBSP}%` });
+    expect(formatValueParts("en", percent(0.23))).toEqual({ number: "23", unit: "%" });
+  });
+
+  it("gives a quantity with no unit an empty one, rather than guessing at a suffix", () => {
+    expect(formatValueParts("ru", decimal(1.5, 2))).toEqual({ number: "1,50", unit: "" });
+    expect(formatValueParts("ru", 2675)).toEqual({ number: `2${NBSP}675`, unit: "" });
+    expect(formatValueParts("ru", "already rendered")).toEqual({
+      number: "already rendered",
+      unit: "",
+    });
+  });
+
+  it("splits exactly what formatValue joins, for every quantity the panel draws", () => {
+    // The invariant that keeps this from being a second, divergent way to
+    // render a number: the two halves put back together are the one string.
+    const values = [seconds(0), seconds(61.44, 1), percent(0), percent(1), decimal(0.5, 2), 0, 21];
+    for (const locale of LOCALES) {
+      for (const value of values) {
+        const parts = formatValueParts(locale, value);
+        expect(parts.number + parts.unit, `${locale} ${JSON.stringify(value)}`).toBe(
+          formatValue(locale, value),
+        );
+      }
+    }
+  });
+
+  it("leaves no ordinary space for a line to break the unit off at", () => {
+    // The reason formatNumber closes that gap in the first place: "1,5 с" split
+    // across two lines is not a duration any more.
+    for (const locale of LOCALES) {
+      expect(formatValueParts(locale, seconds(1.5, 1)).unit, locale).not.toContain(" ");
+    }
   });
 });
 

@@ -4090,6 +4090,29 @@ html[data-theme="light"] .floorline:nth-child(odd) {
   font-size: 15px;
 }
 
+/*
+ * The unit, set apart from the digits the way the mockup sets it (§8, its
+ * `.tile-val small`): a size down and a shade back, so that a shelf of tiles
+ * reads as a shelf of numbers. `stats-panel.ts`'s own `buildTile` is what
+ * puts the unit in a `<small>` of its own.
+ *
+ * The mockup's colour here is `--text-faint`, which measures 3.62:1 dark /
+ * 3.14:1 light against this box's `--ds-panel` background -- the same
+ * measurement `.statspanel .tile .cap` (above) records, on the same
+ * background. That is under WCAG 1.4.3's 4.5:1, and this is text and not
+ * decoration: "%" against "с" is the whole difference between 23 percent full
+ * and 23 seconds late. `--ds-text-muted` clears it, 6.70:1 dark / 5.90:1
+ * light.
+ */
+.tile-val small {
+  font-size: 12px;
+  color: var(--ds-text-muted);
+}
+
+.tiles-secondary .tile-val small {
+  font-size: 11px;
+}
+
 .spark {
   display: block;
   width: 100%;

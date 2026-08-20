@@ -35,6 +35,23 @@ export interface Quantity {
 /** Anything a `{placeholder}` can be filled with. */
 export type ParamValue = string | number | Quantity;
 
+/**
+ * A rendered quantity with its unit kept separate from its digits.
+ *
+ * For the one place that needs the two apart rather than as one string: the
+ * statistics tiles, where `design/ui-mockup.html` sets the unit in a `<small>`
+ * a size down and a shade back, so that a column of figures reads as figures.
+ * Which characters are the unit, and whether they come before or after the
+ * number and with what between them, is the locale's business — hence
+ * {@link formatValueParts} rather than a `split` at the call site.
+ */
+export interface QuantityParts {
+  /** The digits, punctuated for the locale. */
+  readonly number: string;
+  /** The unit and whatever separates it from the digits; `""` when there is no unit. */
+  readonly unit: string;
+}
+
 /** Anything that can drive the choice of a plural form. */
 export type Countable = number | Quantity;
 
@@ -247,11 +264,71 @@ export function formatNumber(
   value: number,
   options: Intl.NumberFormatOptions = {},
 ): string {
-  const text = numberFormatter(locale, options).format(value);
-  // Only unit patterns are touched: the grouping separator Russian uses is
-  // already non-breaking, and replacing spaces everywhere would be a guess
-  // about parts of the output nothing here has asked for.
+  return unbreakable(numberFormatter(locale, options).format(value), options);
+}
+
+/**
+ * Closes up the one gap a unit pattern is allowed to break at.
+ *
+ * Only unit patterns are touched: the grouping separator Russian uses is
+ * already non-breaking, and replacing spaces everywhere would be a guess about
+ * parts of the output nothing here has asked for. Applied per piece rather
+ * than to the whole string so that {@link formatValueParts} can hand back two
+ * halves that still join back into exactly what {@link formatNumber} writes.
+ *
+ * @param text - Formatter output, whole or in part.
+ * @param options - The options it was formatted with.
+ * @returns The same text, unbreakable where it had to be.
+ */
+function unbreakable(text: string, options: Intl.NumberFormatOptions): string {
   return options.style === "unit" ? text.replaceAll(" ", NO_BREAK_SPACE) : text;
+}
+
+/**
+ * Renders a parameter and hands back its digits and its unit separately.
+ *
+ * The split is made where `Intl` itself says the unit begins — the `unit` part
+ * of a unit pattern, the `percentSign` of a percentage — and whatever literal
+ * stands between the number and it goes with the unit, because that separator
+ * is the locale's spacing and belongs on the unit's side of any styling. The
+ * two halves concatenate back into exactly {@link formatValue}'s output, which
+ * this module's own tests hold it to.
+ *
+ * A value with no unit at all comes back as all digits and an empty unit, and
+ * a string parameter — already someone's rendered output — passes through the
+ * same way.
+ *
+ * @param locale - The locale to render for.
+ * @param value - The parameter.
+ * @returns Its digits and its unit.
+ */
+export function formatValueParts(locale: Locale, value: ParamValue): QuantityParts {
+  if (typeof value === "string") {
+    return { number: value, unit: "" };
+  }
+  const options = typeof value === "number" ? {} : (value.format ?? {});
+  const parts = numberFormatter(locale, options).formatToParts(
+    typeof value === "number" ? value : value.value,
+  );
+  const unitAt = parts.findIndex((part) => part.type === "unit" || part.type === "percentSign");
+  if (unitAt === -1) {
+    return { number: unbreakable(joinParts(parts), options), unit: "" };
+  }
+  const from = unitAt > 0 && parts[unitAt - 1]?.type === "literal" ? unitAt - 1 : unitAt;
+  return {
+    number: unbreakable(joinParts(parts.slice(0, from)), options),
+    unit: unbreakable(joinParts(parts.slice(from)), options),
+  };
+}
+
+/**
+ * Puts formatter parts back together.
+ *
+ * @param parts - The parts, in the order the formatter produced them.
+ * @returns Their text, concatenated.
+ */
+function joinParts(parts: readonly Intl.NumberFormatPart[]): string {
+  return parts.map((part) => part.value).join("");
 }
 
 /**

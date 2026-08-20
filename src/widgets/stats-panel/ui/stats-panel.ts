@@ -42,8 +42,8 @@
 import { createStatsHistory, sparklinePoints, SPARK_FLOOR } from "../model/history.ts";
 import type { StatsHistoryKey } from "../model/history.ts";
 import type { World } from "#game/world.ts";
-import { decimal, format, percent, quantity, seconds, t } from "#i18n/index.ts";
-import type { MessageArgs, MessageKey } from "#i18n/index.ts";
+import { decimal, formatParts, percent, quantity, seconds, t } from "#i18n/index.ts";
+import type { MessageArgs, MessageKey, QuantityParts } from "#i18n/index.ts";
 import { requireElement } from "#shared/lib/dom.ts";
 import { spriteIconMarkup } from "#shared/ui/icon.ts";
 import { markup, raw, renderElement } from "#shared/ui/markup.ts";
@@ -164,8 +164,8 @@ interface TileConfig {
   readonly captionKey: NoParamMessageKey;
   /** Whether the tile sits in the four-tile primary row or behind the disclosure. */
   readonly group: "primary" | "secondary";
-  /** Renders the raw snapshot value as display text. */
-  readonly format: (value: number) => string;
+  /** Renders the raw snapshot value as display text, digits and unit apart. */
+  readonly format: (value: number) => QuantityParts;
   /** The history key this tile sparks, or `undefined` for the three tiles the mockup marks `no-spark`. */
   readonly sparkKey?: StatsHistoryKey;
 }
@@ -179,89 +179,89 @@ const TILES: readonly TileConfig[] = [
     stat: "avgWaitTime",
     captionKey: "page.stats.avgWaitTime",
     group: "primary",
-    format: (value) => format(seconds(value, 1)),
+    format: (value) => formatParts(seconds(value, 1)),
     sparkKey: "avgWaitTime",
   },
   {
     stat: "maxWaitTime",
     captionKey: "page.stats.maxWaitTime",
     group: "primary",
-    format: (value) => format(seconds(value, 1)),
+    format: (value) => formatParts(seconds(value, 1)),
     sparkKey: "maxWaitTime",
   },
   {
     stat: "avgLoadFactorOnMove",
     captionKey: "page.stats.avgLoad",
     group: "primary",
-    format: (value) => format(percent(value)),
+    format: (value) => formatParts(percent(value)),
     sparkKey: "avgLoadFactorOnMove",
   },
   {
     stat: "transportedPerSec",
     captionKey: "page.stats.transportedPerSec",
     group: "primary",
-    format: (value) => format(quantity(value, PER_SECOND_DIGITS)),
+    format: (value) => formatParts(quantity(value, PER_SECOND_DIGITS)),
     sparkKey: "transportedPerSec",
   },
   {
     stat: "transportedCounter",
     captionKey: "page.stats.transported",
     group: "secondary",
-    format: (value) => format(value),
+    format: (value) => formatParts(value),
     sparkKey: "transportedCounter",
   },
   {
     stat: "avgPickupTime",
     captionKey: "page.stats.avgPickupTime",
     group: "secondary",
-    format: (value) => format(seconds(value, 1)),
+    format: (value) => formatParts(seconds(value, 1)),
     sparkKey: "avgPickupTime",
   },
   {
     stat: "avgRideTime",
     captionKey: "page.stats.avgRideTime",
     group: "secondary",
-    format: (value) => format(seconds(value, 1)),
+    format: (value) => formatParts(seconds(value, 1)),
     sparkKey: "avgRideTime",
   },
   {
     stat: "avgPeoplePerStop",
     captionKey: "page.stats.peoplePerStop",
     group: "secondary",
-    format: (value) => format(decimal(value, 2)),
+    format: (value) => formatParts(decimal(value, 2)),
     sparkKey: "avgPeoplePerStop",
   },
   {
     stat: "waitingNow",
     captionKey: "game.statsPanel.waitingNow",
     group: "secondary",
-    format: (value) => format(value),
+    format: (value) => formatParts(value),
     sparkKey: "waitingNow",
   },
   {
     stat: "aboardNow",
     captionKey: "game.statsPanel.aboardNow",
     group: "secondary",
-    format: (value) => format(value),
+    format: (value) => formatParts(value),
     sparkKey: "aboardNow",
   },
   {
     stat: "elapsedTime",
     captionKey: "page.stats.elapsedTime",
     group: "secondary",
-    format: (value) => format(seconds(value)),
+    format: (value) => formatParts(seconds(value)),
   },
   {
     stat: "moveCount",
     captionKey: "page.stats.moves",
     group: "secondary",
-    format: (value) => format(value),
+    format: (value) => formatParts(value),
   },
   {
     stat: "stopCount",
     captionKey: "page.stats.stops",
     group: "secondary",
-    format: (value) => format(value),
+    format: (value) => formatParts(value),
   },
 ];
 
@@ -294,7 +294,7 @@ function tileMarkup(tile: TileConfig): string {
       ? ""
       : `<svg class="spark" viewBox="0 0 100 16" preserveAspectRatio="none" aria-hidden="true"><polyline data-spark points=""></polyline></svg>`;
   const noSparkClass = tile.sparkKey === undefined ? " no-spark" : "";
-  return markup`<div class="tile${raw(noSparkClass)}" data-stat="${tile.stat}"><span class="cap"></span><span class="tile-val num"></span>${raw(spark)}</div>`;
+  return markup`<div class="tile${raw(noSparkClass)}" data-stat="${tile.stat}"><span class="cap"></span><span class="tile-val num"><small></small></span>${raw(spark)}</div>`;
 }
 
 /** The elements one tile needs patched on every draw or caption redraw. */
@@ -302,18 +302,35 @@ interface TileRefs {
   readonly tile: TileConfig;
   readonly rootEl: HTMLElement;
   readonly capEl: HTMLElement;
-  readonly valEl: HTMLElement;
+  /** The digits, as a text node so that the `<small>` beside them survives every draw. */
+  readonly numberNode: Text;
+  readonly unitEl: HTMLElement;
   readonly polylineEl: Element | null;
 }
 
-/** Parses one tile's markup and collects the refs {@link presentStatsPanel} needs. */
+/**
+ * Parses one tile's markup and collects the refs {@link presentStatsPanel} needs.
+ *
+ * The value is two nodes, not one string: `design/ui-mockup.html` writes a
+ * tile as `3,9<small> с</small>` (§8), the unit a size down and a shade back,
+ * so that a column of these reads as a column of numbers. The digits go in a
+ * text node created here and patched in place, which is what lets the `<small>`
+ * be built once with the tile rather than reinserted on every tick of the run.
+ *
+ * @param tile - The tile's configuration.
+ * @returns Its element and the parts of it that get patched.
+ */
 function buildTile(tile: TileConfig): TileRefs {
   const rootEl = renderElement(tileMarkup(tile));
+  const numberNode = document.createTextNode("");
+  const valEl = requireElement(".tile-val", rootEl);
+  valEl.prepend(numberNode);
   return {
     tile,
     rootEl,
     capEl: requireElement(".cap", rootEl),
-    valEl: requireElement(".tile-val", rootEl),
+    numberNode,
+    unitEl: requireElement(".tile-val small", rootEl),
     polylineEl: rootEl.querySelector("polyline[data-spark]"),
   };
 }
@@ -352,7 +369,9 @@ export function presentStatsPanel(parent: HTMLElement, world: World): StatsPanel
   function draw(): void {
     const snapshot = readSnapshot(world);
     for (const ref of refs) {
-      ref.valEl.textContent = ref.tile.format(snapshot[ref.tile.stat]);
+      const parts = ref.tile.format(snapshot[ref.tile.stat]);
+      ref.numberNode.data = parts.number;
+      ref.unitEl.textContent = parts.unit;
     }
     history.push(performance.now(), sparkSamplesFrom(snapshot));
     for (const ref of refs) {

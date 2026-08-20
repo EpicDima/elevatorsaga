@@ -159,6 +159,27 @@ describe("presentStatsPanel", () => {
     expect(val("avgLoadFactorOnMove")).toBe("57%");
   });
 
+  it("sets the unit a size down, in its own <small>, leaving the digits alone", () => {
+    // The mockup writes «3,9<small> с</small>»: the unit is smaller and quieter
+    // than the figure it belongs to, so it has to be an element of its own. The
+    // digits stay a bare text node next to it, which is also what lets a redraw
+    // touch them without disturbing the <small>.
+    const parent = setUp(worldWithStats());
+    const val = (stat: string): HTMLElement =>
+      requireElement(`.tile[data-stat="${stat}"] .tile-val`, parent);
+
+    expect(requireElement("small", val("avgWaitTime")).textContent).toBe("s");
+    expect(val("avgWaitTime").firstChild?.textContent).toBe("3.3");
+
+    expect(requireElement("small", val("avgLoadFactorOnMove")).textContent).toBe("%");
+    expect(val("avgLoadFactorOnMove").firstChild?.textContent).toBe("57");
+
+    // A figure with no unit keeps the element, empty: it is one tile among
+    // thirteen and the redraw path is the same for all of them.
+    expect(requireElement("small", val("moveCount")).textContent).toBe("");
+    expect(val("moveCount").textContent).toBe("7");
+  });
+
   it("counts waitingNow and aboardNow from live passenger/elevator state, ignoring delivered passengers", () => {
     const world = fixtureWorld();
     const floor = at(world.floors, 0);
