@@ -210,7 +210,36 @@ describe("presentLevelSwitcher", () => {
     expect(tiles[1]?.getAttribute("aria-current")).toBe("page");
     expect(tiles[1]?.classList.contains("is-locked")).toBe(true);
     expect(tiles[1]?.classList.contains("is-current")).toBe(true);
-    expect(requireElement(".task-name", parent).textContent).toBe("Level 2, locked");
+    // The tile says locked; the trigger says which level. It used to say both,
+    // in 118px that fits neither -- see `tileTriggerName`.
+    expect(tiles[1]?.getAttribute("aria-label")).toBe("Level 2, locked");
+    expect(requireElement(".task-name", parent).textContent).toBe("Level 2");
+  });
+
+  it("keeps the trigger to the level's plain name, whatever the tile calls it", () => {
+    // Three kinds of tile, one rule: the trigger names the level and leaves
+    // its state to the tile. The lesson is the case that forced it -- 118px of
+    // button against «Учебное задание 1», which wants 133px -- and the other
+    // two are here so that a later change cannot quietly reintroduce a state
+    // suffix through them.
+    const cleared = tutorialTasks[0];
+    const lesson = setUp({
+      selection: { kind: "tutorial", index: 0 },
+      clearedTutorialTasks: new Set(cleared === undefined ? [] : [cleared.id]),
+    });
+    presentLevelSwitcher(lesson.parent, lesson.options);
+    expect(requireElement(".task-name", lesson.parent).textContent).toBe("Task 1");
+
+    const sandbox = setUp({ selection: { kind: "sandbox" } });
+    presentLevelSwitcher(sandbox.parent, sandbox.options);
+    expect(requireElement(".task-name", sandbox.parent).textContent).toBe("Sandbox");
+
+    const challenge = setUp({
+      challenges: fixtureChallenges(4),
+      selection: { kind: "challenge", index: 3 },
+    });
+    presentLevelSwitcher(challenge.parent, challenge.options);
+    expect(requireElement(".task-name", challenge.parent).textContent).toBe("Level 4");
   });
 
   it("labels a cleared tutorial tile as completed", () => {

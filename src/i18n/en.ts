@@ -179,6 +179,13 @@ export const EN_MESSAGES = {
   "game.levelSwitcher.tutorialTileLabel": "Tutorial task {number}",
   "game.levelSwitcher.tutorialTileClearedLabel": "Tutorial task {number}, completed",
   "game.levelSwitcher.challengeTileLockedLabel": "Level {number}, locked",
+  // What the 118px trigger says while a lesson is the level being played. The
+  // tile labels above are written for a grid, where the state on the end of
+  // them is the point; on the trigger they overflow, and "Tutorial" is a word
+  // the block heading over the tiles has already said. A challenge and the
+  // sandbox need no key of their own here -- "Level {number}" and "Sandbox"
+  // are already what they are called.
+  "game.levelSwitcher.tutorialTriggerLabel": "Task {number}",
   // The editor pane's own goto link: `widgets/editor-pane`. Points at the line
   // "src/ui/error-location.ts"'s locateCodeError found for the player's own
   // exception; the button that carries it is hidden whenever that comes back

@@ -1164,7 +1164,10 @@ describe("App learning track", () => {
     const { app, elements } = setUp();
     app.startTutorial(2);
 
-    expect(taskName(elements)).toBe("Tutorial task 3");
+    // Three, because this is the track's third task -- the number is what this
+    // test is about. The wording is `tileTriggerName`'s: the trigger names the
+    // level and leaves "completed" and "locked" to the tile in the menu.
+    expect(taskName(elements)).toBe("Task 3");
   });
 
   it("keeps the track's own numbering through a language change mid-run", () => {
@@ -1174,7 +1177,7 @@ describe("App learning track", () => {
     setLocale("ru");
     app.relocalise();
 
-    expect(taskName(elements)).toBe("Учебное задание 1");
+    expect(taskName(elements)).toBe("Задание 1");
   });
 
   it("leaves every challenge reachable from a task, and marks none of them current", () => {

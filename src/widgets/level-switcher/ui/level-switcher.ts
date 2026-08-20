@@ -199,6 +199,45 @@ function tileAccessibleName(tile: LevelMenuTile): string {
 }
 
 /**
+ * The name the trigger shows for the level being played: what the level is
+ * called, and nothing else.
+ *
+ * Deliberately not {@link tileAccessibleName}, which the trigger used to
+ * borrow. That name is written for a tile in a grid, where ", completed" and
+ * ", locked" are the tile's whole point, and the trigger is 118px wide —
+ * `design/ui-mockup.html` sizes `.task-open` for the longest thing it ever
+ * puts there, and every world in that file is named `Уровень {n}` with no
+ * state on the end. Borrowed onto the trigger those names overflow: measured
+ * in Chromium, «Учебное задание 1» wants 133px of the 96px inside the button,
+ * so the whole learning track read «Учебное за...» in Russian, and a cleared
+ * task or a level opened by URL before it was unlocked truncated in English
+ * too.
+ *
+ * Widening the button was the other way out and was not taken: the width is
+ * the mockup's, the row it sits in is already tight at 1040px, and a control
+ * that resizes as you step through levels is its own kind of wrong. What was
+ * borrowed was the wrong string, so this is the right one — the tile in the
+ * menu still says whether it is cleared or locked, which is where a player
+ * looks for that.
+ *
+ * @param tile - The current tile.
+ * @returns Its plain name.
+ */
+function tileTriggerName(tile: LevelMenuTile): string {
+  switch (tile.kind) {
+    case "tutorial": {
+      return t("game.levelSwitcher.tutorialTriggerLabel", { number: tile.number });
+    }
+    case "challenge": {
+      return t("game.challenge.nav.link", { number: tile.number });
+    }
+    case "sandbox": {
+      return t("game.levelSwitcher.sandboxLabel");
+    }
+  }
+}
+
+/**
  * The tile markup: a real `<a href>` once a tile is open, a real,
  * non-navigable `<button disabled>` while a challenge tile is locked — see
  * this module's own comment for why a locked tile is never an anchor.
@@ -349,7 +388,7 @@ export function presentLevelSwitcher(
       }
 
       const current = currentTile(blocks);
-      taskName.textContent = current === undefined ? "" : tileAccessibleName(current);
+      taskName.textContent = current === undefined ? "" : tileTriggerName(current);
 
       const prevHref = stepHref(blocks, -1);
       const nextHref = stepHref(blocks, 1);
