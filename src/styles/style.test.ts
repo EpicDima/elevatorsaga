@@ -1009,6 +1009,16 @@ describe("statistics strip", () => {
     expect(declaration(ruleBody(".stagearea > .world"), "flex-shrink", ".stagearea > .world")).toBe(
       "0",
     );
+    // The ceiling is the other half of that refusal, and it is what keeps it
+    // from turning into a licence: a zero shrink factor on an `auto` basis is a
+    // *content* size, and this box's content is a building. Challenge 18's is
+    // 1030px wide, and unbounded it made a 1062px `.world` inside a 794px pane
+    // -- 268px of it clipped away with nothing to scroll, because `.stage` only
+    // scrolls what it is narrower than. Capped at the row, the stage is
+    // narrower again and its own `ResizeObserver` compresses the shafts to fit.
+    expect(
+      declaration(ruleBody(".stagearea > .world"), "max-inline-size", ".stagearea > .world"),
+    ).toBe("100%");
     // Below the width where both fit, the row stacks instead of overflowing,
     // and it asks the pane rather than the window -- same reasoning as the
     // figures above, and the same failure if the names disagree: an
@@ -1026,6 +1036,14 @@ describe("statistics strip", () => {
     );
     expect(ruleBody(".stagearea")).not.toMatch(/container/);
     expect(styleSource).toMatch(/^@container stage \(max-width: 760px\) \{$/m);
+    // And stacked, the same priority has to be stated again in the other axis,
+    // because the row's flex factors are about width and the two boxes are now
+    // competing for height. The lesson is the one with no natural end: task 7
+    // with its answer open asks for 1290px of the 399px row a 1040x600 window
+    // leaves, and unbounded it took all of it -- the building measured 0px
+    // tall. The ceiling is inside the query, so it is matched at that indent
+    // rather than through `ruleBody`, which reads the unstacked rule.
+    expect(styleSource).toMatch(/^ {2}\.stagearea > \.tutorial \{[^}]*\n {4}max-block-size: 50%;/m);
   });
 
   it("keeps the clip the run verdict is drawn inside", () => {

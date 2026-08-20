@@ -70,6 +70,29 @@ async function switchToRussian(page: Page): Promise<void> {
 }
 
 /**
+ * One element's box, refusing to measure something that is not on screen.
+ *
+ * `boundingBox()` answers `null` for an element with no layout, and a test that
+ * compares `null` against a number silently passes on the very failure it was
+ * written for -- the card pushed under the building is also the card that has
+ * been laid out to nothing.
+ *
+ * @param locator - The element to measure.
+ * @param what - What it is, for the message if it is not there.
+ * @returns Its box in page coordinates.
+ */
+async function boxOf(
+  locator: Locator,
+  what: string,
+): Promise<{ x: number; y: number; width: number; height: number }> {
+  const box = await locator.boundingBox();
+  if (box === null) {
+    throw new Error(`${what} has no box on screen`);
+  }
+  return box;
+}
+
+/**
  * Opens the level switcher's menu, where the track's tasks are listed.
  *
  * Forced open rather than clicked, for the reason `openSettingsMenu` in
@@ -300,6 +323,133 @@ test("paints the panel's own controls as dark as the prose around them", async (
     "color",
     "rgb(30, 34, 39)",
   );
+});
+
+test("stands the lesson beside the building where the pane has room, and above it where it has not", async ({
+  page,
+}) => {
+  // Four things can go wrong in this row and jsdom can see none of them: the
+  // card can be pushed under the building where there was room beside it, a
+  // label longer than the card can push a horizontal scrollbar into a box that
+  // already scrolls vertically, a lesson with no ceiling can take the whole of
+  // a short pane and leave the building nothing, and the statistics strip can
+  // be pushed off the bottom of the window by the pair of them.
+  //
+  // Two widths, because the row has two shapes and each has its own way of
+  // failing. 1280x900 is the default window and a 794px pane, wide enough for
+  // the 384px aside and the widest house the track builds; 1040x600 is the
+  // floor `design/ui-mockup.html` builds to, and there the pane is 645px and
+  // the row stacks -- which is the mockup's own answer at that width, measured
+  // in it: its `.stagerow` computes to `column` at 1040 and to `row` at 1280.
+  //
+  // Both languages, because the Russian labels are the long ones -- "Забрать
+  // программу в свой редактор" is half again the English -- and they are what
+  // the wrap in `.tutorialbuttons .btn` was written for.
+  //
+  // One document for all four measurements, and the language changed through
+  // the picker rather than the address bar: a `goto` differing only in the hash
+  // is a same-document navigation, so a second route asking for a language the
+  // page is not already in would be measured before anything had redrawn.
+  const measure = async (language: string): Promise<void> => {
+    for (const [width, height] of [
+      [1280, 900],
+      [1040, 600],
+    ] as const) {
+      await page.setViewportSize({ width, height });
+
+      const where = `${language} at ${String(width)}x${String(height)}`;
+      const card = page.locator(".tutorial");
+      const lesson = await boxOf(card, `the lesson card on ${where}`);
+      const world = await boxOf(page.locator(".world"), `the building on ${where}`);
+
+      if (width >= 1280) {
+        // Beside, not above: the card ends before the building begins, and the
+        // two share the row rather than following one another down it. Not an
+        // equal `y` -- the card carries its own 18px margin and the building
+        // takes the same inset from inside `.stage`, so the boxes start 18px
+        // apart and the two *contents* start on one line.
+        expect(lesson.x + lesson.width).toBeLessThanOrEqual(world.x);
+        expect(lesson.y).toBeLessThan(world.y + world.height);
+        expect(world.y).toBeLessThan(lesson.y + lesson.height);
+      } else {
+        // Above, and bounded. The gap is real -- the card's bottom edge is
+        // clear of the building's box -- and the building still has a box at
+        // all: task 7 with its answer open asks for 1290px of a row that has
+        // 399px to give here, and before the ceiling in the container query it
+        // took all of it -- `.world` came out 0px tall, which is the building
+        // gone from a page about a building.
+        expect(lesson.y + lesson.height).toBeLessThanOrEqual(world.y);
+        expect(world.height).toBeGreaterThan(0);
+      }
+
+      // Nothing escapes the card sideways. `scrollWidth` is what a horizontal
+      // scrollbar is made of, and the buttons are the only children long enough
+      // to make one.
+      const escapedButtons = await card.evaluate((element) => {
+        const box = element.getBoundingClientRect();
+        return {
+          overflow: element.scrollWidth - element.clientWidth,
+          wider: [...element.querySelectorAll(".tutorialbuttons button")].filter(
+            (button) => button.getBoundingClientRect().width > box.width,
+          ).length,
+        };
+      });
+      expect(escapedButtons).toEqual({ overflow: 0, wider: 0 });
+
+      // And the whole of the stage row fits the window, which is what moving
+      // the lesson into a row of its own bought: the statistics strip under it
+      // used to be pushed off the bottom of a 600px window by a lesson with a
+      // disclosure open.
+      const stats = await boxOf(page.locator(".statscontainer"), `the statistics on ${where}`);
+      expect(stats.y + stats.height).toBeLessThanOrEqual(height);
+    }
+  };
+
+  await page.goto(FIRST_TASK);
+  await expect(panel(page, "Learning track")).toBeVisible();
+  await measure("English");
+
+  await switchToRussian(page);
+  await expect(panel(page, "Учебная дорожка")).toBeVisible();
+  await measure("Russian");
+});
+
+test("costs the levels nothing: the widest building in the game still fits its pane", async ({
+  page,
+}) => {
+  // The row this feature added is on every route, lesson or no lesson, and the
+  // levels are where it can do damage without anyone on the learning track ever
+  // seeing it. Challenge 18 builds the widest house in the game -- 1030px of it
+  // -- and `.stagearea > .world` refuses to shrink, so with no ceiling on that
+  // refusal the world sized itself to the building instead of to the pane:
+  // 1062px inside a 794px pane, 268px of it clipped away by the pane's own
+  // overflow, and `.stage` with nothing to scroll because it was never narrower
+  // than what was inside it. Two whole shafts were unreachable.
+  //
+  // Measured at both widths, because the pane is what the ceiling is a
+  // percentage of and the splitter can change it without the window moving.
+  for (const [width, height] of [
+    [1280, 900],
+    [1040, 600],
+  ] as const) {
+    await page.setViewportSize({ width, height });
+    await page.goto("/#challenge=18");
+    await expect(page.locator(".building")).toBeVisible();
+
+    const fit = await page.locator(".pane-game").evaluate((pane) => {
+      const stage = pane.querySelector(".stage");
+      const building = pane.querySelector(".building");
+      return {
+        paneOverflow: pane.scrollWidth - pane.clientWidth,
+        buildingEscapes:
+          stage === null || building === null
+            ? true
+            : building.getBoundingClientRect().right >
+              stage.getBoundingClientRect().right + stage.scrollWidth - stage.clientWidth,
+      };
+    });
+    expect(fit).toEqual({ paneOverflow: 0, buildingEscapes: false });
+  }
 });
 
 /**

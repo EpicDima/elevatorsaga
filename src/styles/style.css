@@ -913,6 +913,17 @@ html[data-layout="game"] .splitter {
  * - `background-color`, because the row shows through above and below the
  *   lesson, and everywhere else on this pane that surface is the `--ds-bg`
  *   both `.world` and `.stage` paint.
+ *
+ * What it deliberately does not reproduce is the mockup's `align-self: stretch`
+ * on the lesson, with the `margin-top: auto` on its actions that goes with it.
+ * That pair draws a card as tall as the building with the buttons pinned to its
+ * foot, and in the mockup it is a card very nearly full: measured, 578px of
+ * card around 576px of content, the `auto` margin resolving to 74px. Here the
+ * same pair would draw a 663px card around the 435px a task actually measures
+ * at the default split -- 228px of empty panel, with the action a player is
+ * reaching for a third of a screen below the sentence that sent them to it. The
+ * declaration would match the mockup and the appearance would not, which is the
+ * wrong way round, so the card is as tall as what is written in it.
  */
 .stagearea {
   display: flex;
@@ -962,9 +973,21 @@ html[data-layout="game"] .splitter {
  * declaration is about the block axis, from when this element was a row of
  * the pane's column; in a flex *row* the same shorthand reads as a width, and
  * the shrink half of it is the half that has to go.
+ *
+ * The ceiling is what keeps that from being a licence. `flex-shrink: 0` with
+ * an `auto` basis sizes this box to its *content*, and the content is a
+ * building: challenge 18's is 1030px wide, and unbounded it made a 1062px
+ * `.world` inside a 794px pane -- 268px of it clipped away, with nothing to
+ * scroll, because `.stage` cannot scroll what it was never narrower than.
+ * Capped at the row, the stage goes back to being narrower than its building,
+ * which is the state its own `overflow` and its `ResizeObserver` are written
+ * for: it scrolls, and the building compresses its shafts to fit it. The two
+ * declarations say the whole priority together -- the lesson yields first, and
+ * the building yields only to the pane's own edge.
  */
 .stagearea > .world {
   flex-shrink: 0;
+  max-inline-size: 100%;
   align-self: stretch;
 }
 
@@ -973,7 +996,9 @@ html[data-layout="game"] .splitter {
  * the lesson goes back above the building -- the mockup's own answer at its
  * `@media (max-width: 1180px)`, with the `max-width: 560px` measure kept so a
  * lesson stretched across a wide pane does not turn into a page-wide
- * paragraph.
+ * paragraph. Measured in the mockup itself rather than read off the number:
+ * at a 1040px window its `.stagerow` computes to `flex-direction: column`, at
+ * 1280px to `row`, and this port agrees with it at both.
  *
  * A container query and not a media query, for the reason `.statscontainer`
  * gives for its own: the splitter can take two thirds of this pane away
@@ -993,19 +1018,50 @@ html[data-layout="game"] .splitter {
     gap: 18px;
   }
 
+  /*
+   * Half the stage, and no more. Stacked, the two boxes are competing for the
+   * pane's height rather than its width, and the lesson is the one with no
+   * natural end to it: with the answer open task 7 asks for 1290px against the
+   * 399px this row gets at the 1040x600 floor, and a lesson allowed to take
+   * what it asks for takes all of it -- measured, the building came out
+   * 0px tall, which is the building gone.
+   *
+   * Nothing above this element bounds it from below, either, which is why the
+   * ceiling is here and not a floor under `.world`: every box between `.world`
+   * and the building is `flex: 1; min-block-size: 0`, so the stage's own
+   * content height is not a number this row could have divided by. The card
+   * already scrolls (see the rule above), so what the ceiling costs is a
+   * scrollbar inside the lesson and not a word of it.
+   *
+   * `design/ui-mockup.html` refuses this choice -- its `.stage` scrolls, so a
+   * tall lesson pushes the building below the fold and the player scrolls down
+   * to it. Here the scroll container is `.world`, which is *inside* the row
+   * rather than around it, so there is no column to scroll: the choice has to
+   * be made in the rule.
+   */
   .stagearea > .tutorial {
     flex: 0 0 auto;
     align-self: center;
     inline-size: 100%;
     max-inline-size: 560px;
-    max-block-size: none;
+    max-block-size: 50%;
     margin-block: 18px 0;
     margin-inline: 0;
   }
 
+  /*
+   * Stacked, the row's main axis is the block one, so the shrink factor above
+   * now reads as a height and has to come back: this is the box that gives way
+   * when the lesson and the building together ask for more than the pane has.
+   *
+   * `align-self` stays `stretch` from the rule above, and here it is what makes
+   * the building sit in the middle of the pane rather than against its left
+   * edge: the row's `align-items: flex-start` is for the lesson's benefit, and
+   * on the cross axis it would size this box to its content instead of to the
+   * pane, which is the same content-sizing the ceiling above exists to undo.
+   */
   .stagearea > .world {
     flex-shrink: 1;
-    align-self: auto;
   }
 }
 
