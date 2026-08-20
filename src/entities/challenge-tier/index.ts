@@ -8,6 +8,7 @@ export {
   requirementProgress,
   requirementSetProgress,
 } from "./model/tier-progress.ts";
+export { tierRequirementNow, tierRequirementText } from "./ui/requirement-text.ts";
 export { tierBadgeMarkup } from "./ui/tier-badge.ts";
 export {
   CHALLENGE_TIERS,

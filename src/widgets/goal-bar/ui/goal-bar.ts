@@ -28,7 +28,12 @@
  * are guaranteed fresh the instant it opens.
  */
 
-import { evaluateChallengeTier, tierBadgeMarkup } from "#entities/challenge-tier/index.ts";
+import {
+  evaluateChallengeTier,
+  tierBadgeMarkup,
+  tierRequirementNow,
+  tierRequirementText,
+} from "#entities/challenge-tier/index.ts";
 import type {
   ChallengeTier,
   ChallengeTierRequirements,
@@ -36,7 +41,7 @@ import type {
 } from "#entities/challenge-tier/index.ts";
 import type { Challenge, ChallengeWorldStats } from "#entities/challenge/index.ts";
 import type { World } from "#game/world.ts";
-import { decimal, format, percent, seconds, t } from "#i18n/index.ts";
+import { decimal, format, t } from "#i18n/index.ts";
 import type { MessageArgs, MessageKey } from "#i18n/index.ts";
 import { clearChildren, requireElement, setClass } from "#shared/lib/dom.ts";
 import { createDisclosure } from "#shared/ui/disclosure.ts";
@@ -132,75 +137,6 @@ const TIER_STATE_ICON: Readonly<Record<TierRowState, SpriteIconName>> = {
   held: "check",
   lost: "x",
   pending: "dash",
-};
-
-/**
- * One requirement's own sentence in the tier popover, keyed by the field it
- * reads. Built from nested `t()` calls exactly like `src/game/challenges.ts`'s
- * own condition factories — every key has to reach `t` as a literal, so this
- * is written out by hand rather than assembled from the field's name.
- */
-const REQ_TEXT: Readonly<Record<keyof ChallengeWorldStats, (threshold: number) => string>> = {
-  transportedCounter: (threshold) =>
-    t("game.goalBar.req.transportedCounter.html", {
-      people: t("challenge.people.html", { count: threshold }),
-    }),
-  elapsedTime: (threshold) =>
-    t("game.goalBar.req.elapsedTime.html", {
-      time: t("challenge.timeLimit.html", { count: decimal(threshold, 1) }),
-    }),
-  maxWaitTime: (threshold) =>
-    t("game.goalBar.req.maxWaitTime.html", {
-      time: t("challenge.waitLimit.html", { count: decimal(threshold, 1) }),
-    }),
-  avgWaitTime: (threshold) =>
-    t("game.goalBar.req.avgWaitTime.html", {
-      time: t("challenge.waitLimit.html", { count: decimal(threshold, 1) }),
-    }),
-  moveCount: (threshold) =>
-    t("game.goalBar.req.moveCount.html", {
-      floors: t("game.goalBar.floorBudget.html", { count: threshold }),
-    }),
-  stopCount: (threshold) =>
-    t("game.goalBar.req.stopCount.html", {
-      stops: t("game.goalBar.stopBudget.html", { count: threshold }),
-    }),
-  avgLoadFactorOnMove: (threshold) =>
-    t("game.goalBar.req.avgLoadFactorOnMove.html", { percent: format(percent(threshold)) }),
-  transportedPerSec: (threshold) =>
-    t("game.goalBar.req.transportedPerSec.html", { rate: format(decimal(threshold, 2)) }),
-  avgPeoplePerStop: (threshold) =>
-    t("game.goalBar.req.avgPeoplePerStop.html", { rate: format(decimal(threshold, 2)) }),
-  maxPickupTime: (threshold) =>
-    t("game.goalBar.req.maxPickupTime.html", {
-      time: t("challenge.waitLimit.html", { count: decimal(threshold, 1) }),
-    }),
-  avgPickupTime: (threshold) =>
-    t("game.goalBar.req.avgPickupTime.html", {
-      time: t("challenge.waitLimit.html", { count: decimal(threshold, 1) }),
-    }),
-  avgRideTime: (threshold) =>
-    t("game.goalBar.req.avgRideTime.html", {
-      time: t("challenge.waitLimit.html", { count: decimal(threshold, 1) }),
-    }),
-};
-
-/** A tier requirement line's own standalone "now" value, one formatter per field. */
-const TIER_NOW: Readonly<
-  Record<keyof ChallengeWorldStats, (world: ChallengeWorldStats) => string>
-> = {
-  transportedCounter: (world) => format(world.transportedCounter),
-  elapsedTime: (world) => format(seconds(world.elapsedTime, 0)),
-  maxWaitTime: (world) => format(seconds(world.maxWaitTime, 1)),
-  avgWaitTime: (world) => format(seconds(world.avgWaitTime, 1)),
-  moveCount: (world) => format(world.moveCount),
-  stopCount: (world) => format(world.stopCount),
-  avgLoadFactorOnMove: (world) => format(percent(world.avgLoadFactorOnMove)),
-  transportedPerSec: (world) => format(decimal(world.transportedPerSec, 2)),
-  avgPeoplePerStop: (world) => format(decimal(world.avgPeoplePerStop, 2)),
-  maxPickupTime: (world) => format(seconds(world.maxPickupTime, 1)),
-  avgPickupTime: (world) => format(seconds(world.avgPickupTime, 1)),
-  avgRideTime: (world) => format(seconds(world.avgRideTime, 1)),
 };
 
 /** The share of the way to an at-most bar past which it reads as "close," not just "not late yet." */
@@ -330,11 +266,11 @@ export function presentGoalBar(
       for (const need of row.requirements) {
         const needEl = renderElement(
           markup`<div class="tierneed"><span>${raw(
-            REQ_TEXT[need.requirement.field](need.requirement.threshold),
+            tierRequirementText(need.requirement),
           )}</span><span class="now"></span><span class="tierbar"><i style="width: 0%"></i></span></div>`,
         );
         setClass(needEl, "is-miss", need.miss);
-        requireElement(".now", needEl).textContent = TIER_NOW[need.requirement.field](world);
+        requireElement(".now", needEl).textContent = tierRequirementNow(need.requirement, world);
         requireElement(".tierbar i", needEl).style.width = `${(need.progress * 100).toFixed(1)}%`;
         rowEl.append(needEl);
       }
