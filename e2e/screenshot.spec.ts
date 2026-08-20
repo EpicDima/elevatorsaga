@@ -13,7 +13,8 @@
 
 import { expect, test } from "@playwright/test";
 
-import { startButton, statistic, statisticValue, unlockLevel } from "./game-page.ts";
+import { DEV_TEST_CODE } from "../src/ui/default-code.ts";
+import { seedLevelCode, startButton, statistic, statisticValue, unlockLevel } from "./game-page.ts";
 
 /**
  * Where the README expects to find it.
@@ -64,6 +65,9 @@ const TRANSPORTED_BEFORE_CAPTURE = 18;
  */
 const SEED = "office";
 
+/** The challenge in the picture: the six floors and four cars of the original. */
+const LEVEL = 5;
+
 test.describe("README screenshot", () => {
   // 1280 wide is the shell's own 1220px plus a margin, at a device pixel ratio
   // of 1: large enough to show the whole game, small enough to drop into a
@@ -72,8 +76,8 @@ test.describe("README screenshot", () => {
 
   test("captures the game mid-challenge", async ({ page }) => {
     // The line the page prints as a run starts, which is what the seed is read
-    // from below. Registered before the first navigation, because the run this
-    // address autostarts is already going by the time `goto` resolves.
+    // from below. Registered before the first navigation, because the run is
+    // started a few lines further down and the line is printed with it.
     const logs: string[] = [];
     page.on("console", (message) => {
       if (message.type() === "log") {
@@ -84,11 +88,14 @@ test.describe("README screenshot", () => {
     // A browser that has played its way to level 5, because the router now
     // answers an address for a level nobody has earned with the furthest one
     // they have — and the picture would quietly become level 1.
-    await unlockLevel(page, 5);
+    await unlockLevel(page, LEVEL);
 
-    // The reference solution, so the editor shows a real program rather than
-    // the two-line starter, running the challenge the original screenshot used.
-    await page.goto(`/#challenge=5,devtest,timescale=6,autostart,seed=${SEED}`);
+    // A real program in the editor rather than the two-line starter, planted in
+    // the slot this level opens: `#devtest` used to load it from the URL, and
+    // that key is gone.
+    await seedLevelCode(page, LEVEL, DEV_TEST_CODE);
+
+    await page.goto(`/#challenge=${String(LEVEL)},timescale=6,seed=${SEED}`);
 
     // The seed took. A seed the router refuses is swapped for a fresh one with
     // nothing but a console warning to show for it, and the picture would go
@@ -97,6 +104,8 @@ test.describe("README screenshot", () => {
     // where the seed is written on screen: the popover is closed in the picture
     // and opening it to read the row would put it in the picture too.
     await expect.poll(() => logs.some((line) => line.includes(SEED))).toBe(true);
+
+    await startButton(page).click();
 
     await expect
       .poll(async () => statisticValue(page, "Transported"), { timeout: 60_000 })

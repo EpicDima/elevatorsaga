@@ -1,11 +1,12 @@
 /**
- * The starter programs the editor loads.
+ * The program the editor starts a player on, and the one the tiers are
+ * measured against.
  *
  * These used to live in `index.html` as `<script type="text/plain">` blocks and
  * were read back out with `.text().trim()`. The page shell no longer has to
  * carry player-facing source code: the one program a player is handed comes out
- * of the message catalogue, and the one a developer asks for by name is a plain
- * string here.
+ * of the message catalogue, and the one only the tests read is a plain string
+ * here.
  */
 
 import { t } from "../i18n/index.ts";
@@ -32,11 +33,19 @@ export function defaultCode(): string {
 }
 
 /**
- * The program `#devtest` loads: a naive but complete solution.
+ * A naive but complete solution, kept as the yardstick the challenge tiers are
+ * calibrated against.
  *
- * Not translated and not in the catalogue, unlike {@link defaultCode}: nobody
- * reaches it without typing `#devtest` into the address bar, and what it is for
- * is checking that the game still plays, not teaching anybody the API.
+ * No player ever sees it. `#devtest` used to load it into the editor and was
+ * retired along with `#autostart`: a QA route that replaced whatever was on
+ * screen is a poor thing to leave in an address bar players share. What reads
+ * it now is `src/game/challenge-tiers-solutions.test.ts`, which plays it and
+ * the reference dispatcher over every challenge and every measured seed, so
+ * this text is a recorded fixture — changing a line of it moves the tiers.
+ *
+ * Not translated and not in the catalogue, unlike {@link defaultCode}: it is
+ * measured rather than read, and a program whose comments moved with the
+ * player's language would be a different fixture in each locale.
  *
  * Rewritten without lodash — `_.max`, `_.each` and `_.contains` became
  * `Array.prototype.reduce`, `forEach` and `includes` — and `floor.level`

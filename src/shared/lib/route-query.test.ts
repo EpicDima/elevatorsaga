@@ -63,8 +63,8 @@ describe("createParamsUrl", () => {
   });
 
   it("appends parameters that were not in the url", () => {
-    expect(createParamsUrl(parseQuery("#challenge=2"), { autostart: "true" })).toBe(
-      "#challenge=2,autostart=true",
+    expect(createParamsUrl(parseQuery("#challenge=2"), { fullscreen: "true" })).toBe(
+      "#challenge=2,fullscreen=true",
     );
   });
 
@@ -88,7 +88,7 @@ describe("createParamsUrl", () => {
   it("round-trips a task address unchanged", () => {
     // The track is written into the same key as everything else, so the link in
     // the bar and the link in a chat message are the hash the player arrived on.
-    const hash = "#challenge=tutorial-3,timescale=8,autostart=true";
+    const hash = "#challenge=tutorial-3,timescale=8,fullscreen=true";
     expect(createParamsUrl(parseQuery(hash))).toBe(hash);
   });
 

@@ -440,18 +440,6 @@ describe("App code slots", () => {
     expect(app.currentCodeSlot).toBe(2);
     expect(view.getValue()).toBe("// slot two's program");
   });
-
-  it("loads the reference solution into the first slot for devtest, regardless of which one is open", () => {
-    const { app, view, storage } = setUp();
-    app.startChallenge(0);
-    storage.setItem("develevateChallengeCode_0_2", "// slot two's program");
-    app.selectCodeSlot(2);
-
-    app.handleRoute(...routeFor("#challenge=1,devtest=true"));
-
-    expect(app.currentCodeSlot).toBe(1);
-    expect(view.getValue()).toContain("selectElevatorForFloorPickup");
-  });
 });
 
 describe("App challenge outcome", () => {
@@ -520,12 +508,12 @@ describe("App challenge outcome", () => {
 
   it("keeps the rest of the url in the next-challenge link", () => {
     const { app, elements } = setUp();
-    app.handleRoute(...routeFor("#challenge=2,timescale=8,autostart=true"));
+    app.handleRoute(...routeFor("#challenge=2,timescale=8,fullscreen=true"));
 
     app.world?.trigger("stats_changed");
 
     expect(requireElement(".verdict a", elements.feedback).getAttribute("href")).toBe(
-      "#challenge=3,timescale=8,autostart=true",
+      "#challenge=3,timescale=8,fullscreen=true",
     );
   });
 
@@ -776,17 +764,17 @@ describe("App challenge navigation", () => {
 
   it("keeps the rest of the url when jumping to another challenge", () => {
     // The one implementation of this feature in the wild assigns the whole
-    // location hash, so taking a jump throws away the speed and the autostart
+    // location hash, so taking a jump throws away the speed and everything else
     // the player arrived with. Every entry is built from the current
     // parameters instead.
     const { app, elements, storage } = setUp();
     unlockEveryChallenge(storage);
-    app.handleRoute(...routeFor("#challenge=1,timescale=8,autostart=true"));
+    app.handleRoute(...routeFor("#challenge=1,timescale=8,fullscreen=true"));
 
     expect(challengeTiles(elements).map((entry) => entry.getAttribute("href"))).toEqual([
-      "#challenge=1,timescale=8,autostart=true",
-      "#challenge=2,timescale=8,autostart=true",
-      "#challenge=3,timescale=8,autostart=true",
+      "#challenge=1,timescale=8,fullscreen=true",
+      "#challenge=2,timescale=8,fullscreen=true",
+      "#challenge=3,timescale=8,fullscreen=true",
     ]);
   });
 
@@ -1045,12 +1033,6 @@ describe("App learning track", () => {
     // Where a restart would send them back to, left where the challenge put it,
     // exactly as the sandbox leaves it: the track is not a station on the ladder.
     expect(app.currentChallengeIndex).toBe(2);
-  });
-
-  it("runs a task without waiting when the url asks it to", () => {
-    const { app, worldController } = setUp();
-    app.handleRoute(...routeFor("#challenge=tutorial-2,autostart=true"));
-    expect(worldController.isPaused).toBe(false);
   });
 
   it("builds a task on its own pinned seed rather than a fresh draw", () => {
@@ -2342,52 +2324,6 @@ describe("App.handleRoute", () => {
     expect(Number.isFinite(worldController.timeScale)).toBe(true);
   });
 
-  it("runs straight away when asked to autostart", () => {
-    const { app, worldController } = setUp();
-    app.handleRoute(...routeFor("#autostart=true"));
-    expect(worldController.isPaused).toBe(false);
-  });
-
-  it("loads the reference solution for devtest", () => {
-    const { app, view } = setUp();
-    app.handleRoute(...routeFor("#devtest=true"));
-    expect(view.getValue()).toContain("selectElevatorForFloorPickup");
-  });
-
-  it("does not load it on a task, where it would land in the player's own buffer", () => {
-    // The load happens before the editor has switched to the task's buffer, so
-    // the reference solution used to be flushed into the player's own key on the
-    // way past -- destroying their program with nothing on screen to show for
-    // it, since what appears is the task's starting program. The router refuses
-    // the flag on a task address for that reason, and because the last hint of
-    // every task is already its answer.
-    const { app, storage, view } = setUp();
-    storage.setItem(CODE_STORAGE_KEY, "// the program I came in with");
-
-    app.handleRoute(...routeFor("#challenge=tutorial-1,devtest=true"));
-
-    expect(storage.getItem(CODE_STORAGE_KEY)).toBe("// the program I came in with");
-    expect(view.getValue()).not.toContain("selectElevatorForFloorPickup");
-  });
-
-  it("does not write the reference solution into the task it is leaving", () => {
-    // The other direction of the same fault, and the one the router cannot
-    // refuse: `#challenge=1,devtest=true` is a perfectly ordinary challenge
-    // address, and the flag used to be applied while the task's buffer was
-    // still the one on screen. The task's attempt was flushed away under the
-    // dev-test program on the way out, and nothing showed it -- what appears
-    // after the switch is the player's own program, so the reference solution
-    // the flag was asked for was not even visible.
-    const { app, storage, view } = setUp();
-    app.handleRoute(...routeFor("#challenge=tutorial-1"));
-    view.type("// my attempt at task 1");
-
-    app.handleRoute(...routeFor("#challenge=1,devtest=true"));
-
-    expect(storage.getItem("develevateTutorialCode_tutorial-1")).toBe("// my attempt at task 1");
-    expect(view.getValue()).toContain("selectElevatorForFloorPickup");
-  });
-
   it("enters and leaves fullscreen with the url", () => {
     const { app } = setUp();
     app.handleRoute(...routeFor("#fullscreen=true"));
@@ -2502,7 +2438,10 @@ describe("App.relocalise", () => {
     // ones the player was playing, and the simulation is still paused or still
     // running as they left it.
     const { app, worldController } = setUp();
-    app.handleRoute(...routeFor("#challenge=1,seed=issue-53,autostart=true"));
+    app.handleRoute(...routeFor("#challenge=1,seed=issue-53"));
+    // Going rather than waiting on the Start button, which is the half of "as
+    // they left it" that a paused world would not prove.
+    worldController.setPaused(false);
     const world = app.world;
     if (world === undefined) {
       throw new Error("The challenge did not start");

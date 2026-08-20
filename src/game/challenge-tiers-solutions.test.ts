@@ -15,9 +15,8 @@
  * today's thresholds, each program lands on exactly this tier. A change to
  * either would move at least one row, and the failure says which.
  *
- * **Two programs, not one.** {@link DEV_TEST_CODE} is the editor's placeholder
- * program -- a naive nearest-car dispatcher that re-scores every call from
- * scratch -- and {@link GOOD_CODE_BALANCED} / {@link GOOD_CODE_MOVE_CONSCIOUS}
+ * **Two programs, not one.** {@link DEV_TEST_CODE} is the naive nearest-car
+ * dispatcher that re-scores every call from scratch, and {@link GOOD_CODE_BALANCED} / {@link GOOD_CODE_MOVE_CONSCIOUS}
  * are the collective-control dispatcher `challenge-reference-code.ts` builds for
  * calibration. Neither is "the good one" across the board: the calibration in
  * `challenges.ts` picked whichever of the two was empirically stricter on each

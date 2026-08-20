@@ -5,9 +5,11 @@
 
 import { expect, test } from "@playwright/test";
 
+import { DEV_TEST_CODE } from "../src/ui/default-code.ts";
 import {
   building,
   editor,
+  seedCode,
   selectInstantSpeed,
   speedValue,
   startButton,
@@ -58,11 +60,15 @@ test("boots the first challenge with an editor and a building", async ({ page })
 });
 
 test("plays a challenge to completion when Start is pressed", async ({ page }) => {
-  // `#devtest` loads the reference solution, which clears challenge 1 with room
-  // to spare; `#timescale=16` gets the simulated minute over with in a few real
-  // seconds without changing the physics, which are substepped at a fixed rate
-  // whatever the clock says.
-  await page.goto("/#challenge=1,devtest,timescale=16");
+  // A program that wins: {@link DEV_TEST_CODE} is the naive dispatcher the
+  // challenge tiers are calibrated against, and it clears challenge 1 with room
+  // to spare. Planted in storage rather than asked for by URL — `#devtest` did
+  // that until the key was retired — so the page comes up with it already in
+  // the editor. `#timescale=16` gets the simulated minute over with in a few
+  // real seconds without changing the physics, which are substepped at a fixed
+  // rate whatever the clock says.
+  await seedCode(page, DEV_TEST_CODE);
+  await page.goto("/#challenge=1,timescale=16");
 
   await expect(await statistic(page, "Transported")).toHaveText("0");
   await expect(await statistic(page, "Moves")).toHaveText("0");
@@ -91,11 +97,12 @@ test("plays a challenge to completion when Start is pressed", async ({ page }) =
 test("crunches a challenge instantly, with nothing drawn while it runs, and shows the outcome", async ({
   page,
 }) => {
-  // Same reference solution and challenge as the animated run above, so the
-  // two tests are asking the same question of the same program — only how it
-  // is driven differs. No `timescale`: that only paces animation, and a
-  // crunch draws none, so it would change nothing here.
-  await page.goto("/#challenge=1,devtest");
+  // Same program and challenge as the animated run above, so the two tests are
+  // asking the same question of the same program — only how it is driven
+  // differs. No `timescale`: that only paces animation, and a crunch draws
+  // none, so it would change nothing here.
+  await seedCode(page, DEV_TEST_CODE);
+  await page.goto("/#challenge=1");
 
   // Before the crunch, the reference solution's elevator is on screen exactly
   // as any other run's would be.
@@ -136,7 +143,8 @@ test("colours the passenger whose time the statistics panel is reporting", async
   // the presenter puts a class on them, and the stylesheet turns that into a
   // colour. Only the last of those three is out of reach of the unit tests, and
   // it is the only one the player can see.
-  await page.goto("/#challenge=1,devtest,timescale=16");
+  await seedCode(page, DEV_TEST_CODE);
+  await page.goto("/#challenge=1,timescale=16");
   await startButton(page).click();
 
   // Everything in one evaluation -- the crowd, the mark, and the colour of the

@@ -35,8 +35,12 @@ import {
 /** Where the choice is remembered between visits. */
 const LOCALE_STORAGE_KEY = "elevatorLocale";
 
-/** A busy challenge, started at speed so the clock is visibly running. */
-const RUNNING_GAME = "/#challenge=4,timescale=8,autostart=true";
+/**
+ * A busy challenge at speed, so that a few seconds of it are a few seconds of
+ * simulated clock. Started by pressing Start, which is the only way in now
+ * that `#autostart` has been retired.
+ */
+const RUNNING_GAME = "/#challenge=4,timescale=8";
 
 /** The level both of those addresses name, which a browser has to have earned. */
 const RUNNING_GAME_LEVEL = 4;
@@ -48,6 +52,7 @@ test("puts the whole page into Russian without disturbing the run", async ({ pag
   await unlockLevel(page, RUNNING_GAME_LEVEL);
   await page.goto(RUNNING_GAME);
   await expect(page.getByRole("button", { name: "Level 4" })).toBeVisible();
+  await startButton(page).click();
 
   // The run has to be under way before the language changes, or "it was not
   // restarted" is a claim about nothing.
@@ -112,6 +117,7 @@ test("writes the figures the way a reader of the new language writes them", asyn
   // changed, so they are the half that a language change can quietly miss.
   await unlockLevel(page, RUNNING_GAME_LEVEL);
   await page.goto(RUNNING_GAME);
+  await startButton(page).click();
   await expect.poll(async () => statisticValue(page, "Elapsed time")).toBeGreaterThan(3);
   await expect(await statistic(page, "Elapsed time")).toHaveText(/s$/);
 

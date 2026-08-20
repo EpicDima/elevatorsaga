@@ -82,6 +82,29 @@ export async function unlockLevel(page: Page, number: number): Promise<void> {
 }
 
 /**
+ * Plants a program in one level's first code slot, before the page's own
+ * scripts run.
+ *
+ * {@link seedCode} does the same for challenge 1 through the legacy key, which
+ * is the migration source for that one slot alone. This is the way to hand a
+ * program to any other level: the key is written directly, in the shape
+ * `challengeCodeKey` builds it, and spelled out here for the reason
+ * {@link CODE_STORAGE_KEY} is.
+ *
+ * @param page - The page under test, before its first `goto`.
+ * @param number - The level whose slot to fill, counting from 1.
+ * @param code - The program to store.
+ */
+export async function seedLevelCode(page: Page, number: number, code: string): Promise<void> {
+  await page.addInitScript(
+    (seed: { key: string; code: string }) => {
+      localStorage.setItem(seed.key, seed.code);
+    },
+    { key: `develevateChallengeCode_${String(number - 1)}_1`, code },
+  );
+}
+
+/**
  * The CodeMirror editing surface.
  *
  * Found by the name it is announced under, which is a translated string like

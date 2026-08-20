@@ -900,15 +900,15 @@ export class App {
    *
    * The URL rule lives in {@link #levelHref}, and it is the whole point of
    * building an `href` at all: assigning `location.hash` outright — which is
-   * how this feature is usually written — would drop `timescale`,
-   * `autostart`, `devtest` and anything else the URL is carrying, so a player
-   * who had chosen 8x speed would silently lose it by opening another level.
+   * how this feature is usually written — would drop `timescale`, `fullscreen`
+   * and anything else the URL is carrying, so a player who had chosen 8x speed
+   * would silently lose it by opening another level.
    *
    * `seed` is the exception, and is dropped *from the link*: a URL naming a seed
    * names one particular run, and a link to another building names a run nobody
    * has played. What a tile carries across are *preferences* — the speed, the
-   * autostart, the sandbox building they may come back to — and a URL's seed is
-   * not one of those.
+   * fullscreen they are watching in, the sandbox building they may come back to
+   * — and a URL's seed is not one of those.
    *
    * The player's seed is, and it does carry across: {@link #startRun} falls back
    * to {@link readStoredSeed}, which no link touches, so the same seed plays in
@@ -1291,38 +1291,14 @@ export class App {
   handleRoute(params: RouteParams, query: RouteQuery): void {
     this.#query = query;
     this.#seed = params.seed;
-    if (params.devTest) {
-      // Into the buffer the flag is meant for, before it is loaded. The
-      // reference solution is an edit of whatever is on screen, and what is on
-      // screen at this point is the buffer of the run being *left* -- so
-      // `#challenge=1,devtest=true` typed while a task was open used to write
-      // the dev-test program into that task's key, where the switch below
-      // flushed it, and then show the player their own program instead. The
-      // attempt was gone and nothing said so. The router refuses this flag on a
-      // task address, so the buffer it is asking for is always a challenge's or
-      // the sandbox's, and opening a buffer that is already on screen does
-      // nothing.
-      //
-      // The default slot always, regardless of which one the player last had
-      // open: devtest is a QA route, not the place a player's chosen slot
-      // matters, and a route that could load the reference solution into
-      // whichever slot happened to be current would be one more thing a QA
-      // session could overwrite by accident.
-      if (params.sandbox === null) {
-        this.#editor.openChallengeBuffer(params.challengeIndex, DEFAULT_CODE_SLOT);
-      } else {
-        this.#editor.openPlayerBuffer();
-      }
-      this.#editor.setDevTestCode();
-    }
     setDemoFullscreen(params.fullscreen);
     this.worldController.setTimeScale(params.timeScale);
     if (params.tutorialIndex !== null) {
-      this.startTutorial(params.tutorialIndex, params.autoStart);
+      this.startTutorial(params.tutorialIndex);
     } else if (params.sandbox === null) {
-      this.startChallenge(params.challengeIndex, params.autoStart);
+      this.startChallenge(params.challengeIndex);
     } else {
-      this.startSandbox(params.sandbox, params.autoStart);
+      this.startSandbox(params.sandbox);
     }
   }
 

@@ -53,7 +53,7 @@ export type RouteQuery = ReadonlyMap<string, string>;
  *
  * A key with no `=` is accepted as a bare flag and yields an empty value, so
  * `#fullscreen` now works. The legacy regexp required a value, which meant the
- * bare forms people wrote (`#autostart`, `#devtest`) silently did nothing.
+ * bare form people wrote silently did nothing.
  *
  * Whitespace around a key or a value is dropped, so `#challenge=4, seed=abc`
  * and `#seed = abc` parse as they look. No browser can hand this function

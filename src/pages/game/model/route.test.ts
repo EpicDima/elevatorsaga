@@ -133,7 +133,7 @@ describe("createParamsUrl composed with resolveRoute", () => {
     // route-query.test.ts checks that createParamsUrl(parseQuery(hash)) is the
     // hash unchanged; this checks that the address which survives the round
     // trip still resolves to the same task, and not just the same string.
-    const hash = "#challenge=tutorial-3,timescale=8,autostart=true";
+    const hash = "#challenge=tutorial-3,timescale=8,fullscreen=true";
     expect(route(createParamsUrl(parseQuery(hash))).tutorialIndex).toBe(2);
   });
 
@@ -157,9 +157,7 @@ describe("resolveRoute defaults", () => {
       challengeIndex: 0,
       sandbox: null,
       tutorialIndex: null,
-      autoStart: false,
       timeScale: DEFAULT_TIME_SCALE,
-      devTest: false,
       fullscreen: false,
       seed: null,
       refusedKeys: [],
@@ -167,15 +165,11 @@ describe("resolveRoute defaults", () => {
   });
 
   it("reads every parameter the game supports", () => {
-    expect(
-      route("#challenge=4,autostart=true,timescale=8,devtest=true,fullscreen=true,seed=abc"),
-    ).toEqual({
+    expect(route("#challenge=4,timescale=8,fullscreen=true,seed=abc")).toEqual({
       challengeIndex: 3,
       sandbox: null,
       tutorialIndex: null,
-      autoStart: true,
       timeScale: 8,
-      devTest: true,
       fullscreen: true,
       seed: "abc",
       refusedKeys: [],
@@ -183,20 +177,20 @@ describe("resolveRoute defaults", () => {
   });
 
   it("reads a route written in capitals", () => {
-    const params = route("#CHALLENGE=4,SEED=issue-61,TIMESCALE=8,AUTOSTART");
+    const params = route("#CHALLENGE=4,SEED=issue-61,TIMESCALE=8,FULLSCREEN");
     expect(params).toMatchObject({
       challengeIndex: 3,
       seed: "issue-61",
       timeScale: 8,
-      autoStart: true,
+      fullscreen: true,
     });
     expect(route("#CHALLENGE=SANDBOX").sandbox).not.toBeNull();
   });
 
   it("treats a flag as off only when it says false", () => {
-    expect(route("#autostart=false").autoStart).toBe(false);
-    expect(route("#autostart=whatever").autoStart).toBe(true);
-    expect(route("#autostart").autoStart).toBe(true);
+    expect(route("#fullscreen=false").fullscreen).toBe(false);
+    expect(route("#fullscreen=whatever").fullscreen).toBe(true);
+    expect(route("#fullscreen").fullscreen).toBe(true);
   });
 });
 
@@ -317,16 +311,16 @@ describe("resolveRoute challenge locking", () => {
   });
 
   it("keeps the rest of the url while it refuses the challenge", () => {
-    // A speed, a seed and an autostart are choices about how to play, not about
-    // which level -- and the level that opens is one the player is allowed to
-    // be on, so there is nothing about those that has to be dropped with it.
-    const params = routeAfterClearing("#challenge=18,timescale=8,seed=issue-61,autostart", 7);
+    // A speed and a seed are choices about how to play, not about which level
+    // -- and the level that opens is one the player is allowed to be on, so
+    // there is nothing about those that has to be dropped with it.
+    const params = routeAfterClearing("#challenge=18,timescale=8,seed=issue-61,fullscreen", 7);
 
     expect(params).toMatchObject({
       challengeIndex: 7,
       timeScale: 8,
       seed: "issue-61",
-      autoStart: true,
+      fullscreen: true,
       refusedKeys: ["challenge"],
     });
   });
@@ -386,10 +380,9 @@ describe("resolveRoute sandbox selection", () => {
   });
 
   it("keeps the rest of the url working alongside it", () => {
-    const params = route("#challenge=sandbox,floors=12,timescale=8,autostart,fullscreen");
+    const params = route("#challenge=sandbox,floors=12,timescale=8,fullscreen");
     expect(params.sandbox?.floorCount).toBe(12);
     expect(params.timeScale).toBe(8);
-    expect(params.autoStart).toBe(true);
     expect(params.fullscreen).toBe(true);
   });
 });
@@ -687,52 +680,18 @@ describe("resolveRoute tutorial validation", () => {
   });
 
   it("keeps the rest of the url working on the track", () => {
-    // Every parameter but two behaves on a task address exactly as it does on a
-    // challenge. `seed` and `devtest` are the exceptions, and both are refused
-    // rather than read: see "resolveRoute seed on the learning track" for what
-    // the first would cost, and `refuseDevTestOnTrack` for what the second used
-    // to destroy.
-    expect(
-      route(
-        "#challenge=tutorial-3,seed=issue-61,timescale=8,autostart,devtest=true,fullscreen=true",
-      ),
-    ).toEqual({
+    // Every parameter but one behaves on a task address exactly as it does on a
+    // challenge. `seed` is the exception, and is refused rather than read: see
+    // "resolveRoute seed on the learning track" for what it would cost.
+    expect(route("#challenge=tutorial-3,seed=issue-61,timescale=8,fullscreen=true")).toEqual({
       challengeIndex: 0,
       sandbox: null,
       tutorialIndex: 2,
-      autoStart: true,
       timeScale: 8,
-      devTest: false,
       fullscreen: true,
       seed: null,
-      refusedKeys: ["devtest", "seed"],
+      refusedKeys: ["seed"],
     });
-  });
-
-  it("refuses devtest on a task, and only when it is switched on", () => {
-    // `#devtest` loads the reference solution into the editor, and on a task
-    // address it loaded it into the *player's own* buffer -- the switch to the
-    // task's buffer writes what is on screen back where it came from, and what
-    // was on screen was the freshly loaded solution. The player's program was
-    // overwritten with nothing on the page to show for it.
-    const params = route("#challenge=tutorial-3,devtest");
-    expect(params.devTest).toBe(false);
-    expect(params.refusedKeys).toEqual(["devtest"]);
-    expect(console.warn).toHaveBeenCalledWith(
-      "Ignoring devtest: a learning task hands out its own answer as its last hint",
-    );
-    // The invariant every refusal rests on, and the one that lets `startRouter`
-    // take the key out of the address bar: the route without it is the route
-    // being played.
-    expect({ ...params, refusedKeys: [] }).toEqual(route("#challenge=tutorial-3"));
-
-    // Nothing to refuse when the flag is off: `devtest=false` asks for nothing
-    // and would get nothing anywhere else either, so warning about it, and
-    // taking it back out of the address bar, would both be noise.
-    const off = route("#challenge=tutorial-3,devtest=false");
-    expect(off.devTest).toBe(false);
-    expect(off.refusedKeys).toEqual([]);
-    expect(console.warn).toHaveBeenCalledTimes(1);
   });
 
   it("refuses an unusable value on the track exactly as anywhere else", () => {

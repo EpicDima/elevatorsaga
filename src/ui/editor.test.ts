@@ -6,7 +6,7 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vite
 
 import { DEFAULT_LOCALE, setLocale } from "../i18n/index.ts";
 import { playerApiCompletionSource } from "./completions.ts";
-import { DEV_TEST_CODE, defaultCode } from "./default-code.ts";
+import { defaultCode } from "./default-code.ts";
 import {
   AUTOSAVE_DELAY_MS,
   BACKUP_STORAGE_KEY,
@@ -1075,12 +1075,6 @@ describe("CodeEditor reset", () => {
     view.type("// written since");
     expect(editor.canUndoReset()).toBe(false);
   });
-
-  it("loads the reference solution for devtest", () => {
-    const { editor, view } = setUp();
-    editor.setDevTestCode();
-    expect(view.getValue()).toBe(DEV_TEST_CODE);
-  });
 });
 
 describe("CodeEditor compilation", () => {
@@ -1108,12 +1102,6 @@ describe("CodeEditor compilation", () => {
 
   it("compiles the default program every player starts with", () => {
     const { editor } = setUp();
-    expect(editor.getCodeObj()).not.toBeNull();
-  });
-
-  it("compiles the devtest program", () => {
-    const { editor } = setUp();
-    editor.setDevTestCode();
     expect(editor.getCodeObj()).not.toBeNull();
   });
 

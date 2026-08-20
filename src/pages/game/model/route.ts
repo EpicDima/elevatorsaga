@@ -104,18 +104,8 @@ export interface RouteParams {
    * key can name, and no value spells both.
    */
   readonly tutorialIndex: number | null;
-  /** Whether the simulation should start without waiting for the Start button. */
-  readonly autoStart: boolean;
   /** Simulation speed multiplier. */
   readonly timeScale: number;
-  /**
-   * Whether to load the built-in reference solution.
-   *
-   * Always `false` while {@link tutorialIndex} is set, like {@link seed} and for
-   * a reason of the same shape: on a task the load reached the player's own
-   * buffer rather than the task's. {@link refuseDevTestOnTrack} has the details.
-   */
-  readonly devTest: boolean;
   /** Whether to hide everything except the world. */
   readonly fullscreen: boolean;
   /**
@@ -377,13 +367,7 @@ export function resolveRoute(query: RouteQuery, context: RouteContext): RoutePar
         : 0,
     sandbox,
     tutorialIndex,
-    autoStart: readFlag(query, "autostart"),
     timeScale: resolveTimeScale(query.get("timescale"), context.defaultTimeScale, refuse),
-    // Refused on a task for a reason of its own, unrelated to the seed's: the
-    // flag would destroy the player's saved program without showing them
-    // anything. See {@link refuseDevTestOnTrack}.
-    devTest:
-      tutorialIndex === null ? readFlag(query, "devtest") : refuseDevTestOnTrack(query, refuse),
     fullscreen: readFlag(query, "fullscreen"),
     // A task plays the seed its own entry pins, so a seed on a task address is
     // refused rather than honoured. The track teaches by letting a program fail
@@ -484,39 +468,6 @@ function refuseSeedOnTrack(query: RouteQuery, refuse: Refuse): null {
     refuse("seed");
   }
   return null;
-}
-
-/**
- * Refuses `devtest` on a task address, and says so.
- *
- * `#devtest` means "put the reference solution in the editor, replacing what is
- * there", and on a task address "there" was the wrong buffer. The app loads the
- * program while the player's own buffer is still the one on screen, and the
- * switch to the task's buffer then writes what is on screen back where it came
- * from — so the reference solution went into the player's own key, destroying
- * whatever they had written, and the page showed the task's starting program as
- * if nothing had happened. There is no worse shape for a data loss than one with
- * no symptom.
- *
- * Refused rather than reordered, because there is nothing here for the flag to
- * do that the game does not already do better: the program it carries is a naive
- * solution to the *numbered* challenges, which is not an answer to any of the
- * first seven tasks, and every task hands out its own answer as its last hint.
- *
- * Silent unless the flag is actually on. `devtest=false` asks for nothing and
- * gets nothing, which is the same answer it would get anywhere else, so there is
- * nothing to warn about and no reason to take the key out of the address bar.
- *
- * @param query - The parsed hash, read only for `devtest`.
- * @param refuse - Records the key so the address bar loses it.
- * @returns Always `false`; a task never loads the reference solution.
- */
-function refuseDevTestOnTrack(query: RouteQuery, refuse: Refuse): false {
-  if (readFlag(query, "devtest")) {
-    console.warn("Ignoring devtest: a learning task hands out its own answer as its last hint");
-    refuse("devtest");
-  }
-  return false;
 }
 
 /**

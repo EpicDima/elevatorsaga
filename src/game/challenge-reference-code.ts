@@ -7,10 +7,10 @@
  * player's program can clear and a lazy one cannot. That measurement is only
  * honest if "good" is an actual program the engine runs, not a number typed
  * in because it sounded about right — which is exactly the gap between this
- * file and {@link "../ui/default-code.ts"!DEV_TEST_CODE}: `DEV_TEST_CODE`
- * exists to prove the game still plays, scores every car by a fixed formula
- * and re-decides from scratch on every call, and was never meant to be
- * anyone's idea of the best a player could do.
+ * file and {@link "../ui/default-code.ts"!DEV_TEST_CODE}: `DEV_TEST_CODE` is
+ * the naive end of the yardstick, scoring every car by a fixed formula and
+ * re-deciding from scratch on every call, and was never meant to be anyone's
+ * idea of the best a player could do.
  *
  * The dispatcher built here is closer to how a person actually solves this
  * game: a car keeps sweeping the direction it is already going, picking up

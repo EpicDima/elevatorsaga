@@ -29,7 +29,7 @@ import type { UserCodeObject } from "../game/user-code.ts";
 import { t } from "../i18n/index.ts";
 import { editorSyntaxTheme } from "./code-highlight.ts";
 import { playerApiCompletionSource } from "./completions.ts";
-import { DEV_TEST_CODE, defaultCode } from "./default-code.ts";
+import { defaultCode } from "./default-code.ts";
 import { locateCodeError } from "./error-location.ts";
 import type { CodeErrorLocation } from "./error-location.ts";
 import { DEFAULT_CODE_SLOT } from "#features/manage-code-slots/model/code-slots.ts";
@@ -161,8 +161,8 @@ export interface TextEditorHandlers {
  * What a {@link TextEditorView.setValue} call means for the editing history.
  *
  * `"edit"` — the new text is another state of the program on screen, reached
- * by "Reset", "Undo reset" or `#devtest`. The player may undo their way back
- * through it, as they could in the legacy game.
+ * by "Reset" or "Undo reset". The player may undo their way back through it,
+ * as they could in the legacy game.
  *
  * `"swap"` — a different program takes the place of this one, because the
  * editor moved to another buffer. The history of the old program has to go with
@@ -183,8 +183,7 @@ export interface TextEditorView {
    *
    * An `"edit"` is a document change like any other, so the surface raises
    * {@link TextEditorHandlers.onChange} for it — replacing the program from
-   * "Reset", "Undo reset" or `#devtest` autosaves, as it did in the legacy
-   * game. The document the surface is *built* with does not, which is why it is
+   * "Reset" or "Undo reset" autosaves, as it did in the legacy game. The document the surface is *built* with does not, which is why it is
    * passed to the factory instead of being assigned afterwards; a `"swap"` is
    * the same thing mid-life, and raises nothing either.
    *
@@ -607,11 +606,6 @@ export class CodeEditor extends Observable<CodeEditorEvents> {
    */
   setCode(code: string): void {
     this.#view.setValue(code);
-  }
-
-  /** Loads the naive reference solution used by `#devtest`. */
-  setDevTestCode(): void {
-    this.setCode(DEV_TEST_CODE);
   }
 
   /**

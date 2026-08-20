@@ -129,12 +129,11 @@ remembered in `localStorage`, so the header link goes to the first one you have 
 to task 1 once there is none — and nothing is ever locked: every task is playable by its address
 from the first visit.
 
-A task refuses two things you can write in the URL, each with a console warning and each taken back
-out of the address bar. `seed`, because whether the given program really loses is a fact about the
-passenger stream as much as about the program — task 5's sweep does win on some seeds — so
-`#challenge=tutorial-5,seed=42a` would sit a player in front of a broken program winning. And
-`devtest`, whose reference solution is no answer to any of the first seven tasks — and each task
-already hands out its own answer as its last hint. Because the seed is the task's rather than yours, the bar above the building
+A task refuses one thing you can write in the URL, with a console warning and taken back out of the
+address bar: `seed`, because whether the given program really loses is a fact about the passenger
+stream as much as about the program — task 5's sweep does win on some seeds — so
+`#challenge=tutorial-5,seed=42a` would sit a player in front of a broken program winning. Because
+the seed is the task's rather than yours, the bar above the building
 shows no seed line while a task is open — there is nothing there to pin and nothing to unpin — and
 Restart brings back the same passengers rather than a fresh draw. An address that names no task,
 such as `tutorial-9`, starts the first task rather than challenge 1: whoever wrote it was asking for
@@ -443,7 +442,7 @@ and why the fitness benchmark can run the whole thing inside a web worker.
 ## URL parameters
 
 Everything after the `#` is a comma-separated list of `key=value` pairs, for example
-`#challenge=7,timescale=8,autostart`. Anything unrecognized is left alone and carried into the
+`#challenge=7,timescale=8,fullscreen`. Anything unrecognized is left alone and carried into the
 "next challenge" link. Anything malformed falls back to a sane default with a console warning
 rather than breaking the page.
 
@@ -452,15 +451,17 @@ rather than breaking the page.
 | `#challenge=N`          | Starts challenge `N`, counting from 1. Out of range, missing, or unreadable as a number and not one of the two names below: challenge 1. A challenge you have not unlocked starts the furthest one you have, and the address bar is rewritten to say so. |
 | `#challenge=sandbox`    | Starts a building of your own instead of a numbered challenge. See below.                                                                                                                                                                                |
 | `#challenge=tutorial-N` | Starts task `N` of the learning track, from `tutorial-1` to `tutorial-8`. A `tutorial-` address no task has starts the first one. See [The learning track](#the-learning-track).                                                                         |
-| `#autostart`            | Starts the simulation immediately instead of waiting for the Start button.                                                                                                                                                                               |
 | `#timescale=X`          | Simulation speed multiplier. Clamped to `0.1`–`64`. Fractions such as `1.5` work. Without it, the speed you last chose is used again — it is kept in `localStorage` under `elevatorTimeScale` — and `2` when there is none.                              |
 | `#seed=S`               | Pins the seed the passenger stream is drawn from. Not the building. Refused on a learning task. See below.                                                                                                                                               |
-| `#devtest`              | Loads the built-in reference solution into the editor, replacing what is there. Refused on a learning task.                                                                                                                                              |
 | `#fullscreen`           | Hides everything except the building.                                                                                                                                                                                                                    |
 
-The three flags — `autostart`, `devtest` and `fullscreen` — are on when present and off when
-explicitly set to `false` (`#autostart=false`). Bare flags now work: in the original, `#fullscreen`
-without a value was silently ignored because the parser's regexp demanded one.
+`fullscreen` is a flag: on when present and off when explicitly set to `false`
+(`#fullscreen=false`). Bare flags now work: in the original, `#fullscreen` without a value was
+silently ignored because the parser's regexp demanded one. Two more flags used to sit beside it —
+`autostart`, which started the run without waiting for the Start button, and `devtest`, which
+replaced whatever was in the editor with a built-in reference solution. Both were service routes
+rather than anything to play with, and `devtest` in particular could throw away a program with one
+pasted link, so both are gone.
 
 ### Seeds
 
