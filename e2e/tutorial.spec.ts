@@ -306,7 +306,8 @@ test("paints the panel's own controls as dark as the prose around them", async (
   // The defect written up at `.tutorialpanel`: <body> paints everything white,
   // and the document rules repair that for `p` and the headings only. A
   // `<summary>` is neither, so the four disclosures would be the palest thing on
-  // the page -- 1.91:1 against this background, where WCAG 1.4.3 asks for 4.5:1.
+  // the page -- white on the `--ds-raised` the hints are now drawn on is 1.03:1
+  // in the light theme, where WCAG 1.4.3 asks for 4.5:1.
   //
   // `.tutorialpanel` now reads `--ds-text` rather than the fixed `--color-text`
   // it used to, so the colour this asserts is whichever theme Playwright's own
@@ -450,6 +451,21 @@ test("costs the levels nothing: the widest building in the game still fits its p
     });
     expect(fit).toEqual({ paneOverflow: 0, buildingEscapes: false });
   }
+});
+
+test("says where the player is on the track twice: in words, and in ticks", async ({ page }) => {
+  // `tutorial-panel.test.ts` proves which tick carries which class. What only a
+  // browser answers is whether `style.css` paints the three states apart at all
+  // -- a row of eight identical 3px bars says nothing, and says it in exactly
+  // the space a progress indicator would have taken.
+  await page.goto("/#challenge=tutorial-3");
+
+  const ticks = panel(page).locator(".tutorialsteps i");
+  await expect(ticks).toHaveCount(8);
+  // --ds-ok, --ds-accent and --ds-n-3, light theme -- this suite's default.
+  await expect(ticks.nth(0)).toHaveCSS("background-color", "rgb(44, 132, 85)");
+  await expect(ticks.nth(2)).toHaveCSS("background-color", "rgb(166, 104, 12)");
+  await expect(ticks.nth(3)).toHaveCSS("background-color", "rgb(238, 235, 228)");
 });
 
 /**

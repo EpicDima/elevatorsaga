@@ -850,6 +850,7 @@ describe("tutorialTemplate", () => {
     expect(drawn.getAttribute("aria-label")).toBe("Learning track");
     expect([...drawn.children].map((child) => child.className)).toEqual([
       "tutorialposition",
+      "tutorialsteps",
       "tutorialtitle",
       "tutorialgoal",
       "tutorialhint",
@@ -1024,6 +1025,55 @@ describe("tutorialTemplate", () => {
     expect(drawn.querySelector(".tutorialprogress")?.textContent).toBe("5 of 8 tasks done");
   });
 
+  it("draws one tick per task, with the ones behind the player apart from the one under them", () => {
+    // The mockup's `.steps`: the same "Task 3 of 8" said to the eye. It counts
+    // positions on the track and deliberately not cleared tasks -- this panel is
+    // told how many are cleared but never which, and a player who opened task 3
+    // from a bookmark with nothing behind them must not be shown two tasks
+    // marked done in places they have never been. Note the arguments: five
+    // cleared, and still exactly two ticks behind the third.
+    const drawn = panel({ taskNumber: 3, taskCount: 8, clearedCount: 5 });
+    const row = requireElement(".tutorialsteps", drawn);
+
+    expect([...row.children].map((tick) => tick.className)).toEqual([
+      "is-done",
+      "is-done",
+      "is-current",
+      "",
+      "",
+      "",
+      "",
+      "",
+    ]);
+    // Eight nameless items read out one after another would be eight
+    // interruptions carrying nothing the line above them does not already say
+    // in words (WCAG 1.1.1 treats a decoration of adjacent text as decorative).
+    expect(row.getAttribute("aria-hidden")).toBe("true");
+  });
+
+  it("puts no tick behind the player on the first task, and none in front on the last", () => {
+    const first = requireElement(".tutorialsteps", panel({ taskNumber: 1, taskCount: 3 }));
+    const last = requireElement(".tutorialsteps", panel({ taskNumber: 3, taskCount: 3 }));
+
+    expect([...first.children].map((tick) => tick.className)).toEqual(["is-current", "", ""]);
+    expect([...last.children].map((tick) => tick.className)).toEqual([
+      "is-done",
+      "is-done",
+      "is-current",
+    ]);
+  });
+
+  it("marks the head row with a graduation cap nobody has to hear about", () => {
+    // The panel is a card beside the building now, and the cap is what tells the
+    // two apart before either is read. It says "lesson" next to a line that
+    // already says so in words, so it is decoration (WCAG 1.1.1).
+    const icon = requireElement(".tutorialposition .ds-icon", panel());
+
+    expect(icon.tagName.toLowerCase()).toBe("svg");
+    expect(icon.getAttribute("aria-hidden")).toBe("true");
+    expect(icon.getAttribute("focusable")).toBe("false");
+  });
+
   it("counts the tasks in the plural the number calls for", () => {
     // The plural is selected on the count of tasks, not on the count cleared:
     // "1 of 8 tasks done" is about eight tasks.
@@ -1045,14 +1095,19 @@ describe("tutorialTemplate", () => {
   it("gives the way out two real buttons, and no second Start over", () => {
     const buttons = [...panel().querySelectorAll(".tutorialbuttons button")];
 
+    // The quiet one first and the painted one second, in the markup and not
+    // merely in the paint: `design/ui-mockup.html`'s lesson puts the action a
+    // player takes on every task at the end of the row, and a tab order that
+    // disagreed with the row would be WCAG 1.3.2/2.4.3. `.ghost` and
+    // `.btn.btn-primary` are the mockup's own two button shapes.
     expect(buttons.map((button) => button.className)).toEqual([
-      "tutorialtakecode",
-      "tutorialleave",
+      "ghost tutorialleave",
+      "btn btn-primary tutorialtakecode",
     ]);
     expect(buttons.map((button) => button.getAttribute("type"))).toEqual(["button", "button"]);
     expect(buttons.map((button) => button.textContent)).toEqual([
-      "Take this program into your own editor",
       "Leave for the levels",
+      "Take this program into your own editor",
     ]);
     // The panel had its own "Start over" until the run buttons were gathered
     // into `controlsTemplate`, which is drawn directly under it. Two buttons on
@@ -1091,7 +1146,7 @@ describe("tutorialTemplate", () => {
     expect(drawn.querySelector(".tutorialprogress")?.textContent).toBe("Пройдено 6 из 8 заданий");
     expect(
       [...drawn.querySelectorAll(".tutorialbuttons button")].map((button) => button.textContent),
-    ).toEqual(["Забрать программу в свой редактор", "Выйти к уровням игры"]);
+    ).toEqual(["Выйти к уровням игры", "Забрать программу в свой редактор"]);
   });
 
   it("leaves the answer in the language it is written in", () => {

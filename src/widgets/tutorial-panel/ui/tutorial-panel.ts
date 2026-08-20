@@ -28,6 +28,7 @@
 import { tutorialTasks } from "#game/tutorial.ts";
 import { t, type MessageKey } from "#i18n/index.ts";
 import { query, queryAll, requireElement } from "#shared/lib/dom.ts";
+import { spriteIconMarkup } from "#shared/ui/icon.ts";
 import { markup, raw, renderElement } from "#shared/ui/markup.ts";
 
 import { highlightJavaScript } from "../../../ui/code-highlight.ts";
@@ -569,6 +570,45 @@ function tutorialHintTemplate(
 }
 
 /**
+ * The track as a row of ticks, one per task, with the one being played lit.
+ *
+ * `design/ui-mockup.html`'s own `.steps` (§11), and its own three states: the
+ * tasks already behind the player, the one in front of them, and the ones not
+ * reached. It says in a glance what the line above it says in words, which is
+ * why it says it to the eye only -- `aria-hidden`, because "Task 3 of 8" is
+ * already there, and eight nameless list items announced one after another
+ * would be eight interruptions carrying nothing new (WCAG 1.1.1 treats a
+ * decoration of text already present as decorative).
+ *
+ * The ticks count *positions on the track*, the way the line above them does,
+ * and deliberately not cleared tasks: the panel is told how many tasks are
+ * cleared but not which, and a player who reached task 5 from a bookmark with
+ * two tasks behind them would otherwise be shown a track marked done in places
+ * they have never been. How many are really cleared stays where it has always
+ * been, in `.tutorialprogress` at the foot of the panel, where it is a sentence
+ * and cannot be mistaken for a position.
+ *
+ * @param taskNumber - One-based number of the task being played.
+ * @param taskCount - How many tasks the track holds.
+ * @returns The tick row's markup.
+ */
+function tutorialStepsTemplate(taskNumber: number, taskCount: number): string {
+  const ticks = Array.from({ length: taskCount }, (_unused, index) => {
+    // `is-done`/`is-current`, which is the mockup's own vocabulary and this
+    // page's own besides -- `.call.is-lit` in the building, `.stage.has-lesson`
+    // in the stage. The third state is the absence of both.
+    const state =
+      index < taskNumber - 1
+        ? ' class="is-done"'
+        : index === taskNumber - 1
+          ? ' class="is-current"'
+          : "";
+    return `<i${state}></i>`;
+  }).join("");
+  return `<div class="tutorialsteps" aria-hidden="true">${ticks}</div>`;
+}
+
+/**
  * The learning track's panel: where the player is, what to do, and the way out.
  *
  * Drawn as a `<section>` with a name, which makes it a region landmark: the
@@ -589,6 +629,23 @@ function tutorialHintTemplate(
  * you are, what to do, what to try if it will not come, why it happened, and
  * only then the buttons that leave. The progress line is last because it is the
  * one thing here that is about the track rather than about this task.
+ *
+ * The head row and the ticks under it are `design/ui-mockup.html`'s own
+ * `.lesson-head` and `.steps` (§11). The graduation cap is `aria-hidden` and
+ * carries no meaning of its own: it says "lesson" beside a line that already
+ * says so in words, and it is there because the panel now stands beside the
+ * building as a card of its own and needs to be told apart from the building
+ * at a glance rather than read (WCAG 1.1.1 — a decoration of adjacent text).
+ * {@link tutorialStepsTemplate} explains what the ticks count.
+ *
+ * The two buttons are drawn as the mockup draws a lesson's actions: the one
+ * that leaves as a `.ghost` on the left, the one that acts on this task as the
+ * `.btn-primary` pushed to the right. The mockup's reasoning is about which of
+ * a pair is pressed a hundred times more often, and it applies here with the
+ * pair swapped -- taking the program into the editor is a thing done on the
+ * track, and leaving it is done once. They are in that order in the markup too,
+ * and not merely painted in it, so that the tab order and the reading order
+ * agree with what is on screen (WCAG 1.3.2, 2.4.3).
  *
  * `.tutorialtaken` is drawn empty, directly under the buttons, and filled in by
  * {@link presentTutorial} when "Take this program" is pressed — an empty live
@@ -633,12 +690,13 @@ export function tutorialTemplate(data: TutorialTemplateData): string {
       ),
     )
     .join("");
+  const steps = tutorialStepsTemplate(data.taskNumber, data.taskCount);
   // The index is written into the markup because it is the one piece of state
   // the panel has to remember about itself: presentTutorial carries the open
   // hints across a redraw of the same task and deliberately does not carry them
   // across a change of task, and after `replaceChildren` the old panel is the
   // only place the number it was drawn for still exists.
-  return markup`<section class="tutorialpanel" data-task-index="${data.taskNumber - 1}" aria-label="${t("tutorial.panel.label")}"><p class="tutorialposition"><span class="tutorialtrack">${t("tutorial.panel.label")}</span> <span class="tutorialstep">${t("tutorial.panel.position", { number: data.taskNumber, count: data.taskCount })}</span></p><h2 class="tutorialtitle">${data.title}</h2><p class="tutorialgoal">${data.goal}</p>${raw(hints)}<details class="tutorialexplanation"><summary>${t("tutorial.panel.explanationSummary")}</summary><p class="tutorialprose">${raw(data.explanation)}</p></details><div class="tutorialbuttons"><button type="button" class="tutorialtakecode">${t("tutorial.button.takeCode")}</button><button type="button" class="tutorialleave">${t("tutorial.button.leave")}</button></div><p class="tutorialtaken" aria-live="polite"></p><p class="tutorialprogress">${t("tutorial.panel.progress", { cleared: data.clearedCount, count: data.taskCount })}</p></section>`;
+  return markup`<section class="tutorialpanel" data-task-index="${data.taskNumber - 1}" aria-label="${t("tutorial.panel.label")}"><p class="tutorialposition">${raw(spriteIconMarkup("graduate"))}<span class="tutorialtrack">${t("tutorial.panel.label")}</span> <span class="tutorialstep">${t("tutorial.panel.position", { number: data.taskNumber, count: data.taskCount })}</span></p>${raw(steps)}<h2 class="tutorialtitle">${data.title}</h2><p class="tutorialgoal">${data.goal}</p>${raw(hints)}<details class="tutorialexplanation"><summary>${t("tutorial.panel.explanationSummary")}</summary><p class="tutorialprose">${raw(data.explanation)}</p></details><div class="tutorialbuttons"><button type="button" class="ghost tutorialleave">${t("tutorial.button.leave")}</button><button type="button" class="btn btn-primary tutorialtakecode">${t("tutorial.button.takeCode")}</button></div><p class="tutorialtaken" aria-live="polite"></p><p class="tutorialprogress">${t("tutorial.panel.progress", { cleared: data.clearedCount, count: data.taskCount })}</p></section>`;
 }
 
 /**
