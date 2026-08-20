@@ -178,6 +178,9 @@ function tileText(tile: LevelMenuTile): string {
     case "level": {
       return String(tile.number);
     }
+    case "skyscraper": {
+      return String(tile.number);
+    }
     case "sandbox": {
       return t("game.levelSwitcher.sandboxLabel");
     }
@@ -201,6 +204,9 @@ function tileAccessibleName(tile: LevelMenuTile): string {
     }
     case "level": {
       return t("game.level.nav.link", { number: tile.number });
+    }
+    case "skyscraper": {
+      return t("game.levelSwitcher.skyscraperTileLabel", { number: tile.number });
     }
     case "sandbox": {
       return t("game.levelSwitcher.sandboxLabel");
@@ -240,6 +246,9 @@ function tileTriggerName(tile: LevelMenuTile): string {
     case "level": {
       return t("game.level.nav.link", { number: tile.number });
     }
+    case "skyscraper": {
+      return t("game.levelSwitcher.skyscraperTriggerLabel", { number: tile.number });
+    }
     case "sandbox": {
       return t("game.levelSwitcher.sandboxLabel");
     }
@@ -261,9 +270,15 @@ function tileTemplate(tile: LevelMenuTile): string {
   const text = tileText(tile);
   const name = tileAccessibleName(tile);
   const current = tile.current ? raw(' aria-current="page"') : raw("");
-  const done =
-    (tile.kind === "level" && tile.tier !== undefined) ||
-    (tile.kind === "tutorial" && tile.cleared);
+  // The two blocks of numbered levels are the medalled ones, and the badge is
+  // drawn for every tile of both — empty stars for a level never cleared, which
+  // is what makes the row read as a set of five slots to fill rather than as
+  // marks appearing out of nowhere. Asked once, because the answer decides
+  // three separate things below and asking it three times was already how the
+  // `data-tier` attribute and the badge came to disagree about `undefined`.
+  const medalled = tile.kind === "level" || tile.kind === "skyscraper";
+  const earned = medalled ? tile.tier : undefined;
+  const done = earned !== undefined || (tile.kind === "tutorial" && tile.cleared);
   const classes = [
     "tasklink",
     tile.kind === "sandbox" ? "is-free" : "",
@@ -271,9 +286,8 @@ function tileTemplate(tile: LevelMenuTile): string {
   ]
     .filter((className) => className !== "")
     .join(" ");
-  const tier =
-    tile.kind === "level" && tile.tier !== undefined ? raw(` data-tier="${tile.tier}"`) : raw("");
-  const badge = tile.kind === "level" ? raw(tierBadgeMarkup(tile.tier)) : raw("");
+  const tier = earned === undefined ? raw("") : raw(` data-tier="${earned}"`);
+  const badge = medalled ? raw(tierBadgeMarkup(earned)) : raw("");
   return markup`<a class="${classes}" href="${tile.href}" aria-label="${name}"${current}${tier}>${text}${badge}</a>`;
 }
 
@@ -285,11 +299,15 @@ function tileTemplate(tile: LevelMenuTile): string {
  * renamed after the level it teaches, and the row of level links went into this
  * popover — so this file is the only reader either of them has left.
  *
- * The third has a string of its own, and does not reuse the sandbox tile's:
+ * The Skyscraper block does get a string of its own rather than borrowing one:
+ * its levels are described in the catalogue level by level, and no message
+ * there names the block as a whole.
+ *
+ * The last has a string of its own too, and does not reuse the sandbox tile's:
  * captioning a block with the name of the single tile in it says the same
  * word twice and promises the block will only ever hold that one thing. It
- * says "Other" instead — what is left once the lessons and the numbered
- * levels are accounted for.
+ * says "Other" instead — what is left once the lessons and the two blocks of
+ * numbered levels are accounted for.
  *
  * @param id - Block to caption.
  * @returns Its caption.
@@ -301,6 +319,9 @@ function blockCaption(id: LevelMenuBlock["id"]): string {
     }
     case "levels": {
       return t("game.level.nav.label");
+    }
+    case "skyscraper": {
+      return t("game.levelSwitcher.skyscraperBlockLabel");
     }
     case "other": {
       return t("game.levelSwitcher.otherBlockLabel");

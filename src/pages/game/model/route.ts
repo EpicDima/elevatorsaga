@@ -36,6 +36,12 @@
  * {@link "#game/tutorial.ts"!tutorialLevels}. {@link resolveTutorialIndex}
  * says what that buys and what a misspelled level address does instead.
  *
+ * The Skyscraper block — `#level=sky-1` and up — is the fourth, and reads
+ * exactly like the track: identifiers out of
+ * {@link "#game/skyscraper.ts"!skyscraperLevels}, compared and not computed.
+ * It is the one block still being written, so the count is whatever that table
+ * holds today rather than a number quoted here.
+ *
  * `seed` is the other half of a shared building: the sandbox parameters pin the
  * shafts and `seed` pins who walks into them — and, played the same way, every
  * tick of the run they walk into, which is what `game.seed.explanation` in the
@@ -52,7 +58,7 @@
  * gone game-wide, so the router no longer holds an opinion about which
  * levels a browser has earned, and `#level=18` opens level 18 for anyone.
  *
- * The key that names all three used to be spelled `level`, which is what
+ * The key that names all four used to be spelled `level`, which is what
  * every link ever shared out of this game says. {@link LEGACY_LEVEL_KEY} and
  * {@link renameLegacyLevelKey} are how those links go on working: the old
  * spelling is read wherever the new one would be and rewritten out of the
@@ -79,6 +85,10 @@ import type { SandboxOptions } from "#game/levels.ts";
 // pulls this table into its chunk anymore. `app.ts` pays for it regardless,
 // since it imports the table itself to play a level.
 import { tutorialLevels } from "#game/tutorial.ts";
+// Here for the same reason, and paying the same way: the Skyscraper block's
+// addresses are the `id`s written in its own table, so the table is what says
+// which of them exist.
+import { skyscraperLevels } from "#game/skyscraper.ts";
 import { clampTimeScale } from "#features/adjust-speed/model/time-scale.ts";
 import { createParamsUrl, parseQuery, type RouteQuery } from "#shared/lib/route-query.ts";
 import { isUsableSeed } from "#shared/lib/seed.ts";
@@ -88,8 +98,9 @@ export interface RouteParams {
   /**
    * Zero-based index into the level list.
    *
-   * Meaningless while {@link sandbox} or {@link tutorialIndex} is set: neither
-   * the sandbox nor a level of the learning track is in that list.
+   * Meaningless while {@link sandbox}, {@link tutorialIndex} or
+   * {@link skyscraperIndex} is set: none of the sandbox, a level of the
+   * learning track and a level of the Skyscraper block is in that list.
    */
   readonly levelIndex: number;
   /**
@@ -105,10 +116,18 @@ export interface RouteParams {
    *
    * A zero-based index into {@link "#game/tutorial.ts"!tutorialLevels}, so
    * `level=tutorial-3` is `2`. Set when `level` names a level, and never
-   * at the same time as {@link sandbox}: those are two of the three things one
-   * key can name, and no value spells both.
+   * at the same time as {@link sandbox} or {@link skyscraperIndex}: those are
+   * three of the four things one key can name, and no value spells two of them.
    */
   readonly tutorialIndex: number | null;
+  /**
+   * The Skyscraper level asked for, or `null` for anything else.
+   *
+   * A zero-based index into {@link "#game/skyscraper.ts"!skyscraperLevels}, so
+   * `level=sky-2` is `1`. The fourth thing the one key can name, and never set
+   * at the same time as any of the other three.
+   */
+  readonly skyscraperIndex: number | null;
   /** Simulation speed multiplier. */
   readonly timeScale: number;
   /** Whether to hide everything except the world. */
@@ -123,10 +142,10 @@ export interface RouteParams {
    * The URL is the only thing that pins a seed, which is what makes the two
    * restart paths agree: see {@link "../index.ts"!App.handleRoute}.
    *
-   * Always `null` while {@link tutorialIndex} is set, however far the URL goes
-   * to ask otherwise — a level plays the seed its own entry pins and no other.
-   * {@link resolveRoute} explains what a seed of the player's choosing would
-   * cost the track.
+   * Always `null` while {@link tutorialIndex} or {@link skyscraperIndex} is
+   * set, however far the URL goes to ask otherwise — a level of either block
+   * plays the seed its own entry pins and no other. {@link resolveRoute}
+   * explains what a seed of the player's choosing would cost each of them.
    */
   readonly seed: string | null;
   /**
@@ -191,10 +210,10 @@ function readFlag(query: RouteQuery, key: string): boolean {
 }
 
 /**
- * The hash key that names what is being played: a level number, the sandbox, or
- * a level of the learning track.
+ * The hash key that names what is being played: a level number, the sandbox, a
+ * level of the learning track, or a level of the Skyscraper block.
  *
- * One key for all three, and the reason is the level switcher: every entry it
+ * One key for all four, and the reason is the level switcher: every entry it
  * draws is `createParamsUrl(query, { level: … })`, so following any of them
  * replaces whatever the last one named and no second key can be left behind
  * describing a run nobody is playing.
@@ -250,6 +269,23 @@ export const SANDBOX_LEVEL = "sandbox";
  * a level nobody is playing.
  */
 export const TUTORIAL_LEVEL_PREFIX = "tutorial-";
+
+/**
+ * What every {@link LEVEL_KEY} value that names a Skyscraper level starts with.
+ *
+ * Everything {@link TUTORIAL_LEVEL_PREFIX} says applies here word for word: the
+ * address is accepted because it *is* the `id` of a level in
+ * {@link "#game/skyscraper.ts"!skyscraperLevels}, the prefix only tells a
+ * mistyped level address from a level number, and it is the one thing that has
+ * to stay in step with the ids by hand.
+ *
+ * `sky-` rather than `skyscraper-`, and the length is the whole of the reason:
+ * this ends up in every link the switcher draws for the block and in every
+ * address a player copies out of the bar, and `#level=skyscraper-3` spends
+ * eleven characters saying what four say. Nothing reads the prefix for its
+ * meaning; the block's name is on screen, in the caption over its tiles.
+ */
+export const SKYSCRAPER_LEVEL_PREFIX = "sky-";
 
 /**
  * Reads a hash written with {@link LEGACY_LEVEL_KEY} as one written with
@@ -401,20 +437,27 @@ export function resolveRoute(rawQuery: RouteQuery, context: RouteContext): Route
   // names rather than the first level.
   const query = renameLegacyLevelKey(rawQuery);
   const level = query.get(LEVEL_KEY);
-  // Before resolveLevelIndex, and the reason the two guards come first: it
-  // reads its value with `Number`, which makes "sandbox" and "tutorial-3" alike
-  // into NaN, i.e. into a refusal and level one. Whichever of the three the
-  // key names has to be decided before any of them is parsed as a number.
+  // Before resolveLevelIndex, and the reason the three guards come first: it
+  // reads its value with `Number`, which makes "sandbox", "tutorial-3" and
+  // "sky-1" alike into NaN, i.e. into a refusal and level one. Whichever of the
+  // four the key names has to be decided before any of them is parsed as a
+  // number.
   const tutorialIndex = isTutorialRoute(level) ? resolveTutorialIndex(level, refuse) : null;
+  const skyscraperIndex = isSkyscraperRoute(level) ? resolveSkyscraperIndex(level, refuse) : null;
   const sandbox = isSandboxRoute(level) ? resolveSandboxOptions(query, refuse) : null;
+  // The two blocks that pin their own seeds, asked about together because
+  // everything below treats them the same way: neither names a level number,
+  // and neither will take a seed from the URL.
+  const pinnedSeedTrack = tutorialIndex !== null || skyscraperIndex !== null;
   return {
     // Resolved, and so warned about, only when it is the one being played:
     // neither a sandbox URL nor a level address names a level number, and
     // complaining that "sandbox" or "tutorial-3" is not one would be noise.
     levelIndex:
-      sandbox === null && tutorialIndex === null ? resolveLevelIndex(level, context, refuse) : 0,
+      sandbox === null && !pinnedSeedTrack ? resolveLevelIndex(level, context, refuse) : 0,
     sandbox,
     tutorialIndex,
+    skyscraperIndex,
     timeScale: resolveTimeScale(query.get("timescale"), context.defaultTimeScale, refuse),
     fullscreen: readFlag(query, "fullscreen"),
     // A level plays the seed its own entry pins, so a seed on a level address is
@@ -426,10 +469,15 @@ export function resolveRoute(rawQuery: RouteQuery, context: RouteContext): Route
     // not" such a seed. `#level=tutorial-5,seed=42a` is that sentence
     // stopped being true, and a player watching the broken program win learns
     // the opposite of the lesson.
-    seed:
-      tutorialIndex === null
-        ? resolveSeed(query.get("seed"), refuse)
-        : refuseSeedOnTrack(query, refuse),
+    //
+    // The Skyscraper block refuses a seed for a different reason with the same
+    // shape. Its thresholds are calibrated against one measured run rather than
+    // against a distribution — `SkyscraperLevel.seed` says why — so a silver
+    // earned on `seed=42a` would be a silver on a crowd nobody measured, and
+    // two players comparing medals would be comparing two different levels.
+    seed: pinnedSeedTrack
+      ? refuseSeedOnTrack(query, refuse)
+      : resolveSeed(query.get("seed"), refuse),
     refusedKeys,
   };
 }
@@ -484,17 +532,26 @@ function resolveSeed(value: string | undefined, refuse: Refuse): string | null {
 }
 
 /**
- * Drops a `seed` that arrived on a level address, and says so.
+ * Drops a `seed` that arrived on the address of a level that pins its own, and
+ * says so.
  *
- * Refused rather than resolved, because on the track a seed is not the player's
- * to choose: each level pins one in {@link "#game/tutorial.ts"!tutorialLevels},
- * and the levels are only teachable because of it. A level shows a program
- * failing and then the one change that fixes it, and whether the program fails
- * is a property of the passenger stream, not of the program alone — level 5's
- * starting sweep is measured delivering all fifteen inside the wait limit on
- * seed `42a`, and on 76 of 400 seeds besides. Honouring `seed=` would let a
- * player land, by choice or by a copied link, on a run where the broken program
- * wins and the lesson reads backwards.
+ * Refused rather than resolved, because on the two blocks that pin a seed it is
+ * not the player's to choose. On the learning track each level pins one in
+ * {@link "#game/tutorial.ts"!tutorialLevels}, and the levels are only teachable
+ * because of it: a level shows a program failing and then the one change that
+ * fixes it, and whether the program fails is a property of the passenger
+ * stream, not of the program alone — level 5's starting sweep is measured
+ * delivering all fifteen inside the wait limit on seed `42a`, and on 76 of 400
+ * seeds besides. Honouring `seed=` would let a player land, by choice or by a
+ * copied link, on a run where the broken program wins and the lesson reads
+ * backwards. In the Skyscraper block the stake is the medal instead: its
+ * thresholds are measured on one pinned crowd rather than fitted to a
+ * distribution, so a silver earned on a stream nobody measured is not the same
+ * silver, and {@link "#game/skyscraper.ts"!SkyscraperLevel.seed} sets that out.
+ *
+ * One function for both, and no parameter saying which block asked: the two
+ * differ in what a chosen seed would cost, not in what is done about it, and a
+ * warning that named the block would be one more sentence to keep true.
  *
  * The whole key is refused, so {@link startRouter} takes it back out of the
  * address bar, which is the honest signal: the URL then says what is actually
@@ -512,7 +569,7 @@ function resolveSeed(value: string | undefined, refuse: Refuse): string | null {
 function refuseSeedOnTrack(query: RouteQuery, refuse: Refuse): null {
   const value = query.get("seed");
   if (value !== undefined) {
-    console.warn(`Ignoring seed "${value}": a tutorial level plays its own pinned seed`);
+    console.warn(`Ignoring seed "${value}": this level plays its own pinned seed`);
     refuse("seed");
   }
   return null;
@@ -599,6 +656,57 @@ function resolveTutorialIndex(value: string, refuse: Refuse): number {
   const index = tutorialLevels.findIndex((level) => level.id === id);
   if (index === -1) {
     console.warn(`Invalid tutorial level "${value}", starting the first one instead`);
+    refuse(LEVEL_KEY);
+    return 0;
+  }
+  return index;
+}
+
+/**
+ * Whether a `level` parameter asks for a level of the Skyscraper block.
+ *
+ * The block's counterpart to {@link isTutorialRoute}, and true on the same
+ * terms: of every value spelled like one of its addresses, not only of the ones
+ * that open a level, so that `sky-99` is answered by
+ * {@link resolveSkyscraperIndex} rather than falling through to
+ * {@link resolveLevelIndex} and starting level one.
+ *
+ * @param value - The parsed parameter, if it was present. Already free of
+ * surrounding whitespace; see {@link isSandboxRoute} for why none is stripped
+ * again here.
+ * @returns Whether it names a level of the block, in any casing.
+ */
+function isSkyscraperRoute(value: string | undefined): value is string {
+  return value?.toLowerCase().startsWith(SKYSCRAPER_LEVEL_PREFIX) === true;
+}
+
+/**
+ * Turns a `level=sky-…` parameter into a level that exists.
+ *
+ * Compared against the ids in {@link "#game/skyscraper.ts"!skyscraperLevels}
+ * exactly as {@link resolveTutorialIndex} compares against the track's, and for
+ * every one of the reasons written there: matched and not computed, so
+ * `sky-01` and `sky-` are refused rather than read as numbers, and a level
+ * inserted into the middle of the block cannot silently take a bookmarked
+ * address away from its neighbour.
+ *
+ * The block is the one place in the game where that last risk is live rather
+ * than theoretical. The learning track's eight levels are finished and the
+ * numbered nineteen are the original game's, but this block is being written a
+ * few levels at a time and a demonstrating level will end up between two that
+ * already exist.
+ *
+ * @param value - The parsed parameter, already known to be spelled like one of
+ * the block's addresses and already free of surrounding whitespace.
+ * @param refuse - Records the key when the value cannot be used.
+ * @returns A zero-based index into `skyscraperLevels`; `0` for anything
+ * unusable.
+ */
+function resolveSkyscraperIndex(value: string, refuse: Refuse): number {
+  const id = value.toLowerCase();
+  const index = skyscraperLevels.findIndex((level) => level.id === id);
+  if (index === -1) {
+    console.warn(`Invalid skyscraper level "${value}", starting the first one instead`);
     refuse(LEVEL_KEY);
     return 0;
   }
@@ -925,17 +1033,17 @@ function resolveTimeScale(
  *
  * The level's id is looked up rather than hard-coded to the first level's, though
  * today those are the same thing and no test can tell them apart:
- * `resolveTutorialIndex` is the only thing that refuses a `level` on the
- * track, and it refuses only in the branch where it has already fallen back to
- * `0`. Written generally anyway, because the day a level is refused for some
- * reason other than being unspellable — withdrawn, say, or renumbered —
- * `tutorialLevels[0]` would quietly write the first level's address over whatever
- * they were actually given, and the URL would go back to lying about the run.
- * That is the failure the correction exists to prevent, so it should not depend
- * on which refusals happen to exist.
+ * `resolveTutorialIndex` and `resolveSkyscraperIndex` are the only things that
+ * refuse a `level` on their blocks, and each refuses only in the branch where it
+ * has already fallen back to `0`. Written generally anyway, because the day a
+ * level is refused for some reason other than being unspellable — withdrawn,
+ * say, or renumbered — `tutorialLevels[0]` would quietly write the first level's
+ * address over whatever they were actually given, and the URL would go back to
+ * lying about the run. That is the failure the correction exists to prevent, so
+ * it should not depend on which refusals happen to exist.
  *
  * There is no sandbox case, and it is not an omission: `level=sandbox` is
- * decided before any of the three values is parsed, so nothing on that route
+ * decided before any of the four values is parsed, so nothing on that route
  * ever calls {@link resolveLevelIndex} and `level` cannot be among a
  * sandbox route's refusals.
  *
@@ -943,9 +1051,12 @@ function resolveTimeScale(
  * @returns The value to write, or `null` to drop the key.
  */
 function levelAddress(params: RouteParams): string | null {
-  const { levelIndex, tutorialIndex } = params;
+  const { levelIndex, tutorialIndex, skyscraperIndex } = params;
   if (tutorialIndex !== null) {
     return tutorialLevels[tutorialIndex]?.id ?? null;
+  }
+  if (skyscraperIndex !== null) {
+    return skyscraperLevels[skyscraperIndex]?.id ?? null;
   }
   return levelIndex === 0 ? null : String(levelIndex + 1);
 }
@@ -1033,16 +1144,17 @@ export interface RouterOptions {
  *
  * A refused `level` is corrected by rewriting instead when what it landed
  * on is not what absence spells, and by that same rule rather than in spite of
- * it. There are two such landings. `#level=tutorial-9` is a wrong address
- * on the learning track, so it starts the track's first level, and the only
- * thing that spells that level is its own id; and `#level=18` typed by
- * somebody who has cleared seven starts the eighth, which `level=8` is the
- * only spelling of. Absence spells the first level, which is somewhere
- * else entirely in both cases, so deleting the key would leave the bar
+ * it. There are three such landings. `#level=tutorial-9` is a wrong address on
+ * the learning track, so it starts the track's first level, and the only thing
+ * that spells that level is its own id; `#level=sky-99` is the same mistake in
+ * the Skyscraper block and is answered the same way; and `#level=400` is past
+ * the end of the numbered levels, so it starts the last one, which `level=19`
+ * is the only spelling of. Absence spells the first level, which is somewhere
+ * else entirely in all three cases, so deleting the key would leave the bar
  * describing a run nobody is watching and a reload would take the player to
- * it. Neither correction invents a choice for them: they chose the track, and
- * this is where the track starts; they asked to go on, and this is as far on as
- * they have earned.
+ * it. No correction invents a choice for them: they chose a block, and this is
+ * where that block starts; they asked for a level past the end, and this is the
+ * last one there is.
  *
  * A hash written with {@link LEGACY_LEVEL_KEY} is corrected as well, and for
  * the same reason though nothing about it was refused: the run it names is

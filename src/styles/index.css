@@ -57,6 +57,7 @@
 @import "../features/run-simulation/ui/run-controls.css";
 @import "../features/adjust-speed/ui/speed-stepper.css";
 @import "../widgets/tutorial-panel/ui/tutorial-panel.css";
+@import "../widgets/level-briefing/ui/level-briefing.css";
 @import "../widgets/editor-pane/ui/editor-pane.css";
 @import "../widgets/building-stage/ui/building-stage.css";
 @import "../entities/passenger/ui/passenger-view.css";

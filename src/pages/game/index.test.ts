@@ -6,6 +6,8 @@ import type { Level } from "../../game/levels.ts";
 import { atLeastAvgLoadFactorOnMove } from "../../game/level-tiers.ts";
 import type { LevelTierRequirements } from "../../game/level-tiers.ts";
 import { INSTANT_RUN_MAX_SIMULATED_SECONDS } from "../../game/instant-run.ts";
+import { skyscraperLevels } from "../../game/skyscraper.ts";
+import type { SkyscraperLevel } from "../../game/skyscraper.ts";
 import { tutorialLevels } from "../../game/tutorial.ts";
 import type { TutorialLevel } from "../../game/tutorial.ts";
 import { TICK_SECONDS, createWorldController } from "../../game/world-controller.ts";
@@ -32,6 +34,8 @@ import {
   setDemoFullscreen,
 } from "./index.ts";
 import type { AppElements, ControlsPresenterOptions } from "./index.ts";
+import { readBestLevelTiers } from "#entities/level-tier/index.ts";
+import { readBestSkyscraperTiers } from "#entities/skyscraper-level/index.ts";
 import { readClearedTutorialLevels } from "#entities/tutorial-level/model/progress.ts";
 import { DEFAULT_TIME_SCALE } from "#features/adjust-speed/model/time-scale.ts";
 import { DEFAULT_CODE_SLOT } from "#features/manage-code-slots/model/code-slots.ts";
@@ -1486,6 +1490,352 @@ describe("App learning track", () => {
       expect(app.world).not.toBe(before);
       expect(app.tutorial?.level.id).toBe("tutorial-2");
       expect(app.worldController.isPaused).toBe(false);
+    });
+  });
+});
+
+describe("App Skyscraper block", () => {
+  // Same reason as the suites above: a failed assertion must not leave the rest
+  // of the file in Russian.
+  afterEach(() => {
+    setLocale(DEFAULT_LOCALE);
+  });
+
+  /**
+   * The level at a position in the block.
+   *
+   * Read out of the real table rather than a fixture, for the reason the track's
+   * own helper gives: `startSkyscraperLevel` takes a position in
+   * `skyscraperLevels`, the router resolves a `sky-` address against the same
+   * array, and a stand-in block would prove the wiring against something no
+   * player can reach.
+   *
+   * @param index - Position in the block, counted from zero.
+   * @returns The level there.
+   * @throws Error When the block is shorter than that.
+   */
+  function levelAt(index: number): SkyscraperLevel {
+    const level = skyscraperLevels[index];
+    if (level === undefined) {
+      throw new Error(`The Skyscraper block has no level at position ${String(index)}`);
+    }
+    return level;
+  }
+
+  /**
+   * Ends the run on screen, one way or the other.
+   *
+   * `sky-1` is judged in moves rather than in seconds — `requireUserCountWithinMoves`
+   * — so a win is the delivered count reached while the move budget is still
+   * untouched, and a loss is the budget spent with nobody delivered. Written into
+   * the counters rather than played out, exactly as the track's own helper writes
+   * into its two: what these specs are about is what the app does with a verdict,
+   * and that the level can be lost by the program the player is handed and won by
+   * the repair its briefing points at is `src/game/skyscraper.test.ts`'s promise,
+   * proved by playing it.
+   *
+   * @param app - The app whose run to end.
+   * @param won - The verdict to produce.
+   */
+  function endRun(app: App, won: boolean): void {
+    const world = app.world;
+    if (world === undefined) {
+      throw new Error("There is no run to end");
+    }
+    world.transportedCounter = won ? 1000 : 0;
+    world.moveCount = won ? 0 : 100000;
+    world.trigger("stats_changed");
+  }
+
+  it("plays the level the url names rather than level 1", () => {
+    // The router resolves a level it does not understand to level 1, so until
+    // `handleRoute` dispatched on `skyscraperIndex`, `#level=sky-1` would have
+    // played level 1 while the address bar went on saying `sky-1` -- the same
+    // defect the learning track's own branch was added to fix.
+    const { app } = setUp();
+    app.handleRoute(...routeFor("#level=3"));
+
+    app.handleRoute(...routeFor("#level=sky-1"));
+
+    expect(app.skyscraper?.level.id).toBe("sky-1");
+    expect(app.skyscraper?.index).toBe(0);
+    expect(app.isPlayingSandbox).toBe(false);
+    // Where a restart would send them back to, left where the numbered level put
+    // it, exactly as the track and the sandbox leave it: this block is not a
+    // station on the numbered ladder.
+    expect(app.currentLevelIndex).toBe(2);
+  });
+
+  it("builds the level's own building", () => {
+    // The whole building comes off the entry in the table rather than from the
+    // URL or from a default: twelve floors is taller than anything this file's
+    // fixtures play, and the cars are twice the capacity a `WorldOptions` that
+    // named none would have given them.
+    const { app } = setUp();
+
+    app.startSkyscraperLevel(0);
+
+    expect(app.world?.floors.length).toBe(levelAt(0).options.floorCount);
+    // The table's one capacity, cycled over all three cars, exactly as the
+    // sandbox's own list is.
+    expect(app.world?.elevators.map((elevator) => elevator.maxUsers)).toEqual([8, 8, 8]);
+  });
+
+  it("builds a level on its own pinned seed, over the url's and the player's alike", () => {
+    // The block pins a seed for a different reason than the track does -- these
+    // levels have no decade of published solutions to calibrate a threshold
+    // against, so a threshold is set from one measured run, and a silver earned
+    // by two players has to have been earned on the same crowd. What it needs
+    // from this class is the same thing: the level's seed outranks everything.
+    // Both of the seeds it outranks are set here, and they are set to different
+    // values, so that neither can be the one that happens to win.
+    const storage = new MemoryStorage();
+    const { app } = setUp(INERT_CODE, storage);
+    app.handleRoute(...routeFor("#level=2,seed=issue-61"));
+    expect(app.world?.seed).toBe("issue-61");
+    storage.setItem(SEED_STORAGE_KEY, "issue-62");
+    expect(readStoredSeed(storage)).toBe("issue-62");
+
+    app.startSkyscraperLevel(0);
+
+    expect(app.world?.seed).toBe(levelAt(0).seed);
+  });
+
+  it("offers no seed line, and leaves the player's remembered seed alone", () => {
+    // Both halves of the line are refused here for the same reason they are on
+    // the track: "the same passengers again" would write `seed=` into an address
+    // `refuseSeedOnTrack` refuses it on, and "a new draw" would offer to stop
+    // pinning the seed the medal was measured against.
+    //
+    // The second assertion is the one with teeth. `#startRun` writes back
+    // whatever the seed line reports, so a block that reported its pinned `4`
+    // would leave `4` behind as though the player had chosen it, and the next
+    // numbered level opened would silently play a crowd the block picked. The
+    // seed stored before the run is still there afterwards, untouched.
+    const storage = new MemoryStorage();
+    storage.setItem(SEED_STORAGE_KEY, "issue-61");
+    const { app } = setUp(INERT_CODE, storage);
+
+    app.startSkyscraperLevel(0);
+
+    expect(app.world?.seed).toBe(levelAt(0).seed);
+    expect(app.currentSeedLink).toBeNull();
+    expect(console.log).not.toHaveBeenCalled();
+    expect(readStoredSeed(storage)).toBe("issue-61");
+  });
+
+  it("refuses a position that does not name a level", () => {
+    // Symmetric with `startLevel` and `startTutorial`: the router resolves a
+    // `sky-` address against this same table, so this is only reachable from a
+    // caller that made the position up, and a made-up position must not quietly
+    // play something else.
+    const { app } = setUp();
+    expect(() => {
+      app.startSkyscraperLevel(99);
+    }).toThrow(RangeError);
+  });
+
+  it("takes the screen over from a lesson and from the sandbox", () => {
+    // Half of what `#clearSpecialRuns` exists for. A field left set is silent --
+    // nothing throws and nothing fails a type check -- and what a player would
+    // meet instead is the switcher marking a level they have left and
+    // Ctrl-Enter restarting it.
+    const { app } = setUp();
+    app.startTutorial(0);
+
+    app.startSkyscraperLevel(0);
+
+    expect(app.skyscraper?.level.id).toBe(levelAt(0).id);
+    expect(app.tutorial).toBeUndefined();
+
+    app.handleRoute(...routeFor("#level=sandbox,floors=20"));
+    app.startSkyscraperLevel(0);
+
+    expect(app.skyscraper?.level.id).toBe(levelAt(0).id);
+    expect(app.isPlayingSandbox).toBe(false);
+  });
+
+  it("is left behind by a lesson, a numbered level and the sandbox alike", () => {
+    // The other half, and the one that has three ways out to forget rather than
+    // one: every `start*` clears this field through the same helper, and the
+    // route that names no level of the block is how a player leaves it.
+    const { app } = setUp();
+
+    app.startSkyscraperLevel(0);
+    app.startTutorial(0);
+    expect(app.skyscraper).toBeUndefined();
+    expect(app.tutorial?.index).toBe(0);
+
+    app.startSkyscraperLevel(0);
+    app.handleRoute(...routeFor("#level=2"));
+    expect(app.skyscraper).toBeUndefined();
+    expect(app.currentLevelIndex).toBe(1);
+
+    app.startSkyscraperLevel(0);
+    app.handleRoute(...routeFor("#level=sandbox,floors=20"));
+    expect(app.skyscraper).toBeUndefined();
+    expect(app.isPlayingSandbox).toBe(true);
+  });
+
+  it("repeats the level when the program is applied, not the last level played", () => {
+    // `startLevel(currentLevelIndex)` was what "run this again" used to mean, and
+    // here it would apply the player's edit to a numbered level's building --
+    // taking the attempt they were half-way through off the screen and grading it
+    // against rules this block's levels do not play by.
+    const { app, editor, view } = setUp();
+    app.handleRoute(...routeFor("#level=3"));
+    app.startSkyscraperLevel(0);
+    view.type("// half an answer");
+    const before = app.world;
+
+    editor.trigger("apply_code");
+
+    expect(app.world).not.toBe(before);
+    expect(app.skyscraper?.level.id).toBe(levelAt(0).id);
+    expect(app.world?.floors.length).toBe(levelAt(0).options.floorCount);
+    expect(app.worldController.isPaused).toBe(false);
+    // Reopening the buffer already on screen is a no-op, so the attempt being
+    // applied is still there to edit.
+    expect(view.getValue()).toBe("// half an answer");
+  });
+
+  it("leaves the code-slot switcher inert while one of its levels is on screen", () => {
+    // A level here plays out of a buffer keyed by its id, so there is no level
+    // index for a slot to hang off. The switcher is drawn and visible -- the
+    // editor pane has no way to hide it -- so the guard is what stops a press
+    // from replacing the block's program with a numbered level's slot 2.
+    const { app, storage, view } = setUp();
+    storage.setItem("develevateChallengeCode_0_2", "// slot two's program");
+    app.startSkyscraperLevel(0);
+
+    app.selectCodeSlot(2);
+
+    expect(app.currentCodeSlot).toBe(DEFAULT_CODE_SLOT);
+    expect(view.getValue()).toBe(levelAt(0).startingCode);
+  });
+
+  it("records a medal for a win, under the level's own id", () => {
+    // `sky-1` declares no `tiers`, which `evaluateLevelTier` reads as "bronze is
+    // the only medal here" -- so bronze is this block's spelling of "cleared",
+    // and no second progress shape is needed to say it. It lands in the block's
+    // own store, keyed by the level's id: a run here has no level index at all,
+    // and the two stores are kept apart so that neither block can erase the
+    // other's medals.
+    const { app, elements, storage } = setUp();
+    expect(levelAt(0).tiers).toBeUndefined();
+
+    app.startSkyscraperLevel(0);
+    endRun(app, true);
+
+    expect(readBestSkyscraperTiers(storage)).toEqual(new Map([[levelAt(0).id, "bronze"]]));
+    expect(readBestLevelTiers(storage)).toEqual(new Map());
+    // And the tile says so without waiting for the next run to redraw it: the
+    // player may open the menu straight from the verdict card.
+    expect(
+      requireElement('[href^="#level=sky-1"]', elements.levelSwitcher).getAttribute("data-tier"),
+    ).toBe("bronze");
+  });
+
+  it("records nothing for a level that was lost", () => {
+    const { app, elements, storage } = setUp();
+    app.startSkyscraperLevel(0);
+
+    endRun(app, false);
+
+    expect(requireElement(".verdict h3", elements.feedback).textContent).toBe("Level failed");
+    expect(readBestSkyscraperTiers(storage)).toEqual(new Map());
+  });
+
+  it("links to the block's levels by id, dropping the seed of the run in progress", () => {
+    // A tile carries the speed and every other preference across, and drops
+    // `seed`: a seed names one particular run of one particular building, and a
+    // link to another building names a run nobody has played.
+    const { app, elements } = setUp();
+    app.handleRoute(...routeFor("#level=1,timescale=8,seed=issue-61"));
+
+    expect(
+      requireElement('[href^="#level=sky-1"]', elements.levelSwitcher).getAttribute("href"),
+    ).toBe("#level=sky-1,timescale=8");
+  });
+
+  it("marks the block's own tile as current, and no numbered level", () => {
+    const { app, elements } = setUp();
+    app.handleRoute(...routeFor("#level=sky-1,timescale=8"));
+
+    expect(
+      requireElement('[href^="#level=sky-1"]', elements.levelSwitcher).getAttribute("aria-current"),
+    ).toBe("page");
+    expect(levelTiles(elements).map((entry) => entry.getAttribute("aria-current"))).toEqual([
+      null,
+      null,
+      null,
+    ]);
+    // One, because this is the block's first level -- the number is what this
+    // assertion is about, and the trigger names the tower rather than the level.
+    expect(taskName(elements)).toBe("Tower 1");
+  });
+
+  describe("the briefing card beside the building", () => {
+    it("draws the level's name and the paragraph it is about", () => {
+      const { app, elements } = setUp();
+      app.startSkyscraperLevel(0);
+
+      expect(requireElement(".briefingtitle", elements.tutorial).textContent).toBe(
+        "Eleven floors for one passenger",
+      );
+      // Compared as markup rather than as text: the briefing carries `<em>` and
+      // `<span class="emphasis-color">` around the terms it introduces, and a
+      // card that escaped them would print the tags at the player.
+      expect(requireElement(".briefingtext", elements.tutorial).innerHTML).toBe(
+        levelAt(0).briefing,
+      );
+      // The two cards share this one element, so the lesson panel must not be
+      // standing under the briefing.
+      expect(elements.tutorial.querySelector(".tutorialpanel")).toBeNull();
+    });
+
+    it("gives the region back to the lesson panel on the way to a lesson", () => {
+      const { app, elements } = setUp();
+      app.startSkyscraperLevel(0);
+
+      app.startTutorial(2);
+
+      expect(elements.tutorial.querySelector(".briefingpanel")).toBeNull();
+      expect(requireElement(".tutorialtitle", elements.tutorial).textContent).toBe(
+        "The buttons inside the car",
+      );
+    });
+
+    it("empties the region on a numbered level, so the page has no gap in it", () => {
+      // The stylesheet hides the region only while it is empty, and a briefing
+      // left above level 1 would be a paragraph about a building the player is
+      // no longer in.
+      const { app, elements } = setUp();
+      app.startSkyscraperLevel(0);
+      expect(elements.tutorial.children).toHaveLength(1);
+
+      app.startLevel(0);
+
+      expect(elements.tutorial.children).toHaveLength(0);
+    });
+
+    it("redraws the card when the language changes under it", () => {
+      // The card is most of the prose on screen while one of these levels is
+      // being played, and both of its strings are getters over the catalogue --
+      // so a language change that missed this redraw would leave the one column
+      // still in English.
+      const { app, elements } = setUp();
+      app.startSkyscraperLevel(0);
+
+      setLocale("ru");
+      app.relocalise();
+
+      expect(requireElement(".briefingtitle", elements.tutorial).textContent).toBe(
+        "Одиннадцать этажей ради одного пассажира",
+      );
+      expect(requireElement(".briefingtext", elements.tutorial).textContent).toContain(
+        "временем кругового рейса",
+      );
     });
   });
 });

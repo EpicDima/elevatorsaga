@@ -309,9 +309,9 @@ describe("CodeEditor buffers", () => {
   it("gives every learning-track level a storage key of its own", () => {
     const { editor, view, storage } = setUp();
 
-    editor.openTutorialBuffer("tutorial-3", "// level 3 skeleton");
+    editor.openNamedLevelBuffer("tutorial-3", "// level 3 skeleton");
     view.type("// my attempt at level 3");
-    editor.openTutorialBuffer("tutorial-4", "// level 4 skeleton");
+    editor.openNamedLevelBuffer("tutorial-4", "// level 4 skeleton");
 
     // Pinned as literals for the same reason the two keys above are: the
     // spelling is what a half-finished attempt is found under a week later, and
@@ -324,7 +324,7 @@ describe("CodeEditor buffers", () => {
   it("opens a level nobody has started with the program it hands out", () => {
     const { editor, view, storage } = setUp();
 
-    editor.openTutorialBuffer("tutorial-1", "// fill this in");
+    editor.openNamedLevelBuffer("tutorial-1", "// fill this in");
 
     expect(view.getValue()).toBe("// fill this in");
     // Stored at once, so closing the tab without typing loses nothing and does
@@ -337,7 +337,7 @@ describe("CodeEditor buffers", () => {
     storage.setItem("develevateTutorialCode_tutorial-2", "// where I got to last time");
     const { editor, view } = setUp(storage);
 
-    editor.openTutorialBuffer("tutorial-2", "// fill this in");
+    editor.openNamedLevelBuffer("tutorial-2", "// fill this in");
 
     expect(view.getValue()).toBe("// where I got to last time");
     expect(storage.getItem("develevateTutorialCode_tutorial-2")).toBe(
@@ -349,7 +349,7 @@ describe("CodeEditor buffers", () => {
     const { editor, view, storage } = setUp();
     view.type("// typed a second ago");
 
-    editor.openTutorialBuffer("tutorial-1", "// fill this in");
+    editor.openNamedLevelBuffer("tutorial-1", "// fill this in");
 
     expect(storage.getItem(CODE_STORAGE_KEY)).toBe("// typed a second ago");
   });
@@ -365,7 +365,7 @@ describe("CodeEditor buffers", () => {
     view.type("// second thoughts");
     view.type(defaultCode());
 
-    editor.openTutorialBuffer("tutorial-1", "// level 1");
+    editor.openNamedLevelBuffer("tutorial-1", "// level 1");
     vi.advanceTimersByTime(AUTOSAVE_DELAY_MS * 2);
 
     expect(storage.getItem(CODE_STORAGE_KEY)).toBeNull();
@@ -374,14 +374,14 @@ describe("CodeEditor buffers", () => {
   it("hands every buffer back its own text, in both directions", () => {
     const { editor, view } = setUp();
     view.type("// my own program");
-    editor.openTutorialBuffer("tutorial-1", "// level 1");
+    editor.openNamedLevelBuffer("tutorial-1", "// level 1");
     view.type("// my level 1");
-    editor.openTutorialBuffer("tutorial-2", "// level 2");
+    editor.openNamedLevelBuffer("tutorial-2", "// level 2");
     view.type("// my level 2");
 
-    editor.openTutorialBuffer("tutorial-1", "// level 1");
+    editor.openNamedLevelBuffer("tutorial-1", "// level 1");
     expect(view.getValue()).toBe("// my level 1");
-    editor.openTutorialBuffer("tutorial-2", "// level 2");
+    editor.openNamedLevelBuffer("tutorial-2", "// level 2");
     expect(view.getValue()).toBe("// my level 2");
     editor.openPlayerBuffer();
     expect(view.getValue()).toBe("// my own program");
@@ -390,9 +390,9 @@ describe("CodeEditor buffers", () => {
   it("loses nothing for a player who walks the track without typing", () => {
     const { editor, view, storage } = setUp();
 
-    editor.openTutorialBuffer("tutorial-1", "// level 1");
+    editor.openNamedLevelBuffer("tutorial-1", "// level 1");
     expect(view.getValue()).toBe("// level 1");
-    editor.openTutorialBuffer("tutorial-2", "// level 2");
+    editor.openNamedLevelBuffer("tutorial-2", "// level 2");
     editor.openPlayerBuffer();
 
     expect(view.getValue()).toBe(defaultCode());
@@ -406,11 +406,11 @@ describe("CodeEditor buffers", () => {
     view.type("// the program I care about");
     editor.save();
 
-    editor.openTutorialBuffer("tutorial-1", "// level 1");
+    editor.openNamedLevelBuffer("tutorial-1", "// level 1");
     view.type("// my level 1");
     editor.reset();
     editor.undoReset();
-    editor.openTutorialBuffer("tutorial-2", "// level 2");
+    editor.openNamedLevelBuffer("tutorial-2", "// level 2");
     vi.advanceTimersByTime(AUTOSAVE_DELAY_MS * 2);
 
     expect(storage.getItem(CODE_STORAGE_KEY)).toBe("// the program I care about");
@@ -434,7 +434,7 @@ describe("CodeEditor buffers", () => {
 
     workingTab.view.type("// version 2, an afternoon of work");
     workingTab.editor.save();
-    idleTab.editor.openTutorialBuffer("tutorial-1", "// level 1");
+    idleTab.editor.openNamedLevelBuffer("tutorial-1", "// level 1");
 
     expect(storage.getItem(CODE_STORAGE_KEY)).toBe("// version 2, an afternoon of work");
     // Nor is the idle tab holding a stale copy in its own memory of what it has
@@ -445,7 +445,7 @@ describe("CodeEditor buffers", () => {
     // The working tab leaving its buffer does not write it a second time
     // either. It was written a moment ago and nothing has changed since; the
     // key is touched once, by the save the player asked for.
-    workingTab.editor.openTutorialBuffer("tutorial-1", "// level 1");
+    workingTab.editor.openNamedLevelBuffer("tutorial-1", "// level 1");
     expect(setItem.mock.calls.filter(([key]) => key === CODE_STORAGE_KEY)).toHaveLength(1);
   });
 
@@ -459,9 +459,9 @@ describe("CodeEditor buffers", () => {
     const { editor, view } = setUp(storage);
     view.type("// my own program");
 
-    editor.openTutorialBuffer("tutorial-1", "// level 1");
+    editor.openNamedLevelBuffer("tutorial-1", "// level 1");
     const writesSoFar = setItem.mock.calls.length;
-    editor.openTutorialBuffer("tutorial-2", "// level 2");
+    editor.openNamedLevelBuffer("tutorial-2", "// level 2");
 
     // Level 2's own key, holding the starter it was just opened on, and nothing
     // else: level 1 was read, looked at and left alone.
@@ -478,10 +478,10 @@ describe("CodeEditor buffers", () => {
     const { editor, view } = setUp(storage);
     const saved = vi.fn();
     editor.on("saved", saved);
-    editor.openTutorialBuffer("tutorial-1", "// level 1");
+    editor.openNamedLevelBuffer("tutorial-1", "// level 1");
     view.type("// typed in level 1");
 
-    editor.openTutorialBuffer("tutorial-2", "// level 2");
+    editor.openNamedLevelBuffer("tutorial-2", "// level 2");
     const writesBeforeTheCountdown = setItem.mock.calls.length;
     vi.advanceTimersByTime(AUTOSAVE_DELAY_MS * 2);
 
@@ -500,7 +500,7 @@ describe("CodeEditor buffers", () => {
 
   it("autosaves later typing into the buffer that is open", () => {
     const { editor, view, storage } = setUp();
-    editor.openTutorialBuffer("tutorial-1", "// level 1");
+    editor.openNamedLevelBuffer("tutorial-1", "// level 1");
 
     view.type("// typed after the switch");
     vi.advanceTimersByTime(AUTOSAVE_DELAY_MS);
@@ -513,12 +513,12 @@ describe("CodeEditor buffers", () => {
     // Routers and interfaces repeat themselves; a redundant open must not
     // replace the document under a player who is typing in it.
     const { editor, view, storage } = setUp();
-    editor.openTutorialBuffer("tutorial-1", "// level 1");
+    editor.openNamedLevelBuffer("tutorial-1", "// level 1");
     view.type("// half a thought");
     const changed = vi.fn();
     editor.on("change", changed);
 
-    editor.openTutorialBuffer("tutorial-1", "// level 1");
+    editor.openNamedLevelBuffer("tutorial-1", "// level 1");
 
     expect(view.getValue()).toBe("// half a thought");
     expect(changed).not.toHaveBeenCalled();
@@ -532,10 +532,10 @@ describe("CodeEditor buffers", () => {
     // enough: the same level hands over different text after a language switch,
     // and "Reset" owes the player the version they can read.
     const { editor, view } = setUp();
-    editor.openTutorialBuffer("tutorial-1", "// level 1 in English");
+    editor.openNamedLevelBuffer("tutorial-1", "// level 1 in English");
     view.type("// half a thought");
 
-    editor.openTutorialBuffer("tutorial-1", "// level 1 in another language");
+    editor.openNamedLevelBuffer("tutorial-1", "// level 1 in another language");
 
     expect(view.getValue()).toBe("// half a thought");
     editor.reset();
@@ -549,7 +549,7 @@ describe("CodeEditor buffers", () => {
     editor.on("saved", saved);
     editor.on("change", changed);
 
-    editor.openTutorialBuffer("tutorial-1", "// level 1");
+    editor.openNamedLevelBuffer("tutorial-1", "// level 1");
     vi.advanceTimersByTime(AUTOSAVE_DELAY_MS * 2);
 
     // The program in the editor is a different program, so anything describing
@@ -568,7 +568,7 @@ describe("CodeEditor buffers", () => {
 
     for (const levelId of ["", " ", "\t\n"]) {
       expect(() => {
-        editor.openTutorialBuffer(levelId, "// level");
+        editor.openNamedLevelBuffer(levelId, "// level");
       }).toThrow(RangeError);
     }
 
@@ -589,10 +589,10 @@ describe("CodeEditor buffers", () => {
     storage.setItem("develevateTutorialCode_tutorial-2", "// my attempt at the old level 2");
     const { editor, view } = setUp(storage);
 
-    editor.openTutorialBuffer("tutorial-9", "// the newcomer's skeleton");
+    editor.openNamedLevelBuffer("tutorial-9", "// the newcomer's skeleton");
     expect(view.getValue()).toBe("// the newcomer's skeleton");
 
-    editor.openTutorialBuffer("tutorial-2", "// level 2 skeleton");
+    editor.openNamedLevelBuffer("tutorial-2", "// level 2 skeleton");
     expect(view.getValue()).toBe("// my attempt at the old level 2");
   });
 
@@ -609,7 +609,7 @@ describe("CodeEditor buffers", () => {
     });
     const { editor, view } = setUp(storage);
 
-    editor.openTutorialBuffer("tutorial-1", "// level 1 skeleton");
+    editor.openNamedLevelBuffer("tutorial-1", "// level 1 skeleton");
 
     expect(view.getValue()).toBe("// level 1 skeleton");
     expect(kept.getItem("develevateTutorialCode_tutorial-1")).toBe("// three evenings of work");
@@ -622,7 +622,7 @@ describe("CodeEditor buffers", () => {
     storage.setItem("develevateTutorialCode_tutorial-2", "");
     const { editor, view } = setUp(storage);
 
-    editor.openTutorialBuffer("tutorial-2", "// fill this in");
+    editor.openNamedLevelBuffer("tutorial-2", "// fill this in");
 
     expect(view.getValue()).toBe("// fill this in");
   });
@@ -633,7 +633,7 @@ describe("CodeEditor buffers", () => {
     const { editor, view } = setUp(deniedStorage());
 
     expect(() => {
-      editor.openTutorialBuffer("tutorial-1", "// level 1");
+      editor.openNamedLevelBuffer("tutorial-1", "// level 1");
     }).not.toThrow();
     expect(view.getValue()).toBe("// level 1");
     expect(() => {
@@ -650,12 +650,12 @@ describe("CodeEditor buffers", () => {
     const { editor, view } = setUp(fullStorage({ [CODE_STORAGE_KEY]: "// yesterday's program" }));
     view.type("// an afternoon of work");
 
-    editor.openTutorialBuffer("tutorial-1", "// level 1");
+    editor.openNamedLevelBuffer("tutorial-1", "// level 1");
     view.type("// my level 1");
     editor.openPlayerBuffer();
     expect(view.getValue()).toBe("// an afternoon of work");
 
-    editor.openTutorialBuffer("tutorial-1", "// level 1");
+    editor.openNamedLevelBuffer("tutorial-1", "// level 1");
     expect(view.getValue()).toBe("// my level 1");
   });
 
@@ -841,7 +841,7 @@ describe("CodeEditor reset", () => {
 
   it("resets a learning-track level to that level's own starting point", () => {
     const { editor, view } = setUp();
-    editor.openTutorialBuffer("tutorial-5", "// level 5 skeleton");
+    editor.openNamedLevelBuffer("tutorial-5", "// level 5 skeleton");
     view.type("// the wrong turn I took");
 
     editor.reset();
@@ -853,15 +853,15 @@ describe("CodeEditor reset", () => {
 
   it("keeps a separate backup per buffer", () => {
     const { editor, view, storage } = setUp();
-    editor.openTutorialBuffer("tutorial-1", "// level 1");
+    editor.openNamedLevelBuffer("tutorial-1", "// level 1");
     view.type("// my level 1");
     editor.reset();
-    editor.openTutorialBuffer("tutorial-2", "// level 2");
+    editor.openNamedLevelBuffer("tutorial-2", "// level 2");
     view.type("// my level 2");
     editor.reset();
     expect(view.getValue()).toBe("// level 2");
 
-    editor.openTutorialBuffer("tutorial-1", "// level 1");
+    editor.openNamedLevelBuffer("tutorial-1", "// level 1");
     editor.undoReset();
 
     // Level 1's own attempt, not level 2's, and the player's backup slot is
@@ -969,7 +969,7 @@ describe("CodeEditor reset", () => {
     view.type("// my own program");
     editor.reset();
 
-    editor.openTutorialBuffer("tutorial-1", "// level 1");
+    editor.openNamedLevelBuffer("tutorial-1", "// level 1");
     editor.undoReset();
 
     expect(view.getValue()).toBe("// level 1");
@@ -992,7 +992,7 @@ describe("CodeEditor reset", () => {
     editor.reset();
     expect(editor.canUndoReset()).toBe(true);
 
-    editor.openTutorialBuffer("tutorial-1", "// level 1");
+    editor.openNamedLevelBuffer("tutorial-1", "// level 1");
     expect(editor.canUndoReset()).toBe(false);
 
     editor.openPlayerBuffer();
@@ -1410,17 +1410,17 @@ describe("CodeEditor over a real editing surface", () => {
     // back hangs off change events.
     const { editor, storage, parent } = mount("// the program the player left behind");
 
-    editor.openTutorialBuffer("tutorial-1", "// level 1 skeleton");
+    editor.openNamedLevelBuffer("tutorial-1", "// level 1 skeleton");
     typeLine(parent, "\n// my attempt at level 1");
     editor.openPlayerBuffer();
     expect(editor.getCode()).toBe("// the program the player left behind");
 
-    editor.openTutorialBuffer("tutorial-1", "// level 1 skeleton");
+    editor.openNamedLevelBuffer("tutorial-1", "// level 1 skeleton");
     expect(editor.getCode()).toBe("// level 1 skeleton\n// my attempt at level 1");
 
     editor.openPlayerBuffer();
     typeLine(parent, "\n// and a line of my own");
-    editor.openTutorialBuffer("tutorial-1", "// level 1 skeleton");
+    editor.openNamedLevelBuffer("tutorial-1", "// level 1 skeleton");
     editor.openPlayerBuffer();
     expect(editor.getCode()).toBe("// the program the player left behind\n// and a line of my own");
 
@@ -1451,7 +1451,7 @@ describe("CodeEditor over a real editing surface", () => {
     // implementations that do let the history cross.
     const { editor, storage, setItem, parent } = mount("// the program the player left behind");
 
-    editor.openTutorialBuffer("tutorial-1", "// level 1 skeleton");
+    editor.openNamedLevelBuffer("tutorial-1", "// level 1 skeleton");
     pressUndo(parent);
     pressUndo(parent);
     expect(editor.getCode()).toBe("// level 1 skeleton");
@@ -1486,7 +1486,7 @@ describe("CodeEditor over a real editing surface", () => {
     const saved = vi.fn();
     editor.on("saved", saved);
 
-    editor.openTutorialBuffer("tutorial-2", "// level 2 skeleton");
+    editor.openNamedLevelBuffer("tutorial-2", "// level 2 skeleton");
     typeLine(parent, "\n// halfway through");
     vi.advanceTimersByTime(AUTOSAVE_DELAY_MS - 1);
     editor.openPlayerBuffer();
@@ -1507,7 +1507,7 @@ describe("CodeEditor over a real editing surface", () => {
     // history at the switch, and it has to stop there. Undo is how a player
     // takes back the line they just wrote, in a tutorial level as anywhere else.
     const { editor, parent } = mount();
-    editor.openTutorialBuffer("tutorial-1", "// level 1 skeleton");
+    editor.openNamedLevelBuffer("tutorial-1", "// level 1 skeleton");
 
     typeLine(parent, "\n// second thoughts");
     expect(editor.getCode()).toBe("// level 1 skeleton\n// second thoughts");

@@ -18,6 +18,8 @@ import { createSandboxLevel } from "../../game/levels.ts";
 import type { Level, SandboxOptions } from "../../game/levels.ts";
 import { INSTANT_RUN_MAX_SIMULATED_SECONDS, driveInstantly } from "../../game/instant-run.ts";
 import type { InstantRunHandle } from "../../game/instant-run.ts";
+import { skyscraperLevels } from "../../game/skyscraper.ts";
+import type { SkyscraperLevel } from "../../game/skyscraper.ts";
 import { tutorialLevels } from "../../game/tutorial.ts";
 import type { TutorialLevel } from "../../game/tutorial.ts";
 import { createWorld } from "../../game/world.ts";
@@ -40,6 +42,7 @@ import {
   readBestLevelTiers,
   recordLevelTier,
 } from "#entities/level-tier/index.ts";
+import { readBestSkyscraperTiers, recordSkyscraperTier } from "#entities/skyscraper-level/index.ts";
 import {
   readClearedTutorialLevels,
   recordClearedTutorialLevel,
@@ -69,6 +72,7 @@ import type {
   LevelSelection,
   LevelSwitcherPresenter,
 } from "#widgets/level-switcher/index.ts";
+import { presentLevelBriefing } from "#widgets/level-briefing/index.ts";
 import { presentStatsPanel } from "#widgets/stats-panel/index.ts";
 import type { StatsPanelPresenter } from "#widgets/stats-panel/index.ts";
 import { presentTutorial } from "#widgets/tutorial-panel/index.ts";
@@ -541,6 +545,28 @@ export interface TutorialRun {
 }
 
 /**
+ * A level of the Skyscraper block, and where it sits in the block.
+ *
+ * The same pair as {@link TutorialRun} and for the same reasons: the level
+ * itself, because everything downstream wants the level rather than another
+ * chance to look up the wrong one, and the position beside it, because the
+ * block is numbered for the player — "Tower 3" is a position in
+ * `skyscraperLevels`, not anything written down.
+ *
+ * A separate type rather than a shared one over both blocks, because the levels
+ * are separate types with different promises: only a `TutorialLevel` carries a
+ * `solutionCode` for the lesson panel to show, and only a `SkyscraperLevel`
+ * carries a `briefing`. Unifying them would mean the widest of both, and every
+ * reader of either would have to ask which half of it was real.
+ */
+export interface SkyscraperRun {
+  /** The level being played. */
+  readonly level: SkyscraperLevel;
+  /** Its position in `skyscraperLevels`, counted from zero. */
+  readonly index: number;
+}
+
+/**
  * Reads the remembered time scale.
  *
  * @param storage - Where the time scale is remembered.
@@ -674,14 +700,31 @@ export class App {
    * The level of the learning track being played, or `undefined` for anything
    * else.
    *
-   * The third thing that can be on screen, and the field that tells the other
-   * two what to do about it: it decides which run a restart repeats, which seed
-   * a world is built from, what the bar's title says, and which overlay the end
-   * of a run gets. Set by {@link startTutorial} and cleared by
-   * {@link startLevel} and {@link startSandbox}, so that exactly one of the
-   * three is ever in effect.
+   * One of the four things that can be on screen, and the field that tells the
+   * others what to do about it: it decides which run a restart repeats, which
+   * seed a world is built from, what the bar's title says, and which overlay the
+   * end of a run gets. Set by {@link startTutorial}, and cleared by every other
+   * `start*` through {@link #clearSpecialRuns}, so that exactly one of the four
+   * is ever in effect.
    */
   #tutorial: TutorialRun | undefined = undefined;
+  /**
+   * The level of the Skyscraper block being played, or `undefined` for anything
+   * else.
+   *
+   * The fourth of the mutually exclusive four, and it behaves like
+   * {@link #tutorial} in every respect that matters here: it pins the seed, it
+   * takes over the card beside the building, it opens a buffer of its own in the
+   * editor, and it decides what a restart repeats. Set by
+   * {@link startSkyscraperLevel} and cleared by {@link #clearSpecialRuns}.
+   *
+   * Where it differs from the track is at the end of a run: a lesson records
+   * that it was cleared, and a level here records a *medal*, through
+   * {@link recordSkyscraperTier}. A level with nothing to say about silver and
+   * gold omits `tiers` and so records bronze on a win, which is the block's
+   * spelling of "cleared".
+   */
+  #skyscraper: SkyscraperRun | undefined = undefined;
   /**
    * The seed every run is built from, or `null` to let each draw its own.
    *
@@ -927,7 +970,9 @@ export class App {
     return {
       levels: this.levels,
       tutorialLevels,
+      skyscraperLevels,
       bestTiers: readBestLevelTiers(this.#storage),
+      bestSkyscraperTiers: readBestSkyscraperTiers(this.#storage),
       clearedTutorialLevels: readClearedTutorialLevels(this.#storage),
       selection: this.#levelSelection(),
       buildHref: (target) => this.#levelHref(target),
@@ -949,6 +994,10 @@ export class App {
     if (tutorial !== undefined) {
       return { kind: "tutorial", index: tutorial.index };
     }
+    const skyscraper = this.#skyscraper;
+    if (skyscraper !== undefined) {
+      return { kind: "skyscraper", index: skyscraper.index };
+    }
     if (this.isPlayingSandbox) {
       return { kind: "sandbox" };
     }
@@ -968,7 +1017,8 @@ export class App {
       case "level": {
         return createParamsUrl(this.#query, { [LEVEL_KEY]: target.number, seed: null });
       }
-      case "tutorial": {
+      case "tutorial":
+      case "skyscraper": {
         return createParamsUrl(this.#query, { [LEVEL_KEY]: target.levelId, seed: null });
       }
       case "sandbox": {
@@ -998,19 +1048,28 @@ export class App {
    * something to decide: `features/manage-seed` draws one itself and asks
    * {@link playSeed} to play it.
    *
-   * A level of the learning track offers no seed block at all, and it is the one
-   * run in the game where that is the honest answer. Everything the block offers
-   * is an offer about a seed the player chooses, and on a level the seed is not
+   * The two blocks that pin their own seeds — the learning track and the
+   * Skyscraper block — offer no seed block at all, and those are the runs in the
+   * game where that is the honest answer. Everything the block offers is an offer
+   * about a seed the player chooses, and on a level of either the seed is not
    * theirs to choose. Typing one, or pinning one, writes `seed=` into an address
    * the router refuses it on — `refuseSeedOnTrack` in
-   * `src/pages/game/model/route.ts` — so following the game's own link would warn
-   * on the console and have `startRouter` strip the key back out of the bar in
-   * front of the player. A new draw would replace the seed the *level* pins, which
-   * is the point of the level: `TutorialLevel.seed` records that a random one would
-   * make the lesson a coin flip. A block that undoes itself is worse than no
-   * block, so the block goes, and the console print built from the same data goes
-   * with it — what it prints is that same refused URL. The seed is not lost: it
-   * is the level's, written down in the table.
+   * `src/pages/game/model/route.ts`, which refuses on both — so following the
+   * game's own link would warn on the console and have `startRouter` strip the key
+   * back out of the bar in front of the player. A new draw would replace the seed
+   * the *level* pins, which is the point of the level: `TutorialLevel.seed`
+   * records that a random one would make the lesson a coin flip, and
+   * `SkyscraperLevel.seed` that it would make a medal one. A block that undoes
+   * itself is worse than no block, so the block goes, and the console print built
+   * from the same data goes with it — what it prints is that same refused URL. The
+   * seed is not lost: it is the level's, written down in the table.
+   *
+   * Returning `null` is also what keeps a pinned seed out of the player's own
+   * remembered one. {@link #startRun} writes back whatever this returns, so a
+   * Skyscraper level answering with its `4` would leave `4` in
+   * {@link SEED_STORAGE_KEY} as though the player had chosen it, and the next
+   * numbered level they opened would quietly play a crowd the block picked for
+   * them.
    *
    * Rendering the seed as plain text was the alternative and was rejected. It
    * would occupy the same space to say a word that means nothing to the player on
@@ -1026,7 +1085,7 @@ export class App {
    * has no seed to offer.
    */
   #seedLink(world: World, levelIndex: number | null): SeedLinkData | null {
-    if (this.#tutorial !== undefined) {
+    if (this.#tutorial !== undefined || this.#skyscraper !== undefined) {
       return null;
     }
     if (world.seed === null) {
@@ -1175,9 +1234,10 @@ export class App {
    * player's edit to level 1 — a different building, and the attempt they
    * were half-way through no longer on screen to compare against.
    *
-   * The order of the three is the order of {@link handleRoute} and means the
-   * same thing: a level, or the sandbox, or a numbered level. Only one of
-   * the two fields is ever set, so the order decides nothing at runtime; it is
+   * The order of the four is the order of {@link handleRoute} and means the
+   * same thing: a lesson, a Skyscraper level, the sandbox, or a numbered level.
+   * At most one of the three fields is ever set — {@link #clearSpecialRuns} is
+   * what makes that true — so the order decides nothing at runtime; it is
    * written the same way in both places so that a reader who has checked one
    * has checked the other.
    *
@@ -1185,9 +1245,12 @@ export class App {
    */
   #restart(autoStart = false): void {
     const tutorial = this.#tutorial;
+    const skyscraper = this.#skyscraper;
     const sandbox = this.#sandbox;
     if (tutorial !== undefined) {
       this.startTutorial(tutorial.index, autoStart);
+    } else if (skyscraper !== undefined) {
+      this.startSkyscraperLevel(skyscraper.index, autoStart);
     } else if (sandbox === undefined) {
       this.startLevel(this.currentLevelIndex, autoStart, this.#currentSlot);
     } else {
@@ -1341,16 +1404,17 @@ export class App {
    * with.
    *
    * What a route names is decided in one order, and the order is stated because
-   * it is the whole of the dispatch: a route is a level of the learning track, or
-   * the sandbox, or a numbered level. The router never sets more than one of
-   * those — `#level=` holds one value — so this is a statement of precedence
-   * rather than a decision made every time, and the precedence runs from the
-   * most specific address to the least. `levelIndex` is the least, because
-   * the router resolves it to level 1 for any spelling it does not
-   * understand, which is exactly what an unrecognised route should play and
-   * exactly what a level's route must not: until this branch existed,
-   * `#level=tutorial-5` played level 1 while the address bar went on
-   * saying `tutorial-5`, and a reload never escaped it.
+   * it is the whole of the dispatch: a route is a level of the learning track, a
+   * level of the Skyscraper block, the sandbox, or a numbered level. The router
+   * never sets more than one of those — `#level=` holds one value — so this is a
+   * statement of precedence rather than a decision made every time, and the
+   * precedence runs from the most specific address to the least. `levelIndex` is
+   * the least, because the router resolves it to level 1 for any spelling it
+   * does not understand, which is exactly what an unrecognised route should play
+   * and exactly what a named level's route must not: until these branches
+   * existed, `#level=tutorial-5` played level 1 while the address bar went on
+   * saying `tutorial-5`, and a reload never escaped it. `#level=sky-1` would
+   * have done the same.
    *
    * @param params - The validated route parameters.
    * @param query - The raw parameters, kept for the next-level link.
@@ -1362,6 +1426,8 @@ export class App {
     this.worldController.setTimeScale(params.timeScale);
     if (params.tutorialIndex !== null) {
       this.startTutorial(params.tutorialIndex);
+    } else if (params.skyscraperIndex !== null) {
+      this.startSkyscraperLevel(params.skyscraperIndex);
     } else if (params.sandbox === null) {
       this.startLevel(params.levelIndex);
     } else {
@@ -1382,8 +1448,7 @@ export class App {
     if (level === undefined) {
       throw new RangeError(`No level with index ${String(levelIndex)}`);
     }
-    this.#sandbox = undefined;
-    this.#tutorial = undefined;
+    this.#clearSpecialRuns();
     this.#currentSlot = slot;
     this.#editor.openLevelBuffer(levelIndex, slot);
     this.currentLevelIndex = levelIndex;
@@ -1409,13 +1474,13 @@ export class App {
    * @param slot - The slot to open.
    */
   selectCodeSlot(slot: CodeSlot): void {
-    // A learning level and the sandbox have no level index of their own to
-    // key a slot by -- see `widgets/editor-pane`'s own slot switcher, which,
-    // unlike the presenter this replaced, has no way to hide itself while
-    // either is on screen. Silently doing nothing is what the old, hidden
-    // switcher did for free; this is the same answer for a switcher that is
-    // now visible, but inert, on both.
-    if (this.#tutorial !== undefined || this.isPlayingSandbox) {
+    // A learning level, a Skyscraper level and the sandbox have no level index
+    // of their own to key a slot by -- see `widgets/editor-pane`'s own slot
+    // switcher, which, unlike the presenter this replaced, has no way to hide
+    // itself while any of them is on screen. Silently doing nothing is what the
+    // old, hidden switcher did for free; this is the same answer for a switcher
+    // that is now visible, but inert, on all three.
+    if (this.#tutorial !== undefined || this.#skyscraper !== undefined || this.isPlayingSandbox) {
       return;
     }
     if (slot === this.#currentSlot) {
@@ -1438,12 +1503,22 @@ export class App {
    * nothing about the run is remembered anywhere else: coming back to the same
    * link is coming back to the same building.
    *
+   * The only run with no buffer of its own to open, which is why it is the only
+   * one that names {@link "../../ui/editor.ts"!CodeEditor.openPlayerBuffer}: a
+   * numbered level opens its level-and-slot buffer, and a lesson or a Skyscraper
+   * level opens the one keyed by its id, but the sandbox has always shown the
+   * legacy single-buffer program and still does. Calling it here is what carries
+   * a player out of one of those named buffers; it is idempotent, so arriving
+   * from a numbered level — where it is already the buffer on screen — does not
+   * disturb the caret or empty the undo history.
+   *
    * @param options - The building to play in, already validated by the router.
    * @param autoStart - Whether to run without waiting for the Start button.
    */
   startSandbox(options: SandboxOptions, autoStart = false): void {
+    this.#clearSpecialRuns();
     this.#sandbox = options;
-    this.#leaveTutorialBuffer();
+    this.#editor.openPlayerBuffer();
     this.#startRun(createSandboxLevel(options), null, autoStart);
   }
 
@@ -1476,7 +1551,7 @@ export class App {
     if (level === undefined) {
       throw new RangeError(`No tutorial level with index ${String(tutorialIndex)}`);
     }
-    this.#sandbox = undefined;
+    this.#clearSpecialRuns();
     this.#tutorial = { level, index: tutorialIndex };
     // The level's own attempt if the player has left one, and the starting code
     // only when they have not: somebody who half-solved level 4, wandered off to
@@ -1487,28 +1562,75 @@ export class App {
     // asked for, so the editor is handed the language the player has chosen by
     // now, and starting the same level again — which is what "Start over" does —
     // hands over the language they have chosen since.
-    this.#editor.openTutorialBuffer(level.id, level.startingCode);
+    this.#editor.openNamedLevelBuffer(level.id, level.startingCode);
     this.#startRun(level, null, autoStart);
   }
 
   /**
-   * Puts the legacy single-buffer program back in the editor on the way out of
-   * the track, into the sandbox.
+   * Tears the current run down and starts a level of the Skyscraper block.
    *
-   * `startLevel` leaves the track the same way, but no longer through this
-   * method: it opens its own level-and-slot buffer directly, which already
-   * clears `#tutorial` and already replaces whatever was on screen. Only the
-   * sandbox has no buffer of its own to open instead — it always shows the
-   * legacy key — so this is what is left once that is its only caller.
+   * The same shape as {@link startTutorial}, and for the same reasons: a
+   * {@link "../../game/skyscraper.ts"!SkyscraperLevel} is structurally a
+   * {@link Level}, so it goes to the same machinery with `null` where a level
+   * index would be, it opens a buffer keyed by its own id, and it opens it
+   * *before* the run is built because {@link #startRun} compiles whatever is in
+   * the editor at the moment it starts.
    *
-   * Idempotent, and so safe to call when no level was running: the editor
-   * returns early when the buffer asked for is the one already on screen, which
-   * is what keeps a level-to-sandbox jump from disturbing the caret or
-   * emptying the undo history.
+   * It shares the track's buffer mechanism rather than getting one of its own.
+   * `openNamedLevelBuffer` keys by level id and the two blocks' ids cannot
+   * collide — `tutorial-4` against `sky-1` — so one keyspace serves both, and
+   * the alternative would be a second prefix in `src/ui/editor.ts` that differs
+   * from the first in nothing but its spelling.
+   *
+   * Where it parts company with the track is what it does with a `startingCode`
+   * that is not optional here. Every level in this block is built on an idea the
+   * numbered levels know nothing about, so arriving with the program you last
+   * wrote for level 19 is arriving with a program written for a different set of
+   * rules; the block's own starter is the floor a player is put on. Their own
+   * attempt still wins over it whenever they have left one.
+   *
+   * @param skyscraperIndex - Zero-based position of the level in
+   * `skyscraperLevels`.
+   * @param autoStart - Whether to run without waiting for the Start button.
+   * @throws RangeError When no level has that position, symmetric with
+   * {@link startLevel} and {@link startTutorial}: the router resolves a `sky-`
+   * address against this same table, so this can only be reached by a caller
+   * that made the index up, and a made-up index must not quietly play something
+   * else.
    */
-  #leaveTutorialBuffer(): void {
+  startSkyscraperLevel(skyscraperIndex: number, autoStart = false): void {
+    const level = skyscraperLevels[skyscraperIndex];
+    if (level === undefined) {
+      throw new RangeError(`No skyscraper level with index ${String(skyscraperIndex)}`);
+    }
+    this.#clearSpecialRuns();
+    this.#skyscraper = { level, index: skyscraperIndex };
+    this.#editor.openNamedLevelBuffer(level.id, level.startingCode);
+    this.#startRun(level, null, autoStart);
+  }
+
+  /**
+   * Forgets whichever of the three special runs was in effect.
+   *
+   * The one place the "exactly one of these is ever set" invariant is written
+   * down. It used to be spelled out inline in every `start*` method, which was
+   * survivable while there were two fields and became a trap at three: adding
+   * {@link #skyscraper} meant remembering to clear it in three separate methods,
+   * and the one that was forgotten would not fail a type check or throw — it
+   * would leave a stale run answering {@link #levelSelection}, {@link #restart}
+   * and the seed lookup, so the switcher would highlight a level the player had
+   * left and Ctrl-Enter would restart it.
+   *
+   * Deliberately touches no buffer. Each caller opens the buffer it wants
+   * immediately afterwards, and which buffer that is has nothing to do with
+   * which fields are being cleared — the method this replaced conflated the two,
+   * so leaving the track for the sandbox went through something named for the
+   * track.
+   */
+  #clearSpecialRuns(): void {
+    this.#sandbox = undefined;
     this.#tutorial = undefined;
-    this.#editor.openPlayerBuffer();
+    this.#skyscraper = undefined;
   }
 
   /**
@@ -1521,6 +1643,17 @@ export class App {
    */
   get tutorial(): TutorialRun | undefined {
     return this.#tutorial;
+  }
+
+  /**
+   * The Skyscraper level on screen, or `undefined` for anything else.
+   *
+   * Read-only for {@link tutorial}'s reason, and exposed at all for the same
+   * one: the briefing card is drawn from it, and so is anything that needs to
+   * know the two blocks apart.
+   */
+  get skyscraper(): SkyscraperRun | undefined {
+    return this.#skyscraper;
   }
 
   /**
@@ -1569,6 +1702,13 @@ export class App {
     // still carries the seed of the level just left -- and then it is the
     // leftover that has to lose.
     //
+    // `SkyscraperLevel.seed` ranks beside it and pins for a related but distinct
+    // reason, which its own docblock sets out: those levels have no decade of
+    // published solutions to calibrate a threshold against, so a threshold is set
+    // from one measured run, and a silver earned by two players has to have been
+    // earned on the same crowd. Only one of the two fields is ever set -- see
+    // `#clearSpecialRuns` -- so their order here settles nothing.
+    //
     // Then the seed this browser last played, which is the player's own and
     // outlives the URL that introduced it -- see `handleRoute` for what that
     // reverses and why. It ranks below `#seed` so that a link somebody was sent
@@ -1579,7 +1719,11 @@ export class App {
     // nobody chose repeatable after the fact.
     const world = createWorld(
       level.options,
-      this.#tutorial?.level.seed ?? this.#seed ?? readStoredSeed(this.#storage) ?? undefined,
+      this.#tutorial?.level.seed ??
+        this.#skyscraper?.level.seed ??
+        this.#seed ??
+        readStoredSeed(this.#storage) ??
+        undefined,
     );
     this.world = world;
     window.world = world;
@@ -1588,9 +1732,10 @@ export class App {
       // Written back on every start, drawn seeds included: the fallback above is
       // only worth anything if the seed a player ends up with becomes the seed
       // they keep, and the overwhelmingly common way to end up with one is to
-      // have been given it. `#seedLink` is `null` for exactly the run whose seed
-      // is not the player's -- a level of the learning track -- so the one seed
-      // that must not be remembered is the one this cannot see.
+      // have been given it. `#seedLink` is `null` for exactly the runs whose seed
+      // is not the player's -- a level of the learning track or of the Skyscraper
+      // block, each of which pins its own -- so the seeds that must not be
+      // remembered are the ones this cannot see.
       this.#storeSeed(seed.seed);
       // Printed at every start, because nobody knows a run is worth repeating
       // until it has already gone wrong -- by which time the only record of what
@@ -1675,6 +1820,7 @@ export class App {
       // drawing path is the last place anybody would think to look. Drawing
       // stays drawing.
       const tutorial = this.#tutorial;
+      const skyscraper = this.#skyscraper;
       if (levelStatus && tutorial !== undefined) {
         recordClearedTutorialLevel(this.#storage, tutorial.level.id);
         // This lesson's tile in the switcher is drawn as cleared from now on,
@@ -1684,6 +1830,24 @@ export class App {
         // what has been cleared, and redrawing it would shut every hint the
         // player had opened at the moment they were told they had won.
         this.#levelSwitcher.update();
+      } else if (levelStatus && skyscraper !== undefined) {
+        // A medal rather than a cleared flag, because the block holds both
+        // kinds of level and one path has to serve both: a level that grades
+        // silver and gold gets the tier it earned, and a short demonstrating
+        // level omits `tiers` entirely, which `evaluateLevelTier` reads as
+        // "bronze is the only medal here". So bronze is this block's spelling
+        // of "cleared", and no second progress shape is needed to say it.
+        //
+        // Keyed by the level's id and not by `levelIndex`, which is `null` on
+        // every run in this block -- the numbered branch below is the only one
+        // with an index to key by, and `#entities/skyscraper-level` keeps its
+        // own store precisely so that a Skyscraper level cannot overwrite a
+        // numbered level's medal.
+        const tier = evaluateLevelTier(true, world, skyscraper.level.tiers);
+        if (tier !== null) {
+          recordSkyscraperTier(this.#storage, skyscraper.level.id, tier);
+          this.#levelSwitcher.update();
+        }
       } else if (levelStatus && levelIndex !== null) {
         // `true`, not `levelStatus`: a tier is only ever asked for on a win,
         // and `evaluateLevelTier` returns `null` for anything else, which
@@ -1791,8 +1955,23 @@ export class App {
   }
 
   /**
-   * Draws the learning track's panel, or empties its region when what is on
-   * screen is not a level.
+   * Draws whichever card the level on screen has earned the region beside the
+   * building — the learning track's lesson panel, or a Skyscraper level's
+   * briefing — and empties it when the level has neither.
+   *
+   * Two widgets, one element, and exactly one of them ever drawn: both write
+   * into `#elements.tutorial`, and each presenter replaces the region's contents
+   * outright rather than appending, so moving from a lesson to a Skyscraper
+   * level cannot leave the lesson standing under the briefing. The mutual
+   * exclusion is not this method's to enforce — {@link #clearSpecialRuns}
+   * already guarantees at most one of the two fields is set — so the order of
+   * the branches below settles nothing and is written to match
+   * {@link handleRoute}'s.
+   *
+   * The name still says "tutorial panel" because the region and its element
+   * still do, and renaming an element the stylesheet, the layout widget and
+   * `index.html` all know by that name is a bigger edit than this one, for a
+   * word rather than a behaviour.
    *
    * Hung off the end of {@link #drawLevelBar} rather than given call sites
    * of its own, because that method's two callers are exactly the two moments
@@ -1828,11 +2007,24 @@ export class App {
    */
   #drawTutorialPanel(): void {
     const tutorial = this.#tutorial;
-    if (tutorial === undefined) {
-      clearChildren(this.#elements.tutorial);
+    if (tutorial !== undefined) {
+      presentTutorial(this.#elements.tutorial, { levelIndex: tutorial.index });
       return;
     }
-    presentTutorial(this.#elements.tutorial, { levelIndex: tutorial.index });
+    const skyscraper = this.#skyscraper;
+    if (skyscraper !== undefined) {
+      // Both strings read here, on the way in, rather than passed as a level
+      // id for the widget to look up. They are getters over the message
+      // catalogue, so reading them at the moment of drawing is what puts the
+      // card in the language being drawn -- which is the whole reason this
+      // method is called again on a language change.
+      presentLevelBriefing(this.#elements.tutorial, {
+        title: skyscraper.level.title,
+        briefing: skyscraper.level.briefing,
+      });
+      return;
+    }
+    clearChildren(this.#elements.tutorial);
   }
 
   /**

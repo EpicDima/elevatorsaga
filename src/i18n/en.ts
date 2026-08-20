@@ -162,10 +162,10 @@ export const EN_MESSAGES = {
   "game.level.nav.label": "Levels",
   "game.level.nav.link": "Level {number}",
   // The level switcher's own popover: `widgets/level-switcher`. Two of its
-  // three block captions reuse "game.level.nav.label" (levels) and
+  // four block captions reuse "game.level.nav.label" (levels) and
   // "tutorial.panel.label" (the learning track), so only what is new to this
-  // widget is here — the third block's caption and the tile inside it, the
-  // step buttons either side of the popover trigger, and the two tile labels
+  // widget is here — the other two blocks' captions and the tiles inside them,
+  // the step buttons either side of the popover trigger, and the tile labels
   // the level list has no counterpart for, since it never names a
   // learning-track level.
   "game.levelSwitcher.prevLabel": "Previous level",
@@ -176,6 +176,11 @@ export const EN_MESSAGES = {
   // twice over and promise nothing else will ever join it.
   "game.levelSwitcher.otherBlockLabel": "Other",
   "game.levelSwitcher.sandboxLabel": "Sandbox",
+  // The Skyscraper block's caption, over the levels built on how real lift
+  // systems are dispatched. One word, because it stands over a grid of numbered
+  // tiles in a 396px popover next to captions of one and two words.
+  "game.levelSwitcher.skyscraperBlockLabel": "Skyscraper",
+  "game.levelSwitcher.skyscraperTileLabel": "Skyscraper level {number}",
   "game.levelSwitcher.tutorialTileLabel": "Tutorial level {number}",
   "game.levelSwitcher.tutorialTileClearedLabel": "Tutorial level {number}, completed",
   // What the 118px trigger says while a lesson is the level being played. The
@@ -188,6 +193,15 @@ export const EN_MESSAGES = {
   // A numbered level and the sandbox need no key of their own: "Level
   // {number}" and "Sandbox" are already what they are called.
   "game.levelSwitcher.tutorialTriggerLabel": "Lesson {number}",
+  // The Skyscraper block's turn at the same problem, and the same answer. Its
+  // tile label above is "Skyscraper level {number}", which is far past the 96px
+  // inside the trigger, and even the block's own name alone is too long the
+  // moment the block reaches ten levels: "Skyscraper 10" is thirteen
+  // characters where "Учебный уровень 1" needed seventeen to overflow.
+  // "Tower" is the short word for the same building — the caption over the
+  // block's tiles says "Skyscraper" in full, so the trigger only has to be the
+  // one thing that is not "Level {number}" or "Lesson {number}".
+  "game.levelSwitcher.skyscraperTriggerLabel": "Tower {number}",
   // The editor pane's own goto link: `widgets/editor-pane`. Points at the line
   // "src/ui/error-location.ts"'s locateCodeError found for the player's own
   // exception; the button that carries it is hidden whenever that comes back
@@ -1489,4 +1503,76 @@ elevator.goToFloor(2); // Queued anyway -- queue: 2, 3, 2`,
     "Eight tutorial levels, and the last of them was level 1 of the game itself: the same three floors, the same elevator, the same fifteen passengers in sixty seconds. The program in the editor solves it. Level 1 opens with a program of its own, so copy this one out of the editor before you go if you would rather start from it.",
   "tutorial.finish.nextLevel": "Next tutorial level",
   "tutorial.finish.toLevels": "Go to level 1",
+
+  // ------------------------------------------------------ the Skyscraper block
+  // src/game/skyscraper.ts, and the card `widgets/level-briefing` draws beside
+  // the building. Levels built on how real lift systems are actually
+  // dispatched: `design/elevator-dispatch-research.md` is where each one comes
+  // from.
+  //
+  // Three keys per level and no more, which is the whole difference from the
+  // learning track above. A lesson there owns a goal, three hints, an
+  // explanation and a program measured to solve it, because it stages one
+  // particular mistake and walks the player out of it. A level here names an
+  // idea and hands over the building. So: a `title`, one paragraph saying what
+  // the idea is, and the program the editor opens with — no hints, and no
+  // answer, because there is no single answer to be the answer.
+  //
+  // The `.html` and `.code` suffixes carry the same rules they carry on the
+  // track. A briefing is markup because it puts <em> and <code> around the
+  // terms it introduces, and a term introduced in running prose has to be
+  // marked as a term or it reads as an ordinary word. A starting program is a
+  // `.code` key because its `//` comments are prose addressed to the player and
+  // the JavaScript around them is not: `catalogue.test.ts` holds every `.code`
+  // value byte-identical across locales apart from the comments, and exempts
+  // them from the Russian typography rules, which no indented program could
+  // satisfy.
+  //
+  // What a briefing may not do is quote a number the level is scored on. The
+  // goal bar already says what the level asks for, in the words the condition
+  // was built from, and a paragraph repeating "40 passengers in 170 moves" is a
+  // second copy of a threshold that changes whenever the level is recalibrated
+  // — and the copy nobody remembers to change is this one. It says what the
+  // building is like and what is hard about it; the bar says what winning is.
+
+  // Level 1. Named for what its starting program does rather than for the
+  // building, because the building is the ordinary one and the habit is the
+  // thing being broken: on three floors, sending a car across the building for
+  // one passenger is barely a mistake, and this is the first level where it is
+  // the whole difference between winning and losing.
+  "skyscraper.sky1.title": "Eleven floors for one passenger",
+  "skyscraper.sky1.briefing.html":
+    'Twelve floors, three cars, and a run judged in moves rather than seconds. A building this tall is the first one in the game where a car spends more of its life travelling than loading, and the loop it repeats — out to a call, round its stops, back again — is what lift engineers call the <em>round-trip time</em>. Every later level in this block is a different way of making that loop shorter. This one gives you nothing new to do it with: the program you start with sends the next car in turn straight to whoever called, and a car that answers a call on the eleventh floor climbs eleven floors to carry <span class="emphasis-color">one</span> person back down. The cars are not too slow and there are not too few of them. They are being sent one errand at a time.',
+
+  "skyscraper.sky1.startingCode.code": `{
+    init: function(elevators, floors) {
+        let next = 0;
+
+        function callNextElevator(floor) {
+            // TODO: one call, one car, one trip -- nobody is picked up on the way
+            elevators[next].goToFloor(floor.floorNum());
+            next = (next + 1) % elevators.length;
+        }
+
+        elevators.forEach(function(elevator) {
+            elevator.on("floor_button_pressed", function(floorNum) {
+                elevator.goToFloor(floorNum);
+            });
+            elevator.on("idle", function() {
+                elevator.goToFloor(0);
+            });
+        });
+
+        floors.forEach(function(floor) {
+            floor.on("up_button_pressed", function() {
+                callNextElevator(floor);
+            });
+            floor.on("down_button_pressed", function() {
+                callNextElevator(floor);
+            });
+        });
+    },
+    update: function(dt, elevators, floors) {
+    }
+}`,
 } as const satisfies Readonly<Record<string, string | PluralForms<"en">>>;

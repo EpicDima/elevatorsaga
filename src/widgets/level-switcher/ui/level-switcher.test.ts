@@ -10,6 +10,7 @@ import type { LevelSwitcherOptions } from "./level-switcher.ts";
 import type { LevelLinkTarget, LevelMenuInput } from "../model/level-menu.ts";
 import type { LevelTier } from "#entities/level-tier/index.ts";
 import { requireUserCountWithinTime, type Level } from "#game/levels.ts";
+import type { SkyscraperLevel } from "#game/skyscraper.ts";
 import { tutorialLevels } from "#game/tutorial.ts";
 import { queryAll, requireElement } from "#shared/lib/dom.ts";
 import { SPRITE_ICONS } from "#shared/ui/icon.ts";
@@ -18,6 +19,28 @@ function fixtureLevels(count: number): readonly Level[] {
   return Array.from({ length: count }, () => ({
     options: {},
     condition: requireUserCountWithinTime(5, 60),
+  }));
+}
+
+/**
+ * Stand-in Skyscraper levels, built rather than imported for the reason
+ * `level-menu.test.ts`'s own copy of this helper gives: the shipped block holds
+ * one level today, and a grid of one tile cannot say which tile a tier lit or
+ * which one the selection marked. Only `id` is read, and it is spelled the way
+ * the shipped entries are.
+ *
+ * @param count - How many levels the block should hold.
+ * @returns That many levels, `sky-1` upwards.
+ */
+function fixtureSkyscraperLevels(count: number): readonly SkyscraperLevel[] {
+  return Array.from({ length: count }, (_unused, index) => ({
+    id: `sky-${String(index + 1)}`,
+    options: {},
+    condition: requireUserCountWithinTime(5, 60),
+    seed: index + 1,
+    startingCode: "",
+    title: `Sky ${String(index + 1)}`,
+    briefing: "",
   }));
 }
 
@@ -30,6 +53,9 @@ function stubHref(target: LevelLinkTarget): string {
     case "tutorial": {
       return `#level=${target.levelId}`;
     }
+    case "skyscraper": {
+      return `#level=${target.levelId}`;
+    }
     case "sandbox": {
       return "#level=sandbox";
     }
@@ -40,8 +66,10 @@ function baseInput(overrides: Partial<LevelMenuInput> = {}): LevelMenuInput {
   return {
     levels: fixtureLevels(4),
     tutorialLevels,
+    skyscraperLevels: fixtureSkyscraperLevels(2),
     bestTiers: new Map<number, LevelTier>(),
     clearedTutorialLevels: new Set(),
+    bestSkyscraperTiers: new Map<string, LevelTier>(),
     selection: { kind: "level", index: 0 },
     buildHref: stubHref,
     ...overrides,
@@ -157,16 +185,18 @@ describe("presentLevelSwitcher", () => {
     expect(taskOpen.getAttribute("aria-expanded")).toBe("false");
   });
 
-  it("fills the three blocks in order: tutorial, levels, other", () => {
+  it("fills the four blocks in order: tutorial, levels, skyscraper, other", () => {
     const { parent, options } = setUp();
     presentLevelSwitcher(parent, options);
 
     const captions = [...parent.querySelectorAll(".taskblock .cap")].map((el) => el.textContent);
-    // The third block is captioned "Other" while the one tile inside it is
+    // The Skyscraper block is captioned with a string of its own rather than
+    // borrowing one, since nothing in the catalogue names the block as a whole.
+    // The last block is captioned "Other" while the one tile inside it is
     // captioned "Sandbox" — see `blockCaption` for why they are not the same
     // word.
-    expect(captions).toEqual(["Learning track", "Levels", "Other"]);
-    const [, , otherBlock] = parent.querySelectorAll(".taskblock");
+    expect(captions).toEqual(["Learning track", "Levels", "Skyscraper", "Other"]);
+    const [, , , otherBlock] = parent.querySelectorAll(".taskblock");
     expect(otherBlock?.querySelector(".tasklink")?.textContent).toBe("Sandbox");
   });
 
@@ -212,6 +242,50 @@ describe("presentLevelSwitcher", () => {
     ]);
   });
 
+  it("draws a skyscraper tile as its number, named in full for a screen reader", () => {
+    const { parent, options } = setUp({ skyscraperLevels: fixtureSkyscraperLevels(3) });
+    presentLevelSwitcher(parent, options);
+    const [, , skyscraperBlock] = parent.querySelectorAll(".taskblock");
+    const tiles = [...(skyscraperBlock?.querySelectorAll(".tasklink") ?? [])];
+
+    // The visible text is the number alone, as a numbered level's is; the
+    // accessible name is where the block it belongs to is said.
+    expect(tiles.map((tile) => tile.textContent)).toEqual(["1", "2", "3"]);
+    expect(tiles.map((tile) => tile.getAttribute("aria-label"))).toEqual([
+      "Skyscraper level 1",
+      "Skyscraper level 2",
+      "Skyscraper level 3",
+    ]);
+    expect(tiles.map((tile) => tile.getAttribute("href"))).toEqual([
+      "#level=sky-1",
+      "#level=sky-2",
+      "#level=sky-3",
+    ]);
+  });
+
+  it("medals a skyscraper tile from its own record, as a numbered level's is", () => {
+    const { parent, options } = setUp({
+      skyscraperLevels: fixtureSkyscraperLevels(2),
+      bestSkyscraperTiers: new Map<string, LevelTier>([["sky-1", "silver"]]),
+      selection: { kind: "level", index: 0 },
+    });
+    presentLevelSwitcher(parent, options);
+    const [, , skyscraperBlock] = parent.querySelectorAll(".taskblock");
+    const tiles = [...(skyscraperBlock?.querySelectorAll(".tasklink") ?? [])];
+
+    // `data-tier` is on the tile only where a tier was actually earned, which
+    // is what tells the two apart: the badge itself is drawn for every tile of
+    // a medalled block, dim stars and all, so its presence says nothing. Both
+    // are read from the one `earned` the template now works out once -- they
+    // used to be asked separately, and that is how they came to disagree about
+    // `undefined`.
+    expect(tiles.map((tile) => tile.getAttribute("data-tier"))).toEqual(["silver", null]);
+    expect(tiles.map((tile) => tile.querySelectorAll(".stars").length)).toEqual([1, 1]);
+    expect(tiles.map((tile) => tile.querySelectorAll(".stars .is-on").length)).toEqual([2, 0]);
+    // And the third thing that one answer decides: the tile reads as done.
+    expect(tiles.map((tile) => tile.classList.contains("is-done"))).toEqual([true, false]);
+  });
+
   it("marks the current tile with aria-current and writes its name into the trigger", () => {
     const { parent, options } = setUp({
       levels: fixtureLevels(4),
@@ -227,10 +301,10 @@ describe("presentLevelSwitcher", () => {
   });
 
   it("keeps the trigger to the level's plain name, whatever the tile calls it", () => {
-    // Three kinds of tile, one rule: the trigger names the level and leaves
+    // Four kinds of tile, one rule: the trigger names the level and leaves
     // its state to the tile. The lesson is the case that forced it -- 118px of
     // button against «Учебный уровень 1», which wants 136px -- and the other
-    // two are here so that a later change cannot quietly reintroduce a state
+    // three are here so that a later change cannot quietly reintroduce a state
     // suffix through them.
     const cleared = tutorialLevels[0];
     const lesson = setUp({
@@ -250,6 +324,17 @@ describe("presentLevelSwitcher", () => {
     });
     presentLevelSwitcher(level.parent, level.options);
     expect(requireElement(".task-name", level.parent).textContent).toBe("Level 4");
+
+    // Not the tile's "Skyscraper level 2" either, and for the same measured
+    // reason: the block's own name alone fills the button by the time it
+    // reaches ten levels.
+    const skyscraper = setUp({
+      skyscraperLevels: fixtureSkyscraperLevels(3),
+      bestSkyscraperTiers: new Map<string, LevelTier>([["sky-2", "gold"]]),
+      selection: { kind: "skyscraper", index: 1 },
+    });
+    presentLevelSwitcher(skyscraper.parent, skyscraper.options);
+    expect(requireElement(".task-name", skyscraper.parent).textContent).toBe("Tower 2");
   });
 
   it("labels a cleared tutorial tile as completed", () => {
@@ -268,7 +353,7 @@ describe("presentLevelSwitcher", () => {
   it("labels the sandbox tile and links it through buildHref", () => {
     const { parent, options } = setUp({ selection: { kind: "sandbox" } });
     presentLevelSwitcher(parent, options);
-    const [, , sandboxBlock] = parent.querySelectorAll(".taskblock");
+    const [, , , sandboxBlock] = parent.querySelectorAll(".taskblock");
     const tile = sandboxBlock?.querySelector(".tasklink");
 
     expect(tile?.tagName).toBe("A");

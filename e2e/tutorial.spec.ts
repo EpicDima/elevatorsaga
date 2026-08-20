@@ -250,7 +250,7 @@ test("highlights the answer, marks the line it adds, and copies it to the clipbo
 });
 
 test("hands the editor the program in the language the link asks for", async ({ page }) => {
-  // `openTutorialBuffer` promises the starter "in the player's current
+  // `openNamedLevelBuffer` promises the starter "in the player's current
   // language", and this is the only place that promise can be measured whole:
   // the hash names a language, `resolveLocale` picks it, the Russian catalogue
   // is fetched as its own chunk, and only then is the level opened and the

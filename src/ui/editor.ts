@@ -364,7 +364,8 @@ const PLAYER_BUFFER: EditorBuffer = {
  * and would still spell a real key, and let the caller's own lookup — which
  * must already have found the starter program below — answer the rest.
  *
- * @param levelId - The level's stable identifier, such as `tutorial-3`.
+ * @param levelId - The level's stable identifier, such as `tutorial-3` or
+ * `sky-1`.
  * @param starterCode - The program the level hands the player to complete.
  * @returns The buffer for that level.
  * @throws RangeError When `levelId` has no visible characters. Identifiers reach
@@ -372,9 +373,9 @@ const PLAYER_BUFFER: EditorBuffer = {
  * bare prefix — one shared key that every malformed route would pour its text
  * into.
  */
-function tutorialBuffer(levelId: string, starterCode: string): EditorBuffer {
+function namedLevelBuffer(levelId: string, starterCode: string): EditorBuffer {
   if (levelId.trim() === "") {
-    throw new RangeError(`Tutorial level id must not be blank, got ${JSON.stringify(levelId)}`);
+    throw new RangeError(`Level id must not be blank, got ${JSON.stringify(levelId)}`);
   }
   return {
     codeKey: `${TUTORIAL_CODE_KEY_PREFIX}${levelId}`,
@@ -670,25 +671,42 @@ export class CodeEditor extends Observable<CodeEditorEvents> {
   }
 
   /**
-   * Shows one learning-track level's program, keeping whatever was on screen.
+   * Shows the program of a level identified by name, keeping whatever was on
+   * screen.
    *
    * The level's own attempt if there is one, otherwise `starterCode`. Callers
    * name a level, never a storage key: a method taking a key can be handed the
    * player's key together with a level's starter program, and the player's
    * program is gone. There is no such call to make here.
    *
-   * @param levelId - The level's stable identifier, as `TutorialLevel.id` spells
-   * it; the same string the route names, so nothing has to be derived.
+   * Two blocks of the game reach here — the learning track and the Skyscraper
+   * block — and they share one keyspace rather than getting a prefix each. What
+   * makes that safe is the only thing this method knows about an id: that it is
+   * opaque and unique across the game. `tutorial-4` and `sky-1` cannot collide,
+   * and a second prefix would differ from the first in nothing but its spelling
+   * while doubling the number of places a stored program can be looked for.
+   *
+   * The method used to be called `openTutorialBuffer` and the storage prefix is
+   * still spelled `develevateTutorialCode_`. That is deliberate and must stay:
+   * renaming the *value* would say nothing to a player — nobody reads a storage
+   * key — and would lose the half-finished program of every browser that already
+   * holds one, exactly as {@link LEVEL_CODE_KEY_PREFIX}'s own comment says of
+   * `develevateChallengeCode_`. The method name is free to describe what it does
+   * because nothing outside this program depends on it.
+   *
+   * @param levelId - The level's stable identifier, as `TutorialLevel.id` and
+   * `SkyscraperLevel.id` spell it; the same string the route names, so nothing
+   * has to be derived.
    * @param starterCode - The program the level starts from, used only when the
    * level has nothing stored yet. Also what {@link CodeEditor.reset} restores
    * while the level is open, so passing the text in the player's current
-   * language keeps "start over" in that language. `TutorialLevel.startingCode`
-   * renders it at the moment it is read, so a caller that reads it into this
+   * language keeps "start over" in that language. Both blocks render
+   * `startingCode` at the moment it is read, so a caller that reads it into this
    * call is handing over the language chosen by then; the string is kept as it
    * arrived, and a level opened again hands over a fresh one.
    */
-  openTutorialBuffer(levelId: string, starterCode: string): void {
-    this.#openBuffer(tutorialBuffer(levelId, starterCode));
+  openNamedLevelBuffer(levelId: string, starterCode: string): void {
+    this.#openBuffer(namedLevelBuffer(levelId, starterCode));
   }
 
   /**
@@ -697,7 +715,7 @@ export class CodeEditor extends Observable<CodeEditorEvents> {
    * The slot's own attempt if there is one, otherwise the starter program
    * {@link CodeEditor.#resolveLevelStarterCode} resolves for it. Callers
    * name a level and a slot, never a storage key, for the same reason
-   * {@link CodeEditor.openTutorialBuffer} does.
+   * {@link CodeEditor.openNamedLevelBuffer} does.
    *
    * @param levelIndex - Zero-based index of the level to open.
    * @param slot - Which of the level's three slots to show.
