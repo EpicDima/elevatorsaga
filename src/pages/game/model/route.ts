@@ -44,15 +44,13 @@
  * way through draws somebody else.
  * {@link "#shared/lib/seed.ts"!SEED_PATTERN} says what survives that trip.
  *
- * One of those validations is not about whether a value can be read but about
- * whether it may be acted on: a numbered level has to be one this player
- * has unlocked. Until it was checked here, the level switcher drew level 18
- * shut and `#level=18` opened it anyway, which made the progression an
- * opinion the interface held rather than a rule the game had.
- * {@link fallBackToOpenLevel} is the whole of the answer to such an
- * address, and the rule it defers to belongs to
- * {@link "#features/switch-level/index.ts"!isLevelLocked} rather than to
- * this file.
+ * Every validation here is about whether a value can be *read*, and none is
+ * about whether it may be acted on. A numbered level within the building's
+ * range opens, full stop: there used to be a second question — whether this
+ * player had cleared the one before it — and an address naming a shut level
+ * was answered with the nearest open one instead. That progression rule is
+ * gone game-wide, so the router no longer holds an opinion about which
+ * levels a browser has earned, and `#level=18` opens level 18 for anyone.
  *
  * The key that names all three used to be spelled `level`, which is what
  * every link ever shared out of this game says. {@link LEGACY_LEVEL_KEY} and
@@ -145,11 +143,10 @@ export interface RouteParams {
    * route. For most that means the key is simply deleted, since its absence
    * and its refusal come to the same thing. The exceptions are both spellings
    * of `level` that land somewhere absence does not spell: a level address
-   * the router could not read, which starts the first level of the learning
-   * track, and a level this player has not unlocked, which starts the
-   * nearest one they have. Those are rewritten rather than dropped.
-   * {@link startRouter} does both, and says why the address bar is corrected
-   * at all rather than left describing a run that is not being played.
+   * the router could not read starts the first level of the learning track,
+   * and is rewritten rather than dropped. {@link startRouter} says why the
+   * address bar is corrected at all rather than left describing a run that is
+   * not being played.
    *
    * A value that was *clamped* is not in here. `floors=100000` still names the
    * building on screen — it resolves to sixty floors every time it is read, and
@@ -177,24 +174,6 @@ export interface RouteContext {
   readonly levelCount: number;
   /** Time scale to use when the URL does not ask for one. */
   readonly defaultTimeScale: number;
-  /**
-   * Whether a level is still shut to this player.
-   *
-   * Handed in rather than worked out here, for the reason
-   * {@link levelCount} is: what a browser has cleared is stored state, and
-   * this module reads a URL. `src/main.ts` supplies
-   * {@link "#features/switch-level/index.ts"!isLevelLocked} over this
-   * browser's own record, which is the same call the level switcher makes to
-   * decide which tiles to draw shut.
-   *
-   * Asked on every route rather than once, because the answer moves while the
-   * page is open: clearing a level unlocks the next one, and the "Next
-   * level" link in the verdict card is followed a moment later.
-   *
-   * @param index - Zero-based index of the level, already known to exist.
-   * @returns Whether it refuses to open.
-   */
-  readonly isLevelLocked: (index: number) => boolean;
 }
 
 /**
@@ -881,18 +860,16 @@ function resolveElevatorCapacities(value: string | undefined, refuse: Refuse): n
  * resolvers: `Number("")` is `0`, and level zero does not exist, so the
  * range check below refuses it along with everything else out of range.
  *
- * A level that exists is not yet a level this player may open, and the
- * second check is the one that closes what used to be a hole: the level
- * switcher draws a level shut until the one before it has been cleared,
- * and typing `#level=18` opened it anyway. A URL is not a way around the
- * game's own progression — {@link fallBackToOpenLevel} says where such an
- * address lands instead.
+ * Existing is the whole of the test. There used to be a second one — whether
+ * this player had cleared the level before — and an address for a level they
+ * had not earned was answered with the nearest one they had. Nothing is shut
+ * any more, in this file or in the switcher, so a level in range opens for
+ * whoever asks.
  *
  * @param value - The raw parameter, if it was present.
- * @param context - The level count and this browser's locking rule.
+ * @param context - The level count.
  * @param refuse - Records the key when the value cannot be used.
- * @returns A zero-based index that exists and is open; `0` for anything
- * unusable.
+ * @returns A zero-based index that exists; `0` for anything unusable.
  */
 function resolveLevelIndex(
   value: string | undefined,
@@ -908,55 +885,7 @@ function resolveLevelIndex(
     refuse(LEVEL_KEY);
     return 0;
   }
-  if (context.isLevelLocked(index)) {
-    return fallBackToOpenLevel(value, index, context.isLevelLocked, refuse);
-  }
   return index;
-}
-
-/**
- * Answers an address for a locked level with the nearest one that is open.
- *
- * Walks *back* from what was asked for, never forward, and stops at the first
- * level that opens — which is as far along the row as this player has
- * earned on the way to their destination. Walking forward could hand somebody
- * a level further on than the one they were refused, which is the same
- * hole with an extra step in it; and there is always somewhere to land, since
- * the first level is open to everyone.
- *
- * Nothing here assumes the open levels are a run from the first: a browser
- * that cleared level 6 alone, back when every level was reachable from
- * the row, has level 7 open and 2 through 6 shut, and an address for 12
- * lands on 7. See
- * {@link "#features/switch-level/index.ts"!isLevelLocked} for why a record
- * can look like that.
- *
- * The key is refused, so the address bar stops naming a level nobody is
- * playing — {@link startRouter} rewrites it to the one that opened rather than
- * deleting it, since deleting would say "level one" and that is a third
- * place the player never asked to be.
- *
- * @param value - The raw parameter, for the warning.
- * @param index - The locked level that was asked for.
- * @param isLevelLocked - This browser's locking rule.
- * @param refuse - Records the key so the address bar loses the refused number.
- * @returns The nearest open level at or before `index`.
- */
-function fallBackToOpenLevel(
-  value: string,
-  index: number,
-  isLevelLocked: (index: number) => boolean,
-  refuse: Refuse,
-): number {
-  let open = index;
-  while (open > 0 && isLevelLocked(open)) {
-    open -= 1;
-  }
-  console.warn(
-    `Level "${value}" has not been unlocked yet, starting level ${String(open + 1)} instead`,
-  );
-  refuse(LEVEL_KEY);
-  return open;
 }
 
 /**
@@ -999,12 +928,11 @@ function resolveTimeScale(
  * `resolveTutorialIndex` is the only thing that refuses a `level` on the
  * track, and it refuses only in the branch where it has already fallen back to
  * `0`. Written generally anyway, because the day a level is refused for some
- * reason other than being unspellable — not yet unlocked, say, or withdrawn —
+ * reason other than being unspellable — withdrawn, say, or renumbered —
  * `tutorialLevels[0]` would quietly write the first level's address over whatever
  * they were actually given, and the URL would go back to lying about the run.
  * That is the failure the correction exists to prevent, so it should not depend
- * on which refusals happen to exist. The numbered level below is exactly
- * that day arriving on the other branch.
+ * on which refusals happen to exist.
  *
  * There is no sandbox case, and it is not an omission: `level=sandbox` is
  * decided before any of the three values is parsed, so nothing on that route
@@ -1077,16 +1005,6 @@ export interface RouterOptions {
    * buttons survives moving to the next level.
    */
   readonly defaultTimeScale: () => number;
-  /**
-   * Whether a level is still shut to this player.
-   *
-   * Re-read on every navigation for the reason {@link RouteContext.isLevelLocked}
-   * gives: a level cleared a moment ago is a level that opens now.
-   *
-   * @param index - Zero-based index of the level, already known to exist.
-   * @returns Whether it refuses to open.
-   */
-  readonly isLevelLocked: (index: number) => boolean;
   /** The window whose location and events to follow; defaults to `window`. */
   readonly target?: RouterTarget;
 }
@@ -1204,7 +1122,6 @@ export function startRouter(onRoute: RouteHandler, options: RouterOptions): () =
     const params = resolveRoute(query, {
       levelCount: options.levelCount,
       defaultTimeScale: options.defaultTimeScale(),
-      isLevelLocked: options.isLevelLocked,
     });
     onRoute(params, correct(query, params, query !== written));
   };

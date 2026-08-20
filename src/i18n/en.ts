@@ -167,7 +167,7 @@ export const EN_MESSAGES = {
   // widget is here — the third block's caption and the tile inside it, the
   // step buttons either side of the popover trigger, and the two tile labels
   // the level list has no counterpart for, since it never names a
-  // learning-track level or a locked one.
+  // learning-track level.
   "game.levelSwitcher.prevLabel": "Previous level",
   "game.levelSwitcher.nextLabel": "Next level",
   // Caption and tile, and deliberately not the same word: the block is
@@ -178,7 +178,6 @@ export const EN_MESSAGES = {
   "game.levelSwitcher.sandboxLabel": "Sandbox",
   "game.levelSwitcher.tutorialTileLabel": "Tutorial level {number}",
   "game.levelSwitcher.tutorialTileClearedLabel": "Tutorial level {number}, completed",
-  "game.levelSwitcher.levelTileLockedLabel": "Level {number}, locked",
   // What the 118px trigger says while a lesson is the level being played. The
   // tile labels above are written for a grid, where the state on the end of
   // them is the point, and on the trigger they overflow. Shortening them to
@@ -325,7 +324,7 @@ export const EN_MESSAGES = {
     "The bars under the header show the level's condition: how many people to carry, in how much time, how many floors the elevators may travel past, and how many seconds people may wait. The tiles below track the same things in more detail — average delivery time, worst wait, elevator load — and chart how each one moved over the run. A level is cleared once everyone's been carried and no limit was broken.",
   "game.docs.guide.threeStars.heading": "Three stars",
   "game.docs.guide.threeStars.html":
-    "Clearing a level earns bronze — that's exactly its own condition. Silver and gold come from <em>how</em> it was cleared: with room to spare, without running elevators empty, without making people wait. The card on the right, in the goal bar, shows exactly what each star needs — and which of them are being held right now. Stars don't gate progress: bronze alone opens the next level, and silver and gold stay on the list to come back for.",
+    "Clearing a level earns bronze — that's exactly its own condition. Silver and gold come from <em>how</em> it was cleared: with room to spare, without running elevators empty, without making people wait. The card on the right, in the goal bar, shows exactly what each star needs — and which of them are being held right now. Stars gate nothing: every level is open from the first visit, and silver and gold stay on the list to come back for.",
   "game.docs.guide.tutorialLevels.heading": "The first levels come with an explanation",
   "game.docs.guide.tutorialLevels.body":
     "Tutorial levels have a lesson standing next to the building: step by step, what's happening, which event a program sees it through, and what answering it looks like. A button above the building collapses it and brings it back.",

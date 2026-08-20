@@ -115,7 +115,9 @@ test("opens the level a tile names when the tile is clicked", async ({ page }) =
   await page.goto("/#level=sandbox");
   await page.locator(TRIGGER).click();
 
-  const levelOne = page.locator(`${MENU} a.tasklink[href*="level=1"]`);
+  // Exact, not `href*=`: every level is a tile in this row and a substring
+  // match on `level=1` picks up ten through eighteen as well.
+  const levelOne = page.locator(`${MENU} a.tasklink[href="#level=1"]`);
   await expect(levelOne).toBeInViewport({ ratio: 1 });
   await levelOne.click();
 

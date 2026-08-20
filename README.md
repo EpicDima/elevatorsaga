@@ -49,11 +49,12 @@ is scored by the same rules.
   have not, and the eighth of them is level 1's building and level 1's bar, so the program that
   clears it is one you can take straight into level 1. See
   [The learning track](#the-learning-track).
-- **A jump list for the levels.** Every level you have opened is a link in the bar above the
-  building, so going back to level 3 to try another program on it is one click rather than an edit
-  to the address bar. Clearing a level at all — bronze is enough — opens the next one, and one you
-  have not opened yet is drawn shut in the list and refused in the URL. The one being played is
-  marked, and free play sits in a block of its own under the numbered ones.
+- **A jump list for the levels.** Every level is a link in the bar above the building, so going
+  back to level 3 to try another program on it is one click rather than an edit to the address bar.
+  Nothing is locked: the list is a table of contents, not a gate, and any level in it opens from the
+  first visit whether or not the ones below it have been cleared. What you have earned shows as
+  stars on the tile instead. The one being played is marked, and free play sits in a block of its
+  own under the numbered ones.
 - **Repeatable runs.** Every run draws its passengers from a seed, which is shown in the bar and
   printed to the console as the run starts. Following the seed link, or writing `#seed=…` yourself,
   brings the same people back in the same order to every restart — enough to compare two programs
@@ -445,14 +446,14 @@ Everything after the `#` is a comma-separated list of `key=value` pairs, for exa
 "next level" link. Anything malformed falls back to a sane default with a console warning
 rather than breaking the page.
 
-| Parameter           | Effect                                                                                                                                                                                                                                       |
-| ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `#level=N`          | Starts level `N`, counting from 1. Out of range, missing, or unreadable as a number and not one of the two names below: level 1. A level you have not unlocked starts the furthest one you have, and the address bar is rewritten to say so. |
-| `#level=sandbox`    | Starts a building of your own instead of a numbered level. See below.                                                                                                                                                                        |
-| `#level=tutorial-N` | Starts level `N` of the learning track, from `tutorial-1` to `tutorial-8`. A `tutorial-` address the track has no level for starts the first one. See [The learning track](#the-learning-track).                                             |
-| `#timescale=X`      | Simulation speed multiplier. Clamped to `0.1`–`64`. Fractions such as `1.5` work. Without it, the speed you last chose is used again — it is kept in `localStorage` under `elevatorTimeScale` — and `2` when there is none.                  |
-| `#seed=S`           | Pins the seed the passenger stream is drawn from. Not the building. Refused on a tutorial level. See below.                                                                                                                                  |
-| `#fullscreen`       | Hides everything except the building.                                                                                                                                                                                                        |
+| Parameter           | Effect                                                                                                                                                                                                                          |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `#level=N`          | Starts level `N`, counting from 1. Out of range, missing, or unreadable as a number and not one of the two names below: level 1. Every level is open from the first visit, so no address is ever answered with a different one. |
+| `#level=sandbox`    | Starts a building of your own instead of a numbered level. See below.                                                                                                                                                           |
+| `#level=tutorial-N` | Starts level `N` of the learning track, from `tutorial-1` to `tutorial-8`. A `tutorial-` address the track has no level for starts the first one. See [The learning track](#the-learning-track).                                |
+| `#timescale=X`      | Simulation speed multiplier. Clamped to `0.1`–`64`. Fractions such as `1.5` work. Without it, the speed you last chose is used again — it is kept in `localStorage` under `elevatorTimeScale` — and `2` when there is none.     |
+| `#seed=S`           | Pins the seed the passenger stream is drawn from. Not the building. Refused on a tutorial level. See below.                                                                                                                     |
+| `#fullscreen`       | Hides everything except the building.                                                                                                                                                                                           |
 
 `#level` was spelled `#challenge` until the game started calling its challenges levels, and every
 link shared before then says so. Those addresses still work — the old spelling is read wherever the

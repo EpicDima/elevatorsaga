@@ -1,6 +1,6 @@
 /*
  * The level switcher in the app bar: the trigger and its two step arrows, the
- * popover, and the tiles inside it in each of their states -- locked, cleared,
+ * popover, and the tiles inside it in each of their states -- cleared,
  * current, and the free-play tile that closes the list.
  *
  * See `level-switcher.ts` for the markup these rules target, and
@@ -244,25 +244,6 @@ html[data-theme="dark"] .tasklink.is-done {
 
 .tasklink.is-current .star.is-on {
   color: var(--ds-accent-ink);
-}
-
-.tasklink.is-locked {
-  border-style: dashed;
-  background: transparent;
-  color: var(--ds-text-faint);
-  cursor: default;
-}
-
-/*
- * Dead weight today: a locked tile is drawn with its number, not the
- * mockup's lock glyph -- `tileTemplate` in `level-switcher.ts` never emits an
- * `.icon` for one. Ported anyway, harmless unmatched, so the rule is ready
- * the day that markup gap closes rather than a second thing to remember
- * alongside it.
- */
-.tasklink.is-locked .icon {
-  width: 14px;
-  height: 14px;
 }
 
 .tasklink.is-free {

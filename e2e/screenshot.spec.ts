@@ -14,7 +14,7 @@
 import { expect, test } from "@playwright/test";
 
 import { DEV_TEST_CODE } from "../src/ui/default-code.ts";
-import { seedLevelCode, startButton, statistic, statisticValue, unlockLevel } from "./game-page.ts";
+import { seedLevelCode, startButton, statistic, statisticValue } from "./game-page.ts";
 
 /**
  * Where the README expects to find it.
@@ -88,7 +88,6 @@ test.describe("README screenshot", () => {
     // A browser that has played its way to level 5, because the router now
     // answers an address for a level nobody has earned with the furthest one
     // they have — and the picture would quietly become level 1.
-    await unlockLevel(page, LEVEL);
 
     // A real program in the editor rather than the two-line starter, planted in
     // the slot this level opens: `#devtest` used to load it from the URL, and

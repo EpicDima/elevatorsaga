@@ -91,19 +91,17 @@ describe("buildLevelMenu", () => {
     expect(tiles[0]?.href).toBe("#level=1");
   });
 
-  it("locks a level tile until the one before it has any tier on record", () => {
+  it("opens every level tile, whatever is on record", () => {
+    // Levels used to shut until the one before them had any tier on record.
+    // Nothing does now, in this block or any other, so a browser that has
+    // cleared nothing gets the same five open tiles as one that has cleared
+    // them all -- the record is read for the badge alone.
     const [, levelBlock] = buildLevelMenu(
       baseInput({ levels: fixtureLevels(5), bestTiers: new Map([[0, "bronze"]]) }),
     );
-    const tiles = levelBlock?.tiles ?? [];
 
-    expect(tiles.map((tile) => tile.kind === "level" && tile.locked)).toEqual([
-      false,
-      false,
-      true,
-      true,
-      true,
-    ]);
+    expect(levelBlock?.tiles).toHaveLength(5);
+    expect(levelBlock?.tiles.every((tile) => tile.kind === "level")).toBe(true);
   });
 
   it("carries a level tile's best tier through, undefined when never cleared", () => {

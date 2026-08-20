@@ -52,13 +52,6 @@ test("carries the language into the links the game builds", async ({ page }) => 
   // to storage: it does not need to be. The router keeps parameters it does not
   // recognise, so `lang` survives every navigation the level switcher offers and
   // stays in the address bar to be copied out of again.
-  //
-  // Level 2 only draws as a link once level 1 has a tier on record --
-  // `features/switch-level`'s own gate -- so this seeds that record before the
-  // page boots, the same one a real clear of level 1 would leave behind.
-  await page.addInitScript(() => {
-    localStorage.setItem("develevateChallengeTiers", JSON.stringify({ 0: "bronze" }));
-  });
   await page.goto("/#lang=ru");
 
   // The tile is a real link, but it sits behind the switcher's own closed

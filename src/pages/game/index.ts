@@ -910,7 +910,7 @@ export class App {
    * Read fresh on every call rather than held: three of the five move as the
    * game is played, and the switcher redraws from this on every run that
    * ends. The widget shapes them into blocks and tiles; nothing here decides
-   * what is locked or how a tile is named.
+   * how a tile is named.
    *
    * The URL rule lives in {@link #levelHref}, and it is the whole point of
    * building an `href` at all: assigning `location.hash` outright — which is

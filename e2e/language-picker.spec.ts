@@ -23,14 +23,7 @@
 
 import { expect, test } from "@playwright/test";
 
-import {
-  languagePicker,
-  seedText,
-  startButton,
-  statistic,
-  statisticValue,
-  unlockLevel,
-} from "./game-page.ts";
+import { languagePicker, seedText, startButton, statistic, statisticValue } from "./game-page.ts";
 
 /** Where the choice is remembered between visits. */
 const LOCALE_STORAGE_KEY = "elevatorLocale";
@@ -42,14 +35,10 @@ const LOCALE_STORAGE_KEY = "elevatorLocale";
  */
 const RUNNING_GAME = "/#level=4,timescale=8";
 
-/** The level both of those addresses name, which a browser has to have earned. */
-const RUNNING_GAME_LEVEL = 4;
-
 test("puts the whole page into Russian without disturbing the run", async ({ page }) => {
   const pageErrors: string[] = [];
   page.on("pageerror", (error) => pageErrors.push(error.message));
 
-  await unlockLevel(page, RUNNING_GAME_LEVEL);
   await page.goto(RUNNING_GAME);
   await expect(page.getByRole("button", { name: "Level 4" })).toBeVisible();
   await startButton(page).click();
@@ -115,7 +104,6 @@ test("writes the figures the way a reader of the new language writes them", asyn
   // The labels beside these are shell and are replaced wholesale; the figures
   // are formatted by `Intl` and are only written when the world says they
   // changed, so they are the half that a language change can quietly miss.
-  await unlockLevel(page, RUNNING_GAME_LEVEL);
   await page.goto(RUNNING_GAME);
   await startButton(page).click();
   await expect.poll(async () => statisticValue(page, "Elapsed time")).toBeGreaterThan(3);
@@ -132,7 +120,6 @@ test("writes the figures the way a reader of the new language writes them", asyn
 test("remembers the language for the next visit, and only when it was chosen", async ({ page }) => {
   // Start-up writes nothing: a language found in the browser's own preferences
   // or in somebody else's link is not a choice made here. This is.
-  await unlockLevel(page, RUNNING_GAME_LEVEL);
   await page.goto("/#level=4");
   expect(await page.evaluate((key) => localStorage.getItem(key), LOCALE_STORAGE_KEY)).toBeNull();
 
@@ -155,7 +142,6 @@ test("is a keyboard-operable control inside the settings popover", async ({ page
   // `languagePicker` does: "the control can be reached at all" is the claim,
   // and forcing the popover open would answer it for the test rather than for
   // the page. The helper's own forcing afterwards is then a no-op.
-  await unlockLevel(page, RUNNING_GAME_LEVEL);
   await page.goto("/#level=4");
 
   await page.getByRole("button", { name: "Settings" }).click();

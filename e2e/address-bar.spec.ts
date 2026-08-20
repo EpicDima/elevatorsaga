@@ -10,7 +10,7 @@
 
 import { expect, test } from "@playwright/test";
 
-import { seedText, unlockLevel } from "./game-page.ts";
+import { seedText } from "./game-page.ts";
 
 test("takes a parameter the game refused out of the address bar", async ({ page }) => {
   // The URL said `seed=rush hour` while the game drew somebody else, because a
@@ -21,7 +21,6 @@ test("takes a parameter the game refused out of the address bar", async ({ page 
   // Earned first, because level 4 is one of the addresses a browser has to have
   // played its way to: without this the router would refuse the level as well,
   // and the test would be watching the wrong refusal.
-  await unlockLevel(page, 4);
 
   await page.goto("/#level=4,seed=rush hour");
 
@@ -41,21 +40,20 @@ test("empties a hash whose every parameter was refused", async ({ page }) => {
   expect(await page.evaluate(() => window.location.hash)).toBe("");
 });
 
-test("sends a level this browser has not earned back to the one it has", async ({ page }) => {
-  // The switcher has always drawn level 18 shut until 17 is cleared, and this
-  // address used to open it regardless, which made the progression an opinion
-  // the interface held rather than a rule of the game.
-  //
-  // The refusal cannot be a deletion the way `seed=rush hour` is above: a hash
-  // with no `level` in it means level 1, not the furthest one reached. So
-  // the key is rewritten to the level that opened instead, and the bar goes on
-  // naming the game on screen.
-  await unlockLevel(page, 4);
+test("opens a level this browser has never played, and leaves the url saying so", async ({
+  page,
+}) => {
+  // The last level, from a browser with nothing on record. There used to be a
+  // rule here -- a level was shut until the one before it had been cleared,
+  // and this address was answered with the furthest one reached, the key
+  // rewritten to say which. Nothing is shut now, so the address is kept
+  // exactly as it was given: the correction that used to fire here must not
+  // fire at all, which is a stronger claim than "it fires correctly".
 
   await page.goto("/#level=18,timescale=8");
 
-  await expect(page).toHaveURL(/#level=4,timescale=8$/);
-  await expect(page.getByRole("button", { name: "Level 4" })).toBeVisible();
+  await expect(page).toHaveURL(/#level=18,timescale=8$/);
+  await expect(page.getByRole("button", { name: "Level 18" })).toBeVisible();
 });
 
 test("does not leave the refused url behind the Back button", async ({ page }) => {
@@ -63,7 +61,6 @@ test("does not leave the refused url behind the Back button", async ({ page }) =
   // would push an entry, so Back would land on the URL that was just refused,
   // be corrected again, and never get past it -- a page the player cannot leave
   // backwards.
-  await unlockLevel(page, 2);
 
   await page.goto("/#level=2");
   await expect(page.getByRole("button", { name: "Level 2" })).toBeVisible();
@@ -83,7 +80,6 @@ test("opens a link written with the retired key, and re-spells it", async ({ pag
   // it names, in a real browser and not only against a stand-in; what the bar
   // says afterwards is the spelling the game writes now, so the next thing
   // copied out of it is current.
-  await unlockLevel(page, 4);
   // Somewhere for Back to lead, so the entry the legacy URL did or did not
   // leave behind is the only thing between here and there.
   await page.goto("/");

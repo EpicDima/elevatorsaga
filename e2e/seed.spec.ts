@@ -8,20 +8,15 @@
  * and that a real `<input>` commits on Enter. Those are the whole mechanism by
  * which a player chooses a run, and jsdom implements each of them
  * approximately.
+ *
+ * Every test below runs against `#level=4`: busy enough that a run goes
+ * somewhere, and not the default one, so that an address asserted here is one
+ * the router had to keep rather than one it would have produced anyway.
  */
 
 import { expect, test } from "@playwright/test";
 
-import { openSettingsMenu, speedValue, unlockLevel } from "./game-page.ts";
-
-/**
- * The level every test below runs the seed against: busy enough that a run
- * goes somewhere, and far enough along that a browser which has cleared
- * nothing cannot open it — hence the {@link unlockLevel} before each `goto`,
- * without which the router would answer with level 1 and every address
- * asserted here would be the wrong one.
- */
-const SEEDED_LEVEL = 4;
+import { openSettingsMenu, speedValue } from "./game-page.ts";
 
 /**
  * The seed block now lives in the app bar's settings popover
@@ -58,7 +53,6 @@ test("puts the run a player is looking at in the address bar, and replays it on 
   const pageErrors: string[] = [];
   page.on("pageerror", (error) => pageErrors.push(error.message));
 
-  await unlockLevel(page, SEEDED_LEVEL);
   await page.goto("/#level=4,timescale=8");
   await openSettingsMenu(page);
 
@@ -100,7 +94,6 @@ test("plays the seed a player types into the field", async ({ page }) => {
   // The gesture the row was rebuilt around, and the one jsdom cannot vouch for:
   // Enter in a text field outside any `<form>` is what commits the value, and
   // whether `change` fires there at all is the browser's business.
-  await unlockLevel(page, SEEDED_LEVEL);
   await page.goto("/#level=4,timescale=8");
   await openSettingsMenu(page);
 
@@ -116,7 +109,6 @@ test("plays the seed a player types into the field", async ({ page }) => {
 test("refuses a typed seed the address bar could not carry, and stays where it was", async ({
   page,
 }) => {
-  await unlockLevel(page, SEEDED_LEVEL);
   await page.goto("/#level=4,seed=issue-61");
   await openSettingsMenu(page);
 
@@ -137,7 +129,6 @@ test("draws a new seed from the dice and pins it in the address bar", async ({ p
   // this address without `seed=`, which was a fresh draw only while a seedless
   // address meant one; the seed is the player's own now, so the draw happens
   // here and the address follows it.
-  await unlockLevel(page, SEEDED_LEVEL);
   await page.goto("/#level=4,timescale=8,seed=issue-61");
   await openSettingsMenu(page);
   await expect(page.locator(SEED_VALUE)).toHaveValue("issue-61");
@@ -170,7 +161,6 @@ test("opens the caveat from the keyboard", async ({ page }) => {
   // width it promises to fit -- `reflow.spec.ts` holds that floor. The keyboard
   // path itself has nothing to do with viewport width, so it is still worth
   // its own test.
-  await unlockLevel(page, SEEDED_LEVEL);
   await page.goto("/#level=4");
   await openSettingsMenu(page);
 
@@ -222,7 +212,6 @@ test("opens the caveat from the keyboard", async ({ page }) => {
  * Un-`fixme`d and confirmed passing at both widths below.
  */
 test("does not move the caveat's own control when it is opened", async ({ page }) => {
-  await unlockLevel(page, SEEDED_LEVEL);
   await page.goto("/#level=4");
 
   for (const width of [1280, 1040]) {
@@ -290,7 +279,6 @@ test("keeps every word of the seed line readable", async ({ page }) => {
   // stylesheet, which check that the palette's pairs are legible but not which
   // elements ask for them: this failure was an element quietly asking for
   // neither.
-  await unlockLevel(page, SEEDED_LEVEL);
   await page.goto("/#level=4,seed=issue-61");
   await openSettingsMenu(page);
   await page.locator(HELP_SUMMARY).click();
@@ -365,7 +353,6 @@ test("keeps the player's own seed across a reload that names none", async ({ pag
   // now, and the way to a different one is the dice. `handleRoute`'s own comment
   // records the whole of the decision and why it was reversed rather than
   // worked around.
-  await unlockLevel(page, SEEDED_LEVEL);
   await page.goto("/#level=4");
   await openSettingsMenu(page);
   const first = await page.locator(SEED_VALUE).inputValue();
@@ -388,7 +375,6 @@ test("prints the seed and a whole URL to the console as a run starts", async ({ 
     }
   });
 
-  await unlockLevel(page, SEEDED_LEVEL);
   await page.goto("/#level=4,seed=issue-61");
 
   const seedLine = logs.find((line) => line.includes("issue-61"));
@@ -409,7 +395,6 @@ test("refuses a seed the address bar would have mangled", async ({ page }) => {
     }
   });
 
-  await unlockLevel(page, SEEDED_LEVEL);
   await page.goto("/#level=4,seed=rush hour");
   await openSettingsMenu(page);
 

@@ -9,28 +9,28 @@
  * Follows `run-controls.ts`'s template-plus-presenter shape, not
  * `app-bar.ts`'s injected-labels one: the row there redraws five buttons
  * that never change which five they are, where this one's tiles gain, lose
- * and swap `locked`/`current`/`cleared`/`tier` on every run that ends — so
+ * and swap `current`/`cleared`/`tier` on every run that ends — so
  * {@link presentLevelSwitcher}'s `update()` reruns `buildLevelMenu` and
  * every `t()` call in it, the same as a language change would need anyway.
  *
- * The tile grid is rebuilt from scratch on every `update()`, unlike
- * `run-controls.ts`'s five buttons, which are only ever relabelled. A
- * level tile is a real, non-navigable `<button disabled>` while locked
- * and a real `<a href>` once it opens — two different elements, not one
- * patched in place, for the reason `level-menu.ts`'s module comment gives
- * for building `href` at all: an `<a>` has no true disabled state, so a
- * locked tile that stayed an anchor would need to fake one. Rebuilding
- * matches `design/ui-mockup.html`'s own `taskBlocks.innerHTML = ...`, the
- * one place this port keeps the mockup's approach rather than
- * `run-controls.ts`'s patch-in-place — a fixed set of tiles that only ever
- * change tag as well as content is the case that pattern does not cover.
+ * Every tile is a real `<a href>`, because every level is open: the numbered
+ * ones used to stay shut until the level before them was cleared, drawn as a
+ * `<button disabled>` since an `<a>` has no true disabled state to fake. That
+ * rule is gone, and one tag now covers every tile in every block.
+ *
+ * The grid is still rebuilt from scratch on every `update()`, unlike
+ * `run-controls.ts`'s five buttons, which are only ever relabelled — matching
+ * `design/ui-mockup.html`'s own `taskBlocks.innerHTML = ...`. A tile's
+ * `href`, name, tier and current-ness all move together, and the set itself
+ * grows when a block does, so rebuilding stays the honest read even now that
+ * the tag never changes under it.
  *
  * Mounted live from `src/pages/game/index.ts` since Phase 12.2. A tile's
  * tier is carried both as a bare `data-tier` attribute on the tile itself,
  * for whatever styling a later CSS pass gives the tile as a whole, and as
  * `entities/level-tier`'s own
  * {@link tierBadgeMarkup} badge, for the stars a player actually reads —
- * every open level tile gets one, dim stars included at zero earned,
+ * every level tile gets one, dim stars included at zero earned,
  * matching `design/ui-mockup.html`'s `renderLevelMenu`.
  */
 
@@ -128,27 +128,23 @@ function currentTile(blocks: readonly LevelMenuBlock[]): LevelMenuTile | undefin
 }
 
 /**
- * Whether a tile can be stepped to — every tile but a locked level.
- *
- * @param tile - Tile to test.
- * @returns Whether {@link stepHref} may return it.
- */
-function isOpenTile(tile: LevelMenuTile): boolean {
-  return tile.kind !== "level" || !tile.locked;
-}
-
-/**
- * Where a step button goes: the nearest open tile in the current tile's own
- * block, stepping outward from it.
+ * Where a step button goes: the neighbouring tile in the current tile's own
+ * block.
  *
  * Scoped to one block on purpose — stepping from the last tutorial level
  * straight into level one would cross two different kinds of level in
  * one press, which is not what either step button's arrow promises.
  *
+ * The walk is a loop rather than a single index because it used to skip
+ * locked tiles. Nothing is skipped now, so it stops on the first tile it
+ * reaches; kept as a loop because the bounds check it already does is what
+ * answers the end of a block, and an index arithmetic rewrite would have to
+ * restate it.
+ *
  * @param blocks - The menu to step within.
  * @param step - `-1` for the previous tile, `1` for the next.
  * @returns The neighbour's `href`, or `undefined` if there is none — nothing
- * is current, or every tile that way is locked.
+ * is current, or the current tile is its block's first or last.
  */
 function stepHref(blocks: readonly LevelMenuBlock[], step: -1 | 1): string | undefined {
   const block = blocks.find((candidate) => candidate.tiles.some((tile) => tile.current));
@@ -158,7 +154,7 @@ function stepHref(blocks: readonly LevelMenuBlock[], step: -1 | 1): string | und
   const from = block.tiles.findIndex((tile) => tile.current);
   for (let index = from + step; index >= 0 && index < block.tiles.length; index += step) {
     const tile = block.tiles[index];
-    if (tile !== undefined && isOpenTile(tile)) {
+    if (tile !== undefined) {
       return tile.href;
     }
   }
@@ -190,8 +186,8 @@ function tileText(tile: LevelMenuTile): string {
 
 /**
  * The name assistive technology reads for a tile — what {@link tileText}
- * shows plus whatever it left out: which level this is, whether it is
- * cleared, whether it is locked and why.
+ * shows plus whatever it left out: which level this is, and whether it is
+ * cleared.
  *
  * @param tile - Tile to name.
  * @returns Its accessible name.
@@ -204,9 +200,6 @@ function tileAccessibleName(tile: LevelMenuTile): string {
         : t("game.levelSwitcher.tutorialTileLabel", { number: tile.number });
     }
     case "level": {
-      if (tile.locked) {
-        return t("game.levelSwitcher.levelTileLockedLabel", { number: tile.number });
-      }
       return t("game.level.nav.link", { number: tile.number });
     }
     case "sandbox": {
@@ -220,8 +213,8 @@ function tileAccessibleName(tile: LevelMenuTile): string {
  * called, and nothing else.
  *
  * Deliberately not {@link tileAccessibleName}, which the trigger used to
- * borrow. That name is written for a tile in a grid, where ", completed" and
- * ", locked" are the tile's whole point, and the trigger is 118px wide —
+ * borrow. That name is written for a tile in a grid, where ", completed" is
+ * the tile's whole point, and the trigger is 118px wide —
  * `design/ui-mockup.html` sizes `.task-open` for the longest thing it ever
  * puts there, and every world in that file is named `Уровень {n}` with no
  * state on the end. Borrowed onto the trigger those names overflow: measured
@@ -233,8 +226,8 @@ function tileAccessibleName(tile: LevelMenuTile): string {
  * the mockup's, the row it sits in is already tight at 1040px, and a control
  * that resizes as you step through levels is its own kind of wrong. What was
  * borrowed was the wrong string, so this is the right one — the tile in the
- * menu still says whether it is cleared or locked, which is where a player
- * looks for that.
+ * menu still says whether it is cleared, which is where a player looks for
+ * that.
  *
  * @param tile - The current tile.
  * @returns Its plain name.
@@ -254,20 +247,12 @@ function tileTriggerName(tile: LevelMenuTile): string {
 }
 
 /**
- * The tile markup: a real `<a href>` once a tile is open, a real,
- * non-navigable `<button disabled>` while a level tile is locked — see
- * this module's own comment for why a locked tile is never an anchor.
+ * The tile markup: a real `<a href>`, always — see this module's own comment
+ * for why there is no second tag any more.
  *
- * `aria-current` is written either way, on the disabled button as much as on
- * the anchor. A direct link used to be able to select a locked level as
- * `current`, and cannot any more: `src/pages/game/model/route.ts` asks the
- * same question of an address that this widget asks of a tile, and answers a
- * level nobody has unlocked with the furthest one they have. But
- * {@link "../model/level-menu.ts"!LevelMenuInput}'s `selection` still names
- * whatever is actually being played, whoever chose it and by whatever route,
- * and the promise that it is never a locked level is the router's rather than
- * this widget's — so the mark goes on the tile that is current, and a state
- * this module cannot rule out is a state it can still draw.
+ * `aria-current` marks whichever tile
+ * {@link "../model/level-menu.ts"!LevelMenuInput}'s `selection` names, whoever
+ * chose it and by whatever route.
  *
  * @param tile - Tile to draw.
  * @returns The tile's markup.
@@ -276,10 +261,6 @@ function tileTemplate(tile: LevelMenuTile): string {
   const text = tileText(tile);
   const name = tileAccessibleName(tile);
   const current = tile.current ? raw(' aria-current="page"') : raw("");
-  if (tile.kind === "level" && tile.locked) {
-    const lockedClasses = tile.current ? "tasklink is-locked is-current" : "tasklink is-locked";
-    return markup`<button type="button" class="${lockedClasses}" aria-label="${name}"${current} disabled>${text}</button>`;
-  }
   const done =
     (tile.kind === "level" && tile.tier !== undefined) ||
     (tile.kind === "tutorial" && tile.cleared);

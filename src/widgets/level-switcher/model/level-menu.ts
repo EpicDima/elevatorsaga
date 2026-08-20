@@ -3,16 +3,19 @@
  *
  * A pure data-shaping step, deliberately without any DOM or player-facing
  * text: it composes {@link "#entities/level/index.ts"!listLevels}'s
- * ordering, {@link "#entities/level-tier/index.ts"} 's best-tier record
- * and {@link "#features/switch-level/index.ts"!lockLevelTiles}'s locking
- * rule for the "Уровни" block; {@link "#game/tutorial.ts"!tutorialLevels} and
- * the caller's cleared-level record for the "Обучение" block, which stays
- * unlocked on purpose — see
- * {@link "#entities/tutorial-level/model/progress.ts"}'s own documented "the
- * track locks nothing" rule; and a single always-open tile for free play.
- * Every string a player reads — labels, tooltips, accessible names — is
- * built later, in this widget's own `ui/` layer, the same division
- * `listLevels` and `lockLevelTiles` already keep.
+ * ordering and {@link "#entities/level-tier/index.ts"} 's best-tier record
+ * for the "Уровни" block; {@link "#game/tutorial.ts"!tutorialLevels} and
+ * the caller's cleared-level record for the "Обучение" block; and a single
+ * tile for free play. Every string a player reads — labels, tooltips,
+ * accessible names — is built later, in this widget's own `ui/` layer, the
+ * same division `listLevels` already keeps.
+ *
+ * Every tile here is open. Nothing in this menu is ever refused, in any
+ * block: the numbered levels used to shut until the one before them was
+ * cleared, and that rule is gone — the learning track's own documented "the
+ * track locks nothing" (see
+ * {@link "#entities/tutorial-level/model/progress.ts"}) is now the whole
+ * game's rule. A best tier is still read, but only to draw a badge.
  *
  * Building a real URL is not this module's job either: even now that
  * `createParamsUrl` is reachable — it lives in `src/shared/lib/route-query.ts`,
@@ -25,7 +28,6 @@
 
 import { listLevels, type Level } from "#entities/level/index.ts";
 import type { LevelTier } from "#entities/level-tier/index.ts";
-import { lockLevelTiles } from "#features/switch-level/index.ts";
 import type { TutorialLevel } from "#game/tutorial.ts";
 
 /** What is being played right now, if any tile in this menu names it. */
@@ -51,7 +53,6 @@ export interface NumberedMenuTile {
   readonly kind: "level";
   readonly index: number;
   readonly number: number;
-  readonly locked: boolean;
   readonly current: boolean;
   /** This browser's best-recorded tier, or `undefined` if never cleared. */
   readonly tier: LevelTier | undefined;
@@ -123,17 +124,15 @@ function buildTutorialBlock(input: LevelMenuInput): LevelMenuBlock {
 }
 
 function buildLevelBlock(input: LevelMenuInput): LevelMenuBlock {
-  const lockedTiles = lockLevelTiles(listLevels(input.levels), input.bestTiers);
   return {
     id: "levels",
-    tiles: lockedTiles.map((tile) => ({
+    tiles: listLevels(input.levels).map((summary) => ({
       kind: "level",
-      index: tile.index,
-      number: tile.number,
-      locked: tile.locked,
-      current: input.selection.kind === "level" && input.selection.index === tile.index,
-      tier: input.bestTiers.get(tile.index),
-      href: input.buildHref({ kind: "level", number: tile.number }),
+      index: summary.index,
+      number: summary.number,
+      current: input.selection.kind === "level" && input.selection.index === summary.index,
+      tier: input.bestTiers.get(summary.index),
+      href: input.buildHref({ kind: "level", number: summary.number }),
     })),
   };
 }
@@ -157,8 +156,8 @@ function buildOtherBlock(input: LevelMenuInput): LevelMenuBlock {
  * else — which today is free play, and only free play.
  *
  * Three fixed calls rather than a config-driven loop over a block list: the
- * blocks differ in what they are built from and how a tile of each is
- * locked, so a registry here would need a case per block anyway. Adding a
+ * blocks differ in what they are built from and in what a tile of each
+ * carries, so a registry here would need a case per block anyway. Adding a
  * fourth block later is one more function and one more line in the returned
  * array, not a redesign.
  *

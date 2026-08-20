@@ -170,7 +170,7 @@ describe("presentLevelSwitcher", () => {
     expect(otherBlock?.querySelector(".tasklink")?.textContent).toBe("Sandbox");
   });
 
-  it("renders an open level tile as a real link and a locked one as a disabled button", () => {
+  it("renders every level tile as a real link, whatever is on record", () => {
     const { parent, options } = setUp({
       levels: fixtureLevels(5),
       selection: { kind: "level", index: 0 },
@@ -179,19 +179,21 @@ describe("presentLevelSwitcher", () => {
     const [, levelBlock] = parent.querySelectorAll(".taskblock");
     const tiles = [...(levelBlock?.querySelectorAll(".tasklink") ?? [])];
 
-    expect(tiles.map((tile) => tile.tagName)).toEqual([
-      "A",
-      "BUTTON",
-      "BUTTON",
-      "BUTTON",
-      "BUTTON",
+    // Nothing on record, and still five anchors: the row is a table of
+    // contents, not a gate. A `<button disabled>` here would be a regression
+    // back to progression locking.
+    expect(tiles.map((tile) => tile.tagName)).toEqual(["A", "A", "A", "A", "A"]);
+    expect(tiles.map((tile) => tile.getAttribute("href"))).toEqual([
+      "#level=1",
+      "#level=2",
+      "#level=3",
+      "#level=4",
+      "#level=5",
     ]);
-    expect(tiles[1]?.hasAttribute("disabled")).toBe(true);
-    expect(tiles[1]?.getAttribute("href")).toBeNull();
-    expect(tiles[0]?.getAttribute("href")).toBe("#level=1");
+    expect(tiles.some((tile) => tile.hasAttribute("disabled"))).toBe(false);
   });
 
-  it("badges every open level tile with its tier stars", () => {
+  it("badges every level tile with its tier stars", () => {
     const { parent, options } = setUp({
       levels: fixtureLevels(5),
       bestTiers: new Map<number, LevelTier>([[0, "silver"]]),
@@ -201,26 +203,18 @@ describe("presentLevelSwitcher", () => {
     const [, levelBlock] = parent.querySelectorAll(".taskblock");
     const tiles = [...(levelBlock?.querySelectorAll(".tasklink") ?? [])];
 
-    const litCounts = tiles
-      .slice(0, 2)
-      .map((tile) => tile.querySelectorAll(".stars .is-on").length);
-    expect(litCounts).toEqual([2, 0]);
-    // Tiles 2-4 are locked (nothing on record before them) and must carry no
-    // badge at all, not merely an unlit one — a dim badge would still read 0
-    // lit above and let a regression through unnoticed.
-    expect(tiles[2]?.querySelector(".stars")).toBeNull();
-    expect(tiles[3]?.querySelector(".stars")).toBeNull();
-    expect(tiles[4]?.querySelector(".stars")).toBeNull();
+    // A badge on every tile, lit only where a tier is on record: the stars are
+    // what the row says instead of a lock, so an unplayed level shows three
+    // dim ones rather than nothing at all.
+    expect(tiles.map((tile) => tile.querySelectorAll(".stars").length)).toEqual([1, 1, 1, 1, 1]);
+    expect(tiles.map((tile) => tile.querySelectorAll(".stars .is-on").length)).toEqual([
+      2, 0, 0, 0, 0,
+    ]);
   });
 
   it("marks the current tile with aria-current and writes its name into the trigger", () => {
     const { parent, options } = setUp({
       levels: fixtureLevels(4),
-      // Unlocks tile index 1, so this exercises an ordinary open-and-current
-      // tile rather than the locked-and-current edge case (which has its own
-      // dedicated coverage in "marks a locked-and-current tile as current
-      // too" below).
-      bestTiers: new Map<number, LevelTier>([[0, "bronze"]]),
       selection: { kind: "level", index: 1 },
     });
     presentLevelSwitcher(parent, options);
@@ -229,31 +223,6 @@ describe("presentLevelSwitcher", () => {
 
     expect(tiles[1]?.getAttribute("aria-current")).toBe("page");
     expect(tiles[1]?.classList.contains("is-current")).toBe(true);
-    expect(requireElement(".task-name", parent).textContent).toBe("Level 2");
-  });
-
-  it("marks a locked-and-current tile as current too, on its disabled button", () => {
-    // Empty bestTiers locks every level past the first (see
-    // features/switch-level's lockLevelTiles), so tile index 1 here is
-    // both locked and, per selection below, the one actually being played —
-    // reachable via a direct link to a level never unlocked through the
-    // switcher itself.
-    const { parent, options } = setUp({
-      levels: fixtureLevels(4),
-      selection: { kind: "level", index: 1 },
-    });
-    presentLevelSwitcher(parent, options);
-    const [, levelBlock] = parent.querySelectorAll(".taskblock");
-    const tiles = [...(levelBlock?.querySelectorAll(".tasklink") ?? [])];
-
-    expect(tiles[1]?.tagName).toBe("BUTTON");
-    expect(tiles[1]?.hasAttribute("disabled")).toBe(true);
-    expect(tiles[1]?.getAttribute("aria-current")).toBe("page");
-    expect(tiles[1]?.classList.contains("is-locked")).toBe(true);
-    expect(tiles[1]?.classList.contains("is-current")).toBe(true);
-    // The tile says locked; the trigger says which level. It used to say both,
-    // in 118px that fits neither -- see `tileTriggerName`.
-    expect(tiles[1]?.getAttribute("aria-label")).toBe("Level 2, locked");
     expect(requireElement(".task-name", parent).textContent).toBe("Level 2");
   });
 
@@ -320,17 +289,9 @@ describe("presentLevelSwitcher", () => {
     expect(taskMenu.hidden).toBe(true);
   });
 
-  it("disables the previous button on a block's first open tile and the next button on its last", () => {
-    // Every tile of the block open, so what each button reports is where the
-    // selection sits and not what is locked past it.
-    const cleared = new Map<number, LevelTier>([
-      [0, "bronze"],
-      [1, "bronze"],
-    ]);
-
+  it("disables the previous button on a block's first tile and the next button on its last", () => {
     const first = setUp({
       levels: fixtureLevels(3),
-      bestTiers: cleared,
       selection: { kind: "level", index: 0 },
     });
     presentLevelSwitcher(first.parent, first.options);
@@ -340,7 +301,6 @@ describe("presentLevelSwitcher", () => {
 
     const last = setUp({
       levels: fixtureLevels(3),
-      bestTiers: cleared,
       selection: { kind: "level", index: 2 },
     });
     presentLevelSwitcher(last.parent, last.options);
@@ -349,13 +309,9 @@ describe("presentLevelSwitcher", () => {
     expect(requireElement(".task-next", last.parent).hasAttribute("disabled")).toBe(true);
   });
 
-  it("steps next to the nearest open tile, skipping locked levels, and navigates on click", () => {
+  it("steps next to the adjacent tile and navigates on click", () => {
     const { parent, options } = setUp({
       levels: fixtureLevels(5),
-      // Level 5 (index 4) is open because the one before it is on record;
-      // 2 through 4 are not, since nothing before any of them is. So the only
-      // place "next" can go from level 1 is past all three of them.
-      bestTiers: new Map<number, LevelTier>([[3, "bronze"]]),
       selection: { kind: "level", index: 0 },
     });
     presentLevelSwitcher(parent, options);
@@ -364,7 +320,9 @@ describe("presentLevelSwitcher", () => {
     expect(taskNext.hasAttribute("disabled")).toBe(false);
     taskNext.click();
 
-    expect(parent.ownerDocument.defaultView?.location.hash).toBe("#level=5");
+    // The very next one, with nothing on record: stepping walks the block in
+    // order rather than hunting for the next reachable tile.
+    expect(parent.ownerDocument.defaultView?.location.hash).toBe("#level=2");
   });
 
   it("scopes stepping to the current tile's own block", () => {
@@ -380,6 +338,25 @@ describe("presentLevelSwitcher", () => {
     expect(taskNext.hasAttribute("disabled")).toBe(true);
   });
 
+  it("names nothing and steps nowhere when the selection is outside the menu", () => {
+    // `buildLevelMenu`'s own documented case: a selection that matches no tile
+    // at all, which is what the router hands over for the moment between one
+    // level being torn down and the next being built. Every question the
+    // widget asks about "the current tile" has to answer "there isn't one"
+    // rather than pick the first tile or throw -- an empty trigger and two
+    // dead arrows, not a switcher that has quietly moved the player.
+    const { parent, options } = setUp({
+      levels: fixtureLevels(4),
+      selection: { kind: "level", index: 99 },
+    });
+    presentLevelSwitcher(parent, options);
+
+    expect(requireElement(".task-name", parent).textContent).toBe("");
+    expect(parent.querySelector(".tasklink[aria-current]")).toBeNull();
+    expect(requireElement(".task-prev", parent).hasAttribute("disabled")).toBe(true);
+    expect(requireElement(".task-next", parent).hasAttribute("disabled")).toBe(true);
+  });
+
   describe("focus", () => {
     // The same problem, and the same fix, as `presentLevel`'s own
     // navigation row in what was `src/ui/presenters.ts` — see
@@ -389,7 +366,7 @@ describe("presentLevelSwitcher", () => {
     it("keeps focus on the tile at the same position when the grid is rebuilt", () => {
       const { parent, options } = setUp();
       const presenter = presentLevelSwitcher(parent, options);
-      const target = requireElement(".tasklink:not([disabled])", parent);
+      const target = requireElement(".tasklink", parent);
       target.focus();
       const focusedIndex = queryAll(".tasklink", parent).indexOf(target);
 

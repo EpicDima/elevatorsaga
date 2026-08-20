@@ -3,7 +3,7 @@
  *
  * The editor is what the page is for, and it is behind everything the building
  * contains: the scroll container, and a button for every call and every floor.
- * On the eighteenth level that is 255 tab stops past the link, 208 of them
+ * On the eighteenth level that is 256 tab stops past the link, 208 of them
  * buttons. The count is measured here rather than asserted from the markup
  * because most of those stops are drawn by the presenters at run time and do
  * not exist in `index.html` at all.
@@ -11,16 +11,12 @@
 
 import { expect, test } from "@playwright/test";
 
-import { editor, unlockLevel } from "./game-page.ts";
+import { editor } from "./game-page.ts";
 
 /** The busiest level: 8 elevators, 21 floors, and a call button per direction. */
 const BUSIEST = "#level=18";
 
-/** Which level {@link BUSIEST} names, for the browser that has to have earned it. */
-const BUSIEST_NUMBER = 18;
-
 test("reaches the editor in one tab stop, from the busiest level", async ({ page }) => {
-  await unlockLevel(page, BUSIEST_NUMBER);
   await page.goto(`/${BUSIEST}`);
   await expect(editor(page)).toBeVisible();
 
@@ -42,7 +38,6 @@ test("reaches the editor in one tab stop, from the busiest level", async ({ page
 });
 
 test("saves a walk through the whole building", async ({ page }) => {
-  await unlockLevel(page, BUSIEST_NUMBER);
   await page.goto(`/${BUSIEST}`);
   await expect(editor(page)).toBeVisible();
 
@@ -61,9 +56,9 @@ test("saves a walk through the whole building", async ({ page }) => {
 
   // Exact, because a range records nothing: this file's own header once
   // claimed 208 while the walk was 240, and bounds of 100 and 400 had nothing
-  // to say about it. 208 of the 255 are buttons -- eight cars of 21 floors,
+  // to say about it. 208 of the 256 are buttons -- eight cars of 21 floors,
   // plus a call each way at every floor except the roof, which has no way up,
-  // and the lobby, which has no way down -- and the other 47 are the rest of
+  // and the lobby, which has no way down -- and the other 48 are the rest of
   // the chrome above the building, the building's own scroll container, each
   // floor's own row and each car's own container, the statistics panel's
   // summary and the splitter below the building, and the code slot switcher.
@@ -109,14 +104,12 @@ test("saves a walk through the whole building", async ({ page }) => {
   // could light but never mean anything. Two per building, whatever its
   // height, which is why this fell by exactly two and not by two per floor.
   //
-  // And to 255 once the perpetual demo left the level list -- not because its
-  // tile was a stop, since the switcher's popover is `hidden` while closed and
-  // no tile in it is ever reached by tabbing, but because of what that tile
-  // did to the "Next level" arrow. The demo sat last in the level block
-  // and was the one tile there that never locked, so from any level at all
-  // there was somewhere forward to step to and the arrow was enabled. The
-  // eighteenth is now second-to-last with the nineteenth locked behind it,
-  // nothing further on is open, and `presentLevelSwitcher` disables an arrow
-  // with nowhere to go -- which takes it out of the tab order.
-  expect(stops).toBe(255);
+  // It dipped to 255 while a level was shut until the one before it had been
+  // cleared: this spec played a browser that had earned its way to the
+  // eighteenth and no further, so the nineteenth was locked, "Next level" had
+  // nowhere to go, and `presentLevelSwitcher` disables an arrow with nowhere
+  // to go -- which takes it out of the tab order. Back to 256 now that no tile
+  // is ever shut: the eighteenth is second-to-last, the nineteenth is a link
+  // like every other, and the arrow is a stop again.
+  expect(stops).toBe(256);
 });

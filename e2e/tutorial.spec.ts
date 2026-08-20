@@ -16,7 +16,7 @@
 import { expect, test } from "@playwright/test";
 import type { Locator, Page } from "@playwright/test";
 
-import { editor, languagePicker, startButton, storedCode, unlockLevel } from "./game-page.ts";
+import { editor, languagePicker, startButton, storedCode } from "./game-page.ts";
 
 /**
  * Where level 1 lives.
@@ -121,8 +121,8 @@ test("opens the track from the level switcher, in the language on screen", async
   // the hash and the router are all outside jsdom, and a tile behind a menu
   // that will not open leaves the track exactly as undiscoverable as no tile
   // at all.
-  // `exact`, because the menu this opens holds a locked tile for every other
-  // level and "Level 1" is a prefix of "Level 10, locked" and nine more.
+  // `exact`, because the menu this opens holds a tile for every other level
+  // and "Level 1" is a prefix of "Level 10" and nine more.
   const opener = page.getByRole("button", { name: "Level 1", exact: true });
   await expect(opener).toHaveAttribute("aria-expanded", "false");
   await opener.click();
@@ -430,11 +430,6 @@ test("costs the levels nothing: the widest building in the game still fits its p
   //
   // Measured at both widths, because the pane is what the ceiling is a
   // percentage of and the splitter can change it without the window moving.
-  //
-  // Unlocked first: the widest house is the last level, so a browser that has
-  // cleared nothing is sent back to the first one and this would be measuring
-  // a two-shaft building.
-  await unlockLevel(page, 18);
 
   for (const [width, height] of [
     [1280, 900],

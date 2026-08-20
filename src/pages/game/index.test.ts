@@ -38,10 +38,8 @@ import {
   setDemoFullscreen,
 } from "./index.ts";
 import type { AppElements, ControlsPresenterOptions } from "./index.ts";
-import { readBestLevelTiers, recordLevelTier } from "#entities/level-tier/index.ts";
 import { DEFAULT_TIME_SCALE } from "#features/adjust-speed/model/time-scale.ts";
 import { DEFAULT_CODE_SLOT } from "#features/manage-code-slots/model/code-slots.ts";
-import { isLevelLocked } from "#features/switch-level/index.ts";
 import { resolveRoute, startRouter } from "#pages/game/model/route.ts";
 import { queryAll, requireElement } from "#shared/lib/dom.ts";
 import { parseQuery } from "#shared/lib/route-query.ts";
@@ -186,34 +184,6 @@ function setUp(
   });
   appRef = app;
   return { app, elements, editor, editorPane, editorPaneMount, view, worldController, storage };
-}
-
-/**
- * Unlocks level 2 in the level switcher, by recording the bronze tier
- * level 1 would earn if it could be won — see
- * `#features/switch-level/model/level-lock.ts`'s locking rule. `LEVELS[0]`
- * never resolves (`evaluate` always returns `null`), so this is the only way
- * a spec against this fixture reaches level 2 through a real `<a>` rather
- * than the `<button disabled>` a locked tile draws.
- *
- * @param storage - The store the app under test was built over.
- */
-function unlockLevel2(storage: Storage): void {
-  recordLevelTier(storage, 0, "bronze");
-}
-
-/**
- * Unlocks every tile of the level block, the same way — for a spec that
- * needs a real `<a>` on the last one as well, which was itself the case until
- * the endless demo came off the end of the level list: the demo was never
- * locked, so a fixture's last tile used to be an anchor for free.
- *
- * @param storage - The store the app under test was built over.
- */
-function unlockEveryLevel(storage: Storage): void {
-  for (let index = 0; index < LEVELS.length - 1; index += 1) {
-    recordLevelTier(storage, index, "bronze");
-  }
 }
 
 /**
@@ -775,18 +745,16 @@ function reachInstantSpeed(elements: AppElements): void {
 
 describe("App level navigation", () => {
   it("puts a tile for every level in the switcher, marking the one being played", () => {
-    const { app, elements, storage } = setUp();
-    unlockLevel2(storage);
+    const { app, elements } = setUp();
     app.handleRoute(...routeFor("#level=2"));
 
     const entries = levelTiles(elements);
     expect(entries.map((entry) => entry.getAttribute("aria-label"))).toEqual([
       "Level 1",
       "Level 2",
-      // Nothing on record for level 2 yet, so the third tile is still
-      // shut -- and says so, rather than reading like a level that is merely
-      // unvisited.
-      "Level 3, locked",
+      // Nothing on record for any of them, and the third tile still names its
+      // level plainly: a tile carries which level it is, and nothing else.
+      "Level 3",
     ]);
     expect(entries.map((entry) => entry.getAttribute("aria-current"))).toEqual([
       null,
@@ -800,8 +768,7 @@ describe("App level navigation", () => {
     // location hash, so taking a jump throws away the speed and everything else
     // the player arrived with. Every entry is built from the current
     // parameters instead.
-    const { app, elements, storage } = setUp();
-    unlockEveryLevel(storage);
+    const { app, elements } = setUp();
     app.handleRoute(...routeFor("#level=1,timescale=8,fullscreen=true"));
 
     expect(levelTiles(elements).map((entry) => entry.getAttribute("href"))).toEqual([
@@ -814,8 +781,7 @@ describe("App level navigation", () => {
   it("carries an unknown parameter across a jump as well", () => {
     // parseQuery keeps keys it does not understand, and createParamsUrl round
     // trips them, so a link someone hand-wrote survives being navigated from.
-    const { app, elements, storage } = setUp();
-    unlockLevel2(storage);
+    const { app, elements } = setUp();
     app.handleRoute(...routeFor("#level=1,fullscreen,somethingelse=7"));
 
     expect(
@@ -826,8 +792,7 @@ describe("App level navigation", () => {
   it("starts the level a link names when it is clicked", async () => {
     // The whole way round: the anchor navigates, the router hears the hash
     // change and the app starts the level it names.
-    const { app, elements, storage } = setUp();
-    unlockLevel2(storage);
+    const { app, elements } = setUp();
     window.location.hash = "#level=1,timescale=8";
     const stopRouter = startRouter(
       (params, query) => {
@@ -836,12 +801,6 @@ describe("App level navigation", () => {
       {
         levelCount: LEVELS.length,
         defaultTimeScale: () => DEFAULT_TIME_SCALE,
-        // Wired exactly as `src/main.ts` wires it, over the same store the app
-        // was built on: the tile being clicked is only an `<a>` at all because
-        // `unlockLevel2` put a tier on record, and the router has to reach
-        // the same conclusion from the same record or the click would land on
-        // level 1.
-        isLevelLocked: (index) => isLevelLocked(index, readBestLevelTiers(storage)),
       },
     );
 
@@ -939,8 +898,7 @@ describe("App sandbox", () => {
     // Deliberate: `level` is the one key the row rewrites, so following an
     // entry leaves the sandbox by construction, while the building the player
     // configured stays in the hash, inert, and is still there on the way back.
-    const { app, elements, storage } = setUp();
-    unlockLevel2(storage);
+    const { app, elements } = setUp();
     app.handleRoute(...routeFor("#level=sandbox,floors=20,timescale=8"));
 
     expect(
@@ -1248,7 +1206,7 @@ describe("App learning track", () => {
 
     // Three, because this is the track's third level -- the number is what this
     // test is about. The wording is `tileTriggerName`'s: the trigger names the
-    // level and leaves "completed" and "locked" to the tile in the menu.
+    // level and leaves "completed" to the tile in the menu.
     expect(taskName(elements)).toBe("Lesson 3");
   });
 
@@ -1263,8 +1221,7 @@ describe("App learning track", () => {
   });
 
   it("leaves every level reachable from a level, and marks none of them current", () => {
-    const { app, elements, storage } = setUp();
-    unlockLevel2(storage);
+    const { app, elements } = setUp();
     app.handleRoute(...routeFor("#level=tutorial-4,timescale=8"));
 
     const entries = levelTiles(elements);
@@ -1935,8 +1892,7 @@ describe("App seed", () => {
     // out of a pinned run either: none names the sandbox, and pressing the
     // level already being played is not a move anybody would find. That is
     // the seed line's "new draw", below.
-    const { app, elements, storage } = setUp();
-    unlockLevel2(storage);
+    const { app, elements } = setUp();
     app.handleRoute(...routeFor("#level=1,timescale=8,seed=issue-61"));
 
     expect(
@@ -2159,8 +2115,7 @@ describe("App focus", () => {
     // player's feet, exactly as the next-level link does. They stay where
     // they were: on the entry that replaced the one they pressed, which is now
     // the current level.
-    const { app, elements, storage } = setUp();
-    unlockLevel2(storage);
+    const { app, elements } = setUp();
     app.handleRoute(...routeFor("#level=1"));
     requireElement('[aria-label="Level 2"]', elements.levelSwitcher).focus();
 
@@ -2377,12 +2332,6 @@ function routeFor(hash: string): Parameters<App["handleRoute"]> {
     resolveRoute(query, {
       levelCount: 3,
       defaultTimeScale: DEFAULT_TIME_SCALE,
-      // Nothing is locked here on purpose. Whether a level may be opened is
-      // the router's question, answered against a browser's own record and
-      // proved in `model/route.test.ts`; `handleRoute` is handed a level
-      // that has already passed it, and a spec about what the app does with
-      // level 3 should not have to earn its way there first.
-      isLevelLocked: () => false,
     }),
     query,
   ];
