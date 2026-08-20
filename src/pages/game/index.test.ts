@@ -181,6 +181,20 @@ function unlockChallenge2(storage: Storage): void {
 }
 
 /**
+ * Unlocks every tile of the challenge block, the same way — for a spec that
+ * needs a real `<a>` on the last one as well, which was itself the case until
+ * the endless demo came off the end of the challenge list: the demo was never
+ * locked, so a fixture's last tile used to be an anchor for free.
+ *
+ * @param storage - The store the app under test was built over.
+ */
+function unlockEveryChallenge(storage: Storage): void {
+  for (let index = 0; index < CHALLENGES.length - 1; index += 1) {
+    recordChallengeTier(storage, index, "bronze");
+  }
+}
+
+/**
  * The level switcher's challenge tiles, in playing order — the same three
  * entries `.challengelink` used to be the whole of, before the switcher also
  * started drawing the learning track and the sandbox as `.tasklink`s in
@@ -663,9 +677,10 @@ describe("App challenge navigation", () => {
     expect(entries.map((entry) => entry.getAttribute("aria-label"))).toEqual([
       "Level 1",
       "Level 2",
-      // The last challenge is the endless demo, which is labelled rather than
-      // numbered; here that is the third of the test list.
-      "Demo",
+      // Nothing on record for challenge 2 yet, so the third tile is still
+      // shut -- and says so, rather than reading like a level that is merely
+      // unvisited.
+      "Level 3, locked",
     ]);
     expect(entries.map((entry) => entry.getAttribute("aria-current"))).toEqual([
       null,
@@ -680,7 +695,7 @@ describe("App challenge navigation", () => {
     // the player arrived with. Every entry is built from the current
     // parameters instead.
     const { app, elements, storage } = setUp();
-    unlockChallenge2(storage);
+    unlockEveryChallenge(storage);
     app.handleRoute(...routeFor("#challenge=1,timescale=8,autostart=true"));
 
     expect(challengeTiles(elements).map((entry) => entry.getAttribute("href"))).toEqual([
@@ -1344,7 +1359,7 @@ describe("App learning track", () => {
     });
 
     it("leaves the region empty everywhere else, so the page has no gap in it", () => {
-      // Nineteen challenges, the sandbox and the demo all go through the same
+      // Nineteen challenges and the sandbox all go through the same
       // draw, and the stylesheet hides the region only while it is empty. The
       // last task's hints left above challenge 1 would be worse than a gap: they
       // are the answer to a task nobody is playing.

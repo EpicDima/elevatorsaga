@@ -440,7 +440,7 @@ export interface AppElements {
    * Where the learning track's panel goes.
    *
    * Empty on every route but the track, and the stylesheet hides an empty one,
-   * so a challenge and the demo are not left with a gap above the building.
+   * so a challenge is not left with a gap above the building.
    */
   readonly tutorial: HTMLElement;
   /**
@@ -851,47 +851,32 @@ export class App {
   }
 
   /**
-   * The navigation row of the challenge bar: one entry per challenge.
+   * Everything `widgets/level-switcher` needs to draw its popover: the two
+   * lists it offers, what this browser has cleared of each, what is on screen
+   * right now, and how to turn a tile into a URL.
    *
-   * Every entry is built with {@link createParamsUrl} from the parameters the
-   * current challenge was started with, exactly as the next-challenge link is.
-   * That is the whole point of the row: assigning `location.hash` outright --
-   * which is how this feature is usually written -- would drop `timescale`,
+   * Read fresh on every call rather than held: three of the five move as the
+   * game is played, and the switcher redraws from this on every run that
+   * ends. The widget shapes them into blocks and tiles; nothing here decides
+   * what is locked or how a tile is named.
+   *
+   * The URL rule lives in {@link #levelHref}, and it is the whole point of
+   * building an `href` at all: assigning `location.hash` outright — which is
+   * how this feature is usually written — would drop `timescale`,
    * `autostart`, `devtest` and anything else the URL is carrying, so a player
-   * who had chosen 8x speed would silently lose it by jumping to another
-   * challenge.
+   * who had chosen 8x speed would silently lose it by opening another level.
    *
-   * `seed` is the exception, and is dropped: it was drawn for the building being
-   * left, so carrying it into another challenge would pin a run nobody has
-   * played. The rule the row follows is that what the player is carrying are
-   * *preferences* — the speed, the autostart, the sandbox building they may come
-   * back to — and a seed is not one. It names a single run, and naming a run
-   * that has not been played yet is meaningless.
+   * `seed` is the exception, and is dropped: it was drawn for the building
+   * being left, so carrying it into another level would pin a run nobody has
+   * played. What a tile carries across are *preferences* — the speed, the
+   * autostart, the sandbox building they may come back to — and a seed is not
+   * one. It names a single run, and naming a run that has not been played yet
+   * is meaningless. Dropping it here is not the way back out of a pinned run:
+   * that is the seed line's own `new draw` link ({@link #seedLink}), because
+   * "press the level you are already on" is not a move any interface can
+   * expect to be found.
    *
-   * Dropping it here is not the way back out of a pinned run, though it does
-   * mean the row cannot pin what it did not draw. The way out is the seed line's
-   * own `new draw` link ({@link #seedLink}), because the row has none to offer
-   * the sandbox — it has no entry for it — and "press the challenge you are
-   * already on" is not a move any interface can expect to be found.
-   *
-   * The last challenge is the endless demo (`requireDemo` in
-   * `src/game/challenges.ts`): it has no win condition, so it is labelled
-   * rather than numbered, and the row says so instead of offering a "challenge"
-   * that can never be completed.
-   *
-   * The sandbox gets no entry of its own, and that is deliberate. The row is
-   * the fixed progression through the game; the sandbox is not a station on it
-   * and has no address to link to — its URL is whatever the player wrote, and
-   * an entry pointing at "the sandbox" would have to invent parameters or
-   * silently reuse whatever happened to be in the hash. Numbering it would make
-   * it look like a twentieth challenge, which it is not. So while the sandbox
-   * runs, the row still lists every challenge, with none of them marked
-   * current: it is the way *out* of the sandbox, and the row saying "you are
-   * not on any of these" is exactly right.
-   *
-   * @param challengeIndex - The challenge about to be drawn, marked as current,
-   * or `null` when what is being drawn is not in the list.
-   * @returns One entry per challenge, in playing order.
+   * @returns The switcher's input, as of this call.
    */
   #levelMenuInput(): LevelMenuInput {
     return {
@@ -1765,8 +1750,8 @@ export class App {
    * keep in step and a third to forget when a third caller appears. It runs
    * after the bar so that the page is written in the order it is read.
    *
-   * Emptying is not an afterthought but the common case: nineteen challenges,
-   * the sandbox and the demo all reach here, and every one of them has to leave
+   * Emptying is not an afterthought but the common case: nineteen challenges
+   * and the sandbox all reach here, and every one of them has to leave
    * the region empty, since the stylesheet hides it only while it is. Leaving
    * the last task's hints above challenge 1 would be worse than a gap — they
    * are the answer to a task the player is no longer playing.

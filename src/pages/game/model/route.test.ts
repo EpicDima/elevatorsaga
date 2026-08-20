@@ -717,8 +717,8 @@ describe("resolveRoute seed validation", () => {
   });
 
   it("refuses an empty seed and a seed too long to carry", () => {
-    // The seed rides in every entry of the navigation row, so it is written
-    // into the page some twenty times over.
+    // The seed rides in every tile of the level switcher, so it is written
+    // into the page a couple of dozen times over.
     expect(route("#seed").seed).toBeNull();
     expect(route("#seed=").seed).toBeNull();
     expect(route(`#seed=${"9".repeat(64)}`).seed).toBe("9".repeat(64));
@@ -938,9 +938,9 @@ describe("startRouter", () => {
   });
 
   it("hands the handler what the address bar says now", () => {
-    // Not what it said. The challenge bar builds twenty navigation links out
-    // of this query, so a refused key left in it would be written into every
-    // one of them and refused again on each.
+    // Not what it said. The level switcher builds a link per tile out of this
+    // query, so a refused key left in it would be written into every one of
+    // them and refused again on each.
     const target = new FakeTarget();
     target.location = { hash: "#challenge=2,seed=rush%20hour,mystery=x" };
     const onRoute = vi.fn();

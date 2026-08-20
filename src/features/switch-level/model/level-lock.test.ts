@@ -25,31 +25,28 @@ describe("lockChallengeTiles", () => {
     expect(first?.locked).toBe(false);
   });
 
-  it("locks every later, non-demo challenge when nothing has been cleared", () => {
-    // A fixture's last entry is always flagged demo (listChallenges' own
-    // rule) and so is always unlocked -- padding by one keeps the entries
-    // under test here away from that position.
-    const tiles = lockChallengeTiles(listChallenges(fixtureChallenges(4)), new Map());
+  it("locks every later challenge when nothing has been cleared", () => {
+    const tiles = lockChallengeTiles(listChallenges(fixtureChallenges(3)), new Map());
 
-    expect(tiles.slice(0, 3).map((tile) => tile.locked)).toEqual([false, true, true]);
+    expect(tiles.map((tile) => tile.locked)).toEqual([false, true, true]);
   });
 
   it("opens the next challenge once the one before it has any tier on record", () => {
     const tiles = lockChallengeTiles(
-      listChallenges(fixtureChallenges(4)),
+      listChallenges(fixtureChallenges(3)),
       new Map([[0, "bronze"]]),
     );
 
-    expect(tiles.slice(0, 3).map((tile) => tile.locked)).toEqual([false, false, true]);
+    expect(tiles.map((tile) => tile.locked)).toEqual([false, false, true]);
   });
 
   it("does not open a challenge two ahead of the furthest clear", () => {
-    const tiles = lockChallengeTiles(listChallenges(fixtureChallenges(5)), new Map([[0, "gold"]]));
+    const tiles = lockChallengeTiles(listChallenges(fixtureChallenges(4)), new Map([[0, "gold"]]));
 
-    expect(tiles.slice(0, 4).map((tile) => tile.locked)).toEqual([false, false, true, true]);
+    expect(tiles.map((tile) => tile.locked)).toEqual([false, false, true, true]);
   });
 
-  it("opens every non-demo challenge once every one before it is cleared", () => {
+  it("opens every challenge once every one before it is cleared", () => {
     const tiles = lockChallengeTiles(
       listChallenges(fixtureChallenges(4)),
       new Map<number, "bronze">([
@@ -59,13 +56,24 @@ describe("lockChallengeTiles", () => {
       ]),
     );
 
-    expect(tiles.slice(0, 3).every((tile) => !tile.locked)).toBe(true);
+    expect(tiles.every((tile) => !tile.locked)).toBe(true);
   });
 
-  it("never locks the demo, whatever has or has not been cleared before it", () => {
-    const tiles = lockChallengeTiles(listChallenges(fixtureChallenges(3)), new Map());
+  it("holds the last challenge to the same rule as the rest", () => {
+    // It used to be the one exception: the list ended in an endless demo with
+    // no win condition, which nothing could ever unlock and so was never
+    // locked. The demo is gone, and the last entry is now a challenge like
+    // any other -- shut until the one before it has been finished.
+    const shut = lockChallengeTiles(listChallenges(fixtureChallenges(3)), new Map());
+    expect(shut.at(-1)?.locked).toBe(true);
 
-    expect(tiles.at(-1)?.demo).toBe(true);
-    expect(tiles.at(-1)?.locked).toBe(false);
+    const open = lockChallengeTiles(
+      listChallenges(fixtureChallenges(3)),
+      new Map<number, "bronze">([
+        [0, "bronze"],
+        [1, "bronze"],
+      ]),
+    );
+    expect(open.at(-1)?.locked).toBe(false);
   });
 });

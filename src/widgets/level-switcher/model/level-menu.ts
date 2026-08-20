@@ -51,8 +51,6 @@ export interface ChallengeMenuTile {
   readonly kind: "challenge";
   readonly index: number;
   readonly number: number;
-  /** Whether this is the endless demo rather than a numbered challenge. */
-  readonly demo: boolean;
   readonly locked: boolean;
   readonly current: boolean;
   /** This browser's best-recorded tier, or `undefined` if never cleared. */
@@ -80,9 +78,17 @@ export interface SandboxMenuTile {
 /** One tile of the level-switcher menu, whichever block it belongs to. */
 export type LevelMenuTile = ChallengeMenuTile | TutorialMenuTile | SandboxMenuTile;
 
-/** One named group of tiles. */
+/**
+ * One named group of tiles.
+ *
+ * The third id is `other` and not `sandbox`, though free play is the only
+ * tile in it: the block is captioned «Остальное» / "Other" — everything that
+ * is neither a lesson nor a numbered level — where the tile inside it is
+ * captioned «Песочница» / "Sandbox". Two different words on screen, so two
+ * different names here rather than one standing for both.
+ */
 export interface LevelMenuBlock {
-  readonly id: "tutorial" | "challenges" | "sandbox";
+  readonly id: "tutorial" | "challenges" | "other";
   readonly tiles: readonly LevelMenuTile[];
 }
 
@@ -124,7 +130,6 @@ function buildChallengeBlock(input: LevelMenuInput): LevelMenuBlock {
       kind: "challenge",
       index: tile.index,
       number: tile.number,
-      demo: tile.demo,
       locked: tile.locked,
       current: input.selection.kind === "challenge" && input.selection.index === tile.index,
       tier: input.bestTiers.get(tile.index),
@@ -133,9 +138,9 @@ function buildChallengeBlock(input: LevelMenuInput): LevelMenuBlock {
   };
 }
 
-function buildSandboxBlock(input: LevelMenuInput): LevelMenuBlock {
+function buildOtherBlock(input: LevelMenuInput): LevelMenuBlock {
   return {
-    id: "sandbox",
+    id: "other",
     tiles: [
       {
         kind: "sandbox",
@@ -148,7 +153,8 @@ function buildSandboxBlock(input: LevelMenuInput): LevelMenuBlock {
 
 /**
  * Groups every level this menu offers into its three blocks, in the order
- * they are shown: learning track, then numbered challenges, then free play.
+ * they are shown: learning track, then numbered challenges, then everything
+ * else — which today is free play, and only free play.
  *
  * Three fixed calls rather than a config-driven loop over a block list: the
  * blocks differ in what they are built from and how a tile of each is
@@ -160,5 +166,5 @@ function buildSandboxBlock(input: LevelMenuInput): LevelMenuBlock {
  * @returns The three blocks, in display order.
  */
 export function buildLevelMenu(input: LevelMenuInput): readonly LevelMenuBlock[] {
-  return [buildTutorialBlock(input), buildChallengeBlock(input), buildSandboxBlock(input)];
+  return [buildTutorialBlock(input), buildChallengeBlock(input), buildOtherBlock(input)];
 }

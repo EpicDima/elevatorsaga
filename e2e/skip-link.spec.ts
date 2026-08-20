@@ -3,7 +3,7 @@
  *
  * The editor is what the page is for, and it is behind everything the building
  * contains: the scroll container, and a button for every call and every floor.
- * On the eighteenth challenge that is 256 tab stops past the link, 208 of them
+ * On the eighteenth challenge that is 255 tab stops past the link, 208 of them
  * buttons. The count is measured here rather than asserted from the markup
  * because most of those stops are drawn by the presenters at run time and do
  * not exist in `index.html` at all.
@@ -56,9 +56,9 @@ test("saves a walk through the whole building", async ({ page }) => {
 
   // Exact, because a range records nothing: this file's own header once
   // claimed 208 while the walk was 240, and bounds of 100 and 400 had nothing
-  // to say about it. 208 of the 256 are buttons -- eight cars of 21 floors,
+  // to say about it. 208 of the 255 are buttons -- eight cars of 21 floors,
   // plus a call each way at every floor except the roof, which has no way up,
-  // and the lobby, which has no way down -- and the other 48 are the rest of
+  // and the lobby, which has no way down -- and the other 47 are the rest of
   // the chrome above the building, the building's own scroll container, each
   // floor's own row and each car's own container, the statistics panel's
   // summary and the splitter below the building, and the code slot switcher.
@@ -103,5 +103,15 @@ test("saves a walk through the whole building", async ({ page }) => {
   // lobby, so those two lamps were two tab stops that led to a button which
   // could light but never mean anything. Two per building, whatever its
   // height, which is why this fell by exactly two and not by two per floor.
-  expect(stops).toBe(256);
+  //
+  // And to 255 once the perpetual demo left the level list -- not because its
+  // tile was a stop, since the switcher's popover is `hidden` while closed and
+  // no tile in it is ever reached by tabbing, but because of what that tile
+  // did to the "Next level" arrow. The demo sat last in the challenge block
+  // and was the one tile there that never locked, so from any challenge at all
+  // there was somewhere forward to step to and the arrow was enabled. The
+  // eighteenth is now second-to-last with the nineteenth locked behind it,
+  // nothing further on is open, and `presentLevelSwitcher` disables an arrow
+  // with nowhere to go -- which takes it out of the tab order.
+  expect(stops).toBe(255);
 });

@@ -229,9 +229,14 @@ export const RU_MESSAGES: MessageCatalogue<"ru"> = {
   "game.challenge.title.html": "Уровень {number}: {description}",
   "game.challenge.nav.label": "Уровни",
   "game.challenge.nav.link": "Уровень {number}",
-  "game.challenge.nav.demo": "Демо",
   "game.levelSwitcher.prevLabel": "Предыдущий уровень",
   "game.levelSwitcher.nextLabel": "Следующий уровень",
+  // Заголовок блока и плитка внутри него названы по-разному нарочно. «Остальное» —
+  // это средний род существительного «остальной» в значении «всё прочее»: то, что
+  // не урок и не пронумерованный уровень. Сейчас там одна песочница, но назвать
+  // блок её именем — значит дважды написать одно слово и заранее пообещать, что
+  // ничего другого в блоке не появится.
+  "game.levelSwitcher.otherBlockLabel": "Остальное",
   "game.levelSwitcher.sandboxLabel": "Песочница",
   "game.levelSwitcher.tutorialTileLabel": "Учебное задание {number}",
   "game.levelSwitcher.tutorialTileClearedLabel": "Учебное задание {number}, пройдено",
@@ -677,7 +682,6 @@ elevator.goingDownIndicator(false);`,
   // ровно так же, как во фразе со временем: запятая и «и пусть».
   "challenge.transportWithinMovesWithMaxWait.html":
     "Перевезите {people}, уложившись в {moves}, и пусть доставка каждого не длится дольше {waitTime}",
-  "challenge.demo": "Бесконечная демонстрация",
   // Винительный падеж после «Перевезите»; у одушевлённого существительного он
   // совпадает с родительным: 1 пассажира, 5 пассажиров.
   "challenge.people.html": {

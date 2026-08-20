@@ -90,9 +90,9 @@ function tierRank(tier: ChallengeTier): number {
  * {@link "#entities/challenge-tier/index.ts"!evaluateChallengeTier}'s own
  * doc comment on a `tiers === undefined` challenge — bronze is the only tier
  * such a challenge has). Empty when the challenge has nothing to meter at
- * all — the demo/sandbox tiles' own `requireDemo`/`requireSandbox`
- * conditions never resolve and carry `requirements: []`, mirroring the
- * mockup's own "sandbox: no rewards" case (`world.goals.length === 0`).
+ * all — the sandbox tile's own `requireSandbox` condition never resolves and
+ * carries `requirements: []`, mirroring the mockup's own "sandbox: no
+ * rewards" case (`world.goals.length === 0`).
  *
  * @param challenge - The challenge being played.
  * @param world - The run's current statistics.

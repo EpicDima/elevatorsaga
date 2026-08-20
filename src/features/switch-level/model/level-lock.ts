@@ -31,10 +31,13 @@ export interface LevelTile extends ChallengeSummary {
  * The first challenge is always open, since there is nothing before it to
  * clear. Every challenge after it is open once the one immediately before it
  * has a tier on record — any tier, bronze included, since this is a gate on
- * having *finished* the previous challenge, not on how well. The endless
- * demo is never locked, whatever its position: it has no win condition
- * ({@link "#game/challenges.ts"!requireDemo}), so a rule built on "cleared"
- * can never open it, and it is not meant to be gated in the first place.
+ * having *finished* the previous challenge, not on how well.
+ *
+ * One exception used to sit in the middle of that: the last entry was an
+ * endless demo with no win condition, which a rule built on "cleared" could
+ * never have opened, so it was never locked. The demo is gone as of
+ * 2026-08-20 — free play says the same thing better — and with it the
+ * exception, so the rule above is now the whole rule.
  *
  * @param summaries - The challenges to lock, in playing order —
  * {@link "#entities/challenge/index.ts"!listChallenges}'s own output.
@@ -50,6 +53,6 @@ export function lockChallengeTiles(
 ): readonly LevelTile[] {
   return summaries.map((summary) => ({
     ...summary,
-    locked: summary.demo ? false : summary.index > 0 && !bestTiers.has(summary.index - 1),
+    locked: summary.index > 0 && !bestTiers.has(summary.index - 1),
   }));
 }

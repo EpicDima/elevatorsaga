@@ -39,10 +39,13 @@ function baseInput(overrides: Partial<LevelMenuInput> = {}): LevelMenuInput {
 }
 
 describe("buildLevelMenu", () => {
-  it("returns the tutorial, challenges and sandbox blocks in that order", () => {
+  it("returns the tutorial, challenges and other blocks in that order", () => {
     const blocks = buildLevelMenu(baseInput());
 
-    expect(blocks.map((block) => block.id)).toEqual(["tutorial", "challenges", "sandbox"]);
+    // The third is `other` and not `sandbox` even though the sandbox is the
+    // only tile in it -- the block and its one tile are captioned with two
+    // different words on screen, so they have two different names here.
+    expect(blocks.map((block) => block.id)).toEqual(["tutorial", "challenges", "other"]);
   });
 
   it("numbers tutorial tiles from one and links each to its task id", () => {
@@ -77,19 +80,13 @@ describe("buildLevelMenu", () => {
     expect(tiles.map((tile) => tile.current)).toEqual(tiles.map((_tile, index) => index === 2));
   });
 
-  it("numbers challenge tiles from one, flags the last as demo, and links by number", () => {
+  it("numbers challenge tiles from one and links by number", () => {
     const [, challengeBlock] = buildLevelMenu(baseInput({ challenges: fixtureChallenges(4) }));
     const tiles = challengeBlock?.tiles ?? [];
 
     expect(tiles).toHaveLength(4);
     expect(tiles.map((tile) => (tile.kind === "challenge" ? tile.number : null))).toEqual([
       1, 2, 3, 4,
-    ]);
-    expect(tiles.map((tile) => tile.kind === "challenge" && tile.demo)).toEqual([
-      false,
-      false,
-      false,
-      true,
     ]);
     expect(tiles[0]?.href).toBe("#challenge=1");
   });
@@ -105,7 +102,7 @@ describe("buildLevelMenu", () => {
       false,
       true,
       true,
-      false, // the last tile is the demo, never locked
+      true,
     ]);
   });
 

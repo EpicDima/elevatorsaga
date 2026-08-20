@@ -31,7 +31,7 @@ const TIERED_CHALLENGE: Challenge = {
   },
 };
 
-/** A challenge with nothing to meter — the sandbox/demo shape. */
+/** A challenge with nothing to meter — the sandbox's shape. */
 const NOTHING_TO_METER_CHALLENGE: Challenge = {
   options: {},
   condition: {

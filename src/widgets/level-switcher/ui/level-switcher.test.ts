@@ -116,12 +116,17 @@ describe("presentLevelSwitcher", () => {
     expect(taskOpen.getAttribute("aria-expanded")).toBe("false");
   });
 
-  it("fills the three blocks in order: tutorial, challenges, sandbox", () => {
+  it("fills the three blocks in order: tutorial, challenges, other", () => {
     const { parent, options } = setUp();
     presentLevelSwitcher(parent, options);
 
     const captions = [...parent.querySelectorAll(".taskblock .cap")].map((el) => el.textContent);
-    expect(captions).toEqual(["Learning track", "Levels", "Sandbox"]);
+    // The third block is captioned "Other" while the one tile inside it is
+    // captioned "Sandbox" — see `blockCaption` for why they are not the same
+    // word.
+    expect(captions).toEqual(["Learning track", "Levels", "Other"]);
+    const [, , otherBlock] = parent.querySelectorAll(".taskblock");
+    expect(otherBlock?.querySelector(".tasklink")?.textContent).toBe("Sandbox");
   });
 
   it("renders an open challenge tile as a real link and a locked one as a disabled button", () => {
@@ -133,13 +138,19 @@ describe("presentLevelSwitcher", () => {
     const [, challengeBlock] = parent.querySelectorAll(".taskblock");
     const tiles = [...(challengeBlock?.querySelectorAll(".tasklink") ?? [])];
 
-    expect(tiles.map((tile) => tile.tagName)).toEqual(["A", "BUTTON", "BUTTON", "BUTTON", "A"]);
+    expect(tiles.map((tile) => tile.tagName)).toEqual([
+      "A",
+      "BUTTON",
+      "BUTTON",
+      "BUTTON",
+      "BUTTON",
+    ]);
     expect(tiles[1]?.hasAttribute("disabled")).toBe(true);
     expect(tiles[1]?.getAttribute("href")).toBeNull();
     expect(tiles[0]?.getAttribute("href")).toBe("#challenge=1");
   });
 
-  it("badges every open, non-demo challenge tile with its tier stars, but not the demo tile", () => {
+  it("badges every open challenge tile with its tier stars", () => {
     const { parent, options } = setUp({
       challenges: fixtureChallenges(5),
       bestTiers: new Map<number, ChallengeTier>([[0, "silver"]]),
@@ -150,12 +161,12 @@ describe("presentLevelSwitcher", () => {
     const tiles = [...(challengeBlock?.querySelectorAll(".tasklink") ?? [])];
 
     const litCounts = tiles
-      .slice(0, 4)
+      .slice(0, 2)
       .map((tile) => tile.querySelectorAll(".stars .is-on").length);
-    expect(litCounts).toEqual([2, 0, 0, 0]);
-    // Tiles 2-3 are locked (no tier on record) and must carry no badge at
-    // all, not merely an unlit one — a dim badge would still read [0, 0]
-    // above and let a regression through unnoticed.
+    expect(litCounts).toEqual([2, 0]);
+    // Tiles 2-4 are locked (nothing on record before them) and must carry no
+    // badge at all, not merely an unlit one — a dim badge would still read 0
+    // lit above and let a regression through unnoticed.
     expect(tiles[2]?.querySelector(".stars")).toBeNull();
     expect(tiles[3]?.querySelector(".stars")).toBeNull();
     expect(tiles[4]?.querySelector(".stars")).toBeNull();
@@ -240,28 +251,46 @@ describe("presentLevelSwitcher", () => {
   });
 
   it("disables the previous button on a block's first open tile and the next button on its last", () => {
-    const { parent, options } = setUp({
+    // Every tile of the block open, so what each button reports is where the
+    // selection sits and not what is locked past it.
+    const cleared = new Map<number, ChallengeTier>([
+      [0, "bronze"],
+      [1, "bronze"],
+    ]);
+
+    const first = setUp({
       challenges: fixtureChallenges(3),
+      bestTiers: cleared,
       selection: { kind: "challenge", index: 0 },
     });
-    presentLevelSwitcher(parent, options);
-    const taskPrev = requireElement(".task-prev", parent);
-    const taskNext = requireElement(".task-next", parent);
+    presentLevelSwitcher(first.parent, first.options);
 
-    expect(taskPrev.hasAttribute("disabled")).toBe(true);
-    expect(taskNext.hasAttribute("disabled")).toBe(false);
+    expect(requireElement(".task-prev", first.parent).hasAttribute("disabled")).toBe(true);
+    expect(requireElement(".task-next", first.parent).hasAttribute("disabled")).toBe(false);
+
+    const last = setUp({
+      challenges: fixtureChallenges(3),
+      bestTiers: cleared,
+      selection: { kind: "challenge", index: 2 },
+    });
+    presentLevelSwitcher(last.parent, last.options);
+
+    expect(requireElement(".task-prev", last.parent).hasAttribute("disabled")).toBe(false);
+    expect(requireElement(".task-next", last.parent).hasAttribute("disabled")).toBe(true);
   });
 
   it("steps next to the nearest open tile, skipping locked challenges, and navigates on click", () => {
     const { parent, options } = setUp({
       challenges: fixtureChallenges(5),
+      // Challenge 5 (index 4) is open because the one before it is on record;
+      // 2 through 4 are not, since nothing before any of them is. So the only
+      // place "next" can go from challenge 1 is past all three of them.
+      bestTiers: new Map<number, ChallengeTier>([[3, "bronze"]]),
       selection: { kind: "challenge", index: 0 },
     });
     presentLevelSwitcher(parent, options);
     const taskNext = requireElement(".task-next", parent);
 
-    // Challenges 2-4 (indices 1-3) are locked with no tier on record, so
-    // "next" from challenge 1 skips straight to the demo tile at index 4.
     expect(taskNext.hasAttribute("disabled")).toBe(false);
     taskNext.click();
 

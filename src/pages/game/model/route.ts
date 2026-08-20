@@ -996,10 +996,11 @@ export interface RouterOptions {
  * invented for them: they chose the track, and this is where the track starts.
  *
  * The handler is handed the corrected parameters rather than the ones that were
- * written, so that everything built from them is clean as well. The challenge
- * bar builds twenty navigation links out of this query; carrying
- * `seed=rush%20hour` into all of them would mean a refusal, and its warning, on
- * every one the player followed afterwards.
+ * written, so that everything built from them is clean as well. The level
+ * switcher builds a link per tile out of this query — nineteen levels, the
+ * learning track and free play; carrying `seed=rush%20hour` into all of them
+ * would mean a refusal, and its warning, on every one the player followed
+ * afterwards.
  *
  * @param onRoute - Called with the resolved parameters for each route.
  * @param options - The challenge count, the default time scale and the window.

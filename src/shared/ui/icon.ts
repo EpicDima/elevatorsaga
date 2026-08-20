@@ -377,7 +377,7 @@ export const SPRITE_ICONS = {
       },
     ],
   },
-  // The goal bar's "nothing to meter here" mark, for the demo/sandbox tiles'
+  // The goal bar's "nothing to meter here" mark, for the sandbox's own
   // never-resolving challenge condition.
   lamp: {
     viewBox: "0 0 16 16",

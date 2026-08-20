@@ -82,8 +82,8 @@ export interface ChallengeCondition {
    * what lets a goal bar draw a live progress meter per figure without this
    * module exposing a second, parallel description of the same thresholds
    * `evaluate` enforces. Empty for a condition with nothing to meter:
-   * {@link requireDemo} and {@link requireSandbox} never resolve, so there is
-   * no "how close" for either to answer.
+   * {@link requireSandbox} never resolves, so there is no "how close" for it
+   * to answer.
    */
   readonly requirements: readonly TierRequirementInfo[];
 }
@@ -98,8 +98,8 @@ export interface Challenge {
    * Silver/gold requirements, on top of the win/lose {@link condition}.
    *
    * Optional so that a challenge with nothing to say about tiers — every
-   * built-in entry today, plus the sandbox and demo factories below, which
-   * never resolve at all — simply omits the field rather than being made to
+   * built-in entry today, plus the sandbox factory below, which never
+   * resolves at all — simply omits the field rather than being made to
    * invent one. {@link "./challenge-tiers.ts"!evaluateChallengeTier} reads a
    * missing value as "bronze is the only tier this challenge has," which is
    * exactly what today's challenges mean until a later change gives some of
@@ -307,23 +307,6 @@ export function requireUserCountWithinMovesWithMaxWaitTime(
 }
 
 /**
- * A condition that never resolves, used for the endless demo.
- *
- * @returns The condition.
- */
-export function requireDemo(): ChallengeCondition {
-  return {
-    get description(): string {
-      return t("challenge.demo");
-    },
-    evaluate(): boolean | null {
-      return null;
-    },
-    requirements: [],
-  };
-}
-
-/**
  * The building a sandbox run is played in.
  *
  * Every value is already validated: the sandbox is configured from the location
@@ -362,12 +345,19 @@ function emphasise(value: number): string {
 /**
  * A condition that never resolves, and that reads back the building it is in.
  *
- * The sandbox has no goal — that is the whole point of it — so this is
- * {@link requireDemo} with a description that earns its place: the parameters
- * come from the URL, which is off screen while the game is being played, so the
- * challenge bar is the only place the player can see what they actually asked
- * for. A hash that was silently clamped (`floors=1000` becoming 60) says so
- * here, not just in the console.
+ * The sandbox has no goal — that is the whole point of it — so `evaluate`
+ * returns `null` forever and `requirements` is empty. What earns the condition
+ * its place is the description: the parameters come from the URL, which is off
+ * screen while the game is being played, so the goal bar is the only place the
+ * player can see what they actually asked for. A hash that was silently
+ * clamped (`floors=1000` becoming 60) says so here, not just in the console.
+ *
+ * This is the only never-resolving condition left. There was a second until
+ * 2026-08-20, `requireDemo`, behind an endless twentieth level that ran the
+ * building of challenge 18 — the same twenty-one floors, eight cars and
+ * capacities — with the win condition taken off. The sandbox already is that
+ * level, and one a player can size themselves, so the demo was one more entry
+ * in the list saying what free play next to it said better.
  *
  * @param options - The building the run is playing in.
  * @returns The condition.
@@ -686,9 +676,5 @@ export const challenges: readonly Challenge[] = [
     // does not exist.
     options: { floorCount: 8, elevatorCount: 6, spawnRate: 0.9 },
     condition: requireUserCountWithinMovesWithMaxWaitTime(100, 450, 30),
-  },
-  {
-    options: { floorCount: 21, elevatorCount: 8, spawnRate: 1.5, elevatorCapacities: [6, 8] },
-    condition: requireDemo(),
   },
 ];

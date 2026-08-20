@@ -212,7 +212,7 @@ export function requireAll(...predicates: readonly TierPredicate[]): TierPredica
  * a challenge that has none.
  * @returns `null` when `won` is `false` — there is no tier for a loss, only a
  * verdict. `"bronze"` when `won` is `true` and either `tiers` is `undefined`
- * (today's challenges, and the sandbox/demo, which never had anything more to
+ * (today's challenges, and the sandbox, which never had anything more to
  * say than win/lose) or neither `tiers.silver` nor `tiers.gold` holds.
  * `"silver"` or `"gold"` when the corresponding requirement holds, gold
  * checked first since it is the stricter of the two and a run clearing gold

@@ -35,8 +35,8 @@ import { TICK_SECONDS, WorldController, createWorldController } from "./world-co
  * Simulated-time ceiling, in seconds, past which a crunch gives up on ever
  * getting a verdict.
  *
- * Exists for the challenges no amount of correct play resolves on its own —
- * a sandbox, the endless demo, or a move-bound challenge
+ * Exists for the runs no amount of correct play resolves on its own —
+ * a sandbox, or a move-bound challenge
  * (`requireUserCountWithinMoves` and its wait-limited sibling in
  * `challenges.ts` never look at elapsed time at all) — and, more importantly,
  * for a broken player program against an ordinary challenge: an elevator that

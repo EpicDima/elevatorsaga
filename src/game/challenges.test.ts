@@ -4,7 +4,6 @@ import { DEFAULT_LOCALE, setLocale } from "../i18n/index.ts";
 import {
   challenges,
   createSandboxChallenge,
-  requireDemo,
   requireSandbox,
   requireUserCountWithMaxWaitTime,
   requireUserCountWithinMoves,
@@ -237,21 +236,6 @@ describe("Challenge requirements", () => {
     });
   });
 
-  describe("requireDemo", () => {
-    it("never resolves", () => {
-      const challengeReq = requireDemo();
-      expect(challengeReq.description).toBe("Perpetual demo");
-      expect(challengeReq.evaluate(fakeWorld)).toBe(null);
-      fakeWorld.elapsedTime = 1e9;
-      fakeWorld.transportedCounter = 1e9;
-      expect(challengeReq.evaluate(fakeWorld)).toBe(null);
-    });
-
-    it("has nothing to meter", () => {
-      expect(requireDemo().requirements).toEqual([]);
-    });
-  });
-
   describe("requireSandbox", () => {
     it("never resolves, whatever the run does", () => {
       const challengeReq = requireSandbox(SANDBOX);
@@ -375,15 +359,16 @@ describe("createSandboxChallenge", () => {
 
 describe("challenges", () => {
   it("keeps the full legacy list, in order", () => {
-    expect(challenges).toHaveLength(20);
+    // Nineteen, not the twenty this list held until the endless demo came off
+    // the end of it -- see `requireSandbox`'s own comment for why.
+    expect(challenges).toHaveLength(19);
   });
 
-  it("ends the playable list with the moves-and-wait challenge", () => {
-    // Second to last, because the demo is not a challenge and stays where it
-    // has always been: the end. The numbers are the ones the reference program
-    // was measured against -- a challenge whose limits drifted from the run
-    // that sized them is a challenge nobody can be sure is winnable.
-    const challenge = challenges.at(-2);
+  it("ends the list with the moves-and-wait challenge", () => {
+    // The numbers are the ones the reference program was measured against --
+    // a challenge whose limits drifted from the run that sized them is a
+    // challenge nobody can be sure is winnable.
+    const challenge = challenges.at(-1);
     expect(challenge?.options).toEqual({ floorCount: 8, elevatorCount: 6, spawnRate: 0.9 });
     expect(challenge?.condition.description).toBe(
       "Transport <span class='emphasis-color'>100</span> people using " +
@@ -401,8 +386,13 @@ describe("challenges", () => {
     }
   });
 
-  it("ends with the perpetual demo", () => {
-    expect(challenges.at(-1)?.condition.description).toBe("Perpetual demo");
+  it("gives every entry a condition that can actually be met", () => {
+    // The list held one that could not until the endless demo was taken off
+    // it: `evaluate` returned `null` forever, so the tile could be opened and
+    // never finished. Every entry now names something to reach.
+    for (const challenge of challenges) {
+      expect(challenge.condition.requirements.length).toBeGreaterThan(0);
+    }
   });
 });
 

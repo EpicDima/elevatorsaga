@@ -131,8 +131,8 @@ test("shows the panel on a task and nothing at all off it", async ({ page }) => 
 
   // The region stays in the page shell on every other route, so the stylesheet
   // is what has to take it out of the flow: an empty block with margins is
-  // still a 10px gap above the building on all nineteen challenges, the sandbox
-  // and the demo.
+  // still a 10px gap above the building on all nineteen challenges and the
+  // sandbox.
   await page.goto("/#challenge=1");
   await expect(page.getByRole("button", { name: "Level 1" })).toBeVisible();
   await expect(panel(page)).toHaveCount(0);

@@ -156,21 +156,25 @@ export const EN_MESSAGES = {
   // tiles.
   "game.statsPanel.more": "All figures",
   "game.challenge.title.html": "Level {number}: {description}",
-  // The navigation row shows bare numbers, because twenty entries have to fit
+  // A level tile shows a bare number, because nineteen of them have to fit
   // across a phone; the name each one carries is what a screen reader announces
   // in their place, so it has to say what the number means on its own.
   "game.challenge.nav.label": "Levels",
   "game.challenge.nav.link": "Level {number}",
-  "game.challenge.nav.demo": "Demo",
-  // The level switcher's own popover: `widgets/level-switcher`. Its block
-  // captions otherwise reuse "game.challenge.nav.label" (levels) and
+  // The level switcher's own popover: `widgets/level-switcher`. Two of its
+  // three block captions reuse "game.challenge.nav.label" (levels) and
   // "tutorial.panel.label" (the learning track), so only what is new to this
-  // widget is here — the sandbox's own label, the step buttons either side of
-  // the popover trigger, and the two tile labels the nav row has no
-  // counterpart for, since it never lists a learning-track task or a locked
-  // challenge.
+  // widget is here — the third block's caption and the tile inside it, the
+  // step buttons either side of the popover trigger, and the two tile labels
+  // the level list has no counterpart for, since it never names a
+  // learning-track task or a locked level.
   "game.levelSwitcher.prevLabel": "Previous level",
   "game.levelSwitcher.nextLabel": "Next level",
+  // Caption and tile, and deliberately not the same word: the block is
+  // whatever is neither a lesson nor a numbered level, which today is free
+  // play alone. Naming the block after its only tile would say "Sandbox"
+  // twice over and promise nothing else will ever join it.
+  "game.levelSwitcher.otherBlockLabel": "Other",
   "game.levelSwitcher.sandboxLabel": "Sandbox",
   "game.levelSwitcher.tutorialTileLabel": "Tutorial task {number}",
   "game.levelSwitcher.tutorialTileClearedLabel": "Tutorial task {number}, completed",
@@ -619,7 +623,6 @@ elevator.goingDownIndicator(false);`,
   "challenge.transportWithinMoves.html": "Transport {people} using {moves} or less",
   "challenge.transportWithinMovesWithMaxWait.html":
     "Transport {people} using {moves} or less and let no one take more than {waitTime} to be delivered",
-  "challenge.demo": "Perpetual demo",
   "challenge.people.html": {
     one: "<span class='emphasis-color'>{count}</span> person",
     other: "<span class='emphasis-color'>{count}</span> people",

@@ -22,16 +22,23 @@ describe("listChallenges", () => {
     expect(summaries.map((summary) => summary.index)).toEqual([0, 1, 2]);
   });
 
-  it("marks only the last entry as the demo", () => {
-    const summaries = listChallenges([fixtureChallenge(), fixtureChallenge(), fixtureChallenge()]);
-
-    expect(summaries.map((summary) => summary.demo)).toEqual([false, false, true]);
-  });
-
-  it("marks the one entry as the demo for a list of one", () => {
+  it("says of a challenge only where it sits and what it is called", () => {
+    // Every entry is a numbered challenge now that the endless demo is gone,
+    // so a summary has nothing left to carry beyond the two ways of naming
+    // the same position.
     const summaries = listChallenges([fixtureChallenge()]);
 
-    expect(summaries).toEqual([{ index: 0, number: 1, demo: true }]);
+    expect(summaries).toEqual([{ index: 0, number: 1 }]);
+  });
+
+  it("treats the last entry like every other one", () => {
+    const summaries = listChallenges([fixtureChallenge(), fixtureChallenge(), fixtureChallenge()]);
+
+    expect(summaries).toEqual([
+      { index: 0, number: 1 },
+      { index: 1, number: 2 },
+      { index: 2, number: 3 },
+    ]);
   });
 
   it("summarises nothing for an empty list", () => {

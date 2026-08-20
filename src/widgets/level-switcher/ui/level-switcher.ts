@@ -30,8 +30,8 @@
  * for whatever styling a later CSS pass gives the tile as a whole, and as
  * `entities/challenge-tier`'s own
  * {@link tierBadgeMarkup} badge, for the stars a player actually reads —
- * every open, non-demo challenge tile gets one, dim stars included at zero
- * earned, matching `design/ui-mockup.html`'s `renderTaskMenu`.
+ * every open challenge tile gets one, dim stars included at zero earned,
+ * matching `design/ui-mockup.html`'s `renderTaskMenu`.
  */
 
 import {
@@ -163,7 +163,7 @@ function tileText(tile: LevelMenuTile): string {
       return String(tile.number);
     }
     case "challenge": {
-      return tile.demo ? t("game.challenge.nav.demo") : String(tile.number);
+      return String(tile.number);
     }
     case "sandbox": {
       return t("game.levelSwitcher.sandboxLabel");
@@ -187,9 +187,6 @@ function tileAccessibleName(tile: LevelMenuTile): string {
         : t("game.levelSwitcher.tutorialTileLabel", { number: tile.number });
     }
     case "challenge": {
-      if (tile.demo) {
-        return t("game.challenge.nav.demo");
-      }
       if (tile.locked) {
         return t("game.levelSwitcher.challengeTileLockedLabel", { number: tile.number });
       }
@@ -237,14 +234,21 @@ function tileTemplate(tile: LevelMenuTile): string {
     tile.kind === "challenge" && tile.tier !== undefined
       ? raw(` data-tier="${tile.tier}"`)
       : raw("");
-  const badge = tile.kind === "challenge" && !tile.demo ? raw(tierBadgeMarkup(tile.tier)) : raw("");
+  const badge = tile.kind === "challenge" ? raw(tierBadgeMarkup(tile.tier)) : raw("");
   return markup`<a class="${classes}" href="${tile.href}" aria-label="${name}"${current}${tier}>${text}${badge}</a>`;
 }
 
 /**
- * A block's caption. Reuses the two labels the nav row and the tutorial
- * panel already carry, rather than a third pair of "Levels"/"Tutorial"
- * strings a translator would have to keep in step with those.
+ * A block's caption. The first two reuse the labels the nav row and the
+ * tutorial panel already carry, rather than a second pair of
+ * "Levels"/"Tutorial" strings a translator would have to keep in step with
+ * those.
+ *
+ * The third has a string of its own, and does not reuse the sandbox tile's:
+ * captioning a block with the name of the single tile in it says the same
+ * word twice and promises the block will only ever hold that one thing. It
+ * says "Other" instead — what is left once the lessons and the numbered
+ * levels are accounted for.
  *
  * @param id - Block to caption.
  * @returns Its caption.
@@ -257,8 +261,8 @@ function blockCaption(id: LevelMenuBlock["id"]): string {
     case "challenges": {
       return t("game.challenge.nav.label");
     }
-    case "sandbox": {
-      return t("game.levelSwitcher.sandboxLabel");
+    case "other": {
+      return t("game.levelSwitcher.otherBlockLabel");
     }
   }
 }
