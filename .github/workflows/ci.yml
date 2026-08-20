@@ -16,29 +16,28 @@ permissions:
   contents: read
 
 jobs:
+  # One leg, on the newer LTS line, which is also what `deploy.yml` publishes
+  # the site with and what the `e2e` job below runs: a second leg on 22 doubled
+  # the minutes every push costs to re-answer a question the first one had
+  # already answered, since nothing here is version-specific — the same
+  # TypeScript compiles it, the same Vite builds it, and the only Node feature
+  # the checks lean on is the type stripping the bench step exercises, which
+  # both lines have. `engines` still says `>= 22` and the package still runs
+  # there; what this drops is the standing proof of it, which is the price of
+  # the halved bill.
   check:
-    name: Node ${{ matrix.node }}
+    name: Checks (Node 24)
     runs-on: ubuntu-latest
     timeout-minutes: 15
-
-    strategy:
-      # Report every Node version's failures, not just the first one's.
-      fail-fast: false
-      matrix:
-        # Only the active LTS lines. Odd-numbered Node releases (23, 25, ...)
-        # are "Current" only: they ship for six months and are never promoted
-        # to LTS, so nobody should be running the tooling on them and covering
-        # them would add noise rather than signal. `engines` requires >= 22.
-        node: ["22", "24"]
 
     steps:
       - name: Check out the repository
         uses: actions/checkout@v7
 
-      - name: Set up Node ${{ matrix.node }}
+      - name: Set up Node
         uses: actions/setup-node@v7
         with:
-          node-version: ${{ matrix.node }}
+          node-version: "24"
           cache: npm
 
       - name: Install dependencies
@@ -62,11 +61,10 @@ jobs:
       # Nothing else runs the benchmark as a command. `runBench` is tested with
       # its streams handed to it, so the entry point, the real standard output
       # and the type stripping Node does on a `.ts` file are exercised here or
-      # nowhere — on both LTS lines, because stripping is what running the
-      # command without a build step quietly rests on. The program logs on
-      # purpose: `--json` is only pipeable while a player's own output goes to
-      # standard error, and a test that hands `console` to the code under test
-      # cannot see that contract break.
+      # nowhere — stripping being what running the command without a build step
+      # quietly rests on. The program logs on purpose: `--json` is only pipeable
+      # while a player's own output goes to standard error, and a test that
+      # hands `console` to the code under test cannot see that contract break.
       - name: Score a program from the command line
         run: |
           cat > "$RUNNER_TEMP/program.js" <<'PROGRAM'
@@ -96,9 +94,7 @@ jobs:
             console.log(`Scored ${scored.length} buildings from the command line.`);
           ' "$RUNNER_TEMP/report.json"
 
-      # One leg is enough: the report does not depend on the Node version.
       - name: Upload coverage report
-        if: matrix.node == '22'
         uses: actions/upload-artifact@v7
         with:
           name: coverage
@@ -108,10 +104,7 @@ jobs:
 
   # A job of its own, and deliberately not a dependant of `check`: the two run
   # side by side, so the fast checks report in about a minute whether or not a
-  # browser has to be fetched. One Node version is enough — this asks whether
-  # the built site works in a browser, not whether it builds on both LTS lines,
-  # and `check` already answers the second question. Node 24 is what
-  # `deploy.yml` publishes the site with.
+  # browser has to be fetched.
   e2e:
     name: End-to-end (Chromium)
     runs-on: ubuntu-latest

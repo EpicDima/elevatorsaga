@@ -281,6 +281,13 @@ describe("runFitnessSuite without a worker", () => {
     // buildings and is reproducible in the same way. This pins both the prefix
     // and the count it stops at, which is a deliberate choice rather than a
     // detail.
+    //
+    // Timed out on GitHub at the five-second default, and carries its own for
+    // the same reason the worker case below does: pinning what the fallback
+    // scores means scoring it twice over by hand as well, fifteen simulated
+    // buildings between them. That is 0.3 s uninstrumented and between 1.9 s
+    // and 3.6 s under coverage depending on what shares the machine -- so what
+    // the default was measuring is a runner's spare capacity, not this module.
     const fallback = await runFitnessSuite(DRIVING_PROGRAM, { preferWorker: false });
 
     expect(fallback).toEqual(doFitnessSuite(DRIVING_PROGRAM, fitnessSeeds.slice(0, 2)));
@@ -289,7 +296,7 @@ describe("runFitnessSuite without a worker", () => {
     // shortened to two, and the fallback would silently have become the whole
     // suite -- the one thing it must not be, since it runs on the main thread.
     expect(fitnessSeeds.length).toBeGreaterThan(2);
-  });
+  }, 30_000);
 });
 
 describe("the fitness worker entry point", () => {

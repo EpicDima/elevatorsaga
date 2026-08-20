@@ -87,6 +87,27 @@ const SWEEPING_PROGRAM = `{
 }`;
 
 /**
+ * How long one case that actually scores a program is allowed to take.
+ *
+ * A suite call simulates two hundred seconds of building for each of
+ * {@link fitnessLevels}' three scenarios times every seed it was given, so the
+ * cases below cost anywhere from six of those to thirty-six. Measured alone and
+ * uninstrumented that is a few hundred milliseconds and the five-second default
+ * looks like room to spare, but it is not: coverage multiplies the figure some
+ * fivefold, vitest runs the files in parallel, and a CI runner shares out two
+ * cores. All three at once is what happened -- the widest case here took 674 ms
+ * alone, 8.5 s under coverage in a full run, and timed out on GitHub -- and
+ * what a timeout then reports is a busy machine rather than a benchmark that
+ * has stopped scoring.
+ *
+ * Deliberately far above the worst measurement rather than just clear of it,
+ * for the reason `tutorial-sweep.test.ts`'s sweeps carry the same number: the
+ * figure a timeout has to beat is not how long the work takes but how long
+ * anyone is willing to wait before being told a test has hung.
+ */
+const SUITE_TIMEOUT_MS = 30_000;
+
+/**
  * Reads the averaged runs out of a suite result, failing if it errored.
  *
  * Narrows the union, so a test can index the results without a cast; a suite
@@ -496,50 +517,62 @@ describe("doFitnessSuite", () => {
     });
   });
 
-  it("scores the same program the same way twice", () => {
-    // The whole point of naming the seeds. Unseeded, the benchmark handed back
-    // different numbers for the same program on every invocation, so a change
-    // that made a program better and a change that made it luckier looked
-    // exactly alike.
-    const first = doFitnessSuite(SWEEPING_PROGRAM, [101, 102]);
-    const second = doFitnessSuite(SWEEPING_PROGRAM, [101, 102]);
+  it(
+    "scores the same program the same way twice",
+    () => {
+      // The whole point of naming the seeds. Unseeded, the benchmark handed back
+      // different numbers for the same program on every invocation, so a change
+      // that made a program better and a change that made it luckier looked
+      // exactly alike.
+      const first = doFitnessSuite(SWEEPING_PROGRAM, [101, 102]);
+      const second = doFitnessSuite(SWEEPING_PROGRAM, [101, 102]);
 
-    expect(expectRuns(first)[0]?.result["avgWaitTime"]).toBeGreaterThan(0);
-    expect(second).toEqual(first);
-  });
+      expect(expectRuns(first)[0]?.result["avgWaitTime"]).toBeGreaterThan(0);
+      expect(second).toEqual(first);
+    },
+    SUITE_TIMEOUT_MS,
+  );
 
-  it("scores it differently on different buildings", () => {
-    // The other half of the same claim: the numbers follow the seed list, so
-    // they are reproducible because the buildings are pinned and not because
-    // the benchmark has stopped being sensitive to which buildings it ran.
-    const first = doFitnessSuite(SWEEPING_PROGRAM, [101]);
-    const other = doFitnessSuite(SWEEPING_PROGRAM, [202]);
+  it(
+    "scores it differently on different buildings",
+    () => {
+      // The other half of the same claim: the numbers follow the seed list, so
+      // they are reproducible because the buildings are pinned and not because
+      // the benchmark has stopped being sensitive to which buildings it ran.
+      const first = doFitnessSuite(SWEEPING_PROGRAM, [101]);
+      const other = doFitnessSuite(SWEEPING_PROGRAM, [202]);
 
-    expect(other).not.toEqual(first);
-  });
+      expect(other).not.toEqual(first);
+    },
+    SUITE_TIMEOUT_MS,
+  );
 
-  it("averages over every seed rather than reporting the last one", () => {
-    // A list of two, scored one at a time and then together: every averaged
-    // property of the pair has to be the mean of the two singles. Reporting
-    // only the last run -- the shape of mistake this guards against -- would
-    // equal the second and differ from the first, and both are checked here.
-    const first = expectRuns(doFitnessSuite(SWEEPING_PROGRAM, [101]));
-    const second = expectRuns(doFitnessSuite(SWEEPING_PROGRAM, [202]));
-    const both = expectRuns(doFitnessSuite(SWEEPING_PROGRAM, [101, 202]));
+  it(
+    "averages over every seed rather than reporting the last one",
+    () => {
+      // A list of two, scored one at a time and then together: every averaged
+      // property of the pair has to be the mean of the two singles. Reporting
+      // only the last run -- the shape of mistake this guards against -- would
+      // equal the second and differ from the first, and both are checked here.
+      const first = expectRuns(doFitnessSuite(SWEEPING_PROGRAM, [101]));
+      const second = expectRuns(doFitnessSuite(SWEEPING_PROGRAM, [202]));
+      const both = expectRuns(doFitnessSuite(SWEEPING_PROGRAM, [101, 202]));
 
-    expect(both).toHaveLength(fitnessLevels().length);
-    for (const [index, run] of both.entries()) {
-      const firstResult = at(first, index).result;
-      const secondResult = at(second, index).result;
-      expect(run.options.description).toBe(at(first, index).options.description);
-      for (const [property, value] of Object.entries(run.result)) {
-        const mean = (propertyOf(firstResult, property) + propertyOf(secondResult, property)) / 2;
-        expect(value).toBeCloseTo(mean, 12);
+      expect(both).toHaveLength(fitnessLevels().length);
+      for (const [index, run] of both.entries()) {
+        const firstResult = at(first, index).result;
+        const secondResult = at(second, index).result;
+        expect(run.options.description).toBe(at(first, index).options.description);
+        for (const [property, value] of Object.entries(run.result)) {
+          const mean = (propertyOf(firstResult, property) + propertyOf(secondResult, property)) / 2;
+          expect(value).toBeCloseTo(mean, 12);
+        }
+        expect(run.result).not.toEqual(secondResult);
+        expect(run.result).not.toEqual(firstResult);
       }
-      expect(run.result).not.toEqual(secondResult);
-      expect(run.result).not.toEqual(firstResult);
-    }
-  });
+    },
+    SUITE_TIMEOUT_MS,
+  );
 
   it("rejects an empty seed list instead of reporting an empty score", () => {
     // There is nothing to average over no runs, and the honest answers are a
@@ -551,12 +584,20 @@ describe("doFitnessSuite", () => {
     expect(() => doFitnessSuite(SWEEPING_PROGRAM, [])).toThrow(RangeError);
   });
 
-  it("runs the shipped seed list when it is given none", () => {
-    // The path the worker takes: it posts nothing but the player's source, so
-    // whether the report a player sees is reproducible rests entirely on the
-    // default being the constant everyone can read.
-    const shipped = doFitnessSuite(SWEEPING_PROGRAM, [...fitnessSeeds]);
+  it(
+    "runs the shipped seed list when it is given none",
+    () => {
+      // The path the worker takes: it posts nothing but the player's source, so
+      // whether the report a player sees is reproducible rests entirely on the
+      // default being the constant everyone can read.
+      //
+      // The widest case in the file: the six shipped seeds scored twice over,
+      // which is thirty-six simulated buildings against the six or twelve the
+      // cases above it settle for.
+      const shipped = doFitnessSuite(SWEEPING_PROGRAM, [...fitnessSeeds]);
 
-    expect(doFitnessSuite(SWEEPING_PROGRAM)).toEqual(shipped);
-  });
+      expect(doFitnessSuite(SWEEPING_PROGRAM)).toEqual(shipped);
+    },
+    SUITE_TIMEOUT_MS,
+  );
 });
