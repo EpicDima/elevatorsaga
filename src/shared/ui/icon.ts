@@ -225,11 +225,10 @@ export const SPRITE_ICONS = {
       },
     ],
   },
-  // The mockup's own copy-link glyph, `#seedCopy`. Kept alongside `dice` even
-  // though `features/manage-seed` does not wire either affordance up — see
-  // that slice's module comment for why: the mockup's own `#seedCopy` has no
-  // click handler anywhere in its script, and there is no arbitrary-seed
-  // text field in production to reroll in the first place.
+  // The mockup's own copy-link glyph, `#seedCopy`. `features/manage-seed`
+  // draws it on the seed row's link while the run is unpinned: pinning this
+  // draw into the address bar is the same gesture under another name, and the
+  // link is a real one where the mockup's button has no handler at all.
   copy: {
     viewBox: "0 0 16 16",
     shapes: [
@@ -279,11 +278,10 @@ export const SPRITE_ICONS = {
       },
     ],
   },
-  // The seed block's reroll glyph, `#seedRoll`. Kept alongside `copy` even
-  // though `features/manage-seed` does not wire either affordance up — see
-  // that slice's module comment for why: production has no arbitrary-seed
-  // text input to reroll in the first place, only the URL-driven seed the
-  // mockup's own `#seedVal` field has no real equivalent for.
+  // The seed block's reroll glyph, `#seedRoll`. `features/manage-seed` draws
+  // it on the seed row's link once the run is pinned: throwing this draw away
+  // and starting again without it is the reroll production actually has, in
+  // place of the mockup's demo pick out of a fixed word list.
   dice: {
     viewBox: "0 0 16 16",
     shapes: [

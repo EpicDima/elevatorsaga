@@ -202,18 +202,18 @@ export async function openSettingsMenu(page: Page): Promise<void> {
 /**
  * The current run's seed, as shown in the app bar's settings popover.
  *
- * A pinned run's seed is a link (`a.seedlink`); an unpinned one's is plain
- * text beside the link that offers to pin it (`.seedvalue`) — see
- * `seedPanelTemplate`'s own module comment. Only one of the two is ever in
- * the document at once, so matching both is unambiguous rather than a guess
- * at which one a given run drew.
+ * The seed itself is never the control: it sits in the row's own box
+ * (`.seedvalue`) whether or not the run is pinned, and the one link beside it
+ * is an icon carrying no text at all — see `seedPanelTemplate`'s module
+ * comment. So there is exactly one place in the document the seed is written,
+ * and this is it.
  *
  * @param page - The page under test.
- * @returns The seed's own text, wherever it lives.
+ * @returns The seed's own text.
  */
 export async function seedText(page: Page): Promise<Locator> {
   await openSettingsMenu(page);
-  return page.locator(".setmenu .seedvalue, .setmenu a.seedlink");
+  return page.locator(".setmenu .seedvalue");
 }
 
 /**

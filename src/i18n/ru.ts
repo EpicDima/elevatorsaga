@@ -231,7 +231,6 @@ export const RU_MESSAGES: MessageCatalogue<"ru"> = {
   "game.editorPane.gotoLine": "строка {line} →",
   "game.seed.label": "Сид",
   "game.seed.link": "Сид {seed}: начать ещё один прогон с этим сидом",
-  "game.seed.newDraw": "новый сид",
   "game.seed.newDrawLink": "Сид {seed}: новый сид, начать заново без прежнего",
   "game.seed.helpSummary": "что задаёт сид",
   "game.seed.explanation":

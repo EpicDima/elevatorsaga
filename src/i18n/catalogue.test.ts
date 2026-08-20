@@ -168,44 +168,6 @@ describe("catalogue markup", () => {
   });
 });
 
-describe("accessible names", () => {
-  /**
-   * Controls whose visible text and accessible name are different messages, as
-   * `[visible, name]`. A control that shows one thing and announces another has
-   * to announce a superset: WCAG 2.5.3 asks it so that someone driving the page
-   * by voice can say the words they can see and have the control respond.
-   *
-   * The pairs are written out here rather than derived from a key suffix because
-   * the relationship is a fact about the markup, not about the catalogue, and the
-   * markup is where it would be broken. A new pair added to a template and not
-   * added here is the gap this test cannot close; a `.name` suffix convention
-   * would close it, and is worth doing if a third pair ever appears.
-   */
-  const PAIRS: readonly (readonly [string, string])[] = [
-    ["game.seed.newDraw", "game.seed.newDrawLink"],
-  ];
-
-  it("says the visible words inside the spoken ones, in every locale", () => {
-    // A translator has no way to see the constraint at all: the two messages sit
-    // on adjacent lines of a catalogue of several hundred keys and nothing marks
-    // them as a pair, so it
-    // holds only as long as whoever edits one thinks to edit the other. Rewording
-    // «новый розыгрыш» to «новый сид» meant changing both, which is exactly the
-    // edit where one gets missed.
-    for (const locale of LOCALES) {
-      for (const [visibleKey, nameKey] of PAIRS) {
-        const visible = forms(entry(locale, visibleKey));
-        const name = forms(entry(locale, nameKey));
-        for (const label of visible) {
-          for (const spoken of name) {
-            expect(spoken, `${locale}: ${nameKey} does not contain ${visibleKey}`).toContain(label);
-          }
-        }
-      }
-    }
-  });
-});
-
 describe("example code", () => {
   it("is the same code in every locale, with its comments in the same places", () => {
     // The rule the translation follows: prose is translated, code never is. An

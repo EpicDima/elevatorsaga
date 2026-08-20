@@ -4,9 +4,27 @@ import { describe, expect, it } from "vitest";
 
 import { seedPanelTemplate } from "./seed-panel.ts";
 import type { SeedLinkData } from "../../../ui/templates.ts";
+import { spriteIconMarkup } from "#shared/ui/icon.ts";
 import { renderElement } from "#shared/ui/markup.ts";
 
 describe("seedPanelTemplate", () => {
+  /**
+   * A sprite as the document serialises it.
+   *
+   * `spriteIconMarkup` writes XML-style self-closing tags (`<rect …/>`), which
+   * the HTML parser reads as open tags and writes back out with a close tag of
+   * their own. Comparing the rendered link against the rendered sprite rather
+   * than against the string keeps the two on the same side of that.
+   *
+   * @param name - The sprite to draw.
+   * @returns Its markup, round-tripped through the document.
+   */
+  function iconHtml(name: "copy" | "dice"): string {
+    const host = document.createElement("div");
+    host.innerHTML = spriteIconMarkup(name);
+    return host.innerHTML;
+  }
+
   /** A run nobody pinned, and the URL that starts another run from its seed. */
   const SEED: SeedLinkData = {
     seed: "1234567890",
@@ -33,18 +51,29 @@ describe("seedPanelTemplate", () => {
     expect(block.querySelector(".cap")?.textContent).toBe("Seed");
   });
 
+  it("shows the seed itself in the row's box, pinned or not", () => {
+    // The mockup's `#seedVal` field, with the caret taken out: the seed is a
+    // token to transcribe, and nothing in this build reads one back. Following
+    // the seed itself would be worse than useless in the pinned state -- the
+    // URL it would carry is the one the player is already on -- which is why
+    // this is a `<span>` in both states rather than a link in one of them.
+    for (const data of [SEED, PINNED_SEED]) {
+      const value = renderElement(seedPanelTemplate(data)).querySelector(".seedrow > .val");
+
+      expect(value?.tagName).toBe("SPAN");
+      expect(value?.classList.contains("seedvalue")).toBe(true);
+      expect(value?.textContent).toBe("1234567890");
+    }
+  });
+
   it("offers to pin an unpinned run's seed", () => {
     const block = renderElement(seedPanelTemplate(SEED));
     const seedLink = block.querySelector("a.seedlink");
 
-    expect(seedLink?.textContent).toBe("1234567890");
     expect(seedLink?.getAttribute("href")).toBe("#challenge=1,seed=1234567890");
-    expect(seedLink?.getAttribute("aria-label")).toBe(
-      "Seed 1234567890: start another run from this seed",
-    );
-    // WCAG 2.5.3: whatever is on screen has to be part of the spoken name.
-    expect(seedLink?.getAttribute("aria-label")).toContain(seedLink?.textContent);
-    expect(block.querySelector(".seedvalue")).toBeNull();
+    // The mockup's `#seedCopy`, glyph and all: pinning a draw into the address
+    // bar is the same gesture its copy button offers.
+    expect(seedLink?.innerHTML).toBe(iconHtml("copy"));
     expect(block.querySelector("a.seednewdraw")).toBeNull();
   });
 
@@ -52,17 +81,31 @@ describe("seedPanelTemplate", () => {
     const block = renderElement(seedPanelTemplate(PINNED_SEED));
     const newDraw = block.querySelector("a.seednewdraw");
 
-    expect(block.querySelector(".seedvalue")?.textContent).toBe("1234567890");
-    expect(newDraw?.textContent).toBe("new draw");
     expect(newDraw?.getAttribute("href")).toBe("#challenge=1");
-    expect(newDraw?.getAttribute("aria-label")).toBe(
-      "Seed 1234567890: new draw, start again without it",
-    );
-    expect(newDraw?.getAttribute("aria-label")).toContain(newDraw?.textContent);
-    // Following the seed itself would go where the player already is: no
-    // hashchange, no restart, nothing at all -- while its name promises
-    // another run.
+    // The mockup's `#seedRoll`: throwing this draw away and starting again is
+    // the same gesture its dice button offers.
+    expect(newDraw?.innerHTML).toBe(iconHtml("dice"));
     expect(block.querySelector("a.seedlink")).toBeNull();
+  });
+
+  it("names the icon it draws, for a screen reader and for a pointer alike", () => {
+    // Nothing but the glyph is on screen, so the name is the whole of what
+    // either kind of visitor is given -- and it has to say which seed as well
+    // as which gesture, because the glyph says neither. WCAG 2.5.3 has nothing
+    // to hold these against: it constrains a name against *visible* text.
+    const names: readonly (readonly [SeedLinkData, string, string])[] = [
+      [SEED, "a.seedlink", "Seed 1234567890: start another run from this seed"],
+      [PINNED_SEED, "a.seednewdraw", "Seed 1234567890: new draw, start again without it"],
+    ];
+
+    for (const [data, selector, name] of names) {
+      const action = renderElement(seedPanelTemplate(data)).querySelector(selector);
+
+      expect(action?.textContent).toBe("");
+      expect(action?.getAttribute("aria-label")).toBe(name);
+      expect(action?.getAttribute("title")).toBe(name);
+      expect(action?.querySelector("svg")?.getAttribute("aria-hidden")).toBe("true");
+    }
   });
 
   it("carries the same help disclosure the challenge bar's seed line does", () => {
@@ -70,6 +113,10 @@ describe("seedPanelTemplate", () => {
 
     expect(help?.tagName).toBe("DETAILS");
     expect(help?.querySelector("summary")?.textContent).toBe("what a seed does");
+    // Dressed as the mockup's one-line `.sethint` under the row, since that is
+    // the line it stands in for -- `src/styles/style.css` takes the disclosure
+    // triangle off it there.
+    expect(help?.querySelector("summary")?.className).toBe("sethint");
     expect(help?.querySelector(".seedcaveat")?.textContent).toContain("The same seed brings");
     // Closed to begin with, the same reason the challenge bar's own copy is:
     // a player who has read it once does not need it open for the rest of

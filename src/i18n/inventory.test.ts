@@ -293,11 +293,6 @@ const PRINTED_COUNTS: readonly PrintedCount[] = [
     expected: KEYS.length,
   },
   {
-    what: "the catalogue size, in the note on `game.seed.newDraw`",
-    pattern: /a (\d+)-key file/g,
-    expected: KEYS.length,
-  },
-  {
     what: "the learning track's per-task keys, where the panel is described",
     pattern: /— (\d+) in all/g,
     expected: TASK_KEYS.size,

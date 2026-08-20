@@ -101,7 +101,8 @@ describe("appBarSettingsTemplate", () => {
     const parent = document.createElement("div");
     parent.innerHTML = appBarSettingsTemplate(SEED);
 
-    expect(parent.querySelector("a.seedlink")?.textContent).toBe("1234567890");
+    expect(parent.querySelector(".seedrow > .seedvalue")?.textContent).toBe("1234567890");
+    expect(parent.querySelector("a.seedlink")).not.toBeNull();
   });
 
   it("draws the hotkeys opener with a trailing chevron, matching the mockup's own #i-right sprite", () => {
@@ -258,7 +259,7 @@ describe("presentAppBarSettings", () => {
       controller.setSeed(SEED);
 
       const seedBlock = requireElement('[data-set-block="seed"]', parent);
-      expect(seedBlock.querySelector("a.seedlink")?.textContent).toBe("1234567890");
+      expect(seedBlock.querySelector(".seedrow > .seedvalue")?.textContent).toBe("1234567890");
     });
 
     it("clears the seed block once the run it described is gone", () => {

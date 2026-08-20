@@ -1375,7 +1375,10 @@ html[data-theme="dark"] .tasklink.is-done {
 
 /*
  * The line under a block that explains it -- `design/ui-mockup.html`'s own
- * `.sethint` (§A). Its one user today is the About block's copyright notice.
+ * `.sethint` (§A): the About block's copyright notice, and the `<summary>` of
+ * the seed block's disclosure, which `features/manage-seed` marks with this
+ * class rather than restating its type. See that slice for why the seed's
+ * hint is a disclosure at all where the mockup has a plain `<p>`.
  *
  * `--ds-text-muted` where the mockup writes `--text-faint`, for the reason
  * `.setblock .cap` above gives and against the same `--ds-panel`: 3.62:1
@@ -1506,6 +1509,101 @@ html[data-theme="dark"] .tasklink.is-done {
 
 .setblock .langpick {
   width: 100%;
+}
+
+/*
+ * The seed block's own row: `design/ui-mockup.html`'s `.seedrow` (§A) -- the
+ * run's seed in a box, with the one thing a player can do about it beside
+ * it. `features/manage-seed`'s own module comment holds the full account of
+ * how the mockup's three controls became these two; the short of it is that
+ * production has no arbitrary-seed field, so the mockup's editable
+ * `#seedVal` is a `<span>` here, and its `#seedRoll`/`#seedCopy` pair is one
+ * icon button at a time, because a run is either pinned or it is not.
+ */
+.seedrow {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+/*
+ * The box the seed is read out of. Three departures from the mockup's own
+ * `.val`, all of them the same departure: it is a `<span>`, not an `<input>`.
+ *
+ * `display: flex` with `align-items: center` is the centring a text field
+ * got from the engine for nothing. `min-block-size` replaces its `height`,
+ * and `overflow-wrap` comes along, because a seed is whatever string the URL
+ * carries -- `#seed=` accepts a sentence or a 64-character hash, not just
+ * the ten digits this game draws -- and one unbreakable token that long is
+ * 548px of monospace trying to fit a 292px popover. An input scrolls its own
+ * overflow; a span pushes the page sideways instead, which is what WCAG
+ * 1.4.10 is about, so the box grows downward and the seed wraps inside it.
+ * And the mockup's `.val:focus` border is not ported at all: there is
+ * nothing here to type, so there is nothing here to focus.
+ *
+ * `--ds-font-mono` is the point of the box. A seed gets transcribed
+ * character by character, and the monospace face is what tells a 1 from an l
+ * and a 0 from an O.
+ */
+.seedrow .val {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  min-height: 30px;
+  padding: 4px 8px;
+  align-items: center;
+  border: 1px solid var(--ds-line-strong);
+  border-radius: var(--ds-r-md);
+  background: var(--ds-bg);
+  font-family: var(--ds-font-mono);
+  font-size: 12.5px;
+  color: var(--ds-text);
+  overflow-wrap: anywhere;
+}
+
+/*
+ * The row's one button, at the mockup's own 30x30 square with a border the
+ * plain `.ghost` (Button chrome, below) does not carry: a lone glyph beside
+ * a boxed value needs an edge of its own to read as a control at all.
+ */
+.seedrow .ghost {
+  inline-size: 30px;
+  block-size: 30px;
+  justify-content: center;
+  padding-inline: 0;
+  border: 1px solid var(--ds-line);
+}
+
+/*
+ * The mockup's hint under this row is a plain `<p class="sethint">`; ours is
+ * the `<summary>` of the `<details>` that holds the longer explanation
+ * production has instead, wearing the same class -- see
+ * `features/manage-seed` for why the disclosure stays. All that is left to
+ * do here is take off the marker: a UA disclosure triangle is the one list
+ * marker anywhere in this panel, and it is what made the line read as raw
+ * machinery rather than as the hint it is. Suppressed in both spellings a
+ * browser might still want, the same pair `.api > summary` (Hotkeys and docs
+ * dialogs, below) uses.
+ */
+.setblock .seedhelp > summary {
+  list-style: none;
+}
+
+.setblock .seedhelp > summary::-webkit-details-marker {
+  display: none;
+}
+
+/*
+ * `widgets/app-bar` leaves a wrapper around the seed block so it has
+ * something to redraw into when a run's seed changes, and
+ * `seedPanelTemplate` renders nothing at all for a learning-track task,
+ * which has no pass/fail run to name a seed for. An empty flex item is still
+ * a flex item: without this, those tasks' popovers carry `.setmenu`'s 14px
+ * gap twice over between the language block and the hotkeys row, for a block
+ * that is not there.
+ */
+.setmenu > [data-set-block="seed"]:empty {
+  display: none;
 }
 
 /*
@@ -2405,43 +2503,6 @@ html[data-theme="dark"] .tasklink.is-done {
 
 .tierneed.is-miss .tierbar i {
   background: var(--ds-bad);
-}
-
-/*
- * The seed itself, which is the part that has to be read character by character.
- * The monospace face is what tells a 1 from an l and a 0 from an O -- and it is
- * on the seed whether or not it is a link, since a pinned run's seed is plain
- * text and gets transcribed just the same.
- *
- * A seed is whatever string the URL carries, not just the ten digits this game
- * draws: `#seed=` accepts anything, and a shared link can hold a sentence run
- * together or a 64-character hash. One unbreakable token that long is 548px of
- * monospace, which pushed a 320px screen 228px sideways -- the whole page, not
- * just the seed (WCAG 1.4.10). `anywhere` rather than `break-word` because only
- * `anywhere` counts in the minimum size of a flex item, which is exactly the
- * measurement the line is laid out by; and rather than `break-all`, which would
- * split the ordinary ten-digit seed for no reason at all.
- *
- * In practice the wrapping is `.seedvalue`'s to need: a seed long enough to
- * matter arrives from the URL, and a seed from the URL is a pinned one, which is
- * the state where it is text rather than a link. Both are named because the two
- * are the same characters in the same place and only ever swap over, and a rule
- * that covered one of them would be read as a claim that the other cannot.
- */
-.seedlink,
-.seedvalue {
-  font-family: var(--font-mono);
-  overflow-wrap: anywhere;
-}
-
-/*
- * Underlining marks the line's link as a link without borrowing the row's
- * chrome, whichever of the two it is.
- */
-.seedlink,
-.seednewdraw {
-  text-decoration: underline;
-  text-underline-offset: 2px;
 }
 
 /*

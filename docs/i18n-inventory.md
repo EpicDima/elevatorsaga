@@ -17,7 +17,7 @@ git show a5010f2:docs/i18n-inventory.md |
   while IFS=: read -r file line; do
     [ "$(git show "a5010f2:$file" | sed -n "${line}p")" = \
       "$(git show "HEAD:$file" | sed -n "${line}p")" ] && echo same || echo moved
-  done | sort | uniq -c                                          # 466 moved, 129 same
+  done | sort | uniq -c                                          # 465 moved, 129 same
 ```
 
 Two of the 95 show the range. `src/app/app.ts:207` was the `World raised code error` console
@@ -104,14 +104,14 @@ Key names carry two suffixes that mean something:
 
 ## Where the strings are
 
-The catalogue holds **466 keys** in two locales. `src/i18n/en.ts` is the reference — its text is
+The catalogue holds **465 keys** in two locales. `src/i18n/en.ts` is the reference — its text is
 the English wording, extracted verbatim — and `src/i18n/ru.ts` is the Russian translation. The
 types make English the shape everything else is measured against: a Russian catalogue missing a
 key, carrying a key English does not have, or giving a plural message the wrong number of forms
 is a compile error, not a runtime surprise.
 
 ```sh
-grep -cE '^  "[^"]+":' src/i18n/en.ts                                   # 466
+grep -cE '^  "[^"]+":' src/i18n/en.ts                                   # 465
 grep -oE '^  "[^"]+"' src/i18n/en.ts | tr -d '"' | cut -d. -f1 | sort | uniq -c | sort -rn
 ```
 
@@ -119,14 +119,14 @@ grep -oE '^  "[^"]+"' src/i18n/en.ts | tr -d '"' | cut -d. -f1 | sort | uniq -c 
 | -------------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `docs.*`       | 85      | one of them, `docs.basics.example.code`, by `src/ui/completions.ts`; the other 84 by nothing                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
 | `tutorial.*`   | 82      | `src/widgets/tutorial-panel/ui/tutorial-panel.ts`, `src/ui/templates.ts`, `src/pages/game/index.ts`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
-| `game.*`       | 196     | `src/ui/templates.ts` (18), `src/pages/game/index.ts` (11 + 5), `src/widgets/goal-bar/ui/goal-bar.ts` (22), `src/widgets/level-switcher/ui/level-switcher.ts` (6), `src/widgets/building-stage/lib/hover-card-text.ts` (15), `src/widgets/stats-panel/ui/stats-panel.ts` (3), `src/widgets/editor-pane/ui/editor-pane.ts` (3), `src/features/switch-theme` (4), `src/features/switch-layout` (5), `src/widgets/app-bar/ui/settings-menu.ts` (7), `src/main.ts` (3, the workspace pane/splitter labels); the two speed labels are written by both of the first two; the other 91, under `game.hotkeys.*`, `game.docs.*` and `game.apiRef.*`, by none of them yet — see below |
+| `game.*`       | 195     | `src/ui/templates.ts` (18), `src/pages/game/index.ts` (11 + 5), `src/widgets/goal-bar/ui/goal-bar.ts` (22), `src/widgets/level-switcher/ui/level-switcher.ts` (6), `src/widgets/building-stage/lib/hover-card-text.ts` (15), `src/widgets/stats-panel/ui/stats-panel.ts` (3), `src/widgets/editor-pane/ui/editor-pane.ts` (3), `src/features/switch-theme` (4), `src/features/switch-layout` (5), `src/widgets/app-bar/ui/settings-menu.ts` (7), `src/main.ts` (3, the workspace pane/splitter labels); the two speed labels are written by both of the first two; the other 91, under `game.hotkeys.*`, `game.docs.*` and `game.apiRef.*`, by none of them yet — see below |
 | `page.*`       | 26      | `index.html`, through `data-i18n` and `data-i18n-attr`; `page.noscript` excepted, see below                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 | `completion.*` | 33      | `src/ui/completions.ts`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
 | `challenge.*`  | 15      | `src/game/challenges.ts`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
 | `fitness.*`    | 11      | `src/app/fitness.ts`, `src/game/fitness.ts`, `src/main.ts`, `src/cli/bench.ts`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
 | `error.*`      | 10      | `src/game/elevator-interface.ts`, `src/pages/game/index.ts`, `src/game/user-code.ts`, `src/game/movable.ts`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 | `editor.*`     | 8       | `src/main.ts`, `src/pages/game/index.ts`, `src/ui/editor.ts`, `src/ui/default-code.ts`, `src/widgets/editor-pane/ui/editor-pane.ts`, `src/features/manage-code-slots/ui/code-slots.ts`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
-| **Total**      | **466** |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| **Total**      | **465** |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
 
 Which keys nothing reads:
 
@@ -404,7 +404,6 @@ interpolations, so a plain key is interpolated directly and an `.html` key goes 
 | `game.challenge.nav.demo`   | Demo                                                                                                           | both the visible label and the accessible name of the endless-demo entry                                     |
 | `game.seed.label`           | Seed                                                                                                           | the word before the number, not a control                                                                    |
 | `game.seed.link`            | Seed {seed}: start another run from this seed                                                                  | takes `{seed}`; accessible name of the seed when the URL does not pin it                                     |
-| `game.seed.newDraw`         | new draw                                                                                                       | visible label, repeated inside `game.seed.newDrawLink` — WCAG 2.5.3 requires that they match                 |
 | `game.seed.newDrawLink`     | Seed {seed}: new draw, start again without it                                                                  | takes `{seed}`; accessible name of the control that unpins                                                   |
 | `game.seed.helpSummary`     | what a seed does                                                                                               | the `<summary>` of the caveat disclosure                                                                     |
 | `game.seed.explanation`     | The same seed brings the same passengers, in the same order. Frame timing comes from the browser, so the run … | a paragraph inside the disclosure, not a tooltip — it used to be a `title` attribute                         |
@@ -417,11 +416,12 @@ the token a player transcribes in order to hand a building to somebody else, so 
 identically in every locale. Both names repeat it because an accessible name has to stand on its
 own — "1234567890, link" describes nothing.
 
-`game.seed.newDraw` appearing inside `game.seed.newDrawLink` is a constraint a translator cannot
-see: the two sit on adjacent lines of a 466-key file and nothing in the file marks them as a
-pair. `src/i18n/catalogue.test.ts`, under _accessible names_, is what holds it — it requires the
-spoken name to contain the visible label in every locale. Rewording «новый розыгрыш» to «новый
-сид» meant changing both, which is exactly the edit where one gets missed.
+Neither name is held against visible text any more, because neither control has any. The settings
+popover draws the seed row's one action as an icon-only link — `copy` while the run is unpinned,
+`dice` once it is — so these two messages are the whole of what a screen reader is handed. That
+retired the key that carried "new draw", the words that used to be the second one's visible label,
+and with it the pair check `src/i18n/catalogue.test.ts` kept under _accessible names_: WCAG 2.5.3
+constrains a name against visible text, and this row has none left to constrain it against.
 
 The seed explanation used to be a module constant, `SEED_EXPLANATION`. It is now
 `t("game.seed.explanation")` inside `seedHelpTemplate`, which runs per render — which is the
@@ -983,7 +983,7 @@ why `exact` asks for `maximumFractionDigits` rather than for significant digits:
 
 ```sh
 node -e 'const f = new Intl.NumberFormat("en");
-  console.log(f.resolvedOptions().maximumFractionDigits, f.format(0.0625))'   # 466 0.063
+  console.log(f.resolvedOptions().maximumFractionDigits, f.format(0.0625))'   # 465 0.063
 ```
 
 ### `src/ui/completions.ts` — 33 `completion.*` keys
@@ -1073,7 +1073,7 @@ either. CLDR's narrow unit pattern for Russian carries an ordinary space, and `f
 ```sh
 node -e 'const s = new Intl.NumberFormat("ru",
     { style: "unit", unit: "second", unitDisplay: "narrow" }).format(60);
-  console.log([...s].map((c) => c.codePointAt(0).toString(16)).join(" "))'   # 466 30 20 441
+  console.log([...s].map((c) => c.codePointAt(0).toString(16)).join(" "))'   # 465 30 20 441
 ```
 
 ### `src/game/user-code.ts`, `src/game/elevator-interface.ts`, `src/game/movable.ts` — 7 `error.*` keys

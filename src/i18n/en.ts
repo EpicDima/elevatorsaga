@@ -185,13 +185,13 @@ export const EN_MESSAGES = {
   // a placeholder rather than part of the sentence — it is the token a player
   // transcribes, and it must read the same in every language.
   //
-  // Both accessible names repeat the seed, because a name has to stand on its
-  // own (WCAG 2.5.3) and "1234567890, link" describes nothing. `newDraw` is the
-  // one string that is both the visible label and part of its own name, so a
-  // translation has to keep the two saying the same words.
+  // `link` and `newDrawLink` name the row's one icon button, on `aria-label`
+  // and on `title` both, and that glyph is all there is to go on: nothing about
+  // it says which of the two gestures it carries, or which seed it carries it
+  // for. So each names the seed as well as the gesture — a name has to stand on
+  // its own, and "1234567890, link" describes nothing.
   "game.seed.label": "Seed",
   "game.seed.link": "Seed {seed}: start another run from this seed",
-  "game.seed.newDraw": "new draw",
   "game.seed.newDrawLink": "Seed {seed}: new draw, start again without it",
   "game.seed.helpSummary": "what a seed does",
   "game.seed.explanation":

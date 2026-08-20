@@ -25,7 +25,14 @@ import { openSettingsMenu, speedValue } from "./game-page.ts";
  */
 const SEED_LINK = ".setmenu .seedlink";
 
-/** The seed shown in the settings popover once the URL pins it, as plain text. */
+/**
+ * The seed itself, in the row's own box.
+ *
+ * Always present and never a control: the block draws the seed as a `<span>`
+ * whether or not the run is pinned, and puts the one gesture it offers on the
+ * icon link beside it. So this, and not either link, is where the seed is
+ * written -- the two links carry no text at all.
+ */
 const SEED_VALUE = ".setmenu .seedvalue";
 
 /** The way back out of a pinned run. */
@@ -44,7 +51,7 @@ test("pins the run a player is looking at, and replays it on reload", async ({ p
 
   const seedLink = page.locator(SEED_LINK);
   await expect(seedLink).toBeVisible();
-  const seed = (await seedLink.innerText()).trim();
+  const seed = (await page.locator(SEED_VALUE).innerText()).trim();
   expect(seed).not.toBe("");
 
   // The link carries the rest of the URL, so pinning the seed does not throw
@@ -87,7 +94,7 @@ test("lets a pinned run go back to a fresh draw, and back again", async ({ page 
   await expect(speedValue(page)).toHaveText("8x");
   // The panel already shows the fresh draw the click just navigated to --
   // see the note on `App.onSeedChange` in the test above.
-  const drawn = await page.locator(SEED_LINK).innerText();
+  const drawn = await page.locator(SEED_VALUE).innerText();
   expect(drawn).not.toBe("issue-61");
 
   // And the browser's own way back reaches the pinned run again, because
@@ -248,10 +255,10 @@ test("keeps every word of the seed line readable, in both of its states", async 
       const panel = luminance(getComputedStyle(setmenu).backgroundColor);
       // The seed block is one `.setblock` among several the settings popover
       // holds (theme, layout, language, seed, hotkeys, about); found by the
-      // one child every other `.setblock` lacks, rather than by position,
-      // which `appBarSettingsTemplate` makes no promise about.
-      const anchor = document.querySelector(".setmenu .seedlink, .setmenu .seedvalue");
-      const line = anchor?.closest(".setblock") ?? null;
+      // one child every other `.setblock` lacks -- and the one this block has
+      // in either state -- rather than by position, which
+      // `appBarSettingsTemplate` makes no promise about.
+      const line = document.querySelector(".setmenu .seedvalue")?.closest(".setblock") ?? null;
       const measured: Record<string, number> = {};
       for (const selector of [
         ".cap",
@@ -272,7 +279,10 @@ test("keeps every word of the seed line readable, in both of its states", async 
       return measured;
     });
 
-  // Unpinned: the seed is a link, the caption and the disclosure are not.
+  // Unpinned: the row offers `.seedlink`. Both links are icons now, so 4.5:1
+  // is stricter than WCAG asks of them -- 1.4.11 wants 3:1 of a glyph -- but
+  // they inherit `.ghost`'s own text colour and there is no reason to hold
+  // them to less than the words beside them.
   await page.goto("/#challenge=4");
   await openSettingsMenu(page);
   await page.locator(HELP_SUMMARY).click();
@@ -282,7 +292,8 @@ test("keeps every word of the seed line readable, in both of its states", async 
     expect(ratio, selector).toBeGreaterThanOrEqual(4.5);
   }
 
-  // Pinned: the same characters, now plain text, which is the state that failed.
+  // Pinned: `.seednewdraw` in the link's place, and the same `.seedvalue`
+  // characters -- plain text in both states, which is the state that failed.
   await page.goto("/#challenge=4,seed=issue-61");
   await openSettingsMenu(page);
   await page.locator(HELP_SUMMARY).click();
@@ -299,12 +310,12 @@ test("gives an unpinned run a fresh building on every reload", async ({ page }) 
   // editing the address bar.
   await page.goto("/#challenge=4");
   await openSettingsMenu(page);
-  const first = await page.locator(SEED_LINK).innerText();
+  const first = await page.locator(SEED_VALUE).innerText();
 
   await page.reload();
   await openSettingsMenu(page);
 
-  await expect(page.locator(SEED_LINK)).not.toHaveText(first);
+  await expect(page.locator(SEED_VALUE)).not.toHaveText(first);
 });
 
 test("prints the seed and a whole URL to the console as a run starts", async ({ page }) => {
@@ -342,6 +353,6 @@ test("refuses a seed the address bar would have mangled", async ({ page }) => {
   await openSettingsMenu(page);
 
   await expect(page.locator(SEED_LINK)).toBeVisible();
-  await expect(page.locator(SEED_LINK)).not.toHaveText(/rush/);
+  await expect(page.locator(SEED_VALUE)).not.toHaveText(/rush/);
   expect(warnings.some((warning) => warning.includes("Invalid seed"))).toBe(true);
 });
