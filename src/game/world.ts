@@ -61,7 +61,7 @@
  * duration how long the sprite takes to leave the screen, and swapping either
  * between two passengers changes no statistic. The third cannot: the repress
  * offset ends in a real `goToFloor` on a specific car, so it moves `moveCount`
- * and the wait times, which are what challenges 6 to 15 are won and lost on. It
+ * and the wait times, which are what levels 6 to 15 are won and lost on. It
  * is on its own stream because its moment shifts, not because it does not
  * matter — and the distinction is worth keeping straight, because "it is only
  * cosmetic" is the argument someone will one day use to add, drop or relocate
@@ -88,7 +88,7 @@ import {
 } from "./random.ts";
 import { User } from "./user.ts";
 
-/** Options a challenge may set on the world it runs in. */
+/** Options a level may set on the world it runs in. */
 export interface WorldOptions {
   /** Height of one floor in world units. */
   floorHeight?: number;
@@ -122,7 +122,7 @@ const DEFAULT_OPTIONS = {
   spawnRate: 0.5,
 } as const;
 
-/** Default elevator capacity list, used when a challenge sets none. */
+/** Default elevator capacity list, used when a level sets none. */
 const DEFAULT_ELEVATOR_CAPACITIES: readonly number[] = [4];
 
 /** Elevator top speed, in floors per second. */
@@ -170,7 +170,7 @@ const BOARDING_SLOT_STREAM = "boarding-slots";
  *
  * Unlike the other two, what comes back is not cosmetic. The sweep ends in a
  * real `goToFloor` on one particular car, so the offset moves `moveCount` and
- * the wait times, and those are the numbers challenges are won and lost on. It
+ * the wait times, and those are the numbers levels are won and lost on. It
  * is separated because its *moment* shifts, which is a different reason, and
  * mixing the two up is how a draw like this ends up being moved "harmlessly".
  */
@@ -278,7 +278,7 @@ export function createElevators(
     // elevator was recorded as having changed floor before the simulation had
     // even started. Every elevator was therefore born with moveCount === 1,
     // inflating the score the "move the elevators as little as possible"
-    // challenges are judged on (upstream issues #117 and #20).
+    // levels are judged on (upstream issues #117 and #20).
     //
     // setFloorPosition assigns currentFloor itself before moving, so doing it
     // first makes the snap a no-op for the move counter. The final x and y are
@@ -418,7 +418,7 @@ export function spawnUserRandomly(
  *
  * None of it is reachable from the app as it stands: the sandbox clamps its own
  * parameter to [0.01, 10] before `createWorld` sees it and the shipped
- * challenges are constants. The check lives in the engine anyway, because the
+ * levels are constants. The check lives in the engine anyway, because the
  * app is one caller of `createWorld` among several — tests, the fitness suite,
  * and whatever is written next — and because of how this particular mistake
  * fails. There is no exception, no stack and no next frame to break in; the tab
@@ -431,7 +431,7 @@ export function spawnUserRandomly(
  * to keep the simulation running and say so once (`#dropUnreachableDestinations`
  * in src/game/elevator-interface.ts). That pattern reports through
  * `usercode_error`, which is not available here: nothing has subscribed to the
- * world during its own constructor, and the rate comes from the challenge
+ * world during its own constructor, and the rate comes from the level
  * options rather than from the player's program, so blaming player code would
  * name the wrong author. That leaves the console, where
  * `Elevator.getFirstPressedFloor` already puts its once-only notice. Swallowing
@@ -501,7 +501,7 @@ export class World extends Observable<WorldEvents> {
    *
    * Sampled once per move rather than once per frame, which keeps a car parked
    * at the lobby from dragging the figure down: parking cars is good play in
-   * several challenges, and a statistic that punished it would be pointing the
+   * several levels, and a statistic that punished it would be pointing the
    * player the wrong way. Zero while nothing has moved. What it means for the
    * player is spelled out under `docs.play.statistics.html`, including why it
    * sits so far below 1.
@@ -515,7 +515,7 @@ export class World extends Observable<WorldEvents> {
    * Not a waiting time, whatever the name says: the clock stops when a
    * passenger steps out at their floor, so the ride is inside it, and it goes
    * on growing for whoever is still aboard. The name is upstream's and stays,
-   * because every challenge condition and every score ever posted is written
+   * because every level condition and every score ever posted is written
    * against it; what it measures is spelled out for the player under
    * `docs.play.statistics.html`.
    */
@@ -529,7 +529,7 @@ export class World extends Observable<WorldEvents> {
    * This is the waiting time the two above are not. It stops at the moment of
    * boarding, so the ride is outside it, and it keeps growing for whoever is
    * still on a floor -- which is what makes a stranded passenger visible here
-   * rather than only at the end of the challenge.
+   * rather than only at the end of the level.
    */
   maxPickupTime = 0.0;
   /** Mean spawn-to-boarding time of the passengers a car has picked up. */
@@ -569,14 +569,14 @@ export class World extends Observable<WorldEvents> {
    * it the same way. Zero while nothing has stopped.
    */
   avgPeoplePerStop = 0.0;
-  /** Whether the challenge is over and the world should stop updating. */
-  challengeEnded = false;
+  /** Whether the level is over and the world should stop updating. */
+  levelEnded = false;
 
   /**
    * Boardings so far, the denominator behind {@link World.avgPickupTime}.
    *
    * Private because nothing outside needs it and every public counter here is
-   * something a challenge condition could come to be written against. It is not
+   * something a level condition could come to be written against. It is not
    * `transportedCounter`: a passenger inside a moving car has boarded and has
    * not been delivered.
    */
@@ -628,7 +628,7 @@ export class World extends Observable<WorldEvents> {
   #longestWaitingUser: User | null = null;
 
   /**
-   * @param options - Challenge options; missing values take the defaults.
+   * @param options - Level options; missing values take the defaults.
    * @param random - Either a seed to build this world's streams from, or a
    * ready-made stream. A seed is what callers want: it is recorded on
    * {@link seed} and replays the run. A stream is for tests that need to pin
@@ -711,7 +711,7 @@ export class World extends Observable<WorldEvents> {
     this.transportedPerSec = this.transportedCounter / this.elapsedTime;
     // `legacy-1.x:world.js:89` asked whether this loop wants optimizing. It
     // does not: it runs over the elevator array, which is one to eight entries
-    // in every shipped challenge, and at eight it costs 7.7 ns (Node 25 / V8,
+    // in every shipped level, and at eight it costs 7.7 ns (Node 25 / V8,
     // best of five runs of three million) against the ~11 microseconds the
     // enclosing update() takes for a busy 21-floor building. The obvious
     // rewrite is not even faster — a hand-rolled `for...of` measured 8.1 ns on
@@ -963,7 +963,7 @@ export class World extends Observable<WorldEvents> {
       obj.offAll();
     }
     this.offAll();
-    this.challengeEnded = true;
+    this.levelEnded = true;
     // The legacy code chained these assignments, so all four ended up sharing
     // one array; nothing reads them again, so separate empties are equivalent.
     this.elevators = [];
@@ -983,9 +983,9 @@ export class World extends Observable<WorldEvents> {
 }
 
 /**
- * Creates a world for a challenge.
+ * Creates a world for a level.
  *
- * @param options - Challenge options; missing values take the defaults.
+ * @param options - Level options; missing values take the defaults.
  * @param random - Seed to replay a run from, or a ready-made stream for tests.
  * Omit it for a fresh run; the seed that gets generated is recorded on
  * {@link World.seed}, so the run stays repeatable afterwards.

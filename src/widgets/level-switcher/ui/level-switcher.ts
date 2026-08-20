@@ -15,7 +15,7 @@
  *
  * The tile grid is rebuilt from scratch on every `update()`, unlike
  * `run-controls.ts`'s five buttons, which are only ever relabelled. A
- * challenge tile is a real, non-navigable `<button disabled>` while locked
+ * level tile is a real, non-navigable `<button disabled>` while locked
  * and a real `<a href>` once it opens — two different elements, not one
  * patched in place, for the reason `level-menu.ts`'s module comment gives
  * for building `href` at all: an `<a>` has no true disabled state, so a
@@ -28,9 +28,9 @@
  * Mounted live from `src/pages/game/index.ts` since Phase 12.2. A tile's
  * tier is carried both as a bare `data-tier` attribute on the tile itself,
  * for whatever styling a later CSS pass gives the tile as a whole, and as
- * `entities/challenge-tier`'s own
+ * `entities/level-tier`'s own
  * {@link tierBadgeMarkup} badge, for the stars a player actually reads —
- * every open challenge tile gets one, dim stars included at zero earned,
+ * every open level tile gets one, dim stars included at zero earned,
  * matching `design/ui-mockup.html`'s `renderTaskMenu`.
  */
 
@@ -40,7 +40,7 @@ import {
   type LevelMenuInput,
   type LevelMenuTile,
 } from "../model/level-menu.ts";
-import { tierBadgeMarkup } from "#entities/challenge-tier/index.ts";
+import { tierBadgeMarkup } from "#entities/level-tier/index.ts";
 import { t } from "#i18n/index.ts";
 import { queryAll, requireElement } from "#shared/lib/dom.ts";
 import { createDisclosure } from "#shared/ui/disclosure.ts";
@@ -71,7 +71,7 @@ export function levelSwitcherTemplate(): string {
 export interface LevelSwitcherOptions {
   /**
    * Builds a fresh {@link LevelMenuInput}, read anew by every `update()` —
-   * the tier a challenge earned, which tasks are cleared and what is
+   * the tier a level earned, which tasks are cleared and what is
    * currently selected all move between one run and the next.
    */
   readonly getInput: () => LevelMenuInput;
@@ -84,7 +84,7 @@ export interface LevelSwitcherPresenter {
    * trigger and the two step buttons, and points the step buttons at the
    * nearest open tile either side of the current one.
    *
-   * Called after anything that could have moved any of that: a challenge
+   * Called after anything that could have moved any of that: a level
    * cleared, a tutorial task cleared, a run started elsewhere, a language
    * change — the same list `RunControlsPresenter.update`'s own comment
    * gives, once for this row instead of that one.
@@ -98,7 +98,7 @@ export interface LevelSwitcherPresenter {
  * @param blocks - The menu to search.
  * @returns The current tile, or `undefined` if the selection names nothing
  * in this menu — `buildLevelMenu`'s own documented case for a selection
- * outside the challenge list.
+ * outside the level list.
  */
 function currentTile(blocks: readonly LevelMenuBlock[]): LevelMenuTile | undefined {
   for (const block of blocks) {
@@ -111,13 +111,13 @@ function currentTile(blocks: readonly LevelMenuBlock[]): LevelMenuTile | undefin
 }
 
 /**
- * Whether a tile can be stepped to — every tile but a locked challenge.
+ * Whether a tile can be stepped to — every tile but a locked level.
  *
  * @param tile - Tile to test.
  * @returns Whether {@link stepHref} may return it.
  */
 function isOpenTile(tile: LevelMenuTile): boolean {
-  return tile.kind !== "challenge" || !tile.locked;
+  return tile.kind !== "level" || !tile.locked;
 }
 
 /**
@@ -125,7 +125,7 @@ function isOpenTile(tile: LevelMenuTile): boolean {
  * block, stepping outward from it.
  *
  * Scoped to one block on purpose — stepping from the last tutorial task
- * straight into challenge one would cross two different kinds of level in
+ * straight into level one would cross two different kinds of level in
  * one press, which is not what either step button's arrow promises.
  *
  * @param blocks - The menu to step within.
@@ -151,7 +151,7 @@ function stepHref(blocks: readonly LevelMenuBlock[], step: -1 | 1): string | und
 /**
  * The text a tile shows in the grid — brief, since the accessible name in
  * {@link tileAccessibleName} carries the rest, the same split
- * `challengeLinkTemplate` already draws between a nav link's visible label
+ * `levelLinkTemplate` already draws between a nav link's visible label
  * and its `aria-label`.
  *
  * @param tile - Tile to draw.
@@ -162,7 +162,7 @@ function tileText(tile: LevelMenuTile): string {
     case "tutorial": {
       return String(tile.number);
     }
-    case "challenge": {
+    case "level": {
       return String(tile.number);
     }
     case "sandbox": {
@@ -186,11 +186,11 @@ function tileAccessibleName(tile: LevelMenuTile): string {
         ? t("game.levelSwitcher.tutorialTileClearedLabel", { number: tile.number })
         : t("game.levelSwitcher.tutorialTileLabel", { number: tile.number });
     }
-    case "challenge": {
+    case "level": {
       if (tile.locked) {
-        return t("game.levelSwitcher.challengeTileLockedLabel", { number: tile.number });
+        return t("game.levelSwitcher.levelTileLockedLabel", { number: tile.number });
       }
-      return t("game.challenge.nav.link", { number: tile.number });
+      return t("game.level.nav.link", { number: tile.number });
     }
     case "sandbox": {
       return t("game.levelSwitcher.sandboxLabel");
@@ -227,8 +227,8 @@ function tileTriggerName(tile: LevelMenuTile): string {
     case "tutorial": {
       return t("game.levelSwitcher.tutorialTriggerLabel", { number: tile.number });
     }
-    case "challenge": {
-      return t("game.challenge.nav.link", { number: tile.number });
+    case "level": {
+      return t("game.level.nav.link", { number: tile.number });
     }
     case "sandbox": {
       return t("game.levelSwitcher.sandboxLabel");
@@ -238,11 +238,11 @@ function tileTriggerName(tile: LevelMenuTile): string {
 
 /**
  * The tile markup: a real `<a href>` once a tile is open, a real,
- * non-navigable `<button disabled>` while a challenge tile is locked — see
+ * non-navigable `<button disabled>` while a level tile is locked — see
  * this module's own comment for why a locked tile is never an anchor.
  *
  * `aria-current` is written either way, on the disabled button as much as on
- * the anchor. A direct link used to be able to select a locked challenge as
+ * the anchor. A direct link used to be able to select a locked level as
  * `current`, and cannot any more: `src/pages/game/model/route.ts` asks the
  * same question of an address that this widget asks of a tile, and answers a
  * level nobody has unlocked with the furthest one they have. But
@@ -259,12 +259,12 @@ function tileTemplate(tile: LevelMenuTile): string {
   const text = tileText(tile);
   const name = tileAccessibleName(tile);
   const current = tile.current ? raw(' aria-current="page"') : raw("");
-  if (tile.kind === "challenge" && tile.locked) {
+  if (tile.kind === "level" && tile.locked) {
     const lockedClasses = tile.current ? "tasklink is-locked is-current" : "tasklink is-locked";
     return markup`<button type="button" class="${lockedClasses}" aria-label="${name}"${current} disabled>${text}</button>`;
   }
   const done =
-    (tile.kind === "challenge" && tile.tier !== undefined) ||
+    (tile.kind === "level" && tile.tier !== undefined) ||
     (tile.kind === "tutorial" && tile.cleared);
   const classes = [
     "tasklink",
@@ -274,10 +274,8 @@ function tileTemplate(tile: LevelMenuTile): string {
     .filter((className) => className !== "")
     .join(" ");
   const tier =
-    tile.kind === "challenge" && tile.tier !== undefined
-      ? raw(` data-tier="${tile.tier}"`)
-      : raw("");
-  const badge = tile.kind === "challenge" ? raw(tierBadgeMarkup(tile.tier)) : raw("");
+    tile.kind === "level" && tile.tier !== undefined ? raw(` data-tier="${tile.tier}"`) : raw("");
+  const badge = tile.kind === "level" ? raw(tierBadgeMarkup(tile.tier)) : raw("");
   return markup`<a class="${classes}" href="${tile.href}" aria-label="${name}"${current}${tier}>${text}${badge}</a>`;
 }
 
@@ -301,8 +299,8 @@ function blockCaption(id: LevelMenuBlock["id"]): string {
     case "tutorial": {
       return t("tutorial.panel.label");
     }
-    case "challenges": {
-      return t("game.challenge.nav.label");
+    case "levels": {
+      return t("game.level.nav.label");
     }
     case "other": {
       return t("game.levelSwitcher.otherBlockLabel");
@@ -367,7 +365,7 @@ export function presentLevelSwitcher(
 
       // The grid is rebuilt from scratch below, which would otherwise drop
       // keyboard focus to <body> out from under a player tabbing through it —
-      // the same problem, and the same fix, as `presentChallenge`'s own
+      // the same problem, and the same fix, as `presentLevel`'s own
       // navigation row in what was `src/ui/presenters.ts`: the tile that
       // replaces the one that was focused is the one in the same position,
       // so position is what is restored rather than the deleted node itself.

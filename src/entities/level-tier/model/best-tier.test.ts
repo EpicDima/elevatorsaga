@@ -1,11 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { MemoryStorage } from "../../../ui/test-helpers.ts";
-import {
-  CHALLENGE_TIER_STORAGE_KEY,
-  readBestChallengeTiers,
-  recordChallengeTier,
-} from "./best-tier.ts";
+import { LEVEL_TIER_STORAGE_KEY, readBestLevelTiers, recordLevelTier } from "./best-tier.ts";
 
 /**
  * A `Storage` that throws from everything, as Safari does in private mode.
@@ -53,29 +49,29 @@ function fullStorage(): Storage {
   };
 }
 
-describe("CHALLENGE_TIER_STORAGE_KEY", () => {
+describe("LEVEL_TIER_STORAGE_KEY", () => {
   it("is under the fork's own prefix, not the inherited one", () => {
-    expect(CHALLENGE_TIER_STORAGE_KEY).toBe("develevateChallengeTiers");
-    expect(CHALLENGE_TIER_STORAGE_KEY.startsWith("elevator")).toBe(false);
+    expect(LEVEL_TIER_STORAGE_KEY).toBe("develevateChallengeTiers");
+    expect(LEVEL_TIER_STORAGE_KEY.startsWith("elevator")).toBe(false);
   });
 });
 
-describe("recordChallengeTier", () => {
-  it("stores the tier a challenge was just won at", () => {
+describe("recordLevelTier", () => {
+  it("stores the tier a level was just won at", () => {
     const storage = new MemoryStorage();
 
-    recordChallengeTier(storage, 4, "silver");
+    recordLevelTier(storage, 4, "silver");
 
-    expect(readBestChallengeTiers(storage)).toEqual(new Map([[4, "silver"]]));
+    expect(readBestLevelTiers(storage)).toEqual(new Map([[4, "silver"]]));
   });
 
   it("adds to what is already there rather than replacing it", () => {
     const storage = new MemoryStorage();
 
-    recordChallengeTier(storage, 0, "bronze");
-    recordChallengeTier(storage, 1, "gold");
+    recordLevelTier(storage, 0, "bronze");
+    recordLevelTier(storage, 1, "gold");
 
-    expect(readBestChallengeTiers(storage)).toEqual(
+    expect(readBestLevelTiers(storage)).toEqual(
       new Map([
         [0, "bronze"],
         [1, "gold"],
@@ -86,65 +82,65 @@ describe("recordChallengeTier", () => {
   it("upgrades a record when a later run does better", () => {
     const storage = new MemoryStorage();
 
-    recordChallengeTier(storage, 2, "bronze");
-    recordChallengeTier(storage, 2, "gold");
+    recordLevelTier(storage, 2, "bronze");
+    recordLevelTier(storage, 2, "gold");
 
-    expect(readBestChallengeTiers(storage)).toEqual(new Map([[2, "gold"]]));
+    expect(readBestLevelTiers(storage)).toEqual(new Map([[2, "gold"]]));
   });
 
   it("never lets a worse run erase a better one already on record", () => {
     const storage = new MemoryStorage();
 
-    recordChallengeTier(storage, 2, "gold");
-    recordChallengeTier(storage, 2, "bronze");
+    recordLevelTier(storage, 2, "gold");
+    recordLevelTier(storage, 2, "bronze");
 
-    expect(readBestChallengeTiers(storage)).toEqual(new Map([[2, "gold"]]));
+    expect(readBestLevelTiers(storage)).toEqual(new Map([[2, "gold"]]));
   });
 
   it("does not rewrite the key when the run does not improve on the record", () => {
     const storage = new MemoryStorage();
-    recordChallengeTier(storage, 2, "silver");
-    const afterFirstWin = storage.getItem(CHALLENGE_TIER_STORAGE_KEY);
+    recordLevelTier(storage, 2, "silver");
+    const afterFirstWin = storage.getItem(LEVEL_TIER_STORAGE_KEY);
 
-    recordChallengeTier(storage, 2, "silver");
+    recordLevelTier(storage, 2, "silver");
 
-    expect(storage.getItem(CHALLENGE_TIER_STORAGE_KEY)).toBe(afterFirstWin);
+    expect(storage.getItem(LEVEL_TIER_STORAGE_KEY)).toBe(afterFirstWin);
   });
 
   it("does not throw when the store refuses to be written to", () => {
     expect(() => {
-      recordChallengeTier(fullStorage(), 0, "gold");
+      recordLevelTier(fullStorage(), 0, "gold");
     }).not.toThrow();
   });
 
   it("does not throw when the store refuses to be read", () => {
     expect(() => {
-      recordChallengeTier(deniedStorage(), 0, "gold");
+      recordLevelTier(deniedStorage(), 0, "gold");
     }).not.toThrow();
   });
 });
 
-describe("readBestChallengeTiers", () => {
-  it("has nothing to report on a browser that has never won a challenge", () => {
-    expect(readBestChallengeTiers(new MemoryStorage())).toEqual(new Map());
+describe("readBestLevelTiers", () => {
+  it("has nothing to report on a browser that has never won a level", () => {
+    expect(readBestLevelTiers(new MemoryStorage())).toEqual(new Map());
   });
 
   it("reads nothing out of a store that will not answer", () => {
-    expect(readBestChallengeTiers(deniedStorage())).toEqual(new Map());
+    expect(readBestLevelTiers(deniedStorage())).toEqual(new Map());
   });
 
-  it("reads nothing out of an entry that is not a challenge-to-tier record", () => {
+  it("reads nothing out of an entry that is not a level-to-tier record", () => {
     for (const corrupt of ["", "not json at all", "7", '"gold"', "[1,2,3]"]) {
       const storage = new MemoryStorage();
-      storage.setItem(CHALLENGE_TIER_STORAGE_KEY, corrupt);
-      expect(readBestChallengeTiers(storage)).toEqual(new Map());
+      storage.setItem(LEVEL_TIER_STORAGE_KEY, corrupt);
+      expect(readBestLevelTiers(storage)).toEqual(new Map());
     }
   });
 
-  it("drops entries whose key is not a challenge index or whose value is not a tier", () => {
+  it("drops entries whose key is not a level index or whose value is not a tier", () => {
     const storage = new MemoryStorage();
     storage.setItem(
-      CHALLENGE_TIER_STORAGE_KEY,
+      LEVEL_TIER_STORAGE_KEY,
       JSON.stringify({
         "0": "gold",
         "1": "platinum",
@@ -154,15 +150,15 @@ describe("readBestChallengeTiers", () => {
       }),
     );
 
-    expect(readBestChallengeTiers(storage)).toEqual(new Map([[0, "gold"]]));
+    expect(readBestLevelTiers(storage)).toEqual(new Map([[0, "gold"]]));
   });
 
-  it("keeps an entry for a challenge this build no longer has", () => {
+  it("keeps an entry for a level this build no longer has", () => {
     // A cached older build loaded after a newer one has run, the same
     // "keep what cannot be shown" treatment tutorial progress gets.
     const storage = new MemoryStorage();
-    storage.setItem(CHALLENGE_TIER_STORAGE_KEY, JSON.stringify({ "99": "gold" }));
+    storage.setItem(LEVEL_TIER_STORAGE_KEY, JSON.stringify({ "99": "gold" }));
 
-    expect(readBestChallengeTiers(storage)).toEqual(new Map([[99, "gold"]]));
+    expect(readBestLevelTiers(storage)).toEqual(new Map([[99, "gold"]]));
   });
 });

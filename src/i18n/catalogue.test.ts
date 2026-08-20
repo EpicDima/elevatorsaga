@@ -247,13 +247,13 @@ describe("translate", () => {
 
   it("fills parameters by name", () => {
     expect(
-      translate("en", EN_MESSAGES, "game.challenge.title.html", {
+      translate("en", EN_MESSAGES, "game.level.title.html", {
         number: 3,
         description: "Transport 15 people",
       }),
     ).toBe("Level 3: Transport 15 people");
     expect(
-      translate("ru", RU_MESSAGES, "game.challenge.title.html", {
+      translate("ru", RU_MESSAGES, "game.level.title.html", {
         number: 3,
         description: "Перевезите 15 пассажиров",
       }),
@@ -261,7 +261,7 @@ describe("translate", () => {
   });
 
   // The reason this module exists. All four Russian categories, from the same
-  // key, with the nominative phrase the sandbox challenge shows.
+  // key, with the nominative phrase the sandbox level shows.
   it.each([
     [1, "1</span> пассажир в секунду"],
     [2, "2</span> пассажира в секунду"],
@@ -270,14 +270,14 @@ describe("translate", () => {
     [21, "21</span> пассажир в секунду"],
     [102, "102</span> пассажира в секунду"],
   ])("counts %i passengers a second in Russian", (count, expected) => {
-    expect(translate("ru", RU_MESSAGES, "challenge.sandbox.spawnRate.html", { count })).toBe(
+    expect(translate("ru", RU_MESSAGES, "level.sandbox.spawnRate.html", { count })).toBe(
       `<span class='emphasis-color'>${expected}`,
     );
   });
 
   it("counts a fraction of a passenger in Russian", () => {
     expect(
-      translate("ru", RU_MESSAGES, "challenge.sandbox.spawnRate.html", { count: decimal(1.5, 1) }),
+      translate("ru", RU_MESSAGES, "level.sandbox.spawnRate.html", { count: decimal(1.5, 1) }),
     ).toBe("<span class='emphasis-color'>1,5</span> пассажира в секунду");
   });
 
@@ -285,29 +285,27 @@ describe("translate", () => {
     // Accusative after «Перевезите», genitive after «дольше»: the same English
     // word needs different Russian in different sentences, which is why the
     // phrases are messages of their own rather than one shared noun.
-    expect(translate("ru", RU_MESSAGES, "challenge.people.html", { count: 1 })).toContain(
-      "пассажира",
-    );
-    expect(translate("ru", RU_MESSAGES, "challenge.timeLimit.html", { count: 21 })).toContain(
+    expect(translate("ru", RU_MESSAGES, "level.people.html", { count: 1 })).toContain("пассажира");
+    expect(translate("ru", RU_MESSAGES, "level.timeLimit.html", { count: 21 })).toContain(
       "секунду",
     );
-    expect(translate("ru", RU_MESSAGES, "challenge.waitLimit.html", { count: 21 })).toContain(
+    expect(translate("ru", RU_MESSAGES, "level.waitLimit.html", { count: 21 })).toContain(
       "секунды",
     );
   });
 
   it("keeps English to one form for one and one for the rest", () => {
-    expect(translate("en", EN_MESSAGES, "challenge.people.html", { count: 1 })).toContain("person");
-    expect(translate("en", EN_MESSAGES, "challenge.people.html", { count: 2 })).toContain("people");
+    expect(translate("en", EN_MESSAGES, "level.people.html", { count: 1 })).toContain("person");
+    expect(translate("en", EN_MESSAGES, "level.people.html", { count: 2 })).toContain("people");
   });
 
-  it("builds a challenge description exactly as the game builds it today", () => {
-    // Byte for byte what src/game/challenges.ts renders, markup included: the
+  it("builds a level description exactly as the game builds it today", () => {
+    // Byte for byte what src/game/levels.ts renders, markup included: the
     // wiring agent can swap the template for this call and change nothing on
     // screen.
-    const description = translate("en", EN_MESSAGES, "challenge.transportWithinTime.html", {
-      people: translate("en", EN_MESSAGES, "challenge.people.html", { count: 23 }),
-      time: translate("en", EN_MESSAGES, "challenge.timeLimit.html", { count: 30 }),
+    const description = translate("en", EN_MESSAGES, "level.transportWithinTime.html", {
+      people: translate("en", EN_MESSAGES, "level.people.html", { count: 23 }),
+      time: translate("en", EN_MESSAGES, "level.timeLimit.html", { count: 30 }),
     });
     expect(description).toBe(
       "Transport <span class='emphasis-color'>23</span> people in " +
@@ -316,18 +314,13 @@ describe("translate", () => {
   });
 
   it("renders the same description in Russian, with the right forms throughout", () => {
-    const description = translate(
-      "ru",
-      RU_MESSAGES,
-      "challenge.transportWithinTimeWithMaxWait.html",
-      {
-        people: translate("ru", RU_MESSAGES, "challenge.people.html", { count: 23 }),
-        time: translate("ru", RU_MESSAGES, "challenge.timeLimit.html", { count: 30 }),
-        waitTime: translate("ru", RU_MESSAGES, "challenge.waitLimit.html", {
-          count: decimal(2, 1),
-        }),
-      },
-    );
+    const description = translate("ru", RU_MESSAGES, "level.transportWithinTimeWithMaxWait.html", {
+      people: translate("ru", RU_MESSAGES, "level.people.html", { count: 23 }),
+      time: translate("ru", RU_MESSAGES, "level.timeLimit.html", { count: 30 }),
+      waitTime: translate("ru", RU_MESSAGES, "level.waitLimit.html", {
+        count: decimal(2, 1),
+      }),
+    });
     expect(description).toBe(
       "Перевезите <span class='emphasis-color'>23</span> пассажира за " +
         "<span class='emphasis-color'>30</span> секунд или быстрее, и пусть доставка каждого " +

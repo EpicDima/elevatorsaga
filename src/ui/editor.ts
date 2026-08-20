@@ -81,38 +81,42 @@ const TUTORIAL_CODE_KEY_PREFIX = "develevateTutorialCode_";
 const TUTORIAL_BACKUP_KEY_PREFIX = "develevateTutorialBackupCode_";
 
 /**
- * Prefix of the storage keys holding a challenge's three code slots.
+ * Prefix of the storage keys holding a level's three code slots.
  *
- * One key per `(challengeIndex, slot)` pair, for the same reason the learning
- * track has one key per task: a player who left challenge 7 with a program in
- * it must find that program again on challenge 7, and only there, however
- * many challenges they visit in between.
+ * One key per `(levelIndex, slot)` pair, for the same reason the learning
+ * track has one key per task: a player who left level 7 with a program in
+ * it must find that program again on level 7, and only there, however
+ * many levels they visit in between.
+ *
+ * The prefix keeps the spelling a level had when the key was first written.
+ * Renaming it would say nothing to a player -- nobody reads a storage key --
+ * and would lose the program every browser that already holds one saved.
  */
-const CHALLENGE_CODE_KEY_PREFIX = "develevateChallengeCode_";
+const LEVEL_CODE_KEY_PREFIX = "develevateChallengeCode_";
 
-/** Prefix of the per-`(challengeIndex, slot)` "Undo reset" backups. */
-const CHALLENGE_BACKUP_KEY_PREFIX = "develevateChallengeBackupCode_";
+/** Prefix of the per-`(levelIndex, slot)` "Undo reset" backups. */
+const LEVEL_BACKUP_KEY_PREFIX = "develevateChallengeBackupCode_";
 
 /**
- * The storage key of one challenge's one code slot.
+ * The storage key of one level's one code slot.
  *
- * @param challengeIndex - Zero-based index of the challenge.
- * @param slot - Which of the challenge's three slots.
+ * @param levelIndex - Zero-based index of the level.
+ * @param slot - Which of the level's three slots.
  * @returns The key that slot's program is stored under.
  */
-function challengeCodeKey(challengeIndex: number, slot: CodeSlot): string {
-  return `${CHALLENGE_CODE_KEY_PREFIX}${String(challengeIndex)}_${String(slot)}`;
+function levelCodeKey(levelIndex: number, slot: CodeSlot): string {
+  return `${LEVEL_CODE_KEY_PREFIX}${String(levelIndex)}_${String(slot)}`;
 }
 
 /**
- * The storage key of one challenge's one code slot's "Undo reset" backup.
+ * The storage key of one level's one code slot's "Undo reset" backup.
  *
- * @param challengeIndex - Zero-based index of the challenge.
- * @param slot - Which of the challenge's three slots.
+ * @param levelIndex - Zero-based index of the level.
+ * @param slot - Which of the level's three slots.
  * @returns The key that slot's backup is stored under.
  */
-function challengeBackupKey(challengeIndex: number, slot: CodeSlot): string {
-  return `${CHALLENGE_BACKUP_KEY_PREFIX}${String(challengeIndex)}_${String(slot)}`;
+function levelBackupKey(levelIndex: number, slot: CodeSlot): string {
+  return `${LEVEL_BACKUP_KEY_PREFIX}${String(levelIndex)}_${String(slot)}`;
 }
 
 /** How long typing must pause before the program is saved, in milliseconds. */
@@ -130,7 +134,7 @@ export type CodeEditorEvents = {
   code_success: [];
   /** The program failed to compile, or the simulation reported an error. */
   usercode_error: [e: unknown];
-  /** The player asked for the program to be applied and the challenge restarted. */
+  /** The player asked for the program to be applied and the level restarted. */
   apply_code: [];
   /** The program was written to storage. */
   saved: [savedAt: Date];
@@ -381,23 +385,19 @@ function tutorialBuffer(taskId: string, starterCode: string): EditorBuffer {
 }
 
 /**
- * Describes the buffer of one challenge's one code slot.
+ * Describes the buffer of one level's one code slot.
  *
- * @param challengeIndex - Zero-based index of the challenge.
- * @param slot - Which of the challenge's three slots.
+ * @param levelIndex - Zero-based index of the level.
+ * @param slot - Which of the level's three slots.
  * @param starterCode - The program to show when the slot has nothing of its
  * own — the resolved carry-forward or legacy program, never the bare default:
- * see {@link CodeEditor.#resolveChallengeStarterCode}.
- * @returns The buffer for that challenge and slot.
+ * see {@link CodeEditor.#resolveLevelStarterCode}.
+ * @returns The buffer for that level and slot.
  */
-function challengeBuffer(
-  challengeIndex: number,
-  slot: CodeSlot,
-  starterCode: string,
-): EditorBuffer {
+function levelBuffer(levelIndex: number, slot: CodeSlot, starterCode: string): EditorBuffer {
   return {
-    codeKey: challengeCodeKey(challengeIndex, slot),
-    backupKey: challengeBackupKey(challengeIndex, slot),
+    codeKey: levelCodeKey(levelIndex, slot),
+    backupKey: levelBackupKey(levelIndex, slot),
     starterCode,
     writesStarterOnOpen: true,
   };
@@ -660,10 +660,10 @@ export class CodeEditor extends Observable<CodeEditorEvents> {
    * Takes no program to fall back on, and that is the point: the only text this
    * can ever put on screen is the legacy single-buffer program, so no caller
    * can hand its key somebody else's starter code by mistake. The sandbox is
-   * the last caller left: every numbered challenge has its own buffer now (see
-   * {@link CodeEditor.openChallengeBuffer}), and this key lives on beneath it
-   * only as the one-time migration source {@link CodeEditor.#resolveChallengeStarterCode}
-   * reads for challenge 1's first slot.
+   * the last caller left: every numbered level has its own buffer now (see
+   * {@link CodeEditor.openLevelBuffer}), and this key lives on beneath it
+   * only as the one-time migration source {@link CodeEditor.#resolveLevelStarterCode}
+   * reads for level 1's first slot.
    */
   openPlayerBuffer(): void {
     this.#openBuffer(PLAYER_BUFFER);
@@ -678,11 +678,11 @@ export class CodeEditor extends Observable<CodeEditorEvents> {
    * it keeps of every key it has written this page *before* it reads the store
    * (see {@link CodeEditor.#read}), so a write that goes round it leaves the two
    * disagreeing, with the store holding the taken program and the editor still
-   * believing the player's old one. {@link CodeEditor.openChallengeBuffer} would
+   * believing the player's old one. {@link CodeEditor.openLevelBuffer} would
    * then put that old program back on screen the moment the player left the
    * track, and the next save would write it over the copy they had just taken.
    *
-   * Challenge 1's first slot specifically, never wherever the player happens to
+   * Level 1's first slot specifically, never wherever the player happens to
    * be: leaving the track always lands on that slot (see
    * {@link "../pages/game/index.ts"!App.leaveTutorial}), so it is the one buffer
    * guaranteed to be the one on screen the moment they get there.
@@ -691,7 +691,7 @@ export class CodeEditor extends Observable<CodeEditorEvents> {
    * @returns Whether it reached the store, and so the player's next visit.
    */
   writePlayerCode(code: string): boolean {
-    return this.#write(challengeCodeKey(0, DEFAULT_CODE_SLOT), code);
+    return this.#write(levelCodeKey(0, DEFAULT_CODE_SLOT), code);
   }
 
   /**
@@ -706,7 +706,7 @@ export class CodeEditor extends Observable<CodeEditorEvents> {
    * is in this session and nowhere else, and the store's answer is that they
    * have never written one. That is the moment they have most to lose.
    *
-   * Challenge 1's first slot specifically, never whichever buffer is on screen:
+   * Level 1's first slot specifically, never whichever buffer is on screen:
    * which buffer is on screen makes no difference to what this returns, so the
    * learning track can ask about the program waiting behind it.
    *
@@ -715,7 +715,7 @@ export class CodeEditor extends Observable<CodeEditorEvents> {
    * but leads to the same answer: nothing recoverable is known to be there.
    */
   readPlayerCode(): string | null {
-    const stored = this.#read(challengeCodeKey(0, DEFAULT_CODE_SLOT));
+    const stored = this.#read(levelCodeKey(0, DEFAULT_CODE_SLOT));
     return stored.state === "text" ? stored.text : null;
   }
 
@@ -742,53 +742,53 @@ export class CodeEditor extends Observable<CodeEditorEvents> {
   }
 
   /**
-   * Shows one challenge's one code slot, keeping whatever was on screen.
+   * Shows one level's one code slot, keeping whatever was on screen.
    *
    * The slot's own attempt if there is one, otherwise the starter program
-   * {@link CodeEditor.#resolveChallengeStarterCode} resolves for it. Callers
-   * name a challenge and a slot, never a storage key, for the same reason
+   * {@link CodeEditor.#resolveLevelStarterCode} resolves for it. Callers
+   * name a level and a slot, never a storage key, for the same reason
    * {@link CodeEditor.openTutorialBuffer} does.
    *
-   * @param challengeIndex - Zero-based index of the challenge to open.
-   * @param slot - Which of the challenge's three slots to show.
+   * @param levelIndex - Zero-based index of the level to open.
+   * @param slot - Which of the level's three slots to show.
    */
-  openChallengeBuffer(challengeIndex: number, slot: CodeSlot = DEFAULT_CODE_SLOT): void {
+  openLevelBuffer(levelIndex: number, slot: CodeSlot = DEFAULT_CODE_SLOT): void {
     // Ahead of resolving the starter code, and not left to the flush inside
-    // `#openBuffer` below: the legacy key `#resolveChallengeStarterCode` falls
+    // `#openBuffer` below: the legacy key `#resolveLevelStarterCode` falls
     // back to is exactly the key the buffer on screen is still writing to, the
-    // very first time a player ever opens a numbered challenge. Resolving
+    // very first time a player ever opens a numbered level. Resolving
     // first would carry forward whatever that key held before this keystroke
     // rather than what is on screen right now.
     this.#flush();
-    const starterCode = this.#resolveChallengeStarterCode(challengeIndex, slot);
-    this.#openBuffer(challengeBuffer(challengeIndex, slot, starterCode));
+    const starterCode = this.#resolveLevelStarterCode(levelIndex, slot);
+    this.#openBuffer(levelBuffer(levelIndex, slot, starterCode));
   }
 
   /**
-   * The starter program to open a challenge's slot with, when the slot itself
+   * The starter program to open a level's slot with, when the slot itself
    * is empty.
    *
-   * Walks every lower-numbered challenge's same slot, newest first, and takes
+   * Walks every lower-numbered level's same slot, newest first, and takes
    * the first one holding a program — the carry-forward a player who has never
-   * touched slot 2 of challenge 9 still expects, because slot 2 of challenge 8
+   * touched slot 2 of level 9 still expects, because slot 2 of level 8
    * had one. Every lower index, not just the one immediately before this
-   * challenge: a player can land on any challenge directly, by a bookmark or a
+   * level: a player can land on any level directly, by a bookmark or a
    * typed URL, without ever having opened the ones in between.
    *
    * Only the default slot falls back further, to the legacy single-buffer key.
-   * That fallback is what makes slot 1 of whichever challenge a returning
+   * That fallback is what makes slot 1 of whichever level a returning
    * player first opens show the program they saved before slots existed; slots
    * 2 and 3 have no such history to inherit, so they fall straight to the bare
    * default.
    *
-   * @param challengeIndex - Zero-based index of the challenge being opened.
-   * @param slot - Which of the challenge's three slots.
+   * @param levelIndex - Zero-based index of the level being opened.
+   * @param slot - Which of the level's three slots.
    * @returns The carried-forward program, the legacy program, or the bare
    * default — never empty.
    */
-  #resolveChallengeStarterCode(challengeIndex: number, slot: CodeSlot): string {
-    for (let i = challengeIndex - 1; i >= 0; i -= 1) {
-      const stored = this.#read(challengeCodeKey(i, slot));
+  #resolveLevelStarterCode(levelIndex: number, slot: CodeSlot): string {
+    for (let i = levelIndex - 1; i >= 0; i -= 1) {
+      const stored = this.#read(levelCodeKey(i, slot));
       if (stored.state === "text") {
         return stored.text;
       }

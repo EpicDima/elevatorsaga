@@ -1,17 +1,17 @@
 /**
- * The tier popover's own rows — bronze, and silver/gold when a challenge has
+ * The tier popover's own rows — bronze, and silver/gold when a level has
  * them — ported from `design/ui-mockup.html`'s `renderTiers()`/`drawTiers()`.
  *
  * Deliberately does not port the mockup's own `tiersNow()`: that function
  * exists there because the mockup's engine has no equivalent of
- * {@link "#entities/challenge-tier/index.ts"!evaluateChallengeTier} to ask
+ * {@link "#entities/level-tier/index.ts"!evaluateLevelTier} to ask
  * instead, so it re-derives bronze/silver/gold pass-fail from scratch, one
  * `Array.prototype.every(meets)` per tier. Production already has that
  * single source of truth, and re-deriving the same nested-tier logic a
  * second time here would be exactly the "parallel table that could drift"
- * `#game/challenge-tiers.ts`'s own doc comment on {@link TierPredicate}
+ * `#game/level-tiers.ts`'s own doc comment on {@link TierPredicate}
  * warns against — so a row's held/lost state below is read off
- * {@link evaluateChallengeTier}'s one verdict instead of computed
+ * {@link evaluateLevelTier}'s one verdict instead of computed
  * independently.
  *
  * The mockup also does not gate a row's checkmark/cross on a live pass/fail
@@ -20,19 +20,19 @@
  * for a reason that has nothing to do with the player's own effort. This
  * module follows the same rule: {@link buildTierRows}'s `verdict` parameter
  * is `null` for exactly as long as
- * {@link "#entities/challenge/index.ts"!ChallengeCondition.evaluate} itself
+ * {@link "#entities/level/index.ts"!LevelCondition.evaluate} itself
  * says so (still undecided), and every row reads `"pending"` for that whole
  * stretch regardless of where the run's own figures currently sit.
  */
 
 import {
-  CHALLENGE_TIERS,
-  evaluateChallengeTier,
+  LEVEL_TIERS,
+  evaluateLevelTier,
   requirementMet,
   requirementProgress,
-} from "#entities/challenge-tier/index.ts";
-import type { ChallengeTier, TierRequirementInfo } from "#entities/challenge-tier/index.ts";
-import type { Challenge, ChallengeWorldStats } from "#entities/challenge/index.ts";
+} from "#entities/level-tier/index.ts";
+import type { LevelTier, TierRequirementInfo } from "#entities/level-tier/index.ts";
+import type { Level, LevelWorldStats } from "#entities/level/index.ts";
 
 /** One requirement's own line inside a tier row. */
 export interface TierRequirementRow {
@@ -59,7 +59,7 @@ export type TierRowState = "held" | "lost" | "pending";
 /** One tier's own row in the popover. */
 export interface TierRow {
   /** Which tier this row is for. */
-  readonly tier: ChallengeTier;
+  readonly tier: LevelTier;
   /** This tier's own requirements, each with its live figures. */
   readonly requirements: readonly TierRequirementRow[];
   /** Whether the run has earned this tier, missed it, or not decided yet. */
@@ -68,7 +68,7 @@ export interface TierRow {
 
 function buildRequirementRow(
   requirement: TierRequirementInfo,
-  world: ChallengeWorldStats,
+  world: LevelWorldStats,
   finished: boolean,
 ): TierRequirementRow {
   const met = requirementMet(requirement, world);
@@ -80,52 +80,51 @@ function buildRequirementRow(
   };
 }
 
-function tierRank(tier: ChallengeTier): number {
-  return CHALLENGE_TIERS.indexOf(tier);
+function tierRank(tier: LevelTier): number {
+  return LEVEL_TIERS.indexOf(tier);
 }
 
 /**
- * Builds the popover's rows for one challenge: always bronze, plus
- * silver/gold when the challenge has them (see
- * {@link "#entities/challenge-tier/index.ts"!evaluateChallengeTier}'s own
- * doc comment on a `tiers === undefined` challenge — bronze is the only tier
- * such a challenge has). Empty when the challenge has nothing to meter at
+ * Builds the popover's rows for one level: always bronze, plus
+ * silver/gold when the level has them (see
+ * {@link "#entities/level-tier/index.ts"!evaluateLevelTier}'s own
+ * doc comment on a `tiers === undefined` level — bronze is the only tier
+ * such a level has). Empty when the level has nothing to meter at
  * all — the sandbox tile's own `requireSandbox` condition never resolves and
  * carries `requirements: []`, mirroring the mockup's own "sandbox: no
  * rewards" case (`world.goals.length === 0`).
  *
- * @param challenge - The challenge being played.
+ * @param level - The level being played.
  * @param world - The run's current statistics.
  * @param verdict - The same tri-state
- * {@link "#entities/challenge/index.ts"!ChallengeCondition.evaluate} itself
+ * {@link "#entities/level/index.ts"!LevelCondition.evaluate} itself
  * returns: `null` while still undecided, `true`/`false` once the run has
  * ended. Taken as a parameter rather than recomputed here for the same
- * reason {@link evaluateChallengeTier} takes its own `won` as a parameter —
+ * reason {@link evaluateLevelTier} takes its own `won` as a parameter —
  * a caller may fold in run-driving policy this module has no business
  * knowing about (an instant run's own timeout, for one), and there must be
  * only one place that decides a run is over.
- * @returns One row per tier this challenge has anything to say about, bronze
+ * @returns One row per tier this level has anything to say about, bronze
  * first.
  */
 export function buildTierRows(
-  challenge: Challenge,
-  world: ChallengeWorldStats,
+  level: Level,
+  world: LevelWorldStats,
   verdict: boolean | null,
 ): readonly TierRow[] {
-  if (challenge.condition.requirements.length === 0) {
+  if (level.condition.requirements.length === 0) {
     return [];
   }
 
   const finished = verdict !== null;
-  const earnedTier =
-    verdict === null ? null : evaluateChallengeTier(verdict, world, challenge.tiers);
-  const rowState = (tier: ChallengeTier): TierRowState => {
+  const earnedTier = verdict === null ? null : evaluateLevelTier(verdict, world, level.tiers);
+  const rowState = (tier: LevelTier): TierRowState => {
     if (!finished) {
       return "pending";
     }
     return earnedTier !== null && tierRank(tier) <= tierRank(earnedTier) ? "held" : "lost";
   };
-  const row = (tier: ChallengeTier, requirements: readonly TierRequirementInfo[]): TierRow => ({
+  const row = (tier: LevelTier, requirements: readonly TierRequirementInfo[]): TierRow => ({
     tier,
     requirements: requirements.map((requirement) =>
       buildRequirementRow(requirement, world, finished),
@@ -133,10 +132,10 @@ export function buildTierRows(
     state: rowState(tier),
   });
 
-  const rows: TierRow[] = [row("bronze", challenge.condition.requirements)];
-  if (challenge.tiers !== undefined) {
-    rows.push(row("silver", challenge.tiers.silver.requirements));
-    rows.push(row("gold", challenge.tiers.gold.requirements));
+  const rows: TierRow[] = [row("bronze", level.condition.requirements)];
+  if (level.tiers !== undefined) {
+    rows.push(row("silver", level.tiers.silver.requirements));
+    rows.push(row("gold", level.tiers.gold.requirements));
   }
   return rows;
 }

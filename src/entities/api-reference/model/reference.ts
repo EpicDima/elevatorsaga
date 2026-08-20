@@ -5,7 +5,7 @@
  *
  * Plain data, with no `t()` call of its own — {@link API_REFERENCE} names a catalogue key for
  * every piece of prose a row needs rather than holding the prose itself, the same purity
- * `#entities/challenge/model/challenge-list.ts` keeps for the same reason: a presenter reads the
+ * `#entities/level/model/level-list.ts` keeps for the same reason: a presenter reads the
  * active locale, this module does not need to know one exists.
  */
 

@@ -1,5 +1,5 @@
 /**
- * The code slot switcher: three buttons choosing which of a challenge's three
+ * The code slot switcher: three buttons choosing which of a level's three
  * saved programs the editor shows.
  *
  * Peeled out of what was `src/ui/presenters.ts`'s `presentCodeSlots` and
@@ -50,10 +50,10 @@ export interface CodeSlotsData {
  * instead of it.
  *
  * `aria-pressed` rather than `aria-current`: a slot is not a place with an
- * address of its own the way a challenge is, it is a toggle a player presses to
+ * address of its own the way a level is, it is a toggle a player presses to
  * change what the editor is showing, the same kind of control the floor call and
  * in-car buttons are. The stylesheet marks the same button off the same
- * attribute, following `.challengelink[aria-current]`, so the two cannot drift
+ * attribute, following `.levellink[aria-current]`, so the two cannot drift
  * apart.
  *
  * @param slot - The slot this button switches to.

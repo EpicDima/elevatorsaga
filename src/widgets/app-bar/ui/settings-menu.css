@@ -19,7 +19,7 @@
  * rules style; see that module's own comment for what each block composes.
  *
  * `color: var(--ds-text)` is added here, past what the mockup itself
- * declares: this popover is where the defect `.challengeseed` used to carry
+ * declares: this popover is where the defect `.levelseed` used to carry
  * a fix for now lives -- an opaque `.setmenu` sitting over `<body>` needs a
  * text colour stated on it or beneath it, or everything in it that is not a
  * `<p>` or a heading falls back to `<body>`'s own `color: white`, which the

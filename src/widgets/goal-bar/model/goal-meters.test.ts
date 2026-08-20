@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
 
 import { buildGoalMeters } from "./goal-meters.ts";
-import type { ChallengeWorldStats } from "#entities/challenge/index.ts";
-import type { TierRequirementInfo } from "#entities/challenge-tier/index.ts";
+import type { LevelWorldStats } from "#entities/level/index.ts";
+import type { TierRequirementInfo } from "#entities/level-tier/index.ts";
 
-const NOTHING_HAPPENED: ChallengeWorldStats = {
+const NOTHING_HAPPENED: LevelWorldStats = {
   elapsedTime: 0,
   transportedCounter: 0,
   maxWaitTime: 0,
@@ -32,7 +32,7 @@ const UNDER_60_SECONDS: TierRequirementInfo = {
 };
 
 describe("buildGoalMeters", () => {
-  it("is empty for a challenge with nothing to meter", () => {
+  it("is empty for a level with nothing to meter", () => {
     expect(buildGoalMeters([], NOTHING_HAPPENED)).toEqual([]);
   });
 

@@ -21,17 +21,17 @@ interface FakeWorld extends ControllableWorld {
  *
  * Standing in for the `stats_changed`-driven verdict a real caller (see
  * `src/pages/game/index.ts`'s `#startRun`) reaches on its own: `driveInstantly` never
- * decides a challenge is over by itself, so a fixture that wants to end one
- * has to flip `challengeEnded` the same way a caller would, from inside
+ * decides a level is over by itself, so a fixture that wants to end one
+ * has to flip `levelEnded` the same way a caller would, from inside
  * `update`.
  *
- * @param endAfterTicks - Sets `challengeEnded` once `update` has been called
- * this many times, or leaves the challenge undecided forever when omitted.
+ * @param endAfterTicks - Sets `levelEnded` once `update` has been called
+ * this many times, or leaves the level undecided forever when omitted.
  * @returns The fake world.
  */
 function createFakeWorld(endAfterTicks: number | null = null): FakeWorld {
   const world: FakeWorld = {
-    challengeEnded: false,
+    levelEnded: false,
     elevatorInterfaces: [],
     floorInterfaces: [],
     ticks: 0,
@@ -40,7 +40,7 @@ function createFakeWorld(endAfterTicks: number | null = null): FakeWorld {
       world.ticks += 1;
       world.elapsedSeconds += dt;
       if (endAfterTicks !== null && world.ticks >= endAfterTicks) {
-        world.challengeEnded = true;
+        world.levelEnded = true;
       }
     },
     init(): void {
@@ -123,13 +123,13 @@ function createBudgetExceedingNow(): () => number {
 }
 
 describe("driveInstantly", () => {
-  it("resolves within a single burst when the challenge ends quickly, without yielding", () => {
+  it("resolves within a single burst when the level ends quickly, without yielding", () => {
     const world = createFakeWorld(1);
     const scheduleYield = vi.fn();
 
     const handle = driveInstantly(world, inertCodeObj(), { scheduleYield });
 
-    expect(world.challengeEnded).toBe(true);
+    expect(world.levelEnded).toBe(true);
     expect(handle.controller.isPaused).toBe(false);
     expect(scheduleYield).not.toHaveBeenCalled();
   });
@@ -145,10 +145,10 @@ describe("driveInstantly", () => {
 
     expect(scheduleYield).toHaveBeenCalledTimes(1);
     expect(scheduleYield).toHaveBeenCalledWith(expect.any(Function));
-    expect(world.challengeEnded).toBe(false);
+    expect(world.levelEnded).toBe(false);
   });
 
-  it("keeps making progress across yielded bursts until the challenge ends", () => {
+  it("keeps making progress across yielded bursts until the level ends", () => {
     // Ends partway through the second burst that actually ticks the world —
     // the very first call to the frame requester only registers the
     // controller's updater and does no simulated work, exactly as the
@@ -164,7 +164,7 @@ describe("driveInstantly", () => {
     });
 
     expect(world.ticks).toBe(150);
-    expect(world.challengeEnded).toBe(true);
+    expect(world.levelEnded).toBe(true);
     // Each tick is TICK_SECONDS of simulated time; 150 of them is 1.5s
     // simulated, regardless of how many bursts of wall-clock time it took.
     expect(world.elapsedSeconds).toBeCloseTo(1.5);
@@ -196,7 +196,7 @@ describe("driveInstantly", () => {
     pending?.();
 
     expect(world.ticks).toBe(ticksBeforeStaleFire);
-    expect(world.challengeEnded).toBe(false);
+    expect(world.levelEnded).toBe(false);
   });
 
   it("surfaces a player-code error through onController, and stops the crunch", () => {
@@ -221,8 +221,8 @@ describe("driveInstantly", () => {
     expect(handle.controller.isPaused).toBe(true);
     // A controller a thrown error has paused never produces another tick, so
     // nothing driven by `world.update` — a verdict, the ceiling — can ever
-    // fire either; the challenge is left exactly as undecided as it was.
-    expect(world.challengeEnded).toBe(false);
+    // fire either; the level is left exactly as undecided as it was.
+    expect(world.levelEnded).toBe(false);
     // Stopped by noticing its own frames have stopped doing anything, not by
     // running out of budget: no burst here ever got the chance to overrun.
     expect(scheduleYield).not.toHaveBeenCalled();
@@ -237,22 +237,22 @@ describe("driveInstantly", () => {
 
     // The default scheduler is a real `setTimeout(callback, 0)`; one macrotask
     // turn is enough for both yielded continuations the `now` stand-in forces
-    // to run in turn and the challenge to reach its verdict.
+    // to run in turn and the level to reach its verdict.
     await new Promise((resolve) => {
       setTimeout(resolve, 50);
     });
 
-    expect(world.challengeEnded).toBe(true);
+    expect(world.levelEnded).toBe(true);
     expect(handle.controller.isPaused).toBe(false);
   });
 });
 
 describe("INSTANT_RUN_MAX_SIMULATED_SECONDS", () => {
-  it("stays comfortably above the longest built-in challenge's own time limit", () => {
-    // Challenge 18 (`challenges[17]` in `challenges.ts`) resolves its own
+  it("stays comfortably above the longest built-in level's own time limit", () => {
+    // Level 18 (`levels[17]` in `levels.ts`) resolves its own
     // condition at exactly 1800 simulated seconds — the longest limit any
-    // built-in challenge carries. A ceiling at or below that would be
-    // indistinguishable from the challenge's own verdict rather than a
+    // built-in level carries. A ceiling at or below that would be
+    // indistinguishable from the level's own verdict rather than a
     // last resort for one that never arrives.
     expect(INSTANT_RUN_MAX_SIMULATED_SECONDS).toBeGreaterThan(1800);
   });

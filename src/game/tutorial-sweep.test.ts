@@ -48,7 +48,7 @@
 
 import { describe, expect, it } from "vitest";
 
-import { challenges, type ChallengeCondition } from "./challenges.ts";
+import { levels, type LevelCondition } from "./levels.ts";
 import { createFrameRequester } from "./frame-requester.ts";
 import type { RandomSeed } from "./random.ts";
 import { tutorialTasks, type TutorialTask } from "./tutorial.ts";
@@ -125,7 +125,7 @@ interface SweepResult {
  */
 function playRun(
   options: WorldOptions,
-  condition: ChallengeCondition,
+  condition: LevelCondition,
   code: string,
   seed: RandomSeed,
 ): boolean {
@@ -154,7 +154,7 @@ function playRun(
       return;
     }
     run.verdict = status;
-    world.challengeEnded = true;
+    world.levelEnded = true;
     worldController.setPaused(true);
   });
 
@@ -187,7 +187,7 @@ function playRun(
  * @param code - The player program.
  * @returns How it fared.
  */
-function sweep(options: WorldOptions, condition: ChallengeCondition, code: string): SweepResult {
+function sweep(options: WorldOptions, condition: LevelCondition, code: string): SweepResult {
   const losingSeeds: string[] = [];
   let wins = 0;
   for (const seed of SWEEP_SEEDS) {
@@ -319,15 +319,15 @@ describe("Learning track task tutorial-8 over four hundred seeds", () => {
   const task = taskById("tutorial-8");
 
   it(
-    "loses one seed with its own answer, and it is challenge 1 that loses it",
+    "loses one seed with its own answer, and it is level 1 that loses it",
     () => {
       // 399, and the missing one is not a defect of the task. At 0.3 passengers a
       // second the fifteenth does not exist before t ≈ 46.7 s of the 60 available,
       // and on seed t165 the answer has 14 out by the bar with the last arriving
       // some ten seconds later. This is the number to leave alone: task 8's
-      // building and bar are challenge 1's, deliberately and by identity, so
+      // building and bar are level 1's, deliberately and by identity, so
       // anything that would lift 399 to 400 does it by making the graduation task
-      // no longer the game's own first challenge — which is the one thing it is
+      // no longer the game's own first level — which is the one thing it is
       // for. The next test makes that concrete rather than asserting it.
       const result = sweep(task.options, task.condition, task.solutionCode);
       expect(result.wins, describeSweep("tutorial-8 answer", result)).toBe(399);
@@ -337,19 +337,19 @@ describe("Learning track task tutorial-8 over four hundred seeds", () => {
   );
 
   it(
-    "loses exactly that seed when the same program is played as challenge 1",
+    "loses exactly that seed when the same program is played as level 1",
     () => {
       // The claim above, measured: the same answer, over the same four hundred
-      // seeds, in the building and against the bar taken from challenges.ts
+      // seeds, in the building and against the bar taken from levels.ts
       // rather than from the task table. Same 399, same seed. A future editor who
-      // "fixes" task 8 will find they have only moved it away from the challenge
+      // "fixes" task 8 will find they have only moved it away from the level
       // it is meant to rehearse.
-      const challenge = challenges[0];
-      if (challenge === undefined) {
-        throw new Error("the game has no challenges");
+      const level = levels[0];
+      if (level === undefined) {
+        throw new Error("the game has no levels");
       }
-      const result = sweep(challenge.options, challenge.condition, task.solutionCode);
-      expect(result.wins, describeSweep("challenge 1 with task 8's answer", result)).toBe(399);
+      const result = sweep(level.options, level.condition, task.solutionCode);
+      expect(result.wins, describeSweep("level 1 with task 8's answer", result)).toBe(399);
       expect(result.losingSeeds).toEqual(["t165"]);
     },
     SWEEP_TIMEOUT_MS,
@@ -373,7 +373,7 @@ describe("Learning track task tutorial-8 over four hundred seeds", () => {
       // knowing nothing about who is waiting, wins all four hundred on this
       // building — including t165 — while the answer wins 399. The bar is low
       // enough that being *thorough* beats being *responsive* here, which is a
-      // fact about challenge 1's building rather than about either program, and
+      // fact about level 1's building rather than about either program, and
       // it is the reason task 8 is a rehearsal rather than a lesson: the thing it
       // teaches is that the player can now write the answer unaided.
       const result = sweep(task.options, task.condition, BLIND_SWEEP);

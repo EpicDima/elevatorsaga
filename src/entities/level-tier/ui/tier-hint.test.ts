@@ -1,18 +1,18 @@
 import { describe, expect, it } from "vitest";
 
 import { nextTierHint } from "./tier-hint.ts";
-import type { ChallengeWorldStats } from "#game/challenges.ts";
-import type { ChallengeTierRequirements, TierPredicate } from "#game/challenge-tiers.ts";
+import type { LevelWorldStats } from "#game/levels.ts";
+import type { LevelTierRequirements, TierPredicate } from "#game/level-tiers.ts";
 import {
   atLeastAvgLoadFactorOnMove,
   requireAll,
   underElapsedTime,
   underMaxWaitTime,
   underMoveCount,
-} from "#game/challenge-tiers.ts";
+} from "#game/level-tiers.ts";
 
 /** A finished run: quick enough, but slow to deliver and running its cars half empty. */
-const FINISHED: ChallengeWorldStats = {
+const FINISHED: LevelWorldStats = {
   elapsedTime: 51,
   transportedCounter: 42,
   maxWaitTime: 23.44,
@@ -28,13 +28,13 @@ const FINISHED: ChallengeWorldStats = {
 };
 
 /** Silver asks one thing of {@link FINISHED} that it missed; gold asks two. */
-const TIERS: ChallengeTierRequirements = {
+const TIERS: LevelTierRequirements = {
   silver: underMaxWaitTime(21),
   gold: requireAll(underMaxWaitTime(21), atLeastAvgLoadFactorOnMove(0.5)),
 };
 
 describe("nextTierHint", () => {
-  it("says nothing for a challenge with no silver or gold to reach", () => {
+  it("says nothing for a level with no silver or gold to reach", () => {
     expect(nextTierHint(undefined, "bronze", FINISHED)).toBe("");
   });
 
@@ -64,7 +64,7 @@ describe("nextTierHint", () => {
   it("leaves out the requirements the run did clear", () => {
     // A tier missed on one count of three is not three things to fix, and
     // saying so would bury the one that matters.
-    const tiers: ChallengeTierRequirements = {
+    const tiers: LevelTierRequirements = {
       silver: requireAll(underElapsedTime(60), underMoveCount(80), underMaxWaitTime(21)),
       gold: underMaxWaitTime(5),
     };

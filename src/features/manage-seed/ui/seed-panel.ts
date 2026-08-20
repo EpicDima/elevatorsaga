@@ -56,7 +56,7 @@
  * Icon-only, as the mockup draws them, so each carries its accessible name
  * on `aria-label` — one for a screen reader — and on `title` — one for a
  * pointer that has stopped over an unfamiliar glyph. Both names are keys the
- * challenge bar's seed line already had, and both name the seed as well as
+ * level bar's seed line already had, and both name the seed as well as
  * the gesture. WCAG 2.5.3 has nothing to hold them to: it constrains an
  * accessible name against *visible* text, and neither button has any — which
  * is also what retired `game.seed.newDraw`, the words "new draw" that used
@@ -82,21 +82,21 @@
  * ## Where the rest of it comes from
  *
  * `src/ui/templates.ts`'s exported {@link SeedLinkData} type and the
- * `game.seed.*` catalogue keys the challenge bar's seed line already read, so
+ * `game.seed.*` catalogue keys the level bar's seed line already read, so
  * this block says what that line said, in the settings popover's own
- * `.setblock`/`.cap` shape instead of the challenge bar's
- * `.challengeseed`/`.seedlabel` one. The markup itself is recomposed here
- * rather than called into, because the challenge bar's own `seedTemplate`
+ * `.setblock`/`.cap` shape instead of the level bar's
+ * `.levelseed`/`.seedlabel` one. The markup itself is recomposed here
+ * rather than called into, because the level bar's own `seedTemplate`
  * and `seedHelpTemplate` are not exported from `templates.ts` — they are
- * private helpers of `challengeTemplate`, which is the only thing about them
- * the challenge bar promised to any caller. What *is* reused verbatim is the
+ * private helpers of `levelTemplate`, which is the only thing about them
+ * the level bar promised to any caller. What *is* reused verbatim is the
  * class names their markup already used (`seedlink`, `seedvalue`,
  * `seednewdraw`, `seedhelp`, `seedcaveat`), so `seed-panel.css` styles this
  * block through one set of rules rather than two under different names.
  *
- * `presentChallenge` in what was `src/ui/presenters.ts` went to some trouble to keep
+ * `presentLevel` in what was `src/ui/presenters.ts` went to some trouble to keep
  * the seed line's `<details>` open state and the document's focus in place
- * across the challenge bar's own full-`innerHTML` rebuilds on every restart.
+ * across the level bar's own full-`innerHTML` rebuilds on every restart.
  * That trouble is specific to a bar that redraws itself on a timer this panel
  * does not share. `AppBarSettingsController.setSeed` does rebuild this block,
  * but only when a run's seed actually changes, which is a navigation the
@@ -189,7 +189,7 @@ function seedNewDrawTemplate(name: string): string {
  * pass/fail run to name a seed for, or (test-only) a world built with a
  * ready-made random stream instead of a seed. Rendering nothing then, rather
  * than a block with nothing useful in it, is the same choice
- * `challengeTemplate` already makes for the challenge bar's own seed line.
+ * `levelTemplate` already makes for the level bar's own seed line.
  *
  * @param data - The seed of the run in progress and where its address is, or
  * `null` to render nothing.

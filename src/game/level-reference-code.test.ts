@@ -4,9 +4,9 @@ import {
   buildGoodDispatcherCode,
   GOOD_CODE_BALANCED,
   GOOD_CODE_MOVE_CONSCIOUS,
-} from "./challenge-reference-code.ts";
-import type { Challenge } from "./challenges.ts";
-import { challenges } from "./challenges.ts";
+} from "./level-reference-code.ts";
+import type { Level } from "./levels.ts";
+import { levels } from "./levels.ts";
 import { createFrameRequester } from "./frame-requester.ts";
 import type { RandomSeed } from "./random.ts";
 import { getCodeObjFromCode } from "./user-code.ts";
@@ -18,7 +18,7 @@ import { createWorld, type WorldOptions } from "./world.ts";
  *
  * Not a simulated run — real runs, against an actual {@link "./world.ts"!World},
  * are further down this file and are about termination rather than score.
- * Scoring a run against a challenge's actual thresholds is a later
+ * Scoring a run against a level's actual thresholds is a later
  * calibration commit's job. What belongs here is the same check
  * `user-code.test.ts` runs on every program this codebase hands to
  * {@link "./user-code.ts"!getCodeObjFromCode}: the source parses, and the
@@ -82,13 +82,13 @@ interface RawRunResult {
 
 /**
  * Drives a real {@link "./world.ts"!World} for at least `minSeconds`, ignoring
- * whatever the building's own challenge condition would have decided.
+ * whatever the building's own level condition would have decided.
  *
- * The regression test below cares about something a challenge condition
+ * The regression test below cares about something a level condition
  * cannot show: whether the simulation keeps making progress long after the
  * point a livelocked run would already be stuck. `requireUserCountWithinTime`
  * and its relatives stop a run the moment `elapsedTime` crosses the
- * challenge's own limit, which would have quietly reported "lost" at t=60 for
+ * level's own limit, which would have quietly reported "lost" at t=60 for
  * the defect this guards against, rather than the frozen, still-running
  * `destinationQueue` the defect actually produced past t=39 and up to the
  * t=400 an independent trace confirmed it never recovered from. Running past
@@ -142,29 +142,29 @@ function runRawUntil(
  * re-press ahead of an already-queued stop forever, never reaching the queued
  * floor and never delivering another passenger again.
  *
- * Reproduces the exact scenario that was traced: challenge 1's building
+ * Reproduces the exact scenario that was traced: level 1's building
  * (`{floorCount: 3, elevatorCount: 1, spawnRate: 0.3}`, the fifteen-in-sixty
- * bronze bar), {@link GOOD_CODE_BALANCED}, seed `1`, run with the challenge's
+ * bronze bar), {@link GOOD_CODE_BALANCED}, seed `1`, run with the level's
  * own condition set aside so a livelock cannot hide behind "lost at t=60" (see
  * {@link runRawUntil}). Before the fix this froze at `transportedCounter === 8`
  * by t≈39s and never moved again, confirmed by re-tracing to t=400; after it,
  * the single car gets unstuck, finishes delivering, and the counter comfortably
- * clears the challenge's own target of 15 long before 400 simulated seconds
+ * clears the level's own target of 15 long before 400 simulated seconds
  * are up.
  */
 describe("regression: a full single car does not starve an already-queued stop", () => {
-  it("keeps delivering past the point the un-fixed dispatcher froze, and clears the challenge's target within 400s", () => {
-    const challenge = challenges[0];
-    if (challenge === undefined) {
-      throw new Error("challenges[0] does not exist");
+  it("keeps delivering past the point the un-fixed dispatcher froze, and clears the level's target within 400s", () => {
+    const level = levels[0];
+    if (level === undefined) {
+      throw new Error("levels[0] does not exist");
     }
-    const result = runRawUntil(challenge.options, GOOD_CODE_BALANCED, 1, 400);
+    const result = runRawUntil(level.options, GOOD_CODE_BALANCED, 1, 400);
     expect(result.elapsedTime).toBeGreaterThanOrEqual(400);
     expect(
       result.transportedCounter,
       `only ${String(result.transportedCounter)} delivered by t=${result.elapsedTime.toFixed(1)} ` +
         `(moveCount=${String(result.moveCount)}, stopCount=${String(result.stopCount)}) -- ` +
-        `a healthy run clears this challenge's target of 15 in well under a minute`,
+        `a healthy run clears this level's target of 15 in well under a minute`,
     ).toBeGreaterThanOrEqual(15);
   });
 });
@@ -180,8 +180,8 @@ interface JudgedRunResult {
 }
 
 /**
- * Plays one program in one challenge's building on one seed, judged by the
- * challenge's own condition, and reports what happened rather than asserting
+ * Plays one program in one level's building on one seed, judged by the
+ * level's own condition, and reports what happened rather than asserting
  * anything itself -- the caller decides what a verdict of `null` means.
  *
  * The same shape as `tutorial-solutions.test.ts`'s `playTask`, with one
@@ -192,7 +192,7 @@ interface JudgedRunResult {
  * lets the assertion -- with a message describing exactly how far the run
  * got -- be the one place that finding turns into a failure.
  *
- * @param challenge - Supplies the building and the win/lose bar.
+ * @param level - Supplies the building and the win/lose bar.
  * @param code - Player program to run.
  * @param seed - Passengers to run against.
  * @param maxSimulatedSeconds - Bound on how long an undecided run is driven
@@ -200,14 +200,14 @@ interface JudgedRunResult {
  * @returns What the run came to.
  * @throws When the program throws.
  */
-function playChallenge(
-  challenge: Challenge,
+function playLevel(
+  level: Level,
   code: string,
   seed: RandomSeed,
   maxSimulatedSeconds: number,
 ): JudgedRunResult {
   const codeObj = getCodeObjFromCode(code);
-  const world = createWorld(challenge.options, seed);
+  const world = createWorld(level.options, seed);
   const worldController = createWorldController(TICK_SECONDS);
   const frameRequester = createFrameRequester(FRAME_MILLISECONDS);
 
@@ -224,12 +224,12 @@ function playChallenge(
     if (run.verdict !== null) {
       return;
     }
-    const status = challenge.condition.evaluate(world);
+    const status = level.condition.evaluate(world);
     if (status === null) {
       return;
     }
     run.verdict = status;
-    world.challengeEnded = true;
+    world.levelEnded = true;
     worldController.setPaused(true);
   });
 
@@ -254,14 +254,14 @@ function playChallenge(
 }
 
 /**
- * Real challenges the termination smoke check plays, by index into
- * {@link "./challenges.ts"!challenges}: challenges 1, 6, 7 and 19 (one-based,
+ * Real levels the termination smoke check plays, by index into
+ * {@link "./levels.ts"!levels}: levels 1, 6, 7 and 19 (one-based,
  * matching how the game numbers them).
  *
- * Not an arbitrary sample. Challenge 1 is the single-elevator building the
+ * Not an arbitrary sample. Level 1 is the single-elevator building the
  * regression above reproduces its defect in, where a `loadCutoff` has the
  * least room to be worked around by simply routing a call to a different car.
- * Challenges 6, 7 and 19 are judged wholly or partly on `moveCount`
+ * Levels 6, 7 and 19 are judged wholly or partly on `moveCount`
  * (`requireUserCountWithinMoves`, `requireUserCountWithinMovesWithMaxWaitTime`),
  * whose `evaluate` has no `elapsedTime` branch at all -- unlike every
  * time-limited or wait-limited condition in this file, a livelock in one of
@@ -269,16 +269,16 @@ function playChallenge(
  * let it run, which is exactly the kind of hang this smoke check exists to
  * turn into a prompt, readable test failure instead.
  */
-const SMOKE_CHALLENGE_INDICES: readonly number[] = [0, 5, 6, 18];
+const SMOKE_LEVEL_INDICES: readonly number[] = [0, 5, 6, 18];
 
-/** Seeds the termination smoke check plays each challenge/preset pair on. */
+/** Seeds the termination smoke check plays each level/preset pair on. */
 const SMOKE_SEEDS: readonly RandomSeed[] = [1, 2, 3, 4, 5];
 
 /**
  * Simulated seconds an undecided smoke-check run is allowed before its
  * result counts as a hang.
  *
- * Generous on purpose: every challenge in {@link SMOKE_CHALLENGE_INDICES} has
+ * Generous on purpose: every level in {@link SMOKE_LEVEL_INDICES} has
  * a time, move or wait limit of well under 500 simulated seconds baked into
  * its own condition, so a dispatcher that is actually making progress -- win
  * or lose -- reaches a verdict in a small fraction of this bound. What this
@@ -296,28 +296,28 @@ const SMOKE_MAX_SIMULATED_SECONDS = 500;
  * check meant to catch the *class* of bug that defect belonged to, the way
  * `tutorial-sweep.test.ts` catches more than the one seed a tutorial task
  * happened to be measured on. It does not require either preset to *win* --
- * {@link GOOD_CODE_BALANCED} is not calibrated for the move-budget challenges
+ * {@link GOOD_CODE_BALANCED} is not calibrated for the move-budget levels
  * here any more than {@link GOOD_CODE_MOVE_CONSCIOUS} is for the others, and
  * losing honestly is not a bug. Only `verdict === null` -- undecided after
  * {@link SMOKE_MAX_SIMULATED_SECONDS} -- is.
  */
-describe("termination smoke check across a spread of real challenges", () => {
+describe("termination smoke check across a spread of real levels", () => {
   const presets: ReadonlyMap<string, string> = new Map([
     ["GOOD_CODE_BALANCED", GOOD_CODE_BALANCED],
     ["GOOD_CODE_MOVE_CONSCIOUS", GOOD_CODE_MOVE_CONSCIOUS],
   ]);
 
   for (const [presetName, code] of presets) {
-    for (const challengeIndex of SMOKE_CHALLENGE_INDICES) {
-      const challenge = challenges[challengeIndex];
-      if (challenge === undefined) {
-        throw new Error(`challenges[${String(challengeIndex)}] does not exist`);
+    for (const levelIndex of SMOKE_LEVEL_INDICES) {
+      const level = levels[levelIndex];
+      if (level === undefined) {
+        throw new Error(`levels[${String(levelIndex)}] does not exist`);
       }
 
-      describe(`${presetName} on challenge ${String(challengeIndex + 1)}`, () => {
+      describe(`${presetName} on level ${String(levelIndex + 1)}`, () => {
         for (const seed of SMOKE_SEEDS) {
           it(`reaches a verdict at seed ${String(seed)}`, () => {
-            const result = playChallenge(challenge, code, seed, SMOKE_MAX_SIMULATED_SECONDS);
+            const result = playLevel(level, code, seed, SMOKE_MAX_SIMULATED_SECONDS);
             expect(
               result.verdict,
               `still undecided after ${String(SMOKE_MAX_SIMULATED_SECONDS)}s ` +

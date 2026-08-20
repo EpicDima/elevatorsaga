@@ -69,7 +69,7 @@ export interface LanguagePickerOptions {
    *
    * Called once the catalogue is in memory, so everything it draws through `t`
    * comes out in the new language in one pass rather than in two. What counts as
-   * a redraw is deliberately not decided here: the shell, the challenge bar, the
+   * a redraw is deliberately not decided here: the shell, the level bar, the
    * statistics and the building each have their own answer, and
    * {@link "#pages/game/index.ts"!App.relocalise} is where those answers live.
    */

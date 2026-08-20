@@ -3,26 +3,26 @@
 import { describe, expect, it } from "vitest";
 
 import { goalBarTemplate, presentGoalBar } from "./goal-bar.ts";
-import type { Challenge } from "#entities/challenge/index.ts";
-import { atLeastAvgLoadFactorOnMove, requireAll, underElapsedTime } from "#game/challenge-tiers.ts";
-import { requireUserCountWithinTime } from "#game/challenges.ts";
+import type { Level } from "#entities/level/index.ts";
+import { atLeastAvgLoadFactorOnMove, requireAll, underElapsedTime } from "#game/level-tiers.ts";
+import { requireUserCountWithinTime } from "#game/levels.ts";
 import { createWorld } from "#game/world.ts";
 import type { World } from "#game/world.ts";
 import { format, percent, seconds } from "#i18n/index.ts";
 import { requireElement } from "#shared/lib/dom.ts";
 
-/** A bronze-only challenge: deliver 5 within 30 seconds, no silver/gold. */
-const BRONZE_ONLY_CHALLENGE: Challenge = {
+/** A bronze-only level: deliver 5 within 30 seconds, no silver/gold. */
+const BRONZE_ONLY_LEVEL: Level = {
   options: {},
   condition: requireUserCountWithinTime(5, 30),
 };
 
 /**
- * A challenge with silver/gold on top of its bronze bar, mirroring
- * `tier-rows.test.ts`'s own `CHALLENGE` fixture so the two suites agree on
+ * A level with silver/gold on top of its bronze bar, mirroring
+ * `tier-rows.test.ts`'s own `LEVEL` fixture so the two suites agree on
  * what "held"/"lost" mean for the same numbers.
  */
-const TIERED_CHALLENGE: Challenge = {
+const TIERED_LEVEL: Level = {
   options: {},
   condition: requireUserCountWithinTime(10, 60),
   tiers: {
@@ -31,8 +31,8 @@ const TIERED_CHALLENGE: Challenge = {
   },
 };
 
-/** A challenge with nothing to meter — the sandbox's shape. */
-const NOTHING_TO_METER_CHALLENGE: Challenge = {
+/** A level with nothing to meter — the sandbox's shape. */
+const NOTHING_TO_METER_LEVEL: Level = {
   options: {},
   condition: {
     description: "Explore the building freely.",
@@ -46,21 +46,21 @@ function fixtureWorld(): World {
 }
 
 /**
- * Mounts a goal bar for a challenge and world, ready for a test to inspect.
+ * Mounts a goal bar for a level and world, ready for a test to inspect.
  *
- * @param challenge - The challenge to present.
+ * @param level - The level to present.
  * @param world - The run whose figures the bar reads.
  * @param getVerdict - The tri-state verdict to hand the bar; undecided by default.
  * @returns The mounted parent.
  */
 function setUp(
-  challenge: Challenge,
+  level: Level,
   world: World,
   getVerdict: () => boolean | null = () => null,
 ): HTMLElement {
   const parent = document.createElement("div");
   document.body.append(parent);
-  presentGoalBar(parent, world, { challenge, getVerdict });
+  presentGoalBar(parent, world, { level, getVerdict });
   return parent;
 }
 
@@ -83,7 +83,7 @@ describe("presentGoalBar", () => {
     const world = fixtureWorld();
     world.transportedCounter = 3;
     world.elapsedTime = 10;
-    const parent = setUp(BRONZE_ONLY_CHALLENGE, world);
+    const parent = setUp(BRONZE_ONLY_LEVEL, world);
 
     const meters = parent.querySelectorAll(".meter");
     expect(meters).toHaveLength(2);
@@ -109,7 +109,7 @@ describe("presentGoalBar", () => {
   it("marks an at-least meter is-done once met, and never near or late", () => {
     const world = fixtureWorld();
     world.transportedCounter = 5;
-    const parent = setUp(BRONZE_ONLY_CHALLENGE, world);
+    const parent = setUp(BRONZE_ONLY_LEVEL, world);
     const meter = requireElement('.meter[data-kind="transportedCounter"]', parent);
 
     expect(meter.classList.contains("is-done")).toBe(true);
@@ -120,7 +120,7 @@ describe("presentGoalBar", () => {
   it("leaves an at-most meter unmarked at exactly the near threshold, not past it", () => {
     const world = fixtureWorld();
     world.elapsedTime = 24; // 24 / 30 = 0.8, the threshold itself, not past it
-    const parent = setUp(BRONZE_ONLY_CHALLENGE, world);
+    const parent = setUp(BRONZE_ONLY_LEVEL, world);
     const meter = requireElement('.meter[data-kind="elapsedTime"]', parent);
 
     expect(meter.classList.contains("is-near")).toBe(false);
@@ -130,7 +130,7 @@ describe("presentGoalBar", () => {
   it("marks an at-most meter is-near once its progress passes the near threshold, while still met", () => {
     const world = fixtureWorld();
     world.elapsedTime = 25; // 25 / 30 = 0.8333, past the 0.8 near threshold
-    const parent = setUp(BRONZE_ONLY_CHALLENGE, world);
+    const parent = setUp(BRONZE_ONLY_LEVEL, world);
     const meter = requireElement('.meter[data-kind="elapsedTime"]', parent);
 
     expect(meter.classList.contains("is-near")).toBe(true);
@@ -140,7 +140,7 @@ describe("presentGoalBar", () => {
   it("marks an at-most meter is-late once its budget is blown", () => {
     const world = fixtureWorld();
     world.elapsedTime = 35; // past the 30-second budget
-    const parent = setUp(BRONZE_ONLY_CHALLENGE, world);
+    const parent = setUp(BRONZE_ONLY_LEVEL, world);
     const meter = requireElement('.meter[data-kind="elapsedTime"]', parent);
 
     expect(meter.classList.contains("is-late")).toBe(true);
@@ -148,7 +148,7 @@ describe("presentGoalBar", () => {
   });
 
   it("draws a silver and gold tick on a bronze meter's own bar, at each tier's threshold", () => {
-    const parent = setUp(TIERED_CHALLENGE, fixtureWorld());
+    const parent = setUp(TIERED_LEVEL, fixtureWorld());
     const elapsed = requireElement('.meter[data-kind="elapsedTime"]', parent);
     const ticks = elapsed.querySelectorAll(".tick");
 
@@ -165,7 +165,7 @@ describe("presentGoalBar", () => {
   });
 
   it("suppresses a tick exactly at either edge of the 3%/98% window, not just past it", () => {
-    const challenge: Challenge = {
+    const level: Level = {
       options: {},
       condition: requireUserCountWithinTime(10, 100),
       tiers: {
@@ -173,14 +173,14 @@ describe("presentGoalBar", () => {
         gold: underElapsedTime(98), // 98 / 100 = 98.0%, the other edge
       },
     };
-    const parent = setUp(challenge, fixtureWorld());
+    const parent = setUp(level, fixtureWorld());
     const elapsed = requireElement('.meter[data-kind="elapsedTime"]', parent);
 
     expect(elapsed.querySelectorAll(".tick")).toHaveLength(0);
   });
 
   it("draws a tick a hair inside either edge of the 3%/98% window", () => {
-    const challenge: Challenge = {
+    const level: Level = {
       options: {},
       condition: requireUserCountWithinTime(10, 100),
       tiers: {
@@ -188,14 +188,14 @@ describe("presentGoalBar", () => {
         gold: underElapsedTime(97.99), // 97.99%, just short of the high edge
       },
     };
-    const parent = setUp(challenge, fixtureWorld());
+    const parent = setUp(level, fixtureWorld());
     const elapsed = requireElement('.meter[data-kind="elapsedTime"]', parent);
 
     expect(elapsed.querySelectorAll(".tick")).toHaveLength(2);
   });
 
-  it("shows the challenge's own description and hides the tier trigger for a challenge with nothing to meter", () => {
-    const parent = setUp(NOTHING_TO_METER_CHALLENGE, fixtureWorld());
+  it("shows the level's own description and hides the tier trigger for a level with nothing to meter", () => {
+    const parent = setUp(NOTHING_TO_METER_LEVEL, fixtureWorld());
 
     expect(parent.querySelectorAll(".meter")).toHaveLength(0);
     const free = requireElement(".goalfree", parent);
@@ -209,7 +209,7 @@ describe("presentGoalBar", () => {
     world.transportedCounter = 12;
     world.elapsedTime = 45;
     world.avgLoadFactorOnMove = 0.3;
-    const parent = setUp(TIERED_CHALLENGE, world, () => true);
+    const parent = setUp(TIERED_LEVEL, world, () => true);
 
     expect(requireElement(".tierrows", parent).children).toHaveLength(0);
 
@@ -254,7 +254,7 @@ describe("presentGoalBar", () => {
     world.transportedCounter = 12;
     world.elapsedTime = 45; // under silver's 50s budget, but not gold's 40s one
     world.avgLoadFactorOnMove = 0.3; // misses gold's 0.5 floor too
-    const parent = setUp(TIERED_CHALLENGE, world, () => true);
+    const parent = setUp(TIERED_LEVEL, world, () => true);
 
     requireElement(".tierbox", parent).click();
 
@@ -270,7 +270,7 @@ describe("presentGoalBar", () => {
   });
 
   it("leaves every tier row unmarked while the run's own verdict is still undecided", () => {
-    const parent = setUp(TIERED_CHALLENGE, fixtureWorld(), () => null);
+    const parent = setUp(TIERED_LEVEL, fixtureWorld(), () => null);
 
     requireElement(".tierbox", parent).click();
 
@@ -285,7 +285,7 @@ describe("presentGoalBar", () => {
     world.transportedCounter = 12;
     world.elapsedTime = 45;
     world.avgLoadFactorOnMove = 0.3;
-    const parent = setUp(TIERED_CHALLENGE, world, () => true);
+    const parent = setUp(TIERED_LEVEL, world, () => true);
     const tierOpen = requireElement(".tierbox", parent);
 
     tierOpen.click(); // opens, populating the rows
@@ -305,8 +305,8 @@ describe("presentGoalBar", () => {
 
   it("update() rebuilds the bar's structure, not just the live values a tick can patch", () => {
     const world = fixtureWorld();
-    const options: { challenge: Challenge; getVerdict: () => boolean | null } = {
-      challenge: BRONZE_ONLY_CHALLENGE,
+    const options: { level: Level; getVerdict: () => boolean | null } = {
+      level: BRONZE_ONLY_LEVEL,
       getVerdict: () => null,
     };
     const parent = document.createElement("div");
@@ -314,7 +314,7 @@ describe("presentGoalBar", () => {
     const presenter = presentGoalBar(parent, world, options);
     expect(parent.querySelectorAll(".meter")).toHaveLength(2);
 
-    options.challenge = NOTHING_TO_METER_CHALLENGE;
+    options.level = NOTHING_TO_METER_LEVEL;
     world.trigger("stats_display_changed");
     // A live tick alone must not touch the bar's structure.
     expect(parent.querySelectorAll(".meter")).toHaveLength(2);

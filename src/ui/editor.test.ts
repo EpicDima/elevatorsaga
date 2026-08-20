@@ -673,28 +673,28 @@ describe("CodeEditor buffers", () => {
   });
 });
 
-describe("CodeEditor challenge buffers", () => {
-  it("gives every challenge's every slot a storage key of its own", () => {
+describe("CodeEditor level buffers", () => {
+  it("gives every level's every slot a storage key of its own", () => {
     const { editor, view, storage } = setUp();
 
-    editor.openChallengeBuffer(6, 2);
-    view.type("// challenge 7, slot 2");
-    editor.openChallengeBuffer(6, 3);
-    view.type("// challenge 7, slot 3");
-    editor.openChallengeBuffer(7, 2);
+    editor.openLevelBuffer(6, 2);
+    view.type("// level 7, slot 2");
+    editor.openLevelBuffer(6, 3);
+    view.type("// level 7, slot 3");
+    editor.openLevelBuffer(7, 2);
 
     // Pinned as literals for the reason the tutorial keys above are: the
     // spelling is what a half-finished attempt is found under later, and
     // asserting through a helper would let a rename pass every test while
     // quietly orphaning every slot already in play.
-    expect(storage.getItem("develevateChallengeCode_6_2")).toBe("// challenge 7, slot 2");
-    expect(storage.getItem("develevateChallengeCode_6_3")).toBe("// challenge 7, slot 3");
+    expect(storage.getItem("develevateChallengeCode_6_2")).toBe("// level 7, slot 2");
+    expect(storage.getItem("develevateChallengeCode_6_3")).toBe("// level 7, slot 3");
   });
 
   it("opens a slot nobody has used with the default program, writing it at once", () => {
     const { editor, view, storage } = setUp();
 
-    editor.openChallengeBuffer(4, 2);
+    editor.openLevelBuffer(4, 2);
 
     expect(view.getValue()).toBe(defaultCode());
     // Stored at once, so leaving without typing loses nothing and does not
@@ -707,47 +707,47 @@ describe("CodeEditor challenge buffers", () => {
     storage.setItem("develevateChallengeCode_4_2", "// where I got to last time");
     const { editor, view } = setUp(storage);
 
-    editor.openChallengeBuffer(4, 2);
+    editor.openLevelBuffer(4, 2);
 
     expect(view.getValue()).toBe("// where I got to last time");
   });
 
-  it("carries a slot's program forward from the newest lower challenge that has one", () => {
-    // A player who has never touched slot 2 of challenge 9 still expects to
-    // find slot 2 of challenge 8's program there, the same way starting
-    // challenge 9 for the first time in the legacy game picked up wherever
-    // challenge 8 left off.
+  it("carries a slot's program forward from the newest lower level that has one", () => {
+    // A player who has never touched slot 2 of level 9 still expects to
+    // find slot 2 of level 8's program there, the same way starting
+    // level 9 for the first time in the legacy game picked up wherever
+    // level 8 left off.
     const storage = new MemoryStorage();
-    storage.setItem("develevateChallengeCode_5_2", "// slot 2 as of challenge 6");
+    storage.setItem("develevateChallengeCode_5_2", "// slot 2 as of level 6");
     const { editor, view } = setUp(storage);
 
-    editor.openChallengeBuffer(8, 2);
+    editor.openLevelBuffer(8, 2);
 
-    expect(view.getValue()).toBe("// slot 2 as of challenge 6");
+    expect(view.getValue()).toBe("// slot 2 as of level 6");
   });
 
-  it("reaches past challenges with nothing in the slot to the nearest one that has something", () => {
+  it("reaches past levels with nothing in the slot to the nearest one that has something", () => {
     const storage = new MemoryStorage();
-    storage.setItem("develevateChallengeCode_3_2", "// slot 2 as of challenge 4");
+    storage.setItem("develevateChallengeCode_3_2", "// slot 2 as of level 4");
     const { editor, view } = setUp(storage);
 
-    // Nothing under challenges 4 through 7's second slot, so the search must
-    // not stop at the challenge immediately before the one being opened.
-    editor.openChallengeBuffer(7, 2);
+    // Nothing under levels 4 through 7's second slot, so the search must
+    // not stop at the level immediately before the one being opened.
+    editor.openLevelBuffer(7, 2);
 
-    expect(view.getValue()).toBe("// slot 2 as of challenge 4");
+    expect(view.getValue()).toBe("// slot 2 as of level 4");
   });
 
-  it("does not let a later challenge's slot reach back into an earlier one already opened", () => {
+  it("does not let a later level's slot reach back into an earlier one already opened", () => {
     const { editor, view } = setUp();
-    editor.openChallengeBuffer(0, 2);
+    editor.openLevelBuffer(0, 2);
     const startedOn = view.getValue();
 
-    editor.openChallengeBuffer(5, 2);
+    editor.openLevelBuffer(5, 2);
     view.type("// a much later program");
     editor.save();
 
-    editor.openChallengeBuffer(0, 2);
+    editor.openLevelBuffer(0, 2);
 
     expect(view.getValue()).toBe(startedOn);
   });
@@ -757,32 +757,32 @@ describe("CodeEditor challenge buffers", () => {
     storage.setItem(CODE_STORAGE_KEY, "// the program every existing player has");
     const { editor, view } = setUp(storage);
 
-    editor.openChallengeBuffer(3, 1);
+    editor.openLevelBuffer(3, 1);
     expect(view.getValue()).toBe("// the program every existing player has");
 
-    editor.openChallengeBuffer(3, 2);
+    editor.openLevelBuffer(3, 2);
     expect(view.getValue()).toBe(defaultCode());
   });
 
   it("opens the first slot when none is named", () => {
     const { editor, storage } = setUp();
 
-    editor.openChallengeBuffer(2);
+    editor.openLevelBuffer(2);
 
     expect(storage.getItem("develevateChallengeCode_2_1")).toBe(defaultCode());
   });
 
-  it("carries typing not yet autosaved into the first challenge's first slot", () => {
-    // The legacy key `#resolveChallengeStarterCode` falls back to is exactly
+  it("carries typing not yet autosaved into the first level's first slot", () => {
+    // The legacy key `#resolveLevelStarterCode` falls back to is exactly
     // the key the buffer on screen is still writing to the first time a
-    // player ever opens a numbered challenge -- the player's own buffer is
+    // player ever opens a numbered level -- the player's own buffer is
     // open by default. Resolving the starter program before flushing that
     // buffer would carry forward whatever the key held before this keystroke
     // rather than what is on screen right now.
     const { editor, view, storage } = setUp();
     view.type("// typed a moment ago, not yet autosaved");
 
-    editor.openChallengeBuffer(0, 1);
+    editor.openLevelBuffer(0, 1);
 
     expect(view.getValue()).toBe("// typed a moment ago, not yet autosaved");
     expect(storage.getItem("develevateChallengeCode_0_1")).toBe(
@@ -790,27 +790,23 @@ describe("CodeEditor challenge buffers", () => {
     );
   });
 
-  it("keeps a separate reset backup per challenge slot", () => {
+  it("keeps a separate reset backup per level slot", () => {
     const { editor, view, storage } = setUp();
-    editor.openChallengeBuffer(3, 1);
-    view.type("// challenge 4, slot 1 attempt");
+    editor.openLevelBuffer(3, 1);
+    view.type("// level 4, slot 1 attempt");
     editor.reset();
-    editor.openChallengeBuffer(3, 2);
-    view.type("// challenge 4, slot 2 attempt");
+    editor.openLevelBuffer(3, 2);
+    view.type("// level 4, slot 2 attempt");
     editor.reset();
     expect(view.getValue()).toBe(defaultCode());
 
-    editor.openChallengeBuffer(3, 1);
+    editor.openLevelBuffer(3, 1);
     editor.undoReset();
 
     // Slot 1's own attempt, not slot 2's, and slot 2's backup is untouched.
-    expect(view.getValue()).toBe("// challenge 4, slot 1 attempt");
-    expect(storage.getItem("develevateChallengeBackupCode_3_1")).toBe(
-      "// challenge 4, slot 1 attempt",
-    );
-    expect(storage.getItem("develevateChallengeBackupCode_3_2")).toBe(
-      "// challenge 4, slot 2 attempt",
-    );
+    expect(view.getValue()).toBe("// level 4, slot 1 attempt");
+    expect(storage.getItem("develevateChallengeBackupCode_3_1")).toBe("// level 4, slot 1 attempt");
+    expect(storage.getItem("develevateChallengeBackupCode_3_2")).toBe("// level 4, slot 2 attempt");
   });
 });
 

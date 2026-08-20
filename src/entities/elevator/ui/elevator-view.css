@@ -116,7 +116,7 @@ html[data-theme="dark"] .mark.is-lit {
  *
  * It rides on a transform the view writes from `worldY` every tick. There is no
  * transition on it: a car's vertical position is simulated, at whatever speed
- * the challenge gives it, and interpolating on top of that would draw a car
+ * the level gives it, and interpolating on top of that would draw a car
  * that is not where the game says it is.
  */
 .car {
@@ -157,7 +157,7 @@ html[data-theme="dark"] .mark.is-lit {
  * The mockup's top strip, with one thing added: the parts have to be allowed to
  * shrink. Its own cars are 62px wide and its own comment puts the floor at
  * 36px of content; a real car is ten pixels per seat times the building's
- * scale, and challenge 18 draws one 30px wide -- 28px of content, into which
+ * scale, and level 18 draws one 30px wide -- 28px of content, into which
  * `4px + 9 + "18" + 9 + 4px` does not go. Unshrinkable, `overflow: hidden`
  * takes the whole answer out of the second arrow and the car reads as having
  * one lamp.

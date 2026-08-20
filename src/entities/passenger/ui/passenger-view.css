@@ -73,7 +73,7 @@
 }
 
 /*
- * The passenger whose wait is the one the challenge is about to be lost on.
+ * The passenger whose wait is the one the level is about to be lost on.
  *
  * Upstream #135 asked for this and it was never built: the panel on the right
  * says the Max delivery time is 14.6 seconds, and the player has no way to

@@ -34,7 +34,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 
 import { DEFAULT_LOCALE, LOCALES, setLocale } from "../i18n/index.ts";
-import type { Challenge, ChallengeWorldStats } from "./challenges.ts";
+import type { Level, LevelWorldStats } from "./levels.ts";
 import { tutorialTasks, type TutorialTask } from "./tutorial.ts";
 import { getCodeObjFromCode } from "./user-code.ts";
 
@@ -96,7 +96,7 @@ const MAX_CODE_LINE_LENGTH = 100;
 const REACHABILITY_PROBE_LIMIT = 1000;
 
 /** A world in which nothing has happened yet. */
-const NOTHING_HAPPENED: ChallengeWorldStats = {
+const NOTHING_HAPPENED: LevelWorldStats = {
   elapsedTime: 0,
   transportedCounter: 0,
   maxWaitTime: 0,
@@ -333,12 +333,12 @@ describe("Learning track table", () => {
 
 for (const task of tutorialTasks) {
   describe(`Learning track task ${task.id}`, () => {
-    it("is playable by the machinery that runs a challenge", () => {
+    it("is playable by the machinery that runs a level", () => {
       // Assignability is the actual assertion, and it is checked by tsc rather
-      // than at runtime: if TutorialTask ever stops being a Challenge, this line
+      // than at runtime: if TutorialTask ever stops being a Level, this line
       // stops compiling and the app can no longer hand a task to `startRun`.
-      const challenge: Challenge = task;
-      expect(challenge.condition.description).not.toBe("");
+      const level: Level = task;
+      expect(level.condition.description).not.toBe("");
     });
 
     it("is played in a building the game can construct", () => {

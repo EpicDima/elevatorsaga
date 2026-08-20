@@ -183,8 +183,8 @@ describe("the active locale", () => {
 
   it("chooses the plural form of the language it is in", () => {
     setLocale("ru");
-    expect(t("challenge.people.html", { count: 2 })).toContain("пассажира");
-    expect(t("challenge.people.html", { count: 5 })).toContain("пассажиров");
+    expect(t("level.people.html", { count: 2 })).toContain("пассажира");
+    expect(t("level.people.html", { count: 5 })).toContain("пассажиров");
   });
 });
 
@@ -199,8 +199,8 @@ describe("translateIn", () => {
 
   it("takes the same parameters whichever locale it renders", () => {
     const args = { number: 4, description: "..." } as const;
-    expect(translateIn("en", "game.challenge.title.html", args)).toBe("Level 4: ...");
-    expect(translateIn("ru", "game.challenge.title.html", args)).toBe("Уровень 4: ...");
+    expect(translateIn("en", "game.level.title.html", args)).toBe("Level 4: ...");
+    expect(translateIn("ru", "game.level.title.html", args)).toBe("Уровень 4: ...");
   });
 });
 

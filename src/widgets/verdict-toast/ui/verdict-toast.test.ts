@@ -63,7 +63,7 @@ describe("presentVerdictToast", () => {
     expect(parent.querySelector("a")?.getAttribute("href")).toBe("#level=4");
   });
 
-  it("omits the next-challenge link when there is nowhere to go", () => {
+  it("omits the next-level link when there is nowhere to go", () => {
     const parent = container();
     presentVerdictToast(parent, baseData({ won: false, title: "Level failed" }));
     expect(parent.querySelector("a")).toBeNull();

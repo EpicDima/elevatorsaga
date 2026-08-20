@@ -5,7 +5,7 @@
  * in {@link Elevator.updateElevatorMovement} and the passing-floor detection in
  * {@link Elevator.handleNewState} are deliberately *not* tidied up: their exact
  * arithmetic (including the odd-looking sign in the braking branch) determines
- * how the game feels and whether the shipped challenges are solvable.
+ * how the game feels and whether the shipped levels are solvable.
  */
 
 import {
@@ -92,7 +92,7 @@ const DEFAULT_MAX_USERS = 4;
  *
  * Module level rather than per elevator, and never reset: the warning is
  * addressed to whoever is writing the solution, and it says the same thing for
- * every elevator and every restart of the challenge.
+ * every elevator and every restart of the level.
  */
 let firstPressedFloorWarned = false;
 
@@ -141,7 +141,7 @@ export class Elevator extends Movable<ElevatorEvents> {
   currentFloor = 0;
   /** Truncated floor the car would stop at, as of the previous state change. */
   previousTruncFutureFloorIfStopped = 0;
-  /** Number of floor changes, used by the "elevator moves" challenges. */
+  /** Number of floor changes, used by the "elevator moves" levels. */
   moveCount = 0;
   /**
    * Load factors summed over the moves counted in {@link Elevator.moveCount}.
@@ -372,13 +372,13 @@ export class Elevator extends Movable<ElevatorEvents> {
       // re-offer that raises `boarding_started` first checks `isMoving`, which
       // only that same snap clears. Nothing else assigns `velocityY`, and
       // nothing else clears `isMoving`. `elevator.test.ts` holds the invariant
-      // against every challenge, three seeds and three player programs, and
+      // against every level, three seeds and three player programs, and
       // pins what the skipped step would do to a car if it ever did break.
       //
       // The legacy note here (`legacy-1.x:elevator.js:86`) wondered whether a
       // nonzero velocity should throw instead. It stays a comment: the contract
       // of this port is behavioural identity with legacy, and throwing would
-      // end a challenge on a path legacy simply drove through. What legacy did
+      // end a level on a path legacy simply drove through. What legacy did
       // with it is skip the whole integration step, so a car frozen in flight
       // keeps its exact position and resumes at the speed it froze at.
       return;

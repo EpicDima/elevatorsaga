@@ -10,7 +10,7 @@ describe("escapeHtml", () => {
   });
 
   it("leaves ordinary text alone", () => {
-    expect(escapeHtml("Challenge #3")).toBe("Challenge #3");
+    expect(escapeHtml("Level #3")).toBe("Level #3");
   });
 });
 

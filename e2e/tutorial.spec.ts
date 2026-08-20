@@ -154,7 +154,7 @@ test("shows the panel on a task and nothing at all off it", async ({ page }) => 
 
   // The region stays in the page shell on every other route, so the stylesheet
   // is what has to take it out of the flow: an empty block with margins is
-  // still a 10px gap above the building on all nineteen challenges and the
+  // still a 10px gap above the building on all nineteen levels and the
   // sandbox.
   await page.goto("/#level=1");
   await expect(page.getByRole("button", { name: "Level 1" })).toBeVisible();
@@ -286,7 +286,7 @@ test("starts the task again from the run controls without leaving the track", as
   // And the button survives the restart it caused, so the focus never leaves it.
   // The panel is redrawn whole underneath, but the run controls are drawn once
   // for the life of the page and are not among the regions `#startRun` tears
-  // down -- which is the whole reason they were moved out of the challenge bar.
+  // down -- which is the whole reason they were moved out of the level bar.
   await expect(page.getByRole("button", { name: "Start over", exact: true })).toBeFocused();
 });
 
@@ -421,7 +421,7 @@ test("costs the levels nothing: the widest building in the game still fits its p
 }) => {
   // The row this feature added is on every route, lesson or no lesson, and the
   // levels are where it can do damage without anyone on the learning track ever
-  // seeing it. Challenge 18 builds the widest house in the game -- 1030px of it
+  // seeing it. Level 18 builds the widest house in the game -- 1030px of it
   // -- and `.stagearea > .world` refuses to shrink, so with no ceiling on that
   // refusal the world sized itself to the building instead of to the pane:
   // 1062px inside a 794px pane, 268px of it clipped away by the pane's own

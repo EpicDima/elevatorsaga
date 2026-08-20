@@ -101,7 +101,7 @@ describe("index.html", () => {
     ".code",
     "#storage_status",
     // Drawn into by src/pages/game/index.ts.
-    ".challenge",
+    ".level",
     ".controls",
     // Drawn into by src/widgets/tutorial-panel/ui/tutorial-panel.ts, and left empty off the track.
     ".tutorial",
@@ -114,7 +114,7 @@ describe("index.html", () => {
     expect(page.querySelector(selector)).not.toBeNull();
   });
 
-  it("announces the end-of-challenge verdict from a container that is always present", () => {
+  it("announces the end-of-level verdict from a container that is always present", () => {
     // presentVerdictToast builds the card complete and then inserts it, so the
     // live region has to be the container: a role="status" that appears in the
     // document already populated is generally announced by nothing.
@@ -138,10 +138,10 @@ describe("index.html", () => {
     expect(element?.textContent).toBe("");
   });
 
-  it.each([".world", ".innerworld", ".statscontainer", ".challenge", ".tutorial"])(
+  it.each([".world", ".innerworld", ".statscontainer", ".level", ".tutorial"])(
     "leaves %s out of the live regions",
     (selector) => {
-      // The building and the statistics change every frame, and the challenge
+      // The building and the statistics change every frame, and the level
       // bar changes under the player's own hands. Announcing any of them would
       // bury the messages that do need announcing under continuous noise. The
       // learning track's panel is redrawn whole every time the language changes
@@ -493,7 +493,7 @@ describe.each(DOCUMENTATION_PAGES)("$file", (reference) => {
     expect(docs.documentElement.innerHTML).not.toContain("highlight");
   });
 
-  it("draws the same plus and minus icons the challenge bar draws", () => {
+  it("draws the same plus and minus icons the level bar draws", () => {
     // The page is static, so the two icons in "How to play" are written out by
     // hand instead of built by createIcon. Nothing else would notice them
     // drifting from src/shared/ui/icon.ts -- or from each other, the plus and the

@@ -7,7 +7,7 @@
  * A task in {@link "./tutorial.ts"!tutorialTasks} is a promise about the
  * simulation — "this mistake cannot pass, this fix can" — and nothing but the
  * simulation can keep it. Spawn timing, elevator acceleration, boarding, the
- * wait clock and the thresholds in {@link "./challenges.ts"!challenges} all
+ * wait clock and the thresholds in {@link "./levels.ts"!levels} all
  * feed into it, and every one of them is somebody's legitimate next commit. The
  * failure this file exists to catch is quiet: the physics shifts by a few
  * percent, a task the player is told is impossible starts passing, and the only
@@ -70,7 +70,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 
 import { DEFAULT_LOCALE, LOCALES, setLocale, type Locale } from "../i18n/index.ts";
-import type { ChallengeCondition, ChallengeWorldStats } from "./challenges.ts";
+import type { LevelCondition, LevelWorldStats } from "./levels.ts";
 import { createFrameRequester } from "./frame-requester.ts";
 import type { RandomSeed } from "./random.ts";
 import { tutorialTasks, type TutorialTask } from "./tutorial.ts";
@@ -128,12 +128,12 @@ const MARGIN_SECONDS = 3.0;
 /**
  * The margin task 8 is held to instead, and the reason it is smaller.
  *
- * Task 8 is played in challenge 1's building because being challenge 1 is the
- * point of it — the graduation task is the game's own first challenge — and at
+ * Task 8 is played in level 1's building because being level 1 is the
+ * point of it — the graduation task is the game's own first level — and at
  * 0.3 passengers a second the fifteenth passenger does not exist before about
  * 46.7 seconds of the 60 available. The slack is arithmetic, not programming:
  * no program can widen it, and every way of widening the building widens it by
- * no longer being challenge 1. The answer clears by 1.8 seconds on its slowest
+ * no longer being level 1. The answer clears by 1.8 seconds on its slowest
  * measured seed, so the bar is set just under that, and the smallness is
  * recorded here rather than hidden by lowering the bound for all eight.
  */
@@ -215,8 +215,8 @@ interface RunOutcome {
  * @returns The verdict, or `null` while undecided.
  */
 function judgeWithClockShift(
-  condition: ChallengeCondition,
-  stats: ChallengeWorldStats,
+  condition: LevelCondition,
+  stats: LevelWorldStats,
   shiftSeconds: number,
 ): boolean | null {
   return condition.evaluate({
@@ -284,9 +284,9 @@ function playTask(
       return;
     }
     run.verdict = status;
-    // Exactly what the app does when a challenge resolves: freeze the world so
+    // Exactly what the app does when a level resolves: freeze the world so
     // nothing after the deciding moment can change the numbers being read.
-    world.challengeEnded = true;
+    world.levelEnded = true;
     worldController.setPaused(true);
   });
 

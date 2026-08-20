@@ -1,5 +1,5 @@
 /**
- * The star badge `design/ui-mockup.html` draws for a challenge's best tier —
+ * The star badge `design/ui-mockup.html` draws for a level's best tier —
  * its `starsBox()`/`starsHtml()` (a level-switcher tile's badge, and a tier
  * popover row's own header use the identical markup: three stars, lit up to
  * the tier earned, tinted by CSS keyed off `data-tier`). One function serves
@@ -8,13 +8,13 @@
  * always defined.
  */
 
-import { CHALLENGE_TIERS } from "#game/challenge-tiers.ts";
-import type { ChallengeTier } from "#game/challenge-tiers.ts";
+import { LEVEL_TIERS } from "#game/level-tiers.ts";
+import type { LevelTier } from "#game/level-tiers.ts";
 import { spriteIconMarkup } from "#shared/ui/icon.ts";
 import { markup, raw } from "#shared/ui/markup.ts";
 
-/** Stars a badge always shows, lit or not — one per tier in {@link CHALLENGE_TIERS}. */
-const STAR_COUNT = CHALLENGE_TIERS.length;
+/** Stars a badge always shows, lit or not — one per tier in {@link LEVEL_TIERS}. */
+const STAR_COUNT = LEVEL_TIERS.length;
 
 /**
  * Markup for a tier badge: {@link STAR_COUNT} stars, the first `n` lit for a
@@ -28,8 +28,8 @@ const STAR_COUNT = CHALLENGE_TIERS.length;
  * @param tier - The tier to badge, or `undefined` for none earned yet.
  * @returns The `<span class="stars">` markup.
  */
-export function tierBadgeMarkup(tier: ChallengeTier | undefined): string {
-  const earned = tier === undefined ? 0 : CHALLENGE_TIERS.indexOf(tier) + 1;
+export function tierBadgeMarkup(tier: LevelTier | undefined): string {
+  const earned = tier === undefined ? 0 : LEVEL_TIERS.indexOf(tier) + 1;
   const dataTier = tier ?? "bronze";
   const stars = Array.from({ length: STAR_COUNT }, (_, index) =>
     spriteIconMarkup("star", `star${index < earned ? " is-on" : ""}`),

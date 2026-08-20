@@ -26,7 +26,7 @@ function setUp(overrides: Partial<RunControlsOptions> = {}): {
     parent,
     options: {
       worldController: { isPaused: true },
-      challengeEnded: (): boolean => false,
+      levelEnded: (): boolean => false,
       runStarted: (): boolean => false,
       instantSpeed: (): boolean => false,
       instantRunInProgress: (): boolean => false,
@@ -115,7 +115,7 @@ describe("presentRunControls", () => {
 
     // The one state where "Start" needs saying twice: what it offers is to
     // throw away a result the player is still reading.
-    options.challengeEnded = (): boolean => true;
+    options.levelEnded = (): boolean => true;
     presenter.update();
     expect(startStop.textContent).toBe("Start");
     expect(startStop.title).toBe("Run it again from the beginning");

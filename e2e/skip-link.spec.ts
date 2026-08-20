@@ -3,7 +3,7 @@
  *
  * The editor is what the page is for, and it is behind everything the building
  * contains: the scroll container, and a button for every call and every floor.
- * On the eighteenth challenge that is 255 tab stops past the link, 208 of them
+ * On the eighteenth level that is 255 tab stops past the link, 208 of them
  * buttons. The count is measured here rather than asserted from the markup
  * because most of those stops are drawn by the presenters at run time and do
  * not exist in `index.html` at all.
@@ -13,13 +13,13 @@ import { expect, test } from "@playwright/test";
 
 import { editor, unlockLevel } from "./game-page.ts";
 
-/** The busiest challenge: 8 elevators, 21 floors, and a call button per direction. */
+/** The busiest level: 8 elevators, 21 floors, and a call button per direction. */
 const BUSIEST = "#level=18";
 
 /** Which level {@link BUSIEST} names, for the browser that has to have earned it. */
 const BUSIEST_NUMBER = 18;
 
-test("reaches the editor in one tab stop, from the busiest challenge", async ({ page }) => {
+test("reaches the editor in one tab stop, from the busiest level", async ({ page }) => {
   await unlockLevel(page, BUSIEST_NUMBER);
   await page.goto(`/${BUSIEST}`);
   await expect(editor(page)).toBeVisible();
@@ -67,7 +67,7 @@ test("saves a walk through the whole building", async ({ page }) => {
   // the chrome above the building, the building's own scroll container, each
   // floor's own row and each car's own container, the statistics panel's
   // summary and the splitter below the building, and the code slot switcher.
-  // Adding a challenge link, or anything else above the building, moves this
+  // Adding a level link, or anything else above the building, moves this
   // by one, and then the number has to be looked at rather than guessed at.
   // It was 240 until the run controls gained "Start over" and "Reset code",
   // two more stops above the building, 242 until the same row gained "Run
@@ -78,7 +78,7 @@ test("saves a walk through the whole building", async ({ page }) => {
   // the editor's height grip is -- sat below it, between the building and the
   // code slot switcher. It was 263 once widgets/level-switcher's three
   // controls (Previous level, the switcher itself, Next level) and
-  // widgets/goal-bar's tier popover trigger stood where the old challenge
+  // widgets/goal-bar's tier popover trigger stood where the old level
   // bar's plain heading used to, four more stops above the building, and
   // widgets/stats-panel's "All figures" summary sat between the building and
   // the splitter, a fifth -- and Reset code moved out of the run controls row
@@ -96,7 +96,7 @@ test("saves a walk through the whole building", async ({ page }) => {
   // and only while there is something left to scroll to, which on a twenty-one
   // floor building there always is. `.world` keeps the `tabindex` it was given
   // back when it was the scroller, which is `index.html`'s to take away; until
-  // it does, this challenge has one stop that no longer moves anything.
+  // it does, this level has one stop that no longer moves anything.
   //
   // It fell to 258 when "Run instantly" became a stop of the speed control
   // rather than a button of its own: the last step past the fastest speed,
@@ -112,8 +112,8 @@ test("saves a walk through the whole building", async ({ page }) => {
   // And to 255 once the perpetual demo left the level list -- not because its
   // tile was a stop, since the switcher's popover is `hidden` while closed and
   // no tile in it is ever reached by tabbing, but because of what that tile
-  // did to the "Next level" arrow. The demo sat last in the challenge block
-  // and was the one tile there that never locked, so from any challenge at all
+  // did to the "Next level" arrow. The demo sat last in the level block
+  // and was the one tile there that never locked, so from any level at all
   // there was somewhere forward to step to and the arrow was enabled. The
   // eighteenth is now second-to-last with the nineteenth locked behind it,
   // nothing further on is open, and `presentLevelSwitcher` disables an arrow

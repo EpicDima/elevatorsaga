@@ -54,7 +54,7 @@ const ONE_NANOSECOND_MILLIS = 1e-6;
  * The scenario the runs are compared on.
  *
  * The benchmark's medium scenario (see
- * {@link "./fitness.ts"!fitnessChallenges}): busy enough that cars fill up and
+ * {@link "./fitness.ts"!fitnessLevels}): busy enough that cars fill up and
  * turn passengers away, small enough that a run is a few milliseconds.
  */
 const SCENARIO: WorldOptions = {

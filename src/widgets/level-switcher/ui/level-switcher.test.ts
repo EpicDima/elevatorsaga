@@ -5,13 +5,13 @@ import { describe, expect, it } from "vitest";
 import { levelSwitcherTemplate, presentLevelSwitcher } from "./level-switcher.ts";
 import type { LevelSwitcherOptions } from "./level-switcher.ts";
 import type { LevelLinkTarget, LevelMenuInput } from "../model/level-menu.ts";
-import type { ChallengeTier } from "#entities/challenge-tier/index.ts";
-import { requireUserCountWithinTime, type Challenge } from "#game/challenges.ts";
+import type { LevelTier } from "#entities/level-tier/index.ts";
+import { requireUserCountWithinTime, type Level } from "#game/levels.ts";
 import { tutorialTasks } from "#game/tutorial.ts";
 import { queryAll, requireElement } from "#shared/lib/dom.ts";
 import { SPRITE_ICONS } from "#shared/ui/icon.ts";
 
-function fixtureChallenges(count: number): readonly Challenge[] {
+function fixtureLevels(count: number): readonly Level[] {
   return Array.from({ length: count }, () => ({
     options: {},
     condition: requireUserCountWithinTime(5, 60),
@@ -21,7 +21,7 @@ function fixtureChallenges(count: number): readonly Challenge[] {
 /** Renders a {@link LevelLinkTarget} into a URL a test can assert on directly. */
 function stubHref(target: LevelLinkTarget): string {
   switch (target.kind) {
-    case "challenge": {
+    case "level": {
       return `#level=${String(target.number)}`;
     }
     case "tutorial": {
@@ -35,11 +35,11 @@ function stubHref(target: LevelLinkTarget): string {
 
 function baseInput(overrides: Partial<LevelMenuInput> = {}): LevelMenuInput {
   return {
-    challenges: fixtureChallenges(4),
+    levels: fixtureLevels(4),
     tutorialTasks,
-    bestTiers: new Map<number, ChallengeTier>(),
+    bestTiers: new Map<number, LevelTier>(),
     clearedTutorialTasks: new Set(),
-    selection: { kind: "challenge", index: 0 },
+    selection: { kind: "level", index: 0 },
     buildHref: stubHref,
     ...overrides,
   };
@@ -116,7 +116,7 @@ describe("presentLevelSwitcher", () => {
     expect(taskOpen.getAttribute("aria-expanded")).toBe("false");
   });
 
-  it("fills the three blocks in order: tutorial, challenges, other", () => {
+  it("fills the three blocks in order: tutorial, levels, other", () => {
     const { parent, options } = setUp();
     presentLevelSwitcher(parent, options);
 
@@ -129,14 +129,14 @@ describe("presentLevelSwitcher", () => {
     expect(otherBlock?.querySelector(".tasklink")?.textContent).toBe("Sandbox");
   });
 
-  it("renders an open challenge tile as a real link and a locked one as a disabled button", () => {
+  it("renders an open level tile as a real link and a locked one as a disabled button", () => {
     const { parent, options } = setUp({
-      challenges: fixtureChallenges(5),
-      selection: { kind: "challenge", index: 0 },
+      levels: fixtureLevels(5),
+      selection: { kind: "level", index: 0 },
     });
     presentLevelSwitcher(parent, options);
-    const [, challengeBlock] = parent.querySelectorAll(".taskblock");
-    const tiles = [...(challengeBlock?.querySelectorAll(".tasklink") ?? [])];
+    const [, levelBlock] = parent.querySelectorAll(".taskblock");
+    const tiles = [...(levelBlock?.querySelectorAll(".tasklink") ?? [])];
 
     expect(tiles.map((tile) => tile.tagName)).toEqual([
       "A",
@@ -150,15 +150,15 @@ describe("presentLevelSwitcher", () => {
     expect(tiles[0]?.getAttribute("href")).toBe("#level=1");
   });
 
-  it("badges every open challenge tile with its tier stars", () => {
+  it("badges every open level tile with its tier stars", () => {
     const { parent, options } = setUp({
-      challenges: fixtureChallenges(5),
-      bestTiers: new Map<number, ChallengeTier>([[0, "silver"]]),
-      selection: { kind: "challenge", index: 0 },
+      levels: fixtureLevels(5),
+      bestTiers: new Map<number, LevelTier>([[0, "silver"]]),
+      selection: { kind: "level", index: 0 },
     });
     presentLevelSwitcher(parent, options);
-    const [, challengeBlock] = parent.querySelectorAll(".taskblock");
-    const tiles = [...(challengeBlock?.querySelectorAll(".tasklink") ?? [])];
+    const [, levelBlock] = parent.querySelectorAll(".taskblock");
+    const tiles = [...(levelBlock?.querySelectorAll(".tasklink") ?? [])];
 
     const litCounts = tiles
       .slice(0, 2)
@@ -174,17 +174,17 @@ describe("presentLevelSwitcher", () => {
 
   it("marks the current tile with aria-current and writes its name into the trigger", () => {
     const { parent, options } = setUp({
-      challenges: fixtureChallenges(4),
+      levels: fixtureLevels(4),
       // Unlocks tile index 1, so this exercises an ordinary open-and-current
       // tile rather than the locked-and-current edge case (which has its own
       // dedicated coverage in "marks a locked-and-current tile as current
       // too" below).
-      bestTiers: new Map<number, ChallengeTier>([[0, "bronze"]]),
-      selection: { kind: "challenge", index: 1 },
+      bestTiers: new Map<number, LevelTier>([[0, "bronze"]]),
+      selection: { kind: "level", index: 1 },
     });
     presentLevelSwitcher(parent, options);
-    const [, challengeBlock] = parent.querySelectorAll(".taskblock");
-    const tiles = [...(challengeBlock?.querySelectorAll(".tasklink") ?? [])];
+    const [, levelBlock] = parent.querySelectorAll(".taskblock");
+    const tiles = [...(levelBlock?.querySelectorAll(".tasklink") ?? [])];
 
     expect(tiles[1]?.getAttribute("aria-current")).toBe("page");
     expect(tiles[1]?.classList.contains("is-current")).toBe(true);
@@ -192,18 +192,18 @@ describe("presentLevelSwitcher", () => {
   });
 
   it("marks a locked-and-current tile as current too, on its disabled button", () => {
-    // Empty bestTiers locks every challenge past the first (see
-    // features/switch-level's lockChallengeTiles), so tile index 1 here is
+    // Empty bestTiers locks every level past the first (see
+    // features/switch-level's lockLevelTiles), so tile index 1 here is
     // both locked and, per selection below, the one actually being played —
-    // reachable via a direct link to a challenge never unlocked through the
+    // reachable via a direct link to a level never unlocked through the
     // switcher itself.
     const { parent, options } = setUp({
-      challenges: fixtureChallenges(4),
-      selection: { kind: "challenge", index: 1 },
+      levels: fixtureLevels(4),
+      selection: { kind: "level", index: 1 },
     });
     presentLevelSwitcher(parent, options);
-    const [, challengeBlock] = parent.querySelectorAll(".taskblock");
-    const tiles = [...(challengeBlock?.querySelectorAll(".tasklink") ?? [])];
+    const [, levelBlock] = parent.querySelectorAll(".taskblock");
+    const tiles = [...(levelBlock?.querySelectorAll(".tasklink") ?? [])];
 
     expect(tiles[1]?.tagName).toBe("BUTTON");
     expect(tiles[1]?.hasAttribute("disabled")).toBe(true);
@@ -234,12 +234,12 @@ describe("presentLevelSwitcher", () => {
     presentLevelSwitcher(sandbox.parent, sandbox.options);
     expect(requireElement(".task-name", sandbox.parent).textContent).toBe("Sandbox");
 
-    const challenge = setUp({
-      challenges: fixtureChallenges(4),
-      selection: { kind: "challenge", index: 3 },
+    const level = setUp({
+      levels: fixtureLevels(4),
+      selection: { kind: "level", index: 3 },
     });
-    presentLevelSwitcher(challenge.parent, challenge.options);
-    expect(requireElement(".task-name", challenge.parent).textContent).toBe("Level 4");
+    presentLevelSwitcher(level.parent, level.options);
+    expect(requireElement(".task-name", level.parent).textContent).toBe("Level 4");
   });
 
   it("labels a cleared tutorial tile as completed", () => {
@@ -282,15 +282,15 @@ describe("presentLevelSwitcher", () => {
   it("disables the previous button on a block's first open tile and the next button on its last", () => {
     // Every tile of the block open, so what each button reports is where the
     // selection sits and not what is locked past it.
-    const cleared = new Map<number, ChallengeTier>([
+    const cleared = new Map<number, LevelTier>([
       [0, "bronze"],
       [1, "bronze"],
     ]);
 
     const first = setUp({
-      challenges: fixtureChallenges(3),
+      levels: fixtureLevels(3),
       bestTiers: cleared,
-      selection: { kind: "challenge", index: 0 },
+      selection: { kind: "level", index: 0 },
     });
     presentLevelSwitcher(first.parent, first.options);
 
@@ -298,9 +298,9 @@ describe("presentLevelSwitcher", () => {
     expect(requireElement(".task-next", first.parent).hasAttribute("disabled")).toBe(false);
 
     const last = setUp({
-      challenges: fixtureChallenges(3),
+      levels: fixtureLevels(3),
       bestTiers: cleared,
-      selection: { kind: "challenge", index: 2 },
+      selection: { kind: "level", index: 2 },
     });
     presentLevelSwitcher(last.parent, last.options);
 
@@ -308,14 +308,14 @@ describe("presentLevelSwitcher", () => {
     expect(requireElement(".task-next", last.parent).hasAttribute("disabled")).toBe(true);
   });
 
-  it("steps next to the nearest open tile, skipping locked challenges, and navigates on click", () => {
+  it("steps next to the nearest open tile, skipping locked levels, and navigates on click", () => {
     const { parent, options } = setUp({
-      challenges: fixtureChallenges(5),
-      // Challenge 5 (index 4) is open because the one before it is on record;
+      levels: fixtureLevels(5),
+      // Level 5 (index 4) is open because the one before it is on record;
       // 2 through 4 are not, since nothing before any of them is. So the only
-      // place "next" can go from challenge 1 is past all three of them.
-      bestTiers: new Map<number, ChallengeTier>([[3, "bronze"]]),
-      selection: { kind: "challenge", index: 0 },
+      // place "next" can go from level 1 is past all three of them.
+      bestTiers: new Map<number, LevelTier>([[3, "bronze"]]),
+      selection: { kind: "level", index: 0 },
     });
     presentLevelSwitcher(parent, options);
     const taskNext = requireElement(".task-next", parent);
@@ -335,12 +335,12 @@ describe("presentLevelSwitcher", () => {
     const taskNext = requireElement(".task-next", parent);
 
     // Last tile of the tutorial block: stepping "next" must not cross into
-    // the challenges block.
+    // the levels block.
     expect(taskNext.hasAttribute("disabled")).toBe(true);
   });
 
   describe("focus", () => {
-    // The same problem, and the same fix, as `presentChallenge`'s own
+    // The same problem, and the same fix, as `presentLevel`'s own
     // navigation row in what was `src/ui/presenters.ts` — see
     // `level-switcher.ts`'s own comment on `update()` for why position, not
     // node identity, is what gets restored.
@@ -359,22 +359,22 @@ describe("presentLevelSwitcher", () => {
     });
 
     it("has nowhere to put focus when the rebuild drops the tile that had it", () => {
-      let input = baseInput({ challenges: fixtureChallenges(6) });
+      let input = baseInput({ levels: fixtureLevels(6) });
       const parent = document.createElement("div");
       parent.innerHTML = levelSwitcherTemplate();
       document.body.append(parent);
       const presenter = presentLevelSwitcher(parent, { getInput: () => input });
       const flat = queryAll(".tasklink", parent);
       // The sandbox tile: always last, and always open, so it is always a
-      // real, focusable link regardless of the challenge count.
+      // real, focusable link regardless of the level count.
       const sandboxTile = flat[flat.length - 1];
       sandboxTile?.focus();
       expect(document.activeElement).toBe(sandboxTile);
 
-      // Shrinking the challenge block from 6 tiles to 1 moves the sandbox
+      // Shrinking the level block from 6 tiles to 1 moves the sandbox
       // tile several positions earlier, so nothing in the rebuilt grid
       // stands where the focused tile did.
-      input = baseInput({ challenges: fixtureChallenges(1) });
+      input = baseInput({ levels: fixtureLevels(1) });
       presenter.update();
 
       expect(document.activeElement).toBe(document.body);

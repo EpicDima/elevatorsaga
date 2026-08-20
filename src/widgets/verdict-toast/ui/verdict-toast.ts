@@ -17,11 +17,11 @@
  * `.verdict`'s in `verdict-toast.css`.
  *
  * Everything this widget knows, it is told. The tier is caller-supplied and
- * already evaluated (by `evaluateChallengeTier`), the hint likewise (by
- * `#entities/challenge-tier`'s `nextTierHint`), and the three sentences are
+ * already evaluated (by `evaluateLevelTier`), the hint likewise (by
+ * `#entities/level-tier`'s `nextTierHint`), and the three sentences are
  * whatever the caller composed — this widget never reaches into `#game` or a
  * `World` to work any of it out itself, the same division of labour
- * `#entities/challenge-tier/ui/tier-badge.ts` already keeps. That is what lets
+ * `#entities/level-tier/ui/tier-badge.ts` already keeps. That is what lets
  * `App#relocalise` redraw the same verdict in another language by calling its
  * caller again, with no state of its own to keep in step.
  *
@@ -31,8 +31,8 @@
  * of what the caller composes rather than of anything here.
  */
 
-import type { ChallengeTier } from "#entities/challenge-tier/index.ts";
-import { tierBadgeMarkup } from "#entities/challenge-tier/index.ts";
+import type { LevelTier } from "#entities/level-tier/index.ts";
+import { tierBadgeMarkup } from "#entities/level-tier/index.ts";
 import { t } from "#i18n/index.ts";
 import { requireElement } from "#shared/lib/dom.ts";
 import { iconMarkup, spriteIconMarkup } from "#shared/ui/icon.ts";
@@ -41,7 +41,7 @@ import { markup, raw, renderElement } from "#shared/ui/markup.ts";
 /** What the end-of-run card says. */
 export interface VerdictToastData {
   /**
-   * Whether the run cleared its challenge. Drives the check/cross mark and
+   * Whether the run cleared its level. Drives the check/cross mark and
    * `.is-fail`, and is not inferable from {@link tier}: a task on the learning
    * track wins without one.
    */
@@ -58,13 +58,13 @@ export interface VerdictToastData {
    * game paints numbers with.
    */
   readonly hint: string;
-  /** Link to the next challenge, or `""` for no link. */
+  /** Link to the next level, or `""` for no link. */
   readonly url: string;
   /**
    * The tier earned, for a badge beside the title — `undefined` to draw no
    * badge at all (a loss, a tutorial task, or any run with no tier concept).
    */
-  readonly tier: ChallengeTier | undefined;
+  readonly tier: LevelTier | undefined;
 }
 
 /** The class the close button carries so {@link presentVerdictToast} can find it again. */

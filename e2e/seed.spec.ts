@@ -26,8 +26,8 @@ const SEEDED_LEVEL = 4;
 /**
  * The seed block now lives in the app bar's settings popover
  * (`widgets/app-bar`'s `.setmenu`), behind `.setopen`, rather than in the
- * challenge bar's old `.challengeseed`: `presentChallenge`/`challengeTemplate`
- * are unwired, so `.challengeseed` never reaches the document any more, and
+ * level bar's old `.levelseed`: `presentLevel`/`levelTemplate`
+ * are unwired, so `.levelseed` never reaches the document any more, and
  * `seedPanelTemplate` reuses every one of these class names verbatim without
  * a second copy to disambiguate against — see that module's own comment.
  * Every test below opens the popover with {@link openSettingsMenu} before
@@ -68,13 +68,13 @@ test("puts the run a player is looking at in the address bar, and replays it on 
   expect(seed).not.toBe("");
 
   // The link carries the rest of the URL, so naming the seed does not throw
-  // away the challenge or the speed the player had chosen.
+  // away the level or the speed the player had chosen.
   await expect(seedLink).toHaveAttribute("href", `#level=4,timescale=8,seed=${seed}`);
 
   await seedLink.click();
   await expect(page).toHaveURL(new RegExp(`#level=4,timescale=8,seed=${seed}$`));
 
-  // `App.onSeedChange` fires from `#drawChallengeBar`, which the router's own
+  // `App.onSeedChange` fires from `#drawLevelBar`, which the router's own
   // `hashchange` handling reaches on every navigation including this one, so
   // the panel is redrawn without a reload -- on the same seed, since the click
   // asked for the run already playing.
@@ -189,7 +189,7 @@ test("opens the caveat from the keyboard", async ({ page }) => {
 
 /**
  * "Does not move the caveat's own control when it is opened" used to sweep
- * 1280px down to 320px looking for the widths where the challenge bar
+ * 1280px down to 320px looking for the widths where the level bar
  * rearranges itself -- 960 and 660 were each just inside a rearrangement, 320
  * was where the seed line itself wrapped -- and assert the disclosure's own
  * `<summary>` held still, or moved a known amount, at each one.
@@ -209,7 +209,7 @@ test("opens the caveat from the keyboard", async ({ page }) => {
  * -- `.workspace`/`.pane`/`.splitter`, now in
  * `src/widgets/workspace-layout/ui/workspace-layout.css` -- but that
  * alone was not enough: the seed block itself had also moved, from the
- * challenge bar's `.challengeseed` (styled) into the app bar's settings
+ * level bar's `.levelseed` (styled) into the app bar's settings
  * popover, and `.setmenu`/`.setwrap` carried no rule of their own yet, so it
  * rendered in normal document flow and reshuffled the whole page around
  * itself opening the caveat did -- the same 2000px-class jump, for the same
@@ -256,7 +256,7 @@ test("does not move the caveat's own control when it is opened", async ({ page }
  * `.cap` and `.seedhelp > summary` used to measure `rgb(255, 255, 255)` on
  * this page's `rgb(191, 189, 159)` body -- the exact 1.91:1-class failure
  * this test was written to catch, reappeared here because `.setblock`/
- * `.setmenu` carried none of `.challengeseed`'s old `color: var(--color-text)`.
+ * `.setmenu` carried none of `.levelseed`'s old `color: var(--color-text)`.
  * Verified live, not guessed: measured via `getComputedStyle` against the
  * real popover, forced open the same way every test above opens it.
  *

@@ -11,7 +11,7 @@
  */
 
 import { t } from "../i18n/index.ts";
-import type { ChallengeCondition } from "./challenges.ts";
+import type { LevelCondition } from "./levels.ts";
 import { createFrameRequester } from "./frame-requester.ts";
 import type { RandomSeed } from "./random.ts";
 import { getCodeObjFromCode } from "./user-code.ts";
@@ -19,23 +19,23 @@ import { createWorld, type WorldOptions } from "./world.ts";
 import { TICK_SECONDS, createWorldController, type UserCodeObject } from "./world-controller.ts";
 
 /** World options for a fitness scenario, with a label for the report. */
-export interface FitnessChallengeOptions extends WorldOptions {
+export interface FitnessLevelOptions extends WorldOptions {
   /**
    * Scenario name shown in the results, already rendered.
    *
    * Text rather than a message key, because it is rendered where the suite runs
-   * and not where its report is printed: see {@link fitnessChallenges} and the
+   * and not where its report is printed: see {@link fitnessLevels} and the
    * note on `FitnessWorkerRequest` in `src/app/fitness-worker.ts`.
    */
   description: string;
 }
 
 /** One headless benchmark scenario. */
-export interface FitnessChallenge {
+export interface FitnessLevel {
   /** World options the scenario runs with. */
-  readonly options: FitnessChallengeOptions;
-  /** Unused by the benchmark, kept to mirror the challenge shape. */
-  readonly condition: ChallengeCondition;
+  readonly options: FitnessLevelOptions;
+  /** Unused by the benchmark, kept to mirror the level shape. */
+  readonly condition: LevelCondition;
 }
 
 /**
@@ -73,7 +73,7 @@ export type FitnessResult = {
 /** One scenario's outcome. */
 export interface FitnessRun {
   /** The scenario that produced it. */
-  readonly options: FitnessChallengeOptions;
+  readonly options: FitnessLevelOptions;
   /** The metrics gathered. */
   readonly result: FitnessResult;
 }
@@ -81,7 +81,7 @@ export interface FitnessRun {
 /** One scenario's outcome, averaged over every seed the suite ran it on. */
 export interface AveragedFitnessRun {
   /** The scenario that produced it. */
-  readonly options: FitnessChallengeOptions;
+  readonly options: FitnessLevelOptions;
   /** The averaged metrics, keyed as in {@link FitnessResult}. */
   readonly result: Record<string, number>;
 }
@@ -94,7 +94,7 @@ export type FitnessSuiteResult = AveragedFitnessRun[] | { error: string };
  *
  * @returns The condition.
  */
-export function requireNothing(): ChallengeCondition {
+export function requireNothing(): LevelCondition {
   return {
     description: "No requirement",
     evaluate(): boolean | null {
@@ -128,7 +128,7 @@ export function requireNothing(): ChallengeCondition {
  *
  * @returns The three scenarios, in the order the report lists them.
  */
-export function fitnessChallenges(): readonly FitnessChallenge[] {
+export function fitnessLevels(): readonly FitnessLevel[] {
   return [
     {
       options: {
@@ -179,7 +179,7 @@ export function fitnessChallenges(): readonly FitnessChallenge[] {
  * comparing two scores has to be able to read which buildings they were compared
  * on, and someone who suspects the list of flattering one strategy has to be
  * able to change it in one obvious place — the same reason
- * {@link fitnessChallenges} spells its three buildings out.
+ * {@link fitnessLevels} spells its three buildings out.
  *
  * The values themselves are arbitrary and are meant to be. What matters is that
  * there are several of them, so one unlucky building cannot decide a score, and
@@ -231,7 +231,7 @@ function stringifyError(value: unknown): string {
 /**
  * Runs one scenario headlessly and reports its metrics.
  *
- * @param challenge - The scenario to run.
+ * @param level - The scenario to run.
  * @param codeObj - The player's code object.
  * @param stepSize - Milliseconds per simulated frame.
  * @param stepsToSimulate - Number of frames to run, at most.
@@ -244,7 +244,7 @@ function stringifyError(value: unknown): string {
  * @returns The metrics, or an object carrying the error the code threw.
  */
 export function calculateFitness(
-  challenge: FitnessChallenge,
+  level: FitnessLevel,
   codeObj: UserCodeObject,
   stepSize: number,
   stepsToSimulate: number,
@@ -256,7 +256,7 @@ export function calculateFitness(
   const controller = createWorldController(TICK_SECONDS);
   const result: FitnessResult = {};
 
-  const world = createWorld(challenge.options, seed);
+  const world = createWorld(level.options, seed);
   const frameRequester = createFrameRequester(stepSize);
 
   controller.on("usercode_error", (e) => {
@@ -344,12 +344,12 @@ export function doFitnessSuite(
   // buildings, and `makeAverageResult` keeps the options object of the first
   // run it is given, so the report would otherwise name its scenarios from an
   // object built during a different pass over the same list.
-  const challenges = fitnessChallenges();
+  const levels = fitnessLevels();
 
   const testruns: FitnessRun[][] = [];
   for (const seed of seeds) {
     const results: FitnessRun[] = [];
-    for (const challenge of challenges) {
+    for (const level of levels) {
       // Every scenario of one run takes the same seed, which does not make the
       // three the same run over again: each draws that one stream against its
       // own floor count and spawn rate, so the same values become different
@@ -360,7 +360,7 @@ export function doFitnessSuite(
       // seed per run is also what makes a report quotable -- "seed 3" names a
       // whole row of the results rather than one cell of it.
       const fitness = calculateFitness(
-        challenge,
+        level,
         codeObj,
         1000 * TICK_SECONDS,
         BENCHMARK_SECONDS / TICK_SECONDS,
@@ -378,7 +378,7 @@ export function doFitnessSuite(
         failure = { thrown: fitness.error };
         continue;
       }
-      results.push({ options: challenge.options, result: fitness });
+      results.push({ options: level.options, result: fitness });
     }
     if (failure !== undefined) {
       continue;
@@ -389,7 +389,7 @@ export function doFitnessSuite(
     return { error: stringifyError(failure.thrown) };
   }
 
-  // Now do averaging over all properties for each challenge's test runs
+  // Now do averaging over all properties for each level's test runs
   const firstRun = requireAt(testruns, 0);
   return firstRun.map((_unused, n) => makeAverageResult(testruns.map((tr) => requireAt(tr, n))));
 }

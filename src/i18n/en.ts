@@ -2,7 +2,7 @@
  * The English catalogue: the reference locale.
  *
  * Every string here was lifted from the interface as it stands — `index.html`,
- * `documentation.html`, the templates, the presenters, the challenge conditions
+ * `documentation.html`, the templates, the presenters, the level conditions
  * and the error messages the player's own code can produce — with the wording
  * untouched. Where the page shell had wrapped a sentence across several source
  * lines, the wrapping is gone and nothing else is: HTML collapses that
@@ -70,8 +70,8 @@ export const EN_MESSAGES = {
   // from the order to the goods in hand.
   //
   // The keys keep their names because they name the `World` fields they render,
-  // `avgWaitTime` and `maxWaitTime`, and those cannot be renamed: the challenge
-  // conditions in src/game/challenges.ts are written against them, and every
+  // `avgWaitTime` and `maxWaitTime`, and those cannot be renamed: the level
+  // conditions in src/game/levels.ts are written against them, and every
   // upstream score ever posted was measured by them. The two rows between them
   // are the halves neither of them names: the wait, and then the ride.
   "page.stats.avgWaitTime": "Avg delivery time",
@@ -155,14 +155,14 @@ export const EN_MESSAGES = {
   // Summary text for the "<details>" holding the panel's nine secondary
   // tiles.
   "game.statsPanel.more": "All figures",
-  "game.challenge.title.html": "Level {number}: {description}",
+  "game.level.title.html": "Level {number}: {description}",
   // A level tile shows a bare number, because nineteen of them have to fit
   // across a phone; the name each one carries is what a screen reader announces
   // in their place, so it has to say what the number means on its own.
-  "game.challenge.nav.label": "Levels",
-  "game.challenge.nav.link": "Level {number}",
+  "game.level.nav.label": "Levels",
+  "game.level.nav.link": "Level {number}",
   // The level switcher's own popover: `widgets/level-switcher`. Two of its
-  // three block captions reuse "game.challenge.nav.label" (levels) and
+  // three block captions reuse "game.level.nav.label" (levels) and
   // "tutorial.panel.label" (the learning track), so only what is new to this
   // widget is here — the third block's caption and the tile inside it, the
   // step buttons either side of the popover trigger, and the two tile labels
@@ -178,7 +178,7 @@ export const EN_MESSAGES = {
   "game.levelSwitcher.sandboxLabel": "Sandbox",
   "game.levelSwitcher.tutorialTileLabel": "Tutorial level {number}",
   "game.levelSwitcher.tutorialTileClearedLabel": "Tutorial level {number}, completed",
-  "game.levelSwitcher.challengeTileLockedLabel": "Level {number}, locked",
+  "game.levelSwitcher.levelTileLockedLabel": "Level {number}, locked",
   // What the 118px trigger says while a lesson is the level being played. The
   // tile labels above are written for a grid, where the state on the end of
   // them is the point, and on the trigger they overflow. Shortening them to
@@ -521,7 +521,7 @@ elevator.goingDownIndicator(false);`,
   // which it means nowhere else on the page.
   "game.button.startAgainTitle": "Run it again from the beginning",
   // The second button. It throws away the run on screen and begins the same
-  // challenge again with whatever is in the editor, which is what the old
+  // level again with whatever is in the editor, which is what the old
   // "Apply" did; it is named for its effect rather than for the mechanism,
   // because the program is applied on every start now and there is nothing
   // left for the player to press "Apply" for. Its `title` says the part the
@@ -574,7 +574,7 @@ elevator.goingDownIndicator(false);`,
   "game.feedback.more.need.html": "{req} (now {now})",
   "game.codeStatus": "There is an error in your program:",
 
-  // The challenge bar's own meters and tier popover: `widgets/goal-bar`. Main
+  // The level bar's own meters and tier popover: `widgets/goal-bar`. Main
   // meter captions reuse "page.stats.*" directly in code rather than
   // duplicating them here — "maxPickupTime" is the one figure that panel
   // never shows, so it is the only caption that needs a key of its own.
@@ -644,44 +644,44 @@ elevator.goingDownIndicator(false);`,
     }
 }`,
 
-  // --------------------------------------------------------------- challenges
-  // src/game/challenges.ts. The counted phrases are separate messages so that
+  // --------------------------------------------------------------- levels
+  // src/game/levels.ts. The counted phrases are separate messages so that
   // each can carry the plural forms its own language needs; the sentences then
-  // compose them. The markup is the same `emphasis-color` span the challenge
+  // compose them. The markup is the same `emphasis-color` span the level
   // bar has always highlighted the numbers with.
 
-  "challenge.transportWithinTime.html": "Transport {people} in {time} or less",
+  "level.transportWithinTime.html": "Transport {people} in {time} or less",
   // "to be delivered" rather than "wait", because the limit these three
   // sentences announce is `World.maxWaitTime`, which stops at the passenger's
   // floor and not at the door of the car. A player who reads it as a wait
   // optimises for boarding people quickly and then loses the run to the ride.
-  "challenge.transportWithMaxWait.html":
+  "level.transportWithMaxWait.html":
     "Transport {people} and let no one take more than {waitTime} to be delivered",
-  "challenge.transportWithinTimeWithMaxWait.html":
+  "level.transportWithinTimeWithMaxWait.html":
     "Transport {people} in {time} or less and let no one take more than {waitTime} to be delivered",
-  "challenge.transportWithinMoves.html": "Transport {people} using {moves} or less",
-  "challenge.transportWithinMovesWithMaxWait.html":
+  "level.transportWithinMoves.html": "Transport {people} using {moves} or less",
+  "level.transportWithinMovesWithMaxWait.html":
     "Transport {people} using {moves} or less and let no one take more than {waitTime} to be delivered",
-  "challenge.people.html": {
+  "level.people.html": {
     one: "<span class='emphasis-color'>{count}</span> person",
     other: "<span class='emphasis-color'>{count}</span> people",
   },
-  "challenge.timeLimit.html": {
+  "level.timeLimit.html": {
     one: "<span class='emphasis-color'>{count}</span> second",
     other: "<span class='emphasis-color'>{count}</span> seconds",
   },
   // `one` here can never print, and stays anyway. All three places that build
-  // this phrase (src/game/challenges.ts) pass `decimal(maxWaitTime, 1)`, and a number
+  // this phrase (src/game/levels.ts) pass `decimal(maxWaitTime, 1)`, and a number
   // written with a tenth is `other` in English as much as in Russian: the
   // fifteen-second limit reads "more than 15.0 seconds", and a one-second limit
   // would read "1.0 seconds" rather than "1 second". The form is kept because
   // the key is a plural message like the ones around it -- a limit that stopped
   // being written with a decimal would need it back, and it is one word.
-  "challenge.waitLimit.html": {
+  "level.waitLimit.html": {
     one: "<span class='emphasis-color'>{count}</span> second",
     other: "<span class='emphasis-color'>{count}</span> seconds",
   },
-  "challenge.moveLimit.html": {
+  "level.moveLimit.html": {
     one: "<span class='emphasis-color'>{count}</span> elevator move",
     other: "<span class='emphasis-color'>{count}</span> elevator moves",
   },
@@ -689,17 +689,17 @@ elevator.goingDownIndicator(false);`,
   // The sandbox describes the building the URL asked for rather than a goal.
   // Its counts are the player's own, so all four Russian categories are
   // reachable here — `#spawnrate=1`, `=2` and `=5` pick three different forms.
-  "challenge.sandbox.html":
+  "level.sandbox.html":
     "Sandbox: {floors}, {elevators} of {capacityLabel} {capacities}, {spawnRate}. No goal, so the run never ends",
-  "challenge.sandbox.floors.html": {
+  "level.sandbox.floors.html": {
     one: "<span class='emphasis-color'>{count}</span> floor",
     other: "<span class='emphasis-color'>{count}</span> floors",
   },
-  "challenge.sandbox.elevators.html": {
+  "level.sandbox.elevators.html": {
     one: "<span class='emphasis-color'>{count}</span> elevator",
     other: "<span class='emphasis-color'>{count}</span> elevators",
   },
-  "challenge.sandbox.capacityLabel": {
+  "level.sandbox.capacityLabel": {
     one: "capacity",
     other: "capacities",
   },
@@ -707,7 +707,7 @@ elevator.goingDownIndicator(false);`,
   // a second says "1 people per second". The wording is left exactly as it is —
   // both forms are the same string — so that nothing on screen changes; see
   // docs/i18n-inventory.md, which records it as the one thing here worth fixing.
-  "challenge.sandbox.spawnRate.html": {
+  "level.sandbox.spawnRate.html": {
     one: "<span class='emphasis-color'>{count}</span> people per second",
     other: "<span class='emphasis-color'>{count}</span> people per second",
   },
@@ -1504,5 +1504,5 @@ elevator.goToFloor(2); // Queued anyway -- queue: 2, 3, 2`,
   "tutorial.finish.message":
     "Eight tutorial levels, and the last of them was level 1 of the game itself: the same three floors, the same elevator, the same fifteen passengers in sixty seconds. The program in the editor solves it, and the panel has a button that copies it into your own editor — take it with you before you go.",
   "tutorial.finish.nextTask": "Next tutorial level",
-  "tutorial.finish.toChallenges": "Go to level 1",
+  "tutorial.finish.toLevels": "Go to level 1",
 } as const satisfies Readonly<Record<string, string | PluralForms<"en">>>;

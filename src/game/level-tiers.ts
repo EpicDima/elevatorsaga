@@ -1,8 +1,8 @@
 /**
  * Bronze, silver and gold: the achievement layer on top of win/lose.
  *
- * Every challenge in {@link "./challenges.ts"!challenges} already has a bar —
- * {@link "./challenges.ts"!ChallengeCondition.evaluate} says won or lost, and
+ * Every level in {@link "./levels.ts"!levels} already has a bar —
+ * {@link "./levels.ts"!LevelCondition.evaluate} says won or lost, and
  * that is the whole of what a run has ever meant. This module adds a second,
  * strictly additive question, asked only once a run has already been won:
  * *how well*. It cannot change the answer to the first question, only add
@@ -10,28 +10,28 @@
  *
  * Pure and dependency-free on purpose — the only import is a type, never a
  * value, so this module carries no engine, no i18n, and no notion of a live
- * `World`. What it operates on is a {@link "./challenges.ts"!ChallengeWorldStats}
+ * `World`. What it operates on is a {@link "./levels.ts"!LevelWorldStats}
  * snapshot, the same shape a condition is judged against, which is what lets
  * every function here be tested with a plain object literal and no simulated
  * run at all.
  */
 
-import type { ChallengeWorldStats } from "./challenges.ts";
+import type { LevelWorldStats } from "./levels.ts";
 
-/** One rank a cleared challenge can be awarded. */
-export type ChallengeTier = "bronze" | "silver" | "gold";
+/** One rank a cleared level can be awarded. */
+export type LevelTier = "bronze" | "silver" | "gold";
 
 /** Every tier, worst to best. */
-export const CHALLENGE_TIERS: readonly ChallengeTier[] = ["bronze", "silver", "gold"];
+export const LEVEL_TIERS: readonly LevelTier[] = ["bronze", "silver", "gold"];
 
 /**
- * A single pass/fail test over a challenge's final statistics.
+ * A single pass/fail test over a level's final statistics.
  *
- * Deliberately narrower than {@link "./challenges.ts"!ChallengeCondition.evaluate},
+ * Deliberately narrower than {@link "./levels.ts"!LevelCondition.evaluate},
  * whose `boolean | null` exists to let a run keep going while the outcome is
  * still undecided — a condition is consulted on every `stats_changed`, mid-run,
  * and has to be able to say "not yet." A tier predicate is never asked that
- * question: {@link evaluateChallengeTier} only ever calls one after the run has
+ * question: {@link evaluateLevelTier} only ever calls one after the run has
  * already ended and produced a verdict, against the one, final `world` that
  * verdict was read from. There is no "still counting" state for a plain
  * `(world) => boolean` to fail to express, so it does not have one, and a
@@ -45,7 +45,7 @@ export const CHALLENGE_TIERS: readonly ChallengeTier[] = ["bronze", "silver", "g
  * this module exposing a second, parallel table of the same thresholds that
  * could drift from the predicates actually enforced.
  */
-export type TierPredicate = ((world: ChallengeWorldStats) => boolean) & {
+export type TierPredicate = ((world: LevelWorldStats) => boolean) & {
   readonly requirements: readonly TierRequirementInfo[];
 };
 
@@ -56,20 +56,20 @@ export type TierRequirementComparison = "atMost" | "atLeast";
  * One fact a {@link TierPredicate} tests, inspectable independently of calling
  * the predicate — the figure it reads, which way the bar runs, and the bar
  * itself. A UI computes a progress fraction from this plus a live
- * {@link ChallengeWorldStats} snapshot; this module has no notion of "how
+ * {@link LevelWorldStats} snapshot; this module has no notion of "how
  * close," only "did it pass," so the fraction math lives elsewhere.
  */
 export interface TierRequirementInfo {
-  /** The {@link ChallengeWorldStats} figure this requirement reads. */
-  readonly field: keyof ChallengeWorldStats;
+  /** The {@link LevelWorldStats} figure this requirement reads. */
+  readonly field: keyof LevelWorldStats;
   /** Whether `field` must stay at or under `threshold`, or reach it or above. */
   readonly comparison: TierRequirementComparison;
   /** The bar `field` must clear. */
   readonly threshold: number;
 }
 
-/** The silver and gold bars a challenge asks a winning run to clear. */
-export interface ChallengeTierRequirements {
+/** The silver and gold bars a level asks a winning run to clear. */
+export interface LevelTierRequirements {
   /** Must hold for the run to be rated silver or better. */
   readonly silver: TierPredicate;
   /** Must hold for the run to be rated gold. */
@@ -77,7 +77,7 @@ export interface ChallengeTierRequirements {
 }
 
 /**
- * Builds a predicate that reads one {@link ChallengeWorldStats} field against
+ * Builds a predicate that reads one {@link LevelWorldStats} field against
  * one threshold, and attaches the {@link TierRequirementInfo} describing it —
  * the one place that pairing is written, so every factory below stays a
  * one-line call instead of a hand-rolled closure plus a hand-rolled metadata
@@ -89,11 +89,11 @@ export interface ChallengeTierRequirements {
  * @returns The predicate.
  */
 function tierPredicate(
-  field: keyof ChallengeWorldStats,
+  field: keyof LevelWorldStats,
   comparison: TierRequirementComparison,
   threshold: number,
 ): TierPredicate {
-  const test = (world: ChallengeWorldStats): boolean =>
+  const test = (world: LevelWorldStats): boolean =>
     comparison === "atMost" ? world[field] <= threshold : world[field] >= threshold;
   return Object.assign(test, { requirements: [{ field, comparison, threshold }] });
 }
@@ -101,7 +101,7 @@ function tierPredicate(
 /**
  * Requires a run to have finished within a time limit.
  *
- * @param limitSeconds - Highest {@link ChallengeWorldStats.elapsedTime} allowed.
+ * @param limitSeconds - Highest {@link LevelWorldStats.elapsedTime} allowed.
  * @returns The predicate.
  */
 export function underElapsedTime(limitSeconds: number): TierPredicate {
@@ -111,7 +111,7 @@ export function underElapsedTime(limitSeconds: number): TierPredicate {
 /**
  * Requires no passenger to have waited longer than a limit.
  *
- * @param limitSeconds - Highest {@link ChallengeWorldStats.maxWaitTime} allowed.
+ * @param limitSeconds - Highest {@link LevelWorldStats.maxWaitTime} allowed.
  * @returns The predicate.
  */
 export function underMaxWaitTime(limitSeconds: number): TierPredicate {
@@ -121,7 +121,7 @@ export function underMaxWaitTime(limitSeconds: number): TierPredicate {
 /**
  * Requires a run to have spent no more than a move budget.
  *
- * @param limitMoves - Highest {@link ChallengeWorldStats.moveCount} allowed.
+ * @param limitMoves - Highest {@link LevelWorldStats.moveCount} allowed.
  * @returns The predicate.
  */
 export function underMoveCount(limitMoves: number): TierPredicate {
@@ -131,7 +131,7 @@ export function underMoveCount(limitMoves: number): TierPredicate {
 /**
  * Requires the mean wait to have stayed under a limit.
  *
- * @param limitSeconds - Highest {@link ChallengeWorldStats.avgWaitTime} allowed.
+ * @param limitSeconds - Highest {@link LevelWorldStats.avgWaitTime} allowed.
  * @returns The predicate.
  */
 export function underAvgWaitTime(limitSeconds: number): TierPredicate {
@@ -141,7 +141,7 @@ export function underAvgWaitTime(limitSeconds: number): TierPredicate {
 /**
  * Requires a run to have opened doors no more than a limit's worth of times.
  *
- * @param limitStops - Highest {@link ChallengeWorldStats.stopCount} allowed.
+ * @param limitStops - Highest {@link LevelWorldStats.stopCount} allowed.
  * @returns The predicate.
  */
 export function underStopCount(limitStops: number): TierPredicate {
@@ -151,7 +151,7 @@ export function underStopCount(limitStops: number): TierPredicate {
 /**
  * Requires the cars to have carried at least this much of a load, on average.
  *
- * @param minFactor - Lowest {@link ChallengeWorldStats.avgLoadFactorOnMove} allowed.
+ * @param minFactor - Lowest {@link LevelWorldStats.avgLoadFactorOnMove} allowed.
  * @returns The predicate.
  */
 export function atLeastAvgLoadFactorOnMove(minFactor: number): TierPredicate {
@@ -161,7 +161,7 @@ export function atLeastAvgLoadFactorOnMove(minFactor: number): TierPredicate {
 /**
  * Requires a sustained delivery rate of at least this many passengers a second.
  *
- * @param minRate - Lowest {@link ChallengeWorldStats.transportedPerSec} allowed.
+ * @param minRate - Lowest {@link LevelWorldStats.transportedPerSec} allowed.
  * @returns The predicate.
  */
 export function atLeastTransportedPerSec(minRate: number): TierPredicate {
@@ -171,9 +171,9 @@ export function atLeastTransportedPerSec(minRate: number): TierPredicate {
 /**
  * Combines predicates so every one of them has to hold.
  *
- * What a challenge whose gold tier tightens more than one axis at once is
- * built out of — the per-challenge table this module's design was written
- * against has several such challenges, where gold means a stricter limit on
+ * What a level whose gold tier tightens more than one axis at once is
+ * built out of — the per-level table this module's design was written
+ * against has several such levels, where gold means a stricter limit on
  * one existing axis *and* a bar on a metric no condition reads today, so that
  * a program cannot buy gold on one axis by spending the other freely.
  *
@@ -186,7 +186,7 @@ export function atLeastTransportedPerSec(minRate: number): TierPredicate {
  * `requirements` list every one of `predicates`' requirements in order.
  */
 export function requireAll(...predicates: readonly TierPredicate[]): TierPredicate {
-  const test = (world: ChallengeWorldStats): boolean =>
+  const test = (world: LevelWorldStats): boolean =>
     predicates.every((predicate) => predicate(world));
   return Object.assign(test, {
     requirements: predicates.flatMap((predicate) => predicate.requirements),
@@ -196,7 +196,7 @@ export function requireAll(...predicates: readonly TierPredicate[]): TierPredica
 /**
  * Decides the tier a finished run earned.
  *
- * @param won - The verdict {@link "./challenges.ts"!ChallengeCondition.evaluate}
+ * @param won - The verdict {@link "./levels.ts"!LevelCondition.evaluate}
  * already reached for this run. Taken as a parameter rather than recomputed
  * here, and that is not a convenience — it is the whole safety argument this
  * function rests on. A condition's threshold lives inside a closure this
@@ -208,11 +208,11 @@ export function requireAll(...predicates: readonly TierPredicate[]): TierPredica
  * of winning at all.
  * @param world - The run's final statistics, the same snapshot `won` was
  * decided from.
- * @param tiers - The challenge's silver/gold requirements, or `undefined` for
- * a challenge that has none.
+ * @param tiers - The level's silver/gold requirements, or `undefined` for
+ * a level that has none.
  * @returns `null` when `won` is `false` — there is no tier for a loss, only a
  * verdict. `"bronze"` when `won` is `true` and either `tiers` is `undefined`
- * (today's challenges, and the sandbox, which never had anything more to
+ * (today's levels, and the sandbox, which never had anything more to
  * say than win/lose) or neither `tiers.silver` nor `tiers.gold` holds.
  * `"silver"` or `"gold"` when the corresponding requirement holds, gold
  * checked first since it is the stricter of the two and a run clearing gold
@@ -221,11 +221,11 @@ export function requireAll(...predicates: readonly TierPredicate[]): TierPredica
  * from outside actually nests that way, which is why gold is tried first
  * rather than assumed to imply it.
  */
-export function evaluateChallengeTier(
+export function evaluateLevelTier(
   won: boolean,
-  world: ChallengeWorldStats,
-  tiers: ChallengeTierRequirements | undefined,
-): ChallengeTier | null {
+  world: LevelWorldStats,
+  tiers: LevelTierRequirements | undefined,
+): LevelTier | null {
   if (!won) {
     return null;
   }

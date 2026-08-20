@@ -23,7 +23,7 @@
 import "./styles/index.css";
 
 import { describeFitnessResults, runFitnessSuite } from "./app/fitness.ts";
-import { challenges } from "./game/challenges.ts";
+import { levels } from "./game/levels.ts";
 import type { FitnessSuiteResult } from "./game/fitness.ts";
 import { TICK_SECONDS, createWorldController } from "./game/world-controller.ts";
 import { t } from "./i18n/index.ts";
@@ -34,12 +34,12 @@ import { presentGlobalShortcuts } from "./ui/global-shortcuts.ts";
 import { localisePage } from "./ui/localise-page.ts";
 import { applyPreferredLocale } from "./ui/preferred-locale.ts";
 import { labelModifierKeys } from "./ui/shortcuts.ts";
-import { readBestChallengeTiers } from "#entities/challenge-tier/index.ts";
+import { readBestLevelTiers } from "#entities/level-tier/index.ts";
 import { DEFAULT_TIME_SCALE } from "#features/adjust-speed/model/time-scale.ts";
 import { docsModalTemplate, presentDocsModal } from "#features/docs-reference/index.ts";
 import { hotkeysModalTemplate, presentHotkeysModal } from "#features/hotkeys-help/index.ts";
 import { DEFAULT_CODE_SLOT } from "#features/manage-code-slots/model/code-slots.ts";
-import { isChallengeLocked } from "#features/switch-level/index.ts";
+import { isLevelLocked } from "#features/switch-level/index.ts";
 import { requireElement } from "#shared/lib/dom.ts";
 import {
   appBarSettingsTemplate,
@@ -221,7 +221,7 @@ async function main(): Promise<void> {
   // which belongs inside CodeMirror rather than on the `<div>` it mounts into,
   // and the navigation -- the hash is the router's, so following `#code` would
   // throw away `level=` and `timescale=` and restart the player on the
-  // first challenge. The `href` stays for the sake of being a real link.
+  // first level. The `href` stays for the sake of being a real link.
   requireElement(".skip-link").addEventListener("click", (event) => {
     event.preventDefault();
     editor.focus();
@@ -243,7 +243,7 @@ async function main(): Promise<void> {
       controls: requireElement(".controls"),
       tutorial: requireElement(".tutorial"),
       levelSwitcher: levelSwitcherMount,
-      goalBar: requireElement(".challenge"),
+      goalBar: requireElement(".level"),
       world: requireElement(".innerworld"),
       stats: requireElement(".statscontainer"),
       feedback: requireElement(".feedbackcontainer"),
@@ -251,7 +251,7 @@ async function main(): Promise<void> {
     editor,
     editorPane,
     worldController: createWorldController(TICK_SECONDS),
-    challenges,
+    levels,
     onSeedChange: (seed) => {
       settingsControllerRef?.setSeed(seed);
     },
@@ -279,14 +279,14 @@ async function main(): Promise<void> {
       app.handleRoute(params, query);
     },
     {
-      challengeCount: challenges.length,
+      levelCount: levels.length,
       defaultTimeScale: () => readStoredTimeScale(localStorage) ?? DEFAULT_TIME_SCALE,
       // The record is read on each call rather than once here, for the same
       // reason the time scale above is: both move while the page is open, and
       // the call that matters most is the one right after a win, when the
-      // "Next level" link is followed and the challenge it names has been
+      // "Next level" link is followed and the level it names has been
       // unlocked by the very run that drew the link.
-      isChallengeLocked: (index) => isChallengeLocked(index, readBestChallengeTiers(localStorage)),
+      isLevelLocked: (index) => isLevelLocked(index, readBestLevelTiers(localStorage)),
     },
   );
 
@@ -357,7 +357,7 @@ async function main(): Promise<void> {
   stageArea.className = "stagearea";
   stageArea.append(requireElement(".tutorial"), requireElement(".world"));
   workspaceElements.gamePane.append(
-    requireElement(".challenge"),
+    requireElement(".level"),
     stageArea,
     requireElement(".statscontainer"),
   );

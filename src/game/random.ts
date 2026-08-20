@@ -2,7 +2,7 @@
  * Seedable randomness for the simulation.
  *
  * The engine used to draw straight from the global `Math.random`, which cannot
- * be replayed: a run that failed a challenge, or a fitness score that looked
+ * be replayed: a run that failed a level, or a fitness score that looked
  * wrong, could never be looked at a second time. Everything that needs
  * randomness now takes a {@link RandomSource} instead, and the world builds one
  * from a seed it records, so any run can be repeated exactly by handing that
@@ -87,7 +87,7 @@ function hashSeed(seed: string): number {
  * The generator is mulberry32, picked over sfc32 because its whole state is a
  * single 32-bit word, so a seed is one number a player can read off the screen
  * and type back. Its period of 2^32 draws is five orders of magnitude more than
- * a full challenge run consumes — a 200 second run at the highest shipped spawn
+ * a full level run consumes — a 200 second run at the highest shipped spawn
  * rate is some 400 passengers, five to eight draws each — and its output
  * quality is far beyond what integer draws over ranges of a few dozen values
  * can tell apart.

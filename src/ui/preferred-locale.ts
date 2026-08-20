@@ -25,7 +25,7 @@
  *
  * "Draw now, re-localise later" is a real option, and it is the one the language
  * picker takes: {@link localisePage} re-reads the document, and
- * {@link "../pages/game/index.ts"!App.relocalise} rebuilds the challenge bar, redraws the
+ * {@link "../pages/game/index.ts"!App.relocalise} rebuilds the level bar, redraws the
  * statistics, renames the building and redraws the overlay without touching the
  * world. So the choice here is not between waiting and a page that cannot be
  * fixed. It is between waiting and drawing the game twice.
@@ -34,7 +34,7 @@
  * protect yet — that is the whole of what the picker's redraw is for — and what
  * a reader of another language would get for it is the game appearing in English
  * and changing under them a moment later, at the exact moment they are reading
- * the first challenge and looking for the Start button. The page they are
+ * the first level and looking for the Start button. The page they are
  * looking at while they wait already says all of that in English, and it has
  * said it since the HTML arrived.
  *

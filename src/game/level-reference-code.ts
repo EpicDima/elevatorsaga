@@ -3,7 +3,7 @@
  * thresholds against an actual run rather than a guess.
  *
  * A later commit measures how well a *good* solution can do on each
- * challenge, so that silver and gold can ask for something a competent
+ * level, so that silver and gold can ask for something a competent
  * player's program can clear and a lazy one cannot. That measurement is only
  * honest if "good" is an actual program the engine runs, not a number typed
  * in because it sounded about right — which is exactly the gap between this
@@ -123,7 +123,7 @@
  *
  * **Parking when idle.** An idle car returns to floor 0, exactly as
  * {@link "../ui/default-code.ts"!DEV_TEST_CODE} does. `World.spawnUserRandomly`
- * sends roughly half of every challenge's passengers to the lobby, so a car
+ * sends roughly half of every level's passengers to the lobby, so a car
  * with nothing else to do is more useful waiting there than wherever its
  * last drop-off happened to leave it.
  *
@@ -278,7 +278,7 @@ export function buildGoodDispatcherCode(loadCutoff: number): string {
  *
  * The lower of the two presets a later commit's calibration runs use:
  * leaving slack in every car costs a few extra stops but keeps individual
- * rides short, which is the trade-off a challenge scored on waiting time
+ * rides short, which is the trade-off a level scored on waiting time
  * wants measured.
  */
 export const GOOD_CODE_BALANCED = buildGoodDispatcherCode(0.8);
@@ -290,6 +290,6 @@ export const GOOD_CODE_BALANCED = buildGoodDispatcherCode(0.8);
  * The higher of the two presets a later commit's calibration runs use:
  * packing cars fuller before conceding a pickup is not worth it costs some
  * riders a longer wait, but it is also the fewer-total-trips strategy a
- * challenge scored on move count wants measured.
+ * level scored on move count wants measured.
  */
 export const GOOD_CODE_MOVE_CONSCIOUS = buildGoodDispatcherCode(1.0);

@@ -46,7 +46,7 @@
 @import "../app/styles/skip-link.css";
 @import "../widgets/workspace-layout/ui/workspace-layout.css";
 @import "../widgets/app-bar/ui/app-bar.css";
-@import "../entities/challenge-tier/ui/tier-badge.css";
+@import "../entities/level-tier/ui/tier-badge.css";
 @import "../widgets/level-switcher/ui/level-switcher.css";
 @import "../widgets/app-bar/ui/settings-menu.css";
 @import "../features/manage-seed/ui/seed-panel.css";

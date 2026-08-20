@@ -14,7 +14,7 @@
  * which is before anything has had the chance to load a catalogue, so it would
  * be English for the rest of the session however often the player changed
  * language afterwards. The same reasoning is written out at length on
- * {@link "../game/challenges.ts"!ChallengeCondition.description}, which is a
+ * {@link "../game/levels.ts"!LevelCondition.description}, which is a
  * getter for exactly this reason; here it costs nothing, because these
  * functions are already called afresh on every relabel or render.
  */
@@ -95,7 +95,7 @@ export interface SeedLinkData {
    * A hash URL that names this run outright, seed and all.
    *
    * The whole hash rather than the seed alone, for the reason every navigation
-   * entry is: the app builds it with `createParamsUrl`, so the challenge, the
+   * entry is: the app builds it with `createParamsUrl`, so the level, the
    * speed and anything else the player arrived with ride along. The building has
    * to ride along, since a seed means nothing without one.
    *

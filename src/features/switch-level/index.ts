@@ -1,1 +1,1 @@
-export { isChallengeLocked, lockChallengeTiles, type LevelTile } from "./model/level-lock.ts";
+export { isLevelLocked, lockLevelTiles, type LevelTile } from "./model/level-lock.ts";

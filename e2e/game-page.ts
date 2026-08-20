@@ -12,7 +12,7 @@ import type { Locator, Page } from "@playwright/test";
 /**
  * Where the player's program used to be persisted, and still is, once: as the
  * starter {@link seedCode} plants for a page visited for the first time, which
- * `CodeEditor.#resolveChallengeStarterCode` falls back to for challenge 1's
+ * `CodeEditor.#resolveLevelStarterCode` falls back to for level 1's
  * first slot when nothing has been saved under its own key yet.
  *
  * Spelled out rather than imported from `src/ui/editor.ts` deliberately: the
@@ -22,25 +22,25 @@ import type { Locator, Page } from "@playwright/test";
 export const CODE_STORAGE_KEY = "elevatorCrushCode_v5";
 
 /**
- * Where challenge 1's first code slot is persisted — the buffer open on the
+ * Where level 1's first code slot is persisted — the buffer open on the
  * default route, and the one every "take this program" action writes into.
  *
  * Spelled out for the same reason {@link CODE_STORAGE_KEY} is: a rename in
  * `src/ui/editor.ts` should fail a test here rather than pass unnoticed.
  */
-export const CHALLENGE_ONE_SLOT_ONE_STORAGE_KEY = "develevateChallengeCode_0_1";
+export const LEVEL_ONE_SLOT_ONE_STORAGE_KEY = "develevateChallengeCode_0_1";
 
 /**
  * Where the tier earned on each numbered level is remembered between visits,
  * and so where the game reads what this browser has unlocked.
  *
  * Spelled out rather than imported from
- * `src/entities/challenge-tier/model/best-tier.ts` for the reason
+ * `src/entities/level-tier/model/best-tier.ts` for the reason
  * {@link CODE_STORAGE_KEY} is: a spec that read the key from the code under
  * test would go on passing after a rename that had silently reset every
  * player's progress.
  */
-export const CHALLENGE_TIER_STORAGE_KEY = "develevateChallengeTiers";
+export const LEVEL_TIER_STORAGE_KEY = "develevateChallengeTiers";
 
 /**
  * Makes this browser one that has already earned its way to a level, so a spec
@@ -77,7 +77,7 @@ export async function unlockLevel(page: Page, number: number): Promise<void> {
         localStorage.setItem(record.key, record.tiers);
       }
     },
-    { key: CHALLENGE_TIER_STORAGE_KEY, tiers: JSON.stringify(earned) },
+    { key: LEVEL_TIER_STORAGE_KEY, tiers: JSON.stringify(earned) },
   );
 }
 
@@ -85,10 +85,10 @@ export async function unlockLevel(page: Page, number: number): Promise<void> {
  * Plants a program in one level's first code slot, before the page's own
  * scripts run.
  *
- * {@link seedCode} does the same for challenge 1 through the legacy key, which
+ * {@link seedCode} does the same for level 1 through the legacy key, which
  * is the migration source for that one slot alone. This is the way to hand a
  * program to any other level: the key is written directly, in the shape
- * `challengeCodeKey` builds it, and spelled out here for the reason
+ * `levelCodeKey` builds it, and spelled out here for the reason
  * {@link CODE_STORAGE_KEY} is.
  *
  * @param page - The page under test, before its first `goto`.
@@ -291,14 +291,14 @@ export async function seedText(page: Page): Promise<Locator> {
 }
 
 /**
- * Reads the program the page has persisted for challenge 1's first slot — the
+ * Reads the program the page has persisted for level 1's first slot — the
  * one open on the default route, and the one every spec below lands on.
  *
  * @param page - The page under test.
  * @returns The stored program, or `null` when nothing has been stored.
  */
 export function storedCode(page: Page): Promise<string | null> {
-  return page.evaluate((key) => localStorage.getItem(key), CHALLENGE_ONE_SLOT_ONE_STORAGE_KEY);
+  return page.evaluate((key) => localStorage.getItem(key), LEVEL_ONE_SLOT_ONE_STORAGE_KEY);
 }
 
 /**

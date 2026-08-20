@@ -6,7 +6,7 @@
  * module-private `REQ_TEXT`/`TIER_NOW` until the run's verdict card wanted the
  * same two sentences for its "what is still missing" hint. A widget may not
  * import another widget, and a second copy of either table would be a second
- * place to remember when a challenge starts metering a field — so they moved
+ * place to remember when a level starts metering a field — so they moved
  * down here beside {@link "./tier-badge.ts"!tierBadgeMarkup}, the other piece
  * of tier presentation the goal bar and the verdict card already share.
  *
@@ -18,32 +18,32 @@
  * noticing.
  */
 
-import type { ChallengeWorldStats } from "#game/challenges.ts";
-import type { TierRequirementInfo } from "#game/challenge-tiers.ts";
+import type { LevelWorldStats } from "#game/levels.ts";
+import type { TierRequirementInfo } from "#game/level-tiers.ts";
 import { decimal, format, percent, seconds, t } from "#i18n/index.ts";
 
 /**
  * One requirement's own sentence, keyed by the field it reads. Built from
- * nested `t()` calls exactly like `src/game/challenges.ts`'s own condition
+ * nested `t()` calls exactly like `src/game/levels.ts`'s own condition
  * factories — every key has to reach `t` as a literal, so this is written out
  * by hand rather than assembled from the field's name.
  */
-const REQ_TEXT: Readonly<Record<keyof ChallengeWorldStats, (threshold: number) => string>> = {
+const REQ_TEXT: Readonly<Record<keyof LevelWorldStats, (threshold: number) => string>> = {
   transportedCounter: (threshold) =>
     t("game.goalBar.req.transportedCounter.html", {
-      people: t("challenge.people.html", { count: threshold }),
+      people: t("level.people.html", { count: threshold }),
     }),
   elapsedTime: (threshold) =>
     t("game.goalBar.req.elapsedTime.html", {
-      time: t("challenge.timeLimit.html", { count: decimal(threshold, 1) }),
+      time: t("level.timeLimit.html", { count: decimal(threshold, 1) }),
     }),
   maxWaitTime: (threshold) =>
     t("game.goalBar.req.maxWaitTime.html", {
-      time: t("challenge.waitLimit.html", { count: decimal(threshold, 1) }),
+      time: t("level.waitLimit.html", { count: decimal(threshold, 1) }),
     }),
   avgWaitTime: (threshold) =>
     t("game.goalBar.req.avgWaitTime.html", {
-      time: t("challenge.waitLimit.html", { count: decimal(threshold, 1) }),
+      time: t("level.waitLimit.html", { count: decimal(threshold, 1) }),
     }),
   moveCount: (threshold) =>
     t("game.goalBar.req.moveCount.html", {
@@ -61,34 +61,33 @@ const REQ_TEXT: Readonly<Record<keyof ChallengeWorldStats, (threshold: number) =
     t("game.goalBar.req.avgPeoplePerStop.html", { rate: format(decimal(threshold, 2)) }),
   maxPickupTime: (threshold) =>
     t("game.goalBar.req.maxPickupTime.html", {
-      time: t("challenge.waitLimit.html", { count: decimal(threshold, 1) }),
+      time: t("level.waitLimit.html", { count: decimal(threshold, 1) }),
     }),
   avgPickupTime: (threshold) =>
     t("game.goalBar.req.avgPickupTime.html", {
-      time: t("challenge.waitLimit.html", { count: decimal(threshold, 1) }),
+      time: t("level.waitLimit.html", { count: decimal(threshold, 1) }),
     }),
   avgRideTime: (threshold) =>
     t("game.goalBar.req.avgRideTime.html", {
-      time: t("challenge.waitLimit.html", { count: decimal(threshold, 1) }),
+      time: t("level.waitLimit.html", { count: decimal(threshold, 1) }),
     }),
 };
 
 /** The standalone "where the run is now" figure, one formatter per field. */
-const REQ_NOW: Readonly<Record<keyof ChallengeWorldStats, (world: ChallengeWorldStats) => string>> =
-  {
-    transportedCounter: (world) => format(world.transportedCounter),
-    elapsedTime: (world) => format(seconds(world.elapsedTime, 0)),
-    maxWaitTime: (world) => format(seconds(world.maxWaitTime, 1)),
-    avgWaitTime: (world) => format(seconds(world.avgWaitTime, 1)),
-    moveCount: (world) => format(world.moveCount),
-    stopCount: (world) => format(world.stopCount),
-    avgLoadFactorOnMove: (world) => format(percent(world.avgLoadFactorOnMove)),
-    transportedPerSec: (world) => format(decimal(world.transportedPerSec, 2)),
-    avgPeoplePerStop: (world) => format(decimal(world.avgPeoplePerStop, 2)),
-    maxPickupTime: (world) => format(seconds(world.maxPickupTime, 1)),
-    avgPickupTime: (world) => format(seconds(world.avgPickupTime, 1)),
-    avgRideTime: (world) => format(seconds(world.avgRideTime, 1)),
-  };
+const REQ_NOW: Readonly<Record<keyof LevelWorldStats, (world: LevelWorldStats) => string>> = {
+  transportedCounter: (world) => format(world.transportedCounter),
+  elapsedTime: (world) => format(seconds(world.elapsedTime, 0)),
+  maxWaitTime: (world) => format(seconds(world.maxWaitTime, 1)),
+  avgWaitTime: (world) => format(seconds(world.avgWaitTime, 1)),
+  moveCount: (world) => format(world.moveCount),
+  stopCount: (world) => format(world.stopCount),
+  avgLoadFactorOnMove: (world) => format(percent(world.avgLoadFactorOnMove)),
+  transportedPerSec: (world) => format(decimal(world.transportedPerSec, 2)),
+  avgPeoplePerStop: (world) => format(decimal(world.avgPeoplePerStop, 2)),
+  maxPickupTime: (world) => format(seconds(world.maxPickupTime, 1)),
+  avgPickupTime: (world) => format(seconds(world.avgPickupTime, 1)),
+  avgRideTime: (world) => format(seconds(world.avgRideTime, 1)),
+};
 
 /**
  * What a tier requirement asks for, as a sentence fragment: "average delivery
@@ -118,7 +117,7 @@ export function tierRequirementText(requirement: TierRequirementInfo): string {
  */
 export function tierRequirementNow(
   requirement: TierRequirementInfo,
-  world: ChallengeWorldStats,
+  world: LevelWorldStats,
 ): string {
   return REQ_NOW[requirement.field](world);
 }

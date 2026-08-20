@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { SandboxOptions } from "#game/challenges.ts";
+import type { SandboxOptions } from "#game/levels.ts";
 import { tutorialTasks } from "#game/tutorial.ts";
 import { createParamsUrl, parseQuery, type RouteQuery } from "#shared/lib/route-query.ts";
 import {
@@ -13,30 +13,30 @@ import {
   LEVEL_KEY,
   renameLegacyLevelKey,
   resolveRoute,
-  SANDBOX_CHALLENGE,
+  SANDBOX_LEVEL,
   startRouter,
-  TUTORIAL_CHALLENGE_PREFIX,
+  TUTORIAL_LEVEL_PREFIX,
   type RouteParams,
   type RouterTarget,
 } from "./route.ts";
 
 /**
- * A browser that has cleared every challenge there is.
+ * A browser that has cleared every level there is.
  *
  * The default everywhere below, so that the specs about *reading* a URL are
  * about reading it and nothing else. What happens to an address for a
- * challenge that is still shut has a context of its own, in "resolveRoute
- * challenge locking".
+ * level that is still shut has a context of its own, in "resolveRoute
+ * level locking".
  *
  * @returns Always `false`: nothing is locked.
  */
-const EVERY_CHALLENGE_OPEN = (): boolean => false;
+const EVERY_LEVEL_OPEN = (): boolean => false;
 
 /** The context a route is resolved against in these tests. */
 const CONTEXT = {
-  challengeCount: 18,
+  levelCount: 18,
   defaultTimeScale: DEFAULT_TIME_SCALE,
-  isChallengeLocked: EVERY_CHALLENGE_OPEN,
+  isLevelLocked: EVERY_LEVEL_OPEN,
 };
 
 /**
@@ -50,22 +50,22 @@ function route(hash: string): ReturnType<typeof resolveRoute> {
 }
 
 /**
- * Resolves a hash for a browser that has cleared `count` challenges, from the
+ * Resolves a hash for a browser that has cleared `count` levels, from the
  * first.
  *
  * The record itself is not built here — the rule that reads it belongs to
  * `#features/switch-level`, and this file is about what the router does with
- * its answer — so the predicate is written out directly: challenges up to and
+ * its answer — so the predicate is written out directly: levels up to and
  * including the `count`th are open, everything past them is shut.
  *
  * @param hash - The location hash.
- * @param count - How many challenges this browser has finished.
+ * @param count - How many levels this browser has finished.
  * @returns The validated route parameters.
  */
 function routeAfterClearing(hash: string, count: number): ReturnType<typeof resolveRoute> {
   return resolveRoute(parseQuery(hash), {
     ...CONTEXT,
-    isChallengeLocked: (index) => index > count,
+    isLevelLocked: (index) => index > count,
   });
 }
 
@@ -143,18 +143,18 @@ describe("createParamsUrl composed with resolveRoute", () => {
   it("takes a player on a task off the track when the navigation row rewrites the key", () => {
     // Every entry of the row is `createParamsUrl(query, { [LEVEL_KEY]: index +
     // 1, seed: null })` (src/pages/game/index.ts), and `level` is the key a task
-    // address is written into -- so clicking challenge 5 from task 3 replaces
+    // address is written into -- so clicking level 5 from task 3 replaces
     // the track rather than joining it. The row is the way out, and no separate
     // "leave the track" link is needed to build one.
     const query = parseQuery("#level=tutorial-3,timescale=8");
     const url = createParamsUrl(query, { [LEVEL_KEY]: 5, seed: null });
     expect(url).toBe("#level=5,timescale=8");
     expect(route(url).tutorialIndex).toBeNull();
-    expect(route(url).challengeIndex).toBe(4);
+    expect(route(url).levelIndex).toBe(4);
   });
 });
 
-describe("the legacy challenge key", () => {
+describe("the legacy level key", () => {
   it("renames the key in place, so a corrected url reads in the order it was written", () => {
     expect([...renameLegacyLevelKey(parseQuery("#challenge=5,timescale=8"))]).toEqual([
       [LEVEL_KEY, "5"],
@@ -200,15 +200,15 @@ describe("the legacy challenge key", () => {
     );
   });
 
-  it("locks a legacy challenge address exactly as the new spelling is locked", () => {
+  it("locks a legacy level address exactly as the new spelling is locked", () => {
     expect(routeAfterClearing("#challenge=18", 7)).toEqual(routeAfterClearing("#level=18", 7));
   });
 });
 
 describe("resolveRoute defaults", () => {
-  it("starts the first challenge, paused, at the default speed", () => {
+  it("starts the first level, paused, at the default speed", () => {
     expect(route("")).toEqual({
-      challengeIndex: 0,
+      levelIndex: 0,
       sandbox: null,
       tutorialIndex: null,
       timeScale: DEFAULT_TIME_SCALE,
@@ -220,7 +220,7 @@ describe("resolveRoute defaults", () => {
 
   it("reads every parameter the game supports", () => {
     expect(route("#level=4,timescale=8,fullscreen=true,seed=abc")).toEqual({
-      challengeIndex: 3,
+      levelIndex: 3,
       sandbox: null,
       tutorialIndex: null,
       timeScale: 8,
@@ -231,14 +231,14 @@ describe("resolveRoute defaults", () => {
   });
 
   it("reads a route written in capitals", () => {
-    const params = route("#CHALLENGE=4,SEED=issue-61,TIMESCALE=8,FULLSCREEN");
+    const params = route("#LEVEL=4,SEED=issue-61,TIMESCALE=8,FULLSCREEN");
     expect(params).toMatchObject({
-      challengeIndex: 3,
+      levelIndex: 3,
       seed: "issue-61",
       timeScale: 8,
       fullscreen: true,
     });
-    expect(route("#CHALLENGE=SANDBOX").sandbox).not.toBeNull();
+    expect(route("#LEVEL=SANDBOX").sandbox).not.toBeNull();
   });
 
   it("treats a flag as off only when it says false", () => {
@@ -248,104 +248,102 @@ describe("resolveRoute defaults", () => {
   });
 });
 
-describe("resolveRoute challenge validation", () => {
-  it("accepts an in-range challenge number and makes it zero-based", () => {
-    expect(route("#level=1").challengeIndex).toBe(0);
-    expect(route("#level=18").challengeIndex).toBe(17);
+describe("resolveRoute level validation", () => {
+  it("accepts an in-range level number and makes it zero-based", () => {
+    expect(route("#level=1").levelIndex).toBe(0);
+    expect(route("#level=18").levelIndex).toBe(17);
   });
 
-  it("falls back to the first challenge for a number that is not one", () => {
+  it("falls back to the first level for a number that is not one", () => {
     // The legacy code computed _.parseInt("abc") - 1 === NaN, and both NaN < 0
-    // and NaN >= challenges.length are false, so NaN reached
-    // challenges[NaN].options and the page died before drawing anything.
+    // and NaN >= levels.length are false, so NaN reached
+    // levels[NaN].options and the page died before drawing anything.
     for (const hash of ["#level=abc", "#level=", "#level=NaN"]) {
-      expect(route(hash).challengeIndex, hash).toBe(0);
+      expect(route(hash).levelIndex, hash).toBe(0);
     }
   });
 
-  it("falls back to the first challenge for a number out of range", () => {
+  it("falls back to the first level for a number out of range", () => {
     for (const hash of ["#level=0", "#level=-3", "#level=19", "#level=1e9"]) {
-      expect(route(hash).challengeIndex, hash).toBe(0);
+      expect(route(hash).levelIndex, hash).toBe(0);
     }
   });
 
-  it("refuses a challenge number with anything else attached to it", () => {
+  it("refuses a level number with anything else attached to it", () => {
     // Number.parseInt reads as far as it understands and stops: "3abc" was
-    // challenge 3 and "3.5" was challenge 3, with nothing said about the rest of
+    // level 3 and "3.5" was level 3, with nothing said about the rest of
     // what the player had written. Number reads the whole string or nothing.
     for (const value of ["3abc", "3.5", "3px", "0x"]) {
-      expect(route(`#level=${value}`).challengeIndex, value).toBe(0);
+      expect(route(`#level=${value}`).levelIndex, value).toBe(0);
       expect(console.warn).toHaveBeenCalledWith(
         `Invalid level "${value}", starting the first level instead`,
       );
     }
   });
 
-  it("refuses an exponent instead of landing on the first challenge by accident", () => {
-    // #level=1e9 reached challenge 1 before this, and looked like a refusal
-    // because the first challenge is where a refusal lands too -- but parseInt
+  it("refuses an exponent instead of landing on the first level by accident", () => {
+    // #level=1e9 reached level 1 before this, and looked like a refusal
+    // because the first level is where a refusal lands too -- but parseInt
     // had read "1" and stopped at the "e", so nothing was refused and nothing
     // was said. What makes it a refusal is the warning.
-    expect(route("#level=1e9").challengeIndex).toBe(0);
+    expect(route("#level=1e9").levelIndex).toBe(0);
     expect(console.warn).toHaveBeenCalledWith(
       `Invalid level "1e9", starting the first level instead`,
     );
   });
 });
 
-describe("resolveRoute challenge locking", () => {
-  it("opens a challenge this browser has earned", () => {
+describe("resolveRoute level locking", () => {
+  it("opens a level this browser has earned", () => {
     // Cleared four, so the fifth is the one the switcher offers next and the
     // furthest a URL may reach.
-    expect(routeAfterClearing("#level=5", 4).challengeIndex).toBe(4);
+    expect(routeAfterClearing("#level=5", 4).levelIndex).toBe(4);
     expect(routeAfterClearing("#level=5", 4).refusedKeys).toEqual([]);
     expect(console.warn).not.toHaveBeenCalled();
   });
 
-  it("refuses a challenge the player has not unlocked", () => {
-    // The hole this closes. The switcher draws challenge 18 as a disabled
+  it("refuses a level the player has not unlocked", () => {
+    // The hole this closes. The switcher draws level 18 as a disabled
     // button until the seventeen before it are done, and `#level=18` used
     // to open it regardless -- so the progression was something the interface
     // believed rather than something the game enforced.
     const params = routeAfterClearing("#level=18", 7);
 
-    expect(params.challengeIndex).toBe(7);
+    expect(params.levelIndex).toBe(7);
     expect(params.refusedKeys).toEqual(["level"]);
     expect(console.warn).toHaveBeenCalledWith(
       `Level "18" has not been unlocked yet, starting level 8 instead`,
     );
   });
 
-  it("lands on the furthest challenge the player has reached, not on the first", () => {
-    // A refusal that dropped them back to challenge 1 would be its own kind of
+  it("lands on the furthest level the player has reached, not on the first", () => {
+    // A refusal that dropped them back to level 1 would be its own kind of
     // wrong: they asked to go on, and this is as far on as they have earned.
     for (const cleared of [0, 1, 9, 16]) {
-      expect(routeAfterClearing("#level=18", cleared).challengeIndex, String(cleared)).toBe(
-        cleared,
-      );
+      expect(routeAfterClearing("#level=18", cleared).levelIndex, String(cleared)).toBe(cleared);
     }
   });
 
-  it("never walks forward to a challenge further on than the one refused", () => {
-    // A browser whose record is not a run from the first -- cleared challenge 6
-    // alone, back when every challenge was reachable from the row -- has
-    // challenge 7 open with 2 through 6 shut. Walking to the nearest open
-    // challenge in *either* direction would answer an address for 5 with 7,
+  it("never walks forward to a level further on than the one refused", () => {
+    // A browser whose record is not a run from the first -- cleared level 6
+    // alone, back when every level was reachable from the row -- has
+    // level 7 open with 2 through 6 shut. Walking to the nearest open
+    // level in *either* direction would answer an address for 5 with 7,
     // which is the same hole with a step in it.
     const params = resolveRoute(parseQuery("#level=5"), {
       ...CONTEXT,
-      isChallengeLocked: (index) => index !== 0 && index !== 6,
+      isLevelLocked: (index) => index !== 0 && index !== 6,
     });
 
-    expect(params.challengeIndex).toBe(0);
+    expect(params.levelIndex).toBe(0);
   });
 
-  it("says nothing about a locked challenge on an address that names none", () => {
+  it("says nothing about a locked level on an address that names none", () => {
     // The sandbox and the learning track are not on the ladder, and the first
-    // challenge is open to everybody, so none of the three can be refused for
+    // level is open to everybody, so none of the three can be refused for
     // being shut.
-    expect(routeAfterClearing("", 0).challengeIndex).toBe(0);
-    expect(routeAfterClearing("#level=1", 0).challengeIndex).toBe(0);
+    expect(routeAfterClearing("", 0).levelIndex).toBe(0);
+    expect(routeAfterClearing("#level=1", 0).levelIndex).toBe(0);
     expect(routeAfterClearing("#level=sandbox", 0).sandbox).not.toBeNull();
     expect(routeAfterClearing("#level=tutorial-8", 0).tutorialIndex).toBe(7);
     expect(routeAfterClearing("#level=tutorial-8", 0).refusedKeys).toEqual([]);
@@ -353,25 +351,25 @@ describe("resolveRoute challenge locking", () => {
   });
 
   it("refuses a number that does not exist before asking whether it is open", () => {
-    // Order, and the reason `isChallengeLocked` is documented as taking an
-    // index that exists: `#level=99` is not a locked challenge, it is not a
-    // challenge, and the locking rule has no opinion to offer about one.
+    // Order, and the reason `isLevelLocked` is documented as taking an
+    // index that exists: `#level=99` is not a locked level, it is not a
+    // level, and the locking rule has no opinion to offer about one.
     const params = routeAfterClearing("#level=99", 7);
 
-    expect(params.challengeIndex).toBe(0);
+    expect(params.levelIndex).toBe(0);
     expect(console.warn).toHaveBeenCalledWith(
       `Invalid level "99", starting the first level instead`,
     );
   });
 
-  it("keeps the rest of the url while it refuses the challenge", () => {
+  it("keeps the rest of the url while it refuses the level", () => {
     // A speed and a seed are choices about how to play, not about which level
     // -- and the level that opens is one the player is allowed to be on, so
     // there is nothing about those that has to be dropped with it.
     const params = routeAfterClearing("#level=18,timescale=8,seed=issue-61,fullscreen", 7);
 
     expect(params).toMatchObject({
-      challengeIndex: 7,
+      levelIndex: 7,
       timeScale: 8,
       seed: "issue-61",
       fullscreen: true,
@@ -386,13 +384,13 @@ describe("resolveRoute sandbox selection", () => {
     expect(route("#level=4").sandbox).toBeNull();
   });
 
-  it("ignores sandbox parameters while a numbered challenge is being played", () => {
-    // They are carried across a jump by the challenge bar's navigation row,
-    // which rewrites `challenge` and keeps everything else. Inert here, and
+  it("ignores sandbox parameters while a numbered level is being played", () => {
+    // They are carried across a jump by the level bar's navigation row,
+    // which rewrites `level` and keeps everything else. Inert here, and
     // still there if the player goes back to the sandbox.
     const params = route("#level=4,floors=50,elevators=9,spawnrate=7");
     expect(params.sandbox).toBeNull();
-    expect(params.challengeIndex).toBe(3);
+    expect(params.levelIndex).toBe(3);
   });
 
   it("plays the sandbox for level=sandbox, in any casing", () => {
@@ -401,18 +399,18 @@ describe("resolveRoute sandbox selection", () => {
     }
   });
 
-  it("does not complain that the sandbox is not a challenge number", () => {
+  it("does not complain that the sandbox is not a level number", () => {
     route("#level=sandbox");
     expect(console.warn).not.toHaveBeenCalled();
   });
 
   it("is not selected by something that merely looks like it", () => {
     expect(route("#level=sandboxes").sandbox).toBeNull();
-    expect(route("#level=sandboxes").challengeIndex).toBe(0);
+    expect(route("#level=sandboxes").levelIndex).toBe(0);
   });
 
   it("starts a building known to be playable when no parameters are given", () => {
-    // Challenge 4's shape, so that a bare #level=sandbox is something to
+    // Level 4's shape, so that a bare #level=sandbox is something to
     // watch rather than something degenerate.
     expect(route("#level=sandbox").sandbox).toEqual({
       floorCount: 8,
@@ -449,7 +447,7 @@ describe("resolveRoute sandbox validation", () => {
    * @returns The building the route asks for.
    */
   function sandbox(hash: string): SandboxOptions {
-    const params = route(`#level=${SANDBOX_CHALLENGE},${hash}`);
+    const params = route(`#level=${SANDBOX_LEVEL},${hash}`);
     if (params.sandbox === null) {
       throw new Error(`Expected ${hash} to resolve a sandbox`);
     }
@@ -537,7 +535,7 @@ describe("resolveRoute sandbox validation", () => {
 
   it("keeps only as many capacities as there are elevators", () => {
     // The world reads capacities[i % capacities.length] once per car, so entries
-    // past the last car never reach one — but the challenge bar prints the list
+    // past the last car never reach one — but the level bar prints the list
     // it is given, so leaving them in would describe a building that does not
     // exist.
     expect(sandbox("elevators=1,capacities=6-9").elevatorCapacities).toEqual([6]);
@@ -633,23 +631,23 @@ describe("resolveRoute tutorial selection", () => {
 
   it("spells every task id the way it recognises one", () => {
     // The prefix is the one thing about a task address the router states for
-    // itself, and it is what tells a mistyped one from a challenge number. A
+    // itself, and it is what tells a mistyped one from a level number. A
     // task renamed out of this shape would not be oddly named, it would be
     // unreachable -- so the two are checked against each other here.
     for (const task of tutorialTasks) {
-      expect(task.id.startsWith(TUTORIAL_CHALLENGE_PREFIX), task.id).toBe(true);
+      expect(task.id.startsWith(TUTORIAL_LEVEL_PREFIX), task.id).toBe(true);
     }
   });
 
   it("reads a task address however it is capitalised", () => {
     // Folded where it is read, as `sandbox` is, and not for every value at once.
     expect(route("#level=TUTORIAL-3").tutorialIndex).toBe(2);
-    expect(route("#CHALLENGE=Tutorial-3").tutorialIndex).toBe(2);
+    expect(route("#LEVEL=Tutorial-3").tutorialIndex).toBe(2);
     expect(console.warn).not.toHaveBeenCalled();
   });
 
-  it("does not complain that a task address is not a challenge number", () => {
-    // resolveChallengeIndex would read `tutorial-3` as NaN and say so, which is
+  it("does not complain that a task address is not a level number", () => {
+    // resolveLevelIndex would read `tutorial-3` as NaN and say so, which is
     // noise about a number the player never wrote.
     const params = route("#level=tutorial-3");
     expect(params.refusedKeys).toEqual([]);
@@ -668,7 +666,7 @@ describe("resolveRoute tutorial selection", () => {
 
   it("ignores sandbox parameters while a task is being played", () => {
     // Carried across by the navigation row, inert here, and still there if the
-    // player goes back to the sandbox -- exactly as on a numbered challenge.
+    // player goes back to the sandbox -- exactly as on a numbered level.
     const params = route("#level=tutorial-3,floors=50,elevators=9");
     expect(params.tutorialIndex).toBe(2);
     expect(params.sandbox).toBeNull();
@@ -677,11 +675,11 @@ describe("resolveRoute tutorial selection", () => {
 
   it("is not selected by something that merely looks like it", () => {
     // The prefix is exact, as `sandboxes` is not the sandbox: a value that is
-    // not a task address is a challenge number, and is refused as one.
+    // not a task address is a level number, and is refused as one.
     for (const value of ["tutorial", "tutorials-1", "atutorial-1"]) {
       const params = route(`#level=${value}`);
       expect(params.tutorialIndex, value).toBeNull();
-      expect(params.challengeIndex, value).toBe(0);
+      expect(params.levelIndex, value).toBe(0);
       expect(console.warn).toHaveBeenCalledWith(
         `Invalid level "${value}", starting the first level instead`,
       );
@@ -690,10 +688,10 @@ describe("resolveRoute tutorial selection", () => {
 });
 
 describe("resolveRoute tutorial validation", () => {
-  it("lands a wrong task address on the first task, not on the first challenge", () => {
+  it("lands a wrong task address on the first task, not on the first level", () => {
     // The player asked for the track, so the closest thing to what they asked
-    // for is where the track starts. Landing on challenge 1 would answer a
-    // question about the track with a challenge.
+    // for is where the track starts. Landing on level 1 would answer a
+    // question about the track with a level.
     for (const value of [
       "tutorial-0",
       "tutorial-9",
@@ -718,11 +716,11 @@ describe("resolveRoute tutorial validation", () => {
     // `01`, `1e0` and `1.0` are ways of writing the number one, and none of them
     // is a way of writing the name `tutorial-1`. `Number` accepts all three --
     // and reads `tutorial-` as 0 and `tutorial- 1` as 1 besides, the two traps
-    // resolveChallengeIndex and resolveSandboxInteger already document.
+    // resolveLevelIndex and resolveSandboxInteger already document.
     //
     // Each still lands on the first task, which is where `tutorial-1` lands, so
     // the warning and the refusal are the only things that tell the two apart:
-    // the same point #level=1e9 makes on the challenge side.
+    // the same point #level=1e9 makes on the level side.
     for (const value of ["tutorial-01", "tutorial-1e0", "tutorial-1.0", "tutorial-0x1"]) {
       const params = route(`#level=${value}`);
       expect(params.tutorialIndex, value).toBe(0);
@@ -735,10 +733,10 @@ describe("resolveRoute tutorial validation", () => {
 
   it("keeps the rest of the url working on the track", () => {
     // Every parameter but one behaves on a task address exactly as it does on a
-    // challenge. `seed` is the exception, and is refused rather than read: see
+    // level. `seed` is the exception, and is refused rather than read: see
     // "resolveRoute seed on the learning track" for what it would cost.
     expect(route("#level=tutorial-3,seed=issue-61,timescale=8,fullscreen=true")).toEqual({
-      challengeIndex: 0,
+      levelIndex: 0,
       sandbox: null,
       tutorialIndex: 2,
       timeScale: 8,
@@ -792,8 +790,8 @@ describe("resolveRoute refusals", () => {
   it("does not name a key that was simply absent", () => {
     // A refusal and an absence resolve to the same value, which is why the
     // resolvers record this rather than a later pass working it out: from the
-    // outside, `#level=abc` and `#` are both challenge one.
-    expect(route("#level=abc").challengeIndex).toBe(route("").challengeIndex);
+    // outside, `#level=abc` and `#` are both level one.
+    expect(route("#level=abc").levelIndex).toBe(route("").levelIndex);
     expect(route("").refusedKeys).toEqual([]);
   });
 
@@ -803,7 +801,7 @@ describe("resolveRoute refusals", () => {
     // changing the run the player is watching.
     //
     // The two refusals that land where absence does not spell -- a task address
-    // no task has, and a challenge this browser has not unlocked -- are not
+    // no task has, and a level this browser has not unlocked -- are not
     // exempt from that: the corrected url has to resolve to the run on screen
     // either way, so those are rewritten rather than dropped, and `startRouter`
     // is where each is checked against the run it left the player in.
@@ -850,7 +848,7 @@ describe("resolveRoute seed validation", () => {
     // into location.hash, so "#seed=rush hour" comes back as "rush%20hour",
     // which hashes to a different stream and sends different people into the
     // building than the ones the link was shared for. The building itself comes
-    // from the challenge number or the sandbox parameters, not from here.
+    // from the level number or the sandbox parameters, not from here.
     for (const hash of ["#seed=rush hour", "#seed=привет", "#seed=a/b", "#seed=100%"]) {
       expect(route(hash).seed, hash).toBeNull();
     }
@@ -911,7 +909,7 @@ describe("resolveRoute seed on the learning track", () => {
 
   it("refuses an empty seed on the track, which is written but says nothing", () => {
     // `seed=` is present and unusable at once, and the two sides of the branch
-    // disagree about which of those matters: a challenge calls it invalid and
+    // disagree about which of those matters: a level calls it invalid and
     // draws a fresh one, the track says the task pins its own. Both refuse it,
     // so the key leaves the URL either way and the outcomes are identical --
     // only the sentence differs, and the track's is the more useful of the two,
@@ -939,7 +937,7 @@ describe("resolveRoute seed on the learning track", () => {
 
   it("leaves the seed alone on the routes it is the player's to choose", () => {
     // The refusal is scoped to the track and nothing else: a misspelled task
-    // address is still the track, but a challenge and the sandbox are not.
+    // address is still the track, but a level and the sandbox are not.
     expect(route("#level=4,seed=42a").seed).toBe("42a");
     expect(route("#level=sandbox,seed=42a").seed).toBe("42a");
     expect(route("#level=tutorial-9,seed=42a").seed).toBeNull();
@@ -986,22 +984,22 @@ describe("startRouter", () => {
     const onRoute = vi.fn();
 
     startRouter(onRoute, {
-      challengeCount: 18,
-      isChallengeLocked: EVERY_CHALLENGE_OPEN,
+      levelCount: 18,
+      isLevelLocked: EVERY_LEVEL_OPEN,
       defaultTimeScale: () => DEFAULT_TIME_SCALE,
       target,
     });
 
     expect(onRoute).toHaveBeenCalledTimes(1);
-    expect(onRoute.mock.calls[0]?.[0]).toMatchObject({ challengeIndex: 2 });
+    expect(onRoute.mock.calls[0]?.[0]).toMatchObject({ levelIndex: 2 });
   });
 
   it("routes on hashchange and on popstate", () => {
     const target = new FakeTarget();
     const onRoute = vi.fn();
     startRouter(onRoute, {
-      challengeCount: 18,
-      isChallengeLocked: EVERY_CHALLENGE_OPEN,
+      levelCount: 18,
+      isLevelLocked: EVERY_LEVEL_OPEN,
       defaultTimeScale: () => DEFAULT_TIME_SCALE,
       target,
     });
@@ -1010,15 +1008,15 @@ describe("startRouter", () => {
     target.navigate("#level=5", "popstate");
 
     expect(onRoute).toHaveBeenCalledTimes(3);
-    expect(onRoute.mock.calls[2]?.[0]).toMatchObject({ challengeIndex: 4 });
+    expect(onRoute.mock.calls[2]?.[0]).toMatchObject({ levelIndex: 4 });
   });
 
   it("ignores an event that did not change the url", () => {
     const target = new FakeTarget();
     const onRoute = vi.fn();
     startRouter(onRoute, {
-      challengeCount: 18,
-      isChallengeLocked: EVERY_CHALLENGE_OPEN,
+      levelCount: 18,
+      isLevelLocked: EVERY_LEVEL_OPEN,
       defaultTimeScale: () => DEFAULT_TIME_SCALE,
       target,
     });
@@ -1034,8 +1032,8 @@ describe("startRouter", () => {
     const onRoute = vi.fn();
     let defaultTimeScale = 2;
     startRouter(onRoute, {
-      challengeCount: 18,
-      isChallengeLocked: EVERY_CHALLENGE_OPEN,
+      levelCount: 18,
+      isLevelLocked: EVERY_LEVEL_OPEN,
       defaultTimeScale: () => defaultTimeScale,
       target,
     });
@@ -1051,8 +1049,8 @@ describe("startRouter", () => {
     target.location = { hash: "#level=2,mystery=x" };
     const onRoute = vi.fn();
     startRouter(onRoute, {
-      challengeCount: 18,
-      isChallengeLocked: EVERY_CHALLENGE_OPEN,
+      levelCount: 18,
+      isLevelLocked: EVERY_LEVEL_OPEN,
       defaultTimeScale: () => DEFAULT_TIME_SCALE,
       target,
     });
@@ -1062,7 +1060,7 @@ describe("startRouter", () => {
   });
 
   it("takes a refused parameter out of the address bar", () => {
-    // The URL went on saying `level=abc` while challenge 1 was being
+    // The URL went on saying `level=abc` while level 1 was being
     // played, which is the state a player bookmarks, pastes into a chat and
     // reports as a bug in the game.
     const target = new FakeTarget();
@@ -1070,8 +1068,8 @@ describe("startRouter", () => {
     const onRoute = vi.fn();
 
     startRouter(onRoute, {
-      challengeCount: 18,
-      isChallengeLocked: EVERY_CHALLENGE_OPEN,
+      levelCount: 18,
+      isLevelLocked: EVERY_LEVEL_OPEN,
       defaultTimeScale: () => DEFAULT_TIME_SCALE,
       target,
     });
@@ -1092,8 +1090,8 @@ describe("startRouter", () => {
     const onRoute = vi.fn();
 
     startRouter(onRoute, {
-      challengeCount: 18,
-      isChallengeLocked: EVERY_CHALLENGE_OPEN,
+      levelCount: 18,
+      isLevelLocked: EVERY_LEVEL_OPEN,
       defaultTimeScale: () => DEFAULT_TIME_SCALE,
       target,
     });
@@ -1105,11 +1103,11 @@ describe("startRouter", () => {
       ["mystery", "x"],
     ]);
     // The route the corrected URL resolves to is the route that was played.
-    expect(onRoute.mock.calls[0]?.[0]).toMatchObject({ challengeIndex: 1, seed: null });
+    expect(onRoute.mock.calls[0]?.[0]).toMatchObject({ levelIndex: 1, seed: null });
   });
 
   it("corrects a wrong task address to the first task instead of dropping it", () => {
-    // Deleting the key would leave `#`, which is the first *challenge*: the bar
+    // Deleting the key would leave `#`, which is the first *level*: the bar
     // would describe a run nobody is watching, and a reload would take the
     // player to it. The first task has no spelling but its own id, and the
     // player did choose the track, so the id is not a choice invented for them.
@@ -1118,8 +1116,8 @@ describe("startRouter", () => {
     const onRoute = vi.fn();
 
     startRouter(onRoute, {
-      challengeCount: 18,
-      isChallengeLocked: EVERY_CHALLENGE_OPEN,
+      levelCount: 18,
+      isLevelLocked: EVERY_LEVEL_OPEN,
       defaultTimeScale: () => DEFAULT_TIME_SCALE,
       target,
     });
@@ -1137,9 +1135,9 @@ describe("startRouter", () => {
     expect(route(target.location.hash)).toEqual({ ...params, refusedKeys: [] });
   });
 
-  it("corrects a locked challenge to the one that opened instead of dropping it", () => {
+  it("corrects a locked level to the one that opened instead of dropping it", () => {
     // The same rule as the task address above, arriving on the other branch:
-    // deleting the key would say "challenge 1", and the player is on challenge
+    // deleting the key would say "level 1", and the player is on level
     // 8. Only the number they cannot have is rewritten -- the speed they chose
     // is still theirs.
     const target = new FakeTarget();
@@ -1147,30 +1145,30 @@ describe("startRouter", () => {
     const onRoute = vi.fn();
 
     startRouter(onRoute, {
-      challengeCount: 18,
-      isChallengeLocked: (index) => index > 7,
+      levelCount: 18,
+      isLevelLocked: (index) => index > 7,
       defaultTimeScale: () => DEFAULT_TIME_SCALE,
       target,
     });
 
     expect(target.replaced).toEqual(["#level=8,timescale=8"]);
     const params = onRoute.mock.calls[0]?.[0] as RouteParams | undefined;
-    expect(params).toMatchObject({ challengeIndex: 7, refusedKeys: ["level"] });
-    // What the address bar says now is a challenge this player may open, so
+    expect(params).toMatchObject({ levelIndex: 7, refusedKeys: ["level"] });
+    // What the address bar says now is a level this player may open, so
     // reading it again refuses nothing and the correction settles in one pass.
     expect(routeAfterClearing(target.location.hash, 7)).toEqual({ ...params, refusedKeys: [] });
   });
 
-  it("empties the hash when the locked challenge fell all the way back", () => {
-    // Absence spells challenge 1, so a fallback that lands there is a deletion
+  it("empties the hash when the locked level fell all the way back", () => {
+    // Absence spells level 1, so a fallback that lands there is a deletion
     // like any other refusal -- writing `level=1` would put a choice in the
     // bar that the player never made.
     const target = new FakeTarget();
     target.location = { hash: "#level=4" };
 
     startRouter(vi.fn(), {
-      challengeCount: 18,
-      isChallengeLocked: (index) => index > 0,
+      levelCount: 18,
+      isLevelLocked: (index) => index > 0,
       defaultTimeScale: () => DEFAULT_TIME_SCALE,
       target,
     });
@@ -1178,7 +1176,7 @@ describe("startRouter", () => {
     expect(target.replaced).toEqual(["#"]);
   });
 
-  it("asks again on every navigation, so a challenge just cleared opens", () => {
+  it("asks again on every navigation, so a level just cleared opens", () => {
     // The reason this is a callback rather than a set handed over once: the
     // "Next level" link in the verdict card is followed a moment after the win
     // that unlocked what it points at.
@@ -1187,8 +1185,8 @@ describe("startRouter", () => {
     const onRoute = vi.fn();
 
     startRouter(onRoute, {
-      challengeCount: 18,
-      isChallengeLocked: (index) => index > cleared,
+      levelCount: 18,
+      isLevelLocked: (index) => index > cleared,
       defaultTimeScale: () => DEFAULT_TIME_SCALE,
       target,
     });
@@ -1196,7 +1194,7 @@ describe("startRouter", () => {
     cleared = 1;
     target.navigate("#level=2");
 
-    expect(onRoute.mock.calls[1]?.[0]).toMatchObject({ challengeIndex: 1, refusedKeys: [] });
+    expect(onRoute.mock.calls[1]?.[0]).toMatchObject({ levelIndex: 1, refusedKeys: [] });
     expect(target.replaced).toEqual([]);
   });
 
@@ -1205,8 +1203,8 @@ describe("startRouter", () => {
     target.location = { hash: "#level=tutorial-9,seed=rush%20hour" };
 
     startRouter(vi.fn(), {
-      challengeCount: 18,
-      isChallengeLocked: EVERY_CHALLENGE_OPEN,
+      levelCount: 18,
+      isLevelLocked: EVERY_LEVEL_OPEN,
       defaultTimeScale: () => DEFAULT_TIME_SCALE,
       target,
     });
@@ -1219,8 +1217,8 @@ describe("startRouter", () => {
     target.location = { hash: "#level=abc" };
 
     startRouter(vi.fn(), {
-      challengeCount: 18,
-      isChallengeLocked: EVERY_CHALLENGE_OPEN,
+      levelCount: 18,
+      isLevelLocked: EVERY_LEVEL_OPEN,
       defaultTimeScale: () => DEFAULT_TIME_SCALE,
       target,
     });
@@ -1239,8 +1237,8 @@ describe("startRouter", () => {
     target.history.state = { scroll: 12 };
 
     startRouter(vi.fn(), {
-      challengeCount: 18,
-      isChallengeLocked: EVERY_CHALLENGE_OPEN,
+      levelCount: 18,
+      isLevelLocked: EVERY_LEVEL_OPEN,
       defaultTimeScale: () => DEFAULT_TIME_SCALE,
       target,
     });
@@ -1266,8 +1264,8 @@ describe("startRouter", () => {
     target.location = { hash };
 
     startRouter(vi.fn(), {
-      challengeCount: 18,
-      isChallengeLocked: EVERY_CHALLENGE_OPEN,
+      levelCount: 18,
+      isLevelLocked: EVERY_LEVEL_OPEN,
       defaultTimeScale: () => DEFAULT_TIME_SCALE,
       target,
     });
@@ -1285,8 +1283,8 @@ describe("startRouter", () => {
     const onRoute = vi.fn();
 
     startRouter(onRoute, {
-      challengeCount: 18,
-      isChallengeLocked: EVERY_CHALLENGE_OPEN,
+      levelCount: 18,
+      isLevelLocked: EVERY_LEVEL_OPEN,
       defaultTimeScale: () => DEFAULT_TIME_SCALE,
       target,
     });
@@ -1297,7 +1295,7 @@ describe("startRouter", () => {
     expect(onRoute).toHaveBeenCalledTimes(1);
     const params = onRoute.mock.calls[0]?.[0] as RouteParams | undefined;
     const query = onRoute.mock.calls[0]?.[1] as RouteQuery | undefined;
-    expect(params).toMatchObject({ challengeIndex: 2, timeScale: 8, refusedKeys: [] });
+    expect(params).toMatchObject({ levelIndex: 2, timeScale: 8, refusedKeys: [] });
     // The handler is handed the corrected query, so every link the switcher
     // builds out of it is written the way the game writes one.
     expect(query?.get(LEVEL_KEY)).toBe("3");
@@ -1313,8 +1311,8 @@ describe("startRouter", () => {
     const onRoute = vi.fn();
 
     startRouter(onRoute, {
-      challengeCount: 18,
-      isChallengeLocked: EVERY_CHALLENGE_OPEN,
+      levelCount: 18,
+      isLevelLocked: EVERY_LEVEL_OPEN,
       defaultTimeScale: () => DEFAULT_TIME_SCALE,
       target,
     });
@@ -1331,22 +1329,22 @@ describe("startRouter", () => {
     const onRoute = vi.fn();
 
     startRouter(onRoute, {
-      challengeCount: 18,
-      isChallengeLocked: EVERY_CHALLENGE_OPEN,
+      levelCount: 18,
+      isLevelLocked: EVERY_LEVEL_OPEN,
       defaultTimeScale: () => DEFAULT_TIME_SCALE,
       target,
     });
 
     expect(target.replaced).toEqual(["#level=9,timescale=8"]);
-    expect(onRoute.mock.calls[0]?.[0]).toMatchObject({ challengeIndex: 8 });
+    expect(onRoute.mock.calls[0]?.[0]).toMatchObject({ levelIndex: 8 });
   });
 
   it("corrects every navigation, not just the first", () => {
     const target = new FakeTarget();
     const onRoute = vi.fn();
     startRouter(onRoute, {
-      challengeCount: 18,
-      isChallengeLocked: EVERY_CHALLENGE_OPEN,
+      levelCount: 18,
+      isLevelLocked: EVERY_LEVEL_OPEN,
       defaultTimeScale: () => DEFAULT_TIME_SCALE,
       target,
     });
@@ -1355,7 +1353,7 @@ describe("startRouter", () => {
 
     expect(target.replaced).toEqual(["#level=4"]);
     expect(onRoute).toHaveBeenCalledTimes(2);
-    expect(onRoute.mock.calls[1]?.[0]).toMatchObject({ challengeIndex: 3 });
+    expect(onRoute.mock.calls[1]?.[0]).toMatchObject({ levelIndex: 3 });
   });
 
   it("routes again when the player comes back to a url it once corrected", () => {
@@ -1365,8 +1363,8 @@ describe("startRouter", () => {
     const target = new FakeTarget();
     const onRoute = vi.fn();
     startRouter(onRoute, {
-      challengeCount: 18,
-      isChallengeLocked: EVERY_CHALLENGE_OPEN,
+      levelCount: 18,
+      isLevelLocked: EVERY_LEVEL_OPEN,
       defaultTimeScale: () => DEFAULT_TIME_SCALE,
       target,
     });
@@ -1383,8 +1381,8 @@ describe("startRouter", () => {
   it("unsubscribes everything when stopped", () => {
     const target = new FakeTarget();
     const stop = startRouter(vi.fn(), {
-      challengeCount: 18,
-      isChallengeLocked: EVERY_CHALLENGE_OPEN,
+      levelCount: 18,
+      isLevelLocked: EVERY_LEVEL_OPEN,
       defaultTimeScale: () => DEFAULT_TIME_SCALE,
       target,
     });

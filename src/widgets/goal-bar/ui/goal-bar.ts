@@ -1,5 +1,5 @@
 /**
- * The goal bar: the challenge's own meters plus the bronze/silver/gold tier
+ * The goal bar: the level's own meters plus the bronze/silver/gold tier
  * popover, ported from `design/ui-mockup.html`'s `renderGoals()`/`drawGoals()`
  * and `renderTiers()`/`drawTiers()`.
  *
@@ -10,7 +10,7 @@
  * everything on every tick:
  *
  * - `rebuild()` creates the DOM structure — one `<div class="meter">` per
- *   requirement (or the free-state block, for a challenge with none), with
+ *   requirement (or the free-state block, for a level with none), with
  *   its caption, tick marks and unit already baked in — and saves the
  *   elements later ticks need to patch. Runs at construction and again on
  *   every {@link GoalBarPresenter.update}, i.e. on a language change: the
@@ -29,17 +29,17 @@
  */
 
 import {
-  evaluateChallengeTier,
+  evaluateLevelTier,
   tierBadgeMarkup,
   tierRequirementNow,
   tierRequirementText,
-} from "#entities/challenge-tier/index.ts";
+} from "#entities/level-tier/index.ts";
 import type {
-  ChallengeTier,
-  ChallengeTierRequirements,
+  LevelTier,
+  LevelTierRequirements,
   TierRequirementInfo,
-} from "#entities/challenge-tier/index.ts";
-import type { Challenge, ChallengeWorldStats } from "#entities/challenge/index.ts";
+} from "#entities/level-tier/index.ts";
+import type { Level, LevelWorldStats } from "#entities/level/index.ts";
 import type { World } from "#game/world.ts";
 import { decimal, format, t } from "#i18n/index.ts";
 import type { MessageArgs, MessageKey } from "#i18n/index.ts";
@@ -54,9 +54,9 @@ import { buildTierRows, type TierRowState } from "../model/tier-rows.ts";
 
 /** What the goal bar needs in order to draw and drive itself. */
 export interface GoalBarOptions {
-  /** The challenge being played — its requirements, tiers and description. */
-  readonly challenge: Challenge;
-  /** The same tri-state verdict {@link "#entities/challenge/index.ts"!ChallengeCondition.evaluate} returns. */
+  /** The level being played — its requirements, tiers and description. */
+  readonly level: Level;
+  /** The same tri-state verdict {@link "#entities/level/index.ts"!LevelCondition.evaluate} returns. */
   readonly getVerdict: () => boolean | null;
 }
 
@@ -89,9 +89,9 @@ interface MeterFormat {
 }
 
 /**
- * Formatting for the four fields a challenge's own bronze requirements ever
- * name (`buildGoalMeters` is built from `challenge.condition.requirements`,
- * and every existing challenge's bronze condition reads one of these).
+ * Formatting for the four fields a level's own bronze requirements ever
+ * name (`buildGoalMeters` is built from `level.condition.requirements`,
+ * and every existing level's bronze condition reads one of these).
  *
  * `elapsedTime`'s current-value precision (0 decimals) deliberately diverges
  * from the mockup's own default of 1: it matches `presentStats`'s own
@@ -99,7 +99,7 @@ interface MeterFormat {
  * keeps 1 decimal, since a real `underElapsedTime`-style limit can be
  * fractional.
  */
-const METER_FORMAT: Partial<Record<keyof ChallengeWorldStats, MeterFormat>> = {
+const METER_FORMAT: Partial<Record<keyof LevelWorldStats, MeterFormat>> = {
   transportedCounter: { currentDigits: 0, thresholdDigits: 0 },
   elapsedTime: { currentDigits: 0, thresholdDigits: 1, unitKey: "game.goalBar.unit.seconds" },
   maxWaitTime: { currentDigits: 1, thresholdDigits: 1, unitKey: "game.goalBar.unit.seconds" },
@@ -123,14 +123,14 @@ const METER_CAPTION_KEY = {
   avgPeoplePerStop: "page.stats.peoplePerStop",
   avgLoadFactorOnMove: "page.stats.avgLoad",
   maxPickupTime: "game.goalBar.caption.maxPickupTime",
-} as const satisfies Readonly<Record<keyof ChallengeWorldStats, MessageKey>>;
+} as const satisfies Readonly<Record<keyof LevelWorldStats, MessageKey>>;
 
 /** A tier's own display name. */
 const TIER_NAME_KEY = {
   bronze: "game.goalBar.tier.bronze",
   silver: "game.goalBar.tier.silver",
   gold: "game.goalBar.tier.gold",
-} as const satisfies Readonly<Record<ChallengeTier, MessageKey>>;
+} as const satisfies Readonly<Record<LevelTier, MessageKey>>;
 
 /** The icon a tier row's own state reads as. */
 const TIER_STATE_ICON: Readonly<Record<TierRowState, SpriteIconName>> = {
@@ -163,14 +163,14 @@ function meterStateClass(meter: GoalMeterView): "is-done" | "is-near" | "is-late
  * mockup's `tierTicks(goal)`.
  *
  * Skipped for `transportedCounter` (a defensive no-op kept for fidelity with
- * the mockup, which never actually reaches it either — no challenge tightens
+ * the mockup, which never actually reaches it either — no level tightens
  * a passenger-count floor tier over tier) and for any field a silver/gold
  * requirement does not itself mention. A tick within 3% of either edge is
  * skipped too — indistinguishable from the bar's own ends.
  */
 function meterTicks(
   requirement: TierRequirementInfo,
-  tiers: ChallengeTierRequirements | undefined,
+  tiers: LevelTierRequirements | undefined,
 ): string {
   if (tiers === undefined || requirement.field === "transportedCounter") {
     return "";
@@ -217,7 +217,7 @@ interface MeterRefs {
  *
  * @param parent - The element the goal bar's markup is written into.
  * @param world - The run whose figures the bar reads.
- * @param options - The challenge being played and how to ask whether it is won.
+ * @param options - The level being played and how to ask whether it is won.
  * @returns The presenter, already built and drawn once.
  */
 export function presentGoalBar(
@@ -253,7 +253,7 @@ export function presentGoalBar(
       return;
     }
     clearChildren(tierRows);
-    const rows = buildTierRows(options.challenge, world, options.getVerdict());
+    const rows = buildTierRows(options.level, world, options.getVerdict());
     for (const row of rows) {
       const rowEl = renderElement(
         markup`<div class="tierrow" data-tier="${row.tier}"><div class="tierrow-head">${raw(
@@ -280,7 +280,7 @@ export function presentGoalBar(
 
   /** Patches every live value a tick can change, without touching translated prose. */
   function draw(): void {
-    const meters = buildGoalMeters(options.challenge.condition.requirements, world);
+    const meters = buildGoalMeters(options.level.condition.requirements, world);
     for (const [index, meter] of meters.entries()) {
       const ref = meterRefs[index];
       if (ref === undefined) {
@@ -298,7 +298,7 @@ export function presentGoalBar(
     const earnedTier =
       verdict === null
         ? undefined
-        : (evaluateChallengeTier(verdict, world, options.challenge.tiers) ?? undefined);
+        : (evaluateLevelTier(verdict, world, options.level.tiers) ?? undefined);
     tierOpen.innerHTML = tierBadgeMarkup(earnedTier);
     const title =
       earnedTier === undefined
@@ -318,12 +318,12 @@ export function presentGoalBar(
     extraNodes = [];
     meterRefs = [];
 
-    const { requirements } = options.challenge.condition;
+    const { requirements } = options.level.condition;
     if (requirements.length === 0) {
       tierWrap.hidden = true;
       const free = renderElement(
         markup`<div class="goalfree">${raw(spriteIconMarkup("lamp"))}<span>${raw(
-          options.challenge.condition.description,
+          options.level.condition.description,
         )}</span></div>`,
       );
       goalBar.prepend(free);
@@ -335,7 +335,7 @@ export function presentGoalBar(
       const nodes: HTMLElement[] = [];
       for (const meter of meters) {
         const captionKey = METER_CAPTION_KEY[meter.requirement.field];
-        const ticks = meterTicks(meter.requirement, options.challenge.tiers);
+        const ticks = meterTicks(meter.requirement, options.level.tiers);
         const meterEl = renderElement(
           markup`<div class="meter" data-kind="${meter.requirement.field}"><div class="meter-head"><span class="cap">${t(
             captionKey,

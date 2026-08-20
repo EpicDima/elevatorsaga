@@ -10,7 +10,7 @@
  *   before the first paint, so this is the only place the chunk is loaded into a
  *   page that is already running.
  * - The page is rewritten by four different pieces of code — `localisePage` for
- *   the shell, the challenge bar's presenter, the statistics, the building's
+ *   the shell, the level bar's presenter, the statistics, the building's
  *   labels — and a page half in each language is worse than either.
  * - "The run was not restarted" is a claim about a simulation that is running.
  *   Nothing in jsdom is running.
@@ -36,7 +36,7 @@ import {
 const LOCALE_STORAGE_KEY = "elevatorLocale";
 
 /**
- * A busy challenge at speed, so that a few seconds of it are a few seconds of
+ * A busy level at speed, so that a few seconds of it are a few seconds of
  * simulated clock. Started by pressing Start, which is the only way in now
  * that `#autostart` has been retired.
  */
@@ -75,7 +75,7 @@ test("puts the whole page into Russian without disturbing the run", async ({ pag
   );
   // The app bar's own toolbar, relabelled by the settings widget's `update`.
   await expect(page.getByRole("button", { name: "Справка" })).toBeVisible();
-  // The challenge bar, rebuilt by the app; and the run controls, which are not
+  // The level bar, rebuilt by the app; and the run controls, which are not
   // rebuilt at all -- they are drawn once for the life of the page, so every
   // word on them is written by the relabelling this change triggers.
   await expect(page.getByRole("button", { name: "Уровень 4" })).toBeVisible();

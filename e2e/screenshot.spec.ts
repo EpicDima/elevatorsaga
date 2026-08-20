@@ -7,7 +7,7 @@
  * `npm run screenshot` after a change that alters how the game looks, then look
  * at the result and commit it.
  *
- * The composition mirrors the original 2013 screenshot: challenge #5, six
+ * The composition mirrors the original 2013 screenshot: level #5, six
  * floors and four elevators, caught mid-run with passengers still waiting.
  */
 
@@ -29,7 +29,7 @@ const OUTPUT_PATH = "public/images/screenshot.png";
  * Passengers to deliver before the picture is taken.
  *
  * Enough that the statistics panel has real numbers in it and the building is
- * busy; far enough from the challenge's 100 that the "challenge failed" overlay
+ * busy; far enough from the level's 100 that the "level failed" overlay
  * cannot appear over the top of the shot.
  */
 const TRANSPORTED_BEFORE_CAPTURE = 18;
@@ -65,7 +65,7 @@ const TRANSPORTED_BEFORE_CAPTURE = 18;
  */
 const SEED = "office";
 
-/** The challenge in the picture: the six floors and four cars of the original. */
+/** The level in the picture: the six floors and four cars of the original. */
 const LEVEL = 5;
 
 test.describe("README screenshot", () => {
@@ -74,7 +74,7 @@ test.describe("README screenshot", () => {
   // README without scaling.
   test.use({ viewport: { width: 1280, height: 1000 } });
 
-  test("captures the game mid-challenge", async ({ page }) => {
+  test("captures the game mid-level", async ({ page }) => {
     // The line the page prints as a run starts, which is what the seed is read
     // from below. Registered before the first navigation, because the run is
     // started a few lines further down and the line is printed with it.

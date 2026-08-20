@@ -1,6 +1,6 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 
-import { challenges } from "./challenges.ts";
+import { levels } from "./levels.ts";
 import { Elevator, type ElevatorDirection, type ElevatorPassenger } from "./elevator.ts";
 import { createFrameRequester } from "./frame-requester.ts";
 import { MovableBusyError, type MovableTask } from "./movable.ts";
@@ -84,14 +84,14 @@ function watchTaskStarts(elevator: Elevator, onBusyStart: (velocityY: number) =>
 }
 
 /**
- * Plays one challenge with one program, recording what the busy check saw.
+ * Plays one level with one program, recording what the busy check saw.
  *
- * @param options - The challenge's world options.
+ * @param options - The level's world options.
  * @param codeObj - The player program to drive it with.
  * @param totals - Accumulator the run adds its observations to.
  * @returns Anything the player program threw.
  */
-function sweepChallenge(
+function sweepLevel(
   options: WorldOptions,
   codeObj: UserCodeObject,
   totals: SweepTotals,
@@ -1082,16 +1082,16 @@ describe("a busy elevator is always a stopped elevator", () => {
   // assertion. The default stays where it is for every other test, where five
   // seconds really does mean something has gone wrong.
   it(
-    "never has a velocity when the movement step skips it, in any challenge",
+    "never has a velocity when the movement step skips it, in any level",
     { timeout: 30_000 },
     () => {
-      // Every shipped challenge, three seeds and three programs: the naive first
+      // Every shipped level, three seeds and three programs: the naive first
       // solution, one that rewrites the indicators every frame, and one that
       // stops mid-flight and jumps the queue at random. Between them they reach
       // both callers of the dwell — arrival and the indicator re-offer — a few
       // thousand times.
       const totals: SweepTotals = { busySteps: 0, taskStarts: 0, violations: [] };
-      for (const challenge of challenges) {
+      for (const level of levels) {
         for (const seed of [1, 2, 3]) {
           const random = seededRandom(seed);
           const mock = vi.spyOn(Math, "random").mockImplementation(random);
@@ -1101,7 +1101,7 @@ describe("a busy elevator is always a stopped elevator", () => {
               directionalProgram(),
               erraticProgram(random),
             ]) {
-              expect(sweepChallenge(challenge.options, program, totals)).toEqual([]);
+              expect(sweepLevel(level.options, program, totals)).toEqual([]);
             }
           } finally {
             mock.mockRestore();

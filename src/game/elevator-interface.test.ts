@@ -961,7 +961,7 @@ describe("Elevator interface", () => {
 
       expect(errorHandler).toHaveBeenCalledTimes(1);
 
-      // A new world builds new facades, so restarting the challenge with the
+      // A new world builds new facades, so restarting the level with the
       // same mistake in it is still told about it.
       const restarted = new Elevator(1.5, FLOOR_COUNT, FLOOR_HEIGHT);
       restarted.setFloorPosition(0);

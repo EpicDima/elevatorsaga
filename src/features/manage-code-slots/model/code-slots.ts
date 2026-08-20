@@ -1,5 +1,5 @@
 /**
- * The three code slots every challenge offers.
+ * The three code slots every level offers.
  *
  * Plain numbers, not string ids like `"solve"` or `"optimizeA"` — the slots
  * are fully symmetric and interchangeable, so a number is the honest
@@ -13,7 +13,7 @@ export type CodeSlot = 1 | 2 | 3;
 export const CODE_SLOTS: readonly CodeSlot[] = [1, 2, 3];
 
 /**
- * The slot a challenge opens on when nothing else has chosen one.
+ * The slot a level opens on when nothing else has chosen one.
  *
  * The one slot with a special role: it is what {@link "../../../ui/editor.ts"!CodeEditor}
  * falls back to the legacy single-buffer key for, so a player upgrading from

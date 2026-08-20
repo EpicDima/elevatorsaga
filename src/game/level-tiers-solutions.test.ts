@@ -1,9 +1,9 @@
 /**
- * What {@link "./challenges.ts"!challenges}' `tiers` fields actually award, measured
+ * What {@link "./levels.ts"!levels}' `tiers` fields actually award, measured
  * against two real programs on a fixed set of seeds, recorded exactly rather than
  * asserted in the abstract.
  *
- * Every threshold in `challenges.ts` was set from the *distribution* of two
+ * Every threshold in `levels.ts` was set from the *distribution* of two
  * hundred calibration runs, not from a worst case: silver is roughly the median
  * of a competent program's wins, gold a stricter point in whichever program's
  * distribution turned out stricter on that axis. A median is a promise about a
@@ -17,24 +17,24 @@
  *
  * **Two programs, not one.** {@link DEV_TEST_CODE} is the naive nearest-car
  * dispatcher that re-scores every call from scratch, and {@link GOOD_CODE_BALANCED} / {@link GOOD_CODE_MOVE_CONSCIOUS}
- * are the collective-control dispatcher `challenge-reference-code.ts` builds for
+ * are the collective-control dispatcher `level-reference-code.ts` builds for
  * calibration. Neither is "the good one" across the board: the calibration in
- * `challenges.ts` picked whichever of the two was empirically stricter on each
- * challenge's own axis, and on a good few challenges that turned out to be
+ * `levels.ts` picked whichever of the two was empirically stricter on each
+ * level's own axis, and on a good few levels that turned out to be
  * `DEV_TEST_CODE` -- a naive program that re-decides on every call is often
  * better at avoiding one long wait than a sweep that is still on its way across
  * the building. This file's table reflects that; it does not expect one program
  * to win a fight the calibration didn't ask it to win.
  *
- * **Ten seeds, fixed.** No numbered challenge in `challenges.ts` has a single
+ * **Ten seeds, fixed.** No numbered level in `levels.ts` has a single
  * pinned seed of its own the way a `tutorialTasks` entry does, so `0` is picked
  * once here to serve as the suite's own stand-in for "the seed everybody
- * plays," and reused across all nineteen challenges. The other nine are the same
+ * plays," and reused across all nineteen levels. The other nine are the same
  * `1`-`6` and three strings `tutorial-solutions.test.ts` uses, for the same
  * reason: a seed is either a number or a string, per {@link RandomSeed}, and the
  * two are hashed differently on the way into the generator.
  *
- * **Three challenges are all "lost."** Challenges 17, 18 and 19 have no `tiers`
+ * **Three levels are all "lost."** Levels 17, 18 and 19 have no `tiers`
  * field at all -- across the same two hundred calibration seeds neither
  * reference program ever won bronze there, so there was no distribution to read
  * a threshold from. Their rows below are complete columns of `"lost"` rather
@@ -42,21 +42,21 @@
  * either program suddenly start winning one of them is caught here, same as any
  * other row would be.
  *
- * **Challenge 10 is a fourth, thinner case.** It does have a `tiers` field --
+ * **Level 10 is a fourth, thinner case.** It does have a `tiers` field --
  * GOOD_CODE_BALANCED wins its bronze about seven times in a thousand seeds, see
- * `challenges.ts` -- but that is rare enough that none of the ten fixed seeds
+ * `levels.ts` -- but that is rare enough that none of the ten fixed seeds
  * below happen to be among the wins either, for either program. Its row is
  * still a full column of `"lost"`, and for the same reason as the three above:
- * a program that starts winning this challenge on one of these ten seeds is
+ * a program that starts winning this level on one of these ten seeds is
  * exactly what this file exists to notice.
  */
 
 import { describe, expect, it } from "vitest";
 
-import type { Challenge } from "./challenges.ts";
-import { challenges } from "./challenges.ts";
-import { GOOD_CODE_BALANCED, GOOD_CODE_MOVE_CONSCIOUS } from "./challenge-reference-code.ts";
-import { evaluateChallengeTier } from "./challenge-tiers.ts";
+import type { Level } from "./levels.ts";
+import { levels } from "./levels.ts";
+import { GOOD_CODE_BALANCED, GOOD_CODE_MOVE_CONSCIOUS } from "./level-reference-code.ts";
+import { evaluateLevelTier } from "./level-tiers.ts";
 import { createFrameRequester } from "./frame-requester.ts";
 import type { RandomSeed } from "./random.ts";
 import { getCodeObjFromCode } from "./user-code.ts";
@@ -70,7 +70,7 @@ const FRAME_MILLISECONDS = 1000.0 / 60.0;
 /**
  * Simulated seconds after which an undecided run is treated as broken.
  *
- * Not a limit any challenge here is actually judged against -- every condition
+ * Not a limit any level here is actually judged against -- every condition
  * below resolves well inside it -- but a bound on the loop that drives a run,
  * so that a condition which stopped resolving fails loudly instead of spinning
  * the test runner forever.
@@ -87,13 +87,13 @@ const EXTRA_SEEDS: readonly RandomSeed[] = [1, 2, 3, 4, 5, 6, "abc", "xyz", "42a
 const SEEDS: readonly RandomSeed[] = [OWN_SEED, ...EXTRA_SEEDS];
 
 /**
- * The tier one run reached, `"lost"` standing in for {@link evaluateChallengeTier}'s
+ * The tier one run reached, `"lost"` standing in for {@link evaluateLevelTier}'s
  * `null` -- a run that never won bronze at all.
  */
 type TierOutcome = "gold" | "silver" | "bronze" | "lost";
 
 /**
- * Plays one program in one challenge's building on one seed, and reports the
+ * Plays one program in one level's building on one seed, and reports the
  * exact tier it reached.
  *
  * Mirrors the harness `tutorial-solutions.test.ts` drives its own runs with:
@@ -102,15 +102,15 @@ type TierOutcome = "gold" | "silver" | "bronze" | "lost";
  * condition consulted on every `stats_changed`, and the run stopped at the
  * first non-null verdict.
  *
- * @param challenge - Supplies the building, the condition and the tiers.
+ * @param level - Supplies the building, the condition and the tiers.
  * @param code - The program to run.
  * @param seed - The passengers to run against.
  * @returns The tier the run reached, or `"lost"` when bronze itself was not won.
  * @throws When the run is still undecided after {@link MAX_SIMULATED_SECONDS}.
  */
-function playRun(challenge: Challenge, code: string, seed: RandomSeed): TierOutcome {
+function playRun(level: Level, code: string, seed: RandomSeed): TierOutcome {
   const codeObj = getCodeObjFromCode(code);
-  const world = createWorld(challenge.options, seed);
+  const world = createWorld(level.options, seed);
   const worldController = createWorldController(TICK_SECONDS);
   const frameRequester = createFrameRequester(FRAME_MILLISECONDS);
   // A property on an object, not a plain `let`, for the same reason
@@ -123,12 +123,12 @@ function playRun(challenge: Challenge, code: string, seed: RandomSeed): TierOutc
     if (run.verdict !== null) {
       return;
     }
-    const status = challenge.condition.evaluate(world);
+    const status = level.condition.evaluate(world);
     if (status === null) {
       return;
     }
     run.verdict = status;
-    world.challengeEnded = true;
+    world.levelEnded = true;
     worldController.setPaused(true);
   });
   worldController.start(world, codeObj, frameRequester.register, true);
@@ -141,13 +141,13 @@ function playRun(challenge: Challenge, code: string, seed: RandomSeed): TierOutc
         `seconds at seed ${String(seed)}, so this case decides nothing`,
     );
   }
-  return evaluateChallengeTier(run.verdict, world, challenge.tiers) ?? "lost";
+  return evaluateLevelTier(run.verdict, world, level.tiers) ?? "lost";
 }
 
-/** One challenge's recorded outcome, on every seed in {@link SEEDS}, in that order. */
-interface ChallengeTierCase {
-  /** The challenge's number as the player sees it -- one-based. */
-  readonly challengeNumber: number;
+/** One level's recorded outcome, on every seed in {@link SEEDS}, in that order. */
+interface LevelTierCase {
+  /** The level's number as the player sees it -- one-based. */
+  readonly levelNumber: number;
   /** The collective-control reference program measured alongside `DEV_TEST_CODE`. */
   readonly goodCode: string;
   /** `goodCode`'s name, for failure messages. */
@@ -163,9 +163,9 @@ interface ChallengeTierCase {
 // not the worst or best case, just what these ten seeds produced today.
 //
 // Column order throughout is SEEDS' own: 0, 1, 2, 3, 4, 5, 6, "abc", "xyz", "42a".
-const CASES: readonly ChallengeTierCase[] = [
+const CASES: readonly LevelTierCase[] = [
   {
-    challengeNumber: 1,
+    levelNumber: 1,
     goodCode: GOOD_CODE_BALANCED,
     goodLabel: "GOOD_CODE_BALANCED",
     devOutcomes: [
@@ -194,7 +194,7 @@ const CASES: readonly ChallengeTierCase[] = [
     ],
   },
   {
-    challengeNumber: 2,
+    levelNumber: 2,
     goodCode: GOOD_CODE_BALANCED,
     goodLabel: "GOOD_CODE_BALANCED",
     devOutcomes: ["gold", "lost", "gold", "bronze", "gold", "lost", "lost", "lost", "gold", "lost"],
@@ -212,7 +212,7 @@ const CASES: readonly ChallengeTierCase[] = [
     ],
   },
   {
-    challengeNumber: 3,
+    levelNumber: 3,
     goodCode: GOOD_CODE_BALANCED,
     goodLabel: "GOOD_CODE_BALANCED",
     devOutcomes: [
@@ -241,7 +241,7 @@ const CASES: readonly ChallengeTierCase[] = [
     ],
   },
   {
-    challengeNumber: 4,
+    levelNumber: 4,
     goodCode: GOOD_CODE_BALANCED,
     goodLabel: "GOOD_CODE_BALANCED",
     devOutcomes: [
@@ -271,11 +271,11 @@ const CASES: readonly ChallengeTierCase[] = [
   },
   {
     // Bronze itself is rare for both programs here -- 27 wins in 200 for
-    // DEV_TEST_CODE, 8 for GOOD_CODE_BALANCED (see `challenges.ts`) -- and on
+    // DEV_TEST_CODE, 8 for GOOD_CODE_BALANCED (see `levels.ts`) -- and on
     // this fixed set of ten seeds that rarity shows up as nine straight losses
     // apiece, with DEV_TEST_CODE's single silver on seed `3` the only case
     // that isn't `"lost"`.
-    challengeNumber: 5,
+    levelNumber: 5,
     goodCode: GOOD_CODE_BALANCED,
     goodLabel: "GOOD_CODE_BALANCED",
     devOutcomes: ["lost", "lost", "lost", "silver", "lost", "lost", "lost", "lost", "lost", "lost"],
@@ -283,11 +283,11 @@ const CASES: readonly ChallengeTierCase[] = [
   },
   {
     // Silver's move-count bar loosened by one move on recalibration (see
-    // challenges.ts, where the nearest-car dispatcher's 18-win sample turned
+    // levels.ts, where the nearest-car dispatcher's 18-win sample turned
     // out too thin), which is why GOOD_CODE_MOVE_CONSCIOUS reaches silver
     // rather than bronze on seed `42a` below -- its move count of 58 clears
     // the new bar of 58 but not the old one of 57.
-    challengeNumber: 6,
+    levelNumber: 6,
     goodCode: GOOD_CODE_MOVE_CONSCIOUS,
     goodLabel: "GOOD_CODE_MOVE_CONSCIOUS",
     devOutcomes: [
@@ -316,7 +316,7 @@ const CASES: readonly ChallengeTierCase[] = [
     ],
   },
   {
-    challengeNumber: 7,
+    levelNumber: 7,
     goodCode: GOOD_CODE_MOVE_CONSCIOUS,
     goodLabel: "GOOD_CODE_MOVE_CONSCIOUS",
     devOutcomes: [
@@ -345,7 +345,7 @@ const CASES: readonly ChallengeTierCase[] = [
     ],
   },
   {
-    challengeNumber: 8,
+    levelNumber: 8,
     goodCode: GOOD_CODE_BALANCED,
     goodLabel: "GOOD_CODE_BALANCED",
     devOutcomes: [
@@ -374,7 +374,7 @@ const CASES: readonly ChallengeTierCase[] = [
     ],
   },
   {
-    challengeNumber: 9,
+    levelNumber: 9,
     goodCode: GOOD_CODE_BALANCED,
     goodLabel: "GOOD_CODE_BALANCED",
     devOutcomes: [
@@ -403,22 +403,22 @@ const CASES: readonly ChallengeTierCase[] = [
     ],
   },
   {
-    // Has a `tiers` field now -- see `challenges.ts` -- but GOOD_CODE_BALANCED
-    // only wins this challenge's bronze about seven times in a thousand seeds,
+    // Has a `tiers` field now -- see `levels.ts` -- but GOOD_CODE_BALANCED
+    // only wins this level's bronze about seven times in a thousand seeds,
     // and none of these ten fixed seeds land on one of those wins either, for
     // either program.
-    challengeNumber: 10,
+    levelNumber: 10,
     goodCode: GOOD_CODE_BALANCED,
     goodLabel: "GOOD_CODE_BALANCED",
     devOutcomes: ["lost", "lost", "lost", "lost", "lost", "lost", "lost", "lost", "lost", "lost"],
     goodOutcomes: ["lost", "lost", "lost", "lost", "lost", "lost", "lost", "lost", "lost", "lost"],
   },
   {
-    // GOOD_CODE_BALANCED wins this challenge's bronze only twice in two
+    // GOOD_CODE_BALANCED wins this level's bronze only twice in two
     // hundred calibration seeds; on this fixed set it wins exactly one of
     // them. The tiers are read from DEV_TEST_CODE's distribution instead (see
-    // `challenges.ts`), which is why it is the one reaching gold here.
-    challengeNumber: 11,
+    // `levels.ts`), which is why it is the one reaching gold here.
+    levelNumber: 11,
     goodCode: GOOD_CODE_BALANCED,
     goodLabel: "GOOD_CODE_BALANCED",
     devOutcomes: [
@@ -447,9 +447,9 @@ const CASES: readonly ChallengeTierCase[] = [
     ],
   },
   {
-    // GOOD_CODE_BALANCED never wins this challenge's bronze across two hundred
+    // GOOD_CODE_BALANCED never wins this level's bronze across two hundred
     // calibration seeds, and none of these ten is an exception either.
-    challengeNumber: 12,
+    levelNumber: 12,
     goodCode: GOOD_CODE_BALANCED,
     goodLabel: "GOOD_CODE_BALANCED",
     devOutcomes: [
@@ -469,17 +469,17 @@ const CASES: readonly ChallengeTierCase[] = [
   {
     // Bronze was thin for DEV_TEST_CODE here too -- 14 wins in 200 -- and its
     // tiers have since been recalibrated against a much larger sample (see
-    // challenges.ts), which is why seed `xyz` reaches gold below rather than
+    // levels.ts), which is why seed `xyz` reaches gold below rather than
     // silver: its worst wait of 13.79s clears the new gold bar of 13.9 but
     // not the old one of 13.7. GOOD_CODE_BALANCED never wins it at all.
-    challengeNumber: 13,
+    levelNumber: 13,
     goodCode: GOOD_CODE_BALANCED,
     goodLabel: "GOOD_CODE_BALANCED",
     devOutcomes: ["lost", "lost", "bronze", "lost", "lost", "lost", "lost", "lost", "gold", "lost"],
     goodOutcomes: ["lost", "lost", "lost", "lost", "lost", "lost", "lost", "lost", "lost", "lost"],
   },
   {
-    challengeNumber: 14,
+    levelNumber: 14,
     goodCode: GOOD_CODE_BALANCED,
     goodLabel: "GOOD_CODE_BALANCED",
     devOutcomes: [
@@ -497,9 +497,9 @@ const CASES: readonly ChallengeTierCase[] = [
     goodOutcomes: ["lost", "lost", "lost", "lost", "lost", "lost", "lost", "lost", "lost", "lost"],
   },
   {
-    // GOOD_CODE_BALANCED wins this challenge's bronze only 4 times in two
+    // GOOD_CODE_BALANCED wins this level's bronze only 4 times in two
     // hundred calibration seeds; on this fixed set, only once.
-    challengeNumber: 15,
+    levelNumber: 15,
     goodCode: GOOD_CODE_BALANCED,
     goodLabel: "GOOD_CODE_BALANCED",
     devOutcomes: [
@@ -528,7 +528,7 @@ const CASES: readonly ChallengeTierCase[] = [
     ],
   },
   {
-    challengeNumber: 16,
+    levelNumber: 16,
     goodCode: GOOD_CODE_BALANCED,
     goodLabel: "GOOD_CODE_BALANCED",
     devOutcomes: [
@@ -557,31 +557,31 @@ const CASES: readonly ChallengeTierCase[] = [
     ],
   },
   {
-    // No `tiers` field -- see `challenges.ts`. Neither program wins bronze
+    // No `tiers` field -- see `levels.ts`. Neither program wins bronze
     // even once across two hundred calibration seeds.
-    challengeNumber: 17,
+    levelNumber: 17,
     goodCode: GOOD_CODE_BALANCED,
     goodLabel: "GOOD_CODE_BALANCED",
     devOutcomes: ["lost", "lost", "lost", "lost", "lost", "lost", "lost", "lost", "lost", "lost"],
     goodOutcomes: ["lost", "lost", "lost", "lost", "lost", "lost", "lost", "lost", "lost", "lost"],
   },
   {
-    // No `tiers` field -- see `challenges.ts`. The largest building in the
+    // No `tiers` field -- see `levels.ts`. The largest building in the
     // list, and neither program wins its bronze even once across two hundred
     // calibration seeds.
-    challengeNumber: 18,
+    levelNumber: 18,
     goodCode: GOOD_CODE_BALANCED,
     goodLabel: "GOOD_CODE_BALANCED",
     devOutcomes: ["lost", "lost", "lost", "lost", "lost", "lost", "lost", "lost", "lost", "lost"],
     goodOutcomes: ["lost", "lost", "lost", "lost", "lost", "lost", "lost", "lost", "lost", "lost"],
   },
   {
-    // No `tiers` field -- see `challenges.ts`, and see its comment for why:
-    // the twenty-seed measurement that set this challenge's own bronze limit
+    // No `tiers` field -- see `levels.ts`, and see its comment for why:
+    // the twenty-seed measurement that set this level's own bronze limit
     // used a different program than either of this file's two references, and
     // across two hundred later seeds neither reference wins its bronze even
     // once.
-    challengeNumber: 19,
+    levelNumber: 19,
     goodCode: GOOD_CODE_MOVE_CONSCIOUS,
     goodLabel: "GOOD_CODE_MOVE_CONSCIOUS",
     devOutcomes: ["lost", "lost", "lost", "lost", "lost", "lost", "lost", "lost", "lost", "lost"],
@@ -590,23 +590,23 @@ const CASES: readonly ChallengeTierCase[] = [
 ];
 
 for (const testCase of CASES) {
-  describe(`Challenge ${String(testCase.challengeNumber)} tiers`, () => {
+  describe(`Level ${String(testCase.levelNumber)} tiers`, () => {
     it("awards DEV_TEST_CODE and the reference dispatcher exactly the recorded tier on every measured seed", () => {
-      const challenge = challenges[testCase.challengeNumber - 1];
-      if (challenge === undefined) {
-        throw new Error(`no challenge numbered ${String(testCase.challengeNumber)}`);
+      const level = levels[testCase.levelNumber - 1];
+      if (level === undefined) {
+        throw new Error(`no level numbered ${String(testCase.levelNumber)}`);
       }
       for (const [index, seed] of SEEDS.entries()) {
-        const devOutcome = playRun(challenge, DEV_TEST_CODE, seed);
+        const devOutcome = playRun(level, DEV_TEST_CODE, seed);
         expect(
           devOutcome,
-          `challenge ${String(testCase.challengeNumber)}, DEV_TEST_CODE, seed ${String(seed)}`,
+          `level ${String(testCase.levelNumber)}, DEV_TEST_CODE, seed ${String(seed)}`,
         ).toBe(testCase.devOutcomes[index]);
 
-        const goodOutcome = playRun(challenge, testCase.goodCode, seed);
+        const goodOutcome = playRun(level, testCase.goodCode, seed);
         expect(
           goodOutcome,
-          `challenge ${String(testCase.challengeNumber)}, ${testCase.goodLabel}, seed ${String(seed)}`,
+          `level ${String(testCase.levelNumber)}, ${testCase.goodLabel}, seed ${String(seed)}`,
         ).toBe(testCase.goodOutcomes[index]);
       }
     });

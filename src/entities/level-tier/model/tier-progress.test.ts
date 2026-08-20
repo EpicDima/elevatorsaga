@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
 
 import { requirementMet, requirementProgress, requirementSetProgress } from "./tier-progress.ts";
-import type { ChallengeWorldStats } from "#game/challenges.ts";
-import type { TierRequirementInfo } from "#game/challenge-tiers.ts";
+import type { LevelWorldStats } from "#game/levels.ts";
+import type { TierRequirementInfo } from "#game/level-tiers.ts";
 
 /** A world in which nothing at all has happened yet. */
-const NOTHING_HAPPENED: ChallengeWorldStats = {
+const NOTHING_HAPPENED: LevelWorldStats = {
   elapsedTime: 0,
   transportedCounter: 0,
   maxWaitTime: 0,

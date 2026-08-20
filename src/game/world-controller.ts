@@ -17,7 +17,7 @@ import { Observable } from "./observable.ts";
  */
 export interface UserCodeObject {
   /**
-   * Called once, when the challenge starts.
+   * Called once, when the level starts.
    *
    * @param elevators - The elevator facades.
    * @param floors - The floor facades.
@@ -40,8 +40,8 @@ export interface UserCodeObject {
 
 /** The part of a world a {@link WorldController} drives. */
 export interface ControllableWorld {
-  /** Whether the challenge is over and the world should stop updating. */
-  challengeEnded: boolean;
+  /** Whether the level is over and the world should stop updating. */
+  levelEnded: boolean;
   /** The elevator facades handed to player code. */
   readonly elevatorInterfaces: readonly ElevatorInterface[];
   /** The floor facades handed to player code. */
@@ -180,7 +180,7 @@ export class WorldController extends Observable<WorldControllerEvents> {
       this.handleUserCodeError(e, "an event handler");
     });
     const updater = (t: number): void => {
-      if (!this.isPaused && !world.challengeEnded && lastT !== null) {
+      if (!this.isPaused && !world.levelEnded && lastT !== null) {
         if (firstUpdate) {
           firstUpdate = false;
           // This logic prevents infite loops in usercode from breaking the page permanently - don't evaluate user code until game is unpaused.
@@ -215,8 +215,8 @@ export class WorldController extends Observable<WorldControllerEvents> {
           MAX_TICKS_PER_FRAME,
         );
         let ticksRun = 0;
-        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- world.update() can end the challenge mid-loop, which defeats the narrowing above
-        while (ticksRun < ticksAvailable && !world.challengeEnded) {
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- world.update() can end the level mid-loop, which defeats the narrowing above
+        while (ticksRun < ticksAvailable && !world.levelEnded) {
           try {
             codeObj.update(this.#tickSeconds, world.elevatorInterfaces, world.floorInterfaces);
           } catch (e) {
@@ -252,7 +252,7 @@ export class WorldController extends Observable<WorldControllerEvents> {
         world.trigger("stats_display_changed");
       }
       lastT = t;
-      if (!world.challengeEnded) {
+      if (!world.levelEnded) {
         animationFrameRequester(updater);
       }
     };

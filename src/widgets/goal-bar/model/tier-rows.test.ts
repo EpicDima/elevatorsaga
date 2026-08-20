@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
 
 import { buildTierRows } from "./tier-rows.ts";
-import type { Challenge, ChallengeWorldStats } from "#entities/challenge/index.ts";
-import { atLeastAvgLoadFactorOnMove, requireAll, underElapsedTime } from "#game/challenge-tiers.ts";
-import { requireUserCountWithinTime } from "#game/challenges.ts";
+import type { Level, LevelWorldStats } from "#entities/level/index.ts";
+import { atLeastAvgLoadFactorOnMove, requireAll, underElapsedTime } from "#game/level-tiers.ts";
+import { requireUserCountWithinTime } from "#game/levels.ts";
 
-const NOTHING_HAPPENED: ChallengeWorldStats = {
+const NOTHING_HAPPENED: LevelWorldStats = {
   elapsedTime: 0,
   transportedCounter: 0,
   maxWaitTime: 0,
@@ -20,7 +20,7 @@ const NOTHING_HAPPENED: ChallengeWorldStats = {
   avgPeoplePerStop: 0,
 };
 
-const CHALLENGE: Challenge = {
+const LEVEL: Level = {
   options: {},
   condition: requireUserCountWithinTime(10, 60),
   tiers: {
@@ -29,12 +29,12 @@ const CHALLENGE: Challenge = {
   },
 };
 
-const BRONZE_ONLY_CHALLENGE: Challenge = {
+const BRONZE_ONLY_LEVEL: Level = {
   options: {},
   condition: requireUserCountWithinTime(5, 30),
 };
 
-const NOTHING_TO_METER_CHALLENGE: Challenge = {
+const NOTHING_TO_METER_LEVEL: Level = {
   options: {},
   condition: {
     description: "",
@@ -44,21 +44,21 @@ const NOTHING_TO_METER_CHALLENGE: Challenge = {
 };
 
 describe("buildTierRows", () => {
-  it("is empty for a challenge with nothing to meter, regardless of verdict", () => {
-    expect(buildTierRows(NOTHING_TO_METER_CHALLENGE, NOTHING_HAPPENED, null)).toEqual([]);
-    expect(buildTierRows(NOTHING_TO_METER_CHALLENGE, NOTHING_HAPPENED, true)).toEqual([]);
+  it("is empty for a level with nothing to meter, regardless of verdict", () => {
+    expect(buildTierRows(NOTHING_TO_METER_LEVEL, NOTHING_HAPPENED, null)).toEqual([]);
+    expect(buildTierRows(NOTHING_TO_METER_LEVEL, NOTHING_HAPPENED, true)).toEqual([]);
   });
 
-  it("builds only a bronze row for a challenge with no silver/gold requirements", () => {
+  it("builds only a bronze row for a level with no silver/gold requirements", () => {
     const world = { ...NOTHING_HAPPENED, transportedCounter: 5, elapsedTime: 20 };
-    const rows = buildTierRows(BRONZE_ONLY_CHALLENGE, world, true);
+    const rows = buildTierRows(BRONZE_ONLY_LEVEL, world, true);
     expect(rows.map((row) => row.tier)).toEqual(["bronze"]);
     expect(rows[0]?.state).toBe("held");
   });
 
   it("reads every row as pending while the run is still undecided, and never flags an unmet at-least requirement as a miss", () => {
     const world = { ...NOTHING_HAPPENED, transportedCounter: 4, elapsedTime: 30 };
-    const rows = buildTierRows(CHALLENGE, world, null);
+    const rows = buildTierRows(LEVEL, world, null);
     expect(rows.map((row) => row.state)).toEqual(["pending", "pending", "pending"]);
 
     const [bronze] = rows;
@@ -79,7 +79,7 @@ describe("buildTierRows", () => {
 
   it("flags a live run's already-blown at-most requirement as a miss before the run ends", () => {
     const world = { ...NOTHING_HAPPENED, transportedCounter: 4, elapsedTime: 45 };
-    const rows = buildTierRows(CHALLENGE, world, null);
+    const rows = buildTierRows(LEVEL, world, null);
     const [, silver, gold] = rows;
     // 45 is over gold's own 40-second bar but not silver's 50-second one.
     expect(silver?.requirements[0]?.miss).toBe(false);
@@ -93,7 +93,7 @@ describe("buildTierRows", () => {
       elapsedTime: 45,
       avgLoadFactorOnMove: 0.3,
     };
-    const rows = buildTierRows(CHALLENGE, world, true);
+    const rows = buildTierRows(LEVEL, world, true);
     expect(rows.map((row) => [row.tier, row.state])).toEqual([
       ["bronze", "held"],
       ["silver", "held"],
@@ -119,7 +119,7 @@ describe("buildTierRows", () => {
 
   it("marks every row lost, bronze included, once a run has ended without winning", () => {
     const world = { ...NOTHING_HAPPENED, transportedCounter: 3, elapsedTime: 70 };
-    const rows = buildTierRows(CHALLENGE, world, false);
+    const rows = buildTierRows(LEVEL, world, false);
     expect(rows.map((row) => row.state)).toEqual(["lost", "lost", "lost"]);
   });
 });

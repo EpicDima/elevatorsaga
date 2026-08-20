@@ -1,6 +1,6 @@
 /**
  * The game itself: does the built page come up, and does pressing Start
- * actually play a challenge through to its end?
+ * actually play a level through to its end?
  */
 
 import { expect, test } from "@playwright/test";
@@ -17,7 +17,7 @@ import {
   statisticValue,
 } from "./game-page.ts";
 
-test("boots the first challenge with an editor and a building", async ({ page }) => {
+test("boots the first level with an editor and a building", async ({ page }) => {
   const pageErrors: string[] = [];
   page.on("pageerror", (error) => pageErrors.push(error.message));
 
@@ -25,7 +25,7 @@ test("boots the first challenge with an editor and a building", async ({ page })
 
   await expect(page).toHaveTitle(/Elevator Saga/);
   await expect(page.getByRole("heading", { level: 1 })).toContainText("Elevator Saga");
-  // The challenge bar's own prose sentence ("Transport 15 people in 60
+  // The level bar's own prose sentence ("Transport 15 people in 60
   // seconds or less") is gone: `widgets/goal-bar` states the same
   // requirement as two meters instead, one per field the condition reads.
   await expect(page.getByRole("button", { name: "Level 1" })).toBeVisible();
@@ -39,7 +39,7 @@ test("boots the first challenge with an editor and a building", async ({ page })
   await expect(editor(page)).toContainText('elevator.on("idle", function() {');
   await expect(editor(page)).toContainText("elevator.goToFloor(1);");
 
-  // Challenge 1 is three floors and one elevator, which is one in-car button
+  // Level 1 is three floors and one elevator, which is one in-car button
   // per floor and a call button on every floor but the ends.
   await expect(building(page).getByRole("group", { name: "Elevator 1" })).toBeVisible();
   await expect(building(page).getByRole("button", { name: /^Go to floor / })).toHaveCount(3);
@@ -59,9 +59,9 @@ test("boots the first challenge with an editor and a building", async ({ page })
   expect(pageErrors).toEqual([]);
 });
 
-test("plays a challenge to completion when Start is pressed", async ({ page }) => {
+test("plays a level to completion when Start is pressed", async ({ page }) => {
   // A program that wins: {@link DEV_TEST_CODE} is the naive dispatcher the
-  // challenge tiers are calibrated against, and it clears challenge 1 with room
+  // level tiers are calibrated against, and it clears level 1 with room
   // to spare. Planted in storage rather than asked for by URL — `#devtest` did
   // that until the key was retired — so the page comes up with it already in
   // the editor. `#timescale=16` gets the simulated minute over with in a few
@@ -83,7 +83,7 @@ test("plays a challenge to completion when Start is pressed", async ({ page }) =
   expect(await statisticValue(page, "Elapsed time")).toBeGreaterThan(0);
   expect(await statisticValue(page, "Moves")).toBeGreaterThan(0);
 
-  // The challenge wants 15 people inside 60 simulated seconds.
+  // The level wants 15 people inside 60 simulated seconds.
   await expect(page.getByRole("heading", { name: "Success!" })).toBeVisible({ timeout: 30_000 });
   await expect(page.getByRole("link", { name: /Next level/ })).toBeVisible();
   // The primary button says "Start" again rather than "Resume": there is
@@ -94,10 +94,10 @@ test("plays a challenge to completion when Start is pressed", async ({ page }) =
   expect(await statisticValue(page, "Transported")).toBeGreaterThanOrEqual(15);
 });
 
-test("crunches a challenge instantly and shows the outcome over the building it ended in", async ({
+test("crunches a level instantly and shows the outcome over the building it ended in", async ({
   page,
 }) => {
-  // Same program and challenge as the animated run above, so the two tests are
+  // Same program and level as the animated run above, so the two tests are
   // asking the same question of the same program — only how it is driven
   // differs. No `timescale`: that only paces animation, and a crunch draws
   // none, so it would change nothing here.
@@ -119,7 +119,7 @@ test("crunches a challenge instantly and shows the outcome over the building it 
   // verdict and handed the button back. The title rather than the label,
   // because "Start" is what the button reads at both ends of a crunch and only
   // the ended run has something to offer running again. Well under the 30s the
-  // animated test budgets for the same challenge: nothing here waits on
+  // animated test budgets for the same level: nothing here waits on
   // simulated time passing in real time, only on however long the CPU actually
   // needs.
   await expect(startButton(page)).toHaveAttribute("title", "Run it again from the beginning", {
@@ -128,7 +128,7 @@ test("crunches a challenge instantly and shows the outcome over the building it 
   await expect(startButton(page)).toBeEnabled();
 
   // The same outcome, and the same final statistics, an animated run of this
-  // challenge already proves it reaches.
+  // level already proves it reaches.
   await expect(page.getByRole("heading", { name: "Success!" })).toBeVisible();
   await expect(page.getByRole("link", { name: /Next level/ })).toBeVisible();
   expect(await statisticValue(page, "Transported")).toBeGreaterThanOrEqual(15);
@@ -137,7 +137,7 @@ test("crunches a challenge instantly and shows the outcome over the building it 
   // for the frames of a crunch, which nobody watches; the last one is drawn
   // once it is over, because the verdict is a card in the corner and the pane
   // it leaves uncovered has to be the building the verdict is about --
-  // passengers included, since a challenge is won long before its stream of
+  // passengers included, since a level is won long before its stream of
   // them dries up.
   await expect(building(page).getByRole("group", { name: "Elevator 1" })).toBeVisible();
   await expect(building(page).locator(".person").first()).toBeVisible();

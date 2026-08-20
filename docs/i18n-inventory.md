@@ -64,7 +64,7 @@ import { format, seconds, setLocale, t } from "./i18n/index.ts";
 
 t("game.button.start"); // "Start" / "Запустить"
 t("game.elevator.label", { number: 3 }); // "Elevator 3" / "Лифт 3"
-t("challenge.people.html", { count: 5 }); // 5 people / 5 пассажиров
+t("level.people.html", { count: 5 }); // 5 people / 5 пассажиров
 format(seconds(60)); // "60s" / "60 с"
 setLocale("ru"); // everything drawn after this renders in Russian
 ```
@@ -72,13 +72,13 @@ setLocale("ru"); // everything drawn after this renders in Russian
 The parameters are named and typed per key: `t("game.elevator.label")` with no arguments, or
 with `{ floor: 3 }` instead of `{ number: 3 }`, does not compile. Counts go through
 `Intl.PluralRules`, which is why Russian gets four forms where English gets two —
-`challenge.sandbox.spawnRate.html` renders 1 пассажир, 2 пассажира, 5 пассажиров, 1,5 пассажира
+`level.sandbox.spawnRate.html` renders 1 пассажир, 2 пассажира, 5 пассажиров, 1,5 пассажира
 — and numbers go through `Intl.NumberFormat`, which is why Russian gets `1,5` and a
 non-breaking space before a unit.
 
 The Russian counted phrases are not always in the dictionary form, and `src/i18n/ru.ts` says why
 at length under _Numerals_: they have to be grammatical in the sentence they are built into.
-After «Перевезите» the noun is accusative, so `challenge.people.html` reads 1 пассажира rather
+After «Перевезите» the noun is accusative, so `level.people.html` reads 1 пассажира rather
 than the nominative 1 пассажир.
 
 ## How to read the tables
@@ -115,18 +115,18 @@ grep -cE '^  "[^"]+":' src/i18n/en.ts                                   # 471
 grep -oE '^  "[^"]+"' src/i18n/en.ts | tr -d '"' | cut -d. -f1 | sort | uniq -c | sort -rn
 ```
 
-| Prefix         | Keys    | What reads them                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
-| -------------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `docs.*`       | 85      | one of them, `docs.basics.example.code`, by `src/ui/completions.ts`; the other 84 by nothing                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
-| `tutorial.*`   | 82      | `src/widgets/tutorial-panel/ui/tutorial-panel.ts`, `src/ui/templates.ts`, `src/pages/game/index.ts`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
-| `game.*`       | 202     | `src/ui/templates.ts` (18), `src/pages/game/index.ts` (11 + 5), `src/widgets/goal-bar/ui/goal-bar.ts` (8), `src/entities/challenge-tier/ui/requirement-text.ts` (14), `src/entities/challenge-tier/ui/tier-hint.ts` (3), `src/widgets/verdict-toast/ui/verdict-toast.ts` (2), `src/widgets/level-switcher/ui/level-switcher.ts` (8), `src/widgets/building-stage/lib/hover-card-text.ts` (15), `src/widgets/stats-panel/ui/stats-panel.ts` (3), `src/widgets/editor-pane/ui/editor-pane.ts` (3), `src/features/switch-theme` (4), `src/features/switch-layout` (5), `src/widgets/app-bar/ui/settings-menu.ts` (7), `src/main.ts` (3, the workspace pane/splitter labels); the two speed labels are written by both of the first two; the other 91, under `game.hotkeys.*`, `game.docs.*` and `game.apiRef.*`, by none of them yet — see below |
-| `page.*`       | 26      | `index.html`, through `data-i18n` and `data-i18n-attr`; `page.noscript` excepted, see below                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
-| `completion.*` | 33      | `src/ui/completions.ts`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
-| `challenge.*`  | 14      | `src/game/challenges.ts`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
-| `fitness.*`    | 11      | `src/app/fitness.ts`, `src/game/fitness.ts`, `src/main.ts`, `src/cli/bench.ts`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
-| `error.*`      | 10      | `src/game/elevator-interface.ts`, `src/pages/game/index.ts`, `src/game/user-code.ts`, `src/game/movable.ts`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
-| `editor.*`     | 8       | `src/main.ts`, `src/pages/game/index.ts`, `src/ui/editor.ts`, `src/ui/default-code.ts`, `src/widgets/editor-pane/ui/editor-pane.ts`, `src/features/manage-code-slots/ui/code-slots.ts`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
-| **Total**      | **471** |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| Prefix         | Keys    | What reads them                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| -------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `docs.*`       | 85      | one of them, `docs.basics.example.code`, by `src/ui/completions.ts`; the other 84 by nothing                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| `tutorial.*`   | 82      | `src/widgets/tutorial-panel/ui/tutorial-panel.ts`, `src/ui/templates.ts`, `src/pages/game/index.ts`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| `game.*`       | 202     | `src/ui/templates.ts` (18), `src/pages/game/index.ts` (11 + 5), `src/widgets/goal-bar/ui/goal-bar.ts` (8), `src/entities/level-tier/ui/requirement-text.ts` (14), `src/entities/level-tier/ui/tier-hint.ts` (3), `src/widgets/verdict-toast/ui/verdict-toast.ts` (2), `src/widgets/level-switcher/ui/level-switcher.ts` (8), `src/widgets/building-stage/lib/hover-card-text.ts` (15), `src/widgets/stats-panel/ui/stats-panel.ts` (3), `src/widgets/editor-pane/ui/editor-pane.ts` (3), `src/features/switch-theme` (4), `src/features/switch-layout` (5), `src/widgets/app-bar/ui/settings-menu.ts` (7), `src/main.ts` (3, the workspace pane/splitter labels); the two speed labels are written by both of the first two; the other 91, under `game.hotkeys.*`, `game.docs.*` and `game.apiRef.*`, by none of them yet — see below |
+| `page.*`       | 26      | `index.html`, through `data-i18n` and `data-i18n-attr`; `page.noscript` excepted, see below                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| `completion.*` | 33      | `src/ui/completions.ts`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| `level.*`      | 14      | `src/game/levels.ts`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| `fitness.*`    | 11      | `src/app/fitness.ts`, `src/game/fitness.ts`, `src/main.ts`, `src/cli/bench.ts`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| `error.*`      | 10      | `src/game/elevator-interface.ts`, `src/pages/game/index.ts`, `src/game/user-code.ts`, `src/game/movable.ts`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| `editor.*`     | 8       | `src/main.ts`, `src/pages/game/index.ts`, `src/ui/editor.ts`, `src/ui/default-code.ts`, `src/widgets/editor-pane/ui/editor-pane.ts`, `src/features/manage-code-slots/ui/code-slots.ts`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| **Total**      | **471** |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 
 Which keys nothing reads:
 
@@ -191,7 +191,7 @@ walks the document and rewrites both, at start-up and again after every language
 | `page.stats.avgPickupTimeTitle` | The clock starts when a passenger appears and stops when a car takes them, and the row below it is the…        | a `title` attribute on the same cell as `page.stats.avgPickupTime`; text of `docs.play.statistics.html` word for word                                                 |
 | `page.stats.avgRideTime`        | Avg ride time                                                                                                  | the other half: boarding to stepping out, the span the two delivery times above it do not name                                                                        |
 | `page.stats.avgRideTimeTitle`   | The clock starts when a car takes a passenger and stops when they step out at their floor, so this and…        | a `title` attribute on the same cell as `page.stats.avgRideTime`; text of `docs.play.statistics.html` word for word                                                   |
-| `page.stats.maxWaitTime`        | Max delivery time                                                                                              | likewise, and this is the figure the eight wait-limited challenges are judged on                                                                                      |
+| `page.stats.maxWaitTime`        | Max delivery time                                                                                              | likewise, and this is the figure the eight wait-limited levels are judged on                                                                                          |
 | `page.stats.moves`              | Moves                                                                                                          |                                                                                                                                                                       |
 | `page.stats.movesTitle`         | One move is counted each time a car crosses the halfway mark between one floor and the next                    | a `title` attribute on the same cell as `page.stats.moves`                                                                                                            |
 | `page.stats.stops`              | Stops                                                                                                          | door openings rather than floors crossed, so a long trip is many of the row above and one of this one                                                                 |
@@ -346,42 +346,42 @@ equal in every locale.
 | `tutorial.taskN.startingCode.code` | { init: function(elevators, floors) { const elevator = elevators[0]; elevator.on("idle", function() { // TODO:… | code; only the comments are translated; the program the editor is filled with, and the one `src/game/tutorial-solutions.test.ts` proves cannot win |
 | `tutorial.taskN.solutionCode.code` | { init: function(elevators, floors) { const elevator = elevators[0]; elevator.on("idle", function() { elevator… | code; only the comments are translated; the answer, shown under the third hint and replayed as the fixture that must win                           |
 
-| Task | `tutorial.taskN.title`                   | What the goal asks for                                                                       |
-| ---- | ---------------------------------------- | -------------------------------------------------------------------------------------------- |
-| 1    | The elevator that goes nowhere           | visit both floors and deliver 10 passengers within 60 seconds                                |
-| 2    | The same loop, written by hand           | write the `idle` handler yourself; 15 passengers within 60 seconds                           |
-| 3    | The buttons inside the car               | `floor_button_pressed`; 15 passengers within 60 seconds                                      |
-| 4    | The queue nobody read                    | the missing `checkDestinationQueue`; 15 passengers within 60 seconds                         |
-| 5    | The building grew                        | hall calls instead of a blind sweep; 15 passengers, nobody waiting over 37 seconds           |
-| 6    | The elevator that lies to its passengers | the indicators; 15 passengers, nobody waiting over 28 seconds                                |
-| 7    | The second elevator                      | `elevators.forEach`; 28 passengers within 60 seconds                                         |
-| 8    | From memory                              | the whole program on an empty page; 15 passengers within 60 seconds — challenge 1's building |
+| Task | `tutorial.taskN.title`                   | What the goal asks for                                                                   |
+| ---- | ---------------------------------------- | ---------------------------------------------------------------------------------------- |
+| 1    | The elevator that goes nowhere           | visit both floors and deliver 10 passengers within 60 seconds                            |
+| 2    | The same loop, written by hand           | write the `idle` handler yourself; 15 passengers within 60 seconds                       |
+| 3    | The buttons inside the car               | `floor_button_pressed`; 15 passengers within 60 seconds                                  |
+| 4    | The queue nobody read                    | the missing `checkDestinationQueue`; 15 passengers within 60 seconds                     |
+| 5    | The building grew                        | hall calls instead of a blind sweep; 15 passengers, nobody waiting over 37 seconds       |
+| 6    | The elevator that lies to its passengers | the indicators; 15 passengers, nobody waiting over 28 seconds                            |
+| 7    | The second elevator                      | `elevators.forEach`; 28 passengers within 60 seconds                                     |
+| 8    | From memory                              | the whole program on an empty page; 15 passengers within 60 seconds — level 1's building |
 
 The other eighteen are the panel and the surfaces around it.
 
-| Key                                 | English                                                                                                 | Notes                                                                                                                                           |
-| ----------------------------------- | ------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| `tutorial.panel.label`              | Learning track                                                                                          | twice: the panel's accessible name, and the words on its first line                                                                             |
-| `tutorial.panel.position`           | Level {number} of {count}                                                                               | takes `{number}`, `{count}`                                                                                                                     |
-| `tutorial.panel.progress`           | {cleared} of {count} levels done                                                                        | plural (one, other); takes `{cleared}`, `{count}`; the count that decides the form is `{count}`                                                 |
-| `tutorial.panel.hintSummary`        | Hint {number}                                                                                           | takes `{number}`; the `<summary>` of one of the three hint disclosures                                                                          |
-| `tutorial.panel.explanationSummary` | Why this happens                                                                                        | the `<summary>` of the fourth disclosure                                                                                                        |
-| `tutorial.panel.codeTaken`          | Copied into the game editor, waiting when you leave the track.                                          | the panel's `aria-live` line, written on a successful "Take this program"                                                                       |
-| `tutorial.panel.codeRefused`        | Your browser refused to store it. Copy the program out of the editor by hand to keep it.                | the same line, when the store refused the write — the button is otherwise silent about it                                                       |
-| `tutorial.button.takeCode`          | Take this program into your own editor                                                                  |                                                                                                                                                 |
-| `tutorial.button.takeCodeConfirm`   | The game editor already holds a program of yours. Replace it with this one?                             | a `window.confirm`, asked only when there is something to overwrite                                                                             |
-| `tutorial.button.leave`             | Leave for the game's levels                                                                             |                                                                                                                                                 |
-| `tutorial.solution.copy`            | Copy this program                                                                                       | the accessible name of the button beside the answer, in `src/widgets/tutorial-panel/ui/tutorial-panel.ts`'s `copySolution`                      |
-| `tutorial.solution.copied`          | Copied to your clipboard.                                                                               | `copySolution`'s `aria-live` line on a successful `navigator.clipboard.writeText`                                                               |
-| `tutorial.solution.copyFailed`      | Your browser refused to copy it. Select the code above and copy it yourself.                            | the same line, when the write refuses or the API is missing                                                                                     |
-| `tutorial.bar.title.html`           | Tutorial level {number} of {count}: {description}                                                       | markup; takes `{number}`, `{count}`, `{description}`; the challenge bar's title on the track, counting the track rather than the challenge list |
-| `tutorial.finish.title`             | The track is finished                                                                                   | the overlay after the last task                                                                                                                 |
-| `tutorial.finish.message`           | Eight tutorial levels, and the last of them was level 1 of the game itself: the same three floors, the… |                                                                                                                                                 |
-| `tutorial.finish.nextTask`          | Next tutorial level                                                                                     | not `game.feedback.next`, which says "Next level" — see the note below                                                                          |
-| `tutorial.finish.toChallenges`      | Go to level 1                                                                                           | the finish overlay's link out of the track; it carries no program, which is why it no longer says it does                                       |
+| Key                                 | English                                                                                                 | Notes                                                                                                                                   |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| `tutorial.panel.label`              | Learning track                                                                                          | twice: the panel's accessible name, and the words on its first line                                                                     |
+| `tutorial.panel.position`           | Level {number} of {count}                                                                               | takes `{number}`, `{count}`                                                                                                             |
+| `tutorial.panel.progress`           | {cleared} of {count} levels done                                                                        | plural (one, other); takes `{cleared}`, `{count}`; the count that decides the form is `{count}`                                         |
+| `tutorial.panel.hintSummary`        | Hint {number}                                                                                           | takes `{number}`; the `<summary>` of one of the three hint disclosures                                                                  |
+| `tutorial.panel.explanationSummary` | Why this happens                                                                                        | the `<summary>` of the fourth disclosure                                                                                                |
+| `tutorial.panel.codeTaken`          | Copied into the game editor, waiting when you leave the track.                                          | the panel's `aria-live` line, written on a successful "Take this program"                                                               |
+| `tutorial.panel.codeRefused`        | Your browser refused to store it. Copy the program out of the editor by hand to keep it.                | the same line, when the store refused the write — the button is otherwise silent about it                                               |
+| `tutorial.button.takeCode`          | Take this program into your own editor                                                                  |                                                                                                                                         |
+| `tutorial.button.takeCodeConfirm`   | The game editor already holds a program of yours. Replace it with this one?                             | a `window.confirm`, asked only when there is something to overwrite                                                                     |
+| `tutorial.button.leave`             | Leave for the game's levels                                                                             |                                                                                                                                         |
+| `tutorial.solution.copy`            | Copy this program                                                                                       | the accessible name of the button beside the answer, in `src/widgets/tutorial-panel/ui/tutorial-panel.ts`'s `copySolution`              |
+| `tutorial.solution.copied`          | Copied to your clipboard.                                                                               | `copySolution`'s `aria-live` line on a successful `navigator.clipboard.writeText`                                                       |
+| `tutorial.solution.copyFailed`      | Your browser refused to copy it. Select the code above and copy it yourself.                            | the same line, when the write refuses or the API is missing                                                                             |
+| `tutorial.bar.title.html`           | Tutorial level {number} of {count}: {description}                                                       | markup; takes `{number}`, `{count}`, `{description}`; the level bar's title on the track, counting the track rather than the level list |
+| `tutorial.finish.title`             | The track is finished                                                                                   | the overlay after the last task                                                                                                         |
+| `tutorial.finish.message`           | Eight tutorial levels, and the last of them was level 1 of the game itself: the same three floors, the… |                                                                                                                                         |
+| `tutorial.finish.nextTask`          | Next tutorial level                                                                                     | not `game.feedback.next`, which says "Next level" — see the note below                                                                  |
+| `tutorial.finish.toLevels`          | Go to level 1                                                                                           | the finish overlay's link out of the track; it carries no program, which is why it no longer says it does                               |
 
 `tutorial.finish.nextTask` and `game.feedback.next` are separate keys even though both are "next X"
-links in English. Two features sharing one key is a key neither can reword: the day the challenge
+links in English. Two features sharing one key is a key neither can reword: the day the level
 overlay wants different words, the track's overlay changes with it for no reason. The Russian of
 `tutorial.finish.nextTask` is «Следующий учебный уровень» and of `game.feedback.next` is «Следующий
 уровень» — two different words for two different destinations.
@@ -398,9 +398,9 @@ interpolations, so a plain key is interpolated directly and an `.html` key goes 
 | `game.floor.callDown`       | Call an elevator going down from floor {floor}                                                               | takes `{floor}`; an `aria-label`                                                                             |
 | `game.elevator.label`       | Elevator {number}                                                                                            | takes `{number}`; the car's index plus one                                                                   |
 | `game.elevator.floorButton` | Go to floor {floor}                                                                                          | takes `{floor}`                                                                                              |
-| `game.challenge.title.html` | Level {number}: {description}                                                                                | markup; takes `{number}`, `{description}`                                                                    |
-| `game.challenge.nav.label`  | Levels                                                                                                       | the `<nav>`'s accessible name                                                                                |
-| `game.challenge.nav.link`   | Level {number}                                                                                               | takes `{number}`; the accessible name of an entry whose visible text is the bare digit                       |
+| `game.level.title.html`     | Level {number}: {description}                                                                                | markup; takes `{number}`, `{description}`                                                                    |
+| `game.level.nav.label`      | Levels                                                                                                       | the `<nav>`'s accessible name                                                                                |
+| `game.level.nav.link`       | Level {number}                                                                                               | takes `{number}`; the accessible name of an entry whose visible text is the bare digit                       |
 | `game.seed.label`           | Seed                                                                                                         | the caption over the row, not a control                                                                      |
 | `game.seed.inputLabel`      | This run's seed — type another one to play it                                                                | the field's `aria-label`; the caption above it says only "Seed", which does not say it can be typed into     |
 | `game.seed.invalid`         | A seed can be up to 64 letters, digits, dots, hyphens or underscores.                                        | `setCustomValidity` on the field; replaces the browser's own "match the requested format", which names none  |
@@ -409,7 +409,7 @@ interpolations, so a plain key is interpolated directly and an `.html` key goes 
 | `game.seed.helpSummary`     | what a seed does                                                                                             | the `<summary>` of the caveat disclosure                                                                     |
 | `game.seed.explanation`     | The same seed brings the same passengers, in the same order — and, played the same way, the exact same run … | a paragraph inside the disclosure, not a tooltip — it used to be a `title` attribute                         |
 | `game.seed.console`         | Seed {seed} — the exact same run again, whatever the frame rate: {url}                                       | takes `{seed}` and `{url}`; the `console.log` printed at every start, and the one console line that is keyed |
-| `game.feedback.next`        | Next level                                                                                                   | the link in the end-of-challenge overlay                                                                     |
+| `game.feedback.next`        | Next level                                                                                                   | the link in the end-of-level overlay                                                                         |
 | `game.codeStatus`           | There is an error in your program:                                                                           | the message beside it is the player's own text and is never translated                                       |
 
 The seed itself is a placeholder in both accessible names and never part of the sentence: it is
@@ -495,8 +495,8 @@ this migration.
 ### `src/widgets/level-switcher/ui/level-switcher.ts` — 8 `game.levelSwitcher.*` keys
 
 The app bar's level-switcher popover, and its step buttons either side of the trigger. Two of its
-three block captions reuse `tutorial.panel.label` and `game.challenge.nav.label`, and an open
-challenge tile reuses `game.challenge.nav.link` — this prefix only holds what those cannot say:
+three block captions reuse `tutorial.panel.label` and `game.level.nav.label`, and an open
+level tile reuses `game.level.nav.link` — this prefix only holds what those cannot say:
 the third block's caption and the tile inside it, the two step buttons, the two tile labels the
 level list has no counterpart for — it never names a learning-track task or a locked level — and
 the trigger's own name for a lesson.
@@ -509,38 +509,38 @@ the trigger's own name for a lesson.
 | `game.levelSwitcher.sandboxLabel`             | Sandbox                            | both the sandbox tile's visible text and its accessible name; deliberately not the caption of the block holding it   |
 | `game.levelSwitcher.tutorialTileLabel`        | Tutorial level {number}            | takes `{number}`; accessible name of an open, not-yet-cleared tutorial tile                                          |
 | `game.levelSwitcher.tutorialTileClearedLabel` | Tutorial level {number}, completed | takes `{number}`; accessible name of a cleared tutorial tile                                                         |
-| `game.levelSwitcher.challengeTileLockedLabel` | Level {number}, locked             | takes `{number}`; accessible name of a locked challenge tile, drawn as a `<button disabled>` rather than an `<a>`    |
+| `game.levelSwitcher.levelTileLockedLabel`     | Level {number}, locked             | takes `{number}`; accessible name of a locked level tile, drawn as a `<button disabled>` rather than an `<a>`        |
 | `game.levelSwitcher.tutorialTriggerLabel`     | Lesson {number}                    | takes `{number}`; what the 118px trigger reads while a lesson is being played, where the tile labels overflow        |
 
 `tileAccessibleName` in `level-switcher.ts` names a locked tile as locked even when it is also
-`current`, rather than switching to `game.challenge.nav.link` once it is the one on screen. That
-pairing used to be reachable — a direct link to a challenge the player had not unlocked through
+`current`, rather than switching to `game.level.nav.link` once it is the one on screen. That
+pairing used to be reachable — a direct link to a level the player had not unlocked through
 the switcher — and is not any more, since the router sends such an address back to the furthest
 level this browser has earned; the string is still written for it because the widget does not own
 that promise.
 
-### `src/widgets/goal-bar/ui/goal-bar.ts` and `src/entities/challenge-tier/ui/requirement-text.ts` — 22 `game.goalBar.*` keys
+### `src/widgets/goal-bar/ui/goal-bar.ts` and `src/entities/level-tier/ui/requirement-text.ts` — 22 `game.goalBar.*` keys
 
-The challenge bar's own meters and its tier popover. Not yet mounted anywhere the player reaches
+The level bar's own meters and its tier popover. Not yet mounted anywhere the player reaches
 — `presentGoalBar` has no caller outside its own module and its own test file — so this prefix is
 read but not, today, shown; it is filed here rather than under _Deliberately not translated_
 because that section is for strings that were looked at and left out on purpose, and this one
 is wired and waiting on the widget that mounts it.
 
 A main meter's caption is `page.stats.*` wherever the statistics panel already names the same
-field — `METER_CAPTION_KEY` maps eleven of the twelve `ChallengeWorldStats` fields there
+field — `METER_CAPTION_KEY` maps eleven of the twelve `LevelWorldStats` fields there
 directly. `maxPickupTime` is the one figure that panel never shows, so it is the only caption
 this prefix supplies. The tier popover's twelve `req.*` sentences are built the same way
-`src/game/challenges.ts`'s own condition builders are, from nested `t()` calls: a threshold
-reaches its sentence already declined, through `challenge.timeLimit.html`/`.waitLimit.html`/
+`src/game/levels.ts`'s own condition builders are, from nested `t()` calls: a threshold
+reaches its sentence already declined, through `level.timeLimit.html`/`.waitLimit.html`/
 `.people.html` for the seven time- or count-shaped fields, `floorBudget.html`/`stopBudget.html`
 for the two elevator-activity fields, and a bare `format()` call for the three that are already a
 percentage or a rate.
 
 Fourteen of the twenty-two — the twelve `req.*` sentences and the two budget messages they
-interpolate — are read from `src/entities/challenge-tier/ui/requirement-text.ts` rather than from
+interpolate — are read from `src/entities/level-tier/ui/requirement-text.ts` rather than from
 the widget, and are `game.goalBar.*` only because the popover was the first thing to want them.
-The end-of-run card's hint is the second: `src/entities/challenge-tier/ui/tier-hint.ts` composes
+The end-of-run card's hint is the second: `src/entities/level-tier/ui/tier-hint.ts` composes
 the same sentences into `game.feedback.more.*`, so a requirement now reads identically in the
 popover that sets the bar and in the line that says what the run missed it by. They stayed under
 this prefix rather than being renamed because a key is an address: moving twelve of them would
@@ -558,18 +558,18 @@ have rewritten twenty-four Russian and English values to say nothing new.
 | `game.goalBar.trigger.titleEarned`          | Level stars: {tier}. Open requirements                | takes `{tier}`, itself `t(TIER_NAME_KEY[earnedTier])`; Russian could not reuse the mockup's «взято {tier}» — «взято» agrees with «серебро»/«золото» but not with «бронза», which needs «взята» — so the tier's own name is substituted directly instead         |
 | `game.goalBar.floorBudget.html`             | {count} floor / {count} floors                        | plural (one, other); takes `{count}`; feeds `req.moveCount.html`'s `{floors}`; Russian keeps the genitive plural «этажей» invariant across all four categories, matching a simplification the mockup already made                                               |
 | `game.goalBar.stopBudget.html`              | {count} stop / {count} stops                          | plural (one, other); takes `{count}`; feeds `req.stopCount.html`'s `{stops}`; Russian declines all four categories properly — there was no mockup precedent here to simplify from                                                                               |
-| `game.goalBar.req.transportedCounter.html`  | transport {people}                                    | takes `{people}`, itself `challenge.people.html`                                                                                                                                                                                                                |
-| `game.goalBar.req.elapsedTime.html`         | finish within {time}                                  | takes `{time}`, itself `challenge.timeLimit.html`                                                                                                                                                                                                               |
-| `game.goalBar.req.maxWaitTime.html`         | deliver everyone within {time}                        | takes `{time}`, itself `challenge.waitLimit.html`; not "no one waits longer than {time}" — `maxWaitTime`/`avgWaitTime` measure spawn-to-delivery, not a wait, the same distinction `page.stats.avgWaitTime` and `.maxWaitTime` already draw                     |
-| `game.goalBar.req.avgWaitTime.html`         | average delivery no later than {time}                 | takes `{time}`, itself `challenge.waitLimit.html`                                                                                                                                                                                                               |
+| `game.goalBar.req.transportedCounter.html`  | transport {people}                                    | takes `{people}`, itself `level.people.html`                                                                                                                                                                                                                    |
+| `game.goalBar.req.elapsedTime.html`         | finish within {time}                                  | takes `{time}`, itself `level.timeLimit.html`                                                                                                                                                                                                                   |
+| `game.goalBar.req.maxWaitTime.html`         | deliver everyone within {time}                        | takes `{time}`, itself `level.waitLimit.html`; not "no one waits longer than {time}" — `maxWaitTime`/`avgWaitTime` measure spawn-to-delivery, not a wait, the same distinction `page.stats.avgWaitTime` and `.maxWaitTime` already draw                         |
+| `game.goalBar.req.avgWaitTime.html`         | average delivery no later than {time}                 | takes `{time}`, itself `level.waitLimit.html`                                                                                                                                                                                                                   |
 | `game.goalBar.req.moveCount.html`           | elevators travel no more than {floors}                | takes `{floors}`, itself `floorBudget.html`                                                                                                                                                                                                                     |
 | `game.goalBar.req.stopCount.html`           | elevators stop no more than {stops}                   | takes `{stops}`, itself `stopBudget.html`                                                                                                                                                                                                                       |
 | `game.goalBar.req.avgLoadFactorOnMove.html` | elevators run {percent} full or more                  | takes `{percent}`, a bare `format(percent(threshold))`                                                                                                                                                                                                          |
 | `game.goalBar.req.transportedPerSec.html`   | at least {rate} people per second                     | takes `{rate}`, a bare `format(decimal(threshold, 2))`; Russian takes the genitive singular «человека», not the plural — a two-decimal figure is grammatically fractional (the `other` category), and a fraction takes the genitive singular whatever the value |
 | `game.goalBar.req.avgPeoplePerStop.html`    | at least {rate} people per stop                       | takes `{rate}`, likewise; the same genitive-singular reasoning, diverging from `page.stats.peoplePerStop`'s own genitive-plural «Людей на остановку», which has no number governing it                                                                          |
-| `game.goalBar.req.maxPickupTime.html`       | never leave anyone waiting more than {time} for a car | takes `{time}`, itself `challenge.waitLimit.html`                                                                                                                                                                                                               |
-| `game.goalBar.req.avgPickupTime.html`       | average wait for a car no more than {time}            | takes `{time}`, itself `challenge.waitLimit.html`                                                                                                                                                                                                               |
-| `game.goalBar.req.avgRideTime.html`         | average ride no more than {time}                      | takes `{time}`, itself `challenge.waitLimit.html`                                                                                                                                                                                                               |
+| `game.goalBar.req.maxPickupTime.html`       | never leave anyone waiting more than {time} for a car | takes `{time}`, itself `level.waitLimit.html`                                                                                                                                                                                                                   |
+| `game.goalBar.req.avgPickupTime.html`       | average wait for a car no more than {time}            | takes `{time}`, itself `level.waitLimit.html`                                                                                                                                                                                                                   |
+| `game.goalBar.req.avgRideTime.html`         | average ride no more than {time}                      | takes `{time}`, itself `level.waitLimit.html`                                                                                                                                                                                                                   |
 
 ### `src/widgets/editor-pane/ui/editor-pane.ts` — 5 `game.*` keys
 
@@ -759,7 +759,7 @@ Built and unit-tested against a jsdom `<dialog>` — `polyfillDialogElement`
 
 `API_REFERENCE`'s own structural table — which `sig` belongs to which group, in which order — as
 plain data with no `t()` call of its own, mirroring
-`src/entities/challenge/model/challenge-list.ts`'s own purity: an `elevator` group of sixteen
+`src/entities/level/model/level-list.ts`'s own purity: an `elevator` group of sixteen
 entries and a `floor` group of three. Every entry names three keys after its own id — `.short` (the
 collapsed `<details class="api">` row's summary), `.more` (its expanded paragraph) and `.code` (its
 example) — besides the two group labels themselves. English condenses this repository's own
@@ -836,7 +836,7 @@ Read by `docs-modal.ts` (above), which draws `API_REFERENCE` as the reference ta
 ### `src/features/run-simulation/ui/run-controls.ts` — 7 `game.button.*` keys
 
 The two buttons the app bar opens with. Only the first changes its word: "Start" before a run and
-again once the challenge is over, "Pause" while the world is drawing, "Resume" where a started run
+again once the level is over, "Pause" while the world is drawing, "Resume" where a started run
 is standing still. What is on the button is always what the press will do, never what the run is
 doing — which is why "Pause" is absent while a headless crunch runs, since the shared controller
 is paused throughout one and `!isPaused` alone would say the opposite.
@@ -844,12 +844,12 @@ is paused throughout one and `!isPaused` alone would say the opposite.
 Two of the seven are `title` attributes rather than labels, and each says the thing a two-word
 button has no room for. `game.button.startOverTitle` sits on "Start over" at all times.
 `game.button.startAgainTitle` is written only in the one state where the primary button's label
-repeats itself: the challenge has ended, its result is on screen, and "Start" now means throwing
+repeats itself: the level has ended, its result is on screen, and "Start" now means throwing
 that result away.
 
 | Key                            | English                               | Notes                                                                                                             |
 | ------------------------------ | ------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
-| `game.button.start`            | Start                                 | before the first frame, and again once the challenge has ended                                                    |
+| `game.button.start`            | Start                                 | before the first frame, and again once the level has ended                                                        |
 | `game.button.pause`            | Pause                                 | only while the world on screen is being drawn                                                                     |
 | `game.button.resume`           | Resume                                | a started run standing still; never offered on the speed control's instant stop, where a press restarts from zero |
 | `game.button.startOver`        | Start over                            | restarts the run from the program in the editor; the button "Apply" became                                        |
@@ -905,7 +905,7 @@ The locale preference is not app state and is not kept here beside `TIME_SCALE_S
 `LOCALE_STORAGE_KEY` and `readStoredLocale` live in `src/i18n/detect.ts`, shaped after
 `readStoredTimeScale` and saying so in a comment.
 
-### `src/widgets/verdict-toast/ui/verdict-toast.ts` and `src/entities/challenge-tier/ui/tier-hint.ts` — 4 `game.feedback.*` keys
+### `src/widgets/verdict-toast/ui/verdict-toast.ts` and `src/entities/level-tier/ui/tier-hint.ts` — 4 `game.feedback.*` keys
 
 The rest of the end-of-run card: the button that puts it away, and the line under the message
 saying what the run would need for its next star. The four sentences above are composed by the
@@ -978,14 +978,14 @@ is printed; the benchmark itself stopped touching the page.
 own JSDoc gives: `t` answers for the locale active when it is called, and a module-scope `const`
 would answer for whichever locale happened to be active when the module was first imported. The
 same file's `DEV_TEST_CODE` is deliberately outside the catalogue — no player ever sees it now that
-`#devtest` has been retired; it is the yardstick `challenge-tiers-solutions.test.ts` measures the
+`#devtest` has been retired; it is the yardstick `level-tiers-solutions.test.ts` measures the
 tiers against, and a fixture whose comments moved with the language would be a different fixture in
 each locale.
 
 ### `src/features/manage-code-slots/ui/code-slots.ts` — 3 `editor.slot.*` keys
 
 The code slot switcher: three buttons in the bar above the editor, one per independent scratch
-slot a challenge can hold. All three keys are dynamic now, and none is written by `index.html`:
+slot a level can hold. All three keys are dynamic now, and none is written by `index.html`:
 `editor.slot.tablist.label` names the `.slots` group in `editorPaneTemplate`
 (`src/widgets/editor-pane/ui/editor-pane.ts`), and `codeSlotTemplate` calls the other two once per
 button, with `{number}`, the same pattern `game.elevator.label` uses for the car index. They are
@@ -1004,24 +1004,24 @@ accessible name of "Code slot 1" over a visible "1" contains neither the other, 
 | `editor.slot.tab.label`     | Code {number}  | takes `{number}`; the visible text of one `.codeslot` button, and so its accessible name                                                    |
 | `editor.slot.tab.title`     | Draft {number} | takes `{number}`; the `title` on the same button — a description beside the name, saying the three are drafts rather than versions or tries |
 
-### `src/game/challenges.ts` — 14 keys
+### `src/game/levels.ts` — 14 keys
 
-| Key                                              | English                                                                                                     | Notes                                                                                                                                   |
-| ------------------------------------------------ | ----------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| `challenge.transportWithinTime.html`             | Transport {people} in {time} or less                                                                        | markup; takes `{people}`, `{time}`                                                                                                      |
-| `challenge.transportWithMaxWait.html`            | Transport {people} and let no one take more than {waitTime} to be delivered                                 | markup; takes `{people}`, `{waitTime}`                                                                                                  |
-| `challenge.transportWithinTimeWithMaxWait.html`  | Transport {people} in {time} or less and let no one take more than {waitTime} to be delivered               | markup; takes `{people}`, `{time}`, `{waitTime}`                                                                                        |
-| `challenge.transportWithinMoves.html`            | Transport {people} using {moves} or less                                                                    | markup; takes `{people}`, `{moves}`                                                                                                     |
-| `challenge.transportWithinMovesWithMaxWait.html` | Transport {people} using {moves} or less and let no one take more than {waitTime} to be delivered           | markup; takes `{people}`, `{moves}`, `{waitTime}`                                                                                       |
-| `challenge.people.html`                          | `<span class='emphasis-color'>`{count}`</span>` people                                                      | plural (one, other; `one` is "person"); markup; takes `{count}`; shared by all five sentences above                                     |
-| `challenge.timeLimit.html`                       | `<span class='emphasis-color'>`{count}`</span>` seconds                                                     | plural (one, other); markup; takes `{count}`; the accusative «за 30 секунд» in Russian                                                  |
-| `challenge.waitLimit.html`                       | `<span class='emphasis-color'>`{count}`</span>` seconds                                                     | plural (one, other); markup; takes `{count}`; the same English as above and the genitive «дольше 30 секунд» in Russian                  |
-| `challenge.moveLimit.html`                       | `<span class='emphasis-color'>`{count}`</span>` elevator moves                                              | plural (one, other); markup; takes `{count}`                                                                                            |
-| `challenge.sandbox.html`                         | Sandbox: {floors}, {elevators} of {capacityLabel} {capacities}, {spawnRate}. No goal, so the run never ends | markup; takes `{floors}`, `{elevators}`, `{capacityLabel}`, `{capacities}`, `{spawnRate}`; composed from the four sandbox phrases below |
-| `challenge.sandbox.floors.html`                  | `<span class='emphasis-color'>`{count}`</span>` floors                                                      | plural (one, other); markup; takes `{count}`                                                                                            |
-| `challenge.sandbox.elevators.html`               | `<span class='emphasis-color'>`{count}`</span>` elevators                                                   | plural (one, other); markup; takes `{count}`                                                                                            |
-| `challenge.sandbox.capacityLabel`                | capacities                                                                                                  | plural (one, other); counted by how many capacities were listed, not by how many cars there are                                         |
-| `challenge.sandbox.spawnRate.html`               | `<span class='emphasis-color'>`{count}`</span>` people per second                                           | plural (one, other); markup; takes `{count}`; one English form for both categories, preserving today's `1 people per second`            |
+| Key                                          | English                                                                                                     | Notes                                                                                                                                   |
+| -------------------------------------------- | ----------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| `level.transportWithinTime.html`             | Transport {people} in {time} or less                                                                        | markup; takes `{people}`, `{time}`                                                                                                      |
+| `level.transportWithMaxWait.html`            | Transport {people} and let no one take more than {waitTime} to be delivered                                 | markup; takes `{people}`, `{waitTime}`                                                                                                  |
+| `level.transportWithinTimeWithMaxWait.html`  | Transport {people} in {time} or less and let no one take more than {waitTime} to be delivered               | markup; takes `{people}`, `{time}`, `{waitTime}`                                                                                        |
+| `level.transportWithinMoves.html`            | Transport {people} using {moves} or less                                                                    | markup; takes `{people}`, `{moves}`                                                                                                     |
+| `level.transportWithinMovesWithMaxWait.html` | Transport {people} using {moves} or less and let no one take more than {waitTime} to be delivered           | markup; takes `{people}`, `{moves}`, `{waitTime}`                                                                                       |
+| `level.people.html`                          | `<span class='emphasis-color'>`{count}`</span>` people                                                      | plural (one, other; `one` is "person"); markup; takes `{count}`; shared by all five sentences above                                     |
+| `level.timeLimit.html`                       | `<span class='emphasis-color'>`{count}`</span>` seconds                                                     | plural (one, other); markup; takes `{count}`; the accusative «за 30 секунд» in Russian                                                  |
+| `level.waitLimit.html`                       | `<span class='emphasis-color'>`{count}`</span>` seconds                                                     | plural (one, other); markup; takes `{count}`; the same English as above and the genitive «дольше 30 секунд» in Russian                  |
+| `level.moveLimit.html`                       | `<span class='emphasis-color'>`{count}`</span>` elevator moves                                              | plural (one, other); markup; takes `{count}`                                                                                            |
+| `level.sandbox.html`                         | Sandbox: {floors}, {elevators} of {capacityLabel} {capacities}, {spawnRate}. No goal, so the run never ends | markup; takes `{floors}`, `{elevators}`, `{capacityLabel}`, `{capacities}`, `{spawnRate}`; composed from the four sandbox phrases below |
+| `level.sandbox.floors.html`                  | `<span class='emphasis-color'>`{count}`</span>` floors                                                      | plural (one, other); markup; takes `{count}`                                                                                            |
+| `level.sandbox.elevators.html`               | `<span class='emphasis-color'>`{count}`</span>` elevators                                                   | plural (one, other); markup; takes `{count}`                                                                                            |
+| `level.sandbox.capacityLabel`                | capacities                                                                                                  | plural (one, other); counted by how many capacities were listed, not by how many cars there are                                         |
+| `level.sandbox.spawnRate.html`               | `<span class='emphasis-color'>`{count}`</span>` people per second                                           | plural (one, other); markup; takes `{count}`; one English form for both categories, preserving today's `1 people per second`            |
 
 All six descriptions render through `t` inside a `get description()` on the condition object —
 `requireUserCountWithinTime`, `requireUserCountWithMaxWaitTime`,
@@ -1048,7 +1048,7 @@ The tables in this module hold keys rather than rendered entries, and `elevatorM
 neighbours turn them into completions per call. That shape is not decoration: the module is
 imported long before the player's language is resolved, so a module-scope constant holding
 rendered prose would be English for the rest of the session whatever the page around it said.
-`challenges.ts` repairs the same fault with `get description()` and `default-code.ts` with a
+`levels.ts` repairs the same fault with `get description()` and `default-code.ts` with a
 nullary function.
 
 | Key                                            | English                                                                                                        | Notes                                                                         |
@@ -1177,9 +1177,9 @@ again.
 | `src/pages/game/model/route.ts`, the twelve `console.warn` calls                                                               | `Invalid seed "…", using a fresh one instead`, and eleven more                                                                      | Addressed to whoever hand-wrote the URL, quoting parameter names that are themselves English.                                                                                                                                                            |
 | `src/game/world.ts`, `resolveSpawnRate`                                                                                        | `World was created with a spawnRate of …`                                                                                           | Reached only through `WorldOptions`, which is engine-internal and typed; a player's program cannot produce it.                                                                                                                                           |
 | `src/shared/lib/dom.ts` `requireElement`; `src/ui/templates.ts` `renderElement`; `renderUser`, what was `src/ui/presenters.ts` | `Missing required element`, `Expected markup describing exactly one element`, `Expected the user template to render an SVG element` | Invariants. If a player ever reads one, the bug is that it was thrown, not that it was in English.                                                                                                                                                       |
-| `src/game/fitness.ts`, `requireNothing`                                                                                        | `No requirement`                                                                                                                    | The benchmark's placeholder condition. Nothing draws a challenge bar during a benchmark, so it never reaches a screen.                                                                                                                                   |
+| `src/game/fitness.ts`, `requireNothing`                                                                                        | `No requirement`                                                                                                                    | The benchmark's placeholder condition. Nothing draws a level bar during a benchmark, so it never reaches a screen.                                                                                                                                       |
 | `src/ui/completions.ts`, the `label` and `detail` fields                                                                       | `elevator.goToFloor`, `(floorNum, directly)`, …                                                                                     | Identifiers and signatures. The popup completes real API names; translating one would suggest code that does not exist. Only `info` is keyed.                                                                                                            |
-| `src/ui/default-code.ts`, `DEV_TEST_CODE`                                                                                      | The tier-calibration program                                                                                                        | No player ever sees it: `#devtest` is retired, and what reads it is `challenge-tiers-solutions.test.ts`, which measures rather than teaches.                                                                                                             |
+| `src/ui/default-code.ts`, `DEV_TEST_CODE`                                                                                      | The tier-calibration program                                                                                                        | No player ever sees it: `#devtest` is retired, and what reads it is `level-tiers-solutions.test.ts`, which measures rather than teaches.                                                                                                                 |
 | `src/ui/shortcuts.ts`, `modifierKeyLabel`                                                                                      | `⌘` / `Ctrl`                                                                                                                        | Key names. Russian keyboards are labelled `Ctrl` too.                                                                                                                                                                                                    |
 | `index.html` and `documentation.html`, `<meta charset>` and `<meta name="viewport">`                                           | `UTF-8`, `width=device-width, initial-scale=1`                                                                                      | Machine values, not prose.                                                                                                                                                                                                                               |
 | `documentation.html`, the link to `documentation.ru.html`                                                                      | `Русский`                                                                                                                           | A language's own name. `LOCALE_NAMES` in `src/i18n/locale.ts` holds these, deliberately outside the catalogues: a reader who needs Русский has to find it while the interface is still English.                                                          |
@@ -1202,31 +1202,31 @@ and the URL.
 Seven places where the English source resists a one-string-one-key mapping. All seven are keyed
 and all seven ship, so this is a record of how each was resolved rather than a proposal.
 
-1. **Challenge descriptions are built from parts.** Each of the five builders in
-   `src/game/challenges.ts` interpolates two or three counted phrases into one sentence, and
+1. **Level descriptions are built from parts.** Each of the five builders in
+   `src/game/levels.ts` interpolates two or three counted phrases into one sentence, and
    every phrase needs its own plural. One key per sentence, plus one key per phrase
-   (`challenge.people.html`, `challenge.timeLimit.html`, `challenge.waitLimit.html`,
-   `challenge.moveLimit.html`), rendered inside out:
+   (`level.people.html`, `level.timeLimit.html`, `level.waitLimit.html`,
+   `level.moveLimit.html`), rendered inside out:
 
    ```ts
-   t("challenge.transportWithinTime.html", {
-     people: t("challenge.people.html", { count: userCount }),
-     time: t("challenge.timeLimit.html", { count: timeLimit }),
+   t("level.transportWithinTime.html", {
+     people: t("level.people.html", { count: userCount }),
+     time: t("level.timeLimit.html", { count: timeLimit }),
    });
    ```
 
    The alternative — one key per sentence with `{count}` in it — cannot work: a message has one
    plural category, and these sentences count two different things.
 
-2. **Two keys whose English is identical.** `challenge.timeLimit.html` and
-   `challenge.waitLimit.html` are both "{count} seconds" and neither can be dropped: Russian
+2. **Two keys whose English is identical.** `level.timeLimit.html` and
+   `level.waitLimit.html` are both "{count} seconds" and neither can be dropped: Russian
    needs the accusative after «за» — «за 21 секунду», «за 30 секунд» — and the genitive after
    «дольше» — «дольше 21 секунды», «дольше 30 секунд». Two of Russian's four forms differ between
    them, so a shared key would be wrong in one of the two sentences for every limit ending in 1,
    2, 3 or 4. Anyone tempted to deduplicate them by their English is looking at the wrong
    language.
 
-3. **`1 people per second`.** `challenge.sandbox.spawnRate.html` is a plural message whose two
+3. **`1 people per second`.** `level.sandbox.spawnRate.html` is a plural message whose two
    English forms are the same string, so a sandbox running at one passenger a second still says
    `1 people per second` — exactly what it said before the catalogue existed. That was preserved
    rather than fixed, so that wiring the strings up changed nothing on screen, and `src/i18n/en.ts`
@@ -1278,10 +1278,10 @@ reaches for `t`.
 - **A module-scope constant freezes the language at import time.** `t` answers for the locale
   active when it is called, and modules are imported long before a language is resolved. Three
   files repair this in three shapes, and the shape is chosen by what holds the value:
-  `src/game/challenges.ts` uses `get description()` because callers hold the condition object;
+  `src/game/levels.ts` uses `get description()` because callers hold the condition object;
   `src/ui/default-code.ts` uses a nullary `defaultCode()`; `src/ui/completions.ts` keeps tables
   of keys and renders per call because nothing holds a reference to a completion list.
-  `fitnessChallenges` is a nullary function that deliberately keeps the constant's name, because
+  `fitnessLevels` is a nullary function that deliberately keeps the constant's name, because
   what other modules mean by it — the list of buildings — did not change.
 - **A worker is a second module instance.** `src/app/fitness.ts` posts the player's source to
   `src/app/fitness-worker.ts`, which has its own copy of `src/i18n/index.ts` and its own active
@@ -1316,7 +1316,7 @@ link is not a choice this reader made. The language picker is what writes storag
 `#lang=ru` needs nothing from `src/pages/game/model/route.ts`, and that is not luck: `parseQuery` keeps every
 parameter it finds rather than the ones it understands, and `createParamsUrl` rebuilds the hash
 from all of them, replacing only what a link overrides. The language therefore rides along
-through the challenge row and the next-challenge link without either of them knowing about it.
+through the level row and the next-level link without either of them knowing about it.
 
 Changing language mid-run goes through `presentLanguagePicker` in
 `src/features/switch-language/ui/language-picker.ts`.
@@ -1372,7 +1372,7 @@ whoever reads it knows which columns are guarded and which are taken on trust.
 Even in English, routing text through the catalogue changed three things. All three are
 improvements, and all three are visible.
 
-1. **Grouped thousands.** Challenge 18 asks for 2675 people —
+1. **Grouped thousands.** Level 18 asks for 2675 people —
    `requireUserCountWithinTimeWithMaxWaitTime(2675, 1800, 45)` — and used to render `2675`;
    `Intl.NumberFormat` renders `2,675` in English and `2 675` in Russian.
 2. **Fractional time scales** render `0.5x` in English and `0,5×` in Russian.

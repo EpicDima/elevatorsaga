@@ -2,21 +2,21 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { DEFAULT_LOCALE, setLocale } from "../i18n/index.ts";
 import {
-  challenges,
-  createSandboxChallenge,
+  levels,
+  createSandboxLevel,
   requireSandbox,
   requireUserCountWithMaxWaitTime,
   requireUserCountWithinMoves,
   requireUserCountWithinMovesWithMaxWaitTime,
   requireUserCountWithinTime,
   requireUserCountWithinTimeWithMaxWaitTime,
-  type ChallengeWorldStats,
+  type LevelWorldStats,
   type SandboxOptions,
-} from "./challenges.ts";
+} from "./levels.ts";
 import { at } from "./test-helpers.ts";
 
 /** A world in which nothing at all has happened yet. */
-const NOTHING_HAPPENED: ChallengeWorldStats = {
+const NOTHING_HAPPENED: LevelWorldStats = {
   elapsedTime: 0,
   transportedCounter: 0,
   maxWaitTime: 0,
@@ -40,9 +40,9 @@ const SANDBOX: SandboxOptions = {
 };
 
 /** The statistics a condition reads, made mutable so specs can nudge them. */
-type MutableWorldStats = { -readonly [K in keyof ChallengeWorldStats]: ChallengeWorldStats[K] };
+type MutableWorldStats = { -readonly [K in keyof LevelWorldStats]: LevelWorldStats[K] };
 
-describe("Challenge requirements", () => {
+describe("Level requirements", () => {
   let fakeWorld: MutableWorldStats;
 
   beforeEach(() => {
@@ -64,14 +64,14 @@ describe("Challenge requirements", () => {
 
   describe("requireUserCountWithinTime", () => {
     it("evaluates correctly", () => {
-      const challengeReq = requireUserCountWithinTime(10, 5.0);
-      expect(challengeReq.evaluate(fakeWorld)).toBe(null);
+      const levelReq = requireUserCountWithinTime(10, 5.0);
+      expect(levelReq.evaluate(fakeWorld)).toBe(null);
       fakeWorld.elapsedTime = 5.1;
-      expect(challengeReq.evaluate(fakeWorld)).toBe(false);
+      expect(levelReq.evaluate(fakeWorld)).toBe(false);
       fakeWorld.transportedCounter = 11;
-      expect(challengeReq.evaluate(fakeWorld)).toBe(false);
+      expect(levelReq.evaluate(fakeWorld)).toBe(false);
       fakeWorld.elapsedTime = 4.9;
-      expect(challengeReq.evaluate(fakeWorld)).toBe(true);
+      expect(levelReq.evaluate(fakeWorld)).toBe(true);
     });
 
     it("describes itself", () => {
@@ -91,14 +91,14 @@ describe("Challenge requirements", () => {
 
   describe("requireUserCountWithMaxWaitTime", () => {
     it("evaluates correctly", () => {
-      const challengeReq = requireUserCountWithMaxWaitTime(10, 4.0);
-      expect(challengeReq.evaluate(fakeWorld)).toBe(null);
+      const levelReq = requireUserCountWithMaxWaitTime(10, 4.0);
+      expect(levelReq.evaluate(fakeWorld)).toBe(null);
       fakeWorld.maxWaitTime = 4.5;
-      expect(challengeReq.evaluate(fakeWorld)).toBe(false);
+      expect(levelReq.evaluate(fakeWorld)).toBe(false);
       fakeWorld.transportedCounter = 11;
-      expect(challengeReq.evaluate(fakeWorld)).toBe(false);
+      expect(levelReq.evaluate(fakeWorld)).toBe(false);
       fakeWorld.maxWaitTime = 3.9;
-      expect(challengeReq.evaluate(fakeWorld)).toBe(true);
+      expect(levelReq.evaluate(fakeWorld)).toBe(true);
     });
 
     it("describes itself with one decimal of the limit", () => {
@@ -118,21 +118,21 @@ describe("Challenge requirements", () => {
 
   describe("requireUserCountWithinMoves", () => {
     it("evaluates correctly", () => {
-      const challengeReq = requireUserCountWithinMoves(10, 20);
-      expect(challengeReq.evaluate(fakeWorld)).toBe(null);
+      const levelReq = requireUserCountWithinMoves(10, 20);
+      expect(levelReq.evaluate(fakeWorld)).toBe(null);
       fakeWorld.moveCount = 21;
-      expect(challengeReq.evaluate(fakeWorld)).toBe(false);
+      expect(levelReq.evaluate(fakeWorld)).toBe(false);
       fakeWorld.transportedCounter = 11;
-      expect(challengeReq.evaluate(fakeWorld)).toBe(false);
+      expect(levelReq.evaluate(fakeWorld)).toBe(false);
       fakeWorld.moveCount = 20;
-      expect(challengeReq.evaluate(fakeWorld)).toBe(true);
+      expect(levelReq.evaluate(fakeWorld)).toBe(true);
     });
 
     it("counts the move limit itself as a win", () => {
-      const challengeReq = requireUserCountWithinMoves(10, 20);
+      const levelReq = requireUserCountWithinMoves(10, 20);
       fakeWorld.moveCount = 20;
       fakeWorld.transportedCounter = 10;
-      expect(challengeReq.evaluate(fakeWorld)).toBe(true);
+      expect(levelReq.evaluate(fakeWorld)).toBe(true);
     });
 
     it("describes itself", () => {
@@ -152,16 +152,16 @@ describe("Challenge requirements", () => {
 
   describe("requireUserCountWithinTimeWithMaxWaitTime", () => {
     it("evaluates correctly", () => {
-      const challengeReq = requireUserCountWithinTimeWithMaxWaitTime(10, 5.0, 4.0);
-      expect(challengeReq.evaluate(fakeWorld)).toBe(null);
+      const levelReq = requireUserCountWithinTimeWithMaxWaitTime(10, 5.0, 4.0);
+      expect(levelReq.evaluate(fakeWorld)).toBe(null);
       fakeWorld.elapsedTime = 5.1;
-      expect(challengeReq.evaluate(fakeWorld)).toBe(false);
+      expect(levelReq.evaluate(fakeWorld)).toBe(false);
       fakeWorld.transportedCounter = 11;
-      expect(challengeReq.evaluate(fakeWorld)).toBe(false);
+      expect(levelReq.evaluate(fakeWorld)).toBe(false);
       fakeWorld.elapsedTime = 4.9;
-      expect(challengeReq.evaluate(fakeWorld)).toBe(true);
+      expect(levelReq.evaluate(fakeWorld)).toBe(true);
       fakeWorld.maxWaitTime = 4.1;
-      expect(challengeReq.evaluate(fakeWorld)).toBe(false);
+      expect(levelReq.evaluate(fakeWorld)).toBe(false);
     });
 
     it("describes itself, grouping the digits of the numbers it is counting", () => {
@@ -188,16 +188,16 @@ describe("Challenge requirements", () => {
 
   describe("requireUserCountWithinMovesWithMaxWaitTime", () => {
     it("evaluates correctly", () => {
-      const challengeReq = requireUserCountWithinMovesWithMaxWaitTime(10, 20, 4.0);
-      expect(challengeReq.evaluate(fakeWorld)).toBe(null);
+      const levelReq = requireUserCountWithinMovesWithMaxWaitTime(10, 20, 4.0);
+      expect(levelReq.evaluate(fakeWorld)).toBe(null);
       fakeWorld.moveCount = 21;
-      expect(challengeReq.evaluate(fakeWorld)).toBe(false);
+      expect(levelReq.evaluate(fakeWorld)).toBe(false);
       fakeWorld.transportedCounter = 11;
-      expect(challengeReq.evaluate(fakeWorld)).toBe(false);
+      expect(levelReq.evaluate(fakeWorld)).toBe(false);
       fakeWorld.moveCount = 19;
-      expect(challengeReq.evaluate(fakeWorld)).toBe(true);
+      expect(levelReq.evaluate(fakeWorld)).toBe(true);
       fakeWorld.maxWaitTime = 4.1;
-      expect(challengeReq.evaluate(fakeWorld)).toBe(false);
+      expect(levelReq.evaluate(fakeWorld)).toBe(false);
     });
 
     it("decides as soon as either limit is reached, not when the crowd is delivered", () => {
@@ -205,18 +205,18 @@ describe("Challenge requirements", () => {
       // undelivered too long, is lost with passengers still to come: the
       // condition has to say so then, because the alternative is a bar that
       // reads "in progress" over a run whose outcome is settled.
-      const challengeReq = requireUserCountWithinMovesWithMaxWaitTime(100, 450, 30);
-      expect(challengeReq.evaluate({ ...fakeWorld, moveCount: 450 })).toBe(false);
-      expect(challengeReq.evaluate({ ...fakeWorld, maxWaitTime: 30 })).toBe(false);
-      expect(challengeReq.evaluate({ ...fakeWorld, moveCount: 449, maxWaitTime: 29.9 })).toBe(null);
+      const levelReq = requireUserCountWithinMovesWithMaxWaitTime(100, 450, 30);
+      expect(levelReq.evaluate({ ...fakeWorld, moveCount: 450 })).toBe(false);
+      expect(levelReq.evaluate({ ...fakeWorld, maxWaitTime: 30 })).toBe(false);
+      expect(levelReq.evaluate({ ...fakeWorld, moveCount: 449, maxWaitTime: 29.9 })).toBe(null);
     });
 
     it("counts both limits themselves as a win", () => {
-      const challengeReq = requireUserCountWithinMovesWithMaxWaitTime(10, 20, 4.0);
+      const levelReq = requireUserCountWithinMovesWithMaxWaitTime(10, 20, 4.0);
       fakeWorld.moveCount = 20;
       fakeWorld.maxWaitTime = 4.0;
       fakeWorld.transportedCounter = 10;
-      expect(challengeReq.evaluate(fakeWorld)).toBe(true);
+      expect(levelReq.evaluate(fakeWorld)).toBe(true);
     });
 
     it("describes itself", () => {
@@ -238,8 +238,8 @@ describe("Challenge requirements", () => {
 
   describe("requireSandbox", () => {
     it("never resolves, whatever the run does", () => {
-      const challengeReq = requireSandbox(SANDBOX);
-      expect(challengeReq.evaluate(fakeWorld)).toBe(null);
+      const levelReq = requireSandbox(SANDBOX);
+      expect(levelReq.evaluate(fakeWorld)).toBe(null);
       for (const stats of [
         { ...NOTHING_HAPPENED, elapsedTime: 1e9 },
         { ...NOTHING_HAPPENED, transportedCounter: 1e9 },
@@ -259,7 +259,7 @@ describe("Challenge requirements", () => {
         },
       ]) {
         Object.assign(fakeWorld, stats);
-        expect(challengeReq.evaluate(fakeWorld), JSON.stringify(stats)).toBe(null);
+        expect(levelReq.evaluate(fakeWorld), JSON.stringify(stats)).toBe(null);
       }
     });
 
@@ -322,9 +322,9 @@ describe("Challenge requirements", () => {
   });
 });
 
-describe("createSandboxChallenge", () => {
+describe("createSandboxLevel", () => {
   it("asks the world for exactly the shape it was given", () => {
-    expect(createSandboxChallenge({ ...SANDBOX, elevatorCapacities: [6, 9] }).options).toEqual({
+    expect(createSandboxLevel({ ...SANDBOX, elevatorCapacities: [6, 9] }).options).toEqual({
       floorCount: 20,
       elevatorCount: 2,
       elevatorCapacities: [6, 9],
@@ -335,54 +335,52 @@ describe("createSandboxChallenge", () => {
   it("describes the same building it asks the world for", () => {
     // The bar is the only place a sandbox player can see what they are running,
     // so the numbers in it have to be the numbers the world was built from.
-    const challenge = createSandboxChallenge({ ...SANDBOX, floorCount: 31, spawnRate: 2.25 });
-    expect(challenge.options.floorCount).toBe(31);
-    expect(challenge.options.spawnRate).toBe(2.25);
-    expect(challenge.condition.description).toContain(
+    const level = createSandboxLevel({ ...SANDBOX, floorCount: 31, spawnRate: 2.25 });
+    expect(level.options.floorCount).toBe(31);
+    expect(level.options.spawnRate).toBe(2.25);
+    expect(level.condition.description).toContain(
       "Sandbox: <span class='emphasis-color'>31</span> floors",
     );
-    expect(challenge.condition.description).toContain(
+    expect(level.condition.description).toContain(
       "<span class='emphasis-color'>2.25</span> people per second",
     );
-    expect(challenge.condition.evaluate({ ...NOTHING_HAPPENED, transportedCounter: 1e9 })).toBe(
-      null,
-    );
+    expect(level.condition.evaluate({ ...NOTHING_HAPPENED, transportedCounter: 1e9 })).toBe(null);
   });
 
   it("copies the capacities, so the world cannot write back into the route", () => {
     const capacities = [6, 9];
-    const options = createSandboxChallenge({ ...SANDBOX, elevatorCapacities: capacities }).options;
+    const options = createSandboxLevel({ ...SANDBOX, elevatorCapacities: capacities }).options;
     options.elevatorCapacities?.push(99);
     expect(capacities).toEqual([6, 9]);
   });
 });
 
-describe("challenges", () => {
+describe("levels", () => {
   it("keeps the full legacy list, in order", () => {
     // Nineteen, not the twenty this list held until the endless demo came off
     // the end of it -- see `requireSandbox`'s own comment for why.
-    expect(challenges).toHaveLength(19);
+    expect(levels).toHaveLength(19);
   });
 
-  it("ends the list with the moves-and-wait challenge", () => {
+  it("ends the list with the moves-and-wait level", () => {
     // The numbers are the ones the reference program was measured against --
-    // a challenge whose limits drifted from the run that sized them is a
-    // challenge nobody can be sure is winnable.
-    const challenge = challenges.at(-1);
-    expect(challenge?.options).toEqual({ floorCount: 8, elevatorCount: 6, spawnRate: 0.9 });
-    expect(challenge?.condition.description).toBe(
+    // a level whose limits drifted from the run that sized them is a
+    // level nobody can be sure is winnable.
+    const level = levels.at(-1);
+    expect(level?.options).toEqual({ floorCount: 8, elevatorCount: 6, spawnRate: 0.9 });
+    expect(level?.condition.description).toBe(
       "Transport <span class='emphasis-color'>100</span> people using " +
         "<span class='emphasis-color'>450</span> elevator moves or less and let no one take " +
         "more than <span class='emphasis-color'>30.0</span> seconds to be delivered",
     );
   });
 
-  it("gives every challenge a described condition and world options", () => {
-    for (const challenge of challenges) {
-      expect(challenge.condition.description.length).toBeGreaterThan(0);
-      expect(typeof challenge.options.floorCount).toBe("number");
-      expect(typeof challenge.options.elevatorCount).toBe("number");
-      expect(typeof challenge.options.spawnRate).toBe("number");
+  it("gives every level a described condition and world options", () => {
+    for (const level of levels) {
+      expect(level.condition.description.length).toBeGreaterThan(0);
+      expect(typeof level.options.floorCount).toBe("number");
+      expect(typeof level.options.elevatorCount).toBe("number");
+      expect(typeof level.options.spawnRate).toBe("number");
     }
   });
 
@@ -390,8 +388,8 @@ describe("challenges", () => {
     // The list held one that could not until the endless demo was taken off
     // it: `evaluate` returned `null` forever, so the tile could be opened and
     // never finished. Every entry now names something to reach.
-    for (const challenge of challenges) {
-      expect(challenge.condition.requirements.length).toBeGreaterThan(0);
+    for (const level of levels) {
+      expect(level.condition.requirements.length).toBeGreaterThan(0);
     }
   });
 });
@@ -479,15 +477,15 @@ describe("the language a description comes out in", () => {
   });
 
   it("is settled when the description is read, not when the module was loaded", () => {
-    // `challenges` is a module-level constant, built as the page loads and
+    // `levels` is a module-level constant, built as the page loads and
     // before anybody has chosen a language. A description computed there would
     // be whatever was active at import time for the rest of the session, so
     // every one of them is a getter -- and this is the spec that says so.
-    const challenge = at(challenges, 0);
-    expect(challenge.condition.description).toContain("Transport");
+    const level = at(levels, 0);
+    expect(level.condition.description).toContain("Transport");
 
     setLocale("ru");
 
-    expect(challenge.condition.description).toContain("Перевезите");
+    expect(level.condition.description).toContain("Перевезите");
   });
 });

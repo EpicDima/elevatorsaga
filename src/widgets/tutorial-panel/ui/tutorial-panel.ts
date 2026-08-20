@@ -1,12 +1,12 @@
 /**
- * The learning track's panel: the block of prose between the challenge bar and
+ * The learning track's panel: the block of prose between the level bar and
  * the building, shown while a player is working through `src/game/tutorial.ts`.
  *
  * It is a presenter in the sense the module that was `presenters.ts` used the
  * word — one function for one region of the page, drawing it wholesale and
  * subscribing to nothing — and it was kept out of that file for the reason
- * the track is kept out of `challenges.ts`: nothing here is part of a
- * challenge.
+ * the track is kept out of `levels.ts`: nothing here is part of a
+ * level.
  *
  * The interface takes a task *index* rather than the words to print, and that is
  * the one design decision the rest of this file follows from. Changing language
@@ -344,7 +344,7 @@ async function copySolution(parent: HTMLElement): Promise<void> {
   line.textContent = t(COPIED_MESSAGES[state]);
 }
 
-/** The button that leaves the track for the numbered challenges. */
+/** The button that leaves the track for the numbered levels. */
 const LEAVE_SELECTOR = ".tutorialleave";
 
 /**
@@ -371,13 +371,13 @@ export interface TutorialPanelData {
    * it left them believing an afternoon's work was saved when it was not.
    */
   readonly onTakeCode: () => boolean;
-  /** Called when the player asks to leave the track for the challenges. */
+  /** Called when the player asks to leave the track for the levels. */
   readonly onLeave: () => void;
   /**
    * Whether the player's own editor already holds a program worth keeping.
    *
    * Taking a task's program is destructive: it replaces whatever is in the game
-   * editor, which for a player who arrived at the track from the challenges is
+   * editor, which for a player who arrived at the track from the levels is
    * an evening's work. `tutorial.button.takeCodeConfirm` is the question asked
    * before that happens, and this is what decides whether it needs asking — an
    * empty editor has nothing to lose, and a confirmation with no cost behind it
@@ -612,7 +612,7 @@ function tutorialStepsTemplate(taskNumber: number, taskCount: number): string {
  * The learning track's panel: where the player is, what to do, and the way out.
  *
  * Drawn as a `<section>` with a name, which makes it a region landmark: the
- * track puts a block of prose between the challenge bar and the building, and
+ * track puts a block of prose between the level bar and the building, and
  * without a landmark a screen-reader player has no way to jump over it to the
  * game or back to it for the next hint. A `<section>` with no name is not a
  * landmark at all, so the name is what the element is for (WCAG 1.3.1: the
@@ -723,7 +723,7 @@ export function tutorialTemplate(data: TutorialTemplateData): string {
  *   standing on, and a keyboard player would be dropped back at the top of the
  *   document with the whole page to tab through again (WCAG 2.4.3). The control
  *   that lands in the same position takes the focus back, the same way the
- *   challenge bar restores its navigation row: the panel's controls are the same
+ *   level bar restores its navigation row: the panel's controls are the same
  *   seven in the same order for every task, so the position is the control.
  *
  * @param parent - The `.tutorial` element of the page shell.

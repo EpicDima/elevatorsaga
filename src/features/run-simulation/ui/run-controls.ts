@@ -74,12 +74,12 @@ export interface RunControlsOptions {
    * every run it drives: it is drawn once for the life of the page, and the
    * world it is reporting on is replaced on every restart.
    */
-  readonly challengeEnded: () => boolean;
+  readonly levelEnded: () => boolean;
   /**
    * Whether the run on screen has already ticked, so the button offers to
    * resume rather than to start.
    *
-   * A function for the same reason {@link challengeEnded} is one.
+   * A function for the same reason {@link levelEnded} is one.
    */
   readonly runStarted: () => boolean;
   /**
@@ -94,7 +94,7 @@ export interface RunControlsOptions {
   /**
    * Whether a crunch started by this button is under way.
    *
-   * A function for the same reason {@link challengeEnded} is one: this row is
+   * A function for the same reason {@link levelEnded} is one: this row is
    * drawn once and outlives every run, including the private controller a
    * crunch drives itself with.
    */
@@ -121,7 +121,7 @@ export interface RunControlsPresenter {
    * Puts focus on the start button.
    *
    * For the app, and only for the case it alone can see: a redraw that
-   * emptied a region focus was inside — the end-of-challenge overlay holding
+   * emptied a region focus was inside — the end-of-level overlay holding
    * the "Next level" link, or the building — leaves focus on `<body>` and
    * a keyboard player back at the top of the page. The start button is where
    * they were going anyway. This row is drawn into the app bar, which
@@ -170,7 +170,7 @@ export function presentRunControls(
       startOver.title = t("game.button.startOverTitle");
 
       const crunching = options.instantRunInProgress();
-      const ended = options.challengeEnded();
+      const ended = options.levelEnded();
       // Not `!isPaused` alone: a crunch drives a private controller, so the
       // shared one is paused throughout one and the button would read "Pause"
       // over a run nothing is drawing.

@@ -385,7 +385,7 @@ export class ElevatorInterface {
    * `update`, so an unguarded report is a report per frame. Per facade rather
    * than the module-level, never-reset flag behind the deprecation notice in
    * `Elevator.getFirstPressedFloor`, because a new world builds new facades:
-   * restarting the challenge with the same mistake still gets told about it,
+   * restarting the level with the same mistake still gets told about it,
    * which matters here in a way it does not for a notice that only prints.
    */
   #dropUnreachableDestinations(): void {

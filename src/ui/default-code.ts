@@ -33,14 +33,14 @@ export function defaultCode(): string {
 }
 
 /**
- * A naive but complete solution, kept as the yardstick the challenge tiers are
+ * A naive but complete solution, kept as the yardstick the level tiers are
  * calibrated against.
  *
  * No player ever sees it. `#devtest` used to load it into the editor and was
  * retired along with `#autostart`: a QA route that replaced whatever was on
  * screen is a poor thing to leave in an address bar players share. What reads
- * it now is `src/game/challenge-tiers-solutions.test.ts`, which plays it and
- * the reference dispatcher over every challenge and every measured seed, so
+ * it now is `src/game/level-tiers-solutions.test.ts`, which plays it and
+ * the reference dispatcher over every level and every measured seed, so
  * this text is a recorded fixture — changing a line of it moves the tiers.
  *
  * Not translated and not in the catalogue, unlike {@link defaultCode}: it is

@@ -685,7 +685,7 @@ export async function runBench(argv: readonly string[], io: BenchIo): Promise<nu
   }
 
   // Before the suite runs, because the scenario names are rendered inside it --
-  // `fitnessChallenges` calls `t` at the start of every suite, which is exactly
+  // `fitnessLevels` calls `t` at the start of every suite, which is exactly
   // late enough for this. `loadLocale` never rejects: a catalogue that cannot be
   // read leaves the report in English rather than taking the run down.
   await loadLocale(options.locale);

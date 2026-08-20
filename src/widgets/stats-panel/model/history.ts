@@ -12,7 +12,7 @@
  *
  * `World`'s own `stats_display_changed` event (see `world-controller.ts`)
  * carries the second guard *from its main tick*: that call site only fires
- * from inside `if (!this.isPaused && !world.challengeEnded && lastT !== null)`.
+ * from inside `if (!this.isPaused && !world.levelEnded && lastT !== null)`.
  * It is not the only caller, though — `App#relocalise` (`src/pages/game/index.ts`)
  * re-fires the same event on every language switch, unconditionally, so text
  * stays correctly translated even while paused. A presenter wired to the

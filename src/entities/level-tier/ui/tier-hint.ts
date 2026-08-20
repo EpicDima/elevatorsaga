@@ -16,8 +16,8 @@
  * any way to work a tier out for itself.
  */
 
-import type { ChallengeWorldStats } from "#game/challenges.ts";
-import type { ChallengeTier, ChallengeTierRequirements } from "#game/challenge-tiers.ts";
+import type { LevelWorldStats } from "#game/levels.ts";
+import type { LevelTier, LevelTierRequirements } from "#game/level-tiers.ts";
 import { formatList, t } from "#i18n/index.ts";
 
 import { requirementMet } from "../model/tier-progress.ts";
@@ -32,31 +32,31 @@ import { tierRequirementNow, tierRequirementText } from "./requirement-text.ts";
  * with.
  *
  * Empty in each of the four cases where the line would be noise rather than
- * help: a challenge with no silver/gold bars at all, a run already rated gold,
+ * help: a level with no silver/gold bars at all, a run already rated gold,
  * a run that did not win (its caller has no tier to pass, so it never gets
  * here), and the defensive case of a tier whose predicate failed without any
- * of its own {@link ChallengeTierRequirements} being missed — a predicate is
+ * of its own {@link LevelTierRequirements} being missed — a predicate is
  * free to test more than the requirements it advertises, and a hint listing
  * nothing would be a promise that clearing nothing earns the star.
  *
- * @param tiers - The challenge's silver and gold bars, or `undefined` for a
- * challenge that has none.
+ * @param tiers - The level's silver and gold bars, or `undefined` for a
+ * level that has none.
  * @param earned - The tier the run was actually rated, from
- * {@link "#game/challenge-tiers.ts"!evaluateChallengeTier}.
+ * {@link "#game/level-tiers.ts"!evaluateLevelTier}.
  * @param world - The run's final statistics.
  * @returns The hint, in the active language, or `""`.
  */
 export function nextTierHint(
-  tiers: ChallengeTierRequirements | undefined,
-  earned: ChallengeTier,
-  world: ChallengeWorldStats,
+  tiers: LevelTierRequirements | undefined,
+  earned: LevelTier,
+  world: LevelWorldStats,
 ): string {
   if (tiers === undefined || earned === "gold") {
     return "";
   }
-  // Written as the two-step ladder `ChallengeTierRequirements` itself is,
-  // rather than indexed out of `CHALLENGE_TIERS`: that array holds bronze too,
-  // which is the challenge's own condition and has no entry here to look up.
+  // Written as the two-step ladder `LevelTierRequirements` itself is,
+  // rather than indexed out of `LEVEL_TIERS`: that array holds bronze too,
+  // which is the level's own condition and has no entry here to look up.
   const next = earned === "bronze" ? "silver" : "gold";
   const missed = tiers[next].requirements.filter(
     (requirement) => !requirementMet(requirement, world),

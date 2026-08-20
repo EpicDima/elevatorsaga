@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
 
 import { tierRequirementNow, tierRequirementText } from "./requirement-text.ts";
-import type { ChallengeWorldStats } from "#game/challenges.ts";
-import type { TierRequirementInfo } from "#game/challenge-tiers.ts";
+import type { LevelWorldStats } from "#game/levels.ts";
+import type { TierRequirementInfo } from "#game/level-tiers.ts";
 
 /** A finished run, with a different figure in every field so none can stand in for another. */
-const FINISHED: ChallengeWorldStats = {
+const FINISHED: LevelWorldStats = {
   elapsedTime: 71.5,
   transportedCounter: 42,
   maxWaitTime: 23.44,
@@ -28,7 +28,7 @@ const FINISHED: ChallengeWorldStats = {
  * @param threshold - The bar it sets.
  * @returns The requirement.
  */
-function asking(field: keyof ChallengeWorldStats, threshold: number): TierRequirementInfo {
+function asking(field: keyof LevelWorldStats, threshold: number): TierRequirementInfo {
   return { field, comparison: "atMost", threshold };
 }
 
@@ -54,13 +54,13 @@ describe("tierRequirementText", () => {
     );
   });
 
-  it("has a sentence for every figure a challenge can meter", () => {
-    // The table is keyed by `keyof ChallengeWorldStats`, so a field added to
+  it("has a sentence for every figure a level can meter", () => {
+    // The table is keyed by `keyof LevelWorldStats`, so a field added to
     // the statistics without an entry here is a compile error rather than
     // something this could catch. What it does catch is an entry that throws
     // or comes back empty -- a `t()` key renamed out from under one of them,
     // for instance, which type-checks perfectly.
-    for (const field of Object.keys(FINISHED) as (keyof ChallengeWorldStats)[]) {
+    for (const field of Object.keys(FINISHED) as (keyof LevelWorldStats)[]) {
       expect(tierRequirementText(asking(field, 1)), field).not.toBe("");
     }
   });
@@ -81,8 +81,8 @@ describe("tierRequirementNow", () => {
     expect(tierRequirementNow(asking("transportedPerSec", 0.6), FINISHED)).toBe("0.59");
   });
 
-  it("has a figure for every field a challenge can meter", () => {
-    for (const field of Object.keys(FINISHED) as (keyof ChallengeWorldStats)[]) {
+  it("has a figure for every field a level can meter", () => {
+    for (const field of Object.keys(FINISHED) as (keyof LevelWorldStats)[]) {
       expect(tierRequirementNow(asking(field, 1), FINISHED), field).not.toBe("");
     }
   });

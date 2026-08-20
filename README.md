@@ -396,12 +396,12 @@ UI-aware, and the message catalogue is needed everywhere.
 
 ```
 src/
-  game/       the simulation: elevators, floors, passengers, physics, challenges,
+  game/       the simulation: elevators, floors, passengers, physics, levels,
               the event emitter, and the facades handed to player code
   i18n/       message catalogue, locale detection, plural and number formatting
   shared/     business-agnostic primitives: DOM helpers, markup templating, icons,
               modal/popover/disclosure widgets, geometry math
-  entities/   UI-facing concepts: challenge, challenge tier, elevator, floor,
+  entities/   UI-facing concepts: level, level tier, elevator, floor,
               passenger, tutorial task, API reference entry
   features/   one user action each: run the simulation, adjust speed, manage code
               slots/seed, switch level/language/theme/layout, docs search, hotkeys help
@@ -409,9 +409,9 @@ src/
               building stage, stats panel, editor pane, tutorial panel,
               workspace layout, verdict toast
   pages/game/ the game page: wires most of the widgets above to a running
-              challenge (the app bar, editor pane and workspace layout are
+              level (the app bar, editor pane and workspace layout are
               mounted once from main.ts instead, since they don't change
-              when the challenge does)
+              when the level does)
   app/        fitness benchmark worker; the only thing left here once routing and
               orchestration moved into pages/game
   ui/         pre-FSD holdover: the CodeMirror integration (deliberately never

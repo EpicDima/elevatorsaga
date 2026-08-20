@@ -6,7 +6,7 @@
  * replaced — a `#` followed by comma-separated `key=value` pairs, as in
  * `#level=3,timescale=8` — and so are all but one of the parameter names, so
  * old links and bookmarks keep working. The exception is the key that names
- * what is being played, once `challenge` and now `level`, which the layer above
+ * what is being played, once `level` and now `level`, which the layer above
  * goes on reading under both spellings for exactly that reason; see
  * {@link "#pages/game/model/route.ts"!LEGACY_LEVEL_KEY}.
  *
@@ -33,7 +33,7 @@ export type RouteQuery = ReadonlyMap<string, string>;
  * written, because they are the data: `seed=Abc` and `seed=abc` are two
  * different passenger streams, and the one value that is folded — `sandbox` —
  * is folded where it is read, by
- * {@link "#pages/game/model/route.ts"!SANDBOX_CHALLENGE}'s reader, and not for
+ * {@link "#pages/game/model/route.ts"!SANDBOX_LEVEL}'s reader, and not for
  * every parameter at once.
  *
  * Folding here is also what stops an unknown key from becoming a second copy of

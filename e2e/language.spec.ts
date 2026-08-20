@@ -7,8 +7,8 @@
  * catalogue is a chunk a browser can actually fetch — until the page asked for
  * one there was nothing in the game that reached it at all — and that what the
  * reader ends up looking at agrees with itself. The shell is rewritten from the
- * catalogue and the challenge bar is drawn from it, by different code at
- * different moments; a Russian shell around an English challenge bar is worse
+ * catalogue and the level bar is drawn from it, by different code at
+ * different moments; a Russian shell around an English level bar is worse
  * than either language on its own, and this is the only place it would show.
  *
  * The Russian words below are asserted as a reader sees them, like every other

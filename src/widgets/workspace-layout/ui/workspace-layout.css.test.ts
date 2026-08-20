@@ -21,7 +21,7 @@ describe("the game pane's column", () => {
     // browser's own `flex: 0 1 auto` would let the strip be squeezed instead,
     // and the figures at the foot of it cut in half.
     expect(styleSource).toMatch(
-      /^\.pane-game > \.challenge,\n\.pane-game > \.statscontainer \{\n {2}flex: 0 0 auto;\n\}$/m,
+      /^\.pane-game > \.level,\n\.pane-game > \.statscontainer \{\n {2}flex: 0 0 auto;\n\}$/m,
     );
     const stageArea = ruleBody(".stagearea");
     expect(declaration(stageArea, "flex", ".stagearea")).toBe("1 1 auto");
@@ -48,7 +48,7 @@ describe("the game pane's column", () => {
     );
     // The ceiling is the other half of that refusal, and it is what keeps it
     // from turning into a licence: a zero shrink factor on an `auto` basis is a
-    // *content* size, and this box's content is a building. Challenge 18's is
+    // *content* size, and this box's content is a building. Level 18's is
     // 1030px wide, and unbounded it made a 1062px `.world` inside a 794px pane
     // -- 268px of it clipped away with nothing to scroll, because `.stage` only
     // scrolls what it is narrower than. Capped at the row, the stage is

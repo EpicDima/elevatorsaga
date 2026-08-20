@@ -25,7 +25,7 @@ describe("parseQuery", () => {
     expect(parseQuery("#timescale=1.5").get("timescale")).toBe("1.5");
   });
 
-  it("keeps unknown parameters, so they survive into the next-challenge link", () => {
+  it("keeps unknown parameters, so they survive into the next-level link", () => {
     expect(parseQuery("#level=2,mystery=x").get("mystery")).toBe("x");
   });
 

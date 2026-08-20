@@ -1,23 +1,23 @@
 import { describe, expect, it, vi } from "vitest";
 
-import type { ChallengeWorldStats } from "./challenges.ts";
+import type { LevelWorldStats } from "./levels.ts";
 import {
   atLeastAvgLoadFactorOnMove,
   atLeastTransportedPerSec,
-  evaluateChallengeTier,
+  evaluateLevelTier,
   requireAll,
   underAvgWaitTime,
   underElapsedTime,
   underMaxWaitTime,
   underMoveCount,
   underStopCount,
-  type ChallengeTierRequirements,
+  type LevelTierRequirements,
   type TierPredicate,
-} from "./challenge-tiers.ts";
+} from "./level-tiers.ts";
 
 /**
  * Builds a bare `TierPredicate` stub for tests that exercise
- * `requireAll`/`evaluateChallengeTier`'s own logic, not any one real
+ * `requireAll`/`evaluateLevelTier`'s own logic, not any one real
  * requirement -- an empty `requirements` list is honest here, since a stub
  * reads no field at all.
  *
@@ -29,7 +29,7 @@ function stubPredicate(result: boolean): TierPredicate {
 }
 
 /** A world in which nothing at all has happened yet. */
-const NOTHING_HAPPENED: ChallengeWorldStats = {
+const NOTHING_HAPPENED: LevelWorldStats = {
   elapsedTime: 0,
   transportedCounter: 0,
   maxWaitTime: 0,
@@ -183,40 +183,40 @@ describe("requireAll", () => {
   });
 });
 
-describe("evaluateChallengeTier", () => {
+describe("evaluateLevelTier", () => {
   it("is null on a loss, whatever the statistics and requirements say", () => {
-    const tiers: ChallengeTierRequirements = {
+    const tiers: LevelTierRequirements = {
       silver: stubPredicate(true),
       gold: stubPredicate(true),
     };
-    expect(evaluateChallengeTier(false, NOTHING_HAPPENED, tiers)).toBe(null);
-    expect(evaluateChallengeTier(false, { ...NOTHING_HAPPENED, elapsedTime: 1e9 }, undefined)).toBe(
+    expect(evaluateLevelTier(false, NOTHING_HAPPENED, tiers)).toBe(null);
+    expect(evaluateLevelTier(false, { ...NOTHING_HAPPENED, elapsedTime: 1e9 }, undefined)).toBe(
       null,
     );
   });
 
-  it("is bronze on a win when the challenge has no tier requirements", () => {
-    expect(evaluateChallengeTier(true, NOTHING_HAPPENED, undefined)).toBe("bronze");
+  it("is bronze on a win when the level has no tier requirements", () => {
+    expect(evaluateLevelTier(true, NOTHING_HAPPENED, undefined)).toBe("bronze");
   });
 
   it("is bronze on a win that clears neither requirement", () => {
-    const tiers: ChallengeTierRequirements = {
+    const tiers: LevelTierRequirements = {
       silver: stubPredicate(false),
       gold: stubPredicate(false),
     };
-    expect(evaluateChallengeTier(true, NOTHING_HAPPENED, tiers)).toBe("bronze");
+    expect(evaluateLevelTier(true, NOTHING_HAPPENED, tiers)).toBe("bronze");
   });
 
   it("is silver on a win that clears silver but not gold", () => {
-    const tiers: ChallengeTierRequirements = {
+    const tiers: LevelTierRequirements = {
       silver: stubPredicate(true),
       gold: stubPredicate(false),
     };
-    expect(evaluateChallengeTier(true, NOTHING_HAPPENED, tiers)).toBe("silver");
+    expect(evaluateLevelTier(true, NOTHING_HAPPENED, tiers)).toBe("silver");
   });
 
   it("is gold on a win that clears gold, checked ahead of silver", () => {
-    const tiers: ChallengeTierRequirements = {
+    const tiers: LevelTierRequirements = {
       // A `tiers` value from outside this module is not required to nest --
       // gold does not imply silver here on purpose, so that gold winning
       // regardless of silver's answer is a property of the evaluator, not an
@@ -224,26 +224,26 @@ describe("evaluateChallengeTier", () => {
       silver: stubPredicate(false),
       gold: stubPredicate(true),
     };
-    expect(evaluateChallengeTier(true, NOTHING_HAPPENED, tiers)).toBe("gold");
+    expect(evaluateLevelTier(true, NOTHING_HAPPENED, tiers)).toBe("gold");
   });
 
   it("uses real predicate factories at their boundary, not stub closures", () => {
-    const tiers: ChallengeTierRequirements = {
+    const tiers: LevelTierRequirements = {
       silver: underMaxWaitTime(20),
       gold: requireAll(underMaxWaitTime(20), underMoveCount(450)),
     };
     // Clears neither: waited too long for silver at all.
     expect(
-      evaluateChallengeTier(true, { ...NOTHING_HAPPENED, maxWaitTime: 25, moveCount: 100 }, tiers),
+      evaluateLevelTier(true, { ...NOTHING_HAPPENED, maxWaitTime: 25, moveCount: 100 }, tiers),
     ).toBe("bronze");
     // Clears silver's wait bar, but gold also wants the move budget, which
     // this run overspent.
     expect(
-      evaluateChallengeTier(true, { ...NOTHING_HAPPENED, maxWaitTime: 20, moveCount: 500 }, tiers),
+      evaluateLevelTier(true, { ...NOTHING_HAPPENED, maxWaitTime: 20, moveCount: 500 }, tiers),
     ).toBe("silver");
     // Clears both of gold's requirements at once.
     expect(
-      evaluateChallengeTier(true, { ...NOTHING_HAPPENED, maxWaitTime: 20, moveCount: 450 }, tiers),
+      evaluateLevelTier(true, { ...NOTHING_HAPPENED, maxWaitTime: 20, moveCount: 450 }, tiers),
     ).toBe("gold");
   });
 });

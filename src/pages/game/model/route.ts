@@ -14,8 +14,8 @@
  * and no validation of what came out, which made two malformed URLs fatal:
  *
  * - `#level=abc` produced `_.parseInt("abc") - 1`, i.e. `NaN`. `NaN < 0`
- *   and `NaN >= challenges.length` are both false, so the range check passed
- *   it through to `challenges[NaN].options` and the page died with a
+ *   and `NaN >= levels.length` are both false, so the range check passed
+ *   it through to `levels[NaN].options` and the page died with a
  *   TypeError before anything was drawn.
  * - `#timescale=abc` produced `parseFloat("abc")`, i.e. `NaN`, which became
  *   the world's time scale. Every simulated `dt` was then `NaN` and the world
@@ -45,16 +45,16 @@
  * {@link "#shared/lib/seed.ts"!SEED_PATTERN} says what survives that trip.
  *
  * One of those validations is not about whether a value can be read but about
- * whether it may be acted on: a numbered challenge has to be one this player
- * has unlocked. Until it was checked here, the level switcher drew challenge 18
+ * whether it may be acted on: a numbered level has to be one this player
+ * has unlocked. Until it was checked here, the level switcher drew level 18
  * shut and `#level=18` opened it anyway, which made the progression an
  * opinion the interface held rather than a rule the game had.
- * {@link fallBackToOpenChallenge} is the whole of the answer to such an
+ * {@link fallBackToOpenLevel} is the whole of the answer to such an
  * address, and the rule it defers to belongs to
- * {@link "#features/switch-level/index.ts"!isChallengeLocked} rather than to
+ * {@link "#features/switch-level/index.ts"!isLevelLocked} rather than to
  * this file.
  *
- * The key that names all three used to be spelled `challenge`, which is what
+ * The key that names all three used to be spelled `level`, which is what
  * every link ever shared out of this game says. {@link LEGACY_LEVEL_KEY} and
  * {@link renameLegacyLevelKey} are how those links go on working: the old
  * spelling is read wherever the new one would be and rewritten out of the
@@ -62,7 +62,7 @@
  * written in a name the game no longer uses.
  */
 
-import type { SandboxOptions } from "#game/challenges.ts";
+import type { SandboxOptions } from "#game/levels.ts";
 // The one thing this module takes from `src/game/` as a value rather than a
 // type, and it is imported rather than handed in through {@link RouteContext}
 // because it is not a choice a caller makes: there is exactly one learning
@@ -71,7 +71,7 @@ import type { SandboxOptions } from "#game/challenges.ts";
 // do not exist, and the ids cannot be passed through a context at all without
 // moving the table into one.
 //
-// This used to buy a cycle -- `game/tutorial.ts` -> `game/challenges.ts` ->
+// This used to buy a cycle -- `game/tutorial.ts` -> `game/levels.ts` ->
 // `i18n/index.ts` -> `i18n/detect.ts` -> back into this file for `parseQuery`
 // -- from the days `parseQuery` and this table shared one module. Splitting the
 // hash grammar out to {@link "#shared/lib/route-query.ts"} broke it:
@@ -88,17 +88,17 @@ import { isUsableSeed } from "#shared/lib/seed.ts";
 /** The validated parameters a route resolves to. */
 export interface RouteParams {
   /**
-   * Zero-based index into the challenge list.
+   * Zero-based index into the level list.
    *
    * Meaningless while {@link sandbox} or {@link tutorialIndex} is set: neither
    * the sandbox nor a task of the learning track is in that list.
    */
-  readonly challengeIndex: number;
+  readonly levelIndex: number;
   /**
-   * The building the sandbox was asked for, or `null` for a numbered challenge.
+   * The building the sandbox was asked for, or `null` for a numbered level.
    *
    * Set when `level=sandbox`, which is why it displaces
-   * {@link challengeIndex} rather than sitting beside it: the URL names one
+   * {@link levelIndex} rather than sitting beside it: the URL names one
    * thing to play, and this is the other thing it can name.
    */
   readonly sandbox: SandboxOptions | null;
@@ -119,7 +119,7 @@ export interface RouteParams {
    * The seed the world draws its passengers from, or `null` when the URL pins
    * none and the world should draw its own.
    *
-   * Not the building: floors, elevators and capacities come from the challenge
+   * Not the building: floors, elevators and capacities come from the level
    * or the sandbox parameters, and the seed has no say in them.
    *
    * The URL is the only thing that pins a seed, which is what makes the two
@@ -137,7 +137,7 @@ export interface RouteParams {
    *
    * Collected as the parameters are resolved rather than worked out afterwards,
    * because a refusal and an absence resolve to the same value: `level=abc`
-   * and no `level` at all both mean the first challenge, and only the
+   * and no `level` at all both mean the first level, and only the
    * resolver knows which of the two it just saw.
    *
    * Every key in here resolved to exactly what the corrected URL resolves to,
@@ -146,7 +146,7 @@ export interface RouteParams {
    * and its refusal come to the same thing. The exceptions are both spellings
    * of `level` that land somewhere absence does not spell: a task address
    * the router could not read, which starts the first task of the learning
-   * track, and a challenge this player has not unlocked, which starts the
+   * track, and a level this player has not unlocked, which starts the
    * nearest one they have. Those are rewritten rather than dropped.
    * {@link startRouter} does both, and says why the address bar is corrected
    * at all rather than left describing a run that is not being played.
@@ -173,28 +173,28 @@ type Refuse = (key: string) => void;
 
 /** Everything {@link resolveRoute} needs besides the URL itself. */
 export interface RouteContext {
-  /** How many challenges exist; bounds the `level` parameter. */
-  readonly challengeCount: number;
+  /** How many levels exist; bounds the `level` parameter. */
+  readonly levelCount: number;
   /** Time scale to use when the URL does not ask for one. */
   readonly defaultTimeScale: number;
   /**
-   * Whether a challenge is still shut to this player.
+   * Whether a level is still shut to this player.
    *
    * Handed in rather than worked out here, for the reason
-   * {@link challengeCount} is: what a browser has cleared is stored state, and
+   * {@link levelCount} is: what a browser has cleared is stored state, and
    * this module reads a URL. `src/main.ts` supplies
-   * {@link "#features/switch-level/index.ts"!isChallengeLocked} over this
+   * {@link "#features/switch-level/index.ts"!isLevelLocked} over this
    * browser's own record, which is the same call the level switcher makes to
    * decide which tiles to draw shut.
    *
    * Asked on every route rather than once, because the answer moves while the
-   * page is open: clearing a challenge unlocks the next one, and the "Next
+   * page is open: clearing a level unlocks the next one, and the "Next
    * level" link in the verdict card is followed a moment later.
    *
-   * @param index - Zero-based index of the challenge, already known to exist.
+   * @param index - Zero-based index of the level, already known to exist.
    * @returns Whether it refuses to open.
    */
-  readonly isChallengeLocked: (index: number) => boolean;
+  readonly isLevelLocked: (index: number) => boolean;
 }
 
 /**
@@ -238,7 +238,7 @@ export const LEGACY_LEVEL_KEY = "challenge";
 
 /**
  * The {@link LEVEL_KEY} value that asks for the sandbox instead of a numbered
- * challenge.
+ * level.
  *
  * The sandbox reuses that key rather than adding a `sandbox` flag of its own,
  * because it is the one the level switcher's entries overwrite: following one
@@ -247,7 +247,7 @@ export const LEGACY_LEVEL_KEY = "challenge";
  * keys — a `sandbox` flag *and* a level number — would leave the row producing
  * URLs that name both.
  */
-export const SANDBOX_CHALLENGE = "sandbox";
+export const SANDBOX_LEVEL = "sandbox";
 
 /**
  * What every {@link LEVEL_KEY} value that names a learning-track task starts
@@ -258,19 +258,19 @@ export const SANDBOX_CHALLENGE = "sandbox";
  * {@link "#game/tutorial.ts"!tutorialTasks} — `tutorial-1` … `tutorial-8`
  * today — and not because it matches a shape invented here.
  *
- * The prefix is what tells a mistyped task address from a challenge number, so
+ * The prefix is what tells a mistyped task address from a level number, so
  * that `tutorial-9` is a wrong address on the track rather than a wrong
- * challenge, and lands where the player was heading. It is the one thing that
+ * level, and lands where the player was heading. It is the one thing that
  * has to stay in step with the ids by hand; `route.test.ts` checks that it
  * does, because a task renamed out of this shape would become unreachable
  * rather than merely oddly named.
  *
- * Reuses {@link LEVEL_KEY} for the same reason {@link SANDBOX_CHALLENGE} does:
+ * Reuses {@link LEVEL_KEY} for the same reason {@link SANDBOX_LEVEL} does:
  * it is the key the level switcher's entries overwrite, so every one of them is
  * already the way out of the track, and no second key can be left behind naming
  * a task nobody is playing.
  */
-export const TUTORIAL_CHALLENGE_PREFIX = "tutorial-";
+export const TUTORIAL_LEVEL_PREFIX = "tutorial-";
 
 /**
  * Reads a hash written with {@link LEGACY_LEVEL_KEY} as one written with
@@ -327,7 +327,7 @@ interface SandboxRange {
  *   not exist, so every passenger waits forever for an elevator that can never
  *   arrive. The ceiling is the page: the building is drawn at a fixed 50px per
  *   floor with no scaling, so 60 floors is already a 3000px column, about three
- *   screens, and it is nearly three times the tallest shipped challenge (21).
+ *   screens, and it is nearly three times the tallest shipped level (21).
  *   It also bounds the DOM, since every elevator carries one in-car button per
  *   floor: 60 floors and 12 cars is ~900 elements, where `floors=100000` would
  *   be several million and lock the tab up before the first frame.
@@ -353,10 +353,10 @@ interface SandboxRange {
  *   typed into an address bar rather than a number the engine has to survive.
  *   The ceiling is that passengers only leave the world when they are
  *   delivered: at 10 per second, more than three times the busiest shipped
- *   challenge, an unsolved building already grows without bound, and at 64x
+ *   level, an unsolved building already grows without bound, and at 64x
  *   time scale that is 640 new DOM nodes per second of wall clock.
  *
- * The fallbacks are challenge 4's building — eight floors, two cars, capacity
+ * The fallbacks are level 4's building — eight floors, two cars, capacity
  * four, 0.6 passengers a second — so a bare `#level=sandbox` starts
  * something known to be playable rather than something degenerate.
  */
@@ -408,7 +408,7 @@ const ELEVATOR_LAYOUT = {
  * Validates the raw parameters of a route.
  *
  * @param query - The parsed parameters.
- * @param context - The challenge count and the fallback time scale.
+ * @param context - The level count and the fallback time scale.
  * @returns Parameters that are always safe to act on.
  */
 export function resolveRoute(rawQuery: RouteQuery, context: RouteContext): RouteParams {
@@ -421,21 +421,19 @@ export function resolveRoute(rawQuery: RouteQuery, context: RouteContext): Route
   // handing it a hash somebody wrote years ago should get the run that hash
   // names rather than the first level.
   const query = renameLegacyLevelKey(rawQuery);
-  const challenge = query.get(LEVEL_KEY);
-  // Before resolveChallengeIndex, and the reason the two guards come first: it
+  const level = query.get(LEVEL_KEY);
+  // Before resolveLevelIndex, and the reason the two guards come first: it
   // reads its value with `Number`, which makes "sandbox" and "tutorial-3" alike
-  // into NaN, i.e. into a refusal and challenge one. Whichever of the three the
+  // into NaN, i.e. into a refusal and level one. Whichever of the three the
   // key names has to be decided before any of them is parsed as a number.
-  const tutorialIndex = isTutorialRoute(challenge) ? resolveTutorialIndex(challenge, refuse) : null;
-  const sandbox = isSandboxRoute(challenge) ? resolveSandboxOptions(query, refuse) : null;
+  const tutorialIndex = isTutorialRoute(level) ? resolveTutorialIndex(level, refuse) : null;
+  const sandbox = isSandboxRoute(level) ? resolveSandboxOptions(query, refuse) : null;
   return {
     // Resolved, and so warned about, only when it is the one being played:
-    // neither a sandbox URL nor a task address names a challenge number, and
+    // neither a sandbox URL nor a task address names a level number, and
     // complaining that "sandbox" or "tutorial-3" is not one would be noise.
-    challengeIndex:
-      sandbox === null && tutorialIndex === null
-        ? resolveChallengeIndex(challenge, context, refuse)
-        : 0,
+    levelIndex:
+      sandbox === null && tutorialIndex === null ? resolveLevelIndex(level, context, refuse) : 0,
     sandbox,
     tutorialIndex,
     timeScale: resolveTimeScale(query.get("timescale"), context.defaultTimeScale, refuse),
@@ -555,7 +553,7 @@ function refuseSeedOnTrack(query: RouteQuery, refuse: Refuse): null {
  * @returns Whether it names the sandbox, in any casing.
  */
 function isSandboxRoute(value: string | undefined): boolean {
-  return value?.toLowerCase() === SANDBOX_CHALLENGE;
+  return value?.toLowerCase() === SANDBOX_LEVEL;
 }
 
 /**
@@ -564,11 +562,11 @@ function isSandboxRoute(value: string | undefined): boolean {
  * True of every value spelled like a task address, not only of the eight that
  * open a task: `tutorial-9` and `tutorial-` are answered by
  * {@link resolveTutorialIndex}, which starts the track, rather than by
- * {@link resolveChallengeIndex}, which would start challenge one.
+ * {@link resolveLevelIndex}, which would start level one.
  *
  * Folded exactly where {@link isSandboxRoute} folds "sandbox" — here, as the
  * value is read, and not in `parseQuery` for every parameter at once — so
- * `#CHALLENGE=TUTORIAL-3` opens task 3 while `seed=Abc` stays the stream it
+ * `#LEVEL=TUTORIAL-3` opens task 3 while `seed=Abc` stays the stream it
  * names.
  *
  * Narrows its argument rather than answering a plain `boolean`, so that the
@@ -581,7 +579,7 @@ function isSandboxRoute(value: string | undefined): boolean {
  * @returns Whether it names a task of the track, in any casing.
  */
 function isTutorialRoute(value: string | undefined): value is string {
-  return value?.toLowerCase().startsWith(TUTORIAL_CHALLENGE_PREFIX) === true;
+  return value?.toLowerCase().startsWith(TUTORIAL_LEVEL_PREFIX) === true;
 }
 
 /**
@@ -601,16 +599,16 @@ function isTutorialRoute(value: string | undefined): value is string {
  * writing the number one, and neither is a way of writing the *name*
  * `tutorial-1`. So are `tutorial-` and `tutorial- 1`, which `Number` reads as
  * `0` and `1` — the two traps {@link resolveSandboxInteger} and
- * {@link resolveChallengeIndex} guard against on the other side of this branch.
+ * {@link resolveLevelIndex} guard against on the other side of this branch.
  * A name is worth having precisely because it is compared and not computed, and
  * a task the URL does not spell is a task the player did not ask for.
  *
- * Anything unreadable lands on the first task rather than the first challenge:
+ * Anything unreadable lands on the first task rather than the first level:
  * somebody who wrote `tutorial-9` asked for the track, and where the track
  * starts is the closest thing to what they asked for. The warning is what makes
  * that a refusal rather than a silent success, since the first task is also
  * where `tutorial-1` lands. {@link startRouter} then writes the first task's
- * address into the bar, because deleting the key would put them on a challenge.
+ * address into the bar, because deleting the key would put them on a level.
  *
  * @param value - The parsed parameter, already known to be spelled like a task
  * and already free of surrounding whitespace; see {@link isSandboxRoute}.
@@ -722,7 +720,7 @@ function fitElevatorCount(requested: number, capacities: readonly number[]): num
  *
  * The world reads `capacities[i % capacities.length]` once per car, so entries
  * past the last car are never read and the building is the same with or without
- * them. The challenge bar is what makes them worth removing: it prints the list
+ * them. The level bar is what makes them worth removing: it prints the list
  * it is handed, so `elevators=1,capacities=6-9` would otherwise be described as
  * one elevator "of capacities 6, 9" when the only car built has a capacity of
  * six.
@@ -872,31 +870,31 @@ function resolveElevatorCapacities(value: string | undefined, refuse: Refuse): n
  *
  * Read with `Number`, as every other number in the hash is, and not with
  * `parseInt`. `parseInt` reads as far as it understands and stops without
- * complaint, so `level=3abc` started challenge 3 and `level=1e9`
- * started challenge 1 — and the second looked like a refusal, because the first
- * challenge is also where a refusal lands. A refusal nobody can tell apart from
+ * complaint, so `level=3abc` started level 3 and `level=1e9`
+ * started level 1 — and the second looked like a refusal, because the first
+ * level is also where a refusal lands. A refusal nobody can tell apart from
  * a success is one nobody can act on: no warning was printed, and the URL went
  * on saying something the game had not done. `Number` reads the whole string or
  * nothing, so both are refused now, and said so.
  *
  * The empty string needs no guard of its own here, unlike in the sandbox
- * resolvers: `Number("")` is `0`, and challenge zero does not exist, so the
+ * resolvers: `Number("")` is `0`, and level zero does not exist, so the
  * range check below refuses it along with everything else out of range.
  *
- * A challenge that exists is not yet a challenge this player may open, and the
+ * A level that exists is not yet a level this player may open, and the
  * second check is the one that closes what used to be a hole: the level
- * switcher draws a challenge shut until the one before it has been cleared,
+ * switcher draws a level shut until the one before it has been cleared,
  * and typing `#level=18` opened it anyway. A URL is not a way around the
- * game's own progression — {@link fallBackToOpenChallenge} says where such an
+ * game's own progression — {@link fallBackToOpenLevel} says where such an
  * address lands instead.
  *
  * @param value - The raw parameter, if it was present.
- * @param context - The challenge count and this browser's locking rule.
+ * @param context - The level count and this browser's locking rule.
  * @param refuse - Records the key when the value cannot be used.
  * @returns A zero-based index that exists and is open; `0` for anything
  * unusable.
  */
-function resolveChallengeIndex(
+function resolveLevelIndex(
   value: string | undefined,
   context: RouteContext,
   refuse: Refuse,
@@ -905,53 +903,53 @@ function resolveChallengeIndex(
     return 0;
   }
   const index = Number(value) - 1;
-  if (!Number.isInteger(index) || index < 0 || index >= context.challengeCount) {
+  if (!Number.isInteger(index) || index < 0 || index >= context.levelCount) {
     console.warn(`Invalid level "${value}", starting the first level instead`);
     refuse(LEVEL_KEY);
     return 0;
   }
-  if (context.isChallengeLocked(index)) {
-    return fallBackToOpenChallenge(value, index, context.isChallengeLocked, refuse);
+  if (context.isLevelLocked(index)) {
+    return fallBackToOpenLevel(value, index, context.isLevelLocked, refuse);
   }
   return index;
 }
 
 /**
- * Answers an address for a locked challenge with the nearest one that is open.
+ * Answers an address for a locked level with the nearest one that is open.
  *
  * Walks *back* from what was asked for, never forward, and stops at the first
- * challenge that opens — which is as far along the row as this player has
+ * level that opens — which is as far along the row as this player has
  * earned on the way to their destination. Walking forward could hand somebody
- * a challenge further on than the one they were refused, which is the same
+ * a level further on than the one they were refused, which is the same
  * hole with an extra step in it; and there is always somewhere to land, since
- * the first challenge is open to everyone.
+ * the first level is open to everyone.
  *
- * Nothing here assumes the open challenges are a run from the first: a browser
- * that cleared challenge 6 alone, back when every challenge was reachable from
- * the row, has challenge 7 open and 2 through 6 shut, and an address for 12
+ * Nothing here assumes the open levels are a run from the first: a browser
+ * that cleared level 6 alone, back when every level was reachable from
+ * the row, has level 7 open and 2 through 6 shut, and an address for 12
  * lands on 7. See
- * {@link "#features/switch-level/index.ts"!isChallengeLocked} for why a record
+ * {@link "#features/switch-level/index.ts"!isLevelLocked} for why a record
  * can look like that.
  *
- * The key is refused, so the address bar stops naming a challenge nobody is
+ * The key is refused, so the address bar stops naming a level nobody is
  * playing — {@link startRouter} rewrites it to the one that opened rather than
- * deleting it, since deleting would say "challenge one" and that is a third
+ * deleting it, since deleting would say "level one" and that is a third
  * place the player never asked to be.
  *
  * @param value - The raw parameter, for the warning.
- * @param index - The locked challenge that was asked for.
- * @param isChallengeLocked - This browser's locking rule.
+ * @param index - The locked level that was asked for.
+ * @param isLevelLocked - This browser's locking rule.
  * @param refuse - Records the key so the address bar loses the refused number.
- * @returns The nearest open challenge at or before `index`.
+ * @returns The nearest open level at or before `index`.
  */
-function fallBackToOpenChallenge(
+function fallBackToOpenLevel(
   value: string,
   index: number,
-  isChallengeLocked: (index: number) => boolean,
+  isLevelLocked: (index: number) => boolean,
   refuse: Refuse,
 ): number {
   let open = index;
-  while (open > 0 && isChallengeLocked(open)) {
+  while (open > 0 && isLevelLocked(open)) {
     open -= 1;
   }
   console.warn(
@@ -991,7 +989,7 @@ function resolveTimeScale(
  * `null` when it does not have to be written at all.
  *
  * The whole of {@link startRouter}'s "delete or rewrite" decision. `null` means
- * delete: the first challenge is what an absent key already spells, and a
+ * delete: the first level is what an absent key already spells, and a
  * correction that wrote `level=1` would be putting a choice into the
  * address bar the player never made. Anything else is a landing absence cannot
  * spell, and gets written out.
@@ -1005,23 +1003,23 @@ function resolveTimeScale(
  * `tutorialTasks[0]` would quietly write the first task's address over whatever
  * they were actually given, and the URL would go back to lying about the run.
  * That is the failure the correction exists to prevent, so it should not depend
- * on which refusals happen to exist. The numbered challenge below is exactly
+ * on which refusals happen to exist. The numbered level below is exactly
  * that day arriving on the other branch.
  *
  * There is no sandbox case, and it is not an omission: `level=sandbox` is
  * decided before any of the three values is parsed, so nothing on that route
- * ever calls {@link resolveChallengeIndex} and `level` cannot be among a
+ * ever calls {@link resolveLevelIndex} and `level` cannot be among a
  * sandbox route's refusals.
  *
  * @param params - What the route resolved to.
  * @returns The value to write, or `null` to drop the key.
  */
-function challengeAddress(params: RouteParams): string | null {
-  const { challengeIndex, tutorialIndex } = params;
+function levelAddress(params: RouteParams): string | null {
+  const { levelIndex, tutorialIndex } = params;
   if (tutorialIndex !== null) {
     return tutorialTasks[tutorialIndex]?.id ?? null;
   }
-  return challengeIndex === 0 ? null : String(challengeIndex + 1);
+  return levelIndex === 0 ? null : String(levelIndex + 1);
 }
 
 /** Called with every route the player navigates to. */
@@ -1070,25 +1068,25 @@ export interface RouterTarget {
 
 /** Options accepted by {@link startRouter}. */
 export interface RouterOptions {
-  /** How many challenges exist. */
-  readonly challengeCount: number;
+  /** How many levels exist. */
+  readonly levelCount: number;
   /**
    * Time scale to use when the URL does not ask for one.
    *
    * Re-read on every navigation, so a speed the player chose with the `+`/`-`
-   * buttons survives moving to the next challenge.
+   * buttons survives moving to the next level.
    */
   readonly defaultTimeScale: () => number;
   /**
-   * Whether a challenge is still shut to this player.
+   * Whether a level is still shut to this player.
    *
-   * Re-read on every navigation for the reason {@link RouteContext.isChallengeLocked}
-   * gives: a challenge cleared a moment ago is a challenge that opens now.
+   * Re-read on every navigation for the reason {@link RouteContext.isLevelLocked}
+   * gives: a level cleared a moment ago is a level that opens now.
    *
-   * @param index - Zero-based index of the challenge, already known to exist.
+   * @param index - Zero-based index of the level, already known to exist.
    * @returns Whether it refuses to open.
    */
-  readonly isChallengeLocked: (index: number) => boolean;
+  readonly isLevelLocked: (index: number) => boolean;
   /** The window whose location and events to follow; defaults to `window`. */
   readonly target?: RouterTarget;
 }
@@ -1103,11 +1101,11 @@ export interface RouterOptions {
  * It also corrects the address bar as it reads it. A parameter the router
  * refused is deleted from the URL, because a hash that goes on naming something
  * nobody is playing is a hash that gets bookmarked, pasted into a chat and
- * reported as a bug in the game: `#level=abc` starts the first challenge,
+ * reported as a bug in the game: `#level=abc` starts the first level,
  * and the URL should stop saying `abc`. It is deleted rather than rewritten to
  * `level=1`, so `#level=abc,timescale=8` becomes `#timescale=8` and
  * `#level=abc` on its own becomes an empty hash. Absence is how this hash
- * spells the first challenge, and a correction that invented a value would be
+ * spells the first level, and a correction that invented a value would be
  * putting a choice into the address bar that the player never made — the next
  * thing they copied out of it would carry that choice with it. Every deleted key
  * resolved to exactly what its absence resolves to — that is what being refused
@@ -1121,7 +1119,7 @@ export interface RouterOptions {
  * on the learning track, so it starts the track's first task, and the only
  * thing that spells that task is its own id; and `#level=18` typed by
  * somebody who has cleared seven starts the eighth, which `level=8` is the
- * only spelling of. Absence spells the first challenge, which is somewhere
+ * only spelling of. Absence spells the first level, which is somewhere
  * else entirely in both cases, so deleting the key would leave the bar
  * describing a run nobody is watching and a reload would take the player to
  * it. Neither correction invents a choice for them: they chose the track, and
@@ -1143,7 +1141,7 @@ export interface RouterOptions {
  * afterwards.
  *
  * @param onRoute - Called with the resolved parameters for each route.
- * @param options - The challenge count, the default time scale and the window.
+ * @param options - The level count, the default time scale and the window.
  * @returns A function that stops routing.
  */
 export function startRouter(onRoute: RouteHandler, options: RouterOptions): () => void {
@@ -1166,7 +1164,7 @@ export function startRouter(onRoute: RouteHandler, options: RouterOptions): () =
     if (refusedKeys.length === 0 && !renamed) {
       return query;
     }
-    const address = challengeAddress(params);
+    const address = levelAddress(params);
     const kept = new Map(query);
     for (const key of refusedKeys) {
       if (key === LEVEL_KEY && address !== null) {
@@ -1204,9 +1202,9 @@ export function startRouter(onRoute: RouteHandler, options: RouterOptions): () =
     // saying the name the game retired.
     const query = renameLegacyLevelKey(written);
     const params = resolveRoute(query, {
-      challengeCount: options.challengeCount,
+      levelCount: options.levelCount,
       defaultTimeScale: options.defaultTimeScale(),
-      isChallengeLocked: options.isChallengeLocked,
+      isLevelLocked: options.isLevelLocked,
     });
     onRoute(params, correct(query, params, query !== written));
   };

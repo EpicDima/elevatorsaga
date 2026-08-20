@@ -380,10 +380,10 @@ describe("World", () => {
     expect(world.elevators).toHaveLength(2);
     expect(world.elevatorInterfaces).toHaveLength(2);
     expect(world.users).toEqual([]);
-    expect(world.challengeEnded).toBe(false);
+    expect(world.levelEnded).toBe(false);
   });
 
-  it("honours the challenge options", () => {
+  it("honours the level options", () => {
     const world = createWorld({
       floorHeight: 40,
       floorCount: 6,
@@ -575,7 +575,7 @@ describe("World", () => {
     });
 
     it("reports no elevator moves before anything has moved", () => {
-      // Issues #117 and #20: `moveCount` is what the "elevator moves" challenges
+      // Issues #117 and #20: `moveCount` is what the "elevator moves" levels
       // are scored on, so a world whose elevators have not gone anywhere had to
       // report zero. It reported one move per elevator on the first frame.
       const world = createWorld({ spawnRate: 0.001, floorCount: 4, elevatorCount: 2 });
@@ -1585,13 +1585,13 @@ describe("World", () => {
   });
 
   describe("unWind", () => {
-    it("ends the challenge and empties the world", () => {
+    it("ends the level and empties the world", () => {
       const world = createWorld({ spawnRate: 0.5 });
       world.update(0.1);
 
       world.unWind();
 
-      expect(world.challengeEnded).toBe(true);
+      expect(world.levelEnded).toBe(true);
       expect(world.elevators).toEqual([]);
       expect(world.elevatorInterfaces).toEqual([]);
       expect(world.users).toEqual([]);
@@ -1651,7 +1651,7 @@ describe("World", () => {
     // so nothing would otherwise check that `World` still fits it.
     const controllable: ControllableWorld = createWorld();
     expect(controllable.floorInterfaces).toHaveLength(4);
-    expect(controllable.challengeEnded).toBe(false);
+    expect(controllable.levelEnded).toBe(false);
   });
 });
 

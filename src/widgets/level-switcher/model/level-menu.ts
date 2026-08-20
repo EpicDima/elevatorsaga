@@ -2,9 +2,9 @@
  * What the level-switcher popover offers to open, grouped into blocks.
  *
  * A pure data-shaping step, deliberately without any DOM or player-facing
- * text: it composes {@link "#entities/challenge/index.ts"!listChallenges}'s
- * ordering, {@link "#entities/challenge-tier/index.ts"} 's best-tier record
- * and {@link "#features/switch-level/index.ts"!lockChallengeTiles}'s locking
+ * text: it composes {@link "#entities/level/index.ts"!listLevels}'s
+ * ordering, {@link "#entities/level-tier/index.ts"} 's best-tier record
+ * and {@link "#features/switch-level/index.ts"!lockLevelTiles}'s locking
  * rule for the "Уровни" block; {@link "#game/tutorial.ts"!tutorialTasks} and
  * the caller's cleared-task record for the "Обучение" block, which stays
  * unlocked on purpose — see
@@ -12,7 +12,7 @@
  * track locks nothing" rule; and a single always-open tile for free play.
  * Every string a player reads — labels, tooltips, accessible names — is
  * built later, in this widget's own `ui/` layer, the same division
- * `listChallenges` and `lockChallengeTiles` already keep.
+ * `listLevels` and `lockLevelTiles` already keep.
  *
  * Building a real URL is not this module's job either: even now that
  * `createParamsUrl` is reachable — it lives in `src/shared/lib/route-query.ts`,
@@ -23,14 +23,14 @@
  * link itself.
  */
 
-import { listChallenges, type Challenge } from "#entities/challenge/index.ts";
-import type { ChallengeTier } from "#entities/challenge-tier/index.ts";
-import { lockChallengeTiles } from "#features/switch-level/index.ts";
+import { listLevels, type Level } from "#entities/level/index.ts";
+import type { LevelTier } from "#entities/level-tier/index.ts";
+import { lockLevelTiles } from "#features/switch-level/index.ts";
 import type { TutorialTask } from "#game/tutorial.ts";
 
 /** What is being played right now, if any tile in this menu names it. */
 export type LevelSelection =
-  | { readonly kind: "challenge"; readonly index: number }
+  | { readonly kind: "level"; readonly index: number }
   | { readonly kind: "tutorial"; readonly index: number }
   | { readonly kind: "sandbox" };
 
@@ -38,23 +38,23 @@ export type LevelSelection =
  * What a tile links to, for a caller's own `buildHref` to turn into a URL.
  *
  * Shaped after the three ways `src/pages/game/model/route.ts` reads the
- * `challenge` parameter: a one-based number, a task's own id (already
- * `tutorial-N`), or {@link "#pages/game/model/route.ts"!SANDBOX_CHALLENGE}.
+ * `level` parameter: a one-based number, a task's own id (already
+ * `tutorial-N`), or {@link "#pages/game/model/route.ts"!SANDBOX_LEVEL}.
  */
 export type LevelLinkTarget =
-  | { readonly kind: "challenge"; readonly number: number }
+  | { readonly kind: "level"; readonly number: number }
   | { readonly kind: "tutorial"; readonly taskId: string }
   | { readonly kind: "sandbox" };
 
 /** One tile of the "Уровни" block. */
-export interface ChallengeMenuTile {
-  readonly kind: "challenge";
+export interface NumberedMenuTile {
+  readonly kind: "level";
   readonly index: number;
   readonly number: number;
   readonly locked: boolean;
   readonly current: boolean;
   /** This browser's best-recorded tier, or `undefined` if never cleared. */
-  readonly tier: ChallengeTier | undefined;
+  readonly tier: LevelTier | undefined;
   readonly href: string;
 }
 
@@ -76,7 +76,7 @@ export interface SandboxMenuTile {
 }
 
 /** One tile of the level-switcher menu, whichever block it belongs to. */
-export type LevelMenuTile = ChallengeMenuTile | TutorialMenuTile | SandboxMenuTile;
+export type LevelMenuTile = NumberedMenuTile | TutorialMenuTile | SandboxMenuTile;
 
 /**
  * One named group of tiles.
@@ -88,18 +88,18 @@ export type LevelMenuTile = ChallengeMenuTile | TutorialMenuTile | SandboxMenuTi
  * different names here rather than one standing for both.
  */
 export interface LevelMenuBlock {
-  readonly id: "tutorial" | "challenges" | "other";
+  readonly id: "tutorial" | "levels" | "other";
   readonly tiles: readonly LevelMenuTile[];
 }
 
 /** Everything {@link buildLevelMenu} needs to assemble the menu. */
 export interface LevelMenuInput {
-  /** The numbered challenges, in playing order — {@link "#game/challenges.ts"!challenges}. */
-  readonly challenges: readonly Challenge[];
+  /** The numbered levels, in playing order — {@link "#game/levels.ts"!levels}. */
+  readonly levels: readonly Level[];
   /** The learning track, in playing order — {@link "#game/tutorial.ts"!tutorialTasks}. */
   readonly tutorialTasks: readonly TutorialTask[];
-  /** This browser's best-recorded tier per challenge index. */
-  readonly bestTiers: ReadonlyMap<number, ChallengeTier>;
+  /** This browser's best-recorded tier per level index. */
+  readonly bestTiers: ReadonlyMap<number, LevelTier>;
   /** This browser's cleared learning-track task ids. */
   readonly clearedTutorialTasks: ReadonlySet<string>;
   /** What is being played right now, if anything this menu offers is. */
@@ -122,18 +122,18 @@ function buildTutorialBlock(input: LevelMenuInput): LevelMenuBlock {
   };
 }
 
-function buildChallengeBlock(input: LevelMenuInput): LevelMenuBlock {
-  const lockedTiles = lockChallengeTiles(listChallenges(input.challenges), input.bestTiers);
+function buildLevelBlock(input: LevelMenuInput): LevelMenuBlock {
+  const lockedTiles = lockLevelTiles(listLevels(input.levels), input.bestTiers);
   return {
-    id: "challenges",
+    id: "levels",
     tiles: lockedTiles.map((tile) => ({
-      kind: "challenge",
+      kind: "level",
       index: tile.index,
       number: tile.number,
       locked: tile.locked,
-      current: input.selection.kind === "challenge" && input.selection.index === tile.index,
+      current: input.selection.kind === "level" && input.selection.index === tile.index,
       tier: input.bestTiers.get(tile.index),
-      href: input.buildHref({ kind: "challenge", number: tile.number }),
+      href: input.buildHref({ kind: "level", number: tile.number }),
     })),
   };
 }
@@ -153,7 +153,7 @@ function buildOtherBlock(input: LevelMenuInput): LevelMenuBlock {
 
 /**
  * Groups every level this menu offers into its three blocks, in the order
- * they are shown: learning track, then numbered challenges, then everything
+ * they are shown: learning track, then numbered levels, then everything
  * else — which today is free play, and only free play.
  *
  * Three fixed calls rather than a config-driven loop over a block list: the
@@ -166,5 +166,5 @@ function buildOtherBlock(input: LevelMenuInput): LevelMenuBlock {
  * @returns The three blocks, in display order.
  */
 export function buildLevelMenu(input: LevelMenuInput): readonly LevelMenuBlock[] {
-  return [buildTutorialBlock(input), buildChallengeBlock(input), buildOtherBlock(input)];
+  return [buildTutorialBlock(input), buildLevelBlock(input), buildOtherBlock(input)];
 }

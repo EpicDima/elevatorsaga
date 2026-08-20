@@ -68,7 +68,7 @@
  * an English one. «Дом» is the shorter, plainer word, and the track points at a
  * building the player is watching rather than describing buildings in general,
  * which is what everything outside `tutorial.*` does: the help page, the
- * challenge descriptions, the errors about a floor number and the accessible
+ * level descriptions, the errors about a floor number and the accessible
  * name of the building view all keep «здание».
  *
  * «Сид» rather than «зерно»: it is what Russian-speaking players of every game
@@ -93,7 +93,7 @@
  *   this — and ё written wherever it belongs. The non-breaking space between a
  *   number and its unit comes from `Intl` (see `formatNumber`), not from here.
  * - **Register.** Buttons are short and imperative: Старт, Пауза, Заново.
- *   Challenge descriptions speak to the player directly — «Перевезите…» — with
+ *   Level descriptions speak to the player directly — «Перевезите…» — with
  *   no bureaucratic nouns («осуществите транспортировку» is exactly what this
  *   file is written to avoid).
  * - **Numerals.** The counted phrases are grammatical in the sentence they are
@@ -228,9 +228,9 @@ export const RU_MESSAGES: MessageCatalogue<"ru"> = {
   "game.statsPanel.aboardNow": "Едут сейчас",
   // Текст сводки для «<details>» с девятью дополнительными плитками панели.
   "game.statsPanel.more": "Все показатели",
-  "game.challenge.title.html": "Уровень {number}: {description}",
-  "game.challenge.nav.label": "Уровни",
-  "game.challenge.nav.link": "Уровень {number}",
+  "game.level.title.html": "Уровень {number}: {description}",
+  "game.level.nav.label": "Уровни",
+  "game.level.nav.link": "Уровень {number}",
   "game.levelSwitcher.prevLabel": "Предыдущий уровень",
   "game.levelSwitcher.nextLabel": "Следующий уровень",
   // Заголовок блока и плитка внутри него названы по-разному нарочно. «Остальное» —
@@ -242,7 +242,7 @@ export const RU_MESSAGES: MessageCatalogue<"ru"> = {
   "game.levelSwitcher.sandboxLabel": "Песочница",
   "game.levelSwitcher.tutorialTileLabel": "Учебный уровень {number}",
   "game.levelSwitcher.tutorialTileClearedLabel": "Учебный уровень {number}, пройден",
-  "game.levelSwitcher.challengeTileLockedLabel": "Уровень {number}, заблокирован",
+  "game.levelSwitcher.levelTileLockedLabel": "Уровень {number}, заблокирован",
   // Что написано на кнопке шириной 118px, когда играется урок. Подписи плиток
   // выше сделаны для сетки, где состояние в конце — это и есть смысл подписи;
   // на кнопке они не помещаются: «Учебный уровень 1» просит больше, чем 96px
@@ -705,32 +705,32 @@ elevator.goingDownIndicator(false);`,
 
   // ----------------------------------------------------------------- уровни
 
-  "challenge.transportWithinTime.html": "Перевезите {people} за {time} или быстрее",
+  "level.transportWithinTime.html": "Перевезите {people} за {time} или быстрее",
   // Не «ждёт», а «доставка не длится»: ограничение в этих трёх фразах — это
   // World.maxWaitTime, а он останавливается на этаже пассажира, а не у дверей
   // кабины. Тот, кто прочитает его как время ожидания, будет оптимизировать
   // посадку и проиграет прогон на поездке. Управление у «дольше» прежнее,
-  // родительный падеж, так что формы challenge.waitLimit.html не меняются.
-  "challenge.transportWithMaxWait.html":
+  // родительный падеж, так что формы level.waitLimit.html не меняются.
+  "level.transportWithMaxWait.html":
     "Перевезите {people}, и пусть доставка каждого не длится дольше {waitTime}",
-  "challenge.transportWithinTimeWithMaxWait.html":
+  "level.transportWithinTimeWithMaxWait.html":
     "Перевезите {people} за {time} или быстрее, и пусть доставка каждого не длится дольше {waitTime}",
-  "challenge.transportWithinMoves.html": "Перевезите {people}, уложившись в {moves}",
+  "level.transportWithinMoves.html": "Перевезите {people}, уложившись в {moves}",
   // «Уложившись в» уже управляет ходами (винительный падеж, формы
-  // challenge.moveLimit.html), поэтому вторая половина фразы присоединяется
+  // level.moveLimit.html), поэтому вторая половина фразы присоединяется
   // ровно так же, как во фразе со временем: запятая и «и пусть».
-  "challenge.transportWithinMovesWithMaxWait.html":
+  "level.transportWithinMovesWithMaxWait.html":
     "Перевезите {people}, уложившись в {moves}, и пусть доставка каждого не длится дольше {waitTime}",
   // Винительный падеж после «Перевезите»; у одушевлённого существительного он
   // совпадает с родительным: 1 пассажира, 5 пассажиров.
-  "challenge.people.html": {
+  "level.people.html": {
     one: "<span class='emphasis-color'>{count}</span> пассажира",
     few: "<span class='emphasis-color'>{count}</span> пассажира",
     many: "<span class='emphasis-color'>{count}</span> пассажиров",
     other: "<span class='emphasis-color'>{count}</span> пассажира",
   },
   // Винительный падеж после «за»: за 21 секунду, за 23 секунды, за 30 секунд.
-  "challenge.timeLimit.html": {
+  "level.timeLimit.html": {
     one: "<span class='emphasis-color'>{count}</span> секунду",
     few: "<span class='emphasis-color'>{count}</span> секунды",
     many: "<span class='emphasis-color'>{count}</span> секунд",
@@ -739,13 +739,13 @@ elevator.goingDownIndicator(false);`,
   // Родительный падеж после «дольше»: дольше 21 секунды, дольше 30 секунд.
   //
   // На экране, впрочем, всегда оказывается только форма other. Все три места,
-  // где собирается эта фраза (src/game/challenges.ts), передают сюда
+  // где собирается эта фраза (src/game/levels.ts), передают сюда
   // decimal(maxWaitTime, 1), а число с десятыми в русском всегда попадает в
   // other: лимиты уровней — 21 и 45 секунд — читаются как «дольше 21,0 секунды»
   // и «дольше 45,0 секунды», а не «дольше 21 секунды» и «дольше 45 секунд».
   // Формы one, few и many всё равно остаются: их требует тип, они правильные, и
   // целого числа сюда просто никто не передаёт.
-  "challenge.waitLimit.html": {
+  "level.waitLimit.html": {
     one: "<span class='emphasis-color'>{count}</span> секунды",
     few: "<span class='emphasis-color'>{count}</span> секунд",
     many: "<span class='emphasis-color'>{count}</span> секунд",
@@ -757,21 +757,21 @@ elevator.goingDownIndicator(false);`,
   // приписывало общий лимит одному лифту — а лифтов на этих уровнях от двух до
   // шести. Панель, на которой игрок видит этот счёт, называет его тем же словом
   // без уточнений — «Перемещения».
-  "challenge.moveLimit.html": {
+  "level.moveLimit.html": {
     one: "<span class='emphasis-color'>{count}</span> перемещение",
     few: "<span class='emphasis-color'>{count}</span> перемещения",
     many: "<span class='emphasis-color'>{count}</span> перемещений",
     other: "<span class='emphasis-color'>{count}</span> перемещения",
   },
-  "challenge.sandbox.html":
+  "level.sandbox.html":
     "Песочница: {floors}, {elevators} {capacityLabel} {capacities}, {spawnRate}. Цели нет, поэтому симуляция никогда не закончится",
-  "challenge.sandbox.floors.html": {
+  "level.sandbox.floors.html": {
     one: "<span class='emphasis-color'>{count}</span> этаж",
     few: "<span class='emphasis-color'>{count}</span> этажа",
     many: "<span class='emphasis-color'>{count}</span> этажей",
     other: "<span class='emphasis-color'>{count}</span> этажа",
   },
-  "challenge.sandbox.elevators.html": {
+  "level.sandbox.elevators.html": {
     one: "<span class='emphasis-color'>{count}</span> лифт",
     few: "<span class='emphasis-color'>{count}</span> лифта",
     many: "<span class='emphasis-color'>{count}</span> лифтов",
@@ -781,13 +781,13 @@ elevator.goingDownIndicator(false);`,
   // и одному лифту, и списку из четырёх. Форма всё равно нужна во всех четырёх
   // категориях — этого требует тип, и это честнее, чем делать вид, что счёт
   // здесь ни при чём.
-  "challenge.sandbox.capacityLabel": {
+  "level.sandbox.capacityLabel": {
     one: "вместимостью",
     few: "вместимостью",
     many: "вместимостью",
     other: "вместимостью",
   },
-  "challenge.sandbox.spawnRate.html": {
+  "level.sandbox.spawnRate.html": {
     one: "<span class='emphasis-color'>{count}</span> пассажир в секунду",
     few: "<span class='emphasis-color'>{count}</span> пассажира в секунду",
     many: "<span class='emphasis-color'>{count}</span> пассажиров в секунду",
@@ -1542,5 +1542,5 @@ elevator.goToFloor(2); // Всё равно добавится — очеред�
   "tutorial.finish.message":
     "Восемь учебных уровней, и последний из них был уровнем 1 самой игры: те же три этажа, тот же лифт, те же пятнадцать пассажиров за шестьдесят секунд. Программа, которая сейчас в редакторе, его решает, а на панели есть кнопка, которая скопирует её в ваш редактор, — заберите программу с собой, прежде чем уходить.",
   "tutorial.finish.nextTask": "Следующий учебный уровень",
-  "tutorial.finish.toChallenges": "Перейти к уровню 1",
+  "tutorial.finish.toLevels": "Перейти к уровню 1",
 };

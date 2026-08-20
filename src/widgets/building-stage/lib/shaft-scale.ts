@@ -36,7 +36,7 @@
  * was a bug worth naming: 46 is a floor on the mockup's *drawn* shaft widths
  * (`clamp(34, 24 + capacity * 8, 116) + 7`, so 66px at capacity 4), while a
  * real car is `capacity * 10` — 40px at capacity 4, which is the capacity most
- * of the shipped challenges use. A floor of 46 on a car that is 40 wide asks
+ * of the shipped levels use. A floor of 46 on a car that is 40 wide asks
  * for a scale above 1, which clamps the whole building to 1 and quietly turned
  * the horizontal fit off everywhere: a building 10% too wide scrolled sideways
  * rather than shrinking 10%.

@@ -4,7 +4,7 @@
  * does not bring back.
  *
  * The last two rules -- `.seedhelp > summary` and `.seedcaveat` -- were filed
- * under the challenge bar's section in the single stylesheet, from the years
+ * under the level bar's section in the single stylesheet, from the years
  * when this block was a row on that bar. They are the same feature's, and this
  * is where they belong; both are less specific than the `.setblock` rules above
  * them, which is what decides between the two either way.
@@ -170,7 +170,7 @@
  * the Hotkeys row down by a space that had nothing in it.
  *
  * `.seedcaveat`'s own 62ch measure further down is wider than this panel ever
- * gets and does nothing here; it is on that rule for the challenge bar, where
+ * gets and does nothing here; it is on that rule for the level bar, where
  * the line had a thousand pixels to run along.
  */
 .setblock .seedcaveat {
@@ -188,7 +188,7 @@
  * another -- `.setblock` carries no layout of its own -- so a `<details>`
  * opening only ever pushes what follows it in the popover further down, and
  * never moves its own `<summary>`. That is what the old horizontal
- * `.challengeseed` row on the challenge bar could not promise: a flex-wrap
+ * `.levelseed` row on the level bar could not promise: a flex-wrap
  * row reflows when one of its items changes size, which is exactly what
  * used to carry this summary out from under the pointer that had just
  * clicked it. A column has no such row to reflow within.

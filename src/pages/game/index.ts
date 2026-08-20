@@ -1,5 +1,5 @@
 /**
- * The application: challenges, the world controller, and the wiring between
+ * The application: levels, the world controller, and the wiring between
  * the editor, the presenters and the URL.
  *
  * Ported from the `$(function() { ... })` block of the legacy `app.js`.
@@ -14,8 +14,8 @@
  * outside this file and that test imports them.
  */
 
-import { createSandboxChallenge } from "../../game/challenges.ts";
-import type { Challenge, SandboxOptions } from "../../game/challenges.ts";
+import { createSandboxLevel } from "../../game/levels.ts";
+import type { Level, SandboxOptions } from "../../game/levels.ts";
 import { INSTANT_RUN_MAX_SIMULATED_SECONDS, driveInstantly } from "../../game/instant-run.ts";
 import type { InstantRunHandle } from "../../game/instant-run.ts";
 import { tutorialTasks } from "../../game/tutorial.ts";
@@ -32,14 +32,14 @@ import {
   floorCallUpLabel,
 } from "../../ui/templates.ts";
 import type { SeedLinkData } from "../../ui/templates.ts";
-import { LEVEL_KEY, SANDBOX_CHALLENGE } from "./model/route.ts";
+import { LEVEL_KEY, SANDBOX_LEVEL } from "./model/route.ts";
 import type { RouteParams } from "./model/route.ts";
 import {
-  evaluateChallengeTier,
+  evaluateLevelTier,
   nextTierHint,
-  readBestChallengeTiers,
-  recordChallengeTier,
-} from "#entities/challenge-tier/index.ts";
+  readBestLevelTiers,
+  recordLevelTier,
+} from "#entities/level-tier/index.ts";
 import {
   countClearedTutorialTasks,
   readClearedTutorialTasks,
@@ -85,7 +85,7 @@ declare global {
      *
      * It also hands the simulation to the player's program, which runs in
      * global scope, so `world.transportedCounter = 999999` in `init` wins any
-     * challenge. That has been known since 2015 and is left open on purpose:
+     * level. That has been known since 2015 and is left open on purpose:
      * nothing is scored outside this browser tab, and the half-measures --
      * read-only counters, a write-blocking proxy -- only cost debuggability
      * while leaving `world.users` and `world.elevators` reachable. Closing it
@@ -205,16 +205,16 @@ export function containsFocus(elements: readonly Element[]): boolean {
  *
  * It had spent one phase in a row of its own between the learning track's
  * panel and the building, and before that it was split three ways — Start in
- * the challenge bar, Pause under the building, the rest beside the editor.
+ * the level bar, Pause under the building, the rest beside the editor.
  * Both of those arrangements had a cost this one does not: the row under the
  * building took a line of height from the building on every layout, and the
  * split one made "which of these restarts?" a question only experiment could
  * answer.
  *
  * What has not changed is that this is drawn once, for the life of the page,
- * and only relabelled. The challenge bar used to be rebuilt on every restart,
+ * and only relabelled. The level bar used to be rebuilt on every restart,
  * so every one of these buttons used to destroy itself when pressed — which is
- * what the challenge bar's own focus bookkeeping existed to paper over. A
+ * what the level bar's own focus bookkeeping existed to paper over. A
  * keyboard player who presses Start over is still standing on Start over
  * afterwards, with nothing to restore.
  *
@@ -245,12 +245,12 @@ export interface ControlsPresenterOptions {
    * run it drives: it is drawn once for the life of the page, and the world it
    * is reporting on is replaced on every restart.
    */
-  readonly challengeEnded: () => boolean;
+  readonly levelEnded: () => boolean;
   /**
    * Whether the run on screen has already ticked, so the button offers to
    * resume rather than to start.
    *
-   * A function for the same reason {@link challengeEnded} is one.
+   * A function for the same reason {@link levelEnded} is one.
    */
   readonly runStarted: () => boolean;
   /**
@@ -262,7 +262,7 @@ export interface ControlsPresenterOptions {
   /**
    * Whether the run on screen is one the instant stop is offered on at all.
    *
-   * A function for the same reason {@link challengeEnded} is one. See
+   * A function for the same reason {@link levelEnded} is one. See
    * {@link App.canRunInstantly} for the single run it is false on and why.
    */
   readonly instantAvailable: () => boolean;
@@ -277,7 +277,7 @@ export interface ControlsPresenterOptions {
   /**
    * Whether a headless crunch is under way.
    *
-   * A function for the same reason {@link challengeEnded} is one: this row is
+   * A function for the same reason {@link levelEnded} is one: this row is
    * drawn once and outlives every run, including the private controller a
    * crunch drives itself with.
    */
@@ -299,8 +299,8 @@ export interface ControlsPresenter {
    * Puts focus on the start button.
    *
    * For the app, and only for the case it alone can see: a redraw that emptied
-   * a region focus was inside — the end-of-challenge overlay holding the "Next
-   * challenge" link, or the building — leaves focus on `<body>` and a keyboard
+   * a region focus was inside — the end-of-level overlay holding the "Next
+   * level" link, or the building — leaves focus on `<body>` and a keyboard
    * player back at the top of the page. The start button is where they were
    * going anyway. This row is drawn into the app bar, which survives every
    * redraw, which is what makes it the place to land.
@@ -312,7 +312,7 @@ export interface ControlsPresenter {
  * Draws the run controls and wires them up.
  *
  * Called once, from {@link App}'s constructor, and never again — see
- * {@link controlsTemplate} for why the row is not rebuilt with the challenge
+ * {@link controlsTemplate} for why the row is not rebuilt with the level
  * bar. That is what makes {@link ControlsPresenter.update} the whole of the
  * redraw: there is no markup to carry focus or disclosure state across,
  * because the markup never goes away.
@@ -343,7 +343,7 @@ export function presentControls(
   // this call's view of it at whatever it was when `presentControls` ran.
   const runControls = presentRunControls(parent, {
     worldController: options.worldController,
-    challengeEnded: () => options.challengeEnded(),
+    levelEnded: () => options.levelEnded(),
     runStarted: () => options.runStarted(),
     instantSpeed: () => options.instantSpeed(),
     instantRunInProgress: () => options.instantRunInProgress(),
@@ -459,7 +459,7 @@ export interface AppElements {
    * Where the learning track's panel goes.
    *
    * Empty on every route but the track, and the stylesheet hides an empty one,
-   * so a challenge is not left with a gap above the building.
+   * so a level is not left with a gap above the building.
    */
   readonly tutorial: HTMLElement;
   /**
@@ -470,13 +470,13 @@ export interface AppElements {
    * between one run and the next — only its own `update()` redraws it.
    */
   readonly levelSwitcher: HTMLElement;
-  /** Where `widgets/goal-bar` goes: the current challenge's meters and tier popover. */
+  /** Where `widgets/goal-bar` goes: the current level's meters and tier popover. */
   readonly goalBar: HTMLElement;
   /** Where `widgets/building-stage` draws the building. */
   readonly world: HTMLElement;
   /** Where `widgets/stats-panel` draws the run's figures. */
   readonly stats: HTMLElement;
-  /** Where `widgets/verdict-toast` draws the end-of-challenge overlay. */
+  /** Where `widgets/verdict-toast` draws the end-of-level overlay. */
   readonly feedback: HTMLElement;
 }
 
@@ -497,8 +497,8 @@ export interface AppOptions {
   readonly editorPane: EditorPanePresenter;
   /** The controller driving the simulation. */
   readonly worldController: WorldController;
-  /** The challenges, in order. */
-  readonly challenges: readonly Challenge[];
+  /** The levels, in order. */
+  readonly levels: readonly Level[];
   /**
    * Where the chosen time scale and the learning track's progress are
    * remembered; defaults to `localStorage`.
@@ -599,20 +599,20 @@ export function readStoredSeed(storage: Storage): string | undefined {
 
 /** Runs the game. */
 export class App {
-  /** The challenges being played, in order. */
-  readonly challenges: readonly Challenge[];
+  /** The levels being played, in order. */
+  readonly levels: readonly Level[];
   /** The controller driving the simulation. */
   readonly worldController: WorldController;
-  /** The world currently being played, once a challenge has started. */
+  /** The world currently being played, once a level has started. */
   world: World | undefined = undefined;
   /**
-   * Index of the challenge currently being played.
+   * Index of the level currently being played.
    *
    * Left where it was while the sandbox is running, since the sandbox is not in
-   * the list: it says which numbered challenge a restart would return to, not
+   * the list: it says which numbered level a restart would return to, not
    * what is on screen. {@link isPlayingSandbox} is what distinguishes the two.
    */
-  currentChallengeIndex = 0;
+  currentLevelIndex = 0;
 
   readonly #elements: AppElements;
   readonly #editor: CodeEditor;
@@ -633,7 +633,7 @@ export class App {
    * Not optional and never reassigned, for the same reason {@link #controls}
    * is not: it reports on every level at once rather than the one currently
    * on screen, so unlike {@link #goalBar} and {@link #statsPanel} there is no
-   * per-run state for a fresh challenge to replace.
+   * per-run state for a fresh level to replace.
    */
   readonly #levelSwitcher: LevelSwitcherPresenter;
   /**
@@ -649,8 +649,8 @@ export class App {
    * has started.
    *
    * Rebuilt fresh by every {@link #startRun}, unlike {@link #controls} and
-   * {@link #levelSwitcher}: its meters are shaped by the challenge on screen,
-   * and it subscribes to that challenge's own world. A language change calls
+   * {@link #levelSwitcher}: its meters are shaped by the level on screen,
+   * and it subscribes to that level's own world. A language change calls
    * its `update()` instead of rebuilding it, so the tier popover's open state
    * survives the redraw.
    */
@@ -665,20 +665,20 @@ export class App {
    */
   #statsPanel: StatsPanelPresenter | undefined = undefined;
   /**
-   * The code slot open in the editor, for whichever numbered challenge is
+   * The code slot open in the editor, for whichever numbered level is
    * current.
    *
-   * In-memory only, like {@link currentChallengeIndex}: nothing about which
+   * In-memory only, like {@link currentLevelIndex}: nothing about which
    * slot a player last used is worth remembering across a reload, and the
    * editor's own storage already remembers each slot's text. Set by
-   * {@link startChallenge} and left alone by everything else that is not
+   * {@link startLevel} and left alone by everything else that is not
    * {@link selectCodeSlot}, so that "Start over" and Ctrl-Enter reopen the slot
    * the player was looking at rather than silently returning to the first one.
    */
   #currentSlot: CodeSlot = DEFAULT_CODE_SLOT;
-  /** The parameters of the URL the current challenge was started from. */
+  /** The parameters of the URL the current level was started from. */
   #query: RouteQuery = new Map<string, string>();
-  /** The building the sandbox is running, or `undefined` for a challenge. */
+  /** The building the sandbox is running, or `undefined` for a level. */
   #sandbox: SandboxOptions | undefined = undefined;
   /**
    * The task of the learning track being played, or `undefined` for anything
@@ -688,7 +688,7 @@ export class App {
    * two what to do about it: it decides which run a restart repeats, which seed
    * a world is built from, what the bar's title says, and which overlay the end
    * of a run gets. Set by {@link startTutorial} and cleared by
-   * {@link startChallenge} and {@link startSandbox}, so that exactly one of the
+   * {@link startLevel} and {@link startSandbox}, so that exactly one of the
    * three is ever in effect.
    */
   #tutorial: TutorialRun | undefined = undefined;
@@ -701,23 +701,22 @@ export class App {
    * A task of the learning track is the exception, and it does not change that
    * sentence: the task's own seed is applied where the world is built, and this
    * field goes on meaning "what the URL asked for" so that leaving the track
-   * for a challenge finds the URL's seed still in it. See {@link #startRun}.
+   * for a level finds the URL's seed still in it. See {@link #startRun}.
    */
   #seed: string | null = null;
   /**
    * What is on screen, or `undefined` before the first run has started.
    *
-   * The challenge rather than its description, because a description is a
+   * The level rather than its description, because a description is a
    * sentence in whatever language was active when it was asked for --
-   * `ChallengeCondition.description` is a getter for exactly that reason -- and
+   * `LevelCondition.description` is a getter for exactly that reason -- and
    * {@link relocalise} has to be able to ask again. The index rides along
-   * because it is what tells the sandbox apart from the challenges without
+   * because it is what tells the sandbox apart from the levels without
    * looking anything up, and it is `null` for the sandbox, which is not in the
-   * list. Distinct from {@link currentChallengeIndex}, which says where a
+   * list. Distinct from {@link currentLevelIndex}, which says where a
    * restart would go rather than what is being played.
    */
-  #run: { readonly challenge: Challenge; readonly challengeIndex: number | null } | undefined =
-    undefined;
+  #run: { readonly level: Level; readonly levelIndex: number | null } | undefined = undefined;
   /**
    * Whether the run on screen was won, or `undefined` while it is still going.
    *
@@ -781,14 +780,14 @@ export class App {
 
   /**
    * @param options - The page regions, the editor, the controller and the
-   * challenges.
+   * levels.
    */
   constructor(options: AppOptions) {
     this.#elements = options.elements;
     this.#editor = options.editor;
     this.#editorPane = options.editorPane;
     this.worldController = options.worldController;
-    this.challenges = options.challenges;
+    this.levels = options.levels;
     this.#storage = options.storage ?? localStorage;
     this.#requestAnimationFrame =
       options.requestAnimationFrame ??
@@ -804,7 +803,7 @@ export class App {
     // right after that world has been replaced.
     this.#controls = presentControls(this.#elements.controls, {
       worldController: this.worldController,
-      challengeEnded: () => this.world?.challengeEnded === true,
+      levelEnded: () => this.world?.levelEnded === true,
       runStarted: () => (this.world?.elapsedTime ?? 0) > 0,
       instantSpeed: () => this.#instantSpeed,
       instantAvailable: () => this.canRunInstantly,
@@ -875,9 +874,9 @@ export class App {
     });
 
     // Subscribed once, for the lifetime of the app. The legacy code subscribed
-    // inside startChallenge, so every challenge start added another listener
-    // that was never removed: after N challenges the time scale was written to
-    // storage N times and the challenge bar was rebuilt N times per click.
+    // inside startLevel, so every level start added another listener
+    // that was never removed: after N levels the time scale was written to
+    // storage N times and the level bar was rebuilt N times per click.
     //
     // Pausing raises this too — `WorldController.setPaused` triggers it — so one
     // subscription relabels the start button as well as the speed.
@@ -936,9 +935,9 @@ export class App {
    */
   #levelMenuInput(): LevelMenuInput {
     return {
-      challenges: this.challenges,
+      levels: this.levels,
       tutorialTasks,
-      bestTiers: readBestChallengeTiers(this.#storage),
+      bestTiers: readBestLevelTiers(this.#storage),
       clearedTutorialTasks: readClearedTutorialTasks(this.#storage),
       selection: this.#levelSelection(),
       buildHref: (target) => this.#levelHref(target),
@@ -952,7 +951,7 @@ export class App {
    * Read fresh on every call rather than cached alongside {@link #run}: the
    * switcher is drawn once, before the first run has started, and a
    * `LevelSelection` has no fourth case for "nothing yet" — so this falls
-   * back to {@link currentChallengeIndex}'s own default, the same challenge a
+   * back to {@link currentLevelIndex}'s own default, the same level a
    * bare reload would open.
    */
   #levelSelection(): LevelSelection {
@@ -963,7 +962,7 @@ export class App {
     if (this.isPlayingSandbox) {
       return { kind: "sandbox" };
     }
-    return { kind: "challenge", index: this.#run?.challengeIndex ?? this.currentChallengeIndex };
+    return { kind: "level", index: this.#run?.levelIndex ?? this.currentLevelIndex };
   }
 
   /**
@@ -976,14 +975,14 @@ export class App {
    */
   #levelHref(target: LevelLinkTarget): string {
     switch (target.kind) {
-      case "challenge": {
+      case "level": {
         return createParamsUrl(this.#query, { [LEVEL_KEY]: target.number, seed: null });
       }
       case "tutorial": {
         return createParamsUrl(this.#query, { [LEVEL_KEY]: target.taskId, seed: null });
       }
       case "sandbox": {
-        return createParamsUrl(this.#query, { [LEVEL_KEY]: SANDBOX_CHALLENGE, seed: null });
+        return createParamsUrl(this.#query, { [LEVEL_KEY]: SANDBOX_LEVEL, seed: null });
       }
     }
   }
@@ -996,7 +995,7 @@ export class App {
    * the pinned one. That is the case the affordance exists for: the seed only
    * becomes interesting once the run has gone wrong.
    *
-   * Built with {@link createParamsUrl}, so the challenge, the speed, the sandbox
+   * Built with {@link createParamsUrl}, so the level, the speed, the sandbox
    * building and every unknown key survive into the link, exactly as they do in
    * the navigation row. Unlike the row, this is the one link in the interface
    * whose job is the seed itself.
@@ -1031,12 +1030,12 @@ export class App {
    * away.
    *
    * @param world - The run that has just been built.
-   * @param challengeIndex - Its index in {@link challenges}, or `null` for the
+   * @param levelIndex - Its index in {@link levels}, or `null` for the
    * sandbox, which the URL addresses by its building instead.
    * @returns Its seed and the URL that names this run outright, or `null` when it
    * has no seed to offer.
    */
-  #seedLink(world: World, challengeIndex: number | null): SeedLinkData | null {
+  #seedLink(world: World, levelIndex: number | null): SeedLinkData | null {
     if (this.#tutorial !== undefined) {
       return null;
     }
@@ -1047,27 +1046,27 @@ export class App {
       return null;
     }
     const seed = String(world.seed);
-    return { seed, url: this.#seedHref(seed, challengeIndex) };
+    return { seed, url: this.#seedHref(seed, levelIndex) };
   }
 
   /**
    * The address of this building played on `seed`.
    *
-   * The challenge is named, as it is in every other link this class builds, and
+   * The level is named, as it is in every other link this class builds, and
    * here it is load-bearing rather than tidy. A first visit has no hash at all,
    * so "everything you are carrying, plus this seed" would leave the run's own
    * identity to a default — and a default that later changes is a link that
-   * later means a different building. Where the URL already carries a challenge,
+   * later means a different building. Where the URL already carries a level,
    * which is every route the game writes itself, this replaces it with the same
    * value and changes nothing.
    *
    * @param seed - The seed the address should play.
-   * @param challengeIndex - The challenge to name, or `null` for the sandbox,
+   * @param levelIndex - The level to name, or `null` for the sandbox,
    * which the URL addresses by its building instead.
    * @returns The hash URL.
    */
-  #seedHref(seed: string, challengeIndex: number | null): string {
-    const at = challengeIndex === null ? {} : { [LEVEL_KEY]: challengeIndex + 1 };
+  #seedHref(seed: string, levelIndex: number | null): string {
+    const at = levelIndex === null ? {} : { [LEVEL_KEY]: levelIndex + 1 };
     return createParamsUrl(this.#query, { ...at, seed });
   }
 
@@ -1096,18 +1095,18 @@ export class App {
    * checks that against `#shared/lib/seed.ts` before calling.
    */
   playSeed(seed: string): void {
-    window.location.hash = this.#seedHref(seed, this.#run?.challengeIndex ?? null);
+    window.location.hash = this.#seedHref(seed, this.#run?.levelIndex ?? null);
   }
 
   /**
    * The seed line for whatever is on screen, for a caller mounted once at
-   * startup rather than redrawn on every run the way {@link #drawChallengeBar}
+   * startup rather than redrawn on every run the way {@link #drawLevelBar}
    * is.
    *
    * A snapshot, not a subscription: reading this again after a later run
    * returns that run's seed, but nothing here pushes the new value out on its
    * own. {@link AppOptions.onSeedChange} is the push side, called with this
-   * same getter's value every time {@link #drawChallengeBar} runs — a caller
+   * same getter's value every time {@link #drawLevelBar} runs — a caller
    * built once, before the first run, wants both: this getter for the run the
    * router already resolved before {@link startRouter} returns, and the
    * callback for every run after it.
@@ -1118,7 +1117,7 @@ export class App {
     if (world === undefined || run === undefined) {
       return null;
     }
-    return this.#seedLink(world, run.challengeIndex);
+    return this.#seedLink(world, run.levelIndex);
   }
 
   /**
@@ -1145,7 +1144,7 @@ export class App {
     }
   }
 
-  /** Whether what is on screen is the sandbox rather than a numbered challenge. */
+  /** Whether what is on screen is the sandbox rather than a numbered level. */
   get isPlayingSandbox(): boolean {
     return this.#sandbox !== undefined;
   }
@@ -1154,7 +1153,7 @@ export class App {
    * Whether the run on screen is one a crunch could reach the end of.
    *
    * Everything but the sandbox is. `requireSandbox` is the last condition in
-   * the game that never resolves — `challenges.ts` says so where it is
+   * the game that never resolves — `levels.ts` says so where it is
    * defined, and the endless demo that was the other one is gone — so free
    * play is the one run with no answer to skip to. Handed a crunch it could
    * only ever run out the clock at
@@ -1178,16 +1177,16 @@ export class App {
    * once it has become Restart, and the editor's "apply code" behind
    * Ctrl-Enter — all mean "run this again", and until the
    * sandbox existed the only thing that could be on screen was
-   * `challenges[currentChallengeIndex]`. Restarting through the index would now
-   * throw a sandbox player back onto a numbered challenge, and with it the
+   * `levels[currentLevelIndex]`. Restarting through the index would now
+   * throw a sandbox player back onto a numbered level, and with it the
    * building they had configured. A task of the learning track is the same
-   * hazard with a worse ending: `currentChallengeIndex` is left wherever the
-   * last numbered challenge put it, so Ctrl-Enter on task 3 would apply the
-   * player's edit to challenge 1 — a different building, and the attempt they
+   * hazard with a worse ending: `currentLevelIndex` is left wherever the
+   * last numbered level put it, so Ctrl-Enter on task 3 would apply the
+   * player's edit to level 1 — a different building, and the attempt they
    * were half-way through no longer on screen to compare against.
    *
    * The order of the three is the order of {@link handleRoute} and means the
-   * same thing: a task, or the sandbox, or a numbered challenge. Only one of
+   * same thing: a task, or the sandbox, or a numbered level. Only one of
    * the two fields is ever set, so the order decides nothing at runtime; it is
    * written the same way in both places so that a reader who has checked one
    * has checked the other.
@@ -1200,7 +1199,7 @@ export class App {
     if (tutorial !== undefined) {
       this.startTutorial(tutorial.index, autoStart);
     } else if (sandbox === undefined) {
-      this.startChallenge(this.currentChallengeIndex, autoStart, this.#currentSlot);
+      this.startLevel(this.currentLevelIndex, autoStart, this.#currentSlot);
     } else {
       this.startSandbox(sandbox, autoStart);
     }
@@ -1208,7 +1207,7 @@ export class App {
 
   /** Starts, pauses or restarts the simulation, depending on where it is. */
   startStopOrRestart(): void {
-    if (this.world?.challengeEnded === true) {
+    if (this.world?.levelEnded === true) {
       this.#restart();
     } else {
       this.worldController.setPaused(!this.worldController.isPaused);
@@ -1221,10 +1220,10 @@ export class App {
    *
    * Deliberately not a fourth case alongside {@link #restart}'s three, though
    * it does the same job for the same reason: {@link #run} already says which
-   * challenge, task or sandbox is current, however it got there, so re-reading
+   * level, task or sandbox is current, however it got there, so re-reading
    * it here is one branch instead of {@link #restart}'s three, and none of
-   * `startChallenge`/`startSandbox`/`startTutorial`'s own bookkeeping --
-   * leaving the tutorial buffer, remembering which sandbox or challenge index
+   * `startLevel`/`startSandbox`/`startTutorial`'s own bookkeeping --
+   * leaving the tutorial buffer, remembering which sandbox or level index
    * is current -- has anything to add when what is being started is the very
    * thing already on screen. `autoStart` is always `true`: a crunch that
    * waited for the Start button would be a button that does nothing visible
@@ -1243,7 +1242,7 @@ export class App {
     if (run === undefined || !this.canRunInstantly) {
       return;
     }
-    this.#startRun(run.challenge, run.challengeIndex, true, true);
+    this.#startRun(run.level, run.levelIndex, true, true);
   }
 
   /**
@@ -1305,7 +1304,7 @@ export class App {
   }
 
   /**
-   * Acts on a route: applies its options and starts the challenge it names.
+   * Acts on a route: applies its options and starts the level it names.
    *
    * A `seed` in the hash still outranks everything but a task's own, so `#seed=…`
    * brings the same passengers in the same order from the Restart button, from
@@ -1320,7 +1319,7 @@ export class App {
    * This is where a decision recorded here for a long time was reversed rather
    * than worked around, so it is worth stating what it was. Remembering the seed
    * a run was built from and reusing it was rejected twice over: it would strand
-   * a player stuck on a challenge with the same passenger stream however often
+   * a player stuck on a level with the same passenger stream however often
    * they restart, with no way back to another draw short of editing the address
    * bar; and it would put state behind the player's back, where this app's rule
    * has always been that the hash is what is being played.
@@ -1353,18 +1352,18 @@ export class App {
    *
    * What a route names is decided in one order, and the order is stated because
    * it is the whole of the dispatch: a route is a task of the learning track, or
-   * the sandbox, or a numbered challenge. The router never sets more than one of
+   * the sandbox, or a numbered level. The router never sets more than one of
    * those — `#level=` holds one value — so this is a statement of precedence
    * rather than a decision made every time, and the precedence runs from the
-   * most specific address to the least. `challengeIndex` is the least, because
-   * the router resolves it to challenge 1 for any spelling it does not
+   * most specific address to the least. `levelIndex` is the least, because
+   * the router resolves it to level 1 for any spelling it does not
    * understand, which is exactly what an unrecognised route should play and
    * exactly what a task's route must not: until this branch existed,
-   * `#level=tutorial-5` played challenge 1 while the address bar went on
+   * `#level=tutorial-5` played level 1 while the address bar went on
    * saying `tutorial-5`, and a reload never escaped it.
    *
    * @param params - The validated route parameters.
-   * @param query - The raw parameters, kept for the next-challenge link.
+   * @param query - The raw parameters, kept for the next-level link.
    */
   handleRoute(params: RouteParams, query: RouteQuery): void {
     this.#query = query;
@@ -1374,57 +1373,53 @@ export class App {
     if (params.tutorialIndex !== null) {
       this.startTutorial(params.tutorialIndex);
     } else if (params.sandbox === null) {
-      this.startChallenge(params.challengeIndex);
+      this.startLevel(params.levelIndex);
     } else {
       this.startSandbox(params.sandbox);
     }
   }
 
   /**
-   * Tears the current challenge down and starts another one.
+   * Tears the current level down and starts another one.
    *
-   * @param challengeIndex - Zero-based index of the challenge to start.
+   * @param levelIndex - Zero-based index of the level to start.
    * @param autoStart - Whether to run without waiting for the Start button.
-   * @param slot - Which of the challenge's three code slots to open; defaults
+   * @param slot - Which of the level's three code slots to open; defaults
    * to {@link DEFAULT_CODE_SLOT}.
    */
-  startChallenge(
-    challengeIndex: number,
-    autoStart = false,
-    slot: CodeSlot = DEFAULT_CODE_SLOT,
-  ): void {
-    const challenge = this.challenges[challengeIndex];
-    if (challenge === undefined) {
-      throw new RangeError(`No challenge with index ${String(challengeIndex)}`);
+  startLevel(levelIndex: number, autoStart = false, slot: CodeSlot = DEFAULT_CODE_SLOT): void {
+    const level = this.levels[levelIndex];
+    if (level === undefined) {
+      throw new RangeError(`No level with index ${String(levelIndex)}`);
     }
     this.#sandbox = undefined;
     this.#tutorial = undefined;
     this.#currentSlot = slot;
-    this.#editor.openChallengeBuffer(challengeIndex, slot);
-    this.currentChallengeIndex = challengeIndex;
-    this.#startRun(challenge, challengeIndex, autoStart);
+    this.#editor.openLevelBuffer(levelIndex, slot);
+    this.currentLevelIndex = levelIndex;
+    this.#startRun(level, levelIndex, autoStart);
   }
 
   /**
-   * Switches the editor to another of the current challenge's three code
+   * Switches the editor to another of the current level's three code
    * slots, without disturbing the run in progress.
    *
-   * Deliberately not a call to {@link startChallenge}: a slot is a place to
-   * keep a program, not a different challenge, and a player who switches slots
+   * Deliberately not a call to {@link startLevel}: a slot is a place to
+   * keep a program, not a different level, and a player who switches slots
    * mid-run is not asking for the world to be torn down and rebuilt under
    * them. Only the editor's buffer and the two regions that report the slot in
    * use move; {@link #run}, the world and the controller are left exactly as
    * they were.
    *
    * A no-op when the slot asked for is already open, for the same reason
-   * {@link "../../ui/editor.ts"!CodeEditor.openChallengeBuffer} is idempotent: the
+   * {@link "../../ui/editor.ts"!CodeEditor.openLevelBuffer} is idempotent: the
    * switcher's own button is one of the things that can ask for it, and a
    * second click must not replace the document under a player who is typing.
    *
    * @param slot - The slot to open.
    */
   selectCodeSlot(slot: CodeSlot): void {
-    // A learning task and the sandbox have no challenge index of their own to
+    // A learning task and the sandbox have no level index of their own to
     // key a slot by -- see `widgets/editor-pane`'s own slot switcher, which,
     // unlike the presenter this replaced, has no way to hide itself while
     // either is on screen. Silently doing nothing is what the old, hidden
@@ -1437,7 +1432,7 @@ export class App {
       return;
     }
     this.#currentSlot = slot;
-    this.#editor.openChallengeBuffer(this.currentChallengeIndex, slot);
+    this.#editor.openLevelBuffer(this.currentLevelIndex, slot);
     this.#editorPane.update();
   }
 
@@ -1447,7 +1442,7 @@ export class App {
   }
 
   /**
-   * Tears the current challenge down and starts a sandbox run in its place.
+   * Tears the current level down and starts a sandbox run in its place.
    *
    * The building comes from the URL, so it is bookmarkable and shareable, and
    * nothing about the run is remembered anywhere else: coming back to the same
@@ -1459,19 +1454,19 @@ export class App {
   startSandbox(options: SandboxOptions, autoStart = false): void {
     this.#sandbox = options;
     this.#leaveTutorialBuffer();
-    this.#startRun(createSandboxChallenge(options), null, autoStart);
+    this.#startRun(createSandboxLevel(options), null, autoStart);
   }
 
   /**
    * Tears the current run down and starts a task of the learning track.
    *
-   * A {@link TutorialTask} is structurally a {@link Challenge} — `options` and
+   * A {@link TutorialTask} is structurally a {@link Level} — `options` and
    * `condition` are named and typed to match, deliberately — so it is handed
-   * straight to the same machinery, with `null` where a challenge index would
-   * go. That `null` is the whole of "a task is not a challenge": it is not
+   * straight to the same machinery, with `null` where a level index would
+   * go. That `null` is the whole of "a task is not a level": it is not
    * numbered in the bar, not marked in the navigation row, and not followed by a
-   * link into the numbered ladder. {@link currentChallengeIndex} is left where
-   * the last numbered challenge put it, exactly as the sandbox leaves it, since
+   * link into the numbered ladder. {@link currentLevelIndex} is left where
+   * the last numbered level put it, exactly as the sandbox leaves it, since
    * it says where the player would return to and not what is on screen.
    *
    * The editor is switched to the task's own buffer before the run is built,
@@ -1482,7 +1477,7 @@ export class App {
    * @param tutorialIndex - Zero-based position of the task in `tutorialTasks`.
    * @param autoStart - Whether to run without waiting for the Start button.
    * @throws RangeError When no task has that position. Symmetric with
-   * {@link startChallenge}: the router resolves a task address against the same
+   * {@link startLevel}: the router resolves a task address against the same
    * table, so this can only be reached by a caller that made the index up, and
    * a made-up index must not quietly play task 1.
    */
@@ -1495,7 +1490,7 @@ export class App {
     this.#tutorial = { task, index: tutorialIndex };
     // The task's own attempt if the player has left one, and the starting code
     // only when they have not: somebody who half-solved task 4, wandered off to
-    // a challenge and came back is owed their attempt, not the mistake again.
+    // a level and came back is owed their attempt, not the mistake again.
     //
     // Read here rather than held anywhere, because the program is a message:
     // `TutorialTask.startingCode` renders the task's own `.code` key when it is
@@ -1510,15 +1505,15 @@ export class App {
    * Puts the legacy single-buffer program back in the editor on the way out of
    * the track, into the sandbox.
    *
-   * `startChallenge` leaves the track the same way, but no longer through this
-   * method: it opens its own challenge-and-slot buffer directly, which already
+   * `startLevel` leaves the track the same way, but no longer through this
+   * method: it opens its own level-and-slot buffer directly, which already
    * clears `#tutorial` and already replaces whatever was on screen. Only the
    * sandbox has no buffer of its own to open instead — it always shows the
    * legacy key — so this is what is left once that is its only caller.
    *
    * Idempotent, and so safe to call when no task was running: the editor
    * returns early when the buffer asked for is the one already on screen, which
-   * is what keeps a challenge-to-sandbox jump from disturbing the caret or
+   * is what keeps a level-to-sandbox jump from disturbing the caret or
    * emptying the undo history.
    */
   #leaveTutorialBuffer(): void {
@@ -1571,7 +1566,7 @@ export class App {
    * wrote there.
    *
    * Checked in every locale {@link LOCALES} names, not only the one on screen:
-   * the slot this reads is written the moment challenge 1 is first opened (see
+   * the slot this reads is written the moment level 1 is first opened (see
    * {@link "../../ui/editor.ts"!EditorBuffer.writesStarterOnOpen}), in whichever
    * language was active then, and a reader who switches language afterwards
    * must not be asked to confirm overwriting a program that is still exactly
@@ -1608,7 +1603,7 @@ export class App {
    * keeps the player on the task. The button means "I want to keep this", not
    * "I am done here": somebody who takes the answer to task 6 usually wants to
    * go on reading task 6. The copy is waiting for them under the game's own
-   * editor whenever they leave, because challenge 1's first slot is the buffer
+   * editor whenever they leave, because level 1's first slot is the buffer
    * {@link leaveTutorial} always opens.
    *
    * Through {@link CodeEditor.writePlayerCode} rather than into `#storage` here,
@@ -1635,39 +1630,34 @@ export class App {
   }
 
   /**
-   * Leaves the learning track for the numbered challenges.
+   * Leaves the learning track for the numbered levels.
    *
-   * Challenge one and not `currentChallengeIndex`, which is where a player who
-   * came to the track from challenge 12 would be sent back to. The track is what
-   * somebody plays before they have a challenge to go back to, so the useful
-   * exit is the beginning of the game; a player who did arrive from challenge 12
+   * Level one and not `currentLevelIndex`, which is where a player who
+   * came to the track from level 12 would be sent back to. The track is what
+   * somebody plays before they have a level to go back to, so the useful
+   * exit is the beginning of the game; a player who did arrive from level 12
    * has that address in their history and in the navigation row.
    *
    * @param autoStart - Whether to run without waiting for the Start button.
    */
   leaveTutorial(autoStart = false): void {
-    this.startChallenge(0, autoStart);
+    this.startLevel(0, autoStart);
   }
 
   /**
-   * Builds a world for a challenge, draws it, and hands it to the controller.
+   * Builds a world for a level, draws it, and hands it to the controller.
    *
-   * @param challenge - What to play: one of {@link challenges}, or the sandbox
-   * challenge the URL just described.
-   * @param challengeIndex - Its index in {@link challenges}, or `null` for the
+   * @param level - What to play: one of {@link levels}, or the sandbox
+   * level the URL just described.
+   * @param levelIndex - Its index in {@link levels}, or `null` for the
    * sandbox, which is not in the list and so is neither numbered in the bar nor
-   * marked in the navigation row nor followed by a "next challenge" link.
+   * marked in the navigation row nor followed by a "next level" link.
    * @param autoStart - Whether to run without waiting for the Start button.
    * @param instant - Whether to drive this run headlessly, through
    * {@link driveInstantly}, instead of drawing it and driving it from
    * animation frames. See {@link runInstantly}.
    */
-  #startRun(
-    challenge: Challenge,
-    challengeIndex: number | null,
-    autoStart: boolean,
-    instant = false,
-  ): void {
+  #startRun(level: Level, levelIndex: number | null, autoStart: boolean, instant = false): void {
     // Abandoned rather than raced: a crunch left running past the start of
     // whatever this call is beginning would go on ticking a world nothing on
     // screen points at any more, and could still reach the `stats_changed`
@@ -1697,7 +1687,7 @@ export class App {
     // about a particular stream of passengers, and a random draw would make it a
     // coin flip. The router already refuses `seed` on a task address, so the two
     // can disagree only when a task is started from inside the app while the URL
-    // still carries the seed of the challenge just left -- and then it is the
+    // still carries the seed of the level just left -- and then it is the
     // leftover that has to lose.
     //
     // Then the seed this browser last played, which is the player's own and
@@ -1709,12 +1699,12 @@ export class App {
     // given none, and records it either way, which is what makes even a run
     // nobody chose repeatable after the fact.
     const world = createWorld(
-      challenge.options,
+      level.options,
       this.#tutorial?.task.seed ?? this.#seed ?? readStoredSeed(this.#storage) ?? undefined,
     );
     this.world = world;
     window.world = world;
-    const seed = this.#seedLink(world, challengeIndex);
+    const seed = this.#seedLink(world, levelIndex);
     if (seed !== null) {
       // Written back on every start, drawn seeds included: the fallback above is
       // only worth anything if the seed a player ends up with becomes the seed
@@ -1729,18 +1719,18 @@ export class App {
       console.log(t("game.seed.console", { seed: seed.seed, url: absoluteUrl(seed.url) }));
     }
 
-    // All three of these regions can hold the focused element when a challenge
+    // All three of these regions can hold the focused element when a level
     // starts: the "Next level" link lives in the feedback overlay, the call
     // and in-car buttons live in the building, and the learning track's panel
     // has the button that leaves the track. Emptying them deletes it, and focus
     // falls back to <body> -- so a keyboard or screen-reader player who takes
     // the offered link, or who presses "leave", is dropped at the top of the
-    // page instead of arriving at the challenge they just asked for. Asked
+    // page instead of arriving at the level they just asked for. Asked
     // before the teardown, because afterwards there is nothing left to ask
     // about.
     //
     // The panel is the odd one of the three: it is not emptied here but at the
-    // end of `#drawChallengeBar`. One question covers all three because it is
+    // end of `#drawLevelBar`. One question covers all three because it is
     // asked of all three up front, and answered at the very end of this method
     // -- by which time every region that could have held the focus is gone,
     // whichever of them did.
@@ -1750,14 +1740,14 @@ export class App {
       this.#elements.tutorial,
     ]);
     clearAll([this.#elements.world, this.#elements.feedback]);
-    this.#run = { challenge, challengeIndex };
+    this.#run = { level, levelIndex };
     this.#outcome = undefined;
     this.#statsPanel = presentStatsPanel(this.#elements.stats, world);
     this.#goalBar = presentGoalBar(this.#elements.goalBar, world, {
-      challenge,
-      getVerdict: () => challenge.condition.evaluate(world),
+      level,
+      getVerdict: () => level.condition.evaluate(world),
     });
-    this.#drawChallengeBar();
+    this.#drawLevelBar();
     // Skipped entirely for a crunch: this is the one line that draws the
     // building, and an instant run's whole point is that nothing does. The
     // statistics panel just above is not behind this condition -- it
@@ -1770,21 +1760,21 @@ export class App {
     }
 
     world.on("stats_changed", () => {
-      const conditionStatus = challenge.condition.evaluate(world);
+      const conditionStatus = level.condition.evaluate(world);
       // A crunch's own ceiling, folded into the same verdict a normal run
       // reaches: past `INSTANT_RUN_MAX_SIMULATED_SECONDS` of simulated time
-      // with the challenge's own condition still undecided, this stops
+      // with the level's own condition still undecided, this stops
       // waiting for one and calls it a loss -- `false`, not a third outcome,
       // because the task is exactly the same one every other failure already
       // shows. Only a crunch is bounded this way; an animated run is bounded
       // by the player's own patience instead, same as it always was.
-      const challengeStatus =
+      const levelStatus =
         conditionStatus ??
         (instant && world.elapsedTime >= INSTANT_RUN_MAX_SIMULATED_SECONDS ? false : null);
-      if (challengeStatus === null) {
+      if (levelStatus === null) {
         return;
       }
-      world.challengeEnded = true;
+      world.levelEnded = true;
       if (instant) {
         // Not `this.worldController.setPaused(true)`: a crunch drives a
         // private controller nothing else touches (see
@@ -1806,7 +1796,7 @@ export class App {
       // drawing path is the last place anybody would think to look. Drawing
       // stays drawing.
       const tutorial = this.#tutorial;
-      if (challengeStatus && tutorial !== undefined) {
+      if (levelStatus && tutorial !== undefined) {
         recordClearedTutorialTask(this.#storage, tutorial.task.id);
         // The one moment the panel has to be redrawn without a run starting or a
         // language changing: the count it prints has just gone up, and the
@@ -1816,21 +1806,21 @@ export class App {
         // store, like every other draw of it, so the line and the record cannot
         // disagree.
         this.#drawTutorialPanel();
-      } else if (challengeStatus && challengeIndex !== null) {
-        // `true`, not `challengeStatus`: a tier is only ever asked for on a win,
-        // and `evaluateChallengeTier` returns `null` for anything else, which
+      } else if (levelStatus && levelIndex !== null) {
+        // `true`, not `levelStatus`: a tier is only ever asked for on a win,
+        // and `evaluateLevelTier` returns `null` for anything else, which
         // would make the field below need a guard this branch already is one.
-        const tier = evaluateChallengeTier(true, world, challenge.tiers);
+        const tier = evaluateLevelTier(true, world, level.tiers);
         if (tier !== null) {
-          recordChallengeTier(this.#storage, challengeIndex, tier);
+          recordLevelTier(this.#storage, levelIndex, tier);
           // The one place the switcher has to be redrawn between two runs
-          // rather than by the next one's own `#drawChallengeBar`: the tile
+          // rather than by the next one's own `#drawLevelBar`: the tile
           // just earned or improved a tier, and the player may open the
           // popover before starting anything else.
           this.#levelSwitcher.update();
         }
       }
-      this.#showOutcome(challengeStatus);
+      this.#showOutcome(levelStatus);
     });
 
     const codeObj = this.#editor.getCodeObj();
@@ -1840,7 +1830,7 @@ export class App {
       // raises nothing on it, so it is wired here instead, through
       // `onController` rather than off the handle `driveInstantly` returns.
       // That distinction matters for a program whose `init` throws on the very
-      // first tick: a challenge that small can run to a verdict, error and all,
+      // first tick: a level that small can run to a verdict, error and all,
       // entirely inside the call to `driveInstantly` below, before it has
       // returned anything to subscribe to. `onController` runs before a single
       // tick has happened, which is early enough to catch it; the handle is not.
@@ -1863,12 +1853,12 @@ export class App {
         },
       });
       // Not stored when the crunch has already finished, or already failed:
-      // a small challenge can run to a verdict, or a program can throw on its
+      // a small level can run to a verdict, or a program can throw on its
       // very first tick, entirely inside `driveInstantly` above, before it
       // returns here -- and the handlers above have already cleared
       // `#instantRunHandle` by the time this line would otherwise overwrite it
       // with a handle for a run that is already over.
-      if (!world.challengeEnded && !handle.controller.isPaused) {
+      if (!world.levelEnded && !handle.controller.isPaused) {
         this.#instantRunHandle = handle;
       }
     } else {
@@ -1888,7 +1878,7 @@ export class App {
     // rather than back with the redraw that emptied the region: focusing a
     // button is what makes a screen reader read its name, and until the line
     // above the name is the one the *previous* run ended on. "Start over" on a
-    // finished challenge would have announced "Start" and then silently become
+    // finished level would have announced "Start" and then silently become
     // "Pause", which is a button that says one thing and does another.
     //
     // The run controls are where it lands because the bar has nowhere to put it
@@ -1911,7 +1901,7 @@ export class App {
    * where {@link #goalBar}'s own `update()` is enough to re-translate it
    * without rebuilding it — see that field's own doc comment.
    */
-  #drawChallengeBar(): void {
+  #drawLevelBar(): void {
     if (this.#run === undefined) {
       return;
     }
@@ -1926,7 +1916,7 @@ export class App {
    * Draws the learning track's panel, or empties its region when what is on
    * screen is not a task.
    *
-   * Hung off the end of {@link #drawChallengeBar} rather than given call sites
+   * Hung off the end of {@link #drawLevelBar} rather than given call sites
    * of its own, because that method's two callers are exactly the two moments
    * the panel has to be drawn again: the start of a run, which is the only
    * thing that can change which task is on screen, and a language change, which
@@ -1935,10 +1925,10 @@ export class App {
    * keep in step and a third to forget when a third caller appears. It runs
    * after the bar so that the page is written in the order it is read.
    *
-   * Emptying is not an afterthought but the common case: nineteen challenges
+   * Emptying is not an afterthought but the common case: nineteen levels
    * and the sandbox all reach here, and every one of them has to leave
    * the region empty, since the stylesheet hides it only while it is. Leaving
-   * the last task's hints above challenge 1 would be worse than a gap — they
+   * the last task's hints above level 1 would be worse than a gap — they
    * are the answer to a task the player is no longer playing.
    *
    * The panel has no button of its own for starting the task again, though it
@@ -1978,7 +1968,7 @@ export class App {
   }
 
   /**
-   * Draws the end-of-challenge card, and remembers that it is showing.
+   * Draws the end-of-level card, and remembers that it is showing.
    *
    * The outcome is the thing worth remembering; the four strings are worked out
    * from it here, every time, so that {@link relocalise} can draw the same
@@ -1986,7 +1976,7 @@ export class App {
    * contents rather than appending, so calling this twice about one run leaves
    * one card.
    *
-   * @param won - Whether the challenge's condition was met.
+   * @param won - Whether the level's condition was met.
    */
   #showOutcome(won: boolean): void {
     this.#outcome = won;
@@ -1997,15 +1987,15 @@ export class App {
     }
     const run = this.#run;
     const world = this.world;
-    const challengeIndex = run?.challengeIndex ?? null;
+    const levelIndex = run?.levelIndex ?? null;
     // Recomputed from the world rather than carried from the `stats_changed`
     // handler that first recorded it: the tier is a pure function of the
-    // world's own final figures, which do not move once `challengeEnded` is
+    // world's own final figures, which do not move once `levelEnded` is
     // set, so asking again here is what lets `relocalise` draw the same badge
     // in another language without a field of its own to keep in step.
     const tier =
-      won && challengeIndex !== null && run !== undefined && world !== undefined
-        ? (evaluateChallengeTier(true, world, run.challenge.tiers) ?? undefined)
+      won && levelIndex !== null && run !== undefined && world !== undefined
+        ? (evaluateLevelTier(true, world, run.level.tiers) ?? undefined)
         : undefined;
     presentVerdictToast(this.#elements.feedback, {
       won,
@@ -2017,15 +2007,15 @@ export class App {
       // leaving the one language behind that the run happened to end in.
       hint:
         tier !== undefined && run !== undefined && world !== undefined
-          ? nextTierHint(run.challenge.tiers, tier, world)
+          ? nextTierHint(run.level.tiers, tier, world)
           : "",
-      // No link after a failure, none after the last challenge, and none for the
+      // No link after a failure, none after the last level, and none for the
       // sandbox, which cannot get here at all: its condition never resolves. The
       // seed is dropped for the same reason the navigation row drops it: it
       // belongs to the building just completed, not to the next one.
       url:
-        won && challengeIndex !== null && challengeIndex + 1 < this.challenges.length
-          ? createParamsUrl(this.#query, { [LEVEL_KEY]: challengeIndex + 2, seed: null })
+        won && levelIndex !== null && levelIndex + 1 < this.levels.length
+          ? createParamsUrl(this.#query, { [LEVEL_KEY]: levelIndex + 2, seed: null })
           : "",
       tier,
     });
@@ -2045,12 +2035,12 @@ export class App {
    * The five regions and why each is done the way it is:
    *
    * - The goal bar, the level switcher, the editor pane and the learning
-   *   track's panel are rebuilt from scratch by {@link #drawChallengeBar},
+   *   track's panel are rebuilt from scratch by {@link #drawLevelBar},
    *   which is cheap and correct: none of the four subscribe to the world.
    * - The statistics panel's own `update()` relabels its captions the same
    *   way; its *figures* go through `Intl` and are left alone, since they are
    *   numbers rather than words and the next tick redraws them anyway.
-   * - The end-of-challenge overlay is drawn again from the remembered outcome,
+   * - The end-of-level overlay is drawn again from the remembered outcome,
    *   if there is one.
    *
    * The banner about a failed program is drawn again too, since the sentence
@@ -2075,14 +2065,14 @@ export class App {
    */
   relocalise(): void {
     // Unconditional, unlike the bar: the run controls and the editor pane are
-    // on screen from the first paint, before any challenge has started, so
+    // on screen from the first paint, before any level has started, so
     // they have words to rewrite even when there is no world to redraw around
     // them.
     this.#controls.update();
     this.#editorPane.update();
     const world = this.world;
     if (world !== undefined) {
-      this.#drawChallengeBar();
+      this.#drawLevelBar();
       this.#statsPanel?.update();
       world.trigger("stats_display_changed");
       relabelWorld(this.#elements.world);
@@ -2112,17 +2102,17 @@ export class App {
    * replaces the title, and for the same reason — the template is shared and its
    * markup is not this module's to change.
    *
-   * A win on the *last* task replaces the whole overlay. Task 8 is challenge 1
+   * A win on the *last* task replaces the whole overlay. Task 8 is level 1
    * with the hints taken away, so what the player has in the editor at that
-   * moment is a program that clears the first real challenge, and the only
+   * moment is a program that clears the first real level, and the only
    * useful thing to say is "take it with you". That is `tutorial.finish.*`, and
-   * its link leaves the track for challenge 1 rather than offering a ninth task
+   * its link leaves the track for level 1 rather than offering a ninth task
    * that does not exist.
    *
    * The link takes nothing with it, and its words no longer say it does. It is
    * an ordinary route change: the editor switches to the player's own buffer on
-   * the way out, so what waits on challenge 1 is the player's own program and
-   * not the one that just won. The label used to read "Go to challenge 1 with
+   * the way out, so what waits on level 1 is the player's own program and
+   * not the one that just won. The label used to read "Go to level 1 with
    * this program", which was a promise the route does not keep — the winning
    * program is safe under the task's own key, but the player was told it had
    * travelled with them and would have found their old program instead. Copying
@@ -2156,12 +2146,12 @@ export class App {
         : won
           ? t("game.feedback.success.message")
           : t("game.feedback.failure.message"),
-      // Nothing to be short of: a task carries no `challenge.tiers` for the
+      // Nothing to be short of: a task carries no `level.tiers` for the
       // hint to name a next bar out of, the same reason `tier` below is
       // `undefined`.
       hint: "",
       // The seed is dropped from both, as it is from every link the app builds:
-      // it belongs to the run just finished. On the way to challenge 1 that is
+      // it belongs to the run just finished. On the way to level 1 that is
       // also what keeps the link usable at all -- the router refuses a seed on a
       // task address and would refuse this one on arrival if it survived.
       url: finished
@@ -2169,14 +2159,14 @@ export class App {
         : won && nextTask !== undefined
           ? createParamsUrl(this.#query, { [LEVEL_KEY]: nextTask.id, seed: null })
           : "",
-      // A task's win has no tier -- tiers rank a numbered challenge's run
-      // against `challenge.tiers`, which tasks on the learning track do not
-      // carry. See {@link #showOutcome} for the numbered-challenge case.
+      // A task's win has no tier -- tiers rank a numbered level's run
+      // against `level.tiers`, which tasks on the learning track do not
+      // carry. See {@link #showOutcome} for the numbered-level case.
       tier: undefined,
     });
     if (won) {
       this.#relabelFeedbackLink(
-        finished ? t("tutorial.finish.toChallenges") : t("tutorial.finish.nextTask"),
+        finished ? t("tutorial.finish.toLevels") : t("tutorial.finish.nextTask"),
       );
     }
   }

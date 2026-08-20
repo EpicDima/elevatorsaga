@@ -1,5 +1,5 @@
 /*
- * The bar above the building: what the challenge asks for, how the run is doing
+ * The bar above the building: what the level asks for, how the run is doing
  * against it, and the tier popover that breaks that down.
  *
  * The meters, their thresholds and the three-tier table are all here;
@@ -8,7 +8,7 @@
 
 /*
  * The bar was a fixed 40px, which was exactly the title line it held. It now
- * has a second line under the first -- the row of challenge links -- and that
+ * has a second line under the first -- the row of level links -- and that
  * row has to be allowed to grow: on a phone twenty entries wrap onto three
  * lines, and a fixed height would leave them lying over the building.
  *
@@ -20,7 +20,7 @@
  * right-to-left, against the way it reads (WCAG 2.4.3, Focus Order). A wrapping
  * flex row put the same boxes back in the same places with the document saying
  * what it meant, and carried a basis on the title (below) that decided, uniformly
- * for every challenge, the window width at which the controls dropped to a line
+ * for every level, the window width at which the controls dropped to a line
  * of their own.
  *
  * All of that machinery was about keeping two kinds of thing on one line. The
@@ -31,10 +31,10 @@
  * measuring where the start button went.
  *
  * `min-block-size` stays. The bar is directly above the run controls and the
- * building, and a challenge whose requirement is one short line would otherwise
+ * building, and a level whose requirement is one short line would otherwise
  * move everything under it up by the difference.
  */
-.challenge {
+.level {
   min-block-size: 40px;
 }
 
@@ -43,7 +43,7 @@
  * `.goalbar`/`.meter*`/`.goalright`/`.tierwrap`/`.tierbox`/`.tiermenu`/
  * `.tierrow*`/`.tierneed`/`.tierbar` rules (§2), ported for
  * `widgets/goal-bar`. `.stars`/`.star` themselves are already ported next
- * door in `entities/challenge-tier`, whose `tierBadgeMarkup` draws the same
+ * door in `entities/level-tier`, whose `tierBadgeMarkup` draws the same
  * markup here as it does in a level tile's own badge.
  */
 /*
@@ -156,7 +156,7 @@
 /*
  * The mockup keys this off `data-kind="time"|"moves"|"wait"` (§2); the
  * shipped widget's own `data-kind` instead carries the raw
- * `ChallengeWorldStats` field name it reads, and `goal-bar.ts`'s own comment
+ * `LevelWorldStats` field name it reads, and `goal-bar.ts`'s own comment
  * on `METER_FORMAT` names the only three at-most fields a bronze condition
  * ever reaches. `transportedCounter`, the one at-least field, needs no rule
  * here: it is exactly what `.meter-fill`'s own base colour, `--ds-accent`,

@@ -57,7 +57,7 @@ test("keeps the player's program across a reload", async ({ page }) => {
   // the browser offering to save the page -- is the only explicit save left.
   await page.keyboard.press("ControlOrMeta+s");
 
-  // The key is challenge 1's first slot, the buffer the default route opens.
+  // The key is level 1's first slot, the buffer the default route opens.
   // Asserted exactly, not merely "something was stored". Polled rather than
   // read once: nothing on screen confirms a save any more -- the mockup draws
   // no status line under the editor and the confirmation went with it -- so

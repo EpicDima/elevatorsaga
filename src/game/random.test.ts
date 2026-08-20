@@ -100,7 +100,7 @@ describe("createRandomSource", () => {
   });
 
   it("does not repeat itself over a run's worth of draws", () => {
-    // A full challenge run makes some thousands of draws; the generator's
+    // A full level run makes some thousands of draws; the generator's
     // period is 2^32, so none of them should be a rerun of an earlier one.
     const values = new Set(take(createRandomSource("period"), 10000));
     expect(values.size).toBe(10000);

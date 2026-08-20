@@ -1,5 +1,5 @@
 /**
- * The list of challenges and the conditions that decide whether one is won.
+ * The list of levels and the conditions that decide whether one is won.
  *
  * Ported from the legacy `challenges.js`. The descriptions contain the same
  * HTML markup as before because the view drops them straight into the page.
@@ -21,12 +21,12 @@ import {
   underElapsedTime,
   underMaxWaitTime,
   underMoveCount,
-} from "./challenge-tiers.ts";
-import type { ChallengeTierRequirements, TierRequirementInfo } from "./challenge-tiers.ts";
+} from "./level-tiers.ts";
+import type { LevelTierRequirements, TierRequirementInfo } from "./level-tiers.ts";
 import type { WorldOptions } from "./world.ts";
 
-/** The statistics a challenge condition inspects. */
-export interface ChallengeWorldStats {
+/** The statistics a level condition inspects. */
+export interface LevelWorldStats {
   /** Simulated seconds since the world started. */
   readonly elapsedTime: number;
   /** Passengers delivered so far. */
@@ -53,14 +53,14 @@ export interface ChallengeWorldStats {
   readonly avgPeoplePerStop: number;
 }
 
-/** A win/lose condition attached to a challenge. */
-export interface ChallengeCondition {
+/** A win/lose condition attached to a level. */
+export interface LevelCondition {
   /**
    * Human-readable requirement; contains HTML markup.
    *
    * Read afresh every time, and a getter on everything that implements it,
    * because the words come out of the message catalogue and the locale outlives
-   * the object: {@link challenges} is a module-level constant, so a string
+   * the object: {@link levels} is a module-level constant, so a string
    * computed there would be frozen in whichever language happened to be active
    * when the module was first imported — English, always, since nothing has
    * loaded a catalogue that early. A getter puts it in the language of the
@@ -75,10 +75,10 @@ export interface ChallengeCondition {
    * @param world - The world's current statistics.
    * @returns `true` when won, `false` when lost, `null` while undecided.
    */
-  evaluate(world: ChallengeWorldStats): boolean | null;
+  evaluate(world: LevelWorldStats): boolean | null;
   /**
    * The figure(s) {@link evaluate} actually reads, in the same shape a
-   * {@link "./challenge-tiers.ts"!TierPredicate}'s own `requirements` use —
+   * {@link "./level-tiers.ts"!TierPredicate}'s own `requirements` use —
    * what lets a goal bar draw a live progress meter per figure without this
    * module exposing a second, parallel description of the same thresholds
    * `evaluate` enforces. Empty for a condition with nothing to meter:
@@ -88,24 +88,24 @@ export interface ChallengeCondition {
   readonly requirements: readonly TierRequirementInfo[];
 }
 
-/** One playable challenge. */
-export interface Challenge {
-  /** World options the challenge is played with. */
+/** One playable level. */
+export interface Level {
+  /** World options the level is played with. */
   readonly options: WorldOptions;
   /** The condition deciding the outcome. */
-  readonly condition: ChallengeCondition;
+  readonly condition: LevelCondition;
   /**
    * Silver/gold requirements, on top of the win/lose {@link condition}.
    *
-   * Optional so that a challenge with nothing to say about tiers — every
+   * Optional so that a level with nothing to say about tiers — every
    * built-in entry today, plus the sandbox factory below, which never
    * resolves at all — simply omits the field rather than being made to
-   * invent one. {@link "./challenge-tiers.ts"!evaluateChallengeTier} reads a
-   * missing value as "bronze is the only tier this challenge has," which is
-   * exactly what today's challenges mean until a later change gives some of
+   * invent one. {@link "./level-tiers.ts"!evaluateLevelTier} reads a
+   * missing value as "bronze is the only tier this level has," which is
+   * exactly what today's levels mean until a later change gives some of
    * them silver and gold requirements of their own.
    */
-  readonly tiers?: ChallengeTierRequirements;
+  readonly tiers?: LevelTierRequirements;
 }
 
 /**
@@ -115,18 +115,15 @@ export interface Challenge {
  * @param timeLimit - Simulated seconds available.
  * @returns The condition.
  */
-export function requireUserCountWithinTime(
-  userCount: number,
-  timeLimit: number,
-): ChallengeCondition {
+export function requireUserCountWithinTime(userCount: number, timeLimit: number): LevelCondition {
   return {
     get description(): string {
-      return t("challenge.transportWithinTime.html", {
-        people: t("challenge.people.html", { count: userCount }),
-        time: t("challenge.timeLimit.html", { count: timeLimit }),
+      return t("level.transportWithinTime.html", {
+        people: t("level.people.html", { count: userCount }),
+        time: t("level.timeLimit.html", { count: timeLimit }),
       });
     },
-    evaluate(world: ChallengeWorldStats): boolean | null {
+    evaluate(world: LevelWorldStats): boolean | null {
       if (world.elapsedTime >= timeLimit || world.transportedCounter >= userCount) {
         return world.elapsedTime <= timeLimit && world.transportedCounter >= userCount;
       } else {
@@ -150,20 +147,20 @@ export function requireUserCountWithinTime(
 export function requireUserCountWithMaxWaitTime(
   userCount: number,
   maxWaitTime: number,
-): ChallengeCondition {
+): LevelCondition {
   return {
     get description(): string {
-      return t("challenge.transportWithMaxWait.html", {
-        people: t("challenge.people.html", { count: userCount }),
+      return t("level.transportWithMaxWait.html", {
+        people: t("level.people.html", { count: userCount }),
         // One decimal, as `toFixed(1)` gave it: 21 seconds is written "21.0",
         // and in Russian "21,0" -- which is also why the digits and the number
         // travel together. `21` is `one` there and `21,0` is `other`, so the
         // form of «секунды» depends on a decision the formatter has not made
         // yet unless the two are decided at once.
-        waitTime: t("challenge.waitLimit.html", { count: decimal(maxWaitTime, 1) }),
+        waitTime: t("level.waitLimit.html", { count: decimal(maxWaitTime, 1) }),
       });
     },
-    evaluate(world: ChallengeWorldStats): boolean | null {
+    evaluate(world: LevelWorldStats): boolean | null {
       if (world.maxWaitTime >= maxWaitTime || world.transportedCounter >= userCount) {
         return world.maxWaitTime <= maxWaitTime && world.transportedCounter >= userCount;
       } else {
@@ -189,16 +186,16 @@ export function requireUserCountWithinTimeWithMaxWaitTime(
   userCount: number,
   timeLimit: number,
   maxWaitTime: number,
-): ChallengeCondition {
+): LevelCondition {
   return {
     get description(): string {
-      return t("challenge.transportWithinTimeWithMaxWait.html", {
-        people: t("challenge.people.html", { count: userCount }),
-        time: t("challenge.timeLimit.html", { count: timeLimit }),
-        waitTime: t("challenge.waitLimit.html", { count: decimal(maxWaitTime, 1) }),
+      return t("level.transportWithinTimeWithMaxWait.html", {
+        people: t("level.people.html", { count: userCount }),
+        time: t("level.timeLimit.html", { count: timeLimit }),
+        waitTime: t("level.waitLimit.html", { count: decimal(maxWaitTime, 1) }),
       });
     },
-    evaluate(world: ChallengeWorldStats): boolean | null {
+    evaluate(world: LevelWorldStats): boolean | null {
       if (
         world.elapsedTime >= timeLimit ||
         world.maxWaitTime >= maxWaitTime ||
@@ -228,18 +225,15 @@ export function requireUserCountWithinTimeWithMaxWaitTime(
  * @param moveLimit - Elevator moves available.
  * @returns The condition.
  */
-export function requireUserCountWithinMoves(
-  userCount: number,
-  moveLimit: number,
-): ChallengeCondition {
+export function requireUserCountWithinMoves(userCount: number, moveLimit: number): LevelCondition {
   return {
     get description(): string {
-      return t("challenge.transportWithinMoves.html", {
-        people: t("challenge.people.html", { count: userCount }),
-        moves: t("challenge.moveLimit.html", { count: moveLimit }),
+      return t("level.transportWithinMoves.html", {
+        people: t("level.people.html", { count: userCount }),
+        moves: t("level.moveLimit.html", { count: moveLimit }),
       });
     },
-    evaluate(world: ChallengeWorldStats): boolean | null {
+    evaluate(world: LevelWorldStats): boolean | null {
       if (world.moveCount >= moveLimit || world.transportedCounter >= userCount) {
         return world.moveCount <= moveLimit && world.transportedCounter >= userCount;
       } else {
@@ -274,16 +268,16 @@ export function requireUserCountWithinMovesWithMaxWaitTime(
   userCount: number,
   moveLimit: number,
   maxWaitTime: number,
-): ChallengeCondition {
+): LevelCondition {
   return {
     get description(): string {
-      return t("challenge.transportWithinMovesWithMaxWait.html", {
-        people: t("challenge.people.html", { count: userCount }),
-        moves: t("challenge.moveLimit.html", { count: moveLimit }),
-        waitTime: t("challenge.waitLimit.html", { count: decimal(maxWaitTime, 1) }),
+      return t("level.transportWithinMovesWithMaxWait.html", {
+        people: t("level.people.html", { count: userCount }),
+        moves: t("level.moveLimit.html", { count: moveLimit }),
+        waitTime: t("level.waitLimit.html", { count: decimal(maxWaitTime, 1) }),
       });
     },
-    evaluate(world: ChallengeWorldStats): boolean | null {
+    evaluate(world: LevelWorldStats): boolean | null {
       if (
         world.moveCount >= moveLimit ||
         world.maxWaitTime >= maxWaitTime ||
@@ -328,7 +322,7 @@ export interface SandboxOptions {
 }
 
 /**
- * Wraps a value in the emphasis markup the challenge bar paints numbers with.
+ * Wraps a value in the emphasis markup the level bar paints numbers with.
  *
  * The one number in a description that no message of its own can carry: the
  * capacities are a list of unknown length, and a catalogue entry holds a
@@ -354,7 +348,7 @@ function emphasise(value: number): string {
  *
  * This is the only never-resolving condition left. There was a second until
  * 2026-08-20, `requireDemo`, behind an endless twentieth level that ran the
- * building of challenge 18 — the same twenty-one floors, eight cars and
+ * building of level 18 — the same twenty-one floors, eight cars and
  * capacities — with the win condition taken off. The sandbox already is that
  * level, and one a player can size themselves, so the demo was one more entry
  * in the list saying what free play next to it said better.
@@ -362,21 +356,21 @@ function emphasise(value: number): string {
  * @param options - The building the run is playing in.
  * @returns The condition.
  */
-export function requireSandbox(options: SandboxOptions): ChallengeCondition {
+export function requireSandbox(options: SandboxOptions): LevelCondition {
   return {
     get description(): string {
       // Every number here came out of the address bar, so every one of them is
       // `exact`: the default three decimals would round `spawnrate=0.0625` to
       // `0.063` and `9.9999` to `10`, and this line is the only place a sandbox
-      // player can check what they are running. The built-in challenges above
+      // player can check what they are running. The built-in levels above
       // need none of it -- their numbers are integer literals in this file.
-      return t("challenge.sandbox.html", {
-        floors: t("challenge.sandbox.floors.html", { count: exact(options.floorCount) }),
-        elevators: t("challenge.sandbox.elevators.html", { count: exact(options.elevatorCount) }),
+      return t("level.sandbox.html", {
+        floors: t("level.sandbox.floors.html", { count: exact(options.floorCount) }),
+        elevators: t("level.sandbox.elevators.html", { count: exact(options.elevatorCount) }),
         // Counted by how many capacities were listed, not by how many cars
         // there are: the label introduces the list that follows it, and a
         // building of four elevators cycling one capacity has one to show.
-        capacityLabel: t("challenge.sandbox.capacityLabel", {
+        capacityLabel: t("level.sandbox.capacityLabel", {
           count: options.elevatorCapacities.length,
         }),
         // Punctuated by the locale rather than joined with `", "`. Russian
@@ -387,7 +381,7 @@ export function requireSandbox(options: SandboxOptions): ChallengeCondition {
         // "6 and 9" — cannot be read as one number, and reads better in
         // English too.
         capacities: formatList(options.elevatorCapacities.map((capacity) => emphasise(capacity))),
-        spawnRate: t("challenge.sandbox.spawnRate.html", { count: exact(options.spawnRate) }),
+        spawnRate: t("level.sandbox.spawnRate.html", { count: exact(options.spawnRate) }),
       });
     },
     evaluate(): boolean | null {
@@ -398,16 +392,16 @@ export function requireSandbox(options: SandboxOptions): ChallengeCondition {
 }
 
 /**
- * Builds the goal-less challenge the sandbox route plays.
+ * Builds the goal-less level the sandbox route plays.
  *
- * Not a member of {@link challenges}: it has no fixed shape to be listed with,
+ * Not a member of {@link levels}: it has no fixed shape to be listed with,
  * since its world is whatever the URL asks for, and it is not a station on the
- * progression the numbered challenges form.
+ * progression the numbered levels form.
  *
  * @param options - The building to play in, already validated.
- * @returns The challenge.
+ * @returns The level.
  */
-export function createSandboxChallenge(options: SandboxOptions): Challenge {
+export function createSandboxLevel(options: SandboxOptions): Level {
   return {
     // Copied field by field rather than spread, so that an option added to
     // WorldOptions has to be opted into here before the URL can reach it.
@@ -421,8 +415,8 @@ export function createSandboxChallenge(options: SandboxOptions): Challenge {
   };
 }
 
-/** Every challenge, in the order they are played. */
-export const challenges: readonly Challenge[] = [
+/** Every level, in the order they are played. */
+export const levels: readonly Level[] = [
   {
     options: { floorCount: 3, elevatorCount: 1, spawnRate: 0.3 },
     condition: requireUserCountWithinTime(15, 60),
@@ -439,7 +433,7 @@ export const challenges: readonly Challenge[] = [
   {
     options: { floorCount: 5, elevatorCount: 1, spawnRate: 0.4 },
     condition: requireUserCountWithinTime(20, 60),
-    // Same shape as the challenge before it, but here the collective-control
+    // Same shape as the level before it, but here the collective-control
     // program is the one worth chasing: across its wins its typical average
     // wait is 9.1 seconds and its median is 9.0, both a touch better than the
     // nearest-car dispatcher manages on this floor count.
@@ -463,7 +457,7 @@ export const challenges: readonly Challenge[] = [
     // only 8, so a silver or gold here is a rare thing to earn by either
     // program's own account, not just a high bar. A first pass read silver
     // and gold straight off those 27 wins -- the same thin-sample mistake
-    // challenge 10's own comment below describes making and then fixing, and
+    // level 10's own comment below describes making and then fixing, and
     // this one needed the same fix: 1,532 wins measured across 15,000 seeds
     // (700000-714999) put the nearest-car dispatcher's median avgWaitTime at
     // 8.76s, close enough to the thin sample's 8.8 to leave silver where it
@@ -480,7 +474,7 @@ export const challenges: readonly Challenge[] = [
     // Bronze is a move budget, so silver tightens that same budget -- but the
     // program the budget was measured against here is the nearest-car
     // dispatcher, which wins this one only 18 times in two hundred, too thin
-    // a sample to read a threshold from safely (see challenge 10's comment
+    // a sample to read a threshold from safely (see level 10's comment
     // below for what that mistake costs). Recalibrated the same way: 1,360
     // wins measured across 11,000 seeds (310000-320999) put the nearest-car
     // dispatcher's median move count at 58, a move looser than the thin
@@ -501,16 +495,16 @@ export const challenges: readonly Challenge[] = [
   {
     options: { floorCount: 3, elevatorCount: 3, spawnRate: 3.0 },
     condition: requireUserCountWithinMoves(100, 63),
-    // Same shape as challenge 6, one floor building over, and every number
+    // Same shape as level 6, one floor building over, and every number
     // here comes from the nearest-car dispatcher's own distribution rather
     // than the collective-control program's. That dispatcher wins this one
     // only 37 times in two hundred -- thin enough that it went uncalibrated
-    // for this honestly the first time around, unlike challenges 5, 6 and 10
+    // for this honestly the first time around, unlike levels 5, 6 and 10
     // above. Recalibrated against 1,612 wins measured across 8,000 seeds
     // (900000-907999): the move-count numbers held exactly, median 61 and
     // fastest quarter 59, unchanged from the thin sample. The wait did not --
     // gold's second axis, the same "moves spent carefully but not at the
-    // cost of a terrible wait" question challenge 6 asks, comes out at 8.02s
+    // cost of a terrible wait" question level 6 asks, comes out at 8.02s
     // at scale, rounding to 8.0 rather than the thin sample's 7.9. The
     // collective-control program built to spend moves carefully wins this
     // one 88 times in two hundred but was never the source of these numbers
@@ -544,17 +538,17 @@ export const challenges: readonly Challenge[] = [
     // 40,000 measured seeds (20000-59999), not literally zero but far too
     // thin to read a threshold from. GOOD_CODE_BALANCED does win it more
     // often, though still rarely: 273 wins in that same 40,000, about seven
-    // in a thousand. As with challenges 12 to 14 above, there is no second
+    // in a thousand. As with levels 12 to 14 above, there is no second
     // program's distribution to read silver from, so both tiers come from
     // GOOD_CODE_BALANCED's own wins: the median of their finishing times is
     // silver's bar (68.6s, cleared by 49% of those 273 wins), the fastest
-    // quarter of them is gold's (67.7s, cleared by 26%). This challenge's row
+    // quarter of them is gold's (67.7s, cleared by 26%). This level's row
     // in the tiering plan also asks for a second axis, the same
-    // avgLoadFactorOnMove challenge 16 below reads gold from -- but across
+    // avgLoadFactorOnMove level 16 below reads gold from -- but across
     // these 273 wins load factor barely tracks how fast the run finished, a
     // correlation of about 0.03. Compounding a second, uncorrelated axis onto
     // this distribution would not separate a program's play from what a
-    // lucky spawn handed it, so this challenge stays on elapsedTime alone.
+    // lucky spawn handed it, so this level stays on elapsedTime alone.
     //
     // A first pass at these numbers, read off just sixteen wins sampled from
     // 2,300 seeds, put silver and gold at 67.8s and 66.9s -- tighter than
@@ -592,7 +586,7 @@ export const challenges: readonly Challenge[] = [
     // Collective control never wins this one, and a first pass read silver
     // and gold off just 14 of two hundred nearest-car-dispatcher wins -- the
     // exact thinness this comment already flagged honestly, and exactly the
-    // mistake challenge 10's own comment describes fixing. Recalibrated the
+    // mistake level 10's own comment describes fixing. Recalibrated the
     // same way: 1,403 wins measured across 22,000 seeds (800000-821999)
     // settle the median at 14.39s, rounding to 14.4, a tenth tighter than
     // the thin sample's 14.5, and the fastest quarter at 13.875s, rounding
@@ -604,10 +598,10 @@ export const challenges: readonly Challenge[] = [
   {
     options: { floorCount: 9, elevatorCount: 5, spawnRate: 1.0, elevatorCapacities: [6] },
     condition: requireUserCountWithMaxWaitTime(110, 15),
-    // The building one capacity size up from the challenge above, and the
+    // The building one capacity size up from the level above, and the
     // same shape: collective control never wins this one across two hundred
     // seeds, and the nearest-car dispatcher only wins 34 of them -- thin
-    // enough to need the same recalibration challenges 10 and 13 needed,
+    // enough to need the same recalibration levels 10 and 13 needed,
     // even though nothing here said so at the time. 1,636 wins measured
     // across 12,000 seeds (1000000-1011999) settle the median at 14.24s,
     // still 14.2, and the fastest quarter at 13.70s, a tenth tighter than
@@ -626,12 +620,12 @@ export const challenges: readonly Challenge[] = [
     options: { floorCount: 12, elevatorCount: 4, spawnRate: 1.4, elevatorCapacities: [5, 10] },
     condition: requireUserCountWithinTime(70, 80),
     // Both programs win this one reliably, which is why it is the one
-    // challenge among the wait-limited run above and the time-limited one
+    // level among the wait-limited run above and the time-limited one
     // below to read gold from two axes at once: finishing faster than bronze
-    // asks, the way the earliest challenges do, and also carrying a fuller
+    // asks, the way the earliest levels do, and also carrying a fuller
     // car on the way, a question this building's own bronze condition never
     // puts to a program at all. Collective control supplies both numbers --
-    // its own best quarter of finishing times ties the median this challenge
+    // its own best quarter of finishing times ties the median this level
     // already uses for silver, so gold reads a stricter point of the same
     // distribution instead of the same number twice.
     tiers: {
@@ -643,7 +637,7 @@ export const challenges: readonly Challenge[] = [
     options: { floorCount: 21, elevatorCount: 5, spawnRate: 1.9, elevatorCapacities: [10] },
     condition: requireUserCountWithinTime(110, 80),
     // Neither program wins this building even once across two hundred
-    // measured seeds. No tiers, for the same reason the challenge four
+    // measured seeds. No tiers, for the same reason the level four
     // places above has none.
   },
   {
@@ -654,7 +648,7 @@ export const challenges: readonly Challenge[] = [
     // the most people, is past both reference dispatchers here.
   },
   {
-    // The building of the wait-limited challenge four places above, asked a
+    // The building of the wait-limited level four places above, asked a
     // second question. That one wanted 120 delivered with nobody taking more
     // than fourteen seconds, which a car-per-call program answers by running
     // cars nearly empty; this one leaves the wait limit slack enough for that
@@ -666,9 +660,9 @@ export const challenges: readonly Challenge[] = [
     // costs 316 to 412 with a worst delivery of 27.2. The limits are that last
     // program's worst seed with about a tenth in hand on each.
     //
-    // Neither of this file's two reference dispatchers wins this challenge's
+    // Neither of this file's two reference dispatchers wins this level's
     // bronze even once across two hundred later seeds measured the same way
-    // as every challenge above -- the twenty-seed measurement above shaped
+    // as every level above -- the twenty-seed measurement above shaped
     // the limit itself, not a program meant to reliably clear it, and the
     // move-conscious collective control built for the rest of this file is
     // evidently not the same program as the one that measurement describes

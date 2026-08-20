@@ -32,7 +32,7 @@
  * hold keys, and {@link elevatorMembers} and its neighbours turn them into
  * entries per call. The popup is rebuilt from scratch on every keystroke
  * anyway, so that costs a few dozen lookups in a plain object and nothing has
- * to be invalidated when the language changes. `challenges.ts` repairs the same
+ * to be invalidated when the language changes. `levels.ts` repairs the same
  * fault with `get description()` and `default-code.ts` with a nullary function;
  * this is the latter shape, for tables nobody holds a reference to.
  *

@@ -4,13 +4,13 @@ import { setLocale, DEFAULT_LOCALE } from "../i18n/index.ts";
 import {
   calculateFitness,
   doFitnessSuite,
-  fitnessChallenges,
+  fitnessLevels,
   fitnessSeeds,
   makeAverageResult,
   requireNothing,
   type AveragedFitnessRun,
-  type FitnessChallenge,
-  type FitnessChallengeOptions,
+  type FitnessLevel,
+  type FitnessLevelOptions,
   type FitnessRun,
   type FitnessSuiteResult,
 } from "./fitness.ts";
@@ -18,14 +18,14 @@ import { at } from "./test-helpers.ts";
 import { World } from "./world.ts";
 import { MAX_TICKS_PER_FRAME, TICK_SECONDS, type UserCodeObject } from "./world-controller.ts";
 
-const options: FitnessChallengeOptions = {
+const options: FitnessLevelOptions = {
   description: "Tiny scenario",
   floorCount: 3,
   elevatorCount: 1,
   spawnRate: 0.6,
 };
 
-const challenge: FitnessChallenge = { options, condition: requireNothing() };
+const level: FitnessLevel = { options, condition: requireNothing() };
 
 /**
  * Player code that does nothing at all.
@@ -147,12 +147,12 @@ describe("requireNothing", () => {
   });
 });
 
-describe("fitnessChallenges", () => {
+describe("fitnessLevels", () => {
   it("keeps the three legacy scenarios", () => {
     // The buildings written out, not just their names: they are the benchmark
     // itself, they are what makes two scores comparable, and now that this is a
     // function rather than a constant they are rebuilt on every call.
-    expect(fitnessChallenges().map((c) => c.options)).toEqual([
+    expect(fitnessLevels().map((c) => c.options)).toEqual([
       { description: "Small scenario", floorCount: 4, elevatorCount: 2, spawnRate: 0.6 },
       {
         description: "Medium scenario",
@@ -177,7 +177,7 @@ describe("fitnessChallenges", () => {
     // What the buildings are is the test above's job; this one only holds one
     // call against another, so a `t()` where a spawn rate goes would show up.
     const buildings = (): unknown[] =>
-      fitnessChallenges().map((c) => ({ ...c.options, description: "" }));
+      fitnessLevels().map((c) => ({ ...c.options, description: "" }));
     const english = buildings();
 
     setLocale("ru");
@@ -191,7 +191,7 @@ describe("fitnessChallenges", () => {
     // anything has chosen a locale, so every report would have been English.
     setLocale("ru");
 
-    expect(fitnessChallenges().map((c) => c.options.description)).toEqual([
+    expect(fitnessLevels().map((c) => c.options.description)).toEqual([
       "Маленький сценарий",
       "Средний сценарий",
       "Большой сценарий",
@@ -201,7 +201,7 @@ describe("fitnessChallenges", () => {
 
 describe("calculateFitness", () => {
   it("reports metrics for code that never throws", () => {
-    const result = calculateFitness(challenge, inertCodeObj(), 1000.0 / 60.0, 200);
+    const result = calculateFitness(level, inertCodeObj(), 1000.0 / 60.0, 200);
 
     expect(result.error).toBeUndefined();
     expect(typeof result.transportedPerSec).toBe("number");
@@ -212,7 +212,7 @@ describe("calculateFitness", () => {
   });
 
   it("keeps the world's maxima out of a report of averages", () => {
-    const result = calculateFitness(challenge, drivingCodeObj(), 1000.0 / 60.0, 3000);
+    const result = calculateFitness(level, drivingCodeObj(), 1000.0 / 60.0, 3000);
 
     // `makeAverageResult` averages every property it is handed, and the mean of
     // six worst cases is neither a worst case nor a typical one -- it would sit
@@ -222,7 +222,7 @@ describe("calculateFitness", () => {
   });
 
   it("transports nobody when the code never moves an elevator", () => {
-    const result = calculateFitness(challenge, inertCodeObj(), 1000.0 / 60.0, 200);
+    const result = calculateFitness(level, inertCodeObj(), 1000.0 / 60.0, 200);
     expect(result.transportedCount).toBe(0);
     // A program that never moves a car divides no load by no moves. `toBe(0)`
     // and not `toBeCloseTo`, because NaN would satisfy neither but only this
@@ -237,7 +237,7 @@ describe("calculateFitness", () => {
     // passengers appear in these 200 frames, and `spawnUserRandomly` puts each
     // of them in the lobby two times in three -- half the time floor 0 is
     // chosen outright, and a third of the other half comes back as floor 0 from
-    // a three-floor draw. That two thirds is a fact about this challenge and
+    // a three-floor draw. That two thirds is a fact about this level and
     // not about the game: the general figure is `(floors + 1) / (2 * floors)`,
     // which is 5/8 in a four-floor building. So the mean is taken over two
     // boardings in 44% of runs, one in 44%, and none at all in 11%, where it
@@ -250,7 +250,7 @@ describe("calculateFitness", () => {
   });
 
   it("delivers passengers when the code actually drives the elevators", () => {
-    const result = calculateFitness(challenge, drivingCodeObj(), 1000.0 / 60.0, 3000);
+    const result = calculateFitness(level, drivingCodeObj(), 1000.0 / 60.0, 3000);
 
     expect(result.error).toBeUndefined();
     expect(result.transportedCount).toBeGreaterThan(0);
@@ -274,13 +274,7 @@ describe("calculateFitness", () => {
     // than to keep a coin toss from landing badly. Nor is `"pickup-seed"` a
     // lucky draw: the ratio it produces is 0.53, in the top 2% of that
     // distribution, which is the hard end of it.
-    const result = calculateFitness(
-      challenge,
-      drivingCodeObj(),
-      1000.0 / 60.0,
-      3000,
-      "pickup-seed",
-    );
+    const result = calculateFitness(level, drivingCodeObj(), 1000.0 / 60.0, 3000, "pickup-seed");
 
     // The point of the split: the report now says how much of the figure a
     // player is judged on was spent standing on a floor rather than riding.
@@ -293,8 +287,8 @@ describe("calculateFitness", () => {
     // traffic, and a score that came out surprising can be looked at again.
     const codeObj = drivingCodeObj();
 
-    const first = calculateFitness(challenge, codeObj, 1000.0 / 60.0, 3000, "fitness-seed");
-    const second = calculateFitness(challenge, codeObj, 1000.0 / 60.0, 3000, "fitness-seed");
+    const first = calculateFitness(level, codeObj, 1000.0 / 60.0, 3000, "fitness-seed");
+    const second = calculateFitness(level, codeObj, 1000.0 / 60.0, 3000, "fitness-seed");
 
     expect(first.transportedCount).toBeGreaterThan(0);
     expect(second).toEqual(first);
@@ -303,8 +297,8 @@ describe("calculateFitness", () => {
   it("gives a different seed a different score", () => {
     const codeObj = drivingCodeObj();
 
-    const first = calculateFitness(challenge, codeObj, 1000.0 / 60.0, 3000, "fitness-seed");
-    const other = calculateFitness(challenge, codeObj, 1000.0 / 60.0, 3000, "other-seed");
+    const first = calculateFitness(level, codeObj, 1000.0 / 60.0, 3000, "fitness-seed");
+    const other = calculateFitness(level, codeObj, 1000.0 / 60.0, 3000, "other-seed");
 
     expect(other).not.toEqual(first);
   });
@@ -320,7 +314,7 @@ describe("calculateFitness", () => {
       },
     };
 
-    const result = calculateFitness(challenge, codeObj, 1000.0 / 60.0, 200);
+    const result = calculateFitness(level, codeObj, 1000.0 / 60.0, 200);
 
     expect(result.error).toBe(boom);
     expect(result.transportedCount).toBe(0);
@@ -342,7 +336,7 @@ describe("calculateFitness", () => {
     };
 
     // Comfortably past MAX_TICKS_PER_FRAME * TICK_SECONDS = 1 simulated second.
-    calculateFitness(challenge, codeObj, 3_600_000, 2);
+    calculateFitness(level, codeObj, 3_600_000, 2);
 
     expect(dts).toHaveLength(MAX_TICKS_PER_FRAME);
     for (const dt of dts) {
@@ -366,7 +360,7 @@ describe("calculateFitness", () => {
       },
     };
 
-    calculateFitness(challenge, codeObj, 1000 * TICK_SECONDS, 21);
+    calculateFitness(level, codeObj, 1000 * TICK_SECONDS, 21);
 
     // 21 frames, the first of which only records the timestamp.
     expect(dts).toHaveLength(20);
@@ -393,7 +387,7 @@ describe("calculateFitness", () => {
       },
     };
 
-    const result = calculateFitness(challenge, codeObj, 1000.0 / 60.0, 500);
+    const result = calculateFitness(level, codeObj, 1000.0 / 60.0, 500);
 
     expect(result.error).toBe(boom);
     expect(updateCalls).toBe(3);
@@ -414,7 +408,7 @@ describe("makeAverageResult", () => {
   });
 
   it("keeps the options of the first run", () => {
-    const other: FitnessChallengeOptions = { ...options, description: "Other" };
+    const other: FitnessLevelOptions = { ...options, description: "Other" };
     const runs: FitnessRun[] = [
       { options, result: { transportedPerSec: 1 } },
       { options: other, result: { transportedPerSec: 2 } },
@@ -533,7 +527,7 @@ describe("doFitnessSuite", () => {
     const second = expectRuns(doFitnessSuite(SWEEPING_PROGRAM, [202]));
     const both = expectRuns(doFitnessSuite(SWEEPING_PROGRAM, [101, 202]));
 
-    expect(both).toHaveLength(fitnessChallenges().length);
+    expect(both).toHaveLength(fitnessLevels().length);
     for (const [index, run] of both.entries()) {
       const firstResult = at(first, index).result;
       const secondResult = at(second, index).result;

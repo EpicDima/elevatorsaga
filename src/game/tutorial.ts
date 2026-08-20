@@ -1,7 +1,7 @@
 /**
  * The learning track: eight buildings, each one built around a single mistake.
  *
- * A challenge in {@link "./challenges.ts"!challenges} is a difficulty setting —
+ * A level in {@link "./levels.ts"!levels} is a difficulty setting —
  * a building and a bar, and how the bar is cleared is the player's business. A
  * task here is a smaller and much stricter thing: a building tuned so that one
  * *particular* wrong program cannot clear the bar and one *particular* right
@@ -30,9 +30,9 @@
  * and what the answer does instead — is still described in this file, above the
  * entry it belongs to.
  *
- * A {@link TutorialTask} is structurally a {@link "./challenges.ts"!Challenge}:
+ * A {@link TutorialTask} is structurally a {@link "./levels.ts"!Level}:
  * `options` and `condition` are named and typed to match, so a task can be
- * handed straight to the machinery that runs a challenge. Deliberately no
+ * handed straight to the machinery that runs a level. Deliberately no
  * conversion function — a converter is a second place for the building to be
  * described, and the day it disagrees with this table the player plays a world
  * the solutions test never measured.
@@ -42,8 +42,8 @@ import { t } from "../i18n/index.ts";
 import {
   requireUserCountWithMaxWaitTime,
   requireUserCountWithinTime,
-  type ChallengeCondition,
-} from "./challenges.ts";
+  type LevelCondition,
+} from "./levels.ts";
 import type { RandomSeed } from "./random.ts";
 import type { WorldOptions } from "./world.ts";
 
@@ -79,8 +79,8 @@ export interface TutorialTask {
   readonly id: string;
   /** The building the task is played in. */
   readonly options: WorldOptions;
-  /** The bar that decides the run, built with the challenge constructors. */
-  readonly condition: ChallengeCondition;
+  /** The bar that decides the run, built with the level constructors. */
+  readonly condition: LevelCondition;
   /**
    * The seed this task is played on.
    *
@@ -111,7 +111,7 @@ export interface TutorialTask {
  * — and every one of these is a run somebody can follow with their eyes.
  *
  * `startingCode` and `solutionCode` are getters rather than fields, for the
- * reason {@link "./fitness.ts"!fitnessChallenges} is a function rather than the
+ * reason {@link "./fitness.ts"!fitnessLevels} is a function rather than the
  * constant it used to be: the programs are messages now, and a field in this
  * table would render them while this module is being imported — before
  * `main.ts` has a body to run, and so before anything has chosen a locale,
@@ -276,7 +276,7 @@ export const tutorialTasks: readonly TutorialTask[] = [
     // 0.12 s, which is not margin; 37 leaves 1.12 s. It costs the sweep 76 wins
     // in 400 where 26 cost it one, and that direction is the deliberate one: a
     // player wrongly told their correct program failed has nothing left to try,
-    // while a player waved through meets the same lesson in challenge 1, where
+    // while a player waved through meets the same lesson in level 1, where
     // a sweep of the building will not carry them. `tutorial-solutions.test.ts`
     // records the one seed of its own ten on which the sweep now wins.
     options: { floorCount: 9, elevatorCount: 1, spawnRate: 0.2 },
@@ -384,20 +384,20 @@ export const tutorialTasks: readonly TutorialTask[] = [
     },
   },
   /**
-   * Task 8: an empty program, in the building challenge 1 is played in.
+   * Task 8: an empty program, in the building level 1 is played in.
    *
    * The graduation task, and the only one whose starting code contains no mistake
    * to find, because there is nothing to fix — there is something to write. An
    * empty `init` is also the most honest possible measurement of whether the
    * track worked: no scaffolding, and the same building the player walks into
-   * next if they press on to the real challenges.
+   * next if they press on to the real levels.
    *
    * The answer is task 7's answer, word for word and deliberately so.
    */
   {
     id: "tutorial-8",
-    // Challenge 1's building and challenge 1's bar, copied deliberately: the
-    // graduation task is passing the game's own first challenge, and a task that
+    // Level 1's building and level 1's bar, copied deliberately: the
+    // graduation task is passing the game's own first level, and a task that
     // was merely *similar* to it would make that claim false.
     //
     // That identity is also why this task keeps the thinnest margin in the
@@ -405,18 +405,18 @@ export const tutorialTasks: readonly TutorialTask[] = [
     // t ≈ 46.7 s, so the entire 60-second budget contains about 13 seconds of
     // slack no program can widen; the answer's slowest measured seed finishes at
     // 58.2 s. Every way of widening it — more traffic, more floors, a lower bar
-    // — widens it by no longer being challenge 1. Measured, not assumed: the
+    // — widens it by no longer being level 1. Measured, not assumed: the
     // answer wins on all ten seeds, and `tutorial-solutions.test.ts` holds this
     // one task to a smaller margin than the rest and says why.
     //
     // On four hundred seeds it wins 399. The one it loses is t165, where 14 are
     // out by the 60-second bar and the fifteenth arrives some ten seconds later.
-    // That number is challenge 1's, not this task's, and it must not be tuned
+    // That number is level 1's, not this task's, and it must not be tuned
     // away: `tutorial-sweep.test.ts` plays the same answer over the same four
     // hundred seeds in the building and against the bar read out of
-    // `challenges.ts`, loses the same single seed, and pins both counts at
+    // `levels.ts`, loses the same single seed, and pins both counts at
     // exactly 399 — because anything that lifts this task to 400 does it by
-    // making the graduation task no longer the game's own first challenge.
+    // making the graduation task no longer the game's own first level.
     //
     // Task 8 asks for nothing new; what it measures is whether the player can
     // now write, on an empty page, what they have spent seven tasks assembling.

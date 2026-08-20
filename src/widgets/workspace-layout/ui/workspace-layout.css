@@ -99,7 +99,7 @@ html[data-layout="game"] .splitter {
  * "everything the other two leave" is a real number and the stage grows and
  * shrinks with the window.
  */
-.pane-game > .challenge,
+.pane-game > .level,
 .pane-game > .statscontainer {
   flex: 0 0 auto;
 }
@@ -230,7 +230,7 @@ html[data-layout="game"] .splitter {
  *
  * The ceiling is what keeps that from being a licence. `flex-shrink: 0` with
  * an `auto` basis sizes this box to its *content*, and the content is a
- * building: challenge 18's is 1030px wide, and unbounded it made a 1062px
+ * building: level 18's is 1030px wide, and unbounded it made a 1062px
  * `.world` inside a 794px pane -- 268px of it clipped away, with nothing to
  * scroll, because `.stage` cannot scroll what it was never narrower than.
  * Capped at the row, the stage goes back to being narrower than its building,

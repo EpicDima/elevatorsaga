@@ -31,7 +31,7 @@ interface FakeWorld extends ControllableWorld {
 function createFakeWorld(): FakeWorld {
   const errorHandlers: ((e: unknown) => void)[] = [];
   return {
-    challengeEnded: false,
+    levelEnded: false,
     elevatorInterfaces: [],
     floorInterfaces: [],
     update: vi.fn<(dt: number) => void>(),
@@ -285,12 +285,12 @@ describe("World controller", () => {
       }
     });
 
-    it("stops ticking as soon as the challenge ends", () => {
+    it("stops ticking as soon as the level ends", () => {
       const tickSeconds = 0.25;
       const stepController = createWorldController(tickSeconds);
       const requester = createFrameRequester(600.0);
       fakeWorld.update.mockImplementation(() => {
-        fakeWorld.challengeEnded = true;
+        fakeWorld.levelEnded = true;
       });
       stepController.start(fakeWorld, fakeCodeObj, requester.register, true);
       requester.trigger();
@@ -299,9 +299,9 @@ describe("World controller", () => {
       expect(fakeWorld.update).toHaveBeenCalledTimes(1);
     });
 
-    it("stops requesting frames once the challenge ends", () => {
+    it("stops requesting frames once the level ends", () => {
       const register = vi.fn<(cb: (t: number) => void) => void>();
-      fakeWorld.challengeEnded = true;
+      fakeWorld.levelEnded = true;
       controller.start(fakeWorld, fakeCodeObj, register, true);
       expect(register).toHaveBeenCalledTimes(1);
 

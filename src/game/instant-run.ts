@@ -1,6 +1,6 @@
 /**
  * Drives a {@link "./world-controller.ts"!WorldController} to the end of a
- * challenge with nothing rendered along the way, as fast as the CPU allows.
+ * level with nothing rendered along the way, as fast as the CPU allows.
  *
  * This is not the same thing as the app's time scale: that still renders,
  * only faster, and is capped at 64x by
@@ -11,10 +11,10 @@
  *
  * Deliberately does none of the deciding. {@link WorldController.start}'s own
  * `updater` closure already stops re-registering itself the moment
- * `world.challengeEnded` becomes `true` — that is the stopping contract this
+ * `world.levelEnded` becomes `true` — that is the stopping contract this
  * module relies on, the same one the animated path relies on. Whoever calls
- * {@link driveInstantly} is the one that watches for a verdict (a challenge
- * condition resolving, or a ceiling) and sets `challengeEnded`; this module
+ * {@link driveInstantly} is the one that watches for a verdict (a level
+ * condition resolving, or a ceiling) and sets `levelEnded`; this module
  * only keeps feeding the controller frames, in budgeted bursts, until that
  * flag flips.
  *
@@ -22,9 +22,9 @@
  * throwing: a controller that {@link WorldController.handleUserCodeError}
  * has paused is never going to produce another tick, so nothing driven by
  * `world.update` -- a condition resolving, the ceiling, `stats_changed`
- * itself -- can ever flip `challengeEnded` either. Stopping there as well is
+ * itself -- can ever flip `levelEnded` either. Stopping there as well is
  * this module noticing its own frames have stopped doing anything, not a
- * second opinion about whether the challenge is over.
+ * second opinion about whether the level is over.
  */
 
 import { createFrameRequester } from "./frame-requester.ts";
@@ -36,21 +36,21 @@ import { TICK_SECONDS, WorldController, createWorldController } from "./world-co
  * getting a verdict.
  *
  * Exists for the runs no amount of correct play resolves on its own —
- * a sandbox, or a move-bound challenge
+ * a sandbox, or a move-bound level
  * (`requireUserCountWithinMoves` and its wait-limited sibling in
- * `challenges.ts` never look at elapsed time at all) — and, more importantly,
- * for a broken player program against an ordinary challenge: an elevator that
+ * `levels.ts` never look at elapsed time at all) — and, more importantly,
+ * for a broken player program against an ordinary level: an elevator that
  * never moves leaves even a time-limited condition sitting at `null` forever,
  * because most of those only check the clock once a passenger has been
  * delivered or the limit passed. Without a ceiling a bad program would hang
  * the crunch, silently, with nothing on screen to show for it.
  *
- * 1900 was picked against the built-in challenges' own limits: the longest,
- * challenge 18 (`challenges[17]`, `requireUserCountWithinTimeWithMaxWaitTime
+ * 1900 was picked against the built-in levels' own limits: the longest,
+ * level 18 (`levels[17]`, `requireUserCountWithinTimeWithMaxWaitTime
  * (2675, 1800, 45)`), resolves itself at 1800s simulated exactly (its
- * `evaluate` uses `>=`), so anything past that is a challenge whose own
+ * `evaluate` uses `>=`), so anything past that is a level whose own
  * condition was never going to fire. A hundred seconds of headroom is enough
- * that the ceiling is never mistaken for the challenge's own limit while
+ * that the ceiling is never mistaken for the level's own limit while
  * staying nowhere near what a real crunch costs in wall time — see the
  * measurement in the module doc comment above for what that time actually
  * costs.
@@ -61,8 +61,8 @@ export const INSTANT_RUN_MAX_SIMULATED_SECONDS = 1900;
  * Most wall-clock milliseconds a single synchronous burst of frames is
  * allowed to run before yielding back to the event loop.
  *
- * Measured against the worst realistic case: a move-bound challenge
- * (`challenges[6]`, no time limit in its own condition) driven by a no-op
+ * Measured against the worst realistic case: a move-bound level
+ * (`levels[6]`, no time limit in its own condition) driven by a no-op
  * program, so nothing ever ends it before the ceiling above — 1900 simulated
  * seconds, 1902 frame callbacks, each costing up to roughly 3ms on an Apple
  * Silicon Mac in headless Chromium. Run with no chunking at all that totalled
@@ -96,7 +96,7 @@ export interface InstantRunHandle {
    * Not the app's shared controller — see {@link driveInstantly} — which is
    * why a caller cares about this run's own events at all. Subscribing here,
    * on the returned handle, is too late to catch an `init` that throws on the
-   * very first tick: a small enough challenge reaches its own verdict, and a
+   * very first tick: a small enough level reaches its own verdict, and a
    * broken program can throw, entirely inside the call to
    * {@link driveInstantly} that produced this handle, before the caller ever
    * sees it. {@link InstantRunDriverOptions.onController} is the hook that
@@ -142,7 +142,7 @@ export interface InstantRunDriverOptions {
    * `usercode_error` above all. `driveInstantly` can run a whole crunch to
    * completion, synchronously, before it ever returns a handle, so a
    * subscription added afterwards can already be too late to hear about an
-   * `init` that threw on the first tick of a challenge small enough to decide
+   * `init` that threw on the first tick of a level small enough to decide
    * itself in one burst.
    */
   readonly onController?: (controller: WorldController) => void;
@@ -166,7 +166,7 @@ export interface InstantRunDriverOptions {
  * safe: an abandoned crunch's callbacks belong to a controller nothing else
  * touches, so they can never tick a world a newer run has already replaced.
  *
- * @param world - The world to drive. Its `challengeEnded` flag is read, not
+ * @param world - The world to drive. Its `levelEnded` flag is read, not
  * written, by this function — the caller is the one that decides a verdict
  * and sets it, exactly as the animated path's `stats_changed` handler already
  * does.
@@ -192,7 +192,7 @@ export function driveInstantly(
   let cancelled = false;
 
   const runBurst = (): void => {
-    // `controller.isPaused` alongside `world.challengeEnded`: `start` below is
+    // `controller.isPaused` alongside `world.levelEnded`: `start` below is
     // always called with `autoStart: true`, and nothing in this module ever
     // pauses the controller again, so the only way it can be paused once
     // `runBurst` is running is `WorldController.handleUserCodeError` -- a
@@ -203,7 +203,7 @@ export function driveInstantly(
     // fire either. Without this check a broken program would not stop the
     // crunch; it would only stop it from doing anything, forever, one
     // `setTimeout` at a time.
-    if (cancelled || world.challengeEnded || controller.isPaused) {
+    if (cancelled || world.levelEnded || controller.isPaused) {
       return;
     }
     const burstStart = now();
@@ -215,8 +215,8 @@ export function driveInstantly(
     // always sandwiched before.
     do {
       frameRequester.trigger();
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- trigger() can end the challenge or pause the controller mid-loop, which defeats the narrowing above, exactly as in world-controller.ts's own tick loop
-      if (world.challengeEnded || controller.isPaused) {
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- trigger() can end the level or pause the controller mid-loop, which defeats the narrowing above, exactly as in world-controller.ts's own tick loop
+      if (world.levelEnded || controller.isPaused) {
         return;
       }
     } while (now() - burstStart < INSTANT_RUN_BURST_BUDGET_MS);

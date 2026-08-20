@@ -20,7 +20,7 @@
  * How long a `seed` may be.
  *
  * The seed rides in the hash, and every entry of the level switcher's menu is
- * that hash with `challenge` rewritten, so whatever is written here is written
+ * that hash with `level` rewritten, so whatever is written here is written
  * into the document some twenty times over. Sixty-four characters is room for a
  * generated seed (ten digits), a UUID (thirty-six) or a label somebody can read
  * down a phone line, and far too few to bloat the document with.
@@ -36,7 +36,7 @@ export const SEED_MAX_LENGTH = 64;
  * letter three bytes of `%xx` — so `#seed=rush hour` would come back as
  * `rush%20hour`, hash to something else entirely, and send *different people*
  * into the building than the ones the link was shared for. Not a different
- * building: floors, elevators and capacities come from the challenge number or
+ * building: floors, elevators and capacities come from the level number or
  * the sandbox parameters, and the seed has no say in any of them. A comma
  * cannot get here at all: {@link "#shared/lib/route-query.ts"!parseQuery}
  * splits on it. What is left still spells every generated seed and every label

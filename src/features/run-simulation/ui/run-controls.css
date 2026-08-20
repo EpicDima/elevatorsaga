@@ -14,7 +14,7 @@
  * of its §14 that shrinks them: everything that drives the run, in the app bar.
  *
  * It had a row of its own between the learning track's panel and the building,
- * and before that it was split between the challenge bar and the editor. Both
+ * and before that it was split between the level bar and the editor. Both
  * are gone for the reason the mockup gives on this slot -- "в шапке, потому что
  * оно нужно в любой раскладке, в том числе когда на экране только код" -- and
  * the row cost the building a line of height on every layout besides.

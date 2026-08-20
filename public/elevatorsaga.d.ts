@@ -854,7 +854,7 @@ declare namespace ElevatorSaga {
    */
   interface Solution {
     /**
-     * Runs once, when the challenge starts.
+     * Runs once, when the level starts.
      *
      * @param elevators - Every elevator in the building.
      * @param floors - Every floor, from 0 at the bottom.

@@ -109,7 +109,7 @@ test("keeps a value it only clamped, which still names the run on screen", async
 
   await expect(page).toHaveURL(/#level=sandbox,floors=100000$/);
   // The sandbox has no requirement to state as a meter, so `widgets/goal-bar`
-  // falls back to `.goalfree`'s own prose, the same as the old challenge bar's
+  // falls back to `.goalfree`'s own prose, the same as the old level bar's
   // heading did.
   await expect(page.locator(".goalfree")).toContainText("60");
 });

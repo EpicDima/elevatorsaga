@@ -108,7 +108,7 @@ export default tseslint.config(
   // reading `src/shared/lib/route-query.ts`, `src/i18n/detect.ts`'s one real
   // consumer of it — nothing circles back). Test files get one further
   // allowance, `ui`, matching the one real case
-  // (`src/game/challenge-tiers-solutions.test.ts` borrowing the plain string
+  // (`src/game/level-tiers-solutions.test.ts` borrowing the plain string
   // constant `DEV_TEST_CODE` as a reference program): a fixture reaching
   // across a boundary for test data is not the same risk as production code
   // depending on a higher layer.

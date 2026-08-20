@@ -1,7 +1,7 @@
 /**
  * Limits and stepping for the simulation speed multiplier.
  *
- * Split out of the router and the challenge bar because both need the same
+ * Split out of the router and the level bar because both need the same
  * numbers: the router validates `#timescale=X` against them, and the `+`/`-`
  * buttons step within them.
  *

@@ -1,8 +1,4 @@
-export {
-  CHALLENGE_TIER_STORAGE_KEY,
-  readBestChallengeTiers,
-  recordChallengeTier,
-} from "./model/best-tier.ts";
+export { LEVEL_TIER_STORAGE_KEY, readBestLevelTiers, recordLevelTier } from "./model/best-tier.ts";
 export {
   requirementMet,
   requirementProgress,
@@ -12,10 +8,10 @@ export { tierRequirementNow, tierRequirementText } from "./ui/requirement-text.t
 export { tierBadgeMarkup } from "./ui/tier-badge.ts";
 export { nextTierHint } from "./ui/tier-hint.ts";
 export {
-  CHALLENGE_TIERS,
-  evaluateChallengeTier,
-  type ChallengeTier,
-  type ChallengeTierRequirements,
+  LEVEL_TIERS,
+  evaluateLevelTier,
+  type LevelTier,
+  type LevelTierRequirements,
   type TierRequirementComparison,
   type TierRequirementInfo,
-} from "#game/challenge-tiers.ts";
+} from "#game/level-tiers.ts";

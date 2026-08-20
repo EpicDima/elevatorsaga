@@ -25,11 +25,11 @@ describe("computeShaftScale", () => {
     expect(scale.scaleX).toBe(1);
   });
 
-  it("still shrinks the capacity-4 cars most challenges use", () => {
+  it("still shrinks the capacity-4 cars most levels use", () => {
     // The regression this floor was rewritten for. A capacity-4 car is 40 world
     // units wide, and the floor used to be `layout-building.ts`'s MIN_SHAFT of
     // 46 — a floor *above* the car's own width, so 46/40 = 1.15 pinned the low
-    // bound to 1 and the fit never engaged on any of the challenges that use
+    // bound to 1 and the fit never engaged on any of the levels that use
     // capacity 4, which is most of them. min(1, 30/40) = 0.75 lets it.
     //
     // free = max(120, 400-32-84-44) = 240, naturalWidth = 260+40 = 300, so the
