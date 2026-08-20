@@ -149,9 +149,17 @@
         <div class="worldtrack">
           <!--
             The live region is this container, which is always in the
-            document, not the .feedback overlay that presentFeedback puts
+            document, not the .verdict card that presentVerdictToast puts
             inside it: a role="status" that arrives already populated is
             usually not announced.
+
+            A sibling of .innerworld, and not a box inside the stage the way
+            design/ui-mockup.html has it, for the same reason: everything
+            below .innerworld is emptied and rebuilt on every redraw of the
+            world, and a live region rebuilt under a screen reader announces
+            nothing at all. The two boxes cover the same pixels anyway -- see
+            .feedbackcontainer's own rule in src/styles/style.css, which is
+            where the card is placed over the building.
           -->
           <div class="feedbackcontainer" role="status"></div>
           <div class="innerworld"></div>

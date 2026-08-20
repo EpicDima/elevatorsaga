@@ -3,6 +3,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { Challenge } from "../../game/challenges.ts";
+import { atLeastAvgLoadFactorOnMove } from "../../game/challenge-tiers.ts";
+import type { ChallengeTierRequirements } from "../../game/challenge-tiers.ts";
 import { INSTANT_RUN_MAX_SIMULATED_SECONDS } from "../../game/instant-run.ts";
 import { tutorialTasks } from "../../game/tutorial.ts";
 import type { TutorialTask } from "../../game/tutorial.ts";
@@ -67,6 +69,25 @@ const CHALLENGES: readonly Challenge[] = [
     condition: { description: "Challenge three", evaluate: () => false, requirements: [] },
   },
 ];
+
+/**
+ * Hangs a silver and a gold bar on the winnable challenge.
+ *
+ * Shadows the app's own list, the way the "offers no next challenge after the
+ * last one" spec below shadows its length, and has to be called before
+ * `startChallenge`: `App` reads the list when a run starts and keeps the entry
+ * it found for as long as that run lasts.
+ *
+ * @param app - The app whose challenge list to shadow.
+ * @param tiers - The bars to give challenge two.
+ */
+function withTiers(app: App, tiers: ChallengeTierRequirements): void {
+  Object.defineProperty(app, "challenges", {
+    value: CHALLENGES.map((challenge, index) =>
+      index === 1 ? { ...challenge, tiers } : challenge,
+    ),
+  });
+}
 
 /** The page shell, the app built over it, and the pieces the tests poke at. */
 interface Harness {
@@ -444,8 +465,8 @@ describe("App challenge outcome", () => {
     app.world?.trigger("stats_changed");
 
     expect(app.world?.challengeEnded).toBe(true);
-    expect(requireElement(".feedback h2", elements.feedback).textContent).toBe("Success!");
-    expect(requireElement(".feedback a", elements.feedback).getAttribute("href")).toBe(
+    expect(requireElement(".verdict h3", elements.feedback).textContent).toBe("Success!");
+    expect(requireElement(".verdict a", elements.feedback).getAttribute("href")).toBe(
       "#challenge=3",
     );
   });
@@ -456,13 +477,13 @@ describe("App challenge outcome", () => {
 
     app.world?.trigger("stats_changed");
 
-    expect(requireElement(".feedback h2", elements.feedback).textContent).toBe("Level failed");
+    expect(requireElement(".verdict h3", elements.feedback).textContent).toBe("Level failed");
     expect(elements.feedback.querySelector("a")).toBeNull();
   });
 
-  it("says both outcomes in the language the overlay is drawn in", () => {
-    // The four words the app itself owns; everything else in the overlay comes
-    // from the templates. Read out of the catalogue when the challenge ends, so
+  it("says both outcomes in the language the card is drawn in", () => {
+    // The four words the app itself owns; everything else on the card comes
+    // from the widget. Read out of the catalogue when the challenge ends, so
     // a player who switched language mid-run is told in the language they are
     // now reading.
     setLocale("ru");
@@ -473,14 +494,12 @@ describe("App challenge outcome", () => {
     lost.app.startChallenge(2);
     lost.app.world?.trigger("stats_changed");
 
-    expect(requireElement(".feedback h2", won.elements.feedback).textContent).toBe("Получилось!");
-    expect(requireElement(".feedback p", won.elements.feedback).textContent).toBe(
-      "Уровень пройден",
-    );
-    expect(requireElement(".feedback h2", lost.elements.feedback).textContent).toBe(
+    expect(requireElement(".verdict h3", won.elements.feedback).textContent).toBe("Получилось!");
+    expect(requireElement(".verdict p", won.elements.feedback).textContent).toBe("Уровень пройден");
+    expect(requireElement(".verdict h3", lost.elements.feedback).textContent).toBe(
       "Уровень провален",
     );
-    expect(requireElement(".feedback p", lost.elements.feedback).textContent).toBe(
+    expect(requireElement(".verdict p", lost.elements.feedback).textContent).toBe(
       "Может быть, программу стоит доработать?",
     );
   });
@@ -502,7 +521,7 @@ describe("App challenge outcome", () => {
 
     app.world?.trigger("stats_changed");
 
-    expect(requireElement(".feedback a", elements.feedback).getAttribute("href")).toBe(
+    expect(requireElement(".verdict a", elements.feedback).getAttribute("href")).toBe(
       "#challenge=3,timescale=8,autostart=true",
     );
   });
@@ -515,8 +534,71 @@ describe("App challenge outcome", () => {
 
     app.world?.trigger("stats_changed");
 
-    expect(requireElement(".feedback a", elements.feedback).getAttribute("href")).toBe(
+    expect(requireElement(".verdict a", elements.feedback).getAttribute("href")).toBe(
       "#challenge=3,timescale=8",
+    );
+  });
+
+  it("puts the star the run earned beside the headline", () => {
+    // A challenge with no silver or gold of its own is still rated: winning it
+    // is bronze, and the badge says so.
+    const { app, elements } = setUp();
+    app.startChallenge(1);
+
+    app.world?.trigger("stats_changed");
+
+    const stars = requireElement(".verdict h3 .stars", elements.feedback);
+    expect(stars.getAttribute("data-tier")).toBe("bronze");
+    expect(elements.feedback.querySelector(".verdict-more")).toBeNull();
+  });
+
+  it("draws no star and no hint on a loss", () => {
+    const { app, elements } = setUp();
+    app.startChallenge(2);
+
+    app.world?.trigger("stats_changed");
+
+    expect(elements.feedback.querySelector(".stars")).toBeNull();
+    expect(elements.feedback.querySelector(".verdict-more")).toBeNull();
+  });
+
+  it("names what a bronze run still owes the next star", () => {
+    const { app, elements } = setUp();
+    withTiers(app, {
+      silver: atLeastAvgLoadFactorOnMove(0.5),
+      gold: atLeastAvgLoadFactorOnMove(0.9),
+    });
+    app.startChallenge(1);
+
+    app.world?.trigger("stats_changed");
+
+    // The building these tests run has no passengers in it, so every car
+    // travels empty and neither bar is anywhere near cleared.
+    expect(requireElement(".verdict-more", elements.feedback).textContent).toBe(
+      "For silver: elevators run 50% full or more (now 0%)",
+    );
+  });
+
+  it("says the hint again in the new language, figures and all", () => {
+    // The hint is recomputed from the final world for the same reason the tier
+    // is, rather than kept as a string: this is what would be left in English
+    // behind a language change if it were not.
+    const { app, elements } = setUp();
+    withTiers(app, {
+      silver: atLeastAvgLoadFactorOnMove(0.5),
+      gold: atLeastAvgLoadFactorOnMove(0.9),
+    });
+    app.startChallenge(1);
+    app.world?.trigger("stats_changed");
+
+    setLocale("ru");
+    app.relocalise();
+
+    // The gaps before both per-cent signs are U+00A0, written as escapes so
+    // that a reader can tell: CLDR's Russian percent pattern is unbreakable
+    // where English's has no space at all.
+    expect(requireElement(".verdict-more", elements.feedback).textContent).toBe(
+      "До серебра: лифты заполнены на 50\u00A0% и выше (сейчас 0\u00A0%)",
     );
   });
 });
@@ -538,7 +620,7 @@ describe("App instant run", () => {
     expect(queryAll(".floor", elements.world)).toHaveLength(0);
     expect(queryAll(".elevator", elements.world)).toHaveLength(0);
     expect(app.world?.challengeEnded).toBe(true);
-    expect(requireElement(".feedback h2", elements.feedback).textContent).toBe("Success!");
+    expect(requireElement(".verdict h3", elements.feedback).textContent).toBe("Success!");
     // The button is back to its ready state, not stuck reading "Crunching...":
     // clearing `#instantRunHandle` when `stats_changed` reaches a verdict is
     // what a crunch gets in place of the relabelling an animated run's
@@ -567,7 +649,7 @@ describe("App instant run", () => {
     }
 
     expect(app.world?.challengeEnded).toBe(true);
-    expect(requireElement(".feedback h2", elements.feedback).textContent).toBe("Level failed");
+    expect(requireElement(".verdict h3", elements.feedback).textContent).toBe("Level failed");
   });
 
   it("surfaces a player-code error during a crunch through the same banner as any other run, and recovers the button", () => {
@@ -621,7 +703,7 @@ describe("App instant run", () => {
     expect(app.world).not.toBe(before);
     expect(queryAll(".elevator", elements.world)).toHaveLength(0);
     expect(app.world?.challengeEnded).toBe(true);
-    expect(requireElement(".feedback h2", elements.feedback).textContent).toBe("Success!");
+    expect(requireElement(".verdict h3", elements.feedback).textContent).toBe("Success!");
   });
 
   it("is what Start over does on that stop too", () => {
@@ -1111,8 +1193,8 @@ describe("App learning track", () => {
 
     endRun(app, true);
 
-    expect(requireElement(".feedback h2", elements.feedback).textContent).toBe("Success!");
-    const link = requireElement(".feedback a", elements.feedback);
+    expect(requireElement(".verdict h3", elements.feedback).textContent).toBe("Success!");
+    const link = requireElement(".verdict a", elements.feedback);
     expect(link.getAttribute("href")).toBe(`#challenge=${taskAt(1).id}`);
     // "Next level" is what the shared template writes into every such link,
     // and the numbered ladder is not where task 2 lives.
@@ -1127,10 +1209,10 @@ describe("App learning track", () => {
 
     endRun(app, true);
 
-    expect(requireElement(".feedback h2", elements.feedback).textContent).toBe(
+    expect(requireElement(".verdict h3", elements.feedback).textContent).toBe(
       "The track is finished",
     );
-    const link = requireElement(".feedback a", elements.feedback);
+    const link = requireElement(".verdict a", elements.feedback);
     expect(link.getAttribute("href")).toBe("#challenge=1");
     expect(link.textContent.trim()).toBe("Go to level 1");
   });
@@ -1158,7 +1240,7 @@ describe("App learning track", () => {
 
       endRun(app, true);
 
-      expect(requireElement(".feedback p", elements.feedback).textContent).toContain(
+      expect(requireElement(".verdict p", elements.feedback).textContent).toContain(
         words?.[locale],
       );
     }
@@ -1177,7 +1259,7 @@ describe("App learning track", () => {
     view.type("// the program that clears challenge 1");
 
     endRun(app, true);
-    const link = requireElement(".feedback a", elements.feedback);
+    const link = requireElement(".verdict a", elements.feedback);
     app.handleRoute(...routeFor(link.getAttribute("href") ?? ""));
 
     expect(link.textContent.trim()).not.toContain("this program");
@@ -1195,7 +1277,7 @@ describe("App learning track", () => {
 
     endRun(app, false);
 
-    expect(requireElement(".feedback h2", elements.feedback).textContent).toBe("Level failed");
+    expect(requireElement(".verdict h3", elements.feedback).textContent).toBe("Level failed");
     expect(elements.feedback.querySelector("a")).toBeNull();
   });
 
@@ -1227,8 +1309,8 @@ describe("App learning track", () => {
     setLocale("ru");
     app.relocalise();
 
-    expect(requireElement(".feedback h2", elements.feedback).textContent).toBe("Получилось!");
-    const link = requireElement(".feedback a", elements.feedback);
+    expect(requireElement(".verdict h3", elements.feedback).textContent).toBe("Получилось!");
+    const link = requireElement(".verdict a", elements.feedback);
     expect(link.getAttribute("href")).toBe(`#challenge=${taskAt(1).id}`);
     expect(link.textContent.trim()).toBe("Следующее учебное задание");
     expect(app.tutorialProgress().cleared).toBe(1);
@@ -1875,7 +1957,7 @@ describe("App focus", () => {
     const { app, elements } = setUp();
     app.handleRoute(...routeFor("#challenge=2"));
     app.world?.trigger("stats_changed");
-    const link = requireElement(".feedback a", elements.feedback);
+    const link = requireElement(".verdict a", elements.feedback);
     link.focus();
     expect(document.activeElement).toBe(link);
 
@@ -2315,28 +2397,28 @@ describe("App.relocalise", () => {
     expect(app.currentSeedLink?.seed).toBe("issue-53");
   });
 
-  it("says the verdict again, in the new language, over one overlay", () => {
+  it("says the verdict again, in the new language, on one card", () => {
     const { app, elements } = setUp();
     app.startChallenge(1);
     app.world?.trigger("stats_changed");
-    expect(requireElement(".feedback h2", elements.feedback).textContent).toBe("Success!");
+    expect(requireElement(".verdict h3", elements.feedback).textContent).toBe("Success!");
 
     setLocale("ru");
     app.relocalise();
 
-    expect(queryAll(".feedback", elements.feedback)).toHaveLength(1);
-    expect(requireElement(".feedback h2", elements.feedback).textContent).toBe("Получилось!");
-    expect(requireElement(".feedback p", elements.feedback).textContent).toBe("Уровень пройден");
+    expect(queryAll(".verdict", elements.feedback)).toHaveLength(1);
+    expect(requireElement(".verdict h3", elements.feedback).textContent).toBe("Получилось!");
+    expect(requireElement(".verdict p", elements.feedback).textContent).toBe("Уровень пройден");
     // Redrawn from the remembered outcome, so the way on is offered again too,
     // and to the same challenge.
-    expect(requireElement(".feedback a", elements.feedback).getAttribute("href")).toBe(
+    expect(requireElement(".verdict a", elements.feedback).getAttribute("href")).toBe(
       "#challenge=3",
     );
   });
 
   it("does not announce an outcome to a run that has not reached one", () => {
-    // The overlay is empty for the whole of a run, which is most of the time a
-    // language gets changed. Nothing may appear over the building.
+    // The container is empty for the whole of a run, which is most of the time
+    // a language gets changed. No card may appear over the building.
     const { app, elements } = setUp();
     app.startChallenge(0);
 

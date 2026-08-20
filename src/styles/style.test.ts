@@ -20,9 +20,15 @@
  * `@container` naming a container nobody opens never matches, a flex row left
  * on the browser's own `flex: 0 1 auto` is squeezed instead of the box that
  * scrolls, and a positioning context that stops clipping hands the page
- * scrollbars from an overlay drawn 2000px tall. None of the three shows up as
- * an error anywhere; each shows up as a layout that is merely wrong. Whether a
- * browser then draws the strip whole is `e2e/statistics-panel.spec.ts`.
+ * scrollbars from the verdict card standing in it. None of the three shows up
+ * as an error anywhere; each shows up as a layout that is merely wrong.
+ * Whether a browser then draws the strip whole is
+ * `e2e/statistics-panel.spec.ts`.
+ *
+ * The run's verdict card is here for the same reason, in a describe of its
+ * own: it is a sheet stretched over the whole building, and the difference
+ * between one that lets the pointer through and one that does not is invisible
+ * until a player tries to press a call button.
  */
 
 import { readFileSync } from "node:fs";
@@ -202,7 +208,7 @@ function withAlpha(hex: string, percent: number): string {
  * `.levels` is a translucent `--ds-panel` over the building's `--ds-shaft`, so
  * neither token is what is on screen there. Read out of the rule rather than
  * written down here, so that changing the 55% has to answer to this file, the
- * way `.feedback`'s own alpha does below.
+ * way the verdict mark's own soft badges do below.
  *
  * @param palette - `DARK_PALETTE` or `LIGHT_PALETTE`.
  * @returns The composited column colour, as `#rrggbb`.
@@ -555,25 +561,6 @@ describe("palette", () => {
   it.each([
     ["dark", DARK_PALETTE],
     ["light", LIGHT_PALETTE],
-  ])("keeps the feedback ink readable on the feedback overlay, %s theme", (_, palette) => {
-    // .feedback's own background used to sit on the building's fixed colour; it
-    // spans the whole track now, so what shows through it is --ds-shaft where
-    // the building stands and the stage's own --ds-bg everywhere else, both of
-    // which are light in the light theme. The overlay has to be dark enough on
-    // its own that the pale --ds-feedback-ink painted over it clears 4.5:1 over
-    // either of them (5.27:1 and 4.95:1 light, 13.48:1 and 13.44:1 dark). Read
-    // from the rule rather than written down here, so raising either surface's
-    // light value or lowering the overlay's alpha has to answer to this.
-    const translucent = declaration(ruleBody(".feedback"), "background-color", ".feedback");
-    for (const surface of ["ds-shaft", "ds-bg"]) {
-      const overlay = over(translucent, themed(palette, surface));
-      expect(contrast(token("ds-feedback-ink"), overlay)).toBeGreaterThanOrEqual(4.5);
-    }
-  });
-
-  it.each([
-    ["dark", DARK_PALETTE],
-    ["light", LIGHT_PALETTE],
   ])("keeps a passenger readable against the shaft and the car, %s theme", (_, palette) => {
     // A passenger is a graphical object, so 1.4.11's 3:1 applies. Waiting or
     // walking, they read against --ds-shaft (themed); boarded, `.is-rider`
@@ -796,6 +783,26 @@ describe("text on a --*-soft badge", () => {
     const backdrop = over(themed(palette, "ds-bad-soft"), themed(palette, "ds-panel"));
     expect(contrast(themed(palette, "ds-bad-ink"), backdrop)).toBeGreaterThanOrEqual(4.5);
   });
+
+  it.each([
+    ["dark", DARK_PALETTE],
+    ["light", LIGHT_PALETTE],
+  ])("keeps the verdict card's own mark visible on its badge, %s theme", (_, palette) => {
+    // The same two soft badges one more time, this time 38px across at the
+    // head of the run's verdict card. The cross is the pair measured directly
+    // above -- --ds-bad-ink on --ds-bad-soft over --ds-panel, the same surface
+    // -- so only the check needs its own case here. 1.4.11's 3:1, not 4.5:1:
+    // the mark is aria-hidden and the headline beside it says won or lost in
+    // words, so it is a graphical object rather than text. The light theme is
+    // the tight one at 3.97:1, which is what makes the composite worth
+    // measuring: --ds-ok reads 4.63:1 on the bare panel there, and the badge
+    // it is actually painted on is the greener surface.
+    const backdrop = over(themed(palette, "ds-ok-soft"), themed(palette, "ds-panel"));
+    expect(declaration(ruleBody(".verdict-mark"), "background", ".verdict-mark")).toBe(
+      token("ds-ok-soft"),
+    );
+    expect(contrast(themed(palette, "ds-ok"), backdrop)).toBeGreaterThanOrEqual(3);
+  });
 });
 
 describe("docs and hotkeys dialogs", () => {
@@ -985,15 +992,81 @@ describe("statistics strip", () => {
   });
 
   it("keeps the clip the run verdict is drawn inside", () => {
-    // `.feedback` is positioned against `.worldtrack` and drawn 1280x2000, so
-    // with `overflow: visible` the end of a challenge hands the page
-    // scrollbars that lead nowhere. Both halves are asserted because either
-    // one alone is useless: an unclipped positioning context overflows, and a
-    // clip with no positioning context is not what the overlay is measured
-    // from.
+    // `.feedbackcontainer` is positioned against `.worldtrack`, and the card
+    // it holds is the one thing on the stage with a size of its own rather
+    // than the pane's -- floored at 420px wide, with a 30px-blur shadow past
+    // that -- so with `overflow: visible` a narrow enough pane hands the page
+    // scrollbars that lead nowhere at the end of every run. Both halves are
+    // asserted because either one alone is useless: an unclipped positioning
+    // context overflows, and a clip with no positioning context is not what
+    // the card is measured from.
     const body = ruleBody(".worldtrack");
     expect(declaration(body, "position", ".worldtrack")).toBe("relative");
     expect(body).toMatch(/^\s*overflow:\s*hidden;/m);
+  });
+});
+
+describe("the run verdict card", () => {
+  it("lets the pointer through the sheet the card stands on", () => {
+    // `.feedbackcontainer` is opened over the whole stage so the card inside
+    // it can be centred on the building, and it stays open for the whole run,
+    // empty. A sheet that could take the pointer would swallow every hover and
+    // click the floors, the shafts and the cars live on -- silently, since a
+    // transparent box looks like nothing at all -- so it passes the pointer
+    // down and the card takes it back for itself.
+    const container = ruleBody(".feedbackcontainer");
+    expect(declaration(container, "inset", ".feedbackcontainer")).toBe("0");
+    expect(declaration(container, "pointer-events", ".feedbackcontainer")).toBe("none");
+    expect(declaration(ruleBody(".verdict"), "pointer-events", ".verdict")).toBe("auto");
+  });
+
+  it("stands the card over the stage's own bottom fade rather than under it", () => {
+    // `.stagewrap::after` is the shadow that says a tall building carries on
+    // below the fold, it is 22px tall, and the card sits 22px off the bottom
+    // -- so the two overlap exactly. Neither box establishes a stacking
+    // context of its own, which is what puts their z-indexes in competition
+    // across the DOM, and a fade drawn over the verdict would grey out its
+    // lower edge for no reason a reader could see.
+    const fade = ruleBody(".stagewrap::before,\n.stagewrap::after");
+    expect(Number(declaration(ruleBody(".verdict"), "z-index", ".verdict"))).toBeGreaterThan(
+      Number(declaration(fade, "z-index", ".stagewrap::after")),
+    );
+  });
+
+  it.each([
+    ["dark", DARK_PALETTE],
+    ["light", LIGHT_PALETTE],
+  ])("keeps the verdict's message and its hint readable, %s theme", (_, palette) => {
+    // The mockup paints the hint --text-faint, 3.62:1 dark and 3.14:1 light on
+    // the card's own --ds-panel -- short of 1.4.3's 4.5:1 in both, which is
+    // the same deviation `.meter-head .cap` and `.tierneed .now` already make.
+    expect(declaration(ruleBody(".verdict p"), "color", ".verdict p")).toBe(token("ds-text-muted"));
+    expect(
+      contrast(themed(palette, "ds-text-muted"), themed(palette, "ds-panel")),
+    ).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it("leaves the hint quieter than the message it hangs under", () => {
+    // Written compound, `.verdict .verdict-more`, and that is the point of the
+    // test: the mockup's own rule is a bare `.verdict-more`, which loses both
+    // of its declarations to `.verdict p` on specificity and renders the hint
+    // at the message's own size there. Since the ink is now the same for both
+    // (above), size is the whole of what separates them.
+    expect(styleSource, ".verdict-more is a bare rule again, and loses to .verdict p").not.toMatch(
+      /^\.verdict-more\s*\{/m,
+    );
+    const message = declaration(ruleBody(".verdict p"), "font-size", ".verdict p");
+    const hint = declaration(ruleBody(".verdict .verdict-more"), "font-size", ".verdict-more");
+    expect(Number.parseFloat(hint)).toBeLessThan(Number.parseFloat(message));
+  });
+
+  it("drops the card's entrance for a reader who asked for no motion", () => {
+    // The rise says nothing the mark, the headline and the live region do not
+    // already say, so it goes entirely rather than being shortened -- the same
+    // treatment `.blink`, `.meter-fill` and the car doors get.
+    expect(styleSource).toMatch(
+      /^@media \(prefers-reduced-motion: reduce\) \{\n {2}\.verdict \{\n {4}animation: none;\n {2}\}\n\}$/m,
+    );
   });
 });
 

@@ -36,6 +36,7 @@ import { SANDBOX_CHALLENGE } from "./model/route.ts";
 import type { RouteParams } from "./model/route.ts";
 import {
   evaluateChallengeTier,
+  nextTierHint,
   readBestChallengeTiers,
   recordChallengeTier,
 } from "#entities/challenge-tier/index.ts";
@@ -111,8 +112,8 @@ const NO_OP_CODE = {
   update: (): void => undefined,
 };
 
-/** The link of the end-of-run overlay, whose words the last task of the track rewrites. */
-const FEEDBACK_LINK_SELECTOR = ".feedback a";
+/** The link of the end-of-run card, whose words the last task of the track rewrites. */
+const FEEDBACK_LINK_SELECTOR = ".verdict a";
 
 /**
  * Turns the hash URL of a run into one that can be pasted somewhere else.
@@ -1793,13 +1794,13 @@ export class App {
   }
 
   /**
-   * Draws the end-of-challenge overlay, and remembers that it is showing.
+   * Draws the end-of-challenge card, and remembers that it is showing.
    *
-   * The outcome is the thing worth remembering; the three strings are worked out
+   * The outcome is the thing worth remembering; the four strings are worked out
    * from it here, every time, so that {@link relocalise} can draw the same
-   * verdict again in another language. The presenter replaces the overlay's
+   * verdict again in another language. The presenter replaces the container's
    * contents rather than appending, so calling this twice about one run leaves
-   * one overlay.
+   * one card.
    *
    * @param won - Whether the challenge's condition was met.
    */
@@ -1823,8 +1824,17 @@ export class App {
         ? (evaluateChallengeTier(true, world, run.challenge.tiers) ?? undefined)
         : undefined;
     presentVerdictToast(this.#elements.feedback, {
+      won,
       title: won ? t("game.feedback.success.title") : t("game.feedback.failure.title"),
       message: won ? t("game.feedback.success.message") : t("game.feedback.failure.message"),
+      // Recomputed here for the same reason the tier above is, and from the
+      // same two final figures -- the star that was earned and the world it was
+      // earned in -- so that a language change redraws the sentence rather than
+      // leaving the one language behind that the run happened to end in.
+      hint:
+        tier !== undefined && run !== undefined && world !== undefined
+          ? nextTierHint(run.challenge.tiers, tier, world)
+          : "",
       // No link after a failure, none after the last challenge, and none for the
       // sandbox, which cannot get here at all: its condition never resolves. The
       // seed is dropped for the same reason the navigation row drops it: it
@@ -1951,6 +1961,7 @@ export class App {
     const nextTask = tutorialTasks[tutorial.index + 1];
     const finished = won && isLastTask;
     presentVerdictToast(this.#elements.feedback, {
+      won,
       title: finished
         ? t("tutorial.finish.title")
         : won
@@ -1961,6 +1972,10 @@ export class App {
         : won
           ? t("game.feedback.success.message")
           : t("game.feedback.failure.message"),
+      // Nothing to be short of: a task carries no `challenge.tiers` for the
+      // hint to name a next bar out of, the same reason `tier` below is
+      // `undefined`.
+      hint: "",
       // The seed is dropped from both, as it is from every link the app builds:
       // it belongs to the run just finished. On the way to challenge 1 that is
       // also what keeps the link usable at all -- the router refuses a seed on a

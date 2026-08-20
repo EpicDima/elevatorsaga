@@ -114,8 +114,8 @@ describe("index.html", () => {
     expect(page.querySelector(selector)).not.toBeNull();
   });
 
-  it("announces the end-of-challenge overlay from a container that is always present", () => {
-    // presentFeedback builds the overlay complete and then inserts it, so the
+  it("announces the end-of-challenge verdict from a container that is always present", () => {
+    // presentVerdictToast builds the card complete and then inserts it, so the
     // live region has to be the container: a role="status" that appears in the
     // document already populated is generally announced by nothing.
     const container = page.querySelector(".feedbackcontainer");
