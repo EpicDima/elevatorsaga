@@ -2382,6 +2382,66 @@ describe("App start/stop", () => {
     expect(app.world).not.toBe(ended);
     expect(app.currentLevelIndex).toBe(2);
   });
+
+  it("starts a run that has not begun from the program on screen now", () => {
+    // The editor is compiled once, as the world is handed to the controller,
+    // and the controller holds that object for the whole run — so a program
+    // edited between the level appearing and this button being pressed used to
+    // be invisible to the building, which went on running the one the level
+    // was built with. The program that will not compile is how this asks which
+    // one was taken: only a run that reads the editor again can notice it.
+    const { app, view, elements, editorPaneMount } = setUp();
+    app.startLevel(0);
+    expect(codeErrorMessage(editorPaneMount)).toBe("");
+    const built = app.world;
+
+    view.type("{ update: function() {} }");
+    requireElement(".startstop", elements.controls).click();
+
+    expect(codeErrorMessage(editorPaneMount)).not.toBe("");
+    expect(app.world).not.toBe(built);
+    expect(app.worldController.isPaused).toBe(false);
+  });
+
+  it("runs the code slot the player has open, not the one the level was built with", () => {
+    // The alarming version of the same defect, and the one it was reported as:
+    // switching slots replaces the whole visible program, and the building went
+    // on running the slot it was built with. Told the other way round from the
+    // spec above — the level opens on a slot that will not compile, and the
+    // slot the player switches to is the one that does — so that what is
+    // asserted is the new program running rather than merely a different one.
+    const { app, elements, editorPaneMount, storage } = setUp();
+    storage.setItem("develevateChallengeCode_0_1", "{ update: function() {} }");
+    storage.setItem("develevateChallengeCode_0_2", INERT_CODE);
+    app.startLevel(0);
+    expect(codeErrorMessage(editorPaneMount)).not.toBe("");
+
+    codeSlotButtons(editorPaneMount)[1]?.click();
+    requireElement(".startstop", elements.controls).click();
+
+    expect(app.currentCodeSlot).toBe(2);
+    expect(codeErrorMessage(editorPaneMount)).toBe("");
+  });
+
+  it("resumes a paused run rather than starting it over", () => {
+    // The other side of the rule: once the run has ticked, the program driving
+    // the building is the one whose `init` hung the handlers on it, and Pause
+    // then Resume may not quietly put another one underneath them. The world
+    // has to survive the round trip for the run to be the same run.
+    const { app, view, elements, worldController } = setUp();
+    app.startLevel(0);
+    requireElement(".startstop", elements.controls).click();
+    const running = app.world;
+    running?.update(1);
+    requireElement(".startstop", elements.controls).click();
+    expect(worldController.isPaused).toBe(true);
+
+    view.type("{ update: function() {} }");
+    requireElement(".startstop", elements.controls).click();
+
+    expect(worldController.isPaused).toBe(false);
+    expect(app.world).toBe(running);
+  });
 });
 
 describe("App run controls", () => {

@@ -1,12 +1,12 @@
 /**
  * The editor: does a program the player typed survive a reload, does a pasted
- * one arrive unaltered, and does a broken one say so instead of failing
- * silently?
+ * one arrive unaltered, does a broken one say so instead of failing silently,
+ * and is the program that runs the one on screen?
  */
 
 import { expect, test } from "@playwright/test";
 
-import { building, editor, seedCode, startButton, storedCode } from "./game-page.ts";
+import { building, editor, seedCode, seedLevelCode, startButton, storedCode } from "./game-page.ts";
 
 /** A short, valid program with something distinctive to look for. */
 const PROGRAM = `{
@@ -118,6 +118,38 @@ test("surfaces a program that will not compile", async ({ page }) => {
   // controller here and died on the first frame with a TypeError instead.
   await expect(startButton(page)).toBeVisible();
   await expect(building(page).getByRole("group", { name: "Elevator 1" })).toBeVisible();
+});
+
+test("starts the code slot that is open, not the one the level opened on", async ({ page }) => {
+  // Reported as "I choose another code slot, press run, and it runs the first
+  // slot's program". It did: the editor is compiled as the world is built, and
+  // the controller holds that program for the whole run, so everything the
+  // player did to the editor before pressing Start — switching slots, or just
+  // typing — went unread. Start begins a run that has not begun yet, and a run
+  // begins from the program on screen.
+  //
+  // The second slot's program announces itself by throwing, which is the only
+  // way from out here to tell which of the two the building is running: both
+  // compile, and an elevator standing still looks the same either way.
+  await seedLevelCode(page, 1, "{ init: function () {}, update: function () {} }", 1);
+  await seedLevelCode(
+    page,
+    1,
+    '{ init: function () { throw new Error("e2e slot two"); }, update: function () {} }',
+    2,
+  );
+
+  await page.goto("/");
+  await expect(page.getByText(errorBanner)).toBeHidden();
+
+  await page.getByRole("button", { name: "Code 2" }).click();
+  await expect(editor(page)).toContainText("e2e slot two");
+
+  await startButton(page).click();
+
+  const banner = page.locator(".errorline");
+  await expect(banner).toBeVisible();
+  await expect(banner).toContainText("e2e slot two");
 });
 
 test("surfaces a program that throws once the simulation is running", async ({ page }) => {

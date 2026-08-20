@@ -837,7 +837,7 @@ export class App {
     this.#controls = presentControls(this.#elements.controls, {
       worldController: this.worldController,
       levelEnded: () => this.world?.levelEnded === true,
-      runStarted: () => (this.world?.elapsedTime ?? 0) > 0,
+      runStarted: () => this.#runHasBegun,
       instantSpeed: () => this.#instantSpeed,
       instantAvailable: () => this.canRunInstantly,
       instantRunInProgress: () => this.#instantRunHandle !== undefined,
@@ -1258,13 +1258,50 @@ export class App {
     }
   }
 
+  /**
+   * Whether the run on screen has begun: a world that has ticked at all, as
+   * against one standing at zero waiting for its first frame.
+   *
+   * One statement of the question for the two places that ask it — the run
+   * row, which labels its first button off it, and {@link startStopOrRestart},
+   * which decides off it whether Start resumes a run or begins one.
+   */
+  get #runHasBegun(): boolean {
+    return (this.world?.elapsedTime ?? 0) > 0;
+  }
+
   /** Starts, pauses or restarts the simulation, depending on where it is. */
   startStopOrRestart(): void {
     if (this.world?.levelEnded === true) {
       this.#restart();
-    } else {
-      this.worldController.setPaused(!this.worldController.isPaused);
+      return;
     }
+    // A run that has not begun starts from the program on screen now, not from
+    // the one that was on screen when the level was built. {@link #startRun}
+    // compiles the editor's text once, as it hands the world to the
+    // controller, and the controller holds that object for the whole run — so
+    // everything the player does to their program between the level appearing
+    // and this button being pressed is invisible to the building. Switching
+    // code slots was the alarming version of it, since the entire visible
+    // program changes and the building still runs the one it was set up with,
+    // but a plain edit before the first press had exactly the same ending.
+    //
+    // Starting over is the operation that reads the editor again, so that is
+    // what Start does while there is nothing yet to resume. The player loses
+    // nothing to the teardown: the run being replaced has not happened, and
+    // its seed is already stored, so the world rebuilt here is the same
+    // building carrying the same passengers.
+    //
+    // Only while the run is paused and still at zero. Once it has ticked, the
+    // program driving the building is the one whose `init` hung the handlers
+    // on it, and putting another one under those handlers mid-run is not a
+    // thing Pause and Resume may quietly do — "Start over" and Ctrl-Enter are
+    // how a player asks for that, and they say so.
+    if (this.worldController.isPaused && !this.#runHasBegun) {
+      this.#restart(true);
+      return;
+    }
+    this.worldController.setPaused(!this.worldController.isPaused);
   }
 
   /**

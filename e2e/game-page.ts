@@ -31,7 +31,7 @@ export const CODE_STORAGE_KEY = "elevatorCrushCode_v5";
 export const LEVEL_ONE_SLOT_ONE_STORAGE_KEY = "develevateChallengeCode_0_1";
 
 /**
- * Plants a program in one level's first code slot, before the page's own
+ * Plants a program in one of a level's code slots, before the page's own
  * scripts run.
  *
  * {@link seedCode} does the same for level 1 through the legacy key, which
@@ -43,13 +43,21 @@ export const LEVEL_ONE_SLOT_ONE_STORAGE_KEY = "develevateChallengeCode_0_1";
  * @param page - The page under test, before its first `goto`.
  * @param number - The level whose slot to fill, counting from 1.
  * @param code - The program to store.
+ * @param slot - Which of the level's three slots, counting from 1. The first
+ * one unless a spec is about the switcher: that is the slot every level opens
+ * on, so it is the one a program has to be in to be the program on screen.
  */
-export async function seedLevelCode(page: Page, number: number, code: string): Promise<void> {
+export async function seedLevelCode(
+  page: Page,
+  number: number,
+  code: string,
+  slot = 1,
+): Promise<void> {
   await page.addInitScript(
     (seed: { key: string; code: string }) => {
       localStorage.setItem(seed.key, seed.code);
     },
-    { key: `develevateChallengeCode_${String(number - 1)}_1`, code },
+    { key: `develevateChallengeCode_${String(number - 1)}_${String(slot)}`, code },
   );
 }
 
