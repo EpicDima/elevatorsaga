@@ -1342,16 +1342,53 @@ html[data-theme="dark"] .tasklink.is-done {
   display: none;
 }
 
+/*
+ * The caption over every block -- `design/ui-mockup.html`'s own
+ * `.setblock .cap` (§A) with the base `.cap` (§1) it leans on folded into
+ * it. The mockup states only the stacking and the 7px gap here, per its own
+ * note on this rule ("подпись над контролом, а не слева от него": a caption
+ * to the left would have to hold a column open for the longest word, and
+ * squeeze the segments in what is left), and leaves the small tracked
+ * uppercase to that shared rule.
+ *
+ * Folded in rather than ported as a bare, shared `.cap`, exactly as
+ * `.taskblock .cap` (below), `.meter-head .cap` and `.statspanel .cap` each
+ * restate it for their own box -- see the first of those for the full
+ * account. The colour is why, and it is the same shortfall in all four:
+ * `--text-faint`, the mockup's own choice, measures 3.62:1 dark and 3.14:1
+ * light against `--ds-panel`, the surface `.setmenu` paints under these five
+ * captions, short of WCAG 1.4.3's 4.5:1 in both. `--ds-text-muted` is the
+ * nearest step up that clears it, 6.70:1 dark and 5.90:1 light, and is what
+ * the other three read instead. Until this rule the captions inherited
+ * `.setmenu`'s own `--ds-text` and rendered as sentence-case body text --
+ * legible, but not a caption at all.
+ */
 .setblock .cap {
   display: block;
   margin-bottom: 7px;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--ds-text-muted);
 }
 
+/*
+ * The line under a block that explains it -- `design/ui-mockup.html`'s own
+ * `.sethint` (§A). Its one user today is the About block's copyright notice.
+ *
+ * `--ds-text-muted` where the mockup writes `--text-faint`, for the reason
+ * `.setblock .cap` above gives and against the same `--ds-panel`: 3.62:1
+ * dark and 3.14:1 light is short of WCAG 1.4.3's 4.5:1, and 6.70:1 and
+ * 5.90:1 clear it. The notice has carried the pale value since the About
+ * block landed, and a licence notice is exactly the small print a reader
+ * has to be able to read.
+ */
 .sethint {
   margin: 7px 0 0;
   font-size: 12px;
   line-height: 1.45;
-  color: var(--ds-text-faint);
+  color: var(--ds-text-muted);
 }
 
 .setblock .langpick {
