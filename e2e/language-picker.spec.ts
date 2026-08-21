@@ -23,7 +23,14 @@
 
 import { expect, test } from "@playwright/test";
 
-import { languagePicker, seedText, startButton, statistic, statisticValue } from "./game-page.ts";
+import {
+  editor,
+  languagePicker,
+  seedText,
+  startButton,
+  statistic,
+  statisticValue,
+} from "./game-page.ts";
 
 /** Where the choice is remembered between visits. */
 const LOCALE_STORAGE_KEY = "elevatorLocale";
@@ -83,6 +90,14 @@ test("puts the whole page into Russian without disturbing the run", async ({ pag
   await expect(page.getByRole("group", { name: "Лифт 0" })).toBeVisible();
   // And the control itself, now labelled in the language it just chose.
   await expect(await languagePicker(page)).toHaveValue("ru");
+  // The program in the editor, which is the default one here because nobody has
+  // typed: its `//` comments are addressed to the player, so they are the
+  // game's writing and they follow the language like everything above. Found by
+  // its English name on purpose -- CodeMirror is handed the accessible name
+  // when the view is built and it is the one label on the page a language
+  // change does not reach.
+  await expect(editor(page)).toContainText("Возьмём первый лифт");
+  await expect(editor(page)).not.toContainText("Let's use the first elevator");
 
   // The same building, and the same one: the seed names the draw, and a restart
   // would have taken another one.

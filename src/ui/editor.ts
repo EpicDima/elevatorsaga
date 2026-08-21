@@ -32,6 +32,7 @@ import { playerApiCompletionSource } from "./completions.ts";
 import { defaultCode } from "./default-code.ts";
 import { locateCodeError } from "./error-location.ts";
 import type { CodeErrorLocation } from "./error-location.ts";
+import { localiseStarterCode } from "./starter-code.ts";
 import { DEFAULT_CODE_SLOT } from "#features/manage-code-slots/model/code-slots.ts";
 import type { CodeSlot } from "#features/manage-code-slots/model/code-slots.ts";
 
@@ -309,7 +310,17 @@ interface EditorBuffer {
   readonly codeKey: string;
   /** Where {@link CodeEditor.reset} parks the text before replacing it. */
   readonly backupKey: string;
-  /** The program {@link CodeEditor.reset} restores, and an empty buffer opens with. */
+  /**
+   * The program {@link CodeEditor.reset} restores, and an empty buffer opens
+   * with.
+   *
+   * Read per use rather than held, by every buffer here, because a starter
+   * program is a translated string and the language can change under an open
+   * buffer. The player's own buffer renders its message on each read; the two
+   * that are handed a program at open time put it through
+   * {@link localiseStarterCode}, which answers for the language on screen now
+   * rather than the one the level was opened in.
+   */
   readonly starterCode: string;
   /**
    * Whether opening this buffer empty may write {@link EditorBuffer.starterCode}
@@ -380,7 +391,9 @@ function namedLevelBuffer(levelId: string, starterCode: string): EditorBuffer {
   return {
     codeKey: `${TUTORIAL_CODE_KEY_PREFIX}${levelId}`,
     backupKey: `${TUTORIAL_BACKUP_KEY_PREFIX}${levelId}`,
-    starterCode,
+    get starterCode(): string {
+      return localiseStarterCode(starterCode);
+    },
     writesStarterOnOpen: true,
   };
 }
@@ -399,7 +412,9 @@ function levelBuffer(levelIndex: number, slot: CodeSlot, starterCode: string): E
   return {
     codeKey: levelCodeKey(levelIndex, slot),
     backupKey: levelBackupKey(levelIndex, slot),
-    starterCode,
+    get starterCode(): string {
+      return localiseStarterCode(starterCode);
+    },
     writesStarterOnOpen: true,
   };
 }
@@ -471,7 +486,9 @@ export class CodeEditor extends Observable<CodeEditorEvents> {
     // the program the player arrived with.
     const existingCode = this.#read(this.#buffer.codeKey);
     const initialCode =
-      existingCode.state === "text" ? existingCode.text : this.#buffer.starterCode;
+      existingCode.state === "text"
+        ? localiseStarterCode(existingCode.text)
+        : this.#buffer.starterCode;
     this.#view = createView(
       {
         onChange: () => {
@@ -798,7 +815,13 @@ export class CodeEditor extends Observable<CodeEditorEvents> {
     this.#buffer = next;
     const stored = this.#read(next.codeKey);
     if (stored.state === "text") {
-      this.#swapDocument(stored.text);
+      // Through `localiseStarterCode` because this text may be a starting point
+      // this editor wrote here in another language, on another day: every buffer
+      // but the player's own stores its starter on the way in, and a level whose
+      // stored copy is Russian must not be the one region of an English page
+      // that says so. A program the player wrote comes back exactly as they left
+      // it, which is the whole distinction that function draws.
+      this.#swapDocument(localiseStarterCode(stored.text));
     } else {
       // Nothing to show but the starting point. Whether it may also be *written*
       // depends on which kind of nothing this is: an empty entry is a level
@@ -980,6 +1003,42 @@ export class CodeEditor extends Observable<CodeEditorEvents> {
       return false;
     }
     return this.#read(this.#buffer.backupKey).state === "text";
+  }
+
+  /**
+   * Says the program on screen again in the language now active, when it is one
+   * the game handed the player.
+   *
+   * The counterpart, for the one region of the page holding text nobody
+   * translated on the way in, of every other redraw a language change sets off.
+   * The editor cannot simply be redrawn like the rest of them: what is in it is
+   * usually the player's, and the whole game is built on never replacing that.
+   * So the question asked is narrower — is this text a program the game itself
+   * wrote? — and only text that answers yes is replaced. See
+   * {@link localiseStarterCode} for why that is asked of the text rather than
+   * tracked as a flag.
+   *
+   * Storage is deliberately left alone, though it may well be holding the same
+   * program in the old language. Nothing reads it without going through
+   * {@link localiseStarterCode} first, so the stored copy's language is
+   * invisible, and writing here would mean a language change spending the
+   * player's storage quota — and announcing a refusal — for a change nobody
+   * could see.
+   */
+  relocalise(): void {
+    const code = this.getCode();
+    const localised = localiseStarterCode(code);
+    if (localised === code) {
+      return;
+    }
+    // A swap rather than an edit: this is not something the player did, so
+    // there is nothing here for them to undo, and an undo that brought the
+    // other language's comments back would be a puzzle rather than a mercy.
+    this.#swapDocument(localised);
+    // Same reason `#openBuffer` says it: the text in the editor is different
+    // text now, without anybody having typed, and what is measured or compiled
+    // from it is stale.
+    this.trigger("change");
   }
 
   /** Puts the caret back in the editing surface. */

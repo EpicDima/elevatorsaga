@@ -4,6 +4,8 @@ import { CompletionContext } from "@codemirror/autocomplete";
 import { EditorView } from "@codemirror/view";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { tutorialLevels } from "../game/tutorial.ts";
+import type { TutorialLevel } from "../game/tutorial.ts";
 import { DEFAULT_LOCALE, setLocale } from "../i18n/index.ts";
 import { playerApiCompletionSource } from "./completions.ts";
 import { defaultCode } from "./default-code.ts";
@@ -1756,4 +1758,150 @@ describe("the starting program", () => {
   // translated is deliberately not asserted here. `catalog.test.ts` already
   // asserts it for every `.code` key in the catalog, of which this is one,
   // and a second copy would be a second thing to keep in step.
+});
+
+describe("the program on screen when the language changes", () => {
+  afterEach(() => {
+    setLocale(DEFAULT_LOCALE);
+  });
+
+  /**
+   * The first level of the learning track, which every player meets.
+   *
+   * @returns The level.
+   */
+  function firstLesson(): TutorialLevel {
+    const [level] = tutorialLevels;
+    if (level === undefined) {
+      throw new Error("The learning track has no levels");
+    }
+    return level;
+  }
+
+  it("is said again in the new language when the game is the one that wrote it", () => {
+    // The whole complaint this answers: the language picker changed every word
+    // on the page except the ones inside the editor, so a player who arrived in
+    // Russian and switched to English went on reading Russian comments in the
+    // first JavaScript the game ever shows them.
+    const { editor, view } = setUp();
+    expect(view.getValue()).toContain("// Let's use the first elevator");
+
+    setLocale("ru");
+    editor.relocalise();
+
+    expect(view.getValue()).toBe(defaultCode());
+    expect(view.getValue()).toContain("// Возьмём первый лифт");
+  });
+
+  it("is left exactly as it is when the player wrote it", () => {
+    const mine = "// my own dispatcher\nelevators[0].goToFloor(3);";
+    const { editor, view } = setUp();
+    view.type(mine);
+
+    setLocale("ru");
+    editor.relocalise();
+
+    expect(view.getValue()).toBe(mine);
+  });
+
+  it("says it changed, without announcing a save nobody asked for", () => {
+    // The program in the editor is different text now, so anything measuring or
+    // compiling it is stale -- the same reason opening a buffer raises this.
+    // Nothing is written, though: storage is read back through the same
+    // translation, so the language it happens to hold is invisible.
+    const { editor, storage } = setUp();
+    const changed = vi.fn();
+    const saved = vi.fn();
+    editor.on("change", changed);
+    editor.on("saved", saved);
+
+    setLocale("ru");
+    editor.relocalise();
+    vi.advanceTimersByTime(AUTOSAVE_DELAY_MS * 2);
+
+    expect(changed).toHaveBeenCalledTimes(1);
+    expect(saved).not.toHaveBeenCalled();
+    expect(storage.getItem(CODE_STORAGE_KEY)).toBeNull();
+  });
+
+  it("says nothing at all when there was nothing to translate", () => {
+    const { editor } = setUp();
+    const changed = vi.fn();
+    editor.on("change", changed);
+
+    editor.relocalise();
+
+    expect(changed).not.toHaveBeenCalled();
+  });
+
+  it("resets a level to its starting point in the language on screen", () => {
+    // `EditorBuffer.starterCode` is a getter over the text the level was opened
+    // with for this: the level hands its program over once, when it opens, and
+    // "Reset" pressed an hour and a language later owes the player the version
+    // they can read.
+    const level = firstLesson();
+    const { editor, view } = setUp();
+    editor.openNamedLevelBuffer(level.id, level.startingCode);
+    view.type("// half an idea");
+
+    setLocale("ru");
+    editor.reset();
+
+    expect(view.getValue()).toBe(level.startingCode);
+    expect(view.getValue()).toContain("//");
+  });
+
+  it("shows a level's stored starting point in the language on screen", () => {
+    // A level writes its starting point into storage the first time it is
+    // opened, so the copy waiting there tomorrow is in the language of the day
+    // it was written. Nothing else on the page is, and this must not be either.
+    setLocale("ru");
+    const level = firstLesson();
+    const russianSkeleton = level.startingCode;
+    const { editor, view, storage } = setUp();
+    editor.openNamedLevelBuffer(level.id, russianSkeleton);
+    expect(storage.getItem(`develevateTutorialCode_${level.id}`)).toBe(russianSkeleton);
+
+    setLocale(DEFAULT_LOCALE);
+    editor.openPlayerBuffer();
+    editor.openNamedLevelBuffer(level.id, level.startingCode);
+
+    expect(view.getValue()).toBe(level.startingCode);
+    expect(view.getValue()).not.toBe(russianSkeleton);
+  });
+
+  it("carries a starting point forward into the next level in the language on screen", () => {
+    // The path that spreads one language through a whole session: level 2 with
+    // nothing of its own starts from what level 1 holds, and what level 1 holds
+    // is the default program as it was written down on the day that level was
+    // first opened.
+    setLocale("ru");
+    const { editor, view } = setUp();
+    editor.openLevelBuffer(0, 1);
+    expect(view.getValue()).toBe(defaultCode());
+
+    setLocale(DEFAULT_LOCALE);
+    editor.openLevelBuffer(1, 1);
+
+    expect(view.getValue()).toBe(defaultCode());
+    expect(view.getValue()).toContain("// Let's use the first elevator");
+  });
+
+  it("finds the program the player left, whatever language they left it in", () => {
+    // The other half of the same rule, and the half worth being sure of: an
+    // attempt is not a starting point, so it comes back byte for byte however
+    // many languages the player has been through since.
+    const mine = "// моя попытка\nelevators[0].goToFloor(2);";
+    setLocale("ru");
+    const { editor, view } = setUp();
+    editor.openNamedLevelBuffer("tutorial-4", "// level 4 skeleton");
+    view.type(mine);
+    vi.advanceTimersByTime(AUTOSAVE_DELAY_MS);
+
+    setLocale(DEFAULT_LOCALE);
+    editor.openPlayerBuffer();
+    editor.openNamedLevelBuffer("tutorial-4", "// level 4 skeleton");
+
+    expect(view.getValue()).toBe(mine);
+  });
 });

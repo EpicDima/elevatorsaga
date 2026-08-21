@@ -2819,6 +2819,38 @@ describe("App.relocalise", () => {
     expect(codeErrorMessage(editorPaneMount)).toContain("boom");
   });
 
+  it("says the program the game handed the player again, in the new language", () => {
+    // The one region whose text is usually the player's own, and so the only
+    // one that has to ask before redrawing itself. A lesson's starting program
+    // is the game's own writing -- its `//` comments are the lesson -- and the
+    // language picker used to change every word on the page except those.
+    const [lesson] = tutorialLevels;
+    if (lesson === undefined) {
+      throw new Error("The learning track has no levels");
+    }
+    const { app, view } = setUp();
+    app.startTutorial(0);
+    const english = lesson.startingCode;
+    expect(view.getValue()).toBe(english);
+
+    setLocale("ru");
+    app.relocalise();
+
+    expect(view.getValue()).toBe(lesson.startingCode);
+    expect(view.getValue()).not.toBe(english);
+  });
+
+  it("leaves the program the player wrote exactly where it was", () => {
+    const { app, view } = setUp();
+    app.startLevel(0);
+    view.type("// my own dispatcher");
+
+    setLocale("ru");
+    app.relocalise();
+
+    expect(view.getValue()).toBe("// my own dispatcher");
+  });
+
   it("has nothing to redraw before a level has been started", () => {
     // The language can be chosen on a page that has only just loaded, before
     // any route has been handled.

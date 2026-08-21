@@ -2136,6 +2136,12 @@ export class App {
    *   numbers rather than words and the next tick redraws them anyway.
    * - The end-of-level overlay is drawn again from the remembered outcome,
    *   if there is one.
+   * - The program in the editor is left to the editor, which replaces it only
+   *   if it is one the game wrote: the starting program of a level, or the
+   *   default program, whose `//` comments are addressed to the player and are
+   *   therefore translated. Anything the player has typed is theirs and stays
+   *   exactly as it is — see
+   *   {@link "../../ui/editor.ts"!CodeEditor.relocalise}.
    *
    * The banner about a failed program is drawn again too, since the sentence
    * around the error is a message. What it wraps is not: an exception's own text
@@ -2158,6 +2164,12 @@ export class App {
    * the answer rather than the sentence across the redraw in order to say it.
    */
   relocalise(): void {
+    // Before the pane, which reads the program on screen to decide whether to
+    // offer "Undo reset": between the two calls the document is a starting
+    // program in the language that has just been left and the buffer's starter
+    // is the one being arrived at, so a pane updated first would compare the
+    // two languages and hide the button.
+    this.#editor.relocalise();
     // Unconditional, unlike the bar: the run controls and the editor pane are
     // on screen from the first paint, before any level has started, so
     // they have words to rewrite even when there is no world to redraw around
