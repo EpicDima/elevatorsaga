@@ -57,8 +57,9 @@ test("serves a favicon the browser can actually draw", async ({ page }) => {
     title: document.querySelector("title")?.textContent ?? null,
     shapes: document.querySelectorAll("rect").length,
   }));
-  // An error document is `html`, and the drawing is the plate and its two cars.
-  expect(drawn).toEqual({ root: "svg", title: "Elevator Saga", shapes: 3 });
+  // An error document is `html`, and the drawing is the plate, the frame the
+  // app bar's own mark draws, and two cars.
+  expect(drawn).toEqual({ root: "svg", title: "Elevator Saga", shapes: 4 });
 });
 
 test("serves the image its link preview promises", async ({ page }) => {
