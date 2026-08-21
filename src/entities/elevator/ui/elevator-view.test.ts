@@ -158,7 +158,7 @@ describe("createElevatorView", () => {
 });
 
 describe("elevatorTemplate", () => {
-  it("keeps the class relabelWorld selects a car by, alongside the mockup's own", () => {
+  it("keeps both the class the stylesheet draws and the one relabelWorld selects by", () => {
     const shaft = renderElement(elevatorTemplate(0));
     expect(shaft.className).toBe("shaft elevator");
     expect(shaft.getAttribute("role")).toBe("group");
