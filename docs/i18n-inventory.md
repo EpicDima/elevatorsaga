@@ -552,11 +552,11 @@ with this module's card text, not left out on purpose.
 
 ### `src/widgets/stats-panel/ui/stats-panel.ts` — 3 `game.statsPanel.*` keys
 
-The stats panel's own thirteen tiles, ported from `design/ui-mockup.html`'s stats tiles and
-`presentStats`'s eleven figures (what was `src/ui/presenters.ts`). Eleven of the thirteen reuse
-`page.stats.*` captions directly — the same ones `presentStats` and `goal-bar.ts`'s own meters
-already show — so this prefix holds only the two figures with no production precedent, plus the
-disclosure summary that reveals the panel's nine secondary tiles.
+The stats panel's own thirteen tiles draw on `presentStats`'s eleven figures (what was
+`src/ui/presenters.ts`). Eleven of the thirteen reuse `page.stats.*` captions directly — the same
+ones `presentStats` and `goal-bar.ts`'s own meters already show — so this prefix holds only the two
+figures with no production precedent, plus the disclosure summary that reveals the panel's nine
+secondary tiles.
 
 | Key                          | English     | Notes                                                                                                      |
 | ---------------------------- | ----------- | ---------------------------------------------------------------------------------------------------------- |
@@ -630,9 +630,9 @@ have rewritten twenty-four Russian and English values to say nothing new.
 | `game.goalBar.tier.silver`                  | Silver                                                |                                                                                                                                                                                                                                                                 |
 | `game.goalBar.tier.gold`                    | Gold                                                  |                                                                                                                                                                                                                                                                 |
 | `game.goalBar.trigger.titleNone`            | Level stars: none yet. Open requirements              | the tier trigger's title before any tier is earned                                                                                                                                                                                                              |
-| `game.goalBar.trigger.titleEarned`          | Level stars: {tier}. Open requirements                | takes `{tier}`, itself `t(TIER_NAME_KEY[earnedTier])`; Russian could not reuse the mockup's «взято {tier}» — «взято» agrees with «серебро»/«золото» but not with «бронза», which needs «взята» — so the tier's own name is substituted directly instead         |
-| `game.goalBar.floorBudget.html`             | {count} floor / {count} floors                        | plural (one, other); takes `{count}`; feeds `req.moveCount.html`'s `{floors}`; Russian keeps the genitive plural «этажей» invariant across all four categories, matching a simplification the mockup already made                                               |
-| `game.goalBar.stopBudget.html`              | {count} stop / {count} stops                          | plural (one, other); takes `{count}`; feeds `req.stopCount.html`'s `{stops}`; Russian declines all four categories properly — there was no mockup precedent here to simplify from                                                                               |
+| `game.goalBar.trigger.titleEarned`          | Level stars: {tier}. Open requirements                | takes `{tier}`, itself `t(TIER_NAME_KEY[earnedTier])`; no single Russian verb agrees with all three tier names — «взято» works for «серебро»/«золото» but not «бронза», which needs «взята» — so the tier's own name is substituted directly instead            |
+| `game.goalBar.floorBudget.html`             | {count} floor / {count} floors                        | plural (one, other); takes `{count}`; feeds `req.moveCount.html`'s `{floors}`; Russian keeps the genitive plural «этажей» invariant across all four categories, a deliberate simplification                                                                     |
+| `game.goalBar.stopBudget.html`              | {count} stop / {count} stops                          | plural (one, other); takes `{count}`; feeds `req.stopCount.html`'s `{stops}`; Russian declines all four categories properly, unlike `floorBudget.html`'s invariant genitive plural                                                                              |
 | `game.goalBar.req.transportedCounter.html`  | transport {people}                                    | takes `{people}`, itself `level.people.html`                                                                                                                                                                                                                    |
 | `game.goalBar.req.elapsedTime.html`         | finish within {time}                                  | takes `{time}`, itself `level.timeLimit.html`                                                                                                                                                                                                                   |
 | `game.goalBar.req.maxWaitTime.html`         | deliver everyone within {time}                        | takes `{time}`, itself `level.waitLimit.html`; not "no one waits longer than {time}" — `maxWaitTime`/`avgWaitTime` measure spawn-to-delivery, not a wait, the same distinction `page.stats.avgWaitTime` and `.maxWaitTime` already draw                         |
@@ -655,11 +655,11 @@ reset" buttons, and an error banner reusing `game.codeStatus` for its own messag
 Five keys are drawn here. The two button labels, which this pane is now the only reader of — they
 were the run controls' while the two rows were one, and `run-controls.ts` kept the run and gave
 the code away. The banner's goto link, which `src/ui/error-location.ts`'s `locateCodeError` makes
-possible where the mockup's own `#errorGoto` did nothing. And a tooltip for each of the two
+work by finding a position for the player's own exception. And a tooltip for each of the two
 buttons, saying the thing their labels have no room for — which of the two programs comes back.
 "Reset code" does not distinguish the level's own starting program from whatever the editor held a
-moment ago, and the buttons sit next to each other undoing one another. The mockup writes such a
-`title` on its own reset button, and the Russian of `resetCodeTitle` is its wording verbatim.
+moment ago, and the buttons sit next to each other undoing one another, which is why each carries
+a `title` spelling that out.
 
 | Key                              | English                                                | Notes                                                                                                                             |
 | -------------------------------- | ------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------- |
@@ -674,11 +674,11 @@ this migration.
 
 ### `src/features/switch-theme` — 4 `game.switchTheme.*` keys
 
-The settings popover's theme block, ported from `design/ui-mockup.html`'s `#setMenu` (§A): a
-three-way light/dark/system switch, where "system" is not a fallback but the starting choice —
-until a player picks otherwise, the page tracks the browser's own `prefers-color-scheme`. This is
-one of several blocks that popover composes; see `widgets/app-bar/ui/settings-menu.ts` for the
-others, once a later step of the same migration phase adds it.
+The settings popover's theme block: a three-way light/dark/system switch, where "system" is not a
+fallback but the starting choice — until a player picks otherwise, the page tracks the browser's own
+`prefers-color-scheme`. This is one of several blocks that popover composes; see
+`widgets/app-bar/ui/settings-menu.ts` for the others, once a later step of the same migration phase
+adds it.
 
 | Key                        | English | Notes                                                                      |
 | -------------------------- | ------- | -------------------------------------------------------------------------- |
@@ -693,14 +693,13 @@ far in this migration.
 
 ### `src/features/switch-layout` — 5 `game.switchLayout.*` keys
 
-The settings popover's layout block, ported from `design/ui-mockup.html`'s `#setMenu` (§A): the
-same four-way left/right/code/game arrangement `widgets/workspace-layout` already drives, exposed
-here through its own `LayoutModeId` type rather than that widget's `LayoutMode` — `features/**` may
-not import from `widgets/**` (see `layout-switch.ts`'s module doc comment) — the two types being
-structurally identical strings is what lets a later caller pass one where the other is expected,
-without a cast. This is one of several blocks the popover composes; see
-`widgets/app-bar/ui/settings-menu.ts` for the others, once a later step of the same migration phase
-adds it.
+The settings popover's layout block: the same four-way left/right/code/game arrangement
+`widgets/workspace-layout` already drives, exposed here through its own `LayoutModeId` type rather
+than that widget's `LayoutMode` — `features/**` may not import from `widgets/**` (see
+`layout-switch.ts`'s module doc comment) — the two types being structurally identical strings is
+what lets a later caller pass one where the other is expected, without a cast. This is one of
+several blocks the popover composes; see `widgets/app-bar/ui/settings-menu.ts` for the others, once
+a later step of the same migration phase adds it.
 
 Two of the four keys are `onlyCode`/`onlyGame` rather than the bare `code`/`game` a
 `LayoutModeId`-keyed lookup would otherwise suggest: a bare `.code` key is a reserved suffix
@@ -722,26 +721,25 @@ far in this migration.
 
 ### `src/widgets/app-bar/ui/settings-menu.ts` — 7 `game.appBar.*` keys
 
-The widget that composes `switch-theme`, `switch-layout`, `switch-language` and `manage-seed`
-into the one settings popover `design/ui-mockup.html` draws (§A), plus the two elements around and
-inside it that are this module's own: the `docsOpen` button beside the popover, and the popover's
-own hotkeys-opener row and About block. `docsOpenLabel` and `hotkeysOpenLabel` name openers only —
-Phase 10 is where the docs and hotkeys dialogs themselves get built, so both buttons take an
-injected click callback and do nothing on their own yet, the same "build inert first" staging every
-widget in this migration follows. `aboutForkLabel`/`aboutOriginalLabel`/`aboutCopyright.html` are
-the only prose in a block that otherwise consists of two real, hardcoded GitHub URLs — an address
-is not a translator's business, so the URLs and the domain text under each link are plain constants
-rather than catalog keys.
+The widget that composes `switch-theme`, `switch-layout`, `switch-language` and `manage-seed` into
+one settings popover, plus the two elements around and inside it that are this module's own: the
+`docsOpen` button beside the popover, and the popover's own hotkeys-opener row and About block.
+`docsOpenLabel` and `hotkeysOpenLabel` name openers only — Phase 10 is where the docs and hotkeys
+dialogs themselves get built, so both buttons take an injected click callback and do nothing on
+their own yet, the same "build inert first" staging every widget in this migration follows.
+`aboutForkLabel`/`aboutOriginalLabel`/`aboutCopyright.html` are the only prose in a block that
+otherwise consists of two real, hardcoded GitHub URLs — an address is not a translator's business,
+so the URLs and the domain text under each link are plain constants rather than catalog keys.
 
 `aboutCopyright.html` is deliberately the same string in both locales: "Elevator Saga © 2015 Magnus
 Wolffelt, © 2026 EpicDima, MIT." names a licence, and a licence notice does not change with the
-reader's language, the same reason the mockup's own Russian page leaves it in English.
+reader's language.
 
 It is also the whole of the game's route to `licenses.txt`. The footer that used to link that file
-went when the app bar took the page over, and a row of its own in the About block would have
-changed the shape `design/ui-mockup.html` draws — so the word "MIT", already in the notice and
-already naming the thing the file contains, is the link. That is why the key carries `.html`: the
-suffix is this catalog's mark for a value written with `innerHTML` rather than as text.
+went when the app bar took the page over, and a row of its own in the About block would have changed
+its shape — so the word "MIT", already in the notice and already naming the thing the file contains,
+is the link. That is why the key carries `.html`: the suffix is this catalog's mark for a value
+written with `innerHTML` rather than as text.
 
 | Key                               | English                                                                                    | Notes                                                                                  |
 | --------------------------------- | ------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------- |
@@ -759,27 +757,25 @@ every widget staged so far in this migration.
 
 ### `src/features/hotkeys-help/ui/hotkeys-modal.ts` — 8 `game.hotkeys.*` keys
 
-The `hotkeys-help` feature's own dialog — the keys dialog `design/ui-mockup.html` draws as
-`<dialog class="keys">`: a title, a close button and five rows pairing a hotkey with what it does.
-Two of the five are Mod- bindings, and the mockup spells each as one compressed glyph — `⌘⏎`, `⌘B`
-— with a static paragraph underneath explaining that Windows and Linux read `Ctrl` for `⌘`. This
-port spells both as two `<kbd>`s joined by `+` instead, the convention
-`docs.play.shortcuts.html` already uses and `src/ui/shortcuts.ts`'s `labelModifierKeys` already
-resolves per visitor at runtime — which is also why the mockup's own hint paragraph is dropped
-rather than ported: relabelling per visitor is what makes the hint's own question not arise;
-whoever mounts the dialog live still has to call `labelModifierKeys` against it themselves, the
-same way `src/ui/localise-page.ts` already does for the rest of the page shell.
+The `hotkeys-help` feature's own dialog is `<dialog class="keys">`: a title, a close button and
+five rows pairing a hotkey with what it does. Two of the five are Mod- bindings, spelled as two
+`<kbd>`s joined by `+`, the convention `docs.play.shortcuts.html` already uses;
+`src/ui/shortcuts.ts`'s `labelModifierKeys` resolves each pair per visitor at runtime, so nothing
+here needs a static paragraph explaining that Windows and Linux read `Ctrl` for `⌘` — relabeling
+per visitor is what makes that question not arise. Whoever mounts the dialog live still has to
+call `labelModifierKeys` against it themselves, the same way `src/ui/localise-page.ts` already
+does for the rest of the page shell.
 
-| Key                         | English            | Notes                                                                          |
-| --------------------------- | ------------------ | ------------------------------------------------------------------------------ |
-| `game.hotkeys.title`        | Keyboard shortcuts | the dialog's heading                                                           |
-| `game.hotkeys.closeTitle`   | Close window       | the close button's `title`                                                     |
-| `game.hotkeys.close`        | Close              | the close button's screen-reader-only label                                    |
-| `game.hotkeys.startPause`   | Start and pause    | the row naming `Space`                                                         |
-| `game.hotkeys.startOver`    | Start over         | the row naming `Ctrl`+`Enter`, two `<kbd>`s rather than the mockup's own glyph |
-| `game.hotkeys.switchLayout` | Switch layout      | the row naming `Ctrl`+`B`, likewise                                            |
-| `game.hotkeys.openDocs`     | Help               | the row naming `F1`                                                            |
-| `game.hotkeys.openSettings` | Settings           | the row naming `?`                                                             |
+| Key                         | English            | Notes                                                                           |
+| --------------------------- | ------------------ | ------------------------------------------------------------------------------- |
+| `game.hotkeys.title`        | Keyboard shortcuts | the dialog's heading                                                            |
+| `game.hotkeys.closeTitle`   | Close window       | the close button's `title`                                                      |
+| `game.hotkeys.close`        | Close              | the close button's screen-reader-only label                                     |
+| `game.hotkeys.startPause`   | Start and pause    | the row naming `Space`                                                          |
+| `game.hotkeys.startOver`    | Start over         | the row naming `Ctrl`+`Enter`, as two `<kbd>`s rather than one compressed glyph |
+| `game.hotkeys.switchLayout` | Switch layout      | the row naming `Ctrl`+`B`, likewise                                             |
+| `game.hotkeys.openDocs`     | Help               | the row naming `F1`                                                             |
+| `game.hotkeys.openSettings` | Settings           | the row naming `?`                                                              |
 
 Built and unit-tested against a jsdom `<dialog>` — `polyfillDialogElement`
 (`src/shared/ui/test-helpers.ts`) — but not yet wired into `src/pages/game/index.ts` or `settings-menu.ts`'s
@@ -787,17 +783,15 @@ Built and unit-tested against a jsdom `<dialog>` — `polyfillDialogElement`
 
 ### `src/features/docs-reference/ui/docs-modal.ts` — 24 `game.docs.*` keys
 
-The `docs-reference` feature's own dialog — the help dialog
-`design/ui-mockup.html` draws as `<dialog class="docs">`: a search box, a guide, the code skeleton
-every program starts from, a lead paragraph, and the API reference table below (`reference.ts`,
-next). Six keys are the dialog's own chrome, including `empty`, shown in place of the guide and the
-reference once a search matches nothing. Fifteen are the guide, ported section by section from the
-mockup's own `GUIDE` template literal — `whatToDo`'s four steps are their own keys rather than one
-holding the whole `<ol>`, since the list itself is the template's to draw and not a translator's to
-reproduce, and `step3` alone carries a `.html` suffix, being the only one of the seven sections with
-an inline tag. `intro.example.code` is rendered through `highlightJavaScript` and wrapped in
-`<pre><code>` at the presenter — `src/ui/templates.ts`'s own `tutorialAnswerTemplate` convention —
-rather than the mockup's own bare `<pre>`.
+The `docs-reference` feature's own dialog is `<dialog class="docs">`: a search box, a guide, the
+code skeleton every program starts from, a lead paragraph, and the API reference table below
+(`reference.ts`, next). Six keys are the dialog's own chrome, including `empty`, shown in place of
+the guide and the reference once a search matches nothing. Fifteen are the guide, split section by
+section — `whatToDo`'s four steps are their own keys rather than one holding the whole `<ol>`,
+since the list itself is the template's to draw and not a translator's to reproduce, and `step3`
+alone carries a `.html` suffix, being the only one of the seven sections with an inline tag.
+`intro.example.code` is rendered through `highlightJavaScript` and wrapped in `<pre><code>` at the
+presenter, `src/ui/templates.ts`'s own `tutorialAnswerTemplate` convention.
 
 | Key                                      | English                                                                                               | Notes                                                                  |
 | ---------------------------------------- | ----------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
@@ -838,11 +832,11 @@ plain data with no `t()` call of its own, mirroring
 entries and a `floor` group of three. Every entry names three keys after its own id — `.short` (the
 collapsed `<details class="api">` row's summary), `.more` (its expanded paragraph) and `.code` (its
 example) — besides the two group labels themselves. English condenses this repository's own
-`documentation.html` prose for the same methods rather than translating the Russian cold; Russian is
-`design/ui-mockup.html`'s own `API_DOCS` text, unchanged but for `floorNum.more`'s
-`floors.length-1`, tightened to keep the catalog's own rule against a spaced hyphen standing in
-for a dash. Every `.code` key holds only its comments in translation, the code itself
-byte-identical between locales — `docs.basics.example.code`'s own convention.
+`documentation.html` prose for the same methods rather than translating the Russian cold; Russian
+keeps its own established wording, unchanged but for `floorNum.more`'s `floors.length-1`, tightened
+to keep the catalog's own rule against a spaced hyphen standing in for a dash. Every `.code` key
+holds only its comments in translation, the code itself byte-identical between locales —
+`docs.basics.example.code`'s own convention.
 
 Read by `docs-modal.ts` (above), which draws `API_REFERENCE` as the reference table's own rows.
 
@@ -990,8 +984,7 @@ works out none of it.
 
 `game.feedback.dismiss` is not "Close". The word names what the player is saying rather than what
 the button does, and it deliberately avoids anything that could be read as offering the run again:
-restarting is the app bar's own control, and `design/ui-mockup.html` argues at its `#verdictClose`
-that a second promise of it is one too many.
+restarting is the app bar's own control, and a second promise of it here would be one too many.
 
 There is a sentence per tier instead of one taking the tier's name because Russian declines it —
 «до серебра», «до золота» — and a name interpolated from `game.goalBar.tier.*` would arrive
@@ -1068,10 +1061,9 @@ prefixed `editor.` rather than `page.` because they name a control that belongs 
 rather than to the page shell around it.
 
 `editor.slot.tab.label` used to read "Code slot {number}" and sit in an `aria-label` over a button
-whose visible text was the bare number. It is the visible text itself now, which is what
-`design/ui-mockup.html`'s own `.codebar` writes and what WCAG 2.5.3 (Label in Name) asks: an
-accessible name of "Code slot 1" over a visible "1" contains neither the other, so a player saying
-"click code one" was matching against a sentence nobody had shown them.
+whose visible text was the bare number. It is the visible text itself now, which is what WCAG 2.5.3
+(Label in Name) asks: an accessible name of "Code slot 1" over a visible "1" contains neither the
+other, so a player saying "click code one" was matching against a sentence nobody had shown them.
 
 | Key                         | English        | Notes                                                                                                                                       |
 | --------------------------- | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -1459,8 +1451,8 @@ improvements, and all three are visible.
 There was a fourth, and it is worth recording where it went. The save confirmation under the
 editor had its time formatted through the catalog too, which took `21:03:57 GMT+0300 (Moscow
 Standard Time)` down to `21:03:57`; the line itself is gone now, with the message and the
-`formatTimeOfDay` wrapper behind it, because `design/ui-mockup.html` draws no status line under
-the editor and a confirmation that reports the same success every few seconds is not news.
+`formatTimeOfDay` wrapper behind it, because there is no status line under the editor and a
+confirmation that reports the same success every few seconds is not news.
 
 ## Known overlap: `documentation.ru.html`
 
