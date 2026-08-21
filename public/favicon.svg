@@ -2,9 +2,9 @@
   The tab icon: the app bar's own brand mark, so the glyph in the tab strip and
   the glyph beside the game's name are the same drawing rather than two ideas
   about what this site looks like. `buildAppBarSkeleton` in
-  src/widgets/app-bar/ui/app-bar.ts builds that mark, and the two cars below
-  carry its coordinates unchanged; src/page.test.ts compares them, so moving one
-  without the other fails.
+  src/widgets/app-bar/ui/app-bar.ts builds that mark, and the frame and two cars
+  below carry its coordinates unchanged; src/page.test.ts compares them, so
+  moving one without the other fails.
 
   No double hyphen anywhere in this comment, which is why it reads as it does.
   This file is XML, not HTML, and XML forbids one inside a comment: the favicon
@@ -16,12 +16,11 @@
 
   Two differences from the bar's mark, both because a tab is not an app bar:
 
-  * The mark's frame is a hollow rounded rect stroked in `currentcolor`, and
-    here it is filled instead. At 16px an outline a pixel wide around two small
-    rects is mush, and a favicon needs a plate anyway: transparent artwork lands
-    on whatever colour the browser paints its tab strip, the one colour a static
-    file cannot know. The plate keeps the frame's corner in proportion (2.5 on
-    an 18-wide frame is 3 on a 22-wide plate).
+  * A plate is added beneath the drawing. Transparent artwork lands on whatever
+    colour the browser paints its tab strip, the one colour a static file cannot
+    know, so the plate carries the near-black the bar itself stands on and the
+    tab shows what the bar shows. Its corner keeps the frame's proportion
+    (2.5 on an 18-wide frame is 3 on a 22-wide plate).
 
   * The colours are written out rather than inherited. They are the palette's
     darkest neutral (ds-n-0) and the dark theme's accent (ds-accent) from
@@ -46,6 +45,16 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 22 22" role="img" aria-label="Elevator Saga">
   <title>Elevator Saga</title>
   <rect width="22" height="22" rx="3" fill="#131519" />
+  <rect
+    x="2"
+    y="1.5"
+    width="18"
+    height="19"
+    rx="2.5"
+    fill="none"
+    stroke="#e8a33f"
+    stroke-width="1.5"
+  />
   <rect x="5" y="9" width="5.5" height="8.5" rx="1" fill="#e8a33f" opacity=".9" />
   <rect x="12" y="4" width="5" height="8.5" rx="1" fill="#e8a33f" opacity=".45" />
 </svg>
