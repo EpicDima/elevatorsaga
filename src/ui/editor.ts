@@ -15,13 +15,39 @@
  * text alone, which is what players expect.
  */
 
+import {
+  autocompletion,
+  closeBrackets,
+  closeBracketsKeymap,
+  completionKeymap,
+} from "@codemirror/autocomplete";
+import { defaultKeymap, history, historyKeymap } from "@codemirror/commands";
 import { javascript, javascriptLanguage } from "@codemirror/lang-javascript";
-import { indentUnit, syntaxHighlighting } from "@codemirror/language";
+import {
+  bracketMatching,
+  foldGutter,
+  foldKeymap,
+  indentOnInput,
+  indentUnit,
+  syntaxHighlighting,
+} from "@codemirror/language";
+import { highlightSelectionMatches, searchKeymap } from "@codemirror/search";
 import { EditorState, Prec, StateEffect, StateField } from "@codemirror/state";
-import type { Text } from "@codemirror/state";
-import { Decoration, EditorView, keymap } from "@codemirror/view";
+import type { Extension, Text } from "@codemirror/state";
+import {
+  crosshairCursor,
+  Decoration,
+  drawSelection,
+  dropCursor,
+  EditorView,
+  highlightActiveLine,
+  highlightActiveLineGutter,
+  highlightSpecialChars,
+  keymap,
+  lineNumbers,
+  rectangularSelection,
+} from "@codemirror/view";
 import type { DecorationSet } from "@codemirror/view";
-import { basicSetup } from "codemirror";
 
 import { Observable } from "../game/observable.ts";
 import { getCodeObjFromCode } from "../game/user-code.ts";
@@ -1152,6 +1178,56 @@ const errorMarkField = StateField.define<DecorationSet>({
 });
 
 /**
+ * The editing surface every editor starts from: line numbers, undo history,
+ * folding, bracket matching and closing, completion, search, and the key
+ * bindings that drive them.
+ *
+ * This is the `basicSetup` bundle from the `codemirror` package, spelled out.
+ * That package's own documentation says to do this once an editor wants more
+ * than the bundle offers -- it "does not allow customization", and its source
+ * is a list of imports and an array literal meant to be copied. Two things are
+ * left out of the copy:
+ *
+ * - `lintKeymap`, which binds a diagnostics panel and a jump-to-next-problem
+ *   command. Nothing here configures a linter, so both bindings do nothing,
+ *   and dropping them takes `@codemirror/lint` out of the download.
+ * - `syntaxHighlighting(defaultHighlightStyle, { fallback: true })`, which is
+ *   dead for the same reason: {@link editorSyntaxTheme} is registered as an
+ *   ordinary highlighter below, and `@codemirror/language` reads the fallback
+ *   facet only while no ordinary one is configured.
+ *
+ * The order is the bundle's own. CodeMirror resolves extensions by precedence
+ * and then by position, so keeping the list in its original order keeps the
+ * editor behaving as it did.
+ */
+const BASE_EXTENSIONS: Extension = [
+  lineNumbers(),
+  highlightActiveLineGutter(),
+  highlightSpecialChars(),
+  history(),
+  foldGutter(),
+  drawSelection(),
+  dropCursor(),
+  EditorState.allowMultipleSelections.of(true),
+  indentOnInput(),
+  bracketMatching(),
+  closeBrackets(),
+  autocompletion(),
+  rectangularSelection(),
+  crosshairCursor(),
+  highlightActiveLine(),
+  highlightSelectionMatches(),
+  keymap.of([
+    ...closeBracketsKeymap,
+    ...defaultKeymap,
+    ...searchKeymap,
+    ...historyKeymap,
+    ...foldKeymap,
+    ...completionKeymap,
+  ]),
+];
+
+/**
  * Builds a CodeMirror 6 editing surface inside a container.
  *
  * @param parent - Element the editor is appended to.
@@ -1162,25 +1238,22 @@ export function codeMirrorView(parent: HTMLElement): TextEditorViewFactory {
     // Held in a variable rather than written into the constructor call because
     // a swap builds a second state out of the same extensions; see `setValue`.
     const extensions = [
-      basicSetup,
+      BASE_EXTENSIONS,
       javascript(),
       // The player API in the completion popup, so the method names are in
       // the editor rather than only in the other tab. Registered as one more
       // of the JavaScript language's completion sources rather than through
       // `autocompletion({override})`, which would replace the language's own
       // sources: keywords, snippets and the identifiers already in the
-      // player's program stay. `basicSetup` has already turned completion on,
-      // with CodeMirror's defaults — Ctrl-Space, and while typing — and the
-      // source itself is what keeps that from being noisy, by offering
-      // nothing outside the three contexts described in `completions.ts`.
+      // player's program stay. {@link BASE_EXTENSIONS} has already turned
+      // completion on, with CodeMirror's defaults — Ctrl-Space, and while
+      // typing — and the source itself is what keeps that from being noisy, by
+      // offering nothing outside the three contexts described in
+      // `completions.ts`.
       javascriptLanguage.data.of({ autocomplete: playerApiCompletionSource }),
-      // The design's own code colours, over `basicSetup`'s. This is a plain
-      // registration rather than a `{ fallback: true }` one, and that is the
-      // whole mechanism: `basicSetup` adds `defaultHighlightStyle` as a
-      // fallback, which `@codemirror/language` consults only while no ordinary
-      // highlighter is configured, so one line here retires a palette drawn
-      // for a white page and never re-tuned for the near-black editor the
-      // redesign gave the player. See `editorSyntaxTheme` for the mapping.
+      // The design's own code colours: the editor's only highlighter, drawn
+      // for the near-black surface the redesign gave the player rather than
+      // for a white page. See `editorSyntaxTheme` for the mapping.
       syntaxHighlighting(editorSyntaxTheme),
       indentUnit.of(INDENT),
       EditorState.tabSize.of(INDENT.length),
@@ -1262,8 +1335,8 @@ export function codeMirrorView(parent: HTMLElement): TextEditorViewFactory {
       setValue: (value: string, replacement: TextReplacement = "edit") => {
         if (replacement === "swap") {
           // A whole new state, which is the only way to be rid of the undo
-          // history: `basicSetup` brings `history()` in, and CodeMirror offers
-          // no command that empties it.
+          // history: {@link BASE_EXTENSIONS} brings `history()` in, and
+          // CodeMirror offers no command that empties it.
           //
           // The alternative of dispatching the swap with
           // `Transaction.addToHistory.of(false)` was measured, not assumed, and
@@ -1279,9 +1352,9 @@ export function codeMirrorView(parent: HTMLElement): TextEditorViewFactory {
           // does nothing. Dropping the history says what is true: the program
           // they were editing is not on screen any more.
           //
-          // Reconfiguring a compartment holding `history()` would also work,
-          // but the instance to reconfigure is inside `basicSetup`, out of
-          // reach. Building the state has one more property worth having: the
+          // Reconfiguring a compartment around `history()` would also work,
+          // and costs a compartment plus a dispatch to say what one line says
+          // here. Building the state has one more property worth having: the
           // swapped-in document is the document the state was *built* with, so
           // it raises no `onChange`, exactly as at construction.
           view.setState(EditorState.create({ doc: value, extensions }));

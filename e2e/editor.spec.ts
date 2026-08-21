@@ -171,3 +171,21 @@ test("surfaces a program that throws once the simulation is running", async ({ p
   // Paused, not dead: the button is offering to start again.
   await expect(startButton(page)).toBeVisible();
 });
+
+test("gives the player search and folding, not just a text box", async ({ page }) => {
+  // `editor.ts` spells its extension list out by hand rather than taking
+  // CodeMirror's `basicSetup` bundle, which is what lets the download drop the
+  // parts nothing uses. The cost of writing the list out is that dropping a
+  // line from it is silent: the editor still loads, still highlights, still
+  // saves, and the player simply finds that a key does nothing. These two are
+  // the conveniences worth naming -- one behind a keystroke, one drawn in the
+  // gutter -- and neither is reachable from a unit test, which mounts the
+  // editor in jsdom where CodeMirror measures nothing and draws no panel.
+  await page.goto("/");
+  await expect(page.locator(".cm-foldGutter")).toBeVisible();
+
+  await editor(page).click();
+  await page.keyboard.press("ControlOrMeta+f");
+
+  await expect(page.locator(".cm-search input[name='search']")).toBeVisible();
+});

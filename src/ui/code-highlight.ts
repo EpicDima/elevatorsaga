@@ -124,15 +124,11 @@ export function highlightJavaScript(
 /**
  * The live editor's syntax colors.
  *
- * CodeMirror ships `defaultHighlightStyle`, and `basicSetup` registers it —
- * but only as a *fallback*: `syntaxHighlighting(style, { fallback: true })`
- * puts a highlighter into a facet that `@codemirror/language` reads solely
- * when no ordinary one is registered. Handing `syntaxHighlighting(this)` to
- * the same view therefore replaces the default outright rather than layering
- * over it, which is what {@link "./editor.ts"!codeMirrorView} does. Until it
- * did, the editor ran the stock style — a palette tuned for a white page —
- * over the near-black `--ds-code-bg` the redesign gave it: purple keywords,
- * red strings, and a comment colour nobody chose.
+ * The only highlighter {@link "./editor.ts"!codeMirrorView} registers.
+ * CodeMirror ships `defaultHighlightStyle` for editors that register none —
+ * a palette tuned for a white page, which over the near-black `--ds-code-bg`
+ * the redesign gave the editor read as purple keywords, red strings and a
+ * comment colour nobody chose.
  *
  * The colours are `var(--ds-code-*)` rather than literals, so one editor
  * follows the player between the light and the dark theme with no rebuild:

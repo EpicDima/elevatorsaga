@@ -1352,10 +1352,9 @@ describe("CodeEditor over a real editing surface", () => {
    * Presses the editor's own undo shortcut, as a player would.
    *
    * Through a keystroke rather than by calling `undo()` from
-   * `@codemirror/commands`, which is only in the tree as a dependency of
-   * `codemirror` and which the game itself never imports: what is worth pinning
-   * is that the key the player actually presses cannot reach across a buffer
-   * switch, whichever command `basicSetup` has bound to it.
+   * `@codemirror/commands` directly: what is worth pinning is that the key the
+   * player actually presses cannot reach across a buffer switch, whichever
+   * command the base extensions have bound to it.
    *
    * @param parent - The element the editor was mounted in.
    */
