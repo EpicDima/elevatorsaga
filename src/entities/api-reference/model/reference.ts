@@ -1,7 +1,6 @@
 /**
- * The API reference table `docs-modal.ts` draws below the guide: `design/ui-mockup.html`'s own
- * `API_DOCS`, an `elevator` group of sixteen entries and a `floor` group of three, in the same
- * order the mockup lists them.
+ * The API reference table `docs-modal.ts` draws below the guide: an `elevator` group and a
+ * `floor` group, each in the order a player meets its members.
  *
  * Plain data, with no `t()` call of its own — {@link API_REFERENCE} names a catalog key for
  * every piece of prose a row needs rather than holding the prose itself, the same purity

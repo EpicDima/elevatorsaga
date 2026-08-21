@@ -53,15 +53,12 @@ describe("the floor column", () => {
       // Not a comparison of two tokens: the column is a translucent --ds-panel
       // over --ds-shaft, so what the number sits on is a composite, per theme.
       //
-      // The number sat at 1.40:1 for twelve years, defended by a note saying the
-      // building was dim on purpose. That is true of a call lamp, which says what
-      // it has to say by lighting up. A floor number never lights up -- and it is
-      // no longer 32px either, so the bar it has to clear is 1.4.3's full 4.5:1
-      // rather than the 3:1 large text is let off with. That is why the colour is
-      // read from the rule as well: --ds-text-faint, which is what
-      // design/ui-mockup.html paints it, reaches 3.77:1 dark and 2.83:1 light
-      // here, and reverting to it would still be an arithmetic pass if this
-      // measured --ds-text-muted by name instead.
+      // A call lamp says what it has to say by lighting up; a floor number
+      // never lights up, and at 17px or less the bar it has to clear is 1.4.3's
+      // full 4.5:1 rather than the 3:1 large text is let off with. That is why
+      // the colour is read from the rule as well: --ds-text-faint reaches only
+      // 3.77:1 dark and 2.83:1 light here, and a slip back to it would still
+      // pass an arithmetic check that measured --ds-text-muted by name.
       const number = levelNumber();
       expect(number.colour).toBe(token("ds-text-muted"));
       expect(
@@ -75,8 +72,8 @@ describe("the floor column", () => {
     // off: the border around it is --ds-line-strong, 1.55:1 dark and 1.43:1
     // light on this column, so it carries none of that load. 1.4.11's 3:1 for a
     // graphical object therefore has to be cleared by the glyph alone, which is
-    // the second reason .call deviates from the mockup's --text-faint (2.83:1
-    // light) to --ds-text-muted.
+    // the second reason .call is --ds-text-muted rather than the faint step
+    // (2.83:1 light).
     expect(declaration(ruleBody(".call"), "color", ".call")).toBe(token("ds-text-muted"));
     expect(
       contrast(themed(palette, "ds-text-muted"), levelsColumn(palette)),

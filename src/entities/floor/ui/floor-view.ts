@@ -2,41 +2,33 @@
  * A floor's row in the building's floor-number column: its number, and the two
  * call lamps standing on it.
  *
- * This is `design/ui-mockup.html`'s own `.level` (§"Здание"), not the legacy
- * renderer's full-width band. The legacy floor was a striped bar spanning the
- * whole building with a 32px number floating over the shafts and two round
- * arrows at a fixed 50px inset; the mockup puts every floor's markings in one
- * narrow column down the left-hand side and leaves the shaft area to the cars
- * and the people walking to them. The class stays `floor` — `relabelWorld` in
- * `src/pages/game/index.ts` selects `.floor` and, inside it, `button.up` and
- * `button.down`, and indexes them by DOM order — with the mockup's `level`
- * beside it so the stylesheet can be read against the mockup rule for rule.
+ * Every floor's markings stand in one narrow column down the left-hand side,
+ * leaving the shaft area to the cars and the people walking to them.
+ * `relabelWorld` in `src/pages/game/index.ts` selects `.floor` and, inside it,
+ * `button.up` and `button.down`, and indexes them by DOM order.
  *
  * The end floors get one lamp, not two, which is why both the template and
  * {@link createFloorView} are told how many floors the building has and not
- * only which one this is. The mockup's own `callControls` leaves the
- * impossible lamp off — «пустое место лучше кнопки, которая никогда не
- * загорится» — and the engine agrees with it: `spawnUserRandomly` in
- * `src/game/world.ts` puts every passenger on the ground floor bound upwards,
- * or above it bound for a floor `(currentFloor + 1..floorCount-1) %
- * floorCount`, which from the roof is always below the roof. So `User`'s own
- * `pressFloorButton` can never reach the roof's "up" or the lobby's "down" in
- * any run, at any seed. What is left is a player clicking one by hand, and a
- * call in a direction the building does not go is not a thing to offer.
+ * only which one this is. `spawnUserRandomly` in `src/game/world.ts` puts every
+ * passenger on the ground floor bound upwards, or above it bound for a floor
+ * `(currentFloor + 1..floorCount-1) % floorCount`, which from the roof is
+ * always below the roof, so `User`'s own `pressFloorButton` can never reach the
+ * roof's "up" or the lobby's "down" at any seed. What is left is a player
+ * clicking one by hand, and a call in a direction the building does not go is
+ * not a thing to offer.
  *
- * `floor.buttonStates` still carries both directions on every floor, drawn or
- * not — that is the engine's shape, and player code reads it. What changes is
- * that `relabelWorld` in `src/pages/game/index.ts` now *looks for* each lamp
- * rather than demanding it, since a row that has only one is now the normal
+ * `floor.buttonStates` carries both directions on every floor, drawn or not —
+ * that is the engine's shape, and player code reads it. `relabelWorld` *looks
+ * for* each lamp rather than demanding it, a row with only one being the normal
  * shape of the two rows at the ends.
  *
  * Vertical size comes from the widget, not from a page-wide constant:
  * `layoutBuilding()` decides how tall a floor is for the stage it has to fit
  * into, and pushes it here through {@link FloorView.setGeometry}. The row's
- * *position* is no longer anyone's to set — the column is a flex stack, so a
- * floor sits wherever the floors below it leave it.
+ * *position* is nobody's to set — the column is a flex stack, so a floor sits
+ * wherever the floors below it leave it.
  *
- * Relabeling on a language change is out of scope here, the same way it's
+ * Relabeling on a language change is out of scope here, the same way it is
  * split out of `presentWorld` into a separate `relabelWorld` in
  * `src/pages/game/index.ts`: a floor is expensive to rebuild once its buttons
  * carry live listeners.
@@ -57,9 +49,8 @@ const CALL_DOWN_SELECTOR = "button.down";
 /**
  * One floor of the building: its number and the call lamps it can light.
  *
- * The call buttons used to be clickable `<i>` elements, which put them out of
- * reach of the keyboard and made them invisible to screen readers. They are real
- * buttons now; the stylesheet resets them so the pixels are the mockup's.
+ * The call lamps are real `<button>`s, so they are reachable from the keyboard
+ * and named for a screen reader; the stylesheet resets their chrome.
  *
  * @param level - Floor number.
  * @param floorCount - How many floors the building has, which is what decides
@@ -75,15 +66,14 @@ export function floorTemplate(level: number, floorCount: number): string {
     level === 0
       ? ""
       : markup`<button type="button" class="call down" aria-pressed="false" aria-label="${floorCallDownLabel(level)}">${raw(spriteIconMarkup("down"))}</button>`;
-  return markup`<div class="floor level"><span class="level-num" aria-hidden="true">${level}</span><span class="calls">${raw(up)}${raw(down)}</span></div>`;
+  return markup`<div class="floor"><span class="level-num" aria-hidden="true">${level}</span><span class="calls">${raw(up)}${raw(down)}</span></div>`;
 }
 
 /**
  * Reflects a lit/unlit button state in both the class and the ARIA state.
  *
- * `is-lit` is the mockup's own class for a lamp with a call standing on it,
- * replacing the legacy `activated`; the engine's `ButtonState` still spells
- * that word, and still means the same thing.
+ * `is-lit` is the class for a lamp with a call standing on it; the engine spells
+ * the same state `activated` in its own `ButtonState`.
  *
  * @param button - The call button.
  * @param activated - Whether the button is currently lit.

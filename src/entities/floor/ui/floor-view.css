@@ -4,16 +4,12 @@
  */
 
 /*
- * One floor's row in the column: its number and its two call lamps. The
- * mockup's `.level`, under the class name `relabelWorld` still selects it by.
- *
- * `box-sizing` is set because the page's global box model is `content-box`
- * (see the comment on `*` in `app/styles/document.css`) while the mockup's is
- * `border-box`: the height
- * the widget writes here has to be the height the row really occupies, or the
- * rows drift a pixel per floor away from the floor bands drawn beside them in
- * `.tracks`. `--ds-floor-h` is only the fallback -- floors are not all the same
- * height, so the widget writes each row's own.
+ * `box-sizing` is restated because `.floor` is opted back out to `content-box`
+ * for the sake of the scene's geometry: the height the widget writes here has
+ * to be the height the row really occupies, or the rows drift a pixel per floor
+ * away from the floor bands drawn beside them in `.tracks`. `--ds-floor-h` is
+ * only the fallback -- floors are not all the same height, so the widget writes
+ * each row's own.
  */
 .floor {
   box-sizing: border-box;
@@ -27,9 +23,9 @@
 }
 
 /*
- * The mockup drops the line under its `:last-child`, which is its ground floor;
- * `.levels` is `column-reverse` here, so the row standing on the building's own
- * bottom border is the first one instead.
+ * `.levels` is `column-reverse`, so the row standing on the building's own
+ * bottom border is the first one; it drops the line it would otherwise draw
+ * over that border.
  */
 .floor:first-child {
   border-block-end: 0;
@@ -48,15 +44,10 @@
  * Otherwise "20" and "9" start in different places and a twenty-floor
  * building's column looks ragged.
  *
- * The mockup paints it --text-faint. That was defensible at the legacy 32px,
- * where 1.4.3 asks a floor number for only 3:1; it is 17px at most here, where
- * the bar is 4.5:1 and --ds-text-faint reaches 3.77:1 dark and 2.83:1 light on
- * the column's own composite. --ds-text-muted -- the substitution this
- * stylesheet already makes wherever a mockup literal falls short (see
- * `.docs-body h3`) -- clears it at 6.98:1 and 5.32:1. A floor number never
- * lights up, so unlike a call lamp it cannot claim the "the lit state carries
- * the information" exemption. `floor-view.css.test.ts`, beside this file,
- * checks both themes.
+ * --ds-text-muted, not --ds-text-faint: the number is 17px at most, where 1.4.3
+ * asks 4.5:1, and the faint step reaches only 3.77:1 dark and 2.83:1 light on
+ * the column's own composite. A floor number never lights up, so unlike a call
+ * lamp it cannot claim the "the lit state carries the information" exemption.
  */
 .level-num {
   min-inline-size: 2ch;
@@ -73,12 +64,12 @@
 }
 
 /*
- * A real button now, where the legacy renderer had a clickable `<i>` -- so this
- * resets the browser's own button chrome down to the mockup's 20x18 box.
+ * A real `<button>`, so this resets the browser's own button chrome down to a
+ * 20x18 box.
  *
- * The arrow gets --ds-text-muted rather than the mockup's --text-faint for the
- * reason the floor number above does, and for one more: unlit, the arrow is the
- * whole of what says a control is here. The border cannot help carry that --
+ * The arrow gets --ds-text-muted for the reason the floor number above does,
+ * and for one more: unlit, the arrow is the whole of what says a control is
+ * here. The border cannot help carry that --
  * --ds-line-strong is 1.55:1 dark and 1.43:1 light on this column, well under
  * 1.4.11's 3:1 -- so the glyph has to clear the bar on its own, which
  * --ds-text-muted does with room to spare in both themes.
@@ -117,8 +108,8 @@
 }
 
 /*
- * Only in the dark theme, where the mockup gives a lit lamp a faint bloom. In
- * the light theme it would be a grey smudge, and there is nothing to glow.
+ * Only in the dark theme. In the light one the bloom would be a gray smudge,
+ * and there is nothing to glow.
  */
 html[data-theme="dark"] .call.is-lit {
   box-shadow: 0 0 8px rgb(232 163 63 / 30%);

@@ -94,17 +94,16 @@ describe("createFloorView", () => {
 });
 
 describe("floorTemplate", () => {
-  it("draws the mockup's level row, number and lamps in one box", () => {
+  it("draws the row, its number and its lamps in one box", () => {
     const floor = renderElement(floorTemplate(2, FLOOR_COUNT));
-    expect(floor.className).toBe("floor level");
+    expect(floor.className).toBe("floor");
     expect(floor.querySelector(".level-num")?.textContent).toBe("2");
     expect(floor.querySelectorAll(".calls .call").length).toBe(2);
   });
 
   it("leaves the lamp that could never light off each end floor", () => {
-    // Nothing is called up from the roof and nothing down from the lobby --
-    // `spawnUserRandomly` cannot produce either call at any seed. See this
-    // module's own comment, and `callControls` in design/ui-mockup.html.
+    // Nothing is called up from the roof and nothing down from the lobby:
+    // `spawnUserRandomly` cannot produce either call at any seed.
     const lobby = renderElement(floorTemplate(0, FLOOR_COUNT));
     expect(lobby.querySelector("button.up")).not.toBeNull();
     expect(lobby.querySelector("button.down")).toBeNull();

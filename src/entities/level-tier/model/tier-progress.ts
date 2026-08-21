@@ -20,21 +20,17 @@ import type { TierRequirementInfo } from "#game/level-tiers.ts";
  * 0 (a fresh run, nothing spent or earned yet) to 1 (the threshold reached
  * or blown).
  *
- * The same `current / threshold` reading for both directions, matching
- * `design/ui-mockup.html`'s own `needShare()` — its own doc comment states
- * the rule this ports: a fill bar has to mean the same thing here as it does
- * in the meter above it, or a player would have to relearn what "full"
- * means every time they open the card. For an at-least requirement (higher
- * is better — load factor, delivery rate) that reading is already the
- * intuitive one: empty at nothing earned, full once the bar is reached. For
- * an at-most requirement (lower is better — elapsed time, wait times, move
- * count, stop count) it reads as a budget: empty at nothing spent, full once
- * the limit is reached, and it stays full rather than draining back down if
- * the run keeps going past it — the bar is not a live pass/fail verdict
- * (that is a separate concern; see `design/ui-mockup.html`'s own long
- * comment on `drawTiers()` for why star-lighting deliberately does not use
- * this fraction either), only a record of how much of the allowance is
- * gone.
+ * The same `current / threshold` reading for both directions: a fill bar has
+ * to mean the same thing here as it does in the meter above it, or a player
+ * would have to relearn what "full" means every time they open the card. For
+ * an at-least requirement (higher is better — load factor, delivery rate) that
+ * reading is already the intuitive one: empty at nothing earned, full once the
+ * bar is reached. For an at-most requirement (lower is better — elapsed time,
+ * wait times, move count, stop count) it reads as a budget: empty at nothing
+ * spent, full once the limit is reached, and it stays full rather than
+ * draining back down if the run keeps going past it. The bar is not a live
+ * pass/fail verdict — star-lighting deliberately does not use this fraction —
+ * only a record of how much of the allowance is gone.
  *
  * @param requirement - The field, direction and bar to measure against.
  * @param world - The run's current statistics.
@@ -51,7 +47,7 @@ export function requirementProgress(
 /**
  * Whether a live run currently sits on the passing side of one requirement —
  * not how full its bar is (that is {@link requirementProgress}), the plain
- * pass/fail `design/ui-mockup.html`'s own `meets()` answers per requirement.
+ * pass/fail answer for one requirement at a time.
  * The same direction check {@link "#game/level-tiers.ts"!TierPredicate}'s
  * own internal `tierPredicate` factory already builds into a composed
  * predicate, exposed here one requirement at a time: a goal bar needs this

@@ -1,11 +1,10 @@
 /**
  * Which tier this browser has already earned on each numbered level.
  *
- * The mockup's own `best` map (`design/ui-mockup.html`) never lets a record
- * regress — clearing a level bronze twice, or gold and then only bronze
- * on a later run, must never erase the gold already on the books. That is
- * this module's one piece of real logic: a write is applied only when the
- * new tier outranks whatever is already stored.
+ * A record never regresses: clearing a level bronze twice, or gold and then
+ * only bronze on a later run, must not erase the gold already on the books.
+ * That is this module's one piece of real logic — a write is applied only when
+ * the new tier outranks whatever is already stored.
  *
  * Follows `#entities/tutorial-level/model/progress.ts`'s established
  * conventions for this kind of record exactly: a `develevate`-prefixed key,

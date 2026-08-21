@@ -1,14 +1,12 @@
 /**
- * What a run still owes the next star, in one sentence —
- * `design/ui-mockup.html`'s own `tierHint(held)`, which the verdict card draws
- * as its `.verdict-more` line.
+ * What a run still owes the next star, in one sentence — the `.verdict-more`
+ * line on the verdict card.
  *
- * The mockup's comment on that function is the whole specification, and it is
- * about tone rather than arithmetic: "ровно одной строкой и с числом, которое
- * получилось: «серебро» без «на сколько мимо» — это упрёк, а не подсказка."
- * So every unmet requirement is named with both figures — the bar and where
- * the run actually finished — and a run that has nothing left to earn says
- * nothing at all rather than congratulating itself a second time.
+ * The rule is about tone rather than arithmetic: naming the tier without saying
+ * by how much the run missed it is a reproach rather than a hint. So every
+ * unmet requirement is named with both figures — the bar and where the run
+ * actually finished — and a run that has nothing left to earn says nothing at
+ * all rather than congratulating itself a second time.
  *
  * Here rather than in the widget that draws it for the same reason
  * {@link "./requirement-text.ts"!tierRequirementText} is: it is made entirely

@@ -78,7 +78,7 @@ describe("createPassengerView", () => {
 });
 
 describe("userTemplate", () => {
-  it("draws each person type as its own glyph in the mockup's icon family", () => {
+  it("draws each person type as its own glyph in the sprite icon family", () => {
     const drawn = new Set<string>();
     for (const type of ["male", "female", "child"] as const) {
       const person = renderFragment(userTemplate(type, false)).firstElementChild;

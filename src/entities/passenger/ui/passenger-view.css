@@ -7,23 +7,18 @@
  */
 
 /*
- * A passenger: `design/ui-mockup.html`'s `.person` (§6), one flat silhouette
- * sized from a single custom property -- the mockup's `--ph`, here
- * `--ds-person-h`.
+ * A passenger: one flat silhouette, sized from `--ds-person-h`.
  *
- * Where the mockup can lay its people out with `align-items: flex-end` and be
- * done, this one has to arrive at the same picture by arithmetic, because a
- * passenger here is positioned by the simulation rather than by a flexbox: they
- * stand at `floor.yPosition + 30` of the 50 world units a storey is tall, and
- * that coordinate is the *top* of the box, so the figure hangs from it instead
- * of standing on anything. What made that look right in the legacy drawing was
- * being 16px tall in a 50px storey, which left the feet 4 world units clear of
- * the floor line. `--ds-person-line` is that same fraction of whatever height
- * the layout picked, and the margin below is the difference between it and the
- * height actually drawn -- so the feet land on the line at every scale, and go
- * on landing there when the clamp or the seat below shortens the figure. Only
- * the clamp is the mockup's own: never smaller than a smudge, never taller than
- * the figure was drawn.
+ * The figure has to arrive at its picture by arithmetic rather than by a
+ * layout, because a passenger is positioned by the simulation: they stand at
+ * `floor.yPosition + 30` of the 50 world units a story is tall, and that
+ * coordinate is the *top* of the box, so the figure hangs from it instead of
+ * standing on anything. `--ds-person-line` is the fraction of whatever height
+ * the layout picked that puts the feet on the floor line, and the margin below
+ * is the difference between it and the height actually drawn -- so the feet
+ * land on the line at every scale, and go on landing there when the clamp or
+ * the seat below shortens the figure. The clamp itself: never smaller than a
+ * smudge, never taller than the figure is drawn.
  *
  * `z-index` is load-bearing and not decoration. `.car` lifts itself to 1 so it
  * draws over its own shaft's order strip, and nothing between here and the
@@ -54,9 +49,7 @@
  * it), which flips light/dark with the theme, and --ds-car, which does not.
  * `.is-rider` is the DOM's own record of which one applies -- set from
  * `user.parent` in passenger-view.ts -- so each surface gets a colour tuned
- * against it, rather than one flat value trying to survive both (the old
- * one-colour-for-everywhere approach is what --ds-car-ink and --ds-car-person
- * exist to replace; see their comment in the palette above).
+ * against it, rather than one flat value trying to survive both.
  *
  * A rider is also the one passenger whose width is not its own business. A
  * seat is ten world units (`Elevator.userSlots`), and how many pixels that is
@@ -75,19 +68,16 @@
 /*
  * The passenger whose wait is the one the level is about to be lost on.
  *
- * Upstream #135 asked for this and it was never built: the panel on the right
- * says the Max delivery time is 14.6 seconds, and the player has no way to
- * tell which of thirty identical figures that is, so it reports a problem it
- * gives no way to look at. src/game/world.ts already measured that number
- * every frame; it now remembers whose it is, for as long as they are
- * un-delivered -- which, per world.ts's own `#setLongestWaitingUser`, includes
- * the ride, not just the wait for one, so this has to work boarded too.
+ * The stats panel reports a max delivery time, and without this a player has no
+ * way to tell which of thirty identical figures it belongs to.
+ * `src/game/world.ts` remembers whose it is for as long as they are
+ * un-delivered -- which, per its own `#setLongestWaitingUser`, includes the
+ * ride and not only the wait for one, so this has to work boarded too.
  *
  * A passenger is a graphical object, so the bar is WCAG 1.4.11's 3:1.
- * --ds-accent -- the same colour the rest of the page already uses for "this
- * needs attention", and the mockup's own choice for this exact state -- clears
- * it against --ds-shaft in both themes (8.63 dark, 3.53 light) with the car
- * handled separately below, through `.is-rider`.
+ * --ds-accent -- the colour the rest of the page uses for "this needs
+ * attention" -- clears it against --ds-shaft in both themes (8.63 dark, 3.53
+ * light), with the car handled separately below through `.is-rider`.
  */
 .person.is-waiting-long {
   color: var(--ds-accent);
@@ -101,12 +91,11 @@
  * `.person.is-leaving` -- a delivered passenger, walking off to the right over
  * the second or so `User.handleExit` draws for the walk -- deliberately has no
  * rule, and this note is here so that the next reader does not take that for an
- * oversight and add one. The mockup fades its own `.is-leaving` to nothing, and
- * fading is exactly what cannot be done here: --ds-person clears WCAG 1.4.11's
- * 3:1 against the light theme's shaft by 3.52:1 and no more, so *any* alpha
- * below 1 puts a passenger under the bar (0.85 already reads 2.82:1). The
- * alternatives are worse than doing nothing -- a muted colour would make a
- * finished passenger louder rather than quieter, since the light theme's muted
- * ink is the darker of the two. The class stays because it is a real state and
- * a real hook; what it is not is a colour.
+ * oversight and add one. Fading is exactly what cannot be done: --ds-person
+ * clears WCAG 1.4.11's 3:1 against the light theme's shaft by 3.52:1 and no
+ * more, so *any* alpha below 1 puts a passenger under the bar (0.85 already
+ * reads 2.82:1). A muted colour is worse than nothing -- the light theme's
+ * muted ink is the darker of the two, so it would make a finished passenger
+ * louder rather than quieter. The class stays because it is a real state and a
+ * real hook; what it is not is a colour.
  */

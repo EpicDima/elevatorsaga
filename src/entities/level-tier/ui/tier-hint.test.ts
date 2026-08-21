@@ -45,8 +45,8 @@ describe("nextTierHint", () => {
   });
 
   it("names the silver bar and where a bronze run actually finished", () => {
-    // Both figures, per the mockup: "«серебро» без «на сколько мимо» — это
-    // упрёк, а не подсказка."
+    // Both figures: naming the tier without saying by how much the run missed
+    // it is a reproach rather than a hint.
     expect(nextTierHint(TIERS, "bronze", FINISHED)).toBe(
       "For silver: deliver everyone within " +
         "<span class='emphasis-color'>21.0</span> seconds (now 23.4s)",

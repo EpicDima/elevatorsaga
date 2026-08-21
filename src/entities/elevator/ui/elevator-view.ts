@@ -2,46 +2,34 @@
  * One elevator: its shaft, the order strip beside it, and the car that runs up
  * and down inside it.
  *
- * Ported from `design/ui-mockup.html` (§"Здание"), whose `.shaft` holds a
- * `.shaft-marks` strip and a `.car` of `.car-top` + `.car-cabin`. Three of the
- * mockup's pieces are deliberately not here, and all three for the same reason:
- * this building has real passengers in it.
+ * The cabin draws no riders of its own, no occupancy count and no load bar. A
+ * rider here is a real `entities/passenger` element standing in a real seat
+ * (`elevator.userSlots[i].pos`), drawn by `widgets/building-stage` in its own
+ * layer over the car, because a passenger walks in, rides, and walks out again
+ * — one continuous movement through one coordinate space, not a figure deleted
+ * from a queue and re-created in a cabin. The figures always fit: a seat is ten
+ * world units and the car is ten times its capacity, so they are exactly as
+ * crowded as the car is.
  *
- * - `.car-riders`, the row of figures the mockup draws inside the cabin. Here
- *   a rider is a real `entities/passenger` element standing in a real seat
- *   (`elevator.userSlots[i].pos`), drawn by `widgets/building-stage` in its own
- *   layer over the car — because a passenger walks in, rides, and walks out
- *   again, and that is one continuous movement through one coordinate space,
- *   not a figure that is deleted from a queue and re-created in a cabin.
- * - `.car-count`, the mockup's "7/10" fallback for when the figures no longer
- *   fit. They always fit: a seat is ten world units and the car is ten times
- *   its capacity, so the figures are exactly as crowded as the car is. The
- *   count a player might still want is on the hover card.
- * - `.car-load`, the fill bar behind those figures. With the real riders drawn,
- *   it says a second time what they already say.
+ * What the car does carry is wired to the simulation:
  *
- * What is kept, and wired to the simulation rather than to a demo's own timers:
- *
- * - the two boarding lamps on `.car-top`. They are not decoration here.
+ * - the two boarding lamps on `.car-top`. They are not decoration:
  *   `goingUpIndicator`/`goingDownIndicator` are what decide who is allowed to
- *   board (`src/game/elevator.ts`'s `isSuitableForTravelBetween`), a player's
- *   program sets them, and until now the only way to see one was to read it
- *   back in code.
+ *   board (`src/game/elevator.ts`'s `isSuitableForTravelBetween`), and a
+ *   player's program sets them.
  * - the doors, opened exactly while the car is standing still on a floor —
  *   which is exactly when `entrance_available` is offered and a passenger may
  *   walk in or out.
- * - the order strip. The floors a car has been asked for used to be a grid of
- *   digits inside the cabin, which fit in a six-floor building and turned to
- *   mush in a twenty-one floor one. They are marks along the shaft now, each at
- *   the height of the floor it stands for. They are still `<button>`s carrying
- *   the same name and pressed state they always had — a mark is 4px wide and
- *   has no room for its own digit, but that is a fact about the drawing, not
- *   about what a screen reader is told.
+ * - the order strip: the floors this car has been asked for, marked along the
+ *   shaft at the height of the floor each one stands for. The marks are
+ *   `<button>`s carrying a name and a pressed state — a mark is 4px wide and
+ *   has no room for a digit, but that is a fact about the drawing, not about
+ *   what a screen reader is told.
  *
- * The car's position still comes from the simulation on every tick: this view
+ * The car's position comes from the simulation on every tick: this view
  * multiplies `worldY` by {@link StageScale}'s current `scaleY`, read fresh
  * rather than cached, so a stage resize lands on the car's very next frame. Its
- * horizontal position is the *shaft's* now, written once per geometry pass by
+ * horizontal position is the *shaft's*, written once per geometry pass by
  * {@link ElevatorView.setGeometry} — a car does not move sideways.
  */
 
@@ -59,13 +47,12 @@ const FLOOR_BUTTON_SELECTOR = ".buttonpress";
 /**
  * One elevator's shaft, order strip and car.
  *
- * Both classes on the root on purpose: `.shaft` is what the stylesheet ported
- * from the mockup draws, and `.elevator` is what `relabelWorld` in
- * `src/pages/game/index.ts` selects a car by when the language changes. The
- * accessible name is on this element rather than on the car inside it because
- * that is what carries the whole control — the order marks are in here too, and
- * the mockup itself treats the shaft, not the car, as the thing a pointer aims
- * at ("попасть курсором в едущую кабину — занятие для тира").
+ * Both classes on the root on purpose: `.shaft` is what the stylesheet draws,
+ * and `.elevator` is what `relabelWorld` in `src/pages/game/index.ts` selects a
+ * car by when the language changes. The accessible name is on this element
+ * rather than on the car inside it because that is what carries the whole
+ * control — the order marks are in here too, and it is the shaft rather than
+ * the moving cabin that a pointer aims at.
  *
  * @param index - Zero-based index of the car, used for its accessible name.
  * @returns The shaft markup.
@@ -77,9 +64,8 @@ export function elevatorTemplate(index: number): string {
 /**
  * One order mark: the floor button the car has for that level.
  *
- * Empty of content, unlike the digit it replaces. The name is the whole of what
- * identifies it, so it is the `aria-label` that has to be right; see this
- * module's own comment for why the digit went.
+ * Empty of content: the name is the whole of what identifies it, so it is the
+ * `aria-label` that has to be right.
  *
  * These sit inside `.shaft-marks`, absolutely positioned at their own floor's
  * height, so the template must not introduce any surrounding whitespace.
@@ -115,7 +101,7 @@ export interface ElevatorGeometry {
   readonly padPx: number;
   /**
    * The middle of each floor's band, in pixels above the building's ground, in
-   * level order. A mark is centred on it by the stylesheet rather than by
+   * level order. A mark is centered on it by the stylesheet rather than by
    * arithmetic here, so the caller never has to know how tall a mark is drawn.
    */
   readonly markBottomsPx: readonly number[];
