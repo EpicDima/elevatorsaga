@@ -255,12 +255,11 @@ describe("index.html", () => {
   });
 
   it("announces a refused write without drawing anything", () => {
-    // `design/ui-mockup.html` has no status line under the editor: a save
-    // confirmation reported the same success every second of every session,
-    // and it is gone with the footer and the hint. A refused write is the
-    // opposite kind of news -- nothing else on screen would ever say the
-    // program has stopped being saved -- so that half survives as an
-    // announcement rather than a line. See `src/main.ts`, which fills it.
+    // There is no status line under the editor: a save confirmation would
+    // report the same success every second of every session. A refused write
+    // is the opposite kind of news -- nothing else on screen would ever say
+    // the program has stopped being saved -- so it is announced rather than
+    // drawn. `src/main.ts` fills it.
     const element = page.querySelector("#storage_status");
     expect(element?.getAttribute("role")).toBe("status");
     expect(element?.className).toBe("visually-hidden");
@@ -417,9 +416,8 @@ describe("index.html", () => {
   });
 
   it("has one landmark of each kind, and a single top-level heading", () => {
-    // No footer: `design/ui-mockup.html` draws none, and the credits, the
-    // source link and the licence notice it carried are on the two help pages
-    // and in the settings popover's About block instead.
+    // No footer: the credits, the source link and the license notice are on
+    // the two help pages and in the settings popover's About block instead.
     expect(page.querySelectorAll("header, main, footer")).toHaveLength(2);
     expect(page.querySelectorAll("h1")).toHaveLength(1);
   });
