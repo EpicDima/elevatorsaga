@@ -1,8 +1,7 @@
 /**
- * The app bar's trailing toolbar: `design/ui-mockup.html`'s `#docsOpen`
- * button and its `.setwrap` settings popover (§A), sitting beside the brand
- * `app-bar.ts` already builds and the `.task` level switcher
- * `widgets/level-switcher` builds.
+ * The app bar's trailing toolbar: the docs opener and the `.setwrap` settings
+ * popover beside it, sitting next to the brand `app-bar.ts` builds and the
+ * `.task` level switcher `widgets/level-switcher` builds.
  *
  * `presentAppBarSettings` is mounted live from `src/main.ts`, composed with
  * `app-bar.ts`'s brand and `level-switcher.ts`'s `.task` into the one app bar
@@ -13,8 +12,7 @@
  * The popover is where `features/switch-theme`, `features/switch-layout`,
  * `features/switch-language` and `features/manage-seed` all end up mounted —
  * this module's whole job is gluing those four independently-built-and-tested
- * slices, plus two openers and a static block, into the one `.setmenu`
- * `design/ui-mockup.html` draws:
+ * slices, plus two openers and a static block, into one `.setmenu`:
  *
  * - Theme and layout are DOM-skeleton-and-presenter pairs
  *   ({@link import("#features/switch-theme/index.ts").buildThemeSwitchSkeleton}/
@@ -24,9 +22,8 @@
  *   — the same "template leaves an empty slot, the presenter fills it" shape
  *   `presentLevelSwitcher` uses for `.taskblocks`.
  * - Language is `presentLanguagePicker`, which fills a `<select>` this
- *   module's own template already drew empty. This is the game's only language
- *   control: the header `index.html` used to ship carried a second one, and it
- *   went with the rest of that header.
+ *   module's own template already drew empty. It is the game's only language
+ *   control.
  * - Seed is `seedPanelTemplate`, inserted with `raw()` straight into
  *   {@link appBarSettingsTemplate}'s returned markup, inside a
  *   `[data-set-block="seed"]` wrapper the presenter half below re-renders
@@ -34,58 +31,45 @@
  *   fill-a-placeholder shape the theme and layout blocks use. Its own
  *   `presentSeedPanel` is then wired *onto that wrapper* rather than onto the
  *   markup inside it, because the markup inside it is what
- *   {@link AppBarSettingsController.setSeed} throws away — see that slice's
- *   module comment.
+ *   {@link AppBarSettingsController.setSeed} throws away.
  *
  * ## The two openers
  *
  * `docsOpen` and the popover's own `keysOpen` row both carry an
  * `aria-haspopup="dialog"` and an injected click callback
  * ({@link AppBarSettingsOptions.onOpenDocs}/`onOpenHotkeys`) rather than any
- * dialog-opening logic of their own: Phase 10 is where the docs modal and the
- * hotkeys modal actually get built, and this phase only has to leave the two
- * buttons that will open them. `keysOpen`'s handler closes the settings
- * popover before calling `onOpenHotkeys`, ported from the mockup's own
- * `keysOpen` listener (`closeSetMenu(); if (!keys.open) keys.showModal();`)
- * — a dialog opening behind a popover that is still open would leave two
- * layers on screen at once. `docsOpen` needs no such close: it sits beside
- * `.setwrap` in the mockup, not inside it, so there is no popover under it to
+ * dialog-opening logic of their own, which keeps this widget ignorant of the
+ * two modals it opens. `keysOpen`'s handler closes the settings popover before
+ * calling `onOpenHotkeys`: a dialog opening behind a popover that is still open
+ * would leave two layers on screen at once. `docsOpen` needs no such close — it
+ * sits beside `.setwrap`, not inside it, so there is no popover under it to
  * close.
  *
- * ## The mockup ids this module does not keep
+ * ## Classes, not ids
  *
- * `#docsOpen`, `#setOpen`, `#keysOpen` and `#langPick` are ids in
- * `design/ui-mockup.html`, one static page with exactly one of each. This
- * module is a widget that a caller — a test, eventually `widgets/app-bar`
- * itself — can build more than once, so each becomes a class instead
- * (`.docsopen`, `.setopen`, `.keysopen`), the same substitution
- * `presentLevelSwitcher` already makes for the mockup's own `.level-*` ids.
- * `.langpick` needed no substitution: the mockup already gives `#langPick`
- * that class alongside its id, which is the selector this module's own
- * presenter uses.
+ * `.docsopen`, `.setopen`, `.keysopen` and `.langpick` are classes because a
+ * caller — a test, or `widgets/app-bar` itself — can build this widget more
+ * than once, and an id can only name one element per document.
  *
  * ## The About block
  *
  * Entirely static: two real `<a class="setlink">` links to this fork and to
- * the game this is forked from, and a copyright line — ported verbatim from
- * the mockup's own `.setblock`, `target="_blank" rel="noreferrer"` included.
- * The two URLs and the domain text under each link are plain constants
- * rather than catalog keys: an address is not a translator's business, and
- * `game.appBar.aboutCopyright.html`'s "Elevator Saga © 2015 Magnus Wolffelt,
- * © 2026 EpicDima, MIT." is deliberately the same string in both locales, the
- * same way the mockup's own Russian page leaves it in English — a license
- * notice names what it names regardless of the reader's language.
+ * the game this is forked from, `target="_blank" rel="noreferrer"` on both,
+ * and a copyright line. The two URLs and the domain text under each link are
+ * plain constants rather than catalog keys: an address is not a translator's
+ * business, and `game.appBar.aboutCopyright.html`'s "Elevator Saga © 2015
+ * Magnus Wolffelt, © 2026 EpicDima, MIT." is deliberately the same string in
+ * both locales — a license notice names what it names regardless of the
+ * reader's language.
  *
- * One word of that line is a link, and that is the whole of this port's
- * departure from the mockup here: "MIT" points at `licenses.txt`, the notice
- * file `vite.config.ts` writes into `dist/`. The page footer that used to
- * carry that link is gone — `design/ui-mockup.html` draws no footer, and a
- * page whose whole height is a workspace has nowhere to put one — and MIT
- * and OFL both ask for their notices to travel with the software, so the
- * game needs one reachable route to the file. A third `.setlink` row would
- * have been the obvious place and is deliberately not taken: it would change
- * the block's shape, and the licence name in a line that already says "MIT"
- * is the same destination for none of the space.
+ * One word of that line is a link: "MIT" points at `licenses.txt`, the notice
+ * file `vite.config.ts` writes into `dist/`. MIT and OFL both ask for their
+ * notices to travel with the software, and a page whose whole height is a
+ * workspace has no footer to put that route in, so the copyright line carries
+ * it. A third `.setlink` row would have been the obvious place and is
+ * deliberately not taken: it would change the block's shape, and the license
+ * name in a line that already says "MIT" is the same destination for none of
+ * the space.
  */
 
 import { presentSeedPanel, seedPanelTemplate } from "#features/manage-seed/index.ts";
@@ -163,7 +147,7 @@ export interface AppBarSettingsOptions {
    * what playing a seed involves than it has what a layout mode does.
    */
   readonly onSeed: (seed: string) => void;
-  /** Called when `docsOpen` is pressed. Does nothing here yet — see this module's own comment on the two openers. */
+  /** Called when `docsOpen` is pressed. */
   readonly onOpenDocs: () => void;
   /** Called when the popover's `keysOpen` row is pressed, after the popover has already closed. */
   readonly onOpenHotkeys: () => void;

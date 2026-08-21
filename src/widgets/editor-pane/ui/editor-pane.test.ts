@@ -199,11 +199,11 @@ describe("presentEditorPane", () => {
     });
 
     it("puts the failure's headline in the banner and none of the stack", () => {
-      // The mockup's banner is one row high and holds one sentence. What the
-      // frames underneath the headline have to say about the player's own
-      // program is said by the goto link beside it, from the same stack; what
-      // is left in them is bundle URLs, which would triple the height of the
-      // banner to tell the player nothing they can act on.
+      // The banner is one row high and holds one sentence. What the frames
+      // underneath the headline have to say about the player's own program is
+      // said by the goto link beside it, from the same stack; what is left in
+      // them is bundle URLs, which would triple the height of the banner to
+      // tell the player nothing they can act on.
       const parent = document.createElement("div");
       const presenter = presentEditorPane(parent, baseOptions());
       const code = "{\n  init: function (elevators) { elevators[0].goToFlor(2); }\n}";
@@ -220,8 +220,8 @@ describe("presentEditorPane", () => {
       expect(message.textContent).toBe("TypeError: elevator.goToFlor is not a function");
       expect(message.textContent).not.toContain("\n");
       expect(message.textContent).not.toContain("http");
-      // The line the frames did have to offer, kept -- in the link, where the
-      // mockup puts it.
+      // The line the frames did have to offer, kept -- in the link beside the
+      // message.
       expect(requireElement(".goto", parent).textContent).toBe("Line 2 →");
     });
 

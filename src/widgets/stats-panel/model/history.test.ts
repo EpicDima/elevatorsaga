@@ -17,7 +17,7 @@ const ALL_ZERO: Readonly<Record<StatsHistoryKey, number>> = {
 };
 
 describe("SPARK_FLOOR", () => {
-  it("matches the mockup's own tuned floors, converting avgLoadFactorOnMove to a 0..1 fraction", () => {
+  it("states every floor in its own key's units, avgLoadFactorOnMove as a 0..1 fraction", () => {
     expect(SPARK_FLOOR).toEqual({
       avgWaitTime: 10,
       maxWaitTime: 10,

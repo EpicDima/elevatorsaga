@@ -104,7 +104,7 @@ describe("appBarSettingsTemplate", () => {
     expect(parent.querySelector("a.seedlink")).not.toBeNull();
   });
 
-  it("draws the hotkeys opener with a trailing chevron, matching the mockup's own #i-right sprite", () => {
+  it("draws the hotkeys opener with a trailing chevron", () => {
     const parent = document.createElement("div");
     parent.innerHTML = appBarSettingsTemplate(null);
 

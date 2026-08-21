@@ -8,22 +8,19 @@
  */
 
 /*
- * `widgets/editor-pane` mounts into this container -- `id="code"` in
- * `index.html`, ahead of `widgets/workspace-layout`'s own `.pane-code`
- * cutover, which is why the background is stated again here rather than
- * inherited from a `.pane-code` ancestor that is not this element's parent
- * yet. Same value either way, so the redeclaration costs nothing once the
- * shell does move onto `.pane-code` and this rule stops matching anything.
+ * The container `widgets/editor-pane` mounts into -- `id="code"` in
+ * `index.html`, reparented into `.pane-code` by `src/main.ts`. It restates the
+ * code surface's background so the column paints it whatever it is mounted
+ * under.
  *
- * It is also the column the mockup draws as `.pane.pane-code` itself: the bar,
- * the error banner and the editor stacked, with the editor taking whatever the
- * first two leave. The pane above it is already a flex column, so this element
- * has to be both a flex *item* that claims the leftover height and a flex
- * *container* that hands it on -- a plain block here stopped at its content and
- * left the editor the fixed height it had been given for a page that scrolled.
- * `min-block-size: 0` on both axes of that relationship is what lets a long
- * program scroll inside the editor rather than push the pane open, since a flex
- * item's automatic minimum size is its content.
+ * It is also the code column itself: the bar, the error banner and the editor
+ * stacked, with the editor taking whatever the first two leave. The pane above
+ * it is already a flex column, so this element has to be both a flex *item*
+ * that claims the leftover height and a flex *container* that hands it on -- a
+ * plain block here stops at its content and leaves the editor whatever fixed
+ * height it was given. `min-block-size: 0` on both axes of that relationship is
+ * what lets a long program scroll inside the editor rather than push the pane
+ * open, since a flex item's automatic minimum size is its content.
  */
 .code {
   display: flex;
@@ -34,11 +31,9 @@
 }
 
 /*
- * The header row above the editor: the slot switcher, and the tools beside
- * it. `.codebar`/`.slots`/`.codetools`/`.errorline`/`.editor` are
- * `widgets/editor-pane`'s own classes, ported from `design/ui-mockup.html`'s
- * `.pane.pane-code` -- see that widget's own module comment for the three
- * places this pane does not draw a straight copy of it.
+ * The header row above the editor: the slot switcher, and the tools beside it.
+ * `.codebar`/`.slots`/`.codetools`/`.errorline`/`.editor` are all
+ * `widgets/editor-pane`'s own classes.
  */
 .codebar {
   display: flex;
@@ -52,9 +47,9 @@
 }
 
 /*
- * The tray `#features/manage-code-slots` draws its three `.codeslot` buttons
- * into. Not "versions" or "attempts": three drafts a player moves between
- * without losing any of them, per the mockup's own comment on this rule.
+ * The tray `#features/manage-code-slots` draws its `.codeslot` buttons into.
+ * Not "versions" or "attempts": drafts a player moves between without losing
+ * any of them.
  */
 .slots {
   display: flex;
@@ -79,16 +74,11 @@
 }
 
 /*
- * The slot open in the editor right now: `design/ui-mockup.html`'s
- * `.slots button[aria-pressed="true"]` (§6) declaration for declaration.
- *
- * It carried a legacy underline as well until now, and colour is still not
- * the only cue without it (WCAG 1.4.1): `font-weight: 600` is the cue, and it
- * is the one cue here that nothing repaints -- forced-colours mode overrides
- * colour, background and box-shadow, and leaves a weight alone. The underline
- * had been kept for that same reason, which the weight was already covering,
- * so what it added on an ordinary screen was a second line under a word
- * inside a box that was already filled, ringed and bold.
+ * The slot open in the editor right now. Color is not the only cue (WCAG
+ * 1.4.1): `font-weight: 600` is the one cue here that nothing repaints, since
+ * forced-colors mode overrides color, background and box-shadow and leaves a
+ * weight alone. An underline would add nothing on top of that -- a second line
+ * under a word inside a box already filled, ringed and bold.
  */
 .codeslot[aria-pressed="true"] {
   background: var(--ds-accent-soft);
@@ -105,16 +95,12 @@
 }
 
 /*
- * "There is a problem with your code." The border is the mockup's own
- * literal, `rgb(236 106 91 / 30%)`, ported as `color-mix()` over `--ds-bad`
- * instead of restated per theme: the mockup only ever draws this in its dark
- * palette, so the literal has no light-theme counterpart to carry forward,
- * where the mix follows `--ds-bad` into whichever theme is active the same
- * way `.tasklink.is-done`'s own border and background already do for
- * `--tier-tint`. `color` here is `--ds-bad`, not `--ds-bad-ink`: it only
- * governs the warning icon, a graphical indicator that clears 1.4.11's 3:1
- * without the darker text ink; the label and the "go to" link below need
- * that ink themselves, since both are real text.
+ * "There is a problem with your code." The border is a `color-mix()` over
+ * `--ds-bad` rather than a literal restated per theme, so it follows `--ds-bad`
+ * into whichever theme is active. `color` here is `--ds-bad`, not
+ * `--ds-bad-ink`: it only governs the warning icon, a graphical indicator that
+ * clears 1.4.11's 3:1 without the darker text ink; the label and the "go to"
+ * link below need that ink themselves, since both are real text.
  */
 .errorline {
   display: flex;
@@ -139,11 +125,9 @@
 
 /*
  * The warning glyph, held to the top of the banner and off the first line's
- * baseline by a pixel -- the mockup writes exactly this as an inline `style`
- * on its own `#i-warn`, and it is here rather than there for the reason every
- * other inline style in that file was moved out. `flex: 0 0 auto` is what
- * keeps the icon its own size once the message beside it is long enough to
- * wrap: without it the glyph is a flex item like any other and squashes.
+ * baseline by a pixel. `flex: 0 0 auto` is what keeps the icon its own size
+ * once the message beside it is long enough to wrap: without it the glyph is a
+ * flex item like any other and squashes.
  */
 .errorline .ds-icon {
   flex: 0 0 auto;
@@ -151,11 +135,10 @@
 }
 
 /*
- * The label and the message are one flex item between the glyph and the "go
- * to" link, not two, which is what the mockup's own single `<span>` around
- * both is for: the 9px `gap` belongs between the three parts of the banner,
- * and a message that wraps has to wrap under its own label rather than under
- * the icon.
+ * The label and the message share one `<span>`, so they are one flex item
+ * between the glyph and the "go to" link rather than two: the 9px `gap` belongs
+ * between the three parts of the banner, and a message that wraps has to wrap
+ * under its own label rather than under the icon.
  */
 .errorline-text {
   min-inline-size: 0;
@@ -188,19 +171,11 @@
 }
 
 /*
- * The mount CodeMirror is built into, and the last row of the code pane: the
- * mockup's own `.editor` is `flex: 1; min-height: 0` inside a `.pane` column,
- * so it takes whatever the code bar and the error banner above it leave and
- * scrolls its own contents rather than growing the page. Both are stated here
- * and both matter: `flex: 1` alone would let a long program push the pane
- * open, because a flex item's `min-height` is `auto`, which is its content.
- *
- * This carried a `clamp()` between three `--editor-height-*` values until the
- * shell landed, as a bridge for the days `.code` was still a plain block and
- * the flex properties above meant nothing. The mockup gives the editor no
- * height of its own at all -- it is whatever the window has left -- so the
- * bridge and all three variables went out with the resize grip that was the
- * only thing ever writing to them.
+ * The mount CodeMirror is built into, and the last row of the code pane. It has
+ * no height of its own: it takes whatever the code bar and the error banner
+ * above it leave, and scrolls its own contents rather than growing the page.
+ * Both declarations matter -- `flex: 1` alone would let a long program push the
+ * pane open, because a flex item's `min-height` is `auto`, which is its content.
  */
 .editor {
   display: flex;
@@ -211,14 +186,12 @@
 }
 
 /*
- * The editor carries its own background and text colour rather than
- * inheriting `.code`'s: CodeMirror 6 ships no theme of its own beyond the
- * syntax highlighting, so without these the program sits on the page colour
- * in the white `body` inherits to the building. No border, no radius, no top
- * margin either, unlike the legacy rule: the mockup's own `.editor` is
- * borderless and flush against `.codebar` above it, one continuous surface
- * rather than a bordered box inset a further 10px into `.code`'s own
- * matching background.
+ * The editor carries its own background and text color rather than inheriting
+ * `.code`'s: CodeMirror 6 ships no theme of its own beyond the syntax
+ * highlighting, so without these the program sits on the page color in the
+ * white `body` inherits to the building. No border, no radius and no top
+ * margin, so the editor is flush against `.codebar` above it -- one continuous
+ * surface rather than a bordered box inset into `.code`'s matching background.
  */
 .cm-editor {
   flex: 1;
@@ -246,15 +219,12 @@
 
 /*
  * The gutter, flush against `--ds-code-bg` and borderless for the same reason
- * `.cm-editor` is: the mockup's `.ln` is part of the same surface as the code,
- * marked off by nothing but the space to its right. Its numbers are in
- * `--ds-code-line`, which is the mockup's own value lightened for the
- * shortfall `.tok-comment`'s own comment (`shared/styles/code.css`) describes,
- * and lightened once again so that it clears 4.5:1 on the active line as well
- * as off it:
+ * `.cm-editor` is: it is part of the same surface as the code, marked off by
+ * nothing but the space to its right. `--ds-code-line` is light enough to clear
+ * 4.5:1 on the active line as well as off it:
  *
- *   gutter  #4a5361 -> #7e8a9d   2.29:1 -> 5.09:1  (dark, 4.67:1 lit)
- *   gutter  #b4b0a6 -> #736e60   2.09:1 -> 4.92:1  (light, 4.59:1 lit)
+ *   gutter  #7e8a9d   5.09:1  (dark, 4.67:1 lit)
+ *   gutter  #736e60   4.92:1  (light, 4.59:1 lit)
  */
 .cm-editor .cm-gutters {
   background-color: var(--ds-code-bg);
@@ -271,19 +241,14 @@
 }
 
 /*
- * The number column, at the mockup's own 44px. The mockup spends all of it on
- * the number -- 32px of digits and 12px of air before the code -- while this
- * editor also draws `basicSetup`'s fold arrows, which the mockup's static page
- * had no folding to offer. They take the trailing 10px, so the column measures
- * the same 44px and the arrows sit in the air the mockup was leaving empty
- * anyway, instead of being added to it: 34px here plus the fold gutter's own
- * 10px. `box-sizing` is stated because that arithmetic depends on it -- the
- * padding is inside the 34px, leaving 22px of digits, which is three of them
- * before the column starts widening on its own.
+ * The number column, 44px all told: 34px here plus `basicSetup`'s fold gutter,
+ * which takes the trailing 10px, so the arrows sit in the air before the code
+ * rather than widening the column. `box-sizing` is stated because that
+ * arithmetic depends on it -- the padding is inside the 34px, leaving 22px of
+ * digits, which is three of them before the column starts widening on its own.
  *
  * `position: sticky` is CodeMirror's own, already: the numbers stay put when a
- * line too long for the pane is scrolled sideways, which is what the mockup's
- * own `.ln` comment asks for.
+ * line too long for the pane is scrolled sideways.
  */
 .cm-editor .cm-lineNumbers .cm-gutterElement {
   box-sizing: border-box;
@@ -292,10 +257,9 @@
 }
 
 /*
- * The line the caret is on, in the text and in the gutter beside it --
- * `--ds-code-active` is translucent so it reads over either, which is also how
- * the mockup keeps the number column from covering the highlight it should be
- * repeating.
+ * The line the caret is on, in the text and in the gutter beside it.
+ * `--ds-code-active` is translucent so it reads over either, which is also what
+ * keeps the number column from covering the highlight it should be repeating.
  */
 .cm-editor .cm-activeLine,
 .cm-editor .cm-activeLineGutter {
@@ -303,9 +267,9 @@
 }
 
 /*
- * The mockup brightens the current line's own number (`.codeline.is-cursor
- * .ln`), which is the cheapest way to say where the caret is when the wash
- * behind it is this faint. 6.41:1 dark and 5.32:1 light on the lit line.
+ * The current line's own number is brightened, which is the cheapest way to say
+ * where the caret is when the wash behind it is this faint. 6.41:1 dark and
+ * 5.32:1 light on the lit line.
  */
 .cm-editor .cm-activeLineGutter {
   color: var(--ds-text-muted);

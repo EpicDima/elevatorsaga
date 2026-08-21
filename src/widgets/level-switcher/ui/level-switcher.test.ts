@@ -110,14 +110,12 @@ describe("levelSwitcherTemplate", () => {
   });
 
   /*
-   * The regression this file did not have: both step buttons shipped empty
-   * from the day the widget landed. They are styled and sized, they take
-   * focus, they carry an `aria-label` and they navigate -- and they drew
-   * nothing at all, so the bar showed two blank 32px gaps where the mockup
-   * shows a chevron either side of the level's name. Asserted by the path
-   * each sprite is actually made of rather than by the class both share,
-   * because `ds-icon` is what told the empty buttons apart from nothing:
-   * both had it on neither of them.
+   * A step button is styled and sized, takes focus, carries an `aria-label` and
+   * navigates whether or not it draws anything, so an empty one looks like a
+   * blank 32px gap where a chevron belongs either side of the level's name.
+   * Asserted by the path each sprite is made of rather than by the `ds-icon`
+   * class both share, which cannot tell a chevron pointing the right way from
+   * one pointing back at the button beside it.
    */
   it("draws a chevron in each step button, pointing the way it steps", () => {
     const parent = document.createElement("div");
@@ -131,23 +129,20 @@ describe("levelSwitcherTemplate", () => {
   });
 
   /*
-   * The second regression this file did not have, and the more expensive of
-   * the two: the «уровень» sweep renamed the root from `task` to `level`,
-   * which no test noticed because every other assertion here reaches for a
-   * child by class and every child kept its name. The stylesheet did not
-   * follow, and could not -- `.task` is `design/ui-mockup.html`'s own name,
-   * cited by that file across the widget -- so the root simply stopped being
-   * styled: `display: flex` went, and the trigger and its two chevrons
-   * stacked into a column the app bar clipped; `position: relative` went with
-   * it, and `.taskmenu`'s `position: absolute` measured `top: calc(100% + 8px)`
-   * from the initial containing block instead, opening the popover a page
-   * below the fold. On screen that is a switcher with no arrows whose button
-   * does nothing at all, which is how it was reported.
+   * Renaming the root away from `task` without the stylesheet following costs
+   * the widget its layout, and no other assertion here would notice: every one
+   * of them reaches for a child by class, and a rename of the root leaves every
+   * child's name alone. `display: flex` goes, and the trigger and its two
+   * chevrons stack into a column the app bar clips; `position: relative` goes
+   * with it, and `.taskmenu`'s `position: absolute` measures
+   * `top: calc(100% + 8px)` from the initial containing block instead, opening
+   * the popover a page below the fold. On screen that is a switcher with no
+   * arrows whose button does nothing at all.
    *
    * Read out of the stylesheet rather than hard-coded on both sides, since a
-   * literal `"task"` written twice in this file would agree with itself just
-   * as happily while the rules that actually lay the widget out named
-   * something else.
+   * literal `"task"` written twice in this file would agree with itself just as
+   * happily while the rules that actually lay the widget out named something
+   * else.
    */
   it("roots the widget in the class its own stylesheet positions the popover from", () => {
     const parent = document.createElement("div");

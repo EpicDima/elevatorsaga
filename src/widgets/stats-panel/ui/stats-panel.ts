@@ -1,24 +1,20 @@
 /**
- * The stats panel: the run's live figures plus their sparkline history,
- * ported from `design/ui-mockup.html`'s stats tiles and `presentStats`'s own
- * eleven figures (what was `src/ui/presenters.ts`).
+ * The stats panel: the run's live figures plus their sparkline history.
  *
- * Mounted live from `src/pages/game/index.ts` since Phase 12.2.
+ * Mounted from `src/pages/game/index.ts`.
  *
  * ## Tile grouping
  *
- * The mockup shows four tiles up front and nine more behind a "Все
- * показатели" disclosure. This module keeps that exact 4 + 9 split, and
- * keeps all eleven of `presentStats`'s existing figures — none dropped —
- * plus two new ones the mockup also tracks but production never has:
- * {@link countWaitingNow} and {@link countAboardNow}, both read straight off
- * public engine state ({@link World.users}, {@link User.parent},
- * {@link User.done}, `Elevator.userSlots`) with no change to `src/game`.
+ * A short primary row of the figures a player watches while the run is going,
+ * and the rest behind an "All figures" disclosure. Every figure but two comes
+ * straight off {@link World}; {@link countWaitingNow} and
+ * {@link countAboardNow} are derived here from public engine state
+ * ({@link World.users}, {@link User.parent}, {@link User.done},
+ * `Elevator.userSlots`) rather than added to `src/game`.
  *
  * `avgWaitTime`'s doc comment in `world.ts` spells out
- * `avgPickupTime + avgRideTime ≈ avgWaitTime` — the exact sum the mockup's
- * own `avgWait() + avgRide()` computes for its `sAvg` tile — so `avgWaitTime`
- * is used there directly, with no combining logic needed.
+ * `avgPickupTime + avgRideTime ≈ avgWaitTime`, so that tile reads `avgWaitTime`
+ * directly with no combining logic needed.
  *
  * ## Judgment call: a native `<details>`, not `createDisclosure`
  *
@@ -26,9 +22,7 @@
  * outside click or Escape, which is right for a floating popover — the goal
  * bar's tier breakdown, the level switcher's menu — but wrong here: a reader
  * clicking anywhere on the page while reading the extra figures should not
- * have the section collapse under them. The mockup itself agrees: its own
- * "Все показатели" section is a plain `<details class="more"><summary>` with
- * no disclosure JavaScript at all, so this module uses the same element.
+ * have the section collapse under them.
  *
  * ## Live text vs. sparkline history
  *
@@ -36,7 +30,7 @@
  * tick, but only records a new sparkline sample through
  * {@link StatsHistory.push}, which throttles itself to once per 200ms of
  * real time — see `model/history.ts`'s own doc comment for why that is safe
- * to do unconditionally here, unlike the mockup's own draw loop.
+ * to do unconditionally here.
  */
 
 import { createStatsHistory, sparklinePoints, SPARK_FLOOR } from "../model/history.ts";
@@ -67,7 +61,7 @@ const PER_SECOND_DIGITS: Intl.NumberFormatOptions = {
  */
 type NoParamMessageKey = { [K in MessageKey]: MessageArgs<K> extends [] ? K : never }[MessageKey];
 
-/** The live figures one draw reads off the world, including the two new counts. */
+/** The live figures one draw reads off the world, derived counts included. */
 interface StatsSnapshot {
   readonly transportedCounter: number;
   readonly elapsedTime: number;
@@ -160,19 +154,19 @@ function sparkSamplesFrom(snapshot: StatsSnapshot): Record<StatsHistoryKey, numb
 interface TileConfig {
   /** Which snapshot field this tile draws. */
   readonly stat: keyof StatsSnapshot;
-  /** The tile's caption key; every one of these already exists under `page.stats.*` except the two new counts. */
+  /** The tile's caption key. */
   readonly captionKey: NoParamMessageKey;
   /** Whether the tile sits in the four-tile primary row or behind the disclosure. */
   readonly group: "primary" | "secondary";
   /** Renders the raw snapshot value as display text, digits and unit apart. */
   readonly format: (value: number) => QuantityParts;
-  /** The history key this tile sparks, or `undefined` for the three tiles the mockup marks `no-spark`. */
+  /** The history key this tile sparks, or `undefined` for a tile with no chart, which `tileMarkup` marks `no-spark`. */
   readonly sparkKey?: StatsHistoryKey;
 }
 
 /**
- * The panel's full tile set: four primary, nine secondary, matching the
- * mockup's own 4 + 9 split and every field {@link StatsSnapshot} reads.
+ * The panel's full tile set — the primary row first, then everything behind the
+ * disclosure, covering every field {@link StatsSnapshot} reads.
  */
 const TILES: readonly TileConfig[] = [
   {
@@ -274,13 +268,11 @@ export interface StatsPanelPresenter {
 /**
  * Builds the panel's static skeleton — no tiles, no translated text baked in.
  *
- * The summary opens with the mockup's own disclosure chevron (`§8`, its
- * `<svg class="icon chev">`), drawn through {@link spriteIconMarkup} rather
- * than as raw SVG — `docs-modal.ts`'s own `.api` rows already take that route
- * to the same `#i-right` icon, and this page ships no sprite sheet for a
- * `<use href>` to point at. It is `aria-hidden` and unnamed: the `<summary>`
- * beside it is the control, and the open/closed state a chevron draws is
- * already on the `<details>` element for a screen reader to read.
+ * The summary opens with a disclosure chevron, drawn through
+ * {@link spriteIconMarkup} rather than as raw SVG or a `<use href>`, since this
+ * page ships no sprite sheet to point at. It is `aria-hidden` and unnamed: the
+ * `<summary>` beside it is the control, and the open/closed state a chevron
+ * draws is already on the `<details>` element for a screen reader to read.
  */
 export function statsPanelTemplate(): string {
   const chevron = spriteIconMarkup("right", "chev");
@@ -311,11 +303,11 @@ interface TileRefs {
 /**
  * Parses one tile's markup and collects the refs {@link presentStatsPanel} needs.
  *
- * The value is two nodes, not one string: `design/ui-mockup.html` writes a
- * tile as `3,9<small> с</small>` (§8), the unit a size down and a shade back,
- * so that a column of these reads as a column of numbers. The digits go in a
- * text node created here and patched in place, which is what lets the `<small>`
- * be built once with the tile rather than reinserted on every tick of the run.
+ * The value is two nodes, not one string: the digits, then the unit in a
+ * `<small>` a size down and a shade back, so that a column of these reads as a
+ * column of numbers. The digits go in a text node created here and patched in
+ * place, which is what lets the `<small>` be built once with the tile rather
+ * than reinserted on every tick of the run.
  *
  * @param tile - The tile's configuration.
  * @returns Its element and the parts of it that get patched.

@@ -25,7 +25,7 @@ const SECONDARY_STATS = [
   "stopCount",
 ];
 
-/** The three secondary tiles the mockup marks `no-spark`, ported verbatim. */
+/** The secondary tiles with no history to chart, which carry `no-spark`. */
 const NO_SPARK_STATS = ["elapsedTime", "moveCount", "stopCount"];
 
 function fixtureWorld(): World {
@@ -160,10 +160,10 @@ describe("presentStatsPanel", () => {
   });
 
   it("sets the unit a size down, in its own <small>, leaving the digits alone", () => {
-    // The mockup writes «3,9<small> с</small>»: the unit is smaller and quieter
-    // than the figure it belongs to, so it has to be an element of its own. The
-    // digits stay a bare text node next to it, which is also what lets a redraw
-    // touch them without disturbing the <small>.
+    // The unit is smaller and quieter than the figure it belongs to, so it has
+    // to be an element of its own. The digits stay a bare text node next to it,
+    // which is also what lets a redraw touch them without disturbing the
+    // <small>.
     const parent = setUp(worldWithStats());
     const val = (stat: string): HTMLElement =>
       requireElement(`.tile[data-stat="${stat}"] .tile-val`, parent);

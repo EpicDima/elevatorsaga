@@ -6,37 +6,15 @@
  * See `level-switcher.ts` for the markup these rules target, and
  * `tier-badge.css` for the star badge a tile carries; the `.tasklink .star`
  * rules here are this widget's own overrides of it.
- */
-
-/*
- * The level switcher: `design/ui-mockup.html`'s `.task`/`.taskmenu`/
- * `.tasklink` (§3), the rest of the "later phase" `.brand-mark` and `.appbar`
- * already named next door in `widgets/app-bar` -- `widgets/level-switcher` has
- * drawn this live since Phase 12.2; see that module's own comment for the
- * markup this port targets.
  *
- * Two divergences from the mockup, both because the live markup is not the
- * mockup's own:
+ * `.task`, the root, is what makes the widget work: its `position: relative` is
+ * what `.taskmenu`'s `position: absolute` measures `top`/`left` from, and its
+ * `display: flex` is what lays the trigger and its two chevrons out as a row.
+ * `level-switcher.test.ts` pins that class against a rename.
  *
- * - `.task-step`, the mockup's one class for both step buttons, is not
- *   ported: `levelSwitcherTemplate()` gives the previous and next buttons
- *   their own classes, `.task-prev`/`.task-next`, rather than telling them
- *   apart by position among siblings. Both take the rule the mockup gives
- *   `.task-step`.
- * - `.task-open b`, similarly, is ported as `.task-name` -- the mockup names
- *   the trigger's label by tag alone (`<b id="taskName">`); the live template
- *   gives it a class instead, the same as every other element this port
- *   targets.
- *
- * The mockup's own comment on `.task` cites "§ 14" for why the bar shrinks by
- * hiding button labels under a narrow viewport; that section only ever
- * touches `.ghost .lbl`, `#againBtn .lbl`, `.runbox .btn` and `#runBtn` --
- * none of them this widget's own -- so nothing from it is ported here.
- *
- * `.task`'s `position: relative` and `.taskmenu`'s `position`/`top`/`left`/
- * `z-index` were ported ahead of the rest, the moment `.brand-mark` needed
- * the row not to reflow under it; they were filed in the app bar's own section
- * then, and the split brought them back beside the rules they belong with.
+ * The two step buttons carry their own classes, `.task-prev`/`.task-next`,
+ * rather than being told apart by position among siblings, and the trigger's
+ * label is `.task-name` rather than a bare tag selector.
  */
 .task {
   position: relative;
@@ -83,13 +61,11 @@
 }
 
 /*
- * Width fixed, at the mockup's own value and for the mockup's own reason: a
- * label that grows and shrinks between "Level 5" and "Level 17" on every
- * switch would drag the step button and the run controls beside it sideways
- * with it. 118px is sized for the mockup's own longest label --
- * "Уровень 19"/"Песочница" -- with room to spare; `.task-name`'s own
- * `text-overflow: ellipsis` below stays for a language whose longest label
- * does not fit it.
+ * Width fixed, because a label that grows and shrinks between "Level 5" and
+ * "Level 17" on every switch would drag the step button and the run controls
+ * beside it sideways with it. 118px fits the longest level name with room to
+ * spare; `.task-name`'s own `text-overflow: ellipsis` below covers a language
+ * whose longest does not fit.
  */
 .task-open {
   display: flex;
@@ -147,20 +123,12 @@
 }
 
 /*
- * The mockup's own base `.cap` rule (§1) is a caption style shared by four
- * blocks across the page, `.setblock .cap` (`widgets/app-bar`) among
- * them -- but it is scoped to `.taskblock` here rather than ported as that
- * shared, bare `.cap`, and its colour is not the mockup's own token, for the
- * same reason: `.setblock .cap` carries no colour of its own today, so it
- * reads `.setmenu`'s `color: var(--ds-text)`, at roughly 14:1 on `--ds-panel`
- * -- a bare `.cap` rule would have quietly repainted it in whatever this one
- * uses instead. The mockup's own choice, `--text-faint`, measures 3.62:1
- * dark and 3.14:1 light against `--ds-panel` (`getComputedStyle`, not
- * guessed, the same way `e2e/seed.spec.ts`'s own contrast test measures
- * `.setblock .cap`'s neighbours) -- short of WCAG 1.4.3's 4.5:1 in both, the
- * same class of failure `.setmenu`'s own comment (`widgets/app-bar`)
- * already names once. `--ds-text-muted` is the nearest step up that clears
- * it in both themes, 6.70:1 dark and 5.90:1 light.
+ * The caption over each block of tiles. `.cap` is scoped to `.taskblock` rather
+ * than written as one bare rule shared across the page, because the color
+ * depends on the surface underneath. Here `--ds-text-faint` measures 3.62:1
+ * dark and 3.14:1 light against `--ds-panel`, the surface `.taskmenu` paints
+ * under these captions, short of WCAG 1.4.3's 4.5:1 in both; `--ds-text-muted`
+ * is the nearest step up that clears it, 6.70:1 dark and 5.90:1 light.
  */
 .taskblock .cap {
   display: block;
@@ -201,12 +169,10 @@
 }
 
 /*
- * `--tier-tint` stays unprefixed, unlike every other custom property this
- * port reads: it is not a design token restated across the page, only a
- * scratch value the next four rules pass to each other, scoped to one tile
- * the same way a local variable would be -- `--ds-*` names the ones
- * `:root`/`html[data-theme="light"]` (above) actually declare, and this one
- * is not among them.
+ * `--tier-tint` stays unprefixed, unlike the `--ds-*` properties around it: it
+ * is not a design token declared on `:root`, only a scratch value the rules
+ * below pass to each other, scoped to one tile the same way a local variable
+ * would be.
  */
 .tasklink[data-tier="bronze"] {
   --tier-tint: var(--ds-tier-bronze);

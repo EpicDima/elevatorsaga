@@ -1,23 +1,15 @@
 /**
- * The app bar's brand mark: `design/ui-mockup.html`'s `.appbar > .brand`.
+ * The app bar's brand: its mark and the game's name.
  *
  * `src/main.ts` mounts this over the `<header>` `index.html` ships, so the bar
  * built here is the live page's own banner and the brand name is its `<h1>`.
- * The mockup writes that name as a `<span>` inside a page that has no heading
- * at all; a game does need one, and the alternative — leaving `index.html`'s
- * `<h1>` in place and nesting the brand inside it — puts a heading-shaped box
- * with the user agent's own margins into a fixed-height flex row. The
- * stylesheet's `.brand-name` says the same thing from its own side.
+ * The alternative — leaving `index.html`'s `<h1>` in place and nesting the
+ * brand inside it — puts a heading-shaped box with the user agent's own
+ * margins into a fixed-height flex row.
  *
- * The tagline the old header carried beside the name — "The elevator
- * programming game", the second half of that page's one `<h1>` — is not
- * ported: the mockup drops it, and it was the half of the title that had to
- * wrap on a narrow bar. Its catalog key went with it.
- *
- * Still only the brand. The `.task` level switcher beside it is
+ * Only the brand. The `.task` level switcher beside it is
  * `widgets/level-switcher`, the trailing toolbar is `settings-menu.ts`, and
- * `src/main.ts` composes the three into one row — see the assembly there for
- * the order and for where the run controls land.
+ * `src/main.ts` composes the three into one row.
  */
 
 /** SVG namespace, needed because the brand mark is built with `createElementNS`. */
@@ -36,7 +28,7 @@ export interface AppBarLabels {
 export interface AppBarElements {
   /** The bar itself, ready for its caller to append the rest of the row beside the brand. */
   readonly appBar: HTMLElement;
-  /** The mark and name together, as the mockup groups them. */
+  /** The mark and name together. */
   readonly brand: HTMLElement;
 }
 
@@ -85,8 +77,7 @@ export function buildAppBarSkeleton(document: Document, labels: AppBarLabels): A
 
   mark.append(frame, nearShaft, farShaft);
 
-  // The page's one `<h1>`; see this module's own comment for why the heading is
-  // the brand name itself rather than a wrapper around it.
+  // The page's one `<h1>` is the brand name itself, not a wrapper around it.
   const name = document.createElement("h1");
   name.className = "brand-name";
   name.textContent = labels.brandName;

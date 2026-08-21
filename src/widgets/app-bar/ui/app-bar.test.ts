@@ -24,9 +24,8 @@ describe("buildAppBarSkeleton", () => {
     const [mark, name] = brand.children;
     expect(mark?.tagName).toBe("svg");
     expect(mark?.classList.contains("brand-mark")).toBe(true);
-    // The page's own heading, not a `<span>` the mockup's headingless page can
-    // afford: this bar replaces `index.html`'s `<header>`, so if the name is not
-    // the `<h1>` the live document has none at all.
+    // The page's own heading: this bar replaces `index.html`'s `<header>`, so
+    // if the name is not the `<h1>` the live document has none at all.
     expect(name?.tagName).toBe("H1");
     expect(name?.className).toBe("brand-name");
     expect(name?.textContent).toBe(LABELS.brandName);

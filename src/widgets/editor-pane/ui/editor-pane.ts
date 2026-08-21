@@ -2,40 +2,29 @@
  * The editor pane's chrome: the code slot switcher, the tools beside it, the
  * error banner above the editor, and the mount point for the editor itself.
  *
- * Ported from `design/ui-mockup.html`'s `.pane.pane-code` section — the
- * `.codebar` row (slots plus `.codetools`), the `.errorline` banner, and the
- * `.editor` mount point — for `widgets/workspace-layout`'s `.pane-code`,
- * mounted from `src/main.ts`.
+ * The `.codebar` row (slots plus `.codetools`), the `.errorline` banner and the
+ * `.editor` mount point, drawn into `.code` from `src/main.ts`.
  *
- * Three things this pane draws are not straight ports:
+ * Three things about what this pane draws:
  *
- * - The slot switcher is not redrawn here at all. `presentCodeSlots` already
- *   exists, in `#features/manage-code-slots`, and is composed as-is — the
- *   mockup's own markup for it (`.slots[role=group]`) is reproduced as the
- *   container this pane hands that presenter, nothing more.
- * - `.codetools`' "Reset code" and "Undo reset" are this pane's own copy of
- *   the buttons `#features/run-simulation`'s run controls used to draw.
- *   `run-controls.ts` no longer has them — see its own module comment —
- *   because a control about the editor belongs beside the editor, which is
- *   the mockup's own rationale: "Сброс кода стоял в панели прогона... а он
- *   про редактор, а не про прогон".
- * - The mockup's `#errorGoto` is `<a href="#" ...>`, and does nothing: its
- *   `#editor` is static markup with no script wiring the link to a real
- *   position. This pane's own goto is a real `<button>`, not an `<a>` — the
+ * - The slot switcher is not drawn here at all. `presentCodeSlots`
+ *   (`#features/manage-code-slots`) draws it; this pane only supplies the
+ *   `.slots[role=group]` container it fills.
+ * - `.codetools`' "Reset code" and "Undo reset" sit beside the editor rather
+ *   than with `#features/run-simulation`'s run controls, because a control
+ *   about the editor belongs beside the editor and not beside the run.
+ * - The error banner's goto is a real `<button>`, not an `<a href="#">` — the
  *   same reason `speedStepperTemplate`'s own doc comment gives for the run
- *   controls no longer being an `<h3>` of clickable `<i>` elements, and
- *   specifically not an `<a href="#">`: the hash belongs to the router (see
- *   `src/main.ts`'s `.skip-link` handler), and a real navigation to it would
- *   throw away `level=`/`timescale=` and restart the player on the first
- *   level. It calls {@link EditorPaneOptions.onGotoLine} with the line
- *   `src/ui/error-location.ts`'s `locateCodeError` found, so it does what the
- *   mockup's own link only gestured at.
+ *   controls: the hash belongs to the router (see `src/main.ts`'s `.skip-link`
+ *   handler), and a real navigation to it would throw away
+ *   `level=`/`timescale=` and restart the player on the first level. It calls
+ *   {@link EditorPaneOptions.onGotoLine} with the line
+ *   `src/ui/error-location.ts`'s `locateCodeError` found.
  *
  * The `.editor` mount point is built and handed its `CodeEditor` view by
  * `src/main.ts`, in that order: this pane's mount has to exist before
  * `codeMirrorView` can be built over it, and `CodeEditor` before the run/reset
- * callbacks that close over it can be written — see `main.ts`'s own comment
- * at the call site for how the three are sequenced.
+ * callbacks that close over it can be written.
  */
 
 import { presentCodeSlots, type CodeSlot } from "#features/manage-code-slots/index.ts";
@@ -53,15 +42,14 @@ import { locateCodeError } from "../../../ui/error-location.ts";
  * word is written by {@link presentEditorPane}, the same reason
  * `runButtonsTemplate` and `speedStepperTemplate` ship blank.
  *
- * Each codetools button is a glyph plus a `.lbl` span, which is the shape the
- * mockup gives its own `.ghost` buttons and the shape `widgets/app-bar` has
- * already ported: the label is a span of its own rather than a text node
- * beside the `<svg>` so that a stylesheet can reach it — the mockup's own §14
- * hides these labels under a narrow viewport and leaves the glyphs — and so
- * that {@link presentEditorPane} can rewrite the word on a language change
- * without touching the icon next to it.
+ * Each codetools button is a glyph plus a `.lbl` span, the same shape
+ * `widgets/app-bar`'s `.ghost` buttons take: the label is a span of its own
+ * rather than a text node beside the `<svg>` so that a stylesheet can reach it
+ * — hiding the word and leaving the glyph on a narrow viewport — and so that
+ * {@link presentEditorPane} can rewrite the word on a language change without
+ * touching the icon next to it.
  *
- * @returns The pane's markup, ready to mount into `.pane-code`.
+ * @returns The pane's markup, ready to mount.
  */
 export function editorPaneTemplate(): string {
   return markup`<div class="codebar"><div class="slots" role="group" aria-label="${t("editor.slot.tablist.label")}"></div><div class="codetools"><button type="button" class="resetcode ghost">${raw(spriteIconMarkup("undo"))}<span class="lbl"></span></button><button type="button" class="undoreset ghost" hidden>${raw(spriteIconMarkup("redo"))}<span class="lbl"></span></button></div></div><div class="errorline" aria-live="polite" hidden>${raw(spriteIconMarkup("warn"))}<span class="errorline-text"><span class="errorline-label">${t("game.codeStatus")}</span> <code class="errormessage"></code></span><button type="button" class="goto" hidden></button></div><div class="editor"></div>`;
@@ -125,7 +113,7 @@ export interface EditorPanePresenter {
  * Draws the editor pane and wires it up.
  *
  * @param parent - The element {@link editorPaneTemplate}'s markup is written
- * into — `.pane-code`, once a later phase mounts this widget there.
+ * into — `.code`.
  * @param options - The state to report on and the callbacks for its controls.
  * @returns The presenter, already drawn.
  */

@@ -1,33 +1,28 @@
 /**
- * Sparkline sample history for the stats panel, ported from
- * `design/ui-mockup.html`'s `sparks`/`SPARK_POINTS`/`pushSpark`/`drawStats`.
+ * Sparkline sample history for the stats panel.
  *
- * The mockup gates every `pushSpark` call behind two conditions: a
- * `statsClock` accumulator that only lets a push through once 0.2 real
- * seconds have passed (so `160` points cover roughly 32 seconds of history
- * regardless of simulation speed), and `sim.running`, because its own draw
- * loop redraws on every animation frame whether or not the run is paused —
- * without that guard a paused run would fill the whole history with copies
- * of the same sample.
+ * Two guards decide whether a sample is worth recording, and only the first is
+ * this module's. `stats_display_changed` can fire many times a second, so
+ * {@link StatsHistory.push} accepts at most one sample per {@link THROTTLE_MS}
+ * — {@link SPARK_POINTS} of them then cover roughly 32 seconds of history
+ * regardless of simulation speed. The clock is caller-supplied rather than read
+ * here, which is what keeps {@link StatsHistory.push} and
+ * {@link sparklinePoints} pure and testable with an injected `now`.
  *
- * `World`'s own `stats_display_changed` event (see `world-controller.ts`)
- * carries the second guard *from its main tick*: that call site only fires
- * from inside `if (!this.isPaused && !world.levelEnded && lastT !== null)`.
- * It is not the only caller, though — `App#relocalise` (`src/pages/game/index.ts`)
- * re-fires the same event on every language switch, unconditionally, so text
- * stays correctly translated even while paused. A presenter wired to the
- * event alone therefore cannot tell a real tick from a paused relocalise and
- * cannot rebuild the mockup's `sim.running` guard from that signal — pausing
- * mid-run and switching languages twice, 0.2s+ apart, would push a duplicate
- * sample and evict a genuine older one. `WorldController.isPaused` is public
- * and is the fix, once the widget composing {@link createStatsHistory} is
- * given a way to read it (not yet — this widget is still inert and only
- * takes a `World`); track that at wiring time rather than guessing at an API
- * shape here. The first guard (the 0.2s clock) still applies regardless — the
- * event can fire many times a second — so {@link createStatsHistory} keeps
- * it, gated on a caller-supplied clock rather than reading one itself, which
- * is what keeps {@link StatsHistory.push} and {@link sparklinePoints} pure
- * and testable with an injected `now`.
+ * The second guard — do not record while the run is paused, or the history
+ * fills with copies of the same sample — is not applied at all, and cannot be
+ * from the event alone. `World`'s own `stats_display_changed` carries it from
+ * its main tick, which only fires from inside
+ * `if (!this.isPaused && !world.levelEnded && lastT !== null)`
+ * (`world-controller.ts`), but that is not its only caller: `App#relocalise`
+ * (`src/pages/game/index.ts`) re-fires the same event on every language switch,
+ * unconditionally, so text stays correctly translated even while paused. A
+ * presenter wired to the event therefore cannot tell a real tick from a paused
+ * relocalise — pausing mid-run and switching languages twice, more than
+ * {@link THROTTLE_MS} apart, pushes a duplicate sample and evicts a genuine
+ * older one. `WorldController.isPaused` is public and is the fix, once the
+ * widget composing {@link createStatsHistory} is given a way to read it; it is
+ * handed a bare `World` today.
  */
 
 const HISTORY_KEYS = [
@@ -43,25 +38,23 @@ const HISTORY_KEYS = [
   "aboardNow",
 ] as const;
 
-/** One of the ten figures the stats panel sparks. */
+/** One of the figures the stats panel sparks. */
 export type StatsHistoryKey = (typeof HISTORY_KEYS)[number];
 
-/** How many samples {@link createStatsHistory} keeps per key, matching the mockup's own `SPARK_POINTS`. */
+/** How many samples {@link createStatsHistory} keeps per key. */
 export const SPARK_POINTS = 160;
 
-/** Real milliseconds between accepted pushes, matching the mockup's own `statsClock > 0.2` gate. */
+/** Real milliseconds between accepted pushes. */
 const THROTTLE_MS = 200;
 
 /**
- * The floor {@link sparklinePoints} scales a key's chart against, ported
- * verbatim from the mockup's own tuned `pushSpark` calls — the value below
- * which a chart draws flat rather than exaggerating noise in a figure that
- * is, in practice, always small.
+ * The floor {@link sparklinePoints} scales a key's chart against — the value
+ * below which a chart draws flat rather than exaggerating noise in a figure
+ * that is, in practice, always small.
  *
- * `avgLoadFactorOnMove`'s floor is `0.4`, not the mockup's `40`: production
- * keeps that figure as the `0..1` fraction `percent()` expects, where the
- * mockup's own `loadNow()` already returns a `0..100` percentage. Every
- * other key's units match the mockup's directly, so its floor is unchanged.
+ * Each floor is stated in its own key's units. `avgLoadFactorOnMove`'s is `0.4`
+ * rather than `40` because that figure is kept as the `0..1` fraction
+ * `percent()` expects, not as a percentage.
  */
 export const SPARK_FLOOR: Readonly<Record<StatsHistoryKey, number>> = {
   avgWaitTime: 10,
@@ -135,11 +128,10 @@ export function createStatsHistory(): StatsHistory {
 }
 
 /**
- * Builds an SVG `<polyline>` `points` attribute from a sample series, ported
- * verbatim from the mockup's own `pushSpark`-adjacent drawing code: the chart
- * spans a `0 0 100 16` viewBox, `y` is inverted (small values sit low), and
- * the scale never shrinks below `floor` so a quiet run draws a flat line
- * near the bottom rather than a jagged one blown up from noise.
+ * Builds an SVG `<polyline>` `points` attribute from a sample series: the chart
+ * spans a `0 0 100 16` viewBox, `y` is inverted (small values sit low), and the
+ * scale never shrinks below `floor` so a quiet run draws a flat line near the
+ * bottom rather than a jagged one blown up from noise.
  *
  * @param points - A sample series, oldest first.
  * @param floor - The minimum top-of-scale for this series; see {@link SPARK_FLOOR}.
