@@ -11,16 +11,11 @@
  * `[object Object]` that `Object.prototype.toString` produces, which tells the
  * player nothing at all about what went wrong.
  *
- * The frames under that headline are deliberately thrown away. The banner is
- * one line by design -- `design/ui-mockup.html`'s `.errorline` is a glyph, a
- * sentence, the failure in a `<code>` and a "line 20 ->" link, all on one row --
- * and the frames of a built bundle are positions in `assets/index-<hash>.js`,
- * which is machinery the player neither wrote nor can edit. The one frame that
- * *is* about their program is already read out of the stack by
- * `src/ui/error-location.ts`'s `locateCodeError` and drawn as the line number
- * beside this text, so repeating the whole stack would cost the banner three or
- * four lines of height in order to say, far less clearly, what the link next to
- * it already says.
+ * The frames under that headline are thrown away. The banner is one row -- a
+ * glyph, a sentence, the failure in a `<code>` and a link to the line -- and a
+ * built bundle's frames are positions in `assets/index-<hash>.js`, machinery
+ * the player neither wrote nor can edit. The one frame that *is* about their
+ * program is already drawn as the line number beside this text.
  */
 
 import { t } from "#i18n/index.ts";

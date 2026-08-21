@@ -134,10 +134,10 @@ describe("iconMarkup", () => {
   });
 });
 
-/** The mockup-family icon names, in the order `SPRITE_ICONS` declares them. */
+/** The sprite icon names, in the order `SPRITE_ICONS` declares them. */
 const SPRITE_ICON_NAMES = Object.keys(SPRITE_ICONS) as SpriteIconName[];
 
-/** The default paint every stroked mockup-family glyph shares, spelled out per shape (see icon.ts). */
+/** The default paint every stroked sprite glyph shares, spelled out per shape. */
 const STROKE_DEFAULTS = (strokeWidth: string) => ({
   fill: "none",
   stroke: "currentColor",
@@ -146,10 +146,11 @@ const STROKE_DEFAULTS = (strokeWidth: string) => ({
   "stroke-linejoin": "round",
 });
 
+// These outlines are drawn by hand and read by nothing else at runtime, so a
+// truncated or nudged path would leave every other test passing. The
+// assertions below are what holds each glyph to its shape.
 describe("SPRITE_ICONS", () => {
-  // design/ui-mockup.html's own <symbol id="i-star"> — copied verbatim, the
-  // same reason ICONS is held to fontawesome-glyphs.json above.
-  it("reproduces the mockup's star glyph exactly", () => {
+  it("reproduces the star glyph exactly", () => {
     expect(SPRITE_ICONS.star).toEqual({
       viewBox: "0 0 16 16",
       shapes: [
@@ -165,10 +166,8 @@ describe("SPRITE_ICONS", () => {
     });
   });
 
-  // design/ui-mockup.html's own <symbol id="i-check">/<symbol id="i-x">/
-  // <symbol id="i-dash"> — copied verbatim, with the mockup's shared ".icon"
-  // stroke defaults spelled out per shape (see icon.ts's doc comment on why).
-  it("reproduces the mockup's check/x/dash glyphs exactly", () => {
+  // The stroke defaults are spelled out per shape; see icon.ts for why.
+  it("reproduces the check/x/dash glyphs exactly", () => {
     expect(SPRITE_ICONS.check).toEqual({
       viewBox: "0 0 16 16",
       shapes: [{ tag: "path", attrs: { d: "m3.5 8.5 3 3 6-7", ...STROKE_DEFAULTS("2") } }],
@@ -183,9 +182,7 @@ describe("SPRITE_ICONS", () => {
     });
   });
 
-  // design/ui-mockup.html's own <symbol id="i-lamp"> — copied verbatim,
-  // three shapes at the mockup's own default (unoverridden) stroke width.
-  it("reproduces the mockup's lamp glyph exactly", () => {
+  it("reproduces the lamp glyph exactly", () => {
     expect(SPRITE_ICONS.lamp).toEqual({
       viewBox: "0 0 16 16",
       shapes: [
@@ -202,9 +199,7 @@ describe("SPRITE_ICONS", () => {
     });
   });
 
-  // design/ui-mockup.html's own <symbol id="i-book"> — copied verbatim, two
-  // shapes at the mockup's own default stroke.
-  it("reproduces the mockup's book glyph exactly", () => {
+  it("reproduces the book glyph exactly", () => {
     expect(SPRITE_ICONS.book).toEqual({
       viewBox: "0 0 16 16",
       shapes: [
@@ -226,11 +221,9 @@ describe("SPRITE_ICONS", () => {
     });
   });
 
-  // design/ui-mockup.html's own <symbol id="i-graduate"> — copied verbatim,
-  // two shapes at the mockup's own default stroke. The mortar board is a
-  // closed path and the tassel band an open one, which is the difference
-  // this pins: swap them and the band fills solid.
-  it("reproduces the mockup's graduate glyph exactly", () => {
+  // The mortar board is a closed path and the tassel band an open one: swap
+  // them and the band fills solid.
+  it("reproduces the graduate glyph exactly", () => {
     expect(SPRITE_ICONS.graduate).toEqual({
       viewBox: "0 0 16 16",
       shapes: [
@@ -249,8 +242,7 @@ describe("SPRITE_ICONS", () => {
     });
   });
 
-  // design/ui-mockup.html's own <symbol id="i-copy"> — copied verbatim.
-  it("reproduces the mockup's copy glyph exactly", () => {
+  it("reproduces the copy glyph exactly", () => {
     expect(SPRITE_ICONS.copy).toEqual({
       viewBox: "0 0 16 16",
       shapes: [
@@ -270,9 +262,8 @@ describe("SPRITE_ICONS", () => {
     });
   });
 
-  // design/ui-mockup.html's own <symbol id="i-dice"> — copied verbatim. The
-  // three pip dots are filled solid, not stroked, unlike the outer die.
-  it("reproduces the mockup's dice glyph exactly", () => {
+  // The pip dots are filled solid, not stroked, unlike the outer die.
+  it("reproduces the dice glyph exactly", () => {
     expect(SPRITE_ICONS.dice).toEqual({
       viewBox: "0 0 16 16",
       shapes: [
@@ -303,8 +294,7 @@ describe("SPRITE_ICONS", () => {
     });
   });
 
-  // design/ui-mockup.html's own <symbol id="i-keys"> — copied verbatim.
-  it("reproduces the mockup's keys glyph exactly", () => {
+  it("reproduces the keys glyph exactly", () => {
     expect(SPRITE_ICONS.keys).toEqual({
       viewBox: "0 0 16 16",
       shapes: [
@@ -331,8 +321,7 @@ describe("SPRITE_ICONS", () => {
     });
   });
 
-  // design/ui-mockup.html's own <symbol id="i-link"> — copied verbatim.
-  it("reproduces the mockup's link glyph exactly", () => {
+  it("reproduces the link glyph exactly", () => {
     expect(SPRITE_ICONS.link).toEqual({
       viewBox: "0 0 16 16",
       shapes: [
@@ -349,9 +338,8 @@ describe("SPRITE_ICONS", () => {
     });
   });
 
-  // design/ui-mockup.html's own <symbol id="i-only-code">/<symbol id="i-only-game">
-  // — copied verbatim, sharing the same outer frame as split-left/split-right.
-  it("reproduces the mockup's only-code/only-game glyphs exactly", () => {
+  // These share their outer frame with split-left/split-right.
+  it("reproduces the only-code/only-game glyphs exactly", () => {
     expect(SPRITE_ICONS["only-code"]).toEqual({
       viewBox: "0 0 16 16",
       shapes: [
@@ -391,8 +379,7 @@ describe("SPRITE_ICONS", () => {
     });
   });
 
-  // design/ui-mockup.html's own <symbol id="i-slider"> — copied verbatim.
-  it("reproduces the mockup's slider glyph exactly", () => {
+  it("reproduces the slider glyph exactly", () => {
     expect(SPRITE_ICONS.slider).toEqual({
       viewBox: "0 0 16 16",
       shapes: [
@@ -403,9 +390,8 @@ describe("SPRITE_ICONS", () => {
     });
   });
 
-  // design/ui-mockup.html's own <symbol id="i-split-left">/<symbol id="i-split-right">
-  // — copied verbatim, sharing the same outer frame as only-code/only-game.
-  it("reproduces the mockup's split-left/split-right glyphs exactly", () => {
+  // These share their outer frame with only-code/only-game.
+  it("reproduces the split-left/split-right glyphs exactly", () => {
     expect(SPRITE_ICONS["split-left"]).toEqual({
       viewBox: "0 0 16 16",
       shapes: [
@@ -442,10 +428,9 @@ describe("SPRITE_ICONS", () => {
     });
   });
 
-  // design/ui-mockup.html's own <symbol id="i-right">/<symbol id="i-left"> —
-  // the generic disclosure chevron the settings popover's keysOpen row draws,
-  // and its mirror, which the speed control uses as its "slower" arrow.
-  it("reproduces the mockup's right and left glyphs exactly", () => {
+  // The disclosure chevron the settings popover's keysOpen row draws, and its
+  // mirror, which the speed control uses as its "slower" arrow.
+  it("reproduces the right and left glyphs exactly", () => {
     expect(SPRITE_ICONS.right).toEqual({
       viewBox: "0 0 16 16",
       shapes: [{ tag: "path", attrs: { d: "m6 3 5 5-5 5", ...STROKE_DEFAULTS("1.6") } }],
@@ -456,12 +441,10 @@ describe("SPRITE_ICONS", () => {
     });
   });
 
-  // design/ui-mockup.html's own <symbol id="i-play">/<symbol id="i-pause">/
-  // <symbol id="i-restart"> — the run controls' three glyphs. `play` is the
-  // one glyph here that overrides `fill` without turning `stroke` off, so it
-  // keeps the family's stroke defaults on top of a fill; `pause` is the only
-  // one at 2.4.
-  it("reproduces the mockup's play, pause and restart glyphs exactly", () => {
+  // The run controls' three glyphs. `play` overrides `fill` without turning
+  // `stroke` off, so it keeps the stroke defaults on top of a fill; `pause` is
+  // the only glyph in the family with a heavier stroke.
+  it("reproduces the play, pause and restart glyphs exactly", () => {
     expect(SPRITE_ICONS.play).toEqual({
       viewBox: "0 0 16 16",
       shapes: [
@@ -490,12 +473,10 @@ describe("SPRITE_ICONS", () => {
     });
   });
 
-  // design/ui-mockup.html's own <symbol id="i-undo">/<symbol id="i-warn"> —
-  // the two glyphs widgets/editor-pane draws, its "Reset code" arrow and its
-  // error banner's triangle. `redo` has no clause here on purpose: it is the
-  // one glyph in this table the mockup does not contain, mirrored out of
-  // `undo` rather than copied, so there is nothing to hold it to.
-  it("reproduces the mockup's undo and warn glyphs exactly", () => {
+  // The two glyphs widgets/editor-pane draws: its "Reset code" arrow and its
+  // error banner's triangle. `redo` is mirrored out of `undo` rather than
+  // drawn, so there is no shape of its own to hold it to.
+  it("reproduces the undo and warn glyphs exactly", () => {
     expect(SPRITE_ICONS.undo).toEqual({
       viewBox: "0 0 16 16",
       shapes: [

@@ -1,15 +1,10 @@
 /**
- * A trigger button and a panel it shows or hides, the behaviour behind every
- * popover `design/ui-mockup.html` draws — the level switcher's menu, the
- * goal bar's tier breakdown, the settings popover. The mockup's own
- * `popover(buttonId, menuId)` names all three at once, which is the four
- * call sites this is ported from rather than a shared primitive invented
- * ahead of a second user.
+ * A trigger button and the panel it shows or hides: the level switcher's menu,
+ * the goal bar's tier breakdown, the settings popover.
  *
  * The panel is toggled through `hidden` and the trigger's `aria-expanded`
- * rather than a class, so a caller that never writes a stylesheet rule for
- * either still gets working show/hide — the same reason
- * `EditorPanePresenter.update` writes `undoReset.hidden` instead of a class.
+ * rather than a class, so a caller that writes no stylesheet rule for either
+ * still gets working show/hide.
  */
 
 /** A trigger and the panel it opens, already open or already closed. */

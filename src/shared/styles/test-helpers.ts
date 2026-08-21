@@ -128,11 +128,9 @@ export const LIGHT_PALETTE = paletteIn('html[data-theme="light"]');
  * Both themes as `it.each` rows: a name for the `%s` in the test's title, and
  * the palette to measure.
  *
- * A colour that clears its bar in one theme says nothing about the other --
- * every deviation from `design/ui-mockup.html` recorded in the stylesheet was
- * forced by exactly one of the two -- so a pair worth measuring is worth
- * measuring twice, and this is the table that makes forgetting the second one
- * a visible omission rather than the default.
+ * A colour that clears its bar in one theme says nothing about the other, so a
+ * pair worth measuring is worth measuring twice. This table makes forgetting
+ * the second one a visible omission rather than the default.
  */
 export const THEMES: readonly [name: string, palette: ReadonlyMap<string, string>][] = [
   ["dark", DARK_PALETTE],

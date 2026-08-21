@@ -1,8 +1,7 @@
 /*
  * The two icon shapes `src/shared/ui/icon.ts` emits: `.icon`, the inline SVG
  * that replaced the Font Awesome webfont and is still sized in `em` so it
- * scales with the text around it, and `.ds-icon`, the mockup's own 16px
- * stroked glyph.
+ * scales with the text around it, and `.ds-icon`, the 16px stroked glyph.
  *
  * Beside the module that writes the markup, not in `shared/styles`, because
  * these two rules and `iconMarkup`/`spriteIconMarkup` are one component
@@ -22,22 +21,10 @@
 }
 
 /*
- * `design/ui-mockup.html`'s own icon family (`spriteIconMarkup` in
- * `#shared/ui/icon.ts`) gets its own wrapper class, `ds-icon` rather than
- * `icon`, precisely so it would not inherit the rule above by accident: this
- * family is fixed-pixel, not em-relative, and until this rule landed,
- * `icon.ts`'s own module comment said as much -- "this module has no
- * stylesheet rule for `.ds-icon` yet." Ported here from the mockup's own
- * `.icon` rule (§1) now that a live widget needs it: `widgets/app-bar`'s
- * `.docsopen` button draws one of this family's glyphs, and a `viewBox`-only
- * SVG with no intrinsic size stretches to fill whatever cross-axis width its
- * parent gives it. Measured live before this rule, with the button still
- * inside the old stacked header (`.header`, `flex-direction: column`): a 16x16
- * book glyph rendered 1220px square, the header carrying it 2682.9px tall,
- * and `e2e/seed.spec.ts`'s "does not move the caveat's own control" failing
- * by 2548px on a control that itself never moved -- see `widgets/app-bar`'s
- * own `.brand-mark` note, where that same test's other half is fixed, for the
- * rest of that account.
+ * The stroked glyph family `spriteIconMarkup` emits. It wears `ds-icon` rather
+ * than `icon` so it does not inherit the em-relative rule above: these are
+ * fixed-pixel. The explicit size matters -- a `viewBox`-only SVG with no
+ * intrinsic size stretches to fill whatever width its parent gives it.
  */
 .ds-icon {
   display: block;

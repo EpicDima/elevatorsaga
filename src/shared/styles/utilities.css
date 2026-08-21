@@ -16,8 +16,8 @@
  * (5.39:1 light, 10.82:1 dark). No shadow: that was the legacy rule's own fix
  * for a single, page-only accent value too pale to read here on its own
  * (1.68:1 lightened, 6.58:1 darkened); a token already readable in both
- * themes does not need the compensation, and `design/ui-mockup.html` draws no
- * text-shadow anywhere.
+ * themes does not need the compensation, and nothing on either page draws a
+ * text-shadow.
  */
 .emphasis-color {
   color: var(--ds-accent-hi);
@@ -94,10 +94,9 @@
 }
 
 /*
- * `design/ui-mockup.html`'s own `.num` (§1): tabular figures for anything
- * that ticks live -- a goal-bar meter's current/threshold pair today, a
- * stats-panel tile once that widget's own CSS lands. Proportional digits
- * jitter a line's width as they change; tabular ones hold it still.
+ * Tabular figures for anything that ticks live -- a goal-bar meter's
+ * current/threshold pair, a stats-panel tile. Proportional digits jitter a
+ * line's width as they change; tabular ones hold it still.
  */
 .num {
   font-family: var(--ds-font-mono);

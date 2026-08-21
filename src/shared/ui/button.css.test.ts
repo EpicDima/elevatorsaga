@@ -28,12 +28,10 @@ describe("kbd", () => {
 
 describe(".btn", () => {
   it("brightens .docsclose/.keysclose's border to the neutral --ds-n-5 on hover, not the accent", () => {
-    // .btn shares its resting shape with .task-open (button.css's own comment
-    // says so), but not its hover colour: .task-open opens the level switcher
-    // and brightens to the themed accent to draw the eye; .btn only ever
-    // closes a dialog the player already opened, and design/ui-mockup.html's
-    // own .btn:hover reaches for the neutral --n-5 instead. Regression guard
-    // for the two reading the same token by coincidence of an early port.
+    // .btn shares its resting shape with .task-open but not its hover colour:
+    // .task-open opens the level switcher and brightens to the themed accent
+    // to draw the eye, while .btn only closes a dialog the player already
+    // opened. Guards the two against drifting onto one token.
     expect(declaration(ruleBody(".btn:hover"), "border-color", ".btn:hover")).toBe(token("ds-n-5"));
   });
 });

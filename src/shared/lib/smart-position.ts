@@ -2,18 +2,14 @@
  * Placing a floating card next to whatever it explains, without spilling off
  * the edge of the area it explains it in.
  *
- * Ported from `design/ui-mockup.html`'s `drawHoverCard()`: the building's
- * hover card tries a preferred spot next to its anchor, flips to the
- * opposite side when the preferred spot would clip past the near edge, and
- * is finally clamped inside its container regardless of which side it
- * landed on. Two placements use this shape today — beside an elevator's
- * shaft, and above a floor's queue — so this module exposes exactly those
- * two, not a general-purpose placement engine: nothing in the mockup asks
- * for a third.
+ * A card tries a preferred spot next to its anchor, flips to the opposite side
+ * when that spot would clip past the near edge, and is clamped inside its
+ * container either way. Two placements use this shape — beside an elevator's
+ * shaft, and above a floor's queue — so the module exposes exactly those two
+ * rather than a general-purpose placement engine.
  *
- * This module is pure geometry: it takes plain rectangles, not real DOM
- * elements, so it runs the same under Node as it will once wired to
- * `getBoundingClientRect()`.
+ * Pure geometry: it takes plain rectangles, not real DOM elements, so it runs
+ * the same under Node as in a browser.
  */
 
 /**

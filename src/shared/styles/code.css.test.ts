@@ -37,11 +37,8 @@ describe("ds code palette on the code background", () => {
   // eight tutorial answers' syntax colours), `editorSyntaxTheme` (the live
   // editor's, in `src/ui/code-highlight.ts`) and .cm-gutters (the live
   // editor's line numbers) paint straight onto it, at 13px and smaller --
-  // 1.4.3 asks 4.5:1 of all of it. --ds-code-key/-fn/-str/-num/-text/-punc are
-  // the mockup's own values, already clearing the bar; --ds-code-com and
-  // --ds-code-line are not the mockup's own -- see .tok-comment's and
-  // .cm-gutters's own comments in editor-pane.css for the two numbers each was
-  // retuned from.
+  // 1.4.3 asks 4.5:1 of all of it. --ds-code-com and --ds-code-line had to be
+  // retuned to get there; see .tok-comment's and .cm-gutters's own comments.
   it.each([
     ["ds-code-text", "ds-code-bg", 4.5],
     ["ds-code-key", "ds-code-bg", 4.5],
@@ -68,9 +65,8 @@ describe("ds code palette on the code background", () => {
   // --ds-code-bg itself, and 1.4.3 applies to it unchanged -- which is what
   // this catches and the block above cannot, since the composite is nowhere
   // in the palette to be named. --ds-code-com and --ds-code-line were each
-  // lightened past the mockup's own value precisely to clear it here (4.62:1
-  // and 4.67:1 dark, 4.58:1 and 4.59:1 light); measuring only the unlit
-  // background would have let both back down again.
+  // lightened precisely to clear it here; measuring only the unlit background
+  // would let both drift back down.
   it.each(THEMES)("keeps every code colour readable on the active line, %s theme", (_, palette) => {
     const lit = over(themed(palette, "ds-code-active"), themed(palette, "ds-code-bg"));
     for (const name of CODE_INK_TOKENS) {

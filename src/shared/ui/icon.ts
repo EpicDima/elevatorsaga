@@ -156,32 +156,22 @@ export function iconMarkup(name: IconName, className?: string): string {
 }
 
 /**
- * `design/ui-mockup.html`'s own icon family: flat 16x16 outlines, drawn from
- * scratch for this redesign rather than traced from a webfont. Kept as its
- * own table rather than folded into {@link ICONS} because the two do not
- * share a shape — a mockup glyph is one or more raw SVG shapes at native
+ * The stroked icon family: flat 16x16 outlines drawn for this design rather
+ * than traced from a webfont. Kept apart from {@link ICONS} because the two do
+ * not share a shape — an entry here is one or more raw SVG shapes at native
  * 16x16 size, some with their own paint overrides (a filled star, a
  * heavier-stroked check mark), where every {@link ICONS} entry is exactly one
- * path, flipped out of a webfont's y-up em box. A consumer gets its own
- * `ds-icon` wrapper class rather than reusing `icon` for the same reason
- * `shared/styles/tokens.css` went in under a `--ds-` prefix: this family's
- * sizing is fixed-pixel, not em-relative like the legacy glyphs already
- * styled through `.icon`, and the two would fight over that class once either
- * gets a stylesheet rule.
- *
- * Grows one glyph at a time, as this migration's widgets actually need one,
- * rather than transcribing the mockup's whole sprite sheet up front.
+ * path flipped out of a webfont's y-up em box. Consumers wear a `ds-icon`
+ * wrapper class rather than `icon`: this family is fixed-pixel, not
+ * em-relative, and the two would fight over one class.
  */
 export const SPRITE_ICONS = {
-  // The mockup draws every stroked glyph in this family through one shared
-  // ".icon" CSS rule (fill: none; stroke: currentcolor; stroke-width: 1.6;
-  // round caps/joins) rather than per-shape attributes. `icon.css`'s own
-  // `.ds-icon` rule now carries that same default too, but each stroked
-  // shape below still spells it out explicitly — the same reason `star`
-  // spells out its own paint rather than leaving it to inherited CSS.
+  // `.ds-icon` already carries the stroked default (no fill, `currentcolor`,
+  // 1.6 wide, round caps and joins), but every stroked shape below spells it
+  // out anyway, the same reason `star` spells out its own paint rather than
+  // leaving it to inherited CSS.
   //
-  // The docs opener's glyph (`#docsOpen`): an open book, split down the
-  // spine.
+  // The docs opener's glyph: an open book, split down the spine.
   book: {
     viewBox: "0 0 16 16",
     shapes: [
@@ -225,10 +215,9 @@ export const SPRITE_ICONS = {
       },
     ],
   },
-  // The mockup's own copy-link glyph, `#seedCopy`. `features/manage-seed`
-  // draws it on the seed row's link while the run is unpinned: pinning this
-  // draw into the address bar is the same gesture under another name, and the
-  // link is a real one where the mockup's button has no handler at all.
+  // The copy-link glyph. `features/manage-seed` draws it on the seed row's
+  // link while the run is unpinned: pinning this draw into the address bar is
+  // the same gesture under another name.
   copy: {
     viewBox: "0 0 16 16",
     shapes: [
@@ -278,10 +267,9 @@ export const SPRITE_ICONS = {
       },
     ],
   },
-  // The seed block's reroll glyph, `#seedRoll`. `features/manage-seed` draws
-  // it on the seed row's link once the run is pinned: throwing this draw away
-  // and starting again without it is the reroll production actually has, in
-  // place of the mockup's demo pick out of a fixed word list.
+  // The seed block's reroll glyph. `features/manage-seed` draws it on the seed
+  // row's link once the run is pinned: throwing this draw away and starting
+  // again without it is the reroll.
   dice: {
     viewBox: "0 0 16 16",
     shapes: [
@@ -314,9 +302,8 @@ export const SPRITE_ICONS = {
       },
     ],
   },
-  // The mockup's `#i-down` (§6): a floor's "call a car going down" lamp, and
-  // the lower of the two boarding lamps drawn on a car's own header. Both are
-  // the same glyph at two sizes, exactly as the mockup draws them.
+  // A floor's "call a car going down" lamp, and the lower of the two boarding
+  // lamps on a car's header. Both are this one glyph at two sizes.
   down: {
     viewBox: "0 0 16 16",
     shapes: [
@@ -333,16 +320,8 @@ export const SPRITE_ICONS = {
       },
     ],
   },
-  // The mockup's `#i-graduate` (§11): a mortar board over its tassel band. Two
-  // open paths at the family's default stroke, copied verbatim.
-  //
-  // Nothing draws it. It stood at the head of the lesson aside beside "Level N
-  // of 8", and that whole row went when the card was cut back to the level it
-  // teaches. Kept because this table is the mockup's icon family transcribed
-  // rather than the set the page happens to draw today, and `icon.test.ts` pins
-  // it against §11 on those terms. It is two paths of dead data in the bundle --
-  // a property of an exported object literal is not something a bundler can drop
-  // -- and that is the price of not transcribing it again.
+  // A mortar board over its tassel band. Nothing draws it today; it is kept so
+  // the family stays whole, at the cost of two paths a bundler cannot drop.
   graduate: {
     viewBox: "0 0 16 16",
     shapes: [
@@ -370,8 +349,8 @@ export const SPRITE_ICONS = {
       },
     ],
   },
-  // The settings popover's own trigger row for its seed help disclosure's
-  // sibling block — the mockup's `#keysOpen` glyph, a stylised keyboard.
+  // A stylised keyboard, on the settings popover's row that opens the hotkeys
+  // dialog.
   keys: {
     viewBox: "0 0 16 16",
     shapes: [
@@ -600,8 +579,8 @@ export const SPRITE_ICONS = {
       },
     ],
   },
-  // A passenger, the mockup's `#i-person` (§6). Two filled shapes rather than
-  // an outline, and the only glyphs in this table whose viewBox is not 16x16:
+  // A passenger. Two filled shapes rather than an outline, and the only glyphs
+  // in this table whose viewBox is not 16x16:
   // a person is drawn 11 wide by 20 tall so the figure fills its box at every
   // size the building scales it to, from a rider squeezed into a narrow cabin
   // to a full-height figure waiting in a roomy corridor. An outline at those
@@ -623,16 +602,10 @@ export const SPRITE_ICONS = {
       },
     ],
   },
-  // The other two of `game/world.ts`'s three `displayType`s, which the mockup
-  // has no equivalent for at all — it draws one figure and gives its people no
-  // types. Dropping the distinction would have been the closer port and the
-  // worse one: the simulation has assigned every passenger a type since the
-  // original game, purely so a crowd on a floor reads as a crowd of people
-  // rather than a row of one repeated stamp, and a redesign is no reason to
-  // quietly delete a thing that already works. So the two extra silhouettes are
-  // drawn in this family's own flat-fill idiom rather than kept as the Font
-  // Awesome outlines they used to be (`ICONS.female`/`ICONS.child`), which read
-  // as smudges at the 9-20px a figure actually gets here.
+  // The other two of `game/world.ts`'s three `displayType`s. Every passenger
+  // carries a type so that a crowd on a floor reads as a crowd of people
+  // rather than one repeated stamp. Both are drawn in this family's flat-fill
+  // idiom: an outline reads as a smudge at the size a figure gets here.
   //
   // A child stands in the same 11x20 box as an adult, occupying only its lower
   // two-thirds, so that both are sized by one CSS height and still stand on the
@@ -671,12 +644,10 @@ export const SPRITE_ICONS = {
       },
     ],
   },
-  // The run button's glyph while a run is stopped, `#i-play`. Filled *and*
-  // stroked, unlike {@link SPRITE_ICONS.star}, which turns the family's stroke
-  // off when it turns the fill on: the mockup's own `#i-play` overrides only
-  // `fill`, so the 1.6 round-joined stroke stays and the triangle draws with
-  // the same softened corners and the same optical weight as the pause bars it
-  // swaps with.
+  // The run button's glyph while a run is stopped. Filled *and* stroked,
+  // unlike {@link SPRITE_ICONS.star}, which turns the stroke off when it turns
+  // the fill on: keeping the round-joined stroke gives the triangle the same
+  // softened corners and optical weight as the pause bars it swaps with.
   play: {
     viewBox: "0 0 16 16",
     shapes: [
@@ -694,12 +665,8 @@ export const SPRITE_ICONS = {
     ],
   },
   // `widgets/editor-pane`'s "Undo reset" glyph: {@link SPRITE_ICONS.undo}
-  // mirrored about the middle of the box, arrowhead and all. The mockup has no
-  // such button — bringing back the program a reset threw away is a production
-  // affordance its static page never needed — so this is the one glyph in this
-  // table drawn rather than copied, and it is drawn from the mockup's own undo
-  // path so that the pair reads as one control turned around, which is what
-  // the two buttons are.
+  // mirrored about the middle of the box, arrowhead and all, so the pair reads
+  // as one control turned around -- which is what the two buttons are.
   redo: {
     viewBox: "0 0 16 16",
     shapes: [
@@ -736,9 +703,8 @@ export const SPRITE_ICONS = {
       },
     ],
   },
-  // The mockup's generic disclosure chevron, `#i-right` — used by the
-  // settings popover's `keysOpen` row (`.chev`) among other places, and as the
-  // speed control's own "faster" arrow.
+  // The generic disclosure chevron: the settings popover's `keysOpen` row
+  // (`.chev`) among other places, and the speed control's "faster" arrow.
   right: {
     viewBox: "0 0 16 16",
     shapes: [
@@ -900,7 +866,7 @@ export const SPRITE_ICONS = {
       },
     ],
   },
-  // The mockup's `#i-up` (§6); see `down` above for where the pair is drawn.
+  // See `down` above for where the pair is drawn.
   up: {
     viewBox: "0 0 16 16",
     shapes: [
@@ -969,25 +935,25 @@ export const SPRITE_ICONS = {
   },
 } as const satisfies Record<string, SpriteIconDefinition>;
 
-/** Name of a mockup-family icon in {@link SPRITE_ICONS}. */
+/** Name of a sprite icon in {@link SPRITE_ICONS}. */
 export type SpriteIconName = keyof typeof SPRITE_ICONS;
 
 /** One shape making up a {@link SpriteIconDefinition} — a direct, typed stand-in for an SVG element. */
 interface SpriteShape {
   /** The SVG element to build. */
   readonly tag: "circle" | "path" | "rect";
-  /** Attributes to set on it verbatim, copied from the mockup's own markup. */
+  /** Attributes to set on it verbatim. */
   readonly attrs: Readonly<Record<string, string>>;
 }
 
-/** One mockup-family icon: its native viewBox and the shapes that draw it. */
+/** One sprite icon: its native viewBox and the shapes that draw it. */
 interface SpriteIconDefinition {
   readonly viewBox: string;
   readonly shapes: readonly SpriteShape[];
 }
 
 /**
- * Builds a mockup-family icon element.
+ * Builds a sprite icon element.
  *
  * Decorative and out of the tab order for the same reason {@link createIcon}
  * is: every control that carries one also carries its own visible text or
@@ -1016,7 +982,7 @@ export function createSpriteIcon(name: SpriteIconName, className?: string): SVGS
 }
 
 /**
- * Markup for a mockup-family icon, for embedding in a template literal.
+ * Markup for a sprite icon, for embedding in a template literal.
  *
  * The result is trusted markup, built only from {@link SPRITE_ICONS} and the
  * caller-supplied class name, never from player input.

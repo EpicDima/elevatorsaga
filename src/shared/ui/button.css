@@ -17,19 +17,14 @@
  */
 
 /*
- * `design/ui-mockup.html`'s own `.btn` (§7): a bordered control the same
- * shape as `.task-open` (`widgets/level-switcher`) -- same height, radius and
- * resting background. Three things wear it: the run controls' two buttons
- * (`.runbox`, `features/run-simulation`), and
- * `.docsclose`/`.keysclose` (`docs-modal.ts`, `hotkeys-modal.ts`). Its hover
- * state is not `.task-open`'s, though: that one brightens its border to the
- * themed accent because it opens the level switcher, the one control this bar
- * wants a player's eye drawn to, while a `.btn` is pressed by somebody who
- * already knows what it does -- so the mockup's own `.btn:hover` reaches for
- * the neutral `--n-5` instead, ported here as `--ds-n-5`. `.btn[hidden]`
- * restates `display: none` for the reason `.taskmenu[hidden]` (above) already
- * does: `.btn` sets its own `display`, which a bare `[hidden]` attribute alone
- * does not override.
+ * A bordered control the same resting shape as `.task-open`
+ * (`widgets/level-switcher`) -- same height, radius and background. The run
+ * controls' two buttons and each dialog's close button wear it. The hover
+ * state differs, though: `.task-open` brightens to the themed accent because
+ * it opens the level switcher and wants the eye, while a `.btn` is pressed by
+ * somebody who already knows what it does, so it reaches for the neutral
+ * `--ds-n-5`. `.btn[hidden]` restates `display: none` because `.btn` sets its
+ * own `display`, which a bare `[hidden]` attribute does not override.
  */
 .btn {
   display: flex;
@@ -57,15 +52,10 @@
  * starts the run. Painted rather than outlined, so it is told apart from the
  * `.btn` beside it before either is read.
  *
- * The mockup's `min-width: 106px` is here for completeness and is overridden
- * wherever it is actually drawn -- `.runbox .btn` sets 152px, and specificity
- * decides it -- because the only `.btn-primary` this port draws today is in
- * that box. It is stated all the same, so that the next one drawn outside it
- * does not have to rediscover the number.
- *
- * `.appbar > .btn-primary { flex: 0 0 auto }` is not ported. It matches nothing
- * in the mockup either: every `.btn-primary` there is inside `.runbox`, a
- * lesson's actions or the verdict card, and never a direct child of the bar.
+ * The `min-width` here is overridden wherever this is actually drawn --
+ * `.runbox .btn` sets its own, and specificity decides it -- because the only
+ * `.btn-primary` on the page sits in that box. It is stated all the same, so
+ * that the next one drawn outside it starts from a sane width.
  */
 .btn-primary {
   min-width: 106px;
@@ -131,9 +121,8 @@ kbd {
 /*
  * The shape of a low-emphasis control beside something louder -- "Reset
  * code" and "Undo reset" here, both in `widgets/editor-pane`, and the docs
- * and settings triggers in `widgets/app-bar`. Every one of them draws the
- * mockup's own arrangement: a 16px glyph, then the `gap`, then a `.lbl` span
- * holding the word.
+ * and settings triggers in `widgets/app-bar`. Every one of them is a 16px
+ * glyph, then the `gap`, then a `.lbl` span holding the word.
  */
 .ghost {
   display: flex;

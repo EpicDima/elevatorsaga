@@ -9,20 +9,17 @@
  */
 
 /*
- * `design/ui-mockup.html` §2's opening rule, and the assumption every widget
- * ported out of that file was measured under: a `.tile` with padding and a
+ * The assumption every widget is measured under: a `.tile` with padding and a
  * width, a `.setmenu` with a border and a `min-inline-size`, every control the
- * app bar sets to `--ds-ctl-h` -- each of them states the box it occupies and
- * expects its border and padding to be inside it.
+ * app bar sets to `--ds-ctl-h` -- each states the box it occupies and expects
+ * its border and padding to be inside it.
  *
  * The building is the one exception, and a deliberate one. `.floor` and
  * `.elevator` state a block-size net of their borders
  * (`calc(var(--floor-height) - 1px)`, and the car's two), because the scene's
  * geometry has to agree to the pixel with `src/game/world.ts`, which counts in
- * whole floors. Opting those two back out here rather than rewriting them
- * keeps that agreement a question about one file; the opt-out goes when the
- * stage's own rules are ported to the mockup's, which state the outer box
- * instead.
+ * whole floors. Opting those two back out here keeps that agreement a question
+ * about one file.
  */
 *,
 *::before,
@@ -36,11 +33,10 @@
 }
 
 /*
- * The page has a floor, and below it the interface stops shrinking and starts
- * scrolling -- the mockup's own note on this rule: «ниже него интерфейс не
- * ужимается, а прокручивается». What scrolls is `<html>`, which is why the
- * `overflow` is here and not on the body; `height: 100%` on both is what lets
- * `body.app` below be a column the workspace can claim the rest of.
+ * The page has a floor: below it the interface stops shrinking and starts
+ * scrolling. What scrolls is `<html>`, which is why the `overflow` is here and
+ * not on the body; `height: 100%` on both is what lets `body.app` below be a
+ * column the workspace can claim the rest of.
  */
 html {
   height: 100%;
@@ -57,20 +53,15 @@ body {
 }
 
 /*
- * The game page's own frame: the rest of the mockup's `body`, on a class
- * because this stylesheet dresses three documents and only one of them is the
- * game. `documentation.html` and its Russian twin are nine hundred lines that
- * scroll; a full-height column with `overflow: hidden` would cut either off at
- * the first screenful, and a 1040px floor would make a phone pan a page that
- * fits one today.
+ * The game page's own frame, on a class because this stylesheet dresses three
+ * documents and only one of them is the game. `documentation.html` and its
+ * Russian twin scroll; a full-height column with `overflow: hidden` would cut
+ * either off at the first screenful, and a 1040px floor would make a phone pan
+ * a page that fits one today.
  *
- * That floor is decision #1 (see the migration plan's own §0): a building pane
- * and a code pane side by side need more room than 320px has to give, so the
- * page adopts the mockup's own 1040x600 minimum instead of reflowing under it,
- * and `e2e/reflow.spec.ts` holds it there. It sat on `.container:not(.narrow)`
- * until this page stopped having a `.container` to sit on -- the bar and the
- * workspace go edge to edge now, so the centred, gutter-padded wrapper had
- * nothing left to centre.
+ * A building pane and a code pane side by side need more room than 320px has
+ * to give, so the game page holds a 1040x600 minimum instead of reflowing
+ * under it, and `e2e/reflow.spec.ts` holds it there.
  */
 body.app {
   display: flex;
@@ -85,11 +76,10 @@ body.app {
 }
 
 /*
- * `<main>` is a landmark rather than a box: the mockup puts `.workspace`
- * straight into its `<body>`, and this page keeps the region a screen reader
- * jumps to between the two. So it passes the column through -- everything it
- * is given, it gives on -- which is what makes `.workspace`'s own `flex: 1;
- * min-height: 0` mean what it means in the mockup.
+ * `<main>` is a landmark rather than a box: it keeps the region a screen
+ * reader jumps to, and passes the column through -- everything it is given, it
+ * gives on -- which is what lets `.workspace`'s own `flex: 1; min-height: 0`
+ * work.
  */
 body.app > main {
   display: flex;
@@ -134,9 +124,8 @@ a:hover {
  * A `<button>`, a `<select>` and an `<input>` each come with a font and a
  * colour of the platform's choosing rather than the page's, so each has to be
  * told to inherit or the page ends up with three typefaces it did not pick.
- * `button`'s own full reset is in `shared/ui/button.css`; this is the half
- * the other two need too, and it is here because it is the mockup's §2 and
- * belongs with the frame.
+ * `button`'s own full reset is in `shared/ui/button.css`; this is the half the
+ * other two need too, and it belongs with the frame.
  */
 select,
 input {
@@ -145,9 +134,9 @@ input {
 }
 
 /*
- * The ring is rounded, which is the mockup's §2 rule and not a detail: almost
- * everything focusable on the page is a rounded control, and a square ring
- * around a rounded button reads as a rendering fault rather than as focus.
+ * The ring is rounded, and that is not a detail: almost everything focusable
+ * on the page is a rounded control, and a square ring around a rounded button
+ * reads as a rendering fault rather than as focus.
  */
 :focus-visible {
   outline: 2px solid var(--ds-focus);

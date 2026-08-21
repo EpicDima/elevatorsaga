@@ -17,19 +17,13 @@
 /*
  * Palette note (WCAG 1.4.3).
  *
- * The legacy page palette this once documented is gone now, migrated rule by
- * rule onto the theme-aware --ds-* tokens below, per the deletion policy the
- * design-token section itself states. The last value to outlive that migration
- * was `--color-error`, the wavy underline under a failing line inside the
- * editor; it is gone too, now that the rule drawing it (`.cm-errorMark`, in
- * `src/ui/editor.ts`) reads `--ds-bad` -- the one red the design has, and the
- * same one the error banner above the editor is painted in, so a squiggle and
- * the sentence explaining it are visibly one report rather than two. It is a
- * graphical indicator, so 1.4.11 asks 3:1 of it rather than 1.4.3's 4.5, and
- * `--ds-bad` clears that against `--ds-code-bg` in both themes;
+ * The editor's error squiggle (`.cm-errorMark`, in `src/ui/editor.ts`) and the
+ * banner above it are painted in the one red the design has, `--ds-bad`, so a
+ * squiggle and the sentence explaining it read as one report rather than two.
+ * A graphical indicator answers to 1.4.11's 3:1 rather than 1.4.3's 4.5, and
  * `src/widgets/editor-pane/ui/editor-pane.css.test.ts` measures it.
  *
- * The rest of the building is dim on purpose and stays that way: the unlit call
+ * The building is dim on purpose: the unlit call
  * buttons, the direction arrows and the car's button panel are painted at
  * 20-30% white (or --ds-text-faint on a floor band) because it is the lit
  * state that carries the information, and reading an unpressed button as
@@ -52,15 +46,6 @@
    */
   --building-width: 938px;
   --floor-height: 50px;
-  /*
-   * The `--stats-*` family that stood here is gone with the corner it
-   * measured: a 240px width for `.worldtrack` to reserve and a worst-case
-   * height for its clip to be held open to. The figures are docked across the
-   * foot of the game pane now (`.statscontainer`, `widgets/stats-panel`), so
-   * their width is the pane's and their height is their own content's, and
-   * `.pane-game`'s column rule (`widgets/workspace-layout`) is what bounds the
-   * building instead.
-   */
   --font-body: Arial, Helvetica, sans-serif;
   --font-mono: Consolas, Monaco, monospace;
 }
@@ -68,35 +53,15 @@
 /*
  * ------------------------------------------------------------- Design tokens
  *
- * The palette, geometry and type scale of `design/ui-mockup.html`, staged in
- * ahead of the widgets that will read it. Nothing below is referenced by any
- * selector yet, so none of it changes what is on screen; each token is
- * adopted the same commit as the widget whose CSS starts reading it, and the
- * `--color-*`/`--shell-*`/... tokens above are deleted once nothing reads
- * them any more, per the migration plan. The `--color-*` palette has now gone
- * entirely: its last holdout was `--color-error`, retired when `.cm-errorMark`
- * in `src/ui/editor.ts` -- the one reader outside the stylesheets -- took
- * `--ds-bad` instead.
+ * The palette, geometry and type scale every widget reads.
  *
- * Prefixed `--ds-` (design system) rather than reusing the mockup's own bare
- * names (`--font-mono`, ...) because some of those names already exist above
- * with different values (Consolas, not the mockup's system font stacks) -- an
- * unprefixed redeclaration here would silently win the cascade for every
- * existing selector that reads them, which is exactly the "zero visual change"
- * invariant this block exists to preserve. `--font-ui` was one of them, and is
- * gone: the page is set in `--ds-font-ui` now, so Oswald has no reader left
- * anywhere and the game no longer ships a webfont. Everything
- * else keeps the mockup's own names verbatim (with the prefix) so a widget's
- * CSS can be ported by mostly find-and-replacing `var(--x)` with
- * `var(--ds-x)`.
+ * Prefixed `--ds-` (design system) because bare names like `--font-mono`
+ * already exist above holding different values: an unprefixed redeclaration
+ * here would silently win the cascade for every selector reading them.
  *
- * Colour values, radii and control heights are taken as-is from the mockup;
- * they are a design decision made there, not re-derived here.
- *
- * `color-scheme` is deliberately not set by either block below: unlike a
- * custom property, it repaints native form controls and scrollbars the
- * instant it is declared, whether or not anything reads `--ds-*` yet. It
- * starts following the active theme once `switch-theme` exists to choose one.
+ * `color-scheme` is not set by either block below: unlike a custom property it
+ * repaints native form controls and scrollbars the instant it is declared, so
+ * `switch-theme` owns it and keeps it on the active theme.
  */
 :root {
   /* Neutral scale, background to text. */
@@ -141,8 +106,8 @@
   --ds-steel-soft: rgb(116 169 216 / 16%);
 
   /*
-   * Level stars, three metal tones -- the one place in the mockup where
-   * colour alone carries meaning, with no label beside it.
+   * Level stars, three metal tones -- the one place on the page where colour
+   * alone carries meaning, with no label beside it.
    */
   --ds-tier-bronze: #cf8c4e;
   --ds-tier-silver: #b9c3d1;
@@ -238,11 +203,9 @@
 
   --ds-bar-h: 52px;
   /*
-   * The height of every control: buttons, steppers, fields, segments. It used
-   * to be three different heights in the mockup's own history -- 26, 30 and
-   * 32 -- and in the app bar that read as a layout defect, not a design
-   * choice. One height, declared once, so a new control in the bar lands in
-   * line on its own.
+   * The height of every control: buttons, steppers, fields, segments. One
+   * height, declared once, so a new control in the bar lands in line on its
+   * own.
    */
   --ds-ctl-h: 32px;
   /* The header row of both side panels: the goal bar and the editor pane. */
@@ -274,23 +237,15 @@ html[data-theme="light"] {
   --ds-text-faint: #8b929c;
 
   /*
-   * One percent darker than `design/ui-mockup.html`'s own `#a8690c`, and the
-   * one deviation from its light palette.
+   * White on the obvious `#a8690c` is 4.4767:1, and WCAG 1.4.3 asks 4.5:1 for
+   * text this size. `#a6680c` is the same hue and saturation with every
+   * channel scaled by 0.99, which puts it at 4.5584:1 -- not a difference the
+   * eye can see, and it carries two live pairings: `.tasklink.is-current` in
+   * the level switcher and the run controls' primary button, whose label
+   * changes on every press.
    *
-   * White on `#a8690c` is 4.4767:1 -- WCAG 1.4.3 asks 4.5:1 for text this
-   * size, so the mockup's accent misses by 0.023. Nothing was painted with it
-   * until now: `.tasklink.is-current` (the level switcher's own entry for the
-   * level being played) has carried the pairing since Phase 12.2, and the run
-   * controls' primary button is the second and much louder use of it -- a
-   * button whose label changes on every press is not a place to be a hundredth
-   * short. `#a6680c` is the same hue and saturation with every channel scaled
-   * by 0.99, which puts it at 4.5584:1 and is not a difference the eye has any
-   * way to see beside the mockup's own.
-   *
-   * `-soft` and `-line` are the same three channels at 10% and 34%, and follow
-   * it rather than staying on the mockup's literal: they are the same colour,
-   * and two accents a percent apart in one palette is a thing a reader would
-   * have to stop and check.
+   * `-soft` and `-line` are the same three channels at 10% and 34%, so the
+   * palette holds one accent rather than two a percent apart.
    */
   --ds-accent: #a6680c;
   --ds-accent-hi: #8c5608;
