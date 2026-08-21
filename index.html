@@ -133,7 +133,7 @@
       (documentation.html and documentation.ru.html are still built and still
       readable, they are simply no longer linked from the game); and the
       language picker moved into the settings popover, which is where
-      design/ui-mockup.html puts everything a player touches once an evening.
+      everything a player touches once an evening lives.
     -->
     <header>
       <h1 data-i18n="page.brand">Elevator Saga</h1>
@@ -187,10 +187,10 @@
         .tutorial is: the presenter asks the catalog for every word at the
         moment it writes it.
 
-        No role and no name of its own. It holds the mockup's .runbox and
-        .speed, which name themselves -- the two run buttons by their labels,
-        the speed group by its own role="group" -- and a third name wrapped
-        around them would only be one more thing to read past.
+        No role and no name of its own. It holds .runbox and .speed, which
+        name themselves -- the two run buttons by their labels, the speed
+        group by its own role="group" -- and a third name wrapped around
+        them would only be one more thing to read past.
       -->
       <div class="controls"></div>
 
@@ -214,12 +214,11 @@
             inside it: a role="status" that arrives already populated is
             usually not announced.
 
-            A sibling of .innerworld, and not a box inside the stage the way
-            design/ui-mockup.html has it, for the same reason: everything
-            below .innerworld is emptied and rebuilt on every redraw of the
-            world, and a live region rebuilt under a screen reader announces
-            nothing at all. The two boxes cover the same pixels anyway -- see
-            .feedbackcontainer's own rule in
+            A sibling of .innerworld, and not a box inside the stage, for the
+            same reason: everything below .innerworld is emptied and rebuilt
+            on every redraw of the world, and a live region rebuilt under a
+            screen reader announces nothing at all. The two boxes cover the
+            same pixels anyway -- see .feedbackcontainer's own rule in
             src/widgets/verdict-toast/ui/verdict-toast.css, which is where the
             card is placed over the building.
           -->
@@ -230,11 +229,10 @@
 
       <!--
         widgets/stats-panel draws the run's live figures here. A sibling of
-        .world rather than a box inside it: design/ui-mockup.html docks its
-        own .stats as the last row of the game pane, below the building and
-        the full width of it, so this element is the row and not a corner
-        floated over the stage. src/main.ts appends it to .pane-game last, in
-        this order.
+        .world rather than a box inside it: the figures are docked as the last
+        row of the game pane, below the building and the full width of it, so
+        this element is the row and not a corner floated over the stage.
+        src/main.ts appends it to .pane-game last, in this order.
       -->
       <div
         class="statscontainer"
@@ -258,16 +256,13 @@
       The one thing the editor still says for itself, and the only element on
       this page that is deliberately never seen.
 
-      design/ui-mockup.html has no status line under the editor: «код
-      сохраняется сам — сообщать об этом каждый раз нечего», and the save
-      confirmation it dropped was indeed a line that reported the same
-      success every second of every session. A refused write is the opposite
-      kind of news -- the program is no longer being saved, and nothing else
-      on screen would ever say so -- so that half of the old line survives
-      here, announced rather than drawn: `role="status"` reaches a screen
-      reader, and .visually-hidden keeps the page looking exactly like the
-      mockup. src/main.ts fills it, and empties it again the moment a write
-      gets through.
+      There is no status line under the editor: the code saves itself, and a
+      line reporting that same success every second of every session is not
+      news. A refused write is the opposite kind of news -- the program is no
+      longer being saved, and nothing else on screen would ever say so -- so
+      it is announced rather than drawn: `role="status"` reaches a screen
+      reader, and .visually-hidden keeps it off the page. src/main.ts fills
+      it, and empties it again the moment a write gets through.
 
       Outside <main> because widgets/workspace-layout reparents everything
       inside it into one of the two panes, and this belongs to neither; it is
