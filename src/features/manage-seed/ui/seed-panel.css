@@ -3,20 +3,14 @@
  * the control beside it, and the disclosure explaining what a seed does and
  * does not bring back.
  *
- * The last two rules -- `.seedhelp > summary` and `.seedcaveat` -- were filed
- * under the level bar's section in the single stylesheet, from the years
- * when this block was a row on that bar. They are the same feature's, and this
- * is where they belong; both are less specific than the `.setblock` rules above
- * them, which is what decides between the two either way.
+ * The last two rules -- `.seedhelp > summary` and `.seedcaveat` -- are less
+ * specific than the `.setblock` rules above them, which is what decides between
+ * the two where both would apply.
  */
 
 /*
- * The seed block's own row: `design/ui-mockup.html`'s `.seedrow` (§A) -- the
- * run's seed in a box a player can type into, with the two things they can do
- * to it beside it. All three of the mockup's controls, in the mockup's order;
- * `features/manage-seed`'s own module comment holds the account of how each
- * one arrived, and of the years this row spent as a read-only `<span>` with a
- * single link, back when a seed was not the player's to choose.
+ * The run's seed in a box a player can type into, with the two things they can
+ * do to it beside it.
  */
 .seedrow {
   display: flex;
@@ -25,10 +19,8 @@
 }
 
 /*
- * The box the seed is read out of and typed into: the mockup's own `.val`. It
- * is an `<input>` here as it is there, so the geometry ports across as
- * written; only the focus treatment did not, for the reason given under the
- * gap where its rule would have been.
+ * The box the seed is read out of and typed into. Nothing here states a
+ * `:focus` treatment; the rule below says why.
  *
  * `--ds-font-mono` is the point of the box. A seed gets transcribed character
  * by character, and the monospace face is what tells a 1 from an l and a 0
@@ -56,16 +48,15 @@
 }
 
 /*
- * The one part of the mockup's `.val` that did not port: its focus treatment
- * drops the ring (`outline: none`) and tints the border `--ds-accent-line`
- * instead. Measured against the `--ds-bg` the field is filled with, that
- * border is 2.24:1 dark and 1.53:1 light -- under WCAG 1.4.11's 3:1 for a
- * focus indicator in both themes, and under it in the light theme by a
- * distance no tweak to this rule would close. So there is no `:focus` rule
- * here at all, and the document's own `:focus-visible` ring
- * (`app/styles/document.css`) is what marks this field, as it marks every
- * other control on the page. `.seedrow .val` outweighs that rule's
- * `border-radius`, so the ring follows the box's own `--ds-r-md` corners.
+ * No `:focus` rule for the field, deliberately. Marking focus by dropping the
+ * ring (`outline: none`) and tinting the border `--ds-accent-line` instead puts
+ * that border at 2.24:1 dark and 1.53:1 light against the `--ds-bg` the field
+ * is filled with -- under WCAG 1.4.11's 3:1 for a focus indicator in both
+ * themes, and under it in the light theme by a distance no tweak would close.
+ * So the document's own `:focus-visible` ring (`app/styles/document.css`) marks
+ * this field, as it marks every other control on the page. `.seedrow .val`
+ * outweighs that rule's `border-radius`, so the ring follows the box's own
+ * `--ds-r-md` corners.
  */
 
 /*
@@ -88,9 +79,9 @@
 }
 
 /*
- * The row's two buttons, at the mockup's own 30x30 square with a border the
- * plain `.ghost` (`shared/ui/button.css`) does not carry: a lone glyph beside
- * a boxed value needs an edge of its own to read as a control at all.
+ * The row's two buttons, a 30x30 square each with a border the plain `.ghost`
+ * (`shared/ui/button.css`) does not carry: a lone glyph beside a boxed value
+ * needs an edge of its own to read as a control at all.
  */
 .seedrow .ghost {
   inline-size: 30px;
@@ -101,15 +92,13 @@
 }
 
 /*
- * The mockup's hint under this row is a plain `<p class="sethint">`; ours is
- * the `<summary>` of the `<details>` that holds the longer explanation
- * production has instead, wearing the same class -- see
- * `features/manage-seed` for why the disclosure stays.
+ * The hint under this row is the `<summary>` of the `<details>` holding the
+ * longer explanation, dressed as a plain hint line with `class="sethint"`.
  *
  * The UA's own triangle comes off, in both spellings a browser might still
- * want -- the same pair `.api > summary` (`features/docs-reference`)
- * uses. It is the one list marker anywhere in this panel, and it is what made
- * the line read as raw machinery rather than as the hint it is.
+ * want -- the same pair `.api > summary` (`features/docs-reference`) uses. It
+ * is the one list marker anywhere in this panel, and it makes the line read as
+ * raw machinery rather than as the hint it is.
  *
  * What replaces it is the chevron `.more > summary` (`widgets/stats-panel`) and
  * the Hotkeys row above both already use, laid out the way that shelf lays
@@ -158,20 +147,15 @@
 
 /*
  * What opens is the rest of the hint, so it is set as the hint: `.sethint`'s
- * own three declarations (`widgets/app-bar`), which the summary above gets
- * from that class and this paragraph cannot, being the thing the summary
- * introduces rather than a
- * second one beside it. Left alone it arrived at the popover's full body size
- * in full `--ds-text` -- louder than the line that offered it, and the widest
- * thing in a 320px panel.
+ * own three declarations (`widgets/app-bar`), which the summary gets from that
+ * class and this paragraph cannot, being the thing the summary introduces
+ * rather than a second one beside it. Without them it would take the popover's
+ * full body size in full `--ds-text` -- louder than the line that offered it,
+ * and the widest thing in a 320px panel.
  *
  * The gap is `margin-block-start`, not the summary's `margin-block-end`: a
  * closed disclosure is only its summary, and a bottom margin there would push
- * the Hotkeys row down by a space that had nothing in it.
- *
- * `.seedcaveat`'s own 62ch measure further down is wider than this panel ever
- * gets and does nothing here; it is on that rule for the level bar, where
- * the line had a thousand pixels to run along.
+ * the Hotkeys row down by a space with nothing in it.
  */
 .setblock .seedcaveat {
   margin-block-start: 6px;
@@ -183,15 +167,13 @@
 /*
  * The disclosure that explains what a seed does and does not bring back.
  *
- * There is deliberately no rule here about where it opens. The seed block
- * lives in `.setmenu`'s own vertical stack now, one plain block after
- * another -- `.setblock` carries no layout of its own -- so a `<details>`
- * opening only ever pushes what follows it in the popover further down, and
- * never moves its own `<summary>`. That is what the old horizontal
- * `.levelseed` row on the level bar could not promise: a flex-wrap
- * row reflows when one of its items changes size, which is exactly what
- * used to carry this summary out from under the pointer that had just
- * clicked it. A column has no such row to reflow within.
+ * There is deliberately no rule here about where it opens. The seed block sits
+ * in `.setmenu`'s vertical stack, one plain block after another --
+ * `.setblock` carries no layout of its own -- so opening the `<details>` pushes
+ * what follows it in the popover further down and never moves its own
+ * `<summary>`. A flex-wrap row could not promise that: it reflows when one of
+ * its items changes size, carrying the summary out from under the pointer that
+ * just clicked it.
  *
  * The pointer cursor is the one thing the UA does not supply: `<summary>` is a
  * control, and it is the only one on this line that does not already look like
@@ -209,10 +191,11 @@
 }
 
 /*
- * A measure rather than the full width: at a desk the bar is a thousand pixels
- * wide, and a line of prose that long is read by losing your place in it. The
- * margin goes because the line's own flex `gap` already spaces it, and a `<p>`
- * arrives with one.
+ * A measure rather than the full width: prose set a thousand pixels wide is
+ * read by losing your place in it. It is wider than this panel ever gets, so
+ * nothing here reaches it -- it is the measure `widgets/tutorial-panel` sets
+ * its own body to. The margin goes because a `<p>` arrives with one and the
+ * stack around it already spaces it.
  */
 .seedcaveat {
   max-inline-size: 62ch;

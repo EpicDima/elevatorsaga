@@ -14,19 +14,16 @@ describe("run controls", () => {
     // The primary button says four different things -- Start, Pause, Resume,
     // Crunching... -- and the widest of them is what decides the box. Without
     // a floor under it the whole bar reflows under the pointer between two
-    // presses of the same button, which design/ui-mockup.html calls "худшее,
-    // что может случиться с шапкой".
+    // presses of the same button -- the worst thing that can happen to a bar.
     const body = ruleBody(".runbox .btn");
     expect(declaration(body, "min-width", ".runbox .btn")).toBe("152px");
     expect(declaration(body, "justify-content", ".runbox .btn")).toBe("center");
   });
 
-  it("gives the mount the app bar's own gap, so the pair sits where the mockup puts it", () => {
-    // .controls is this port's own wrapper -- the mockup makes .runbox and
-    // .speed direct children of .appbar -- and it earns its place by being
+  it("gives the mount the app bar's own gap, so the pair sits like any two of its children", () => {
+    // .controls wraps .runbox and .speed, and earns its place by being
     // invisible: 14px inside it is 14px between any two of the bar's own
-    // children, so the geometry is the mockup's whichever way the markup is
-    // nested.
+    // children, so the geometry does not depend on the nesting.
     expect(declaration(ruleBody(".controls"), "gap", ".controls")).toBe(
       declaration(ruleBody(".appbar"), "gap", ".appbar"),
     );

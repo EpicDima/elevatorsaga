@@ -4,8 +4,6 @@
  */
 
 /*
- * The speed: two arrows and the reading between them, `#features/adjust-speed`.
- *
  * 28px buttons rather than the row's own 32: the group's 1px border and 1px of
  * padding add two to each side, so the whole control comes to `--ds-ctl-h` and
  * stands level with the buttons beside it.
@@ -37,8 +35,8 @@
 }
 
 /*
- * At the ends of the list an arrow dims rather than disappearing: "строка не
- * должна дёргаться от того, что скорость дошла до предела". Below 3:1 against
+ * At the ends of the list an arrow dims rather than disappearing, so the bar's
+ * row does not twitch when the speed reaches a limit. Below 3:1 against
  * the group behind it, and deliberately -- WCAG 1.4.11 exempts a disabled
  * control, and dimming is the whole message.
  */

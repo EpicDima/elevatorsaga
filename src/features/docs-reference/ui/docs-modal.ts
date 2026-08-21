@@ -1,51 +1,32 @@
 /**
- * The docs dialog: `design/ui-mockup.html`'s own `<dialog class="docs">` — the
- * chrome around a guide, a code skeleton, a lead paragraph and the API
- * reference table (`#entities/api-reference`), plus the search box that
- * filters all three.
+ * The docs dialog: the chrome around a guide, a code skeleton, a lead paragraph
+ * and the API reference table (`#entities/api-reference`), plus the search box
+ * that filters all three.
  *
- * The mockup builds `.docs-body`'s contents once, at load, with a single
- * `docsBody.innerHTML =` assignment run from its own `<script>`. This module
- * draws the same markup up front instead, inside {@link docsModalTemplate}'s
- * own `markup` tagged template, the same "build inert first" every widget in
- * this migration has followed — there is no runtime assembly step left for
- * {@link presentDocsModal} to redo.
+ * `.docs-body`'s contents are drawn up front, inside
+ * {@link docsModalTemplate}'s own `markup` tagged template — the same "build
+ * inert first" every widget here follows, so there is no runtime assembly step
+ * left for {@link presentDocsModal} to redo.
+ *
+ * Everything the dialog is addressed by is a class rather than an id, because a
+ * caller can build this widget more than once and ids would collide.
  *
  * ## Search
  *
- * `presentDocsModal` ports the mockup's own `filterDocs()`/`searchDocs()`
- * closures near verbatim: a query hides every `.api` row whose own text
- * (summary and expanded detail alike) does not contain it, opens a row that
- * matched only in its own hidden detail — marking it `data-by-search` so a
- * search that moves on can fold it back up — and hides a group's own `<h3>`
- * once none of its rows survive. The guide, the intro code and the lead
- * paragraph are not filtered; they are hidden outright while a query is live,
- * the same as the mockup's own three `.hidden = query !== ""` lines. Clearing
- * the dialog's own scroll position is likewise ported: a search jumps the
- * body to its top and a cleared one returns it to whatever a player scrolled
- * to before searching, tracked by a `scroll` listener the same way the
- * mockup's own `docsScroll` is.
+ * A query hides every `.api` row whose own text (summary and expanded detail
+ * alike) does not contain it, opens a row that matched only in its own hidden
+ * detail — marking it `data-by-search` so a search that moves on can fold it
+ * back up — and hides a group's own `<h3>` once none of its rows survive. The
+ * guide, the intro code and the lead paragraph are not filtered; they are
+ * hidden outright while a query is live. The scroll position is saved and
+ * restored around a search: a query jumps the body to its top, and clearing it
+ * returns the body to wherever the player had scrolled to, tracked by a
+ * `scroll` listener.
  *
- * ## Departures from the mockup
- *
- * - `#docsClear`'s glyph is `spriteIconMarkup("x")` rather than the mockup's
- *   own `#i-x` sprite reference — the two are the same outline, ported once
- *   already for the tier popover's own "requirement missed" mark.
- * - Every `<details class="api">` row's own `<summary>` chevron is
- *   `spriteIconMarkup("right", "chev")`, `settings-menu.ts`'s own `keysopen`
- *   row's convention, rather than the mockup's raw `<svg class="icon chev">`.
- * - Every code example — the intro skeleton and each API row's own — goes
- *   through `highlightJavaScript` and is wrapped in `<pre><code>`,
- *   `src/ui/templates.ts`'s own `tutorialAnswerTemplate` convention, rather
- *   than the mockup's bare `<pre>` (intro) or its own separate `highlight()`
- *   helper (API rows).
- * - `#docsFind`, `#docsClear` and `#docsClose` are ids in the mockup, one
- *   static page's worth; this module is a widget a caller can build more than
- *   once, so `#docsClear`/`#docsClose` become classes instead (`.docsclear`,
- *   `.docsclose`), the same substitution `settings-menu.ts` already makes for
- *   `#docsOpen`/`#setOpen`/`#keysOpen`. `#docsFind` needed none: the mockup
- *   already gives it the class `docs-find` alongside its id. `#docsBody` and
- *   `#docsEmpty` likewise already carry `docs-body`/`docs-empty`.
+ * Every code example — the intro skeleton and each API row's own — goes through
+ * `highlightJavaScript` and is wrapped in `<pre><code>`, the same shape
+ * `tutorialAnswerTemplate` produces, so `shared/styles/code.css` paints all of
+ * them.
  *
  * Built and unit-tested against a jsdom `<dialog>` — `polyfillDialogElement`
  * (`#shared/ui/test-helpers.ts`). `src/main.ts` mounts it and wires
@@ -89,8 +70,7 @@ function apiReferenceMarkup(): string {
 }
 
 /**
- * Markup for the guide: `design/ui-mockup.html`'s own `GUIDE` template
- * literal, ported section by section.
+ * Markup for the guide: one heading-and-body section per topic.
  *
  * @returns The guide's markup, one `<section class="docs-guide">`.
  */
@@ -198,9 +178,8 @@ export function presentDocsModal(dialog: HTMLDialogElement): DocsModalController
 
   // Distinguishes a row a search opened -- which folds back up once the
   // search that opened it moves on -- from one a player opened by hand,
-  // which does not. The same distinction design/ui-mockup.html's own
-  // `applyingSearch` flag and `dataset.bySearch` marker draw: a `toggle`
-  // fired while this is true is the filter's own doing, not a click.
+  // which does not: a `toggle` fired while this is true is the filter's own
+  // doing, not a click.
   let applyingSearch = false;
   function wireApiRows(): void {
     for (const row of apiRows) {

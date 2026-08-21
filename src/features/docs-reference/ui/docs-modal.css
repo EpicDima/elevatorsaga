@@ -7,13 +7,6 @@
  * sample inside a dialog.
  */
 
-/*
- * The docs dialog: `design/ui-mockup.html`'s own `.docs`/`.docs-*`/`.api*`
- * (§10б), ported onto `--ds-*` tokens for `docs-modal.ts`'s markup -- see that
- * module's own "Departures from the mockup" for the class/id substitutions
- * this CSS reads against (`.docsclear`/`.docsclose` for `#docsClear`/
- * `#docsClose`, `.ds-icon`/`.chev` for the mockup's raw `.icon`/`.icon.chev`).
- */
 .docs {
   width: min(760px, 92vw);
   max-height: 82vh;
@@ -77,11 +70,11 @@
 }
 
 /*
- * `--ds-text-faint`, the mockup's own colour for this icon, measures 3.87:1
- * dark and 2.78:1 light against `--ds-bg` -- the search field's own
- * background, not the dialog's `--ds-panel` -- short of even WCAG 1.4.11's
- * 3:1 floor for a graphical control, in the light theme. `--ds-text-muted`
- * clears both comfortably, 7.17:1 dark and 5.22:1 light.
+ * `--ds-text-muted` rather than `--ds-text-faint`: faint measures 3.87:1 dark
+ * and 2.78:1 light against `--ds-bg` -- the search field's own background, not
+ * the dialog's `--ds-panel` -- short of even WCAG 1.4.11's 3:1 floor for a
+ * graphical control, in the light theme. Muted clears both comfortably, 7.17:1
+ * dark and 5.22:1 light.
  */
 .docsclear {
   position: absolute;
@@ -116,15 +109,12 @@
 }
 
 /*
- * `--ds-text-faint`, the mockup's own colour for this heading and for
- * `.docs-empty` below, measures 3.62:1 dark and 3.14:1 light against
- * `--ds-panel` -- short of WCAG 1.4.3's 4.5:1 for real text, the same
- * shortfall `.taskblock .cap`'s own comment (above) already found for the
- * same token against the same background. `--ds-text-muted` clears it in
- * both, 6.70:1 dark and 5.90:1 light, and is what both read instead.
- * `--ds-text-faint` stays below for `.api > summary .chev`, a graphical
- * chevron 1.4.11 holds to 3:1 rather than 4.5:1, which the same 3.62:1/3.14:1
- * pair clears.
+ * `--ds-text-muted` for this heading and for `.docs-empty` below:
+ * `--ds-text-faint` measures 3.62:1 dark and 3.14:1 light against `--ds-panel`,
+ * short of WCAG 1.4.3's 4.5:1 for real text, where muted clears it in both at
+ * 6.70:1 dark and 5.90:1 light. `--ds-text-faint` stays below for
+ * `.api > summary .chev`, a graphical chevron 1.4.11 holds to 3:1 rather than
+ * 4.5:1, which the same 3.62:1/3.14:1 pair clears.
  */
 .docs-body h3 {
   position: sticky;
@@ -142,14 +132,13 @@
 
 /*
  * The intro code skeleton and every API row's own example (`.api-more pre`,
- * below) are both a bare `<pre><code>`, `highlightJavaScript`'s own markup --
- * `docs-modal.ts`'s "Departures from the mockup" names the substitution. That
- * makes them the same element the learning track's own answer is
+ * below) are both a bare `<pre><code>`, `highlightJavaScript`'s own markup.
+ * That makes them the same element the learning track's own answer is
  * (`.tutorialsolution code`), so the box itself -- background, padding,
  * radius, font -- is left to the shared `pre code` rule and its `.tok-*`
- * neighbours (`shared/styles/code.css`), already on `--ds-code-bg`/
- * `--ds-code-text` for exactly this reason; only the margin the mockup gives
- * this one specifically is stated here.
+ * neighbors (`shared/styles/code.css`), already on `--ds-code-bg`/
+ * `--ds-code-text` for exactly this reason; only this one's own margin is
+ * stated here.
  */
 .docs-intro {
   margin: 12px 0 0;
@@ -209,8 +198,7 @@
  * inherits from
  * `.api`: a rule naming the element itself always beats one inherited from an
  * ancestor, whatever either one's specificity is. Restated here so this
- * paragraph reads as muted body text, the way the mockup's own (inheritance
- * only, no such global rule to out-rank) already does.
+ * paragraph reads as muted body text.
  */
 .api-more p {
   max-width: 74ch;

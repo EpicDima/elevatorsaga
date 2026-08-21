@@ -42,7 +42,7 @@ const LADDER_STEPS = TIME_SCALES.flatMap((slower, index) => {
 });
 
 describe("TIME_SCALES", () => {
-  it("is design/ui-mockup.html's own SPEEDS list, without its Infinity", () => {
+  it("is the ladder of whole-number stops, with no Infinity", () => {
     expect([...TIME_SCALES]).toEqual([1, 2, 3, 6, 10, 20]);
   });
 

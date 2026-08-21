@@ -1,11 +1,10 @@
 /**
  * The three-way colour theme: follow the system, or pin light or dark.
  *
- * Ported from `design/ui-mockup.html`'s theme script (§A): "Как в системе" is
- * not a fallback but the starting choice, the same way `DEFAULT_LAYOUT_MODE`
- * is a real mode and not a placeholder for "nothing chosen yet" — until a
- * player picks otherwise, the page tracks the browser's own light/dark
- * preference.
+ * "Follow the system" is not a fallback but the starting choice, the same way
+ * `DEFAULT_LAYOUT_MODE` is a real mode and not a placeholder for "nothing
+ * chosen yet" — until a player picks otherwise, the page tracks the browser's
+ * own light/dark preference.
  *
  * This module is the pure half — the type, the default, and storage, no DOM
  * and no `matchMedia`. The half that draws the three buttons and reacts to a
@@ -80,9 +79,8 @@ export function saveTheme(storage: Storage, theme: Theme): void {
 /**
  * Resolves a theme choice to the one of two colour schemes it actually draws.
  *
- * Ported verbatim from the mockup's own `applyTheme()`: `"system"` follows
- * whatever the caller's own media query says right now, and a pinned choice
- * ignores it entirely.
+ * `"system"` follows whatever the caller's own media query says right now; a
+ * pinned choice ignores it entirely.
  *
  * @param theme - The player's choice.
  * @param prefersDark - Whether the system's own preference is dark right now

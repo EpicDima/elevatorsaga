@@ -6,10 +6,8 @@
  */
 
 /*
- * The hotkeys dialog: `design/ui-mockup.html`'s own `.keys`/`.keys-*`/`.keyrow`
- * (§9a), ported onto `--ds-*` tokens. The backdrop colour is the mockup's own
- * literal, `rgb(8 10 14 / 55%)` -- it does not vary between the mockup's two
- * themes either, so there is no token to name it with.
+ * The backdrop is the literal `rgb(8 10 14 / 55%)` rather than a token: it is
+ * the same wash in both themes, so no token names it.
  */
 .keys {
   width: min(320px, 92vw);
@@ -46,14 +44,11 @@
 }
 
 /*
- * `design/ui-mockup.html`'s own row is two items -- what the key does, and one
- * `<kbd>` -- so it pushes them apart with `justify-content: space-between` and
- * is done. Two of this port's five rows are four items, because a `Mod-`
- * binding is spelled `<kbd>⌘</kbd>+<kbd>Enter</kbd>` here rather than as the
- * mockup's single compressed `<kbd>⌘⏎</kbd>` -- that is what lets
- * `src/ui/shortcuts.ts` relabel the glyph `Ctrl` off a Mac. Spread between
- * them, `space-between` scattered the chord across the row: the modifier at
- * the middle, the plus somewhere right of it, the key at the edge.
+ * A row is not always two items: a `Mod-` binding is spelled
+ * `<kbd>⌘</kbd>+<kbd>Enter</kbd>`, which is what lets `src/ui/shortcuts.ts`
+ * relabel the glyph `Ctrl` off a Mac, and that makes four. `space-between`
+ * would scatter such a chord across the row -- the modifier at the middle, the
+ * plus somewhere right of it, the key at the edge.
  *
  * So the description takes the free space itself and the keys pack against the
  * right edge, one chord at one small gap. The description is the row's only
@@ -77,8 +72,7 @@
  * (`shared/ui/button.css`): that one is the key cap the whole app wears, and it
  * is sized to the body text it runs in, since every other `<kbd>` stands in a
  * sentence. These stand alone in a right-aligned column, at 11px and against
- * the dialog's own `--ds-bg` rather than `--ds-raised`, which is the mockup's
- * arrangement for this dialog and nobody else's.
+ * the dialog's own `--ds-bg` rather than `--ds-raised`.
  */
 .keyrow kbd {
   padding: 1px 6px;

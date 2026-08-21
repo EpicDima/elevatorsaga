@@ -1,37 +1,29 @@
 /**
  * Limits and stepping for the simulation speed multiplier.
  *
- * Split out of the router and the level bar because both need the same
- * numbers: the router validates `#timescale=X` against them, and the `+`/`-`
- * buttons step within them.
+ * Shared by the router, which validates `#timescale=X` against them, and the
+ * `+`/`-` buttons, which step within them.
  *
- * The legacy code had neither a floor nor a ceiling on the stored value, so
- * `#timescale=abc` produced `parseFloat("abc") === NaN`, and a `NaN` time scale
- * turned every simulated `dt` into `NaN`, freezing the world with no way back
- * short of editing the URL. {@link clampTimeScale} is the guard against that,
- * and every function here returns through it.
+ * {@link clampTimeScale} guards every value on its way to
+ * `WorldController.timeScale`: a non-finite scale turns every simulated `dt`
+ * into `NaN` and freezes the world with no way back short of editing the URL,
+ * so every function here returns through it.
  *
  * ## Stops, not arithmetic
  *
- * The buttons used to multiply and divide by the golden ratio and round, with
- * a second hand-written ladder below `1` because that arithmetic collapses
- * there: `Math.round(0.5 / 1.618)` is `0`, and `0 * 1.618` rounds to `0`, so
- * one press of `-` at a URL-supplied `0.5` froze the world for good. Both are
- * gone. {@link TIME_SCALES} is `design/ui-mockup.html`'s own `SPEEDS` list, and
- * the buttons walk it, which is what its comment there asks for: "шаг по
- * списку, а не свободное число: 3,5x никому не нужно, а промахнуться мимо
- * ступени нельзя". A fixed list of positive stops cannot round its way to a
- * stopped world, so the hazard is gone by construction rather than by a second
- * special case.
+ * The buttons walk {@link TIME_SCALES} instead of computing a new number — a
+ * step along a list rather than a free value, because nobody needs 3.5x and no
+ * press should be able to miss a rung. A fixed list of positive stops also
+ * cannot round its way to a stopped world, so that hazard is closed by
+ * construction rather than by a special case.
  *
- * What the mockup's list drops is every stop below `1`. Slower than real time
- * is still *runnable* — {@link TIME_SCALE_MIN} is unchanged, so `#timescale=0.5`
- * still starts a world at half speed and still reads `0.5x` — but it is no
- * longer *reachable by pressing `-`*: from `0.5`, `-` has nothing slower to
- * offer and `+` goes to `1`, and there is no way back short of the URL. That
- * is the deliberate trade the mockup makes. Watching a lift crawl at a tenth
- * speed is a debugging tool for the person who typed the URL, not a rung
- * everyone else should have to step past to get to `1x`.
+ * The list holds no stop below `1`. Slower than real time is still *runnable*
+ * — {@link TIME_SCALE_MIN} is well under `1`, so `#timescale=0.5` starts a
+ * world at half speed and reads `0.5x` — but it is not *reachable by pressing
+ * `-`*: from `0.5`, `-` has nothing slower to offer and `+` goes to `1`, and
+ * there is no way back short of the URL. That trade is deliberate. Watching a
+ * lift crawl at a tenth speed is a debugging tool for the person who typed the
+ * URL, not a rung everyone else should have to step past to get to `1x`.
  *
  * The ladder's top is `20`, and {@link TIME_SCALE_MAX} stays well above it at
  * `64`: `#timescale=40` keeps working, `-` from there steps to the neighbouring
@@ -41,33 +33,31 @@
  *
  * ## Instant is not a time scale
  *
- * The speed control's last stop is "instantly", and the mockup writes it
- * `INSTANT = Infinity` in the same array as the numbers. Nothing of the sort
- * appears here on purpose. `WorldController.timeScale` multiplies the frame
- * delta; an `Infinity` reaching it makes every `dt` non-finite and freezes the
- * world exactly the way the `NaN` above did. Instant is therefore a state of
- * the *control* — see `#features/adjust-speed/ui/speed-stepper.ts` and the flag
- * `#pages/game`'s `App` keeps beside it — and the time scale underneath it is
- * left alone, which is also what makes stepping back out of it land on the
- * speed that was in force rather than on a nearest ladder stop.
+ * The speed control's last stop is "instantly", and no `Infinity` appears in
+ * {@link TIME_SCALES} on purpose. `WorldController.timeScale` multiplies the
+ * frame delta; an `Infinity` reaching it makes every `dt` non-finite and
+ * freezes the world the same way a `NaN` would. Instant is therefore a state of
+ * the *control* — see `#features/adjust-speed/ui/speed-stepper.ts` — and the
+ * time scale underneath it is left alone, which is what makes stepping back out
+ * of it land on the speed that was in force rather than on a nearest ladder
+ * stop.
  */
 
 /**
  * Every stop the `+`/`-` buttons offer, slowest first.
  *
- * `design/ui-mockup.html`'s own `SPEEDS`, minus its trailing `Infinity` — see
- * this module's comment for why that one is not a number here.
+ * Whole numbers only, and no `Infinity` — see this module's comment for why the
+ * instant stop is not a number here.
  */
 export const TIME_SCALES: readonly number[] = [1, 2, 3, 6, 10, 20];
 
 /**
  * Time scale used when nothing valid is stored or requested.
  *
- * A stop on {@link TIME_SCALES}, but not the mockup's own opening `6`: this is
- * the speed a player who has never touched the control watches their first
- * program at, and at `6x` a lift has crossed the building before they have
- * finished reading their own code. Anyone who wants the mockup's pace gets it
- * in one press, and it is then remembered.
+ * A stop on {@link TIME_SCALES}, and a slow one: this is the speed a player who
+ * has never touched the control watches their first program at, and at `6x` a
+ * lift has crossed the building before they have finished reading their own
+ * code. A faster pace is one press away, and is then remembered.
  */
 export const DEFAULT_TIME_SCALE = 2.0;
 

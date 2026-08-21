@@ -1,39 +1,32 @@
 /**
- * The two buttons that drive a run: `design/ui-mockup.html`'s own `.runbox`.
+ * The two buttons that drive a run.
  *
- * There were three. The mockup's comment on this box is the argument for two —
- * "кнопки две, и они делают разное: одна ведёт прогон (пуск, пауза,
- * продолжить), вторая начинает его с нуля" — and the third, "Run instantly",
- * was a second way of saying "start" that had to be told apart from the first
- * by reading it. It is now the last stop of the speed control instead
- * (`#features/adjust-speed`): the primary button always starts *this* run, and
- * how fast that run is drawn — 1x through 20x, or not drawn at all — is a
- * setting beside it rather than a button of its own. Nothing about a crunch is
- * lost; see `#pages/game`'s `runInstantly`, which the primary button reaches
- * when the speed control is on its instant stop.
+ * Two, and they do different things: the first carries the run (start, pause,
+ * resume), the second begins it again from nothing. Running headlessly is not a
+ * third button but the last stop of the speed control (`#features/adjust-speed`)
+ * — the primary button always starts *this* run, and how fast that run is
+ * drawn, or whether it is drawn at all, is a setting beside it. See
+ * `#pages/game`'s `runInstantly`, which the primary button reaches when the
+ * speed control is on its instant stop.
  *
  * Every word below is written by {@link presentRunControls}'s `update()`
  * rather than baked into {@link runButtonsTemplate}: the row is drawn once, for
- * the life of the page, and only relabelled after, so a label baked into the
+ * the life of the page, and only relabeled after, so a label baked into the
  * markup would still be in whatever language the page opened in after a change
  * of language.
  *
- * "Reset code" and "Undo reset" used to live here too. They now live in
- * `widgets/editor-pane`, beside the editor they act on rather than across the
- * page from it — see that widget's own module comment.
- *
  * ## What the primary button says
  *
- * The mockup's `setRunning` in one place: playing → "Pause"; otherwise "Start"
- * before the first tick and after the last, and "Resume" in between. This port
- * adds two states the static page has none of — a crunch in progress, which
- * disables the button and says so, and the instant stop being selected, where
- * the button reads "Start" whatever the run behind it has already done,
- * because pressing it starts that run over headlessly rather than resuming it.
+ * Playing → "Pause"; otherwise "Start" before the first tick and after the
+ * last, and "Resume" in between. Two more states override that: a crunch in
+ * progress, which disables the button and says so, and the instant stop being
+ * selected, where the button reads "Start" whatever the run behind it has
+ * already done, because pressing it starts that run over headlessly rather than
+ * resuming it.
  *
- * The glyph is swapped rather than toggled with `hidden`, unlike the mockup's
- * `<use href>` switch: the HTML `hidden` attribute is styled by a UA rule
- * scoped to the HTML namespace, so an SVG element carrying it stays visible.
+ * The glyph is swapped rather than toggled with `hidden`: the HTML `hidden`
+ * attribute is styled by a UA rule scoped to the HTML namespace, so an SVG
+ * element carrying it stays visible.
  */
 
 import type { WorldController } from "#game/world-controller.ts";
@@ -52,9 +45,9 @@ import { markup, raw } from "#shared/ui/markup.ts";
  * because the resting state has one; `update()` swaps the primary's when the
  * run starts.
  *
- * `unselectable` is this port's own, not the mockup's: the primary button's
- * label changes under the pointer on every press, and without it a player
- * pressing Pause twice ends up dragging a selection across the bar.
+ * `unselectable` because the primary button's label changes under the pointer
+ * on every press, and without it a player pressing Pause twice ends up dragging
+ * a selection across the bar.
  *
  * @returns The run buttons' markup, to be composed into the app bar alongside
  * the speed control.
@@ -195,8 +188,7 @@ export function presentRunControls(
       // The one state where "Start" needs saying twice: the run on screen is
       // finished, and what the button offers is to throw the result away and
       // play it again -- which is not what "Start" means anywhere else on this
-      // page. The mockup's own `runBtn.title` says the same thing here and
-      // nothing at all elsewhere.
+      // page. The button carries no `title` in any other state.
       if (ended && !crunching) {
         startStop.title = t("game.button.startAgainTitle");
       } else {

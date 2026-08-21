@@ -3,10 +3,9 @@
  * it is the one place with a field's two states to answer for: the ink it sets
  * a seed in, and the border that says the seed cannot be played.
  *
- * The rule that is *not* there is checked too. `design/ui-mockup.html` marks a
- * focused `.val` by tinting its border and dropping the ring, and that is the
- * one thing in this block that could not be ported — the check below is what
- * keeps someone from porting it back on the strength of the mockup alone.
+ * The rule that is *not* there is checked too: marking a focused `.val` by
+ * tinting its border and dropping the ring fails 1.4.11, and the check below is
+ * what keeps someone from writing that rule anyway.
  */
 
 import { describe, expect, it } from "vitest";
@@ -70,11 +69,11 @@ describe("the seed field", () => {
   });
 
   it.each(THEMES)(
-    "leaves the field to the document's focus ring, because the mockup's own fails 1.4.11, %s theme",
+    "leaves the field to the document's focus ring, because a tinted border fails 1.4.11, %s theme",
     (_, palette) => {
-      // What the mockup does here is `border-color: var(--ds-accent-line);
-      // outline: none`. Composited over the --ds-bg the field is filled with,
-      // that border comes to well under the 3:1 a focus indicator is asked
+      // The alternative is `border-color: var(--ds-accent-line); outline:
+      // none`. Composited over the --ds-bg the field is filled with, that
+      // border comes to well under the 3:1 a focus indicator is asked
       // for -- in the light theme it is barely a shade off the fill. Recorded
       // as the measurement rather than as a note, so that the day
       // --ds-accent-line changes enough to carry a focus indicator, this test

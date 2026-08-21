@@ -46,8 +46,8 @@ describe("seedPanelTemplate", () => {
   });
 
   it("shows the seed itself in a box the player can type another one into", () => {
-    // The mockup's `#seedVal`, and an `<input>` here as it is there: the seed
-    // is the player's to choose now, and a field is how a value is chosen.
+    // An `<input>`: the seed is the player's to choose, and a field is how a
+    // value is chosen.
     const field = renderElement(seedPanelTemplate(SEED)).querySelector(".seedrow > .val");
 
     expect(field?.tagName).toBe("INPUT");
@@ -84,28 +84,25 @@ describe("seedPanelTemplate", () => {
     const seedLink = renderElement(seedPanelTemplate(SEED)).querySelector("a.seedlink");
 
     expect(seedLink?.getAttribute("href")).toBe("#level=1,seed=1234567890");
-    // The mockup's `#seedCopy`, glyph and all: pinning a draw into the address
-    // bar is the same gesture its copy button offers.
+    // The copy glyph: pinning a draw into the address bar is a copy gesture.
     expect(seedLink?.innerHTML).toBe(iconHtml("copy"));
   });
 
   it("offers a fresh draw as a button, because it goes nowhere", () => {
-    // It used to be a link to the same address without `seed=`, which was a new
-    // draw only for as long as a seedless address drew one. It no longer does
-    // -- the player's own seed is remembered -- so the draw happens here.
+    // A seedless address plays the seed the player already owns, so a link
+    // could not stand for a new draw. The draw happens here instead.
     const newDraw = renderElement(seedPanelTemplate(SEED)).querySelector(".seednewdraw");
 
     expect(newDraw?.tagName).toBe("BUTTON");
     expect(newDraw?.getAttribute("type")).toBe("button");
     expect(newDraw?.hasAttribute("href")).toBe(false);
-    // The mockup's `#seedRoll`: throwing this draw away and starting again is
-    // the same gesture its dice button offers.
+    // The dice glyph: throwing this draw away and starting again.
     expect(newDraw?.innerHTML).toBe(iconHtml("dice"));
   });
 
-  it("shows both controls at once, in the mockup's order", () => {
-    // They named two states of one run while a seedless URL meant a new draw;
-    // they name two different things to do now, so both are always there.
+  it("shows both controls at once, the field first", () => {
+    // They name two different things to do, not two states of one run, so both
+    // are always there.
     const row = renderElement(seedPanelTemplate(SEED)).querySelector(".seedrow");
 
     expect([...(row?.children ?? [])].map((child) => child.className)).toEqual([
@@ -140,9 +137,8 @@ describe("seedPanelTemplate", () => {
 
     expect(help?.tagName).toBe("DETAILS");
     expect(help?.querySelector("summary")?.textContent).toBe("what a seed does");
-    // Dressed as the mockup's one-line `.sethint` under the row, since that is
-    // the line it stands in for -- `seed-panel.css` takes the disclosure
-    // triangle off it there.
+    // Dressed as the row's one-line hint, `.sethint` -- `seed-panel.css` takes
+    // the disclosure triangle off it there.
     expect(help?.querySelector("summary")?.className).toBe("sethint");
     expect(help?.querySelector(".seedcaveat")?.textContent).toContain("The same seed brings");
     // Closed to begin with, the same reason the level bar's own copy is:
@@ -152,9 +148,9 @@ describe("seedPanelTemplate", () => {
   });
 
   it("says it opens with the chevron the rest of the app says it with", () => {
-    // The stylesheet takes the UA's triangle off this summary so it reads as
-    // the mockup's plain hint line. Something has to be left saying there is a
-    // paragraph behind it, and the app already spells that `#i-right`: the
+    // The stylesheet takes the UA's triangle off this summary so it reads as a
+    // plain hint line. Something has to be left saying there is a paragraph
+    // behind it, and the app already spells that with the right chevron: the
     // statistics shelf's "All figures" and the Hotkeys row beneath this block
     // both wear it. It leads the line, as that shelf's does.
     const summary = renderElement(seedPanelTemplate(SEED)).querySelector(".seedhelp > summary");

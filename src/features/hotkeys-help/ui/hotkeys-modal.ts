@@ -1,18 +1,14 @@
 /**
- * The hotkeys dialog: `design/ui-mockup.html`'s own `<dialog class="keys">` —
- * a title, a close button and five rows pairing a hotkey with what it does.
+ * The hotkeys dialog: a title, a close button and a row per hotkey, pairing it
+ * with what it does.
  *
- * Two of the five rows are Mod- bindings. The mockup spells each as one
- * compressed glyph (`⌘⏎`, `⌘B`) with a static paragraph underneath explaining
- * that Windows and Linux read `Ctrl` for `⌘`; this port spells both as two
- * `<kbd>`s joined by "+" instead, `documentation.html`'s own convention,
- * resolved per visitor at runtime by `src/ui/shortcuts.ts`'s
- * `labelModifierKeys` — which is also why the mockup's own hint paragraph is
- * dropped: relabelling per visitor is what makes the hint's own question not
- * arise. This module only draws the `data-mod-key` marker, the same as
- * `documentation.html` does inline; whoever mounts the dialog live still has to call
- * `labelModifierKeys` against it, the way `src/ui/localise-page.ts` already
- * does for the rest of the page shell.
+ * A Mod- binding is spelled as two `<kbd>`s joined by "+" rather than as one
+ * compressed glyph (`⌘⏎`), so `src/ui/shortcuts.ts`'s `labelModifierKeys` can
+ * resolve the modifier per visitor — `⌘` on a Mac, `Ctrl` elsewhere — and the
+ * dialog needs no standing note about what Windows and Linux read instead. This
+ * module only draws the `data-mod-key` marker; whoever mounts the dialog live
+ * still has to call `labelModifierKeys` against it, the way
+ * `src/ui/localise-page.ts` already does for the rest of the page shell.
  *
  * Built and unit-tested against a jsdom `<dialog>` —
  * `polyfillDialogElement` (`#shared/ui/test-helpers.ts`). `src/main.ts` mounts

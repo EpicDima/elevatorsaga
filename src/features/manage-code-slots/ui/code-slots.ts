@@ -27,27 +27,22 @@ export interface CodeSlotsData {
 /**
  * One button of the code slot switcher.
  *
- * The visible label is the whole phrase — "Code 1", not "1" — which is
- * `design/ui-mockup.html`'s own `.codebar` markup, and it replaces a bare
- * number carrying an `aria-label` of "Code slot 1". The switcher sits in the
- * bar above the editor now rather than in a toolbar under it, so there is room
- * for the noun; and the number on its own was never really enough. Two things
- * are better for it:
+ * The visible label is the whole phrase — "Code 1", not a bare "1" carrying a
+ * longer `aria-label`. The switcher sits in the bar above the editor, where
+ * there is room for the noun, and the noun earns its width twice:
  *
- * - A sighted player reads what the three buttons are instead of guessing.
- *   Three numbered chips above a code editor could as easily be a font size or
- *   an indent width.
- * - The accessible name is now the visible label rather than a longer sentence
- *   standing in its place. That is what WCAG 2.5.3 (Label in Name) asks for,
- *   and the old pairing failed it outright: a player who says "click code
- *   one", or types it into a voice-control matcher, was matching against
- *   "Code slot 1" while looking at "1".
+ * - A sighted player reads what the buttons are instead of guessing. Numbered
+ *   chips above a code editor could as easily be a font size or an indent
+ *   width.
+ * - The accessible name is the visible label rather than a longer sentence
+ *   standing in its place, which is what WCAG 2.5.3 (Label in Name) asks for: a
+ *   player who says "click code one", or types it into a voice-control matcher,
+ *   is matching against what they are looking at.
  *
- * `title` carries what the label still has no room for — the mockup's own
- * "Черновик N", a draft rather than a version or an attempt, so nobody expects
- * a history behind the number. It is a description, not the name: a `title` on
- * an element that already has text content is announced after that text, not
- * instead of it.
+ * `title` carries what the label still has no room for: a slot is a draft
+ * rather than a version or an attempt, so nobody expects a history behind the
+ * number. It is a description, not the name — a `title` on an element that
+ * already has text content is announced after that text, not instead of it.
  *
  * `aria-pressed` rather than `aria-current`: a slot is not a place with an
  * address of its own the way a level is, it is a toggle a player presses to

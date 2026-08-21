@@ -1,11 +1,6 @@
 /**
- * The three-way theme switch: `design/ui-mockup.html`'s `.seg.seg-text`
- * group of `system`/`light`/`dark` buttons (§A).
- *
- * Nothing here is reachable yet. `presentThemeSwitch` is built and tested
- * ahead of the widget that will compose it — `widgets/app-bar`'s settings
- * menu, a later step of this same phase — the same "build inert first" staged
- * migration every other `features/*` slice in this batch follows.
+ * The three-way theme switch: a group of `system`/`light`/`dark` buttons,
+ * composed into `widgets/app-bar`'s settings menu.
  *
  * Split into a skeleton builder and a presenter, the same shape
  * `buildWorkspaceLayoutSkeleton`/`presentWorkspaceLayout` use: the builder
@@ -14,17 +9,15 @@
  * say) can skip the builder and hand `presentThemeSwitch` elements it built
  * itself.
  *
- * The mockup reads and writes `window.matchMedia` and `document.documentElement`
- * directly; this module takes both as caller-supplied values instead —
- * {@link ThemeSwitchOptions.prefersDark} rather than calling `matchMedia` in
- * here, and {@link ThemeSwitchOptions.root} rather than reaching for
- * `document.documentElement` — the same reason `presentWorkspaceLayout` takes
- * a `root` option instead of assuming one. `prefersDark` is a function, not a
- * single boolean snapshot, because the choice can be "system" for the whole
- * time this switch is mounted: {@link ThemeSwitchController.notifySystemChange}
- * re-reads it whenever the caller's own `matchMedia(...).addEventListener("change", ...)`
- * fires, exactly as the mockup's own `darkQuery.addEventListener("change", ...)`
- * does.
+ * The system preference and the element the scheme is written to are both
+ * caller-supplied — {@link ThemeSwitchOptions.prefersDark} rather than calling
+ * `matchMedia` in here, and {@link ThemeSwitchOptions.root} rather than
+ * reaching for `document.documentElement` — the same reason
+ * `presentWorkspaceLayout` takes a `root` option instead of assuming one.
+ * `prefersDark` is a function, not a single boolean snapshot, because the
+ * choice can be "system" for the whole time this switch is mounted:
+ * {@link ThemeSwitchController.notifySystemChange} re-reads it whenever the
+ * caller's own `matchMedia(...).addEventListener("change", ...)` fires.
  */
 
 import { readTheme, resolveTheme, saveTheme, THEMES, type Theme } from "../model/theme.ts";
@@ -90,8 +83,7 @@ export interface ThemeSwitchOptions {
   readonly elements: ThemeSwitchElements;
   /**
    * The element the resolved scheme is written to, as `root.dataset.theme` —
-   * `document.documentElement` on a real page, matching the mockup's own
-   * `html.dataset.theme`.
+   * `document.documentElement` on a real page.
    */
   readonly root: HTMLElement;
   /** Where the chosen theme is remembered between visits. */
@@ -109,8 +101,7 @@ export interface ThemeSwitchOptions {
 export interface ThemeSwitchController {
   /**
    * Re-resolves and re-applies the theme, but only while the player's own
-   * choice is "system" — ported from the mockup's own `darkQuery`
-   * `"change"` listener, `if (themeChoice === "system") applyTheme();`.
+   * choice is "system"; a pinned light or dark choice ignores the system.
    *
    * Call this from the caller's own `matchMedia("(prefers-color-scheme: dark)")`
    * `"change"` listener; this module does not register one itself, for the
@@ -156,10 +147,9 @@ export function presentThemeSwitch(options: ThemeSwitchOptions): ThemeSwitchCont
 
   for (const candidate of THEMES) {
     buttons[candidate].addEventListener("click", () => {
-      // Ported from the mockup's own `setTheme`, which re-applies and
-      // re-persists unconditionally rather than bailing out early when the
-      // same button is pressed again — there is nothing to skip here, since
-      // applying is cheap and idempotent.
+      // Re-applies and re-persists unconditionally rather than bailing out
+      // when the same button is pressed again: applying is cheap and
+      // idempotent, so there is nothing worth skipping.
       theme = candidate;
       apply();
       saveTheme(storage, theme);

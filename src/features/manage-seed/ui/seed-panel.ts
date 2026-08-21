@@ -1,33 +1,15 @@
 /**
- * The settings popover's seed block: `design/ui-mockup.html`'s `.setblock`
- * captioned "Seed" (§A).
+ * The settings popover's seed block: a `.setblock` captioned "Seed", as a
+ * template and a presenter — the shape its `features/switch-theme` and
+ * `features/switch-layout` siblings have.
  *
- * A template and a presenter, the shape its `features/switch-theme` and
- * `features/switch-layout` siblings have always had. It was a lone template
- * function for as long as the block had nothing to wire — its one control was
- * a real link with a real `href`, and the disclosure explaining what a seed
- * does is a native `<details>` that needs no script at all. The field below
- * changed that: a seed the player types is a decision this block has to hand
- * somewhere, and so is a new draw.
+ * ## The row
  *
- * ## The mockup's row, and what this renders in it
+ * An editable field holding the seed the run is playing, a dice button that
+ * draws another, and a copy-link button, with a `<details>` hint under the
+ * three.
  *
- * `design/ui-mockup.html` draws this block as a `.seedrow`: an editable
- * `#seedVal` text field, a `#seedRoll` dice button and a `#seedCopy`
- * copy-link button, with a one-line `.sethint` under the three. All three are
- * here, in that order.
- *
- * The field is the newest of them, and for a long time it was the one part
- * production could not have: a run's seed was drawn once, from the URL or
- * from `Math.random()`, and the game had no arbitrary-seed input anywhere, so
- * there was nothing to type into and nothing for a reroll to reroll *to*. The
- * seed is the player's own now — `src/pages/game/index.ts` remembers it and
- * `handleRoute`'s own comment records why that decision was reversed — and a
- * thing the player owns is a thing they can set. So the mockup's `<input>` is
- * an `<input>` again, holding what the run is playing and taking what the
- * player wants to play next.
- *
- * What it accepts is `#shared/lib/seed.ts`'s rule, not one of its own:
+ * What the field accepts is `#shared/lib/seed.ts`'s rule, not one of its own:
  * `maxlength` and `pattern` come from the same two constants the router
  * validates `#seed=` with, so the field cannot accept a seed the address bar
  * is about to refuse. Committing is a `change` — Enter, or leaving a field
@@ -35,76 +17,48 @@
  * already means by "chosen", and there is no separate confirm button for the
  * same reason that one has none.
  *
- * The two buttons survive nearly intact, because production's two real
- * affordances turn out to be the same two gestures under other names.
- * `.seedlink` — put this run in the address bar, which is to say a link to
- * this exact run — is `#seedCopy`, and takes its `copy` glyph. `.seednewdraw`
- * — throw this draw away and take another — is `#seedRoll`, and takes its
- * `dice` glyph. `#shared/ui/icon.ts` has kept both sprites since the icon
- * family was ported, for exactly this.
- *
- * `.seednewdraw` is a `<button>` and not the link it used to be. As a link it
- * meant "the same address without `seed=`", which was a new draw for as long
- * as an address without a seed drew one; now an address without a seed plays
- * the seed the player already owns, and the same link would be a button that
- * does nothing. So it draws the seed itself —
+ * The two buttons are different elements because they do different things.
+ * `.seedlink` puts this run in the address bar — a link to this exact run, so
+ * an `<a>`, with the `copy` glyph. `.seednewdraw` throws this draw away and
+ * takes another, drawing it with
  * {@link "#game/random.ts"!generateRandomSeed}, the same call the world makes
- * when nobody supplies one — and hands it over the same way a typed one goes.
- * Both controls are shown at once, as the mockup shows them: they no longer
- * name two states of one run, they name two different things to do.
+ * when nobody supplies a seed; that is a decision with nowhere to point, so it
+ * is a `<button>`, with the `dice` glyph. Both are shown at once: they name two
+ * things to do, not two states of one run.
  *
- * Icon-only, as the mockup draws them, so each carries its accessible name
- * on `aria-label` — one for a screen reader — and on `title` — one for a
- * pointer that has stopped over an unfamiliar glyph. Both names are keys the
- * level bar's seed line already had, and both name the seed as well as
- * the gesture. WCAG 2.5.3 has nothing to hold them to: it constrains an
- * accessible name against *visible* text, and neither button has any — which
- * is also what retired `game.seed.newDraw`, the words "new draw" that used
- * to be `.seednewdraw`'s label.
+ * Icon-only, so each carries its accessible name twice — on `aria-label` for a
+ * screen reader, on `title` for a pointer that has stopped over an unfamiliar
+ * glyph — and both names name the seed as well as the gesture. WCAG 2.5.3 has
+ * nothing to hold them to: it constrains an accessible name against *visible*
+ * text, and neither button has any.
  *
- * The hint line stays a `<details>`. The mockup's is a single sentence
- * («Один и тот же seed — один и тот же поток людей»); production's is a
- * paragraph about what a seed promises and how long it stays yours, which is
- * more than a panel wants open under every run. Only its `<summary>` is
- * dressed as the mockup's hint line — `class="sethint"`, and `seed-panel.css`
- * takes the disclosure triangle off it.
+ * ## The hint
  *
- * Taking the triangle off left the line reading as the mockup's inert hint
- * and behaving as a control, which is the worse half of both: nothing on
- * screen said there was a paragraph behind it. So it carries the chevron the
- * rest of the app already spells "this opens" with — `spriteIconMarkup(
- * "right", "chev")`, the mockup's `#i-right`, the same call
- * `widgets/stats-panel`'s "All figures" shelf and the block below this one's
- * own Hotkeys row both make. The words move into a `<span>` to make room for
- * it, and `seed-panel.css` turns it a quarter-turn on open exactly as
- * that shelf's does.
+ * A `<details>`, because what it hides is a paragraph about what a seed
+ * promises and how long it stays yours, which is more than a panel wants open
+ * under every run. Only its `<summary>` is dressed as a hint line —
+ * `class="sethint"`, with `seed-panel.css` taking the disclosure triangle off
+ * it — so it carries instead the chevron the rest of the app spells "this
+ * opens" with: `spriteIconMarkup("right", "chev")`, the same call
+ * `widgets/stats-panel`'s "All figures" shelf and the Hotkeys row below both
+ * make. Without one the line would read as inert and behave as a control, with
+ * nothing on screen saying there is a paragraph behind it. The words sit in a
+ * `<span>` to make room for it, and `seed-panel.css` turns it a quarter-turn on
+ * open exactly as that shelf's does.
  *
- * ## Where the rest of it comes from
+ * ## Names and rebuilds
  *
- * `src/ui/templates.ts`'s exported {@link SeedLinkData} type and the
- * `game.seed.*` catalog keys the level bar's seed line already read, so
- * this block says what that line said, in the settings popover's own
- * `.setblock`/`.cap` shape instead of the level bar's
- * `.levelseed`/`.seedlabel` one. The markup itself is recomposed here
- * rather than called into, because the level bar's own `seedTemplate`
- * and `seedHelpTemplate` are not exported from `templates.ts` — they are
- * private helpers of `levelTemplate`, which is the only thing about them
- * the level bar promised to any caller. What *is* reused verbatim is the
- * class names their markup already used (`seedlink`, `seedvalue`,
- * `seednewdraw`, `seedhelp`, `seedcaveat`), so `seed-panel.css` styles this
- * block through one set of rules rather than two under different names.
+ * The class names (`seedlink`, `seedvalue`, `seednewdraw`, `seedhelp`,
+ * `seedcaveat`) are what `seed-panel.css` states this block through, and what
+ * `AppBarSettingsController.setSeed` finds a control by after a rebuild.
  *
- * `presentLevel` in what was `src/ui/presenters.ts` went to some trouble to keep
- * the seed line's `<details>` open state and the document's focus in place
- * across the level bar's own full-`innerHTML` rebuilds on every restart.
- * That trouble is specific to a bar that redraws itself on a timer this panel
- * does not share. `AppBarSettingsController.setSeed` does rebuild this block,
- * but only when a run's seed actually changes, which is a navigation the
- * player asked for — most often from this very row — rather than a redraw
- * arriving under a pointer that was busy with something else. Focus is the one
- * thing that rebuild does carry across, and it is carried in that method
- * rather than here: this block's controls are now the ones a player is most
- * likely to be holding when a run changes, because they are what changed it.
+ * That controller rebuilds this block, but only when a run's seed actually
+ * changes — a navigation the player asked for, most often from this very row,
+ * rather than a redraw arriving under a pointer that was busy with something
+ * else. Focus is the one thing that rebuild carries across, and
+ * it is carried in that method rather than here: this block's controls are the
+ * ones a player is most likely to be holding when a run changes, because they
+ * are what changed it.
  */
 
 import { generateRandomSeed } from "#game/random.ts";
@@ -117,11 +71,6 @@ import { markup, raw } from "#shared/ui/markup.ts";
 /**
  * The seed block's help disclosure: what a seed promises, openable without a
  * mouse.
- *
- * A near-exact copy of `src/ui/templates.ts`'s private `seedHelpTemplate` —
- * same `game.seed.*` keys, same `seedhelp`/`seedcaveat` class names — kept
- * separate from that one only because it is not exported; see the module
- * comment for why this module does not import it instead.
  *
  * @returns The disclosure's markup.
  */
@@ -138,10 +87,10 @@ function seedHelpTemplate(): string {
  * watch their run reload into somebody else's passengers. `required` is what
  * makes an emptied field invalid rather than a seed of no characters.
  *
- * The four "leave this alone" attributes are the mockup's, minus its
- * `spellcheck` shorthand: a seed is an opaque token, and a phone that
- * capitalises it, a browser that corrects it or a password manager that fills
- * it has each turned it into a different run.
+ * The four "leave this alone" attributes -- `spellcheck`, `autocomplete`,
+ * `autocapitalize`, `autocorrect` -- because a seed is an opaque token: a phone
+ * that capitalizes it, a browser that corrects it or a password manager that
+ * fills it has each turned it into a different run.
  *
  * @param seed - The seed the run on screen is playing.
  * @returns The field's markup.
@@ -151,7 +100,7 @@ function seedFieldTemplate(seed: string): string {
 }
 
 /**
- * A row button: the mockup's `#seedRoll`/`#seedCopy` shape.
+ * The row's link button: the address of this exact run.
  *
  * `.ghost` is the chrome `shared/ui/button.css` gives every low-emphasis
  * control, narrowed to the row's 30x30 square by its own `.seedrow .ghost`;

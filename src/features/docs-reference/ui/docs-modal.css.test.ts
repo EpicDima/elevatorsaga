@@ -1,6 +1,5 @@
 /**
- * The two dialogs' own surfaces, and the three rules that deviate from
- * `design/ui-mockup.html` to reach them.
+ * The two dialogs' own surfaces, and the contrast each one has to hold.
  *
  * The hotkeys dialog (`features/hotkeys-help`) is measured here with the
  * reference: they are one shape with two contents, they share `.btn`'s close

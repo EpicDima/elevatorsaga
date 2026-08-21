@@ -1,7 +1,6 @@
 /**
- * The speed control: two arrows and the multiplier between them —
- * `design/ui-mockup.html`'s own `.speed` group, drawn in the app bar beside
- * the run buttons rather than in a row under the building.
+ * The speed control: two arrows and the multiplier between them, drawn in the
+ * app bar beside the run buttons.
  *
  * The two buttons carry their name as `aria-label` as well as `title`,
  * rewritten by {@link presentSpeedStepper}'s `update()` on a language change
@@ -24,14 +23,13 @@
  * written `∞x`. The run is handed to `src/game/instant-run.ts` and counted
  * straight through to its verdict with nothing drawn.
  *
- * It is drawn here, as the far end of the same control, because that is what
- * it is — the mockup puts `Infinity` in the same array as the numbers, and its
- * comment says why a player wants it exactly where 20x already is: "ради него
- * и сидят на 20×, глядя, как лифты ездят по уже написанной программе". What
- * it is *not* is a value of `WorldController.timeScale`, which multiplies the
- * frame delta; see `#features/adjust-speed/model/time-scale.ts` for that
- * distinction and for what it buys. This module never reads a time scale to
- * decide whether it is on that stop — the app tells it, through
+ * It sits at the far end of the same control because that is where a player
+ * wants it: 20x is the speed they watch an already-written program at, and
+ * "skip to the verdict" is the next thing they ask for from exactly there.
+ * What it is *not* is a value of `WorldController.timeScale`, which multiplies
+ * the frame delta; see `#features/adjust-speed/model/time-scale.ts` for that
+ * distinction. This module never reads a time scale to decide whether it is on
+ * that stop — the app tells it, through
  * {@link SpeedStepperOptions.instantSpeed}.
  */
 
@@ -47,8 +45,8 @@ import { isFastestTimeScale, isSlowestTimeScale } from "../model/time-scale.ts";
  *
  * Ships with no label at all — see the module comment for why
  * {@link presentSpeedStepper} writes the value, the group's name and both
- * buttons' names instead. No glyph before the value, following the mockup:
- * "«6×» между двумя стрелками ни на что другое не похоже".
+ * buttons' names instead. No glyph before the value: `6×` between two arrows
+ * cannot be read as anything but a speed.
  *
  * @returns The speed control's markup, to be composed into the app bar
  * alongside the run buttons.
@@ -137,9 +135,9 @@ export function presentSpeedStepper(
 
       group.setAttribute("aria-label", t("game.timeScale.label"));
       value.textContent = instant ? t("game.timeScale.instant") : formatTimeScale(timeScale);
-      // A `title` rather than more visible text, as in the mockup: the reading
-      // is two characters wide by design, and the sentence explaining what
-      // "instantly" does to a run would not fit the bar at any width.
+      // A `title` rather than more visible text: the reading is two characters
+      // wide by design, and the sentence explaining what "instantly" does to a
+      // run would not fit the bar at any width.
       value.title = instant
         ? t("game.timeScale.instantTitle")
         : t("game.timeScale.valueTitle", { value: formatTimeScale(timeScale) });
@@ -154,8 +152,8 @@ export function presentSpeedStepper(
       increase.setAttribute("aria-label", faster);
       increase.title = faster;
 
-      // At the ends of the list an arrow dims rather than disappearing --
-      // "строка не должна дёргаться от того, что скорость дошла до предела".
+      // At the ends of the list an arrow dims rather than disappearing, so the
+      // bar's row does not twitch when the speed reaches a limit.
       // `+` ordinarily has no end of its own, because the instant stop is
       // always one past the fastest finite one, so the only thing that stops
       // it is being on it already. Where that stop is not on offer -- see
