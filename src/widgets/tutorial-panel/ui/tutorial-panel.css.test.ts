@@ -18,8 +18,8 @@ describe("ds palette on the lesson card", () => {
   it.each([
     // The panel's own ink, and the muted one the goal line under the title is
     // written in: 14.04:1 and 6.70:1 dark, 15.99:1 and 5.90:1 light. The
-    // mockup's --text-faint was measured on the same surface and refused at
-    // 3.62:1 dark / 3.14:1 light.
+    // fainter --ds-text-faint is refused on the same surface, at 3.62:1 dark /
+    // 3.14:1 light.
     ["ds-text", "ds-panel", 4.5],
     ["ds-text-muted", "ds-panel", 4.5],
     // The same muted ink one surface up, on the --ds-raised of a hint box: its

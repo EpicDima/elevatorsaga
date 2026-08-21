@@ -29,8 +29,8 @@ describe("ds palette on the briefing card", () => {
   it.each([
     // The title's ink: 14.04:1 dark, 15.99:1 light.
     ["ds-text", "ds-panel", 4.5],
-    // The briefing's: 6.70:1 dark, 5.90:1 light. The mockup's --text-faint was
-    // measured on this surface for the lesson and refused at 3.62:1 / 3.14:1.
+    // The briefing's: 6.70:1 dark, 5.90:1 light. The fainter --ds-text-faint is
+    // refused on this surface, at 3.62:1 / 3.14:1.
     ["ds-text-muted", "ds-panel", 4.5],
   ])("has --%s readable on --%s in both themes", (foreground, background, required) => {
     for (const [, palette] of THEMES) {

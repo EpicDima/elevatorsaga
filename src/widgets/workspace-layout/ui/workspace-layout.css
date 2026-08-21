@@ -8,18 +8,11 @@
  */
 
 /*
- * The workspace's two panes and the splitter between them, ported from
- * `design/ui-mockup.html`'s own `.workspace`/`.pane`/`.splitter` rules --
- * its own comment there: no code-below-the-building layout, because both
- * the building and the program are tall, and a horizontal split cuts into
- * whichever one is on the bottom. `widgets/workspace-layout` builds the
- * elements these rules style and writes `--split-x`/`data-layout` onto
- * `<html>`; see that module's own comment for the drag/keyboard wiring.
- *
- * Only the four `--ds-*` tokens this block itself reads are adopted here,
- * per the design tokens' own comment above -- the rest of the page still
- * reads the older `--color-*`/`--shell-*` names until the widget that reads
- * them is cut over too.
+ * The workspace's two panes and the splitter between them. There is no
+ * code-below-the-building mode: both the building and the program are tall, and
+ * a horizontal split cuts into whichever one is on the bottom.
+ * `widgets/workspace-layout` builds the elements these rules style and writes
+ * `--split-x`/`data-layout` onto `<html>`.
  */
 .workspace {
   display: grid;
@@ -72,32 +65,28 @@ html[data-layout="game"] .splitter {
 }
 
 /*
- * The game pane's column, stated here rather than left to the flex defaults:
- * `design/ui-mockup.html`'s own `.pane-game` is a goal bar of a fixed height,
- * a `.stagewrap` on `flex: 1`, and a `.stats` strip docked below it, each of
- * the three saying which it is (§§2, 4, 8). The three children `src/main.ts`
- * appends here are exactly those: the bar, `.stagearea` (below) standing in
- * the `.stagewrap`'s place, and the figures.
+ * The game pane's column, stated here rather than left to the flex defaults.
+ * The three children `src/main.ts` appends are a goal bar of a fixed height,
+ * `.stagearea` (below) taking everything left over, and the figures strip
+ * docked under it.
  *
- * The learning track's panel used to be a fourth row of this column, between
- * the bar and the building, and it took its height out of the stage on every
- * route that showed it. It is inside `.stagearea` now, above the building but
- * in the same box and the same scroll, so what it takes is scroll rather than
- * stage: the house below it is a full screenful whatever the lesson is doing.
+ * The learning track's panel is a row of `.stagearea`, not a fourth row of this
+ * column: above the building but in the same box and the same scroll, so what
+ * it takes is scroll rather than stage, and the house below it is a full
+ * screenful whatever the lesson is doing.
  *
  * Only the two fixed rows need a declaration: `.stagearea` carries
  * `flex: 1 1 auto; min-block-size: 0` in its own rule below, and repeating it
  * here would be the same fact in two places. What has to be said is that its
- * two neighbours do *not* absorb the leftover room: the browser's own
+ * two neighbors do *not* absorb the leftover room: the browser's own
  * `flex: 0 1 auto` would let the goal bar and the figures be squeezed instead
  * of the building, which is the one box on this page with somewhere to put a
  * shortfall -- `.stage` scrolls.
  *
- * This is also what bounds the building now. `.world` used to state a
- * `block-size` of its own because nothing above it did; the pane is a
- * height-bounded column all the way up from `body.app` (`app/styles/document.css`), so
- * "everything the other two leave" is a real number and the stage grows and
- * shrinks with the window.
+ * This is also what bounds the building: the pane is a height-bounded column
+ * all the way up from `body.app` (`app/styles/document.css`), so "everything
+ * the other two leave" is a real number and the stage grows and shrinks with
+ * the window.
  */
 .pane-game > .level,
 .pane-game > .statscontainer {
@@ -127,34 +116,28 @@ html[data-layout="game"] .splitter {
  * at all. This box is above all of that: nothing empties it, so nothing has
  * to remember to restore it.
  *
- * A column, where this was a row for a while and where §11 of the mockup draws
- * one: the lesson beside the house, 384px of card against everything left
- * over. 384px is where a card stops being a lesson. The answers run to 68
- * characters of monospace -- 490px at the 12px `.tutorialsolution code` sets,
- * against the 310px that card left them -- so all eight of them had to be read through a `<pre>`
- * scrolled sideways, in a column of prose 45 characters wide, and the Russian of
- * every line of it is half again as long as the English. Stacked, the card is
- * 640px (below) and both the prose and the answers fit inside it.
+ * A column, the lesson above the house rather than beside it. Beside it a card
+ * gets 384px against everything left over, and 384px is where a card stops
+ * being a lesson: the answers run to 68 characters of monospace -- 490px at the
+ * 12px `.tutorialsolution code` sets, against the 310px that leaves them -- so
+ * each one is read through a `<pre>` scrolled sideways, in a column of prose 45
+ * characters wide, and the Russian of every line of it is half again as long as
+ * the English. Stacked, the card is 640px (below) and both the prose and the
+ * answers fit inside it.
  *
- * What the row bought and this gives up is the lesson and the house on screen
+ * What a row would buy and this gives up is the lesson and the house on screen
  * together at every height, and the scroll is what it is given up for: one
  * scroll over both boxes, so a player who has read down to step three gets back
- * to the building the same way they got to the step. One scroll, not two. The
- * card used to carry a ceiling and an `overflow` of its own, so a lesson longer
- * than the stage scrolled inside a box that was itself inside a pane that did
- * not scroll -- two scrollbars a few pixels apart, with the wheel answering
- * whichever one the pointer happened to be over.
+ * to the building the same way they got to the step. One scroll, not two -- a
+ * card carrying a ceiling and an `overflow` of its own would put a lesson
+ * longer than the stage inside a box inside a pane that does not scroll, two
+ * scrollbars a few pixels apart with the wheel answering whichever one the
+ * pointer happened to be over.
  *
- * A column at every width, and no threshold anywhere. The mockup has one --
- * `@media (max-width: 1180px)`, where its row becomes a column and the lesson
- * goes on top of the building -- and this port had it once, measured against
- * the pane rather than the window and stacking under 740px of it. It is gone
- * for the reason it was deleted the first time: a layout that changes shape at
- * a width changes shape on a window that is merely a little small, on a
- * splitter dragged towards the editor, or in a browser zoomed to 125%, and what
- * was asked for is one shape. That the one shape is now the mockup's narrow one
- * rather than its wide one is a decision about which shape, not a threshold
- * coming back.
+ * A column at every width, and no threshold anywhere: a layout that changes
+ * shape at a width changes shape on a window that is merely a little small, on
+ * a splitter dragged towards the editor, or in a browser zoomed to 125%, and
+ * what was asked for is one shape.
  *
  * `overflow: hidden auto`, and not `auto`. The inline axis belongs to `.stage`,
  * which scrolls a building wider than the pane inside itself without taking the

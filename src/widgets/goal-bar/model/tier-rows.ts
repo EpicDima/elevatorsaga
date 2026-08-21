@@ -1,28 +1,21 @@
 /**
- * The tier popover's own rows — bronze, and silver/gold when a level has
- * them — ported from `design/ui-mockup.html`'s `renderTiers()`/`drawTiers()`.
+ * The tier popover's own rows — bronze, and silver/gold when a level has them.
  *
- * Deliberately does not port the mockup's own `tiersNow()`: that function
- * exists there because the mockup's engine has no equivalent of
- * {@link "#entities/level-tier/index.ts"!evaluateLevelTier} to ask
- * instead, so it re-derives bronze/silver/gold pass-fail from scratch, one
- * `Array.prototype.every(meets)` per tier. Production already has that
- * single source of truth, and re-deriving the same nested-tier logic a
- * second time here would be exactly the "parallel table that could drift"
- * `#game/level-tiers.ts`'s own doc comment on {@link TierPredicate}
- * warns against — so a row's held/lost state below is read off
- * {@link evaluateLevelTier}'s one verdict instead of computed
- * independently.
+ * A row's held/lost state is read off
+ * {@link "#entities/level-tier/index.ts"!evaluateLevelTier}'s one verdict
+ * rather than re-derived from the requirements here. Deriving bronze/silver/
+ * gold pass-fail a second time would be exactly the "parallel table that could
+ * drift" `#game/level-tiers.ts`'s own doc comment on {@link TierPredicate}
+ * warns against.
  *
- * The mockup also does not gate a row's checkmark/cross on a live pass/fail
- * reading, only on `sim.finished` — a run "passing" a silver requirement on
- * its first tick, before anything has happened, would light silver green
- * for a reason that has nothing to do with the player's own effort. This
- * module follows the same rule: {@link buildTierRows}'s `verdict` parameter
- * is `null` for exactly as long as
- * {@link "#entities/level/index.ts"!LevelCondition.evaluate} itself
- * says so (still undecided), and every row reads `"pending"` for that whole
- * stretch regardless of where the run's own figures currently sit.
+ * A row's checkmark or cross is gated on the run being over, not on a live
+ * pass/fail reading: a run "passing" a silver requirement on its first tick,
+ * before anything has happened, would light silver green for a reason that has
+ * nothing to do with the player's own effort. {@link buildTierRows}'s `verdict`
+ * parameter is `null` for exactly as long as
+ * {@link "#entities/level/index.ts"!LevelCondition.evaluate} itself says so
+ * (still undecided), and every row reads `"pending"` for that whole stretch
+ * regardless of where the run's own figures currently sit.
  */
 
 import {
@@ -44,11 +37,10 @@ export interface TierRequirementRow {
   readonly progress: number;
   /**
    * Whether this line should read as broken. While the run is still live,
-   * only an at-most requirement already past its bar counts — an at-least
-   * one not yet reached is simply not there yet, not a failure (the mockup's
-   * own reasoning: "перевезти 100 человек", а перевезено десять — это не
-   * провал, это середина прогона"). Once the run has ended, any unmet
-   * requirement counts, in either direction.
+   * only an at-most requirement already past its bar counts — an at-least one
+   * not yet reached is simply not there yet, not a failure: ten of a hundred
+   * passengers delivered is the middle of a run, not a loss. Once the run has
+   * ended, any unmet requirement counts, in either direction.
    */
   readonly miss: boolean;
 }
@@ -89,10 +81,9 @@ function tierRank(tier: LevelTier): number {
  * silver/gold when the level has them (see
  * {@link "#entities/level-tier/index.ts"!evaluateLevelTier}'s own
  * doc comment on a `tiers === undefined` level — bronze is the only tier
- * such a level has). Empty when the level has nothing to meter at
- * all — the sandbox tile's own `requireSandbox` condition never resolves and
- * carries `requirements: []`, mirroring the mockup's own "sandbox: no
- * rewards" case (`world.goals.length === 0`).
+ * such a level has). Empty when the level has nothing to meter at all — the
+ * sandbox tile's own `requireSandbox` condition never resolves and carries
+ * `requirements: []`, so there are no rewards to draw.
  *
  * @param level - The level being played.
  * @param world - The run's current statistics.

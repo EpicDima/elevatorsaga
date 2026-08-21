@@ -1,28 +1,24 @@
 /*
  * The card a finished run puts up: the live region it is drawn into, the card's
  * own surface, its mark, headline and actions.
+ *
+ * A card standing at the foot of the stage, over the building, rather than a
+ * full-bleed scrim across the whole track: the building underneath is the other
+ * half of the verdict -- the queue still standing on floor 9 is the answer to
+ * what went wrong, and a curtain drawn over it answers nothing.
  */
 
 /*
- * The end of a run, `design/ui-mockup.html`'s own `.verdict` (§12): a card
- * standing at the foot of the stage, over the building, where `.feedback` used
- * to draw a full-bleed scrim across the whole track. The mockup's own heading
- * for the section is the argument -- "итог прогона — карточка, а не
- * полноэкранный занавес" -- and the reason is that the building underneath is
- * the other half of the verdict: the queue still standing on floor 9 is the
- * answer to what went wrong, and a curtain drawn over it answers nothing.
- *
  * The card is drawn into `.feedbackcontainer`, which stays exactly where
- * `index.html` has it -- a child of `.worldtrack`, not of the `.stagewrap` the
- * mockup hangs its own card off. It has to: that element is the page's
- * permanent `role="status"`, and everything from `.stagewrap` down is emptied
- * and rebuilt on every redraw of the world, which is the one thing a live
- * region cannot survive. Nothing is given up by staying. Measured live at
- * 1280x900 with `getBoundingClientRect`, `.worldtrack` and `.stagewrap` are
- * the same box to the pixel -- both 793.59x699.48 at (0, 92) -- because
- * `.innerworld` and `.stagewrap` are each the only `flex: 1` child of their
- * parent. Opening the container over that box and positioning the card inside
- * it puts the card in the mockup's own pixels.
+ * `index.html` has it -- a child of `.worldtrack` rather than of `.stagewrap`.
+ * It has to: that element is the page's permanent `role="status"`, and
+ * everything from `.stagewrap` down is emptied and rebuilt on every redraw of
+ * the world, which is the one thing a live region cannot survive. Nothing is
+ * given up by staying. Measured live at 1280x900 with `getBoundingClientRect`,
+ * `.worldtrack` and `.stagewrap` are the same box to the pixel -- both
+ * 793.59x699.48 at (0, 92) -- because `.innerworld` and `.stagewrap` are each
+ * the only `flex: 1` child of their parent, so opening the container over that
+ * box puts the card in the same pixels either parent would give it.
  */
 .feedbackcontainer {
   position: absolute;
@@ -38,16 +34,14 @@
 }
 
 /*
- * Width by content, per the mockup's own note on the rule: a card stretched
- * across the stage wrapped its headline while half the row beside it was still
- * empty. The 420px floor under that is the mockup's too, and it is safe here
- * because the window cannot go under 1040px -- `body.app`'s own minimum, held
- * by `e2e/reflow.spec.ts` -- which leaves the stage well over 420px wide even
- * with the splitter dragged as far towards the editor as it goes.
+ * Width by content: a card stretched across the stage wrapped its headline
+ * while half the row beside it was still empty. The 420px floor under that is
+ * safe because the window cannot go under 1040px -- `body.app`'s own minimum,
+ * held by `e2e/reflow.spec.ts` -- which leaves the stage well over 420px wide
+ * even with the splitter dragged as far towards the editor as it goes.
  *
- * No `[hidden]` companions for this rule or the two below, unlike the mockup:
- * it draws its card once and patches it forever, where `presentVerdictToast`
- * builds one and empties the container to dismiss it, so there is never an
+ * No `[hidden]` companions for this rule or the two below: `presentVerdictToast`
+ * builds a card and empties the container to dismiss it, so there is never an
  * element here to hide.
  */
 .verdict {
@@ -82,7 +76,7 @@
 /*
  * The card's arrival is decoration and nothing besides -- the mark, the
  * headline and the live region each say the whole of it without the movement
- * -- so it goes entirely, the way `.blink` and the car doors already do.
+ * -- so it goes entirely.
  */
 @media (prefers-reduced-motion: reduce) {
   .verdict {
@@ -91,13 +85,12 @@
 }
 
 /*
- * A grid with a fixed basis rather than a flex item left to itself: the
- * mockup's own note on this rule is that flex would press the circle into an
- * oval the moment the headline beside it grew.
+ * A grid with a fixed basis rather than a flex item left to itself: flex would
+ * press the circle into an oval the moment the headline beside it grew.
  *
- * The colours are `.tierstate`'s (`widgets/goal-bar`), the one other badge
+ * The colors are `.tierstate`'s (`widgets/goal-bar`), the one other badge
  * in the app painting this same held/lost pair: --ds-ok on --ds-ok-soft, and
- * --ds-bad-ink rather than the mockup's own --bad on --ds-bad-soft. The mark
+ * --ds-bad-ink rather than plain --ds-bad on --ds-bad-soft. The mark
  * is `aria-hidden` and stands beside a headline saying the same thing in
  * words, so WCAG asks 1.4.11's 3:1 of it at most, and both badges are soft --
  * 14% dark, 12% light -- so the ink is really read against the panel showing
@@ -123,11 +116,7 @@
   color: var(--ds-bad-ink);
 }
 
-/*
- * The mockup writes this size on the `<svg>` itself; `spriteIconMarkup` emits
- * one class and no attributes, so it is a rule here instead -- the same swap
- * `.tierstate .ds-icon` above already makes.
- */
+/* Sized here rather than on the `<svg>`: `spriteIconMarkup` emits one class and no attributes. */
 .verdict-mark .ds-icon {
   width: 20px;
   height: 20px;
@@ -156,17 +145,15 @@
 }
 
 /*
- * Quieter than the verdict above it -- "её читают, если захотят, и никогда —
- * вместо него" -- but by size alone. The mockup drops this line to
- * --text-faint, which measures 3.62:1 dark and 3.14:1 light against the card's
- * own --ds-panel (`getComputedStyle`), short of WCAG 1.4.3's 4.5:1 in both;
- * --ds-text-muted clears it at 6.70:1 and 5.90:1, and is what `.meter-head
- * .cap` and `.tierneed .now` already took for the same reason.
+ * Quieter than the verdict above it -- read if the player wants it, never
+ * instead of it -- but by size alone. --ds-text-faint would measure 3.62:1 dark
+ * and 3.14:1 light against the card's own --ds-panel (`getComputedStyle`),
+ * short of WCAG 1.4.3's 4.5:1 in both; --ds-text-muted clears it at 6.70:1 and
+ * 5.90:1, inherited from `.verdict p`.
  *
- * Written against `.verdict` rather than on its own, which is the mockup's
- * one outright bug in this section: a bare `.verdict-more` loses both of its
- * declarations to `.verdict p` on specificity, and its hint renders at the
- * message's own size there.
+ * Written against `.verdict` rather than on its own: a bare `.verdict-more`
+ * loses both of its declarations to `.verdict p` on specificity, and its hint
+ * would render at the message's own size.
  */
 .verdict .verdict-more {
   font-size: 12px;

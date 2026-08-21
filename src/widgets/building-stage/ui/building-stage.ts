@@ -2,51 +2,40 @@
  * The building: the floor-number column, the shafts, and the stage they stand
  * on, drawn at whatever size the pane gives them.
  *
- * Composes `entities/floor`, `entities/elevator` and `entities/passenger`
- * with `layout-building.ts`/`shaft-scale.ts`/`vertical-scale.ts` (the
- * geometry) and `smart-position.ts` (the card placement) and
- * `hover-card-text.ts` (the card's words). Mounted live from
- * `src/pages/game/index.ts` since Phase 12.2, replacing `presentWorld` in what
- * was `src/ui/presenters.ts`, which is no longer called.
+ * Composes `entities/floor`, `entities/elevator` and `entities/passenger` with
+ * the geometry in `../lib` and the card placement in `smart-position.ts`.
  *
- * ## The mockup's own tree, inside the page's existing wrappers
+ * ## The building tree, inside the page's existing wrappers
  *
- * `design/ui-mockup.html` (§"Здание") builds
- * `.stagewrap > .stage > .stagerow > .building > (.levels, .tracks)`, and that
- * whole subtree is built here, inside the element the page hands this widget.
- * The three wrappers around it — `.world`, `.worldtrack`, `.innerworld` — are
- * `index.html`'s, not this widget's, and this widget cannot edit that file;
- * `building-stage.css` makes them layout-neutral instead (a flex chain that
- * passes the
- * pane's height straight through), so a later cleanup can delete them without
+ * `.stagewrap > .stage > .stagerow > .building > (.levels, .tracks)` is built
+ * here, inside the element the page hands this widget. The three wrappers
+ * around it — `.world`, `.worldtrack`, `.innerworld` — are `index.html`'s, not
+ * this widget's, and this widget cannot edit that file; `building-stage.css`
+ * makes them layout-neutral instead (a flex chain that passes the pane's
+ * height straight through), so a later cleanup can delete them without
  * anything here changing. Two things are still needed from them, and are the
- * reason they are neutralised rather than ignored: `.worldtrack` is what holds
+ * reason they are neutralized rather than ignored: `.worldtrack` is what holds
  * the run verdict's oversized overlay and the statistics panel — both siblings
  * of this widget's mount point, both owned elsewhere — and `.world` carries
  * the region role, the name and the paler focus ring every control inside the
  * building inherits.
  *
- * An earlier revision of this module deliberately built no floor-number
- * column: the legacy `.floor` was a full-width band carrying its own number,
- * so `levelsWidth: 0` went to `layoutBuilding()` and the whole building lived
- * in one coordinate space. That is reversed. The column is the mockup's, the
- * width fed to the geometry is `.levels`'s measured `offsetWidth`, and the
- * shafts live in `.tracks` beside it — which is also the coordinate space
- * every car and passenger is positioned in, since `worldX = 0` is the
- * corridor's left edge and the column is not part of the world the simulation
- * moves things through.
+ * The floor numbers stand in a column of their own, `.levels`, whose measured
+ * `offsetWidth` is the width fed to the geometry. The shafts live in `.tracks`
+ * beside it — which is also the coordinate space every car and passenger is
+ * positioned in, since `worldX = 0` is the corridor's left edge and the column
+ * is not part of the world the simulation moves things through.
  *
- * ## Where the mockup's flexbox had to become arithmetic
+ * ## Shaft placement is arithmetic, not flexbox
  *
- * The mockup lays its shafts out with `display: flex` and a gap, because its
- * building is a drawing. Here the shafts have to land on the coordinates the
- * simulation actually uses: a passenger spawns at `x = 105..145`, walks to
- * `elevator.worldX`, and rides in a seat at `worldX + 2 + 10 * slot`. So
- * `.shafts` is a positioned layer and each `.shaft` is placed at its own
- * elevator's real `worldX * scaleX`, wide enough for its real `width * scaleX`
- * — the mockup's own capacity-driven `shaftWidths` are left unread for the
- * reason `shaft-scale.ts`'s comment gives. The 20 world units the engine
- * leaves between two cars are what draw the gap the mockup gets from `gap`.
+ * Shafts land on the coordinates the simulation actually uses: a passenger
+ * spawns at `x = 105..145`, walks to `elevator.worldX`, and rides in a seat at
+ * `worldX + 2 + 10 * slot`. So `.shafts` is a positioned layer and each
+ * `.shaft` is placed at its own elevator's real `worldX * scaleX`, wide enough
+ * for its real `width * scaleX` — `layoutBuilding()`'s capacity-driven
+ * `shaftWidths` are left unread for the reason `shaft-scale.ts`'s comment
+ * gives. The seam between two shafts is drawn out of the 20 world units the
+ * engine leaves between two cars.
  *
  * ## Geometry recompute
  *
@@ -87,10 +76,9 @@
  * as focused as it was.
  *
  * The card hangs on `.stagewrap`, outside the scrolling `.stage` and outside
- * `.building` — the mockup puts it there for a reason its own comment spells
- * out: the building clips its own overflow (otherwise cars would draw through
- * its rounded corners), so a card parented anywhere inside it would be cut off
- * at the very edge it is trying to point at.
+ * `.building`: the building clips its own overflow (otherwise cars would draw
+ * through its rounded corners), so a card parented anywhere inside it would be
+ * cut off at the very edge it is trying to point at.
  */
 
 import {
@@ -120,7 +108,7 @@ import { requireElement, setClass } from "#shared/lib/dom.ts";
 import type { StageScale } from "#shared/lib/stage-scale.ts";
 import { markup } from "#shared/ui/markup.ts";
 
-/** Builds the stage's static skeleton: the mockup's own building tree, and the one shared hover card. */
+/** Builds the stage's static skeleton: the building tree, and the one shared hover card. */
 export function buildingStageTemplate(): string {
   return markup`<div class="stagewrap"><div class="stage"><div class="stagerow"><div class="building"><div class="levels"></div><div class="tracks"><div class="floorlines"></div><div class="queues"></div><div class="shafts"></div><div class="people"></div></div></div></div></div><div class="carcard" role="tooltip" hidden><b class="carcard-title"></b><div class="carcard-lines"></div></div></div>`;
 }
@@ -298,12 +286,9 @@ export function presentBuildingStage(parent: HTMLElement, world: World): Buildin
    * Lights the stage's own edge shadows, and makes the stage keyboard-scrollable
    * exactly while there is something to scroll to.
    *
-   * The mockup's `updateStageEdges()`, plus the `tabindex`: `.world` is the
-   * element `index.html` put in the tab order back when it was the scroll
-   * container, and the container is this box now. A scrollable region a
-   * keyboard cannot reach is WCAG 2.1.1, but so is a tab stop that goes
-   * nowhere — a twenty-floor building gets one, a three-floor building that
-   * fits entirely on screen does not.
+   * A scrollable region a keyboard cannot reach is WCAG 2.1.1, but so is a tab
+   * stop that goes nowhere — a twenty-floor building gets one, a three-floor
+   * building that fits entirely on screen does not.
    */
   function updateStageEdges(): void {
     const room = stage.scrollHeight - stage.clientHeight;
@@ -311,9 +296,8 @@ export function presentBuildingStage(parent: HTMLElement, world: World): Buildin
     setClass(stageWrap, "is-cut-bottom", room > 4 && stage.scrollTop < room - 4);
     // Sideways counts too, and it is not the same question: a wide building
     // whose floors all fit on screen still has a shaft off the right-hand edge,
-    // and a keyboard has to be able to get to it. The edge shadows above are
-    // the vertical answer only, because they are the mockup's and the mockup
-    // has no sideways overflow to shade.
+    // and a keyboard has to be able to get to it. The edge shadows above shade
+    // the vertical overflow only.
     const roomX = stage.scrollWidth - stage.clientWidth;
     if (room > 4 || roomX > 4) {
       stage.tabIndex = 0;
@@ -337,17 +321,16 @@ export function presentBuildingStage(parent: HTMLElement, world: World): Buildin
    * Scrolls the stage down to the lobby.
    *
    * Opening a level shows the ground and not the roof: the lobby is where a run
-   * starts, where the queue is, and where every car is parked. That much is the
-   * mockup's own `showGround()`. What the mockup does not need is any of the
-   * retrying around it, and the reason is worth writing down because nothing at
-   * this end of the page suggests it. `src/main.ts` builds the workspace shell
-   * *after* the app has mounted and drawn its first building, and moves the
-   * already-running regions into it — `.world` among them — with `append`.
-   * Reparenting a subtree keeps every element and listener alive, which is why
-   * it is done that way, but it rebuilds the layout boxes, and a rebuilt scroll
-   * container starts at the top. So the assignment below reports success (the
-   * value reads straight back) and is undone a frame later, and a twenty-one
-   * floor building opened looking at its roof.
+   * starts, where the queue is, and where every car is parked.
+   *
+   * The retrying around that is here for a reason nothing at this end of the
+   * page suggests. `src/main.ts` builds the workspace shell *after* the app has
+   * mounted and drawn its first building, and moves the already-running regions
+   * into it — `.world` among them — with `append`. Reparenting a subtree keeps
+   * every element and listener alive, which is why it is done that way, but it
+   * rebuilds the layout boxes, and a rebuilt scroll container starts at the top.
+   * So the assignment below reports success (the value reads straight back) and
+   * is undone a frame later, leaving a tall building looking at its roof.
    *
    * Hence: try again on every geometry pass, and stop for good once a pass finds
    * the stage already scrolled to the bottom, because from that point the scroll
@@ -404,8 +387,8 @@ export function presentBuildingStage(parent: HTMLElement, world: World): Buildin
     queueEls.push(queue);
   }
 
-  // Floor lines are drawn top-down so the mockup's `:nth-child(odd)` zebra
-  // starts on the same floor its own does; the array stays in level order like
+  // Floor lines are appended top-down, so the `:nth-child(odd)` zebra in the
+  // stylesheet starts at the roof; the array stays in level order like
   // everything else here.
   const floorlineEls: HTMLElement[] = new Array<HTMLElement>(world.floors.length);
   for (let row = 0; row < world.floors.length; row += 1) {
@@ -482,9 +465,9 @@ export function presentBuildingStage(parent: HTMLElement, world: World): Buildin
 
     // Everything sized off a floor reads these two rather than being written
     // one element at a time: the floor number's own type size, the rider
-    // figures, the cabin. `data-density` is the mockup's own switch for the
-    // handful of things that cannot simply scale (see `.car` in
-    // `entities/elevator`'s own stylesheet).
+    // figures, the cabin. `data-density` is the switch for the handful of
+    // things that cannot simply scale (see `.car` in `entities/elevator`'s own
+    // stylesheet).
     building.dataset["density"] = layout.density;
     building.style.setProperty("--ds-floor-h", `${String(layout.shortestFloor)}px`);
     building.style.setProperty("--ds-car-h", `${String(layout.carHeight)}px`);

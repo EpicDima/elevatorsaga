@@ -205,9 +205,8 @@ describe("layoutBuilding", () => {
     expect(counted.counted).toEqual([true]);
   });
 
-  it("lays out the sandbox world from design/ui-mockup.html end to end", () => {
-    // design/ui-mockup.html's own FREE_WORLDS sandbox spec: 20 floors, three
-    // cars of capacity [3, 3, 5], all floors weighted equally.
+  it("lays out a twenty-floor sandbox world end to end", () => {
+    // 20 floors, three cars of capacity [3, 3, 5], all floors weighted equally.
     const layout = layoutBuilding({
       stageHeight: 800,
       stageWidth: 900,

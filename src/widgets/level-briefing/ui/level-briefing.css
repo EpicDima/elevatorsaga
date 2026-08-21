@@ -46,13 +46,12 @@
  */
 
 /*
- * The level's own name, matching the lesson card's `.tutorialtitle`, which is
- * the mockup's `.lesson h2` (§11). The weight has to be stated because the
- * document rules set every heading below `h1` to `normal`, and a 16px heading
- * at the weight of the prose under it is not a heading. The margin has to be
- * stated for the same kind of reason: those rules give a heading `0.4em` above
- * it, which inside a card that already pads itself is a title hanging off its
- * own top edge.
+ * The level's own name, matching the lesson card's `.tutorialtitle`. The weight
+ * has to be stated because the document rules set every heading below `h1` to
+ * `normal`, and a 16px heading at the weight of the prose under it is not a
+ * heading. The margin has to be stated for the same kind of reason: those rules
+ * give a heading `0.4em` above it, which inside a card that already pads itself
+ * is a title hanging off its own top edge.
  */
 .briefingtitle {
   margin: 0 0 5px;

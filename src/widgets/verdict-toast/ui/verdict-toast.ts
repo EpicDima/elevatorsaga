@@ -1,34 +1,20 @@
 /**
- * The end-of-run verdict, `design/ui-mockup.html`'s own `.verdict` card and
- * its `showVerdict()`: a check or a cross in a circle, the title with the star
- * row beside it, the message, the "what is still missing" hint, and the two
- * things there are to do next.
+ * The end-of-run verdict card: a check or a cross in a circle, the title with
+ * the star row beside it, the message, the "what is still missing" hint, and
+ * the two things there are to do next.
  *
- * Mounted live from `App#showOutcome`/`App#showTutorialOutcome` since Phase
- * 12.2, replacing what was `../../../ui/presenters.ts`'s `presentFeedback`
- * and `../../../ui/templates.ts`'s `feedbackTemplate`, both since deleted.
- *
- * A card at the foot of the stage, not the full-bleed scrim the legacy
- * overlay drew: the mockup's own comment on the section is "итог прогона —
- * карточка, а не полноэкранный занавес", and the reason is that the building
- * underneath is the other half of the verdict. It is still drawn into
+ * A card at the foot of the stage, not a full-bleed scrim over it: the building
+ * underneath is the other half of the verdict. It is drawn into
  * `.feedbackcontainer`, which is `index.html`'s permanent `role="status"` and
- * covers the same box the stage does — see that element's own comment, and
- * `.verdict`'s in `verdict-toast.css`.
+ * covers the same box the stage does.
  *
  * Everything this widget knows, it is told. The tier is caller-supplied and
  * already evaluated (by `evaluateLevelTier`), the hint likewise (by
  * `#entities/level-tier`'s `nextTierHint`), and the three sentences are
  * whatever the caller composed — this widget never reaches into `#game` or a
- * `World` to work any of it out itself, the same division of labour
- * `#entities/level-tier/ui/tier-badge.ts` already keeps. That is what lets
- * `App#relocalise` redraw the same verdict in another language by calling its
- * caller again, with no state of its own to keep in step.
- *
- * Still not reproduced from the mockup: its richer stats line (transported
- * count, average wait, failure reason). `showVerdict` writes that into the
- * same `<p>` this draws {@link VerdictToastData.message} in, so it is a change
- * of what the caller composes rather than of anything here.
+ * `World` to work any of it out itself. That is what lets `App#relocalise`
+ * redraw the same verdict in another language by calling its caller again, with
+ * no state of its own to keep in step.
  */
 
 import type { LevelTier } from "#entities/level-tier/index.ts";
@@ -73,12 +59,11 @@ const CLOSE_SELECTOR = ".verdict-close";
 /**
  * Markup for the end-of-run card.
  *
- * The next-run control stays an `<a>` while everything beside it is a
- * `<button>`, and the mockup's own `#verdictNext` is a button. It is a link
- * here because it is one: it changes the address, it is the thing a player
- * middle-clicks or copies, and `App` reads its `href` back out when it
- * relabels the learning track's version of it. `.btn.btn-primary` is what the
- * mockup paints that control, so the link wears it.
+ * The next-run control is an `<a>` while everything beside it is a `<button>`,
+ * because it is one: it changes the address, it is the thing a player
+ * middle-clicks or copies, and `App` reads its `href` back out when it relabels
+ * the learning track's version of it. It still wears `.btn.btn-primary`, being
+ * the card's primary action.
  *
  * @param data - The verdict, its message, its hint and where to go next.
  * @returns The card's markup.
@@ -87,9 +72,8 @@ export function verdictToastTemplate(data: VerdictToastData): string {
   const mark = spriteIconMarkup(data.won ? "check" : "x");
   const stars = data.tier === undefined ? "" : tierBadgeMarkup(data.tier);
   // Absent rather than hidden when there is nothing to say, the way the star
-  // badge already is: the mockup keeps one `#verdictMore` element and toggles
-  // `hidden` on it because it draws its card once and patches it forever,
-  // which is not how this one is drawn.
+  // badge already is: the card is built fresh for every verdict, so there is
+  // never an element left over to toggle `hidden` on.
   const hint = data.hint === "" ? "" : markup`<p class="verdict-more">${raw(data.hint)}</p>`;
   const next =
     data.url === ""
@@ -109,10 +93,9 @@ export function verdictToastTemplate(data: VerdictToastData): string {
  *
  * Closing empties `parent` rather than hiding the card, so that the live
  * region is back to the state `index.html` ships it in and the next verdict
- * arriving in it is a change worth announcing. It promises nothing else — the
- * mockup's comment on `#verdictClose` is explicit that a second control
- * offering to restart the run would be one promise too many, "перезапуск —
- * это «Заново» в шапке", and the same button is in this app's bar.
+ * arriving in it is a change worth announcing. It promises nothing else: a
+ * second control offering to restart the run would be one promise too many,
+ * and restarting is what the app bar's own button is for.
  *
  * @param parent - The `.feedbackcontainer` element.
  * @param data - The verdict, its message, its hint and where to go next.

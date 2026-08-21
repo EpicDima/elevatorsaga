@@ -48,9 +48,9 @@ describe("the run verdict card", () => {
   });
 
   it.each(THEMES)("keeps the verdict's message and its hint readable, %s theme", (_, palette) => {
-    // The mockup paints the hint --text-faint, 3.62:1 dark and 3.14:1 light on
-    // the card's own --ds-panel -- short of 1.4.3's 4.5:1 in both, which is
-    // the same deviation `.meter-head .cap` and `.tierneed .now` already make.
+    // --ds-text-faint would be 3.62:1 dark and 3.14:1 light on the card's own
+    // --ds-panel -- short of 1.4.3's 4.5:1 in both -- so both lines take
+    // --ds-text-muted instead.
     expect(declaration(ruleBody(".verdict p"), "color", ".verdict p")).toBe(token("ds-text-muted"));
     expect(
       contrast(themed(palette, "ds-text-muted"), themed(palette, "ds-panel")),
@@ -59,10 +59,10 @@ describe("the run verdict card", () => {
 
   it("leaves the hint quieter than the message it hangs under", () => {
     // Written compound, `.verdict .verdict-more`, and that is the point of the
-    // test: the mockup's own rule is a bare `.verdict-more`, which loses both
-    // of its declarations to `.verdict p` on specificity and renders the hint
-    // at the message's own size there. Since the ink is now the same for both
-    // (above), size is the whole of what separates them.
+    // test: a bare `.verdict-more` loses both of its declarations to
+    // `.verdict p` on specificity and renders the hint at the message's own
+    // size. Since the ink is the same for both, size is the whole of what
+    // separates them.
     expect(styleSource, ".verdict-more is a bare rule again, and loses to .verdict p").not.toMatch(
       /^\.verdict-more\s*\{/m,
     );

@@ -1,39 +1,23 @@
 /**
  * The workspace's two panes and the splitter between them.
  *
- * Builds the skeleton `design/ui-mockup.html` calls `.workspace` — the
- * building's pane, the draggable/keyboard-resizable boundary, and the
- * editor's pane — and wires the boundary three ways: Pointer Events with
- * capture for the drag, the `separator` role for the keyboard, and a
- * double-click back to the default.
+ * Builds the `.workspace` skeleton — the building's pane, the
+ * draggable/keyboard-resizable boundary, and the editor's pane — and wires the
+ * boundary three ways: Pointer Events with capture for the drag, the
+ * `separator` role for the keyboard, and a double-click back to the default.
  *
- * Nothing here is reachable yet. `buildWorkspaceLayoutSkeleton` is not called
- * from `index.html` or `src/pages/game/index.ts` — this widget is staged the way
- * `src/shared/styles/tokens.css`'s design tokens were staged, built and tested
- * ahead
- * of anything that mounts or reads it — and `presentWorkspaceLayout`'s
- * `setLayoutMode` has no caller: the segmented control that would call it is
- * `features/switch-layout`, a later phase of the same migration. Dragging and
- * resizing the boundary already works in full once the skeleton is on a real
- * page; only *choosing a mode* is unreachable until that control exists.
- *
- * Three places deliberately outgrow the mockup's own script rather than port
- * it literally:
+ * Three details of that wiring are deliberate and easy to undo by accident:
  *
  * - The pointer handlers ignore a non-primary pointer and a non-primary
- *   button, which the mockup's splitter does not — a right-click drag on the
- *   mockup's splitter starts a drag the browser's own context menu then
- *   fights with.
+ *   button, so a right-click never starts a drag the browser's own context
+ *   menu then fights with.
  * - The percentage is written to storage once, when a drag or a key press
- *   ends, not on every `pointermove` — the mockup calls its equivalent of
- *   {@link import("../model/layout-mode.ts").saveSplitPercent} from inside
- *   the move handler, which can fire dozens of times a second during a single
- *   drag. The value that ends up stored is identical either way; only the
- *   number of writes differs.
- * - The keyboard handler bails on Alt/Ctrl/Meta/Shift, which the mockup's does
- *   not — the mockup's arrow-key handler calls `preventDefault()`
- *   unconditionally, which on Alt+ArrowLeft/Right also swallows the browser's
- *   own back/forward navigation.
+ *   ends, not from inside the move handler, which can fire dozens of times a
+ *   second during a single drag. The value that ends up stored is identical
+ *   either way; only the number of writes differs.
+ * - The keyboard handler bails on Alt/Ctrl/Meta/Shift rather than calling
+ *   `preventDefault()` unconditionally, which on Alt+ArrowLeft/Right would
+ *   also swallow the browser's own back/forward navigation.
  */
 
 import {
@@ -78,9 +62,9 @@ export interface WorkspaceLayoutElements {
 /**
  * Builds the workspace's DOM skeleton, detached from any document.
  *
- * Both panes are built empty: what goes inside each is later phases of this
- * migration (`widgets/building-stage`, `widgets/editor-pane`), and this
- * module knows only where they go, not what they hold.
+ * Both panes are built empty: what goes inside each is `widgets/building-stage`
+ * and `widgets/editor-pane`, and this module knows only where they go, not what
+ * they hold.
  *
  * @param document - The document to create the elements in, so a caller can
  * build into a document other than the global one — a test builds into its own
@@ -118,10 +102,7 @@ export function buildWorkspaceLayoutSkeleton(
 /** What a mounted workspace layout hands back for later phases to drive. */
 export interface WorkspaceLayoutController {
   /**
-   * Switches to a layout mode, mirroring the split boundary and re-applying
-   * it exactly as the mockup's `setLayout()` does.
-   *
-   * Unreachable until `features/switch-layout` calls it from a real control.
+   * Switches to a layout mode, mirroring the split boundary and re-applying it.
    *
    * @param mode - The mode to switch to.
    */
@@ -146,7 +127,7 @@ export interface WorkspaceLayoutOptions {
  * Wires the splitter and restores the mode and split a player left behind.
  *
  * @param options - The skeleton, the element to write onto, and the store.
- * @returns A controller for switching layout modes, for a later phase to use.
+ * @returns A controller for switching layout modes.
  */
 export function presentWorkspaceLayout(options: WorkspaceLayoutOptions): WorkspaceLayoutController {
   const { elements, root, storage } = options;
@@ -167,7 +148,7 @@ export function presentWorkspaceLayout(options: WorkspaceLayoutOptions): Workspa
    * split and the mode onto {@link WorkspaceLayoutOptions.root}.
    *
    * `aria-valuemin`/`aria-valuemax` are computed from the workspace's actual
-   * width rather than fixed at the mockup's static `20`/`85`: a range that
+   * width rather than fixed at a static `20`/`85`: a range that
    * only ever widens or narrows the *reachable* bound would tell a screen
    * reader user the boundary can go somewhere a drag would immediately pull
    * it back from.
@@ -201,8 +182,8 @@ export function presentWorkspaceLayout(options: WorkspaceLayoutOptions): Workspa
   let dragging = false;
 
   splitter.addEventListener("pointerdown", (event: PointerEvent) => {
-    // Only the primary button of the primary pointer: see the module comment
-    // for why this is not what the mockup's own handler checks.
+    // Only the primary button of the primary pointer, so a right-click drag
+    // never starts one the context menu would then fight with.
     if (!event.isPrimary || event.button !== 0) {
       return;
     }
@@ -218,9 +199,8 @@ export function presentWorkspaceLayout(options: WorkspaceLayoutOptions): Workspa
     }
     const box = workspace.getBoundingClientRect();
     // The boundary follows the pointer's absolute position across the
-    // workspace, not the distance dragged from where the pointer went down —
-    // ported as-is from the mockup, which places the boundary under the
-    // pointer rather than offsetting it from the drag start.
+    // workspace, not the distance dragged from where the pointer went down: it
+    // sits under the pointer rather than offset from where the drag started.
     split = ((event.clientX - box.left) / box.width) * 100;
     apply();
   });

@@ -9,32 +9,24 @@
 
 /*
  * `.world` / `.worldtrack` / `.innerworld` are `index.html`'s three wrappers
- * around the building, from the years when it was a fixed 1220x503 drawing that
- * scrolled inside them. `widgets/building-stage` builds
- * `design/ui-mockup.html`'s own `.stagewrap > .stage > .stagerow > .building`
- * tree inside the innermost of the three, so the three are made layout-neutral
- * here -- a flex chain passing the pane's height straight down -- rather than
- * deleted, because `index.html` belongs to the page shell and not to that
- * widget.
+ * around the building. `widgets/building-stage` builds its
+ * `.stagewrap > .stage > .stagerow > .building` tree inside the innermost of
+ * the three, so the three are made layout-neutral here -- a flex chain passing
+ * the pane's height straight down -- rather than deleted, because `index.html`
+ * belongs to the page shell and not to that widget.
  *
- * Two of them still earn their keep until the shell is rebuilt. `.worldtrack`
- * is the positioning context for the one box that is a sibling of the stage
- * and owned elsewhere: `.feedbackcontainer`, the live region the run's verdict
- * card is drawn into (`widgets/verdict-toast`). And `.world` carries the
- * region role, its accessible name, and the paler focus ring below, which
- * everything focusable inside the building inherits.
+ * Two of them still earn their keep. `.worldtrack` is the positioning context
+ * for the one box that is a sibling of the stage and owned elsewhere:
+ * `.feedbackcontainer`, the live region the run's verdict card is drawn into
+ * (`widgets/verdict-toast`). And `.world` carries the region role, its
+ * accessible name, and the paler focus ring below, which everything focusable
+ * inside the building inherits.
  *
  * The height is whatever the pane has left after its three fixed rows -- see
- * `.pane-game`'s own column rule (`widgets/workspace-layout`). There is no
- * `block-size` here any more: this box used to state one because nothing above
- * it bounded one, so a stage told to fill its parent would have filled
- * nothing, and it
- * carried the statistics panel's own worst-case height for the lack of a
- * better number. The pane is a bounded column now and the figures have a row
- * of their own at the foot of it, so `flex: 1 1 auto` is the whole answer:
- * the stage takes the room the goal bar, the learning track's panel and the
- * figures leave, and scrolls inside itself when a twenty-floor building wants
- * more than that.
+ * `.pane-game`'s own column rule (`widgets/workspace-layout`). `flex: 1 1 auto`
+ * and no `block-size` of its own: the stage takes the room the goal bar, the
+ * learning track's panel and the figures leave, and scrolls inside itself when
+ * a twenty-floor building wants more than that.
  */
 .world {
   /*
@@ -93,12 +85,11 @@
 }
 
 /*
- * The stage and the building on it, ported from `design/ui-mockup.html`
- * (§"Здание") rule for rule, with the deviations each rule's own comment
- * names. Built by `widgets/building-stage`; the geometry the rules read --
- * --ds-floor-h, --ds-car-h, --ds-scale-x, `data-density` -- is written onto
- * `.building` by that widget's layout pass, since how tall a floor may be is a
- * question only something that has measured the pane can answer.
+ * The stage and the building on it, built by `widgets/building-stage`. The
+ * geometry the rules read -- --ds-floor-h, --ds-car-h, --ds-scale-x,
+ * `data-density` -- is written onto `.building` by that widget's layout pass,
+ * since how tall a floor may be is a question only something that has measured
+ * the pane can answer.
  */
 .stagewrap {
   position: relative;
@@ -203,11 +194,10 @@ html[data-theme="light"] .stage {
 }
 
 /*
- * The floor-number column. `column-reverse` is this port's own: the mockup
- * builds its rows from the roof down, while `relabelWorld` in
+ * The floor-number column. `column-reverse` because `relabelWorld` in
  * `src/pages/game/index.ts` reads `.floor` elements back in DOM order and takes
  * that order for the floor number -- so the DOM is level 0 first, and the
- * column turns itself over instead.
+ * column turns itself over to draw the ground floor at the bottom.
  */
 .levels {
   flex: 0 0 auto;
@@ -282,15 +272,12 @@ html[data-theme="light"] .floorline:nth-child(odd) {
 
 /*
  * The hover card: one element, moved to whichever floor row or shaft is being
- * pointed at or focused (`widgets/building-stage` places it). The mockup's own
- * `.carcard` (§6), minus its `.row` and `.picked` rules -- those lay out
- * label/value pairs and a strip of floor-number chips, and this card's body is
- * not built that way. Its words come from `hover-card-text.ts`, which writes
- * whole sentences, one per line, in whichever language the page is running in;
- * splitting a sentence into two columns is not a layout, and chipping the
- * floor numbers out of "Pressed: 3, 7 and 11" would mean the card's text
- * knowing about its own markup. What is ported is the surface, which is the
- * part the mockup was really drawing.
+ * pointed at or focused (`widgets/building-stage` places it). Its body is one
+ * whole sentence per line, not label/value rows and not a strip of
+ * floor-number chips: the words come from `hover-card-text.ts` in whichever
+ * language the page is running in, splitting a sentence into two columns is
+ * not a layout, and chipping the floor numbers out of "Pressed: 3, 7 and 11"
+ * would mean the card's text knowing about its own markup.
  *
  * `pointer-events: none` earns its place: the card is placed beside a shaft
  * the pointer is standing in, and a card that could take the pointer would

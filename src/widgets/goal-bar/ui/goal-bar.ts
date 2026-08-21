@@ -1,13 +1,8 @@
 /**
  * The goal bar: the level's own meters plus the bronze/silver/gold tier
- * popover, ported from `design/ui-mockup.html`'s `renderGoals()`/`drawGoals()`
- * and `renderTiers()`/`drawTiers()`.
+ * popover.
  *
- * Mounted live from `src/pages/game/index.ts` since Phase 12.2.
- *
- * The mockup draws its meters and its tier popover with two different
- * rhythms, and this module keeps that split rather than rebuilding
- * everything on every tick:
+ * Drawing is split in two rather than rebuilding everything on every tick:
  *
  * - `rebuild()` creates the DOM structure — one `<div class="meter">` per
  *   requirement (or the free-state block, for a level with none), with
@@ -93,11 +88,9 @@ interface MeterFormat {
  * name (`buildGoalMeters` is built from `level.condition.requirements`,
  * and every existing level's bronze condition reads one of these).
  *
- * `elapsedTime`'s current-value precision (0 decimals) deliberately diverges
- * from the mockup's own default of 1: it matches `presentStats`'s own
- * `format(seconds(world.elapsedTime))`, which also has 0. The threshold side
- * keeps 1 decimal, since a real `underElapsedTime`-style limit can be
- * fractional.
+ * `elapsedTime`'s current value carries 0 decimals, matching `presentStats`'s
+ * own `format(seconds(world.elapsedTime))`. The threshold side keeps 1 decimal,
+ * since a real `underElapsedTime`-style limit can be fractional.
  */
 const METER_FORMAT: Partial<Record<keyof LevelWorldStats, MeterFormat>> = {
   transportedCounter: { currentDigits: 0, thresholdDigits: 0 },
@@ -159,14 +152,12 @@ function meterStateClass(meter: GoalMeterView): "is-done" | "is-near" | "is-late
 }
 
 /**
- * The silver/gold tick marks a bronze meter's own bar draws, ported from the
- * mockup's `tierTicks(goal)`.
+ * The silver/gold tick marks a bronze meter's own bar draws.
  *
- * Skipped for `transportedCounter` (a defensive no-op kept for fidelity with
- * the mockup, which never actually reaches it either — no level tightens
- * a passenger-count floor tier over tier) and for any field a silver/gold
+ * Skipped for `transportedCounter` — a defensive no-op, since no level tightens
+ * a passenger-count floor tier over tier — and for any field a silver/gold
  * requirement does not itself mention. A tick within 3% of either edge is
- * skipped too — indistinguishable from the bar's own ends.
+ * skipped too, being indistinguishable from the bar's own ends.
  */
 function meterTicks(
   requirement: TierRequirementInfo,

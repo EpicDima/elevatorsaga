@@ -39,23 +39,16 @@
 }
 
 /*
- * The goal bar and its tier popover: `design/ui-mockup.html`'s own
- * `.goalbar`/`.meter*`/`.goalright`/`.tierwrap`/`.tierbox`/`.tiermenu`/
- * `.tierrow*`/`.tierneed`/`.tierbar` rules (§2), ported for
- * `widgets/goal-bar`. `.stars`/`.star` themselves are already ported next
- * door in `entities/level-tier`, whose `tierBadgeMarkup` draws the same
- * markup here as it does in a level tile's own badge.
- */
-/*
- * `color: var(--ds-text)` here, past what the mockup itself declares, for
- * the same reason `.setmenu` (`widgets/app-bar`) carries one: `.goalbar` sits
- * directly on `<body>`, and everything under it that is not a `<p>` or a
- * heading -- `.meter-val`'s own `<b>`, `.tierrow-head`'s own `<b>` -- falls
- * back to
- * `<body>`'s own `color: white` otherwise, invisible on this bar's light
- * `--ds-panel` background. Measured live before this rule: `.meter-val b`
- * read `rgb(255 255 255)`. `.cap`/`.tierneed`/`.tierstate`/`.tierneed .now`
- * each already carry their own explicit colour and are unaffected; this only
+ * The goal bar and its tier popover. `.stars`/`.star` live next door in
+ * `entities/level-tier`, whose `tierBadgeMarkup` draws the same markup here as
+ * it does in a level tile's own badge.
+ *
+ * `color: var(--ds-text)` is stated because `.goalbar` sits directly on
+ * `<body>`, and everything under it that is not a `<p>` or a heading --
+ * `.meter-val`'s own `<b>`, `.tierrow-head`'s own `<b>` -- would otherwise fall
+ * back to `<body>`'s own `color: white`, invisible on this bar's light
+ * `--ds-panel` background. `.cap`/`.tierneed`/`.tierstate`/`.tierneed .now`
+ * each already carry their own explicit color and are unaffected; this only
  * reaches the descendants that had none.
  */
 .goalbar {
@@ -85,13 +78,12 @@
 }
 
 /*
- * Scoped to `.meter-head`, not ported as the mockup's shared, bare `.cap` --
- * the same reason `.taskblock .cap` (above) is not either: that base rule's
- * own colour, `--text-faint`, measures 3.62:1 dark / 3.14:1 light against
- * this caption's `--ds-panel` background (`getComputedStyle`, matching
- * `.taskblock .cap`'s own measurement, since both sit on the same
- * background) -- short of WCAG 1.4.3's 4.5:1 in both. `--ds-text-muted`
- * clears it, 6.70:1 dark / 5.90:1 light.
+ * Scoped to `.meter-head` rather than written as a bare `.cap`, which is how
+ * every caption on the page is written: a shared rule would repaint the ones
+ * standing on other backgrounds. `--ds-text-faint` measures 3.62:1 dark /
+ * 3.14:1 light against this caption's `--ds-panel` background
+ * (`getComputedStyle`) -- short of WCAG 1.4.3's 4.5:1 in both -- so
+ * `--ds-text-muted`, which clears it at 6.70:1 and 5.90:1.
  */
 .meter-head .cap {
   overflow: hidden;
@@ -154,13 +146,11 @@
 }
 
 /*
- * The mockup keys this off `data-kind="time"|"moves"|"wait"` (§2); the
- * shipped widget's own `data-kind` instead carries the raw
- * `LevelWorldStats` field name it reads, and `goal-bar.ts`'s own comment
- * on `METER_FORMAT` names the only three at-most fields a bronze condition
- * ever reaches. `transportedCounter`, the one at-least field, needs no rule
- * here: it is exactly what `.meter-fill`'s own base colour, `--ds-accent`,
- * already means.
+ * `data-kind` carries the raw `LevelWorldStats` field name the meter reads,
+ * and `goal-bar.ts`'s own comment on `METER_FORMAT` names the only three
+ * at-most fields a bronze condition ever reaches. `transportedCounter`, the
+ * one at-least field, needs no rule here: it is exactly what `.meter-fill`'s
+ * own base color, `--ds-accent`, already means.
  */
 .meter[data-kind="elapsedTime"] .meter-fill,
 .meter[data-kind="maxWaitTime"] .meter-fill,
@@ -293,10 +283,9 @@
 }
 
 /*
- * Held/lost, not just its own icon: `goal-bar.ts`'s `drawTierRows` sets
- * these from `TierRow.state` precisely so this badge would not rely on its
- * check/dash/cross glyph alone to say which -- ported from the mockup's own
- * reasoning (§2) for the same rule, that colour says the same thing a
+ * Held/lost, not just its own icon: `goal-bar.ts`'s `drawTierRows` sets these
+ * from `TierRow.state` precisely so this badge does not rely on its
+ * check/dash/cross glyph alone to say which -- color says the same thing a
  * second way.
  */
 .tierstate {
@@ -341,10 +330,9 @@
 }
 
 /*
- * The mockup's own colour here is `--text-faint` too (§2), and this is text,
- * not an icon -- it fails the same 4.5:1 floor for the same reason
- * `.meter-head .cap` (above) does, on the same `--ds-panel` background.
- * `--ds-text-muted` is the fix there too.
+ * Text, not an icon, so `--ds-text-faint` fails the same 4.5:1 floor here that
+ * it does at `.meter-head .cap` above, on the same `--ds-panel` background.
+ * `--ds-text-muted` is the answer there too.
  */
 .tierneed .now {
   flex: 0 0 auto;

@@ -33,9 +33,9 @@
 }
 
 /*
- * And what the region looks like on the eight routes that do draw into it:
- * `design/ui-mockup.html`'s own `.lesson` card (§11) -- 14px of padding, a
- * strong hairline, the large radius, and `--ds-panel` behind it.
+ * And what the region looks like on the routes that do draw into it: a lesson
+ * card -- 14px of padding, a strong hairline, the large radius, and
+ * `--ds-panel` behind it.
  *
  * The card is on the region rather than on the `.tutorialpanel` inside it
  * because the region is the box the layout sizes, and because it is the box
@@ -82,10 +82,9 @@
 }
 
 /*
- * The level's own name: the mockup's `.lesson h2`. The weight has to be stated
- * because this page sets every heading below `h1` to `normal` (see the
- * document rules above), and a 16px heading at the weight of the prose under
- * it is not a heading.
+ * The level's own name. The weight has to be stated because this page sets
+ * every heading below `h1` to `normal` (see the document rules above), and a
+ * 16px heading at the weight of the prose under it is not a heading.
  */
 .tutorialtitle {
   margin: 0 0 5px;
@@ -94,8 +93,8 @@
 }
 
 /*
- * The prose: the mockup's `.lesson p`, one size below the page's own and
- * muted, which is what makes the level's name above it the first thing read.
+ * The prose, one size below the page's own and muted, which is what makes the
+ * level's name above it the first thing read.
  * `--ds-text-muted` measures 6.70:1 dark and 5.90:1 light on the card, and
  * 6.19:1 dark / 5.56:1 light on the `--ds-raised` inside an open hint, both
  * past the 4.5:1 of WCAG 1.4.3.
@@ -121,16 +120,14 @@
 }
 
 /*
- * The four disclosures: three hints, then why the level behaves as it does.
- * The mockup's `.hint` (§11) -- a raised, hairlined box the whole width of the
- * card, with its summary as the lid.
+ * The disclosures: the hints, then why the level behaves as it does. A raised,
+ * hairlined box the whole width of the card, with its summary as the lid.
  *
- * The summary fills that box rather than shrinking to its words, which is the
- * opposite of what this rule used to say and is right for the opposite reason:
- * the warning at `.seedhelp > summary` is that a full-width `<summary>` gives
- * a control an invisible half nobody can see is clickable, and a bordered lid
- * with a marker on it has no invisible half. The pointer is the other half of
- * that rule and stays: `<summary>` is a control and the UA gives it no cursor.
+ * The summary fills that box rather than shrinking to its words: the warning at
+ * `.seedhelp > summary` is that a full-width `<summary>` gives a control an
+ * invisible half nobody can see is clickable, and a bordered lid with a marker
+ * on it has no invisible half. The pointer still has to be stated: `<summary>`
+ * is a control and the UA gives it no cursor.
  */
 .tutorialhint,
 .tutorialexplanation {
@@ -154,9 +151,9 @@
  * pseudo-element that ignores it. Both are needed; either alone leaves one
  * engine drawing two markers.
  *
- * `--ds-text-muted` and not the mockup's `--text-faint`: the character is
- * typography rather than an icon -- it inherits the summary's size and sits on
- * its baseline -- so it is measured against 1.4.3's 4.5:1 rather than 1.4.11's
+ * `--ds-text-muted` and not `--ds-text-faint`: the character is typography
+ * rather than an icon -- it inherits the summary's size and sits on its
+ * baseline -- so it is measured against 1.4.3's 4.5:1 rather than 1.4.11's
  * 3:1, and faint would be 3.34:1 dark / 2.96:1 light on `--ds-raised`. Muted
  * is 6.19:1 dark and 5.56:1 light there.
  */
@@ -177,9 +174,8 @@
 }
 
 /*
- * Inside an open hint the prose lines up under its summary's text, which is
- * what the mockup's `.hint p` does: the lid's own 11px, and the bottom padding
- * the box would otherwise not have.
+ * Inside an open hint the prose lines up under its summary's text: the lid's
+ * own 11px, plus the bottom padding the box would otherwise not have.
  */
 .tutorialhint .tutorialprose,
 .tutorialexplanation .tutorialprose {
@@ -188,13 +184,12 @@
 }
 
 /*
- * The answer, under the third hint: the mockup's `.hint pre`, inset to the
- * same 11px as the prose above it.
+ * The answer, under the last hint, inset to the same 11px as the prose above
+ * it.
  *
- * `pre code` already paints the surface in the page's own code colours and
- * wraps it below 760px; what is stated here is the mockup's tighter padding
- * and its one-size-smaller type, and a ceiling. The longest line in any of the
- * eight answers is 68 characters (level 7, which level 8 shows again), so a
+ * `pre code` already paints the surface in the page's own code colors and wraps
+ * it below 760px; what is stated here is tighter padding, one-size-smaller
+ * type, and a ceiling. The longest line in any answer is 68 characters, so a
  * block any wider than that is a code surface with nothing in the right-hand
  * half of it. The ceiling is on the `<code>`, where a `ch` is a character of
  * the monospace face that is about to be measured out in it.

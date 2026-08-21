@@ -111,7 +111,7 @@ describe("presentVerdictToast", () => {
 });
 
 describe("verdictToastTemplate", () => {
-  it("draws the mockup's card for a win with nothing else to say", () => {
+  it("draws the card for a win with nothing else to say", () => {
     const element = parse(verdictToastTemplate(baseData()));
 
     expect(element.className).toBe("verdict");
@@ -178,10 +178,9 @@ describe("verdictToastTemplate", () => {
   });
 
   it("offers a close button on every card, next link or no", () => {
-    // The mockup's own reasoning for `#verdictClose`: the card is dismissible
-    // whatever the outcome, and dismissing it is all the button promises --
-    // restarting the run is the bar's own control, and offering it twice would
-    // be one promise too many.
+    // The card is dismissible whatever the outcome, and dismissing it is all
+    // the button promises -- restarting the run is the bar's own control, and
+    // offering it twice would be one promise too many.
     for (const url of ["", "#level=4"]) {
       const element = parse(verdictToastTemplate(baseData({ url })));
       const close = element.querySelector(".acts .verdict-close");

@@ -1,14 +1,12 @@
 /**
  * The four-way workspace layout and the splitter boundary between its panes.
  *
- * Ported from `design/ui-mockup.html`'s layout script (§A, "Раскладка: четыре
- * режима и один разделитель"): the workspace shows the building and the editor
- * side by side, and a player can put the editor on the right (the shipped
- * default), on the left, or drop to a single pane — code only or building
- * only — for a narrower window or a narrower attention span. One `split`
- * percentage is kept rather than one per mode: "left" and "right" are the same
- * boundary reflected, so switching between them moves the panes without
- * changing how wide either one is.
+ * The workspace shows the building and the editor side by side, and a player
+ * can put the editor on the right (the shipped default), on the left, or drop
+ * to a single pane — code only or building only — for a narrower window or a
+ * narrower attention span. One `split` percentage is kept rather than one per
+ * mode: "left" and "right" are the same boundary reflected, so switching
+ * between them moves the panes without changing how wide either one is.
  *
  * This module is the pure half — arithmetic and storage, no DOM. The half that
  * drags the boundary and builds the pane skeleton is
@@ -27,8 +25,8 @@ export const DEFAULT_LAYOUT_MODE: LayoutMode = "right";
 /**
  * The default share of the workspace's width the first pane gets, in
  * "right" mode: the building. Named `split` rather than e.g. `codeWidth`
- * because a percentage is what the mockup's own `--split-x` custom property
- * and this module's storage both hold, and both panes read the same number.
+ * because a percentage is what the `--split-x` custom property and this
+ * module's storage both hold, and both panes read the same number.
  */
 export const DEFAULT_SPLIT_PERCENT = 62;
 
@@ -150,17 +148,16 @@ export function saveSplitPercent(storage: Storage, percent: number): void {
 /**
  * How far the splitter may be dragged in a workspace of a given width.
  *
- * Ported from the mockup's `splitRange()`: neither pane may be driven under
- * {@link MIN_PANE_WIDTH}, so the usual {@link MIN_SPLIT_PERCENT}/
- * {@link MAX_SPLIT_PERCENT} bounds tighten on a narrow window and relax back
- * to them once the window is wide enough that a bound of its own would matter
- * more.
+ * Neither pane may be driven under {@link MIN_PANE_WIDTH}, so the usual
+ * {@link MIN_SPLIT_PERCENT}/{@link MAX_SPLIT_PERCENT} bounds tighten on a
+ * narrow window and relax back to them once the window is wide enough that a
+ * bound of its own would matter more.
  *
  * @param workspaceWidth - The workspace's current width in pixels. A
  * non-positive value (an unmeasured or detached element, where `clientWidth`
- * reads `0`) is treated as the mockup's own fallback of 1440 — the point of
- * the fallback is to keep the splitter usable before the first real layout,
- * not to describe any particular screen.
+ * reads `0`) falls back to 1440 — the point of the fallback is to keep the
+ * splitter usable before the first real layout, not to describe any particular
+ * screen.
  * @returns `[low, high]`, the narrowest and widest the split may be.
  */
 export function splitRange(workspaceWidth: number): readonly [number, number] {
@@ -184,20 +181,15 @@ export function clampSplitPercent(percent: number, range: readonly [number, numb
 /**
  * The split percentage to keep on screen after a layout mode change.
  *
- * Ported verbatim from the mockup's `setLayout()`, condition and all:
- * `(was === "left") !== (mode === "left") && (was === "right" || was ===
- * "left")`. In words, the boundary is mirrored on *leaving* "left" for
- * anywhere else, and on *entering* "left" from "right" — but not on entering
- * "left" from "code" or "game". That asymmetry looks like it should not be
- * there, and it is kept anyway: "left" and "right" are true mirror images of
- * the same two-pane view, so the percentage stored while in either of them is
+ * The boundary is mirrored on *leaving* "left" for anywhere else, and on
+ * *entering* "left" from "right" — but not on entering "left" from "code" or
+ * "game". That asymmetry looks like a bug and is not: "left" and "right" are
+ * true mirror images of the same two-pane view, so the stored percentage is
  * always in "right"'s terms except while the mode is actually "left", and
  * leaving "left" for any mode — including a single-pane one — converts it
  * back. Entering "left" from a single-pane mode does not convert it because
  * the single-pane mode never touched the split while it was current, so
- * nothing needs undoing. The mockup is the agreed design source for this
- * interaction and has gone through several rounds of hands-on iteration;
- * this is ported to match it exactly, not to relitigate it.
+ * nothing needs undoing.
  *
  * @param percent - The current split percentage.
  * @param previousMode - The mode being left.

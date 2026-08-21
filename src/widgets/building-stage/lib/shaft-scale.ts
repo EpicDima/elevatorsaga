@@ -1,21 +1,19 @@
 /**
  * How much to shrink the real building horizontally to fit the stage.
  *
- * `layoutBuilding()`'s own `shaftWidths` are sized off the mockup's `wanted`
- * formula (`clamp(34, 24 + capacity * 8, 116) + 7`), which has nothing to do
- * with a real elevator's width — the engine draws a car at `capacity * 10`
+ * `layoutBuilding()`'s own `shaftWidths` come from a drawing formula
+ * (`clamp(34, 24 + capacity * 8, 116) + 7`) that has nothing to do with a real
+ * elevator's width — the engine draws a car at `capacity * 10`
  * (`src/game/elevator.ts`'s `width = maxUsers * 10`). `entities/elevator`
  * renders real cars at real coordinates, with real passengers walking to them
- * along the same axis, so shrinking them by the mockup's ratio would put a
- * shaft where nobody is standing. This module computes the one uniform
- * `scaleX` that fits the *real* building into the room the stage has, keeping
- * every car's proportions exactly the engine's own — never remapped to the
- * mockup's curve. See the "Единый глобальный масштаб" decision this widget was
- * built against.
+ * along the same axis, so shrinking them by that formula's ratio would put a
+ * shaft where nobody is standing. This module computes the one uniform `scaleX`
+ * that fits the *real* building into the room the stage has — a single global
+ * scale, keeping every car's proportions exactly the engine's own.
  *
  * The clamp shape below — free space over natural width, floored by whatever
- * keeps the narrowest car readable — is carried over from `layoutBuilding()`'s
- * own horizontal pass. Three things differ. The corridor is not a fixed budget
+ * keeps the narrowest car readable — mirrors `layoutBuilding()`'s own
+ * horizontal pass. Three things differ. The corridor is not a fixed budget
  * subtracted before the fit (`layoutBuilding()`'s `CORRIDOR`), it is part of
  * the span being scaled: the engine puts the first car at world x 200 and
  * spawns passengers at 105-145, all on one axis, so scaling the shafts without
@@ -35,17 +33,16 @@
  * The narrowest a car may be drawn, in pixels — unless it is already narrower
  * than this at full size, in which case it is never shrunk at all.
  *
- * `layout-building.ts`'s own `MIN_SHAFT` cannot be reused here, and reusing it
- * was a bug worth naming: 46 is a floor on the mockup's *drawn* shaft widths
- * (`clamp(34, 24 + capacity * 8, 116) + 7`, so 66px at capacity 4), while a
- * real car is `capacity * 10` — 40px at capacity 4, which is the capacity most
- * of the shipped levels use. A floor of 46 on a car that is 40 wide asks
- * for a scale above 1, which clamps the whole building to 1 and quietly turned
- * the horizontal fit off everywhere: a building 10% too wide scrolled sideways
- * rather than shrinking 10%.
+ * `layout-building.ts`'s own `MIN_SHAFT` must not be reused here: 46 is a floor
+ * on *drawn* shaft widths (`clamp(34, 24 + capacity * 8, 116) + 7`, so 66px at
+ * capacity 4), while a real car is `capacity * 10` — 40px at capacity 4, which
+ * is the capacity most of the shipped levels use. A floor of 46 on a car that
+ * is 40 wide asks for a scale above 1, which clamps the whole building to 1 and
+ * turns the horizontal fit off everywhere: a building 10% too wide would scroll
+ * sideways rather than shrink 10%.
  *
- * Thirty is where the mockup's own compact car stops working: `.car-top` draws
- * an arrow, a floor number and a second arrow between 4px paddings, which at
+ * Thirty is where the compact car stops working: `.car-top` draws an arrow, a
+ * floor number and a second arrow between 4px paddings, which at
  * `data-density="compact"` is 9 + 10 + 9 + 8 = 36px of content in a car whose
  * padding box is the shaft's width less 12 — so a 30px car is the last one
  * whose top bar still reads as a top bar rather than a smear.
@@ -82,12 +79,11 @@ export const MAX_ZOOM = 1.5;
 /**
  * How much room is left to the right of the rightmost shaft, in pixels.
  *
- * The mockup's own trailing margin is 22px, and 22px is all a drawing needs.
- * A delivered passenger here walks another 100 world units past the seat they
- * rode in before the simulation removes them (`EXIT_WALK_DISTANCE` in
- * `src/game/user.ts`), and `.building` clips its own overflow, so at 22px they
- * would be sliced in half by the building's edge a fifth of the way into that
- * walk. This much room, together with the fade `.user.leaving` carries, gets
+ * A drawing would need 22px. A delivered passenger here walks another 100 world
+ * units past the seat they rode in before the simulation removes them
+ * (`EXIT_WALK_DISTANCE` in `src/game/user.ts`), and `.building` clips its own
+ * overflow, so at 22px they would be sliced in half by the building's edge a
+ * fifth of the way into that walk. This much room, together with the fade `.user.leaving` carries, gets
  * them out of sight before the edge does it for them; reserving the whole
  * 100px would be a wide empty strip down the side of every building instead.
  */
@@ -98,12 +94,11 @@ export const TRAILING_ROOM = 44;
  * each car's own shaft, per side.
  *
  * `src/game/world.ts` advances `currentX` by `ELEVATOR_SPACING + width` for
- * every elevator, so between two neighbouring cars there are exactly 20 world
- * units of nothing. The mockup draws a shaft as a wall around its car with an
- * order strip inside the left wall, which is room the car itself does not have
- * — so it is taken from that gap: 8 units either side leaves 4 between two
- * shafts, which is the seam the mockup gets from its `gap` and the last thing
- * that still reads as two separate shafts rather than one wide one.
+ * every elevator, so between two neighboring cars there are exactly 20 world
+ * units of nothing. A shaft is a wall around its car with an order strip inside
+ * the left wall, which is room the car itself does not have — so it is taken
+ * from that gap: 8 units either side leaves 4 between two shafts, the narrowest
+ * seam that still reads as two separate shafts rather than one wide one.
  */
 const SHAFT_PAD_WORLD = 8;
 

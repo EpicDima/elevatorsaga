@@ -127,7 +127,7 @@ describe("presentBuildingStage", () => {
     document.body.replaceChildren();
   });
 
-  it("builds the mockup's own stage tree, one row and one band per floor", () => {
+  it("builds the stage tree, one row and one band per floor", () => {
     const world = createWorld({ floorCount: 3, elevatorCount: 2 });
     const { parent } = mount(world, 800, 400);
 

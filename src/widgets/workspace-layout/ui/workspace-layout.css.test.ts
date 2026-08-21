@@ -96,10 +96,10 @@ describe("the game pane's column", () => {
 
   it("states the card's width once, with no threshold anywhere", () => {
     // 640px is the width of the widest thing a lesson holds: 68 characters of
-    // 12px monospace in the longest of the eight answers, inside that block's
-    // padding, `.tutorialsolution`'s margins and the card's own. The
-    // arithmetic is written out at the rule; what matters here is that it is
-    // one number at every width of pane, and centred rather than stretched.
+    // 12px monospace in the longest answer, inside that block's padding,
+    // `.tutorialsolution`'s margins and the card's own. The arithmetic is
+    // written out at the rule; what matters here is that it is one number at
+    // every width of pane, and centred rather than stretched.
     const card = ruleBody(".stagearea > .tutorial");
     expect(declaration(card, "inline-size", ".stagearea > .tutorial")).toBe(
       "min(640px, 100% - 32px)",
@@ -111,13 +111,11 @@ describe("the game pane's column", () => {
     // a step whose prose is short would draw a narrower frame than the step
     // before it, and opening a hint would widen the card under the cursor.
     expect(card, "the card is sized by its own content again").not.toMatch(/^\s*max-inline-size/m);
-    // This port had a container query that changed the layout below 740px of
-    // pane -- the mockup's own `@media (max-width: 1180px)`, measured against
-    // the pane rather than the window -- and it is gone on the player's
-    // instruction. The reason outlives the shape it was deleted from: at the
+    // No container query changing the layout below some width of pane: at the
     // shipped 62% split a 740px pane is a 1213px window, so a window merely a
     // little small, a browser at 125% zoom or a splitter nudged towards the
-    // editor each redrew the page as something else. One shape at every width.
+    // editor would each redraw the page as something else. One shape at every
+    // width.
     expect(styleSource).not.toMatch(/container: stage\b/);
     expect(styleSource).not.toMatch(/@container stage\b/);
   });

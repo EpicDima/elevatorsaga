@@ -3,18 +3,15 @@
  * shaft is, and whether a cabin is roomy enough to draw its riders as
  * figures rather than a bare count.
  *
- * Ported from `design/ui-mockup.html`'s `layoutBuilding()` (§"Геометрия
- * здания"): the building is sized to whatever room the stage gives it, not
- * the other way round. A tall building (many floors, or floors weighted
- * taller than others) compresses its floors down to {@link MIN_FLOOR} before
- * the stage is allowed to scroll; a wide building (many high-capacity
- * elevators) compresses its shafts down to {@link MIN_SHAFT} the same way.
- * Below either floor the stage scrolls instead of compressing further — see
- * the doc comment on {@link MIN_FLOOR} for why that floor sits where it does.
+ * The building is sized to whatever room the stage gives it, not the other way
+ * round. A tall building (many floors, or floors weighted taller than others)
+ * compresses its floors down to {@link MIN_FLOOR} before the stage is allowed
+ * to scroll; a wide building (many high-capacity elevators) compresses its
+ * shafts down to {@link MIN_SHAFT} the same way. Below either floor the stage
+ * scrolls instead of compressing further.
  *
- * This module is the pure half — arithmetic only, no DOM reads or writes.
- * The half that measures the stage and paints the result is the DOM-wiring
- * step in `widgets/building-stage`, which composes this and is mounted live.
+ * This module is the pure half — arithmetic only, no DOM reads or writes. The
+ * half that measures the stage and paints the result is `ui/building-stage.ts`.
  */
 
 /**
@@ -56,8 +53,8 @@ export interface BuildingLayoutInput {
   readonly stageWidth: number;
   /**
    * The floor-number column's measured width in pixels
-   * (`levels.offsetWidth`). `0` (an unmeasured or detached element) is
-   * treated as the mockup's own fallback of `84`.
+   * (`levels.offsetWidth`). `0` — an unmeasured or detached element — falls
+   * back to `84`, the width `.levels` is styled at.
    */
   readonly levelsWidth: number;
   /**
@@ -115,11 +112,6 @@ function clamp(low: number, value: number, high: number): number {
 
 /**
  * Computes the building's geometry for the room it has been given.
- *
- * Ported verbatim from the mockup's `layoutBuilding()`: every constant,
- * clamp and formula below is copied from that function, not re-derived, so
- * this is byte-for-byte the same building the mockup draws for the same
- * inputs.
  *
  * @param input - The stage's dimensions and the world's floor weights and
  * elevator capacities.
