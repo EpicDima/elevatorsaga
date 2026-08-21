@@ -59,9 +59,10 @@
  * already exist above holding different values: an unprefixed redeclaration
  * here would silently win the cascade for every selector reading them.
  *
- * `color-scheme` is not set by either block below: unlike a custom property it
- * repaints native form controls and scrollbars the instant it is declared, so
- * `switch-theme` owns it and keeps it on the active theme.
+ * `color-scheme` is not set by either block below but in each page's own
+ * `<head>`, keyed off the same `data-theme`: what it governs -- the scrollbars
+ * and the native controls the engine draws itself -- is on screen from the
+ * first paint, which is before this file has arrived.
  */
 :root {
   /* Neutral scale, background to text. */

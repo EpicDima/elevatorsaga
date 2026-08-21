@@ -3,6 +3,22 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <!--
+      What the page is painted in before its stylesheet arrives: without this
+      the browser paints its own white while the bundle is on its way, and the
+      whole load is a white flash. The colours are --ds-bg and --ds-text, dark
+      only -- this page carries no theme switch, so nothing ever sets
+      `<html data-theme>` on it. src/page.test.ts holds them to the palette.
+    -->
+    <style>
+      html {
+        background: #131519;
+        color: #e7e9ec;
+        color-scheme: dark;
+      }
+    </style>
+
     <title>Elevator Saga - help and API documentation</title>
     <meta name="description" content="Help and API documentation for Elevator Saga." />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />

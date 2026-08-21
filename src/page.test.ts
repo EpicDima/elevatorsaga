@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { runInNewContext } from "node:vm";
 
 import { afterEach, describe, expect, it } from "vitest";
 
@@ -24,6 +25,8 @@ import {
   floorMembers,
   globalCompletions,
 } from "./ui/completions.ts";
+import { readTheme, resolveTheme, THEME_STORAGE_KEY } from "#features/switch-theme/model/theme.ts";
+import { DARK_PALETTE, declaration, LIGHT_PALETTE, themed } from "#shared/styles/test-helpers.ts";
 import { createIcon } from "#shared/ui/icon.ts";
 import { buildAppBarSkeleton } from "#widgets/app-bar/ui/app-bar.ts";
 
@@ -88,12 +91,138 @@ function thirdPartyResources(document: Document): Element[] {
   );
 }
 
+/**
+ * The rules a page's own `<head>` paints with before the stylesheet arrives, as
+ * `it.each` rows: the `color-scheme` each declares, the selector it is written
+ * under, and the palette its two colours have to match.
+ */
+const FIRST_PAINT: readonly [
+  scheme: string,
+  selector: string,
+  palette: ReadonlyMap<string, string>,
+][] = [
+  ["dark", "html", DARK_PALETTE],
+  ["light", 'html[data-theme="light"]', LIGHT_PALETTE],
+];
+
+/**
+ * One rule out of a page's own `<head>` stylesheet.
+ *
+ * @param document - The parsed page.
+ * @param selector - The rule's selector, exactly as the page spells it.
+ * @returns The rule's body, braces excluded.
+ */
+function firstPaintRule(document: Document, selector: string): string {
+  const source = document.querySelector("head style")?.textContent ?? "";
+  const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const rules = [...source.matchAll(new RegExp(`^\\s*${escaped}\\s*\\{([^}]*)\\}`, "gm"))];
+  expect(rules.length, `${selector} is not one rule of that page's head`).toBe(1);
+  return rules[0]?.[1] ?? "";
+}
+
+/**
+ * A store holding one theme choice and nothing else.
+ *
+ * @param stored - What it answers under the theme key; null for a first visit.
+ * @returns The store, for `readTheme` and for the head script alike.
+ */
+function storageHolding(stored: string | null): Storage {
+  return {
+    length: stored === null ? 0 : 1,
+    clear: () => undefined,
+    getItem: (key: string) => (key === THEME_STORAGE_KEY ? stored : null),
+    key: () => null,
+    removeItem: () => undefined,
+    setItem: () => undefined,
+  };
+}
+
+/**
+ * The theme index.html's head script settles on, run the way a browser runs
+ * it: as a script, against globals of the caller's choosing.
+ *
+ * @param storage - What `localStorage` answers.
+ * @param prefersDark - What the system's own colour preference says.
+ * @returns The `data-theme` it writes onto `<html>`.
+ */
+function firstPaintTheme(storage: Storage, prefersDark: boolean): string {
+  const documentElement = { dataset: {} as Record<string, string> };
+  runInNewContext(page.querySelector("head script:not([src])")?.textContent ?? "", {
+    localStorage: storage,
+    matchMedia: (query: string) => {
+      expect(query).toBe("(prefers-color-scheme: dark)");
+      return { matches: prefersDark };
+    },
+    document: { documentElement },
+  });
+  return documentElement.dataset["theme"] ?? "";
+}
+
 describe("index.html", () => {
-  it("is a module entry, with no other scripts", () => {
+  it("is a module entry, ahead of it the one script that has to beat the paint", () => {
     const scripts = [...page.querySelectorAll("script")];
     expect(scripts.map((script) => [script.type, script.getAttribute("src")])).toEqual([
+      // The theme bootstrap in the head: no `src` and no `type`, because
+      // either one defers it past the first paint, which is the whole of what
+      // it is for.
+      ["", null],
       ["module", "/src/main.ts"],
     ]);
+  });
+
+  it.each(FIRST_PAINT)(
+    "paints the page in the %s palette before the stylesheet",
+    (scheme, selector, palette) => {
+      // The colours are written out rather than read from a custom property:
+      // nothing declares one until src/styles/index.css arrives, which is after
+      // the paint this rule exists for. So they are checked against the palette
+      // here instead, and cannot quietly drift from it.
+      const body = firstPaintRule(page, selector);
+      expect(declaration(body, "background", selector)).toBe(themed(palette, "ds-bg"));
+      expect(declaration(body, "color", selector)).toBe(themed(palette, "ds-text"));
+      expect(declaration(body, "color-scheme", selector)).toBe(scheme);
+    },
+  );
+
+  it.each([
+    ["nothing remembered", null],
+    ["the system followed by choice", "system"],
+    ["light pinned", "light"],
+    ["dark pinned", "dark"],
+    ["a choice this page never wrote", "sepia"],
+  ])("opens on the theme the switch settles on, with %s", (_case, stored) => {
+    // The head script is a second implementation of readTheme + resolveTheme,
+    // in a place a module cannot reach: it runs before the first paint, and
+    // anything the bundle brings runs after it. What keeps the two from
+    // parting company is this -- the same answer for every stored value, in
+    // both system preferences.
+    for (const prefersDark of [true, false]) {
+      const storage = storageHolding(stored);
+      expect(firstPaintTheme(storage, prefersDark)).toBe(
+        resolveTheme(readTheme(storage), prefersDark),
+      );
+    }
+  });
+
+  it("still opens on a theme when the store refuses to be read", () => {
+    // Safari in a private window throws on the merest look at localStorage. A
+    // script that dies here leaves `<html>` without a data-theme, which is the
+    // dark default -- wrong for half of those players, and wrong for the whole
+    // load rather than for a frame of it.
+    const refuse = (): never => {
+      throw new DOMException("The operation is insecure.", "SecurityError");
+    };
+    const storage: Storage = {
+      length: 0,
+      clear: refuse,
+      getItem: refuse,
+      key: refuse,
+      removeItem: refuse,
+      setItem: refuse,
+    };
+
+    expect(firstPaintTheme(storage, true)).toBe("dark");
+    expect(firstPaintTheme(storage, false)).toBe("light");
   });
 
   it.each([
@@ -392,6 +521,18 @@ describe.each(DOCUMENTATION_PAGES)("$file", (reference) => {
     expect(scripts.map((script) => [script.type, script.getAttribute("src")])).toEqual([
       ["module", "/src/docs.ts"],
     ]);
+  });
+
+  it("paints itself dark before the stylesheet arrives, having no other theme", () => {
+    // Nothing here writes `<html data-theme>` -- the theme switch is the
+    // game's, and this page carries none -- so the one rule it needs is the
+    // dark default's, and it is checked against the palette because a custom
+    // property is unreadable this early. Without it the load is a white flash.
+    const body = firstPaintRule(docs, "html");
+    expect(declaration(body, "background", "html")).toBe(themed(DARK_PALETTE, "ds-bg"));
+    expect(declaration(body, "color", "html")).toBe(themed(DARK_PALETTE, "ds-text"));
+    expect(declaration(body, "color-scheme", "html")).toBe("dark");
+    expect(docs.querySelector("head style")?.textContent).not.toContain("data-theme");
   });
 
   it("keeps the #docs anchor the game links to", () => {

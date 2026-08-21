@@ -3,6 +3,22 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <!--
+      Чем страница закрашена до того, как приедет её таблица стилей: без этого
+      браузер красит своим белым, пока едет бандл, и вся загрузка выглядит как
+      белая вспышка. Цвета — это --ds-bg и --ds-text, только тёмные:
+      переключателя темы на этой странице нет, а значит `<html data-theme>`
+      ей никто не ставит. src/page.test.ts сверяет их с палитрой.
+    -->
+    <style>
+      html {
+        background: #131519;
+        color: #e7e9ec;
+        color-scheme: dark;
+      }
+    </style>
+
     <title>Elevator Saga — справка и документация по API</title>
     <meta name="description" content="Справка и документация по API для Elevator Saga." />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />

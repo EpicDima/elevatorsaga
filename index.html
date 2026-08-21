@@ -3,6 +3,57 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <!--
+      What the page is painted in before its stylesheet arrives, and which of
+      the two themes that is.
+
+      Every other colour comes from src/styles/index.css, which the bundle
+      brings; until it lands the browser paints its own white, and a white page
+      flashing past is what a player sees on every load. The colours below are
+      --ds-bg and --ds-text of each theme, written out because a custom
+      property cannot be read before the file that declares it -- src/page.test.ts
+      holds them to the palette's own values. `color-scheme` is the same answer
+      for what the engine draws itself: the scrollbars and the language
+      `<select>`, which are otherwise light chrome on a dark page.
+
+      The script chooses between the two the way src/features/switch-theme
+      does -- the choice remembered in localStorage, and the system's
+      preference when it is "system" or missing -- and writes the same
+      `<html data-theme>` that presentThemeSwitch writes later. Inline and
+      blocking on purpose: a module script runs after the first paint, so
+      until this was here everyone on the light theme watched the dark default
+      go past first.
+    -->
+    <style>
+      html {
+        background: #131519;
+        color: #e7e9ec;
+        color-scheme: dark;
+      }
+
+      html[data-theme="light"] {
+        background: #f3f1ec;
+        color: #1e2227;
+        color-scheme: light;
+      }
+    </style>
+    <script>
+      (() => {
+        let stored = null;
+        try {
+          stored = localStorage.getItem("develevateTheme");
+        } catch {
+          // The same trade readTheme makes: a store that cannot be read is
+          // "nothing chosen yet", not an error worth stopping the page for.
+        }
+        const dark =
+          stored === "dark" ||
+          (stored !== "light" && matchMedia("(prefers-color-scheme: dark)").matches);
+        document.documentElement.dataset.theme = dark ? "dark" : "light";
+      })();
+    </script>
+
     <!--
       data-i18n names the message an element's words come from, and
       data-i18n-attr the messages its attributes come from; src/ui/localise-page.ts
