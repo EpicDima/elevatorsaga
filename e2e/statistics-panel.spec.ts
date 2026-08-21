@@ -2,11 +2,11 @@
  * The statistics strip is drawn whole, whatever building stands above it.
  *
  * The figures are the last row of the game pane, below the building and the
- * full width of it -- `design/ui-mockup.html`'s own `.stats` (§8). What decides
- * whether all thirteen of them are on screen is which row of that column gives
- * way when the pane is too short for every one of them, and the answer has to
- * be the building: it is the only box in the column with somewhere to put a
- * shortfall, because `.stage` scrolls. Left to the browser's own
+ * full width of it. What decides whether every one of them is on screen is
+ * which row of that column gives way when the pane is too short for all of
+ * them, and the answer has to be the building: it is the only box in the column
+ * with somewhere to put a shortfall, because `.stage` scrolls. Left to the
+ * browser's own
  * `flex: 0 1 auto` the strip is squeezed instead, and the tiles at the foot of
  * it are cut off by `body.app`'s `overflow: hidden` with nothing in the markup
  * or in the panel's own rules objecting. That makes it a browser question

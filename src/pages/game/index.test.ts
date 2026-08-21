@@ -3291,11 +3291,11 @@ describe("the language the interface comes out in", () => {
 });
 
 describe("controlsTemplate", () => {
-  it("composes the two features in the order the mockup reads them", () => {
+  it("composes the two features in the order they are read in", () => {
     // `.runbox` then `.speed`: what the player came for, then the setting on
     // how to watch it. Two elements rather than one wrapper each, because the
-    // stylesheet gives `.controls` the app bar's own gap and the pair then
-    // sits exactly where the mockup's own children of `.appbar` do.
+    // stylesheet gives `.controls` the app bar's own gap, which then spaces the
+    // pair like every other child of `.appbar`.
     const fragment = renderFragment(controlsTemplate());
 
     expect([...fragment.children].map((child) => child.className)).toEqual(["runbox", "speed"]);

@@ -59,9 +59,8 @@ test("keeps the player's program across a reload", async ({ page }) => {
 
   // The key is level 1's first slot, the buffer the default route opens.
   // Asserted exactly, not merely "something was stored". Polled rather than
-  // read once: nothing on screen confirms a save any more -- the mockup draws
-  // no status line under the editor and the confirmation went with it -- so
-  // storage itself is what says the write landed.
+  // read once: nothing on screen confirms a save -- there is no status line
+  // under the editor -- so storage itself is what says the write landed.
   await expect.poll(() => storedCode(page)).toBe(PROGRAM);
 
   await page.reload();
