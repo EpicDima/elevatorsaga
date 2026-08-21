@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import pageSource from "../../index.html?raw";
 import { EN_MESSAGES, setLocale, DEFAULT_LOCALE } from "../i18n/index.ts";
 
-import { localisePage, ATTRIBUTE_KEY_ATTRIBUTE, TEXT_KEY_ATTRIBUTE } from "./localise-page.ts";
+import { localizePage, ATTRIBUTE_KEY_ATTRIBUTE, TEXT_KEY_ATTRIBUTE } from "./localize-page.ts";
 
 /**
  * User agent strings for the two answers `modifierKeyLabel` can give.
@@ -141,13 +141,13 @@ describe("what index.html names", () => {
   });
 });
 
-describe("localisePage", () => {
+describe("localizePage", () => {
   it("leaves the page exactly as it shipped, in the language it shipped in", () => {
     const before = namedMessages(page).map(({ element, name }) =>
       name === null ? markupOf(element.innerHTML) : element.getAttribute(name),
     );
 
-    localisePage(page, USER_AGENTS.windows);
+    localizePage(page, USER_AGENTS.windows);
 
     const after = namedMessages(page).map(({ element, name }) =>
       name === null ? markupOf(element.innerHTML) : element.getAttribute(name),
@@ -157,7 +157,7 @@ describe("localisePage", () => {
   });
 
   it("does not touch the slots the presenters fill", () => {
-    localisePage(page, USER_AGENTS.windows);
+    localizePage(page, USER_AGENTS.windows);
 
     // The building and the statistics are drawn by widgets that mount into
     // these two containers at runtime. Localising a label must not clear the
@@ -169,7 +169,7 @@ describe("localisePage", () => {
   it("leaves the noscript message in English, where it cannot be reached", () => {
     setLocale("ru");
 
-    localisePage(page, USER_AGENTS.mac);
+    localizePage(page, USER_AGENTS.mac);
     setLocale(DEFAULT_LOCALE);
 
     // The one thing on the page that stays as it shipped, and the reason it
@@ -196,7 +196,7 @@ describe("localisePage", () => {
     it("writes every word of the shell in Russian", () => {
       setLocale("ru");
 
-      localisePage(page, USER_AGENTS.windows);
+      localizePage(page, USER_AGENTS.windows);
 
       expect(page.title).toBe("Elevator Saga — игра про программирование лифтов");
       expect(page.documentElement.lang).toBe("ru");
@@ -218,7 +218,7 @@ describe("localisePage", () => {
     it("names the things a screen reader announces in Russian too", () => {
       setLocale("ru");
 
-      localisePage(page, USER_AGENTS.windows);
+      localizePage(page, USER_AGENTS.windows);
 
       expect(page.querySelector(".world")?.getAttribute("aria-label")).toBe("Здание");
       expect(page.querySelector(".statscontainer")?.getAttribute("aria-label")).toBe(
@@ -232,7 +232,7 @@ describe("localisePage", () => {
     it("tells a crawler what the page is, in the language it is being read in", () => {
       setLocale("ru");
 
-      localisePage(page, USER_AGENTS.windows);
+      localizePage(page, USER_AGENTS.windows);
 
       const content = (property: string): string | null | undefined =>
         page.querySelector(`meta[property="${property}"]`)?.getAttribute("content");
@@ -267,7 +267,7 @@ describe("a page shell asking for something the catalog cannot answer", () => {
       <p id="parameterised" ${TEXT_KEY_ATTRIBUTE}="game.elevator.label">Elevator 1</p>
     `);
 
-    localisePage(scrap, USER_AGENTS.windows);
+    localizePage(scrap, USER_AGENTS.windows);
 
     expect(textOf(scrap.querySelector("#missing"))).toBe("Shipped English");
     expect(textOf(scrap.querySelector("#parameterised"))).toBe("Elevator 1");
@@ -285,7 +285,7 @@ describe("a page shell asking for something the catalog cannot answer", () => {
       <div id="missing" ${ATTRIBUTE_KEY_ATTRIBUTE}="aria-label:page.nonesuch" aria-label="Building"></div>
     `);
 
-    localisePage(scrap, USER_AGENTS.windows);
+    localizePage(scrap, USER_AGENTS.windows);
 
     expect(scrap.querySelector("#unnamed")?.getAttribute("aria-label")).toBe("Building");
     expect(scrap.querySelector("#missing")?.getAttribute("aria-label")).toBe("Building");
@@ -303,7 +303,7 @@ describe("a page shell asking for something the catalog cannot answer", () => {
       `<div id="both" ${ATTRIBUTE_KEY_ATTRIBUTE}="aria-label:page.world.label, title:page.stats.movesTitle"></div>`,
     );
 
-    localisePage(scrap, USER_AGENTS.windows);
+    localizePage(scrap, USER_AGENTS.windows);
 
     const element = scrap.querySelector("#both");
     expect(element?.getAttribute("aria-label")).toBe("Building");
@@ -318,7 +318,7 @@ describe("a page shell asking for something the catalog cannot answer", () => {
     // brings one. The reference page's shortcut paragraph does, and it lives in
     // `src/i18n/docs-en.ts`, which nothing but `src/page.test.ts` imports. The
     // guarantee is the shell's either way, and is why the relabelling is the
-    // last thing `localisePage` does: a message written with `innerHTML` can
+    // last thing `localizePage` does: a message written with `innerHTML` can
     // carry a `<kbd data-mod-key>`, and writing it throws away the label, which
     // would leave a Mac player told to press a key their keyboard does not have.
     const scrap = shell(`
@@ -326,7 +326,7 @@ describe("a page shell asking for something the catalog cannot answer", () => {
       <p><kbd data-mod-key>Ctrl</kbd>+<kbd>Enter</kbd>, <kbd data-mod-key>Ctrl</kbd>+<kbd>S</kbd></p>
     `);
 
-    localisePage(scrap, USER_AGENTS.mac);
+    localizePage(scrap, USER_AGENTS.mac);
 
     expect([...scrap.querySelectorAll("kbd[data-mod-key]")].map((key) => textOf(key))).toEqual([
       "⌘",

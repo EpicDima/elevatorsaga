@@ -58,7 +58,7 @@ import { playerApiCompletionSource } from "./completions.ts";
 import { defaultCode } from "./default-code.ts";
 import { locateCodeError } from "./error-location.ts";
 import type { CodeErrorLocation } from "./error-location.ts";
-import { localiseStarterCode } from "./starter-code.ts";
+import { localizeStarterCode } from "./starter-code.ts";
 import { DEFAULT_CODE_SLOT } from "#features/manage-code-slots/model/code-slots.ts";
 import type { CodeSlot } from "#features/manage-code-slots/model/code-slots.ts";
 
@@ -344,7 +344,7 @@ interface EditorBuffer {
    * program is a translated string and the language can change under an open
    * buffer. The player's own buffer renders its message on each read; the two
    * that are handed a program at open time put it through
-   * {@link localiseStarterCode}, which answers for the language on screen now
+   * {@link localizeStarterCode}, which answers for the language on screen now
    * rather than the one the level was opened in.
    */
   readonly starterCode: string;
@@ -418,7 +418,7 @@ function namedLevelBuffer(levelId: string, starterCode: string): EditorBuffer {
     codeKey: `${TUTORIAL_CODE_KEY_PREFIX}${levelId}`,
     backupKey: `${TUTORIAL_BACKUP_KEY_PREFIX}${levelId}`,
     get starterCode(): string {
-      return localiseStarterCode(starterCode);
+      return localizeStarterCode(starterCode);
     },
     writesStarterOnOpen: true,
   };
@@ -439,7 +439,7 @@ function levelBuffer(levelIndex: number, slot: CodeSlot, starterCode: string): E
     codeKey: levelCodeKey(levelIndex, slot),
     backupKey: levelBackupKey(levelIndex, slot),
     get starterCode(): string {
-      return localiseStarterCode(starterCode);
+      return localizeStarterCode(starterCode);
     },
     writesStarterOnOpen: true,
   };
@@ -513,7 +513,7 @@ export class CodeEditor extends Observable<CodeEditorEvents> {
     const existingCode = this.#read(this.#buffer.codeKey);
     const initialCode =
       existingCode.state === "text"
-        ? localiseStarterCode(existingCode.text)
+        ? localizeStarterCode(existingCode.text)
         : this.#buffer.starterCode;
     this.#view = createView(
       {
@@ -841,13 +841,13 @@ export class CodeEditor extends Observable<CodeEditorEvents> {
     this.#buffer = next;
     const stored = this.#read(next.codeKey);
     if (stored.state === "text") {
-      // Through `localiseStarterCode` because this text may be a starting point
+      // Through `localizeStarterCode` because this text may be a starting point
       // this editor wrote here in another language, on another day: every buffer
       // but the player's own stores its starter on the way in, and a level whose
       // stored copy is Russian must not be the one region of an English page
       // that says so. A program the player wrote comes back exactly as they left
       // it, which is the whole distinction that function draws.
-      this.#swapDocument(localiseStarterCode(stored.text));
+      this.#swapDocument(localizeStarterCode(stored.text));
     } else {
       // Nothing to show but the starting point. Whether it may also be *written*
       // depends on which kind of nothing this is: an empty entry is a level
@@ -1041,19 +1041,19 @@ export class CodeEditor extends Observable<CodeEditorEvents> {
    * usually the player's, and the whole game is built on never replacing that.
    * So the question asked is narrower — is this text a program the game itself
    * wrote? — and only text that answers yes is replaced. See
-   * {@link localiseStarterCode} for why that is asked of the text rather than
+   * {@link localizeStarterCode} for why that is asked of the text rather than
    * tracked as a flag.
    *
    * Storage is deliberately left alone, though it may well be holding the same
    * program in the old language. Nothing reads it without going through
-   * {@link localiseStarterCode} first, so the stored copy's language is
+   * {@link localizeStarterCode} first, so the stored copy's language is
    * invisible, and writing here would mean a language change spending the
    * player's storage quota — and announcing a refusal — for a change nobody
    * could see.
    */
-  relocalise(): void {
+  relocalize(): void {
     const code = this.getCode();
-    const localised = localiseStarterCode(code);
+    const localised = localizeStarterCode(code);
     if (localised === code) {
       return;
     }

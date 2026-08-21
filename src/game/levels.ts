@@ -329,10 +329,10 @@ export interface SandboxOptions {
  * sentence rather than a loop. Everything else here is a counted phrase, which
  * needs its noun agreed with the count and so has to be a message.
  *
- * @param value - The number to emphasise.
+ * @param value - The number to emphasize.
  * @returns The markup, ready to interpolate into a description.
  */
-function emphasise(value: number): string {
+function emphasize(value: number): string {
   return `<span class='emphasis-color'>${format(exact(value))}</span>`;
 }
 
@@ -380,7 +380,7 @@ export function requireSandbox(options: SandboxOptions): LevelCondition {
         // nine is written. The conjunction the locale supplies — «6 и 9»,
         // "6 and 9" — cannot be read as one number, and reads better in
         // English too.
-        capacities: formatList(options.elevatorCapacities.map((capacity) => emphasise(capacity))),
+        capacities: formatList(options.elevatorCapacities.map((capacity) => emphasize(capacity))),
         spawnRate: t("level.sandbox.spawnRate.html", { count: exact(options.spawnRate) }),
       });
     },

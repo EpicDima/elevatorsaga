@@ -548,7 +548,7 @@ describe("App level outcome", () => {
     app.world?.trigger("stats_changed");
 
     setLocale("ru");
-    app.relocalise();
+    app.relocalize();
 
     // The gaps before both per-cent signs are U+00A0, written as escapes so
     // that a reader can tell: CLDR's Russian percent pattern is unbreakable
@@ -1214,7 +1214,7 @@ describe("App learning track", () => {
     app.startTutorial(0);
 
     setLocale("ru");
-    app.relocalise();
+    app.relocalize();
 
     expect(taskName(elements)).toBe("Урок 1");
   });
@@ -1341,7 +1341,7 @@ describe("App learning track", () => {
   });
 
   it("redraws a level's verdict in the new language, link and all", () => {
-    // `relocalise` draws the remembered outcome again, and it has to arrive back
+    // `relocalize` draws the remembered outcome again, and it has to arrive back
     // at the same three decisions: the level's overlay rather than a level's,
     // the address of the next level rather than the next level, and the words
     // the template does not have. Drawing it from the outcome alone is what
@@ -1353,7 +1353,7 @@ describe("App learning track", () => {
     endRun(app, true);
 
     setLocale("ru");
-    app.relocalise();
+    app.relocalize();
 
     expect(requireElement(".verdict h3", elements.feedback).textContent).toBe("Получилось!");
     const link = requireElement(".verdict a", elements.feedback);
@@ -1437,7 +1437,7 @@ describe("App learning track", () => {
       app.startTutorial(0);
 
       setLocale("ru");
-      app.relocalise();
+      app.relocalize();
 
       expect(drawnLevelIndex(elements)).toBe("0");
       expect(requireElement(".tutorialtitle", elements.tutorial).textContent).toBe(
@@ -1868,7 +1868,7 @@ describe("App Skyscraper block", () => {
       app.startSkyscraperLevel(CARD_LEVEL);
 
       setLocale("ru");
-      app.relocalise();
+      app.relocalize();
 
       expect(requireElement(".briefingtitle", elements.tutorial).textContent).toBe(
         "Все начинают в холле",
@@ -2288,16 +2288,16 @@ describe("App seed", () => {
   it("tells that caller again on a language change, even when the seed itself did not change", () => {
     // `seedPanelTemplate` calls `t(...)` fresh on every render, so a caller
     // holding stale markup is stale in the same way the rest of the level
-    // bar would be without `relocalise`'s own call to `#drawLevelBar`.
+    // bar would be without `relocalize`'s own call to `#drawLevelBar`.
     const seen: (SeedLinkData | null)[] = [];
     const { app } = setUp(INERT_CODE, new MemoryStorage(), (seed) => seen.push(seed));
     app.handleRoute(...routeFor("#level=1,seed=issue-61"));
-    const callsBeforeRelocalise = seen.length;
+    const callsBeforeRelocalize = seen.length;
 
     setLocale("ru");
-    app.relocalise();
+    app.relocalize();
 
-    expect(seen.length).toBeGreaterThan(callsBeforeRelocalise);
+    expect(seen.length).toBeGreaterThan(callsBeforeRelocalize);
     expect(seen.at(-1)?.seed).toBe("issue-61");
   });
 });
@@ -2672,7 +2672,7 @@ describe("App code status", () => {
   });
 });
 
-describe("App.relocalise", () => {
+describe("App.relocalize", () => {
   // Same reason as the outcome specs above: a failed assertion must not leave
   // the rest of the file in Russian.
   afterEach(() => {
@@ -2686,11 +2686,11 @@ describe("App.relocalise", () => {
     expect(levelBlockCaption(elements)).toBe("Levels");
 
     setLocale("ru");
-    app.relocalise();
+    app.relocalize();
 
     // The description is the fixture's own markup and stays English; every
     // control around it does not. The level switcher redraws its tile grid
-    // from scratch on every update, so the block from before relocalise is
+    // from scratch on every update, so the block from before relocalize is
     // gone -- looked up again rather than reused.
     expect(goalDescription(elements)).toBe("Level one");
     expect(requireElement(".startstop", elements.controls).textContent).toBe("Запустить");
@@ -2698,7 +2698,7 @@ describe("App.relocalise", () => {
   });
 
   it("writes the statistics the way a reader of the new language writes numbers", () => {
-    // The labels beside these figures are shell and `localisePage` has already
+    // The labels beside these figures are shell and `localizePage` has already
     // dealt with them. The figures themselves go through `Intl`, and they are
     // written only when the world says they changed -- so if the language change
     // did not make the world say so, they would sit here in English until the
@@ -2715,7 +2715,7 @@ describe("App.relocalise", () => {
     expect(statValue(elements, "elapsedTime")).toBe("2,675s");
 
     setLocale("ru");
-    app.relocalise();
+    app.relocalize();
 
     // A non-breaking space between the thousands and before the unit, both of
     // which `Intl` chooses and neither of which English has.
@@ -2732,7 +2732,7 @@ describe("App.relocalise", () => {
     const carButton = queryAll(".elevator .buttonpress", elements.world)[1];
 
     setLocale("ru");
-    app.relocalise();
+    app.relocalize();
 
     expect(callUp.ariaLabel).toBe("Вызвать лифт вверх с этажа 0");
     expect(car.ariaLabel).toBe("Лифт 0");
@@ -2763,7 +2763,7 @@ describe("App.relocalise", () => {
     world.transportedCounter = 7;
 
     setLocale("ru");
-    app.relocalise();
+    app.relocalize();
 
     expect(app.world).toBe(world);
     expect(world.elapsedTime).toBe(42);
@@ -2781,7 +2781,7 @@ describe("App.relocalise", () => {
     expect(requireElement(".verdict h3", elements.feedback).textContent).toBe("Success!");
 
     setLocale("ru");
-    app.relocalise();
+    app.relocalize();
 
     expect(queryAll(".verdict", elements.feedback)).toHaveLength(1);
     expect(requireElement(".verdict h3", elements.feedback).textContent).toBe("Получилось!");
@@ -2798,7 +2798,7 @@ describe("App.relocalise", () => {
     app.startLevel(0);
 
     setLocale("ru");
-    app.relocalise();
+    app.relocalize();
 
     expect(elements.feedback.innerHTML).toBe("");
   });
@@ -2809,7 +2809,7 @@ describe("App.relocalise", () => {
     app.worldController.trigger("usercode_error", new Error("boom"));
 
     setLocale("ru");
-    app.relocalise();
+    app.relocalize();
 
     expect(requireElement(".errorline", editorPaneMount).textContent).toContain(
       "Ошибка в вашей программе",
@@ -2834,7 +2834,7 @@ describe("App.relocalise", () => {
     expect(view.getValue()).toBe(english);
 
     setLocale("ru");
-    app.relocalise();
+    app.relocalize();
 
     expect(view.getValue()).toBe(lesson.startingCode);
     expect(view.getValue()).not.toBe(english);
@@ -2846,7 +2846,7 @@ describe("App.relocalise", () => {
     view.type("// my own dispatcher");
 
     setLocale("ru");
-    app.relocalise();
+    app.relocalize();
 
     expect(view.getValue()).toBe("// my own dispatcher");
   });
@@ -2858,7 +2858,7 @@ describe("App.relocalise", () => {
 
     setLocale("ru");
     expect(() => {
-      app.relocalise();
+      app.relocalize();
     }).not.toThrow();
 
     expect(elements.goalBar.innerHTML).toBe("");

@@ -12,7 +12,7 @@
  * already evaluated (by `evaluateLevelTier`), the hint likewise (by
  * `#entities/level-tier`'s `nextTierHint`), and the three sentences are
  * whatever the caller composed — this widget never reaches into `#game` or a
- * `World` to work any of it out itself. That is what lets `App#relocalise`
+ * `World` to work any of it out itself. That is what lets `App#relocalize`
  * redraw the same verdict in another language by calling its caller again, with
  * no state of its own to keep in step.
  */

@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { getLocale, setLocale, DEFAULT_LOCALE, LOCALE_STORAGE_KEY } from "../i18n/index.ts";
 
-import { TEXT_KEY_ATTRIBUTE } from "./localise-page.ts";
+import { TEXT_KEY_ATTRIBUTE } from "./localize-page.ts";
 import { applyPreferredLocale } from "./preferred-locale.ts";
 
 /** A user agent, since the shell's shortcut hint is relabelled for a platform. */
@@ -64,7 +64,7 @@ function fakeStorage(initial: Readonly<Record<string, string>> = {}): Storage {
  * A page shell of one button, parsed the way `index.html` itself is.
  *
  * Deliberately not `index.html`: what that file says in Russian is
- * `localise-page.test.ts`'s subject, and this one is about which language is
+ * `localize-page.test.ts`'s subject, and this one is about which language is
  * chosen and when, which needs no more markup than a single word.
  *
  * @returns The document it parses to.

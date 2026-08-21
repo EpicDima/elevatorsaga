@@ -122,7 +122,7 @@ which would have outranked it permanently. The other — "telling CodeMirror to 
 out to be nothing to do:
 `@codemirror/view` observes its own scroller with a `ResizeObserver`, so a height arriving through
 the cascade needs no announcement. What the estimate did not mention is the part that took the most
-thought: a toggle needs one label and `aria-pressed`, not a word that flips, because `localisePage`
+thought: a toggle needs one label and `aria-pressed`, not a word that flips, because `localizePage`
 re-reads the shell on every language change and would write the other word back.
 
 And #33 is answered: `hall_button_pressed` is forwarded from the two button events inside the

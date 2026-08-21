@@ -491,7 +491,7 @@ describe("presentTutorial", () => {
   describe("the language the panel comes out in", () => {
     it("asks the catalog at the moment it draws", () => {
       // The panel is handed a level index rather than the words to print, and
-      // this is the whole reason: `App.relocalise` draws it again, and a panel
+      // this is the whole reason: `App.relocalize` draws it again, and a panel
       // that had kept the sentences it was given the first time would be the one
       // block of the page still in English.
       presentTutorial(parent, panelData());

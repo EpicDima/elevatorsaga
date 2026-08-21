@@ -90,7 +90,7 @@ const STARTER_CODE_KEYS: readonly StarterCodeKey[] = Object.keys(EN_MESSAGES).fi
  * @returns The program in the active locale, or `code` unchanged when it is not
  * one the game hands out.
  */
-export function localiseStarterCode(code: string): string {
+export function localizeStarterCode(code: string): string {
   for (const key of STARTER_CODE_KEYS) {
     for (const locale of LOCALES) {
       if (translateIn(locale, key) === code) {

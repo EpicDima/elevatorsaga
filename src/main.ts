@@ -27,7 +27,7 @@ import { App, readStoredTimeScale } from "./pages/game/index.ts";
 import { startRouter } from "./pages/game/model/route.ts";
 import { CodeEditor, codeMirrorView } from "./ui/editor.ts";
 import { presentGlobalShortcuts } from "./ui/global-shortcuts.ts";
-import { localisePage } from "./ui/localise-page.ts";
+import { localizePage } from "./ui/localize-page.ts";
 import { applyPreferredLocale } from "./ui/preferred-locale.ts";
 import { labelModifierKeys } from "./ui/shortcuts.ts";
 import { DEFAULT_TIME_SCALE } from "#features/adjust-speed/model/time-scale.ts";
@@ -404,8 +404,8 @@ async function main(): Promise<void> {
       workspaceController.setLayoutMode(mode);
     },
     redrawLanguage: () => {
-      localisePage(document, navigator.userAgent);
-      app.relocalise();
+      localizePage(document, navigator.userAgent);
+      app.relocalize();
       docsModal.update();
       hotkeysModal.update();
       labelModifierKeys(hotkeysDialog, navigator.userAgent);

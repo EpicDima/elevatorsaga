@@ -72,7 +72,7 @@ const MAPPING_SEPARATOR = ",";
  * A message the page shell can hold: one that takes no parameters.
  *
  * The shell is markup, not a call site, so there is nowhere for a parameter to
- * come from. Restricting the type here is what lets {@link localisePage} call
+ * come from. Restricting the type here is what lets {@link localizePage} call
  * `t(key)` with a key it read out of an attribute: with the whole of
  * {@link MessageKey} the parameter object would be mandatory, since some member
  * of that union demands one.
@@ -130,7 +130,7 @@ function renderedLocale(): Locale {
  * element keeps the English it shipped with, which is a worse answer than the
  * player's language but a far better one than a blank page or a game that
  * refuses to start over a mistyped attribute. What stops that from being a
- * silent decay is `localise-page.test.ts`, which reads every key in the shell
+ * silent decay is `localize-page.test.ts`, which reads every key in the shell
  * and fails on any the catalog does not have.
  *
  * @param attribute - The attribute the key was read from.
@@ -148,7 +148,7 @@ function warnUnusable(attribute: string, key: string): void {
  * @param element - The element to fill.
  * @param key - The message it names.
  */
-function localiseContent(element: Element, key: ShellMessageKey): void {
+function localizeContent(element: Element, key: ShellMessageKey): void {
   if (key.endsWith(HTML_KEY_SUFFIX)) {
     element.innerHTML = t(key);
   } else {
@@ -162,7 +162,7 @@ function localiseContent(element: Element, key: ShellMessageKey): void {
  * @param element - The element to fill.
  * @param mappings - The value of {@link ATTRIBUTE_KEY_ATTRIBUTE}.
  */
-function localiseAttributes(element: Element, mappings: string): void {
+function localizeAttributes(element: Element, mappings: string): void {
   for (const mapping of mappings.split(MAPPING_SEPARATOR)) {
     const separator = mapping.indexOf(NAME_SEPARATOR);
     // Split at the first colon rather than on it, so that only the attribute
@@ -197,20 +197,20 @@ function localiseAttributes(element: Element, mappings: string): void {
  * @param root - The document holding the shell.
  * @param userAgent - The browser's user agent string, for the modifier keys.
  */
-export function localisePage(root: Document, userAgent: string): void {
+export function localizePage(root: Document, userAgent: string): void {
   root.documentElement.lang = htmlLang(renderedLocale());
 
   for (const element of root.querySelectorAll(`[${TEXT_KEY_ATTRIBUTE}]`)) {
     const key = element.getAttribute(TEXT_KEY_ATTRIBUTE) ?? "";
     if (isShellMessageKey(key)) {
-      localiseContent(element, key);
+      localizeContent(element, key);
     } else {
       warnUnusable(TEXT_KEY_ATTRIBUTE, key);
     }
   }
 
   for (const element of root.querySelectorAll(`[${ATTRIBUTE_KEY_ATTRIBUTE}]`)) {
-    localiseAttributes(element, element.getAttribute(ATTRIBUTE_KEY_ATTRIBUTE) ?? "");
+    localizeAttributes(element, element.getAttribute(ATTRIBUTE_KEY_ATTRIBUTE) ?? "");
   }
 
   labelModifierKeys(root, userAgent);

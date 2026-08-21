@@ -5,7 +5,7 @@ import { tutorialLevels } from "../game/tutorial.ts";
 import { DEFAULT_LOCALE, LOCALES, setLocale } from "../i18n/index.ts";
 import type { Locale } from "../i18n/index.ts";
 import { defaultCode } from "./default-code.ts";
-import { localiseStarterCode } from "./starter-code.ts";
+import { localizeStarterCode } from "./starter-code.ts";
 
 /**
  * Every program the game hands a player, in one language.
@@ -38,8 +38,8 @@ describe("saying a starter program again in another language", () => {
 
     setLocale(DEFAULT_LOCALE);
 
-    expect(localiseStarterCode(russian)).toBe(defaultCode());
-    expect(localiseStarterCode(russian)).toContain("// Let's use the first elevator");
+    expect(localizeStarterCode(russian)).toBe(defaultCode());
+    expect(localizeStarterCode(russian)).toContain("// Let's use the first elevator");
   });
 
   it("does the same for every program the two blocks of levels start from", () => {
@@ -51,15 +51,15 @@ describe("saying a starter program again in another language", () => {
     const russian = starterProgramsIn("ru");
     const english = starterProgramsIn(DEFAULT_LOCALE);
 
-    expect(russian.map(localiseStarterCode)).toStrictEqual(english);
+    expect(russian.map(localizeStarterCode)).toStrictEqual(english);
 
     setLocale("ru");
 
-    expect(english.map(localiseStarterCode)).toStrictEqual(russian);
+    expect(english.map(localizeStarterCode)).toStrictEqual(russian);
   });
 
   it("hands back a program that is already in the language on screen", () => {
-    expect(localiseStarterCode(defaultCode())).toBe(defaultCode());
+    expect(localizeStarterCode(defaultCode())).toBe(defaultCode());
   });
 
   it("leaves a program the player wrote exactly as it is", () => {
@@ -77,8 +77,8 @@ describe("saying a starter program again in another language", () => {
 
     setLocale(DEFAULT_LOCALE);
 
-    expect(localiseStarterCode(mine)).toBe(mine);
-    expect(localiseStarterCode("")).toBe("");
+    expect(localizeStarterCode(mine)).toBe(mine);
+    expect(localizeStarterCode("")).toBe("");
   });
 
   it("recognises the starter of a level even after the player has read it in a third language", () => {
@@ -95,8 +95,8 @@ describe("saying a starter program again in another language", () => {
 
     setLocale(DEFAULT_LOCALE);
 
-    expect(localiseStarterCode(russian)).toBe(firstLesson.startingCode);
-    expect(localiseStarterCode(russian)).not.toBe(russian);
+    expect(localizeStarterCode(russian)).toBe(firstLesson.startingCode);
+    expect(localizeStarterCode(russian)).not.toBe(russian);
   });
 
   it("keeps two levels that share a program sharing it in every language", () => {

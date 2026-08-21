@@ -14,11 +14,11 @@
  * from the event alone. `World`'s own `stats_display_changed` carries it from
  * its main tick, which only fires from inside
  * `if (!this.isPaused && !world.levelEnded && lastT !== null)`
- * (`world-controller.ts`), but that is not its only caller: `App#relocalise`
+ * (`world-controller.ts`), but that is not its only caller: `App#relocalize`
  * (`src/pages/game/index.ts`) re-fires the same event on every language switch,
  * unconditionally, so text stays correctly translated even while paused. A
  * presenter wired to the event therefore cannot tell a real tick from a paused
- * relocalise — pausing mid-run and switching languages twice, more than
+ * relocalize — pausing mid-run and switching languages twice, more than
  * {@link THROTTLE_MS} apart, pushes a duplicate sample and evicts a genuine
  * older one. `WorldController.isPaused` is public and is the fix, once the
  * widget composing {@link createStatsHistory} is given a way to read it; it is

@@ -575,7 +575,7 @@ export function tutorialTemplate(data: TutorialTemplateData): string {
  *
  * Safe to call over a panel that is already there, which is the only way it is
  * ever called after the first time: the page redraws it at the start of every
- * run, and `App.relocalise` redraws it when the language changes. The old
+ * run, and `App.relocalize` redraws it when the language changes. The old
  * panel is replaced wholesale rather than patched, so there is no state to keep
  * in step and no handler that can be bound twice.
  *

@@ -67,7 +67,7 @@ export interface GoalBarPresenter {
  * `METER_FORMAT`'s own `unitKey` is read out of a table and handed to `t`
  * dynamically rather than written as a literal at each call site — narrowing
  * the type here is what keeps that call typeable, the same trick
- * `src/ui/localise-page.ts`'s own `ShellMessageKey` uses for the same
+ * `src/ui/localize-page.ts`'s own `ShellMessageKey` uses for the same
  * reason: with the whole of {@link MessageKey} the parameter object would be
  * mandatory, since some member of that union demands one.
  */

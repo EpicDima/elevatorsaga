@@ -2,14 +2,14 @@
  * Changing the language from inside the page, mid-run, in a real browser.
  *
  * `src/features/switch-language/ui/language-picker.test.ts` proves the sequence
- * a choice runs through and `src/app/app.test.ts` proves what `relocalise`
+ * a choice runs through and `src/app/app.test.ts` proves what `relocalize`
  * redraws, both against a jsdom document. Three things only exist in the built
  * site:
  *
  * - The Russian catalog is fetched at the moment of the choice rather than
  *   before the first paint, so this is the only place the chunk is loaded into a
  *   page that is already running.
- * - The page is rewritten by four different pieces of code — `localisePage` for
+ * - The page is rewritten by four different pieces of code — `localizePage` for
  *   the shell, the level bar's presenter, the statistics, the building's
  *   labels — and a page half in each language is worse than either.
  * - "The run was not restarted" is a claim about a simulation that is running.

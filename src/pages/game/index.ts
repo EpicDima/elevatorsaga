@@ -740,7 +740,7 @@ export class App {
    * The level rather than its description, because a description is a
    * sentence in whatever language was active when it was asked for --
    * `LevelCondition.description` is a getter for exactly that reason -- and
-   * {@link relocalise} has to be able to ask again. The index rides along
+   * {@link relocalize} has to be able to ask again. The index rides along
    * because it is what tells the sandbox apart from the levels without
    * looking anything up, and it is `null` for the sandbox, which is not in the
    * list. Distinct from {@link currentLevelIndex}, which says where a
@@ -762,7 +762,7 @@ export class App {
    * Wrapped rather than held bare, because `throw undefined` is something player
    * code can do and the banner has to show it like anything else -- so the
    * wrapper is what distinguishes "no banner" from "a banner about `undefined`".
-   * Kept for {@link relocalise}: the sentence around the error is a message, and
+   * Kept for {@link relocalize}: the sentence around the error is a message, and
    * so is the description of a thrown object with nothing to say for itself.
    */
   #codeError: { readonly thrown: unknown } | undefined = undefined;
@@ -1844,7 +1844,7 @@ export class App {
         this.worldController.setPaused(true);
       }
       // Recorded where the verdict is reached rather than in `#showOutcome`,
-      // which `relocalise` calls again to redraw that verdict in another
+      // which `relocalize` calls again to redraw that verdict in another
       // language. Nothing miscounts today if it moves -- progress is a set of
       // level ids, so a redraw would re-add an id that is already in it -- and
       // that is exactly why the rule is worth writing down rather than leaving
@@ -2065,7 +2065,7 @@ export class App {
    * Draws the end-of-level card, and remembers that it is showing.
    *
    * The outcome is the thing worth remembering; the four strings are worked out
-   * from it here, every time, so that {@link relocalise} can draw the same
+   * from it here, every time, so that {@link relocalize} can draw the same
    * verdict again in another language. The presenter replaces the container's
    * contents rather than appending, so calling this twice about one run leaves
    * one card.
@@ -2085,7 +2085,7 @@ export class App {
     // Recomputed from the world rather than carried from the `stats_changed`
     // handler that first recorded it: the tier is a pure function of the
     // world's own final figures, which do not move once `levelEnded` is
-    // set, so asking again here is what lets `relocalise` draw the same badge
+    // set, so asking again here is what lets `relocalize` draw the same badge
     // in another language without a field of its own to keep in step.
     const tier =
       won && levelIndex !== null && run !== undefined && world !== undefined
@@ -2119,7 +2119,7 @@ export class App {
    * Puts everything the app has drawn into the language that is active now.
    *
    * Called when the language picker changes the language, after the catalog
-   * has been fetched and after `localisePage` has rewritten the shell. The run
+   * has been fetched and after `localizePage` has rewritten the shell. The run
    * in progress survives it: nothing here tears down a world, so the passengers,
    * the clock, the score and the seed are the ones the player already had.
    * Restarting would have been a great deal less code, and it is the one outcome
@@ -2141,7 +2141,7 @@ export class App {
    *   default program, whose `//` comments are addressed to the player and are
    *   therefore translated. Anything the player has typed is theirs and stays
    *   exactly as it is — see
-   *   {@link "../../ui/editor.ts"!CodeEditor.relocalise}.
+   *   {@link "../../ui/editor.ts"!CodeEditor.relocalize}.
    *
    * The banner about a failed program is drawn again too, since the sentence
    * around the error is a message. What it wraps is not: an exception's own text
@@ -2163,13 +2163,13 @@ export class App {
    * be said again in the new language, and `src/widgets/tutorial-panel/ui/tutorial-panel.ts` carries
    * the answer rather than the sentence across the redraw in order to say it.
    */
-  relocalise(): void {
+  relocalize(): void {
     // Before the pane, which reads the program on screen to decide whether to
     // offer "Undo reset": between the two calls the document is a starting
     // program in the language that has just been left and the buffer's starter
     // is the one being arrived at, so a pane updated first would compare the
     // two languages and hide the button.
-    this.#editor.relocalise();
+    this.#editor.relocalize();
     // Unconditional, unlike the bar: the run controls and the editor pane are
     // on screen from the first paint, before any level has started, so
     // they have words to rewrite even when there is no world to redraw around
@@ -2230,7 +2230,7 @@ export class App {
    * program is rather than promising to carry it.
    *
    * Nothing is recorded here. {@link #startRun} records the clear where the
-   * condition resolves, so that {@link relocalise} can call this again to redraw
+   * condition resolves, so that {@link relocalize} can call this again to redraw
    * the same verdict in another language without a language change counting as
    * a second win.
    *

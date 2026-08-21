@@ -8,7 +8,7 @@
  * dialog needs no standing note about what Windows and Linux read instead. This
  * module only draws the `data-mod-key` marker; whoever mounts the dialog live
  * still has to call `labelModifierKeys` against it, the way
- * `src/ui/localise-page.ts` already does for the rest of the page shell.
+ * `src/ui/localize-page.ts` already does for the rest of the page shell.
  *
  * Built and unit-tested against a jsdom `<dialog>` —
  * `polyfillDialogElement` (`#shared/ui/test-helpers.ts`). `src/main.ts` mounts

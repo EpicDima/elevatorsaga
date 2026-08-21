@@ -167,9 +167,9 @@ running this code parses the children of `<noscript>` as text rather than as ele
 only situation where the message could be replaced there is nothing there to replace; and a
 browser with scripting off has nothing running to replace it with. The key is kept for the day
 the build renders the shell per language.
-`src/ui/localise-page.test.ts`, in "leaves the noscript message in English, where it cannot be
+`src/ui/localize-page.test.ts`, in "leaves the noscript message in English, where it cannot be
 reached", pins that: it parses the page with `DOMParser`, which _does_ see the paragraph, and
-requires `localisePage` to leave it alone even in Russian.
+requires `localizePage` to leave it alone even in Russian.
 
 **The 86 `docs.*` keys have no call site because the reference page answers for itself.**
 `documentation.html` and `documentation.ru.html` are two static files rather than one document
@@ -188,7 +188,7 @@ by structure rather than by hoping the bundler proves them dead.
 ### `index.html` — the page shell, 26 `page.*` keys
 
 The shell ships its English in the markup and names the message beside it: `data-i18n` for an
-element's words, `data-i18n-attr="attribute:key"` for its attributes. `src/ui/localise-page.ts`
+element's words, `data-i18n-attr="attribute:key"` for its attributes. `src/ui/localize-page.ts`
 walks the document and rewrites both, at start-up and again after every language change.
 
 | Key                             | English                                                                                                        | Notes                                                                                                                                                                 |
@@ -763,7 +763,7 @@ five rows pairing a hotkey with what it does. Two of the five are Mod- bindings,
 `src/ui/shortcuts.ts`'s `labelModifierKeys` resolves each pair per visitor at runtime, so nothing
 here needs a static paragraph explaining that Windows and Linux read `Ctrl` for `⌘` — relabeling
 per visitor is what makes that question not arise. Whoever mounts the dialog live still has to
-call `labelModifierKeys` against it themselves, the same way `src/ui/localise-page.ts` already
+call `labelModifierKeys` against it themselves, the same way `src/ui/localize-page.ts` already
 does for the rest of the page shell.
 
 | Key                         | English            | Notes                                                                           |
@@ -1240,7 +1240,7 @@ again.
 | `src/game/observable.ts`, `report`                                                                                             | `Event error handler threw while reporting`                                                                                         | `console` diagnostic about the game's own error reporting failing.                                                                                                                                                                                       |
 | `src/app/fitness.ts`, `tryCreateWorker`                                                                                        | `Fitness worker creation failed, running on the main thread instead`                                                                | `console` diagnostic; the player sees only the result.                                                                                                                                                                                                   |
 | `src/i18n/index.ts`, the `catch` inside `loadLocale`                                                                           | `Could not load the ru messages; staying in en`                                                                                     | `console` diagnostic about the translation machinery itself. Saying it in the language that failed to load is not an option.                                                                                                                             |
-| `src/ui/localise-page.ts`, `warnUnusable`                                                                                      | `Ignoring {attribute}="{key}": the page shell can only name a message that exists and takes no parameters`                          | Addressed to whoever wrote the attribute, quoting an attribute name.                                                                                                                                                                                     |
+| `src/ui/localize-page.ts`, `warnUnusable`                                                                                      | `Ignoring {attribute}="{key}": the page shell can only name a message that exists and takes no parameters`                          | Addressed to whoever wrote the attribute, quoting an attribute name.                                                                                                                                                                                     |
 | `src/game/elevator.ts`, `getFirstPressedFloor`                                                                                 | The deprecation notice, printed once per session behind a module flag                                                               | Addressed to code, quoting an API name.                                                                                                                                                                                                                  |
 | `src/pages/game/model/route.ts`, the twelve `console.warn` calls                                                               | `Invalid seed "…", using a fresh one instead`, and eleven more                                                                      | Addressed to whoever hand-wrote the URL, quoting parameter names that are themselves English.                                                                                                                                                            |
 | `src/game/world.ts`, `resolveSpawnRate`                                                                                        | `World was created with a spawnRate of …`                                                                                           | Reached only through `WorldOptions`, which is engine-internal and typed; a player's program cannot produce it.                                                                                                                                           |
@@ -1400,7 +1400,7 @@ needs no edit to the control and none to `index.html`, which ships the `<select>
 | the type system                | Key parity in both directions, and the right number of plural forms per language. A Russian catalog missing a key does not compile.                                                                                                                                                                  |
 | `src/i18n/catalog.test.ts`     | Key order, non-empty values, `{placeholder}` parity, markup confined to `.html` keys and opening and closing the same tags in every locale, `.code` blocks identical but for their comments, the WCAG 2.5.3 pair, and Russian typography — «ёлочки» in pairs, spaced em dashes, ё, no double spaces. |
 | `src/i18n/format.test.ts`      | `PLURAL_CATEGORIES` against what ICU actually says, so a wrong guess about a new language fails a test rather than mistranslating a count.                                                                                                                                                           |
-| `src/ui/localise-page.test.ts` | That every key `index.html` names exists and takes no parameters; that the shell ships, word for word, the English of every message it names; that the noscript paragraph is left alone; that the modifier keys are relabelled after the shell is rewritten.                                         |
+| `src/ui/localize-page.test.ts` | That every key `index.html` names exists and takes no parameters; that the shell ships, word for word, the English of every message it names; that the noscript paragraph is left alone; that the modifier keys are relabelled after the shell is rewritten.                                         |
 | `src/page.test.ts`             | The two documentation pages as one document in two languages, every `docs.*` message against the passage it was lifted from in both languages, no `docs.*` key left unchecked, and the popup against the page wherever their English agrees.                                                         |
 | `src/i18n/inventory.test.ts`   | This file: the keys it names, the keys it omits, the counts it prints, the `src/` paths it points at, the absence of line pins, and the learning track's quoted titles. Not the rest of its prose.                                                                                                   |
 

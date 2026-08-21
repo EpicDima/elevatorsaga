@@ -2,13 +2,13 @@
  * Choosing the language the game starts in, and getting the page into it.
  *
  * `src/i18n/detect.ts` works out which language a reader has asked for, and
- * `src/ui/localise-page.ts` writes the shell in whatever language is active.
+ * `src/ui/localize-page.ts` writes the shell in whatever language is active.
  * This is the one thing that puts the two together, which makes it the place
  * the two decisions start-up has to make are taken and written down: how long
  * the first draw waits for a catalog, and whether the language it found is
  * remembered.
  *
- * A module of its own rather than another function in `localise-page.ts`,
+ * A module of its own rather than another function in `localize-page.ts`,
  * because that file is a writer with no policy in it — given the active locale,
  * it puts the catalog's words into the document — whereas everything here is
  * policy. And because proving that the page waits needs a module graph in which
@@ -24,8 +24,8 @@
  * catalog lands. This waits.
  *
  * "Draw now, re-localise later" is a real option, and it is the one the language
- * picker takes: {@link localisePage} re-reads the document, and
- * {@link "../pages/game/index.ts"!App.relocalise} rebuilds the level bar, redraws the
+ * picker takes: {@link localizePage} re-reads the document, and
+ * {@link "../pages/game/index.ts"!App.relocalize} rebuilds the level bar, redraws the
  * statistics, renames the building and redraws the overlay without touching the
  * world. So the choice here is not between waiting and a page that cannot be
  * fixed. It is between waiting and drawing the game twice.
@@ -81,7 +81,7 @@ import {
   type LocaleSources,
 } from "../i18n/index.ts";
 
-import { localisePage } from "./localise-page.ts";
+import { localizePage } from "./localize-page.ts";
 
 /**
  * Puts the page into the language its reader asked for.
@@ -115,7 +115,7 @@ export async function applyPreferredLocale(
   // worker is sent and what a picker would show as selected -- sees the language
   // that was asked for. It cannot leave anything half-translated in the
   // meantime: `t` and `format` both answer in English until the catalog is in
-  // memory, and `localisePage` takes `<html lang>` from what it could actually
+  // memory, and `localizePage` takes `<html lang>` from what it could actually
   // write rather than from this.
   setLocale(locale);
   // The very fetch `setLocale` started, joined rather than started again. A
@@ -123,5 +123,5 @@ export async function applyPreferredLocale(
   // `loadLocale` never rejects, and there is nothing better to do about a
   // dropped response than play the game in the language every string exists in.
   await loadLocale(locale);
-  localisePage(root, userAgent);
+  localizePage(root, userAgent);
 }

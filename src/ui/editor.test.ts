@@ -1786,7 +1786,7 @@ describe("the program on screen when the language changes", () => {
     expect(view.getValue()).toContain("// Let's use the first elevator");
 
     setLocale("ru");
-    editor.relocalise();
+    editor.relocalize();
 
     expect(view.getValue()).toBe(defaultCode());
     expect(view.getValue()).toContain("// Возьмём первый лифт");
@@ -1798,7 +1798,7 @@ describe("the program on screen when the language changes", () => {
     view.type(mine);
 
     setLocale("ru");
-    editor.relocalise();
+    editor.relocalize();
 
     expect(view.getValue()).toBe(mine);
   });
@@ -1815,7 +1815,7 @@ describe("the program on screen when the language changes", () => {
     editor.on("saved", saved);
 
     setLocale("ru");
-    editor.relocalise();
+    editor.relocalize();
     vi.advanceTimersByTime(AUTOSAVE_DELAY_MS * 2);
 
     expect(changed).toHaveBeenCalledTimes(1);
@@ -1828,7 +1828,7 @@ describe("the program on screen when the language changes", () => {
     const changed = vi.fn();
     editor.on("change", changed);
 
-    editor.relocalise();
+    editor.relocalize();
 
     expect(changed).not.toHaveBeenCalled();
   });
