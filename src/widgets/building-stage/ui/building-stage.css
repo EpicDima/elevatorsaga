@@ -237,6 +237,22 @@ html[data-theme="light"] .stage {
   pointer-events: none;
 }
 
+/*
+ * Every layer here spans the whole of `.tracks`, corridor included, so the two
+ * upper ones have to be see-through to the pointer or they swallow the hovers
+ * meant for the strips beneath them: left opaque, the shafts layer -- an empty
+ * box everywhere except where a shaft stands -- took every hover along every
+ * floor's corridor, and no floor card ever came up from pointing at one. The
+ * layer is inert; the shafts standing in it are not.
+ */
+.shafts {
+  pointer-events: none;
+}
+
+.shafts > .shaft {
+  pointer-events: auto;
+}
+
 .floorline {
   position: absolute;
   box-sizing: border-box;

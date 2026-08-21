@@ -366,6 +366,51 @@ describe("presentBuildingStage", () => {
     expect(floorEl?.hasAttribute("aria-describedby")).toBe(false);
   });
 
+  it("places a car's card against the cabin, not against the shaft it runs the height of", () => {
+    const world = createWorld({ floorCount: 10, elevatorCount: 1 });
+    const { parent } = mount(world, 800, 300);
+
+    // jsdom lays nothing out, so the three boxes the placement reads are given
+    // the shape a tall building really has: a shaft far longer than the pane it
+    // is being looked at through, with the car standing near the foot of it.
+    const wrap = requireElement(".stagewrap", parent);
+    const shaftEl = requireElement(".elevator", parent);
+    const carEl = requireElement(".car", shaftEl);
+    wrap.getBoundingClientRect = (): DOMRect => new DOMRect(0, 0, 800, 300);
+    shaftEl.getBoundingClientRect = (): DOMRect => new DOMRect(200, -600, 40, 1000);
+    carEl.getBoundingClientRect = (): DOMRect => new DOMRect(200, 250, 40, 40);
+
+    shaftEl.dispatchEvent(new Event("pointerenter"));
+
+    // Centered on the cabin, which is 250..290 of the pane's own 300. Centered on
+    // the shaft it would be at -100, and every such card is clamped to the top
+    // edge of the pane -- floors away from the car it names, which is what this
+    // is here to catch.
+    expect(requireElement(".carcard", parent).style.top).toBe("270px");
+  });
+
+  it("leaves an open card where the cabin was, rather than towing it along", () => {
+    const world = createWorld({ floorCount: 10, elevatorCount: 1 });
+    const { parent } = mount(world, 800, 300);
+
+    const wrap = requireElement(".stagewrap", parent);
+    const shaftEl = requireElement(".elevator", parent);
+    const carEl = requireElement(".car", shaftEl);
+    wrap.getBoundingClientRect = (): DOMRect => new DOMRect(0, 0, 800, 300);
+    carEl.getBoundingClientRect = (): DOMRect => new DOMRect(200, 250, 40, 40);
+
+    shaftEl.dispatchEvent(new Event("pointerenter"));
+    const card = requireElement(".carcard", parent);
+    expect(card.style.top).toBe("270px");
+
+    carEl.getBoundingClientRect = (): DOMRect => new DOMRect(200, 100, 40, 40);
+    at(world.elevators, 0).updateDisplayPosition(true);
+
+    // A card that rode the cabin would read as a blur on the way up, and its
+    // lines are the ones taken when it opened either way.
+    expect(card.style.top).toBe("270px");
+  });
+
   it("shows an elevator's hover card on focus, with the live car snapshot", () => {
     const world = createWorld({ floorCount: 4, elevatorCount: 1, elevatorCapacities: [4] });
     const { parent } = mount(world, 800, 300);

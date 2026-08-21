@@ -64,7 +64,9 @@
  * it stays open — the same trade `goal-bar.ts`'s `drawTierRows` already
  * makes for its own popover ("costs nothing while closed, guaranteed fresh
  * the instant it opens"). Its *position* is recomputed on every scroll,
- * because the stage under it moves.
+ * because the stage under it moves — but never because a car did. A card
+ * opened beside a cabin stays where that cabin was; text towed up ten floors
+ * is text nobody can read, and the words would be the old ones anyway.
  *
  * One card element is shared between every floor and every car, shown and
  * repositioned on `pointerenter`/`focus` and hidden on `pointerleave`/`blur`
@@ -221,7 +223,7 @@ export function presentBuildingStage(parent: HTMLElement, world: World): Buildin
     card.hidden = true;
   }
 
-  /** Puts the shown card back where its anchor is now — after a scroll, or a tick that moved a car. */
+  /** Puts the shown card back where its anchor is now — on opening, and after a scroll. */
   function placeCard(): void {
     if (shown === null) {
       return;
@@ -364,22 +366,34 @@ export function presentBuildingStage(parent: HTMLElement, world: World): Buildin
     view.element.tabIndex = 0;
     const queue = document.createElement("div");
     queue.className = "queue";
-    const show = (): void => {
-      showCard(view.element, queue, "above", floorCardText(floorSnapshot(world, floor)));
+    // Against whatever was pointed at, and placed the way that box has room to
+    // be placed. The row and the corridor are a column apart, so a card pinned
+    // to whichever of them the pointer is not on comes up across the building
+    // from the question. Above the corridor, because a queue fills its whole
+    // width and there is no room beside it; beside the row, because a card
+    // hung over a row in the number column has nothing under it but the pane's
+    // own margin and would sit outside the building it is describing.
+    const show = (anchor: HTMLElement, placement: "beside" | "above"): void => {
+      showCard(view.element, anchor, placement, floorCardText(floorSnapshot(world, floor)));
     };
     const hide = (): void => {
       if (shown?.describedBy === view.element) {
         hideCard();
       }
     };
-    view.element.addEventListener("focus", show);
+    const showAtRow = (): void => {
+      show(view.element, "beside");
+    };
+    view.element.addEventListener("focus", showAtRow);
     view.element.addEventListener("blur", hide);
-    // Pointing at a floor means pointing at the corridor the queue stands in,
-    // not at its number over in the column: the passengers are the thing a
+    // Pointing at a floor means pointing at the corridor the queue stands in as
+    // much as at its number over in the column: the passengers are the thing a
     // player is asking about, and they are all the way over here.
-    queue.addEventListener("pointerenter", show);
+    queue.addEventListener("pointerenter", () => {
+      show(queue, "above");
+    });
     queue.addEventListener("pointerleave", hide);
-    view.element.addEventListener("pointerenter", show);
+    view.element.addEventListener("pointerenter", showAtRow);
     view.element.addEventListener("pointerleave", hide);
     levels.append(view.element);
     queueLayer.append(queue);
@@ -402,13 +416,22 @@ export function presentBuildingStage(parent: HTMLElement, world: World): Buildin
   for (const [index, elevator] of world.elevators.entries()) {
     const view = createElevatorView(elevator, index, scale);
     view.element.tabIndex = 0;
+    // Placed against the cabin, not against the shaft it runs in. A shaft is
+    // the whole height of the building, so a card centered on one comes up in
+    // the middle of the house — floors away from the car it is describing, and
+    // clamped against the top edge of the pane as soon as the building is
+    // taller than the pane. The shaft is still what takes the pointer and what
+    // owns the card, for the reason `.shaft:hover .car` gives: hitting a moving
+    // cabin is target practice.
+    //
+    // Only where the cabin was when the card opened, though: the card does not
+    // ride it afterwards. Text that slides up ten floors is text nobody can
+    // read, and the card is a still frame in any case — its lines are computed
+    // once, at this moment, and a card that kept its position honest while its
+    // words went stale would be the worse half of both.
+    const car = requireElement(".car", view.element);
     const show = (): void => {
-      showCard(
-        view.element,
-        view.element,
-        "beside",
-        elevatorCardText(elevatorSnapshot(elevator, index)),
-      );
+      showCard(view.element, car, "beside", elevatorCardText(elevatorSnapshot(elevator, index)));
     };
     const hide = (): void => {
       if (shown?.describedBy === view.element) {

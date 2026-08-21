@@ -1,8 +1,9 @@
 /**
- * The stage's own three jobs, none of which any slice inside it can do for
- * itself: it recolors the focus ring for everything focusable in the building,
- * it paints the one flat panel down there, and it is the box the run's verdict
- * card is positioned against and clipped by.
+ * The stage's own jobs, none of which any slice inside it can do for itself: it
+ * recolors the focus ring for everything focusable in the building, it stacks
+ * the four layers the corridor and the shafts are drawn on, it paints the one
+ * flat panel down there, and it is the box the run's verdict card is positioned
+ * against and clipped by.
  */
 
 import { describe, expect, it } from "vitest";
@@ -35,6 +36,20 @@ describe("the building's own focus ring", () => {
     ]) {
       expect(contrast(themed(palette, "ds-accent-hi"), surface)).toBeGreaterThanOrEqual(3);
     }
+  });
+});
+
+describe("the four layers over the tracks", () => {
+  it("lets a pointer through to the corridor under the shafts", () => {
+    // All four are `inset: 0` over the same box, so each upper layer covers
+    // every floor's walkway as well as the thing it was drawn for. Opaque, the
+    // shafts layer took every hover along every corridor and a floor card could
+    // not be raised by pointing at one at all. The layer is inert; what stands
+    // in it is not.
+    expect(declaration(ruleBody(".shafts"), "pointer-events", ".shafts")).toBe("none");
+    expect(declaration(ruleBody(".shafts > .shaft"), "pointer-events", ".shafts > .shaft")).toBe(
+      "auto",
+    );
   });
 });
 
