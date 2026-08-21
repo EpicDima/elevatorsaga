@@ -14,6 +14,8 @@ import { Floor } from "./game/floor.ts";
 import { FloorInterface, type FloorInterfaceEvents } from "./game/floor-interface.ts";
 import { tutorialLevels } from "./game/tutorial.ts";
 import type { MessageKey } from "./i18n/catalog.ts";
+import { EN_DOCS_MESSAGES, type DocsMessageKey } from "./i18n/docs-en.ts";
+import { RU_DOCS_MESSAGES } from "./i18n/docs-ru.ts";
 import { EN_MESSAGES } from "./i18n/en.ts";
 import { setLocale, DEFAULT_LOCALE } from "./i18n/index.ts";
 import { RU_MESSAGES } from "./i18n/ru.ts";
@@ -1153,7 +1155,11 @@ describe("documentation.html and documentation.ru.html, as one document in two l
 });
 
 /**
- * The message catalog of every language a page is published in.
+ * Everything either catalog of a language holds, as one object per language.
+ *
+ * The game's messages and the reference pages' text are separate modules --
+ * only the first is shipped, see the docblock in `docs-en.ts` -- and this file
+ * is the one that reads both, since the pages it checks are made of both.
  *
  * Typed loosely on purpose: `MessageCatalog<"en">` and `MessageCatalog<"ru">`
  * are different types -- their plural messages have different sets of forms --
@@ -1162,12 +1168,15 @@ describe("documentation.html and documentation.ru.html, as one document in two l
  * is holding, only what a key says in it.
  */
 const CATALOGS: Readonly<Record<Language, Readonly<Record<string, unknown>>>> = {
-  en: EN_MESSAGES,
-  ru: RU_MESSAGES,
+  en: { ...EN_MESSAGES, ...EN_DOCS_MESSAGES },
+  ru: { ...RU_MESSAGES, ...RU_DOCS_MESSAGES },
 };
 
+/** A message of either catalog, since the pages are written out of both. */
+type PageKey = MessageKey | DocsMessageKey;
+
 /** Every message key the reference pages are answerable for. */
-const DOCS_KEYS: readonly MessageKey[] = Object.keys(EN_MESSAGES).filter((key): key is MessageKey =>
+const DOCS_KEYS: readonly PageKey[] = Object.keys(CATALOGS.en).filter((key): key is PageKey =>
   key.startsWith("docs."),
 );
 
@@ -1189,7 +1198,7 @@ const PLACEHOLDER = /\{\w+\}/g;
  * key that started to would otherwise be compared as "[object Object]" and
  * quietly match nothing on the page.
  */
-function message(language: Language, key: MessageKey): string {
+function message(language: Language, key: PageKey): string {
   const value = CATALOGS[language][key];
   if (typeof value !== "string") {
     throw new Error(`${key} has plural forms, and nothing on the page prints one`);
@@ -1248,7 +1257,7 @@ function textOf(value: string): string {
  * @param reference - The page.
  * @param key - The message.
  */
-function expectSays(element: Element | null, reference: ReferencePage, key: MessageKey): void {
+function expectSays(element: Element | null, reference: ReferencePage, key: PageKey): void {
   expect(element, key).not.toBeNull();
   const value = message(reference.language, key);
   if (value.match(PLACEHOLDER) !== null) {
@@ -1272,7 +1281,7 @@ function expectSays(element: Element | null, reference: ReferencePage, key: Mess
  * @param selector - What matches the run.
  * @param keys - What it says, in order.
  */
-function expectRun(reference: ReferencePage, selector: string, keys: readonly MessageKey[]): void {
+function expectRun(reference: ReferencePage, selector: string, keys: readonly PageKey[]): void {
   const elements = [...reference.document.querySelectorAll(selector)];
   expect(elements.length, selector).toBe(keys.length);
   keys.forEach((key, index) => {
@@ -1281,7 +1290,7 @@ function expectRun(reference: ReferencePage, selector: string, keys: readonly Me
 }
 
 /** The messages of the page shell, each checked where it belongs. */
-const SHELL_KEYS: readonly MessageKey[] = [
+const SHELL_KEYS: readonly PageKey[] = [
   "docs.page.title",
   "docs.page.description",
   "docs.page.tagline",
@@ -1290,7 +1299,7 @@ const SHELL_KEYS: readonly MessageKey[] = [
 ];
 
 /** The `<h2>`s of the reference, in the order the page prints them. */
-const SECTION_HEADINGS: readonly MessageKey[] = [
+const SECTION_HEADINGS: readonly PageKey[] = [
   "docs.about.heading",
   "docs.play.heading",
   "docs.basics.heading",
@@ -1299,7 +1308,7 @@ const SECTION_HEADINGS: readonly MessageKey[] = [
 ];
 
 /** Its `<h3>`s, likewise. */
-const SUBSECTION_HEADINGS: readonly MessageKey[] = [
+const SUBSECTION_HEADINGS: readonly PageKey[] = [
   "docs.examples.control.heading",
   "docs.examples.events.heading",
   "docs.api.events.heading",
@@ -1308,7 +1317,7 @@ const SUBSECTION_HEADINGS: readonly MessageKey[] = [
 ];
 
 /** Its prose, paragraph by paragraph. */
-const PARAGRAPHS: readonly MessageKey[] = [
+const PARAGRAPHS: readonly PageKey[] = [
   "docs.about.p1.html",
   "docs.about.p2.html",
   "docs.play.track.html",
@@ -1327,7 +1336,7 @@ const PARAGRAPHS: readonly MessageKey[] = [
 ];
 
 /** What each worked example under "Code examples" is there to show. */
-const EXAMPLE_NOTES: readonly MessageKey[] = [
+const EXAMPLE_NOTES: readonly PageKey[] = [
   "docs.examples.goToFloor",
   "docs.examples.currentFloor",
   "docs.examples.idle",
@@ -1336,7 +1345,7 @@ const EXAMPLE_NOTES: readonly MessageKey[] = [
 ];
 
 /** The column headings of each table, in the order the tables appear. */
-const TABLE_HEADINGS: readonly (readonly MessageKey[])[] = [
+const TABLE_HEADINGS: readonly (readonly PageKey[])[] = [
   ["docs.table.method", "docs.table.explanation", "docs.table.example"],
   ["docs.table.property", "docs.table.type", "docs.table.explanation", "docs.table.example"],
   ["docs.table.event", "docs.table.explanation", "docs.table.example"],
@@ -1392,7 +1401,7 @@ function commentsIn(code: string): string[] {
  * Either way there is nothing to check the row against, which is not a thing to
  * pass over quietly.
  */
-function explanationKey(prefix: string, name: string): MessageKey {
+function explanationKey(prefix: string, name: string): PageKey {
   const found = DOCS_KEYS.filter(
     (key) =>
       key.startsWith(prefix) &&
@@ -1410,9 +1419,9 @@ interface DocumentedRow {
   /** The member or event named in its first cell. */
   readonly name: string;
   /** The message that explains it. */
-  readonly key: MessageKey;
+  readonly key: PageKey;
   /** The message its example is kept as, for the examples that are kept. */
-  readonly example: MessageKey | undefined;
+  readonly example: PageKey | undefined;
   /** The element holding the explanation, which is the cell's `<small>`. */
   readonly explanation: Element | null;
   /** The element holding the example, which is the cell's `<code>`. */
@@ -1706,7 +1715,7 @@ describe("src/i18n, against the editor it also speaks for", () => {
     // correction that lands on the page therefore has to land on the popup too,
     // and this is what stops it from landing on only one of them -- which is
     // the shape the Russian drift actually had.
-    const byEnglish = new Map<string, MessageKey[]>();
+    const byEnglish = new Map<string, PageKey[]>();
     for (const key of [...DOCS_KEYS, ...COMPLETION_KEYS]) {
       const english = message("en", key);
       byEnglish.set(english, [...(byEnglish.get(english) ?? []), key]);
@@ -1732,7 +1741,7 @@ describe("src/i18n, against the editor it also speaks for", () => {
     // the pages do not print the popup. So take the English cut as given -- one
     // text inside the other -- and require the Russian to be cut the same way.
     const printed = DOCS_KEYS.filter((key) => !key.endsWith(".code"));
-    const ownWords: MessageKey[] = [];
+    const ownWords: PageKey[] = [];
     for (const spoken of COMPLETION_KEYS.filter((key) => !key.endsWith(".code"))) {
       const popup = shortenable(message("en", spoken));
       let borrowed = false;

@@ -16,9 +16,9 @@
  * of what is machine-checkable about a document made mostly of prose:
  *
  * 1. every backticked token shaped like a message key is a real key;
- * 2. every key in `EN_MESSAGES` is named, bar the learning track's per-level
- *    keys — its prose and its two programs alike — which the document covers by
- *    their shape;
+ * 2. every key either English catalog holds is named, bar the learning track's
+ *    per-level keys — its prose and its two programs alike — which the document
+ *    covers by their shape;
  * 3. the counts it prints are the counts the catalog has;
  * 4. every backticked `src/…` path exists on disk;
  * 5. no `file.ts:123` pin below the section that bans them;
@@ -40,9 +40,9 @@
  *   about everything beside it, and nothing here would know.
  * - the counts in the section headings (`— 18 `game.*` keys`). Those count what
  *   a section lists rather than what the catalog holds — `src/ui/templates.ts`
- *   reads 18 of the 26 `game.*` keys — so there is nothing in `EN_MESSAGES` to
+ *   reads 18 of the 26 `game.*` keys — so there is nothing in the catalog to
  *   compare them against.
- * - the 83 and 85 in _Where the strings are_. They come from a grep over the
+ * - the 93 and 95 in _Where the strings are_. They come from a grep over the
  *   whole tree, not from the catalog, and reproducing that grep here would
  *   make this suite fail whenever an unrelated file is mid-edit.
  * - paths outside `src/`. The document says why: a message key such as
@@ -62,13 +62,20 @@ import { describe, expect, it } from "vitest";
 
 import inventorySource from "../../docs/i18n-inventory.md?raw";
 import { tutorialLevels } from "../game/tutorial.ts";
+import { EN_DOCS_MESSAGES } from "./docs-en.ts";
 import { EN_MESSAGES } from "./en.ts";
 
 /** The repository root, from this file's own location. */
 const ROOT = fileURLToPath(new URL("../..", import.meta.url));
 
-/** Every key the reference catalog defines, in catalog order. */
-const KEYS: readonly string[] = Object.keys(EN_MESSAGES);
+/**
+ * Every key the reference locale defines, the game's messages then the pages'.
+ *
+ * Two files, one inventory: which of them a key is declared in is a fact about
+ * the build (`docs-en.ts` says which and why), and the document is a map of the
+ * messages rather than of the modules.
+ */
+const KEYS: readonly string[] = [...Object.keys(EN_MESSAGES), ...Object.keys(EN_DOCS_MESSAGES)];
 
 /** The same keys, for membership tests. */
 const KEY_SET: ReadonlySet<string> = new Set(KEYS);
@@ -104,7 +111,7 @@ const CODE_SPANS: readonly string[] = [...inventorySource.matchAll(/(`+)([\s\S]*
 /** The same, for membership tests. */
 const SPAN_SET: ReadonlySet<string> = new Set(CODE_SPANS);
 
-/** Dotted, alphanumeric segments, `*` allowed: what every key in `EN_MESSAGES` looks like. */
+/** Dotted, alphanumeric segments, `*` allowed: what every message key looks like. */
 const KEY_SHAPE = /^[a-z][A-Za-z0-9]*(?:\.[A-Za-z0-9*]+)+$/;
 
 /**
@@ -288,8 +295,8 @@ const PRINTED_COUNTS: readonly PrintedCount[] = [
     expected: KEYS.length,
   },
   {
-    what: "the catalog size, beside the `grep -c` that produced it",
-    pattern: /src\/i18n\/en\.ts +# (\d+)/g,
+    what: "the catalog size, beside the `grep` that produced it",
+    pattern: /\| wc -l +# (\d+)/g,
     expected: KEYS.length,
   },
   {
@@ -314,7 +321,7 @@ describe("the message keys the inventory names", () => {
     const unknown = KEY_SHAPED_SPANS.filter(
       (span) => !isGroupWildcard(span) && !isLevelShape(span) && !KEY_SET.has(span),
     );
-    expect(unknown, "backticked in docs/i18n-inventory.md, absent from EN_MESSAGES").toEqual([]);
+    expect(unknown, "backticked in docs/i18n-inventory.md, absent from the catalog").toEqual([]);
   });
 
   it("uses no group wildcard the catalog has nothing under", () => {
@@ -329,7 +336,7 @@ describe("the message keys the inventory names", () => {
 
   it("names every key in the catalog, or covers it by shape", () => {
     const unlisted = KEYS.filter((key) => !SPAN_SET.has(key) && !LEVEL_KEYS.has(key));
-    expect(unlisted, "in EN_MESSAGES, with no row in docs/i18n-inventory.md").toEqual([]);
+    expect(unlisted, "in the catalog, with no row in docs/i18n-inventory.md").toEqual([]);
   });
 
   it("covers the learning track by a shape that expands to real keys", () => {

@@ -37,7 +37,8 @@ instead of trusting a figure whose age they cannot tell.
 **What is machine-checked, and what is not.** The catalogs check each other, and several
 tests hold the catalog against what draws from it — see _What guards what_ at the end. One of
 them now reads this file: `src/i18n/inventory.test.ts` holds the keys it names, the keys it
-omits, the counts it prints and the files it points at against `EN_MESSAGES` and the tree. What
+omits, the counts it prints and the files it points at against the English catalogs — both of
+them, `EN_MESSAGES` and `EN_DOCS_MESSAGES` — and against the tree. What
 that cannot read is the prose — the English column, the Notes, and every claim about which
 module calls what — so a row can still be right about its key and wrong about everything beside
 it.
@@ -51,8 +52,10 @@ Everything here was re-measured against the tree on **18 August 2026**.
 | `src/i18n/locale.ts`     | `Locale`, `LOCALES`, `DEFAULT_LOCALE`, `LOCALE_NAMES`, `isLocale`, `htmlLang`                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 | `src/i18n/format.ts`     | `Intl` wrappers: `quantity`, `decimal`, `exact`, `seconds`, `formatNumber`, `formatValue`, `formatList`, `selectPlural`, `interpolate`, `PLURAL_CATEGORIES`, and the types `Quantity`, `ParamValue`, `Countable`, `PluralCategory<L>`, `PluralForms<L>`                                                                                                                                                                                                                                                                                       |
 | `src/i18n/catalog.ts`    | `MessageKey`, `MessageCatalog<L>`, `MessageParams<K>`, `MessageArgs<K>`, `translate`                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
-| `src/i18n/en.ts`         | `EN_MESSAGES` — the reference locale                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| `src/i18n/en.ts`         | `EN_MESSAGES` — the reference locale, everything the game itself says                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
 | `src/i18n/ru.ts`         | `RU_MESSAGES` — the Russian catalog, with its glossary and its translation rules at the top                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| `src/i18n/docs-en.ts`    | `EN_DOCS_MESSAGES`, `DocsMessageKey`, `DocsCatalog` — what the reference pages say, in English. Apart from `en.ts` because no bundle imports it: the pages are static files, so a `docs.*` key in `en.ts` was prose every player downloaded and no player could be shown                                                                                                                                                                                                                                                                      |
+| `src/i18n/docs-ru.ts`    | `RU_DOCS_MESSAGES` — the same pages in Russian, typed as `DocsCatalog` so the pair stays in step the way `en.ts` and `ru.ts` do                                                                                                                                                                                                                                                                                                                                                                                                               |
 | `src/i18n/detect.ts`     | `resolveLocale`, `browserLocaleSources`, `localeFromQuery`, `readStoredLocale`, `storeLocale`, `localeFromLanguages`, `LOCALE_QUERY_KEY`, `LOCALE_STORAGE_KEY`, `LocaleSources`                                                                                                                                                                                                                                                                                                                                                               |
 | `src/i18n/index.ts`      | `t`, `translateIn`, `getLocale`, `setLocale`, `loadLocale`, `isLocaleLoaded`, `format`, `formatList`, `CATALOG_LOADERS`, and a re-export of most of the above. Four of those exports do not come through: `RU_MESSAGES`, deliberately, since a re-export is a static import; `interpolate` and `MessageParams`, which nothing outside `catalog.ts` uses; and `format.ts`'s `formatList`, because the `formatList` here is a different function — a wrapper that supplies the active locale, importing the other under the name `formatListIn` |
 | `src/i18n/test-setup.ts` | No exports. Vitest's one setup file, named as `setupFiles` in `vite.config.ts`: it awaits every catalog before a test file's first line, because catalogs are fetched rather than bundled and a dozen test files say `setLocale("ru")` and assert about Russian next                                                                                                                                                                                                                                                                          |
@@ -104,20 +107,22 @@ Key names carry two suffixes that mean something:
 
 ## Where the strings are
 
-The catalog holds **483 keys** in two locales. `src/i18n/en.ts` is the reference — its text is
-the English wording, extracted verbatim — and `src/i18n/ru.ts` is the Russian translation. The
-types make English the shape everything else is measured against: a Russian catalog missing a
-key, carrying a key English does not have, or giving a plural message the wrong number of forms
-is a compile error, not a runtime surprise.
+The catalog holds **483 keys** in two locales, each locale spread over two files. `src/i18n/en.ts`
+is the reference — its text is the English wording, extracted verbatim — and `src/i18n/ru.ts` is
+the Russian translation; `src/i18n/docs-en.ts` and `src/i18n/docs-ru.ts` are the same thing for the
+reference pages, kept in files of their own so that the bundle cannot reach them. The types make
+English the shape everything else is measured against: a Russian catalog missing a key, carrying a
+key English does not have, or giving a plural message the wrong number of forms is a compile
+error, not a runtime surprise.
 
 ```sh
-grep -cE '^  "[^"]+":' src/i18n/en.ts                                   # 483
-grep -oE '^  "[^"]+"' src/i18n/en.ts | tr -d '"' | cut -d. -f1 | sort | uniq -c | sort -rn
+grep -hoE '^  "[^"]+"' src/i18n/en.ts src/i18n/docs-en.ts | wc -l       # 483
+grep -hoE '^  "[^"]+"' src/i18n/en.ts src/i18n/docs-en.ts | tr -d '"' | cut -d. -f1 | sort | uniq -c | sort -rn
 ```
 
 | Prefix         | Keys    | What reads them                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 | -------------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `docs.*`       | 87      | one of them, `docs.basics.example.code`, by `src/ui/completions.ts`; the other 86 by nothing                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| `docs.*`       | 87      | one of them, `docs.basics.example.code`, by `src/ui/completions.ts`, and it is the one that stays in `src/i18n/en.ts` for that reason; the other 86 by nothing, and they live in `src/i18n/docs-en.ts` and `src/i18n/docs-ru.ts`, which only `src/page.test.ts` imports                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
 | `tutorial.*`   | 75      | `src/game/tutorial.ts` (the 16 programs), `src/widgets/tutorial-panel/ui/tutorial-panel.ts` (the 48 prose keys and the panel's own five), `src/pages/game/index.ts` (the four of the finish overlay), `src/widgets/level-switcher/ui/level-switcher.ts` (the block caption); `tutorial.bar.title.html` is read by none of them                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
 | `skyscraper.*` | 14      | `src/game/skyscraper.ts`, whose getters read all fourteen; the card four of them end up on is `src/widgets/level-briefing/ui/level-briefing.ts`, which is handed the finished strings and so names no key itself. Ten of the fourteen are starting programs, one per level                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
 | `game.*`       | 204     | `src/ui/templates.ts` (18), `src/pages/game/index.ts` (11 + 5), `src/widgets/goal-bar/ui/goal-bar.ts` (8), `src/entities/level-tier/ui/requirement-text.ts` (14), `src/entities/level-tier/ui/tier-hint.ts` (3), `src/widgets/verdict-toast/ui/verdict-toast.ts` (2), `src/widgets/level-switcher/ui/level-switcher.ts` (10), `src/widgets/building-stage/lib/hover-card-text.ts` (15), `src/widgets/stats-panel/ui/stats-panel.ts` (3), `src/widgets/editor-pane/ui/editor-pane.ts` (3), `src/features/switch-theme` (4), `src/features/switch-layout` (5), `src/widgets/app-bar/ui/settings-menu.ts` (7), `src/main.ts` (3, the workspace pane/splitter labels); the two speed labels are written by both of the first two; the other 91, under `game.hotkeys.*`, `game.docs.*` and `game.apiRef.*`, by none of them yet — see below |
@@ -132,20 +137,27 @@ grep -oE '^  "[^"]+"' src/i18n/en.ts | tr -d '"' | cut -d. -f1 | sort | uniq -c 
 Which keys nothing reads:
 
 ```sh
-grep -oE '^  "[^"]+"' src/i18n/en.ts | tr -d '"' | while read -r key; do
-  grep -rqF --exclude=en.ts --exclude=ru.ts --exclude='*.test.ts' -e "$key" index.html src || echo "$key"
+grep -hoE '^  "[^"]+"' src/i18n/en.ts src/i18n/docs-en.ts | tr -d '"' | while read -r key; do
+  grep -rqF --exclude=en.ts --exclude=ru.ts --exclude=docs-en.ts --exclude=docs-ru.ts \
+    --exclude='*.test.ts' -e "$key" index.html src || echo "$key"
 done
 ```
 
-It lists **83 keys, every one of them `docs.*`**. Two things it cannot see, both of which make it
-optimistic rather than pessimistic: it matches text rather than calls, so a key that is a prefix
-of another key counts as read whenever the longer one is, and a key named only in a comment
-counts as read too. The prefix case costs nothing today — the same grep with each key required to
-end where the key ends lists the same 83 — and the comment case costs two. `page.noscript` is one:
-nothing renders it, and `index.html` names it in a comment saying so. `docs.play.statistics.html`
-is the other, and was missed when this figure was last written: it is a paragraph of the reference
-page like its neighbours, and `src/game/world.ts` names it twice in prose explaining what the
-statistics panel measures. So the true figure is 85. The grep also needs
+The four catalog files are excluded by name rather than by `--exclude='docs-*.ts'`, which would
+also drop `src/features/docs-reference/ui/docs-modal.ts` and hand back 24 `game.docs.*` keys as
+unread.
+
+It lists **93 keys**: 85 `docs.*`, and eight the catalog carries that nothing on screen asks for
+— six tooltips under `page.stats.*`, `game.level.title.html` and `tutorial.bar.title.html`.
+Two things the grep cannot see, both of which make it optimistic rather than pessimistic: it
+matches text rather than calls, so a key that is a prefix of another key counts as read whenever
+the longer one is, and a key named only in a comment counts as read too. The prefix case costs
+nothing today — the same grep with each key required to end where the key ends lists the same 93
+— and the comment case costs two. `page.noscript` is one: nothing renders it, and `index.html`
+names it in a comment saying so. `docs.play.statistics.html` is the other: it is a paragraph of
+the reference page like its neighbours, and `src/game/world.ts` names it twice in prose
+explaining what the statistics panel measures. So the true figure is 95, of which 86 are
+`docs.*` — every one the pages hold, bar the skeleton the popup borrows. The grep also needs
 `src/widgets/tutorial-panel/ui/tutorial-panel.ts` and `src/game/tutorial.ts` to be in the tree, since between them that
 is what reads the 64 `tutorial.level*` messages: the panel each level's prose, the level table each
 level's two programs.
@@ -164,6 +176,12 @@ requires `localisePage` to leave it alone even in Russian.
 translated at run time. That duplication is deliberate and no longer silent — see _Known
 overlap_ at the end, and `src/page.test.ts`, which holds the two pages and the two catalogs in
 step.
+
+They are also the reason `src/i18n/docs-en.ts` and `src/i18n/docs-ru.ts` exist. `en.ts` is
+imported statically, so every key in it is bytes the player downloads before the first level
+draws; 86 keys of help text that only a static file ever shows are bytes nobody can be shown.
+Moving them into modules that nothing but `src/page.test.ts` imports takes them out of the build
+by structure rather than by hoping the bundler proves them dead.
 
 ## The strings
 
@@ -213,7 +231,8 @@ still translates key for key. Six `page.*` keys went with them.
 One of these is read. The editor's skeleton completion inserts `docs.basics.example.code`, so
 the program the popup offers and the program the help page walks through are the same bytes in
 whichever language the reader is in; it is filed here rather than under `src/ui/completions.ts`
-because this is where its wording is decided, and the popup borrows it. The other 86 have no
+because this is where its wording is decided, and the popup borrows it. It is also why that one
+key sits in `src/i18n/en.ts` while the other 86 sit in `src/i18n/docs-en.ts`. Those 86 have no
 call site: their English is on screen in `documentation.html` and their Russian in
 `documentation.ru.html`. `src/page.test.ts` holds every one of them to being the same text as
 the passage it was lifted from, in both languages, and its "leaves no docs.\* message unchecked"
@@ -1394,17 +1413,18 @@ needs no edit to the control and none to `index.html`, which ships the `<select>
 | `src/i18n/inventory.test.ts`   | This file: the keys it names, the keys it omits, the counts it prints, the `src/` paths it points at, the absence of line pins, and the learning track's quoted titles. Not the rest of its prose.                                                                                                   |
 
 That last row said **nothing** through two rebuildings of this document. What closes most of it
-is `src/i18n/inventory.test.ts`, which reads this file with `?raw` and checks it against
-`EN_MESSAGES`:
+is `src/i18n/inventory.test.ts`, which reads this file with `?raw` and checks it against the two
+English catalogs, `EN_MESSAGES` and `EN_DOCS_MESSAGES`, read together as the one set of keys a
+locale publishes:
 
 1. Every backticked token in this file shaped like a message key — dotted, and with a first
    segment that is one of the catalog's prefixes — is a real `MessageKey`. This catches a key
    renamed in the catalog and left behind here.
-2. Every key in `EN_MESSAGES` appears somewhere in this file, except the 64 `tutorial.levelN.*`
-   keys the learning track section covers by their shape — its prose and its two programs alike.
-   This catches a message added without a row.
-3. The **Keys** column of _Where the strings are_ equals the number of `EN_MESSAGES` keys under
-   each prefix, and the **Total** equals `Object.keys(EN_MESSAGES).length`.
+2. Every key either catalog holds is named here, except the 64 `tutorial.levelN.*` keys the
+   learning track section covers by their shape — its prose and its two programs alike. This
+   catches a message added without a row.
+3. The **Keys** column of _Where the strings are_ equals the number of keys under each prefix,
+   and the **Total** equals how many there are in all.
 4. Every backticked `src/…` path exists on disk. This catches a renamed module. Keep it to
    `src/`: a message key such as `docs.play.start.html` is shaped like a file name and is not
    one, and `licenses.txt` only exists once the build has run.
@@ -1446,19 +1466,21 @@ the editor and a confirmation that reports the same success every few seconds is
 
 While this catalog was being written, another change added `documentation.ru.html` — a
 separate, fully translated Russian copy of the reference page, with `hreflang` alternates linking
-the pair. That covers the same ground as the 81 unread `docs.*` keys, by a different route: a
+the pair. That covers the same ground as the 86 unread `docs.*` keys, by a different route: a
 static file per language instead of one document translated at run time.
 
 Both were kept, which would ordinarily mean maintaining the Russian documentation twice — and it
 did: a review of the Russian page put a dozen corrections into `documentation.ru.html`, and every
 one of them stayed there while `ru.ts` went on saying the thing that had been corrected.
 `src/page.test.ts` now closes that gap from both ends, so the duplication is still there and can
-no longer drift silently. That turns the choice below from pending into deferred:
+no longer drift silently. What it used to cost besides the upkeep — the whole of the help text
+in every player's first download — the move to `src/i18n/docs-en.ts` has taken away. That turns
+the choice below from pending into deferred:
 
 - **Keep the static pages** and drop the `docs.*` keys from the catalog, or generate
-  `documentation.ru.html` from them at build time. The 81 unread keys have no other call site, so
+  `documentation.ru.html` from them at build time. The 86 unread keys have no other call site, so
   removing them touches nothing else — but `docs.basics.example.code` does have one, and would
-  have to stay.
+  have to stay, which is why it never left `src/i18n/en.ts`.
 - **Keep the catalog** and reduce `documentation.ru.html` to a redirect.
 
 Whoever takes it up should read `src/page.test.ts` first: whichever side is dropped, those

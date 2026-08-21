@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 
 import { translate } from "./catalog.ts";
+import { EN_DOCS_MESSAGES } from "./docs-en.ts";
+import { RU_DOCS_MESSAGES } from "./docs-ru.ts";
 import { EN_MESSAGES } from "./en.ts";
 import { decimal, PLURAL_CATEGORIES } from "./format.ts";
 import { LOCALES, type Locale } from "./locale.ts";
@@ -10,13 +12,17 @@ import { RU_MESSAGES } from "./ru.ts";
 type Entry = string | Readonly<Record<string, string>>;
 
 /**
- * Both catalogs behind their loosest type, so the tests can walk them by
- * string key. The strict types are what {@link translate} is checked against;
- * here the point is to look for what the types cannot see.
+ * Every catalog behind its loosest type, so the tests can walk them by string
+ * key. The strict types are what {@link translate} is checked against; here the
+ * point is to look for what the types cannot see.
+ *
+ * A locale's messages come in two files -- the game's, and the reference pages'
+ * (`docs-en.ts` says why they are apart) -- and every rule below applies to
+ * both, so each locale is read here as the one set of strings it publishes.
  */
 const CATALOGS: Readonly<Record<Locale, Readonly<Record<string, Entry>>>> = {
-  en: EN_MESSAGES,
-  ru: RU_MESSAGES,
+  en: { ...EN_MESSAGES, ...EN_DOCS_MESSAGES },
+  ru: { ...RU_MESSAGES, ...RU_DOCS_MESSAGES },
 };
 
 /** Every string an entry can render. */
@@ -69,7 +75,7 @@ function withEmptiedComments(code: string): string {
     .join("\n");
 }
 
-const KEYS = Object.keys(EN_MESSAGES);
+const KEYS = Object.keys(CATALOGS.en);
 const CODE_KEYS = KEYS.filter((key) => key.endsWith(".code"));
 const HTML_KEYS = KEYS.filter((key) => key.endsWith(".html"));
 
@@ -92,7 +98,10 @@ describe("catalog shape", () => {
   });
 
   it("keeps the keys in one order, so two catalogs can be read side by side", () => {
-    expect(Object.keys(RU_MESSAGES)).toEqual(KEYS);
+    // File by file, since a file is what a translator reads down. This also
+    // holds each message to the file its English original lives in.
+    expect(Object.keys(RU_MESSAGES)).toEqual(Object.keys(EN_MESSAGES));
+    expect(Object.keys(RU_DOCS_MESSAGES)).toEqual(Object.keys(EN_DOCS_MESSAGES));
   });
 
   it("has something to say for every key", () => {

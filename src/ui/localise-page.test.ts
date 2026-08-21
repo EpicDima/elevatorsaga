@@ -313,14 +313,18 @@ describe("a page shell asking for something the catalog cannot answer", () => {
     expect(console.warn).not.toHaveBeenCalled();
   });
 
-  it("puts the platform's own modifier key back after rewriting a message", () => {
-    // Nothing in index.html names a message with a `<kbd data-mod-key>` in it
-    // today, so the check is made against a scrap rather than the shell -- but
-    // the guarantee is the shell's all the same. Any message written with
-    // `innerHTML` can carry one, the reference page's own shortcut paragraph
-    // does, and a message written here would otherwise tell a Mac player to
-    // press a key their keyboard does not have.
-    const scrap = shell(`<p ${TEXT_KEY_ATTRIBUTE}="docs.play.shortcuts.html">Ctrl+Enter</p>`);
+  it("labels the modifier keys for the platform, alongside the messages", () => {
+    // The kbds are written into the scrap because no message the game loads
+    // brings one. The reference page's shortcut paragraph does, and it lives in
+    // `src/i18n/docs-en.ts`, which nothing but `src/page.test.ts` imports. The
+    // guarantee is the shell's either way, and is why the relabelling is the
+    // last thing `localisePage` does: a message written with `innerHTML` can
+    // carry a `<kbd data-mod-key>`, and writing it throws away the label, which
+    // would leave a Mac player told to press a key their keyboard does not have.
+    const scrap = shell(`
+      <p ${TEXT_KEY_ATTRIBUTE}="page.world.label">Building</p>
+      <p><kbd data-mod-key>Ctrl</kbd>+<kbd>Enter</kbd>, <kbd data-mod-key>Ctrl</kbd>+<kbd>S</kbd></p>
+    `);
 
     localisePage(scrap, USER_AGENTS.mac);
 
