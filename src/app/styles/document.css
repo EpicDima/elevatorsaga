@@ -44,9 +44,21 @@ html {
   overflow: auto;
 }
 
+/*
+ * `visibility: visible` is this stylesheet announcing its own arrival. Each of
+ * the three pages hides its body in its own `<head>` -- the head rule says why
+ * -- and this is the only thing that undoes it, so a page that reaches a reader
+ * without the stylesheet stays empty rather than showing the shell undressed.
+ *
+ * It works by cascade order, which is safe in both ways the file is served:
+ * the build writes its `<link>` below the head's own `<style>`, and the dev
+ * server appends its `<style>` to the end of the head. Equal specificity, and
+ * this comes second.
+ */
 body {
   margin: 0;
   padding: 0;
+  visibility: visible;
   background-color: var(--ds-bg);
   color: var(--ds-text);
   font-family: var(--ds-font-ui);

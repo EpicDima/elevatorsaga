@@ -10,12 +10,21 @@
       whole load is a white flash. The colours are --ds-bg and --ds-text, dark
       only -- this page carries no theme switch, so nothing ever sets
       `<html data-theme>` on it. src/page.test.ts holds them to the palette.
+
+      The body is hidden here and revealed by src/app/styles/document.css, so
+      the wait is an empty page in the right colour rather than the whole
+      reference drawn in the browser's own Times and then reflowed. index.html
+      says the rest of it.
     -->
     <style>
       html {
         background: #131519;
         color: #e7e9ec;
         color-scheme: dark;
+      }
+
+      body {
+        visibility: hidden;
       }
     </style>
 

@@ -24,6 +24,17 @@
       blocking on purpose: a module script runs after the first paint, so
       until this was here everyone on the light theme watched the dark default
       go past first.
+
+      The body is hidden here and revealed by src/app/styles/document.css, so
+      what the wait looks like is an empty page in the right colour rather than
+      the shell in the browser's own Times: the bypass link, the heading and
+      the two empty panes, drawn before a single rule has said where any of
+      them sits. The built page never shows that anyway -- its stylesheet is a
+      render-blocking `<link>`, so nothing is painted until the stylesheet is
+      there to paint it with -- but `npm run dev` serves the same stylesheet
+      through JavaScript, which does not block anything. The trade is that a
+      stylesheet which never arrives leaves an empty page instead of an ugly
+      one; in the build that is the page either way.
     -->
     <style>
       html {
@@ -36,6 +47,10 @@
         background: #f3f1ec;
         color: #1e2227;
         color-scheme: light;
+      }
+
+      body {
+        visibility: hidden;
       }
     </style>
     <script>

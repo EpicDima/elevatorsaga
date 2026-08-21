@@ -28,7 +28,13 @@ import {
   globalCompletions,
 } from "./ui/completions.ts";
 import { readTheme, resolveTheme, THEME_STORAGE_KEY } from "#features/switch-theme/model/theme.ts";
-import { DARK_PALETTE, declaration, LIGHT_PALETTE, themed } from "#shared/styles/test-helpers.ts";
+import {
+  DARK_PALETTE,
+  declaration,
+  LIGHT_PALETTE,
+  ruleBody,
+  themed,
+} from "#shared/styles/test-helpers.ts";
 import { createIcon } from "#shared/ui/icon.ts";
 import { buildAppBarSkeleton } from "#widgets/app-bar/ui/app-bar.ts";
 
@@ -185,6 +191,15 @@ describe("index.html", () => {
       expect(declaration(body, "color-scheme", selector)).toBe(scheme);
     },
   );
+
+  it("hides the shell until the stylesheet is there to dress it", () => {
+    // The two halves of one rule, in two files: the head hides the body and
+    // src/app/styles/document.css is the only thing that shows it again, so
+    // what the load looks like is an empty page in the page's own colour
+    // rather than the shell drawn in the browser's own font and then reflowed.
+    expect(declaration(firstPaintRule(page, "body"), "visibility", "body")).toBe("hidden");
+    expect(declaration(ruleBody("body"), "visibility", "body")).toBe("visible");
+  });
 
   it.each([
     ["nothing remembered", null],
@@ -533,6 +548,13 @@ describe.each(DOCUMENTATION_PAGES)("$file", (reference) => {
     expect(declaration(body, "color", "html")).toBe(themed(DARK_PALETTE, "ds-text"));
     expect(declaration(body, "color-scheme", "html")).toBe("dark");
     expect(docs.querySelector("head style")?.textContent).not.toContain("data-theme");
+  });
+
+  it("hides its text until the stylesheet is there to dress it", () => {
+    // src/docs.ts imports the same src/styles/index.css the game does, so the
+    // rule that shows the body again is the same one -- index.html's own test
+    // above is where that half is checked.
+    expect(declaration(firstPaintRule(docs, "body"), "visibility", "body")).toBe("hidden");
   });
 
   it("keeps the #docs anchor the game links to", () => {
