@@ -271,11 +271,9 @@ export const EN_MESSAGES = {
   "game.workspace.codePane": "Code editor",
   "game.workspace.splitter": "Editor width",
   // Settings: widgets/app-bar's settings-menu.ts, the widget composing
-  // switch-theme, switch-layout, switch-language and manage-seed into the one
-  // popover `design/ui-mockup.html` draws. docsOpenLabel and hotkeysOpenLabel
-  // name openers only -- Phase 10 is where the docs and hotkeys dialogs
-  // themselves get built, so both buttons take an injected click callback and
-  // do nothing on their own yet. aboutForkLabel/aboutOriginalLabel/
+  // switch-theme, switch-layout, switch-language and manage-seed into one
+  // popover. docsOpenLabel and hotkeysOpenLabel name the two buttons that open
+  // the help and hotkeys dialogs. aboutForkLabel/aboutOriginalLabel/
   // aboutCopyright are the only prose in a block that is otherwise two real,
   // hardcoded GitHub URLs -- addresses are not a translator's business.
   "game.appBar.docsOpenLabel": "Help",
@@ -289,13 +287,12 @@ export const EN_MESSAGES = {
   // why it is the licence's name rather than a row of its own.
   "game.appBar.aboutCopyright.html":
     'Elevator Saga © 2015 Magnus Wolffelt, © 2026 EpicDima, <a href="licenses.txt">MIT</a>.',
-  // Hotkeys: features/hotkeys-help's keys dialog, design/ui-mockup.html's own
-  // `<dialog class="keys">`. Every Mod- binding is spelled out as two <kbd>s
-  // joined by "+" (documentation.html's own <kbd data-mod-key> convention,
-  // resolved at runtime by src/ui/shortcuts.ts's labelModifierKeys) rather
-  // than the mockup's Mac-only "⌘⏎"/"⌘B" glyphs, and the mockup's own
-  // Windows/Linux hint paragraph is dropped: labelModifierKeys already
-  // relabels the kbd per visitor, so the hint's own question does not arise.
+  // Hotkeys: features/hotkeys-help's keys dialog, `<dialog class="keys">`.
+  // Every Mod- binding is spelled out as two <kbd>s joined by "+"
+  // (documentation.html's own <kbd data-mod-key> convention, resolved at
+  // runtime by src/ui/shortcuts.ts's labelModifierKeys). labelModifierKeys
+  // relabels the kbd per visitor, so no separate Windows/Linux hint paragraph
+  // is needed.
   "game.hotkeys.title": "Keyboard shortcuts",
   "game.hotkeys.closeTitle": "Close window",
   "game.hotkeys.close": "Close",
@@ -304,20 +301,19 @@ export const EN_MESSAGES = {
   "game.hotkeys.switchLayout": "Switch layout",
   "game.hotkeys.openDocs": "Help",
   "game.hotkeys.openSettings": "Settings",
-  // Docs: features/docs-reference's help dialog, design/ui-mockup.html's own
-  // `<dialog class="docs">` -- the chrome around the guide and the API
-  // reference, not their content.
+  // Docs: features/docs-reference's help dialog, `<dialog class="docs">` -- the
+  // chrome around the guide and the API reference, not their content.
   "game.docs.title": "Help",
   "game.docs.searchPlaceholder": "Search: goToFloor, waiting, button…",
   "game.docs.clearSearch": "Clear search",
   "game.docs.closeTitle": "Close help",
   "game.docs.close": "Close",
   "game.docs.empty": "Nothing found",
-  // The guide: design/ui-mockup.html's own GUIDE template literal, ported
-  // section by section. whatToDo's four steps are their own keys rather than
-  // one holding the whole <ol>, because the list markup is the template's to
-  // draw, not a translator's to reproduce; step3 keeps a .html suffix because
-  // it alone has an inline <b>, and the rest do not.
+  // The guide: one heading-and-body section per topic. whatToDo's four steps
+  // are their own keys rather than one holding the whole <ol>, because the list
+  // markup is the template's to draw, not a translator's to reproduce; step3
+  // keeps a .html suffix because it alone has an inline <b>, and the rest do
+  // not.
   "game.docs.guide.whatGame.heading": "What kind of game this is",
   "game.docs.guide.whatGame.body":
     "Elevators move through a building, and people wait on its floors: each one arrived on their own floor and wants to reach another. They press their own buttons. Nobody drives the elevators — a program you write does, instead. You can't move an elevator with the mouse, and that's the whole game: the only way to get people where they're going is to give the building a rule it can follow on its own.",
@@ -343,9 +339,8 @@ export const EN_MESSAGES = {
   "game.docs.guide.tutorialLevels.body":
     "Tutorial levels have a lesson standing next to the building: step by step, what's happening, which event a program sees it through, and what answering it looks like. The hints open one at a time, and the last of them holds a working program with a button that copies it.",
   // The code skeleton every program starts from, and the one paragraph naming
-  // elevator/elevators/floor/floors before the reference dives into each --
-  // design/ui-mockup.html's own docsBody.innerHTML assembly, between the
-  // guide and the API rows.
+  // elevator/elevators/floor/floors before the reference dives into each. It
+  // sits in the help dialog between the guide and the API rows.
   "game.docs.intro.heading": "What a program is made of",
   "game.docs.intro.example.code": `{
   init: function (elevators, floors) {
@@ -362,9 +357,8 @@ export const EN_MESSAGES = {
   // triplet below is one <details class="api"> row's short summary, longer
   // explanation and example. English condenses this repository's own
   // documentation.html prose for the same methods rather than translating the
-  // Russian cold; Russian is design/ui-mockup.html's own API_DOCS text,
-  // verbatim but for floorNum.more's "floors.length-1", tightened to satisfy
-  // this catalog's own hyphen-is-not-a-dash rule.
+  // Russian cold. floorNum.more's "floors.length-1" is tightened from a spaced
+  // hyphen, to satisfy this catalog's own hyphen-is-not-a-dash rule.
   "game.apiRef.elevator.groupLabel": "Elevator",
   "game.apiRef.floor.groupLabel": "Floor",
   "game.apiRef.elevator.goToFloor.short": "Queues a floor for the elevator.",
@@ -549,11 +543,10 @@ elevator.goingDownIndicator(false);`,
   "game.button.startOverTitle": "Start the run from the very beginning",
   "game.button.resetCode": "Reset code",
   "game.button.undoResetCode": "Undo reset",
-  // The tooltips on those two, which the mockup gives its own reset button and
-  // which say the part the label has no room for: *which* code comes back.
-  // "Reset code" alone does not distinguish the level's starting program from
-  // whatever the player had a moment ago, and the two buttons sit side by side
-  // undoing each other.
+  // The tooltips on those two say the part the label has no room for: *which*
+  // code comes back. "Reset code" alone does not distinguish the level's
+  // starting program from whatever the player had a moment ago, and the two
+  // buttons sit side by side undoing each other.
   "game.button.resetCodeTitle": "Put the level's own starting program back in this slot",
   "game.button.undoResetCodeTitle": "Bring back the program this slot held before the reset",
   // What the primary button says while a crunch is under way, in place of
@@ -575,13 +568,12 @@ elevator.goingDownIndicator(false);`,
   "game.feedback.dismiss": "Got it",
   // The line under the message: what the run would have to do for its next
   // star. One sentence per tier rather than one with the tier's name
-  // interpolated, because Russian declines it — «до серебра», «до золота» —
-  // and a name lifted out of `game.goalBar.tier.*` would arrive nominative.
+  // interpolated, because Russian declines it — «до серебра», «до золота» — and
+  // a name lifted out of `game.goalBar.tier.*` would arrive nominative.
   // `{needs}` is the unmet requirements, punctuated by `formatList`; each of
   // them is `game.feedback.more.need.html`, which pairs what was asked with
-  // where the run actually finished. Without that second figure the line is a
-  // reproach rather than a hint, which is `design/ui-mockup.html`'s own
-  // reasoning for printing it.
+  // where the run actually finished. Without that second figure the line would
+  // read as a reproach rather than a hint.
   "game.feedback.more.silver.html": "For silver: {needs}",
   "game.feedback.more.gold.html": "For gold: {needs}",
   "game.feedback.more.need.html": "{req} (now {now})",
@@ -632,13 +624,12 @@ elevator.goingDownIndicator(false);`,
   "editor.confirmReset": "Do you really want to reset to the default implementation?",
   "editor.confirmUndoReset": "Do you want to bring back the code as before the last reset?",
   "editor.slot.tablist.label": "Code slots",
-  // The visible word on a slot button, and its tooltip. A bare "1" says
-  // nothing about what pressing it does, which is why it used to need an
-  // `aria-label` saying it instead -- a label a sighted player never saw and a
-  // screen-reader user heard in place of the number rather than beside it. The
-  // mockup writes the noun out on the button itself, and the tooltip says what
-  // the three of them are for: drafts, not versions or attempts, so that
-  // nobody expects a history.
+  // The visible word on a slot button, and its tooltip. A bare "1" says nothing
+  // about what pressing it does, so the noun is written out on the button
+  // itself -- read by sighted and screen-reader players alike, rather than
+  // spoken only through a separate `aria-label`. The tooltip says what the
+  // three of them are for: drafts, not versions or attempts, so that nobody
+  // expects a history.
   "editor.slot.tab.label": "Code {number}",
   "editor.slot.tab.title": "Draft {number}",
   "editor.defaultCode.code": `{
