@@ -6,6 +6,7 @@
 import { expect, test } from "@playwright/test";
 
 import { DEV_TEST_CODE } from "../src/ui/default-code.ts";
+import { MAX_ZOOM } from "../src/widgets/building-stage/lib/shaft-scale.ts";
 import {
   building,
   editor,
@@ -57,6 +58,30 @@ test("boots the first level with an editor and a building", async ({ page }) => 
   await expect(await statistic(page, "Elapsed time")).toHaveText("0s");
 
   expect(pageErrors).toEqual([]);
+});
+
+test("draws the cars half again their world units when the pane has the room", async ({ page }) => {
+  // What `MAX_ZOOM` is worth on screen, measured where jsdom cannot: the fit
+  // reads `.stage`'s own `clientWidth`, and the whole chain from that
+  // measurement to a drawn car only exists in a browser. Level 1's single car
+  // is the capacity most levels ship -- four riders, so forty world units --
+  // and at the default window it is drawn at sixty pixels rather than forty.
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto("/#level=1");
+  const car = building(page).locator(".car");
+  await expect(car).toBeVisible();
+
+  const drawn = await car.boundingBox();
+  expect(drawn?.width).toBeCloseTo(4 * 10 * MAX_ZOOM, 0);
+
+  // And the growing stops at the pane. The building is drawn inside a box that
+  // scrolls, so a zoom that outgrew its room would not be visible as a clipped
+  // house -- it would be a sideways scrollbar under a level that never needed
+  // one, which is the trade the ceiling exists to refuse.
+  const spill = await page
+    .locator(".stage")
+    .evaluate((stage) => stage.scrollWidth - stage.clientWidth);
+  expect(spill).toBe(0);
 });
 
 test("plays a level to completion when Start is pressed", async ({ page }) => {

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { computeShaftScale, shaftPadPx } from "./shaft-scale.ts";
+import { computeShaftScale, shaftPadPx, MAX_ZOOM } from "./shaft-scale.ts";
 
 describe("computeShaftScale", () => {
   it("returns scale 1 when there are no elevators", () => {
@@ -23,6 +23,41 @@ describe("computeShaftScale", () => {
       ],
     });
     expect(scale.scaleX).toBe(1);
+  });
+
+  it("draws a building with room to spare half again the size the engine states it at", () => {
+    // free = max(120, 800-32-84-44) = 640, naturalWidth = 260+40 = 300, so the
+    // ratio asks for 2.13 and MAX_ZOOM is what answers. This is the default
+    // window on most of the shipped levels: a capacity-4 car is 40 world units,
+    // and 40px of car under 80px of floor is what the ceiling of 1 drew --
+    // while a third of the pane stood empty beside it.
+    const scale = computeShaftScale({
+      stageWidth: 800,
+      levelsWidth: 84,
+      elevators: [
+        { worldX: 200, width: 40, capacity: 4 },
+        { worldX: 260, width: 40, capacity: 4 },
+      ],
+    });
+    expect(scale.scaleX).toBe(MAX_ZOOM);
+  });
+
+  it("grows a building only as far as its own pane, when the pane stops first", () => {
+    // free = max(120, 520-32-84-44) = 360 against the same 300 of building, so
+    // the ratio is 1.2 and it binds below the ceiling. The whole point of
+    // clamping rather than simply drawing every building half again as large:
+    // growing past the pane would hand a level a sideways scrollbar in exchange
+    // for a wider car, which is a worse trade than the narrow car it started
+    // with.
+    const scale = computeShaftScale({
+      stageWidth: 520,
+      levelsWidth: 84,
+      elevators: [
+        { worldX: 200, width: 40, capacity: 4 },
+        { worldX: 260, width: 40, capacity: 4 },
+      ],
+    });
+    expect(scale.scaleX).toBeCloseTo(1.2, 4);
   });
 
   it("still shrinks the capacity-4 cars most levels use", () => {
@@ -121,8 +156,10 @@ describe("shaftPadPx", () => {
   it("leaves a visible seam between two neighbouring shafts at every scale it floors", () => {
     // Two cars are 20 world units apart, and each takes its pad out of that gap.
     // The floor MIN_CAR puts on scaleX for the widest car in the game (capacity
-    // 8, so 30/80) is 0.375, and even there the seam survives.
-    for (const scaleX of [0.375, 0.5, 0.75, 1]) {
+    // 8, so 30/80) is 0.375, and even there the seam survives. MAX_ZOOM is the
+    // other end of the same range: the pad grows with the building, so a wall
+    // that ate its whole gap would draw the whole rank as one wide shaft.
+    for (const scaleX of [0.375, 0.5, 0.75, 1, MAX_ZOOM]) {
       expect(20 * scaleX - 2 * shaftPadPx(scaleX)).toBeGreaterThan(0);
     }
   });

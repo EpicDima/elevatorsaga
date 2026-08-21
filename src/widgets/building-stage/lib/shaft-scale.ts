@@ -14,14 +14,17 @@
  * built against.
  *
  * The clamp shape below — free space over natural width, floored by whatever
- * keeps the narrowest car readable, ceilinged at 1 — is carried over from
- * `layoutBuilding()`'s own horizontal pass. Two things differ. The corridor is
- * not a fixed budget subtracted before the fit (`layoutBuilding()`'s
- * `CORRIDOR`), it is part of the span being scaled: the engine puts the first
- * car at world x 200 and spawns passengers at 105-145, all on one axis, so
- * scaling the shafts without the corridor they walk down would leave a queue
- * standing in a shaft. And the floor is {@link MIN_CAR} rather than that
- * module's `MIN_SHAFT`, for the reason that constant's own comment gives.
+ * keeps the narrowest car readable — is carried over from `layoutBuilding()`'s
+ * own horizontal pass. Three things differ. The corridor is not a fixed budget
+ * subtracted before the fit (`layoutBuilding()`'s `CORRIDOR`), it is part of
+ * the span being scaled: the engine puts the first car at world x 200 and
+ * spawns passengers at 105-145, all on one axis, so scaling the shafts without
+ * the corridor they walk down would leave a queue standing in a shaft. The
+ * floor is {@link MIN_CAR} rather than that module's `MIN_SHAFT`, for the
+ * reason that constant's own comment gives. And the ceiling is
+ * {@link MAX_ZOOM} rather than 1: this is a fit, not a shrink, and a building
+ * with room to spare is drawn larger rather than left as a strip of matchstick
+ * cars in the middle of an empty pane.
  *
  * Pure geometry, like `layout-building.ts` and `smart-position.ts`: plain
  * numbers in, plain numbers out, so it runs the same under Node as it does
@@ -48,6 +51,33 @@
  * whose top bar still reads as a top bar rather than a smear.
  */
 export const MIN_CAR = 30;
+
+/**
+ * The largest a world unit may be drawn, in pixels.
+ *
+ * The engine's own numbers are small: a car is `capacity * 10` world units, so
+ * the capacity most levels ship is a car forty units wide standing in a shaft
+ * whose floors are eighty to ninety pixels tall. Drawn one-to-one that is a
+ * letterbox on its end — an elevator half as wide as it is tall, in a building
+ * that was leaving a third of its pane empty to draw it that way. Nothing about
+ * those forty units is a measurement of anything; they are the width the
+ * original game happened to draw a car at.
+ *
+ * So the fit is allowed to grow the building as well as shrink it, up to half
+ * again its own units, and every level with the room takes the whole of it. It
+ * is one scale over the whole world and not a car-only stretch, which is the
+ * point: cars, the seats inside them, the seams between them and the corridor
+ * the queue walks down all grow together, so a passenger still walks to exactly
+ * the edge of the car they board and the building is the same drawing, larger.
+ *
+ * Half again and no more. The widest buildings in the game do not fit their
+ * pane at 1 as it is — level 18 is 1030px of house — and past 1.5 the levels
+ * that do fit start reaching for a scrollbar of their own in exchange for a car
+ * nobody asked to be bigger. The clamp below hands each building whichever of
+ * the two numbers is smaller, so a level with no room to grow is drawn exactly
+ * as it always was.
+ */
+export const MAX_ZOOM = 1.5;
 
 /**
  * How much room is left to the right of the rightmost shaft, in pixels.
@@ -179,7 +209,7 @@ export function computeShaftScale(input: ShaftScaleInput): ShaftScale {
   const minShaftScale = Math.max(
     ...elevators.map((elevator) => Math.min(1, MIN_CAR / elevator.width)),
   );
-  const scaleX = clamp(minShaftScale, free / naturalWidth, 1);
+  const scaleX = clamp(minShaftScale, free / naturalWidth, MAX_ZOOM);
 
   return { scaleX };
 }
