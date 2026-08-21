@@ -329,7 +329,7 @@ test("keeps every word of the seed line readable", async ({ page }) => {
   });
 
   // Both controls are icons, so 4.5:1 is stricter than WCAG asks of them --
-  // 1.4.11 wants 3:1 of a glyph -- but they inherit `.ghost`'s own text colour
+  // 1.4.11 wants 3:1 of a glyph -- but they inherit `.ghost`'s own text color
   // and there is no reason to hold them to less than the words beside them.
   expect(Object.keys(measured)).toEqual([
     ".cap",

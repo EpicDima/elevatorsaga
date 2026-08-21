@@ -123,7 +123,7 @@ describe("verdictToastTemplate", () => {
 
   it("marks a win with a check and a loss with a cross", () => {
     // Both halves are asserted, because either one alone is half a verdict:
-    // `.is-fail` is what recolours the badge, so a card that swapped the glyph
+    // `.is-fail` is what recolors the badge, so a card that swapped the glyph
     // without the class would draw a cross on a green disc, and one that
     // swapped the class without the glyph a check on a red one.
     const won = parse(verdictToastTemplate(baseData()));

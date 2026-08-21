@@ -29,7 +29,7 @@ describe("the palette", () => {
     // The migration onto --ds-* is finished: the last holdout was
     // --color-error, read by name from `src/ui/editor.ts` for the wavy
     // underline under a failing line, and that rule reads --ds-bad now. This
-    // is here so the palette cannot quietly grow a page-bound colour back.
+    // is here so the palette cannot quietly grow a page-bound color back.
     expect([...PALETTE.keys()].filter((name) => name.startsWith("color-"))).toEqual([]);
   });
 

@@ -4,7 +4,7 @@
  * until a player tries to press a call button.
  *
  * The clip it is drawn inside belongs to `widgets/building-stage`, which is
- * where that half is measured; its own badge colours are part of the `--*-soft`
+ * where that half is measured; its own badge colors are part of the `--*-soft`
  * family measured in `shared/styles/tokens.css.test.ts`.
  */
 
@@ -23,7 +23,7 @@ import {
 describe("the run verdict card", () => {
   it("lets the pointer through the sheet the card stands on", () => {
     // `.feedbackcontainer` is opened over the whole stage so the card inside
-    // it can be centred on the building, and it stays open for the whole run,
+    // it can be centered on the building, and it stays open for the whole run,
     // empty. A sheet that could take the pointer would swallow every hover and
     // click the floors, the shafts and the cars live on -- silently, since a
     // transparent box looks like nothing at all -- so it passes the pointer
@@ -40,7 +40,7 @@ describe("the run verdict card", () => {
     // sits 22px off the bottom -- so the two overlap exactly. Neither box
     // establishes a stacking context of its own, which is what puts their
     // z-indexes in competition across the DOM, and a fade drawn over the
-    // verdict would grey out its lower edge for no reason a reader could see.
+    // verdict would gray out its lower edge for no reason a reader could see.
     const fade = ruleBody(".stagewrap::before,\n.stagewrap::after");
     expect(Number(declaration(ruleBody(".verdict"), "z-index", ".verdict"))).toBeGreaterThan(
       Number(declaration(fade, "z-index", ".stagewrap::after")),

@@ -65,7 +65,7 @@ describe("saying a starter program again in another language", () => {
   it("leaves a program the player wrote exactly as it is", () => {
     // The property the whole design turns on. Text that is not one of the
     // game's own programs is not translated, not reformatted and not
-    // recognised as "nearly" anything: a player's work goes through untouched
+    // recognized as "nearly" anything: a player's work goes through untouched
     // or the editor has no business calling this.
     const mine = `{
     init: function(elevators, floors) {
@@ -81,8 +81,8 @@ describe("saying a starter program again in another language", () => {
     expect(localizeStarterCode("")).toBe("");
   });
 
-  it("recognises the starter of a level even after the player has read it in a third language", () => {
-    // A program is recognised by being one the game wrote in *any* language it
+  it("recognizes the starter of a level even after the player has read it in a third language", () => {
+    // A program is recognized by being one the game wrote in *any* language it
     // speaks, not by being the one this buffer was opened with. That is what
     // makes a copy written to storage last winter, in a language the player has
     // since left, still answer for what it is.

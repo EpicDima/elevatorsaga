@@ -29,7 +29,7 @@
  * module is imported long before the player's language has been resolved. A
  * module-scope constant holding rendered prose would therefore be English for
  * the rest of the session whatever the page around it said. So the tables below
- * hold keys, and {@link elevatorMembers} and its neighbours turn them into
+ * hold keys, and {@link elevatorMembers} and its neighbors turn them into
  * entries per call. The popup is rebuilt from scratch on every keystroke
  * anyway, so that costs a few dozen lookups in a plain object and nothing has
  * to be invalidated when the language changes. `levels.ts` repairs the same
@@ -526,7 +526,7 @@ function receiverKind(receiver: string, indexed: boolean): ReceiverKind {
 /**
  * The members offered for a receiver.
  *
- * An unrecognised receiver gets nothing at all rather than everything: `Math.`,
+ * An unrecognized receiver gets nothing at all rather than everything: `Math.`,
  * `console.` and the player's own objects are dotted into far more often than
  * an elevator held in a variable named after neither, and a popup that opens
  * over `Math.max` with `goToFloor` in it is noise.
@@ -549,7 +549,7 @@ function membersFor(kind: ReceiverKind): readonly ApiCompletion[] | null {
 /**
  * The event names offered inside a subscription call.
  *
- * An unrecognised receiver gets both sets here, unlike in {@link membersFor}:
+ * An unrecognized receiver gets both sets here, unlike in {@link membersFor}:
  * the call is already known to be an `on`, `once`, `one` or `off` with a string
  * in it, so it is a subscription on *something*, and a player who called their
  * variable `e` or `lift` still gets the names they came for.
@@ -580,7 +580,7 @@ function eventsFor(kind: ReceiverKind): readonly ApiCompletion[] | null {
  * - after a dot, the members of whichever facade the receiver looks like;
  * - otherwise, and only when asked explicitly, the program skeleton.
  *
- * A dot with an unrecognised receiver deliberately ends the search rather than
+ * A dot with an unrecognized receiver deliberately ends the search rather than
  * falling through to the skeleton: someone typing `Math.` is not asking for an
  * `init` function.
  *

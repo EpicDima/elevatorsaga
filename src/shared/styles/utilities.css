@@ -30,7 +30,7 @@
  * could have kept the pale value; it does not, because the exemption says the
  * icon need not be measured, not that a reader should have to hunt for it.
  * `--ds-bad` reads at 5.90:1 on dark `--ds-bg` and 4.52:1 on light -- one error
- * colour per theme, unlike the legacy palette's page/editor split, and it now
+ * color per theme, unlike the legacy palette's page/editor split, and it now
  * paints the squiggle inside the editor as well (`.cm-errorMark`, in
  * `src/ui/editor.ts`), so the banner and the underline it explains are the one
  * red rather than two.

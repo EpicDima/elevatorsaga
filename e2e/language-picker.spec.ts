@@ -69,11 +69,11 @@ test("puts the whole page into Russian without disturbing the run", async ({ pag
   await expect(page.locator('.meter[data-kind="transportedCounter"] .cap')).toHaveText(
     "Перевезено",
   );
-  // The app bar's own toolbar, relabelled by the settings widget's `update`.
+  // The app bar's own toolbar, relabeled by the settings widget's `update`.
   await expect(page.getByRole("button", { name: "Справка" })).toBeVisible();
   // The level bar, rebuilt by the app; and the run controls, which are not
   // rebuilt at all -- they are drawn once for the life of the page, so every
-  // word on them is written by the relabelling this change triggers.
+  // word on them is written by the relabeling this change triggers.
   await expect(page.getByRole("button", { name: "Уровень 4" })).toBeVisible();
   await expect(startButton(page, "Пауза")).toBeVisible();
   // `exact`, because the settings popover's dice button offers to «взять новый
@@ -81,14 +81,14 @@ test("puts the whole page into Russian without disturbing the run", async ({ pag
   // is about the run control, and the two are different buttons.
   await expect(page.getByRole("button", { name: "Заново", exact: true })).toBeVisible();
   // The speed control beside them, whose group name and both arrows are
-  // written by the same relabelling.
+  // written by the same relabeling.
   await expect(page.getByRole("group", { name: "Скорость прогона" })).toBeVisible();
   // The building, renamed in place. This is the part that used to stay English
   // however the page was redrawn: these names are written when the floors are
   // drawn, and the floors are not drawn again.
   await expect(page.getByRole("button", { name: "Вызвать лифт вверх с этажа 0" })).toBeVisible();
   await expect(page.getByRole("group", { name: "Лифт 0" })).toBeVisible();
-  // And the control itself, now labelled in the language it just chose.
+  // And the control itself, now labeled in the language it just chose.
   await expect(await languagePicker(page)).toHaveValue("ru");
   // The program in the editor, which is the default one here because nobody has
   // typed: its `//` comments are addressed to the player, so they are the

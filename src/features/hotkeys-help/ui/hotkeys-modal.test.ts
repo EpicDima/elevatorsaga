@@ -67,7 +67,7 @@ describe("hotkeysModalTemplate", () => {
     ).toEqual([["Space"], ["Ctrl", "Enter"], ["Ctrl", "B"], ["F1"], ["?"]]);
   });
 
-  it("marks only the two Mod- bindings for relabelling", () => {
+  it("marks only the two Mod- bindings for relabeling", () => {
     const { dialog } = setUp();
 
     const modKeys = [...dialog.querySelectorAll("kbd[data-mod-key]")];

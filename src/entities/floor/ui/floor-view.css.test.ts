@@ -23,16 +23,16 @@ import {
 } from "#shared/styles/test-helpers.ts";
 
 /**
- * How a floor's number is set: the colour, and the size and weight that decide
+ * How a floor's number is set: the color, and the size and weight that decide
  * which bar 1.4.3 holds the pair to.
  *
  * The size is a `clamp()`, since a floor is not always the same height. The
  * largest length in it is the one that matters: the bar steps *down* at 24px,
  * so a rule that can be drawn small has to clear the small-text bar.
  *
- * @returns The size in px, the weight, and the colour.
+ * @returns The size in px, the weight, and the color.
  */
-function levelNumber(): { size: number; weight: string; colour: string } {
+function levelNumber(): { size: number; weight: string; color: string } {
   const selector = ".level-num";
   const body = ruleBody(selector);
   const lengths = [...declaration(body, "font-size", selector).matchAll(/([\d.]+)px/g)].map(
@@ -42,7 +42,7 @@ function levelNumber(): { size: number; weight: string; colour: string } {
   return {
     size: Math.max(...lengths),
     weight: /^\s*font-weight:/m.test(body) ? declaration(body, "font-weight", selector) : "normal",
-    colour: declaration(body, "color", selector),
+    color: declaration(body, "color", selector),
   };
 }
 
@@ -56,11 +56,11 @@ describe("the floor column", () => {
       // A call lamp says what it has to say by lighting up; a floor number
       // never lights up, and at 17px or less the bar it has to clear is 1.4.3's
       // full 4.5:1 rather than the 3:1 large text is let off with. That is why
-      // the colour is read from the rule as well: --ds-text-faint reaches only
+      // the color is read from the rule as well: --ds-text-faint reaches only
       // 3.77:1 dark and 2.83:1 light here, and a slip back to it would still
       // pass an arithmetic check that measured --ds-text-muted by name.
       const number = levelNumber();
-      expect(number.colour).toBe(token("ds-text-muted"));
+      expect(number.color).toBe(token("ds-text-muted"));
       expect(
         contrast(themed(palette, "ds-text-muted"), levelsColumn(palette)),
       ).toBeGreaterThanOrEqual(requiredRatio(number.size, number.weight));

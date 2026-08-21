@@ -174,7 +174,7 @@ describe("driveInstantly", () => {
     expect(scheduleYield).toHaveBeenCalledTimes(2);
   });
 
-  it("does no further work once cancelled, even if a stale continuation still fires", () => {
+  it("does no further work once canceled, even if a stale continuation still fires", () => {
     const world = createFakeWorld();
     let pending: (() => void) | undefined;
     const scheduleYield = vi.fn((callback: () => void) => {

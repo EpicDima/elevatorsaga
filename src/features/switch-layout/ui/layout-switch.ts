@@ -77,7 +77,7 @@ const BUTTON_ICON: Readonly<
  *
  * @param document - The document to create the elements in, so a caller can
  * build into a document other than the global one.
- * @param labels - The localised text for the group and its four buttons.
+ * @param labels - The localized text for the group and its four buttons.
  * @returns The group and its four buttons, ready for {@link presentLayoutSwitch}.
  */
 export function buildLayoutSwitchSkeleton(

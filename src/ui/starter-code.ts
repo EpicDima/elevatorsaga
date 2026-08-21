@@ -1,5 +1,5 @@
 /**
- * Recognising a program the game handed the player, so it can be said again in
+ * Recognizing a program the game handed the player, so it can be said again in
  * the language on screen.
  *
  * Every program a player is *given* is a message: the default program in the
@@ -67,7 +67,7 @@ const STARTER_CODE_KEYS: readonly StarterCodeKey[] = Object.keys(EN_MESSAGES).fi
  * Everything the editor puts in front of a player goes through here: the
  * program it opens with, the copy it finds in storage, the one a lower level
  * carried forward, and the one already on screen when the language changes.
- * Text this does not recognise comes back untouched, and that is the great
+ * Text this does not recognize comes back untouched, and that is the great
  * majority of it — a program the player has written is not a message and can
  * never become one.
  *
@@ -75,7 +75,7 @@ const STARTER_CODE_KEYS: readonly StarterCodeKey[] = Object.keys(EN_MESSAGES).fi
  * rendering, since that is what {@link translateIn} falls back to. It costs a
  * comparison the English pass makes anyway and cannot produce a wrong answer;
  * what it means is that a program written in a language the page has not
- * loaded is not recognised until it has, which is no worse than the state the
+ * loaded is not recognized until it has, which is no worse than the state the
  * rest of the page is in at that moment.
  *
  * Two levels may share a starting point — the Skyscraper block has such a pair

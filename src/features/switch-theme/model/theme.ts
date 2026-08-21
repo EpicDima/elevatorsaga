@@ -1,5 +1,5 @@
 /**
- * The three-way colour theme: follow the system, or pin light or dark.
+ * The three-way color theme: follow the system, or pin light or dark.
  *
  * "Follow the system" is not a fallback but the starting choice, the same way
  * `DEFAULT_LAYOUT_MODE` is a real mode and not a placeholder for "nothing
@@ -41,7 +41,7 @@ function isTheme(value: string): value is Theme {
 /**
  * The theme choice remembered from a previous visit.
  *
- * Anything unreadable or unrecognised is treated as "nothing chosen yet"
+ * Anything unreadable or unrecognized is treated as "nothing chosen yet"
  * rather than reported, the same trade `readLayoutMode` makes: there is
  * nothing a player can do about a corrupt entry, and the next choice
  * overwrites it.
@@ -77,7 +77,7 @@ export function saveTheme(storage: Storage, theme: Theme): void {
 }
 
 /**
- * Resolves a theme choice to the one of two colour schemes it actually draws.
+ * Resolves a theme choice to the one of two color schemes it actually draws.
  *
  * `"system"` follows whatever the caller's own media query says right now; a
  * pinned choice ignores it entirely.

@@ -459,7 +459,7 @@ export class ElevatorInterface {
    * `currentFloor` and queue head were `NaN` for the rest of the run, with no
    * error, no pause and no way back. `legacy-1.x:interfaces.js:28` did the same
    * thing, but a single typo turning an elevator into a silent brick is not a
-   * behaviour worth being faithful to, and no working solution passes one. This
+   * behavior worth being faithful to, and no working solution passes one. This
    * method is only ever called by player code, apart from the re-offer in
    * `World.#handleButtonRepressing`, which passes a floor's own level; so the
    * throw lands in the `try`/`catch` around `codeObj.init` and `codeObj.update`
@@ -647,7 +647,7 @@ export class ElevatorInterface {
    * coast to if it braked now. `getExactFutureFloorIfStopped` stays behind the
    * facade deliberately: an answer derived from it would depend on the braking
    * curve, and publishing that would freeze this port's kinematics into the
-   * player API, which the behavioural-compatibility contract does not ask for.
+   * player API, which the behavioral-compatibility contract does not ask for.
    *
    * Only the direction of travel is considered, not the destination — a floor
    * further along the way the car is going counts as approaching even when the

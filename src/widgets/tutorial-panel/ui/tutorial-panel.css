@@ -67,7 +67,7 @@
 /*
  * The panel inside that card.
  *
- * The colour is the whole reason this rule exists, and it is the defect written
+ * The color is the whole reason this rule exists, and it is the defect written
  * up at `.setmenu`: `<body>` paints everything `white`, which document rules
  * repair for `p` and for the headings only. The four `<summary>` elements are
  * neither, so left alone those four would fall back to that `white`, unreadable
@@ -208,7 +208,7 @@
  * The line or lines a player actually has to write, inside the answer.
  * `changedLines` (`src/ui/line-diff.ts`) is what decides which lines these
  * are, by comparing the level's starting program against this one; this rule
- * is only the paint. `--ds-accent` marks the change, the same colour the
+ * is only the paint. `--ds-accent` marks the change, the same color the
  * building already uses for "this is lit, this matters" -- a floor's call
  * button, its band once pressed. Checked fresh against `--ds-code-bg`, a
  * pairing neither of those already covers: 8.25:1 dark, 4.33:1 light, clear
@@ -296,7 +296,7 @@
  * read. Muted for the same reason it is small -- the eye coming back to the
  * card is looking for the next step, not for the receipt of the last one. The
  * surface underneath is the open hint's `--ds-raised` rather than the card's
- * `--ds-panel`, so the colour is measured against that: 6.19:1 dark and 5.56:1
+ * `--ds-panel`, so the color is measured against that: 6.19:1 dark and 5.56:1
  * light, past the 4.5:1 of WCAG 1.4.3.
  *
  * No block margin at all, and that is what lets it be drawn while it is still

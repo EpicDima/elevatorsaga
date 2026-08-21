@@ -264,7 +264,7 @@ describe("the benchmark as a command", () => {
     // A huge error message is how the report is made huge, because it is the
     // only part of one that a program controls the size of: the scenarios are
     // averaged, so three of them is three of them however many seeds were
-    // asked for. It is not a contrivance either -- a message with a serialised
+    // asked for. It is not a contrivance either -- a message with a serialized
     // object in it, or a stack from a library, reaches this size without
     // trying.
     const message = "x".repeat(100_000);

@@ -69,7 +69,7 @@ export interface WorkspaceLayoutElements {
  * @param document - The document to create the elements in, so a caller can
  * build into a document other than the global one — a test builds into its own
  * rather than reaching for the global `document`.
- * @param labels - The localised `aria-label` text for each part.
+ * @param labels - The localized `aria-label` text for each part.
  * @returns The workspace element and the three children a caller mounts
  * content into or wires up.
  */

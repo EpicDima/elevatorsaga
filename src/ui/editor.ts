@@ -836,7 +836,7 @@ export class CodeEditor extends Observable<CodeEditorEvents> {
     }
     // Everything unsaved in the buffer being left goes back to that buffer's
     // own key before anything else happens; the switch is the last chance,
-    // since the pending autosave is about to be cancelled.
+    // since the pending autosave is about to be canceled.
     this.#flush();
     this.#buffer = next;
     const stored = this.#read(next.codeKey);
@@ -1053,14 +1053,14 @@ export class CodeEditor extends Observable<CodeEditorEvents> {
    */
   relocalize(): void {
     const code = this.getCode();
-    const localised = localizeStarterCode(code);
-    if (localised === code) {
+    const localized = localizeStarterCode(code);
+    if (localized === code) {
       return;
     }
     // A swap rather than an edit: this is not something the player did, so
     // there is nothing here for them to undo, and an undo that brought the
     // other language's comments back would be a puzzle rather than a mercy.
-    this.#swapDocument(localised);
+    this.#swapDocument(localized);
     // Same reason `#openBuffer` says it: the text in the editor is different
     // text now, without anybody having typed, and what is measured or compiled
     // from it is stale.
@@ -1251,7 +1251,7 @@ export function codeMirrorView(parent: HTMLElement): TextEditorViewFactory {
       // offering nothing outside the three contexts described in
       // `completions.ts`.
       javascriptLanguage.data.of({ autocomplete: playerApiCompletionSource }),
-      // The design's own code colours: the editor's only highlighter, drawn
+      // The design's own code colors: the editor's only highlighter, drawn
       // for the near-black surface the redesign gave the player rather than
       // for a white page. See `editorSyntaxTheme` for the mapping.
       syntaxHighlighting(editorSyntaxTheme),

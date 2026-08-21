@@ -12,7 +12,7 @@
  * position, for the reason that type carries an id at all: a level's position
  * is the one thing about it that is expected to change, and a level inserted in
  * the middle of the block must not hand every medal already on record to its
- * neighbour.
+ * neighbor.
  *
  * Its own storage key, and deliberately not the `develevateChallengeTiers` that
  * {@link "#entities/level-tier/model/best-tier.ts"!LEVEL_TIER_STORAGE_KEY}

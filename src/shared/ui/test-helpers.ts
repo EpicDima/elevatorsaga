@@ -17,7 +17,7 @@
  * Deliberately not a full implementation: no `::backdrop`, no focus-trapping,
  * no `cancel` event, no Escape handling. `modal.ts`'s own module comment
  * explains why none of that is reimplemented there either — it is native
- * `<dialog>` behaviour, exercised for real by Playwright against a real
+ * `<dialog>` behavior, exercised for real by Playwright against a real
  * browser rather than faked here.
  *
  * Idempotent, and scoped to whichever jsdom window a `// @vitest-environment

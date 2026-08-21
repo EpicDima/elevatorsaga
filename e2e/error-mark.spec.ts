@@ -57,7 +57,7 @@ test("underlines the line a running program threw on", async ({ page }) => {
   await expect(page.getByText(errorBanner)).toBeVisible();
   const mark = page.locator(errorMark);
   await expect(mark).toBeVisible();
-  // Read rather than matched with `toHaveText`, which normalises whitespace and
+  // Read rather than matched with `toHaveText`, which normalizes whitespace and
   // would therefore see the same string whether the mark began at the call or
   // eight spaces to the left of it — which is to say, it could not tell a
   // correct column from no column arithmetic at all. Checked: with the mark

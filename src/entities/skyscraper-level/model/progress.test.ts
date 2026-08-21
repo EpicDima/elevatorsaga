@@ -53,7 +53,7 @@ describe("SKYSCRAPER_TIER_STORAGE_KEY", () => {
 describe("recordSkyscraperTier", () => {
   it("stores the medal against the level's id, not its position in the block", () => {
     // The property that survives the block being reordered: a level inserted
-    // in the middle must not hand this medal to its neighbour.
+    // in the middle must not hand this medal to its neighbor.
     const storage = new MemoryStorage();
 
     recordSkyscraperTier(storage, "sky-1", "silver");

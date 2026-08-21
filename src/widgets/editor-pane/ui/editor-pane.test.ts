@@ -100,7 +100,7 @@ describe("presentEditorPane", () => {
   });
 
   it("draws a glyph beside each codetools label without writing over it", () => {
-    // The label lives in its own span precisely so that relabelling a button
+    // The label lives in its own span precisely so that relabeling a button
     // cannot take its icon with it -- which is what `textContent =` on the
     // button would do. Both are checked after an update, not only on the
     // first draw, because the first draw is not where that goes wrong.

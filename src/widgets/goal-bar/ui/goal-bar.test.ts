@@ -99,7 +99,7 @@ describe("presentGoalBar", () => {
     expect(requireElement(".cap", transported).textContent).toBe("Transported");
     // No unit for transportedCounter, and 0 decimals both sides.
     expect(requireElement(".meter-val", transported).innerHTML).toBe("<b>3</b> / 5");
-    // jsdom's CSSOM normalises a trailing ".0" away on parse/read-back.
+    // jsdom's CSSOM normalizes a trailing ".0" away on parse/read-back.
     expect(requireElement(".meter-fill", transported).style.width).toBe("60%");
 
     const elapsed = requireElement('.meter[data-kind="elapsedTime"]', parent);
@@ -282,7 +282,7 @@ describe("presentGoalBar", () => {
       format(seconds(45, 0)),
       format(percent(0.3)),
     ]);
-    // jsdom's CSSOM normalises a trailing ".0" away on parse/read-back.
+    // jsdom's CSSOM normalizes a trailing ".0" away on parse/read-back.
     expect(
       [...gold.querySelectorAll(".tierbar i")].map((bar) => (bar as HTMLElement).style.width),
     ).toEqual(["100%", "60%"]);

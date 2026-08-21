@@ -228,7 +228,7 @@ export const LEVEL_KEY = "level";
  * in `README.md` and the documentation pages that were written before the
  * rename — says `challenge=`, and a hash is the whole of this game's shareable
  * state: an address that stopped working would be a bookmark that stopped
- * working. {@link renameLegacyLevelKey} is where it is honoured, and
+ * working. {@link renameLegacyLevelKey} is where it is honored, and
  * {@link startRouter} is what takes it back out of the address bar afterwards,
  * so a link followed once goes on being shared under the name the game uses now.
  */
@@ -461,7 +461,7 @@ export function resolveRoute(rawQuery: RouteQuery, context: RouteContext): Route
     timeScale: resolveTimeScale(query.get("timescale"), context.defaultTimeScale, refuse),
     fullscreen: readFlag(query, "fullscreen"),
     // A level plays the seed its own entry pins, so a seed on a level address is
-    // refused rather than honoured. The track teaches by letting a program fail
+    // refused rather than honored. The track teaches by letting a program fail
     // in front of the player, and which program fails is a fact about the
     // stream: level 5's starting sweep is measured winning on `42a`, and
     // `STARTING_CODE_WINS` in `tutorial-solutions.test.ts` records it as
@@ -509,7 +509,7 @@ export function resolveRoute(rawQuery: RouteQuery, context: RouteContext): Route
  * Anything unusable is refused and replaced by a fresh seed rather than
  * repaired, for the reason `floors=8.5` is refused rather than rounded: a seed
  * is the one passenger stream it names or it is not that stream at all, and
- * quietly playing a neighbouring one is how a player ends up debugging against
+ * quietly playing a neighboring one is how a player ends up debugging against
  * a run nobody can reproduce. What counts as usable is
  * {@link "#shared/lib/seed.ts"!isUsableSeed}, and it is read from there rather
  * than stated here because the settings panel's own seed field asks the same
@@ -542,7 +542,7 @@ function resolveSeed(value: string | undefined, refuse: Refuse): string | null {
  * fixes it, and whether the program fails is a property of the passenger
  * stream, not of the program alone — level 5's starting sweep is measured
  * delivering all fifteen inside the wait limit on seed `42a`, and on 76 of 400
- * seeds besides. Honouring `seed=` would let a player land, by choice or by a
+ * seeds besides. Honoring `seed=` would let a player land, by choice or by a
  * copied link, on a run where the broken program wins and the lesson reads
  * backwards. In the Skyscraper block the stake is the medal instead: its
  * thresholds are measured on one pinned crowd rather than fitted to a
@@ -688,7 +688,7 @@ function isSkyscraperRoute(value: string | undefined): value is string {
  * every one of the reasons written there: matched and not computed, so
  * `sky-01` and `sky-` are refused rather than read as numbers, and a level
  * inserted into the middle of the block cannot silently take a bookmarked
- * address away from its neighbour.
+ * address away from its neighbor.
  *
  * The block is the one place in the game where that last risk is live rather
  * than theoretical. The learning track's eight levels are finished and the

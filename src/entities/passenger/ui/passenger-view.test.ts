@@ -50,7 +50,7 @@ describe("createPassengerView", () => {
   });
 
   it("marks a passenger who has boarded as a rider, and unmarks them when they step out", () => {
-    // The class the car's own colours hang off: --ds-person is tuned against
+    // The class the car's own colors hang off: --ds-person is tuned against
     // the shaft and is unreadable on a car, so a passenger has to say in the
     // DOM which of the two surfaces they are standing on.
     const user = new User(80);

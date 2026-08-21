@@ -170,7 +170,7 @@ describe("buildLevelMenu", () => {
   it("numbers skyscraper tiles from one and links each to its level id", () => {
     // Linked by id and not by position, the way a lesson is: the block is the
     // one still being written, so a level inserted into the middle of it must
-    // not hand somebody's bookmark to its neighbour.
+    // not hand somebody's bookmark to its neighbor.
     const [, , skyscraperBlock] = buildLevelMenu(
       baseInput({ skyscraperLevels: fixtureSkyscraperLevels(3) }),
     );

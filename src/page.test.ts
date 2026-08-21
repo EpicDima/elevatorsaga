@@ -102,7 +102,7 @@ function thirdPartyResources(document: Document): Element[] {
 /**
  * The rules a page's own `<head>` paints with before the stylesheet arrives, as
  * `it.each` rows: the `color-scheme` each declares, the selector it is written
- * under, and the palette its two colours have to match.
+ * under, and the palette its two colors have to match.
  */
 const FIRST_PAINT: readonly [
   scheme: string,
@@ -150,7 +150,7 @@ function storageHolding(stored: string | null): Storage {
  * it: as a script, against globals of the caller's choosing.
  *
  * @param storage - What `localStorage` answers.
- * @param prefersDark - What the system's own colour preference says.
+ * @param prefersDark - What the system's own color preference says.
  * @returns The `data-theme` it writes onto `<html>`.
  */
 function firstPaintTheme(storage: Storage, prefersDark: boolean): string {
@@ -181,7 +181,7 @@ describe("index.html", () => {
   it.each(FIRST_PAINT)(
     "paints the page in the %s palette before the stylesheet",
     (scheme, selector, palette) => {
-      // The colours are written out rather than read from a custom property:
+      // The colors are written out rather than read from a custom property:
       // nothing declares one until src/styles/index.css arrives, which is after
       // the paint this rule exists for. So they are checked against the palette
       // here instead, and cannot quietly drift from it.
@@ -195,7 +195,7 @@ describe("index.html", () => {
   it("hides the shell until the stylesheet is there to dress it", () => {
     // The two halves of one rule, in two files: the head hides the body and
     // src/app/styles/document.css is the only thing that shows it again, so
-    // what the load looks like is an empty page in the page's own colour
+    // what the load looks like is an empty page in the page's own color
     // rather than the shell drawn in the browser's own font and then reflowed.
     expect(declaration(firstPaintRule(page, "body"), "visibility", "body")).toBe("hidden");
     expect(declaration(ruleBody("body"), "visibility", "body")).toBe("visible");
@@ -377,7 +377,7 @@ describe("index.html", () => {
     // The cars are the rects drawn at a depth and the frame is the one drawn
     // as an outline, in both files -- the favicon's plate is neither, which is
     // what makes those the selectors rather than a count or a position among
-    // siblings. Colour stays out of the comparison: the bar inherits
+    // siblings. Color stays out of the comparison: the bar inherits
     // `currentcolor` and a file under public/ has to write the brass out.
     // public/favicon.svg says why.
     const geometry = (rect: Element): Record<string, string | null> => ({
@@ -590,7 +590,7 @@ describe.each(DOCUMENTATION_PAGES)("$file", (reference) => {
     // The `<link>`s above are for machines. Someone who cannot read the page
     // in front of them needs something to click, and it is named in the
     // language it leads to -- "Русский", not "Russian" -- because that is the
-    // word they can be relied on to recognise.
+    // word they can be relied on to recognize.
     for (const [language, file] of Object.entries(TRANSLATIONS)) {
       if (file === reference.file) {
         continue;
@@ -633,7 +633,7 @@ describe.each(DOCUMENTATION_PAGES)("$file", (reference) => {
     expect(targets).toContain("index.html");
   });
 
-  it("links to the licence notices as well, being served from the same place", () => {
+  it("links to the license notices as well, being served from the same place", () => {
     const targets = [...docs.querySelectorAll("a")].map((link) => link.getAttribute("href"));
     expect(targets).toContain("licenses.txt");
   });
@@ -1234,7 +1234,7 @@ function collapse(text: string): string {
 /**
  * Markup in the single form the browser agrees to.
  *
- * Parsed and serialised again, so that `<br />` against `<br>`, an attribute in
+ * Parsed and serialized again, so that `<br />` against `<br>`, an attribute in
  * single quotes against one in double, and a sentence wrapped across four
  * source lines are not differences. What is left is the tags, their attributes
  * and the words.

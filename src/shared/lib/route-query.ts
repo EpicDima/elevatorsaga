@@ -44,7 +44,7 @@ export type RouteQuery = ReadonlyMap<string, string>;
  *
  * Unknown keys are kept, as the legacy code kept them, and that is a decision
  * rather than an oversight. The hash is the whole of this game's shareable
- * state, so a key this version does not recognise is either one a later version
+ * state, so a key this version does not recognize is either one a later version
  * adds — a link built by a newer tab and pasted into an older one keeps its
  * meaning, and gets it back on the way home — or one the player is using for
  * their own purposes, which is a thing the address bar has always been for. The

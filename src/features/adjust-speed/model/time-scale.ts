@@ -26,7 +26,7 @@
  * URL, not a rung everyone else should have to step past to get to `1x`.
  *
  * The ladder's top is `20`, and {@link TIME_SCALE_MAX} stays well above it at
- * `64`: `#timescale=40` keeps working, `-` from there steps to the neighbouring
+ * `64`: `#timescale=40` keeps working, `-` from there steps to the neighboring
  * stop below (`20`), and `+` reports — through {@link isFastestTimeScale} —
  * that there is nothing finite left, which is where `#features/run-simulation`
  * hands over to its instant stop.
@@ -73,7 +73,7 @@ export const TIME_SCALE_MIN = 0.1;
  * Fastest the simulation may run.
  *
  * Above the top of {@link TIME_SCALES} rather than equal to it, so that a
- * hand-written `#timescale=40` is honoured as asked instead of being quietly
+ * hand-written `#timescale=40` is honored as asked instead of being quietly
  * rounded onto the ladder.
  */
 export const TIME_SCALE_MAX = 64;

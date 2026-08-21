@@ -35,7 +35,7 @@ describe("clampTimeScale", () => {
   });
 });
 
-/** Each neighbouring pair of stops, as `[slower, faster]`. */
+/** Each neighboring pair of stops, as `[slower, faster]`. */
 const LADDER_STEPS = TIME_SCALES.flatMap((slower, index) => {
   const faster = TIME_SCALES[index + 1];
   return faster === undefined ? [] : [[slower, faster] as const];
@@ -99,7 +99,7 @@ describe("decreasedTimeScale", () => {
     expect(decreasedTimeScale(2)).toBe(1);
   });
 
-  it("brings a speed above the ladder down to its neighbouring stop", () => {
+  it("brings a speed above the ladder down to its neighboring stop", () => {
     expect(decreasedTimeScale(40)).toBe(20);
     expect(decreasedTimeScale(1.2)).toBe(1);
   });

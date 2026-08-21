@@ -23,7 +23,7 @@ export interface FrameRequester {
  * Creates a frame requester that advances by a fixed step on every trigger.
  *
  * Only the most recently registered callback is kept, matching the legacy
- * behaviour where the world controller re-registers itself each frame.
+ * behavior where the world controller re-registers itself each frame.
  *
  * @param timeStep - Milliseconds added to `currentT` per trigger.
  * @returns The frame requester.

@@ -49,7 +49,7 @@ export function defaultCode(): string {
  *
  * Rewritten without lodash — `_.max`, `_.each` and `_.contains` became
  * `Array.prototype.reduce`, `forEach` and `includes` — and `floor.level`
- * became the documented `floor.floorNum()`. The behaviour is unchanged: the
+ * became the documented `floor.floorNum()`. The behavior is unchanged: the
  * elevator picked for a call is still the one with the best score, ties still
  * going to the first one, and the scoring terms are identical.
  */

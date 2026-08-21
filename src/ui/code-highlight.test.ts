@@ -124,17 +124,17 @@ const SAMPLE = `{
 /**
  * Which `--ds-code-*` token the theme paints each run of a program in.
  *
- * `HighlightStyle` hands out generated class names, not colours, and keeps the
+ * `HighlightStyle` hands out generated class names, not colors, and keeps the
  * declarations behind them in a `StyleModule` — so this reads the rules back
  * out of that module and resolves each class to the custom property it sets.
  * Going through the real parser and the real `highlightCode` is the point: it
- * is what makes these assertions statements about "what colour is `loadFactor`
+ * is what makes these assertions statements about "what color is `loadFactor`
  * in this program", rather than about which `Tag` object was written down.
  *
  * @param code - A JavaScript program.
  * @returns One entry per highlighted run, in source order, naming the token
  * suffix (`key`, `fn`, …) or `undefined` where the theme leaves the run in the
- * editor's own body colour.
+ * editor's own body color.
  */
 function paintedRuns(code: string): { text: string; token: string | undefined }[] {
   const declarations = new Map(
@@ -152,7 +152,7 @@ function paintedRuns(code: string): { text: string; token: string | undefined }[
       runs.push({ text, token: /var\(--ds-code-(\w+)\)/.exec(body ?? "")?.[1] });
     },
     () => {
-      // Line breaks carry no colour, and nothing here asks about them.
+      // Line breaks carry no color, and nothing here asks about them.
     },
   );
   return runs;
@@ -168,7 +168,7 @@ function paintedRuns(code: string): { text: string; token: string | undefined }[
  * Runs are trimmed before they are compared, because `highlightCode` hands an
  * unpainted name back glued to the spaces around it — `" queue "` for the
  * `queue` a `const` introduces — while a painted one arrives on its own. Not
- * trimming would make every "this name keeps the body colour" assertion pass
+ * trimming would make every "this name keeps the body color" assertion pass
  * vacuously, by finding no run at all.
  *
  * @param code - A JavaScript program.
@@ -199,12 +199,12 @@ describe("editorSyntaxTheme", () => {
   it("groups the literals with the numbers rather than with the keywords", () => {
     // `null` and `true` are `atom`s in Lezer's tag tree, and `atom` sits under
     // `keyword` -- so this is what catches the two explicit rows going away and
-    // the literals silently taking the keyword colour with them.
+    // the literals silently taking the keyword color with them.
     expect(tokensFor(SAMPLE, "null")).toEqual(["num"]);
     expect(tokensFor("const ok = true;", "true")).toEqual(["num"]);
   });
 
-  it("colours a name where it is a function, and leaves every other name alone", () => {
+  it("colors a name where it is a function, and leaves every other name alone", () => {
     // The distinction: the function token for `loadFactor()` and `score(...)`,
     // plain body text for `destinationQueue` and for the `queue` a `const`
     // introduces.
@@ -218,7 +218,7 @@ describe("editorSyntaxTheme", () => {
     expect(tokensFor(SAMPLE, "floor")).toEqual(["«body»"]);
   });
 
-  it("colours a function-valued property where it is declared, not only where it is called", () => {
+  it("colors a function-valued property where it is declared, not only where it is called", () => {
     // The one place a real grammar knows more than a regular expression,
     // pinned so that it stays a decision: `init: function (…)` names a
     // function, and Lezer says so (`function(definition(propertyName))`),
@@ -238,9 +238,9 @@ describe("editorSyntaxTheme", () => {
   });
 
   it("names only tokens the stylesheet declares", () => {
-    // Every colour this theme writes is a custom property, and a typo in one
+    // Every color this theme writes is a custom property, and a typo in one
     // would not fail anything else here: an unknown `var()` resolves to nothing
-    // and the text falls back to the editor's own colour, which looks exactly
+    // and the text falls back to the editor's own color, which looks exactly
     // like a deliberately unpainted run.
     const rules = editorSyntaxTheme.module?.getRules() ?? "";
     const named = [...new Set([...rules.matchAll(/var\((--[\w-]+)\)/g)].map(([, name]) => name))];

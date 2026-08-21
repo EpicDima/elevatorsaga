@@ -189,7 +189,7 @@ export function driveInstantly(
   const controller = createWorldController(TICK_SECONDS);
   options.onController?.(controller);
   const frameRequester = createFrameRequester(SYNTHETIC_FRAME_MILLISECONDS);
-  let cancelled = false;
+  let canceled = false;
 
   const runBurst = (): void => {
     // `controller.isPaused` alongside `world.levelEnded`: `start` below is
@@ -203,11 +203,11 @@ export function driveInstantly(
     // fire either. Without this check a broken program would not stop the
     // crunch; it would only stop it from doing anything, forever, one
     // `setTimeout` at a time.
-    if (cancelled || world.levelEnded || controller.isPaused) {
+    if (canceled || world.levelEnded || controller.isPaused) {
       return;
     }
     const burstStart = now();
-    // `cancelled` is not re-checked inside the loop: nothing in it can set
+    // `canceled` is not re-checked inside the loop: nothing in it can set
     // `cancel`'s flag mid-burst, since JS is single-threaded and `trigger()`
     // only ever runs the controller's own tick loop and the player's code, not
     // this handle's `cancel`. The check above is enough -- it runs again at
@@ -229,7 +229,7 @@ export function driveInstantly(
   return {
     controller,
     cancel(): void {
-      cancelled = true;
+      canceled = true;
       controller.setPaused(true);
     },
   };

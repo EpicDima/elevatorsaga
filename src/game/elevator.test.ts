@@ -451,8 +451,8 @@ describe("Elevator object", () => {
     expect(someHandler.mock.calls[1]?.slice(0, 1)).toEqual([1]);
   });
 
-  it("reports direction up when travelling from floor 0 to 3", () => {
-    // y grows downward, so travelling toward higher floor numbers means a
+  it("reports direction up when traveling from floor 0 to 3", () => {
+    // y grows downward, so traveling toward higher floor numbers means a
     // negative velocityY, which the implementation reports as "up".
     const directions: ElevatorDirection[] = [];
     e.on("passing_floor", (_floorNum, direction) => {
@@ -463,7 +463,7 @@ describe("Elevator object", () => {
     expect(directions).toEqual(["up", "up"]);
   });
 
-  it("reports direction down when travelling from floor 3 to 0", () => {
+  it("reports direction down when traveling from floor 3 to 0", () => {
     e.setFloorPosition(3);
     const directions: ElevatorDirection[] = [];
     e.on("passing_floor", (_floorNum, direction) => {
@@ -712,7 +712,7 @@ describe("Elevator object", () => {
       expect(e.userEntering(passenger(70))).toBe(false);
     });
 
-    it("uses a randomised starting slot but always finds the free one", () => {
+    it("uses a randomized starting slot but always finds the free one", () => {
       // An elevator built without a source falls back to the unseeded one, so
       // that a caller outside a world - in practice a test - does not have to
       // supply a stream it does not care about.

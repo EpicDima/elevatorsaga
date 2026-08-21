@@ -11,7 +11,7 @@
  * (https://fontawesome.com). Font Awesome 4 icon outlines are licensed under the
  * SIL OFL 1.1 (https://scripts.sil.org/OFL); the same artwork as shipped in Font
  * Awesome Free 5 and later is licensed under CC BY 4.0
- * (https://creativecommons.org/licenses/by/4.0/), which is not the licence this
+ * (https://creativecommons.org/licenses/by/4.0/), which is not the license this
  * artwork arrives under. See `fontawesome-license.txt` for the full text and
  * `fontawesome-glyphs.json` for which glyph came from which codepoint.
  *
@@ -84,7 +84,7 @@ export function iconWidthEm(name: IconName): string {
  *
  * @param name - Icon to draw.
  * @param className - Extra classes to add alongside `icon`.
- * @returns A detached `<svg>` element that takes its colour from `currentColor`.
+ * @returns A detached `<svg>` element that takes its color from `currentColor`.
  */
 export function createIcon(name: IconName, className?: string): SVGSVGElement {
   const { advance, path } = ICONS[name];
@@ -288,7 +288,7 @@ export const SPRITE_ICONS = {
       },
     ],
   },
-  // A stylised keyboard, on the settings popover's row that opens the hotkeys
+  // A stylized keyboard, on the settings popover's row that opens the hotkeys
   // dialog.
   keys: {
     viewBox: "0 0 16 16",
@@ -900,7 +900,7 @@ interface SpriteIconDefinition {
  *
  * @param name - Icon to draw.
  * @param className - Extra classes to add alongside `ds-icon`.
- * @returns A detached `<svg>` element that takes its colour from `currentColor`
+ * @returns A detached `<svg>` element that takes its color from `currentColor`
  * unless one of its shapes overrides that.
  */
 export function createSpriteIcon(name: SpriteIconName, className?: string): SVGSVGElement {

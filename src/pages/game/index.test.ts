@@ -580,7 +580,7 @@ describe("App instant run", () => {
     expect(requireElement(".verdict h3", elements.feedback).textContent).toBe("Success!");
     // The button is back to its ready state, not stuck reading "Crunching...":
     // clearing `#instantRunHandle` when `stats_changed` reaches a verdict is
-    // what a crunch gets in place of the relabelling an animated run's
+    // what a crunch gets in place of the relabeling an animated run's
     // `setPaused` raises for free. "Start" rather than "Resume", because the
     // run it is reporting on has ended.
     const button = requireElement(".startstop", elements.controls);
@@ -1240,7 +1240,7 @@ describe("App learning track", () => {
     // "Next level" is what the shared template writes into every such link,
     // and the numbered ladder is not where level 2 lives.
     expect(link.textContent.trim()).toBe("Next tutorial level");
-    // The caret the template put beside the words survives being relabelled.
+    // The caret the template put beside the words survives being relabeled.
     expect(link.querySelector("svg")).not.toBeNull();
   });
 
@@ -1346,7 +1346,7 @@ describe("App learning track", () => {
     // the address of the next level rather than the next level, and the words
     // the template does not have. Drawing it from the outcome alone is what
     // makes that possible, and a redraw that lost any of the three would put a
-    // link labelled "Следующий уровень" -- the numbered ladder -- in front of a
+    // link labeled "Следующий уровень" -- the numbered ladder -- in front of a
     // player half-way through the track.
     const { app, elements } = setUp();
     app.startTutorial(0);

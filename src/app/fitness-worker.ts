@@ -77,7 +77,7 @@ self.onmessage = (event: MessageEvent<FitnessWorkerRequest>): void => {
   // Checked rather than trusted, because this is the one place in the module
   // where a value arrives from outside the type system: a `postMessage` is
   // structured-cloned data, and the sender may be a stale bundle posting the
-  // bare string this used to take, or the console. An unrecognised tag would
+  // bare string this used to take, or the console. An unrecognized tag would
   // otherwise reach `Intl` and throw out of `onmessage`, killing the worker --
   // so the player would read a raw browser error where the report goes, for
   // the sake of a field that only decides a language. Falling back to the

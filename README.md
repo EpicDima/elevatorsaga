@@ -708,7 +708,7 @@ Four more, without upstream issues:
   simulation for a fault that is not in it.
 - [#124](https://github.com/magwo/elevatorsaga/issues/124) — "user doesn't enter the elevator when
   it stops enroute". The reporter calls `stop()` from a `passing_floor` handler and expects the
-  passenger on that floor to board. The car is travelling at speed when the handler runs, so the
+  passenger on that floor to board. The car is traveling at speed when the handler runs, so the
   nearest position it can physically reach is the one it would coast to, which is past the floor;
   boarding is offered on arrival at a floor, and the car never arrives at one. `stop()` says as much
   in the API documentation — "the elevator will probably not stop at a floor, so passengers will not
@@ -745,8 +745,8 @@ granted here rather than having to work it out from a feature list.
   ship, and are described under [What this fork adds](#what-this-fork-adds).
 - [#52](https://github.com/magwo/elevatorsaga/issues/52) — "average time spent in the elevator", and
   [PR #82](https://github.com/magwo/elevatorsaga/pull/82), which asked for the reported time to be
-  split into waiting, travelling and total. `Avg wait for a car` on the panel is the wait; the two
-  delivery clocks beside it are the total they were always measuring; the travelling time is what
+  split into waiting, traveling and total. `Avg wait for a car` on the panel is the wait; the two
+  delivery clocks beside it are the total they were always measuring; the traveling time is what
   is left between them. A related request,
   [#77](https://github.com/magwo/elevatorsaga/issues/77), is answered only in part: how long people
   have been waiting is now a number on the panel, but it is not drawn beside the passenger it
@@ -820,9 +820,9 @@ on reload while an unpinned run draws a new building each time, a parameter the 
 leaves the address bar without breaking the Back button, the page arrives in the language the
 browser asks for and follows the picker to the other one, and a tutorial level shows its panel,
 keeps its answer folded until asked, and hands its program to the editor. Finally the flat
-statements: the help page and the licence notices are reachable from the footer, the link preview
+statements: the help page and the license notices are reachable from the footer, the link preview
 points at an image that is really served, both pages reflow onto a 320 px phone, and the keyboard
-reaches the editor in one tab stop from the busiest level. Behaviour is covered in depth by the
+reaches the editor in one tab stop from the busiest level. Behavior is covered in depth by the
 Vitest suite; repeating it through a browser would only buy slower, flakier versions of tests that
 already exist.
 
@@ -903,30 +903,30 @@ Two prerequisites are settings rather than files, so they have to be done by han
    publishes; the file is what keeps the claim in the repository, and what would carry it if the
    site were ever published from a branch again.
 
-Deployments never overlap and are never cancelled part-way. Runs on `main` queue instead of
+Deployments never overlap and are never canceled part-way. Runs on `main` queue instead of
 superseding each other (`cancel-in-progress` is off for that branch only), and the `deploy` job
 takes a `pages` concurrency group on top of that, so a half-uploaded site cannot replace a working
-one. Pull requests keep the cheaper behaviour, where a new push cancels the run it made irrelevant.
+one. Pull requests keep the cheaper behavior, where a new push cancels the run it made irrelevant.
 
-## Credits and licence
+## Credits and license
 
 Elevator Saga was created by [Magnus Wolffelt](https://github.com/magwo) and its
 [contributors](https://github.com/magwo/elevatorsaga/graphs/contributors). This repository is a
 TypeScript modernization of that work.
 
-The project is released under the MIT Licence — copyright © 2015 Magnus Wolffelt for the original
+The project is released under the MIT License — copyright © 2015 Magnus Wolffelt for the original
 game, © 2026 EpicDima for this rewrite. See [LICENSE.txt](LICENSE.txt) for the full text.
 
 The code editor is [CodeMirror 6](https://codemirror.net/) by Marijn Haverbeke and contributors,
 with its [Lezer](https://lezer.codemirror.net/) parser for JavaScript, both licensed under the
-[MIT Licence](https://github.com/codemirror/dev/blob/main/LICENSE). Together they are around 500 kB
+[MIT License](https://github.com/codemirror/dev/blob/main/LICENSE). Together they are around 500 kB
 of the built bundle — most of what the browser downloads.
 
 The twelve interface icons in `src/shared/ui/icon.ts` are the glyph outlines of
 [Font Awesome](https://fontawesome.com/) 4.1.0 by Dave Gandy, copied verbatim from the SVG
 webfont the legacy game shipped. Font Awesome 4 is licensed
 `Font: SIL OFL 1.1, CSS: MIT License`; only the font artwork is used here, so the
-[SIL OFL 1.1](https://scripts.sil.org/OFL) applies. The full licence text and the upstream
+[SIL OFL 1.1](https://scripts.sil.org/OFL) applies. The full license text and the upstream
 copyright notice are in
 [src/shared/ui/fontawesome-license.txt](src/shared/ui/fontawesome-license.txt), and
 [src/shared/ui/fontawesome-glyphs.json](src/shared/ui/fontawesome-glyphs.json) records which
@@ -936,7 +936,7 @@ The interface is set in whatever UI face the reader's own system uses — the `-
 in [src/shared/styles/tokens.css](src/shared/styles/tokens.css). No webfont is shipped, so a build
 copies no font binaries into `dist/assets/` and the first paint waits on nothing.
 
-None of this stays in the repository only. `npm run build` collects the licence of every runtime
+None of this stays in the repository only. `npm run build` collects the license of every runtime
 dependency out of `node_modules`, adds the game's own and the Font Awesome notice, and writes the
 lot to `dist/licenses.txt`, which the footer of both pages links to. The generator is the
 `licenseNotices` plugin at the top of [vite.config.ts](vite.config.ts); add a dependency and its

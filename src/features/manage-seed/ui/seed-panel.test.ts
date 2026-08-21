@@ -10,7 +10,7 @@ import { renderElement } from "#shared/ui/markup.ts";
 
 describe("seedPanelTemplate", () => {
   /**
-   * A sprite as the document serialises it.
+   * A sprite as the document serializes it.
    *
    * `spriteIconMarkup` writes XML-style self-closing tags (`<rect …/>`), which
    * the HTML parser reads as open tags and writes back out with a close tag of
@@ -70,7 +70,7 @@ describe("seedPanelTemplate", () => {
   });
 
   it("keeps every helpful thing a browser does to text away from a seed", () => {
-    // A phone that capitalises it, a browser that corrects it or a manager that
+    // A phone that capitalizes it, a browser that corrects it or a manager that
     // fills it has each turned the run into a different run.
     const field = renderElement(seedPanelTemplate(SEED)).querySelector(".seedvalue");
 

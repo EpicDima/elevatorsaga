@@ -8,9 +8,9 @@
       What the page is painted in before its stylesheet arrives, and which of
       the two themes that is.
 
-      Every other colour comes from src/styles/index.css, which the bundle
+      Every other color comes from src/styles/index.css, which the bundle
       brings; until it lands the browser paints its own white, and a white page
-      flashing past is what a player sees on every load. The colours below are
+      flashing past is what a player sees on every load. The colors below are
       --ds-bg and --ds-text of each theme, written out because a custom
       property cannot be read before the file that declares it -- src/page.test.ts
       holds them to the palette's own values. `color-scheme` is the same answer
@@ -26,7 +26,7 @@
       go past first.
 
       The body is hidden here and revealed by src/app/styles/document.css, so
-      what the wait looks like is an empty page in the right colour rather than
+      what the wait looks like is an empty page in the right color rather than
       the shell in the browser's own Times: the bypass link, the heading and
       the two empty panes, drawn before a single rule has said where any of
       them sits. The built page never shows that anyway -- its stylesheet is a
@@ -155,7 +155,7 @@
     </header>
 
     <!--
-      The one piece of the page that cannot be localised at run time, and the
+      The one piece of the page that cannot be localized at run time, and the
       one that does not need to be: when scripting is enabled a browser parses
       the children of <noscript> as text, so there is no element here to write
       a message into, and when scripting is disabled there is nothing to write

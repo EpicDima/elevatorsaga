@@ -31,7 +31,7 @@
  * is some 548px of monospace inside a 292px panel; a flex item's default
  * `min-width: auto` would let it demand every one of those pixels, and WCAG
  * 1.4.10 is what that costs. An input scrolls its own overflow once it is
- * allowed to be narrower than its content, which is exactly the behaviour
+ * allowed to be narrower than its content, which is exactly the behavior
  * wanted here: the row keeps its shape and the seed scrolls under the caret.
  */
 .seedrow .val {

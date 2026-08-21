@@ -136,7 +136,7 @@ html[data-layout="game"] .splitter {
  *
  * A column at every width, and no threshold anywhere: a layout that changes
  * shape at a width changes shape on a window that is merely a little small, on
- * a splitter dragged towards the editor, or in a browser zoomed to 125%, and
+ * a splitter dragged toward the editor, or in a browser zoomed to 125%, and
  * what was asked for is one shape.
  *
  * `overflow: hidden auto`, and not `auto`. The inline axis belongs to `.stage`,
@@ -144,7 +144,7 @@ html[data-layout="game"] .splitter {
  * card along with it, and nothing in this box can be too wide on its own
  * account -- the card measures itself against the pane and the house is clipped
  * by `.world`. Writing the axis down is not optional either: a pair with
- * `visible` on one axis and anything else on the other is not honoured, the
+ * `visible` on one axis and anything else on the other is not honored, the
  * `visible` computing to `auto`, so leaving the inline axis unsaid asks for a
  * second scrollbar under the building rather than for none.
  *
@@ -169,7 +169,7 @@ html[data-layout="game"] .splitter {
 }
 
 /*
- * The card as an item of that column: 640px at its widest, centred over the
+ * The card as an item of that column: 640px at its widest, centered over the
  * building, and never nearer than 16px to either edge of the pane -- the inset
  * `.stage` gives the building through its own `padding-inline`, so the card and
  * the house stand on one set of margins.
@@ -187,7 +187,7 @@ html[data-layout="game"] .splitter {
  * `widgets/tutorial-panel`), and a code block, which has that ceiling, and
  * there is no third kind of thing in it.
  *
- * `inline-size` and not `max-inline-size`, which is how a centred card is
+ * `inline-size` and not `max-inline-size`, which is how a centered card is
  * usually written. Auto margins on the cross axis of a flex line stop the item
  * stretching, and an item that neither stretches nor states a size is sized by
  * its own content: the card would be as wide as its widest line, so a step

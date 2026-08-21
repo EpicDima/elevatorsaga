@@ -7,7 +7,7 @@ import { getLocale, setLocale, DEFAULT_LOCALE, LOCALE_STORAGE_KEY } from "../i18
 import { TEXT_KEY_ATTRIBUTE } from "./localize-page.ts";
 import { applyPreferredLocale } from "./preferred-locale.ts";
 
-/** A user agent, since the shell's shortcut hint is relabelled for a platform. */
+/** A user agent, since the shell's shortcut hint is relabeled for a platform. */
 const USER_AGENT =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36";
 

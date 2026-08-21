@@ -23,7 +23,7 @@
  * shown the English game and have it rewritten underneath them when the
  * catalog lands. This waits.
  *
- * "Draw now, re-localise later" is a real option, and it is the one the language
+ * "Draw now, re-localize later" is a real option, and it is the one the language
  * picker takes: {@link localizePage} re-reads the document, and
  * {@link "../pages/game/index.ts"!App.relocalize} rebuilds the level bar, redraws the
  * statistics, renames the building and redraws the overlay without touching the
@@ -57,7 +57,7 @@
  * click on somebody else's link decide the language of every later visit,
  * including the visits that ask for no language at all. Nothing is lost inside
  * the session by not writing it: the router keeps parameters it does not
- * recognise, so `lang` rides along in every link the game builds and stays in
+ * recognize, so `lang` rides along in every link the game builds and stays in
  * the address bar for as long as the reader is playing.
  *
  * The other two sources are not worth writing for reasons of their own. Storage

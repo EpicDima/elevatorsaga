@@ -8,7 +8,7 @@
  * - `unobservable.Observable` (libs/unobservable.js) — used by `Movable`,
  *   `Elevator` and `User`.
  *
- * The behaviours below are load-bearing for the simulation and are preserved:
+ * The behaviors below are load-bearing for the simulation and are preserved:
  *
  * 1. Space separated event names in {@link Observable.on} / {@link Observable.off}
  *    register (or unregister) the handler for every listed name.
@@ -520,7 +520,7 @@ export class PlayerObservable<E extends EventArgsMap> extends Observable<E> {
    * Invokes every handler of `event` under a re-entrancy key the caller
    * chooses, rather than under the event's own name.
    *
-   * For an event that generalises several others, the event name is the wrong
+   * For an event that generalizes several others, the event name is the wrong
    * unit to guard by. `hall_button_pressed` is the only one so far: it is one
    * name for the up call and the down call both, and a handler of it that
    * presses the other button is making a second, unrelated call that has to be

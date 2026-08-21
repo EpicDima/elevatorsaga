@@ -546,7 +546,7 @@ describe("World", () => {
     expect(world.levelEnded).toBe(false);
   });
 
-  it("honours the level options", () => {
+  it("honors the level options", () => {
     const world = createWorld({
       floorHeight: 40,
       floorCount: 6,
@@ -1599,7 +1599,7 @@ describe("World", () => {
       // Upstream issue #124, "User doesn't enter the elevator when it stops
       // enroute": the reporter stops the car from a passing_floor handler and
       // expects the passenger on that floor to board. This reproduces it, and
-      // it is not a defect - it is what stop() is. The car is travelling at
+      // it is not a defect - it is what stop() is. The car is traveling at
       // speed when the handler runs, so the nearest position it can physically
       // reach is the one it would coast to, which is past the floor. Boarding
       // is offered on arrival at a floor, and the car never arrives at one.

@@ -11,7 +11,7 @@
  */
 
 /*
- * The two help pages' measure: a column of prose and tables, centred, with a
+ * The two help pages' measure: a column of prose and tables, centered, with a
  * gutter that opens up on a phone (see the width query at the foot of this
  * file). The game page had one of these until the app bar and the workspace
  * went edge to edge, and `.narrow` is all that is left of the distinction --
@@ -98,7 +98,7 @@
  * `documentation.html`/`documentation.ru.html` only. The game page has no
  * footer -- a page whose whole height is a workspace has nowhere to put one --
  * but the two help pages are ordinary documents that end, and the credits, the
- * source link and the licence notice end them.
+ * source link and the license notice end them.
  */
 .footer {
   margin-block-start: 20px;

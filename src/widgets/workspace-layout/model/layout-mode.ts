@@ -74,7 +74,7 @@ function isLayoutMode(value: string): value is LayoutMode {
 /**
  * The layout mode remembered from a previous visit.
  *
- * Anything unreadable or unrecognised is treated as "nothing chosen yet"
+ * Anything unreadable or unrecognized is treated as "nothing chosen yet"
  * rather than reported, the same trade `readClearedTutorialLevels` makes: there
  * is nothing a player can do about a corrupt entry, and the next choice
  * overwrites it.

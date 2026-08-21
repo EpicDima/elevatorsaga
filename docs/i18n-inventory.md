@@ -1,4 +1,4 @@
-# Localisation inventory
+# Localization inventory
 
 Every string the game shows a player, the key it has in `src/i18n/`, and what reads that key.
 Part map of the catalog, part record of the decisions the wiring took and the reasons behind
@@ -90,7 +90,7 @@ than the nominative 1 пассажир.
   the heading it sits under; to find the call site, grep for the key.
 - **English** — the reference wording, shortened to fit: whitespace collapsed to one line, long
   values cut and marked `…`, markup dropped unless the row is about the markup, and a `.code`
-  block reduced to as much as makes it recognisable. Where a message has plural forms this is
+  block reduced to as much as makes it recognizable. Where a message has plural forms this is
   the `other` form. `src/i18n/en.ts` is the authority, not this column — nothing here is quotable
   as the message.
 - **Notes** — plural categories, the parameters the message takes, and anything about the call
@@ -155,7 +155,7 @@ the longer one is, and a key named only in a comment counts as read too. The pre
 nothing today — the same grep with each key required to end where the key ends lists the same 93
 — and the comment case costs two. `page.noscript` is one: nothing renders it, and `index.html`
 names it in a comment saying so. `docs.play.statistics.html` is the other: it is a paragraph of
-the reference page like its neighbours, and `src/game/world.ts` names it twice in prose
+the reference page like its neighbors, and `src/game/world.ts` names it twice in prose
 explaining what the statistics panel measures. So the true figure is 95, of which 86 are
 `docs.*` — every one the pages hold, bar the skeleton the popup borrows. The grep also needs
 `src/widgets/tutorial-panel/ui/tutorial-panel.ts` and `src/game/tutorial.ts` to be in the tree, since between them that
@@ -292,8 +292,8 @@ case makes sure no key escapes that comparison.
 | `docs.api.elevator.stop`                            | Clear the destination queue and stop the elevator if it is moving. Note that you normally don't need to stop e… |                                                                                                                                    |
 | `docs.api.elevator.currentFloor`                    | Gets the floor number that the elevator currently is on.                                                        |                                                                                                                                    |
 | `docs.api.elevator.currentFloor.example.code`       | if(elevator.currentFloor() === 0) {                                                                             | code; only the comments are translated                                                                                             |
-| `docs.api.elevator.goingUpIndicator`                | Gets or sets the going up indicator, which will affect passenger behaviour when stopping at floors.             |                                                                                                                                    |
-| `docs.api.elevator.goingDownIndicator`              | Gets or sets the going down indicator, which will affect passenger behaviour when stopping at floors.           |                                                                                                                                    |
+| `docs.api.elevator.goingUpIndicator`                | Gets or sets the going up indicator, which will affect passenger behavior when stopping at floors.              |                                                                                                                                    |
+| `docs.api.elevator.goingDownIndicator`              | Gets or sets the going down indicator, which will affect passenger behavior when stopping at floors.            |                                                                                                                                    |
 | `docs.api.elevator.maxPassengerCount`               | Gets the maximum number of passengers that can occupy the elevator at the same time.                            |                                                                                                                                    |
 | `docs.api.elevator.maxPassengerCount.example.code`  | if(elevator.maxPassengerCount() > 5) {                                                                          | code; only the comments are translated                                                                                             |
 | `docs.api.elevator.loadFactor`                      | Gets the load factor of the elevator. 0 means empty, 1 means full. Varies with passenger weights, which vary -… |                                                                                                                                    |
@@ -426,7 +426,7 @@ place levels 3 to 7 are introduced at all, exactly as `sky8`'s is for 9 and 10.
 
 Every key is read by a getter on the level table, never by a widget. `src/widgets/level-briefing` is
 handed the finished `card` by `src/pages/game/index.ts`, and `src/ui/editor.ts` is handed the
-finished `startingCode`, so neither names a key. That is what keeps the card localised despite it:
+finished `startingCode`, so neither names a key. That is what keeps the card localized despite it:
 the getters render at the moment they are read, and the page reads them on every redraw, so a
 language change composes them again in the new language.
 
@@ -732,7 +732,7 @@ otherwise consists of two real, hardcoded GitHub URLs — an address is not a tr
 so the URLs and the domain text under each link are plain constants rather than catalog keys.
 
 `aboutCopyright.html` is deliberately the same string in both locales: "Elevator Saga © 2015 Magnus
-Wolffelt, © 2026 EpicDima, MIT." names a licence, and a licence notice does not change with the
+Wolffelt, © 2026 EpicDima, MIT." names a license, and a license notice does not change with the
 reader's language.
 
 It is also the whole of the game's route to `licenses.txt`. The footer that used to link that file
@@ -854,7 +854,7 @@ Read by `docs-modal.ts` (above), which draws `API_REFERENCE` as the reference ta
 | `game.apiRef.elevator.stop.more`                   | The elevator stops wherever it is, and the whole queue is cleared. Buttons pressed by the passengers… |                                                               |
 | `game.apiRef.elevator.stop.code`                   | elevator.stop(); // put back what was ordered from inside for (const floorNum of elevator.getPressed… | code; comments translated only, code identical across locales |
 | `game.apiRef.elevator.currentFloor.short`          | The floor the elevator is on right now.                                                               |                                                               |
-| `game.apiRef.elevator.currentFloor.more`           | A whole number, never a fraction: while the elevator is travelling between floors, this answers with… |                                                               |
+| `game.apiRef.elevator.currentFloor.more`           | A whole number, never a fraction: while the elevator is traveling between floors, this answers with…  |                                                               |
 | `game.apiRef.elevator.currentFloor.code`           | const distance = Math.abs(elevator.currentFloor() - floor.floorNum());                                | code; comments translated only, code identical across locales |
 | `game.apiRef.elevator.destinationQueue.short`      | The floor queue. It's a plain array, and can be edited like one.                                      |                                                               |
 | `game.apiRef.elevator.destinationQueue.more`       | The first element is wherever the elevator is headed right now. Reading is free, and so is changing…  |                                                               |
@@ -1112,7 +1112,7 @@ stay English in every language — completing `goToFloor` into anything else wou
 code that does not exist.
 
 The tables in this module hold keys rather than rendered entries, and `elevatorMembers` and its
-neighbours turn them into completions per call. That shape is not decoration: the module is
+neighbors turn them into completions per call. That shape is not decoration: the module is
 imported long before the player's language is resolved, so a module-scope constant holding
 rendered prose would be English for the rest of the session whatever the page around it said.
 `levels.ts` repairs the same fault with `get description()` and `default-code.ts` with a
@@ -1122,14 +1122,14 @@ nullary function.
 | ---------------------------------------------- | -------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
 | `completion.events.on`                         | Register a listener. Several event names separated by spaces register the same listener for all of them, and … |                                                                               |
 | `completion.events.once`                       | Register a listener that runs at most once and is then removed. Takes a single event name.                     |                                                                               |
-| `completion.events.one`                        | The older name for once, and the one the original game gave you. Same behaviour, single event name as well.    |                                                                               |
+| `completion.events.one`                        | The older name for once, and the one the original game gave you. Same behavior, single event name as well.     |                                                                               |
 | `completion.events.off`                        | Remove listeners. With a function, removes just that function; without one, removes every listener of the nam… |                                                                               |
 | `completion.events.offAll`                     | Remove every listener you registered, for every event, on that elevator or floor. The listeners the game itse… |                                                                               |
 | `completion.elevator.goToFloor`                | Queue the elevator to go to specified floor number. If you specify true as second argument, the elevator will… | the first two sentences of `docs.api.elevator.goToFloor.html`, without markup |
 | `completion.elevator.stop`                     | Clear the destination queue and stop the elevator if it is moving. Note that the elevator will probably not s… |                                                                               |
 | `completion.elevator.currentFloor`             | Gets the floor number that the elevator currently is on. Note that this is a rounded number and does not nece… |                                                                               |
-| `completion.elevator.goingUpIndicator`         | Gets or sets the going up indicator, which will affect passenger behaviour when stopping at floors.            |                                                                               |
-| `completion.elevator.goingDownIndicator`       | Gets or sets the going down indicator, which will affect passenger behaviour when stopping at floors.          |                                                                               |
+| `completion.elevator.goingUpIndicator`         | Gets or sets the going up indicator, which will affect passenger behavior when stopping at floors.             |                                                                               |
+| `completion.elevator.goingDownIndicator`       | Gets or sets the going down indicator, which will affect passenger behavior when stopping at floors.           |                                                                               |
 | `completion.elevator.maxPassengerCount`        | Gets the maximum number of passengers that can occupy the elevator at the same time.                           |                                                                               |
 | `completion.elevator.loadFactor`               | Gets the load factor of the elevator. 0 means empty, 1 means full. Varies with passenger weights, which vary … |                                                                               |
 | `completion.elevator.isFull`                   | Gets whether every spot in the elevator is taken. Use this rather than comparing loadFactor to 1 - passenger … |                                                                               |
@@ -1248,13 +1248,13 @@ again.
 | `src/game/fitness.ts`, `requireNothing`                                                                                        | `No requirement`                                                                                                                    | The benchmark's placeholder condition. Nothing draws a level bar during a benchmark, so it never reaches a screen.                                                                                                                                       |
 | `src/ui/completions.ts`, the `label` and `detail` fields                                                                       | `elevator.goToFloor`, `(floorNum, directly)`, …                                                                                     | Identifiers and signatures. The popup completes real API names; translating one would suggest code that does not exist. Only `info` is keyed.                                                                                                            |
 | `src/ui/default-code.ts`, `DEV_TEST_CODE`                                                                                      | The tier-calibration program                                                                                                        | No player ever sees it: `#devtest` is retired, and what reads it is `level-tiers-solutions.test.ts`, which measures rather than teaches.                                                                                                                 |
-| `src/ui/shortcuts.ts`, `modifierKeyLabel`                                                                                      | `⌘` / `Ctrl`                                                                                                                        | Key names. Russian keyboards are labelled `Ctrl` too.                                                                                                                                                                                                    |
+| `src/ui/shortcuts.ts`, `modifierKeyLabel`                                                                                      | `⌘` / `Ctrl`                                                                                                                        | Key names. Russian keyboards are labeled `Ctrl` too.                                                                                                                                                                                                     |
 | `index.html` and `documentation.html`, `<meta charset>` and `<meta name="viewport">`                                           | `UTF-8`, `width=device-width, initial-scale=1`                                                                                      | Machine values, not prose.                                                                                                                                                                                                                               |
 | `documentation.html`, the link to `documentation.ru.html`                                                                      | `Русский`                                                                                                                           | A language's own name. `LOCALE_NAMES` in `src/i18n/locale.ts` holds these, deliberately outside the catalogs: a reader who needs Русский has to find it while the interface is still English.                                                            |
 | `documentation.html`, the one-line snippets in _Code examples_                                                                 | `elevator.on("floor_button_pressed", function(floorNum) { … });`                                                                    | Code with no comments in it. Nothing to translate — and `src/page.test.ts` holds that both ways round, so a comment added to one of them fails the suite.                                                                                                |
 | `public/elevatorsaga.d.ts`, the whole file                                                                                     | The JSDoc an editor shows over `elevator.goToFloor`                                                                                 | Its own header decides this: the prose is the English of `documentation.html` in both languages' builds, because the names it describes are English identifiers either way and two translations of a declaration would be a second pair to keep in step. |
 | `src/game/test-helpers.ts`, `*.test.ts`, `e2e/`                                                                                | Test messages                                                                                                                       | Read by whoever ran the tests.                                                                                                                                                                                                                           |
-| `licenses.txt`, generated into `dist/` by `vite.config.ts`                                                                     | Licence texts                                                                                                                       | Legal texts are quoted, not translated.                                                                                                                                                                                                                  |
+| `licenses.txt`, generated into `dist/` by `vite.config.ts`                                                                     | License texts                                                                                                                       | Legal texts are quoted, not translated.                                                                                                                                                                                                                  |
 
 **One that is not a decision anybody wrote down.** `src/pages/game/index.ts` prints a line at every start
 — `Seed … — the same passengers again, though never quite the same run: …` — and it is prose
@@ -1400,7 +1400,7 @@ needs no edit to the control and none to `index.html`, which ships the `<select>
 | the type system                | Key parity in both directions, and the right number of plural forms per language. A Russian catalog missing a key does not compile.                                                                                                                                                                  |
 | `src/i18n/catalog.test.ts`     | Key order, non-empty values, `{placeholder}` parity, markup confined to `.html` keys and opening and closing the same tags in every locale, `.code` blocks identical but for their comments, the WCAG 2.5.3 pair, and Russian typography — «ёлочки» in pairs, spaced em dashes, ё, no double spaces. |
 | `src/i18n/format.test.ts`      | `PLURAL_CATEGORIES` against what ICU actually says, so a wrong guess about a new language fails a test rather than mistranslating a count.                                                                                                                                                           |
-| `src/ui/localize-page.test.ts` | That every key `index.html` names exists and takes no parameters; that the shell ships, word for word, the English of every message it names; that the noscript paragraph is left alone; that the modifier keys are relabelled after the shell is rewritten.                                         |
+| `src/ui/localize-page.test.ts` | That every key `index.html` names exists and takes no parameters; that the shell ships, word for word, the English of every message it names; that the noscript paragraph is left alone; that the modifier keys are relabeled after the shell is rewritten.                                          |
 | `src/page.test.ts`             | The two documentation pages as one document in two languages, every `docs.*` message against the passage it was lifted from in both languages, no `docs.*` key left unchecked, and the popup against the page wherever their English agrees.                                                         |
 | `src/i18n/inventory.test.ts`   | This file: the keys it names, the keys it omits, the counts it prints, the `src/` paths it points at, the absence of line pins, and the learning track's quoted titles. Not the rest of its prose.                                                                                                   |
 

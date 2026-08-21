@@ -149,7 +149,7 @@ function collectApiRows(root: ParentNode): HTMLDetailsElement[] {
 /**
  * Wires the dialog's search box, its close button and its own backdrop click
  * into an open/close pair — {@link createModal}'s pair for the close button
- * and the backdrop, plus the search-clearing and scroll-restoring behaviour
+ * and the backdrop, plus the search-clearing and scroll-restoring behavior
  * this module's own doc comment describes.
  *
  * @param dialog - The `<dialog class="docs">` built from
@@ -247,7 +247,7 @@ export function presentDocsModal(dialog: HTMLDialogElement): DocsModalController
 
   // Where the dialog was scrolled to when it was closed, remembered across
   // the page's own session: read to onIdle, closed to look at the building,
-  // reopened, and still on onIdle. Search doesn't count towards it: a
+  // reopened, and still on onIdle. Search doesn't count toward it: a
   // search's own results start at the top, and clearing one returns the body
   // to wherever it was scrolled before.
   let docsScroll = 0;

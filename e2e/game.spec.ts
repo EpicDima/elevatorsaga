@@ -134,7 +134,7 @@ test("crunches a level instantly and shows the outcome over the building it ende
   await expect(building(page).getByRole("group", { name: "Elevator 0" })).toBeVisible();
 
   // A crunch is a speed rather than a button of its own: the last stop past
-  // the fastest one, chosen before the run and realised when it starts.
+  // the fastest one, chosen before the run and realized when it starts.
   await selectInstantSpeed(page);
   await expect(speedValue(page)).toHaveText("∞x");
   await startButton(page).click();
@@ -194,42 +194,42 @@ test("does not offer the instant stop in the sandbox, and plays it animated at t
   await expect(page.locator(".verdict")).toHaveCount(0);
 });
 
-test("colours the passenger whose time the statistics panel is reporting", async ({ page }) => {
+test("colors the passenger whose time the statistics panel is reporting", async ({ page }) => {
   // The chain behind "Max delivery time" end to end: the world picks the passenger,
   // the presenter puts a class on them, and the stylesheet turns that into a
-  // colour. Only the last of those three is out of reach of the unit tests, and
+  // color. Only the last of those three is out of reach of the unit tests, and
   // it is the only one the player can see.
   await seedCode(page, DEV_TEST_CODE);
   await page.goto("/#level=1,timescale=16");
   await startButton(page).click();
 
-  // Everything in one evaluation -- the crowd, the mark, and the colour of the
+  // Everything in one evaluation -- the crowd, the mark, and the color of the
   // marked passenger -- because a running world answers two questions about two
   // different moments. The mark belongs to whoever has waited longest, so it
   // moves the instant an elevator takes them, and every round trip to the
   // browser is a frame or more in which that can happen.
   //
   // This case used to ask in three: poll for the mark, press Pause, then read
-  // the colour off it. Pausing was meant to be what made it safe, and it is
+  // the color off it. Pausing was meant to be what made it safe, and it is
   // what made it fail. Twice in eleven runs of the whole suite -- and never in
   // twenty-four runs of this case by itself, because it takes a loaded machine
   // to widen the gap -- the pause landed in the moment after the marked
   // passenger had boarded and before anyone else had started waiting. A paused
-  // world never grows the mark back, so the colour assertion sat out its entire
+  // world never grows the mark back, so the color assertion sat out its entire
   // timeout waiting for an element that was not coming.
   //
   // Exactly one is marked, never two: there is one longest wait, and the mark
   // is handed from passenger to passenger rather than handed out.
   //
-  // Yellow rather than the grey of everybody else. That particular value --
+  // Yellow rather than the gray of everybody else. That particular value --
   // --ds-car-attention, at `.person.is-rider.is-waiting-long` in
   // src/entities/passenger/ui/passenger-view.css -- is the *boarded* one,
   // because the mark follows its
   // passenger into the car (src/game/world.ts's `#setLongestWaitingUser` keeps
   // it through the ride, not just through the wait) and a car needs its own
-  // colours, so the poll settles on a frame where the marked passenger is
+  // colors, so the poll settles on a frame where the marked passenger is
   // riding. Waiting, they are --ds-accent, which is themed and so not one
-  // literal to assert. Reading the colour computed is the same question
+  // literal to assert. Reading the color computed is the same question
   // `toHaveCSS` asks.
   await expect
     .poll(
@@ -240,10 +240,10 @@ test("colours the passenger whose time the statistics panel is reporting", async
           return {
             inACrowd: where.querySelectorAll(".person").length > 1,
             marked: marked.length,
-            colour: only === undefined ? null : getComputedStyle(only).color,
+            color: only === undefined ? null : getComputedStyle(only).color,
           };
         }),
       { timeout: 30_000 },
     )
-    .toEqual({ inACrowd: true, marked: 1, colour: "rgb(255, 255, 0)" });
+    .toEqual({ inACrowd: true, marked: 1, color: "rgb(255, 255, 0)" });
 });

@@ -34,7 +34,7 @@ const EXIT_WALK_DISTANCE = 100;
 /** Seconds a passenger takes to walk into an elevator. */
 const ENTER_ELEVATOR_DURATION = 1;
 
-/** A passenger travelling between two floors. */
+/** A passenger traveling between two floors. */
 export class User extends Movable<UserEvents> {
   /** Passenger weight; drives the elevator load factor. */
   readonly weight: number;

@@ -1,7 +1,7 @@
 /**
  * Numeric helpers shared by the simulation.
  *
- * These are ported verbatim in behaviour from the legacy `base.js` so that the
+ * These are ported verbatim in behavior from the legacy `base.js` so that the
  * modernized simulation reproduces the original physics bit-for-bit.
  */
 
@@ -11,7 +11,7 @@ import { systemRandom, type RandomSource } from "./random.ts";
  * Tolerance used for floating point comparisons throughout the simulation.
  *
  * Kept exactly at the legacy literal `0.00000001` — widening or narrowing it
- * changes elevator arrival/stop behaviour.
+ * changes elevator arrival/stop behavior.
  */
 export const EPSILON = 1e-8;
 

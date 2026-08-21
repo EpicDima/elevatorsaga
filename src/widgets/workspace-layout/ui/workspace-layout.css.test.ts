@@ -48,7 +48,7 @@ describe("the game pane's column", () => {
     // `hidden auto` and not `auto`: the inline axis belongs to `.stage`, which
     // scrolls a building wider than the pane inside itself without taking the
     // card along with it. Nor may the axis go unwritten -- a pair with
-    // `visible` on one axis and anything else on the other is not honoured,
+    // `visible` on one axis and anything else on the other is not honored,
     // the `visible` computing to `auto` -- so silence here is a second
     // scrollbar under the building rather than none.
     expect(declaration(stageArea, "overflow", ".stagearea")).toBe("hidden auto");
@@ -99,13 +99,13 @@ describe("the game pane's column", () => {
     // 12px monospace in the longest answer, inside that block's padding,
     // `.tutorialsolution`'s margins and the card's own. The arithmetic is
     // written out at the rule; what matters here is that it is one number at
-    // every width of pane, and centred rather than stretched.
+    // every width of pane, and centered rather than stretched.
     const card = ruleBody(".stagearea > .tutorial");
     expect(declaration(card, "inline-size", ".stagearea > .tutorial")).toBe(
       "min(640px, 100% - 32px)",
     );
     expect(declaration(card, "margin-inline", ".stagearea > .tutorial")).toBe("auto");
-    // `inline-size` and not `max-inline-size`, which is how a centred card is
+    // `inline-size` and not `max-inline-size`, which is how a centered card is
     // usually written and which would size this one from its own content
     // instead: auto margins on the cross axis stop a flex item stretching, so
     // a step whose prose is short would draw a narrower frame than the step
@@ -113,7 +113,7 @@ describe("the game pane's column", () => {
     expect(card, "the card is sized by its own content again").not.toMatch(/^\s*max-inline-size/m);
     // No container query changing the layout below some width of pane: at the
     // shipped 62% split a 740px pane is a 1213px window, so a window merely a
-    // little small, a browser at 125% zoom or a splitter nudged towards the
+    // little small, a browser at 125% zoom or a splitter nudged toward the
     // editor would each redraw the page as something else. One shape at every
     // width.
     expect(styleSource).not.toMatch(/container: stage\b/);

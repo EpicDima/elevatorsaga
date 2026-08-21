@@ -69,7 +69,7 @@
 
 /*
  * The strip is as wide as the game pane, which is 520px or less whenever the
- * splitter is dragged towards the editor. At that edge the arithmetic is the
+ * splitter is dragged toward the editor. At that edge the arithmetic is the
  * argument for folding to two columns. Three columns across a 520px strip leave
  * a secondary caption 141px, and Russian's longest -- "Сред. ожидание кабины"
  * -- wants 170; four columns leave a primary caption 98px, which every caption

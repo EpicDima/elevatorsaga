@@ -37,7 +37,7 @@ describe("getCodeObjFromCode", () => {
     }).not.toThrow();
   });
 
-  it("accepts an already-parenthesised expression", () => {
+  it("accepts an already-parenthesized expression", () => {
     expect(getCodeObjFromCode(`(${testCode})`)).toBeInstanceOf(Object);
   });
 

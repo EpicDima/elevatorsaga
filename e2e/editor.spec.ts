@@ -78,7 +78,7 @@ test("pastes code without reindenting it", async ({ page, context }) => {
   // This has to be a real paste — clipboard, then the paste shortcut — because
   // the reindenting lived in the editor's paste handling. The `insertText` the
   // reload test above uses never goes near it, so it could not tell the two
-  // behaviours apart.
+  // behaviors apart.
   await context.grantPermissions(["clipboard-read", "clipboard-write"]);
 
   await page.goto("/");

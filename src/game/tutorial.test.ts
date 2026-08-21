@@ -297,8 +297,8 @@ describe("Learning track table", () => {
     // is. The way that happens is a key: the programs are messages, every one of
     // the sixteen keys is written out by hand under the level it belongs to, and
     // nothing about `tutorial.level4.startingCode.code` says which entry it may
-    // be written under. A row that borrowed its neighbour's key is a level that
-    // fills the editor with the neighbour's program — which compiles, renders,
+    // be written under. A row that borrowed its neighbor's key is a level that
+    // fills the editor with the neighbor's program — which compiles, renders,
     // parses, and passes every other check in this file, because it is a
     // perfectly good program. It is just not this level's.
     for (const locale of LOCALES) {

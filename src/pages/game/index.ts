@@ -4,7 +4,7 @@
  *
  * Ported from the `$(function() { ... })` block of the legacy `app.js`.
  *
- * The run controls, the building's relabelling and the fullscreen toggle were
+ * The run controls, the building's relabeling and the fullscreen toggle were
  * a separate module, `src/ui/presenters.ts`, itself ported from the legacy
  * `presenters.js` — until {@link App}, this file's own class, became their
  * only caller and this file absorbed them, along with `controlsTemplate`
@@ -212,7 +212,7 @@ export function containsFocus(elements: readonly Element[]): boolean {
  * answer.
  *
  * What has not changed is that this is drawn once, for the life of the page,
- * and only relabelled. The level bar used to be rebuilt on every restart,
+ * and only relabeled. The level bar used to be rebuilt on every restart,
  * so every one of these buttons used to destroy itself when pressed — which is
  * what the level bar's own focus bookkeeping existed to paper over. A
  * keyboard player who presses Start over is still standing on Start over
@@ -451,7 +451,7 @@ export interface AppElements {
    *
    * The one region the app draws that is never redrawn. Everything else here is
    * emptied and written again at the start of every run; this is written once,
-   * in the constructor, and only relabelled afterwards, which is what lets a
+   * in the constructor, and only relabeled afterwards, which is what lets a
    * player keep their finger on a button that restarts the game.
    */
   readonly controls: HTMLElement;
@@ -774,7 +774,7 @@ export class App {
    * stale callbacks can never tick a world {@link #startRun} has already
    * replaced. Set when {@link runInstantly} starts one, cleared by the
    * `stats_changed` handler in {@link #startRun} when it reaches a verdict on
-   * its own, and cleared -- after cancelling it -- at the top of every
+   * its own, and cleared -- after canceling it -- at the top of every
    * {@link #startRun}, instant or not, so a player who starts anything else
    * while a crunch is running abandons it rather than raced against it.
    */
@@ -1360,7 +1360,7 @@ export class App {
    * Clearing the handle is what marks this crunch finished rather than
    * abandoned — `#instantRunHandle` is {@link driveInstantly}'s own stopping
    * signal for nothing except a still-running one — and the explicit
-   * `update()` is this path's replacement for the relabelling an animated run
+   * `update()` is this path's replacement for the relabeling an animated run
    * gets for free from `setPaused`'s `timescale_changed`.
    *
    * @param world - The world the crunch was driving, now standing still.
@@ -1444,7 +1444,7 @@ export class App {
    * statement of precedence rather than a decision made every time, and the
    * precedence runs from the most specific address to the least. `levelIndex` is
    * the least, because the router resolves it to level 1 for any spelling it
-   * does not understand, which is exactly what an unrecognised route should play
+   * does not understand, which is exactly what an unrecognized route should play
    * and exactly what a named level's route must not: until these branches
    * existed, `#level=tutorial-5` played level 1 while the address bar went on
    * saying `tutorial-5`, and a reload never escaped it. `#level=sky-1` would
@@ -2005,7 +2005,7 @@ export class App {
    * The name still says "tutorial panel" because the region and its element
    * still do, and renaming an element the stylesheet, the layout widget and
    * `index.html` all know by that name is a bigger edit than this one, for a
-   * word rather than a behaviour.
+   * word rather than a behavior.
    *
    * Hung off the end of {@link #drawLevelBar} rather than given call sites
    * of its own, because that method's two callers are exactly the two moments
@@ -2203,7 +2203,7 @@ export class App {
    * A win in the middle of the track offers the next level. It cannot use
    * `game.feedback.next`, which the template writes into every link and which
    * says "Next level": the numbered ladder is not where level 4 lives, and a
-   * player who follows a link labelled that way lands somewhere they did not ask
+   * player who follows a link labeled that way lands somewhere they did not ask
    * for. So the link's words are replaced after the render, the way the sandbox
    * replaces the title, and for the same reason — the template is shared and its
    * markup is not this module's to change.
@@ -2221,7 +2221,7 @@ export class App {
    * not the one that just won. The label used to read "Go to level 1 with
    * this program", which was a promise the route does not keep — the winning
    * program is safe under the level's own key, but the player was told it had
-   * travelled with them and would have found their old program instead. Copying
+   * traveled with them and would have found their old program instead. Copying
    * it across from here was the other way to make the two agree, and it is the
    * wrong one: what is under the player's own key is a program they wrote, and
    * a link out of the track that overwrote it on the way would be the one path

@@ -104,7 +104,7 @@ import {
 import { User } from "./user.ts";
 
 /**
- * Which way a building's passengers are mostly travelling.
+ * Which way a building's passengers are mostly traveling.
  *
  * A real building does not draw the same crowd all day, and the difference is
  * the whole reason lift engineers talk about traffic patterns at all: the
@@ -544,7 +544,7 @@ export function spawnUserRandomly(
  * frame: the tab stops dead and the game merely looks frozen.
  *
  * Everything that is not a positive finite rate therefore becomes zero, "nobody
- * arrives". That is a request the simulation can actually honour, and not an
+ * arrives". That is a request the simulation can actually honor, and not an
  * invented one: it is what a rate of `0` already did, since the interval is then
  * `Infinity` and no accumulated time is ever greater than it, and it is the only
  * reading of "minus two passengers a second" that does not make a number up.
@@ -712,7 +712,7 @@ export class World extends Observable<WorldEvents> {
    * Boardings plus deliveries over stops, which is the game's reading of the
    * car loading that round-trip-time analysis calls `P`. It says whether the
    * doors are being opened for a crowd or for one person: a program that sends
-   * a car to every floor that lights up drives it towards one, and a program
+   * a car to every floor that lights up drives it toward one, and a program
    * that lets calls collect and sweeps them drives it up.
    *
    * Both ends of a journey count, so a passenger carried from floor 3 to floor
@@ -821,7 +821,7 @@ export class World extends Observable<WorldEvents> {
     this.#spawnRate = resolveSpawnRate(options.spawnRate ?? DEFAULT_OPTIONS.spawnRate);
     // Read here with the rest of them, though nothing is drawn until the first
     // spawn: the constructor takes no draws at all, so where this line sits
-    // among its neighbours cannot move the stream.
+    // among its neighbors cannot move the stream.
     this.#trafficProfile = options.trafficProfile ?? DEFAULT_OPTIONS.trafficProfile;
     const elevatorCount = options.elevatorCount ?? DEFAULT_OPTIONS.elevatorCount;
 

@@ -129,7 +129,7 @@ export interface AppBarSettingsOptions {
   readonly root: HTMLElement;
   /** Where the theme and the language are each remembered between visits. */
   readonly storage: Storage;
-  /** Whether the system's own colour scheme is dark right now — see `presentThemeSwitch`'s option of the same name. */
+  /** Whether the system's own color scheme is dark right now — see `presentThemeSwitch`'s option of the same name. */
   readonly prefersDark: () => boolean;
   /** The layout mode the switch opens showing as pressed — the caller's own current layout mode. */
   readonly initialLayoutMode: LayoutModeId;
@@ -184,7 +184,7 @@ export interface AppBarSettingsController {
  * popover open and closed, and wires both openers.
  *
  * Called once, against a `parent` already holding {@link appBarSettingsTemplate}'s
- * markup — the same division of labour `presentLevelSwitcher` keeps from
+ * markup — the same division of labor `presentLevelSwitcher` keeps from
  * `levelSwitcherTemplate`.
  *
  * @param parent - The element the template's markup was written into.

@@ -4,7 +4,7 @@
  *
  * Dark is the default, declared on `:root`; `html[data-theme="light"]` restates
  * only the values that differ. Nothing else in this directory declares a
- * colour literal, so a theme is a change to this file alone -- and the pairs
+ * color literal, so a theme is a change to this file alone -- and the pairs
  * that carry text are measured against WCAG 1.4.3 rather than eyeballed: the
  * sitewide ones in `tokens.css.test.ts` beside this file, and the rest in the
  * `*.css.test.ts` beside whichever slice paints them.
@@ -107,7 +107,7 @@
   --ds-steel-soft: rgb(116 169 216 / 16%);
 
   /*
-   * Level stars, three metal tones -- the one place on the page where colour
+   * Level stars, three metal tones -- the one place on the page where color
    * alone carries meaning, with no label beside it.
    */
   --ds-tier-bronze: #cf8c4e;
@@ -167,14 +167,14 @@
   --ds-code-active: rgb(255 255 255 / 3.5%);
   /*
    * The wash behind selected code. The palette's own blue (`--ds-code-fn`) at
-   * a low alpha rather than a grey, so a selection is recognisably this
+   * a low alpha rather than a gray, so a selection is recognisably this
    * design's rather than the browser's -- CodeMirror's `drawSelection`, which
    * `basicSetup` brings in, hides the browser's own selection and paints this
-   * layer *behind* the text, so the one thing no value here can do is recolour
+   * layer *behind* the text, so the one thing no value here can do is recolor
    * what is selected the way a native `::selection` does with `HighlightText`.
    *
    * That is what makes this the one deliberate shortfall in the code palette.
-   * Every code colour clears 1.4.3's 4.5:1 on `--ds-code-bg` and on the active
+   * Every code color clears 1.4.3's 4.5:1 on `--ds-code-bg` and on the active
    * line; over this wash the two dimmest, `--ds-code-com` and `--ds-code-punc`,
    * fall to 3.59:1 and 4.80:1 (dark) and 3.89:1 and 3.95:1 (light) -- 3.27:1
    * at the very worst, where the selection lies over the active line too and

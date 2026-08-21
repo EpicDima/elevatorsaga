@@ -448,7 +448,7 @@ interface TutorialAnswerData {
  *
  * `<pre><code>` rather than a styled `<div>`: it is the pair the help page
  * already prints its examples in, so the block picks up the editor's own
- * colours and the wrapping the narrow-screen rules give code, and a screen
+ * colors and the wrapping the narrow-screen rules give code, and a screen
  * reader is told this is code rather than a run-on sentence of punctuation.
  * `highlightJavaScript` writes each source line into its own `<span>` (a
  * `<mark class="tutoriallinechanged">` for a changed one) and escapes every

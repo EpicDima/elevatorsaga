@@ -22,7 +22,7 @@ import {
 
 describe("ds palette on the briefing card", () => {
   // The card is drawn on --ds-panel, and only two inks are read against it: the
-  // level's name in the page's own text colour and the briefing itself muted.
+  // level's name in the page's own text color and the briefing itself muted.
   // Both pairs are the lesson card's, since the two cards share the surface --
   // measured in Chromium there, and repeated here so that a token taken under
   // the bar fails beside the rules that read it rather than only beside theirs.

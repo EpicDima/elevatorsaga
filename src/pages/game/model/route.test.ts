@@ -144,7 +144,7 @@ describe("the legacy level key", () => {
 
   it("keeps the modern key when a url names both", () => {
     // `level` is what this game writes, so it is the one the player's last click
-    // chose. Dropping it in favour of the legacy spelling would let a link
+    // chose. Dropping it in favor of the legacy spelling would let a link
     // carrying both turn into two spellings of one parameter on every follow.
     const both = renameLegacyLevelKey(parseQuery("#challenge=5,level=9,timescale=8"));
     expect([...both]).toEqual([
@@ -547,7 +547,7 @@ describe("resolveRoute tutorial selection", () => {
     expect(console.warn).not.toHaveBeenCalled();
   });
 
-  it("spells every level id the way it recognises one", () => {
+  it("spells every level id the way it recognizes one", () => {
     // The prefix is the one thing about a level address the router states for
     // itself, and it is what tells a mistyped one from a level number. A
     // level renamed out of this shape would not be oddly named, it would be
@@ -557,7 +557,7 @@ describe("resolveRoute tutorial selection", () => {
     }
   });
 
-  it("reads a level address however it is capitalised", () => {
+  it("reads a level address however it is capitalized", () => {
     // Folded where it is read, as `sandbox` is, and not for every value at once.
     expect(route("#level=TUTORIAL-3").tutorialIndex).toBe(2);
     expect(route("#LEVEL=Tutorial-3").tutorialIndex).toBe(2);
@@ -706,7 +706,7 @@ describe("resolveRoute skyscraper selection", () => {
     expect(console.warn).not.toHaveBeenCalled();
   });
 
-  it("spells every level id the way it recognises one", () => {
+  it("spells every level id the way it recognizes one", () => {
     // The prefix is the one thing about the block's addresses the router states
     // for itself, exactly as it does for the track, and a level renamed out of
     // this shape would be unreachable rather than oddly named.
@@ -715,7 +715,7 @@ describe("resolveRoute skyscraper selection", () => {
     }
   });
 
-  it("reads a skyscraper address however it is capitalised", () => {
+  it("reads a skyscraper address however it is capitalized", () => {
     expect(route("#level=SKY-1").skyscraperIndex).toBe(0);
     expect(route("#LEVEL=Sky-1").skyscraperIndex).toBe(0);
     expect(console.warn).not.toHaveBeenCalled();

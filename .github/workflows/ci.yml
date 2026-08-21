@@ -9,7 +9,7 @@ on:
 # A newer push to the same branch or pull request makes the run already in
 # flight irrelevant, so let it go rather than paying for it twice.
 #
-# Except on `main`, where the run ends in a deployment: cancelling it half way
+# Except on `main`, where the run ends in a deployment: canceling it half way
 # through `deploy-pages` would leave the published site in whatever state the
 # upload had reached. There a second push waits for the first run to finish
 # instead, which costs some wall-clock on a burst of pushes and never publishes
@@ -200,8 +200,8 @@ jobs:
 
     # Never deploy two versions of the site at once, and never cancel a
     # deployment that is already in flight — a half-published site is worse than
-    # a stale one. Separate from the workflow-wide group above, which serialises
-    # runs; this serialises the deployments within them, including any left over
+    # a stale one. Separate from the workflow-wide group above, which serializes
+    # runs; this serializes the deployments within them, including any left over
     # from a run started before that rule was in place.
     concurrency:
       group: pages

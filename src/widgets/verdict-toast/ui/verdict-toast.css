@@ -38,7 +38,7 @@
  * while half the row beside it was still empty. The 420px floor under that is
  * safe because the window cannot go under 1040px -- `body.app`'s own minimum,
  * held by `e2e/reflow.spec.ts` -- which leaves the stage well over 420px wide
- * even with the splitter dragged as far towards the editor as it goes.
+ * even with the splitter dragged as far toward the editor as it goes.
  *
  * No `[hidden]` companions for this rule or the two below: `presentVerdictToast`
  * builds a card and empties the container to dismiss it, so there is never an

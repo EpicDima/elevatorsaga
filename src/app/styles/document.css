@@ -134,7 +134,7 @@ a:hover {
 
 /*
  * A `<button>`, a `<select>` and an `<input>` each come with a font and a
- * colour of the platform's choosing rather than the page's, so each has to be
+ * color of the platform's choosing rather than the page's, so each has to be
  * told to inherit or the page ends up with three typefaces it did not pick.
  * `button`'s own full reset is in `shared/ui/button.css`; this is the half the
  * other two need too, and it belongs with the frame.

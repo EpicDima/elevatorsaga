@@ -1,5 +1,5 @@
 /**
- * The licence notices: `dist/` ships code and fonts belonging to other people,
+ * The license notices: `dist/` ships code and fonts belonging to other people,
  * under terms that ask for their notices to travel with them. Unit tests can
  * check that the pages link to `licenses.txt`, but only the built site can say
  * whether the file is really there and really says what it should.
@@ -9,10 +9,10 @@ import { expect, test } from "@playwright/test";
 
 import { openSettingsMenu } from "./game-page.ts";
 
-test("serves the licence notices from the About block's copyright line", async ({ page }) => {
+test("serves the license notices from the About block's copyright line", async ({ page }) => {
   await page.goto("/");
 
-  // The game has no footer to carry a "Licences" link, and a row of its own
+  // The game has no footer to carry a "Licenses" link, and a row of its own
   // would have changed the About block's shape -- so the word "MIT", already
   // in the copyright notice, is the link. This is the game's only route to the
   // file, which is what makes it worth an end-to-end test of its own.

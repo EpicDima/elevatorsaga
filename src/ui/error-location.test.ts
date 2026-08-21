@@ -346,7 +346,7 @@ describe("locateCodeError", () => {
     expect(locateCodeError(hostile, MULTI_LINE)).toBeUndefined();
   });
 
-  it("ignores the position where the game called eval, in favour of the player's", () => {
+  it("ignores the position where the game called eval, in favor of the player's", () => {
     // The first pair of numbers on a V8 eval frame is the game's own call
     // site. It is the same for every error any program can raise, so reporting
     // it would send every player to the same line of a file they cannot see.

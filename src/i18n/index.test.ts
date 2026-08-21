@@ -205,7 +205,7 @@ describe("translateIn", () => {
 });
 
 describe("locale identity", () => {
-  it("recognises the locales it has catalogs for, and nothing else", () => {
+  it("recognizes the locales it has catalogs for, and nothing else", () => {
     expect(isLocale("ru")).toBe(true);
     expect(isLocale("en")).toBe(true);
     expect(isLocale("de")).toBe(false);

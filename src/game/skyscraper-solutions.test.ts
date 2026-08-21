@@ -84,7 +84,7 @@ type TierOutcome = "gold" | "silver" | "bronze" | "lost";
  *
  * By id rather than by position for {@link SkyscraperLevel}'s own reason: the
  * position is the thing about a level expected to change, and a fixture indexed
- * by it would quietly measure its neighbour the day one is inserted.
+ * by it would quietly measure its neighbor the day one is inserted.
  *
  * @param id - The level's `id`, as it appears in `skyscraperLevels`.
  * @returns The level with that id.
@@ -236,7 +236,7 @@ describe("the recorded table", () => {
   it("records a level that tells its four programs apart", () => {
     // Not a restatement of the rows: a level where all four land on the same
     // tier is a level that measures nothing about the program, and copying a
-    // row from its neighbour would pass every other check in this file.
+    // row from its neighbor would pass every other check in this file.
     for (const testCase of CASES) {
       const reached = new Set([testCase.starter, testCase.sweep, testCase.dev, testCase.good]);
       expect(reached.size, `${testCase.id} awards every program the same tier`).toBeGreaterThan(1);

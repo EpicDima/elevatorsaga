@@ -14,7 +14,7 @@
  * **Exact counts, not bounds.** `toBe(76)` rather than `toBeLessThan(100)`,
  * everywhere, including the count that is not 400. An improvement is as much a
  * report of a changed engine as a regression is, and a bound would swallow it —
- * a sweep that suddenly wins twice as often has learnt nothing, the physics has
+ * a sweep that suddenly wins twice as often has learned nothing, the physics has
  * moved, and this file exists to be the place that says so. The cost is that
  * these numbers have to be re-measured whenever the simulation legitimately
  * changes, which is the intended cost.

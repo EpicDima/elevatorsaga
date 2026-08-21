@@ -13,7 +13,7 @@
  * that a draw which only decides how the run *looks* can be made replayable
  * without moving every draw that decides what the run *does*.
  *
- * Swapping the generator does not break the port's promise of behavioural
+ * Swapping the generator does not break the port's promise of behavioral
  * identity with legacy 1.6.5. The legacy engine drew from an unseeded
  * `Math.random`, whose sequence is implementation-defined and differs between
  * engines and between runs, so the only property of those draws a legacy run
@@ -33,7 +33,7 @@ export type RandomSource = () => number;
 /**
  * A value a {@link RandomSource} can be rebuilt from.
  *
- * Strings are accepted so a run can be labelled with something a human can read
+ * Strings are accepted so a run can be labeled with something a human can read
  * out and retype ("issue-61"), numbers so that a generated seed stays short
  * enough to print next to the statistics.
  */
@@ -64,7 +64,7 @@ export const systemRandom: RandomSource = () => Math.random();
  * same: `1`, `1.5` and `"rush-hour"` all mix down to unrelated states, whereas
  * feeding them to the generator raw would need one rule for integers, another
  * for fractional and negative numbers, and none at all would exist for strings.
- * It also keeps neighbouring seeds — the `1`, `2`, `3` a batch run reaches for
+ * It also keeps neighboring seeds — the `1`, `2`, `3` a batch run reaches for
  * — from starting a fixed distance apart in the same stream.
  *
  * @param seed - The seed, in its string form.

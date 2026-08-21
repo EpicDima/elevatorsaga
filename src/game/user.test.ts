@@ -200,7 +200,7 @@ describe("User.elevatorAvailable", () => {
     expect(upPressed).toHaveBeenCalledTimes(1);
   });
 
-  it("re-presses the down button for a refused passenger travelling down", () => {
+  it("re-presses the down button for a refused passenger traveling down", () => {
     // The mirror of the case above: the passenger's direction decides which
     // button is pressed, exactly as on their first arrival at the floor.
     const topFloor = at(floors, FLOOR_COUNT - 1);

@@ -13,7 +13,7 @@
     "legacy-1.x:font-awesome-4.1-1.0/css/font-awesome.css, `advance` is the glyph's",
     "horiz-adv-x in font units and `path` is its outline `d`, both copied verbatim and both",
     "in the font's y-up coordinate space.",
-    "Licence: SIL OFL 1.1, see fontawesome-license.txt next to this file."
+    "License: SIL OFL 1.1, see fontawesome-license.txt next to this file."
   ],
   "unitsPerEm": 1792,
   "ascent": 1536,

@@ -79,7 +79,7 @@ describe("createIcon", () => {
     expect(icon.getAttribute("height")).toBe("1em");
   });
 
-  it("inherits its colour and stays out of the accessibility tree", () => {
+  it("inherits its color and stays out of the accessibility tree", () => {
     const icon = createIcon("caret-right");
     expect(icon.getAttribute("fill")).toBe("currentColor");
     expect(icon.getAttribute("aria-hidden")).toBe("true");

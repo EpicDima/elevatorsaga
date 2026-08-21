@@ -76,7 +76,7 @@
  * which is `0` here and 11px there. There, the goal has three hints under it and
  * the margin is the gap before them. Here the paragraph is the last thing in the
  * card, so the same 11px would be dead space -- 25px below the prose against the
- * 14px above the title, a card visibly sitting off-centre in its own padding.
+ * 14px above the title, a card visibly sitting off-center in its own padding.
  */
 .briefingtext {
   margin: 0;

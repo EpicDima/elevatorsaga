@@ -1,7 +1,7 @@
 /**
  * The thread the benchmark command runs a program in, driven without a thread.
  *
- * `bench-worker.ts` has no exported behaviour: it reads its request from
+ * `bench-worker.ts` has no exported behavior: it reads its request from
  * `workerData` when the module is evaluated, runs the suite, and posts the
  * answer back through `parentPort`. So the module *is* the unit, and the way to
  * exercise it is to give it the two things it reaches for and import it -- the
@@ -92,7 +92,7 @@ async function runWorker(request: BenchWorkerRequest): Promise<FitnessSuiteResul
     },
   };
   // Without this the second import in the file is served from the registry and
-  // the module body -- which is the whole of the behaviour -- never runs again.
+  // the module body -- which is the whole of the behavior -- never runs again.
   vi.resetModules();
   await import("./bench-worker.ts");
   return posted;

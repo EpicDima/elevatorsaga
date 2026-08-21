@@ -284,7 +284,7 @@ export const EN_MESSAGES = {
   "game.appBar.aboutOriginalLabel": "Original",
   // The one link out of the game to `licenses.txt`, the notice file the build
   // writes into `dist/` -- see `settings-menu.ts`'s own About block comment for
-  // why it is the licence's name rather than a row of its own.
+  // why it is the license's name rather than a row of its own.
   "game.appBar.aboutCopyright.html":
     'Elevator Saga © 2015 Magnus Wolffelt, © 2026 EpicDima, <a href="licenses.txt">MIT</a>.',
   // Hotkeys: features/hotkeys-help's keys dialog, `<dialog class="keys">`.
@@ -389,7 +389,7 @@ for (const floorNum of elevator.getPressedFloors()) {
 }`,
   "game.apiRef.elevator.currentFloor.short": "The floor the elevator is on right now.",
   "game.apiRef.elevator.currentFloor.more":
-    "A whole number, never a fraction: while the elevator is travelling between floors, this answers with whichever floor it last passed. destinationDirection() knows which way it's headed while that's true.",
+    "A whole number, never a fraction: while the elevator is traveling between floors, this answers with whichever floor it last passed. destinationDirection() knows which way it's headed while that's true.",
   "game.apiRef.elevator.currentFloor.code": `const distance = Math.abs(elevator.currentFloor() - floor.floorNum());`,
   "game.apiRef.elevator.destinationQueue.short":
     "The floor queue. It's a plain array, and can be edited like one.",
@@ -658,7 +658,7 @@ elevator.goingDownIndicator(false);`,
   // "to be delivered" rather than "wait", because the limit these three
   // sentences announce is `World.maxWaitTime`, which stops at the passenger's
   // floor and not at the door of the car. A player who reads it as a wait
-  // optimises for boarding people quickly and then loses the run to the ride.
+  // optimizes for boarding people quickly and then loses the run to the ride.
   "level.transportWithMaxWait.html":
     "Transport {people} and let no one take more than {waitTime} to be delivered",
   "level.transportWithinTimeWithMaxWait.html":
@@ -729,7 +729,7 @@ elevator.goingDownIndicator(false);`,
   "completion.events.once":
     "Register a listener that runs at most once and is then removed. Takes a single event name.",
   "completion.events.one":
-    "The older name for once, and the one the original game gave you. Same behaviour, single event name as well.",
+    "The older name for once, and the one the original game gave you. Same behavior, single event name as well.",
   "completion.events.off":
     'Remove listeners. With a function, removes just that function; without one, removes every listener of the named events. The single name "*" removes every listener of every event.',
   "completion.events.offAll":
@@ -741,9 +741,9 @@ elevator.goingDownIndicator(false);`,
   "completion.elevator.currentFloor":
     "Gets the floor number that the elevator currently is on. Note that this is a rounded number and does not necessarily mean the elevator is in a stopped state.",
   "completion.elevator.goingUpIndicator":
-    "Gets or sets the going up indicator, which will affect passenger behaviour when stopping at floors.",
+    "Gets or sets the going up indicator, which will affect passenger behavior when stopping at floors.",
   "completion.elevator.goingDownIndicator":
-    "Gets or sets the going down indicator, which will affect passenger behaviour when stopping at floors.",
+    "Gets or sets the going down indicator, which will affect passenger behavior when stopping at floors.",
   "completion.elevator.maxPassengerCount":
     "Gets the maximum number of passengers that can occupy the elevator at the same time.",
   "completion.elevator.loadFactor":

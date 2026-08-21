@@ -2,7 +2,7 @@
  * The two things the editor pane draws that the player's own text can break:
  * the mark under a failing line, and the banner quoting what failed.
  *
- * The eight syntax colours and the surfaces under them are the shared code
+ * The eight syntax colors and the surfaces under them are the shared code
  * palette, measured in `shared/styles/code.css.test.ts`; the banner's own soft
  * badge is measured with the rest of that token family in
  * `shared/styles/tokens.css.test.ts`.

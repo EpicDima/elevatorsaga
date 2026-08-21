@@ -24,7 +24,7 @@ export type { UserCodeObject } from "./world-controller.ts";
 const evaluate: (src: string) => unknown = globalThis.eval;
 
 /**
- * Whether the source has to be parenthesised before it can be evaluated.
+ * Whether the source has to be parenthesized before it can be evaluated.
  *
  * A bare `{ init: ..., update: ... }` object literal is parsed as a block, not
  * as an expression, so evaluating it yields nothing at all; the parentheses are
@@ -54,7 +54,7 @@ function needsParentheses(code: string): boolean {
  * wrong character with no test able to notice.
  *
  * @param code - The source the player typed.
- * @returns 1 when the source gets parenthesised, 0 when it is evaluated as-is.
+ * @returns 1 when the source gets parenthesized, 0 when it is evaluated as-is.
  */
 export function firstLineColumnOffset(code: string): number {
   return needsParentheses(code) ? 1 : 0;

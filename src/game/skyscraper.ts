@@ -160,7 +160,7 @@ export const skyscraperLevels: readonly SkyscraperLevel[] = [
    *
    * Nothing here is new API — that is the point of opening with it. What is new
    * is the building. Twelve floors is the first one in the game tall enough
-   * that a car spends more of its life travelling than loading, which is the
+   * that a car spends more of its life traveling than loading, which is the
    * thing the research this block comes from calls round-trip time, and it is
    * what every later level in the block is a way of shortening. Levels 6-15
    * already judge `moveCount`, but on buildings of six to nine floors, where a
@@ -558,7 +558,7 @@ export const skyscraperLevels: readonly SkyscraperLevel[] = [
    * 57.31s longest — silver. `GOOD_CODE_BALANCED` finishes in the same 238
    * moves at 16.32s average and 51.52s longest — gold.
    *
-   * Which is exactly the shape of the overlap: identical distance travelled,
+   * Which is exactly the shape of the overlap: identical distance traveled,
    * six and a half seconds a person of difference in who was made to wait for
    * it. So silver is a longest wait under 60s, and gold asks for 250 moves
    * *and* an average under 18 — the move clause being what stops a program

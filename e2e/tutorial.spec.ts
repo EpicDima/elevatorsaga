@@ -150,7 +150,7 @@ test("opens the track from the level switcher, in the language on screen", async
   await switchToRussian(page);
 
   // Still there under the longer label, on a switcher the language change
-  // rebuilt from the catalog rather than relabelled in place.
+  // rebuilt from the catalog rather than relabeled in place.
   await openLevelMenu(page);
   const link = page.getByRole("link", { name: "Учебный уровень 1", exact: true });
   await expect(link).toBeVisible();
@@ -319,7 +319,7 @@ test("paints the panel's own controls as dark as the prose around them", async (
   // in the light theme, where WCAG 1.4.3 asks for 4.5:1.
   //
   // `.tutorialpanel` now reads `--ds-text` rather than the fixed `--color-text`
-  // it used to, so the colour this asserts is whichever theme Playwright's own
+  // it used to, so the color this asserts is whichever theme Playwright's own
   // default `colorScheme` renders here -- light, per this suite's own default --
   // not a page-wide constant any more. `--ds-text`'s light-theme value is
   // `#1e2227`.

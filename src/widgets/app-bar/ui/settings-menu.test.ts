@@ -76,7 +76,7 @@ describe("appBarSettingsTemplate", () => {
     expect(layoutBlock.children).toHaveLength(1);
   });
 
-  it("draws an empty, labelled language select", () => {
+  it("draws an empty, labeled language select", () => {
     const parent = document.createElement("div");
     parent.innerHTML = appBarSettingsTemplate(null);
 
@@ -131,9 +131,9 @@ describe("appBarSettingsTemplate", () => {
     expect(parent.querySelector(".sethint")?.textContent).toContain("Elevator Saga");
     // MIT and OFL both want their notices to travel with the software, and
     // this is the game's only route to the file the build writes them into.
-    const licences = parent.querySelector(".sethint a");
-    expect(licences?.getAttribute("href")).toBe("licenses.txt");
-    expect(licences?.textContent).toBe("MIT");
+    const licenses = parent.querySelector(".sethint a");
+    expect(licenses?.getAttribute("href")).toBe("licenses.txt");
+    expect(licenses?.textContent).toBe("MIT");
   });
 });
 

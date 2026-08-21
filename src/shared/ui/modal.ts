@@ -1,6 +1,6 @@
 /**
  * Turns a `<dialog>` and its close button into an open/close pair, the
- * behaviour behind the help and hotkeys windows: `showModal()` unless it is
+ * behavior behind the help and hotkeys windows: `showModal()` unless it is
  * already open, a close button, and a click on the backdrop.
  *
  * Escape is not wired here: a native `<dialog>` already closes on it, so a

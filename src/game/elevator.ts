@@ -100,7 +100,7 @@ let firstPressedFloorWarned = false;
  * An elevator car: physics, buttons, indicators and passenger slots.
  *
  * `y` grows downward, so floor 0 has the *largest* y and a positive
- * `velocityY` means the car is travelling *down*.
+ * `velocityY` means the car is traveling *down*.
  */
 export class Elevator extends Movable<ElevatorEvents> {
   /** Acceleration in world units per second squared. */
@@ -149,7 +149,7 @@ export class Elevator extends Movable<ElevatorEvents> {
    * Sampled on the same branch that counts the move, so the two can never
    * disagree about how many samples there have been; `World` divides one by the
    * other. One move is one floor crossed, so a mean over moves is already
-   * weighted by distance travelled, which is where an empty car is expensive.
+   * weighted by distance traveled, which is where an empty car is expensive.
    */
   loadFactorSumOnMove = 0;
   /**
@@ -399,7 +399,7 @@ export class Elevator extends Movable<ElevatorEvents> {
       //
       // The legacy note here (`legacy-1.x:elevator.js:86`) wondered whether a
       // nonzero velocity should throw instead. It stays a comment: the contract
-      // of this port is behavioural identity with legacy, and throwing would
+      // of this port is behavioral identity with legacy, and throwing would
       // end a level on a path legacy simply drove through. What legacy did
       // with it is skip the whole integration step, so a car frozen in flight
       // keeps its exact position and resumes at the speed it froze at.

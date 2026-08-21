@@ -29,7 +29,7 @@ describe("parseQuery", () => {
     expect(parseQuery("#level=2,mystery=x").get("mystery")).toBe("x");
   });
 
-  it("reads a key however it is capitalised, and leaves the value as written", () => {
+  it("reads a key however it is capitalized, and leaves the value as written", () => {
     // Which shift key was held while typing `level` is not a decision
     // anybody makes on purpose. The value is data, and stays as written: two
     // seeds spelled differently are two different passenger streams.

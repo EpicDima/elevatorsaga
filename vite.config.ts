@@ -14,9 +14,9 @@ import packageJson from "./package.json" with { type: "json" };
  * (CodeMirror and its Lezer parser, ~500 kB of the bundle) and OFL-licensed
  * artwork (the Font Awesome 4 outlines inlined by `src/shared/ui/icon.ts`).
  * MIT asks for its notice to travel with substantial portions of the software;
- * OFL asks for the copyright notice and licence to be bundled with the font
+ * OFL asks for the copyright notice and license to be bundled with the font
  * software, and those outlines are font software whatever they are drawn as.
- * Neither obligation is met by a licence file that only exists in the
+ * Neither obligation is met by a license file that only exists in the
  * repository, so the build has to put one in `dist/`.
  *
  * There is no webfont here any more: the interface is set in the platform's own
@@ -28,7 +28,7 @@ import packageJson from "./package.json" with { type: "json" };
  * added, removed or relicensed, and nothing in the repository would catch it.
  * Reading the terms out of `node_modules` at build time cannot drift: the
  * notice describes the tree the bundle was built from, and a package that ships
- * no licence text at all stops the build instead of quietly vanishing from the
+ * no license text at all stops the build instead of quietly vanishing from the
  * list. The cost is the hundred-odd lines below, and no new dependency.
  */
 const LICENSES_FILE = "licenses.txt";
@@ -83,7 +83,7 @@ function runtimeDependencies(): DependencyManifest[] {
 }
 
 /**
- * The licence text a package ships.
+ * The license text a package ships.
  *
  * @param name - Package name.
  * @returns The contents of its `LICENSE` file.
@@ -94,7 +94,7 @@ function readLicenseText(name: string): string {
   const file = readdirSync(directory).find((entry) => /^licen[cs]e/i.test(entry));
   if (file === undefined) {
     throw new Error(
-      `${name} ships no licence file, so ${LICENSES_FILE} cannot reproduce its terms. ` +
+      `${name} ships no license file, so ${LICENSES_FILE} cannot reproduce its terms. ` +
         "Add them to vite.config.ts by hand, or drop the dependency.",
     );
   }
@@ -119,7 +119,7 @@ function section(title: string, body: string): string {
  */
 function renderLicenses(): string {
   // Nearly all of the bundled packages are MIT, and most of those differ only in
-  // the copyright line, so packages whose licence text is byte-identical share
+  // the copyright line, so packages whose license text is byte-identical share
   // one copy of it. Reproducing each notice once, against the list of packages
   // it covers, is what MIT asks for and is a third of the length.
   const byText = new Map<string, string[]>();
@@ -136,7 +136,7 @@ function renderLicenses(): string {
 
   return [
     section(
-      "Elevator Saga: licences",
+      "Elevator Saga: licenses",
       `Everything this site is made of and the terms it comes under: the game
 itself, the icon artwork, the interface font and the code editor. Written by
 the build from the dependency tree it built with, so it describes this build

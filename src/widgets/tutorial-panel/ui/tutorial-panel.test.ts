@@ -526,7 +526,7 @@ describe("presentTutorial", () => {
       // panel to the table and says nothing about the table holding the wrong
       // key. That is a mistake worth being able to fail on: the table reaches
       // its programs through keys written out by hand, and a level reading its
-      // neighbour's would show the neighbour's answer here without anything
+      // neighbor's would show the neighbor's answer here without anything
       // throwing. Naming the message and the locale outright makes this the
       // panel's own statement.
       for (const locale of LOCALES) {

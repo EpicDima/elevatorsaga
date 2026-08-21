@@ -4,7 +4,7 @@
  *
  * Read by both entry points -- the API reference dialog inside the game and the
  * two help pages -- which is why it is `shared` and not either page's. The
- * colours are tuned against `--ds-code-bg`, the same surface the live editor
+ * colors are tuned against `--ds-code-bg`, the same surface the live editor
  * draws, so a sample on a page and a program in the editor read alike.
  */
 
@@ -14,7 +14,7 @@ pre {
 
 /*
  * The same surface the live editor draws: one code background across the page
- * rather than the editor's own and a second one here. The `.tok-*` colours
+ * rather than the editor's own and a second one here. The `.tok-*` colors
  * below are tuned against this exact background.
  */
 pre code {
@@ -35,7 +35,7 @@ pre code {
  * (a `function` parameter, say) and always rides alongside `tok-variableName`
  * or `tok-propertyName` on the same element, which is already styled.
  *
- * These are the same colours `editorSyntaxTheme` gives the live editor, so one
+ * These are the same colors `editorSyntaxTheme` gives the live editor, so one
  * call does not look like two different languages depending on whether the
  * player is reading it in the help or typing it in the editor. The one place
  * the two surfaces cannot agree is which names are blue -- `classHighlighter`
@@ -44,7 +44,7 @@ pre code {
  * answer is blue here. `code-highlight.ts` says more about that.
  *
  * `--ds-code-key`/`-fn`/`-str`/`-num` clear 4.5:1 on `--ds-code-bg` with room
- * to spare. The comment colour had to be moved to get there, and moved once
+ * to spare. The comment color had to be moved to get there, and moved once
  * more because the live editor paints `--ds-code-active` across the line the
  * caret is on, where a comment has to clear 4.5:1 as well:
  *

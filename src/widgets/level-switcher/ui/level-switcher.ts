@@ -15,7 +15,7 @@
  * every tile in every block.
  *
  * The grid is rebuilt from scratch on every `update()`, unlike
- * `run-controls.ts`'s buttons, which are only ever relabelled. A tile's `href`,
+ * `run-controls.ts`'s buttons, which are only ever relabeled. A tile's `href`,
  * name, tier and current-ness all move together, and the set itself grows when
  * a block does, so rebuilding stays the honest read.
  *
@@ -113,7 +113,7 @@ function currentTile(blocks: readonly LevelMenuBlock[]): LevelMenuTile | undefin
 }
 
 /**
- * Where a step button goes: the neighbouring tile in the current tile's own
+ * Where a step button goes: the neighboring tile in the current tile's own
  * block.
  *
  * Scoped to one block on purpose — stepping from the last tutorial level
@@ -126,7 +126,7 @@ function currentTile(blocks: readonly LevelMenuBlock[]): LevelMenuTile | undefin
  *
  * @param blocks - The menu to step within.
  * @param step - `-1` for the previous tile, `1` for the next.
- * @returns The neighbour's `href`, or `undefined` if there is none — nothing
+ * @returns The neighbor's `href`, or `undefined` if there is none — nothing
  * is current, or the current tile is its block's first or last.
  */
 function stepHref(blocks: readonly LevelMenuBlock[], step: -1 | 1): string | undefined {

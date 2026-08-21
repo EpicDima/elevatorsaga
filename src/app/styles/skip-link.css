@@ -18,7 +18,7 @@
  *
  * Hidden by being moved off the top of the page rather than by `display: none`
  * or `visibility: hidden`, either of which would take it out of the tab order
- * as well -- a bypass that cannot be reached is not one. The colours are the
+ * as well -- a bypass that cannot be reached is not one. The colors are the
  * page's own buttons, which is what it behaves like.
  */
 .skip-link {

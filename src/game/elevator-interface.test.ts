@@ -168,7 +168,7 @@ describe("Elevator interface", () => {
     });
 
     it("prepends the event name when one handler covers several events", () => {
-      // Upstream issue #1: magwo confirms the legacy behaviour is intentional,
+      // Upstream issue #1: magwo confirms the legacy behavior is intentional,
       // and #33 and #42 are written against it. The legacy facade was a
       // `riot.observable(obj)` (`interfaces.js:6`), and riot dispatched with
       // `fn.apply(el, fn.typed ? [name].concat(args) : args)` (`libs/riot.js:45`)

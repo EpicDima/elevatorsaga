@@ -12,7 +12,7 @@ describe("kbd", () => {
     // <kbd> ships with no border, background or radius of its own -- only a
     // monospace font, which the rule above already sets. Reusing the shared
     // control chrome's own tokens means a key reads as the same kind of
-    // control-shaped mark .btn and .task-open draw, rather than a colour
+    // control-shaped mark .btn and .task-open draw, rather than a color
     // nothing would have a test for. The pair is --ds-text
     // on --ds-raised, which the shared control-surface case in
     // `shared/styles/tokens.css.test.ts` already holds to 4.5:1 -- not read
@@ -28,7 +28,7 @@ describe("kbd", () => {
 
 describe(".btn", () => {
   it("brightens .docsclose/.keysclose's border to the neutral --ds-n-5 on hover, not the accent", () => {
-    // .btn shares its resting shape with .task-open but not its hover colour:
+    // .btn shares its resting shape with .task-open but not its hover color:
     // .task-open opens the level switcher and brightens to the themed accent
     // to draw the eye, while .btn only closes a dialog the player already
     // opened. Guards the two against drifting onto one token.

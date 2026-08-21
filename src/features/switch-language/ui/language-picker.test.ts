@@ -71,7 +71,7 @@ describe("presentLanguagePicker", () => {
   it("names each language in that language, not in the reader's current one", () => {
     // A picker shows every option at once, and the reader who most needs this
     // control is the one who cannot read the language the page is in. "Русский"
-    // is the word they will recognise; "Russian" is not.
+    // is the word they will recognize; "Russian" is not.
     setLocale("ru");
     const { select } = setUp();
 

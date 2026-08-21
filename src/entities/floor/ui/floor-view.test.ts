@@ -120,7 +120,7 @@ describe("floorTemplate", () => {
     }
   });
 
-  it("makes the call buttons real, labelled buttons", () => {
+  it("makes the call buttons real, labeled buttons", () => {
     const floor = renderElement(floorTemplate(2, FLOOR_COUNT));
     const up = floor.querySelector("button.up");
     const down = floor.querySelector("button.down");

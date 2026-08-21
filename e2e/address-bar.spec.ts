@@ -35,7 +35,7 @@ test("empties a hash whose every parameter was refused", async ({ page }) => {
 
   await expect(page.getByRole("button", { name: "Level 1" })).toBeVisible();
   // Asserted on location.hash rather than on the whole URL: "#" resolves to a
-  // URL whose fragment is empty, which still serialises with the "#" on the end
+  // URL whose fragment is empty, which still serializes with the "#" on the end
   // and is what page.url() would show.
   expect(await page.evaluate(() => window.location.hash)).toBe("");
 });

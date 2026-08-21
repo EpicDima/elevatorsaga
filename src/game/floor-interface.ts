@@ -108,7 +108,7 @@ export class FloorInterface {
       this.#tryTrigger("buttonstate_change", this.buttonStates);
     });
 
-    // `hall_button_pressed` is derived here, from the event it generalises,
+    // `hall_button_pressed` is derived here, from the event it generalizes,
     // rather than emitted by the real floor alongside it. That fixes the order
     // in this constructor instead of leaving it to the order the player
     // happened to register their handlers in: the specific event is delivered
@@ -145,7 +145,7 @@ export class FloorInterface {
    * Marked per direction rather than once for both, because the two directions
    * are two independent calls: a handler that presses the *other* button must
    * still be heard, exactly as it was before this event existed. Only a repress
-   * of the button already in flight is dropped, which is the behaviour the
+   * of the button already in flight is dropped, which is the behavior the
    * specific event has always had.
    *
    * Which is why the general half goes out under a key of its own. The emitter

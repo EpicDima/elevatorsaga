@@ -54,7 +54,7 @@
  *   declaration itself says;
  * - prose. Every sentence of JSDoc in the declaration was written by hand from
  *   the facade's, and nothing notices when one of them stops being true;
- * - behaviour. This file compares two descriptions of the game and never runs
+ * - behavior. This file compares two descriptions of the game and never runs
  *   it, so a declaration that matches a facade which has itself changed meaning
  *   passes;
  * - anything a player's own editor does differently: a different TypeScript
@@ -223,7 +223,7 @@ const EVENT_METHODS = new Set(["on", "once", "one", "off", "trigger"]);
  * same type written twice, and demanding one spelling would only push a wrapper
  * into the declaration to satisfy a test. What the wrapper is really saying —
  * that the snapshot's fields cannot be assigned — is pinned directly instead, by
- * a line in {@link MISTAKEN_PROGRAM}, so this normalisation cannot hide the loss
+ * a line in {@link MISTAKEN_PROGRAM}, so this normalization cannot hide the loss
  * of it. Anything new that leans on it needs a line there too.
  *
  * @param type - The type node, or `undefined` where there is no annotation.

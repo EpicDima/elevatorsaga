@@ -5,7 +5,7 @@
  * The two buttons carry their name as `aria-label` as well as `title`,
  * rewritten by {@link presentSpeedStepper}'s `update()` on a language change
  * the same way it rewrites the value between them — the group is drawn once
- * and only relabelled after, so a label baked into the markup would still be
+ * and only relabeled after, so a label baked into the markup would still be
  * in whatever language the page opened in.
  *
  * `.speed-val` carries `aria-live="polite"`, so a screen reader hears the new

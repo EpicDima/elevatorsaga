@@ -1,6 +1,6 @@
 /**
  * The stage's own three jobs, none of which any slice inside it can do for
- * itself: it recolours the focus ring for everything focusable in the building,
+ * itself: it recolors the focus ring for everything focusable in the building,
  * it paints the one flat panel down there, and it is the box the run's verdict
  * card is positioned against and clipped by.
  */

@@ -278,7 +278,7 @@ describe("calculateFitness", () => {
   });
 
   it("reports a wait for a car that is a part of the whole journey", () => {
-    // Seeded, unlike its neighbours, because this one compares two means that
+    // Seeded, unlike its neighbors, because this one compares two means that
     // are not taken over the same passengers: everybody picked up is in the
     // first and only those delivered are in the second, so at the moment the
     // run is cut off the difference between them is not a ride time but the

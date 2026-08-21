@@ -512,7 +512,7 @@ export function presentBuildingStage(parent: HTMLElement, world: World): Buildin
     // `round(worldX * scaleX)` — the coordinate its riders are drawn at.
     const padPx = shaftPadPx(scaleX);
     // The middle of each floor's band, not the bottom of the mark that goes
-    // there: the mark centres itself on this with a half-height transform, so
+    // there: the mark centers itself on this with a half-height transform, so
     // nothing out here has to know how tall a mark is drawn.
     const markBottomsPx = layout.floorBottoms.map(
       (bottom, level) => bottom + (layout.floorHeights[level] ?? 0) / 2,

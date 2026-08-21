@@ -47,7 +47,7 @@ export default tseslint.config(
     // below. Declaring the globals rather than leaving them undeclared is what
     // keeps this file honest about where each directory runs: no rule enabled
     // here reads the declarations today, because `typescript-eslint` turns
-    // `no-undef` off in favour of the compiler, which resolves globals from
+    // `no-undef` off in favor of the compiler, which resolves globals from
     // `tsconfig.json`'s `lib` and from `@types/node`. They are the record of the
     // intent, and the day a globals-reading rule is added -- `no-undef` on a
     // plain-JS corner, `no-restricted-globals` -- it lands on a correct map

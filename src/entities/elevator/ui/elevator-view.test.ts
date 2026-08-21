@@ -132,7 +132,7 @@ describe("createElevatorView", () => {
     expect(car.classList.contains("is-open")).toBe(true);
   });
 
-  it("places the shaft and centres every mark on its own floor", () => {
+  it("places the shaft and centers every mark on its own floor", () => {
     const view = createElevatorView(fixtureElevator(), 0, { scaleX: 1, scaleY: 1 });
 
     view.setGeometry({
@@ -178,7 +178,7 @@ describe("elevatorTemplate", () => {
 });
 
 describe("elevatorButtonTemplate", () => {
-  it("renders a labelled mark carrying no text of its own", () => {
+  it("renders a labeled mark carrying no text of its own", () => {
     const button = renderElement(elevatorButtonTemplate(7));
     expect(button.tagName).toBe("BUTTON");
     expect(button.className).toBe("mark buttonpress");

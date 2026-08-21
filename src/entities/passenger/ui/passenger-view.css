@@ -48,13 +48,13 @@
  * are still on a floor or already in a car: --ds-shaft (or a floor band over
  * it), which flips light/dark with the theme, and --ds-car, which does not.
  * `.is-rider` is the DOM's own record of which one applies -- set from
- * `user.parent` in passenger-view.ts -- so each surface gets a colour tuned
+ * `user.parent` in passenger-view.ts -- so each surface gets a color tuned
  * against it, rather than one flat value trying to survive both.
  *
  * A rider is also the one passenger whose width is not its own business. A
  * seat is ten world units (`Elevator.userSlots`), and how many pixels that is
  * only the geometry pass knows, which is what it writes `--ds-scale-x` down
- * for. A car squeezed towards the narrowest the layout will build would
+ * for. A car squeezed toward the narrowest the layout will build would
  * otherwise draw its riders overlapping each other and spilling out through
  * the doors, so the figure shrinks to its seat instead; the 8px floor stops
  * the very narrowest car from erasing them altogether.
@@ -75,7 +75,7 @@
  * ride and not only the wait for one, so this has to work boarded too.
  *
  * A passenger is a graphical object, so the bar is WCAG 1.4.11's 3:1.
- * --ds-accent -- the colour the rest of the page uses for "this needs
+ * --ds-accent -- the color the rest of the page uses for "this needs
  * attention" -- clears it against --ds-shaft in both themes (8.63 dark, 3.53
  * light), with the car handled separately below through `.is-rider`.
  */
@@ -94,8 +94,8 @@
  * oversight and add one. Fading is exactly what cannot be done: --ds-person
  * clears WCAG 1.4.11's 3:1 against the light theme's shaft by 3.52:1 and no
  * more, so *any* alpha below 1 puts a passenger under the bar (0.85 already
- * reads 2.82:1). A muted colour is worse than nothing -- the light theme's
+ * reads 2.82:1). A muted color is worse than nothing -- the light theme's
  * muted ink is the darker of the two, so it would make a finished passenger
  * louder rather than quieter. The class stays because it is a real state and a
- * real hook; what it is not is a colour.
+ * real hook; what it is not is a color.
  */

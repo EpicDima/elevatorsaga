@@ -95,7 +95,7 @@ async function main(): Promise<void> {
   // the first frame, and `src/ui/preferred-locale.ts` is where that is weighed
   // against the alternative. It also relabels the shortcut keys for the
   // platform, which used to be a call of its own here: a `<kbd data-mod-key>`
-  // can sit inside a message the shell rewrites, so rewriting and relabelling
+  // can sit inside a message the shell rewrites, so rewriting and relabeling
   // belong together and cannot be left in an order this file happens to get
   // right.
   await applyPreferredLocale(document, navigator.userAgent);

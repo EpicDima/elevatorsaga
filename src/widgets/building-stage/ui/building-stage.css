@@ -136,7 +136,7 @@
 /*
  * `safe center` on both axes: while the building fits it stands in the middle
  * of the stage, and once it stops fitting it is pushed to the start and the
- * stage scrolls. Without `safe`, an oversized building centres itself
+ * stage scrolls. Without `safe`, an oversized building centers itself
  * *outwards* and its left edge -- the floor numbers -- cannot be scrolled back
  * to.
  */
@@ -167,7 +167,7 @@ html[data-theme="light"] .stage {
 
 /*
  * `safe center` again, for the same reason: while everything fits the row is
- * centred, and when the building is wider than the stage the row is pushed to
+ * centered, and when the building is wider than the stage the row is pushed to
  * the start so that scrolling reaches the floor numbers instead of cropping
  * them.
  */

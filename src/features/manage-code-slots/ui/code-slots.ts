@@ -5,7 +5,7 @@
  * Peeled out of what was `src/ui/presenters.ts`'s `presentCodeSlots` and
  * `src/ui/templates.ts`'s `codeSlotsTemplate`/`codeSlotTemplate`, which now
  * re-export this module's own symbols — see that module's history for why
- * the name was kept reachable there. Nothing about the switcher's behaviour
+ * the name was kept reachable there. Nothing about the switcher's behavior
  * changes in the move; this is the same function, in a feature slice of its
  * own.
  */
@@ -89,7 +89,7 @@ export interface CodeSlotsPresenter {
    * Redraws the row, marking whichever slot `currentSlot` now answers as
    * pressed.
    *
-   * Rebuilds the row's markup rather than relabelling what is there, unlike
+   * Rebuilds the row's markup rather than relabeling what is there, unlike
    * `ControlsPresenter.update`: three buttons are cheap enough to throw away
    * and redraw, and nothing about them — no timer, no text mid-edit — has to
    * survive being replaced the way the run controls' own do.

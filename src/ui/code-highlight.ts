@@ -1,13 +1,13 @@
 /**
- * How JavaScript is coloured, on both surfaces that show any.
+ * How JavaScript is colored, on both surfaces that show any.
  *
  * Two of them, because the game shows a program in two very different ways.
  * {@link highlightJavaScript} builds static markup for the learning track's
  * answers, which are `<code>` blocks in the page's own DOM; {@link
- * editorSyntaxTheme} colours the live CodeMirror editor
+ * editorSyntaxTheme} colors the live CodeMirror editor
  * (`src/ui/editor.ts`), which draws its own decorations and knows nothing
  * about this page's classes. They sit in one module because they answer the
- * same question — "what colour is a keyword here?" — and a reader who changes
+ * same question — "what color is a keyword here?" — and a reader who changes
  * one should have the other in front of them.
  *
  * `@lezer/javascript` and `@lezer/highlight` rather than a new dependency:
@@ -128,9 +128,9 @@ export function highlightJavaScript(
  * CodeMirror ships `defaultHighlightStyle` for editors that register none —
  * a palette tuned for a white page, which over the near-black `--ds-code-bg`
  * the redesign gave the editor read as purple keywords, red strings and a
- * comment colour nobody chose.
+ * comment color nobody chose.
  *
- * The colours are `var(--ds-code-*)` rather than literals, so one editor
+ * The colors are `var(--ds-code-*)` rather than literals, so one editor
  * follows the player between the light and the dark theme with no rebuild:
  * CodeMirror writes these declarations into a stylesheet once, and the
  * custom properties they read are re-resolved by the browser whenever
@@ -173,7 +173,7 @@ export const editorSyntaxTheme: HighlightStyle = HighlightStyle.define([
   { tag: [tags.bool, tags.null], color: "var(--ds-code-num)" },
   { tag: tags.number, color: "var(--ds-code-num)" },
   // Template strings (`special(string)`), escapes and regular expressions all
-  // read as string content and are coloured with it.
+  // read as string content and are colored with it.
   {
     tag: [tags.string, tags.special(tags.string), tags.escape, tags.regexp],
     color: "var(--ds-code-str)",
@@ -182,7 +182,7 @@ export const editorSyntaxTheme: HighlightStyle = HighlightStyle.define([
   // The three shapes a called name takes in this grammar: `nearest(...)`,
   // `elevator.loadFactor()`, and the `score` in `function score(...)`. The
   // last needs its own row -- its tag is `function(definition(variableName))`,
-  // and neither of the tags it falls back to is coloured here.
+  // and neither of the tags it falls back to is colored here.
   {
     tag: [
       tags.function(tags.variableName),
@@ -193,8 +193,8 @@ export const editorSyntaxTheme: HighlightStyle = HighlightStyle.define([
   },
   // Not a call, but named like one: a class, a TypeScript type, a `foo:`
   // loop label. None occur in the starter program; they are here so that a
-  // player who writes one does not get body-coloured text where every other
-  // editor they have used gives them a colour.
+  // player who writes one does not get body-colored text where every other
+  // editor they have used gives them a color.
   {
     tag: [tags.className, tags.definition(tags.className), tags.typeName, tags.labelName],
     color: "var(--ds-code-fn)",

@@ -186,7 +186,7 @@ function localizeAttributes(element: Element, mappings: string): void {
  * it reads the document rather than a list of what it did last time: the shell
  * carries its own instructions, so there is no state here to fall out of step.
  *
- * The modifier keys are relabelled at the end, and that is not an aside. A
+ * The modifier keys are relabeled at the end, and that is not an aside. A
  * message written here with `innerHTML` can carry a `<kbd data-mod-key>`, and
  * writing it throws away the `⌘` that `src/ui/shortcuts.ts` had put in place of
  * the shipped `Ctrl` — so a Mac player would be told to press a key combination

@@ -43,7 +43,7 @@ describe("createRandomSource", () => {
     expect(take(createRandomSource(1), 100)).not.toEqual(take(createRandomSource(2), 100));
   });
 
-  it("separates neighbouring integer seeds, which a batch run reaches for first", () => {
+  it("separates neighboring integer seeds, which a batch run reaches for first", () => {
     // Seeds are hashed rather than used as the generator state, so 1, 2 and 3
     // are not three windows onto one stream a fixed distance apart.
     const streams = [1, 2, 3].map((seed) => take(createRandomSource(seed), 100));

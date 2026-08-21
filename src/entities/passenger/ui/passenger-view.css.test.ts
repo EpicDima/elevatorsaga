@@ -24,7 +24,7 @@ describe("a passenger", () => {
     "keeps a passenger readable against the shaft and the car, %s theme",
     (_, palette) => {
       // Waiting or walking, they read against --ds-shaft (themed); boarded,
-      // `.is-rider` switches them to a colour fixed across both themes, tuned
+      // `.is-rider` switches them to a color fixed across both themes, tuned
       // against --ds-car instead -- see the palette comment above --ds-car-ink.
       expect(declaration(ruleBody(".person"), "color", ".person")).toBe(token("ds-person"));
       expect(declaration(ruleBody(".person.is-rider"), "color", ".person.is-rider")).toBe(
@@ -37,7 +37,7 @@ describe("a passenger", () => {
     },
   );
 
-  it("leaves a delivered passenger's colour alone, because no fade would clear 3:1", () => {
+  it("leaves a delivered passenger's color alone, because no fade would clear 3:1", () => {
     // The regression guard behind passenger-view.css's note at `.person.is-leaving`:
     // --ds-person has 3.52:1 of room over the light theme's shaft and nothing
     // more, so any fade at all takes a passenger under the bar 1.4.11 sets for
@@ -54,7 +54,7 @@ describe("a passenger", () => {
   it.each(THEMES)("keeps the longest-waiting passenger readable, %s theme", (_, palette) => {
     // The same shaft/car split as the plain passenger above, for the marked
     // one: --ds-accent on the shaft, --ds-car-attention -- fixed, like every
-    // other car-body colour -- once boarded.
+    // other car-body color -- once boarded.
     expect(
       contrast(themed(palette, "ds-accent"), themed(palette, "ds-shaft")),
     ).toBeGreaterThanOrEqual(3);

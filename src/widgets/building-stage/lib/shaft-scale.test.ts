@@ -153,7 +153,7 @@ describe("shaftPadPx", () => {
     expect(shaftPadPx(0)).toBe(2);
   });
 
-  it("leaves a visible seam between two neighbouring shafts at every scale it floors", () => {
+  it("leaves a visible seam between two neighboring shafts at every scale it floors", () => {
     // Two cars are 20 world units apart, and each takes its pad out of that gap.
     // The floor MIN_CAR puts on scaleX for the widest car in the game (capacity
     // 8, so 30/80) is 0.375, and even there the seam survives. MAX_ZOOM is the

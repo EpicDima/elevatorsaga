@@ -281,7 +281,7 @@
  * black unless it is told the editor is dark. Nothing tells it: the theme here
  * is a stylesheet the editor knows nothing about, so the caret was black on
  * `#15181d`, invisible in the dark theme and the one thing in an editor that
- * cannot be. `--ds-code-text` is the colour of what is being typed, which is
+ * cannot be. `--ds-code-text` is the color of what is being typed, which is
  * where the caret is.
  */
 .cm-editor .cm-cursor,

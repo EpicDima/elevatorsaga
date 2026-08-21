@@ -38,7 +38,7 @@ export interface AppBarElements {
  * @param document - The document to create the elements in, so a caller can
  * build into a document other than the global one — see
  * `buildWorkspaceLayoutSkeleton`'s parameter of the same name for why.
- * @param labels - The localised brand text.
+ * @param labels - The localized brand text.
  * @returns The bar and the brand group inside it.
  */
 export function buildAppBarSkeleton(document: Document, labels: AppBarLabels): AppBarElements {

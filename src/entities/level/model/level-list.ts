@@ -30,7 +30,7 @@ export interface LevelSummary {
 /**
  * Builds one summary per level, in playing order.
  *
- * @param levels - The levels to summarise, in playing order —
+ * @param levels - The levels to summarize, in playing order —
  * ordinarily `#game/levels.ts`'s own `levels`, taken as a parameter
  * rather than imported directly so this stays testable against a small
  * fixture instead of the real 19-entry table.

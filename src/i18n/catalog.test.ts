@@ -114,7 +114,7 @@ describe("catalog shape", () => {
     }
   });
 
-  it("pluralises the same messages in every locale", () => {
+  it("pluralizes the same messages in every locale", () => {
     for (const key of KEYS) {
       const isPlural = typeof entry("en", key) !== "string";
       expect(typeof entry("ru", key) !== "string", key).toBe(isPlural);

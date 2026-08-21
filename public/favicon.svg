@@ -17,12 +17,12 @@
   Two differences from the bar's mark, both because a tab is not an app bar:
 
   * A plate is added beneath the drawing. Transparent artwork lands on whatever
-    colour the browser paints its tab strip, the one colour a static file cannot
+    color the browser paints its tab strip, the one color a static file cannot
     know, so the plate carries the near-black the bar itself stands on and the
     tab shows what the bar shows. Its corner keeps the frame's proportion
     (2.5 on an 18-wide frame is 3 on a 22-wide plate).
 
-  * The colours are written out rather than inherited. They are the palette's
+  * The colors are written out rather than inherited. They are the palette's
     darkest neutral (ds-n-0) and the dark theme's accent (ds-accent) from
     src/shared/styles/tokens.css, named here without the two leading hyphens a
     property carries, since this comment cannot hold them. A file under public/

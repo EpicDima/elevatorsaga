@@ -41,7 +41,7 @@ describe("listLevels", () => {
     ]);
   });
 
-  it("summarises nothing for an empty list", () => {
+  it("summarizes nothing for an empty list", () => {
     expect(listLevels([])).toEqual([]);
   });
 });

@@ -110,7 +110,7 @@ export const EN_DOCS_MESSAGES = {
   "docs.api.events.once":
     "Register a listener that runs at most once and is then removed. It is removed before it runs, so triggering the same event from inside it will not run it again. Takes a single event name.",
   "docs.api.events.one.html":
-    'The older name for <span class="emphasis-color">once</span>, and the one the original game gave you. Same behaviour, single event name as well.',
+    'The older name for <span class="emphasis-color">once</span>, and the one the original game gave you. Same behavior, single event name as well.',
   "docs.api.events.off.html":
     'Remove listeners. With a function, removes just that function, however it was registered; without one, removes every listener of the named events. Accepts space separated names like <span class="emphasis-color">on</span> does, and the single name <span class="emphasis-color">"*"</span> for every event at once — a function passed alongside the star is ignored. You need a reference to the function you registered, so an inline anonymous function cannot be removed.',
   "docs.api.events.off.example.code": `function goHome() { elevator.goToFloor(0); }
@@ -138,9 +138,9 @@ elevator.goToFloor(2); // Queued anyway -- queue: 2, 3, 2`,
     // Do something special?
 }`,
   "docs.api.elevator.goingUpIndicator":
-    "Gets or sets the going up indicator, which will affect passenger behaviour when stopping at floors.",
+    "Gets or sets the going up indicator, which will affect passenger behavior when stopping at floors.",
   "docs.api.elevator.goingDownIndicator":
-    "Gets or sets the going down indicator, which will affect passenger behaviour when stopping at floors.",
+    "Gets or sets the going down indicator, which will affect passenger behavior when stopping at floors.",
   "docs.api.elevator.maxPassengerCount":
     "Gets the maximum number of passengers that can occupy the elevator at the same time.",
   "docs.api.elevator.maxPassengerCount.example.code": `if(elevator.maxPassengerCount() > 5) {
@@ -230,6 +230,6 @@ export type DocsMessageKey = keyof typeof EN_DOCS_MESSAGES;
  *
  * The counterpart to `MessageCatalog` for text no locale renders: plain strings
  * throughout, since a page that says the same thing to one reader and to many
- * has nothing to pluralise.
+ * has nothing to pluralize.
  */
 export type DocsCatalog = Readonly<Record<DocsMessageKey, string>>;

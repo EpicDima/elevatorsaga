@@ -4,7 +4,7 @@
  *
  * Split into a skeleton builder and a presenter, the same shape
  * `buildWorkspaceLayoutSkeleton`/`presentWorkspaceLayout` use: the builder
- * bakes in the labels once, and the presenter only wires behaviour, so a
+ * bakes in the labels once, and the presenter only wires behavior, so a
  * caller that already has its own markup (a widget's own template literal,
  * say) can skip the builder and hand `presentThemeSwitch` elements it built
  * itself.
@@ -48,7 +48,7 @@ export interface ThemeSwitchElements {
  * @param document - The document to create the elements in, so a caller can
  * build into a document other than the global one — see
  * `buildWorkspaceLayoutSkeleton` for why.
- * @param labels - The localised text for the group and its three buttons.
+ * @param labels - The localized text for the group and its three buttons.
  * @returns The group and its three buttons, ready for {@link presentThemeSwitch}.
  */
 export function buildThemeSwitchSkeleton(
@@ -89,7 +89,7 @@ export interface ThemeSwitchOptions {
   /** Where the chosen theme is remembered between visits. */
   readonly storage: Storage;
   /**
-   * Whether the system's own colour scheme is dark right now. Read once at
+   * Whether the system's own color scheme is dark right now. Read once at
    * construction and again on every {@link ThemeSwitchController.notifySystemChange}
    * call — never read spontaneously in here, so this module never touches
    * `window.matchMedia` itself.

@@ -27,7 +27,7 @@ import { FakeTextEditorView, MemoryStorage, fullStorage } from "./test-helpers.t
  * for a swap — it builds a new state, and a document a state is built with is
  * not a document change. A fake that is wrong in that direction hides exactly
  * the bugs this file is here to catch: an autosave the editor is supposed to
- * cancel gets rescheduled by the fake's spurious `onChange` and cancelled
+ * cancel gets rescheduled by the fake's spurious `onChange` and canceled
  * again, so removing the cancellation breaks nothing that the fake can see.
  *
  * It belongs in `test-helpers.ts` beside the fake it corrects, but that file is
@@ -490,7 +490,7 @@ describe("CodeEditor buffers", () => {
     expect(storage.getItem("develevateTutorialCode_tutorial-1")).toBe("// typed in level 1");
     expect(storage.getItem("develevateTutorialCode_tutorial-2")).toBe("// level 2");
     expect(view.getValue()).toBe("// level 2");
-    // Cancelled, not merely harmless. A countdown left running fires with the
+    // Canceled, not merely harmless. A countdown left running fires with the
     // next level open; today it would write that level's own starter program back
     // over itself, which looks like nothing, and announce "Code saved ..." for a
     // save nobody asked for. The day the switch stops seeding storage up front
@@ -663,7 +663,7 @@ describe("CodeEditor buffers", () => {
 
   it("says nothing was saved when nothing could be", () => {
     // The in-page memory is not persistence, and "Code saved ..." would be
-    // promising the player a next visit that the store cannot honour.
+    // promising the player a next visit that the store cannot honor.
     const { editor, view } = setUp(fullStorage());
     const saved = vi.fn();
     editor.on("saved", saved);
@@ -1479,7 +1479,7 @@ describe("CodeEditor over a real editing surface", () => {
   it("saves a half-typed level into that level when the player leaves mid-countdown", () => {
     // The autosave is debounced by a second, so a player who types and clicks
     // straight through to the next level leaves with a countdown still running.
-    // It has to be cancelled at the switch and the text written where it was
+    // It has to be canceled at the switch and the text written where it was
     // typed: left running, it fires with the next buffer open and writes one
     // level's work under the other's key — and if the next buffer is the
     // player's own, over the program they came back for.

@@ -245,7 +245,7 @@ describe("presentBuildingStage", () => {
     );
   });
 
-  it("centres every order mark on its own floor's band", () => {
+  it("centers every order mark on its own floor's band", () => {
     const world = createWorld({ floorCount: 2, elevatorCount: 1 });
     const { parent, stage } = mount(world, 800, 218);
 

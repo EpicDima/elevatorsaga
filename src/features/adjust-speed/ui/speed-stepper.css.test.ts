@@ -36,7 +36,7 @@ describe("the speed stepper", () => {
       // pairing is one the sitewide page-background table in
       // `shared/styles/tokens.css.test.ts` covers. The
       // reading is text (1.4.3, 4.5:1); a resting arrow is a graphical control
-      // (1.4.11, 3:1), and hovering brightens it to the reading's own colour.
+      // (1.4.11, 3:1), and hovering brightens it to the reading's own color.
       expect(contrast(themed(palette, "ds-text"), themed(palette, "ds-bg"))).toBeGreaterThanOrEqual(
         4.5,
       );

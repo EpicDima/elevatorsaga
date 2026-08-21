@@ -254,8 +254,8 @@ export function requireUserCountWithinMoves(userCount: number, moveLimit: number
  * both. A move is spent every time a car changes floor, so the cheapest way to
  * deliver a crowd is to fill a car and let it work down its list -- and the
  * passenger at the end of that list is the one whose delivery takes longest.
- * Optimise for the wait alone and cars run half empty, one errand at a time,
- * spending moves; optimise for moves alone and somebody rides through every
+ * Optimize for the wait alone and cars run half empty, one errand at a time,
+ * spending moves; optimize for moves alone and somebody rides through every
  * floor in the building. Neither limit is hard to meet on its own here, and a
  * program that meets both is one that decided when a car is full enough.
  *

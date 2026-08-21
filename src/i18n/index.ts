@@ -96,7 +96,7 @@ const catalogs: { -readonly [L in Locale]?: MessageCatalog<L> } = { en: EN_MESSA
  * dynamic `import()` is inside that check rather than around it — TypeScript
  * reads `ru.ts` at compile time whether the browser fetches it at run time or
  * not — so splitting the catalogs out costs none of the checking that a
- * missing, misspelled or wrongly-parameterised key used to get.
+ * missing, misspelled or wrongly-parameterized key used to get.
  *
  * A loader files its catalog rather than resolving with it, because a
  * function that resolved with `MessageCatalog<L>` would have to be stored

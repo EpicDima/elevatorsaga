@@ -66,7 +66,7 @@
  * slightly longer one. Only `ElevatorSaga` is added to the global scope.
  */
 declare namespace ElevatorSaga {
-  /** Which way an elevator is travelling. */
+  /** Which way an elevator is traveling. */
   type Direction = "up" | "down";
 
   /** What {@link Elevator.destinationDirection} answers; a car may be neither. */

@@ -212,7 +212,7 @@ function inPlayerCoordinates(
  *   to describe. The banner still says what is wrong; it just cannot point.
  * - "Code must contain an init function" is thrown after `eval` has returned,
  *   so no frame is the player's, and there is no one line at fault anyway.
- * - Browsers other than V8, SpiderMonkey and JavaScriptCore are not recognised,
+ * - Browsers other than V8, SpiderMonkey and JavaScriptCore are not recognized,
  *   and a stack deeper than the browser's frame limit has had the player's
  *   frame cut off its end.
  *

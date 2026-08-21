@@ -41,7 +41,7 @@ describe("speedStepperTemplate", () => {
     parent.innerHTML = speedStepperTemplate();
 
     // Names are `presentSpeedStepper`'s to write, not the template's -- the
-    // group is drawn once and relabelled on every language change, so a name
+    // group is drawn once and relabeled on every language change, so a name
     // baked in here would be a name stuck in the language the page opened in.
     for (const selector of ["button.speed-down", "button.speed-up"]) {
       const button = parent.querySelector(selector);
@@ -121,7 +121,7 @@ describe("presentSpeedStepper", () => {
   });
 
   it("dims `-` at the bottom of the ladder and `+` at the top of the control", () => {
-    // At the ends an arrow greys rather than vanishing: the group must not
+    // At the ends an arrow grays rather than vanishing: the group must not
     // change width because the speed reached a limit.
     const { parent, options } = setUp();
     const presenter = presentSpeedStepper(parent, options);

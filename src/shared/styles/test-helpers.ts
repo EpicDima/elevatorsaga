@@ -2,7 +2,7 @@
  * What can be checked about the stylesheet without a browser, and the readers
  * that do the checking.
  *
- * The stylesheet states every colour once, as a custom property, which is what
+ * The stylesheet states every color once, as a custom property, which is what
  * makes contrast checkable without a browser: the pairs that actually meet on
  * screen are few and known, so the WCAG 1.4.3 ratio for each of them is
  * arithmetic over the token values. A browser sweep over the built pages is
@@ -128,7 +128,7 @@ export const LIGHT_PALETTE = paletteIn('html[data-theme="light"]');
  * Both themes as `it.each` rows: a name for the `%s` in the test's title, and
  * the palette to measure.
  *
- * A colour that clears its bar in one theme says nothing about the other, so a
+ * A color that clears its bar in one theme says nothing about the other, so a
  * pair worth measuring is worth measuring twice. This table makes forgetting
  * the second one a visible omission rather than the default.
  */
@@ -138,9 +138,9 @@ export const THEMES: readonly [name: string, palette: ReadonlyMap<string, string
 ];
 
 /**
- * Relative luminance of an sRGB colour, per WCAG 2.
+ * Relative luminance of an sRGB color, per WCAG 2.
  *
- * @param hex - A `#rgb` or `#rrggbb` colour.
+ * @param hex - A `#rgb` or `#rrggbb` color.
  * @returns Its relative luminance, 0 to 1.
  */
 function luminance(hex: string): number {
@@ -153,9 +153,9 @@ function luminance(hex: string): number {
 }
 
 /**
- * Contrast ratio between two colours, per WCAG 2.
+ * Contrast ratio between two colors, per WCAG 2.
  *
- * @param one - One colour.
+ * @param one - One color.
  * @param other - The other.
  * @returns The ratio, 1 to 21.
  */
@@ -180,20 +180,20 @@ export function token(name: string): string {
 }
 
 /**
- * Paints a translucent colour over an opaque one, the way the browser does.
+ * Paints a translucent color over an opaque one, the way the browser does.
  *
  * Source-over compositing in sRGB, channel by channel, which is what a
  * `rgb(... / n%)` foreground on an opaque background comes to. WCAG asks for
  * the ratio between what is on screen, and what is on screen here is the
  * result of this, not the value in the declaration.
  *
- * @param foreground - `rgb(r g b / n%)`, the translucent colour.
- * @param background - A `#rgb` or `#rrggbb` colour to paint it on.
- * @returns The composited colour, as `#rrggbb`.
+ * @param foreground - `rgb(r g b / n%)`, the translucent color.
+ * @param background - A `#rgb` or `#rrggbb` color to paint it on.
+ * @returns The composited color, as `#rrggbb`.
  */
 export function over(foreground: string, background: string): string {
   const parsed = /rgb\(\s*(\d+)\s+(\d+)\s+(\d+)\s*\/\s*([\d.]+)%\s*\)/.exec(foreground);
-  expect(parsed, `${foreground} is not an rgb(r g b / n%) colour`).not.toBeNull();
+  expect(parsed, `${foreground} is not an rgb(r g b / n%) color`).not.toBeNull();
   const [, red = "0", green = "0", blue = "0", percent = "0"] = parsed ?? [];
   const alpha = Number(percent) / 100;
   const digits = background.replace("#", "");
@@ -208,11 +208,11 @@ export function over(foreground: string, background: string): string {
 }
 
 /**
- * A `#rrggbb` colour as the `rgb(r g b / n%)` {@link over} composites.
+ * A `#rrggbb` color as the `rgb(r g b / n%)` {@link over} composites.
  *
- * @param hex - The opaque colour.
+ * @param hex - The opaque color.
  * @param percent - The alpha to give it, 0 to 100.
- * @returns The same colour, translucent.
+ * @returns The same color, translucent.
  */
 export function withAlpha(hex: string, percent: number): string {
   const digits = hex.replace("#", "");
@@ -289,7 +289,7 @@ export function requiredRatio(size: number, weight: string): number {
  * to answer to a test.
  *
  * @param palette - {@link DARK_PALETTE} or {@link LIGHT_PALETTE}.
- * @returns The composited column colour, as `#rrggbb`.
+ * @returns The composited column color, as `#rrggbb`.
  */
 export function levelsColumn(palette: ReadonlyMap<string, string>): string {
   const value = declaration(ruleBody(".levels"), "background", ".levels");
@@ -308,7 +308,7 @@ export function levelsColumn(palette: ReadonlyMap<string, string>): string {
  * the 22% has to answer to a test.
  *
  * @param palette - {@link DARK_PALETTE} or {@link LIGHT_PALETTE}.
- * @returns The composited strip colour, as `#rrggbb`.
+ * @returns The composited strip color, as `#rrggbb`.
  */
 export function carTop(palette: ReadonlyMap<string, string>): string {
   return over(
@@ -328,7 +328,7 @@ export function carTop(palette: ReadonlyMap<string, string>): string {
  * than assume either figure.
  *
  * @param palette - {@link DARK_PALETTE} or {@link LIGHT_PALETTE}.
- * @returns The composited strip colour, as `#rrggbb`.
+ * @returns The composited strip color, as `#rrggbb`.
  */
 export function orderStrip(palette: ReadonlyMap<string, string>): string {
   const lightSelector = 'html[data-theme="light"] .shaft';

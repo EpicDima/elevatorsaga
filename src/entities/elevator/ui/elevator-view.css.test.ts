@@ -23,7 +23,7 @@ import {
 } from "#shared/styles/test-helpers.ts";
 
 /**
- * How the floor number on the car's top strip is set: the colour it is painted
+ * How the floor number on the car's top strip is set: the color it is painted
  * in and the size and weight that decide which bar 1.4.3 holds that pair to.
  *
  * The background is not read here: it is a composite that differs per theme,
@@ -34,14 +34,14 @@ import {
  * the same 4.5:1 -- the bar only ever steps down at 24px, so measuring the
  * larger of the two is measuring the easier case of the same requirement.
  *
- * @returns The size in px, the weight, and the colour.
+ * @returns The size in px, the weight, and the color.
  */
-function carNumber(): { size: number; weight: string; colour: string } {
+function carNumber(): { size: number; weight: string; color: string } {
   const selector = ".car-floor";
   const body = ruleBody(selector);
   expect(
     body,
-    `an opacity on ${selector} would dim the number below what its colour says`,
+    `an opacity on ${selector} would dim the number below what its color says`,
   ).not.toMatch(/^\s*opacity:/m);
   return {
     size: Number.parseFloat(declaration(body, "font-size", selector)),
@@ -49,7 +49,7 @@ function carNumber(): { size: number; weight: string; colour: string } {
     // because the number is ordinary text now and says nothing about weight;
     // reading it as `normal` is what lets the bar below be worked out anyway.
     weight: /^\s*font-weight:/m.test(body) ? declaration(body, "font-weight", selector) : "normal",
-    colour: declaration(body, "color", selector),
+    color: declaration(body, "color", selector),
   };
 }
 
@@ -60,7 +60,7 @@ describe("the order marks along the shaft", () => {
       // An unlit mark is still a <button> -- clickable, tabbable and named --
       // so it is a control that has to be findable, not the unfilled half of a
       // progress track that 1.4.11 would let off. Hence --ds-text-muted rather
-      // than the wall's own colour, which would read as nothing at all.
+      // than the wall's own color, which would read as nothing at all.
       expect(declaration(ruleBody(".mark"), "background", ".mark")).toBe(token("ds-text-muted"));
       expect(
         contrast(themed(palette, "ds-text-muted"), orderStrip(palette)),
@@ -73,7 +73,7 @@ describe("the order marks along the shaft", () => {
     (_, palette) => {
       // Plain --accent lands at 2.52:1 on this composite in the light theme:
       // the strip is two black washes darker than the --ds-shaft the accent
-      // family is tuned against. --ds-accent-hi is the same colour one step
+      // family is tuned against. --ds-accent-hi is the same color one step
       // along, and it is what the car's own arrows light up in.
       expect(declaration(ruleBody(".mark.is-lit"), "background", ".mark.is-lit")).toBe(
         token("ds-accent-hi"),
@@ -89,14 +89,14 @@ describe("the car's top strip", () => {
   it.each(THEMES)(
     "keeps the floor a car is at readable on its top strip, %s theme",
     (_, palette) => {
-      // The marking that never lights up, in a colour fixed across both themes
+      // The marking that never lights up, in a color fixed across both themes
       // rather than a themed one: the strip stays a dark surface in both (a
       // black wash over --ds-car, which is already dark in the light theme), so
       // one near-white value clears 4.5:1 in either without needing a
       // light-theme override.
       const number = carNumber();
-      expect(number.colour).toBe(token("ds-car-ink"));
-      expect(contrast(number.colour, carTop(palette))).toBeGreaterThanOrEqual(
+      expect(number.color).toBe(token("ds-car-ink"));
+      expect(contrast(number.color, carTop(palette))).toBeGreaterThanOrEqual(
         requiredRatio(number.size, number.weight),
       );
     },

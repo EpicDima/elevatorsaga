@@ -11,7 +11,7 @@ import { localizePage, ATTRIBUTE_KEY_ATTRIBUTE, TEXT_KEY_ATTRIBUTE } from "./loc
  * User agent strings for the two answers `modifierKeyLabel` can give.
  *
  * A message written with `innerHTML` can carry a `<kbd data-mod-key>`, and
- * writing it throws away whatever `src/ui/shortcuts.ts` had labelled that key
+ * writing it throws away whatever `src/ui/shortcuts.ts` had labeled that key
  * with, so the platform's own key has to be put back afterwards; a Mac string
  * is the only way to see whether it was.
  */
@@ -43,7 +43,7 @@ beforeEach(() => {
  * What the page says in one place, in the single form both sides can be
  * compared in.
  *
- * Parsed and serialised again, and its runs of whitespace collapsed: HTML
+ * Parsed and serialized again, and its runs of whitespace collapsed: HTML
  * collapses whitespace when it draws, so a sentence wrapped across three source
  * lines by the formatter and the same sentence written out on one line are the
  * same sentence. What is left is the tags, their attributes and the words.
@@ -160,7 +160,7 @@ describe("localizePage", () => {
     localizePage(page, USER_AGENTS.windows);
 
     // The building and the statistics are drawn by widgets that mount into
-    // these two containers at runtime. Localising a label must not clear the
+    // these two containers at runtime. Localizing a label must not clear the
     // slot beside it.
     expect(page.querySelector(".innerworld")?.innerHTML).toBe("");
     expect(page.querySelector(".statscontainer")?.innerHTML).toBe("");
@@ -264,13 +264,13 @@ describe("a page shell asking for something the catalog cannot answer", () => {
   it("keeps the English it shipped with, and says why on the console", () => {
     const scrap = shell(`
       <p id="missing" ${TEXT_KEY_ATTRIBUTE}="page.nonesuch">Shipped English</p>
-      <p id="parameterised" ${TEXT_KEY_ATTRIBUTE}="game.elevator.label">Elevator 1</p>
+      <p id="parameterized" ${TEXT_KEY_ATTRIBUTE}="game.elevator.label">Elevator 1</p>
     `);
 
     localizePage(scrap, USER_AGENTS.windows);
 
     expect(textOf(scrap.querySelector("#missing"))).toBe("Shipped English");
-    expect(textOf(scrap.querySelector("#parameterised"))).toBe("Elevator 1");
+    expect(textOf(scrap.querySelector("#parameterized"))).toBe("Elevator 1");
     expect(console.warn).toHaveBeenCalledWith(
       'Ignoring data-i18n="page.nonesuch": the page shell can only name a message that exists and takes no parameters',
     );
@@ -317,7 +317,7 @@ describe("a page shell asking for something the catalog cannot answer", () => {
     // The kbds are written into the scrap because no message the game loads
     // brings one. The reference page's shortcut paragraph does, and it lives in
     // `src/i18n/docs-en.ts`, which nothing but `src/page.test.ts` imports. The
-    // guarantee is the shell's either way, and is why the relabelling is the
+    // guarantee is the shell's either way, and is why the relabeling is the
     // last thing `localizePage` does: a message written with `innerHTML` can
     // carry a `<kbd data-mod-key>`, and writing it throws away the label, which
     // would leave a Mac player told to press a key their keyboard does not have.

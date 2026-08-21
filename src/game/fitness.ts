@@ -185,7 +185,7 @@ export function fitnessLevels(): readonly FitnessLevel[] {
  * there are several of them, so one unlucky building cannot decide a score, and
  * that they never change on their own. Nor do they need to be spread out:
  * {@link "./random.ts"!createRandomSource} hashes a seed before use, so `1` and
- * `2` start unrelated streams rather than neighbouring ones.
+ * `2` start unrelated streams rather than neighboring ones.
  *
  * Six of them, which is exactly the run count the worker used to pass, so a
  * report costs what it always did: this list is where that cost is decided, and

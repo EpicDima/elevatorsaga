@@ -50,7 +50,7 @@ test("shows the whole game in the language a link asks for", async ({ page }) =>
 test("carries the language into the links the game builds", async ({ page }) => {
   // The reason a language that arrived in somebody else's link is not written
   // to storage: it does not need to be. The router keeps parameters it does not
-  // recognise, so `lang` survives every navigation the level switcher offers and
+  // recognize, so `lang` survives every navigation the level switcher offers and
   // stays in the address bar to be copied out of again.
   await page.goto("/#lang=ru");
 

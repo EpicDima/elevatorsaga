@@ -98,7 +98,7 @@
  * `destinationQueue` split at the car's current position into the stretch it
  * is still sweeping toward (sorted ascending while heading up, descending
  * while heading down) and whatever got queued behind it. A new stop that is
- * ahead of the car, in the direction it is already travelling, is sorted
+ * ahead of the car, in the direction it is already traveling, is sorted
  * into that first stretch; a new stop that is not — behind the car, or past
  * it in a way this program's cutoff and direction checks would rather not
  * have happened but cannot always prevent, since a car already close to
@@ -151,7 +151,7 @@
  * indicator can shave a little inefficiency off a hand-tuned solution, but a
  * single wrong toggle can just as easily strand a passenger the queue
  * logic meant to pick up, and this program is meant to be a dependable
- * baseline for calibration, not a demonstration of every optimisation the
+ * baseline for calibration, not a demonstration of every optimization the
  * API allows.
  *
  * @param loadCutoff - Load factor at or above which a car stops accepting
