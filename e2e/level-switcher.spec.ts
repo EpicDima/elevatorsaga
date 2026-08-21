@@ -7,11 +7,11 @@
  *
  * All three are laid out entirely by `level-switcher.css`, and all three broke
  * at once when the «уровень» sweep renamed the widget's root element from
- * `task` to `level` and left the stylesheet -- which takes its names from
- * `design/ui-mockup.html` §3 -- saying `.task`. Nothing in the DOM changed
- * shape: the trigger was still a button with a click listener, the popover was
- * still built, still unhidden on click, still full of the right tiles, and
- * every unit test in `level-switcher.test.ts` still passed. What changed was
+ * `task` to `level` and left the stylesheet saying `.task`. Nothing in the DOM
+ * changed shape: the trigger was still a button with a click listener, the
+ * popover was still built, still unhidden on click, still full of the right
+ * tiles, and every unit test in `level-switcher.test.ts` still passed. What
+ * changed was
  * where the browser put them, because the root had stopped being the
  * `display: flex` that puts the three controls in a row and the
  * `position: relative` that `.taskmenu`'s `position: absolute` measures from.

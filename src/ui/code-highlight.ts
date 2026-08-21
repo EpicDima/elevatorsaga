@@ -122,7 +122,7 @@ export function highlightJavaScript(
 }
 
 /**
- * The live editor's syntax colours, as `design/ui-mockup.html` assigns them.
+ * The live editor's syntax colors.
  *
  * CodeMirror ships `defaultHighlightStyle`, and `basicSetup` registers it —
  * but only as a *fallback*: `syntaxHighlighting(style, { fallback: true })`
@@ -141,42 +141,33 @@ export function highlightJavaScript(
  * `<html data-theme>` changes, exactly as every hand-written rule in
  * the stylesheets is.
  *
- * The mapping is the mockup's own, read off the spans its `#editor` is filled
- * with (`.k`, `.f`, `.s`, `.n`, `.c`, `.p`, and `.src` for everything else),
- * and it is deliberately narrower than the `.tok-*` rules
- * {@link highlightJavaScript} feeds. Two differences are worth naming,
- * because both look like omissions and neither is:
+ * The mapping is deliberately narrower than the `.tok-*` rules
+ * {@link highlightJavaScript} feeds: keywords, calls, strings, numbers,
+ * comments and punctuation are colored, and everything else keeps the body
+ * color. Two differences are worth naming, because both look like omissions
+ * and neither is:
  *
- * - **A name is blue only where it is a function.** The mockup writes
- *   `elevator.<span class="f">loadFactor</span>()` but
- *   `elevator.destinationQueue` plain, and `<span class="k">const</span>
- *   queue` plain as well — so `tags.function(...)` is what earns
- *   `--ds-code-fn`, and a bare `variableName`/`propertyName` keeps the body
- *   colour. Lezer's own `classHighlighter`, which the static blocks use,
- *   cannot draw that line: it maps the unmodified tags only, so every name in
- *   a learning-track answer is blue. That is a limitation of the other
- *   surface, not a decision repeated here. The mockup's own highlighter has
- *   the mirror-image limitation — it is a regular expression, and its rule is
- *   literally "a name with a `(` after it" — so it leaves the `init` of `init:
- *   function (elevators, floors)` plain where this theme colours it. That
- *   difference is deliberate and it follows the mockup's intent rather than
- *   breaking it: the mockup already colours a *declaration* wherever one
- *   happens to be written with the name against the parenthesis (`function
- *   <span class="f">score</span>(`), and its own comment says the plain colour
- *   is for variables («это переменные»). `init` is a function by any reading;
- *   a grammar can see that where a regular expression cannot.
+ * - **A name is blue only where it is a function.** `elevator.loadFactor()`
+ *   is blue; `elevator.destinationQueue` and `const queue` are plain — so
+ *   `tags.function(...)` is what earns `--ds-code-fn`, and a bare
+ *   `variableName`/`propertyName` keeps the body color. Lezer's own
+ *   `classHighlighter`, which the static blocks use, cannot draw that line:
+ *   it maps the unmodified tags only, so every name in a learning-track
+ *   answer is blue. That is a limitation of the other surface, not a decision
+ *   repeated here. A grammar also sees more than a "name with a `(` after it"
+ *   rule can: the `init` of `init: function (elevators, floors)` is a
+ *   function by any reading, and it takes the function color here.
  * - **Punctuation is dimmer than the code, not brighter.** `--ds-code-punc`
  *   sits below `--ds-code-text` in both themes (6.73:1 dark, 4.70:1 light on
  *   `--ds-code-bg`, both clear of 1.4.3's 4.5:1), so brackets and operators
- *   recede and the words stand out. It is the one token of the mockup's code
- *   palette that had no reader at all before this.
+ *   recede and the words stand out.
  *
  * `tags.bool` and `tags.null` are pulled out of `tags.keyword` explicitly.
  * Lezer defines both under `atom`, itself under `keyword`, and
  * `tagHighlighter` matches the most specific tag a token carries — so
- * without these two rows `true` and `null` would take the keyword colour,
- * where the mockup groups literals with numbers. `super` and `this` are left
- * to inherit the keyword colour, which is where they belong.
+ * without these two rows `true` and `null` would take the keyword color
+ * instead of the number color they are grouped with. `super` and `this` are
+ * left to inherit the keyword color, which is where they belong.
  */
 export const editorSyntaxTheme: HighlightStyle = HighlightStyle.define([
   // `const`, `function`, `return`, `import`, `get`/`set`/`async`, `this`,
@@ -215,11 +206,10 @@ export const editorSyntaxTheme: HighlightStyle = HighlightStyle.define([
   // `punctuation` covers the brackets and separators, `operator` the
   // arithmetic, comparison, assignment and `.` dereference marks.
   { tag: [tags.punctuation, tags.operator], color: "var(--ds-code-punc)" },
-  // What the parser could not make sense of. The mockup underlines a bad call
-  // rather than recolouring it (`.squiggle`, which `.cm-errorMark` in
-  // `editor.ts` is the live counterpart of), but that mark is drawn from the
-  // exception a run threw, so it says nothing at all while the program is
-  // merely half-typed; this is the syntax tree's own opinion, and the two do
-  // not overlap.
+  // What the parser could not make sense of. `.cm-errorMark` in `editor.ts`
+  // underlines a bad call instead of recoloring it, but that mark is drawn
+  // from the exception a run threw, so it says nothing at all while the
+  // program is merely half-typed; this is the syntax tree's own opinion, and
+  // the two do not overlap.
   { tag: tags.invalid, color: "var(--ds-bad)" },
 ]);

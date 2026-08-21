@@ -196,15 +196,12 @@ export function containsFocus(elements: readonly Element[]): boolean {
 /**
  * Everything that drives the run in progress, as one group.
  *
- * Drawn into the app bar — `design/ui-mockup.html`'s own `.runbox` and
- * `.speed`, in that order, between the level switcher and `.barspace`. "Всё
- * управление прогоном — здесь, и больше нигде", as the mockup's comment on
- * that slot puts it, "в шапке, потому что оно нужно в любой раскладке, в том
- * числе когда на экране только код": the bar is the one part of the page that
- * is on screen in all four workspace layouts, and a run control that
- * disappeared with the building would be a control the player cannot reach
- * from the layout they are most likely to be in while writing the program it
- * runs.
+ * Drawn into the app bar — `.runbox` and `.speed`, in that order, between the
+ * level switcher and `.barspace`. Every run control is here and nowhere else,
+ * because the bar is the one part of the page that is on screen in all four
+ * workspace layouts, and a run control that disappeared with the building
+ * would be a control the player cannot reach from the layout they are most
+ * likely to be in while writing the program it runs.
  *
  * It had spent one phase in a row of its own between the learning track's
  * panel and the building, and before that it was split three ways — Start in

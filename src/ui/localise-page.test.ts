@@ -226,9 +226,7 @@ describe("localisePage", () => {
       );
       // The panel's own explanatory tooltips are not checked here, the same
       // way its captions are not checked above: `widgets/stats-panel` carries
-      // no `title` attribute anywhere in its markup, and neither does
-      // `design/ui-mockup.html`'s own stats tiles it was ported from -- the
-      // affordance did not move here with the rest of the panel.
+      // no `title` attribute anywhere in its markup.
     });
 
     it("tells a crawler what the page is, in the language it is being read in", () => {

@@ -12,11 +12,10 @@ import { openSettingsMenu } from "./game-page.ts";
 test("serves the licence notices from the About block's copyright line", async ({ page }) => {
   await page.goto("/");
 
-  // The footer that used to carry a "Licences" link went with the app bar, and
-  // a row of its own in the About block would have changed the shape
-  // `design/ui-mockup.html` draws -- so the word "MIT", already in the
-  // copyright notice, is the link. This is the game's only route to the file,
-  // which is what makes it worth an end-to-end test of its own.
+  // The game has no footer to carry a "Licences" link, and a row of its own
+  // would have changed the About block's shape -- so the word "MIT", already
+  // in the copyright notice, is the link. This is the game's only route to the
+  // file, which is what makes it worth an end-to-end test of its own.
   await openSettingsMenu(page);
   const link = page.locator(".setmenu .sethint a");
   await expect(link).toHaveText("MIT");

@@ -9,15 +9,11 @@
  * render-blocking `<link>` tags for jQuery, lodash, riot, CodeMirror 5, the
  * Font Awesome webfont and Google's copy of Oswald.
  *
- * Oswald outlived that as a self-hosted `@fontsource` import here, and it is
- * gone too. `design/ui-mockup.html` sets the interface in the platform's own
- * UI face -- `--ds-font-ui`, the system stack -- so there is no webfont left to
- * host, no twenty binaries in `dist/assets/`, and no first paint waiting on a
- * download. It also retires a defect the subsetting had: Oswald's `latin-*`
- * files carried no `unicode-range`, so they claimed the whole plane while
- * holding Latin glyphs only and every Cyrillic character fell through to
- * `Arial`. A system stack has whatever the reader's own machine has, in every
- * script it has it for.
+ * The interface is set in the platform's own UI face -- `--ds-font-ui`, the
+ * system stack -- so no webfont is shipped, `dist/assets/` holds no font
+ * binaries, and the first paint waits on no download. A system stack also has
+ * whatever the reader's own machine has, in every script it has it for, where
+ * a subset webfont covers only the glyphs it was cut for.
  */
 
 import "./styles/index.css";
@@ -56,9 +52,9 @@ import {
 /**
  * Where Ctrl-B / Cmd-B takes the workspace next.
  *
- * A ring over `design/ui-mockup.html`'s own `.seg-fill` button order (`left`,
- * `right`, `code`, `game`) rather than the mockup's own array-and-modulo, so
- * the map stays exhaustive over {@link LayoutMode} and every lookup is typed
+ * A ring over the layout switcher's button order (`left`, `right`, `code`,
+ * `game`), written as a `Record` rather than an array and a modulo, so the
+ * map stays exhaustive over {@link LayoutMode} and every lookup is typed
  * as returning a mode rather than `LayoutMode | undefined` under
  * `noUncheckedIndexedAccess` -- an index signature would need the latter; a
  * `Record` keyed by the type itself does not.
@@ -79,9 +75,9 @@ declare global {
      * purpose, and its only call site was commented out because running the
      * benchmark after every keystroke was too slow to be useful. It stays
      * opt-in: call it from the browser console, which is also where the answer
-     * now arrives -- `design/ui-mockup.html` draws no status line under the
-     * editor for it to be printed into, and a console command reporting to the
-     * console it was typed into is the shorter path anyway.
+     * arrives -- there is no status line under the editor for it to be printed
+     * into, and a console command reporting to the console it was typed into
+     * is the shorter path anyway.
      */
     runFitnessSuite: (codeStr?: string) => Promise<FitnessSuiteResult>;
   }
@@ -231,8 +227,7 @@ async function main(): Promise<void> {
   // down this function -- see the comment there for why. Detached from the
   // document until then, which costs nothing: `App`'s constructor only writes
   // into it and wires click listeners, neither of which needs the element to
-  // be on screen yet, and the mockup's own `.task` slot is exactly where it is
-  // appended once the bar exists.
+  // be on screen yet.
   const levelSwitcherMount = document.createElement("div");
   levelSwitcherMount.className = "levelswitcher";
 
@@ -316,9 +311,8 @@ async function main(): Promise<void> {
   // without tearing anything down, CodeMirror included, so every one of them
   // keeps running exactly as built above.
   //
-  // `.statscontainer` goes last of the game pane's three rows, which is the
-  // order `design/ui-mockup.html` puts them in: the goal bar, then the
-  // building, then the figures docked across the foot of the pane.
+  // `.statscontainer` goes last of the game pane's three rows: the goal bar,
+  // then the building, then the figures docked across the foot of the pane.
   // `index.html` ships them in that order too, so this only preserves what is
   // already there.
   //
@@ -372,19 +366,18 @@ async function main(): Promise<void> {
   // name the skeleton draws is itself an `<h1>`, so the document has exactly one
   // heading before this line and exactly one after it.
   //
-  // The order is `design/ui-mockup.html`'s own: brand, `.task` level switcher,
-  // `.runbox` and `.speed`, `.barspace`, then the two trailing buttons
-  // `appBarSettingsTemplate` draws. `.barspace` is the seam. Everything
-  // appended before it is pushed left and everything after it right, so the run
-  // controls land in the bar by being inserted ahead of it.
+  // The order: brand, level switcher, run controls and speed, `.barspace`, then
+  // the two trailing buttons `appBarSettingsTemplate` draws. `.barspace` is the
+  // seam. Everything appended before it is pushed left and everything after it
+  // right, so the run controls land in the bar by being inserted ahead of it.
   //
   // `.controls` is reparented rather than rebuilt, exactly as the workspace's
   // four regions are above and for the same reason: it was drawn and wired in
   // the App constructor, before this shell existed, and it is the one region
-  // the app never redraws -- see `presentControls`. Its two children are the
-  // mockup's own `.runbox` and `.speed`, and it wraps them only because one
-  // presenter composes both; the stylesheet gives it the bar's own gap so that
-  // the pair sits exactly where the mockup puts them.
+  // the app never redraws -- see `presentControls`. Its two children are
+  // `.runbox` and `.speed`, and it wraps them only because one presenter
+  // composes both; the stylesheet gives it the bar's own gap so that the pair
+  // sits in the bar's rhythm rather than as a box inside it.
   // `levelSwitcherMount` is built rather than found; see its own declaration
   // above for why.
   let layoutMode: LayoutMode = readLayoutMode(localStorage);

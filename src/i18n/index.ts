@@ -306,7 +306,7 @@ export function format(value: ParamValue): string {
  * The same rendering as {@link format}, with the unit handed back on its own.
  *
  * For a caller that sets the unit differently from the digits — the statistics
- * tiles, where the mockup drops it a size and a shade — and for nothing else:
+ * tiles, which drop it a size and a shade — and for nothing else:
  * anything writing a figure into a sentence wants {@link format}, which is the
  * two halves already joined.
  *

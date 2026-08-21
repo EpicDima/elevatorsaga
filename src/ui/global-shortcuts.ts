@@ -1,9 +1,8 @@
 /**
- * The document-global keyboard shortcuts `design/ui-mockup.html`'s own
- * `document.addEventListener("keydown", ...)` block wires (§A): start or
- * pause with Space, start the run over with Mod-Enter, switch the workspace
- * layout with Mod-B, open the docs with F1, and open the settings popover
- * with "?" — the same five rows `features/hotkeys-help`'s dialog prints.
+ * The document-global keyboard shortcuts: start or pause with Space, start
+ * the run over with Mod-Enter, switch the workspace layout with Mod-B, open
+ * the docs with F1, and open the settings popover with "?" — the same five
+ * rows `features/hotkeys-help`'s dialog prints.
  *
  * Nothing here exists in production today. `src/ui/shortcuts.ts` only
  * relabels the `Mod-` key already printed on the documentation page and in
@@ -16,10 +15,9 @@
  * A typing target — an `<input>`, a `<textarea>`, a `<select>`, or anywhere
  * inside CodeMirror's own `.cm-editor` — takes every key below except Space,
  * which is guarded stricter still: it only fires with `document.body` itself
- * focused, the same as the mockup's own `document.activeElement ===
- * document.body` check. Two things make the CodeMirror check necessary
- * beyond the ordinary tag check: CodeMirror's own editable region is a plain
- * `contenteditable` `<div>`, not one of the three tags above, and
+ * focused. Two things make the CodeMirror check necessary beyond the ordinary
+ * tag check: CodeMirror's own editable region is a plain `contenteditable`
+ * `<div>`, not one of the three tags above, and
  * `src/ui/editor.ts` already binds `Mod-Enter` itself, at `Prec.highest` —
  * a document-level listener that did not defer to it would start the run
  * over twice for one keypress.

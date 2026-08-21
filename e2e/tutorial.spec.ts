@@ -355,10 +355,9 @@ test("stands the lesson across the pane above the building, in one scroll with i
   // wherever the splitter is put.
   //
   // 1280x900 is the default window and a 794px pane, wide enough for the card's
-  // whole 640px. 1213x900 is a 752px pane and 1040x600 is the floor
-  // `design/ui-mockup.html` builds to; both are kept from when this test
-  // straddled a container query's threshold, and they are still the two widths
-  // where a card sized from anything but a stated number would show it.
+  // whole 640px. 1213x900 is a 752px pane and 1040x600 is the page's own floor;
+  // they are the two widths where a card sized from anything but a stated
+  // number would show it.
   //
   // The splitter pass is the narrow end of the same promise, and dragging is
   // the only way to reach it: a window has to be under 600px wide before its
@@ -615,12 +614,9 @@ test("costs the levels nothing: the widest building in the game still fits its p
 });
 
 /**
- * The panel used to be swept at phone widths (320/390px, in both languages)
- * the same way `reflow.spec.ts` still sweeps the two help pages -- until
- * decision #1 (see the migration plan's own §0). The main game page, this
- * panel included, adopted `design/ui-mockup.html`'s own 1040x600 floor
- * instead of reflowing for a phone: a building pane and a code pane side by
- * side need more room than either width has to give, and shrinking them to
- * fit was never asked for. `reflow.spec.ts` now holds the floor itself; there
- * is no narrower width left for this panel to be swept at.
+ * The panel is not swept at phone widths the way `reflow.spec.ts` sweeps the
+ * two help pages. The main game page has a 1040x600 floor instead of
+ * reflowing for a phone: a building pane and a code pane side by side need
+ * more room than a phone width has to give. `reflow.spec.ts` holds that
+ * floor; there is no narrower width left for this panel to be swept at.
  */

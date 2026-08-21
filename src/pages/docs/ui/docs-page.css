@@ -95,9 +95,8 @@
 }
 
 /*
- * `documentation.html`/`documentation.ru.html` only. The game page had a
- * footer of its own until the app bar landed -- `design/ui-mockup.html` draws
- * none, and a page whose whole height is a workspace has nowhere to put one --
+ * `documentation.html`/`documentation.ru.html` only. The game page has no
+ * footer -- a page whose whole height is a workspace has nowhere to put one --
  * but the two help pages are ordinary documents that end, and the credits, the
  * source link and the licence notice end them.
  */

@@ -155,12 +155,10 @@ test("opens the caveat from the keyboard", async ({ page }) => {
   // was missing: no pointer at all.
   //
   // Run at the page's own width rather than at WCAG 1.4.10's narrowest named
-  // screen, the way this test used to: per decision #1 (see the migration
-  // plan's own §0), the main game page adopted `design/ui-mockup.html`'s own
-  // 1040x600 floor instead of reflowing for a phone, so 320px is no longer a
-  // width it promises to fit -- `reflow.spec.ts` holds that floor. The keyboard
-  // path itself has nothing to do with viewport width, so it is still worth
-  // its own test.
+  // screen: the main game page has a 1040x600 floor instead of reflowing for a
+  // phone, so 320px is not a width it promises to fit -- `reflow.spec.ts`
+  // holds that floor. The keyboard path itself has nothing to do with viewport
+  // width, so it is still worth its own test.
   await page.goto("/#level=4");
   await openSettingsMenu(page);
 
@@ -205,11 +203,10 @@ test("opens the caveat from the keyboard", async ({ page }) => {
  * itself opening the caveat did -- the same 2000px-class jump, for the same
  * missing-`position: absolute` reason, one level up.
  *
- * `.setwrap`/`.setmenu`'s own positioning has since been ported from
- * `design/ui-mockup.html` into `src/widgets/app-bar/ui/settings-menu.css`, so
- * the popover is now a fixed-size overlay the disclosure
- * opens inside rather than a block that reshuffles the page under itself.
- * Un-`fixme`d and confirmed passing at both widths below.
+ * `.setwrap`/`.setmenu`'s own positioning is in
+ * `src/widgets/app-bar/ui/settings-menu.css`, so the popover is a fixed-size
+ * overlay the disclosure opens inside rather than a block that reshuffles the
+ * page under itself. Both widths below pass.
  */
 test("does not move the caveat's own control when it is opened", async ({ page }) => {
   await page.goto("/#level=4");

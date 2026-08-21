@@ -102,10 +102,10 @@ describe("highlightJavaScript", () => {
 });
 
 /**
- * A program shaped like the one the mockup fills its own `#editor` with:
- * a declared function, a called method, a plain property, a string, a number
- * and a comment, so that every row of the theme is exercised by real source
- * rather than by a hand-made tag.
+ * A program shaped like the one a player writes in `#editor`: a declared
+ * function, a called method, a plain property, a string, a number and a
+ * comment, so that every row of the theme is exercised by real source rather
+ * than by a hand-made tag.
  */
 const SAMPLE = `{
     init: function (elevators, floors) {
@@ -187,7 +187,7 @@ function tokensFor(code: string, text: string): string[] {
 }
 
 describe("editorSyntaxTheme", () => {
-  it("paints keywords, strings, numbers and comments in the mockup's own tokens", () => {
+  it("paints keywords, strings, numbers and comments in their own tokens", () => {
     expect(tokensFor(SAMPLE, "function")).toEqual(["key"]);
     expect(tokensFor(SAMPLE, "const")).toEqual(["key"]);
     expect(tokensFor(SAMPLE, "return")).toEqual(["key"]);
@@ -205,7 +205,7 @@ describe("editorSyntaxTheme", () => {
   });
 
   it("colours a name where it is a function, and leaves every other name alone", () => {
-    // The mockup's own distinction: `.f` for `loadFactor()` and `score(...)`,
+    // The distinction: the function token for `loadFactor()` and `score(...)`,
     // plain body text for `destinationQueue` and for the `queue` a `const`
     // introduces.
     expect(tokensFor(SAMPLE, "loadFactor")).toEqual(["fn"]);
@@ -219,11 +219,10 @@ describe("editorSyntaxTheme", () => {
   });
 
   it("colours a function-valued property where it is declared, not only where it is called", () => {
-    // The one place a real grammar knows more than the mockup's regex, pinned
-    // so that it stays a decision: `init: function (…)` names a function, and
-    // Lezer says so (`function(definition(propertyName))`), where a rule that
-    // can only look for a `(` after the name cannot. See the note in
-    // `editorSyntaxTheme`.
+    // The one place a real grammar knows more than a regular expression,
+    // pinned so that it stays a decision: `init: function (…)` names a
+    // function, and Lezer says so (`function(definition(propertyName))`),
+    // where a rule that can only look for a `(` after the name cannot.
     expect(tokensFor(SAMPLE, "init")).toEqual(["fn"]);
   });
 

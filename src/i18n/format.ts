@@ -39,8 +39,8 @@ export type ParamValue = string | number | Quantity;
  * A rendered quantity with its unit kept separate from its digits.
  *
  * For the one place that needs the two apart rather than as one string: the
- * statistics tiles, where `design/ui-mockup.html` sets the unit in a `<small>`
- * a size down and a shade back, so that a column of figures reads as figures.
+ * statistics tiles, which set the unit in a `<small>` a size down and a shade
+ * back, so that a column of figures reads as figures.
  * Which characters are the unit, and whether they come before or after the
  * number and with what between them, is the locale's business — hence
  * {@link formatValueParts} rather than a `split` at the call site.

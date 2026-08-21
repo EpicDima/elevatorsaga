@@ -10,21 +10,17 @@
  * in the CSS on its own -- so it is checked here, against the built site,
  * rather than in Vitest.
  *
- * The main game page is checked differently, per decision #1 of the
- * FSD/mockup-port migration (see the migration plan's own §0): a building
- * pane and a code pane side by side need more room than a phone screen has
- * to give, and shrinking them to fit was never asked for, so the page adopts
- * `design/ui-mockup.html`'s own hard floor -- `body.app { min-inline-size:
- * 1040px; min-block-size: 600px }`, in `src/app/styles/document.css` -- as its
- * minimum supported viewport instead of reflowing under it. The floor hangs
- * off a class rather than `body` itself because the same stylesheet dresses
- * all three pages: `src/docs.ts` imports it too, and the help pages are the
- * ones that still owe the 320px sweep below. What is checked here, in place
- * of that sweep, is that the floor holds: the page fits without overflow at
- * 1040x600, the smallest viewport it now promises to support. The seed
- * line's own narrow-width checks and the Russian game page's are gone for
- * the same reason -- both only ever existed to cover widths this page no
- * longer offers to support.
+ * The main game page is checked differently: a building pane and a code pane
+ * side by side need more room than a phone screen has to give, and shrinking
+ * them to fit was never asked for, so the page has a hard floor --
+ * `body.app { min-inline-size: 1040px; min-block-size: 600px }`, in
+ * `src/app/styles/document.css` -- as its minimum supported viewport rather
+ * than reflowing under it. The floor hangs off a class rather than `body`
+ * itself because the same stylesheet dresses all three pages: `src/docs.ts`
+ * imports it too, and the help pages are the ones that owe the 320px sweep
+ * below. What is checked here, in place of that sweep, is that the floor
+ * holds: the page fits without overflow at 1040x600, the smallest viewport it
+ * promises to support.
  *
  * The building is deliberately not part of either check: `.world` is a
  * fixed-scale scene in its own `overflow-x: auto` box and pans on its own

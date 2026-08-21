@@ -1188,8 +1188,7 @@ export function codeMirrorView(parent: HTMLElement): TextEditorViewFactory {
           // it are visibly the same report.
           textDecoration: "underline wavy var(--ds-bad)",
           // Clear of the descenders, which the wave would otherwise run
-          // through at this amplitude. A length rather than the `0.2em` this
-          // was: the mockup's `.squiggle` uses 3px, and an em here would
+          // through at this amplitude. A length rather than an em: an em would
           // scale the offset with the player's font size while the wave's own
           // amplitude, which is what has to be cleared, does not.
           textUnderlineOffset: "3px",

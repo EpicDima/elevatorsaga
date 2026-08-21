@@ -8,8 +8,8 @@
  * entry point, which has no unit tests by design — it is covered from here.
  *
  * Nothing here asserts about pixels, because there are none to assert about.
- * `#storage_status` is `.visually-hidden` and `role="status"`: the mockup draws
- * no status line under the editor, and a page whose whole height is a workspace
+ * `#storage_status` is `.visually-hidden` and `role="status"`: there is no
+ * status line under the editor, and a page whose whole height is a workspace
  * has nowhere to put one, but a store that has stopped keeping the player's
  * work still has to be announced. What this checks is what a screen reader is
  * handed — the words in the live region, and the silence after them.
@@ -90,7 +90,7 @@ test("announces the refusal rather than reporting a save that did not happen", a
 
   await expect(storageStatus(page)).toHaveText(/^Not saved/);
   // Announced, not drawn: `role="status"` is what reaches a screen reader, and
-  // `.visually-hidden` is what keeps the page looking like the mockup.
+  // `.visually-hidden` is what keeps it off the page.
   await expect(storageStatus(page)).toHaveAttribute("role", "status");
   await expect(storageStatus(page)).toHaveClass("visually-hidden");
   // The refusal is a fact about the store, not a crash. A game that threw on
