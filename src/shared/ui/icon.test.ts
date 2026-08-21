@@ -17,31 +17,20 @@ import {
 import type { IconName, SpriteIconName } from "./icon.ts";
 
 /**
- * Every `fa-*` glyph the legacy markup used, with the codepoint that class
- * resolved to in `font-awesome-4.1-1.0/css/font-awesome.css`.
- *
- * `fa-warning` is an alias of `fa-exclamation-triangle`; both are U+F071.
+ * Every `fa-*` glyph still drawn, with the codepoint that class resolved to in
+ * `font-awesome-4.1-1.0/css/font-awesome.css`.
  */
 const LEGACY_GLYPHS: Readonly<Record<IconName, string>> = {
-  "arrow-circle-down": "U+F0AB",
-  "arrow-circle-up": "U+F0AA",
   "caret-right": "U+F0DA",
-  child: "U+F1AE",
-  female: "U+F182",
-  male: "U+F183",
   minus: "U+F068",
-  "minus-square": "U+F146",
   plus: "U+F067",
-  "plus-square": "U+F0FE",
-  repeat: "U+F01E",
-  warning: "U+F071",
 };
 
 /** The icon names, in the order the fixture and the icon set agree on. */
 const ICON_NAMES = Object.keys(LEGACY_GLYPHS) as IconName[];
 
 describe("ICONS", () => {
-  it("covers exactly the glyphs the legacy markup used", () => {
+  it("covers exactly the glyphs the game still draws", () => {
     expect(Object.keys(ICONS).toSorted()).toEqual(ICON_NAMES.toSorted());
   });
 
@@ -49,9 +38,9 @@ describe("ICONS", () => {
   // webfont, and nothing in the game reads that webfont at runtime any more, so
   // nothing else would notice if an outline were swapped for another, truncated
   // or nudged: the icons would simply be wrong, and every other test would keep
-  // passing. src/shared/ui/fontawesome-glyphs.json is a copy of the twelve glyphs
-  // taken from the font itself (not from ICONS, which would make this
-  // circular), and this is the assertion that holds ICONS to it.
+  // passing. src/shared/ui/fontawesome-glyphs.json is a copy taken from the font
+  // itself (not from ICONS, which would make this circular), and this is the
+  // assertion that holds ICONS to it.
   it("reproduces the Font Awesome 4.1 outlines exactly", () => {
     expect(Object.keys(fontAwesome.glyphs).toSorted()).toEqual(ICON_NAMES.toSorted());
     for (const name of ICON_NAMES) {
@@ -75,26 +64,23 @@ describe("ICONS", () => {
 
 describe("iconWidthEm", () => {
   it("derives the width from the glyph advance", () => {
-    // The male glyph advances 1024 of 1792 font units.
-    expect(iconWidthEm("male")).toBe("0.5714em");
-  });
-
-  it("gives a full em to a glyph that advances a full em", () => {
-    expect(iconWidthEm("warning")).toBe("1.0000em");
+    // The caret advances 640 of 1792 font units, the plus 1408.
+    expect(iconWidthEm("caret-right")).toBe("0.3571em");
+    expect(iconWidthEm("plus")).toBe("0.7857em");
   });
 });
 
 describe("createIcon", () => {
   it("builds an svg sized like the webfont glyph", () => {
-    const icon = createIcon("male");
+    const icon = createIcon("caret-right");
     expect(icon.namespaceURI).toBe("http://www.w3.org/2000/svg");
-    expect(icon.getAttribute("viewBox")).toBe(`0 0 1024 ${String(ICON_EM_UNITS)}`);
-    expect(icon.getAttribute("width")).toBe("0.5714em");
+    expect(icon.getAttribute("viewBox")).toBe(`0 0 640 ${String(ICON_EM_UNITS)}`);
+    expect(icon.getAttribute("width")).toBe("0.3571em");
     expect(icon.getAttribute("height")).toBe("1em");
   });
 
   it("inherits its colour and stays out of the accessibility tree", () => {
-    const icon = createIcon("warning");
+    const icon = createIcon("caret-right");
     expect(icon.getAttribute("fill")).toBe("currentColor");
     expect(icon.getAttribute("aria-hidden")).toBe("true");
     expect(icon.getAttribute("focusable")).toBe("false");
@@ -129,8 +115,8 @@ describe("iconMarkup", () => {
     // written without one has to come out `class="icon"` rather than
     // `class="icon undefined"`.
     const template = document.createElement("template");
-    template.innerHTML = iconMarkup("male");
-    expect(template.content.firstElementChild?.outerHTML).toBe(createIcon("male").outerHTML);
+    template.innerHTML = iconMarkup("caret-right");
+    expect(template.content.firstElementChild?.outerHTML).toBe(createIcon("caret-right").outerHTML);
   });
 });
 
@@ -214,27 +200,6 @@ describe("SPRITE_ICONS", () => {
           tag: "path",
           attrs: {
             d: "M13.5 3.5h-4a2 2 0 0 0-2 2v8a1.6 1.6 0 0 1 1.6-1.5h4.4v-8.5Z",
-            ...STROKE_DEFAULTS("1.6"),
-          },
-        },
-      ],
-    });
-  });
-
-  // The mortar board is a closed path and the tassel band an open one: swap
-  // them and the band fills solid.
-  it("reproduces the graduate glyph exactly", () => {
-    expect(SPRITE_ICONS.graduate).toEqual({
-      viewBox: "0 0 16 16",
-      shapes: [
-        {
-          tag: "path",
-          attrs: { d: "M8 2.5 14.5 6 8 9.5 1.5 6 8 2.5Z", ...STROKE_DEFAULTS("1.6") },
-        },
-        {
-          tag: "path",
-          attrs: {
-            d: "M4.5 7.6V11c0 1 1.6 2 3.5 2s3.5-1 3.5-2V7.6",
             ...STROKE_DEFAULTS("1.6"),
           },
         },
