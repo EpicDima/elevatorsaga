@@ -14,6 +14,7 @@ import {
   levelsColumn,
   paletteIn,
   ruleBody,
+  styleSource,
   THEMES,
   themed,
   token,
@@ -50,6 +51,25 @@ describe("the four layers over the tracks", () => {
     expect(declaration(ruleBody(".shafts > .shaft"), "pointer-events", ".shafts > .shaft")).toBe(
       "auto",
     );
+  });
+
+  it("washes the marked floor's band over the zebra beneath it in both themes", () => {
+    const selector = '.floorline.is-hot,\nhtml[data-theme="light"] .floorline.is-hot';
+    expect(ruleBody(selector)).toMatch(
+      /^\s*background:\s*color-mix\(in srgb, var\(--ds-accent\) \d+%, transparent\);/m,
+    );
+    // Same property on the same element as the two zebra rules, so the dark one
+    // is decided by source order and the light one -- (0,3,1) against a bare
+    // (0,2,0) -- by specificity. Stated before them, or stated once unqualified,
+    // every other floor in the light theme keeps its 2% gray and the mark lights
+    // half a building.
+    for (const zebra of [
+      ".floorline:nth-child(odd)",
+      'html[data-theme="light"] .floorline:nth-child(odd)',
+    ]) {
+      expect(ruleBody(zebra)).toContain("background:");
+      expect(styleSource.indexOf(selector)).toBeGreaterThan(styleSource.indexOf(zebra));
+    }
   });
 });
 

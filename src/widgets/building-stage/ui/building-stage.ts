@@ -355,6 +355,17 @@ export function presentBuildingStage(parent: HTMLElement, world: World): Buildin
     stage.scrollTop = stage.scrollHeight;
   }
 
+  // Floor lines are appended top-down, so the `:nth-child(odd)` zebra in the
+  // stylesheet starts at the roof; the array stays in level order like
+  // everything else here. Before the rows, because a row lights its own band.
+  const floorlineEls: HTMLElement[] = new Array<HTMLElement>(world.floors.length);
+  for (let row = 0; row < world.floors.length; row += 1) {
+    const line = document.createElement("i");
+    line.className = "floorline";
+    floorlines.append(line);
+    floorlineEls[world.floors.length - 1 - row] = line;
+  }
+
   // Floors go in bottom-up, level 0 first: `relabelWorld` in
   // `src/pages/game/index.ts` reads them back in DOM order and takes that
   // order for the floor number. The column reverses itself in CSS so the
@@ -366,6 +377,18 @@ export function presentBuildingStage(parent: HTMLElement, world: World): Buildin
     view.element.tabIndex = 0;
     const queue = document.createElement("div");
     queue.className = "queue";
+    // A floor is two boxes in two layers that never touch — its row over in the
+    // number column, and the band drawn across the building beside it — so what
+    // a car gets from `.shaft:hover .car` alone has to be switched on from
+    // here. Both light together, which is the whole of what the mark says: this
+    // number and this stretch of building are the same floor.
+    const light = (lit: boolean): void => {
+      setClass(view.element, "is-hot", lit);
+      const line = floorlineEls[floor.level];
+      if (line !== undefined) {
+        setClass(line, "is-hot", lit);
+      }
+    };
     // Against whatever was pointed at, and placed the way that box has room to
     // be placed. The row and the corridor are a column apart, so a card pinned
     // to whichever of them the pointer is not on comes up across the building
@@ -374,9 +397,11 @@ export function presentBuildingStage(parent: HTMLElement, world: World): Buildin
     // hung over a row in the number column has nothing under it but the pane's
     // own margin and would sit outside the building it is describing.
     const show = (anchor: HTMLElement, placement: "beside" | "above"): void => {
+      light(true);
       showCard(view.element, anchor, placement, floorCardText(floorSnapshot(world, floor)));
     };
     const hide = (): void => {
+      light(false);
       if (shown?.describedBy === view.element) {
         hideCard();
       }
@@ -399,17 +424,6 @@ export function presentBuildingStage(parent: HTMLElement, world: World): Buildin
     queueLayer.append(queue);
     floorViews.push(view);
     queueEls.push(queue);
-  }
-
-  // Floor lines are appended top-down, so the `:nth-child(odd)` zebra in the
-  // stylesheet starts at the roof; the array stays in level order like
-  // everything else here.
-  const floorlineEls: HTMLElement[] = new Array<HTMLElement>(world.floors.length);
-  for (let row = 0; row < world.floors.length; row += 1) {
-    const line = document.createElement("i");
-    line.className = "floorline";
-    floorlines.append(line);
-    floorlineEls[world.floors.length - 1 - row] = line;
   }
 
   const elevatorViews: ElevatorView[] = [];

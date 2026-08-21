@@ -274,6 +274,25 @@ html[data-theme="light"] .floorline:nth-child(odd) {
 }
 
 /*
+ * The floor being pointed at, washed across the whole width of the building.
+ * This is what `.shaft:hover .car`'s accent border is for a car, and the half a
+ * floor cannot get from `:hover` alone: the row that is hovered stands over in
+ * the number column, a layer this band never touches, so `widgets/building-stage`
+ * switches both on together.
+ *
+ * A wash and not a line, because the lines above and below the band are the
+ * building's own drawing and coloring one of them would say the line is the
+ * floor. After the zebra above rather than before it, and restated for the light
+ * theme, because that pair is the same declaration on the same element: source
+ * order is what decides the dark one and specificity the light one, and a wash
+ * that lost to a 2% gray on every other floor would mark half a building.
+ */
+.floorline.is-hot,
+html[data-theme="light"] .floorline.is-hot {
+  background: color-mix(in srgb, var(--ds-accent) 12%, transparent);
+}
+
+/*
  * One floor's stretch of corridor: the box a card about that floor's queue is
  * placed against, and the reason pointing anywhere along a floor's walkway
  * describes it. Nothing is drawn -- the passengers standing in it are in

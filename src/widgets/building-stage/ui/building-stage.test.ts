@@ -366,6 +366,32 @@ describe("presentBuildingStage", () => {
     expect(floorEl?.hasAttribute("aria-describedby")).toBe(false);
   });
 
+  it("marks the floor being pointed at, in the number column and across the building", () => {
+    const world = createWorld({ floorCount: 3, elevatorCount: 1 });
+    const { parent } = mount(world, 800, 300);
+
+    const rows = queryAll(".levels .floor", parent);
+    const lines = queryAll(".floorlines .floorline", parent);
+    const queues = queryAll(".queue", parent);
+
+    queues[0]?.dispatchEvent(new Event("pointerenter"));
+
+    expect(rows[0]?.classList.contains("is-hot")).toBe(true);
+    // The bands are in the DOM top floor first, the rows ground floor first, so
+    // the lobby's band is the last of the three. Get that backwards and
+    // pointing at the lobby lights the roof.
+    expect(lines[2]?.classList.contains("is-hot")).toBe(true);
+    expect(lines[0]?.classList.contains("is-hot")).toBe(false);
+
+    queues[0]?.dispatchEvent(new Event("pointerleave"));
+    expect(queryAll(".is-hot", parent)).toHaveLength(0);
+
+    // The row is the floor's other half, and it marks the same two boxes.
+    rows[1]?.dispatchEvent(new Event("pointerenter"));
+    expect(rows[1]?.classList.contains("is-hot")).toBe(true);
+    expect(lines[1]?.classList.contains("is-hot")).toBe(true);
+  });
+
   it("places a car's card against the cabin, not against the shaft it runs the height of", () => {
     const world = createWorld({ floorCount: 10, elevatorCount: 1 });
     const { parent } = mount(world, 800, 300);

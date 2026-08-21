@@ -1,19 +1,21 @@
 /**
- * Where the building's hover card lands.
+ * Where the building's hover card lands, and what pointing at a floor lights
+ * up.
  *
- * A question only a browser can answer. jsdom lays nothing out, so the widget's
- * own tests can check the placement arithmetic against boxes they invented but
- * not against a building that has really been drawn -- and what this file exists
- * for was exactly a real box being the wrong one: a card anchored to a shaft,
- * which is the whole height of the house, came up floors away from the car it
- * was describing, and the layer the shafts stand in quietly ate every hover
- * meant for a corridor.
+ * Both are questions only a browser can answer. jsdom lays nothing out, so the
+ * widget's own tests can check the placement arithmetic against boxes they
+ * invented but not against a building that has really been drawn -- and the
+ * defect this file exists for was exactly a real box being the wrong one: a
+ * card anchored to a shaft, which is the whole height of the house, came up
+ * floors away from the car it was describing, and the layer the shafts stand in
+ * quietly ate every hover meant for a corridor.
  *
- * The card and the corridor strips are reached by class, the exception this
- * suite otherwise avoids, for the reason `statistic` in `game-page.ts` is:
- * neither is a control or has an accessible name, because neither is addressed
- * to a screen reader at all -- the card only draws what `aria-describedby`
- * already says.
+ * The card, the corridor strips and the mark are all reached by class. They are
+ * the exception this suite otherwise avoids, for the reason `statistic` in
+ * `game-page.ts` is: none of the three is a control or has an accessible name,
+ * because none of them is addressed to a screen reader at all -- the card
+ * duplicates what `aria-describedby` already says, and the mark is decoration
+ * over information the row states in text.
  */
 
 import { expect, test, type Locator } from "@playwright/test";
@@ -67,7 +69,9 @@ test("puts a car's card beside the cabin, not in the middle of its shaft", async
   expect(Math.abs(cardCenter - shaftCenter)).toBeGreaterThan(100);
 });
 
-test("raises a floor's card from the corridor its passengers stand in", async ({ page }) => {
+test("raises a floor's card from the corridor and marks the floor at both ends", async ({
+  page,
+}) => {
   await page.setViewportSize(VIEWPORT);
   await page.goto("/#level=9");
   await expect(page.locator(".car").first()).toBeVisible();
@@ -84,6 +88,13 @@ test("raises a floor's card from the corridor its passengers stand in", async ({
   const queueBox = await boxOf(queue);
   expect(cardBox.y + cardBox.height).toBeLessThanOrEqual(queueBox.y);
 
+  // One floor marked, in both of the two layers a floor is split across: its
+  // row over in the number column, and its band drawn through the building.
+  await expect(page.locator(".floor.is-hot")).toHaveCount(1);
+  await expect(page.locator(".floorline.is-hot")).toHaveCount(1);
+  await expect(page.locator(".floor.is-hot .level-num")).toHaveText("4");
+
   await page.mouse.move(0, 0);
+  await expect(page.locator(".is-hot")).toHaveCount(0);
   await expect(card).toBeHidden();
 });

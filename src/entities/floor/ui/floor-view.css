@@ -46,8 +46,10 @@
  *
  * --ds-text-muted, not --ds-text-faint: the number is 17px at most, where 1.4.3
  * asks 4.5:1, and the faint step reaches only 3.77:1 dark and 2.83:1 light on
- * the column's own composite. A floor number never lights up, so unlike a call
- * lamp it cannot claim the "the lit state carries the information" exemption.
+ * the column's own composite. Resting is the state the number is read in -- the
+ * accent below comes and goes with a pointer -- so unlike a call lamp it cannot
+ * claim the "the lit state carries the information" exemption, and neither ink
+ * is allowed to fall short of 4.5:1.
  */
 .level-num {
   min-inline-size: 2ch;
@@ -55,6 +57,26 @@
   font-size: clamp(11px, calc(var(--ds-floor-h) * 0.3), 17px);
   text-align: end;
   color: var(--ds-text-muted);
+}
+
+/*
+ * The row's half of the mark on the floor being pointed at; the band washed
+ * across the building beside it is the other half, and `widgets/building-stage`
+ * puts the class on both. The number is what lights, for the reason the car's
+ * border is what lights in a hovered shaft: the rest of the row is two call
+ * lamps, and a lamp's color already means something.
+ *
+ * Not `.floor:hover`, because half the floor is not in this element -- pointing
+ * anywhere along the corridor marks the floor too, and the corridor is a strip
+ * in the building's own layer.
+ *
+ * --ds-accent-hi rather than the plain accent the band beside it is washed in,
+ * for the reason `.emphasis-color` gives: marked or not this is still a number
+ * being read at 17px, and the base accent falls to 4.11:1 on the light theme's
+ * column. A band has only 1.4.11's 3:1 to clear; text has 4.5:1.
+ */
+.floor.is-hot .level-num {
+  color: var(--ds-accent-hi);
 }
 
 .calls {
