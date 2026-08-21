@@ -22,10 +22,11 @@ import { defineConfig } from "@playwright/test";
  * `reuseExistingServer: false` — both deliberate, see `webServer` below — make
  * two runs on one machine collide on the fixed port. That happens whenever a
  * checkout is worked on from more than one `git worktree` at a time, which is
- * how larger changes are split up here. An unset variable keeps the number the
- * suite has always used, so nothing about a plain `npx playwright test` moves.
+ * how larger changes are split up here. Unset, it matches `preview.port` in
+ * `vite.config.ts`, so a plain `npm run preview` and a test run serve the built
+ * site at the same address.
  */
-const PORT = Number(process.env["E2E_PORT"] ?? 4173);
+const PORT = Number(process.env["E2E_PORT"] ?? 7477);
 
 /** Where the tests point the browser. */
 const BASE_URL = `http://localhost:${String(PORT)}`;

@@ -166,8 +166,8 @@ From a clone it is `public/elevatorsaga.d.ts` — copy it next to your solution.
 into `dist/` verbatim, so a site you are running serves the same bytes from its root:
 
 ```sh
-curl -O http://localhost:5173/elevatorsaga.d.ts   # npm run dev
-curl -O http://localhost:4173/elevatorsaga.d.ts   # ...or npm run preview, after npm run build
+curl -O http://localhost:7377/elevatorsaga.d.ts   # npm run dev
+curl -O http://localhost:7477/elevatorsaga.d.ts   # ...or npm run preview, after npm run build
 ```
 
 ### Making your editor see it
@@ -357,15 +357,15 @@ npm ci
 npm run dev
 ```
 
-Then open <http://localhost:5173/>. The help and API page is at
-<http://localhost:5173/documentation.html>, and in Russian at
-<http://localhost:5173/documentation.ru.html>. The dev server hot-reloads on save.
+Then open <http://localhost:7377/>. The help and API page is at
+<http://localhost:7377/documentation.html>, and in Russian at
+<http://localhost:7377/documentation.ru.html>. The dev server hot-reloads on save.
 
 To produce the static site and check it locally:
 
 ```sh
 npm run build     # emits dist/index.html and the two documentation pages
-npm run preview   # serves dist/ at http://localhost:4173/
+npm run preview   # serves dist/ at http://localhost:7477/
 ```
 
 The build sets a relative base path, so `dist/` can be dropped on any static host, including a

@@ -207,6 +207,14 @@ export default defineConfig({
   // any sub-path (e.g. GitHub Pages project pages served from /<repo>/).
   root: ".",
   base: "./",
+  // Off Vite's defaults (5173 / 4173), which every other Vite project on the
+  // machine also claims -- so `npm run dev` here no longer has to guess whether
+  // the tab already open on 5173 is this game or something else. Both are
+  // unregistered and outside the ephemeral range the OS hands out, and they are
+  // far enough apart that a dev server bumped forward by a busy port cannot
+  // land on the preview one.
+  server: { port: 7377 },
+  preview: { port: 7477 },
   build: {
     outDir: "dist",
     target: "es2022",
