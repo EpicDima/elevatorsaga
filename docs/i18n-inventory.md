@@ -1,7 +1,7 @@
 # Localisation inventory
 
 Every string the game shows a player, the key it has in `src/i18n/`, and what reads that key.
-Part map of the catalogue, part record of the decisions the wiring took and the reasons behind
+Part map of the catalog, part record of the decisions the wiring took and the reasons behind
 them.
 
 ## How this file is anchored
@@ -34,8 +34,8 @@ to the same convention first, after the same kind of failure.
 there are, the command is next to the number, so the next reader re-derives it in a second
 instead of trusting a figure whose age they cannot tell.
 
-**What is machine-checked, and what is not.** The catalogues check each other, and several
-tests hold the catalogue against what draws from it — see _What guards what_ at the end. One of
+**What is machine-checked, and what is not.** The catalogs check each other, and several
+tests hold the catalog against what draws from it — see _What guards what_ at the end. One of
 them now reads this file: `src/i18n/inventory.test.ts` holds the keys it names, the keys it
 omits, the counts it prints and the files it points at against `EN_MESSAGES` and the tree. What
 that cannot read is the prose — the English column, the Notes, and every claim about which
@@ -46,16 +46,16 @@ Everything here was re-measured against the tree on **18 August 2026**.
 
 ## The module
 
-| File                     | What it is                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
-| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `src/i18n/locale.ts`     | `Locale`, `LOCALES`, `DEFAULT_LOCALE`, `LOCALE_NAMES`, `isLocale`, `htmlLang`                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
-| `src/i18n/format.ts`     | `Intl` wrappers: `quantity`, `decimal`, `exact`, `seconds`, `formatNumber`, `formatValue`, `formatList`, `selectPlural`, `interpolate`, `PLURAL_CATEGORIES`, and the types `Quantity`, `ParamValue`, `Countable`, `PluralCategory<L>`, `PluralForms<L>`                                                                                                                                                                                                                                                                                           |
-| `src/i18n/catalogue.ts`  | `MessageKey`, `MessageCatalogue<L>`, `MessageParams<K>`, `MessageArgs<K>`, `translate`                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
-| `src/i18n/en.ts`         | `EN_MESSAGES` — the reference locale                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
-| `src/i18n/ru.ts`         | `RU_MESSAGES` — the Russian catalogue, with its glossary and its translation rules at the top                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
-| `src/i18n/detect.ts`     | `resolveLocale`, `browserLocaleSources`, `localeFromQuery`, `readStoredLocale`, `storeLocale`, `localeFromLanguages`, `LOCALE_QUERY_KEY`, `LOCALE_STORAGE_KEY`, `LocaleSources`                                                                                                                                                                                                                                                                                                                                                                   |
-| `src/i18n/index.ts`      | `t`, `translateIn`, `getLocale`, `setLocale`, `loadLocale`, `isLocaleLoaded`, `format`, `formatList`, `CATALOGUE_LOADERS`, and a re-export of most of the above. Four of those exports do not come through: `RU_MESSAGES`, deliberately, since a re-export is a static import; `interpolate` and `MessageParams`, which nothing outside `catalogue.ts` uses; and `format.ts`'s `formatList`, because the `formatList` here is a different function — a wrapper that supplies the active locale, importing the other under the name `formatListIn` |
-| `src/i18n/test-setup.ts` | No exports. Vitest's one setup file, named as `setupFiles` in `vite.config.ts`: it awaits every catalogue before a test file's first line, because catalogues are fetched rather than bundled and a dozen test files say `setLocale("ru")` and assert about Russian next                                                                                                                                                                                                                                                                          |
+| File                     | What it is                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/i18n/locale.ts`     | `Locale`, `LOCALES`, `DEFAULT_LOCALE`, `LOCALE_NAMES`, `isLocale`, `htmlLang`                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| `src/i18n/format.ts`     | `Intl` wrappers: `quantity`, `decimal`, `exact`, `seconds`, `formatNumber`, `formatValue`, `formatList`, `selectPlural`, `interpolate`, `PLURAL_CATEGORIES`, and the types `Quantity`, `ParamValue`, `Countable`, `PluralCategory<L>`, `PluralForms<L>`                                                                                                                                                                                                                                                                                       |
+| `src/i18n/catalog.ts`    | `MessageKey`, `MessageCatalog<L>`, `MessageParams<K>`, `MessageArgs<K>`, `translate`                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| `src/i18n/en.ts`         | `EN_MESSAGES` — the reference locale                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| `src/i18n/ru.ts`         | `RU_MESSAGES` — the Russian catalog, with its glossary and its translation rules at the top                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| `src/i18n/detect.ts`     | `resolveLocale`, `browserLocaleSources`, `localeFromQuery`, `readStoredLocale`, `storeLocale`, `localeFromLanguages`, `LOCALE_QUERY_KEY`, `LOCALE_STORAGE_KEY`, `LocaleSources`                                                                                                                                                                                                                                                                                                                                                               |
+| `src/i18n/index.ts`      | `t`, `translateIn`, `getLocale`, `setLocale`, `loadLocale`, `isLocaleLoaded`, `format`, `formatList`, `CATALOG_LOADERS`, and a re-export of most of the above. Four of those exports do not come through: `RU_MESSAGES`, deliberately, since a re-export is a static import; `interpolate` and `MessageParams`, which nothing outside `catalog.ts` uses; and `format.ts`'s `formatList`, because the `formatList` here is a different function — a wrapper that supplies the active locale, importing the other under the name `formatListIn` |
+| `src/i18n/test-setup.ts` | No exports. Vitest's one setup file, named as `setupFiles` in `vite.config.ts`: it awaits every catalog before a test file's first line, because catalogs are fetched rather than bundled and a dozen test files say `setLocale("ru")` and assert about Russian next                                                                                                                                                                                                                                                                          |
 
 Calling it looks like this:
 
@@ -99,14 +99,14 @@ Key names carry two suffixes that mean something:
   in one comes from this repository; nothing a player wrote is ever interpolated into one. Every
   other key is plain text for `textContent`, an attribute or `confirm()`.
 - `.code` — the value is example code. Only its `//` comments are translated; the code itself is
-  byte-identical in every locale, and `src/i18n/catalogue.test.ts` enforces that rather than
+  byte-identical in every locale, and `src/i18n/catalog.test.ts` enforces that rather than
   trusting it.
 
 ## Where the strings are
 
-The catalogue holds **483 keys** in two locales. `src/i18n/en.ts` is the reference — its text is
+The catalog holds **483 keys** in two locales. `src/i18n/en.ts` is the reference — its text is
 the English wording, extracted verbatim — and `src/i18n/ru.ts` is the Russian translation. The
-types make English the shape everything else is measured against: a Russian catalogue missing a
+types make English the shape everything else is measured against: a Russian catalog missing a
 key, carrying a key English does not have, or giving a plural message the wrong number of forms
 is a compile error, not a runtime surprise.
 
@@ -162,7 +162,7 @@ requires `localisePage` to leave it alone even in Russian.
 **The 86 `docs.*` keys have no call site because the reference page answers for itself.**
 `documentation.html` and `documentation.ru.html` are two static files rather than one document
 translated at run time. That duplication is deliberate and no longer silent — see _Known
-overlap_ at the end, and `src/page.test.ts`, which holds the two pages and the two catalogues in
+overlap_ at the end, and `src/page.test.ts`, which holds the two pages and the two catalogs in
 step.
 
 ## The strings
@@ -314,7 +314,7 @@ case makes sure no key escapes that comparison.
 The track is the eight levels in `src/game/tutorial.ts`, with ids `tutorial-1` … `tutorial-8`.
 Its prose is the largest single group of keys after the reference page, and it is the one group
 whose messages were committed before anything read them — the prose _is_ the teaching here, so it
-was written into both catalogues first and the panel built against it.
+was written into both catalogs first and the panel built against it.
 
 Each level owns eight keys, numbered by position: `tutorial.levelN.title`, `tutorial.levelN.goal`,
 `tutorial.levelN.hint1.html`, `.hint2.html`, `.hint3.html`, `tutorial.levelN.explanation.html`,
@@ -322,12 +322,12 @@ Each level owns eight keys, numbered by position: `tutorial.levelN.title`, `tuto
 `src/widgets/tutorial-panel/ui/tutorial-panel.ts` writes the six prose keys out as literals in
 `TUTORIAL_LEVEL_MESSAGES` and says why in its header: a message key has to reach `t` as a string
 literal, because the parameters a message takes are derived from the literal by `Placeholders<S>`
-in `src/i18n/catalogue.ts`. A key built as ``t(`tutorial.level${n}.title`)`` cannot be
-type-checked, and casting one through would trade the whole point of the typed catalogue for
+in `src/i18n/catalog.ts`. A key built as ``t(`tutorial.level${n}.title`)`` cannot be
+type-checked, and casting one through would trade the whole point of the typed catalog for
 brevity — a renamed message would then print its own key at a player instead of failing the
 build. The table is typed `Record<TutorialLevelId, …>` and keyed by the level's id rather than by
 its position, so that a ninth level inserted in the middle cannot slide one level's prose onto the
-next level's building. `TutorialLevelId` is derived from the catalogue's own `tutorial.levelN.title`
+next level's building. `TutorialLevelId` is derived from the catalog's own `tutorial.levelN.title`
 keys, which is what makes a ninth level's messages added to `src/i18n/en.ts` without a row here
 stop the file compiling.
 
@@ -365,7 +365,7 @@ used to open on a row naming the track and counting the player's place in it, cl
 counting the cleared levels again, and carry two buttons between them: one that copied the level's
 program into the game's own editor — with a confirmation when there was something to overwrite, and
 a live line reporting which way the write had gone — and one that left for the numbered levels. The
-seven keys that went with them are not named here, since a key the catalogue does not have has no
+seven keys that went with them are not named here, since a key the catalog does not have has no
 row to be right or wrong in; what they said, the app bar's level switcher already said, on the one
 surface whose whole job is the level in front of the player.
 
@@ -416,29 +416,29 @@ The keys are spelled out in full at the entry that uses them rather than built f
 a key the type checker cannot see, and the day a level is renamed the compiler should be the one to
 notice rather than a player meeting an empty editor.
 
-| Key                                  | English                               | Notes                                                                                                                    |
-| ------------------------------------ | ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| `skyscraper.sky1.startingCode.code`  | (the program the editor opens with)   | `.code`; only its `//` comment is translated, and `catalogue.test.ts` holds the JavaScript byte-identical across locales |
-| `skyscraper.sky2.title`              | Everyone starts in the lobby          | the level's name, on the briefing card and nowhere else; the switcher's 118px trigger says "Tower 2" instead             |
-| `skyscraper.sky2.briefing.html`      | Ten floors, two cars, and a building… | markup; `<em>` around all three traffic profiles, since this card introduces them for levels 2 to 7                      |
-| `skyscraper.sky2.startingCode.code`  | (the round-robin dispatcher)          | `.code`; the same program as `sky1`'s apart from the `//` comment, which is the point — see below                        |
-| `skyscraper.sky3.startingCode.code`  | (the sorted sweep)                    | `.code`; two `//` comment lines, and the only starter in the block a fixture also runs on other levels                   |
-| `skyscraper.sky4.startingCode.code`  | (the round-robin dispatcher)          | `.code`; `sky2`'s program with a `//` comment pointing at the `idle` handler instead                                     |
-| `skyscraper.sky5.startingCode.code`  | (the sorted sweep)                    | `.code`; `sky3`'s program unchanged, comments included                                                                   |
-| `skyscraper.sky6.startingCode.code`  | (the round-robin dispatcher)          | `.code`; `sky2`'s program with a `//` comment pointing at `callNextElevator`                                             |
-| `skyscraper.sky7.startingCode.code`  | (the round-robin dispatcher)          | `.code`; `sky2`'s program a fourth time, the `//` comment back on `floor_button_pressed`                                 |
-| `skyscraper.sky8.title`              | Not every car goes everywhere         | the level's name, on the second and last briefing card of the block                                                      |
-| `skyscraper.sky8.briefing.html`      | Ten floors, and the two cars no long… | markup; `<em>` around _zones_ and `<code>` around `servedFloors()`, the method the mechanic is played through            |
-| `skyscraper.sky8.startingCode.code`  | (the sorted sweep)                    | `.code`; `sky3`'s program with a `//` comment saying that not every car stops at every floor — it stalls this building   |
-| `skyscraper.sky9.startingCode.code`  | (the zone-aware sweep)                | `.code`; `sky3`'s program with `callNextElevator` filtering on `servedFloors()`, which is `sky8`'s answer                |
-| `skyscraper.sky10.startingCode.code` | (the zone-aware sweep)                | `.code`; `sky9`'s program, the `//` comment moved onto the three floors both banks serve                                 |
+| Key                                  | English                               | Notes                                                                                                                  |
+| ------------------------------------ | ------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `skyscraper.sky1.startingCode.code`  | (the program the editor opens with)   | `.code`; only its `//` comment is translated, and `catalog.test.ts` holds the JavaScript byte-identical across locales |
+| `skyscraper.sky2.title`              | Everyone starts in the lobby          | the level's name, on the briefing card and nowhere else; the switcher's 118px trigger says "Tower 2" instead           |
+| `skyscraper.sky2.briefing.html`      | Ten floors, two cars, and a building… | markup; `<em>` around all three traffic profiles, since this card introduces them for levels 2 to 7                    |
+| `skyscraper.sky2.startingCode.code`  | (the round-robin dispatcher)          | `.code`; the same program as `sky1`'s apart from the `//` comment, which is the point — see below                      |
+| `skyscraper.sky3.startingCode.code`  | (the sorted sweep)                    | `.code`; two `//` comment lines, and the only starter in the block a fixture also runs on other levels                 |
+| `skyscraper.sky4.startingCode.code`  | (the round-robin dispatcher)          | `.code`; `sky2`'s program with a `//` comment pointing at the `idle` handler instead                                   |
+| `skyscraper.sky5.startingCode.code`  | (the sorted sweep)                    | `.code`; `sky3`'s program unchanged, comments included                                                                 |
+| `skyscraper.sky6.startingCode.code`  | (the round-robin dispatcher)          | `.code`; `sky2`'s program with a `//` comment pointing at `callNextElevator`                                           |
+| `skyscraper.sky7.startingCode.code`  | (the round-robin dispatcher)          | `.code`; `sky2`'s program a fourth time, the `//` comment back on `floor_button_pressed`                               |
+| `skyscraper.sky8.title`              | Not every car goes everywhere         | the level's name, on the second and last briefing card of the block                                                    |
+| `skyscraper.sky8.briefing.html`      | Ten floors, and the two cars no long… | markup; `<em>` around _zones_ and `<code>` around `servedFloors()`, the method the mechanic is played through          |
+| `skyscraper.sky8.startingCode.code`  | (the sorted sweep)                    | `.code`; `sky3`'s program with a `//` comment saying that not every car stops at every floor — it stalls this building |
+| `skyscraper.sky9.startingCode.code`  | (the zone-aware sweep)                | `.code`; `sky3`'s program with `callNextElevator` filtering on `servedFloors()`, which is `sky8`'s answer              |
+| `skyscraper.sky10.startingCode.code` | (the zone-aware sweep)                | `.code`; `sky9`'s program, the `//` comment moved onto the three floors both banks serve                               |
 
 Four of the ten `.code` values are the same program with a different `//` comment, and three more
 are the sorted sweep under three comments, and that is deliberate rather than a chance to
 deduplicate. The block hands one dispatcher to the player under
 four rhythms so that what visibly changes between the levels is the building, not the code; a
 shared key with a per-level comment spliced in would put the comment somewhere the translator
-cannot see the line it belongs to. `catalogue.test.ts` already treats the four as unrelated values
+cannot see the line it belongs to. `catalog.test.ts` already treats the four as unrelated values
 and holds each byte-identical across locales apart from its comment.
 
 Measured, not guessed: every one of these starters has a recorded verdict at its level's pinned
@@ -482,7 +482,7 @@ Neither name is held against visible text any more, because neither control has 
 popover draws both of the seed row's actions icon-only — `copy` for the link that names the run,
 `dice` for the button that draws a new seed — so these two messages are the whole of what a screen
 reader is handed. That retired the key that carried "new draw", the words that used to be the
-second one's visible label, and with it the pair check `src/i18n/catalogue.test.ts` kept under
+second one's visible label, and with it the pair check `src/i18n/catalog.test.ts` kept under
 _accessible names_: WCAG 2.5.3 constrains a name against visible text, and this row has none left
 to constrain it against.
 
@@ -685,7 +685,7 @@ adds it.
 
 Two of the four keys are `onlyCode`/`onlyGame` rather than the bare `code`/`game` a
 `LayoutModeId`-keyed lookup would otherwise suggest: a bare `.code` key is a reserved suffix
-elsewhere in this catalogue (see _Where the strings are_ and `catalogue.test.ts`), read as "this
+elsewhere in this catalog (see _Where the strings are_ and `catalog.test.ts`), read as "this
 value is a block of example code that must match byte-for-byte across locales" — not what a layout
 mode's own label is.
 
@@ -712,7 +712,7 @@ injected click callback and do nothing on their own yet, the same "build inert f
 widget in this migration follows. `aboutForkLabel`/`aboutOriginalLabel`/`aboutCopyright.html` are
 the only prose in a block that otherwise consists of two real, hardcoded GitHub URLs — an address
 is not a translator's business, so the URLs and the domain text under each link are plain constants
-rather than catalogue keys.
+rather than catalog keys.
 
 `aboutCopyright.html` is deliberately the same string in both locales: "Elevator Saga © 2015 Magnus
 Wolffelt, © 2026 EpicDima, MIT." names a licence, and a licence notice does not change with the
@@ -722,7 +722,7 @@ It is also the whole of the game's route to `licenses.txt`. The footer that used
 went when the app bar took the page over, and a row of its own in the About block would have
 changed the shape `design/ui-mockup.html` draws — so the word "MIT", already in the notice and
 already naming the thing the file contains, is the link. That is why the key carries `.html`: the
-suffix is this catalogue's mark for a value written with `innerHTML` rather than as text.
+suffix is this catalog's mark for a value written with `innerHTML` rather than as text.
 
 | Key                               | English                                                                                    | Notes                                                                                  |
 | --------------------------------- | ------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------- |
@@ -821,7 +821,7 @@ collapsed `<details class="api">` row's summary), `.more` (its expanded paragrap
 example) — besides the two group labels themselves. English condenses this repository's own
 `documentation.html` prose for the same methods rather than translating the Russian cold; Russian is
 `design/ui-mockup.html`'s own `API_DOCS` text, unchanged but for `floorNum.more`'s
-`floors.length-1`, tightened to keep the catalogue's own rule against a spaced hyphen standing in
+`floors.length-1`, tightened to keep the catalog's own rule against a spaced hyphen standing in
 for a dash. Every `.code` key holds only its comments in translation, the code itself
 byte-identical between locales — `docs.basics.example.code`'s own convention.
 
@@ -1033,7 +1033,7 @@ is printed; the benchmark itself stopped touching the page.
 `defaultCode()` in `src/ui/default-code.ts` is a function and not a constant, for the reason its
 own JSDoc gives: `t` answers for the locale active when it is called, and a module-scope `const`
 would answer for whichever locale happened to be active when the module was first imported. The
-same file's `DEV_TEST_CODE` is deliberately outside the catalogue — no player ever sees it now that
+same file's `DEV_TEST_CODE` is deliberately outside the catalog — no player ever sees it now that
 `#devtest` has been retired; it is the yardstick `level-tiers-solutions.test.ts` measures the
 tiers against, and a fixture whose comments moved with the language would be a different fixture in
 each locale.
@@ -1172,7 +1172,7 @@ with a hole in it, so neither locale has to make "?" agree with a sentence it di
 `src/app/fitness.ts`, and deliberately not from `seconds`, which its JSDoc rules out by name:
 `seconds` fixes the number of decimals where `toPrecision(3)` fixed the number of significant
 digits, so it would render 7 as `7.0s` where the benchmark has always printed `7.00s`, and moving
-a number on screen is the one thing routing this through the catalogue was not allowed to do.
+a number on screen is the one thing routing this through the catalog was not allowed to do.
 
 The non-breaking space Russian gets — `12,3 с` beside English's `12.3s` — is not `Intl`'s doing
 either. CLDR's narrow unit pattern for Russian carries an ordinary space, and `formatNumber` in
@@ -1239,7 +1239,7 @@ again.
 | `src/ui/default-code.ts`, `DEV_TEST_CODE`                                                                                      | The tier-calibration program                                                                                                        | No player ever sees it: `#devtest` is retired, and what reads it is `level-tiers-solutions.test.ts`, which measures rather than teaches.                                                                                                                 |
 | `src/ui/shortcuts.ts`, `modifierKeyLabel`                                                                                      | `⌘` / `Ctrl`                                                                                                                        | Key names. Russian keyboards are labelled `Ctrl` too.                                                                                                                                                                                                    |
 | `index.html` and `documentation.html`, `<meta charset>` and `<meta name="viewport">`                                           | `UTF-8`, `width=device-width, initial-scale=1`                                                                                      | Machine values, not prose.                                                                                                                                                                                                                               |
-| `documentation.html`, the link to `documentation.ru.html`                                                                      | `Русский`                                                                                                                           | A language's own name. `LOCALE_NAMES` in `src/i18n/locale.ts` holds these, deliberately outside the catalogues: a reader who needs Русский has to find it while the interface is still English.                                                          |
+| `documentation.html`, the link to `documentation.ru.html`                                                                      | `Русский`                                                                                                                           | A language's own name. `LOCALE_NAMES` in `src/i18n/locale.ts` holds these, deliberately outside the catalogs: a reader who needs Русский has to find it while the interface is still English.                                                            |
 | `documentation.html`, the one-line snippets in _Code examples_                                                                 | `elevator.on("floor_button_pressed", function(floorNum) { … });`                                                                    | Code with no comments in it. Nothing to translate — and `src/page.test.ts` holds that both ways round, so a comment added to one of them fails the suite.                                                                                                |
 | `public/elevatorsaga.d.ts`, the whole file                                                                                     | The JSDoc an editor shows over `elevator.goToFloor`                                                                                 | Its own header decides this: the prose is the English of `documentation.html` in both languages' builds, because the names it describes are English identifiers either way and two translations of a declaration would be a second pair to keep in step. |
 | `src/game/test-helpers.ts`, `*.test.ts`, `e2e/`                                                                                | Test messages                                                                                                                       | Read by whoever ran the tests.                                                                                                                                                                                                                           |
@@ -1248,9 +1248,9 @@ again.
 **One that is not a decision anybody wrote down.** `src/pages/game/index.ts` prints a line at every start
 — `Seed … — the same passengers again, though never quite the same run: …` — and it is prose
 addressed to the player, not a diagnostic. It says in English roughly what
-`game.seed.explanation` says in the catalogue in both languages. The comment above it says why the
+`game.seed.explanation` says in the catalog in both languages. The comment above it says why the
 line is printed — nobody knows a run is worth repeating until it has already gone wrong — and
-says nothing about the language, and the line was written after the catalogue existed, so this is
+says nothing about the language, and the line was written after the catalog existed, so this is
 an omission rather than a leftover. It is either worth keying or worth cutting back to the seed
 and the URL.
 
@@ -1285,10 +1285,10 @@ and all seven ship, so this is a record of how each was resolved rather than a p
 
 3. **`1 people per second`.** `level.sandbox.spawnRate.html` is a plural message whose two
    English forms are the same string, so a sandbox running at one passenger a second still says
-   `1 people per second` — exactly what it said before the catalogue existed. That was preserved
+   `1 people per second` — exactly what it said before the catalog existed. That was preserved
    rather than fixed, so that wiring the strings up changed nothing on screen, and `src/i18n/en.ts`
    says so beside the key and points here. Russian declines it properly, which is why only the
-   English is odd. This is the one wording in the catalogue known to be wrong, and correcting it
+   English is odd. This is the one wording in the catalog known to be wrong, and correcting it
    is a one-word edit to `en.ts`.
 
 4. **The sandbox's list of capacities is punctuated by the locale.** `formatList`, not a `", "`
@@ -1297,7 +1297,7 @@ and all seven ship, so this is a record of how each was resolved rather than a p
    as one number — and "6 and 9" in English, which reads better anyway.
 
 5. **A message that is a symbol.** `game.timeScale.instant` is `∞x` in English and `∞×` in
-   Russian, and it is in the catalogue for the sake of one character. The infinity sign is the
+   Russian, and it is in the catalog for the sake of one character. The infinity sign is the
    same everywhere; the multiplication sign is not, and Russian writes `×` where English writes
    the Latin letter x — the same split `game.timeScale.value` already had. A translator opening
    the file finds a row that looks untranslatable and is not:
@@ -1311,7 +1311,7 @@ and all seven ship, so this is a record of how each was resolved rather than a p
    space is no longer among these cases: the run buttons write their word into a `.lbl` span
    beside the icon rather than as a text node after it, so the gap is the stylesheet's.
 
-6. **One `<h1>`, one string, and the same string in both catalogues.** `page.brand` is the whole
+6. **One `<h1>`, one string, and the same string in both catalogs.** `page.brand` is the whole
    of the heading, and it is `"Elevator Saga"` in English and in Russian alike: the brand is a
    name, and a name does not translate. The heading used to carry a tagline beside it in the same
    element — "The elevator programming game" — and the two were keyed apart precisely because
@@ -1346,23 +1346,23 @@ reaches for `t`.
   calls `setLocale` on arrival, per message rather than once at import. Anything else that ends
   up in a worker needs the same treatment: a worker inherits nothing from the page that spawned
   it.
-- **A static import of a catalogue puts it in every chunk that reaches a `t()`.**
-  `src/i18n/index.ts` records the measurement that decided this: with both catalogues imported
+- **A static import of a catalog puts it in every chunk that reaches a `t()`.**
+  `src/i18n/index.ts` records the measurement that decided this: with both catalogs imported
   statically the page's entry chunk was 135.87 kB and the fitness worker — which draws no
-  interface at all — was 95.32 kB, both carrying the whole Russian catalogue. So every catalogue
-  but English is an `import()` of its own, in `CATALOGUE_LOADERS`. Do not `import { RU_MESSAGES }`
+  interface at all — was 95.32 kB, both carrying the whole Russian catalog. So every catalog
+  but English is an `import()` of its own, in `CATALOG_LOADERS`. Do not `import { RU_MESSAGES }`
   and do not re-export it from a module the page imports; `src/i18n/index.ts` re-exports English
-  only, and the test files that want the Russian catalogue as data import `./ru.ts` directly,
+  only, and the test files that want the Russian catalog as data import `./ru.ts` directly,
   which reaches no bundle.
 - **`setLocale` starts the fetch and does not wait for it.** `await loadLocale(locale)` before
-  redrawing, or the interface stays English until the catalogue lands. A message asked for before
-  its catalogue arrives renders in English whole — never a raw key, and never an English sentence
+  redrawing, or the interface stays English until the catalog lands. A message asked for before
+  its catalog arrives renders in English whole — never a raw key, and never an English sentence
   with Russian decimal commas in it, which is why English stays bundled rather than being split
   like the rest.
 
 Start-up is where all four meet. `src/main.ts` awaits `applyPreferredLocale` from
 `src/ui/preferred-locale.ts` before the app is constructed: it resolves the language, sets it,
-waits for the catalogue and writes the shell, so nothing is ever drawn in one language and
+waits for the catalog and writes the shell, so nothing is ever drawn in one language and
 replaced in another. `resolveLocale` reads `#lang=` first, then `localStorage`, then
 `navigator.languages`, then English, and `browserLocaleSources` reads each source behind its own
 `catch` — a browser that throws on `localStorage`, such as Safari in a private window, falls
@@ -1386,8 +1386,8 @@ needs no edit to the control and none to `index.html`, which ships the `<select>
 
 | Test                           | What it holds                                                                                                                                                                                                                                                                                        |
 | ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| the type system                | Key parity in both directions, and the right number of plural forms per language. A Russian catalogue missing a key does not compile.                                                                                                                                                                |
-| `src/i18n/catalogue.test.ts`   | Key order, non-empty values, `{placeholder}` parity, markup confined to `.html` keys and opening and closing the same tags in every locale, `.code` blocks identical but for their comments, the WCAG 2.5.3 pair, and Russian typography — «ёлочки» in pairs, spaced em dashes, ё, no double spaces. |
+| the type system                | Key parity in both directions, and the right number of plural forms per language. A Russian catalog missing a key does not compile.                                                                                                                                                                  |
+| `src/i18n/catalog.test.ts`     | Key order, non-empty values, `{placeholder}` parity, markup confined to `.html` keys and opening and closing the same tags in every locale, `.code` blocks identical but for their comments, the WCAG 2.5.3 pair, and Russian typography — «ёлочки» in pairs, spaced em dashes, ё, no double spaces. |
 | `src/i18n/format.test.ts`      | `PLURAL_CATEGORIES` against what ICU actually says, so a wrong guess about a new language fails a test rather than mistranslating a count.                                                                                                                                                           |
 | `src/ui/localise-page.test.ts` | That every key `index.html` names exists and takes no parameters; that the shell ships, word for word, the English of every message it names; that the noscript paragraph is left alone; that the modifier keys are relabelled after the shell is rewritten.                                         |
 | `src/page.test.ts`             | The two documentation pages as one document in two languages, every `docs.*` message against the passage it was lifted from in both languages, no `docs.*` key left unchecked, and the popup against the page wherever their English agrees.                                                         |
@@ -1398,8 +1398,8 @@ is `src/i18n/inventory.test.ts`, which reads this file with `?raw` and checks it
 `EN_MESSAGES`:
 
 1. Every backticked token in this file shaped like a message key — dotted, and with a first
-   segment that is one of the catalogue's prefixes — is a real `MessageKey`. This catches a key
-   renamed in the catalogue and left behind here.
+   segment that is one of the catalog's prefixes — is a real `MessageKey`. This catches a key
+   renamed in the catalog and left behind here.
 2. Every key in `EN_MESSAGES` appears somewhere in this file, except the 64 `tutorial.levelN.*`
    keys the learning track section covers by their shape — its prose and its two programs alike.
    This catches a message added without a row.
@@ -1414,19 +1414,19 @@ is `src/i18n/inventory.test.ts`, which reads this file with `?raw` and checks it
 6. The learning track's table quotes each level title as `EN_MESSAGES` words it, and carries a row
    for every level in it. This is the one column of prose comparable by equality — the titles are
    copied whole rather than abridged — and it had already rotted when the check was added: level
-   6's row said "lies to passengers" where the catalogue says "lies to its passengers", through
+   6's row said "lies to passengers" where the catalog says "lies to its passengers", through
    five checks that all passed because none of them read the column.
 
 What it does not check is everything that cannot be read off `EN_MESSAGES`: the English column of
 _The strings_, which is abridged on purpose and so cannot be compared; the Notes and the _What
 reads them_ column; the counts in the section headings, which count what a section lists rather than what
-the catalogue holds; and the 81 and 82 above, which come from a grep over the whole tree. Those
+the catalog holds; and the 81 and 82 above, which come from a grep over the whole tree. Those
 are still prose and can still go quietly out of date. The test's own header says as much, so
 whoever reads it knows which columns are guarded and which are taken on trust.
 
 ## What changed on screen when this was wired
 
-Even in English, routing text through the catalogue changed three things. All three are
+Even in English, routing text through the catalog changed three things. All three are
 improvements, and all three are visible.
 
 1. **Grouped thousands.** Level 18 asks for 2675 people —
@@ -1437,14 +1437,14 @@ improvements, and all three are visible.
    cannot break across a line.
 
 There was a fourth, and it is worth recording where it went. The save confirmation under the
-editor had its time formatted through the catalogue too, which took `21:03:57 GMT+0300 (Moscow
+editor had its time formatted through the catalog too, which took `21:03:57 GMT+0300 (Moscow
 Standard Time)` down to `21:03:57`; the line itself is gone now, with the message and the
 `formatTimeOfDay` wrapper behind it, because `design/ui-mockup.html` draws no status line under
 the editor and a confirmation that reports the same success every few seconds is not news.
 
 ## Known overlap: `documentation.ru.html`
 
-While this catalogue was being written, another change added `documentation.ru.html` — a
+While this catalog was being written, another change added `documentation.ru.html` — a
 separate, fully translated Russian copy of the reference page, with `hreflang` alternates linking
 the pair. That covers the same ground as the 81 unread `docs.*` keys, by a different route: a
 static file per language instead of one document translated at run time.
@@ -1455,18 +1455,18 @@ one of them stayed there while `ru.ts` went on saying the thing that had been co
 `src/page.test.ts` now closes that gap from both ends, so the duplication is still there and can
 no longer drift silently. That turns the choice below from pending into deferred:
 
-- **Keep the static pages** and drop the `docs.*` keys from the catalogue, or generate
+- **Keep the static pages** and drop the `docs.*` keys from the catalog, or generate
   `documentation.ru.html` from them at build time. The 81 unread keys have no other call site, so
   removing them touches nothing else — but `docs.basics.example.code` does have one, and would
   have to stay.
-- **Keep the catalogue** and reduce `documentation.ru.html` to a redirect.
+- **Keep the catalog** and reduce `documentation.ru.html` to a redirect.
 
 Whoever takes it up should read `src/page.test.ts` first: whichever side is dropped, those
 assertions are the specification of what the surviving side has to keep saying.
 
 ## Adding a language
 
-One catalogue file, plus three lines the compiler demands anyway:
+One catalog file, plus three lines the compiler demands anyway:
 
 1. Add the code to `Locale` and `LOCALES` in `src/i18n/locale.ts`, and its endonym to
    `LOCALE_NAMES`. The language picker needs no edit at all: the options are built from
@@ -1474,20 +1474,20 @@ One catalogue file, plus three lines the compiler demands anyway:
 2. Add the plural categories `Intl` gives that language to `PLURAL_CATEGORIES` in
    `src/i18n/format.ts`. `src/i18n/format.test.ts` checks the list against ICU, so a wrong guess
    fails a test rather than mistranslating a count.
-3. Write `src/i18n/<code>.ts` as `MessageCatalogue<"<code>">`. Every missing key, every extra key
+3. Write `src/i18n/<code>.ts` as `MessageCatalog<"<code>">`. Every missing key, every extra key
    and every missing plural form is a compile error.
-4. Register it in `CATALOGUE_LOADERS` in `src/i18n/index.ts`, as a one-line loader that
+4. Register it in `CATALOG_LOADERS` in `src/i18n/index.ts`, as a one-line loader that
    `await import()`s the file and assigns it to that locale's own slot. Assigning to the slot by
    name is what makes step 3 bite: the Russian entry is checked against Russian's four plural
    forms and the English one against English's two. The `import()` sits inside that assignment
-   rather than around it, so splitting the catalogue out of the bundle costs none of the
+   rather than around it, so splitting the catalog out of the bundle costs none of the
    checking.
 
 The reference page is a separate job and deliberately so: the game no longer links to it, so the
-set of catalogues and the set of translated pages are free to differ. A catalogue is one file a
+set of catalogs and the set of translated pages are free to differ. A catalog is one file a
 translator can finish in an afternoon; the reference page is nine hundred lines of tables. Ship
 the interface first.
 
-The tests in `src/i18n/catalogue.test.ts` then check the new catalogue for key parity, placeholder
+The tests in `src/i18n/catalog.test.ts` then check the new catalog for key parity, placeholder
 parity, markup that matches the English structure, and example code identical to the English but
 for its comments.

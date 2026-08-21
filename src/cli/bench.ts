@@ -55,7 +55,7 @@
  * did — so a column heading here can only be an identifier that came out of the
  * simulation, not a sentence somebody wrote for a fixed list of three. The
  * prose in the output is the scenario name and, when a run is stopped, the
- * sentence saying so; both come from the catalogue and so follow `--locale`.
+ * sentence saying so; both come from the catalog and so follow `--locale`.
  * What a program threw is not translated, because it is the program's own text.
  *
  * Every figure in the table is printed to three decimals, one rule for every
@@ -277,7 +277,7 @@ function parseSeeds(value: string): readonly RandomSeed[] {
  *
  * @param value - What was typed.
  * @returns The locale.
- * @throws {BenchUsageError} When no such catalogue exists.
+ * @throws {BenchUsageError} When no such catalog exists.
  */
 function parseLocale(value: string): Locale {
   if (!isLocale(value)) {
@@ -686,7 +686,7 @@ export async function runBench(argv: readonly string[], io: BenchIo): Promise<nu
 
   // Before the suite runs, because the scenario names are rendered inside it --
   // `fitnessLevels` calls `t` at the start of every suite, which is exactly
-  // late enough for this. `loadLocale` never rejects: a catalogue that cannot be
+  // late enough for this. `loadLocale` never rejects: a catalog that cannot be
   // read leaves the report in English rather than taking the run down.
   await loadLocale(options.locale);
   setLocale(options.locale);
@@ -816,7 +816,7 @@ export function runSuiteInWorker(code: string, options: BenchOptions): Promise<F
     // The thread answers for the program itself -- what it throws at the run,
     // and what it leaves failing behind the run, both come back as a posted
     // result -- so an error arriving here is the thread itself failing: a syntax
-    // error in a module it loads, or a catalogue that would not import. That is
+    // error in a module it loads, or a catalog that would not import. That is
     // this tool being broken, and reporting it as a program that failed is how a
     // script scoring a directory of solutions comes to record every one of them
     // as broken and finish without a word.

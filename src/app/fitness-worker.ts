@@ -55,7 +55,7 @@ import type { Locale } from "../i18n/index.ts";
  * error in Russian. A player cannot tell which path ran, so the two have to
  * agree, and telling the worker the locale is what makes them.
  *
- * The field decides one more thing since the catalogues became chunks of their
+ * The field decides one more thing since the catalogs became chunks of their
  * own: whether there is anything to fetch before the worker can answer. English
  * is bundled with it, so a default-language request is answered in the tick it
  * arrives in; any other language is an `import()` away, and the reply waits on
@@ -104,14 +104,14 @@ self.onmessage = (event: MessageEvent<FitnessWorkerRequest>): void => {
   };
 
   // This is the point in the worker where waiting is possible, and so the point
-  // where a catalogue is fetched: `t` is synchronous everywhere below here --
+  // where a catalog is fetched: `t` is synchronous everywhere below here --
   // in the scenario names, in the elevator facade's complaints, in whatever the
   // player's program threw -- and the request is the first thing that says
   // which language any of it should come out in.
   //
   // Waiting only when there is something to wait for, rather than awaiting
   // unconditionally, keeps the default-language request exactly as prompt as it
-  // was before the catalogues were split: English is bundled, so it is loaded
+  // was before the catalogs were split: English is bundled, so it is loaded
   // before this file has run a line, and the common report is posted in the
   // same tick as the request that asked for it.
   if (isLocaleLoaded(locale)) {
@@ -121,7 +121,7 @@ self.onmessage = (event: MessageEvent<FitnessWorkerRequest>): void => {
   void loadLocale(locale)
     .then(report)
     .catch((error: unknown) => {
-      // `loadLocale` does not reject -- a catalogue that will not load leaves
+      // `loadLocale` does not reject -- a catalog that will not load leaves
       // the worker in English -- so this is for a bug in the suite itself.
       // Without it such a bug would be an unhandled rejection rather than the
       // error event the host listens for on a synchronous throw, and the host

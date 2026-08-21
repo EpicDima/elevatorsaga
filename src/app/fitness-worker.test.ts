@@ -4,7 +4,7 @@
  * `fitness.test.ts` covers what the worker computes -- that a request is scored
  * on the shipped seeds, that the answer comes back in the language the request
  * named, that an unknown tag falls back rather than killing the worker. What is
- * here is the timing that came with splitting the catalogues into chunks: a
+ * here is the timing that came with splitting the catalogs into chunks: a
  * language the worker does not have has to be fetched before anything can be
  * named, and that fetch is the one place in the worker where waiting is
  * possible. Every test below therefore drives a module graph of its own -- a
@@ -74,10 +74,10 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-describe("the fitness worker and the catalogue it reports in", () => {
+describe("the fitness worker and the catalog it reports in", () => {
   it("answers a request in the default language in the tick it arrived in", async () => {
     // What keeps the ordinary report exactly as prompt as it was before the
-    // catalogues were split: English is bundled with the worker, so there is
+    // catalogs were split: English is bundled with the worker, so there is
     // nothing to fetch and nothing to wait for.
     const worker = await startWorker();
 
@@ -86,7 +86,7 @@ describe("the fitness worker and the catalogue it reports in", () => {
     expect(worker.posted).toEqual([{ error: REFUSAL.en }]);
   });
 
-  it("waits for the catalogue before answering in a language it has to fetch", async () => {
+  it("waits for the catalog before answering in a language it has to fetch", async () => {
     const worker = await startWorker();
 
     worker.send({ code: REFUSED_PROGRAM, locale: "ru" });
@@ -99,11 +99,11 @@ describe("the fitness worker and the catalogue it reports in", () => {
     });
     // The player's own error, rendered inside the worker -- the half of the
     // report that has no identifier to send home in its place, and the reason
-    // the worker needs a catalogue at all.
+    // the worker needs a catalog at all.
     expect(worker.posted).toEqual([{ error: REFUSAL.ru }]);
   });
 
-  it("still answers when the catalogue cannot be fetched", async () => {
+  it("still answers when the catalog cannot be fetched", async () => {
     // A dropped response, an offline tab, a half-deployed build. The worker has
     // nobody to report that to and a player waiting on a benchmark, so the
     // report comes back in the language it does have rather than not at all --

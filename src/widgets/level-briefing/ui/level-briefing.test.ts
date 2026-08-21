@@ -78,9 +78,9 @@ describe("presentLevelBriefing", () => {
     expect(requireElement(".briefingtitle", parent).textContent).toBe("<script>alert(1)</script>");
   });
 
-  it("writes the briefing as the catalogue markup it is", () => {
+  it("writes the briefing as the catalog markup it is", () => {
     // The opposite treatment, and deliberately: a briefing is a `.html` message
-    // of this repository's own catalogue and carries <code>, <em> and
+    // of this repository's own catalog and carries <code>, <em> and
     // <span class="emphasis-color"> around the terms it introduces. Escaped, it
     // would print those tags at the player.
     presentLevelBriefing(parent, briefingData({ briefing: "<em>lift</em> dispatch" }));

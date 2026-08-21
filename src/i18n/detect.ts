@@ -62,7 +62,7 @@ export interface LocaleSources {
  *
  * @param hash - The location hash, with or without its `#`.
  * @returns The locale, or `undefined` when the hash names none or names one
- * the game has no catalogue for.
+ * the game has no catalog for.
  */
 export function localeFromQuery(hash: string): Locale | undefined {
   return matchLocale(parseQuery(hash).get(LOCALE_QUERY_KEY));
@@ -112,10 +112,10 @@ export function storeLocale(storage: Storage, locale: Locale): boolean {
 }
 
 /**
- * The first browser-preferred language the game has a catalogue for.
+ * The first browser-preferred language the game has a catalog for.
  *
  * Region subtags are dropped: `ru-RU`, `ru-BY` and `ru` all mean the Russian
- * catalogue, and a reader whose browser says `en-GB` should not fall through to
+ * catalog, and a reader whose browser says `en-GB` should not fall through to
  * a language they did not ask for just because the game has no British English.
  *
  * @param languages - Preferred languages, best first.

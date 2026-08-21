@@ -395,13 +395,13 @@ GitHub Pages project sub-path, without further configuration.
 The UI follows [Feature-Sliced Design](https://feature-sliced.design/): six layers, each only
 allowed to import from the ones below it. `src/game` and `src/i18n` sit outside that stack as
 dependency-free kernel libraries every layer may import — the simulation has no business being
-UI-aware, and the message catalogue is needed everywhere.
+UI-aware, and the message catalog is needed everywhere.
 
 ```
 src/
   game/       the simulation: elevators, floors, passengers, physics, levels,
               the event emitter, and the facades handed to player code
-  i18n/       message catalogue, locale detection, plural and number formatting
+  i18n/       message catalog, locale detection, plural and number formatting
   shared/     business-agnostic primitives: DOM helpers, markup templating, icons,
               modal/popover/disclosure widgets, geometry math
   entities/   UI-facing concepts: level, level tier, elevator, floor,

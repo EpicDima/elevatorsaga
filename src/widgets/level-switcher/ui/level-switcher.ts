@@ -300,7 +300,7 @@ function tileTemplate(tile: LevelMenuTile): string {
  * popover — so this file is the only reader either of them has left.
  *
  * The Skyscraper block does get a string of its own rather than borrowing one:
- * its levels are described in the catalogue level by level, and no message
+ * its levels are described in the catalog level by level, and no message
  * there names the block as a whole.
  *
  * The last has a string of its own too, and does not reuse the sandbox tile's:

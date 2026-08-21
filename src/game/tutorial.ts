@@ -25,7 +25,7 @@
  * `tutorial.levelN.startingCode.code` and `tutorial.levelN.solutionCode.code`,
  * because their `//` comments are prose addressed to the player and a Russian
  * player was reading them in English. The JavaScript is byte-identical in every
- * locale and only the comments are translated, which `src/i18n/catalogue.test.ts`
+ * locale and only the comments are translated, which `src/i18n/catalog.test.ts`
  * checks rather than trusts. Each level's lesson — what its program does wrong
  * and what the answer does instead — is still described in this file, above the
  * entry it belongs to.
@@ -64,7 +64,7 @@ import type { WorldOptions } from "./world.ts";
  * The same argument puts `startingCode` here. It is what the editor is filled
  * with *and* what the test proves cannot win; a second copy would mean the
  * failure being demonstrated is not the failure being measured. Moving the text
- * into the catalogue did not add a copy: it moved the one that exists, and the
+ * into the catalog did not add a copy: it moved the one that exists, and the
  * table is still the only way anything reaches it.
  */
 export interface TutorialLevel {

@@ -12,7 +12,7 @@ import {
   setLocale,
   t,
   translateIn,
-  CATALOGUE_LOADERS,
+  CATALOG_LOADERS,
 } from "./index.ts";
 
 /** The space Russian typography wants between a number and its unit. */
@@ -22,13 +22,13 @@ afterEach(() => {
   setLocale(DEFAULT_LOCALE);
 });
 
-describe("CATALOGUE_LOADERS", () => {
+describe("CATALOG_LOADERS", () => {
   it("has a loader for every locale the game claims to speak", () => {
-    expect(Object.keys(CATALOGUE_LOADERS).sort()).toEqual([...LOCALES].sort());
+    expect(Object.keys(CATALOG_LOADERS).sort()).toEqual([...LOCALES].sort());
   });
 
-  it("fetches the catalogue the translations are then rendered from", async () => {
-    // Not an identity check on a constant any more: the catalogue arrives when
+  it("fetches the catalog the translations are then rendered from", async () => {
+    // Not an identity check on a constant any more: the catalog arrives when
     // its chunk does, so what there is to check is that the one that arrives is
     // the one in `ru.ts` -- rendered through `t`, which is the only way anyone
     // reads it.
@@ -46,12 +46,12 @@ describe("CATALOGUE_LOADERS", () => {
   });
 });
 
-describe("a locale whose catalogue has not arrived yet", () => {
+describe("a locale whose catalog has not arrived yet", () => {
   /**
    * The i18n module with nothing but English loaded.
    *
    * A module graph of its own, because the Vitest setup file loads every
-   * catalogue into the one this file imported at the top -- which is what keeps
+   * catalog into the one this file imported at the top -- which is what keeps
    * the tests below, and in a dozen other files, able to name a language on one
    * line and assert on the next. This is where the state those tests are spared
    * is exercised on purpose.
@@ -85,7 +85,7 @@ describe("a locale whose catalogue has not arrived yet", () => {
   it("keeps the numbers in the language the words came out in", async () => {
     // Half a sentence in English and its decimal comma in Russian is a worse
     // answer than a whole sentence in English, so formatting follows the
-    // catalogue rather than the choice.
+    // catalog rather than the choice.
     const i18n = await unloadedI18n();
 
     i18n.setLocale("ru");
@@ -117,7 +117,7 @@ describe("a locale whose catalogue has not arrived yet", () => {
     expect(i18n.format(seconds(60))).toBe(`60${NBSP}\u0441`);
   });
 
-  it("fetches a catalogue once however many callers ask for it", async () => {
+  it("fetches a catalog once however many callers ask for it", async () => {
     const i18n = await unloadedI18n();
 
     const first = i18n.loadLocale("ru");
@@ -128,7 +128,7 @@ describe("a locale whose catalogue has not arrived yet", () => {
     expect(i18n.isLocaleLoaded("ru")).toBe(true);
   });
 
-  it("stays in English when the catalogue cannot be fetched", async () => {
+  it("stays in English when the catalog cannot be fetched", async () => {
     // A dropped response or a half-deployed build. The load resolves either
     // way: a rejection here would travel to the fitness worker, which has no
     // one to report it to and a player waiting on a benchmark.
@@ -205,7 +205,7 @@ describe("translateIn", () => {
 });
 
 describe("locale identity", () => {
-  it("recognises the locales it has catalogues for, and nothing else", () => {
+  it("recognises the locales it has catalogs for, and nothing else", () => {
     expect(isLocale("ru")).toBe(true);
     expect(isLocale("en")).toBe(true);
     expect(isLocale("de")).toBe(false);

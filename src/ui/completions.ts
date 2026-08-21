@@ -85,7 +85,7 @@ type CompletionMessageKey = Extract<MessageKey, `completion.${string}`>;
  * One entry as this module stores it: the same thing with its text still keyed.
  *
  * The tables are written in this form and rendered by {@link rendered}, which
- * is what defers every catalogue read to the moment the popup is built.
+ * is what defers every catalog read to the moment the popup is built.
  */
 interface KeyedCompletion {
   /** As {@link ApiCompletion.label}; an identifier, so not translated. */
@@ -121,7 +121,7 @@ export interface ApiCompletionResult {
  * A table of entries, in the language the player is reading right now.
  *
  * @param entries - The table, as it is written below.
- * @returns The same entries with their text rendered from the catalogue.
+ * @returns The same entries with their text rendered from the catalog.
  */
 function rendered(entries: readonly KeyedCompletion[]): readonly ApiCompletion[] {
   return entries.map(({ label, detail, info, type, apply }) => ({

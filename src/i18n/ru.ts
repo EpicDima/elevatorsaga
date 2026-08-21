@@ -1,10 +1,10 @@
 /**
- * Русский каталог / the Russian catalogue.
+ * Русский каталог / the Russian catalog.
  *
- * Typed as `MessageCatalogue<"ru">`, so it is checked against the English one
+ * Typed as `MessageCatalog<"ru">`, so it is checked against the English one
  * key by key: a missing message is a compile error, an invented one is a
  * compile error, and a counted message that forgets `few` or `many` is a
- * compile error too. `catalogue.test.ts` adds what the type system cannot see —
+ * compile error too. `catalog.test.ts` adds what the type system cannot see —
  * that the `{placeholders}` match, that no plain key smuggles in markup, and
  * that the code in the `.code` blocks is byte for byte the English code with
  * only its comments translated.
@@ -106,10 +106,10 @@
  *   21 секунды».
  */
 
-import type { MessageCatalogue } from "./catalogue.ts";
+import type { MessageCatalog } from "./catalog.ts";
 
 /** Every message the game can show, in Russian. */
-export const RU_MESSAGES: MessageCatalogue<"ru"> = {
+export const RU_MESSAGES: MessageCatalog<"ru"> = {
   // ------------------------------------------------------------------- игра
 
   "page.title": "Elevator Saga — игра про программирование лифтов",
@@ -302,7 +302,7 @@ export const RU_MESSAGES: MessageCatalogue<"ru"> = {
   // именем — LayoutModeId, не LayoutMode — потому что features не может
   // импортировать widgets (см. doc comment у layout-switch.ts). Ключи
   // "onlyCode"/"onlyGame", а не голое "code"/"game" ("code" совпало бы с
-  // зарезервированным суффиксом ".code" из catalogue.test.ts, который требует
+  // зарезервированным суффиксом ".code" из catalog.test.ts, который требует
   // побайтового совпадения между локалями — это подпись к примеру кода, а не
   // к режиму раскладки).
   "game.switchLayout.caption": "Раскладка",
@@ -1139,7 +1139,7 @@ elevator.goToFloor(2); // Всё равно добавится — очеред�
   // пассажир, загрузка, очередь этажей, обработчик, подписать, прогон.
   //
   // В ключах `.code` переведены только комментарии: сам код побайтово тот же,
-  // что и в английском каталоге, и это проверяет `catalogue.test.ts`, а не
+  // что и в английском каталоге, и это проверяет `catalog.test.ts`, а не
   // честное слово. Слова в комментариях намеренно те же, что в подсказках
   // этого же уровня: игрок читает программу в редакторе, а подсказки — рядом,
   // в панели, и «этот дом», «круг», «объезд» должны в обоих местах означать

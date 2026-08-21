@@ -1,12 +1,12 @@
 /**
- * The words that are written out in `index.html`, taken from the catalogue.
+ * The words that are written out in `index.html`, taken from the catalog.
  *
  * Everything the game draws while it runs goes through `t()` at the moment it
  * is drawn. The page shell cannot: it is a static file, it has to say something
  * before a single module has been fetched, and what it says is the English the
  * game was written in. That English is the right thing to ship — a reader with
  * no JavaScript, and every crawler, gets a real page rather than an empty one —
- * but it has to be replaceable once the catalogue is in memory, and nothing in
+ * but it has to be replaceable once the catalog is in memory, and nothing in
  * the shell tells a program which of its words are words rather than markup.
  *
  * Two attributes say so. `data-i18n="page.brand"` means the element's
@@ -14,7 +14,7 @@
  * means an attribute of it is; several attributes can be named at once,
  * separated by commas. A key ending in `.html` is written with `innerHTML`,
  * following the convention the rest of the i18n code uses: those values are
- * trusted markup from the catalogue, never anything a player typed.
+ * trusted markup from the catalog, never anything a player typed.
  *
  * Marking up a document for a program to read is a cost, and it was weighed
  * against the alternative — a table in here mapping CSS selectors to keys. The
@@ -80,9 +80,9 @@ const MAPPING_SEPARATOR = ",";
 type ShellMessageKey = { [K in MessageKey]: MessageArgs<K> extends [] ? K : never }[MessageKey];
 
 /**
- * The English catalogue as plain data.
+ * The English catalog as plain data.
  *
- * A key arriving from an attribute is a string, and the typed catalogue cannot
+ * A key arriving from an attribute is a string, and the typed catalog cannot
  * be indexed with one. Widening it here — rather than casting at the point of
  * use — keeps the one unavoidable loss of type information in a single place,
  * and it loses only the key, not the value, which stays `unknown`.
@@ -92,7 +92,7 @@ const ENGLISH_VALUES: Readonly<Record<string, unknown>> = EN_MESSAGES;
 /**
  * Whether a string names a message this can render.
  *
- * Both halves matter. A key that is not in the catalogue is a typo or a message
+ * Both halves matter. A key that is not in the catalog is a typo or a message
  * that has been renamed out from under the shell; a key whose English holds a
  * `{placeholder}` is a message that belongs at a call site with something to
  * fill it, and rendering it here would print the placeholder's name at the
@@ -111,7 +111,7 @@ function isShellMessageKey(key: string): key is ShellMessageKey {
  * The locale the shell can actually be written in at this moment.
  *
  * {@link getLocale} is what the player asked for, which is not the same thing
- * until the catalogue lands. `<html lang>` has to agree with the words actually
+ * until the catalog lands. `<html lang>` has to agree with the words actually
  * on the page rather than with the intention behind them: a screen reader picks
  * its voice and its pronunciation rules from that attribute, and English
  * sentences announced as Russian are worse than English sentences.
@@ -124,14 +124,14 @@ function renderedLocale(): Locale {
 }
 
 /**
- * Reports a key the shell names and the catalogue cannot answer.
+ * Reports a key the shell names and the catalog cannot answer.
  *
  * A warning rather than a thrown error, following `src/pages/game/model/route.ts`: the
  * element keeps the English it shipped with, which is a worse answer than the
  * player's language but a far better one than a blank page or a game that
  * refuses to start over a mistyped attribute. What stops that from being a
  * silent decay is `localise-page.test.ts`, which reads every key in the shell
- * and fails on any the catalogue does not have.
+ * and fails on any the catalog does not have.
  *
  * @param attribute - The attribute the key was read from.
  * @param key - The key itself.
@@ -168,7 +168,7 @@ function localiseAttributes(element: Element, mappings: string): void {
     // Split at the first colon rather than on it, so that only the attribute
     // name is taken and the rest of the mapping stays whole. Message keys are
     // dotted, not colonned, but a key that ever holds one should reach the
-    // catalogue as it was written and be refused there.
+    // catalog as it was written and be refused there.
     const name = separator === -1 ? "" : mapping.slice(0, separator).trim();
     const key = mapping.slice(separator + 1).trim();
     if (name === "" || !isShellMessageKey(key)) {

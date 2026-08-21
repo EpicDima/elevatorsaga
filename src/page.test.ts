@@ -12,7 +12,7 @@ import { ElevatorInterface, type ElevatorInterfaceEvents } from "./game/elevator
 import { Floor } from "./game/floor.ts";
 import { FloorInterface, type FloorInterfaceEvents } from "./game/floor-interface.ts";
 import { tutorialLevels } from "./game/tutorial.ts";
-import type { MessageKey } from "./i18n/catalogue.ts";
+import type { MessageKey } from "./i18n/catalog.ts";
 import { EN_MESSAGES } from "./i18n/en.ts";
 import { setLocale, DEFAULT_LOCALE } from "./i18n/index.ts";
 import { RU_MESSAGES } from "./i18n/ru.ts";
@@ -168,7 +168,7 @@ describe("index.html", () => {
 
   it("ships the run controls' mount bare, for the app bar to adopt", () => {
     // Empty, because presentControls writes every word of it from the
-    // catalogue at the moment it draws; and unnamed, because what it holds
+    // catalog at the moment it draws; and unnamed, because what it holds
     // names itself -- the two run buttons by their own labels, the speed by
     // its own role and label. A third name wrapped around those would be one
     // more thing to read past on the way to them. It is in `<main>` here and
@@ -226,29 +226,41 @@ describe("index.html", () => {
   it("puts the app bar's own mark in the tab", () => {
     // One drawing, two places: the tab and the bar are the same site, and a
     // favicon that is merely in the same spirit as the brand is a thing that
-    // drifts. So this compares the two cars themselves rather than trusting
-    // the comment in either file to stay true.
+    // drifts. So this compares the shapes themselves rather than trusting the
+    // comment in either file to stay true.
     //
-    // The cars are the two rects drawn at a depth, in both files -- neither
-    // the bar's stroked frame nor the favicon's filled plate carries an
-    // `opacity`, which is what makes that the selector rather than a count or
-    // a position among siblings. Everything else about the two files differs
-    // on purpose; public/favicon.svg says why.
+    // The cars are the rects drawn at a depth and the frame is the one drawn
+    // as an outline, in both files -- the favicon's plate is neither, which is
+    // what makes those the selectors rather than a count or a position among
+    // siblings. Colour stays out of the comparison: the bar inherits
+    // `currentcolor` and a file under public/ has to write the brass out.
+    // public/favicon.svg says why.
+    const geometry = (rect: Element): Record<string, string | null> => ({
+      x: rect.getAttribute("x"),
+      y: rect.getAttribute("y"),
+      width: rect.getAttribute("width"),
+      height: rect.getAttribute("height"),
+      rx: rect.getAttribute("rx"),
+    });
     const carShapes = (root: ParentNode): Record<string, string | null>[] =>
       [...root.querySelectorAll("rect[opacity]")].map((car) => ({
-        x: car.getAttribute("x"),
-        y: car.getAttribute("y"),
-        width: car.getAttribute("width"),
-        height: car.getAttribute("height"),
-        rx: car.getAttribute("rx"),
+        ...geometry(car),
         opacity: car.getAttribute("opacity"),
       }));
+    const frameShape = (root: ParentNode): Record<string, string | null> | null => {
+      const frame = root.querySelector("rect[stroke]");
+      return frame === null
+        ? null
+        : { ...geometry(frame), strokeWidth: frame.getAttribute("stroke-width") };
+    };
 
     const favicon = new DOMParser().parseFromString(faviconSource, "image/svg+xml");
     const { brand } = buildAppBarSkeleton(document, { brandName: EN_MESSAGES["page.brand"] });
 
     expect(carShapes(favicon)).toHaveLength(2);
     expect(carShapes(favicon)).toEqual(carShapes(brand));
+    expect(frameShape(brand)).not.toBeNull();
+    expect(frameShape(favicon)).toEqual(frameShape(brand));
     expect(favicon.documentElement.getAttribute("viewBox")).toBe(
       brand.querySelector(".brand-mark")?.getAttribute("viewBox"),
     );
@@ -1000,15 +1012,15 @@ describe("documentation.html and documentation.ru.html, as one document in two l
 });
 
 /**
- * The message catalogue of every language a page is published in.
+ * The message catalog of every language a page is published in.
  *
- * Typed loosely on purpose: `MessageCatalogue<"en">` and `MessageCatalogue<"ru">`
+ * Typed loosely on purpose: `MessageCatalog<"en">` and `MessageCatalog<"ru">`
  * are different types -- their plural messages have different sets of forms --
  * so indexing the union of the two by a key yields a union of values that every
  * read below would have to narrow again. Nothing here cares which language it
  * is holding, only what a key says in it.
  */
-const CATALOGUES: Readonly<Record<Language, Readonly<Record<string, unknown>>>> = {
+const CATALOGS: Readonly<Record<Language, Readonly<Record<string, unknown>>>> = {
   en: EN_MESSAGES,
   ru: RU_MESSAGES,
 };
@@ -1029,7 +1041,7 @@ const PLACEHOLDER = /\{\w+\}/g;
 /**
  * What one message says.
  *
- * @param language - The catalogue to read it from.
+ * @param language - The catalog to read it from.
  * @param key - The message.
  * @returns Its value.
  * @throws If it has plural forms. Nothing checked here counts anything, and a
@@ -1037,7 +1049,7 @@ const PLACEHOLDER = /\{\w+\}/g;
  * quietly match nothing on the page.
  */
 function message(language: Language, key: MessageKey): string {
-  const value = CATALOGUES[language][key];
+  const value = CATALOGS[language][key];
   if (typeof value !== "string") {
     throw new Error(`${key} has plural forms, and nothing on the page prints one`);
   }
@@ -1204,7 +1216,7 @@ const REFERENCE_SECTIONS: readonly {
 /**
  * A name with the punctuation taken out of it.
  *
- * The tables and the catalogue spell the same name differently and neither
+ * The tables and the catalog spell the same name differently and neither
  * spelling can be derived from the other: the page writes `buttonstate_change`
  * where the key writes `buttonStateChange`, and camel-casing the first gives
  * `buttonstateChange`. The letters are what the two of them agree on.
@@ -1235,7 +1247,7 @@ function commentsIn(code: string): string[] {
  * @param prefix - The key prefix of the section it is documented in.
  * @param name - What the first cell of its row says.
  * @returns The key, with or without the `.html` that admits to markup.
- * @throws If the catalogue has no message for that row, or more than one.
+ * @throws If the catalog has no message for that row, or more than one.
  * Either way there is nothing to check the row against, which is not a thing to
  * pass over quietly.
  */
@@ -1304,8 +1316,8 @@ function documentedRows(reference: ReferencePage): DocumentedRow[] {
  * The reference pages are the reviewed copy; `src/i18n` is a copy of them.
  *
  * Every `docs.*` message was lifted from these pages word for word, and the
- * interface will be wired through the catalogue rather than the HTML. Until it
- * is, the page is what a reader sees and the catalogue is what nobody sees --
+ * interface will be wired through the catalog rather than the HTML. Until it
+ * is, the page is what a reader sees and the catalog is what nobody sees --
  * which is exactly the arrangement in which one of them gets corrected and the
  * other does not. That is not hypothetical: the review of the Russian page put
  * a dozen corrections into `documentation.ru.html`, and every one of them
@@ -1320,7 +1332,7 @@ function documentedRows(reference: ReferencePage): DocumentedRow[] {
 describe.each(DOCUMENTATION_PAGES)("src/i18n, against $file", (reference) => {
   const docs = reference.document;
 
-  it("names itself in the words the catalogue has", () => {
+  it("names itself in the words the catalog has", () => {
     expect(docs.title).toBe(message(reference.language, "docs.page.title"));
     expect(metaContent(docs, "description")).toBe(
       message(reference.language, "docs.page.description"),
@@ -1332,14 +1344,14 @@ describe.each(DOCUMENTATION_PAGES)("src/i18n, against $file", (reference) => {
     );
   });
 
-  it("prints the catalogue's prose, in the order the catalogue has it", () => {
+  it("prints the catalog's prose, in the order the catalog has it", () => {
     expectRun(reference, "main h2", SECTION_HEADINGS);
     expectRun(reference, "main h3", SUBSECTION_HEADINGS);
     expectRun(reference, "main > p", PARAGRAPHS);
     expectRun(reference, "main dl dd", EXAMPLE_NOTES);
   });
 
-  it("heads its columns with the catalogue's words", () => {
+  it("heads its columns with the catalog's words", () => {
     const tables = [...docs.querySelectorAll("table.doctable")];
     expect(tables).toHaveLength(TABLE_HEADINGS.length);
     tables.forEach((table, index) => {
@@ -1352,7 +1364,7 @@ describe.each(DOCUMENTATION_PAGES)("src/i18n, against $file", (reference) => {
     });
   });
 
-  it("explains every member in the words the catalogue has", () => {
+  it("explains every member in the words the catalog has", () => {
     const rows = documentedRows(reference);
     // A page whose tables the scraper cannot read would otherwise check nothing
     // at all and say so by passing. The second count is the same rows reached
@@ -1365,7 +1377,7 @@ describe.each(DOCUMENTATION_PAGES)("src/i18n, against $file", (reference) => {
     }
   });
 
-  it("prints every example the catalogue keeps, byte for byte", () => {
+  it("prints every example the catalog keeps, byte for byte", () => {
     expect(docs.querySelector("main > pre code")?.textContent).toBe(
       message(reference.language, "docs.basics.example.code"),
     );
@@ -1375,7 +1387,7 @@ describe.each(DOCUMENTATION_PAGES)("src/i18n, against $file", (reference) => {
       }
     }
 
-    // An example is in the catalogue exactly when it has a comment in it, since
+    // An example is in the catalog exactly when it has a comment in it, since
     // the comment is the only part of an example that gets translated. Held
     // both ways round: a comment added to an example that has no key is a line
     // of English that would stay English on the Russian page.
@@ -1411,7 +1423,7 @@ describe.each(DOCUMENTATION_PAGES)("src/i18n, against $file", (reference) => {
  * The popup's tables as it would draw them right now, by the part of a
  * `completion.*` key that names one.
  *
- * A function, because the tables are: they render from the catalogue for the
+ * A function, because the tables are: they render from the catalog for the
  * language that is active when they are asked for, which is what lets the
  * checks below read the same popup twice in two languages.
  *
@@ -1476,7 +1488,7 @@ function shortenable(value: string): string {
  *
  * Everything else the popup shows is a stretch of a reference page, and is held
  * to the page's translation of it. These say the same thing more briefly than
- * any cell does, so nothing outside the catalogue holds them to anything. The
+ * any cell does, so nothing outside the catalog holds them to anything. The
  * list is here so that a line joining it is a decision somebody made rather
  * than a check that quietly stopped applying.
  */
@@ -1492,7 +1504,7 @@ const POPUP_ONLY_WORDING: readonly MessageKey[] = [
 
 describe("src/i18n, against the editor it also speaks for", () => {
   // Two of these read the popup in a named language, and the rest of the file
-  // reads catalogues directly and does not care; leaving the interface in the
+  // reads catalogs directly and does not care; leaving the interface in the
   // language it starts in is what keeps that true.
   afterEach(() => {
     setLocale(DEFAULT_LOCALE);
@@ -1501,9 +1513,9 @@ describe("src/i18n, against the editor it also speaks for", () => {
   it("gives the popup exactly what it says, in every language", () => {
     // The completion popup has no page for a reviewer to read, so this is what
     // holds its text: every `completion.*` key belongs to an entry of the table
-    // its name points at, and that entry says what the catalogue says for the
+    // its name points at, and that entry says what the catalog says for the
     // language on screen. In English it is also the record that routing the
-    // popup through the catalogue changed nothing a player can see -- these are
+    // popup through the catalog changed nothing a player can see -- these are
     // the strings `src/ui/completions.ts` used to carry as literals.
     const spoken = COMPLETION_KEYS.filter((key) => !key.endsWith(".code"));
     expect(spoken.length).toBeGreaterThan(20);

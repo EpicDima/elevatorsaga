@@ -102,10 +102,10 @@ function levelById(id: string): SkyscraperLevel {
 /**
  * The repair the demonstrating levels point at: `sky-3`'s shipped starter.
  *
- * Read from the catalogue rather than written out again, so that the program
+ * Read from the catalog rather than written out again, so that the program
  * this file certifies as a win is the same text a player is handed. Reading it
  * once at module load is safe in a way it would not be in `skyscraper.ts`: the
- * locale is whatever the suite starts in, and `catalogue.test.ts` holds every
+ * locale is whatever the suite starts in, and `catalog.test.ts` holds every
  * `.code` value byte-identical across languages apart from its comments, so
  * there is no language in which this program runs differently.
  */

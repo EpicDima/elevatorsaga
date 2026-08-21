@@ -4,7 +4,7 @@
  * Ported from the legacy `challenges.js`. The descriptions contain the same
  * HTML markup as before because the view drops them straight into the page.
  *
- * They are built out of the message catalogue rather than written here, which is
+ * They are built out of the message catalog rather than written here, which is
  * what a language other than English needs from them. Each is two messages deep:
  * a sentence with holes in it, and a counted phrase for each hole. Russian is
  * why — «Перевезите 23 пассажира» wants the accusative and «дольше 2,0 секунды»
@@ -59,11 +59,11 @@ export interface LevelCondition {
    * Human-readable requirement; contains HTML markup.
    *
    * Read afresh every time, and a getter on everything that implements it,
-   * because the words come out of the message catalogue and the locale outlives
+   * because the words come out of the message catalog and the locale outlives
    * the object: {@link levels} is a module-level constant, so a string
    * computed there would be frozen in whichever language happened to be active
    * when the module was first imported — English, always, since nothing has
-   * loaded a catalogue that early. A getter puts it in the language of the
+   * loaded a catalog that early. A getter puts it in the language of the
    * moment the bar was last drawn, which is exactly the contract
    * {@link "../i18n/index.ts"!setLocale} asks callers to keep: change the
    * locale, then redraw.
@@ -325,7 +325,7 @@ export interface SandboxOptions {
  * Wraps a value in the emphasis markup the level bar paints numbers with.
  *
  * The one number in a description that no message of its own can carry: the
- * capacities are a list of unknown length, and a catalogue entry holds a
+ * capacities are a list of unknown length, and a catalog entry holds a
  * sentence rather than a loop. Everything else here is a counted phrase, which
  * needs its noun agreed with the count and so has to be a message.
  *

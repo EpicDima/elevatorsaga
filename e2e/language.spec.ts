@@ -4,16 +4,16 @@
  * `src/ui/preferred-locale.test.ts` proves which language is chosen and that
  * the page shell comes out in it, against a document it parsed itself. What it
  * cannot prove is the half that only exists in the built site: that the Russian
- * catalogue is a chunk a browser can actually fetch — until the page asked for
+ * catalog is a chunk a browser can actually fetch — until the page asked for
  * one there was nothing in the game that reached it at all — and that what the
  * reader ends up looking at agrees with itself. The shell is rewritten from the
- * catalogue and the level bar is drawn from it, by different code at
+ * catalog and the level bar is drawn from it, by different code at
  * different moments; a Russian shell around an English level bar is worse
  * than either language on its own, and this is the only place it would show.
  *
  * The Russian words below are asserted as a reader sees them, like every other
  * spec here, rather than imported from `src/i18n/ru.ts`. A test that reads the
- * same catalogue the page does would pass just as happily on a catalogue that
+ * same catalog the page does would pass just as happily on a catalog that
  * had quietly stopped being Russian.
  */
 
@@ -27,7 +27,7 @@ test("shows the whole game in the language a link asks for", async ({ page }) =>
   // What a screen reader picks its voice from, and what a crawler is told.
   await expect(page.locator("html")).toHaveAttribute("lang", "ru");
   // The shell: shipped in English by `index.html`, rewritten from the
-  // catalogue. The skip link is the whole of it that is still words -- what the
+  // catalog. The skip link is the whole of it that is still words -- what the
   // header used to say is the app bar's now, and the app bar writes its own.
   await expect(page.getByRole("link", { name: "Перейти к редактору кода" })).toBeAttached();
   // Not `getByText`: the same caption key now labels two live elements at
@@ -36,14 +36,14 @@ test("shows the whole game in the language a link asks for", async ({ page }) =>
   await expect(page.locator('.meter[data-kind="transportedCounter"] .cap')).toHaveText(
     "Перевезено",
   );
-  // The game the shell frames, drawn through the same catalogue by the
+  // The game the shell frames, drawn through the same catalog by the
   // presenters -- and only after it had arrived, which is what keeps the two
   // halves of the page in one language.
   await expect(page.getByRole("button", { name: "Уровень 1" })).toBeVisible();
   await expect(startButton(page, "Запустить")).toBeVisible();
   // And nothing here still says it in English -- the button above is found by
   // its exact translated name, but a caption pasted together from two
-  // catalogue keys could still leak one's English into the other's row.
+  // catalog keys could still leak one's English into the other's row.
   await expect(page.locator(".task-name")).not.toContainText("Level");
 });
 

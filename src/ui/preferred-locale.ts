@@ -5,23 +5,23 @@
  * `src/ui/localise-page.ts` writes the shell in whatever language is active.
  * This is the one thing that puts the two together, which makes it the place
  * the two decisions start-up has to make are taken and written down: how long
- * the first draw waits for a catalogue, and whether the language it found is
+ * the first draw waits for a catalog, and whether the language it found is
  * remembered.
  *
  * A module of its own rather than another function in `localise-page.ts`,
  * because that file is a writer with no policy in it — given the active locale,
- * it puts the catalogue's words into the document — whereas everything here is
+ * it puts the catalog's words into the document — whereas everything here is
  * policy. And because proving that the page waits needs a module graph in which
- * the Russian catalogue has *not* been loaded, which `src/i18n/test-setup.ts`
+ * the Russian catalog has *not* been loaded, which `src/i18n/test-setup.ts`
  * otherwise guarantees it has been; that is a strange thing to keep in a test
  * file whose subject is `index.html`.
  *
- * ## The first draw waits for the catalogue
+ * ## The first draw waits for the catalog
  *
- * English is bundled and every other catalogue is fetched, so a reader of
+ * English is bundled and every other catalog is fetched, so a reader of
  * another language can either wait for theirs before anything is drawn, or be
  * shown the English game and have it rewritten underneath them when the
- * catalogue lands. This waits.
+ * catalog lands. This waits.
  *
  * "Draw now, re-localise later" is a real option, and it is the one the language
  * picker takes: {@link localisePage} re-reads the document, and
@@ -42,7 +42,7 @@
  * is the default language and is in memory before any of this is evaluated, so
  * {@link loadLocale} for it is an already-settled promise and the
  * overwhelmingly common visit pays a microtask. A reader of another language
- * pays one fetch of one catalogue chunk, while looking at the English
+ * pays one fetch of one catalog chunk, while looking at the English
  * `index.html` ships — which is what they were looking at for the whole of the
  * page's load anyway. What waiting buys them is that the page changes language
  * once, when the game appears, instead of twice.
@@ -114,12 +114,12 @@ export async function applyPreferredLocale(
   // choice while the fetch is in flight -- `getLocale` is what the fitness
   // worker is sent and what a picker would show as selected -- sees the language
   // that was asked for. It cannot leave anything half-translated in the
-  // meantime: `t` and `format` both answer in English until the catalogue is in
+  // meantime: `t` and `format` both answer in English until the catalog is in
   // memory, and `localisePage` takes `<html lang>` from what it could actually
   // write rather than from this.
   setLocale(locale);
   // The very fetch `setLocale` started, joined rather than started again. A
-  // catalogue that cannot be had resolves too, and leaves the page in English:
+  // catalog that cannot be had resolves too, and leaves the page in English:
   // `loadLocale` never rejects, and there is nothing better to do about a
   // dropped response than play the game in the language every string exists in.
   await loadLocale(locale);

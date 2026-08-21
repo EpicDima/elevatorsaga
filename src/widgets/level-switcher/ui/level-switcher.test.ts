@@ -191,7 +191,7 @@ describe("presentLevelSwitcher", () => {
 
     const captions = [...parent.querySelectorAll(".taskblock .cap")].map((el) => el.textContent);
     // The Skyscraper block is captioned with a string of its own rather than
-    // borrowing one, since nothing in the catalogue names the block as a whole.
+    // borrowing one, since nothing in the catalog names the block as a whole.
     // The last block is captioned "Other" while the one tile inside it is
     // captioned "Sandbox" — see `blockCaption` for why they are not the same
     // word.

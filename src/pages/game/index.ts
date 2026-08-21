@@ -321,7 +321,7 @@ export interface ControlsPresenter {
  * because the markup never goes away.
  *
  * A language change needs no more than another {@link ControlsPresenter.update}:
- * every word this row shows is written there, from the catalogue, at the moment
+ * every word this row shows is written there, from the catalog, at the moment
  * it is written.
  *
  * The two run buttons are drawn and driven by `#features/run-simulation`'s
@@ -1399,7 +1399,7 @@ export class App {
    * A `seed` in the hash still outranks everything but a level's own, so `#seed=…`
    * brings the same passengers in the same order from the Restart button, from
    * Ctrl-Enter and from a reload alike. How far that carries into the run itself
-   * is the subject of `game.seed.explanation` in the message catalogues: the
+   * is the subject of `game.seed.explanation` in the message catalogs: the
    * passengers, and -- since the world advances in fixed `TICK_SECONDS` ticks --
    * the run they arrive into as well, for as long as the program is played the
    * same way.
@@ -2051,7 +2051,7 @@ export class App {
       return;
     }
     // Read here, on the way in, rather than passed as a level id for the widget
-    // to look up. `card` is a getter over the message catalogue, so reading it
+    // to look up. `card` is a getter over the message catalog, so reading it
     // at the moment of drawing is what puts the card in the language being drawn
     // -- which is the whole reason this method is called again on a language
     // change. Most levels of the block answer `undefined` and fall through to
@@ -2121,7 +2121,7 @@ export class App {
   /**
    * Puts everything the app has drawn into the language that is active now.
    *
-   * Called when the language picker changes the language, after the catalogue
+   * Called when the language picker changes the language, after the catalog
    * has been fetched and after `localisePage` has rewritten the shell. The run
    * in progress survives it: nothing here tears down a world, so the passengers,
    * the clock, the score and the seed are the ones the player already had.

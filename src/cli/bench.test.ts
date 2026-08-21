@@ -272,7 +272,7 @@ describe("reading the command line", () => {
     }
   });
 
-  it("refuses a language this build has no catalogue for", () => {
+  it("refuses a language this build has no catalog for", () => {
     expect(() => parseBenchArgs(["solution.js", "--locale", "kl"])).toThrow(/Unknown locale: kl/);
   });
 

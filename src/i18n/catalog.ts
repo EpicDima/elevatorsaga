@@ -1,9 +1,9 @@
 /**
- * The message catalogue: what a translation must contain, and how a message is
+ * The message catalog: what a translation must contain, and how a message is
  * looked up.
  *
- * The English catalogue is the schema. `MessageKey` is `keyof typeof
- * EN_MESSAGES`, and `MessageCatalogue<L>` is a mapped type over it, so a
+ * The English catalog is the schema. `MessageKey` is `keyof typeof
+ * EN_MESSAGES`, and `MessageCatalog<L>` is a mapped type over it, so a
  * translation cannot be missing a key, cannot invent one, and cannot answer a
  * counted message with a plain string. None of that is a `Record<string,
  * string>`, deliberately: with one, the failure mode is a blank sentence in
@@ -39,12 +39,12 @@ type EnglishValue<K extends MessageKey> = (typeof EN_MESSAGES)[K];
 /**
  * A complete translation into one locale.
  *
- * Shaped from the English catalogue, so the two can never drift apart without
+ * Shaped from the English catalog, so the two can never drift apart without
  * the build saying so. Plural entries take the categories of the target locale
- * rather than English's two: `MessageCatalogue<"ru">` demands `few` and `many`
+ * rather than English's two: `MessageCatalog<"ru">` demands `few` and `many`
  * from every counted message, which is the whole point of the exercise.
  */
-export type MessageCatalogue<L extends Locale> = {
+export type MessageCatalog<L extends Locale> = {
   readonly [K in MessageKey]: EnglishValue<K> extends string ? string : PluralForms<L>;
 };
 
@@ -81,7 +81,7 @@ type MessageStrings<K extends MessageKey> =
  *
  * Read off the English text, since that is the reference: a translation that
  * spells a placeholder differently would silently print the placeholder, which
- * `catalogue.test.ts` catches by comparing the two sets. Counted messages take
+ * `catalog.test.ts` catches by comparing the two sets. Counted messages take
  * `count` whether or not they show it — a language may well need the number to
  * pick a form and not repeat it in words.
  */
@@ -112,7 +112,7 @@ export type MessageArgs<K extends MessageKey> = [ParamNames<K>] extends [never]
   : [params: MessageParams<K>];
 
 /**
- * A catalogue entry as the lookup sees it, with the locale forgotten.
+ * A catalog entry as the lookup sees it, with the locale forgotten.
  *
  * Every category is optional here even though {@link PluralForms} makes each
  * one mandatory for the locale it belongs to: which categories those are
@@ -121,7 +121,7 @@ export type MessageArgs<K extends MessageKey> = [ParamNames<K>] extends [never]
  * question rather than a dead branch, and `other` — the one category every
  * language has — is the answer.
  */
-type CatalogueEntry = string | Readonly<Partial<Record<Intl.LDMLPluralRule, string>>>;
+type CatalogEntry = string | Readonly<Partial<Record<Intl.LDMLPluralRule, string>>>;
 
 /** Parameters as the lookup sees them, with the message forgotten. */
 interface LooseParams {
@@ -134,34 +134,34 @@ interface LooseParams {
 /**
  * Looks up a message and renders it.
  *
- * Takes the catalogue rather than reaching for a module-level one so that it
+ * Takes the catalog rather than reaching for a module-level one so that it
  * stays a pure function of its arguments: the tests can render Russian and
  * English side by side, and `index.ts` is left as the only place that knows
  * which locale is currently on screen.
  *
  * @param locale - The locale being rendered, used for plurals and numbers.
- * @param catalogue - That locale's catalogue.
+ * @param catalog - That locale's catalog.
  * @param key - The message wanted.
  * @param args - Its parameters, if it takes any.
  * @returns The rendered message.
  */
 export function translate<L extends Locale, K extends MessageKey>(
   locale: L,
-  catalogue: MessageCatalogue<L>,
+  catalog: MessageCatalog<L>,
   key: K,
   ...args: MessageArgs<K>
 ): string;
 export function translate(
   locale: Locale,
-  catalogue: Readonly<Record<string, CatalogueEntry>>,
+  catalog: Readonly<Record<string, CatalogEntry>>,
   key: string,
   params: LooseParams = {},
 ): string {
-  const entry = catalogue[key];
+  const entry = catalog[key];
   if (entry === undefined) {
     // Unreachable through the typed signature; a key that does not exist is a
     // compile error. Showing the key beats showing nothing if one ever gets in
-    // through a cast or a hand-written catalogue.
+    // through a cast or a hand-written catalog.
     return key;
   }
   if (typeof entry === "string") {

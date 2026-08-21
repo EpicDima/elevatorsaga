@@ -1,11 +1,11 @@
 /**
- * `docs/i18n-inventory.md`, against the catalogue and the tree it describes.
+ * `docs/i18n-inventory.md`, against the catalog and the tree it describes.
  *
  * The inventory is the map of `src/i18n/`: every key, what it says, and what
  * reads it. Until this file, nothing in the repository read it — `en.ts` names
  * it in a comment and that is all — and it rotted the way an unread document
  * does. The version the rebuild in `4a58d85` replaced printed a total of 209
- * for a catalogue that held 210, and carried 237 `file.ts:123` pins, 95 of
+ * for a catalog that held 210, and carried 237 `file.ts:123` pins, 95 of
  * which now point at a line other than the one they were written against.
  * Those numbers are counted off `git show a5010f2`, not taken on report; the
  * document prints the command for the last of them. All of it compiled, all of
@@ -19,10 +19,10 @@
  * 2. every key in `EN_MESSAGES` is named, bar the learning track's per-level
  *    keys — its prose and its two programs alike — which the document covers by
  *    their shape;
- * 3. the counts it prints are the counts the catalogue has;
+ * 3. the counts it prints are the counts the catalog has;
  * 4. every backticked `src/…` path exists on disk;
  * 5. no `file.ts:123` pin below the section that bans them;
- * 6. the learning track's table quotes each level title as the catalogue words
+ * 6. the learning track's table quotes each level title as the catalog words
  *    it, and has a row for every level.
  *
  * What this deliberately does **not** check, because an over-claimed guard is
@@ -31,7 +31,7 @@
  *
  * - the **English** column of _The strings_. It is deliberately abridged —
  *   whitespace collapsed, values cut and marked `…`, markup dropped — so it
- *   cannot be compared with the catalogue by equality, and comparing a prefix
+ *   cannot be compared with the catalog by equality, and comparing a prefix
  *   would pass on text that was truncated before the part that changed. The
  *   learning track's titles are the exception check 6 makes, and they are one
  *   because they are quoted whole.
@@ -39,11 +39,11 @@
  *   about which module calls what. A row can be right about its key and wrong
  *   about everything beside it, and nothing here would know.
  * - the counts in the section headings (`— 18 `game.*` keys`). Those count what
- *   a section lists rather than what the catalogue holds — `src/ui/templates.ts`
+ *   a section lists rather than what the catalog holds — `src/ui/templates.ts`
  *   reads 18 of the 26 `game.*` keys — so there is nothing in `EN_MESSAGES` to
  *   compare them against.
  * - the 83 and 85 in _Where the strings are_. They come from a grep over the
- *   whole tree, not from the catalogue, and reproducing that grep here would
+ *   whole tree, not from the catalog, and reproducing that grep here would
  *   make this suite fail whenever an unrelated file is mid-edit.
  * - paths outside `src/`. The document says why: a message key such as
  *   `docs.play.start.html` is shaped like a file name and is not one, and
@@ -67,7 +67,7 @@ import { EN_MESSAGES } from "./en.ts";
 /** The repository root, from this file's own location. */
 const ROOT = fileURLToPath(new URL("../..", import.meta.url));
 
-/** Every key the reference catalogue defines, in catalogue order. */
+/** Every key the reference catalog defines, in catalog order. */
 const KEYS: readonly string[] = Object.keys(EN_MESSAGES);
 
 /** The same keys, for membership tests. */
@@ -84,7 +84,7 @@ function prefixOf(key: string): string {
   return dot === -1 ? key : key.slice(0, dot);
 }
 
-/** The nine first segments the catalogue uses: `docs`, `page`, `game`, … */
+/** The nine first segments the catalog uses: `docs`, `page`, `game`, … */
 const PREFIXES: ReadonlySet<string> = new Set(KEYS.map(prefixOf));
 
 /**
@@ -111,7 +111,7 @@ const KEY_SHAPE = /^[a-z][A-Za-z0-9]*(?:\.[A-Za-z0-9*]+)+$/;
  * The spans the document offers as message keys.
  *
  * The document's own rule, quoted: "dotted, and with a first segment that is
- * one of the catalogue's prefixes". The prefix requirement is what keeps
+ * one of the catalog's prefixes". The prefix requirement is what keeps
  * `documentation.ru.html`, `elevator.goToFloor` and `package.json` out of a
  * check about messages.
  */
@@ -169,7 +169,7 @@ const LEVEL_SUFFIXES = [
  * Built from `tutorialLevels`, so the exemption is exactly as wide as the track
  * really is. A ninth level's eight keys would be exempted from the naming check
  * here — and caught two tests down instead, where the `tutorial.*` count the
- * document prints stops matching the catalogue.
+ * document prints stops matching the catalog.
  */
 const LEVEL_KEYS: ReadonlySet<string> = new Set(
   tutorialLevels.flatMap((_, index) =>
@@ -227,12 +227,12 @@ const PIN_NOTATION = "file.ts:123";
  * equality, and it is worth saying why, since the header above rules the
  * English column out for the opposite reason. That column is abridged on
  * purpose — whitespace collapsed, values cut and marked `…` — so no comparison
- * with the catalogue is available. These titles are not abridged: each is a
+ * with the catalog is available. These titles are not abridged: each is a
  * whole `tutorial.levelN.title` copied across, so either it matches or it has
  * rotted.
  *
  * One had. The row for level 6 read "The elevator that lies to passengers" where
- * the catalogue says "lies to its passengers", and it had sat there since the
+ * the catalog says "lies to its passengers", and it had sat there since the
  * table was written, through a guard specified as five checks and every one of
  * them passing. Nothing here read the column, so nothing could have noticed.
  */
@@ -266,7 +266,7 @@ function lineOf(offset: number): number {
  *
  * The document's own statement of check 3 covers the table in _Where the
  * strings are_ and nothing else, which would leave three of the four places it
- * prints the catalogue size free to rot — and a wrong total is the specific
+ * prints the catalog size free to rot — and a wrong total is the specific
  * failure that prompted the rebuild. Each pattern has to match exactly once: a
  * reword that moves the number is a failure here, not a silent pass, because a
  * pattern matching nothing is a check that has stopped checking.
@@ -280,15 +280,15 @@ interface PrintedCount {
   readonly expected: number;
 }
 
-/** Every count in the document's prose that the catalogue decides. */
+/** Every count in the document's prose that the catalog decides. */
 const PRINTED_COUNTS: readonly PrintedCount[] = [
   {
-    what: "the catalogue size, in _Where the strings are_",
-    pattern: /The catalogue holds \*\*(\d+) keys\*\*/g,
+    what: "the catalog size, in _Where the strings are_",
+    pattern: /The catalog holds \*\*(\d+) keys\*\*/g,
     expected: KEYS.length,
   },
   {
-    what: "the catalogue size, beside the `grep -c` that produced it",
+    what: "the catalog size, beside the `grep -c` that produced it",
     pattern: /src\/i18n\/en\.ts +# (\d+)/g,
     expected: KEYS.length,
   },
@@ -310,14 +310,14 @@ const PRINTED_COUNTS: readonly PrintedCount[] = [
 ];
 
 describe("the message keys the inventory names", () => {
-  it("names no key the catalogue does not have", () => {
+  it("names no key the catalog does not have", () => {
     const unknown = KEY_SHAPED_SPANS.filter(
       (span) => !isGroupWildcard(span) && !isLevelShape(span) && !KEY_SET.has(span),
     );
     expect(unknown, "backticked in docs/i18n-inventory.md, absent from EN_MESSAGES").toEqual([]);
   });
 
-  it("uses no group wildcard the catalogue has nothing under", () => {
+  it("uses no group wildcard the catalog has nothing under", () => {
     const empty = KEY_SHAPED_SPANS.filter(
       (span) =>
         isGroupWildcard(span) &&
@@ -327,7 +327,7 @@ describe("the message keys the inventory names", () => {
     expect(empty, "wildcards in docs/i18n-inventory.md matching no key at all").toEqual([]);
   });
 
-  it("names every key in the catalogue, or covers it by shape", () => {
+  it("names every key in the catalog, or covers it by shape", () => {
     const unlisted = KEYS.filter((key) => !SPAN_SET.has(key) && !LEVEL_KEYS.has(key));
     expect(unlisted, "in EN_MESSAGES, with no row in docs/i18n-inventory.md").toEqual([]);
   });
@@ -346,7 +346,7 @@ describe("the message keys the inventory names", () => {
 });
 
 describe("the counts the inventory prints", () => {
-  it("gives every prefix the number of keys the catalogue has under it", () => {
+  it("gives every prefix the number of keys the catalog has under it", () => {
     const section = inventorySource.slice(
       inventorySource.indexOf("\n## Where the strings are\n"),
       inventorySource.indexOf("\n## The strings\n"),
@@ -371,7 +371,7 @@ describe("the counts the inventory prints", () => {
     expect(Number(total?.[1])).toBe(KEYS.length);
   });
 
-  it("prints the same number in prose as it derives from the catalogue", () => {
+  it("prints the same number in prose as it derives from the catalog", () => {
     for (const { what, pattern, expected } of PRINTED_COUNTS) {
       const found = [...inventorySource.matchAll(pattern)];
       expect(found.length, `${what}: expected one place printing it`).toBe(1);
@@ -402,15 +402,15 @@ describe("the files the inventory points at", () => {
 });
 
 describe("the tutorial titles the inventory quotes", () => {
-  it("quotes each one as the catalogue words it", () => {
-    const catalogue: Readonly<Record<string, unknown>> = EN_MESSAGES;
+  it("quotes each one as the catalog words it", () => {
+    const catalog: Readonly<Record<string, unknown>> = EN_MESSAGES;
     const wrong = [...QUOTED_TITLES]
-      .filter(([key, quoted]) => catalogue[key] !== quoted)
+      .filter(([key, quoted]) => catalog[key] !== quoted)
       .map(([key, quoted]) => `${key}: the table says "${quoted}"`);
     expect(wrong, "quoted in docs/i18n-inventory.md, worded otherwise in en.ts").toEqual([]);
   });
 
-  it("gives every level in the catalogue a row", () => {
+  it("gives every level in the catalog a row", () => {
     // The other direction, and the one that matters when the track grows: a
     // ninth level's title would otherwise be absent from the table rather than
     // wrong in it, and a check that only walks the rows cannot see a row that

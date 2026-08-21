@@ -18,7 +18,7 @@
  * level are messages — their `//` comments are written to the player, so they are
  * translated, and only they are — which means a level hands out one program per
  * locale and a suite that read the default one would be leaving the other
- * unchecked. `src/i18n/catalogue.test.ts` holds the code identical across
+ * unchecked. `src/i18n/catalog.test.ts` holds the code identical across
  * locales; what is left to this file is that each of those programs still
  * parses and is still written the way the track's programs are written, since a
  * translated comment is a line like any other and can be too long, indented
@@ -197,8 +197,8 @@ function expectPlayerCodeStyle(label: string, code: string): void {
 /**
  * A program with its `//` comments taken out.
  *
- * The same reduction `src/i18n/catalogue.test.ts` makes, spelled again here
- * rather than shared: that file asks whether two catalogue entries hold the same
+ * The same reduction `src/i18n/catalog.test.ts` makes, spelled again here
+ * rather than shared: that file asks whether two catalog entries hold the same
  * code, this one asks whether a *level* hands out the same code whichever
  * language it is asked in, and a helper imported across that line would tie the
  * two questions together for no gain.

@@ -22,7 +22,7 @@ const USER_AGENTS = {
 };
 
 /**
- * The English catalogue with its keys forgotten, so a key read out of the page
+ * The English catalog with its keys forgotten, so a key read out of the page
  * can be looked up.
  */
 const ENGLISH_VALUES: Readonly<Record<string, unknown>> = EN_MESSAGES;
@@ -48,7 +48,7 @@ beforeEach(() => {
  * lines by the formatter and the same sentence written out on one line are the
  * same sentence. What is left is the tags, their attributes and the words.
  *
- * @param html - Markup, from the page or from the catalogue.
+ * @param html - Markup, from the page or from the catalog.
  * @returns The same markup, comparable.
  */
 function markupOf(html: string): string {
@@ -126,9 +126,9 @@ describe("what index.html names", () => {
 
   it("ships, word for word, the English of every message it names", () => {
     // This is what keeps the promise that wiring the interface through the
-    // catalogue did not change the English game. The shell has two copies of
+    // catalog did not change the English game. The shell has two copies of
     // every one of these sentences -- the one a reader without JavaScript sees
-    // and the one the catalogue holds -- and nothing but this stops them
+    // and the one the catalog holds -- and nothing but this stops them
     // drifting.
     for (const { element, name, key } of namedMessages(page)) {
       const english = String(ENGLISH_VALUES[key]);
@@ -203,7 +203,7 @@ describe("localisePage", () => {
       expect(textOf(page.querySelector(".skip-link"))).toBe("Перейти к редактору кода");
       // The one heading, and the one word in it that is not translated: the
       // game's name is the game's name in either language, so `page.brand`
-      // holds the same string in both catalogues.
+      // holds the same string in both catalogs.
       expect(textOf(page.querySelector("h1"))).toBe("Elevator Saga");
       // The statistics panel is not checked here: it is the app's, drawn at
       // runtime by `widgets/stats-panel` into a region this file leaves
@@ -249,7 +249,7 @@ describe("localisePage", () => {
   });
 });
 
-describe("a page shell asking for something the catalogue cannot answer", () => {
+describe("a page shell asking for something the catalog cannot answer", () => {
   /**
    * Parses a fragment of shell, the way index.html itself is read.
    *

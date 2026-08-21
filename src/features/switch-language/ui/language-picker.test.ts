@@ -104,8 +104,8 @@ describe("presentLanguagePicker", () => {
     expect(redraw).toHaveBeenCalledTimes(1);
   });
 
-  it("waits for the catalogue, so the page is redrawn once and in the new language", async () => {
-    // Redrawing before the catalogue is in memory would rewrite everything in
+  it("waits for the catalog, so the page is redrawn once and in the new language", async () => {
+    // Redrawing before the catalog is in memory would rewrite everything in
     // English -- `t` falls back until it lands -- and nothing would redraw it
     // afterwards, because nobody is watching the fetch.
     const { select, redraw } = setUp();
@@ -139,7 +139,7 @@ describe("presentLanguagePicker", () => {
     expect(redraw).toHaveBeenCalledTimes(1);
   });
 
-  it("lets the reader change their mind while a catalogue is still in flight", async () => {
+  it("lets the reader change their mind while a catalog is still in flight", async () => {
     // Two choices in a row leave two of these running at once, and the fetch
     // that started first can settle last. Only the newest choice may be written
     // down or drawn: the other one is a language nobody is looking at.

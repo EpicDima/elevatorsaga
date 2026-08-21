@@ -129,7 +129,7 @@ export interface SkyscraperCard {
    * asks for, not what it is about.
    */
   readonly title: string;
-  /** One paragraph on the idea the level is built on. Catalogue markup. */
+  /** One paragraph on the idea the level is built on. Catalog markup. */
   readonly briefing: string;
 }
 

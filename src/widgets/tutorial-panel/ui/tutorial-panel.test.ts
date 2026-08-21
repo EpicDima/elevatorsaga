@@ -13,7 +13,7 @@ import { renderElement } from "#shared/ui/markup.ts";
 import { createElement } from "../../../ui/test-helpers.ts";
 
 /**
- * The English catalogue, indexable by a key built at run time.
+ * The English catalog, indexable by a key built at run time.
  *
  * The panel cannot do this — a key has to reach `t` as a literal for its
  * parameters to be derived — but a test may, and it is the only way to state the
@@ -77,10 +77,10 @@ function openStates(): boolean[] {
 }
 
 /**
- * The English title the catalogue holds for a level, found by the level's own id.
+ * The English title the catalog holds for a level, found by the level's own id.
  *
  * @param id - A level's id, of the form `tutorial-3`.
- * @returns The title message, or `undefined` if the catalogue has none.
+ * @returns The title message, or `undefined` if the catalog has none.
  */
 function englishTitle(id: string): unknown {
   return ENGLISH[`tutorial.level${id.slice("tutorial-".length)}.title`];
@@ -160,7 +160,7 @@ describe("presentTutorial", () => {
   });
 
   it("inserts the hints as the markup they are", () => {
-    // The hints are `.html` messages of this repository's own catalogue, and
+    // The hints are `.html` messages of this repository's own catalog, and
     // several of them mark up the identifier under discussion. Escaped, the
     // player would read the tag instead of seeing the emphasis.
     presentTutorial(parent, panelData());
@@ -224,7 +224,7 @@ describe("presentTutorial", () => {
     }).toThrow("No tutorial level with index -1");
   });
 
-  it("refuses a level the catalogue has no prose for", () => {
+  it("refuses a level the catalog has no prose for", () => {
     // The direction the compiler cannot cover: `tutorialLevels` is an array and
     // its length is not part of its type, so a ninth level appended with no
     // messages written for it compiles. It has to fail loudly here, because the
@@ -489,7 +489,7 @@ describe("presentTutorial", () => {
   });
 
   describe("the language the panel comes out in", () => {
-    it("asks the catalogue at the moment it draws", () => {
+    it("asks the catalog at the moment it draws", () => {
       // The panel is handed a level index rather than the words to print, and
       // this is the whole reason: `App.relocalise` draws it again, and a panel
       // that had kept the sentences it was given the first time would be the one
@@ -506,10 +506,10 @@ describe("presentTutorial", () => {
       expect(requireElement(".tutorialcopycode", parent).textContent).toBe("Скопировать программу");
     });
 
-    it("draws this level's own answer, out of the catalogue of the language it draws in", () => {
+    it("draws this level's own answer, out of the catalog of the language it draws in", () => {
       // The answer is a message like everything else here, but a `.code` one:
       // only the `//` comments in it are ever translated and the JavaScript is
-      // byte-identical in every locale, which `src/i18n/catalogue.test.ts`
+      // byte-identical in every locale, which `src/i18n/catalog.test.ts`
       // holds. So what the panel draws is the same program in either language,
       // with at most different comments — and since no answer on the track
       // carries a comment today, the two languages are the same bytes. Which
@@ -550,7 +550,7 @@ describe("tutorialTemplate", () => {
   /**
    * A drawn panel, with everything the test is not about left plain.
    *
-   * The words are the test's own rather than the catalogue's: what this template
+   * The words are the test's own rather than the catalog's: what this template
    * decides is where a string goes and whether it is escaped on the way, and a
    * fixture made of real prose would hide both behind a paragraph of Russian.
    *
@@ -594,7 +594,7 @@ describe("tutorialTemplate", () => {
   });
 
   it("escapes the program, whatever the answer turns out to contain", () => {
-    // The one string here that is neither text the catalogue wrote nor markup
+    // The one string here that is neither text the catalog wrote nor markup
     // it wrote: it is JavaScript, and the parser has opinions about two of its
     // characters. Today's eight answers hold one `<`, followed by a space, and
     // no `&` at all -- so nothing on the track would notice this being dropped,
@@ -775,7 +775,7 @@ describe("tutorialTemplate", () => {
     // The landmark's name is the level's own title, so it is translated by
     // whoever hands the title in -- and a region announced in English inside a
     // Russian page is the one thing a screen-reader player cannot see is out of
-    // place. Everything the panel words itself is asked of the catalogue here,
+    // place. Everything the panel words itself is asked of the catalog here,
     // at the moment of drawing.
     expect(drawn.getAttribute("aria-label")).toBe("Один лифт на три этажа");
     expect(drawn.querySelector(".tutorialhint summary")?.textContent).toBe("Подсказка 1");
@@ -787,7 +787,7 @@ describe("tutorialTemplate", () => {
 
   it("leaves the answer in the language it is written in", () => {
     // The program is JavaScript in every locale, and it is the string the level
-    // table holds rather than anything the catalogue says.
+    // table holds rather than anything the catalog says.
     setLocale("ru");
     const code = `elevator.goToFloor(1);\nelevator.goToFloor(0);`;
 
@@ -828,7 +828,7 @@ describe("The goal a level states", () => {
   for (const [index, level] of tutorialLevels.entries()) {
     for (const locale of LOCALES) {
       it(`is the bar ${level.id} enforces, in ${locale}`, () => {
-        // The goal is prose in a catalogue and the bar is arithmetic in
+        // The goal is prose in a catalog and the bar is arithmetic in
         // `src/game/tutorial.ts`, and nothing made the two agree: a goal saying
         // "deliver 40 passengers and let nobody wait longer than 3 seconds" for
         // a level requiring 15 and 37 left the whole suite green, and the player

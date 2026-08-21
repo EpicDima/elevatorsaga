@@ -199,7 +199,7 @@ function describeWorkerError(event: ErrorEvent): string {
  * as before. {@link "../i18n/index.ts"!seconds} is the obvious helper and is not
  * usable here, because it fixes the number of *decimals* rather than of
  * significant digits, so it would round 7 to `7.0s` and change a number on
- * screen — the one thing routing this through the catalogue is not allowed to
+ * screen — the one thing routing this through the catalog is not allowed to
  * do. The unit options are its, so English still gets a bare `s` and Russian
  * gets ` с` with the non-breaking space its typography asks for.
  *

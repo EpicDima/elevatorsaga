@@ -5,7 +5,7 @@
  * third hint. What used to mark "this is what changed" was prose alone — hint
  * 3 already narrates the one line the player has to add or change, by hand,
  * once per level and per language. That is the thing worth not repeating: a
- * marker written into sixteen catalogue strings (eight levels, two languages)
+ * marker written into sixteen catalog strings (eight levels, two languages)
  * would drift the moment a level's wording moved without its marker moving
  * with it, silently, because nothing checks a hand-written marker against the
  * code it claims to point at.

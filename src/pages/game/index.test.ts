@@ -439,7 +439,7 @@ describe("App level outcome", () => {
 
   it("says both outcomes in the language the card is drawn in", () => {
     // The four words the app itself owns; everything else on the card comes
-    // from the widget. Read out of the catalogue when the level ends, so
+    // from the widget. Read out of the catalog when the level ends, so
     // a player who switched language mid-run is told in the language they are
     // now reading.
     setLocale("ru");
@@ -1258,12 +1258,12 @@ describe("App learning track", () => {
     expect(link.textContent.trim()).toBe("Go to level 1");
   });
 
-  it("says how long the track was in the words each catalogue counts it with", () => {
+  it("says how long the track was in the words each catalog counts it with", () => {
     // `tutorial.finish.message` is the one sentence in the game that writes the
     // length of the track out rather than counting `tutorialLevels.length`,
     // because "Eight tutorial levels" is what the sentence needs and "8 levels" is
     // not. A
-    // ninth level would leave both catalogues quietly wrong on the one screen a
+    // ninth level would leave both catalogs quietly wrong on the one screen a
     // player reaches once, so the number is pinned here against the words --
     // add the level, add its wording, and this passes again.
     const SPELLED_OUT: Readonly<Record<number, Readonly<Record<Locale, string>>>> = {
@@ -1861,7 +1861,7 @@ describe("App Skyscraper block", () => {
 
     it("redraws the card when the language changes under it", () => {
       // The card is most of the prose on screen while one of these levels is
-      // being played, and both of its strings are getters over the catalogue --
+      // being played, and both of its strings are getters over the catalog --
       // so a language change that missed this redraw would leave the one column
       // still in English.
       const { app, elements } = setUp();
@@ -2152,7 +2152,7 @@ describe("App seed", () => {
   });
 
   it("prints it in the language the player is reading", () => {
-    // The one console line in the game that goes through the catalogue. Every
+    // The one console line in the game that goes through the catalog. Every
     // other one reports something -- a bug, a URL that would not parse, a
     // broken invariant -- and is addressed to whoever is reading a stack beside
     // it; this one reports nothing and is addressed to the player, at every
@@ -3245,7 +3245,7 @@ describe("the language the interface comes out in", () => {
   it("relabels every run control on the next update", () => {
     // The row is drawn once for the life of the page, so a language change is
     // an `update()` and nothing else: every word it shows is read from the
-    // catalogue at the moment it is written.
+    // catalog at the moment it is written.
     const parent = createElement("div", { className: "controls" });
     const worldController = { isPaused: true, timeScale: 20 };
     let levelEnded = false;

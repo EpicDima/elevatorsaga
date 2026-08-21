@@ -22,14 +22,14 @@
  *   this page already know how to use.
  * - It is a form control, so `page.language.label` labels it the way the shell
  *   labels everything else. There was no other candidate for the key the
- *   catalogue already carried. The control now lives in the app bar's settings
+ *   catalog already carried. The control now lives in the app bar's settings
  *   popover, which is built at runtime and so writes that label with `t()`
  *   rather than with a `data-i18n-attr`; the key is the same one.
  *
  * ## The options are not translated
  *
  * They come from {@link LOCALE_NAMES}, which is endonyms and deliberately
- * outside the catalogues: a picker shows every option at once, and an option a
+ * outside the catalogs: a picker shows every option at once, and an option a
  * reader cannot read is no use to the reader who needs it most. The list is
  * built from {@link LOCALES} rather than written out, so a third language is
  * still the one-line change `src/i18n/locale.ts` promises — the control needs no
@@ -67,7 +67,7 @@ export interface LanguagePickerOptions {
   /**
    * Puts what is already on screen into the language just chosen.
    *
-   * Called once the catalogue is in memory, so everything it draws through `t`
+   * Called once the catalog is in memory, so everything it draws through `t`
    * comes out in the new language in one pass rather than in two. What counts as
    * a redraw is deliberately not decided here: the shell, the level bar, the
    * statistics and the building each have their own answer, and
@@ -86,10 +86,10 @@ export interface LanguagePickerOptions {
  *    {@link getLocale} answers with the language that was asked for, which is
  *    what makes step 3's check possible.
  * 2. `await` {@link loadLocale}. Without the wait, a reader who chooses a
- *    language whose catalogue is still in flight gets the page rewritten in
- *    English — `t` falls back until the catalogue lands — and then nothing at
+ *    language whose catalog is still in flight gets the page rewritten in
+ *    English — `t` falls back until the catalog lands — and then nothing at
  *    all when it does, because nobody is watching for it. It never rejects, so
- *    there is no failure path: a catalogue that cannot be fetched leaves the
+ *    there is no failure path: a catalog that cannot be fetched leaves the
  *    page in English, which is what the reader was already looking at.
  * 3. Remember the choice, and then redraw.
  *
@@ -108,7 +108,7 @@ export function presentLanguagePicker(options: LanguagePickerOptions): void {
     }),
   );
   // What the player asked for rather than what is currently rendered: between
-  // the two, the catalogue is in flight and the control has to show the choice
+  // the two, the catalog is in flight and the control has to show the choice
   // that was made, not the language the page has not finished leaving. It is the
   // same distinction `applyPreferredLocale` draws at start-up.
   select.value = getLocale();
@@ -135,7 +135,7 @@ async function choose(locale: Locale, options: LanguagePickerOptions): Promise<v
   setLocale(locale);
   await loadLocale(locale);
 
-  // A reader who changes their mind while a catalogue is being fetched — Русский,
+  // A reader who changes their mind while a catalog is being fetched — Русский,
   // then English again — leaves this function running twice, and the fetch that
   // started first can settle last. `getLocale` is the record of the most recent
   // choice, so the stale call stops here rather than writing a language nobody

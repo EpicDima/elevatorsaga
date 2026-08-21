@@ -82,7 +82,7 @@
  * ## Where the rest of it comes from
  *
  * `src/ui/templates.ts`'s exported {@link SeedLinkData} type and the
- * `game.seed.*` catalogue keys the level bar's seed line already read, so
+ * `game.seed.*` catalog keys the level bar's seed line already read, so
  * this block says what that line said, in the settings popover's own
  * `.setblock`/`.cap` shape instead of the level bar's
  * `.levelseed`/`.seedlabel` one. The markup itself is recomposed here

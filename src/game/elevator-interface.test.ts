@@ -1036,7 +1036,7 @@ describe("Elevator interface", () => {
       // rather than like the mistake it is. That phrase and the one for an
       // object are the only prose in this description -- everything else is the
       // value the player wrote, quoted back at them -- and they are the reason
-      // the catalogue has `error.value.array` and `error.value.object` at all.
+      // the catalog has `error.value.array` and `error.value.object` at all.
       expect(() => {
         looseGoToFloor([1, 2]);
       }).toThrow(

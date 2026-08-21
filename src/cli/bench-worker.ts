@@ -67,7 +67,7 @@ if (parentPort === null) {
 const port = parentPort;
 
 // Before the suite runs, because the scenario names are rendered inside it, and
-// awaited because a catalogue other than English is a chunk of its own that has
+// awaited because a catalog other than English is a chunk of its own that has
 // to be fetched first. This is the point in the thread where waiting is
 // possible: `t` is synchronous everywhere below it.
 await loadLocale(request.locale);

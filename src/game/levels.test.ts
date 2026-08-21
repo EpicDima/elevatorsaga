@@ -404,7 +404,7 @@ describe("the language a description comes out in", () => {
     // template could have produced by gluing a word onto a number: 23
     // пассажира, 30 секунд, 2,0 секунды. The delivery limit is the interesting one
     // -- it is the same 2 as an integer would be, but written with a tenth it
-    // takes a different form of the noun, which is why the catalogue is handed
+    // takes a different form of the noun, which is why the catalog is handed
     // the number together with the way it is spelled.
     setLocale("ru");
 

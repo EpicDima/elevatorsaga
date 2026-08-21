@@ -17,7 +17,7 @@ import {
 } from "./completions.ts";
 
 // Every test below is entitled to a page in the default language, and several
-// of them change it. `test-setup.ts` has both catalogues in memory already, so
+// of them change it. `test-setup.ts` has both catalogs in memory already, so
 // a switch takes effect on the next line rather than on the next tick.
 afterEach(() => {
   setLocale(DEFAULT_LOCALE);
@@ -196,7 +196,7 @@ describe("the program skeleton", () => {
   it("inserts a program the game can actually run", () => {
     // The skeleton is what a player starting from nothing gets handed, so it
     // has to satisfy the same compiler their own code does -- in every
-    // language, since what the catalogue translates in it are comments, and a
+    // language, since what the catalog translates in it are comments, and a
     // translation that lost a `//` would be a program that does not parse.
     for (const locale of LOCALES) {
       setLocale(locale);
@@ -226,7 +226,7 @@ describe("the program skeleton", () => {
 
 describe("what every entry carries", () => {
   it("has a signature and a line of prose, which is the point of the popup", () => {
-    // In every language: a key that reached the wrong catalogue, or a
+    // In every language: a key that reached the wrong catalog, or a
     // translation left empty, would leave an entry with nothing to say only in
     // the language nobody testing this speaks.
     for (const locale of LOCALES) {
@@ -271,7 +271,7 @@ describe("the language the popup speaks", () => {
     for (const [index, entry] of russian.entries()) {
       expect(entry.info, `${entry.label} is still English`).not.toBe(english[index]?.info);
     }
-    // And it is not merely different text: it is what the Russian catalogue
+    // And it is not merely different text: it is what the Russian catalog
     // says, word for word, for the key that entry is written against.
     expect(elevatorMembers().find((entry) => entry.label === "goToFloor")?.info).toBe(
       translateIn("ru", "completion.elevator.goToFloor"),
@@ -288,7 +288,7 @@ describe("the language the popup speaks", () => {
     // Forward is not enough. Anything that remembers what it rendered -- and
     // English is the tempting thing not to remember, being the fallback -- is a
     // language change nobody can undo, so the way back is checked against the
-    // catalogue rather than against whatever the popup said the first time.
+    // catalog rather than against whatever the popup said the first time.
     const before = everyEntryIn("en");
     everyEntryIn("ru");
     expect(everyEntryIn("en")).toEqual(before);
@@ -409,7 +409,7 @@ describe("agreement with the facades player code is handed", () => {
     );
     // Failing here means ElevatorInterface grew a method the completion popup
     // does not know about. Describe it in ELEVATOR_MEMBERS, taking the wording
-    // from its JSDoc into the catalogue, or list it in OMITTED_ELEVATOR_MEMBERS
+    // from its JSDoc into the catalog, or list it in OMITTED_ELEVATOR_MEMBERS
     // with the reason.
     expect(undiscoverable).toEqual([]);
   });

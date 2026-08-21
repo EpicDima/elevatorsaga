@@ -95,7 +95,7 @@ declare global {
 async function main(): Promise<void> {
   // Awaited, and before anything is drawn, so that the shell and the game it
   // frames are never in two languages at once: for a reader of a language whose
-  // catalogue is fetched rather than bundled this is a round trip in front of
+  // catalog is fetched rather than bundled this is a round trip in front of
   // the first frame, and `src/ui/preferred-locale.ts` is where that is weighed
   // against the alternative. It also relabels the shortcut keys for the
   // platform, which used to be a call of its own here: a `<kbd data-mod-key>`
@@ -452,7 +452,7 @@ async function main(): Promise<void> {
 
 // Floating on purpose: an entry point has nobody above it to hand a promise to,
 // and this one is asynchronous only because the first thing it does is wait for
-// the reader's catalogue. Anything that throws afterwards surfaces as an
+// the reader's catalog. Anything that throws afterwards surfaces as an
 // unhandled rejection, which is the same console entry a throw from the old
 // synchronous `main` produced.
 void main();

@@ -11,7 +11,7 @@
  * Every word these functions put on screen is asked for with `t` *inside* the
  * function that returns it, never once at module scope. A `const` holding a
  * translated string would be filled in while this module was first imported,
- * which is before anything has had the chance to load a catalogue, so it would
+ * which is before anything has had the chance to load a catalog, so it would
  * be English for the rest of the session however often the player changed
  * language afterwards. The same reasoning is written out at length on
  * {@link "../game/levels.ts"!LevelCondition.description}, which is a

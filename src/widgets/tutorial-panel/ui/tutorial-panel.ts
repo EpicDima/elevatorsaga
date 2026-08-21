@@ -13,14 +13,14 @@
  * redraws the page by calling every region's presenter again, so a panel handed
  * finished sentences would keep the sentences it was handed and be the one
  * column of the page still in English after the language picker had done its
- * work. Asking the catalogue at draw time makes the language a property of the
+ * work. Asking the catalog at draw time makes the language a property of the
  * moment of drawing instead.
  *
  * That in turn is why the key table below is written out by hand. A message key
  * has to reach `t` as a string literal: the parameters a message takes are
- * derived from the literal by `Placeholders<S>` in `src/i18n/catalogue.ts`, so
+ * derived from the literal by `Placeholders<S>` in `src/i18n/catalog.ts`, so
  * `t(`tutorial.level${n}.title`)` is not a call that can be type-checked, and
- * casting one through would give up every guarantee the typed catalogue exists
+ * casting one through would give up every guarantee the typed catalog exists
  * to provide — a renamed message would then print its own key at the player
  * rather than failing the build.
  */
@@ -34,10 +34,10 @@ import { highlightJavaScript } from "../../../ui/code-highlight.ts";
 import { changedLines } from "../../../ui/line-diff.ts";
 
 /**
- * Every level the catalogue has prose for, named by its title message.
+ * Every level the catalog has prose for, named by its title message.
  *
  * Read out of {@link MessageKey} rather than written down, so that this is the
- * catalogue's own answer to "how many levels are there" and not a second opinion
+ * catalog's own answer to "how many levels are there" and not a second opinion
  * about it.
  */
 type TutorialTitleKey = Extract<MessageKey, `tutorial.level${number}.title`>;
@@ -64,10 +64,10 @@ type LevelIdOf<K> = K extends `tutorial.level${infer N extends number}.title`
   ? `tutorial-${N}`
   : never;
 
-/** The ids of the levels the catalogue describes. */
+/** The ids of the levels the catalog describes. */
 type TutorialLevelId = LevelIdOf<TutorialTitleKey>;
 
-/** The four things the catalogue says about one level. */
+/** The four things the catalog says about one level. */
 interface TutorialLevelMessages {
   /** Its name. */
   readonly title: MessageKey;
@@ -115,7 +115,7 @@ interface TutorialLevelMessages {
  *   misspelled or renamed key is a compile error here rather than the message's
  *   own name printed into the panel, which is what `t` does with a key it cannot
  *   find.
- * - `Record<TutorialLevelId, …>` demands a row for every level the catalogue
+ * - `Record<TutorialLevelId, …>` demands a row for every level the catalog
  *   describes. A ninth level's messages added to `src/i18n/en.ts` without a row
  *   here stops this file compiling — the alternative being a panel that draws
  *   its chrome and nothing else, which is a blank page with buttons on it.
@@ -336,7 +336,7 @@ async function copySolution(parent: HTMLElement): Promise<void> {
  * What the panel needs in order to draw itself.
  *
  * One field, and deliberately still an object rather than a bare number: the
- * panel is drawn from the catalogue at the moment of drawing (see the note at
+ * panel is drawn from the catalog at the moment of drawing (see the note at
  * the top of this file), so what a caller supplies is only ever "which level",
  * and a named field says which number that is where a positional argument would
  * not.
@@ -347,7 +347,7 @@ export interface TutorialPanelData {
 }
 
 /**
- * Whether an id is one the catalogue describes a level for.
+ * Whether an id is one the catalog describes a level for.
  *
  * A type guard rather than a cast, so the narrowing is something the runtime
  * really established: `Object.hasOwn` asks the table itself instead of trusting
@@ -378,7 +378,7 @@ export interface TutorialTemplateData {
    * The three hints, in the order they are offered.
    *
    * Trusted markup: every one of them is a `.html` message of this repository's
-   * own catalogue, and several carry `<span class="emphasis-color">` around the
+   * own catalog, and several carry `<span class="emphasis-color">` around the
    * identifier being talked about. Nothing a player typed reaches this field.
    *
    * A three-element tuple rather than an array, because "the last one" and "the
@@ -411,14 +411,14 @@ export interface TutorialTemplateData {
    * same five characters, and `code-highlight.test.ts` and this module's own
    * tests both pin them. It is the same string `tutorial-solutions.test.ts`
    * proves the level with, which is why it comes from the level table rather than
-   * from the catalogue.
+   * from the catalog.
    */
   readonly solutionCode: string;
   /**
    * Why the level behaves the way it does, shown after the answer.
    *
    * Trusted markup, for the same reason the hints are: a `.html` message of this
-   * repository's own catalogue.
+   * repository's own catalog.
    */
   readonly explanation: string;
 }
@@ -491,7 +491,7 @@ function tutorialAnswerTemplate(answer: TutorialAnswerData): string {
  * the third is a decision, and a single panel would spend it on the first.
  *
  * @param number - One-based hint number, which is what the summary says.
- * @param hint - The hint itself; trusted markup from the catalogue.
+ * @param hint - The hint itself; trusted markup from the catalog.
  * @param answer - The starting and solution programs, printed under the hint by
  * {@link tutorialAnswerTemplate}, or `null` for a hint that is not the last one.
  * @returns The disclosure's markup.
@@ -537,9 +537,9 @@ function tutorialHintTemplate(
  * Three kinds of string arrive in this template and they are written
  * differently. The level's name and its goal are text and are escaped; the
  * hints and the explanation are `.html` messages of this repository's own
- * catalogue and are inserted verbatim. The answer is the exception that looks
+ * catalog and are inserted verbatim. The answer is the exception that looks
  * like the rule: it comes from `src/game/tutorial.ts` rather than the
- * catalogue, and is neither escaped by `markup` nor inserted verbatim, but
+ * catalog, and is neither escaped by `markup` nor inserted verbatim, but
  * parsed and escaped a token at a time by
  * {@link "../../../ui/code-highlight.ts"!highlightJavaScript} — see the note on
  * {@link TutorialTemplateData.solutionCode}. Nothing here can carry player
@@ -602,7 +602,7 @@ export function tutorialTemplate(data: TutorialTemplateData): string {
  * @param parent - The `.tutorial` element of the page shell.
  * @param data - Which level to draw.
  * @throws {RangeError} When the track has no level at that index.
- * @throws {Error} When it has one, but the catalogue has no prose for it.
+ * @throws {Error} When it has one, but the catalog has no prose for it.
  */
 export function presentTutorial(parent: HTMLElement, data: TutorialPanelData): void {
   const level = tutorialLevels[data.levelIndex];
@@ -660,7 +660,7 @@ export function presentTutorial(parent: HTMLElement, data: TutorialPanelData): v
       goal: t(messages.goal),
       hints: [t(hint1), t(hint2), t(hint3)],
       // Both straight from the level table, and deliberately not from the
-      // catalogue even though that is where the rest of this level's text now
+      // catalog even though that is where the rest of this level's text now
       // lives: the table is what `tutorial-solutions.test.ts` clears the level
       // with, so the answer on screen and the answer that is known to work are
       // one string read one way. Reading `tutorial.levelN.solutionCode.code`

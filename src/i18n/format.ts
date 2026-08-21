@@ -394,7 +394,7 @@ export function selectPlural(locale: Locale, count: Countable): Intl.LDMLPluralR
  *
  * Written down rather than derived because a type cannot be computed from
  * `Intl` at compile time, and it is the type that has to do the work: a
- * catalogue entry is a mapped type over the categories of its own locale, so a
+ * catalog entry is a mapped type over the categories of its own locale, so a
  * Russian message that forgets `few` fails to compile instead of quietly
  * printing "2 пассажиров". `format.test.ts` checks the lists against
  * `Intl.PluralRules.resolvedOptions()`, so ICU still gets the last word.

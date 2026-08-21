@@ -278,8 +278,8 @@ export default defineConfig({
     // docblock at the top of the test file.
     environment: "node",
     include: ["src/**/*.test.ts"],
-    // Loads every message catalogue before a test file starts, because the
-    // catalogues are fetched at run time now and a fetch is asynchronous, while
+    // Loads every message catalog before a test file starts, because the
+    // catalogs are fetched at run time now and a fetch is asynchronous, while
     // `setLocale("ru")` followed by an assertion about Russian text is how the
     // tests across src/game, src/app and src/i18n are written. The file itself
     // explains the trade and what covers the loading path instead; it is a

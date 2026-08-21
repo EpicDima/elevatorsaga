@@ -66,7 +66,7 @@ let nextTitleId = 0;
 /**
  * Markup for one `<details class="api">` row.
  *
- * @param entry - The row's own signature and catalogue keys.
+ * @param entry - The row's own signature and catalog keys.
  * @returns The row's markup.
  */
 function apiEntryMarkup(entry: ApiReferenceEntry): string {

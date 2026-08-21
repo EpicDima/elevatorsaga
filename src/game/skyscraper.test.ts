@@ -268,8 +268,8 @@ describe.each(skyscraperLevels)("Skyscraper level $id", (level) => {
 
   it("fills the editor in every language", () => {
     // A getter over a message key, and a key written under the wrong entry, a
-    // key deleted from one catalogue, or a getter that stopped reading the
-    // catalogue at all shows up here as an empty string -- in whichever
+    // key deleted from one catalog, or a getter that stopped reading the
+    // catalog at all shows up here as an empty string -- in whichever
     // language it happened in, which is why every one is asked.
     for (const locale of LOCALES) {
       setLocale(locale);
@@ -308,7 +308,7 @@ describe("the levels that carry a briefing card", () => {
 
   it.each(carded)("says what $id is about, in every language", (level) => {
     // Both halves are getters over message keys, and a key written under the
-    // wrong entry or deleted from one catalogue shows up here as an empty
+    // wrong entry or deleted from one catalog shows up here as an empty
     // string -- in whichever language it happened in, which is why every one is
     // asked.
     for (const locale of LOCALES) {

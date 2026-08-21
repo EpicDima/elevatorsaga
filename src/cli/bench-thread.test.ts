@@ -287,7 +287,7 @@ describe("running the suite in a thread", () => {
 
     startedThread().emit("error", outOfMemory);
 
-    // The catalogue's sentence rather than Node's, which is a line about heap
+    // The catalog's sentence rather than Node's, which is a line about heap
     // sizes: it says nothing about the program, and it is in English however the
     // command was called.
     await expect(running).resolves.toEqual({

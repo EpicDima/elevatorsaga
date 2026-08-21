@@ -71,7 +71,7 @@ export function firstLineColumnOffset(code: string): number {
  * @returns The compiled `{ init, update }` object.
  * @throws {Error} When the code has no `init` or no `update` function. The
  * legacy version threw bare strings; the English wording is unchanged, and the
- * message is now taken from the catalogue, because it is not a diagnostic for
+ * message is now taken from the catalog, because it is not a diagnostic for
  * whoever is reading a stack — it is what the code status bar puts in front of
  * the player. Rendered here, at the moment of the throw, rather than held in a
  * constant: a constant is filled in when this module is imported, which is

@@ -32,7 +32,7 @@
  * {@link "./random.ts"!RandomSeed}.
  *
  * **Every language, not the default one.** A level hands out one program per
- * locale: the two programs are catalogue messages, because the `//` comments in
+ * locale: the two programs are catalog messages, because the `//` comments in
  * them are prose written to the player and translated like any other, so
  * `level.solutionCode` answers in whatever language was last set. Read only
  * under {@link "../i18n/locale.ts"!DEFAULT_LOCALE}, this file measured the
@@ -40,7 +40,7 @@
  * handed in the editor, and the one shown to them as the answer — never once
  * simulated.
  *
- * The gap could be argued away and should not be. `catalogue.test.ts` holds the
+ * The gap could be argued away and should not be. `catalog.test.ts` holds the
  * two locales' code identical once the comments are emptied, and
  * `tutorial.test.ts` parses both programs of every level in every language, so a
  * Russian program that lost a level would have to get past both. But that is an
@@ -453,7 +453,7 @@ for (const level of tutorialLevels) {
       //
       // One language, unlike the four above, and deliberately: what is under
       // test here is the level's condition, which is built in `tutorial.ts` out
-      // of numbers and knows nothing about any catalogue. The program is only
+      // of numbers and knows nothing about any catalog. The program is only
       // the thing that makes the world produce statistics to judge.
       const outcome = playLevel(
         level,

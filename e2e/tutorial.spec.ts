@@ -35,7 +35,7 @@ const LEVEL_1_MARKER = "this building has two floors";
 /**
  * The same line of the same program, as a Russian reader is handed it.
  *
- * The programs on the track are catalogue messages like everything else a
+ * The programs on the track are catalog messages like everything else a
  * player reads — `tutorial.level1.startingCode.code` — and the code inside them
  * is identical in every language, so what changes between this marker and the
  * one above is the comment and nothing else. Two markers rather than one
@@ -150,7 +150,7 @@ test("opens the track from the level switcher, in the language on screen", async
   await switchToRussian(page);
 
   // Still there under the longer label, on a switcher the language change
-  // rebuilt from the catalogue rather than relabelled in place.
+  // rebuilt from the catalog rather than relabelled in place.
   await openLevelMenu(page);
   const link = page.getByRole("link", { name: "Учебный уровень 1", exact: true });
   await expect(link).toBeVisible();
@@ -252,11 +252,11 @@ test("highlights the answer, marks the line it adds, and copies it to the clipbo
 test("hands the editor the program in the language the link asks for", async ({ page }) => {
   // `openNamedLevelBuffer` promises the starter "in the player's current
   // language", and this is the only place that promise can be measured whole:
-  // the hash names a language, `resolveLocale` picks it, the Russian catalogue
+  // the hash names a language, `resolveLocale` picks it, the Russian catalog
   // is fetched as its own chunk, and only then is the level opened and the
   // getter on the table read. Every one of those steps is missing from jsdom,
   // and the last two are ordered -- the starter is written into storage as the
-  // buffer opens, so a level that opened before the catalogue landed would keep
+  // buffer opens, so a level that opened before the catalog landed would keep
   // its English program for the rest of the run with the page around it in
   // Russian.
   await page.goto(`${FIRST_LEVEL},lang=ru`);
@@ -266,7 +266,7 @@ test("hands the editor the program in the language the link asks for", async ({ 
   await expect(russianEditor).toContainText(LEVEL_1_MARKER_RU);
   await expect(russianEditor).not.toContainText(LEVEL_1_MARKER);
   // And it is still the program, not a translation of one: the line the level
-  // is about survives the trip through the catalogue exactly as written.
+  // is about survives the trip through the catalog exactly as written.
   await expect(russianEditor).toContainText("elevator.goToFloor(0);");
 });
 

@@ -1,5 +1,5 @@
 /**
- * The English catalogue: the reference locale.
+ * The English catalog: the reference locale.
  *
  * Every string here was lifted from the interface as it stands — `index.html`,
  * `documentation.html`, the templates, the presenters, the level conditions
@@ -8,12 +8,12 @@
  * lines, the wrapping is gone and nothing else is: HTML collapses that
  * whitespace, so the rendered text is identical.
  *
- * This catalogue defines the key set. `MessageKey` is `keyof typeof
+ * This catalog defines the key set. `MessageKey` is `keyof typeof
  * EN_MESSAGES`, so a translation that forgets a key does not compile, a
  * translation that invents one does not compile either, and asking for a key
  * that was never written down does not compile anywhere.
  *
- * Three key suffixes carry meaning, and `catalogue.test.ts` enforces all three:
+ * Three key suffixes carry meaning, and `catalog.test.ts` enforces all three:
  *
  * - `.html` — the value is trusted markup, to be assigned as HTML. Everything
  *   in it comes from this repository; nothing player-authored is ever
@@ -48,7 +48,7 @@ export const EN_MESSAGES = {
     "Four elevators carrying people between six floors, with the JavaScript program driving them in the editor below.",
   "page.skipLink": "Skip to the code editor",
   // The page's `<h1>`, drawn as the app bar's brand name. The same string in
-  // both catalogues, and translated in neither: it is the game's name.
+  // both catalogs, and translated in neither: it is the game's name.
   "page.brand": "Elevator Saga",
   // The picker's options are not here: a language is named in its own language,
   // so that the reader who needs Русский can find it while the interface is
@@ -256,7 +256,7 @@ export const EN_MESSAGES = {
   // not LayoutMode -- because features may not import from widgets (see
   // layout-switch.ts's module doc comment). Named "onlyCode"/"onlyGame"
   // rather than bare "code"/"game": a bare "code" would collide with
-  // catalogue.test.ts's reserved ".code" suffix, which demands the value be
+  // catalog.test.ts's reserved ".code" suffix, which demands the value be
   // byte-identical across locales -- a promise meant for example code, not a
   // layout mode's label.
   "game.switchLayout.caption": "Layout",
@@ -364,7 +364,7 @@ export const EN_MESSAGES = {
   // documentation.html prose for the same methods rather than translating the
   // Russian cold; Russian is design/ui-mockup.html's own API_DOCS text,
   // verbatim but for floorNum.more's "floors.length-1", tightened to satisfy
-  // this catalogue's own hyphen-is-not-a-dash rule.
+  // this catalog's own hyphen-is-not-a-dash rule.
   "game.apiRef.elevator.groupLabel": "Elevator",
   "game.apiRef.floor.groupLabel": "Floor",
   "game.apiRef.elevator.goToFloor.short": "Queues a floor for the elevator.",
@@ -1059,19 +1059,19 @@ elevator.goToFloor(2); // Queued anyway -- queue: 2, 3, 2`,
   // will otherwise try to "fix". First, the panel builds these key names by
   // interpolating the level number and the hint number, so a suffix that varied
   // from level to level could not be built at all. Second, it is legal:
-  // `catalogue.test.ts` only forbids markup under a key that is *not* `.html`,
+  // `catalog.test.ts` only forbids markup under a key that is *not* `.html`,
   // and its tag-matching test is satisfied by two empty tag lists, so a plain
   // value under a `.html` key breaks nothing.
   //
   // Both programs of every level are here as well, under `.code` keys, and the
   // suffix is the whole argument: only the `//` comments in them are
   // translated, the JavaScript being byte-identical in every locale, and
-  // `catalogue.test.ts` checks that rather than trusting it. They belong here
+  // `catalog.test.ts` checks that rather than trusting it. They belong here
   // because the comments are prose addressed to the player — a Russian reader
   // was being told "TODO: this building has two floors" in the editor, in the
   // one program on the track they are asked to change, and again under the
   // third hint. `editor.defaultCode.code` had been under this rule since the
-  // catalogue was written; the track was an oversight rather than a decision,
+  // catalog was written; the track was an oversight rather than a decision,
   // which is why `docs/i18n-inventory.md` never listed it as one.
   //
   // Still one copy of each program, not two. src/game/tutorial.ts reads these
@@ -1084,7 +1084,7 @@ elevator.goToFloor(2); // Queued anyway -- queue: 2, 3, 2`,
   // the two equal in every locale rather than leaving them to be edited apart.
   //
   // The two code keys come last in each level's group, so that the prose keys
-  // stay next to one another: a translator reads the two catalogues side by
+  // stay next to one another: a translator reads the two catalogs side by
   // side, and a twelve-line program between two sentences is twelve lines of
   // scrolling. The Russian typography rules draw the same line — a code block
   // is indented, and "has no double spaces" applies to every key that does not
@@ -1540,7 +1540,7 @@ elevator.goToFloor(2); // Queued anyway -- queue: 2, 3, 2`,
   // terms it introduces, and a term introduced in running prose has to be
   // marked as a term or it reads as an ordinary word. A starting program is a
   // `.code` key because its `//` comments are prose addressed to the player and
-  // the JavaScript around them is not: `catalogue.test.ts` holds every `.code`
+  // the JavaScript around them is not: `catalog.test.ts` holds every `.code`
   // value byte-identical across locales apart from the comments, and exempts
   // them from the Russian typography rules, which no indented program could
   // satisfy.

@@ -43,7 +43,7 @@ import { markup, raw, renderElement } from "#shared/ui/markup.ts";
 export interface LevelBriefingData {
   /** The level's name. Text, written escaped. */
   readonly title: string;
-  /** What the level is about. Trusted catalogue markup, written raw. */
+  /** What the level is about. Trusted catalog markup, written raw. */
   readonly briefing: string;
 }
 
@@ -56,7 +56,7 @@ export interface LevelBriefingData {
  * the level's prose up in a table it owns, which is right for it: the learning
  * track is eight fixed lessons whose text exists nowhere else, and the table is
  * where it lives. A Skyscraper level's title and briefing are already on the
- * level itself, as getters that ask the catalogue at the moment they are read --
+ * level itself, as getters that ask the catalog at the moment they are read --
  * the same shape `src/game/levels.ts` gives every level's `description` -- so a
  * lookup table here would be a second home for prose that already has one, and
  * the two would be free to disagree about a level that had been renamed.
@@ -72,7 +72,7 @@ export interface LevelBriefingData {
  * The two are written differently and the difference is load-bearing.
  * {@link LevelBriefingData.title} is text and is escaped by {@link markup}; a
  * level called `<script>` is a heading that says `<script>`. The briefing is a
- * `.html` message of this repository's own catalogue and is inserted verbatim
+ * `.html` message of this repository's own catalog and is inserted verbatim
  * through {@link raw}, because it carries `<code>`, `<em>` and
  * `<span class="emphasis-color">` around the terms it introduces, and escaping
  * it would print the tags at the player. Nothing a player typed reaches either

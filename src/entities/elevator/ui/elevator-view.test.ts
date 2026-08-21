@@ -226,7 +226,7 @@ describe("the language a car comes out in", () => {
 
   it("is settled when a template runs, not when the module was loaded", () => {
     // The trap `src/ui/templates.ts`'s docblock is about: a `const` holding a
-    // translated string would be filled in at import time, when no catalogue
+    // translated string would be filled in at import time, when no catalog
     // but English has been loaded, and would stay English for the rest of the
     // session.
     expect(renderElement(elevatorTemplate(0)).getAttribute("aria-label")).toBe("Elevator 1");

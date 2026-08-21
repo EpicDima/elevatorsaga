@@ -70,7 +70,7 @@
  * the game this is forked from, and a copyright line — ported verbatim from
  * the mockup's own `.setblock`, `target="_blank" rel="noreferrer"` included.
  * The two URLs and the domain text under each link are plain constants
- * rather than catalogue keys: an address is not a translator's business, and
+ * rather than catalog keys: an address is not a translator's business, and
  * `game.appBar.aboutCopyright.html`'s "Elevator Saga © 2015 Magnus Wolffelt,
  * © 2026 EpicDima, MIT." is deliberately the same string in both locales, the
  * same way the mockup's own Russian page leaves it in English — a license
@@ -365,7 +365,7 @@ export function presentAppBarSettings(
       originalLabelEl.textContent = t("game.appBar.aboutOriginalLabel");
       // `innerHTML`, not `textContent`: the line carries the `licenses.txt`
       // link, and the `.html` suffix is this codebase's own mark for a
-      // catalogue value that is trusted markup rather than text.
+      // catalog value that is trusted markup rather than text.
       copyrightEl.innerHTML = t("game.appBar.aboutCopyright.html");
 
       theme.relabel(themeLabels());

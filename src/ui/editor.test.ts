@@ -1726,8 +1726,8 @@ describe("the starting program", () => {
     setLocale(DEFAULT_LOCALE);
   });
 
-  it("is the one in the catalogue for the language on screen", () => {
-    // `editor.defaultCode.code` sat in both catalogues, fully translated, with
+  it("is the one in the catalog for the language on screen", () => {
+    // `editor.defaultCode.code` sat in both catalogs, fully translated, with
     // no caller: a Russian player was handed English comments in the first
     // JavaScript they ever see of this API, next to a Help page walking through
     // that same program in Russian.
@@ -1753,7 +1753,7 @@ describe("the starting program", () => {
   });
 
   // That the two versions are the same program with only the comments
-  // translated is deliberately not asserted here. `catalogue.test.ts` already
-  // asserts it for every `.code` key in the catalogue, of which this is one,
+  // translated is deliberately not asserted here. `catalog.test.ts` already
+  // asserts it for every `.code` key in the catalog, of which this is one,
   // and a second copy would be a second thing to keep in step.
 });

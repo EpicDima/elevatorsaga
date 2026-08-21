@@ -3,7 +3,7 @@
  * `API_DOCS`, an `elevator` group of sixteen entries and a `floor` group of three, in the same
  * order the mockup lists them.
  *
- * Plain data, with no `t()` call of its own — {@link API_REFERENCE} names a catalogue key for
+ * Plain data, with no `t()` call of its own — {@link API_REFERENCE} names a catalog key for
  * every piece of prose a row needs rather than holding the prose itself, the same purity
  * `#entities/level/model/level-list.ts` keeps for the same reason: a presenter reads the
  * active locale, this module does not need to know one exists.
@@ -29,17 +29,17 @@ export interface ApiReferenceEntry {
   readonly id: string;
   /** The method or event signature the row's own `<summary>` shows in place of a title. */
   readonly sig: string;
-  /** The catalogue key for the row's one-line summary, shown collapsed. */
+  /** The catalog key for the row's one-line summary, shown collapsed. */
   readonly shortKey: NoParamMessageKey;
-  /** The catalogue key for the row's longer explanation, shown once the row expands. */
+  /** The catalog key for the row's longer explanation, shown once the row expands. */
   readonly moreKey: NoParamMessageKey;
-  /** The catalogue key for the row's example, highlighted and shown once the row expands. */
+  /** The catalog key for the row's example, highlighted and shown once the row expands. */
   readonly codeKey: NoParamMessageKey;
 }
 
 /** One heading of the API reference, and the rows listed under it. */
 export interface ApiReferenceGroup {
-  /** The catalogue key for the group's own heading. */
+  /** The catalog key for the group's own heading. */
   readonly labelKey: NoParamMessageKey;
   /** The group's own rows, in display order. */
   readonly entries: readonly ApiReferenceEntry[];

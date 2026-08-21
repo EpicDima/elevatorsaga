@@ -14,7 +14,7 @@ const USER_AGENT =
 /**
  * The message the shell in these tests is made of.
  *
- * One sentence, present in both catalogues, and unmistakable in either: what
+ * One sentence, present in both catalogs, and unmistakable in either: what
  * the link says is the whole evidence of which language the page came out in.
  * The skip link, because it is the one link `index.html` still ships in its own
  * markup and so the one whose translation this file can lean on.
@@ -186,11 +186,11 @@ describe("what start-up remembers", () => {
   });
 });
 
-describe("a catalogue that has to be fetched", () => {
+describe("a catalog that has to be fetched", () => {
   /**
    * The page's language wiring in a graph where only English is loaded.
    *
-   * A graph of its own, because the Vitest setup file loads every catalogue
+   * A graph of its own, because the Vitest setup file loads every catalog
    * into the one this file imported at the top -- which is what lets the tests
    * above name a language on one line and read the page on the next, and which
    * would hide the whole of the waiting this module exists to do.

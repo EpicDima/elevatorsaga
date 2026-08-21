@@ -5,7 +5,7 @@
  * These used to live in `index.html` as `<script type="text/plain">` blocks and
  * were read back out with `.text().trim()`. The page shell no longer has to
  * carry player-facing source code: the one program a player is handed comes out
- * of the message catalogue, and the one only the tests read is a plain string
+ * of the message catalog, and the one only the tests read is a plain string
  * here.
  */
 
@@ -18,7 +18,7 @@ import { t } from "../i18n/index.ts";
  * player's own language. It is the first thing anyone sees of the game's API
  * and the Help page walks through exactly this code, in whichever language they
  * are reading that in — a Russian help page beside an English program was the
- * seam this closes. Both catalogues held the program already; nothing read
+ * seam this closes. Both catalogs held the program already; nothing read
  * either of them.
  *
  * A function rather than a constant because {@link t} answers for the locale
@@ -43,7 +43,7 @@ export function defaultCode(): string {
  * the reference dispatcher over every level and every measured seed, so
  * this text is a recorded fixture — changing a line of it moves the tiers.
  *
- * Not translated and not in the catalogue, unlike {@link defaultCode}: it is
+ * Not translated and not in the catalog, unlike {@link defaultCode}: it is
  * measured rather than read, and a program whose comments moved with the
  * player's language would be a different fixture in each locale.
  *

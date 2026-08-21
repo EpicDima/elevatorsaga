@@ -1,20 +1,20 @@
 import { describe, expect, it } from "vitest";
 
-import { translate } from "./catalogue.ts";
+import { translate } from "./catalog.ts";
 import { EN_MESSAGES } from "./en.ts";
 import { decimal, PLURAL_CATEGORIES } from "./format.ts";
 import { LOCALES, type Locale } from "./locale.ts";
 import { RU_MESSAGES } from "./ru.ts";
 
-/** A catalogue entry as this test looks at it: a string, or forms by category. */
+/** A catalog entry as this test looks at it: a string, or forms by category. */
 type Entry = string | Readonly<Record<string, string>>;
 
 /**
- * Both catalogues behind their loosest type, so the tests can walk them by
+ * Both catalogs behind their loosest type, so the tests can walk them by
  * string key. The strict types are what {@link translate} is checked against;
  * here the point is to look for what the types cannot see.
  */
-const CATALOGUES: Readonly<Record<Locale, Readonly<Record<string, Entry>>>> = {
+const CATALOGS: Readonly<Record<Locale, Readonly<Record<string, Entry>>>> = {
   en: EN_MESSAGES,
   ru: RU_MESSAGES,
 };
@@ -73,25 +73,25 @@ const KEYS = Object.keys(EN_MESSAGES);
 const CODE_KEYS = KEYS.filter((key) => key.endsWith(".code"));
 const HTML_KEYS = KEYS.filter((key) => key.endsWith(".html"));
 
-/** An entry that must exist, since every key comes from the English catalogue. */
+/** An entry that must exist, since every key comes from the English catalog. */
 function entry(locale: Locale, key: string): Entry {
-  const found = CATALOGUES[locale][key];
+  const found = CATALOGS[locale][key];
   if (found === undefined) {
     throw new Error(`${locale} has no message for ${key}`);
   }
   return found;
 }
 
-describe("catalogue shape", () => {
+describe("catalog shape", () => {
   it("has the same keys in every locale", () => {
-    // The types already refuse a catalogue with a key missing or a key too many.
+    // The types already refuse a catalog with a key missing or a key too many.
     // This says so out loud, and catches the day someone loosens them.
     for (const locale of LOCALES) {
-      expect(Object.keys(CATALOGUES[locale]).sort()).toEqual([...KEYS].sort());
+      expect(Object.keys(CATALOGS[locale]).sort()).toEqual([...KEYS].sort());
     }
   });
 
-  it("keeps the keys in one order, so two catalogues can be read side by side", () => {
+  it("keeps the keys in one order, so two catalogs can be read side by side", () => {
     expect(Object.keys(RU_MESSAGES)).toEqual(KEYS);
   });
 
@@ -137,7 +137,7 @@ describe("catalogue shape", () => {
   });
 });
 
-describe("catalogue markup", () => {
+describe("catalog markup", () => {
   it("keeps markup to the keys that admit to it", () => {
     // A `.html` suffix is a promise to the call site that the string is safe to
     // put in innerHTML, and a plain key is a promise that it is not needed.
@@ -221,7 +221,7 @@ describe("Russian typography", () => {
   });
 
   it("spells ё", () => {
-    // The catalogue writes ё wherever it belongs, so the words that are only
+    // The catalog writes ё wherever it belongs, so the words that are only
     // ever spelled with one must never turn up without it.
     const YO_LESS =
       /(?<![а-яё])(еще|ее|нее|идет|ждет|берет|живет|встает|подъем|черный|тяжелый)(?![а-яё])/i;

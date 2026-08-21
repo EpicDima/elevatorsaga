@@ -12,7 +12,7 @@
  * The tagline the old header carried beside the name — "The elevator
  * programming game", the second half of that page's one `<h1>` — is not
  * ported: the mockup drops it, and it was the half of the title that had to
- * wrap on a narrow bar. Its catalogue key went with it.
+ * wrap on a narrow bar. Its catalog key went with it.
  *
  * Still only the brand. The `.task` level switcher beside it is
  * `widgets/level-switcher`, the trailing toolbar is `settings-menu.ts`, and

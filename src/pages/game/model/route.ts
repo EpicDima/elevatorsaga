@@ -45,7 +45,7 @@
  * `seed` is the other half of a shared building: the sandbox parameters pin the
  * shafts and `seed` pins who walks into them — and, played the same way, every
  * tick of the run they walk into, which is what `game.seed.explanation` in the
- * message catalogues promises. It is also the one parameter that has to come
+ * message catalogs promises. It is also the one parameter that has to come
  * back out of the address bar byte for byte, since a seed that changed on the
  * way through draws somebody else.
  * {@link "#shared/lib/seed.ts"!SEED_PATTERN} says what survives that trip.

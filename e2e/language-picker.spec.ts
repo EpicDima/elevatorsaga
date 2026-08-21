@@ -6,7 +6,7 @@
  * redraws, both against a jsdom document. Three things only exist in the built
  * site:
  *
- * - The Russian catalogue is fetched at the moment of the choice rather than
+ * - The Russian catalog is fetched at the moment of the choice rather than
  *   before the first paint, so this is the only place the chunk is loaded into a
  *   page that is already running.
  * - The page is rewritten by four different pieces of code — `localisePage` for
@@ -17,7 +17,7 @@
  *
  * The Russian is written out as a reader sees it rather than imported from
  * `src/i18n/ru.ts`, like every other spec here: a test that read the same
- * catalogue the page does would pass just as happily on a catalogue that had
+ * catalog the page does would pass just as happily on a catalog that had
  * quietly stopped being Russian.
  */
 
@@ -54,7 +54,7 @@ test("puts the whole page into Russian without disturbing the run", async ({ pag
 
   await (await languagePicker(page)).selectOption("ru");
 
-  // The shell, rewritten from the catalogue.
+  // The shell, rewritten from the catalog.
   await expect(page.locator("html")).toHaveAttribute("lang", "ru");
   // Not `getByText`: the same caption key now labels two live elements at
   // once, the goal bar's meter and the (currently closed) statistics panel's
@@ -125,7 +125,7 @@ test("remembers the language for the next visit, and only when it was chosen", a
 
   await (await languagePicker(page)).selectOption("ru");
   // Waited for rather than read straight away: the choice is written once the
-  // catalogue has been fetched, and the redraw is what says it has been.
+  // catalog has been fetched, and the redraw is what says it has been.
   await expect(page.locator("html")).toHaveAttribute("lang", "ru");
   expect(await page.evaluate((key) => localStorage.getItem(key), LOCALE_STORAGE_KEY)).toBe("ru");
 
@@ -149,7 +149,7 @@ test("is a keyboard-operable control inside the settings popover", async ({ page
   await expect(picker).toBeVisible();
 
   // One `<select>`, so one stop in the tab order however many languages the
-  // catalogue grows -- which is the whole reason it is a `<select>` and not a
+  // catalog grows -- which is the whole reason it is a `<select>` and not a
   // link per language. Focused from the keyboard, because a control a pointer
   // can reach and a keyboard cannot is not reachable.
   await picker.focus();
