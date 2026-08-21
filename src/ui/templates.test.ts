@@ -15,11 +15,11 @@ describe("the four names a drawn building can be renamed from", () => {
     setLocale(DEFAULT_LOCALE);
   });
 
-  it("counts cars from one for the reader, from zero for the code", () => {
-    // The conversion lives in the helper so that neither caller can do it, or
-    // fail to do it, on its own: "Elevator 0" is not a car anybody can point at.
-    expect(elevatorLabel(0)).toBe("Elevator 1");
-    expect(elevatorLabel(3)).toBe("Elevator 4");
+  it("counts cars from zero, the way the floors and the player's own array do", () => {
+    // No conversion at all, and that is the point: the first car is called 0
+    // because it is `elevators[0]` in the program the player is writing.
+    expect(elevatorLabel(0)).toBe("Elevator 0");
+    expect(elevatorLabel(3)).toBe("Elevator 3");
   });
 
   it("answers in the language active when it is asked, not when it was imported", () => {
@@ -31,7 +31,7 @@ describe("the four names a drawn building can be renamed from", () => {
 
     expect(floorCallUpLabel(2)).toBe("Вызвать лифт вверх с этажа 2");
     expect(floorCallDownLabel(2)).toBe("Вызвать лифт вниз с этажа 2");
-    expect(elevatorLabel(1)).toBe("Лифт 2");
+    expect(elevatorLabel(1)).toBe("Лифт 1");
     expect(elevatorFloorButtonLabel(7)).toBe("Ехать на этаж 7");
   });
 });

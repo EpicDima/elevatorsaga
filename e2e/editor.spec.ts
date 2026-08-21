@@ -117,7 +117,7 @@ test("surfaces a program that will not compile", async ({ page }) => {
   // The page is still a game: the legacy version handed `null` to the world
   // controller here and died on the first frame with a TypeError instead.
   await expect(startButton(page)).toBeVisible();
-  await expect(building(page).getByRole("group", { name: "Elevator 1" })).toBeVisible();
+  await expect(building(page).getByRole("group", { name: "Elevator 0" })).toBeVisible();
 });
 
 test("starts the code slot that is open, not the one the level opened on", async ({ page }) => {

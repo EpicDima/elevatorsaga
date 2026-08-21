@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { elevatorCardText, floorCardText } from "./hover-card-text.ts";
 
 describe("elevatorCardText", () => {
-  it("titles the card with the car's one-based label", () => {
+  it("titles the card with the car's own index, the number the player's code uses", () => {
     const card = elevatorCardText({
       index: 2,
       isMoving: false,
@@ -14,7 +14,7 @@ describe("elevatorCardText", () => {
       capacity: 4,
       pressedFloors: [],
     });
-    expect(card.title).toBe("Elevator 3");
+    expect(card.title).toBe("Elevator 2");
   });
 
   it("reads a stopped car with nobody aboard, serving both ways, with no floors pressed", () => {

@@ -59,7 +59,7 @@ async function openEveryFigure(page: import("@playwright/test").Page): Promise<v
   // is a flaky failure rather than a false pass -- the assertions would catch
   // it -- but a test that fails for a reason it is not about is worth not
   // writing.
-  await expect(building(page).getByRole("group", { name: "Elevator 1" })).toBeVisible();
+  await expect(building(page).getByRole("group", { name: "Elevator 0" })).toBeVisible();
   // Closed by default, so the nine secondary tiles -- everything past "Avg
   // delivery time", "Max delivery time", "Avg load" and "Transported/s" -- are
   // not in the layout at all until this opens it.

@@ -42,7 +42,7 @@ test("boots the first level with an editor and a building", async ({ page }) => 
 
   // Level 1 is three floors and one elevator, which is one in-car button
   // per floor and a call button on every floor but the ends.
-  await expect(building(page).getByRole("group", { name: "Elevator 1" })).toBeVisible();
+  await expect(building(page).getByRole("group", { name: "Elevator 0" })).toBeVisible();
   await expect(building(page).getByRole("button", { name: /^Go to floor / })).toHaveCount(3);
   await expect(
     building(page).getByRole("button", { name: "Call an elevator going up from floor 0" }),
@@ -131,7 +131,7 @@ test("crunches a level instantly and shows the outcome over the building it ende
 
   // Before the crunch, the reference solution's elevator is on screen exactly
   // as any other run's would be.
-  await expect(building(page).getByRole("group", { name: "Elevator 1" })).toBeVisible();
+  await expect(building(page).getByRole("group", { name: "Elevator 0" })).toBeVisible();
 
   // A crunch is a speed rather than a button of its own: the last stop past
   // the fastest one, chosen before the run and realised when it starts.
@@ -164,7 +164,7 @@ test("crunches a level instantly and shows the outcome over the building it ende
   // it leaves uncovered has to be the building the verdict is about --
   // passengers included, since a level is won long before its stream of
   // them dries up.
-  await expect(building(page).getByRole("group", { name: "Elevator 1" })).toBeVisible();
+  await expect(building(page).getByRole("group", { name: "Elevator 0" })).toBeVisible();
   await expect(building(page).locator(".person").first()).toBeVisible();
 });
 
@@ -176,7 +176,7 @@ test("does not offer the instant stop in the sandbox, and plays it animated at t
   // with no goal to fail. The stop is withheld instead, which makes 20x the end
   // of the control rather than the top of the ladder.
   await page.goto("/#level=sandbox");
-  await expect(building(page).getByRole("group", { name: "Elevator 1" })).toBeVisible();
+  await expect(building(page).getByRole("group", { name: "Elevator 0" })).toBeVisible();
 
   // Presses "Faster" until it dims, wherever that turns out to be.
   await selectInstantSpeed(page);
@@ -190,7 +190,7 @@ test("does not offer the instant stop in the sandbox, and plays it animated at t
   await expect
     .poll(async () => statisticValue(page, "Elapsed time"), { timeout: 15_000 })
     .toBeGreaterThan(5);
-  await expect(building(page).getByRole("group", { name: "Elevator 1" })).toBeVisible();
+  await expect(building(page).getByRole("group", { name: "Elevator 0" })).toBeVisible();
   await expect(page.locator(".verdict")).toHaveCount(0);
 });
 

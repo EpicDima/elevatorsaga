@@ -63,15 +63,16 @@ export function floorCallDownLabel(level: number): string {
  * The accessible name of one elevator car.
  *
  * See {@link floorCallUpLabel} for why this is a function rather than a string
- * inside the template. The car is numbered from one for the reader while it is
- * indexed from zero in the code, and that conversion lives here so that the
- * relabeller cannot get it wrong on its own.
+ * inside the template. Cars are numbered from zero, the way the floors are: the
+ * number on a shaft is the one that subscripts `elevators` in the player's own
+ * program, so the car a hover card calls 0 is `elevators[0]` and nothing has to
+ * be converted between reading the building and writing about it.
  *
  * @param index - Zero-based index of the car.
  * @returns The group's accessible name.
  */
 export function elevatorLabel(index: number): string {
-  return t("game.elevator.label", { number: index + 1 });
+  return t("game.elevator.label", { number: index });
 }
 
 /**

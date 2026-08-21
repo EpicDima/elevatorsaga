@@ -173,7 +173,7 @@ describe("elevatorTemplate", () => {
     // Empty until createElevatorView fills it: a template does not know how
     // many floors the building has.
     expect(shaft.querySelector(".shaft-marks")?.children).toHaveLength(0);
-    expect(shaft.getAttribute("aria-label")).toBe("Elevator 2");
+    expect(shaft.getAttribute("aria-label")).toBe("Elevator 1");
   });
 });
 
@@ -218,7 +218,7 @@ describe("the language a car comes out in", () => {
   it("names a car and its floor buttons", () => {
     setLocale("ru");
 
-    expect(renderElement(elevatorTemplate(1)).getAttribute("aria-label")).toBe("Лифт 2");
+    expect(renderElement(elevatorTemplate(1)).getAttribute("aria-label")).toBe("Лифт 1");
     expect(renderElement(elevatorButtonTemplate(7)).getAttribute("aria-label")).toBe(
       "Ехать на этаж 7",
     );
@@ -229,10 +229,10 @@ describe("the language a car comes out in", () => {
     // translated string would be filled in at import time, when no catalog
     // but English has been loaded, and would stay English for the rest of the
     // session.
-    expect(renderElement(elevatorTemplate(0)).getAttribute("aria-label")).toBe("Elevator 1");
+    expect(renderElement(elevatorTemplate(0)).getAttribute("aria-label")).toBe("Elevator 0");
 
     setLocale("ru");
 
-    expect(renderElement(elevatorTemplate(0)).getAttribute("aria-label")).toBe("Лифт 1");
+    expect(renderElement(elevatorTemplate(0)).getAttribute("aria-label")).toBe("Лифт 0");
   });
 });

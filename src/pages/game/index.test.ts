@@ -2735,7 +2735,7 @@ describe("App.relocalise", () => {
     app.relocalise();
 
     expect(callUp.ariaLabel).toBe("Вызвать лифт вверх с этажа 0");
-    expect(car.ariaLabel).toBe("Лифт 1");
+    expect(car.ariaLabel).toBe("Лифт 0");
     expect(carButton?.ariaLabel).toBe("Ехать на этаж 1");
     // The same three floors and the same one car, and the very elements that
     // were there before: `presentWorld` appends and subscribes, so a second call

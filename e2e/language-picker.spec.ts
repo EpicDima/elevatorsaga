@@ -80,7 +80,7 @@ test("puts the whole page into Russian without disturbing the run", async ({ pag
   // however the page was redrawn: these names are written when the floors are
   // drawn, and the floors are not drawn again.
   await expect(page.getByRole("button", { name: "Вызвать лифт вверх с этажа 0" })).toBeVisible();
-  await expect(page.getByRole("group", { name: "Лифт 1" })).toBeVisible();
+  await expect(page.getByRole("group", { name: "Лифт 0" })).toBeVisible();
   // And the control itself, now labelled in the language it just chose.
   await expect(await languagePicker(page)).toHaveValue("ru");
 
