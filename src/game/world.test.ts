@@ -884,6 +884,25 @@ describe("World", () => {
       expect(world.avgRideTime).toBeCloseTo(2.0, 10);
     });
 
+    it("reads a delivery with no boarding behind it as a ride the whole journey long", () => {
+      // The fallback the ride is measured from. Nothing in the engine reaches
+      // the delivery event without boarding first, so this is what a path that
+      // one day did would report: the two seconds spent standing on the floor
+      // counted as time in the car -- an overstatement a reader can see for
+      // what it is -- rather than a NaN spreading through the panel.
+      const world = waitingWorld(0.5);
+      const spawned = collectUsers(world);
+      at(world.elevators, 0).goToFloor(2);
+      world.update(0.1);
+      world.update(2.0);
+      const user = at(spawned, 0);
+      expect(user.pickupTimestamp).toBeNull();
+
+      user.trigger("exited_elevator", at(world.elevators, 0));
+
+      expect(world.avgRideTime).toBeCloseTo(2.0, 10);
+    });
+
     it("stops the wait for a car at the moment a car takes them", () => {
       // The split upstream #52, #77 and PR #82 all ask for, in one assertion:
       // `maxWaitTime` is the whole commute and keeps running while a passenger
