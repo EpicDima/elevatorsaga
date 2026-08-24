@@ -371,9 +371,45 @@ describe("Floor", () => {
     });
 
     it("says nothing when the refusal leaves nobody waiting", () => {
+      // A guard rather than a case: a refusal does not decrement the count, so
+      // no engine path reaches this. The branch is here because the method is
+      // public on the engine floor and cheaper to make total than to reason
+      // about at every call site.
       dispatch.destinationRefused(7);
 
       expect(requested).not.toHaveBeenCalled();
+    });
+
+    it("holds a booking the program never honors, and says nothing more", () => {
+      // The stall destination dispatch can still reach, and the reason a
+      // program has to be able to read the book. A booking is cleared by
+      // boarding or by refusal, and both need the booked car to open its doors
+      // here. A program that books a car and then sends it elsewhere leaves a
+      // booking nothing will clear; the floor is not told where the car went,
+      // so it cannot tell this from a car that is simply on its way.
+      dispatch.requestDestination(7);
+      dispatch.assignElevator(7, servingOnly(2, 7));
+      requested.mockClear();
+
+      dispatch.requestDestination(7);
+
+      expect(requested).not.toHaveBeenCalled();
+      expect(dispatch.pendingDestinations()).toEqual(new Map([[7, 2]]));
+    });
+
+    it("takes a second car for a booking the first never honored", () => {
+      // The way out, and it is the program's: the request is still in the book
+      // for anyone who reads it, and booking another car both replaces the dead
+      // booking and announces the replacement.
+      const rescue = servingOnly(2, 7);
+      dispatch.requestDestination(7);
+      dispatch.assignElevator(7, servingOnly(2, 7));
+      booked.mockClear();
+
+      expect(dispatch.assignElevator(7, rescue)).toBe(true);
+
+      expect(dispatch.assignedElevator(7)).toBe(rescue);
+      expect(booked).toHaveBeenCalledWith(dispatch, 7, rescue);
     });
 
     it("routes exceptions thrown by destination_requested handlers", () => {

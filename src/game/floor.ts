@@ -178,12 +178,20 @@ export class Floor extends Observable<FloorEvents> {
    * Files a request to be taken to a floor.
    *
    * Emits `destination_requested` only when no car is booked for that
-   * destination yet — the same rule the call buttons follow, and the grouping
-   * destination dispatch exists for: the second person bound for a floor a car
-   * is already coming for rides along with the first, without the program
-   * hearing about them or being able to book a second car for the same trip.
-   * The count is raised before the event so that a handler booking a car from
-   * inside it finds somebody to book it for.
+   * destination yet. That is the grouping destination dispatch exists for: the
+   * second person bound for a floor a car is already coming for rides along
+   * with the first, without the program hearing about them or being able to
+   * book a second car for the same trip. The count is raised before the event
+   * so that a handler booking a car from inside it finds somebody to book it
+   * for.
+   *
+   * Not quite the rule the call buttons follow, though it looks like it. A lit
+   * button is silent about the second press because the button is already lit;
+   * this is silent about the second passenger because a car is already coming.
+   * So a program that books from inside the handler never hears a duplicate,
+   * while one that books later — from `update`, say — hears one request per
+   * passenger until it does. Both are correct: an unanswered request has not
+   * been answered, and saying so again is how a lazy program finds out.
    *
    * @param destinationFloor - Floor the passenger wants to reach.
    */
@@ -257,6 +265,10 @@ export class Floor extends Observable<FloorEvents> {
    * that the next passenger bound for that floor asks for a car of their own
    * rather than waiting on one that has already left.
    *
+   * A boarding for a destination nobody asked about is treated as that last
+   * one, which is a guard rather than a case: only a waiting passenger boards,
+   * and boarding is what puts them in the book.
+   *
    * @param destinationFloor - Floor the passenger who boarded is bound for.
    */
   destinationBoarded(destinationFloor: number): void {
@@ -272,12 +284,23 @@ export class Floor extends Observable<FloorEvents> {
   /**
    * Withdraws the car booked for a destination and asks for another.
    *
-   * The way out of the one deadlock destination dispatch has: a car arrives
-   * full, the people it could not take are still standing here, and the car
-   * that was going to take them is leaving. Without this they would wait on a
-   * booking nobody can honor, and the floor would be stranded for the rest of
-   * the run. Says nothing when the refused passenger was the last one waiting,
-   * since a request nobody made is a car booked for nobody.
+   * The way out of the deadlock the engine can see: a car arrives full, the
+   * people it could not take are still standing here, and the car that was
+   * going to take them is leaving. Without this they would wait on a booking
+   * nobody can honor, and the floor would be stranded for the rest of the run.
+   *
+   * The deadlock it cannot see is the program's own. A booking is cleared by
+   * boarding or by refusal, and both need the booked car to open its doors
+   * here; a program that books a car and then sends it somewhere else leaves a
+   * booking nothing will ever clear, and every later passenger bound for that
+   * floor joins it in silence. Nothing here can detect that — the floor is not
+   * told where a car went — so the way out is the program's:
+   * {@link Floor.pendingDestinations} is what lets it see the request that is
+   * still standing, and booking another car is what answers it.
+   *
+   * Guards against a refusal for a destination nobody is waiting for, which no
+   * engine path reaches: a refusal does not decrement the count, so the
+   * passenger being refused is still in the book when this runs.
    *
    * @param destinationFloor - Floor the refused passenger is bound for.
    */

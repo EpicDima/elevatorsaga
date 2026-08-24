@@ -1748,11 +1748,40 @@ describe("World", () => {
       expect(at(world.elevatorInterfaces, 0).destinationQueue).toEqual([]);
     });
 
-    it("spends no draw on the car a booking names", () => {
-      // The button version takes one from the world's derived button-repress
-      // stream, because it chooses. This one does not choose, so it must not
-      // draw at all -- from that stream or any other. A destination-dispatch
-      // building spends its seed on spawning and nothing else.
+    it("ignores a booked car that is not level with the floor", () => {
+      // `currentFloor` is the floor the car last arrived at, so a car that has
+      // set off again still reports the floor it left. Re-offering it there
+      // would restart an arrival sequence for a car that is no longer at the
+      // door, which is why the button version checks this too.
+      const world = createDispatchWorld(1);
+      const elevator = at(world.elevators, 0);
+      elevator.setFloorPosition(1);
+      elevator.moveTo(null, elevator.y - 10);
+
+      at(world.floors, 1).assignElevator(2, elevator);
+
+      expect(elevator.currentFloor).toBe(1);
+      expect(elevator.isOnAFloor()).toBe(false);
+      expect(at(world.elevatorInterfaces, 0).destinationQueue).toEqual([]);
+    });
+
+    it("ignores a booked car that is still moving", () => {
+      const world = createDispatchWorld(1);
+      const elevator = at(world.elevators, 0);
+      elevator.setFloorPosition(1);
+      elevator.isMoving = true;
+
+      at(world.floors, 1).assignElevator(2, elevator);
+
+      expect(at(world.elevatorInterfaces, 0).destinationQueue).toEqual([]);
+    });
+
+    it("takes nothing from the world's own generator", () => {
+      // Half of the claim, and the cheap half: nothing on this path reaches
+      // the generator the world was handed, or the global one. The stream it
+      // would actually be tempting to draw from is derived from the seed
+      // rather than taken from either of these, and is invisible here -- see
+      // the test below, which is the one that watches it.
       const random = vi.fn(() => 0);
       const world = createWorld(
         { floorCount: 3, elevatorCount: 2, spawnRate: 0.001, destinationDispatch: true },
@@ -1769,6 +1798,63 @@ describe("World", () => {
       expect(at(world.elevatorInterfaces, 0).destinationQueue).toEqual([1]);
       expect(random).not.toHaveBeenCalled();
       expect(global).not.toHaveBeenCalled();
+    });
+
+    it("leaves the button-repress stream exactly where it found it", () => {
+      // The other half, and the one that matters: the button version draws an
+      // offset to choose between the cars standing at a floor, this one is told
+      // which car, and a draw taken here would shift every hall call the rest
+      // of the run makes -- silently, since a derived stream answers to no spy.
+      //
+      // So it is watched through what it decides. Twenty repressings with three
+      // eligible cars is a twenty-long sequence over three values; one draw
+      // spent on a booking shifts all of it. Same seed, same building, the only
+      // difference being whether a car was booked first.
+      const repressChoices = (book: boolean): number[] => {
+        const world = createWorld(
+          { floorCount: 3, elevatorCount: 3, spawnRate: 0.001, destinationDispatch: true },
+          "assignment-draw",
+        );
+        const floor = at(world.floors, 1);
+        for (const elevator of world.elevators) {
+          elevator.setFloorPosition(1);
+          elevator.goingUpIndicator = true;
+        }
+        floor.requestDestination(2);
+        if (book) {
+          floor.assignElevator(2, at(world.elevators, 0));
+        }
+
+        const offers = world.elevatorInterfaces.map((car) => vi.spyOn(car, "goToFloor"));
+        const chosen: number[] = [];
+        for (let press = 0; press < 20; press++) {
+          // Being re-offered the floor sends a car on its way, which takes it
+          // out of the running for the next press, so the building is stood
+          // back up between presses. Both runs are stood back up the same way,
+          // leaving the stream as the only thing that can differ.
+          for (const car of world.elevatorInterfaces) {
+            car.destinationQueue.length = 0;
+          }
+          for (const car of world.elevators) {
+            car.isMoving = false;
+            car.setFloorPosition(1);
+          }
+          for (const offer of offers) {
+            offer.mockClear();
+          }
+          // A button that is already lit raises nothing, so it is cleared
+          // to make each press a fresh call.
+          floor.buttonStates.up = "";
+          floor.pressUpButton();
+          chosen.push(offers.findIndex((offer) => offer.mock.calls.length > 0));
+        }
+        return chosen;
+      };
+
+      const withBooking = repressChoices(true);
+
+      expect(withBooking).not.toContain(-1);
+      expect(withBooking).toEqual(repressChoices(false));
     });
   });
 
@@ -1803,7 +1889,10 @@ describe("World", () => {
         }
       });
 
-      expect(world.transportedCounter).toBeGreaterThan(20);
+      // Two cars, four floors and a hundred seconds carry ninety-odd people
+      // here, so the bar is set just under that rather than at some number a
+      // building that mostly stalls could also clear.
+      expect(world.transportedCounter).toBeGreaterThan(80);
     });
 
     it("moves nobody for a program that waits for call buttons", () => {
