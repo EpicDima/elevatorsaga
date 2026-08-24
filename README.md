@@ -565,8 +565,9 @@ module-scoped now.
 Everything else the old `Floor` object exposed — `yPosition`, `getSpawnPosY`, `elevatorAvailable`,
 `pressUpButton`, `pressDownButton`, `trigger` — is unreachable, and every handler that is handed a
 floor is handed the facade rather than the internal one. This closes upstream issue
-[#3](https://github.com/magwo/elevatorsaga/issues/3). Not one of those members changes anything,
-which is what keeps handing this object out safe; the verb a destination-dispatch program needs is
+[#3](https://github.com/magwo/elevatorsaga/issues/3). Not one of those members reaches the
+simulation — the five that write anything write only the caller's own handler list — which is what
+keeps handing this object out safe; the verb a destination-dispatch program needs is
 `takeRequest` on the elevator, which had verbs already. Two of the events the original does not
 have: `hall_button_pressed`, described under
 [Asked for upstream, and here already](#asked-for-upstream-and-here-already), and

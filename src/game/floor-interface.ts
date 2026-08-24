@@ -9,10 +9,10 @@
  * them (upstream issue #3).
  *
  * The surface is exactly `floorNum()`, `level`, `buttonStates`,
- * `pendingDestinations()` and `on`/`off`/`once`/`one`/`offAll`. Every one of
- * them answers a question and none of them changes anything, which is what
- * keeps this facade safe to hand out: the verb a destination-dispatch program
- * needs is
+ * `pendingDestinations()` and `on`/`off`/`once`/`one`/`offAll`. Not one of them
+ * reaches the simulation — the five that write anything write only the caller's
+ * own handler list — which is what keeps this facade safe to hand out: the verb
+ * a destination-dispatch program needs is
  * {@link "./elevator-interface.ts"!ElevatorInterface.takeRequest}, on the
  * facade that already had verbs. The emitter is held rather than inherited
  * from, so the dispatch side of it — `trigger`, `triggerSafe` — is not
