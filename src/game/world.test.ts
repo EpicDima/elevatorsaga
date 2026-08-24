@@ -62,6 +62,24 @@ function waitingWorld(spawnRate: number): World {
 }
 
 /**
+ * A two-floor building whose one car stands where its passengers appear.
+ *
+ * For the delivery cases, which hand a passenger straight to `exited_elevator`
+ * and need one who has genuinely boarded: {@link ALWAYS_ZERO} puts every spawn
+ * in the lobby, where the single car is parked with its doors open, so a
+ * passenger is picked up on the frame they appear on. Left to draw its own
+ * stream a two-floor building spawns above the lobby often enough that a run
+ * could be faking the delivery of somebody who never got in.
+ *
+ * @param spawnRate - Passengers per second, on the same terms as
+ * {@link waitingWorld}'s.
+ * @returns The world.
+ */
+function deliveryWorld(spawnRate: number): World {
+  return createWorld({ spawnRate, floorCount: 2, elevatorCount: 1 }, ALWAYS_ZERO);
+}
+
+/**
  * A walk-off stream that fails the test if anybody draws from it.
  *
  * Every passenger built below is left standing on a floor, so none of them ever
@@ -1005,7 +1023,7 @@ describe("World", () => {
       // for all of it. Those seconds were still being folded into maxWaitTime
       // every frame, so the worst wait the player is scored on included time
       // spent walking away after the journey had already ended.
-      const world = createWorld({ spawnRate: 0.5, floorCount: 2, elevatorCount: 1 });
+      const world = deliveryWorld(0.5);
       const spawned = collectUsers(world);
       world.update(0.1);
       world.update(1.0);
@@ -1025,7 +1043,7 @@ describe("World", () => {
     it("still extends the longest wait for passengers who are still waiting", () => {
       // Guards the fix above from over-reaching: only the delivered passenger is
       // excluded, everyone still in the building keeps accruing wait time.
-      const world = createWorld({ spawnRate: 1, floorCount: 2, elevatorCount: 1 });
+      const world = deliveryWorld(1);
       const spawned = collectUsers(world);
       world.update(0.1);
       world.update(1.0);
@@ -1046,7 +1064,7 @@ describe("World", () => {
       // Upstream #135: the panel reports a longest wait and the player has no
       // way to tell whose it is. `users` is in spawn order, so the answer is
       // the first one still in the building -- and only that one.
-      const world = createWorld({ spawnRate: 1, floorCount: 2, elevatorCount: 1 });
+      const world = deliveryWorld(1);
       const spawned = collectUsers(world);
       world.update(0.1);
       world.update(1.0);
@@ -1058,7 +1076,7 @@ describe("World", () => {
     it("hands the flag on when that passenger is delivered", () => {
       // The wait the panel reports is the wait in progress, so the moment the
       // worst of them steps out the mark has to move to whoever is now worst.
-      const world = createWorld({ spawnRate: 1, floorCount: 2, elevatorCount: 1 });
+      const world = deliveryWorld(1);
       const spawned = collectUsers(world);
       world.update(0.1);
       world.update(1.0);
@@ -1077,7 +1095,7 @@ describe("World", () => {
       // A delivered passenger stays in `users` for another second and a half,
       // and their wait has stopped being reported, so nothing may be marked --
       // not the last one to arrive, and not the last one to be marked either.
-      const world = createWorld({ spawnRate: 0.5, floorCount: 2, elevatorCount: 1 });
+      const world = deliveryWorld(0.5);
       const spawned = collectUsers(world);
       world.update(0.1);
       world.update(1.0);
@@ -1097,7 +1115,7 @@ describe("World", () => {
       // likely to be moving, and a presenter only redraws what announces
       // itself. A handover must cost one announcement each way and no more,
       // however many frames pass on either side of it.
-      const world = createWorld({ spawnRate: 1, floorCount: 2, elevatorCount: 1 });
+      const world = deliveryWorld(1);
       const spawned = collectUsers(world);
       world.update(0.1);
       world.update(1.0);
@@ -1133,7 +1151,7 @@ describe("World", () => {
     });
 
     it("counts transported users and averages their wait times", () => {
-      const world = createWorld({ spawnRate: 0.5, floorCount: 2, elevatorCount: 1 });
+      const world = deliveryWorld(0.5);
       const spawned = collectUsers(world);
       world.update(0.1);
       world.update(1.0);
