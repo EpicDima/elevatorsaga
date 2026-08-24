@@ -763,7 +763,11 @@ elevator.goingDownIndicator(false);`,
   "completion.elevator.getPressedFloors": "Gets the currently pressed floor numbers as an array.",
   "completion.elevator.servedFloors":
     "Gets the floors this elevator serves, as an array in ascending order. In a zoned building an elevator only carries passengers between the floors of its own zone, and its arrival clears no call button elsewhere. goToFloor will still send it anywhere, but such a trip carries nobody and still costs moves. An elevator with no zone of its own reports every floor in the building.",
+  "completion.elevator.takeRequest":
+    "Books this elevator for a journey somebody asked for, in a building where passengers announce a destination instead of pressing a call button. The people waiting on the first floor for the second one will board this elevator and no other, whichever way its indicators point. Booking does not move the elevator: send it with goToFloor, first to fetch them and then to where they are going. Returns false when there is no such journey to take, because nobody is waiting for it or because this elevator does not serve both ends of it.",
   "completion.floor.floorNum": "Gets the floor number of the floor object.",
+  "completion.floor.pendingDestinations":
+    "Gets the journeys people on this floor have asked for and are still waiting on, as an array in ascending floor order. Each entry has floorNum, where they are going, and waiting, how many of them are going there. What buttonStates is to a building with call buttons: everything the floor is asking for right now, rather than only what was announced when destination_requested fired. A request stays here until somebody boards an elevator for it, so this is where you find a request you booked an elevator for and then never sent it to fetch. Empty in a building with call buttons.",
   "completion.elevator.event.idle":
     "Triggered when the elevator has completed all its tasks and is not doing anything.",
   "completion.elevator.event.floorButtonPressed":

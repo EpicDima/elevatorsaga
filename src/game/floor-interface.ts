@@ -8,8 +8,13 @@
  * `buttonStates` object, and could corrupt the simulation by touching any of
  * them (upstream issue #3).
  *
- * The surface is exactly `floorNum()`, `level`, `buttonStates` and
- * `on`/`off`/`once`/`one`/`offAll`. The emitter is held rather than inherited
+ * The surface is exactly `floorNum()`, `level`, `buttonStates`,
+ * `pendingDestinations()` and `on`/`off`/`once`/`one`/`offAll`. Every one of
+ * them answers a question and none of them changes anything, which is what
+ * keeps this facade safe to hand out: the verb a destination-dispatch program
+ * needs is
+ * {@link "./elevator-interface.ts"!ElevatorInterface.takeRequest}, on the
+ * facade that already had verbs. The emitter is held rather than inherited
  * from, so the dispatch side of it — `trigger`, `triggerSafe` — is not
  * reachable from player code. {@link "./elevator-interface.ts"!ElevatorInterface}
  * holds its emitter the same way, but does publish `trigger` as well: the
@@ -33,6 +38,14 @@ import {
   type HandlerFor,
   type OffEventSpec,
 } from "./observable.ts";
+
+/** One destination people on a floor are waiting to be taken to. */
+export interface PendingDestination {
+  /** Floor they asked for. */
+  readonly floorNum: number;
+  /** How many of them are waiting for it. */
+  readonly waiting: number;
+}
 
 /** Events a {@link FloorInterface} exposes to player code. */
 export type FloorInterfaceEvents = {
@@ -346,5 +359,28 @@ export class FloorInterface {
    */
   floorNum(): number {
     return this.level;
+  }
+
+  /**
+   * Journeys people here have asked for and are still waiting on.
+   *
+   * What `buttonStates` is to a building with call buttons: everything this
+   * floor is currently asking for, at any moment rather than at the moment
+   * somebody asked. A program that answers `destination_requested` from inside
+   * the handler never needs it; one that decides later, or that has to notice a
+   * request it booked a car for and then never sent the car to fetch, does —
+   * that request is still here, and nothing will say it again.
+   *
+   * A fresh array on every read, in floor order, for the reason `buttonStates`
+   * is a fresh snapshot: the engine's own book is a live map, and handing it
+   * out would let player code empty a floor by deleting from it.
+   *
+   * @returns One entry per destination somebody is waiting for, ascending. An
+   * empty array in a building whose passengers press call buttons.
+   */
+  pendingDestinations(): PendingDestination[] {
+    return [...this.#floor.pendingDestinations()]
+      .map(([floorNum, waiting]) => ({ floorNum, waiting }))
+      .sort((a, b) => a.floorNum - b.floorNum);
   }
 }

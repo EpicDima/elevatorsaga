@@ -75,6 +75,7 @@ import { ElevatorInterface } from "./game/elevator-interface.ts";
 import { Floor } from "./game/floor.ts";
 import { FloorInterface } from "./game/floor-interface.ts";
 import { getCodeObjFromCode } from "./game/user-code.ts";
+import { createFloors } from "./game/world.ts";
 
 /** The declaration file this whole test exists to keep honest. */
 const DECLARATION_PATH = fileURLToPath(new URL("../public/elevatorsaga.d.ts", import.meta.url));
@@ -513,7 +514,11 @@ function exposedNames(facade: object): Set<string> {
  * @returns The facade.
  */
 function elevatorFacade(): ElevatorInterface {
-  return new ElevatorInterface(new Elevator(1.5, 4, 40), 4, () => undefined);
+  return new ElevatorInterface(
+    new Elevator(1.5, 4, 40),
+    createFloors(4, 40, () => undefined),
+    () => undefined,
+  );
 }
 
 /**
@@ -588,6 +593,10 @@ const EXERCISING_PROGRAM = `
     var upButton = floor.buttonStates.up;
     /** @type {"" | "activated"} */
     var downButton = floor.buttonStates.down;
+    /** @type {boolean} */
+    var booked = elevator.takeRequest(number, number + 1);
+    /** @type {ElevatorSaga.PendingDestination[]} */
+    var pending = floor.pendingDestinations();
 
     elevator.goingUpIndicator(!up).goingDownIndicator(!down).offAll();
     floor.offAll();
@@ -641,6 +650,9 @@ const EXERCISING_PROGRAM = `
     floor.once("buttonstate_change", function (buttons) {
       elevator.goToFloor(buttons.up === "activated" ? 0 : 1);
     });
+    floor.on("destination_requested", function (destinationFloor, requestingFloor) {
+      elevator.takeRequest(requestingFloor.floorNum(), destinationFloor);
+    });
     floor.one("up_button_pressed", function (pressedFloor) {
       elevator.goToFloor(pressedFloor.level);
     });
@@ -653,7 +665,7 @@ const EXERCISING_PROGRAM = `
     floor.off("buttonstate_change");
 
     return [capacity, load, lowest, pressed.length, full, empty, approaching, heading, level,
-      number, upButton, downButton];
+      number, upButton, downButton, booked, pending.length];
   },
   update: function (dt, elevators, floors) {
     return dt + elevators.length + floors.length;

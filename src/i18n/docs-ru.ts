@@ -165,6 +165,15 @@ elevator.goToFloor(2); // Всё равно добавится — очеред�
     // На любой другой этаж это поездка, в которой никто не поедет.
     elevator.goToFloor(floorNum);
 }`,
+  "docs.api.elevator.takeRequest":
+    "Закрепляет за лифтом поездку, о которой попросили, — в здании, где пассажиры называют этаж назначения вместо кнопки вызова. Те, кто ждёт на первом указанном этаже поездки до второго, сядут именно в этот лифт и ни в какой другой, куда бы ни смотрели его индикаторы. Закрепление не двигает лифт: отправьте его через goToFloor — сначала за пассажирами, потом туда, куда они едут. Возвращает false, если такой поездки нет: её никто не ждёт или лифт не обслуживает оба её конца.",
+  "docs.api.elevator.takeRequest.example.code": `floor.on("destination_requested", function(destinationFloor, floor) {
+    if(elevator.takeRequest(floor.floorNum(), destinationFloor)) {
+        // Закрепление выбирает лифт, а эти две строки его отправляют.
+        elevator.goToFloor(floor.floorNum());
+        elevator.goToFloor(destinationFloor);
+    }
+})`,
   "docs.api.elevator.idle": "Срабатывает, когда лифт выполнил все задачи и ничем не занят.",
   "docs.api.elevator.floorButtonPressed": "Срабатывает, когда пассажир нажал кнопку внутри лифта.",
   "docs.api.elevator.floorButtonPressed.example.code": `elevator.on("floor_button_pressed", function(floorNum) {
@@ -179,6 +188,12 @@ elevator.goToFloor(2); // Всё равно добавится — очеред�
 
   "docs.api.floor.heading": "Объект этажа",
   "docs.api.floor.floorNum": "Возвращает номер этажа.",
+  "docs.api.floor.pendingDestinations":
+    "Возвращает поездки, о которых попросили с этого этажа и которых всё ещё ждут, — массив по возрастанию этажа. У каждого элемента есть floorNum, куда едут, и waiting, сколько человек туда едет. То же для здания без кнопок вызова, чем buttonStates для обычного: всё, о чём этаж просит прямо сейчас, а не только то, что прозвучало в момент destination_requested. Просьба остаётся здесь, пока по ней кто-нибудь не сядет в лифт, так что именно тут находится просьба, за которой вы закрепили лифт, но так и не отправили его. В здании с кнопками вызова массив пуст.",
+  "docs.api.floor.pendingDestinations.example.code": `floor.pendingDestinations().forEach(function(request) {
+    // За этой поездкой всё ещё никто не едет?
+    elevator.takeRequest(floor.floorNum(), request.floorNum);
+})`,
   "docs.api.floor.upButtonPressed":
     "Срабатывает, когда на этаже нажали кнопку вызова вверх. Учтите, что пассажиры нажмут её снова, если не смогли зайти в лифт. Обработчику передаётся этаж, на котором нажали кнопку.",
   "docs.api.floor.upButtonPressed.example.code": `floor.on("up_button_pressed", function(floor) {

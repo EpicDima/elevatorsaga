@@ -45,6 +45,7 @@ describe("FloorInterface", () => {
       "on",
       "once",
       "one",
+      "pendingDestinations",
     ]);
     for (const forbidden of [
       "yPosition",
@@ -76,6 +77,74 @@ describe("FloorInterface", () => {
       states.down = "activated";
       expect(floor.buttonStates).toEqual({ up: "activated", down: "" });
       expect(floorInterface.buttonStates).toEqual({ up: "activated", down: "" });
+    });
+  });
+
+  describe("pendingDestinations", () => {
+    let dispatchFloor: Floor;
+    let dispatchInterface: FloorInterface;
+
+    beforeEach(() => {
+      dispatchFloor = new Floor(2, 100, errorHandler, true);
+      dispatchInterface = new FloorInterface(dispatchFloor, errorHandler);
+    });
+
+    it("is empty while nobody here has asked for anything", () => {
+      expect(dispatchInterface.pendingDestinations()).toEqual([]);
+    });
+
+    it("is empty in a building whose passengers press call buttons", () => {
+      floor.pressUpButton();
+      floor.pressDownButton();
+
+      expect(floorInterface.pendingDestinations()).toEqual([]);
+    });
+
+    it("counts the people waiting for each destination, lowest floor first", () => {
+      dispatchFloor.requestDestination(5);
+      dispatchFloor.requestDestination(1);
+      dispatchFloor.requestDestination(5);
+
+      expect(dispatchInterface.pendingDestinations()).toEqual([
+        { floorNum: 1, waiting: 1 },
+        { floorNum: 5, waiting: 2 },
+      ]);
+    });
+
+    it("keeps a request a car was booked for and never sent to fetch", () => {
+      // The one thing this method is for that the event cannot do: a booked
+      // journey is never announced again, so a program that books and forgets
+      // has nowhere else to find it.
+      dispatchFloor.requestDestination(5);
+      dispatchFloor.assignElevator(5, {
+        goingUpIndicator: false,
+        goingDownIndicator: false,
+        serves: () => true,
+      });
+
+      expect(dispatchInterface.pendingDestinations()).toEqual([{ floorNum: 5, waiting: 1 }]);
+    });
+
+    it("drops a destination once the last person waiting for it boards", () => {
+      dispatchFloor.requestDestination(5);
+      dispatchFloor.requestDestination(5);
+
+      dispatchFloor.destinationBoarded(5);
+      expect(dispatchInterface.pendingDestinations()).toEqual([{ floorNum: 5, waiting: 1 }]);
+
+      dispatchFloor.destinationBoarded(5);
+      expect(dispatchInterface.pendingDestinations()).toEqual([]);
+    });
+
+    it("is a fresh array of fresh entries, so player code cannot corrupt the floor", () => {
+      // The reason `buttonStates` is a snapshot: the engine's own book is a
+      // live map, and emptying what was handed out would empty the floor.
+      dispatchFloor.requestDestination(5);
+      const first = dispatchInterface.pendingDestinations();
+      first.length = 0;
+
+      expect(dispatchInterface.pendingDestinations()).toEqual([{ floorNum: 5, waiting: 1 }]);
+      expect(dispatchInterface.pendingDestinations()).not.toBe(first);
     });
   });
 

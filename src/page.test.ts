@@ -13,6 +13,7 @@ import { ElevatorInterface, type ElevatorInterfaceEvents } from "./game/elevator
 import { Floor } from "./game/floor.ts";
 import { FloorInterface, type FloorInterfaceEvents } from "./game/floor-interface.ts";
 import { tutorialLevels } from "./game/tutorial.ts";
+import { createFloors } from "./game/world.ts";
 import type { MessageKey } from "./i18n/catalog.ts";
 import { EN_DOCS_MESSAGES, type DocsMessageKey } from "./i18n/docs-en.ts";
 import { RU_DOCS_MESSAGES } from "./i18n/docs-ru.ts";
@@ -908,7 +909,11 @@ function checkDocumentedEvents(
  * @returns The facade.
  */
 function elevatorFacade(): ElevatorInterface {
-  return new ElevatorInterface(new Elevator(1.5, 4, 40), 4, () => undefined);
+  return new ElevatorInterface(
+    new Elevator(1.5, 4, 40),
+    createFloors(4, 40, () => undefined),
+    () => undefined,
+  );
 }
 
 /**
@@ -933,7 +938,7 @@ describe.each(DOCUMENTATION_PAGES)(
       // translation that translated a heading without saying so here would
       // otherwise read as a page with no API in it at all.
       expect(documented.eventMethods).toEqual(["on", "once", "one", "off", "offAll"]);
-      expect(documented.floorProperties).toEqual(["floorNum"]);
+      expect(documented.floorProperties).toEqual(["floorNum", "pendingDestinations"]);
       expect(documented.elevatorProperties.length).toBeGreaterThan(10);
       expect(documented.elevatorEvents.length).toBeGreaterThan(0);
       expect(documented.floorEvents.length).toBeGreaterThan(0);

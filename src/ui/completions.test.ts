@@ -5,6 +5,7 @@ import { ElevatorInterface } from "../game/elevator-interface.ts";
 import { Floor } from "../game/floor.ts";
 import { FloorInterface } from "../game/floor-interface.ts";
 import { getCodeObjFromCode } from "../game/user-code.ts";
+import { createFloors } from "../game/world.ts";
 import { setLocale, translateIn, DEFAULT_LOCALE, LOCALES, type Locale } from "../i18n/index.ts";
 import {
   completionsFor,
@@ -391,7 +392,11 @@ describe("agreement with the facades player code is handed", () => {
    * @returns The facade.
    */
   function elevatorFacade(): ElevatorInterface {
-    return new ElevatorInterface(new Elevator(1.5, 4, 40), 4, () => undefined);
+    return new ElevatorInterface(
+      new Elevator(1.5, 4, 40),
+      createFloors(4, 40, () => undefined),
+      () => undefined,
+    );
   }
 
   /**

@@ -863,7 +863,7 @@ export class World extends Observable<WorldEvents> {
       options.elevatorServedFloors,
     );
     this.elevatorInterfaces = this.elevators.map(
-      (e) => new ElevatorInterface(e, this.#floorCount, handleUserCodeError),
+      (e) => new ElevatorInterface(e, this.floors, handleUserCodeError),
     );
 
     // Bind them all together

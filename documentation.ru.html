@@ -690,6 +690,30 @@ elevator.checkDestinationQueue();</code></pre>
 }</code></pre>
               </td>
             </tr>
+            <tr>
+              <td>takeRequest</td>
+              <td>функция</td>
+              <td>
+                <small
+                  >Закрепляет за лифтом поездку, о которой попросили, — в здании, где пассажиры
+                  называют этаж назначения вместо кнопки вызова. Те, кто ждёт на первом указанном
+                  этаже поездки до второго, сядут именно в этот лифт и ни в какой другой, куда бы ни
+                  смотрели его индикаторы. Закрепление не двигает лифт: отправьте его через
+                  goToFloor — сначала за пассажирами, потом туда, куда они едут. Возвращает false,
+                  если такой поездки нет: её никто не ждёт или лифт не обслуживает оба её
+                  конца.</small
+                >
+              </td>
+              <td>
+                <pre><code>floor.on("destination_requested", function(destinationFloor, floor) {
+    if(elevator.takeRequest(floor.floorNum(), destinationFloor)) {
+        // Закрепление выбирает лифт, а эти две строки его отправляют.
+        elevator.goToFloor(floor.floorNum());
+        elevator.goToFloor(destinationFloor);
+    }
+})</code></pre>
+              </td>
+            </tr>
             <!--
               У объекта лифта есть ещё два члена, намеренно не попавшие в эту
               таблицу; список пропусков хранится в src/page.test.ts, чтобы ни об
@@ -786,6 +810,28 @@ elevator.checkDestinationQueue();</code></pre>
               <td><small>Возвращает номер этажа.</small></td>
               <td>
                 <pre><code>if(floor.floorNum() &gt; 3) { ... }</code></pre>
+              </td>
+            </tr>
+            <tr>
+              <td>pendingDestinations</td>
+              <td>функция</td>
+              <td>
+                <small
+                  >Возвращает поездки, о которых попросили с этого этажа и которых всё ещё ждут, —
+                  массив по возрастанию этажа. У каждого элемента есть floorNum, куда едут, и
+                  waiting, сколько человек туда едет. То же для здания без кнопок вызова, чем
+                  buttonStates для обычного: всё, о чём этаж просит прямо сейчас, а не только то,
+                  что прозвучало в момент destination_requested. Просьба остаётся здесь, пока по ней
+                  кто-нибудь не сядет в лифт, так что именно тут находится просьба, за которой вы
+                  закрепили лифт, но так и не отправили его. В здании с кнопками вызова массив
+                  пуст.</small
+                >
+              </td>
+              <td>
+                <pre><code>floor.pendingDestinations().forEach(function(request) {
+    // За этой поездкой всё ещё никто не едет?
+    elevator.takeRequest(floor.floorNum(), request.floorNum);
+})</code></pre>
               </td>
             </tr>
             <!--

@@ -182,6 +182,15 @@ elevator.goToFloor(2); // Queued anyway -- queue: 2, 3, 2`,
     // Sending it anywhere else is a trip that carries nobody.
     elevator.goToFloor(floorNum);
 }`,
+  "docs.api.elevator.takeRequest":
+    "Books this elevator for a journey somebody asked for, in a building where passengers announce a destination instead of pressing a call button. The people waiting on the first floor for the second one will board this elevator and no other, whichever way its indicators point. Booking does not move the elevator: send it with goToFloor, first to fetch them and then to where they are going. Returns false when there is no such journey to take, because nobody is waiting for it or because this elevator does not serve both ends of it.",
+  "docs.api.elevator.takeRequest.example.code": `floor.on("destination_requested", function(destinationFloor, floor) {
+    if(elevator.takeRequest(floor.floorNum(), destinationFloor)) {
+        // Booking picks the elevator; these two lines send it.
+        elevator.goToFloor(floor.floorNum());
+        elevator.goToFloor(destinationFloor);
+    }
+})`,
   "docs.api.elevator.idle":
     "Triggered when the elevator has completed all its tasks and is not doing anything.",
   "docs.api.elevator.floorButtonPressed":
@@ -198,6 +207,12 @@ elevator.goToFloor(2); // Queued anyway -- queue: 2, 3, 2`,
 
   "docs.api.floor.heading": "Floor object",
   "docs.api.floor.floorNum": "Gets the floor number of the floor object.",
+  "docs.api.floor.pendingDestinations":
+    "Gets the journeys people on this floor have asked for and are still waiting on, as an array in ascending floor order. Each entry has floorNum, where they are going, and waiting, how many of them are going there. What buttonStates is to a building with call buttons: everything the floor is asking for right now, rather than only what was announced when destination_requested fired. A request stays here until somebody boards an elevator for it, so this is where you find a request you booked an elevator for and then never sent it to fetch. Empty in a building with call buttons.",
+  "docs.api.floor.pendingDestinations.example.code": `floor.pendingDestinations().forEach(function(request) {
+    // Still nobody on the way to fetch this one?
+    elevator.takeRequest(floor.floorNum(), request.floorNum);
+})`,
   "docs.api.floor.upButtonPressed":
     "Triggered when someone has pressed the up button at a floor. Note that passengers will press the button again if they fail to enter an elevator. The handler is passed the floor the button was pressed on.",
   "docs.api.floor.upButtonPressed.example.code": `floor.on("up_button_pressed", function(floor) {

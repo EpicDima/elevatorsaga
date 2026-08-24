@@ -3,7 +3,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { setLocale, DEFAULT_LOCALE } from "../i18n/index.ts";
 import { Elevator } from "./elevator.ts";
 import { ElevatorInterface, type ElevatorInterfaceErrorHandler } from "./elevator-interface.ts";
-import { timeForwarder } from "./test-helpers.ts";
+import type { Floor } from "./floor.ts";
+import { at, timeForwarder } from "./test-helpers.ts";
+import { createFloors } from "./world.ts";
 
 afterEach(() => {
   setLocale(DEFAULT_LOCALE);
@@ -38,14 +40,16 @@ function stepUntil(e: Elevator, predicate: () => boolean, maxTime = 10.0): void 
 
 describe("Elevator interface", () => {
   let e: Elevator;
+  let floors: Floor[];
   let elevInterface: ElevatorInterface;
   let errorHandler: ReturnType<typeof vi.fn<ElevatorInterfaceErrorHandler>>;
 
   beforeEach(() => {
     e = new Elevator(1.5, FLOOR_COUNT, FLOOR_HEIGHT);
     e.setFloorPosition(0);
+    floors = createFloors(FLOOR_COUNT, FLOOR_HEIGHT, () => undefined, true);
     errorHandler = vi.fn<ElevatorInterfaceErrorHandler>();
-    elevInterface = new ElevatorInterface(e, FLOOR_COUNT, errorHandler);
+    elevInterface = new ElevatorInterface(e, floors, errorHandler);
   });
 
   it("exposes exactly the documented surface and nothing else", () => {
@@ -91,6 +95,7 @@ describe("Elevator interface", () => {
       "one",
       "servedFloors",
       "stop",
+      "takeRequest",
       "trigger",
     ]);
     for (const forbidden of [
@@ -717,7 +722,7 @@ describe("Elevator interface", () => {
       function facadeOver(servedFloors: readonly number[]): ElevatorInterface {
         return new ElevatorInterface(
           new Elevator(1.5, FLOOR_COUNT, FLOOR_HEIGHT, undefined, undefined, servedFloors),
-          FLOOR_COUNT,
+          floors,
           errorHandler,
         );
       }
@@ -764,6 +769,123 @@ describe("Elevator interface", () => {
       expect(elevInterface.getFirstPressedFloor()).toBe(1);
       expect(warn).toHaveBeenCalledTimes(1);
       warn.mockRestore();
+    });
+  });
+
+  describe("takeRequest", () => {
+    /** Puts somebody on `from` waiting to be taken to `to`. */
+    function waits(from: number, to: number): void {
+      at(floors, from).requestDestination(to);
+    }
+
+    it("books this car for a journey somebody is waiting to make", () => {
+      waits(1, 3);
+
+      expect(elevInterface.takeRequest(1, 3)).toBe(true);
+      expect(at(floors, 1).assignedElevator(3)).toBe(e);
+    });
+
+    it("books the car itself, never the facade over it", () => {
+      // The floor hands the booked car to `User.elevatorAvailable`, which
+      // compares it against the car the passenger is standing in front of. A
+      // facade booked in its place would match nothing and nobody would board.
+      waits(1, 3);
+      elevInterface.takeRequest(1, 3);
+
+      expect(at(floors, 1).assignedElevator(3)).not.toBe(elevInterface);
+    });
+
+    it("refuses a journey nobody is waiting to make", () => {
+      expect(elevInterface.takeRequest(1, 3)).toBe(false);
+      expect(at(floors, 1).assignedElevator(3)).toBeNull();
+    });
+
+    it("refuses every booking in a building whose passengers press buttons", () => {
+      // Nobody in one ever names a floor, so there is never a journey to take.
+      const hallCallFloors = createFloors(FLOOR_COUNT, FLOOR_HEIGHT, () => undefined);
+      const facade = new ElevatorInterface(e, hallCallFloors, errorHandler);
+      at(hallCallFloors, 1).pressUpButton();
+
+      expect(facade.takeRequest(1, 3)).toBe(false);
+    });
+
+    it("refuses a journey this car cannot serve end to end", () => {
+      const zoned = new ElevatorInterface(
+        new Elevator(1.5, FLOOR_COUNT, FLOOR_HEIGHT, undefined, undefined, [0, 1]),
+        floors,
+        errorHandler,
+      );
+      waits(1, 3);
+
+      expect(zoned.takeRequest(1, 3)).toBe(false);
+      expect(at(floors, 1).assignedElevator(3)).toBeNull();
+    });
+
+    it("says the same thing again without doing anything again", () => {
+      // So that a program may book on every frame. The floor emits on a change,
+      // and re-booking the same car is not one.
+      const assigned = vi.fn();
+      waits(1, 3);
+      elevInterface.takeRequest(1, 3);
+      at(floors, 1).on("elevator_assigned", assigned);
+
+      expect(elevInterface.takeRequest(1, 3)).toBe(true);
+      expect(assigned).not.toHaveBeenCalled();
+    });
+
+    it("takes over a journey another car was booked for", () => {
+      const other = new Elevator(1.5, FLOOR_COUNT, FLOOR_HEIGHT);
+      waits(1, 3);
+      at(floors, 1).assignElevator(3, other);
+
+      expect(elevInterface.takeRequest(1, 3)).toBe(true);
+      expect(at(floors, 1).assignedElevator(3)).toBe(e);
+    });
+
+    it("rounds both floors, since a floor is a place and not a position", () => {
+      waits(1, 3);
+
+      expect(elevInterface.takeRequest(0.6, 2.7)).toBe(true);
+      expect(at(floors, 1).assignedElevator(3)).toBe(e);
+    });
+
+    it("clamps a floor outside the building rather than booking nothing", () => {
+      // `#toFloorNumber` is the one policy on a floor argument and it clamps to
+      // the building, exactly as `goToFloor` does, so there is no floor index
+      // here that could fail to name a floor.
+      waits(3, 0);
+
+      expect(elevInterface.takeRequest(9, -4)).toBe(true);
+      expect(at(floors, 3).assignedElevator(0)).toBe(e);
+    });
+
+    it("books nothing when there are no floors to book on", () => {
+      // A guard rather than a case. `#toFloorNumber` clamps into the building,
+      // so the only index that can fail to name a floor is one in a building
+      // that has none; `World` never builds one, and the type checker cannot
+      // know that.
+      const noFloors = new ElevatorInterface(e, [], errorHandler);
+
+      expect(noFloors.takeRequest(0, 1)).toBe(false);
+    });
+
+    it("refuses a floor that is not a number at all, and books nothing", () => {
+      const loose = elevInterface as unknown as {
+        takeRequest(from: unknown, to: unknown): boolean;
+      };
+      waits(1, 3);
+
+      expect(() => loose.takeRequest("abc", 3)).toThrow(TypeError);
+      expect(() => loose.takeRequest(1, Number.NaN)).toThrow(TypeError);
+      expect(at(floors, 1).assignedElevator(3)).toBeNull();
+    });
+
+    it("names itself in the error, not the method that clamps for it", () => {
+      const loose = elevInterface as unknown as {
+        takeRequest(from: unknown, to: unknown): boolean;
+      };
+
+      expect(() => loose.takeRequest(1, undefined)).toThrow(/elevator\.takeRequest/);
     });
   });
 
@@ -1010,7 +1132,7 @@ describe("Elevator interface", () => {
       // same mistake in it is still told about it.
       const restarted = new Elevator(1.5, FLOOR_COUNT, FLOOR_HEIGHT);
       restarted.setFloorPosition(0);
-      const restartedInterface = new ElevatorInterface(restarted, FLOOR_COUNT, errorHandler);
+      const restartedInterface = new ElevatorInterface(restarted, floors, errorHandler);
       restartedInterface.destinationQueue = [Number.NaN];
       restartedInterface.checkDestinationQueue();
 

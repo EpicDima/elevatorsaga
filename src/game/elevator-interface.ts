@@ -10,6 +10,16 @@
  * solution can notice a method it never called, and none of them can make the
  * simulation do anything it would not have done anyway.
  *
+ * {@link ElevatorInterface.takeRequest} is the one addition that is not a
+ * query, and it lives here rather than on the floor facade for the reason the
+ * rest of this list is safe: this facade already moves the car, so a verb is
+ * nothing new on it, while
+ * {@link "./floor-interface.ts"!FloorInterface} publishes no verb at all and
+ * the first one would end that. It also asks the question the way a program
+ * answers it — a program picks a car for a journey, so the car is what it says
+ * it to. A building with hall buttons has no journeys to take, and there the
+ * method finds nothing to book and says so.
+ *
  * It hides the actual elevator object behind a more robust facade, while also
  * exposing relevant events, and providing some helper queue functions that
  * allow programming without async logic.
@@ -28,6 +38,7 @@
 
 import { t } from "../i18n/index.ts";
 import type { Elevator, ElevatorDirection } from "./elevator.ts";
+import type { Floor } from "./floor.ts";
 import { epsilonEquals, limitNumber } from "./math.ts";
 import {
   PlayerObservable,
@@ -126,6 +137,7 @@ export class ElevatorInterface {
   destinationQueue: number[] = [];
 
   readonly #elevator: Elevator;
+  readonly #floors: readonly Floor[];
   readonly #floorCount: number;
   readonly #errorHandler: ElevatorInterfaceErrorHandler;
   /**
@@ -144,12 +156,18 @@ export class ElevatorInterface {
 
   /**
    * @param elevator - The elevator this facade wraps.
-   * @param floorCount - Number of floors, used to clamp requested destinations.
+   * @param floors - The building's floors, bottom first. Their count clamps
+   * requested destinations, and {@link takeRequest} books a car on them.
    * @param errorHandler - Receives anything a player-code handler throws.
    */
-  constructor(elevator: Elevator, floorCount: number, errorHandler: ElevatorInterfaceErrorHandler) {
+  constructor(
+    elevator: Elevator,
+    floors: readonly Floor[],
+    errorHandler: ElevatorInterfaceErrorHandler,
+  ) {
     this.#elevator = elevator;
-    this.#floorCount = floorCount;
+    this.#floors = floors;
+    this.#floorCount = floors.length;
     this.#errorHandler = errorHandler;
 
     elevator.on("stopped", (position) => {
@@ -506,6 +524,37 @@ export class ElevatorInterface {
     if (!this.#elevator.isBusy()) {
       this.#elevator.goToFloor(this.#elevator.getExactFutureFloorIfStopped());
     }
+  }
+
+  /**
+   * Books this elevator for a journey somebody asked for.
+   *
+   * The answer to `destination_requested`: the people on `fromFloorNum` bound
+   * for `toFloorNum` wait for this car and board no other, and this car picks
+   * them up whichever way its indicators point. Booking says nothing about
+   * where the car goes — {@link goToFloor} still does that, and a car booked
+   * for a journey it is never sent to fetch leaves the people waiting for it
+   * where they are.
+   *
+   * Refused, with `false`, when nobody on that floor is waiting for that
+   * destination, and when this car cannot serve both ends of the trip. Both
+   * refusals mean the same thing: there is no journey here for this car to
+   * take. A building whose passengers press call buttons refuses every booking
+   * for the first of those reasons, since nobody in it ever names a floor.
+   *
+   * Booking the same car for the same journey again is not a refusal and does
+   * nothing, so a program may say it on every frame.
+   *
+   * @param fromFloorNum - Floor the people are waiting on. Rounded, since a
+   * floor is a place rather than a position.
+   * @param toFloorNum - Floor they asked to be taken to, rounded likewise.
+   * @returns `true` when the booking was taken.
+   * @throws {TypeError} When either floor is not a finite number.
+   */
+  takeRequest(fromFloorNum: number, toFloorNum: number): boolean {
+    const from = Math.round(this.#toFloorNumber("takeRequest", fromFloorNum));
+    const to = Math.round(this.#toFloorNumber("takeRequest", toFloorNum));
+    return this.#floors[from]?.assignElevator(to, this.#elevator) ?? false;
   }
 
   /**

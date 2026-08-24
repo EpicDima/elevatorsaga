@@ -83,6 +83,14 @@ declare namespace ElevatorSaga {
     readonly down: ButtonState;
   }
 
+  /** One destination people on a floor are waiting to be taken to. */
+  interface PendingDestination {
+    /** The floor they asked for. */
+    readonly floorNum: number;
+    /** How many of them are waiting for it. */
+    readonly waiting: number;
+  }
+
   /** The events an elevator raises. */
   type ElevatorEventName = "idle" | "floor_button_pressed" | "passing_floor" | "stopped_at_floor";
 
@@ -163,6 +171,26 @@ declare namespace ElevatorSaga {
      * it can brake to, which is usually between floors, so nobody gets out.
      */
     stop(): void;
+
+    /**
+     * Books this elevator for a journey somebody asked for.
+     *
+     * The answer to `destination_requested`, in a building where people name
+     * the floor they want instead of pressing a call button: the people on
+     * `fromFloorNum` bound for `toFloorNum` wait for this car and board no
+     * other, whichever way its indicators point.
+     *
+     * Booking does not move the car. Send it with {@link Elevator.goToFloor},
+     * first to fetch them and then to where they are going; a car booked for a
+     * journey it is never sent to fetch leaves them waiting where they are.
+     *
+     * @param fromFloorNum - The floor they are waiting on.
+     * @param toFloorNum - The floor they asked to be taken to.
+     * @returns True when the booking was taken, and false when there is no such
+     * journey to take: nobody on that floor is waiting for that destination, or
+     * this car does not serve both ends of the trip.
+     */
+    takeRequest(fromFloorNum: number, toFloorNum: number): boolean;
 
     /**
      * The floor the elevator is on.
@@ -592,8 +620,9 @@ declare namespace ElevatorSaga {
   /**
    * One floor, as a program sees it.
    *
-   * A floor is where people wait and press call buttons; it has no controls of
-   * its own, so everything below is either its number or a subscription.
+   * A floor is where people wait; it has no controls of its own, so everything
+   * below either answers a question about who is waiting or subscribes to hear
+   * about it. The elevators are what a program gives orders to.
    */
   interface Floor {
     /**
@@ -619,6 +648,23 @@ declare namespace ElevatorSaga {
      * `buttonstate_change` is cheaper than polling this every frame.
      */
     readonly buttonStates: FloorButtonStates;
+
+    /**
+     * The journeys people here have asked for and are still waiting on.
+     *
+     * What {@link Floor.buttonStates} is to a building with call buttons, for
+     * one where people name the floor they want instead: everything this floor
+     * is asking for right now, rather than only what was announced the moment
+     * `destination_requested` was raised. A request stays here until somebody
+     * boards a car for it, so this is where a program finds the request it
+     * booked a car for and then never sent the car to fetch.
+     *
+     * A fresh array on every read, so changing it changes nothing.
+     *
+     * @returns One entry per destination somebody is waiting for, in ascending
+     * floor order, and nothing at all in a building with call buttons.
+     */
+    pendingDestinations(): PendingDestination[];
 
     /**
      * Runs `handler` whenever somebody presses this floor's up call button.

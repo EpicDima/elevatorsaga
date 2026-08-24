@@ -65,16 +65,19 @@ is scored by the same rules.
 - **A sandbox building.** `#level=sandbox` takes `floors`, `elevators`, `capacities` and
   `spawnrate`, so you can build the case your program is failing on rather than looking for a
   shipped level that resembles it. See [URL parameters](#url-parameters).
-- **Four more methods on the elevator.** `isFull()`, `isEmpty()` and `isApproachingFloor(n)` —
+- **Five more methods on the elevator.** `isFull()`, `isEmpty()` and `isApproachingFloor(n)` —
   the three checks nearly every published solution had already written by hand out of `loadFactor`
   and `destinationQueue` — and `servedFloors()`, which answers the question a zoned building makes
-  worth asking: which floors does this car stop at?
-- **Two more events on the floor.** `hall_button_pressed` fires for either call button and hands its
-  handler the direction, so a program that treats a call as a call — which is most of them, since
-  the queue an elevator ends up with is a list of floors either way — writes one handler instead of
-  registering the same one twice. `destination_requested` is the call a building with no call
-  buttons makes instead: its passengers name the floor they are going to, and a program answers by
-  sending a car for that journey.
+  worth asking: which floors does this car stop at? `takeRequest(from, to)` is the fifth, and the
+  only one that does something rather than reporting something: it books this car for one journey
+  somebody is waiting to make.
+- **Two more events on the floor, and one more method.** `hall_button_pressed` fires for either call
+  button and hands its handler the direction, so a program that treats a call as a call — which is
+  most of them, since the queue an elevator ends up with is a list of floors either way — writes one
+  handler instead of registering the same one twice. `destination_requested` is the call a building
+  with no call buttons makes instead: its passengers name the floor they are going to, and a program
+  answers by sending a car for that journey. `pendingDestinations()` is the same question asked
+  rather than waited for — the journeys people here are still waiting on, and how many of them.
 - **Room to work in the editor.** Drag the grip under the editor to any height between six lines and
   85% of the window, and it is still that height next visit. From the keyboard it is a focusable
   splitter: <kbd>↑</kbd> and <kbd>↓</kbd> move it a line at a time, <kbd>Page Up</kbd> and
@@ -554,13 +557,17 @@ module-scoped now.
 - `level` — the same number as a property; undocumented, but kept because published solutions use it
 - `buttonStates` — a read-only `{ up, down }` **snapshot**, rebuilt on every read, so assigning to
   it or mutating it no longer clears the building's call buttons
+- `pendingDestinations()` — a fresh `{ floorNum, waiting }[]`, in floor order, of the journeys
+  people here are still waiting on
 - `on` / `off` / `once` / `one` / `offAll` for `up_button_pressed`, `down_button_pressed`,
   `hall_button_pressed`, `destination_requested` and `buttonstate_change`
 
 Everything else the old `Floor` object exposed — `yPosition`, `getSpawnPosY`, `elevatorAvailable`,
 `pressUpButton`, `pressDownButton`, `trigger` — is unreachable, and every handler that is handed a
 floor is handed the facade rather than the internal one. This closes upstream issue
-[#3](https://github.com/magwo/elevatorsaga/issues/3). Two of those events the original does not
+[#3](https://github.com/magwo/elevatorsaga/issues/3). Not one of those members changes anything,
+which is what keeps handing this object out safe; the verb a destination-dispatch program needs is
+`takeRequest` on the elevator, which had verbs already. Two of the events the original does not
 have: `hall_button_pressed`, described under
 [Asked for upstream, and here already](#asked-for-upstream-and-here-already), and
 `destination_requested`, which is raised only in a building whose passengers announce where they
@@ -606,9 +613,10 @@ writable array.
 `destinationQueue`, `currentFloor`, `loadFactor`, `maxPassengerCount`, `destinationDirection`,
 `getPressedFloors`, `getFirstPressedFloor`, `goingUpIndicator`, `goingDownIndicator` and the
 `idle` / `floor_button_pressed` / `passing_floor` / `stopped_at_floor` events all keep their names,
-arities and payloads. `isFull()`, `isEmpty()`, `isApproachingFloor(n)` and `servedFloors()` are
-additions, as the floor's two new events above are, so a solution that uses them is one you cannot
-take back to [play.elevatorsaga.com](https://play.elevatorsaga.com/). So are `once()` and `offAll()`, which is
+arities and payloads. `isFull()`, `isEmpty()`, `isApproachingFloor(n)`, `servedFloors()` and
+`takeRequest(from, to)` are additions, as the floor's new events and `pendingDestinations()` above
+are, so a solution that uses them is one you cannot take back to
+[play.elevatorsaga.com](https://play.elevatorsaga.com/). So are `once()` and `offAll()`, which is
 easy to miss because what they do is not new: riot's observable and the `unobservable.js` near-copy
 of it each define `on`, `off`, `one` and `trigger` and no other method, so those two names are this
 emitter's spellings of `one()` and `off("*")` rather than the original's.

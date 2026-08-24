@@ -276,6 +276,12 @@ const ELEVATOR_MEMBERS: readonly KeyedCompletion[] = [
     info: "completion.elevator.servedFloors",
     type: "method",
   },
+  {
+    label: "takeRequest",
+    detail: "takeRequest(fromFloorNum, toFloorNum) -> boolean",
+    info: "completion.elevator.takeRequest",
+    type: "method",
+  },
   ...EVENT_METHODS,
 ];
 
@@ -303,6 +309,12 @@ const FLOOR_MEMBERS: readonly KeyedCompletion[] = [
     label: "floorNum",
     detail: "floorNum() -> number",
     info: "completion.floor.floorNum",
+    type: "method",
+  },
+  {
+    label: "pendingDestinations",
+    detail: "pendingDestinations() -> {floorNum, waiting}[]",
+    info: "completion.floor.pendingDestinations",
     type: "method",
   },
   ...EVENT_METHODS,
