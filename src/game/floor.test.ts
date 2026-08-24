@@ -455,16 +455,30 @@ describe("Floor", () => {
 
       it("announces the book before anyone is told what happened to it", () => {
         // A handler reads the floor rather than a snapshot, so the floor has to
-        // already read the new way by the time it is handed one.
+        // already read the new way by the time it is handed one -- and it has
+        // to be handed one before the request that moved the book is passed on,
+        // or a panel redrawn from inside a `destination_requested` handler
+        // draws a book one passenger behind.
+        const order: string[] = [];
         const seen: (readonly [number, number])[][] = [];
         changed.mockImplementation((floor) => {
+          order.push("destinations_change");
           seen.push([...floor.pendingDestinations()]);
+        });
+        requested.mockImplementation(() => {
+          order.push("destination_requested");
         });
 
         dispatch.requestDestination(7);
         dispatch.requestDestination(7);
 
         expect(seen).toEqual([[[7, 1]], [[7, 2]]]);
+        expect(order).toEqual([
+          "destinations_change",
+          "destination_requested",
+          "destinations_change",
+          "destination_requested",
+        ]);
       });
 
       it("announces the traveler the request event keeps quiet about", () => {
@@ -493,6 +507,23 @@ describe("Floor", () => {
 
         dispatch.assignElevator(7, elevator);
         expect(changed).toHaveBeenCalledTimes(1);
+      });
+
+      it("has already written the booking down by the time it announces it", () => {
+        // Announced first, the panel would redraw with the journey still
+        // reading unanswered and would only catch up on the next thing to move
+        // the book.
+        const elevator = servingOnly(2, 7);
+        const seen: (FloorElevator | null)[] = [];
+        dispatch.requestDestination(7);
+        changed.mockClear();
+        changed.mockImplementation((floor) => {
+          seen.push(floor.assignedElevator(7));
+        });
+
+        dispatch.assignElevator(7, elevator);
+
+        expect(seen).toEqual([elevator]);
       });
 
       it("says nothing about a booking the floor turned down", () => {
@@ -528,6 +559,24 @@ describe("Floor", () => {
         dispatch.destinationRefused(7);
 
         expect(changed).toHaveBeenCalledTimes(1);
+      });
+
+      it("has already withdrawn the booking by the time it announces it", () => {
+        // A full car turns a passenger away and the panel redraws. Announced
+        // before the booking is dropped, the chip would redraw still marked
+        // answered, and since the program does not rebook it nothing would move
+        // the book again -- so it would read that way for the rest of the run.
+        const seen: (FloorElevator | null)[] = [];
+        dispatch.requestDestination(7);
+        dispatch.assignElevator(7, servingOnly(2, 7));
+        changed.mockClear();
+        changed.mockImplementation((floor) => {
+          seen.push(floor.assignedElevator(7));
+        });
+
+        dispatch.destinationRefused(7);
+
+        expect(seen).toEqual([null]);
       });
 
       it("routes exceptions thrown by its handlers", () => {

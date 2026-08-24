@@ -152,6 +152,45 @@ describe("the floor column", () => {
     },
   );
 
+  it("lays a destination panel out in rows, where a call panel is a column", () => {
+    // `.destinations` is a `.calls` as well, and `.calls` is a flex column: no
+    // `row` here and four chips stand four rows deep in a row with height for
+    // two. Wrapping is what makes the second row exist at all -- without it the
+    // four share one row and the clip below cuts half of them away, so a floor
+    // with four journeys quietly draws two.
+    //
+    // `flex: 1` and not the shrink-to-fit a `.calls` gets: the panel takes the
+    // whole of what the floor number leaves, so its half is the same half on
+    // every floor and the chips stand in two columns down the building instead
+    // of sliding about with how much each floor happens to be asking for.
+    //
+    // `overflow: hidden` is the backstop under all of it: a chip too wide for
+    // its half is clipped at the panel's edge rather than pushing its neighbor
+    // onto a row of its own.
+    const body = ruleBody(".destinations");
+    expect(declaration(body, "flex", ".destinations")).toBe("1");
+    expect(declaration(body, "flex-direction", ".destinations")).toBe("row");
+    expect(declaration(body, "flex-wrap", ".destinations")).toBe("wrap");
+    expect(declaration(body, "overflow", ".destinations")).toBe("hidden");
+  });
+
+  it("pairs a destination chip's width with the gap between two of them", () => {
+    // Two chips and the gap between them come to exactly the panel's width,
+    // which is what puts the third chip on a row of its own rather than the
+    // second. The two numbers are stated in two rules and are one design, so
+    // they are read back as one: a gap widened on its own leaves the pair too
+    // wide for the row, and a full panel goes four rows deep in a floor with
+    // room for two.
+    const gap = /^([\d.]+)px$/.exec(declaration(ruleBody(".destinations"), "gap", ".destinations"));
+    expect(gap, ".destinations no longer states its gap in px").not.toBeNull();
+    const basis = /^0 0 calc\((\d+)% - ([\d.]+)px\)$/.exec(
+      declaration(ruleBody(".dest"), "flex", ".dest"),
+    );
+    expect(basis, ".dest is no longer a fixed fraction of the panel less an inset").not.toBeNull();
+    expect(Number(basis?.[1])).toBe(50);
+    expect(Number(basis?.[2]) * 2).toBe(Number(gap?.[1]));
+  });
+
   it("holds a destination panel to two rows whatever is standing on the floor", () => {
     // The panel is as tall as the floor and no taller, and `entities/floor`
     // draws at most four chips into it: two rows of two. What makes that

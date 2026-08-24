@@ -20,6 +20,8 @@ import {
   token,
 } from "#shared/styles/test-helpers.ts";
 
+import { MIN_FLOOR } from "../lib/layout-building.ts";
+
 describe("the building's own focus ring", () => {
   it.each(THEMES)("keeps the focus ring readable inside .world, %s theme", (_, palette) => {
     // .world redeclares --ds-focus to --ds-accent-hi, and everything focusable
@@ -53,6 +55,26 @@ describe("the floor-number column", () => {
       return Number(px?.[1]);
     };
     expect(width(".levels.has-destinations")).toBeGreaterThan(width(".levels"));
+  });
+
+  it("leaves the shortest floor room for two rows of journey chips", () => {
+    // The other half of the same bargain, and the half only this side can
+    // check. `entities/floor` draws at most four chips because a full panel is
+    // two rows of two, and how short a row gets is decided here: a chip is a
+    // fraction of the floor's own height, clamped at both ends, and two of them
+    // plus the gap between the rows have to fit the shortest floor a building
+    // is ever squeezed to.
+    const chip = /^clamp\(([\d.]+)px,[^,]+,\s*([\d.]+)px\)$/.exec(
+      declaration(ruleBody(".dest"), "block-size", ".dest"),
+    );
+    expect(chip, ".dest no longer clamps its height between two lengths in px").not.toBeNull();
+    const gap = /^([\d.]+)px$/.exec(declaration(ruleBody(".destinations"), "gap", ".destinations"));
+    expect(gap, ".destinations no longer states its gap in px").not.toBeNull();
+    // Whatever the clamp resolves to lies between its two ends, so both ends
+    // answer for it.
+    for (const bound of [chip?.[1], chip?.[2]]) {
+      expect(2 * Number(bound) + Number(gap?.[1])).toBeLessThanOrEqual(MIN_FLOOR);
+    }
   });
 });
 

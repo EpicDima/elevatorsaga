@@ -189,6 +189,27 @@ describe("a destination-dispatch floor's panel", () => {
     expect(drawnDestinations(view.element)).toEqual([]);
   });
 
+  it("draws a full panel without counting anything", () => {
+    // Four is exactly the two rows the panel has, so every journey is drawn and
+    // there is nothing left to count. The boundary rather than a middling
+    // number: a cap that started counting one journey early would swallow the
+    // fourth chip and say "+1" in its place, and four is the likeliest crowd to
+    // find that with.
+    const floor = dispatchFloor(0);
+    const view = createFloorView(floor, FLOOR_COUNT);
+
+    for (const destination of [4, 3, 2, 1]) {
+      floor.requestDestination(destination);
+    }
+
+    expect(drawnDestinations(view.element)).toEqual([
+      { floor: "1", count: null, booked: false },
+      { floor: "2", count: null, booked: false },
+      { floor: "3", count: null, booked: false },
+      { floor: "4", count: null, booked: false },
+    ]);
+  });
+
   it("counts the journeys it has no room to draw instead of dropping them", () => {
     // Five destinations in a six-floor building is every floor but this one, so
     // the cap is reachable rather than theoretical.
