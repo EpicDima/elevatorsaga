@@ -142,7 +142,7 @@ html[data-theme="dark"] .call.is-lit {
  * rows of two rather than a column, and `entities/floor` draws at most four of
  * them, so the panel is two rows deep whatever is standing on the floor. That
  * bound is the whole design -- a row's height is the building's to set, and the
- * shortest floor of the tallest level has room for two rows and not for four.
+ * shortest floor a building is squeezed to has room for two rows, not four.
  *
  * `flex: 1` and not the shrink-to-fit a `.calls` gets: the panel takes the whole
  * of what the floor number leaves, so its half is the same half on every floor,
@@ -170,7 +170,7 @@ html[data-theme="dark"] .call.is-lit {
  * panel has. `min-inline-size: 0` is half of that same fact -- a flex item's
  * automatic minimum is its contents, which would let a wide chip win against the
  * width set here and wrap its neighbor away. The column is cut to the widest
- * chip a twenty-floor building can produce, so what this turns off is a fallback
+ * chip the tallest building can produce, so what this turns off is a fallback
  * nothing should reach.
  *
  * The height comes from the floor rather than from a constant, the way the

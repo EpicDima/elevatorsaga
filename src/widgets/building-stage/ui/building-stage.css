@@ -213,9 +213,9 @@ html[data-theme="light"] .stage {
  * the journeys standing on it instead of two lamps, and two of those chips side
  * by side do not fit the width two stacked lamps need.
  *
- * Cut to the widest chip a twenty-floor building can produce -- a two-digit
- * floor with a two-digit tally hanging off it -- because a chip is exactly half
- * its panel and its contents are not allowed a say (see `.dest`). Nothing else
+ * Cut to the widest chip the tallest building can produce -- a two-digit floor
+ * with a two-digit tally hanging off it -- because a chip is exactly half its
+ * panel and its contents are not allowed a say (see `.dest`). Nothing else
  * changes: `recomputeGeometry` measures this column and lays the shafts out
  * beside whatever it measures, so the building simply starts further right.
  */

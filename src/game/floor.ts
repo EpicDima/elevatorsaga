@@ -73,11 +73,13 @@ export type FloorEvents = {
    * all. Anything keeping its own count from those two would drift within a
    * single arrival and never come back.
    *
-   * Engine-only, and unguarded because of it. The other events are silent when
-   * nothing changed because they reach player code; this one says "read the
-   * book again", so raising it over an unchanged book costs a redraw of the
-   * same panel and nothing else. `FloorInterface` does not forward it — a
-   * program that wants the book calls `pendingDestinations`.
+   * Engine-only, so it is allowed to be raised over a book that has not moved.
+   * The other events are silent when nothing changed because they reach player
+   * code; this one says "read the book again", so a redraw of the same panel is
+   * all a spurious one costs. Where it does sit behind a guard — a car booked
+   * again for the trip it is already booked for — the guard is the other
+   * event's. `FloorInterface` does not forward it — a program that wants the
+   * book calls `pendingDestinations`.
    */
   destinations_change: [floor: Floor];
 };

@@ -54,7 +54,10 @@ export interface BuildingLayoutInput {
   /**
    * The floor-number column's measured width in pixels
    * (`levels.offsetWidth`). `0` — an unmeasured or detached element — falls
-   * back to `84`, the width `.levels` is styled at.
+   * back to `84`, the width `.levels` is styled at where its floors take calls
+   * by direction. A destination-dispatch column is styled wider, so a building
+   * laid out from the fallback stands that much narrow until the next pass
+   * measures the column it really has.
    */
   readonly levelsWidth: number;
   /**

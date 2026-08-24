@@ -46,8 +46,8 @@ describe("the floor-number column", () => {
   it("gives a destination-dispatch building's floors more room than two call lamps need", () => {
     // The only thing that widens the column, and `entities/floor` sizes a
     // journey chip to half of whatever it is given -- so at the width two
-    // stacked lamps need, the widest chip a twenty-floor building can produce
-    // is clipped at the panel's edge instead of drawn.
+    // stacked lamps need, the widest chip the tallest building can produce is
+    // clipped at the panel's edge instead of drawn.
     const width = (selector: string): number => {
       const stated = declaration(ruleBody(selector), "inline-size", selector);
       const px = /^([\d.]+)px$/.exec(stated);
