@@ -1333,9 +1333,10 @@ elevator.goingDownIndicator(false);`,
   // the building. So: the program the editor opens with — no hints, and no
   // answer, because there is no single answer to be the answer.
   //
-  // Two levels have a `title` and a paragraph on top, and that is the rule
+  // Three levels have a `title` and a paragraph on top, and that is the rule
   // rather than an accident: a card belongs to the level where a mechanic is
-  // first met, which is `sky2` for traffic profiles and `sky8` for zoning. A
+  // first met, which is `sky2` for traffic profiles, `sky8` for zoning and
+  // `sky11` for destination dispatch. A
   // block that opened a card on every level would spend the widest column on
   // the screen restating what the level before it already explained, and the
   // player would learn to skip the column that matters twice. Where there is no
@@ -1858,6 +1859,144 @@ elevator.goingDownIndicator(false);`,
             });
             floor.on("down_button_pressed", function() {
                 callNextElevator(floor);
+            });
+        });
+    },
+    update: function(dt, elevators, floors) {
+    }
+}`,
+
+  // Levels 11 to 13 are the last group, and the one where the building stops
+  // having call buttons at all. The three go verb, choice, grouping: level 11 is
+  // where a program learns to book a car for a journey and then send it, level
+  // 12 is where which car it books starts to matter, and level 13 is where one
+  // car takes several journeys at once, which is the thing the whole idea is
+  // for.
+
+  // Level 11. Destination dispatch, small and going down: ten floors, two cars,
+  // and nobody able to board a car that was not booked for their trip.
+  //
+  // The block's third card. The starting program books correctly and never sends
+  // anything anywhere, which is exactly the mistake the mechanic invites -- the
+  // panel beside each floor fills up with journeys marked as answered while both
+  // cars stand empty in the lobby. A player who reads the panel has the whole
+  // diagnosis before reading a line of the program.
+  "skyscraper.sky11.title": "Nobody presses up or down",
+  "skyscraper.sky11.briefing.html":
+    "The hall buttons are gone. Instead of pressing up or down, a passenger keys the floor they want into a panel by the doors and waits for whichever car the system promises them — this is <em>destination dispatch</em>, and every tower built this century is run on it. Your program hears <code>destination_requested</code> with the floor somebody wants, and answers it with <code>elevator.takeRequest(from, to)</code>: that books the car for that trip, and those people will board that car and no other. Booking is a promise about which car, not an instruction to go anywhere: <code>goToFloor</code> is still the only thing that moves one. And a floor whose journey is booked stops asking — it has been answered, as far as it knows — so a promise nobody keeps is worse than no promise at all.",
+
+  "skyscraper.sky11.startingCode.code": `{
+    init: function(elevators, floors) {
+        let next = 0;
+
+        elevators.forEach(function(elevator) {
+            elevator.on("floor_button_pressed", function(floorNum) {
+                elevator.goToFloor(floorNum);
+            });
+        });
+
+        floors.forEach(function(floor) {
+            floor.on("destination_requested", function(destinationFloor) {
+                const elevator = elevators[next];
+                next = (next + 1) % elevators.length;
+                // TODO: the car is booked for this trip, and nothing has sent it
+                elevator.takeRequest(floor.floorNum(), destinationFloor);
+            });
+        });
+    },
+    update: function(dt, elevators, floors) {
+    }
+}`,
+
+  // Level 12. Fourteen floors and three cars at midday, and the first level
+  // where the choice of car is the whole score. No card: the mechanic is level
+  // 11's. The starting program is level 11's answer -- booking and sending, in
+  // strict rotation -- which wins bronze on its own and spends most of the
+  // budget driving a car across the building because it was that car's turn.
+  "skyscraper.sky12.startingCode.code": `{
+    init: function(elevators, floors) {
+        let next = 0;
+
+        elevators.forEach(function(elevator) {
+            elevator.on("floor_button_pressed", function(floorNum) {
+                elevator.goToFloor(floorNum);
+            });
+        });
+
+        floors.forEach(function(floor) {
+            floor.on("destination_requested", function(destinationFloor) {
+                // TODO: whoever's turn it is, wherever that car happens to be
+                const elevator = elevators[next];
+                next = (next + 1) % elevators.length;
+                if (elevator.takeRequest(floor.floorNum(), destinationFloor)) {
+                    elevator.goToFloor(floor.floorNum());
+                }
+            });
+        });
+    },
+    update: function(dt, elevators, floors) {
+    }
+}`,
+
+  // Level 13. The morning rush in a sixteen-floor tower, and the last level of
+  // the block. The starting program is level 12's answer: it picks the nearest
+  // car that has room, which is as far as thinking about one journey at a time
+  // can get you. Every passenger of this run is standing in the same lobby, so
+  // the floor's own panel is a list of where the queue is going -- and a car
+  // booked for one of those trips can be booked for the others on its way.
+  "skyscraper.sky13.startingCode.code": `{
+    init: function(elevators, floors) {
+        function insertStop(elevator, floorNum) {
+            // A stopped car that is asked for the floor it is already on has
+            // nothing to do -- whoever could board has boarded.
+            if (floorNum === elevator.currentFloor() && elevator.destinationDirection() === "stopped") {
+                return;
+            }
+            const queue = elevator.destinationQueue.slice();
+            if (queue.indexOf(floorNum) === -1) {
+                queue.push(floorNum);
+            }
+            const here = elevator.currentFloor();
+            queue.sort(function(a, b) {
+                return Math.abs(a - here) - Math.abs(b - here);
+            });
+            elevator.destinationQueue = queue;
+            elevator.checkDestinationQueue();
+        }
+
+        function nearestWithRoom(floorNum) {
+            let best = null;
+            elevators.forEach(function(elevator) {
+                if (elevator.loadFactor() > 0.7) {
+                    return;
+                }
+                const distance = Math.abs(elevator.currentFloor() - floorNum);
+                if (best === null || distance < best.distance) {
+                    best = { elevator: elevator, distance: distance };
+                }
+            });
+            return best === null ? null : best.elevator;
+        }
+
+        floors.forEach(function(floor) {
+            floor.on("destination_requested", function(destinationFloor) {
+                // TODO: one journey answered, one car sent -- the queue on this
+                // floor is going to eight different places this minute
+                const elevator = nearestWithRoom(floor.floorNum());
+                if (elevator !== null && elevator.takeRequest(floor.floorNum(), destinationFloor)) {
+                    insertStop(elevator, floor.floorNum());
+                }
+            });
+        });
+
+        elevators.forEach(function(elevator) {
+            elevator.on("floor_button_pressed", function(floorNum) {
+                insertStop(elevator, floorNum);
+            });
+            elevator.on("idle", function() {
+                if (elevator.currentFloor() !== 0) {
+                    elevator.goToFloor(0);
+                }
             });
         });
     },

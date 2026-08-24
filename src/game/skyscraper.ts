@@ -103,8 +103,9 @@ export interface SkyscraperLevel {
    * The card drawn beside the building, on the levels that have one.
    *
    * Most do not, and that is the point of the field being optional. A card is
-   * for the level where a player meets a mechanic for the first time — `sky-2`,
-   * where traffic profiles are — and a block where every level carried one
+   * for the level where a player meets a mechanic for the first time — traffic
+   * profiles at `sky-2`, zoning at `sky-8`, destination dispatch at `sky-11` —
+   * and a block where every level carried one
    * would be a block that stops the player to explain something on every visit,
    * spending the widest column on the screen to say what the previous level
    * already said. Where there is no card the region collapses and the building
@@ -585,6 +586,143 @@ export const skyscraperLevels: readonly SkyscraperLevel[] = [
     seed: 0,
     get startingCode(): string {
       return t("skyscraper.sky10.startingCode.code");
+    },
+  },
+  /**
+   * Destination dispatch, small and going down: ten floors, two cars of six,
+   * and a building with no call buttons on any wall.
+   *
+   * The block's third card, and the last mechanic it introduces. What changes
+   * is who decides which car somebody takes. Everywhere else in the game a
+   * passenger boards whatever turns up pointing their way; here they name a
+   * floor, wait for the car the program promised them, and board that one and
+   * nothing else — so `takeRequest` is the only way anybody ever gets on.
+   *
+   * The starter books every journey and sends nothing, which is the mistake the
+   * mechanic invites rather than a strawman: booking reads like dispatching and
+   * is not. At the moment the run is lost both cars are still standing empty in
+   * the lobby, `moveCount` is zero, and every floor above has its trip down
+   * marked as answered — thirty-seven people behind a promise nobody kept.
+   *
+   * Which is why the bar is a wait cap rather than a move budget, for `sky-8`'s
+   * reason arrived at from the other side. Nothing moves at all, so `moveCount`
+   * never grows, and a move budget would leave that run undecided forever
+   * instead of losing it.
+   *
+   * Measured at the pinned seed. Twenty people, nobody over 45 seconds. Four
+   * programs lose here and every one of them delivers nobody at all: the starter
+   * because it never sends a car, and the sweep, the editor's own default and
+   * the reference dispatcher because the call-button events they are built on
+   * are never raised in this building. `sky-12`'s starter — the same rotation
+   * with `goToFloor` added — takes bronze with twenty-two delivered in 81 moves
+   * and a longest wait of 19.66s.
+   */
+  {
+    id: "sky-11",
+    options: {
+      floorCount: 10,
+      elevatorCount: 2,
+      spawnRate: 0.8,
+      elevatorCapacities: [6],
+      trafficProfile: "down-peak",
+      destinationDispatch: true,
+    },
+    condition: requireUserCountWithMaxWaitTime(20, 45),
+    seed: 0,
+    get startingCode(): string {
+      return t("skyscraper.sky11.startingCode.code");
+    },
+    get card(): SkyscraperCard {
+      return {
+        title: t("skyscraper.sky11.title"),
+        briefing: t("skyscraper.sky11.briefing.html"),
+      };
+    },
+  },
+  /**
+   * Midday in a fourteen-floor tower, three cars of eight, and the first level
+   * where the choice of car is the whole score.
+   *
+   * Opens with `sky-11`'s answer, so it opens already winning: the rotation
+   * books a car and sends it, which is enough to clear the bar and not much
+   * else. What it spends the budget on is distance — the car whose turn it is
+   * is as likely to be at the far end of the building as beside the floor
+   * asking, and under destination dispatch nobody else can pick that trip up on
+   * the way, because nobody boards a car that was not booked for them.
+   *
+   * The wait cap is on the condition for the reason every level of this group
+   * carries one: a program that books without sending stops the building dead,
+   * and only the cap turns that into a loss rather than a run nobody can end.
+   *
+   * Measured at the pinned seed, and the three tiers are three different
+   * programs rather than three guesses about one. Fifty people inside 330 moves,
+   * nobody over 80 seconds: the rotation takes bronze with 309 of those moves,
+   * so it wins by the width of the level and no more. The same program picking
+   * the nearest car with room instead of the next one in turn — which is
+   * `sky-13`'s starter — spends 144 and takes silver. Booking one car for
+   * several of a floor's journeys at once brings it to 115 at a 20.45s average,
+   * which is gold, and is `sky-13`'s subject arriving early.
+   */
+  {
+    id: "sky-12",
+    options: {
+      floorCount: 14,
+      elevatorCount: 3,
+      spawnRate: 1.4,
+      elevatorCapacities: [8],
+      trafficProfile: "lunch",
+      destinationDispatch: true,
+    },
+    condition: requireUserCountWithinMovesWithMaxWaitTime(50, 330, 80),
+    tiers: {
+      silver: underMoveCount(200),
+      gold: requireAll(underMoveCount(130), underAvgWaitTime(22)),
+    },
+    seed: 1,
+    get startingCode(): string {
+      return t("skyscraper.sky12.startingCode.code");
+    },
+  },
+  /**
+   * The block's last level: the morning rush in a sixteen-floor tower, four
+   * cars of ten, eighty passengers, and every one of them standing in the same
+   * lobby naming a different floor.
+   *
+   * Up-peak on purpose, and it is the one arrangement where destination
+   * dispatch has something no other dispatching rule can match. Every journey
+   * of the run starts on floor 0, so the floor's book is a list of where the
+   * queue is going — and a car booked for one of those trips can be booked for
+   * the rest of them on its way up, which is what
+   * `floor.pendingDestinations()` is for. The three levels before this one are
+   * each about one journey at a time; this is the one where they stop being
+   * separate.
+   *
+   * Measured at the pinned seed. Eighty people inside 340 moves, nobody over 90
+   * seconds. The starter — the nearest car with room, answering one request at
+   * a time — takes bronze in 193 moves at a 15.34s average. Grouping brings that
+   * to 114 and costs 25.47s, and gold asks for both halves of that trade at once
+   * because either one alone has a bad program that meets it: a car sent out
+   * half full keeps the average down and spends the building's moves, and a car
+   * that waits to fill spends none and leaves somebody standing.
+   */
+  {
+    id: "sky-13",
+    options: {
+      floorCount: 16,
+      elevatorCount: 4,
+      spawnRate: 2.0,
+      elevatorCapacities: [10],
+      trafficProfile: "up-peak",
+      destinationDispatch: true,
+    },
+    condition: requireUserCountWithinMovesWithMaxWaitTime(80, 340, 90),
+    tiers: {
+      silver: underMoveCount(170),
+      gold: requireAll(underMoveCount(140), underAvgWaitTime(28)),
+    },
+    seed: 0,
+    get startingCode(): string {
+      return t("skyscraper.sky13.startingCode.code");
     },
   },
 ];

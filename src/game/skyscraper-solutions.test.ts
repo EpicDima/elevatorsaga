@@ -13,13 +13,13 @@
  * sample of a distribution — it is *the* run, the same one every player of that
  * level gets, and a bar set from it is a bar with no luck in it at all.
  *
- * **Four programs, chosen for what they disagree about**, and a fifth on the one
- * level where four are not enough.
+ * **Four programs, chosen for what they disagree about**, and two more on the
+ * levels where four are not enough.
  * - The level's own `startingCode`, which is the only one of them a player ever
- *   sees. On five of the ten levels it is the round-robin dispatcher that sends
- *   one car to one call and is meant to lose; on three it is the sweep, and the
- *   level is about improving on it; on the last two it is the zone-aware sweep,
- *   which is `sky-8`'s answer handed over as where `sky-9` and `sky-10` begin.
+ *   sees. Sometimes it is the round-robin dispatcher that sends one car to one
+ *   call and is meant to lose, sometimes the sweep the level is about improving
+ *   on, and on the levels that open with the previous level's answer it is that
+ *   answer.
  * - {@link SWEEP_CODE}, the repair every demonstrating level is pointing at,
  *   taken from `sky-3`'s own starter rather than written again here. One sweep
  *   in the repository, and it is the one the player is handed.
@@ -34,6 +34,11 @@
  *   already in the table: `sky-9` and `sky-10` ship it, so their `starter` cell
  *   is that run, and in an unzoned building the filter matches every car and the
  *   program is {@link SWEEP_CODE} to the character.
+ * - {@link DISPATCH_CODE}, the booking dispatcher that also sends the car it
+ *   booked, recorded on `sky-11` alone and for the same reason. It is `sky-12`'s
+ *   starter, so that level's own row is already that run; in a building with
+ *   call buttons it never books anything and never hears the event it is built
+ *   on.
  *
  * That last one earns its place twice over. It is not the winner here: it takes
  * gold on `sky-3` and `sky-5` and only silver on `sky-7`, where the plain sweep
@@ -124,6 +129,18 @@ const SWEEP_CODE = levelById("sky-3").startingCode;
 const ZONE_SWEEP_CODE = levelById("sky-9").startingCode;
 
 /**
+ * Booking and then sending the car that was booked: `sky-12`'s shipped starter.
+ *
+ * The repair for `sky-11`, read off the level that ships it for
+ * {@link ZONE_SWEEP_CODE}'s reason. `sky-11` is the one level of the block where
+ * all four standard programs land on the same tier — they all deliver nobody,
+ * the starter because it books without sending and the other three because a
+ * building with no call buttons never raises the events they listen for — so
+ * without this column the row would record a level that measures nothing.
+ */
+const DISPATCH_CODE = levelById("sky-12").startingCode;
+
+/**
  * Plays one program in one level's building, at the level's own seed, and
  * reports the exact tier it reached.
  *
@@ -195,6 +212,15 @@ interface SkyscraperCase {
    * level it is the `sweep` column under another name.
    */
   readonly zone?: TierOutcome;
+  /**
+   * What {@link DISPATCH_CODE} reached, on the level where that says something
+   * the other four columns cannot.
+   *
+   * Omitted everywhere else, for {@link zone}'s reasons: on `sky-12` it is the
+   * `starter` column under another name, and in a building with call buttons it
+   * is a program that never acts.
+   */
+  readonly dispatch?: TierOutcome;
 }
 
 // Recorded by running each case against the real engine at the level's own
@@ -206,13 +232,17 @@ interface SkyscraperCase {
 // of them is given a starter of its own, the row that stops agreeing with
 // itself is the one that should fail.
 //
-// `sky-8` is the row with a fifth cell, and it needs one because its `starter`
-// and `sweep` cells are both `lost` and both for the same reason -- they are the
+// `sky-8` carries a fifth cell, and it needs one because its `starter` and
+// `sweep` cells are both `lost` and both for the same reason -- they are the
 // same program. Nothing else in the row would show what repairs the level, and
 // "the sweep loses" is a thing this file says about levels whose answer is
 // something else entirely. `zone` is the missing half: the same sweep with
 // `servedFloors()` in front of the choice, taking bronze where the unfiltered
 // one leaves a floor calling into an empty building.
+//
+// `sky-11` carries a sixth for the same argument taken further: all four of its
+// standard cells are `lost`, so `dispatch` is the only cell in the row that
+// distinguishes a program from a program.
 const CASES: readonly SkyscraperCase[] = [
   { id: "sky-1", starter: "lost", sweep: "bronze", dev: "lost", good: "bronze" },
   { id: "sky-2", starter: "lost", sweep: "bronze", dev: "lost", good: "bronze" },
@@ -224,6 +254,9 @@ const CASES: readonly SkyscraperCase[] = [
   { id: "sky-8", starter: "lost", sweep: "lost", dev: "lost", good: "bronze", zone: "bronze" },
   { id: "sky-9", starter: "bronze", sweep: "lost", dev: "lost", good: "gold" },
   { id: "sky-10", starter: "silver", sweep: "lost", dev: "lost", good: "gold" },
+  { id: "sky-11", starter: "lost", sweep: "lost", dev: "lost", good: "lost", dispatch: "bronze" },
+  { id: "sky-12", starter: "bronze", sweep: "lost", dev: "lost", good: "lost" },
+  { id: "sky-13", starter: "bronze", sweep: "lost", dev: "lost", good: "lost" },
 ];
 
 describe("the recorded table", () => {
@@ -233,12 +266,23 @@ describe("the recorded table", () => {
     expect(CASES.map((testCase) => testCase.id)).toEqual(skyscraperLevels.map((level) => level.id));
   });
 
-  it("records a level that tells its four programs apart", () => {
-    // Not a restatement of the rows: a level where all four land on the same
-    // tier is a level that measures nothing about the program, and copying a
-    // row from its neighbor would pass every other check in this file.
+  it("records a level that tells its programs apart", () => {
+    // Not a restatement of the rows: a level where every program measured lands
+    // on the same tier is a level that measures nothing about the program, and
+    // copying a row from its neighbor would pass every other check in this file.
+    // The optional columns count, because on the level that has one they are the
+    // whole of what the row distinguishes.
     for (const testCase of CASES) {
-      const reached = new Set([testCase.starter, testCase.sweep, testCase.dev, testCase.good]);
+      const reached = new Set(
+        [
+          testCase.starter,
+          testCase.sweep,
+          testCase.dev,
+          testCase.good,
+          testCase.zone,
+          testCase.dispatch,
+        ].filter((tier) => tier !== undefined),
+      );
       expect(reached.size, `${testCase.id} awards every program the same tier`).toBeGreaterThan(1);
     }
   });
@@ -258,11 +302,16 @@ for (const testCase of CASES) {
         testCase.good,
       );
 
-      // Only where the row asks for it. Running the zone-aware sweep on every
-      // level would cost ten simulations to record two columns of duplicates.
+      // Only where the row asks for it. Running either specialist on every level
+      // would cost simulations to record columns of duplicates.
       if (testCase.zone !== undefined) {
         expect(playRun(level, ZONE_SWEEP_CODE), `${testCase.id}, ZONE_SWEEP_CODE`).toBe(
           testCase.zone,
+        );
+      }
+      if (testCase.dispatch !== undefined) {
+        expect(playRun(level, DISPATCH_CODE), `${testCase.id}, DISPATCH_CODE`).toBe(
+          testCase.dispatch,
         );
       }
     });

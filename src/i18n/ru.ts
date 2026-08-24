@@ -1365,7 +1365,7 @@ elevator.goingDownIndicator(false);`,
   // src/game/skyscraper.ts и карточка, которую `widgets/level-briefing` рисует
   // рядом со зданием. Английский каталог объясняет, почему на уровень здесь
   // один ключ, а не восемь, как на учебной дорожке, и почему карточка есть
-  // только у двух уровней блока — у тех, где механика встречается впервые.
+  // только у трёх уровней блока — у тех, где механика встречается впервые.
   //
   // «Небоскрёб» — название блока и в русском тексте, и в английском: это слово,
   // а не термин, и переводится обычным словом.
@@ -1866,6 +1866,145 @@ elevator.goingDownIndicator(false);`,
             });
             floor.on("down_button_pressed", function() {
                 callNextElevator(floor);
+            });
+        });
+    },
+    update: function(dt, elevators, floors) {
+    }
+}`,
+
+  // Уровни с 11-го по 13-й — последняя группа, и та, где у здания вовсе не
+  // остаётся кнопок вызова. Три шага: глагол, выбор, группировка. На
+  // одиннадцатом программа учится закрепить кабину за поездкой и отправить её,
+  // на двенадцатом начинает иметь значение, какую именно кабину, а на
+  // тринадцатом одна кабина берёт сразу несколько поездок — ради чего всё это и
+  // придумано.
+
+  // Уровень 11. Назначение по этажу, вниз и вполсилы: десять этажей, две кабины
+  // по шесть человек и никакой возможности сесть в кабину, не закреплённую за
+  // твоей поездкой.
+  //
+  // Третья карточка блока. Стартовая программа закрепляет всё правильно и не
+  // отправляет никуда ничего — ровно та ошибка, к которой механика и
+  // подталкивает: панель у каждого этажа заполняется поездками с пометкой
+  // «ответили», пока обе кабины пустыми стоят в холле. Кто прочитал панель, тот
+  // поставил диагноз, не читая программы.
+  "skyscraper.sky11.title": "Никто не жмёт «вверх» и «вниз»",
+  "skyscraper.sky11.briefing.html":
+    "Кнопок вызова на этажах больше нет. Вместо «вверх» и «вниз» пассажир набирает нужный этаж на панели у дверей и ждёт ту кабину, которую ему пообещала система, — это <em>назначение по этажу</em>, и на нём работает всякая башня, построенная в этом веке. Программа слышит <code>destination_requested</code> с этажом, который кто-то назвал, и отвечает вызовом <code>elevator.takeRequest(откуда, куда)</code>: он закрепляет кабину за этой поездкой, и эти люди сядут в неё и ни в какую другую. Закрепить — значит пообещать кабину, а не отправить её куда-нибудь: двигает кабину по-прежнему только <code>goToFloor</code>. А этаж, чья поездка закреплена, больше не просит — ему, с его точки зрения, уже ответили, — так что невыполненное обещание хуже, чем никакого.",
+
+  "skyscraper.sky11.startingCode.code": `{
+    init: function(elevators, floors) {
+        let next = 0;
+
+        elevators.forEach(function(elevator) {
+            elevator.on("floor_button_pressed", function(floorNum) {
+                elevator.goToFloor(floorNum);
+            });
+        });
+
+        floors.forEach(function(floor) {
+            floor.on("destination_requested", function(destinationFloor) {
+                const elevator = elevators[next];
+                next = (next + 1) % elevators.length;
+                // TODO: кабина закреплена за поездкой, и никто её не отправил
+                elevator.takeRequest(floor.floorNum(), destinationFloor);
+            });
+        });
+    },
+    update: function(dt, elevators, floors) {
+    }
+}`,
+
+  // Уровень 12. Четырнадцать этажей и три кабины в обед, и первый уровень, где
+  // выбор кабины и есть весь счёт. Карточки нет: механика — одиннадцатого.
+  // Стартовая программа — ответ одиннадцатого, закрепить и отправить по кругу, —
+  // сама по себе берёт бронзу и тратит почти весь бюджет на то, чтобы гнать
+  // кабину через всё здание, потому что была её очередь.
+  "skyscraper.sky12.startingCode.code": `{
+    init: function(elevators, floors) {
+        let next = 0;
+
+        elevators.forEach(function(elevator) {
+            elevator.on("floor_button_pressed", function(floorNum) {
+                elevator.goToFloor(floorNum);
+            });
+        });
+
+        floors.forEach(function(floor) {
+            floor.on("destination_requested", function(destinationFloor) {
+                // TODO: чья очередь, та и едет, где бы она сейчас ни стояла
+                const elevator = elevators[next];
+                next = (next + 1) % elevators.length;
+                if (elevator.takeRequest(floor.floorNum(), destinationFloor)) {
+                    elevator.goToFloor(floor.floorNum());
+                }
+            });
+        });
+    },
+    update: function(dt, elevators, floors) {
+    }
+}`,
+
+  // Уровень 13. Утренний час пик в шестнадцатиэтажной башне и последний уровень
+  // блока. Стартовая программа — ответ двенадцатого: берёт ближайшую кабину, в
+  // которой есть место, и дальше этого одна поездка за раз не заходит. Все
+  // пассажиры рейса стоят в одном холле, так что панель этажа — это список,
+  // куда едет очередь, а кабину, закреплённую за одной из этих поездок, можно
+  // закрепить и за остальными по дороге.
+  "skyscraper.sky13.startingCode.code": `{
+    init: function(elevators, floors) {
+        function insertStop(elevator, floorNum) {
+            // Стоящей кабине, которую зовут на этаж, где она и так стоит,
+            // делать нечего -- кто мог сесть, тот сел.
+            if (floorNum === elevator.currentFloor() && elevator.destinationDirection() === "stopped") {
+                return;
+            }
+            const queue = elevator.destinationQueue.slice();
+            if (queue.indexOf(floorNum) === -1) {
+                queue.push(floorNum);
+            }
+            const here = elevator.currentFloor();
+            queue.sort(function(a, b) {
+                return Math.abs(a - here) - Math.abs(b - here);
+            });
+            elevator.destinationQueue = queue;
+            elevator.checkDestinationQueue();
+        }
+
+        function nearestWithRoom(floorNum) {
+            let best = null;
+            elevators.forEach(function(elevator) {
+                if (elevator.loadFactor() > 0.7) {
+                    return;
+                }
+                const distance = Math.abs(elevator.currentFloor() - floorNum);
+                if (best === null || distance < best.distance) {
+                    best = { elevator: elevator, distance: distance };
+                }
+            });
+            return best === null ? null : best.elevator;
+        }
+
+        floors.forEach(function(floor) {
+            floor.on("destination_requested", function(destinationFloor) {
+                // TODO: одна поездка -- одна кабина, а очередь на этом этаже
+                // едет сейчас в восемь разных мест
+                const elevator = nearestWithRoom(floor.floorNum());
+                if (elevator !== null && elevator.takeRequest(floor.floorNum(), destinationFloor)) {
+                    insertStop(elevator, floor.floorNum());
+                }
+            });
+        });
+
+        elevators.forEach(function(elevator) {
+            elevator.on("floor_button_pressed", function(floorNum) {
+                insertStop(elevator, floorNum);
+            });
+            elevator.on("idle", function() {
+                if (elevator.currentFloor() !== 0) {
+                    elevator.goToFloor(0);
+                }
             });
         });
     },
