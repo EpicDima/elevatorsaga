@@ -64,6 +64,22 @@ export type FloorEvents = {
   destination_requested: [floor: Floor, destinationFloor: number];
   /** A car was booked to take this floor's passengers to a destination. */
   elevator_assigned: [floor: Floor, destinationFloor: number, elevator: FloorElevator];
+  /**
+   * The book of who is waiting for which floor reads differently now.
+   *
+   * Its own event because the two above cannot be added up into it: the second
+   * person bound for a floor a car is already coming for is deliberately not
+   * announced, and neither boarding nor a withdrawn booking is announced at
+   * all. Anything keeping its own count from those two would drift within a
+   * single arrival and never come back.
+   *
+   * Engine-only, and unguarded because of it. The other events are silent when
+   * nothing changed because they reach player code; this one says "read the
+   * book again", so raising it over an unchanged book costs a redraw of the
+   * same panel and nothing else. `FloorInterface` does not forward it — a
+   * program that wants the book calls `pendingDestinations`.
+   */
+  destinations_change: [floor: Floor];
 };
 
 /** Vertical offset from a floor's y position to where passengers stand. */
@@ -197,6 +213,7 @@ export class Floor extends Observable<FloorEvents> {
    */
   requestDestination(destinationFloor: number): void {
     this.#waiting.set(destinationFloor, (this.#waiting.get(destinationFloor) ?? 0) + 1);
+    this.#tryTrigger("destinations_change", this);
     if (!this.#assigned.has(destinationFloor)) {
       this.#tryTrigger("destination_requested", this, destinationFloor);
     }
@@ -231,6 +248,7 @@ export class Floor extends Observable<FloorEvents> {
       return true;
     }
     this.#assigned.set(destinationFloor, elevator);
+    this.#tryTrigger("destinations_change", this);
     this.#tryTrigger("elevator_assigned", this, destinationFloor, elevator);
     return true;
   }
@@ -275,10 +293,11 @@ export class Floor extends Observable<FloorEvents> {
     const stillWaiting = (this.#waiting.get(destinationFloor) ?? 0) - 1;
     if (stillWaiting > 0) {
       this.#waiting.set(destinationFloor, stillWaiting);
-      return;
+    } else {
+      this.#waiting.delete(destinationFloor);
+      this.#assigned.delete(destinationFloor);
     }
-    this.#waiting.delete(destinationFloor);
-    this.#assigned.delete(destinationFloor);
+    this.#tryTrigger("destinations_change", this);
   }
 
   /**
@@ -306,6 +325,7 @@ export class Floor extends Observable<FloorEvents> {
    */
   destinationRefused(destinationFloor: number): void {
     this.#assigned.delete(destinationFloor);
+    this.#tryTrigger("destinations_change", this);
     if (this.#waiting.has(destinationFloor)) {
       this.#tryTrigger("destination_requested", this, destinationFloor);
     }

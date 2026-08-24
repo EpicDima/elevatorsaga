@@ -209,6 +209,21 @@ html[data-theme="light"] .stage {
 }
 
 /*
+ * Wider where the floors take calls by destination: each row carries a panel of
+ * the journeys standing on it instead of two lamps, and two of those chips side
+ * by side do not fit the width two stacked lamps need.
+ *
+ * Cut to the widest chip a twenty-floor building can produce -- a two-digit
+ * floor with a two-digit tally hanging off it -- because a chip is exactly half
+ * its panel and its contents are not allowed a say (see `.dest`). Nothing else
+ * changes: `recomputeGeometry` measures this column and lays the shafts out
+ * beside whatever it measures, so the building simply starts further right.
+ */
+.levels.has-destinations {
+  inline-size: 120px;
+}
+
+/*
  * The corridor and the shafts: everything the simulation actually moves things
  * through. Its width is the world's own span scaled once (see
  * `shaft-scale.ts`), written from the widget, so `flex` never gets a say.

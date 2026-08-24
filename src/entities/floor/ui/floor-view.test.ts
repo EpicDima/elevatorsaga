@@ -25,6 +25,42 @@ function fixtureFloor(level = 2): Floor {
   });
 }
 
+/** The same, in a building whose passengers name the floor they want. */
+function dispatchFloor(level = 2): Floor {
+  return new Floor(
+    level,
+    level * 50,
+    () => {
+      throw new Error("unexpected floor error");
+    },
+    true,
+  );
+}
+
+/**
+ * A car that serves everything, since none of these specs is about zoning.
+ *
+ * Both indicators dark, as `floor.test.ts` builds them: a booking is answered
+ * by name, and a car picked up on its indicators here would be a bug.
+ */
+const ANY_CAR = { goingUpIndicator: false, goingDownIndicator: false, serves: () => true };
+
+/**
+ * What a destination panel is drawing, chip by chip.
+ *
+ * The chip standing for the journeys there was no room to draw has no floor
+ * inside it, so `floor` falls back to the chip's own text and reads `+2`.
+ */
+function drawnDestinations(
+  element: HTMLElement,
+): { floor: string; count: string | null; booked: boolean }[] {
+  return [...element.querySelectorAll(".dest")].map((chip) => ({
+    floor: (chip.querySelector(".dest-floor") ?? chip).textContent,
+    count: chip.querySelector(".dest-count")?.textContent ?? null,
+    booked: chip.classList.contains("is-booked"),
+  }));
+}
+
 describe("createFloorView", () => {
   it("draws the floor's number and unlit call buttons", () => {
     const view = createFloorView(fixtureFloor(3), FLOOR_COUNT);
@@ -93,6 +129,92 @@ describe("createFloorView", () => {
   });
 });
 
+describe("a destination-dispatch floor's panel", () => {
+  it("opens empty, with neither call lamp on the row", () => {
+    const view = createFloorView(dispatchFloor(3), FLOOR_COUNT);
+
+    expect(requireElement(".destinations", view.element).children.length).toBe(0);
+    expect(view.element.querySelector("button.up")).toBeNull();
+    expect(view.element.querySelector("button.down")).toBeNull();
+  });
+
+  it("opens with the journeys already standing on the floor", () => {
+    // Nothing builds a view mid-run today, but the panel is drawn from the book
+    // rather than accumulated from events, so it does not depend on that.
+    const floor = dispatchFloor(0);
+    floor.requestDestination(4);
+
+    const view = createFloorView(floor, FLOOR_COUNT);
+
+    expect(drawnDestinations(view.element)).toEqual([{ floor: "4", count: null, booked: false }]);
+  });
+
+  it("draws one chip per journey, lowest floor first, and counts only a crowd", () => {
+    const floor = dispatchFloor(0);
+    const view = createFloorView(floor, FLOOR_COUNT);
+
+    floor.requestDestination(4);
+    floor.requestDestination(1);
+    floor.requestDestination(4);
+
+    expect(drawnDestinations(view.element)).toEqual([
+      { floor: "1", count: null, booked: false },
+      { floor: "4", count: "2", booked: false },
+    ]);
+  });
+
+  it("quiets a chip a car has been booked for, and lights it again when the car refuses", () => {
+    const floor = dispatchFloor(0);
+    const view = createFloorView(floor, FLOOR_COUNT);
+    floor.requestDestination(4);
+
+    floor.assignElevator(4, ANY_CAR);
+    expect(drawnDestinations(view.element)).toEqual([{ floor: "4", count: null, booked: true }]);
+
+    floor.destinationRefused(4);
+    expect(drawnDestinations(view.element)).toEqual([{ floor: "4", count: null, booked: false }]);
+  });
+
+  it("counts down as people board, and drops the chip with the last of them", () => {
+    const floor = dispatchFloor(0);
+    const view = createFloorView(floor, FLOOR_COUNT);
+    floor.requestDestination(4);
+    floor.requestDestination(4);
+    floor.assignElevator(4, ANY_CAR);
+
+    floor.destinationBoarded(4);
+    expect(drawnDestinations(view.element)).toEqual([{ floor: "4", count: null, booked: true }]);
+
+    floor.destinationBoarded(4);
+    expect(drawnDestinations(view.element)).toEqual([]);
+  });
+
+  it("counts the journeys it has no room to draw instead of dropping them", () => {
+    // Five destinations in a six-floor building is every floor but this one, so
+    // the cap is reachable rather than theoretical.
+    const floor = dispatchFloor(0);
+    const view = createFloorView(floor, FLOOR_COUNT);
+
+    for (const destination of [5, 4, 3, 2, 1]) {
+      floor.requestDestination(destination);
+    }
+
+    expect(drawnDestinations(view.element)).toEqual([
+      { floor: "1", count: null, booked: false },
+      { floor: "2", count: null, booked: false },
+      { floor: "3", count: null, booked: false },
+      { floor: "+2", count: null, booked: false },
+    ]);
+  });
+
+  it("draws no panel in a building whose passengers press buttons", () => {
+    const view = createFloorView(fixtureFloor(2), FLOOR_COUNT);
+
+    expect(view.element.querySelector(".destinations")).toBeNull();
+    expect(view.element.querySelectorAll(".call").length).toBe(2);
+  });
+});
+
 describe("floorTemplate", () => {
   it("draws the row, its number and its lamps in one box", () => {
     const floor = renderElement(floorTemplate(2, FLOOR_COUNT));
@@ -139,6 +261,33 @@ describe("floorTemplate", () => {
     expect(middle?.childNodes.length).toBe(2);
     const lobby = renderElement(floorTemplate(0, FLOOR_COUNT)).querySelector(".calls");
     expect(lobby?.childNodes.length).toBe(1);
+  });
+
+  it("swaps both lamps for an empty destination panel when asked", () => {
+    const floor = renderElement(floorTemplate(2, FLOOR_COUNT, true));
+
+    const panel = floor.querySelector(".calls");
+    expect(panel?.className).toBe("calls destinations");
+    expect(panel?.childNodes.length).toBe(0);
+    expect(floor.querySelectorAll(".call").length).toBe(0);
+  });
+
+  it("keeps the destination panel out of the accessibility tree", () => {
+    // The row's own hover card counts who is waiting and lists where they are
+    // going, and it is what a focused row is described by; a label here would
+    // be the same sentence read a second time.
+    const floor = renderElement(floorTemplate(2, FLOOR_COUNT, true));
+
+    expect(floor.querySelector(".destinations")?.getAttribute("aria-hidden")).toBe("true");
+  });
+
+  it("draws the direction lamps unless a building asks for destinations", () => {
+    // The default is the argument's, not the caller's: every building written
+    // before destination dispatch existed goes through this signature.
+    const floor = renderElement(floorTemplate(2, FLOOR_COUNT));
+
+    expect(floor.querySelector(".destinations")).toBeNull();
+    expect(floor.querySelectorAll(".call").length).toBe(2);
   });
 });
 

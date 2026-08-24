@@ -437,6 +437,111 @@ describe("Floor", () => {
       expect(errorHandler).toHaveBeenCalledWith(boom);
       expect(dispatch.assignedElevator(7)).toBe(elevator);
     });
+
+    describe("destinations_change", () => {
+      let changed: ReturnType<typeof vi.fn<(floor: Floor) => void>>;
+
+      beforeEach(() => {
+        changed = vi.fn();
+        dispatch.on("destinations_change", changed);
+      });
+
+      it("names the floor whose book moved", () => {
+        dispatch.requestDestination(7);
+
+        expect(changed).toHaveBeenCalledTimes(1);
+        expect(changed).toHaveBeenCalledWith(dispatch);
+      });
+
+      it("announces the book before anyone is told what happened to it", () => {
+        // A handler reads the floor rather than a snapshot, so the floor has to
+        // already read the new way by the time it is handed one.
+        const seen: (readonly [number, number])[][] = [];
+        changed.mockImplementation((floor) => {
+          seen.push([...floor.pendingDestinations()]);
+        });
+
+        dispatch.requestDestination(7);
+        dispatch.requestDestination(7);
+
+        expect(seen).toEqual([[[7, 1]], [[7, 2]]]);
+      });
+
+      it("announces the traveler the request event keeps quiet about", () => {
+        // The reason this event exists. `destination_requested` is deliberately
+        // silent about the second person bound for a floor a car is already
+        // coming for, so a panel counting from it would be one short until the
+        // car arrived and would never learn otherwise.
+        dispatch.requestDestination(7);
+        dispatch.assignElevator(7, servingOnly(2, 7));
+        changed.mockClear();
+        requested.mockClear();
+
+        dispatch.requestDestination(7);
+
+        expect(requested).not.toHaveBeenCalled();
+        expect(changed).toHaveBeenCalledTimes(1);
+      });
+
+      it("announces a booking, and only when it is a new one", () => {
+        const elevator = servingOnly(2, 7);
+        dispatch.requestDestination(7);
+        changed.mockClear();
+
+        dispatch.assignElevator(7, elevator);
+        expect(changed).toHaveBeenCalledTimes(1);
+
+        dispatch.assignElevator(7, elevator);
+        expect(changed).toHaveBeenCalledTimes(1);
+      });
+
+      it("says nothing about a booking the floor turned down", () => {
+        dispatch.requestDestination(7);
+        changed.mockClear();
+
+        expect(dispatch.assignElevator(7, servingOnly(7))).toBe(false);
+
+        expect(changed).not.toHaveBeenCalled();
+      });
+
+      it("announces every boarding, not only the one that empties the book", () => {
+        // Both, because a chip that says how many people are waiting is wrong
+        // the moment one of them steps into a car.
+        dispatch.requestDestination(7);
+        dispatch.requestDestination(7);
+        dispatch.assignElevator(7, servingOnly(2, 7));
+        changed.mockClear();
+
+        dispatch.destinationBoarded(7);
+        expect(changed).toHaveBeenCalledTimes(1);
+
+        dispatch.destinationBoarded(7);
+        expect(changed).toHaveBeenCalledTimes(2);
+        expect(dispatch.pendingDestinations()).toEqual(new Map());
+      });
+
+      it("announces a withdrawn booking", () => {
+        dispatch.requestDestination(7);
+        dispatch.assignElevator(7, servingOnly(2, 7));
+        changed.mockClear();
+
+        dispatch.destinationRefused(7);
+
+        expect(changed).toHaveBeenCalledTimes(1);
+      });
+
+      it("routes exceptions thrown by its handlers", () => {
+        const boom = new Error("boom");
+        dispatch.on("destinations_change", () => {
+          throw boom;
+        });
+
+        dispatch.requestDestination(7);
+
+        expect(errorHandler).toHaveBeenCalledWith(boom);
+        expect(dispatch.pendingDestinations()).toEqual(new Map([[7, 1]]));
+      });
+    });
   });
 
   describe("error routing", () => {

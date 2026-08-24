@@ -150,6 +150,21 @@ describe("presentBuildingStage", () => {
     expect(requireElement(".levels", parent).firstElementChild?.textContent).toContain("0");
   });
 
+  it("marks the floor column of a building whose passengers name where they are going", () => {
+    // The column has to be wider there -- a panel of journeys where the others
+    // put two call lamps -- and the stylesheet is what widens it. Nothing
+    // downstream is told: `recomputeGeometry` measures the column it finds and
+    // lays the shafts out beside it.
+    const dispatch = createWorld({ floorCount: 3, elevatorCount: 1, destinationDispatch: true });
+    const { parent } = mount(dispatch, 800, 400);
+    expect(requireElement(".levels", parent).classList.contains("has-destinations")).toBe(true);
+
+    const calls = mount(createWorld({ floorCount: 3, elevatorCount: 1 }), 800, 400);
+    expect(requireElement(".levels", calls.parent).classList.contains("has-destinations")).toBe(
+      false,
+    );
+  });
+
   it("sizes every floor row, band and queue strip from layoutBuilding's own geometry", () => {
     // room = max(160, 218-38) = 180; unit = 180/2 = 90, inside [48, 96].
     const world = createWorld({ floorCount: 2, elevatorCount: 1 });

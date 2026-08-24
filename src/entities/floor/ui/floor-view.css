@@ -136,3 +136,98 @@
 html[data-theme="dark"] .call.is-lit {
   box-shadow: 0 0 8px rgb(232 163 63 / 30%);
 }
+
+/*
+ * A destination-dispatch floor's journeys, in place of the two lamps: chips in
+ * rows of two rather than a column, and `entities/floor` draws at most four of
+ * them, so the panel is two rows deep whatever is standing on the floor. That
+ * bound is the whole design -- a row's height is the building's to set, and the
+ * shortest floor of the tallest level has room for two rows and not for four.
+ *
+ * `flex: 1` and not the shrink-to-fit a `.calls` gets: the panel takes the whole
+ * of what the floor number leaves, so its half is the same half on every floor,
+ * and the chips stand in two columns down the building instead of sliding left
+ * and right with how much each floor happens to be asking for.
+ *
+ * `overflow: hidden` is the backstop under all of it rather than the plan. What
+ * it guards is a chip too wide for its half, which is clipped at the panel's
+ * edge instead of pushing its neighbor onto a row of its own.
+ */
+.destinations {
+  flex: 1;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-content: center;
+  justify-content: flex-end;
+  gap: 3px;
+  overflow: hidden;
+}
+
+/*
+ * Exactly half the panel, less half the gap between two of them: what makes the
+ * rows of two a fact rather than a hope. Chips sized to their contents would put
+ * a wide pair on two rows instead of one, and four rows are twice the height the
+ * panel has. `min-inline-size: 0` is half of that same fact -- a flex item's
+ * automatic minimum is its contents, which would let a wide chip win against the
+ * width set here and wrap its neighbor away. The column is cut to the widest
+ * chip a twenty-floor building can produce, so what this turns off is a fallback
+ * nothing should reach.
+ *
+ * The height comes from the floor rather than from a constant, the way the
+ * floor number beside it does: two rows of chips have to fit inside a row whose
+ * height the widget decides.
+ *
+ * The ink is a full 4.5:1 job and not 1.4.11's 3:1 -- a chip is a number being
+ * read, not a lamp being noticed -- which is what rules out the badge a lit
+ * call lamp wears: --ds-accent on --ds-accent-soft over this column reaches
+ * 3.58:1 in the light theme. So the chip carries no fill, and its two inks are
+ * the two this column has already proved at text sizes: --ds-accent-hi, the
+ * step a marked floor number lights in, and --ds-text-muted, the resting one.
+ */
+.dest {
+  box-sizing: border-box;
+  display: inline-flex;
+  flex: 0 0 calc(50% - 1.5px);
+  gap: 2px;
+  align-items: center;
+  justify-content: center;
+  min-inline-size: 0;
+  block-size: clamp(12px, calc(var(--ds-floor-h) * 0.2), 16px);
+  padding-inline: 3px;
+  border: 1px solid var(--ds-accent);
+  border-radius: var(--ds-r-sm);
+  font-family: var(--ds-font-mono);
+  font-size: clamp(10px, calc(var(--ds-floor-h) * 0.16), 12px);
+  color: var(--ds-accent-hi);
+}
+
+/*
+ * Answered: a car is booked for this journey and the people are waiting on it
+ * rather than on the program. The chip stays -- they have not gone anywhere --
+ * and the accent leaves it for the journeys still asking.
+ */
+.dest.is-booked {
+  border-color: var(--ds-line-strong);
+  color: var(--ds-text-muted);
+}
+
+/*
+ * The journeys a crowded floor has no room to draw. Quiet like an answered one,
+ * because it is a footnote and not a call.
+ */
+.dest.is-more {
+  border-color: var(--ds-line-strong);
+  color: var(--ds-text-muted);
+}
+
+/*
+ * How many people are making one journey, when it is more than one. Smaller and
+ * quieter than the floor number it hangs off, so that a chip reads as a place
+ * with a tally on it rather than as two numbers -- and quieter in the one ink
+ * this column has proved at rest, never by going translucent, which would take
+ * a number below the bar it just cleared.
+ */
+.dest-count {
+  font-size: 0.9em;
+  color: var(--ds-text-muted);
+}

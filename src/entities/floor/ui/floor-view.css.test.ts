@@ -1,5 +1,5 @@
 /**
- * The three markings a floor puts in the building's left-hand column, measured
+ * The markings a floor puts in the building's left-hand column, measured
  * against what that column actually paints.
  *
  * None of them is read against a token: `.levels` is translucent over the
@@ -23,17 +23,17 @@ import {
 } from "#shared/styles/test-helpers.ts";
 
 /**
- * How a floor's number is set: the color, and the size and weight that decide
- * which bar 1.4.3 holds the pair to.
+ * How one of this column's rules sets type: the color, and the size and weight
+ * that decide which bar 1.4.3 holds the pair to.
  *
- * The size is a `clamp()`, since a floor is not always the same height. The
- * largest length in it is the one that matters: the bar steps *down* at 24px,
- * so a rule that can be drawn small has to clear the small-text bar.
+ * Every size here is a `clamp()`, since a floor is not always the same height.
+ * The largest length in it is the one that matters: the bar steps *down* at
+ * 24px, so a rule that can be drawn small has to clear the small-text bar.
  *
+ * @param selector - The rule to read, exactly as the stylesheet spells it.
  * @returns The size in px, the weight, and the color.
  */
-function levelNumber(): { size: number; weight: string; color: string } {
-  const selector = ".level-num";
+function textIn(selector: string): { size: number; weight: string; color: string } {
   const body = ruleBody(selector);
   const lengths = [...declaration(body, "font-size", selector).matchAll(/([\d.]+)px/g)].map(
     ([, px = "0"]) => Number(px),
@@ -60,7 +60,7 @@ describe("the floor column", () => {
       // color is read from the rule as well: --ds-text-faint reaches only
       // 3.77:1 dark and 2.83:1 light here, and a slip back to it would still
       // pass an arithmetic check that measured --ds-text-muted by name.
-      const number = levelNumber();
+      const number = textIn(".level-num");
       expect(number.color).toBe(token("ds-text-muted"));
       expect(
         contrast(themed(palette, "ds-text-muted"), levelsColumn(palette)),
@@ -78,7 +78,7 @@ describe("the floor column", () => {
       // building is washed in -- that one reaches only 4.11:1 on this column in
       // the light theme.
       const selector = ".floor.is-hot .level-num";
-      const number = levelNumber();
+      const number = textIn(".level-num");
       expect(declaration(ruleBody(selector), "color", selector)).toBe(token("ds-accent-hi"));
       expect(
         contrast(themed(palette, "ds-accent-hi"), levelsColumn(palette)),
@@ -112,4 +112,65 @@ describe("the floor column", () => {
       expect(contrast(themed(palette, "ds-accent"), badge)).toBeGreaterThanOrEqual(3);
     },
   );
+
+  it.each(THEMES)(
+    "keeps an unanswered destination chip readable in its own column, %s theme",
+    (_, palette) => {
+      // A chip is a floor number, so 1.4.3's 4.5:1 applies to it and not the
+      // 3:1 the lamp beside it is let off with -- which is exactly what rules
+      // out the lit lamp's badge here: --ds-accent over --ds-accent-soft over
+      // this column reaches 3.58:1 in the light theme. The chip carries no fill
+      // and lights in the "hi" step instead, the one a marked floor number
+      // already proves at these sizes.
+      const chip = textIn(".dest");
+      expect(chip.color).toBe(token("ds-accent-hi"));
+      expect(
+        contrast(themed(palette, "ds-accent-hi"), levelsColumn(palette)),
+      ).toBeGreaterThanOrEqual(requiredRatio(chip.size, chip.weight));
+    },
+  );
+
+  it.each(THEMES)(
+    "keeps an answered destination chip and its tally readable, %s theme",
+    (_, palette) => {
+      // The two quiet inks in this column: a chip whose car is booked, and the
+      // count of people hanging off a chip of either kind. Both are numbers at
+      // the chip's own size, so both answer to the same bar the lit chip does.
+      const chip = textIn(".dest");
+      expect(declaration(ruleBody(".dest.is-booked"), "color", ".dest.is-booked")).toBe(
+        token("ds-text-muted"),
+      );
+      expect(declaration(ruleBody(".dest.is-more"), "color", ".dest.is-more")).toBe(
+        token("ds-text-muted"),
+      );
+      expect(declaration(ruleBody(".dest-count"), "color", ".dest-count")).toBe(
+        token("ds-text-muted"),
+      );
+      expect(
+        contrast(themed(palette, "ds-text-muted"), levelsColumn(palette)),
+      ).toBeGreaterThanOrEqual(requiredRatio(chip.size, chip.weight));
+    },
+  );
+
+  it("holds a destination panel to two rows whatever is standing on the floor", () => {
+    // The panel is as tall as the floor and no taller, and `entities/floor`
+    // draws at most four chips into it: two rows of two. What makes that
+    // arithmetic hold is here rather than there. A chip is a fixed half of the
+    // panel instead of as wide as its contents, and the automatic minimum that
+    // would hand the width back to those contents -- a flex item's is its own
+    // max-content -- is turned off. Without the second line a wide chip wraps
+    // its neighbor onto a row of its own and four chips stand four rows deep,
+    // which the shortest floor of a tall building has no room for.
+    const body = ruleBody(".dest");
+    expect(declaration(body, "flex", ".dest")).toBe("0 0 calc(50% - 1.5px)");
+    expect(declaration(body, "min-inline-size", ".dest")).toBe("0");
+  });
+
+  it("never dims a destination chip's tally with opacity", () => {
+    // The tally is quieter than the floor number it hangs off, and the ink is
+    // the only way it is allowed to be: going translucent would take a number
+    // that just cleared 4.5:1 back under it, and the arithmetic above would not
+    // notice.
+    expect(ruleBody(".dest-count")).not.toMatch(/opacity/);
+  });
 });

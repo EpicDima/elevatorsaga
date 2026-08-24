@@ -40,6 +40,22 @@ describe("the building's own focus ring", () => {
   });
 });
 
+describe("the floor-number column", () => {
+  it("gives a destination-dispatch building's floors more room than two call lamps need", () => {
+    // The only thing that widens the column, and `entities/floor` sizes a
+    // journey chip to half of whatever it is given -- so at the width two
+    // stacked lamps need, the widest chip a twenty-floor building can produce
+    // is clipped at the panel's edge instead of drawn.
+    const width = (selector: string): number => {
+      const stated = declaration(ruleBody(selector), "inline-size", selector);
+      const px = /^([\d.]+)px$/.exec(stated);
+      expect(px, `${selector} no longer states its width in px`).not.toBeNull();
+      return Number(px?.[1]);
+    };
+    expect(width(".levels.has-destinations")).toBeGreaterThan(width(".levels"));
+  });
+});
+
 describe("the four layers over the tracks", () => {
   it("lets a pointer through to the corridor under the shafts", () => {
     // All four are `inset: 0` over the same box, so each upper layer covers

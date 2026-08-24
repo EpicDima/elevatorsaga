@@ -366,6 +366,17 @@ export function presentBuildingStage(parent: HTMLElement, world: World): Buildin
     floorlineEls[world.floors.length - 1 - row] = line;
   }
 
+  // A building whose passengers name the floor they want gets a panel of the
+  // journeys standing on each floor where the others get two call lamps, and
+  // the column has to be wider to hold one. Nothing downstream has to be told:
+  // `recomputeGeometry` measures `levels.offsetWidth` and lays the shafts out
+  // beside whatever it finds.
+  setClass(
+    levels,
+    "has-destinations",
+    world.floors.some((floor) => floor.destinationDispatch),
+  );
+
   // Floors go in bottom-up, level 0 first: `relabelWorld` in
   // `src/pages/game/index.ts` reads them back in DOM order and takes that
   // order for the floor number. The column reverses itself in CSS so the
