@@ -610,12 +610,15 @@ export const skyscraperLevels: readonly SkyscraperLevel[] = [
    * instead of losing it.
    *
    * Measured at the pinned seed. Twenty people, nobody over 45 seconds. Four
-   * programs lose here and every one of them delivers nobody at all: the starter
-   * because it never sends a car, and the sweep, the editor's own default and
-   * the reference dispatcher because the call-button events they are built on
-   * are never raised in this building. `sky-12`'s starter — the same rotation
-   * with `goToFloor` added — takes bronze with twenty-two delivered in 81 moves
-   * and a longest wait of 19.66s.
+   * programs lose here, and all four end the run having delivered nobody and
+   * crossed not one floor: the starter because it books every journey and sends
+   * nothing, and the sweep, the editor's own default and the reference
+   * dispatcher because they wait on call-button events this building never
+   * raises. Sending a car would not have rescued any of the three — nobody
+   * boards a car that was not booked for them, so an unbooked car makes the trip
+   * empty — but none of them gets that far. `sky-12`'s starter — the same
+   * rotation with `goToFloor` added — takes bronze with twenty-two delivered in
+   * 81 moves and a longest wait of 19.66s.
    */
   {
     id: "sky-11",
@@ -659,9 +662,9 @@ export const skyscraperLevels: readonly SkyscraperLevel[] = [
    * nobody over 80 seconds: the rotation takes bronze with 309 of those moves,
    * so it wins by the width of the level and no more. The same program picking
    * the nearest car with room instead of the next one in turn — which is
-   * `sky-13`'s starter — spends 144 and takes silver. Booking one car for
-   * several of a floor's journeys at once brings it to 115 at a 20.45s average,
-   * which is gold, and is `sky-13`'s subject arriving early.
+   * `sky-13`'s starter — spends 144 and takes silver. Booking one car for every
+   * journey a floor is waiting on brings it to 120 at a 17.18s average, which is
+   * gold, and is `sky-13`'s subject arriving early.
    */
   {
     id: "sky-12",
@@ -699,11 +702,16 @@ export const skyscraperLevels: readonly SkyscraperLevel[] = [
    *
    * Measured at the pinned seed. Eighty people inside 340 moves, nobody over 90
    * seconds. The starter — the nearest car with room, answering one request at
-   * a time — takes bronze in 193 moves at a 15.34s average. Grouping brings that
-   * to 114 and costs 25.47s, and gold asks for both halves of that trade at once
-   * because either one alone has a bad program that meets it: a car sent out
-   * half full keeps the average down and spends the building's moves, and a car
-   * that waits to fill spends none and leaves somebody standing.
+   * a time — takes bronze in 193 moves at a 15.34s average. `sky-12`'s answer is
+   * still bronze here, at 176: it groups whoever is standing in the lobby the
+   * moment a car comes free, which in a rush is a fraction of a load, and the
+   * building pays for the trip up either way. Gold is 124 moves at a 19.87s
+   * average, and what earns it is holding one car at the lobby until it fills
+   * and then sending it up through everything aboard in one sweep. It asks for
+   * both halves of that trade at once because either one alone has a bad program
+   * that meets it: a car sent out half full keeps the average down and spends
+   * the building's moves, and a car held too long spends none and leaves
+   * somebody standing past the cap.
    */
   {
     id: "sky-13",
