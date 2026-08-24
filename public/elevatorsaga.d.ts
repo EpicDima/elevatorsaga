@@ -88,20 +88,27 @@ declare namespace ElevatorSaga {
 
   /** The events a floor raises. */
   type FloorEventName =
-    "up_button_pressed" | "down_button_pressed" | "hall_button_pressed" | "buttonstate_change";
+    | "up_button_pressed"
+    | "down_button_pressed"
+    | "hall_button_pressed"
+    | "buttonstate_change"
+    | "destination_requested";
 
   /**
-   * Two, three or four event names separated by single spaces, which subscribe
-   * a handler to all of them.
+   * Two to five event names separated by single spaces, which subscribe a
+   * handler to all of them.
    *
-   * The game's own `EventNameSpec` stops at four for the same reason, and at
-   * four rather than three because the floor has four events: a bound too small
+   * The game's own `EventNameSpec` stops at five for the same reason, and at
+   * five rather than fewer because the floor has five events: a bound too small
    * to name every event of a facade would refuse in the type checker what the
    * runtime accepts. A handler registered this way is called with the name of
    * the event that fired ahead of that event's own arguments.
    */
   type MultipleEvents<Name extends string> =
-    `${Name} ${Name}` | `${Name} ${Name} ${Name}` | `${Name} ${Name} ${Name} ${Name}`;
+    | `${Name} ${Name}`
+    | `${Name} ${Name} ${Name}`
+    | `${Name} ${Name} ${Name} ${Name}`
+    | `${Name} ${Name} ${Name} ${Name} ${Name}`;
 
   /** `off`'s wildcard: unregister every handler, whatever the event. */
   type AllEvents = "*";
@@ -351,7 +358,7 @@ declare namespace ElevatorSaga {
     /**
      * Runs `handler` for each of several events named in one string.
      *
-     * @param events - Two or three event names separated by single spaces.
+     * @param events - Two to five event names separated by single spaces.
      * @param handler - Called with the name of the event that fired, followed
      * by that event's own arguments.
      * @returns This elevator, so calls can be chained.
@@ -508,7 +515,7 @@ declare namespace ElevatorSaga {
     /**
      * Unregisters handlers of several events named in one string.
      *
-     * @param events - Two or three event names separated by single spaces.
+     * @param events - Two to five event names separated by single spaces.
      * @param handler - The exact function to remove; omit it to remove every
      * handler of each of the named events.
      * @returns This elevator, so calls can be chained.
@@ -661,12 +668,29 @@ declare namespace ElevatorSaga {
     ): this;
 
     /**
+     * Runs `handler` whenever somebody here asks to be taken to a floor.
+     *
+     * Only raised in a building whose passengers announce a destination instead
+     * of pressing a call button; there, no call button is ever pressed. Not
+     * raised for somebody joining a journey an elevator is already assigned to,
+     * and raised again if that elevator arrives full.
+     *
+     * @param event - `"destination_requested"`.
+     * @param handler - Called with the floor that was asked for and this floor.
+     * @returns This floor, so calls can be chained.
+     */
+    on(
+      event: "destination_requested",
+      handler: (this: Floor, destinationFloor: number, floor: Floor) => void,
+    ): this;
+
+    /**
      * Runs `handler` for each of several events named in one string.
      *
      * The form the game's own example uses:
      * `floor.on("up_button_pressed down_button_pressed", ...)`.
      *
-     * @param events - Two or three event names separated by single spaces.
+     * @param events - Two to five event names separated by single spaces.
      * @param handler - Called with the name of the event that fired, followed
      * by that event's own arguments.
      * @returns This floor, so calls can be chained.
@@ -724,6 +748,19 @@ declare namespace ElevatorSaga {
     ): this;
 
     /**
+     * Runs `handler` the next time somebody here asks to be taken to a floor,
+     * and then forgets it.
+     *
+     * @param event - `"destination_requested"`.
+     * @param handler - Called with the floor that was asked for and this floor.
+     * @returns This floor, so calls can be chained.
+     */
+    once(
+      event: "destination_requested",
+      handler: (this: Floor, destinationFloor: number, floor: Floor) => void,
+    ): this;
+
+    /**
      * The spelling of {@link Floor.once} that solutions written for the
      * original game use, because riot.js published `one` and not `once`.
      *
@@ -768,6 +805,19 @@ declare namespace ElevatorSaga {
     one(
       event: "buttonstate_change",
       handler: (this: Floor, buttonStates: FloorButtonStates) => void,
+    ): this;
+
+    /**
+     * The legacy spelling of {@link Floor.once}; see the `"up_button_pressed"`
+     * overload.
+     *
+     * @param event - `"destination_requested"`.
+     * @param handler - Called with the floor that was asked for and this floor.
+     * @returns This floor, so calls can be chained.
+     */
+    one(
+      event: "destination_requested",
+      handler: (this: Floor, destinationFloor: number, floor: Floor) => void,
     ): this;
 
     /**
@@ -824,9 +874,23 @@ declare namespace ElevatorSaga {
     ): this;
 
     /**
+     * Unregisters `destination_requested` handlers; see the
+     * `"up_button_pressed"` overload.
+     *
+     * @param event - `"destination_requested"`.
+     * @param handler - The exact function to remove; omit it to remove every
+     * handler of this event.
+     * @returns This floor, so calls can be chained.
+     */
+    off(
+      event: "destination_requested",
+      handler?: (this: Floor, destinationFloor: number, floor: Floor) => void,
+    ): this;
+
+    /**
      * Unregisters handlers of several events named in one string.
      *
-     * @param events - Two or three event names separated by single spaces.
+     * @param events - Two to five event names separated by single spaces.
      * @param handler - The exact function to remove; omit it to remove every
      * handler of each of the named events.
      * @returns This floor, so calls can be chained.

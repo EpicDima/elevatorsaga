@@ -896,6 +896,23 @@ elevator.checkDestinationQueue();</code></pre>
 })</code></pre>
               </td>
             </tr>
+            <tr>
+              <td>destination_requested</td>
+              <td>
+                <small
+                  >Triggered when someone at a floor has asked to be taken to another floor, in a
+                  building whose passengers announce a destination instead of pressing a call
+                  button. The handler is passed the floor they want to reach and the floor they are
+                  waiting on. Someone joining a journey an elevator has already been assigned to is
+                  not announced, and the event is raised again if that elevator arrives full.</small
+                >
+              </td>
+              <td>
+                <pre><code>floor.on("destination_requested", function(destinationFloor, floor) {
+    // Maybe pick an elevator for this journey?
+})</code></pre>
+              </td>
+            </tr>
           </tbody>
         </table>
       </main>

@@ -778,6 +778,8 @@ elevator.goingDownIndicator(false);`,
   "completion.floor.event.hallButtonPressed":
     'Triggered when someone has pressed either call button at a floor. Note that passengers will press the button again if they fail to enter an elevator. The handler is passed the direction that was asked for, either "up" or "down", and the floor the button was pressed on.',
   "completion.floor.event.buttonStateChange": "Either call button was lit or cleared.",
+  "completion.floor.event.destinationRequested":
+    "Triggered when someone at a floor has asked to be taken to another floor, in a building whose passengers announce a destination instead of pressing a call button. The handler is passed the floor they want to reach and the floor they are waiting on.",
   "completion.global.skeleton":
     "Your code must declare an object containing at least two functions called init and update.",
   "completion.global.init":

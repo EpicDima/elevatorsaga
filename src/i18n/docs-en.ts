@@ -220,6 +220,11 @@ elevator.goToFloor(2); // Queued anyway -- queue: 2, 3, 2`,
         // Nobody is waiting here any more?
     }
 })`,
+  "docs.api.floor.destinationRequested":
+    "Triggered when someone at a floor has asked to be taken to another floor, in a building whose passengers announce a destination instead of pressing a call button. The handler is passed the floor they want to reach and the floor they are waiting on. Someone joining a journey an elevator has already been assigned to is not announced, and the event is raised again if that elevator arrives full.",
+  "docs.api.floor.destinationRequested.example.code": `floor.on("destination_requested", function(destinationFloor, floor) {
+    // Maybe pick an elevator for this journey?
+})`,
 } as const satisfies Readonly<Record<string, string>>;
 
 /** Every message the reference pages are answerable for, by name. */

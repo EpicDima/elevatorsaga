@@ -545,5 +545,187 @@ describe("FloorInterface", () => {
         });
       });
     });
+
+    describe("destination_requested", () => {
+      // The call a building with no hall buttons makes instead of the other
+      // three, so it takes a floor built for one: `Floor` keeps a request book
+      // only when it was told its passengers announce destinations.
+      let dispatchFloor: Floor;
+      let dispatchInterface: FloorInterface;
+
+      /** Serves everything, which is all a booking asks of an elevator. */
+      const anyElevator = {
+        goingUpIndicator: false,
+        goingDownIndicator: false,
+        serves: () => true,
+      };
+
+      beforeEach(() => {
+        dispatchFloor = new Floor(2, 100, errorHandler, true);
+        dispatchInterface = new FloorInterface(dispatchFloor, errorHandler);
+      });
+
+      it("forwards a request with the destination first and itself second", () => {
+        const requested = vi.fn();
+        dispatchInterface.on("destination_requested", requested);
+
+        dispatchFloor.requestDestination(5);
+
+        expect(requested).toHaveBeenCalledTimes(1);
+        expect(requested).toHaveBeenCalledWith(5, dispatchInterface);
+        expect(requested).not.toHaveBeenCalledWith(5, dispatchFloor);
+      });
+
+      it("calls its handlers with the facade as `this`", () => {
+        const seen: unknown[] = [];
+        dispatchInterface.on("destination_requested", function (this: unknown): void {
+          seen.push(this);
+        });
+
+        dispatchFloor.requestDestination(5);
+
+        expect(seen).toHaveLength(1);
+        expect(seen[0]).toBe(dispatchInterface);
+        expect(seen[0]).not.toBe(dispatchFloor);
+      });
+
+      it("says nothing about someone joining a journey a car is booked for", () => {
+        // The grouping destination dispatch exists for: the second passenger
+        // bound for the fifth floor rides along with the first, and a program
+        // that answered the first request has nothing left to decide.
+        const requested = vi.fn();
+        dispatchInterface.on("destination_requested", requested);
+
+        dispatchFloor.requestDestination(5);
+        dispatchFloor.assignElevator(5, anyElevator);
+        dispatchFloor.requestDestination(5);
+
+        expect(requested).toHaveBeenCalledTimes(1);
+      });
+
+      it("asks again when the booked car turns up full", () => {
+        // The anti-livelock path. A refused passenger has no lit button to
+        // press again, so the request has to be reissued or the level becomes
+        // unwinnable the moment an elevator fills up.
+        const requested = vi.fn();
+        dispatchInterface.on("destination_requested", requested);
+
+        dispatchFloor.requestDestination(5);
+        dispatchFloor.assignElevator(5, anyElevator);
+        dispatchFloor.destinationRefused(5);
+
+        expect(requested).toHaveBeenCalledTimes(2);
+        expect(requested).toHaveBeenNthCalledWith(2, 5, dispatchInterface);
+      });
+
+      it("keeps journeys to different floors apart", () => {
+        const requested = vi.fn();
+        dispatchInterface.on("destination_requested", requested);
+
+        dispatchFloor.requestDestination(5);
+        dispatchFloor.assignElevator(5, anyElevator);
+        dispatchFloor.requestDestination(7);
+
+        expect(requested).toHaveBeenNthCalledWith(1, 5, dispatchInterface);
+        expect(requested).toHaveBeenNthCalledWith(2, 7, dispatchInterface);
+      });
+
+      it("is silent in a building whose passengers press call buttons", () => {
+        const requested = vi.fn();
+        floorInterface.on("destination_requested", requested);
+
+        floor.pressUpButton();
+        floor.pressDownButton();
+
+        expect(requested).not.toHaveBeenCalled();
+      });
+
+      it("takes part in the documented space separated registration", () => {
+        const heard = vi.fn();
+        dispatchInterface.on("destination_requested up_button_pressed", heard);
+
+        dispatchFloor.requestDestination(5);
+
+        // riot prepended the name of the event that fired whenever the
+        // registration named more than one (`libs/riot.js:11`,
+        // `libs/riot.js:45`), so the destination follows the name here.
+        expect(heard).toHaveBeenCalledTimes(1);
+        expect(heard).toHaveBeenCalledWith("destination_requested", 5, dispatchInterface);
+      });
+
+      it("supports once, one and off", () => {
+        const onceHandler = vi.fn();
+        const oneHandler = vi.fn();
+        const removed = vi.fn();
+        dispatchInterface.once("destination_requested", onceHandler);
+        dispatchInterface.one("destination_requested", oneHandler);
+        dispatchInterface.on("destination_requested", removed);
+        dispatchInterface.off("destination_requested", removed);
+
+        dispatchFloor.requestDestination(5);
+        dispatchFloor.requestDestination(7);
+
+        expect(onceHandler).toHaveBeenCalledTimes(1);
+        expect(onceHandler).toHaveBeenCalledWith(5, dispatchInterface);
+        expect(oneHandler).toHaveBeenCalledTimes(1);
+        expect(removed).not.toHaveBeenCalled();
+      });
+
+      it('goes with the rest on offAll, and on the off("*") spelling of it', () => {
+        const dropped = vi.fn();
+        dispatchInterface.on("destination_requested", dropped);
+        dispatchInterface.offAll();
+        dispatchFloor.requestDestination(5);
+
+        dispatchInterface.on("destination_requested", dropped);
+        dispatchInterface.off("*");
+        dispatchFloor.requestDestination(7);
+
+        expect(dropped).not.toHaveBeenCalled();
+      });
+
+      it("routes player handler exceptions to the error handler, one at a time", () => {
+        const boom = new Error("boom");
+        const second = vi.fn();
+        dispatchInterface.on("destination_requested", () => {
+          throw boom;
+        });
+        dispatchInterface.on("destination_requested", second);
+
+        expect(() => {
+          dispatchFloor.requestDestination(5);
+        }).not.toThrow();
+
+        expect(errorHandler).toHaveBeenCalledWith(boom);
+        expect(second).toHaveBeenCalledWith(5, dispatchInterface);
+      });
+
+      it("refuses to re-enter a dispatch of the request already in flight", () => {
+        // The nested case this event actually has: an unanswered request is
+        // still unanswered, so a handler that reissues it — or a passenger
+        // refused by a full car doing so from inside it — would recur. Nothing
+        // is derived from this event, so the emitter's own per-name guard is
+        // the whole guard, and there is no pair to keep atomic.
+        const requested = vi.fn(() => {
+          dispatchFloor.requestDestination(5);
+        });
+        dispatchInterface.on("destination_requested", requested);
+
+        dispatchFloor.requestDestination(5);
+
+        expect(requested).toHaveBeenCalledTimes(1);
+        expect(errorHandler).not.toHaveBeenCalled();
+      });
+
+      it("stops forwarding once the floor's subscriptions are dropped", () => {
+        const requested = vi.fn();
+        dispatchInterface.on("destination_requested", requested);
+
+        dispatchFloor.offAll();
+        dispatchFloor.requestDestination(5);
+
+        expect(requested).not.toHaveBeenCalled();
+      });
+    });
   });
 });

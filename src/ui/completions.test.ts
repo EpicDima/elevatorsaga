@@ -146,6 +146,7 @@ describe("event completions", () => {
       "down_button_pressed",
       "hall_button_pressed",
       "buttonstate_change",
+      "destination_requested",
     ]);
   });
 

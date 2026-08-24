@@ -375,6 +375,10 @@ const FLOOR_EVENT_DESCRIPTIONS: Record<keyof FloorInterfaceEvents, EventDescript
     detail: "function(buttonStates)",
     info: "completion.floor.event.buttonStateChange",
   },
+  destination_requested: {
+    detail: "function(destinationFloor, floor)",
+    info: "completion.floor.event.destinationRequested",
+  },
 };
 
 /**

@@ -61,6 +61,21 @@ export type FloorInterfaceEvents = {
    * {@link "./elevator-interface.ts"!ElevatorInterface.destinationDirection}.
    */
   hall_button_pressed: [direction: "up" | "down", floor: FloorInterface];
+  /**
+   * Somebody here asked to be taken to a floor, and no car is coming for it.
+   *
+   * The call a building with no hall buttons makes instead of the other three:
+   * its passengers name where they are going, and a program answers by sending
+   * a car for that journey. Silent about a passenger joining a journey a car is
+   * already booked for, and raised again when that car turns up full — so a
+   * program that answers every one of these has answered every passenger.
+   *
+   * The destination leads and the floor follows, as the direction does on
+   * {@link FloorInterfaceEvents.hall_button_pressed} and for the same reason: a
+   * `function` handler's `this` is already the facade, so the floor is the
+   * argument a solution is least likely to need.
+   */
+  destination_requested: [destinationFloor: number, floor: FloorInterface];
 };
 
 /** Called with anything a player-code floor handler throws. */
@@ -124,6 +139,14 @@ export class FloorInterface {
 
     floor.on("down_button_pressed", () => {
       this.#forwardCall("down");
+    });
+
+    // No pair to keep whole, so no in-flight mark: this event generalizes
+    // nothing and nothing is derived from it. A nested request — the refused
+    // passenger of a full car asking again — is guarded by the emitter's own
+    // per-name rule, the same guard a nested `up_button_pressed` gets.
+    floor.on("destination_requested", (_requestedFloor, destinationFloor) => {
+      this.#tryTrigger("destination_requested", destinationFloor, this);
     });
   }
 

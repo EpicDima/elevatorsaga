@@ -82,10 +82,16 @@ type SplitEventNames<S extends string> = string extends S
  *
  * The legacy emitters accepted any number of names; four covers every realistic
  * registration while keeping the union small enough to produce readable type
- * errors. Four rather than three because the floor has four events since
- * `hall_button_pressed` was added, and a bound that cannot name every event of
- * the smaller facade would refuse in the type checker what the runtime accepts:
- * {@link splitEventNames} has no limit.
+ * errors. Four and not five, though the floor now raises five events: the
+ * engine's own emitters carry a dozen event names each, and a fifth factor over
+ * a dozen names is a union TypeScript refuses to represent at all (TS2590).
+ *
+ * That bound is this repository's, not the game's. Player code is JavaScript at
+ * runtime and is type-checked, if at all, against `public/elevatorsaga.d.ts`,
+ * where the same spec is written out over one facade's four or five event names
+ * and a fifth factor costs nothing. So the promise that matters — that the type
+ * checker never refuses a subscription the runtime accepts, since
+ * {@link splitEventNames} has no limit — is kept where it is made.
  */
 export type EventNameSpec<E extends EventArgsMap> =
   | EventName<E>

@@ -873,6 +873,7 @@ const FLOOR_EVENT_DECISIONS: Readonly<Record<keyof FloorInterfaceEvents, string 
   down_button_pressed: null,
   hall_button_pressed: null,
   buttonstate_change: null,
+  destination_requested: null,
 };
 
 /**
