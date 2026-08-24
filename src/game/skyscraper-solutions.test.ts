@@ -475,9 +475,12 @@ interface SkyscraperCase {
   /**
    * What {@link BATCHING_CODE} reached, on `sky-13`, whose gold it is.
    *
-   * Omitted everywhere else: it books at the lobby and nowhere else, so on the
-   * two levels before it -- one of which never has anybody in the lobby at all
-   * -- it is not a worse program but a program with nothing to do.
+   * Omitted on `sky-11`, whose lobby nobody ever waits in: a program that books
+   * there and nowhere else has nothing to do, and it does nothing -- measured
+   * with nobody delivered and not one floor crossed. Omitted on `sky-12` for the
+   * ordinary reason instead. There it books, sends, and still loses, spending
+   * 134 moves on 45 people under a bar that lets nobody wait eighty seconds, so
+   * its cell would be a fourth `lost` in a row that already has three.
    */
   readonly batch?: TierOutcome;
 }
@@ -510,9 +513,10 @@ interface SkyscraperCase {
 // that meet them, and every rung of both ladders is now a run in this table:
 // `sky-12` is bronze by its own starter, silver by the nearest car, gold by
 // grouping; `sky-13` is bronze by its own starter and by grouping, gold by
-// filling a car before sending it. `sky-13`'s silver is the one rung of the
-// block still unreached, and it is unreached the way `sky-3`'s bronze and
-// `sky-9`'s silver are: no program measured here happens to land there.
+// filling a car before sending it. Nothing lands exactly on `sky-13`'s silver,
+// which is the ordinary case here rather than a gap -- `sky-3`, `sky-5`,
+// `sky-7`, `sky-9` and `sky-10` each have such a rung too, because a program
+// good enough for one rung is usually good enough for the one above it.
 const CASES: readonly SkyscraperCase[] = [
   { id: "sky-1", starter: "lost", sweep: "bronze", dev: "lost", good: "bronze" },
   { id: "sky-2", starter: "lost", sweep: "bronze", dev: "lost", good: "bronze" },
@@ -556,8 +560,8 @@ describe("the recorded table", () => {
     // Not a restatement of the rows: a level where every program measured lands
     // on the same tier is a level that measures nothing about the program, and
     // copying a row from its neighbor would pass every other check in this file.
-    // The optional columns count, because on the level that has one they are the
-    // whole of what the row distinguishes.
+    // The optional columns count too: on `sky-11`, whose four standard cells are
+    // all `lost`, they are the whole of what the row distinguishes.
     for (const testCase of CASES) {
       const reached = new Set(
         [
