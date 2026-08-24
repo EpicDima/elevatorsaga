@@ -10,10 +10,11 @@ const FLOOR_COUNT = 4;
 const FLOOR_HEIGHT = 50;
 
 /** Builds the floors of a test world, laid out like `createFloors` does. */
-function makeFloors(): Floor[] {
+function makeFloors(destinationDispatch = false): Floor[] {
   return Array.from(
     { length: FLOOR_COUNT },
-    (_unused, i) => new Floor(i, (FLOOR_COUNT - 1 - i) * FLOOR_HEIGHT, vi.fn()),
+    (_unused, i) =>
+      new Floor(i, (FLOOR_COUNT - 1 - i) * FLOOR_HEIGHT, vi.fn(), destinationDispatch),
   );
 }
 
@@ -246,6 +247,143 @@ describe("User.elevatorAvailable", () => {
     user.elevatorAvailable(elevator, currentFloor());
 
     expect(entered).not.toHaveBeenCalled();
+  });
+});
+
+describe("User on a destination-dispatch floor", () => {
+  let floors: Floor[];
+  let floor: Floor;
+  let booked: Elevator;
+  let other: Elevator;
+  let user: User;
+
+  beforeEach(() => {
+    floors = makeFloors(true);
+    floor = at(floors, 0);
+    booked = new Elevator(2.6, FLOOR_COUNT, FLOOR_HEIGHT);
+    other = new Elevator(2.6, FLOOR_COUNT, FLOOR_HEIGHT);
+    booked.setFloorPosition(0);
+    other.setFloorPosition(0);
+    user = new User(70);
+    user.appearOnFloor(floor, 2);
+  });
+
+  it("names the floor it wants instead of pressing a button", () => {
+    expect(floor.buttonStates).toEqual({ up: "", down: "" });
+    expect(floor.pendingDestinations()).toEqual(new Map([[2, 1]]));
+  });
+
+  it("waits for the car it was booked onto rather than the one that came", () => {
+    floor.assignElevator(2, booked);
+    const entered = vi.fn();
+    user.on("entered_elevator", entered);
+
+    user.elevatorAvailable(other, floor);
+
+    expect(entered).not.toHaveBeenCalled();
+    expect(user.parent).toBe(null);
+    // Their own car is still booked and still coming, so there is nothing to
+    // ask for again.
+    expect(floor.assignedElevator(2)).toBe(booked);
+    expect(floor.pendingDestinations()).toEqual(new Map([[2, 1]]));
+  });
+
+  it("waits when no car has been booked at all", () => {
+    user.elevatorAvailable(booked, floor);
+
+    expect(user.parent).toBe(null);
+    expect(floor.pendingDestinations()).toEqual(new Map([[2, 1]]));
+  });
+
+  it("boards the booked car whatever its indicators say", () => {
+    // The indicators are how a hall-call passenger decides, and they are the
+    // wrong question here: a booked car may be about to travel either way.
+    booked.goingUpIndicator = false;
+    booked.goingDownIndicator = false;
+    floor.assignElevator(2, booked);
+    const entered = vi.fn();
+    user.on("entered_elevator", entered);
+
+    user.elevatorAvailable(booked, floor);
+
+    expect(entered).toHaveBeenCalledWith(booked);
+    expect(user.parent).toBe(booked);
+  });
+
+  it("closes the request it boarded on", () => {
+    floor.assignElevator(2, booked);
+
+    user.elevatorAvailable(booked, floor);
+
+    expect(floor.pendingDestinations()).toEqual(new Map());
+    expect(floor.assignedElevator(2)).toBeNull();
+  });
+
+  it("takes everyone bound for the same floor in one car", () => {
+    const companion = new User(70);
+    companion.appearOnFloor(floor, 2);
+    floor.assignElevator(2, booked);
+
+    user.elevatorAvailable(booked, floor);
+    companion.elevatorAvailable(booked, floor);
+
+    expect(user.parent).toBe(booked);
+    expect(companion.parent).toBe(booked);
+    expect(floor.pendingDestinations()).toEqual(new Map());
+  });
+
+  it("asks for another car when the booked one arrives full", () => {
+    // Where the livelock would live: the car that was going to take them is
+    // leaving, and a hall button pressed here lights a lamp nobody reads.
+    for (let i = 0; i < booked.maxUsers; i++) {
+      booked.userEntering({ weight: 70 });
+    }
+    floor.assignElevator(2, booked);
+    const requested = vi.fn();
+    floor.on("destination_requested", requested);
+
+    user.elevatorAvailable(booked, floor);
+
+    expect(user.parent).toBe(null);
+    expect(floor.buttonStates).toEqual({ up: "", down: "" });
+    expect(floor.assignedElevator(2)).toBeNull();
+    expect(requested).toHaveBeenCalledWith(floor, 2);
+    expect(floor.pendingDestinations()).toEqual(new Map([[2, 1]]));
+  });
+
+  it("leaves the booking standing for whoever the full car could not take", () => {
+    const companion = new User(70);
+    companion.appearOnFloor(floor, 2);
+    booked.userEntering({ weight: 70 });
+    booked.userEntering({ weight: 70 });
+    booked.userEntering({ weight: 70 });
+    floor.assignElevator(2, booked);
+
+    user.elevatorAvailable(booked, floor);
+    companion.elevatorAvailable(booked, floor);
+
+    expect(user.parent).toBe(booked);
+    expect(companion.parent).toBe(null);
+    expect(floor.pendingDestinations()).toEqual(new Map([[2, 1]]));
+    expect(floor.assignedElevator(2)).toBeNull();
+  });
+
+  it("rides to its destination and steps out as usual", () => {
+    floor.assignElevator(2, booked);
+    user.elevatorAvailable(booked, floor);
+    step(2.0, 0.05, user, booked);
+    const exited = vi.fn();
+    user.on("exited_elevator", exited);
+
+    // The destination button is pressed on boarding just as it always was: a
+    // destination-dispatch building knows where its passengers are going, and
+    // takes nothing away from the car's own panel.
+    expect(booked.getPressedFloors()).toContain(2);
+    booked.goToFloor(2);
+    step(10.0, 0.05, user, booked);
+
+    expect(exited).toHaveBeenCalledWith(booked);
+    expect(user.currentFloor).toBe(2);
   });
 });
 

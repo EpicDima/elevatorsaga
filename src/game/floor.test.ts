@@ -12,6 +12,21 @@ function indicators(up: boolean, down: boolean): FloorElevator {
   return { goingUpIndicator: up, goingDownIndicator: down, serves: () => true };
 }
 
+/**
+ * An elevator stand-in whose zone is exactly the floors named.
+ *
+ * Both indicators are dark, because a booking is answered by name: a
+ * destination-dispatch floor never reads them, and a car that got picked up by
+ * one of these specs on its indicators would be a bug these specs would miss.
+ */
+function servingOnly(...floors: number[]): FloorElevator {
+  return {
+    goingUpIndicator: false,
+    goingDownIndicator: false,
+    serves: (floorNum) => floors.includes(floorNum),
+  };
+}
+
 describe("Floor", () => {
   let errorHandler: ReturnType<typeof vi.fn<FloorErrorHandler>>;
   let floor: Floor;
@@ -175,6 +190,216 @@ describe("Floor", () => {
       });
 
       expect(floor.buttonStates).toEqual({ up: "", down: "" });
+    });
+  });
+
+  describe("the destination request book", () => {
+    let dispatch: Floor;
+    let requested: ReturnType<typeof vi.fn<(floor: Floor, destinationFloor: number) => void>>;
+    let booked: ReturnType<
+      typeof vi.fn<(floor: Floor, destinationFloor: number, elevator: FloorElevator) => void>
+    >;
+
+    beforeEach(() => {
+      dispatch = new Floor(2, 100, errorHandler, true);
+      requested = vi.fn();
+      booked = vi.fn();
+      dispatch.on("destination_requested", requested);
+      dispatch.on("elevator_assigned", booked);
+    });
+
+    it("is off unless a building asks for it", () => {
+      expect(floor.destinationDispatch).toBe(false);
+      expect(dispatch.destinationDispatch).toBe(true);
+    });
+
+    it("starts with nobody waiting for anything", () => {
+      expect(dispatch.pendingDestinations()).toEqual(new Map());
+      expect(dispatch.assignedElevator(7)).toBeNull();
+    });
+
+    it("announces a request and counts the person who made it", () => {
+      dispatch.requestDestination(7);
+
+      expect(requested).toHaveBeenCalledTimes(1);
+      expect(requested).toHaveBeenCalledWith(dispatch, 7);
+      expect(dispatch.pendingDestinations()).toEqual(new Map([[7, 1]]));
+    });
+
+    it("announces each destination separately", () => {
+      dispatch.requestDestination(7);
+      dispatch.requestDestination(3);
+
+      expect(requested).toHaveBeenCalledTimes(2);
+      expect(dispatch.pendingDestinations()).toEqual(
+        new Map([
+          [7, 1],
+          [3, 1],
+        ]),
+      );
+    });
+
+    it("asks again for a destination no car is coming for yet", () => {
+      dispatch.requestDestination(7);
+      dispatch.requestDestination(7);
+
+      expect(requested).toHaveBeenCalledTimes(2);
+      expect(dispatch.pendingDestinations()).toEqual(new Map([[7, 2]]));
+    });
+
+    it("groups a second passenger onto a car that is already coming", () => {
+      // The whole point of the mechanic: the program is told about the trip,
+      // not about each traveler, and cannot book two cars for one journey.
+      dispatch.requestDestination(7);
+      dispatch.assignElevator(7, servingOnly(2, 7));
+      requested.mockClear();
+
+      dispatch.requestDestination(7);
+
+      expect(requested).not.toHaveBeenCalled();
+      expect(dispatch.pendingDestinations()).toEqual(new Map([[7, 2]]));
+    });
+
+    it("books a car that can carry the trip", () => {
+      const elevator = servingOnly(2, 7);
+      dispatch.requestDestination(7);
+
+      expect(dispatch.assignElevator(7, elevator)).toBe(true);
+
+      expect(dispatch.assignedElevator(7)).toBe(elevator);
+      expect(booked).toHaveBeenCalledTimes(1);
+      expect(booked).toHaveBeenCalledWith(dispatch, 7, elevator);
+    });
+
+    it("refuses a car that does not serve this floor", () => {
+      dispatch.requestDestination(7);
+
+      expect(dispatch.assignElevator(7, servingOnly(7))).toBe(false);
+
+      expect(dispatch.assignedElevator(7)).toBeNull();
+      expect(booked).not.toHaveBeenCalled();
+    });
+
+    it("refuses a car that does not serve the destination", () => {
+      dispatch.requestDestination(7);
+
+      expect(dispatch.assignElevator(7, servingOnly(2))).toBe(false);
+
+      expect(dispatch.assignedElevator(7)).toBeNull();
+    });
+
+    it("refuses a booking nobody is waiting on", () => {
+      expect(dispatch.assignElevator(7, servingOnly(2, 7))).toBe(false);
+
+      expect(dispatch.assignedElevator(7)).toBeNull();
+      expect(booked).not.toHaveBeenCalled();
+    });
+
+    it("says nothing when the same car is booked again", () => {
+      const elevator = servingOnly(2, 7);
+      dispatch.requestDestination(7);
+      dispatch.assignElevator(7, elevator);
+      booked.mockClear();
+
+      expect(dispatch.assignElevator(7, elevator)).toBe(true);
+
+      expect(booked).not.toHaveBeenCalled();
+    });
+
+    it("announces a booking that changes cars", () => {
+      const second = servingOnly(2, 7);
+      dispatch.requestDestination(7);
+      dispatch.assignElevator(7, servingOnly(2, 7));
+      booked.mockClear();
+
+      dispatch.assignElevator(7, second);
+
+      expect(dispatch.assignedElevator(7)).toBe(second);
+      expect(booked).toHaveBeenCalledTimes(1);
+    });
+
+    it("keeps the booking while somebody is still waiting on it", () => {
+      const elevator = servingOnly(2, 7);
+      dispatch.requestDestination(7);
+      dispatch.requestDestination(7);
+      dispatch.assignElevator(7, elevator);
+
+      dispatch.destinationBoarded(7);
+
+      expect(dispatch.pendingDestinations()).toEqual(new Map([[7, 1]]));
+      expect(dispatch.assignedElevator(7)).toBe(elevator);
+    });
+
+    it("withdraws the booking with the last person waiting on it", () => {
+      dispatch.requestDestination(7);
+      dispatch.assignElevator(7, servingOnly(2, 7));
+
+      dispatch.destinationBoarded(7);
+
+      expect(dispatch.pendingDestinations()).toEqual(new Map());
+      expect(dispatch.assignedElevator(7)).toBeNull();
+    });
+
+    it("lets the next passenger ask for a car of their own", () => {
+      dispatch.requestDestination(7);
+      dispatch.assignElevator(7, servingOnly(2, 7));
+      dispatch.destinationBoarded(7);
+      requested.mockClear();
+
+      dispatch.requestDestination(7);
+
+      expect(requested).toHaveBeenCalledTimes(1);
+    });
+
+    it("shrugs at a boarding for a destination nobody asked about", () => {
+      dispatch.destinationBoarded(7);
+
+      expect(dispatch.pendingDestinations()).toEqual(new Map());
+    });
+
+    it("withdraws a refused car and asks for another", () => {
+      dispatch.requestDestination(7);
+      dispatch.assignElevator(7, servingOnly(2, 7));
+      requested.mockClear();
+
+      dispatch.destinationRefused(7);
+
+      expect(dispatch.assignedElevator(7)).toBeNull();
+      expect(requested).toHaveBeenCalledTimes(1);
+      expect(requested).toHaveBeenCalledWith(dispatch, 7);
+      expect(dispatch.pendingDestinations()).toEqual(new Map([[7, 1]]));
+    });
+
+    it("says nothing when the refusal leaves nobody waiting", () => {
+      dispatch.destinationRefused(7);
+
+      expect(requested).not.toHaveBeenCalled();
+    });
+
+    it("routes exceptions thrown by destination_requested handlers", () => {
+      const boom = new Error("boom");
+      dispatch.on("destination_requested", () => {
+        throw boom;
+      });
+
+      dispatch.requestDestination(7);
+
+      expect(errorHandler).toHaveBeenCalledWith(boom);
+      expect(dispatch.pendingDestinations()).toEqual(new Map([[7, 1]]));
+    });
+
+    it("routes exceptions thrown by elevator_assigned handlers", () => {
+      const boom = new Error("boom");
+      const elevator = servingOnly(2, 7);
+      dispatch.on("elevator_assigned", () => {
+        throw boom;
+      });
+      dispatch.requestDestination(7);
+
+      expect(dispatch.assignElevator(7, elevator)).toBe(true);
+
+      expect(errorHandler).toHaveBeenCalledWith(boom);
+      expect(dispatch.assignedElevator(7)).toBe(elevator);
     });
   });
 

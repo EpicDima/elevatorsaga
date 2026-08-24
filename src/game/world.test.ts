@@ -201,6 +201,16 @@ describe("createFloors", () => {
     at(floors, 1).pressUpButton();
     expect(errorHandler).toHaveBeenCalledWith(boom);
   });
+
+  it("gives every floor call buttons unless the building asked otherwise", () => {
+    const floors = createFloors(4, 50, () => undefined);
+    expect(floors.map((f) => f.destinationDispatch)).toEqual([false, false, false, false]);
+  });
+
+  it("gives every floor a destination panel when the building asked for one", () => {
+    const floors = createFloors(4, 50, () => undefined, true);
+    expect(floors.map((f) => f.destinationDispatch)).toEqual([true, true, true, true]);
+  });
 });
 
 describe("createElevators", () => {
@@ -1677,6 +1687,140 @@ describe("World", () => {
 
       const queued = world.elevatorInterfaces.filter((i) => i.destinationQueue.length > 0);
       expect(queued).toHaveLength(1);
+    });
+  });
+
+  describe("assignment repressing", () => {
+    /** A destination-dispatch world with one waiting request on floor 1. */
+    function createDispatchWorld(elevatorCount: number): World {
+      const world = createWorld({
+        spawnRate: 0.001,
+        floorCount: 3,
+        elevatorCount,
+        destinationDispatch: true,
+      });
+      at(world.floors, 1).requestDestination(2);
+      return world;
+    }
+
+    it("re-arrives the car booked to serve a floor it is already standing at", () => {
+      const world = createDispatchWorld(1);
+      const elevator = at(world.elevators, 0);
+      elevator.setFloorPosition(1);
+
+      at(world.floors, 1).assignElevator(2, elevator);
+
+      expect(at(world.elevatorInterfaces, 0).destinationQueue).toEqual([1]);
+    });
+
+    it("re-arrives the booked car and no other standing there", () => {
+      // Where the button version has to draw an offset to pick a car fairly,
+      // this one is told which car, and the fairness question never arises.
+      const world = createDispatchWorld(3);
+      for (const elevator of world.elevators) {
+        elevator.setFloorPosition(1);
+      }
+
+      at(world.floors, 1).assignElevator(2, at(world.elevators, 2));
+
+      expect(world.elevatorInterfaces.map((i) => i.destinationQueue)).toEqual([[], [], [1]]);
+    });
+
+    it("ignores a booked car standing at another floor", () => {
+      const world = createDispatchWorld(1);
+      at(world.elevators, 0).setFloorPosition(2);
+
+      at(world.floors, 1).assignElevator(2, at(world.elevators, 0));
+
+      expect(at(world.elevatorInterfaces, 0).destinationQueue).toEqual([]);
+    });
+
+    it("ignores a booked car that is full", () => {
+      const world = createDispatchWorld(1);
+      const elevator = at(world.elevators, 0);
+      elevator.setFloorPosition(1);
+      for (let i = 0; i < elevator.maxUsers; i++) {
+        elevator.userEntering({ weight: 70 });
+      }
+
+      at(world.floors, 1).assignElevator(2, elevator);
+
+      expect(at(world.elevatorInterfaces, 0).destinationQueue).toEqual([]);
+    });
+
+    it("spends no draw on the car a booking names", () => {
+      // The button version takes one from the world's derived button-repress
+      // stream, because it chooses. This one does not choose, so it must not
+      // draw at all -- from that stream or any other. A destination-dispatch
+      // building spends its seed on spawning and nothing else.
+      const random = vi.fn(() => 0);
+      const world = createWorld(
+        { floorCount: 3, elevatorCount: 2, spawnRate: 0.001, destinationDispatch: true },
+        random,
+      );
+      const elevator = at(world.elevators, 0);
+      elevator.setFloorPosition(1);
+      at(world.floors, 1).requestDestination(2);
+
+      random.mockClear();
+      const global = vi.spyOn(Math, "random");
+      at(world.floors, 1).assignElevator(2, elevator);
+
+      expect(at(world.elevatorInterfaces, 0).destinationQueue).toEqual([1]);
+      expect(random).not.toHaveBeenCalled();
+      expect(global).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("destination dispatch, end to end", () => {
+    /** A destination-dispatch building, run for a hundred simulated seconds. */
+    function runDispatchWorld(subscribe: (world: World) => void): World {
+      const world = createWorld(
+        { floorCount: 4, elevatorCount: 2, spawnRate: 2, destinationDispatch: true },
+        "dispatch",
+      );
+      subscribe(world);
+      for (let i = 0; i < 2000; i++) {
+        world.update(0.05);
+      }
+      return world;
+    }
+
+    it("carries the building when the program books a car for each request", () => {
+      // The smallest program the mechanic admits: hand the requests out in
+      // turn, and send the car to fetch them and then to where they are going.
+      let next = 0;
+      const world = runDispatchWorld((built) => {
+        for (const floor of built.floors) {
+          floor.on("destination_requested", (requestedFloor, destinationFloor) => {
+            const index = next % built.elevators.length;
+            next += 1;
+            requestedFloor.assignElevator(destinationFloor, at(built.elevators, index));
+            const car = at(built.elevatorInterfaces, index);
+            car.goToFloor(requestedFloor.level);
+            car.goToFloor(destinationFloor);
+          });
+        }
+      });
+
+      expect(world.transportedCounter).toBeGreaterThan(20);
+    });
+
+    it("moves nobody for a program that waits for call buttons", () => {
+      // The mechanic cannot be half-solved by a solution written for the other
+      // kind of building: nothing here presses anything, so a program listening
+      // for hall calls hears silence and its building never moves.
+      const pressed = vi.fn();
+      const world = runDispatchWorld((built) => {
+        for (const floor of built.floors) {
+          floor.on("up_button_pressed", pressed);
+          floor.on("down_button_pressed", pressed);
+        }
+      });
+
+      expect(pressed).not.toHaveBeenCalled();
+      expect(world.transportedCounter).toBe(0);
+      expect(world.users.length).toBeGreaterThan(0);
     });
   });
 

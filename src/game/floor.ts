@@ -6,6 +6,11 @@
  * are delivered straight into player code, so an exception thrown by a handler
  * must be routed to the world's error handler rather than unwinding the
  * simulation.
+ *
+ * A floor built for destination dispatch keeps a second, richer kind of call
+ * instead: a book of who is waiting for which floor and which car was named to
+ * take them. The two kinds do not mix on one floor — see
+ * {@link Floor.destinationDispatch}.
  */
 
 import { Observable, type EventName } from "./observable.ts";
@@ -26,7 +31,7 @@ export interface FloorButtonStates {
   down: ButtonState;
 }
 
-/** The part of an elevator a floor needs in order to clear its call buttons. */
+/** The part of an elevator a floor needs to clear a button or hold a booking. */
 export interface FloorElevator {
   /** Whether the elevator advertises that it is going up. */
   readonly goingUpIndicator: boolean;
@@ -55,6 +60,10 @@ export type FloorEvents = {
   up_button_pressed: [floor: Floor];
   /** Someone pressed the down call button. */
   down_button_pressed: [floor: Floor];
+  /** Someone here wants to reach a floor and no car is booked to take them. */
+  destination_requested: [floor: Floor, destinationFloor: number];
+  /** A car was booked to take this floor's passengers to a destination. */
+  elevator_assigned: [floor: Floor, destinationFloor: number, elevator: FloorElevator];
 };
 
 /** Vertical offset from a floor's y position to where passengers stand. */
@@ -71,19 +80,45 @@ export class Floor extends Observable<FloorEvents> {
   readonly yPosition: number;
   /** Lit state of the two call buttons. */
   readonly buttonStates: FloorButtonStates = { up: "", down: "" };
+  /**
+   * Whether this floor takes calls by destination rather than by direction.
+   *
+   * Its passengers name the floor they want and wait for whichever car the
+   * program books; they never touch the call buttons, so the lamps stay dark
+   * and the direction events never fire. The two ways of calling do not mix on
+   * one floor on purpose: a program written for hall buttons hears silence in a
+   * destination-dispatch building rather than half a building, and the mechanic
+   * cannot be half-solved by a solution that ignores it.
+   */
+  readonly destinationDispatch: boolean;
 
   readonly #errorHandler: FloorErrorHandler;
+
+  /** How many people here are waiting for each destination floor. */
+  readonly #waiting = new Map<number, number>();
+
+  /** The car booked for each destination, while somebody is waiting for it. */
+  readonly #assigned = new Map<number, FloorElevator>();
 
   /**
    * @param floorLevel - Floor number, counting up from 0 at the bottom.
    * @param yPosition - World y of the floor.
    * @param errorHandler - Receives anything an event handler throws.
+   * @param destinationDispatch - Whether this floor takes calls by destination
+   * rather than by direction. Defaults to `false`, which is every floor of
+   * every building written before destination dispatch existed.
    */
-  constructor(floorLevel: number, yPosition: number, errorHandler: FloorErrorHandler) {
+  constructor(
+    floorLevel: number,
+    yPosition: number,
+    errorHandler: FloorErrorHandler,
+    destinationDispatch = false,
+  ) {
     super();
     this.level = floorLevel;
     this.yPosition = yPosition;
     this.#errorHandler = errorHandler;
+    this.destinationDispatch = destinationDispatch;
   }
 
   /**
@@ -136,6 +171,120 @@ export class Floor extends Observable<FloorEvents> {
     if (prev !== this.buttonStates.down) {
       this.#tryTrigger("buttonstate_change", this.buttonStates);
       this.#tryTrigger("down_button_pressed", this);
+    }
+  }
+
+  /**
+   * Files a request to be taken to a floor.
+   *
+   * Emits `destination_requested` only when no car is booked for that
+   * destination yet — the same rule the call buttons follow, and the grouping
+   * destination dispatch exists for: the second person bound for a floor a car
+   * is already coming for rides along with the first, without the program
+   * hearing about them or being able to book a second car for the same trip.
+   * The count is raised before the event so that a handler booking a car from
+   * inside it finds somebody to book it for.
+   *
+   * @param destinationFloor - Floor the passenger wants to reach.
+   */
+  requestDestination(destinationFloor: number): void {
+    this.#waiting.set(destinationFloor, (this.#waiting.get(destinationFloor) ?? 0) + 1);
+    if (!this.#assigned.has(destinationFloor)) {
+      this.#tryTrigger("destination_requested", this, destinationFloor);
+    }
+  }
+
+  /**
+   * Books the car that will take this floor's passengers to a destination.
+   *
+   * Refuses a car that cannot carry the trip end to end, and refuses a booking
+   * nobody is waiting on. Both are one rule — a booking exists only while it
+   * can still be boarded — and both would otherwise strand the floor silently.
+   * A car booked for a trip it does not serve is waited for forever, since
+   * nothing can board it and so nothing ever withdraws it; a booking left
+   * standing after the last passenger boarded swallows the next request for
+   * that floor, because a request only speaks up when no car is coming.
+   *
+   * Emits on a change, as the call buttons do, so that a program rebooking the
+   * same car every frame does not re-offer it every frame.
+   *
+   * @param destinationFloor - Floor the booking is for.
+   * @param elevator - Car to send.
+   * @returns `true` when the booking was taken.
+   */
+  assignElevator(destinationFloor: number, elevator: FloorElevator): boolean {
+    if (!this.#waiting.has(destinationFloor)) {
+      return false;
+    }
+    if (!elevator.serves(this.level) || !elevator.serves(destinationFloor)) {
+      return false;
+    }
+    if (this.#assigned.get(destinationFloor) === elevator) {
+      return true;
+    }
+    this.#assigned.set(destinationFloor, elevator);
+    this.#tryTrigger("elevator_assigned", this, destinationFloor, elevator);
+    return true;
+  }
+
+  /**
+   * The car booked to take this floor's passengers to a destination.
+   *
+   * @param destinationFloor - Floor to ask about.
+   * @returns The car, or `null` when none is booked.
+   */
+  assignedElevator(destinationFloor: number): FloorElevator | null {
+    return this.#assigned.get(destinationFloor) ?? null;
+  }
+
+  /**
+   * How many people here are waiting for each destination floor.
+   *
+   * The live map rather than a snapshot: this is the engine's own book, and the
+   * facade that hands it to player code is what copies it, the way
+   * `buttonStates` is published as a snapshot.
+   *
+   * @returns Destination floor to the number of people waiting for it.
+   */
+  pendingDestinations(): ReadonlyMap<number, number> {
+    return this.#waiting;
+  }
+
+  /**
+   * Records that somebody boarded the car booked for their destination.
+   *
+   * The booking is withdrawn together with the last person waiting on it, so
+   * that the next passenger bound for that floor asks for a car of their own
+   * rather than waiting on one that has already left.
+   *
+   * @param destinationFloor - Floor the passenger who boarded is bound for.
+   */
+  destinationBoarded(destinationFloor: number): void {
+    const stillWaiting = (this.#waiting.get(destinationFloor) ?? 0) - 1;
+    if (stillWaiting > 0) {
+      this.#waiting.set(destinationFloor, stillWaiting);
+      return;
+    }
+    this.#waiting.delete(destinationFloor);
+    this.#assigned.delete(destinationFloor);
+  }
+
+  /**
+   * Withdraws the car booked for a destination and asks for another.
+   *
+   * The way out of the one deadlock destination dispatch has: a car arrives
+   * full, the people it could not take are still standing here, and the car
+   * that was going to take them is leaving. Without this they would wait on a
+   * booking nobody can honor, and the floor would be stranded for the rest of
+   * the run. Says nothing when the refused passenger was the last one waiting,
+   * since a request nobody made is a car booked for nobody.
+   *
+   * @param destinationFloor - Floor the refused passenger is bound for.
+   */
+  destinationRefused(destinationFloor: number): void {
+    this.#assigned.delete(destinationFloor);
+    if (this.#waiting.has(destinationFloor)) {
+      this.#tryTrigger("destination_requested", this, destinationFloor);
     }
   }
 

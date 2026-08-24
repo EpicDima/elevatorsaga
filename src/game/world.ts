@@ -52,7 +52,9 @@
  * - **Button repressing**, `World.handleButtonRepressing`: one draw per emitted
  *   floor-button press. A passenger a full or wrongly signposted car turns away
  *   presses the button again, which is a moment the elevators decide. See
- *   `BUTTON_REPRESS_STREAM`.
+ *   `BUTTON_REPRESS_STREAM`. Its destination-dispatch counterpart,
+ *   `World.handleAssignmentRepressing`, draws nothing at all: a booking names
+ *   the car, so there is no car left to choose.
  * - **Walking off**, {@link "./user.ts"!User.handleExit}: one draw per delivered
  *   passenger. Delivery is a moment the elevators decide. See
  *   `WALK_OFF_STREAM`.
@@ -90,7 +92,7 @@
 
 import { Elevator } from "./elevator.ts";
 import { ElevatorInterface } from "./elevator-interface.ts";
-import { Floor } from "./floor.ts";
+import { Floor, type FloorElevator } from "./floor.ts";
 import { FloorInterface } from "./floor-interface.ts";
 import { randomInt } from "./math.ts";
 import { Observable } from "./observable.ts";
@@ -151,6 +153,18 @@ export interface WorldOptions {
    * the individual draw.
    */
   trafficProfile?: TrafficProfile;
+  /**
+   * Whether this building's passengers name the floor they want instead of a
+   * direction, and wait for the car the program books for them. Defaults to
+   * `false`: every floor of every building written before this option existed
+   * takes calls on its two buttons.
+   *
+   * A whole-building setting rather than a per-floor one, because a building
+   * where some floors have hall buttons and some do not is a real thing to
+   * build and a poor thing to play — the program would have to answer both
+   * kinds of call to move anybody, which is two mechanics taught at once.
+   */
+  destinationDispatch?: boolean;
 }
 
 /** Events emitted by {@link World}. */
@@ -172,6 +186,7 @@ const DEFAULT_OPTIONS = {
   elevatorCount: 2,
   spawnRate: 0.5,
   trafficProfile: "mixed",
+  destinationDispatch: false,
 } as const satisfies WorldOptions;
 
 /** Default elevator capacity list, used when a level sets none. */
@@ -277,16 +292,20 @@ function requireAt<T>(arr: readonly T[], index: number, what: string): T {
  * @param floorCount - Number of floors.
  * @param floorHeight - Height of one floor in world units.
  * @param errorHandler - Receives anything a floor event handler throws.
+ * @param destinationDispatch - Whether the floors take calls by destination
+ * rather than by direction. Applies to all of them or none of them, for the
+ * reason {@link WorldOptions.destinationDispatch} gives.
  * @returns The floors, indexed by floor number.
  */
 export function createFloors(
   floorCount: number,
   floorHeight: number,
   errorHandler: (e: unknown) => void,
+  destinationDispatch = false,
 ): Floor[] {
   return Array.from({ length: floorCount }, (_unused, i) => {
     const yPos = (floorCount - 1 - i) * floorHeight;
-    return new Floor(i, yPos, errorHandler);
+    return new Floor(i, yPos, errorHandler, destinationDispatch);
   });
 }
 
@@ -829,7 +848,12 @@ export class World extends Observable<WorldEvents> {
       this.trigger("usercode_error", e);
     };
 
-    this.floors = createFloors(this.#floorCount, this.floorHeight, handleUserCodeError);
+    this.floors = createFloors(
+      this.#floorCount,
+      this.floorHeight,
+      handleUserCodeError,
+      options.destinationDispatch ?? DEFAULT_OPTIONS.destinationDispatch,
+    );
     this.elevators = createElevators(
       elevatorCount,
       this.#floorCount,
@@ -861,6 +885,9 @@ export class World extends Observable<WorldEvents> {
       });
       floor.on("down_button_pressed", (pressedFloor) => {
         this.#handleButtonRepressing("down", pressedFloor);
+      });
+      floor.on("elevator_assigned", (bookedFloor, _destinationFloor, elevator) => {
+        this.#handleAssignmentRepressing(bookedFloor, elevator);
       });
     }
 
@@ -1024,6 +1051,38 @@ export class World extends Observable<WorldEvents> {
           );
           return;
         }
+      }
+    }
+  }
+
+  /**
+   * Re-offers a floor to the car that was just booked to serve it.
+   *
+   * What {@link World.handleButtonRepressing} is for a hall call, and it exists
+   * for the same reason: a car standing at the floor with its doors open has
+   * already made its offer, and a passenger who arrives — or is booked onto
+   * it — a moment later would otherwise wait for it to leave and come back.
+   *
+   * Simpler than the button version in the one way that matters: the booking
+   * names the car, so there is nothing to choose and nothing to draw. It takes
+   * no stream, and a destination-dispatch building spends its seed on spawning
+   * alone.
+   *
+   * @param floor - The floor whose booking was made.
+   * @param elevator - The car that was booked.
+   */
+  #handleAssignmentRepressing(floor: Floor, elevator: FloorElevator): void {
+    for (let i = 0, len = this.elevators.length; i < len; ++i) {
+      const candidate = requireAt(this.elevators, i, "elevator");
+      if (
+        candidate === elevator &&
+        candidate.currentFloor === floor.level &&
+        candidate.isOnAFloor() &&
+        !candidate.isMoving &&
+        !candidate.isFull()
+      ) {
+        requireAt(this.elevatorInterfaces, i, "elevator interface").goToFloor(floor.level, true);
+        return;
       }
     }
   }

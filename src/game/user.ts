@@ -4,6 +4,10 @@
  * Ported from the legacy `user.js`. A user walks in on a floor, presses a call
  * button, boards the first suitable elevator that opens its doors, presses the
  * button for its destination, and walks off to the right once it arrives.
+ *
+ * On a destination-dispatch floor the first and third steps differ: the
+ * passenger names the floor they want instead of a direction, and boards the
+ * car the program booked for them instead of the first suitable one.
  */
 
 import type { Elevator } from "./elevator.ts";
@@ -121,6 +125,19 @@ export class User extends Movable<UserEvents> {
     this.currentFloor = floor.level;
     this.destinationFloor = destinationFloorNum;
     this.moveTo(null, floorPosY);
+    this.callForElevator(floor);
+  }
+
+  /**
+   * Calls for a car in whichever way this floor takes calls.
+   *
+   * @param floor - Floor the passenger is standing on.
+   */
+  callForElevator(floor: Floor): void {
+    if (floor.destinationDispatch) {
+      floor.requestDestination(this.destinationFloor);
+      return;
+    }
     this.pressFloorButton(floor);
   }
 
@@ -178,7 +195,14 @@ export class User extends Movable<UserEvents> {
    *
    * Passengers that are done, already riding, or mid-animation ignore the
    * offer. A passenger the elevator's indicators say it will not serve, and a
-   * passenger who cannot fit, both press the call button again.
+   * passenger who cannot fit, both call for an elevator again.
+   *
+   * On a destination-dispatch floor the first test is a different one: board
+   * the car this floor booked for the trip, and nothing else. The floor refuses
+   * a booking a car cannot carry end to end, so identity is the whole rule
+   * here — the indicators say nothing about who a destination-dispatch car came
+   * for, and a passenger who boarded on them would be riding a car the program
+   * sent for somebody else.
    *
    * @param elevator - The elevator that just became available.
    * @param floor - The floor the elevator is standing at.
@@ -188,7 +212,13 @@ export class User extends Movable<UserEvents> {
       return;
     }
 
-    if (!elevator.isSuitableForTravelBetween(this.currentFloor, this.destinationFloor)) {
+    if (floor.destinationDispatch) {
+      if (floor.assignedElevator(this.destinationFloor) !== elevator) {
+        // Somebody else's car. Nothing to re-request: this passenger's own car
+        // is still booked and still coming.
+        return;
+      }
+    } else if (!elevator.isSuitableForTravelBetween(this.currentFloor, this.destinationFloor)) {
       // Not suitable for travel - don't use this elevator.
       //
       // Press the call button again first. documentation.html promises, for
@@ -208,6 +238,13 @@ export class User extends Movable<UserEvents> {
     const pos = elevator.userEntering(this);
     if (pos !== false) {
       // Success
+      if (floor.destinationDispatch) {
+        // Counted the moment the car accepts them, not when the walk-in
+        // animation ends: everyone else on this floor is offered the same car
+        // in the same loop, and the book has to be one passenger shorter by
+        // the time they are.
+        floor.destinationBoarded(this.destinationFloor);
+      }
       this.setParent(elevator);
       this.trigger("entered_elevator", elevator);
       this.moveToOverTime(pos[0], pos[1], ENTER_ELEVATOR_DURATION, undefined, () => {
@@ -217,6 +254,11 @@ export class User extends Movable<UserEvents> {
         this.handleExit(exitElevator.currentFloor, exitElevator);
       };
       elevator.on("exit_available", this.exitAvailableHandler);
+    } else if (floor.destinationDispatch) {
+      // The booked car came and could not take them. Withdrawing it is what
+      // gets another one booked; pressing a call button here would light a lamp
+      // nobody in this building reads.
+      floor.destinationRefused(this.destinationFloor);
     } else {
       this.pressFloorButton(floor);
     }
