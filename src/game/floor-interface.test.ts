@@ -787,11 +787,35 @@ describe("FloorInterface", () => {
         expect(second).toHaveBeenCalledWith(5, dispatchInterface);
       });
 
-      it("refuses to re-enter a dispatch of the same journey", () => {
-        // A handler that reissues the request it is being told about — or a
-        // passenger refused by a full car doing so from inside it — would
-        // recur. There is no pair to keep atomic here, so the key on the
-        // dispatch is the whole guard.
+      it("delivers a journey to this same floor after the dispatch unwinds", () => {
+        // The case the engine really produces: a handler books a car, the car
+        // turns up full, `destinationRefused` withdraws the booking and asks
+        // again — all while this dispatch is still running. Re-entering would
+        // recur; dropping it would leave the floor waiting on a booking the
+        // program was never told had gone.
+        const seen: string[] = [];
+        let nested = false;
+        dispatchInterface.on("destination_requested", (destinationFloor) => {
+          seen.push(`enter:${String(destinationFloor)}`);
+          if (!nested) {
+            nested = true;
+            dispatchFloor.assignElevator(destinationFloor, anyElevator);
+            dispatchFloor.destinationRefused(destinationFloor);
+          }
+          seen.push(`leave:${String(destinationFloor)}`);
+        });
+
+        dispatchFloor.requestDestination(5);
+
+        // The second dispatch begins after the first has left, not inside it.
+        expect(seen).toEqual(["enter:5", "leave:5", "enter:5", "leave:5"]);
+        expect(errorHandler).not.toHaveBeenCalled();
+      });
+
+      it("stops at one re-delivery, however often a handler reissues", () => {
+        // The bound. Each re-delivery is a dispatch of its own, so a handler
+        // that answers a request by making it again would otherwise start
+        // another one every time this one unwound, forever.
         const requested = vi.fn(() => {
           dispatchFloor.requestDestination(5);
         });
@@ -799,8 +823,51 @@ describe("FloorInterface", () => {
 
         dispatchFloor.requestDestination(5);
 
-        expect(requested).toHaveBeenCalledTimes(1);
+        expect(requested).toHaveBeenCalledTimes(2);
         expect(errorHandler).not.toHaveBeenCalled();
+      });
+
+      it("says nothing about a journey booked while the dispatch unwound", () => {
+        // A re-delivery is re-checked against the floor first. A program that
+        // books a car after the nested request was refused has answered it, and
+        // saying it again would be a duplicate nothing could tell from a real
+        // request.
+        let nested = false;
+        const requested = vi.fn((destinationFloor: number) => {
+          if (nested) {
+            return;
+          }
+          nested = true;
+          dispatchFloor.requestDestination(destinationFloor);
+          dispatchFloor.assignElevator(destinationFloor, anyElevator);
+        });
+        dispatchInterface.on("destination_requested", requested);
+
+        dispatchFloor.requestDestination(5);
+
+        expect(requested).toHaveBeenCalledTimes(1);
+        expect(dispatchFloor.assignedElevator(5)).toBe(anyElevator);
+      });
+
+      it("says nothing about a journey nobody is waiting on any more", () => {
+        // The other half of that check: the people who asked have boarded, so
+        // there is no request left to re-deliver.
+        let nested = false;
+        const requested = vi.fn((destinationFloor: number) => {
+          if (nested) {
+            return;
+          }
+          nested = true;
+          dispatchFloor.requestDestination(destinationFloor);
+          dispatchFloor.destinationBoarded(destinationFloor);
+          dispatchFloor.destinationBoarded(destinationFloor);
+        });
+        dispatchInterface.on("destination_requested", requested);
+
+        dispatchFloor.requestDestination(5);
+
+        expect(requested).toHaveBeenCalledTimes(1);
+        expect(dispatchFloor.pendingDestinations().has(5)).toBe(false);
       });
 
       it("delivers a journey to another floor raised from inside a dispatch", () => {

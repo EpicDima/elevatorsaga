@@ -119,6 +119,20 @@ export class FloorInterface {
    * {@link FloorInterface.forwardCall}.
    */
   readonly #callsInFlight = new Set<"up" | "down">();
+  /**
+   * Destinations whose request is being delivered right now.
+   *
+   * Read by {@link FloorInterface.forwardDestination}, which refuses a nested
+   * request for one of them and remembers it instead.
+   */
+  readonly #destinationsInFlight = new Set<number>();
+  /**
+   * Destinations whose request was refused as already in flight.
+   *
+   * Delivered when the dispatch holding them up unwinds; see
+   * {@link FloorInterface.forwardDestination}.
+   */
+  readonly #deferredDestinations = new Set<number>();
 
   /**
    * @param floor - The floor this facade wraps.
@@ -154,27 +168,13 @@ export class FloorInterface {
       this.#forwardCall("down");
     });
 
-    // No pair to keep whole, so no in-flight mark: this event generalizes
-    // nothing and nothing is derived from it. It is keyed all the same, and per
-    // destination, for the reason `#forwardCall` keys itself per direction —
-    // two journeys to different floors are two independent requests, and the
-    // emitter's own guard is per event name. The nesting is not hypothetical: a
-    // handler that moves a car reaches `World.#handleElevAvailability`, a
-    // passenger that car has no room for, `Floor.destinationRefused`, and a
-    // fresh request for *their* floor while this dispatch is still running.
-    // Guarded by name that request is dropped and nobody is ever told about it
-    // again — the one thing this event promises cannot happen.
-    //
-    // Nesting is bounded by the building: one dispatch per destination, and a
-    // destination is a floor.
+    // No pair to keep whole: this event generalizes nothing and nothing is
+    // derived from it. What it does need is a nested request to survive, in
+    // both of the shapes a nested request comes in — another destination, and
+    // the same one — which is why every request goes through
+    // `#forwardDestination` rather than straight at the emitter.
     floor.on("destination_requested", (_requestingFloor, destinationFloor) => {
-      this.#events.triggerSafeKeyed(
-        `destination_requested:${String(destinationFloor)}`,
-        "destination_requested",
-        this.#errorHandler,
-        destinationFloor,
-        this,
-      );
+      this.#forwardDestination(destinationFloor);
     });
   }
 
@@ -227,6 +227,75 @@ export class FloorInterface {
     } finally {
       this.#callsInFlight.delete(direction);
     }
+  }
+
+  /**
+   * Delivers one request, and once more when it was raised again from inside.
+   *
+   * Nesting is not hypothetical here. A handler that rewrites an indicator
+   * reaches `World.handleElevAvailability`, a passenger the booked car has no
+   * room for, `Floor.destinationRefused` — which withdraws the booking — and a
+   * fresh request while this dispatch is still running.
+   *
+   * A request for another destination is an independent one and has to be
+   * heard, so the dispatch is keyed per destination: the emitter's own guard is
+   * per event name and would refuse it. A request for the same destination
+   * cannot be delivered where it stands, since that is the recursion the guard
+   * is there for — but dropping it loses the news that the booking just made
+   * has been voided, and the floor is left waiting on a car the program was
+   * never told about.
+   *
+   * So the mark is held here rather than left to the emitter, and a request it
+   * refuses is remembered and delivered once the dispatch holding it up has
+   * unwound. The mark is cleared before the re-emit, which makes the re-emit a
+   * fresh dispatch standing on its own merits, and cleared after it as well, so
+   * a mark the re-delivery itself left cannot fire a third dispatch later. One
+   * re-delivery per dispatch and no more is what bounds a handler that reissues
+   * its own request forever.
+   *
+   * A re-delivery is re-checked against the floor first. A request answered
+   * while the dispatch was unwinding — a car booked for it, or the last person
+   * waiting boarded — is no longer standing, and announcing it would hand the
+   * program a duplicate it has no way to tell from a real request.
+   *
+   * @param destinationFloor - Floor somebody here asked to be taken to.
+   * @param redelivering - Whether this call is itself the one re-delivery.
+   */
+  #forwardDestination(destinationFloor: number, redelivering = false): void {
+    if (this.#destinationsInFlight.has(destinationFloor)) {
+      this.#deferredDestinations.add(destinationFloor);
+      return;
+    }
+    this.#destinationsInFlight.add(destinationFloor);
+    try {
+      this.#events.triggerSafeKeyed(
+        `destination_requested:${String(destinationFloor)}`,
+        "destination_requested",
+        this.#errorHandler,
+        destinationFloor,
+        this,
+      );
+    } finally {
+      this.#destinationsInFlight.delete(destinationFloor);
+    }
+    const deferred = this.#deferredDestinations.delete(destinationFloor);
+    if (deferred && !redelivering && this.#stillUnanswered(destinationFloor)) {
+      this.#forwardDestination(destinationFloor, true);
+    }
+  }
+
+  /**
+   * Whether a journey is still waiting on a car nobody has booked.
+   *
+   * @param destinationFloor - Floor to ask about.
+   * @returns `true` when somebody here is bound for it and no car is booked to
+   * take them.
+   */
+  #stillUnanswered(destinationFloor: number): boolean {
+    return (
+      this.#floor.pendingDestinations().has(destinationFloor) &&
+      this.#floor.assignedElevator(destinationFloor) === null
+    );
   }
 
   /**
