@@ -65,13 +65,16 @@ is scored by the same rules.
 - **A sandbox building.** `#level=sandbox` takes `floors`, `elevators`, `capacities` and
   `spawnrate`, so you can build the case your program is failing on rather than looking for a
   shipped level that resembles it. See [URL parameters](#url-parameters).
-- **Three more methods on the elevator.** `isFull()`, `isEmpty()` and `isApproachingFloor(n)` —
+- **Four more methods on the elevator.** `isFull()`, `isEmpty()` and `isApproachingFloor(n)` —
   the three checks nearly every published solution had already written by hand out of `loadFactor`
-  and `destinationQueue`.
-- **One more event on the floor.** `hall_button_pressed` fires for either call button and hands its
+  and `destinationQueue` — and `servedFloors()`, which answers the question a zoned building makes
+  worth asking: which floors does this car stop at?
+- **Two more events on the floor.** `hall_button_pressed` fires for either call button and hands its
   handler the direction, so a program that treats a call as a call — which is most of them, since
   the queue an elevator ends up with is a list of floors either way — writes one handler instead of
-  registering the same one twice.
+  registering the same one twice. `destination_requested` is the call a building with no call
+  buttons makes instead: its passengers name the floor they are going to, and a program answers by
+  sending a car for that journey.
 - **Room to work in the editor.** Drag the grip under the editor to any height between six lines and
   85% of the window, and it is still that height next visit. From the keyboard it is a focusable
   splitter: <kbd>↑</kbd> and <kbd>↓</kbd> move it a line at a time, <kbd>Page Up</kbd> and
@@ -552,14 +555,16 @@ module-scoped now.
 - `buttonStates` — a read-only `{ up, down }` **snapshot**, rebuilt on every read, so assigning to
   it or mutating it no longer clears the building's call buttons
 - `on` / `off` / `once` / `one` / `offAll` for `up_button_pressed`, `down_button_pressed`,
-  `hall_button_pressed` and `buttonstate_change`
+  `hall_button_pressed`, `destination_requested` and `buttonstate_change`
 
 Everything else the old `Floor` object exposed — `yPosition`, `getSpawnPosY`, `elevatorAvailable`,
-`pressUpButton`, `pressDownButton`, `trigger` — is unreachable. The three `*_button_pressed`
-handlers are also passed the facade rather than the internal floor. This closes upstream issue
-[#3](https://github.com/magwo/elevatorsaga/issues/3). `hall_button_pressed` is the one event in
-that list the original does not have; it is described under
-[Asked for upstream, and here already](#asked-for-upstream-and-here-already).
+`pressUpButton`, `pressDownButton`, `trigger` — is unreachable, and every handler that is handed a
+floor is handed the facade rather than the internal one. This closes upstream issue
+[#3](https://github.com/magwo/elevatorsaga/issues/3). Two of those events the original does not
+have: `hall_button_pressed`, described under
+[Asked for upstream, and here already](#asked-for-upstream-and-here-already), and
+`destination_requested`, which is raised only in a building whose passengers announce where they
+are going instead of pressing a call button.
 
 **The event emitter is a rewrite; the surface solutions use is not.** `src/game/observable.ts`
 replaces riot's `riot.observable` and the near-copy of it in `unobservable.js`. Everything player
@@ -601,9 +606,9 @@ writable array.
 `destinationQueue`, `currentFloor`, `loadFactor`, `maxPassengerCount`, `destinationDirection`,
 `getPressedFloors`, `getFirstPressedFloor`, `goingUpIndicator`, `goingDownIndicator` and the
 `idle` / `floor_button_pressed` / `passing_floor` / `stopped_at_floor` events all keep their names,
-arities and payloads. `isFull()`, `isEmpty()` and `isApproachingFloor(n)` are additions, as the
-floor's `hall_button_pressed` above is, so a solution that uses them is one you cannot take back to
-[play.elevatorsaga.com](https://play.elevatorsaga.com/). So are `once()` and `offAll()`, which is
+arities and payloads. `isFull()`, `isEmpty()`, `isApproachingFloor(n)` and `servedFloors()` are
+additions, as the floor's two new events above are, so a solution that uses them is one you cannot
+take back to [play.elevatorsaga.com](https://play.elevatorsaga.com/). So are `once()` and `offAll()`, which is
 easy to miss because what they do is not new: riot's observable and the `unobservable.js` near-copy
 of it each define `on`, `off`, `one` and `trigger` and no other method, so those two names are this
 emitter's spellings of `one()` and `off("*")` rather than the original's.

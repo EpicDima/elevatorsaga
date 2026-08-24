@@ -142,11 +142,26 @@ export class FloorInterface {
     });
 
     // No pair to keep whole, so no in-flight mark: this event generalizes
-    // nothing and nothing is derived from it. A nested request — the refused
-    // passenger of a full car asking again — is guarded by the emitter's own
-    // per-name rule, the same guard a nested `up_button_pressed` gets.
-    floor.on("destination_requested", (_requestedFloor, destinationFloor) => {
-      this.#tryTrigger("destination_requested", destinationFloor, this);
+    // nothing and nothing is derived from it. It is keyed all the same, and per
+    // destination, for the reason `#forwardCall` keys itself per direction —
+    // two journeys to different floors are two independent requests, and the
+    // emitter's own guard is per event name. The nesting is not hypothetical: a
+    // handler that moves a car reaches `World.#handleElevAvailability`, a
+    // passenger that car has no room for, `Floor.destinationRefused`, and a
+    // fresh request for *their* floor while this dispatch is still running.
+    // Guarded by name that request is dropped and nobody is ever told about it
+    // again — the one thing this event promises cannot happen.
+    //
+    // Nesting is bounded by the building: one dispatch per destination, and a
+    // destination is a floor.
+    floor.on("destination_requested", (_requestingFloor, destinationFloor) => {
+      this.#events.triggerSafeKeyed(
+        `destination_requested:${String(destinationFloor)}`,
+        "destination_requested",
+        this.#errorHandler,
+        destinationFloor,
+        this,
+      );
     });
   }
 

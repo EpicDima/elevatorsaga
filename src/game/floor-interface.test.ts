@@ -630,14 +630,25 @@ describe("FloorInterface", () => {
         expect(requested).toHaveBeenNthCalledWith(2, 7, dispatchInterface);
       });
 
-      it("is silent in a building whose passengers press call buttons", () => {
+      it("is not what a call button raises", () => {
+        // The two ways of calling a car are alternatives, not layers: a floor
+        // whose passengers press buttons never announces a destination.
         const requested = vi.fn();
+        const dispatchRequested = vi.fn();
         floorInterface.on("destination_requested", requested);
+        dispatchInterface.on("destination_requested", dispatchRequested);
 
         floor.pressUpButton();
         floor.pressDownButton();
+        dispatchFloor.pressUpButton();
 
         expect(requested).not.toHaveBeenCalled();
+        expect(dispatchRequested).not.toHaveBeenCalled();
+
+        // The control, so that the silence above is the button rather than a
+        // forwarder that never fires at all.
+        dispatchFloor.requestDestination(5);
+        expect(dispatchRequested).toHaveBeenCalledTimes(1);
       });
 
       it("takes part in the documented space separated registration", () => {
@@ -682,6 +693,13 @@ describe("FloorInterface", () => {
         dispatchFloor.requestDestination(7);
 
         expect(dropped).not.toHaveBeenCalled();
+
+        // The control: a handler registered after the drop is heard, so the
+        // silence above is `offAll` rather than a forwarder that never fires.
+        const kept = vi.fn();
+        dispatchInterface.on("destination_requested", kept);
+        dispatchFloor.requestDestination(9);
+        expect(kept).toHaveBeenCalledTimes(1);
       });
 
       it("routes player handler exceptions to the error handler, one at a time", () => {
@@ -700,12 +718,11 @@ describe("FloorInterface", () => {
         expect(second).toHaveBeenCalledWith(5, dispatchInterface);
       });
 
-      it("refuses to re-enter a dispatch of the request already in flight", () => {
-        // The nested case this event actually has: an unanswered request is
-        // still unanswered, so a handler that reissues it — or a passenger
-        // refused by a full car doing so from inside it — would recur. Nothing
-        // is derived from this event, so the emitter's own per-name guard is
-        // the whole guard, and there is no pair to keep atomic.
+      it("refuses to re-enter a dispatch of the same journey", () => {
+        // A handler that reissues the request it is being told about — or a
+        // passenger refused by a full car doing so from inside it — would
+        // recur. There is no pair to keep atomic here, so the key on the
+        // dispatch is the whole guard.
         const requested = vi.fn(() => {
           dispatchFloor.requestDestination(5);
         });
@@ -717,14 +734,37 @@ describe("FloorInterface", () => {
         expect(errorHandler).not.toHaveBeenCalled();
       });
 
+      it("delivers a journey to another floor raised from inside a dispatch", () => {
+        // The other half of that key, and the case a program really produces:
+        // answering a request moves a car, a car that turns up full refuses a
+        // passenger bound somewhere else, and their journey is asked for
+        // afresh while this dispatch is still running. Guarded by event name
+        // it would be dropped, and nobody would ever be told about it again.
+        const seen: number[] = [];
+        dispatchInterface.on("destination_requested", (destinationFloor) => {
+          seen.push(destinationFloor);
+          if (destinationFloor === 5) {
+            dispatchFloor.requestDestination(7);
+          }
+        });
+
+        dispatchFloor.requestDestination(5);
+
+        expect(seen).toEqual([5, 7]);
+        expect(errorHandler).not.toHaveBeenCalled();
+      });
+
       it("stops forwarding once the floor's subscriptions are dropped", () => {
         const requested = vi.fn();
         dispatchInterface.on("destination_requested", requested);
 
-        dispatchFloor.offAll();
         dispatchFloor.requestDestination(5);
+        expect(requested).toHaveBeenCalledTimes(1);
 
-        expect(requested).not.toHaveBeenCalled();
+        dispatchFloor.offAll();
+        dispatchFloor.requestDestination(7);
+
+        expect(requested).toHaveBeenCalledTimes(1);
       });
     });
   });
