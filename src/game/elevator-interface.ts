@@ -545,6 +545,12 @@ export class ElevatorInterface {
    * Booking the same car for the same journey again is not a refusal and does
    * nothing, so a program may say it on every frame.
    *
+   * A first booking of a car that is already standing on `fromFloorNum` with
+   * room to spare offers its doors again there and then, so those people board
+   * without the car being sent anywhere — at the price of one more stop in the
+   * tally, and no moves. It is the same courtesy a building with call buttons
+   * does for somebody who presses a button beside a car that is already there.
+   *
    * @param fromFloorNum - Floor the people are waiting on. Rounded, since a
    * floor is a place rather than a position.
    * @param toFloorNum - Floor they asked to be taken to, rounded likewise.
