@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { presentBuildingStage, type BuildingStagePresenter } from "./building-stage.ts";
 import { elevatorCardText, floorCardText } from "../lib/hover-card-text.ts";
@@ -125,6 +125,7 @@ function expectedScaleX(world: World, stage: HTMLElement): number {
 describe("presentBuildingStage", () => {
   afterEach(() => {
     document.body.replaceChildren();
+    vi.unstubAllGlobals();
   });
 
   it("builds the stage tree, one row and one band per floor", () => {
@@ -601,6 +602,47 @@ describe("presentBuildingStage", () => {
     presenter.recomputeGeometry();
 
     expect(stage.scrollTop).toBe(0);
+  });
+
+  it("stops reaching for the lobby once its opening frames are spent", () => {
+    // The other way out of the opening scroll, for the stage that never gets
+    // there: the retry loop runs on animation frames and gives up after a fixed
+    // few of them, so a widget cannot still be moving the view once the player
+    // has one to look at. Frames are handed over by hand rather than waited
+    // for, which is what makes the count exact instead of a matter of how busy
+    // the machine is.
+    const frames: (() => void)[] = [];
+    vi.stubGlobal("requestAnimationFrame", (callback: () => void): number => frames.push(callback));
+
+    const world = createWorld({ floorCount: 8, elevatorCount: 1 });
+    const { stage, presenter } = mount(world, 800, 218);
+    // Deliberately not `stubScroll`: a `scrollTop` that reads back 0 whatever is
+    // written to it is the stage this loop exists for, so every retry writes and
+    // none of them lands.
+    let scrolls = 0;
+    Object.defineProperty(stage, "scrollHeight", { value: 1000, configurable: true });
+    Object.defineProperty(stage, "scrollTop", {
+      configurable: true,
+      get: () => 0,
+      set: () => {
+        scrolls += 1;
+      },
+    });
+
+    // Bounded, so a loop that never shuts itself fails this test rather than
+    // hanging it.
+    let runs = 0;
+    for (let frame = frames.shift(); frame !== undefined && runs < 10; frame = frames.shift()) {
+      frame();
+      runs += 1;
+    }
+    const scrollsWhileSettling = scrolls;
+
+    presenter.recomputeGeometry();
+
+    expect(frames).toHaveLength(0);
+    expect(scrollsWhileSettling).toBeGreaterThan(0);
+    expect(scrolls).toBe(scrollsWhileSettling);
   });
 
   it("gives the stage a tab stop exactly while there is somewhere to scroll to", () => {
