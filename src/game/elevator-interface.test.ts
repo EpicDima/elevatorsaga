@@ -843,10 +843,18 @@ describe("Elevator interface", () => {
     });
 
     it("rounds both floors, since a floor is a place and not a position", () => {
+      // One argument down and one up, against journeys that would take a
+      // booking either way: 1.4 is the first floor and 2.6 is the third, so
+      // rounding that only ever went up or only ever went down would book one
+      // of the other two and be caught here.
       waits(1, 3);
+      waits(2, 3);
+      waits(1, 2);
 
-      expect(elevInterface.takeRequest(0.6, 2.7)).toBe(true);
+      expect(elevInterface.takeRequest(1.4, 2.6)).toBe(true);
       expect(at(floors, 1).assignedElevator(3)).toBe(e);
+      expect(at(floors, 2).assignedElevator(3)).toBeNull();
+      expect(at(floors, 1).assignedElevator(2)).toBeNull();
     });
 
     it("clamps a floor outside the building rather than booking nothing", () => {
