@@ -694,8 +694,8 @@ a `title` spelling that out.
 | `game.button.resetCodeTitle`     | Put the level's own starting program back in this slot | the `title` on `.resetcode`; a description, the accessible name staying the visible "Reset code" (WCAG 2.5.3)                     |
 | `game.button.undoResetCodeTitle` | Bring back the program this slot held before the reset | the `title` on `.undoreset`, likewise                                                                                             |
 
-Built and unit-tested, not yet wired into `src/pages/game/index.ts`, matching every widget staged so far in
-this migration.
+Mounted from `src/main.ts`, which hands it the `.code` element and the callbacks for choosing a code
+slot, resetting the program, undoing that reset, and jumping to the line an error names.
 
 ### `src/features/switch-theme` — 4 `game.switchTheme.*` keys
 
@@ -712,9 +712,9 @@ adds it.
 | `game.switchTheme.light`   | Light   |                                                                            |
 | `game.switchTheme.dark`    | Dark    |                                                                            |
 
-Built and unit-tested, not yet wired into `src/pages/game/index.ts` or `index.html` — `presentThemeSwitch`
-has no caller outside its own module and its own test file yet, matching every widget staged so
-far in this migration.
+Mounted from `presentAppBarSettings` in `src/widgets/app-bar/ui/settings-menu.ts`, which hands it the
+theme block's elements, the document root, storage, and the system-theme check. That presenter is
+called from `src/main.ts`, so this runs in the page.
 
 ### `src/features/switch-layout` — 5 `game.switchLayout.*` keys
 
@@ -740,9 +740,9 @@ mode's own label is.
 | `game.switchLayout.onlyCode` | Code only     | title and `aria-label` of the editor-only button                           |
 | `game.switchLayout.onlyGame` | Building only | title and `aria-label` of the building-only button                         |
 
-Built and unit-tested, not yet wired into `src/pages/game/index.ts` or `index.html` — `presentLayoutSwitch`
-has no caller outside its own module and its own test file yet, matching every widget staged so
-far in this migration.
+Mounted from `presentAppBarSettings` in `src/widgets/app-bar/ui/settings-menu.ts`, which hands it the
+layout block's elements, the layout mode the page starts in, and the callback that relays a choice
+to the workspace. That presenter is called from `src/main.ts`, so this runs in the page.
 
 ### `src/widgets/app-bar/ui/settings-menu.ts` — 7 `game.appBar.*` keys
 
@@ -776,9 +776,9 @@ written with `innerHTML` rather than as text.
 | `game.appBar.aboutOriginalLabel`  | Original                                                                                   | the name over the game this is forked from                                             |
 | `game.appBar.aboutCopyright.html` | Elevator Saga © 2015 Magnus Wolffelt, © 2026 EpicDima, `<a href="licenses.txt">`MIT`</a>`. | markup; byte-identical in every locale, like a `.code` key, though not one — see above |
 
-Built and unit-tested, not yet wired into `src/pages/game/index.ts` or `index.html` —
-`presentAppBarSettings` has no caller outside its own module and its own test file yet, matching
-every widget staged so far in this migration.
+Mounted from `src/main.ts`, which hands it the app bar, the document root, storage, the system-theme
+check, the layout mode and seed the page starts in, and the callbacks that relabel the page and
+open the docs and hotkeys dialogs.
 
 ### `src/features/hotkeys-help/ui/hotkeys-modal.ts` — 8 `game.hotkeys.*` keys
 
@@ -803,8 +803,9 @@ does for the rest of the page shell.
 | `game.hotkeys.openSettings` | Settings           | the row naming `?`                                                              |
 
 Built and unit-tested against a jsdom `<dialog>` — `polyfillDialogElement`
-(`src/shared/ui/test-helpers.ts`) — but not yet wired into `src/pages/game/index.ts` or `settings-menu.ts`'s
-`keysopen` opener, matching every widget staged so far in this migration.
+(`src/shared/ui/test-helpers.ts`) — and mounted from `src/main.ts`, which hands it the dialog and
+wires `onOpenHotkeys` to it: the callback the settings menu's `keysopen` button calls, and the only
+way in.
 
 ### `src/features/docs-reference/ui/docs-modal.ts` — 24 `game.docs.*` keys
 
@@ -846,8 +847,9 @@ presenter, `src/ui/templates.ts`'s own `tutorialAnswerTemplate` convention.
 | `game.docs.lead.html`                    | elevator is an elevator: all of them live in elevators. floor is a floor, and they're in floors. Any… | markup                                                                 |
 
 Built and unit-tested against a jsdom `<dialog>` — `polyfillDialogElement`
-(`src/shared/ui/test-helpers.ts`) — but not yet wired into `src/pages/game/index.ts` or `settings-menu.ts`'s
-`docsopen` opener, matching every widget staged so far in this migration.
+(`src/shared/ui/test-helpers.ts`) — and mounted from `src/main.ts`, which hands it the dialog and
+wires `onOpenDocs` to it: the callback the settings menu's `docsopen` button calls, and `F1` with
+it.
 
 ### `src/entities/api-reference/model/reference.ts` — 59 `game.apiRef.*` keys
 
