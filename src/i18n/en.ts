@@ -876,10 +876,10 @@ elevator.goingDownIndicator(false);`,
   // ------------------------------------------------------ the learning track
   // The eight levels themselves live in src/game/tutorial.ts — the building, the
   // bar, the seed and the two programs — and everything the player reads around
-  // them lives here. Every number quoted below is the number in that table
-  // rather than the one in docs/tutorial-plan.md, which is older in three
-  // places: level 4 runs at 0.8 passengers a second, level 5 is nine floors with
-  // a wait limit of 37, and level 6 is 0.25 a second with a limit of 28.
+  // them lives here. Every number quoted below is the number in that table,
+  // which is the one a player meets: level 4 runs at 0.8 passengers a second,
+  // level 5 is nine floors with a wait limit of 37, and level 6 is 0.25 a second
+  // with a limit of 28.
   //
   // Every per-level message ends in `.html`, uniformly, including the ones whose
   // value is plain text. Two reasons, and the second is the one a later reader

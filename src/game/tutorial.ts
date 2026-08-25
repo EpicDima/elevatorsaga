@@ -18,8 +18,8 @@
  * limit can buy both. Ten seeds say whether a level works and cannot say how
  * often, so the three levels whose numbers turn on that are counted over four
  * hundred in `tutorial-sweep.test.ts`. Every number below was chosen against
- * those measurements, and the entries whose numbers differ from
- * `docs/tutorial-plan.md` say which number moved and what forced it.
+ * those measurements, and where one of them moved away from what
+ * `docs/tutorial-plan.md` first proposed, the entry says what forced it.
  *
  * The programs themselves are not written out here. They are messages, keyed
  * `tutorial.levelN.startingCode.code` and `tutorial.levelN.solutionCode.code`,
@@ -224,13 +224,14 @@ export const tutorialLevels: readonly TutorialLevel[] = [
    */
   {
     id: "tutorial-4",
-    // Spawn rate 0.8, where docs/tutorial-plan.md says 0.6. At 0.6 the answer's
-    // slowest measured seed finished at 56.0 s of 60 — a level that survives by
-    // four seconds is a level that breaks the next time the physics is touched,
-    // which is precisely the event this whole exercise exists to catch. Raising
-    // the traffic costs the lesson nothing, because the starting code never
-    // moves the car and so delivers nobody at *any* rate: only the answer's
-    // side of the gap moves, and it moves to 45.3 s of 60 at worst.
+    // Spawn rate 0.8, raised from the 0.6 docs/tutorial-plan.md first proposed.
+    // At 0.6 the answer's slowest measured seed finished at 56.0 s of 60 — a
+    // level that survives by four seconds is a level that breaks the next time
+    // the physics is touched, which is precisely the event this whole exercise
+    // exists to catch. Raising the traffic costs the lesson nothing, because the
+    // starting code never moves the car and so delivers nobody at *any* rate:
+    // only the answer's side of the gap moves, and it moves to 45.3 s of 60 at
+    // worst.
     options: { floorCount: 4, elevatorCount: 1, spawnRate: 0.8 },
     condition: requireUserCountWithinTime(15, 60),
     seed: "tutorial-4",
