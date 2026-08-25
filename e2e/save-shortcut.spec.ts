@@ -1,13 +1,13 @@
 /**
  * <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>S</kbd> in the editor (upstream #68).
  *
- * The README credits this fork with answering that issue — the editor takes the
- * binding, keeps the browser's own save dialog out of the way, and writes to
- * storage there and then rather than waiting out the autosave. Nothing tested
- * any of it. It cannot be tested anywhere but here either: the binding is a
- * CodeMirror keymap entry with `preventDefault`, and whether a key press was
- * suppressed is a fact about a real browser's event, not about the editor's
- * own state.
+ * `docs/differences.md` credits this fork with answering that issue — the
+ * editor takes the binding, keeps the browser's own save dialog out of the way,
+ * and writes to storage there and then rather than waiting out the autosave.
+ * Nothing tested any of it. It cannot be tested anywhere but here either: the
+ * binding is a CodeMirror keymap entry with `preventDefault`, and whether a key
+ * press was suppressed is a fact about a real browser's event, not about the
+ * editor's own state.
  *
  * `AUTOSAVE_DELAY_MS` in `src/ui/editor.ts` is 1000, and the point of the
  * shortcut is not to wait for it, so both tests below read storage immediately

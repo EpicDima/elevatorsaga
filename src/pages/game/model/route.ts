@@ -225,8 +225,8 @@ export const LEVEL_KEY = "level";
  * challenges levels.
  *
  * Read, never written. Every link ever shared out of this game — and the ones
- * in `README.md` and the documentation pages that were written before the
- * rename — says `challenge=`, and a hash is the whole of this game's shareable
+ * in the documentation pages that were written before the rename — says
+ * `challenge=`, and a hash is the whole of this game's shareable
  * state: an address that stopped working would be a bookmark that stopped
  * working. {@link renameLegacyLevelKey} is where it is honored, and
  * {@link startRouter} is what takes it back out of the address bar afterwards,

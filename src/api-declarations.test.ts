@@ -22,12 +22,12 @@
  * on the facades rather than restated.
  *
  * Names are only half of it. The declaration is also compiled — with exactly
- * the four compiler options the README tells a player to put in their
- * `tsconfig.json`, so what passes here is what passes for them — against three
- * programs: the one the README prints, one that touches every member it
- * declares, and one made of mistakes, each of which has to be reported. That is
- * what pins the *types*: a member is required to appear in the exercising
- * program, so a return type nobody uses cannot exist.
+ * the four compiler options `docs/writing-solutions.md` tells a player to put
+ * in their `tsconfig.json`, so what passes here is what passes for them —
+ * against three programs: the one that guide prints, one that touches every
+ * member it declares, and one made of mistakes, each of which has to be
+ * reported. That is what pins the *types*: a member is required to appear in
+ * the exercising program, so a return type nobody uses cannot exist.
  *
  * What that adds up to, exactly, because an over-claimed guard is worse than
  * none. Compared against the game, and so caught here:
@@ -42,9 +42,9 @@
  *   handler, for `on`, `once`, `one`, `off` and `trigger`;
  * - the functions the game requires of a solution and how many arguments it
  *   passes each, read off `UserCodeObject`;
- * - that the README's instructions still name this file, still print these
- *   compiler options, and still print an example that compiles and that the
- *   game's own loader will accept.
+ * - that the player guide's instructions still name this file, still print
+ *   these compiler options, and still print an example that compiles and that
+ *   the game's own loader will accept.
  *
  * Not compared against the game, and so not caught here:
  *
@@ -80,11 +80,11 @@ import { createFloors } from "./game/world.ts";
 /** The declaration file this whole test exists to keep honest. */
 const DECLARATION_PATH = fileURLToPath(new URL("../public/elevatorsaga.d.ts", import.meta.url));
 
-/** The README section that tells players where the declaration is and how to use it. */
-const README_PATH = fileURLToPath(new URL("../README.md", import.meta.url));
+/** The guide that tells players where the declaration is and how to use it. */
+const GUIDE_PATH = fileURLToPath(new URL("../docs/writing-solutions.md", import.meta.url));
 
 /**
- * The compiler options the README hands a player, and nothing besides.
+ * The compiler options the guide hands a player, and nothing besides.
  *
  * Kept in step with the `tsconfig.json` printed there by the test at the bottom
  * of this file, so the fixtures below are compiled the way a player's editor
@@ -706,29 +706,30 @@ const MISTAKEN_PROGRAM = `
 const ERROR_MARKER = "// error";
 
 /**
- * The one program in the README that a player is told to start from.
+ * The one program in the guide that a player is told to start from.
  *
- * Found by content rather than by position: the README is prose that gets
+ * Found by content rather than by position: the guide is prose that gets
  * rearranged, and a heading or a section order is a weaker anchor than the
  * annotation that makes the example work. Extracting it, rather than keeping a
- * copy here, is what makes the two tests below statements about the README
+ * copy here, is what makes the two tests below statements about the guide
  * itself — that what it prints compiles, and that the game will load it.
  *
- * @returns The example, exactly as the README prints it.
- * @throws If no fenced JavaScript block in the README carries the annotation,
+ * @returns The example, exactly as the guide prints it.
+ * @throws If no fenced JavaScript block in the guide carries the annotation,
  * which means the instructions have changed shape and this test is now
  * measuring nothing.
  */
-function readmeExample(): string {
-  const readme = readFileSync(README_PATH, "utf8");
-  for (const [, block = ""] of readme.matchAll(/```js\n([\s\S]*?)```/g)) {
+function guideExample(): string {
+  const guide = readFileSync(GUIDE_PATH, "utf8");
+  for (const [, block = ""] of guide.matchAll(/```js\n([\s\S]*?)```/g)) {
     if (block.includes("@type {ElevatorSaga.Solution}")) {
       return block;
     }
   }
   throw new Error(
-    "No fenced js block in README.md is annotated with @type {ElevatorSaga.Solution}; " +
-      "the declaration file's instructions are not being checked by anything.",
+    "No fenced js block in docs/writing-solutions.md is annotated with " +
+      "@type {ElevatorSaga.Solution}; the declaration file's instructions are " +
+      "not being checked by anything.",
   );
 }
 
@@ -817,7 +818,7 @@ function markedLines(source: string): number[] {
 const compiled = compile({
   "exercising.js": EXERCISING_PROGRAM,
   "mistaken.js": MISTAKEN_PROGRAM,
-  "readme.js": readmeExample(),
+  "guide.js": guideExample(),
 });
 
 /**
@@ -988,9 +989,9 @@ describe("the declaration file as a compiler sees it", () => {
   });
 });
 
-describe("the instructions the README gives", () => {
+describe("the instructions docs/writing-solutions.md gives", () => {
   it("prints an example the compiler accepts", () => {
-    expect(diagnosticsFor("readme.js").map(describeDiagnostic)).toEqual([]);
+    expect(diagnosticsFor("guide.js").map(describeDiagnostic)).toEqual([]);
   });
 
   it("prints an example the game will load", () => {
@@ -1000,24 +1001,24 @@ describe("the instructions the README gives", () => {
     // literal is evaluated as a block, and dies with `SyntaxError: Function
     // statements require a function name`. An annotated example has to keep its
     // own parentheses, and this is what notices when it stops doing so.
-    const solution = getCodeObjFromCode(readmeExample());
+    const solution = getCodeObjFromCode(guideExample());
     expect(typeof solution.init).toBe("function");
     expect(typeof solution.update).toBe("function");
   });
 
   it("prints the compiler options these fixtures were compiled with", () => {
-    // The README tells a player four options and this file compiles with four
+    // The guide tells a player four options and this file compiles with four
     // options; if they were allowed to differ, this whole file would be
     // measuring a configuration nobody has.
-    const readme = readFileSync(README_PATH, "utf8");
+    const guide = readFileSync(GUIDE_PATH, "utf8");
     for (const [option, value] of Object.entries(PLAYER_COMPILER_OPTIONS)) {
-      expect(readme, option).toContain(`"${option}": ${String(value)}`);
+      expect(guide, option).toContain(`"${option}": ${String(value)}`);
     }
   });
 
   it("says where the declaration is served from once the site is built", () => {
-    const readme = readFileSync(README_PATH, "utf8");
-    expect(readme).toContain("public/elevatorsaga.d.ts");
-    expect(readme).toContain("elevatorsaga.d.ts");
+    const guide = readFileSync(GUIDE_PATH, "utf8");
+    expect(guide).toContain("public/elevatorsaga.d.ts");
+    expect(guide).toContain("elevatorsaga.d.ts");
   });
 });

@@ -972,8 +972,8 @@ declare namespace ElevatorSaga {
    *
    * Both functions are required — the game refuses a program that is missing
    * either. Annotating the object with this type is what gets both sets of
-   * parameters typed for you; see the README of this repository for the two
-   * lines that do it.
+   * parameters typed for you; see `docs/writing-solutions.md` in this
+   * repository for the two lines that do it.
    *
    * The arrays are the game's own, handed back unchanged on every frame, so
    * they are declared read-only: sorting one in place would reorder it for the
