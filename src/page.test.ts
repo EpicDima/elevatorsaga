@@ -672,7 +672,7 @@ describe.each(DOCUMENTATION_PAGES)("$file", (reference) => {
     expect(docs.documentElement.innerHTML).not.toContain("highlight");
   });
 
-  it("draws the same plus and minus icons the level bar draws", () => {
+  it("draws the same plus and minus icons src/shared/ui/icon.ts defines", () => {
     // The page is static, so the two icons in "How to play" are written out by
     // hand instead of built by createIcon. Nothing else would notice them
     // drifting from src/shared/ui/icon.ts -- or from each other, the plus and the

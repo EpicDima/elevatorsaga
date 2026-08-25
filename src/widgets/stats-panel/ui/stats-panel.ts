@@ -53,9 +53,12 @@ import { spriteIconMarkup } from "#shared/ui/icon.ts";
 import { markup, raw, renderElement } from "#shared/ui/markup.ts";
 
 /**
- * How the "transported per second" figure is rounded — copied from what was
- * `src/ui/presenters.ts`'s own `PER_SECOND_DIGITS`, whose doc comment
- * explained the choice of significant digits over decimal places.
+ * How the "transported per second" figure is rounded.
+ *
+ * Significant digits rather than decimal places, because the rate crosses
+ * orders of magnitude within a single run: a fixed two decimals would flatten
+ * an early 0.008 to 0.01 and write a late 12.3 as 12.30, claiming a precision
+ * the figure has not got.
  */
 const PER_SECOND_DIGITS: Intl.NumberFormatOptions = {
   minimumSignificantDigits: 3,

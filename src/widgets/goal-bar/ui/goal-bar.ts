@@ -16,7 +16,7 @@
  *   figures, bar widths, the `is-near`/`is-late`/`is-done` classes, the
  *   trigger's badge and title — without touching any translated text node.
  *   Wired to `world.on("stats_display_changed", draw)` once, the same
- *   contract `presentStats` uses.
+ *   contract `presentStatsPanel` uses.
  *
  * The tier popover's own rows follow a third rule, spelled out on
  * `drawTierRows` below: they cost nothing while the popover is closed, and
@@ -88,8 +88,9 @@ interface MeterFormat {
  * name (`buildGoalMeters` is built from `level.condition.requirements`,
  * and every existing level's bronze condition reads one of these).
  *
- * `elapsedTime`'s current value carries 0 decimals, matching `presentStats`'s
- * own `format(seconds(world.elapsedTime))`. The threshold side keeps 1 decimal,
+ * `elapsedTime`'s current value carries 0 decimals, matching the statistics
+ * panel's own elapsed-time tile, which formats with `seconds(value)` and so
+ * takes that helper's default of none. The threshold side keeps 1 decimal,
  * since a real `underElapsedTime`-style limit can be fractional.
  */
 const METER_FORMAT: Partial<Record<keyof LevelWorldStats, MeterFormat>> = {

@@ -33,10 +33,10 @@ function fixtureWorld(): World {
 }
 
 /**
- * A world with a known-good figure in every one of `presentStats`'s eleven
- * fields, mirroring `src/ui/presenters.test.ts`'s own `worldWithStats` — the
- * two suites are expected to agree on what these figures format to, since
- * this panel reuses `presentStats`'s exact formatters.
+ * A world with a known-good figure in each of the eleven fields `readSnapshot`
+ * takes straight off a world. The panel's other two tiles, `waitingNow` and
+ * `aboardNow`, are counted from the floors and cars instead and so cannot be
+ * set here; they are covered by their own cases.
  */
 function worldWithStats(): World {
   const world = fixtureWorld();
@@ -161,7 +161,7 @@ describe("presentStatsPanel", () => {
     );
   });
 
-  it("draws every one of presentStats's eleven figures exactly as presentStats itself would", () => {
+  it("draws all eleven figures it reads off a world, each at its own precision and unit", () => {
     const parent = setUp(worldWithStats());
 
     const val = (stat: string): string | null =>

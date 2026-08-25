@@ -278,7 +278,7 @@ describe("presentGoalBar", () => {
     expect(needs).toHaveLength(2);
     expect([...needs].map((need) => need.classList.contains("is-miss"))).toEqual([true, true]);
     expect([...gold.querySelectorAll(".now")].map((now) => now.textContent)).toEqual([
-      // 0 decimals, matching `presentStats`'s own elapsed-time precision.
+      // 0 decimals, matching the statistics panel's own elapsed-time tile.
       format(seconds(45, 0)),
       format(percent(0.3)),
     ]);

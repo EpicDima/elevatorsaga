@@ -1,11 +1,11 @@
 /**
  * The address bar as the router leaves it.
  *
- * `src/app/router.test.ts` proves the correction against a stand-in whose
- * `replaceState` this repository wrote. What it cannot prove is the part that
- * belongs to the browser: what a real `history.replaceState` does to
- * `location.hash`, and what the Back button does afterwards. Both are the whole
- * reason the correction is a replacement and not a navigation.
+ * `src/pages/game/model/route.test.ts` proves the correction against a
+ * stand-in whose `replaceState` this repository wrote. What it cannot prove is
+ * the part that belongs to the browser: what a real `history.replaceState`
+ * does to `location.hash`, and what the Back button does afterwards. Both are
+ * the whole reason the correction is a replacement and not a navigation.
  */
 
 import { expect, test } from "@playwright/test";
