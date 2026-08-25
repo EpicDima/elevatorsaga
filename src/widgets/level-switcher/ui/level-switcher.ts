@@ -146,10 +146,10 @@ function stepHref(blocks: readonly LevelMenuBlock[], step: -1 | 1): string | und
 }
 
 /**
- * The text a tile shows in the grid — brief, since the accessible name in
- * {@link tileAccessibleName} carries the rest, the same split
- * `levelLinkTemplate` already draws between a nav link's visible label
- * and its `aria-label`.
+ * The text a tile shows in the grid — a bare number wherever a tile has one,
+ * because the tiles are a dense grid of small squares and a word on each would
+ * not fit one. Everything the number leaves out is in
+ * {@link tileAccessibleName}.
  *
  * @param tile - Tile to draw.
  * @returns Its visible text.
