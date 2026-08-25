@@ -154,7 +154,7 @@ export async function selectInstantSpeed(page: Page, name = "Faster"): Promise<v
  * The game's language picker, in the app bar's settings popover.
  *
  * The page ships one, and it is behind the popover: the header that used to
- * carry a second one is gone. Opened the same way {@link seedText} opens it,
+ * carry a second one is gone. Opened the same way {@link seedField} opens it,
  * because a `<select>` inside a `hidden` panel cannot be operated. By class
  * rather than by its accessible name ("Language"/"Язык"), the other exception
  * alongside {@link statistic}: the name is what the specs below assert *about*
@@ -171,13 +171,13 @@ export async function languagePicker(page: Page): Promise<Locator> {
 /**
  * One value from the statistics panel.
  *
- * The panel pairs a caption and a value as two sibling `<span>`s (`.cap` and
- * `.tile-val`) inside a `.tile`, with no programmatic association between
- * them, so there is no role or accessible name to reach the value by; the
- * tile is found by its visible caption and the value is then taken
- * positionally.
+ * A tile is a `role="group"` named by its caption, but the value inside it is
+ * a bare `<span class="tile-val">` with no name of its own, so there is
+ * nothing to reach the value by directly: the tile is found by its visible
+ * caption and the value is then taken positionally. `exact` on that match is
+ * load-bearing -- "Transported" is also the start of "Transported/s".
  *
- * Nine of the panel's eleven figures sit behind the "Все показатели"/"All
+ * Nine of the panel's thirteen figures sit behind the "Все показатели"/"All
  * figures" disclosure, closed by default -- opened directly rather than
  * clicked, so this is idempotent regardless of which figure a spec asked for
  * last and does not race a click against the panel's own redraw.
@@ -231,18 +231,20 @@ export async function openSettingsMenu(page: Page): Promise<void> {
 }
 
 /**
- * The current run's seed, as shown in the app bar's settings popover.
+ * The current run's seed, in the app bar's settings popover.
  *
- * The seed itself is never the control: it sits in the row's own box
- * (`.seedvalue`) whether or not the run is pinned, and the one link beside it
- * is an icon carrying no text at all — see `seedPanelTemplate`'s module
- * comment. So there is exactly one place in the document the seed is written,
- * and this is it.
+ * A text `<input>`, and the only place in the document the seed is written:
+ * the one control beside it is an icon carrying no text at all — see
+ * `seedPanelTemplate`'s module comment. Being a field rather than a box of
+ * prose is the whole reason this is not called `seedText`: the seed is its
+ * `value`, so a caller reads it with `inputValue()` and asserts on it with
+ * `toHaveValue`. `innerText` on an `<input>` is the empty string, and an
+ * assertion built out of one compares nothing to nothing and passes.
  *
  * @param page - The page under test.
- * @returns The seed's own text.
+ * @returns The seed's field.
  */
-export async function seedText(page: Page): Promise<Locator> {
+export async function seedField(page: Page): Promise<Locator> {
   await openSettingsMenu(page);
   return page.locator(".setmenu .seedvalue");
 }

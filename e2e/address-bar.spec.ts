@@ -10,7 +10,7 @@
 
 import { expect, test } from "@playwright/test";
 
-import { seedText } from "./game-page.ts";
+import { seedField } from "./game-page.ts";
 
 test("takes a parameter the game refused out of the address bar", async ({ page }) => {
   // The URL said `seed=rush hour` while the game drew somebody else, because a
@@ -27,7 +27,7 @@ test("takes a parameter the game refused out of the address bar", async ({ page 
   await expect(page).toHaveURL(/#level=4$/);
   // Still the run that was asked for, minus the part that could not be had.
   await expect(page.getByRole("button", { name: "Level 4" })).toBeVisible();
-  await expect(await seedText(page)).toBeVisible();
+  await expect(await seedField(page)).toBeVisible();
 });
 
 test("empties a hash whose every parameter was refused", async ({ page }) => {

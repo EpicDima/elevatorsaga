@@ -26,7 +26,7 @@ import { expect, test } from "@playwright/test";
 import {
   editor,
   languagePicker,
-  seedText,
+  seedField,
   startButton,
   statistic,
   statisticValue,
@@ -53,7 +53,12 @@ test("puts the whole page into Russian without disturbing the run", async ({ pag
   // The run has to be under way before the language changes, or "it was not
   // restarted" is a claim about nothing.
   await expect.poll(async () => statisticValue(page, "Elapsed time")).toBeGreaterThan(3);
-  const seed = (await (await seedText(page)).innerText()).trim();
+  // `inputValue`, because the seed is a field: `innerText` on an `<input>` is
+  // the empty string, and the assertion further down would then be comparing
+  // nothing to nothing and passing however the seed had changed. The guard
+  // keeps it that way -- an empty reading is the failure mode, not a seed.
+  const seed = (await (await seedField(page)).inputValue()).trim();
+  expect(seed).not.toBe("");
   const elapsedBefore = await statisticValue(page, "Elapsed time");
   const transportedBefore = await statisticValue(page, "Transported");
   const callButtons = await page.getByRole("button", { name: /^Call an elevator/ }).count();
@@ -102,7 +107,7 @@ test("puts the whole page into Russian without disturbing the run", async ({ pag
 
   // The same building, and the same one: the seed names the draw, and a restart
   // would have taken another one.
-  await expect(await seedText(page)).toHaveText(seed);
+  await expect(await seedField(page)).toHaveValue(seed);
   await expect(page.getByRole("button", { name: /^Вызвать лифт/ })).toHaveCount(callButtons);
   // The same run, still running. Time only goes forwards, and the passengers
   // already delivered stay delivered.
