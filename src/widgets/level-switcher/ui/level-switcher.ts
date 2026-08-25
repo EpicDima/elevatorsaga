@@ -269,14 +269,13 @@ function tileTemplate(tile: LevelMenuTile): string {
 }
 
 /**
- * A block's caption. The first two are `tutorial.panel.label` and
- * `game.level.nav.label`, rather than a second pair of "Levels"/"Tutorial"
- * strings a translator would have to keep in step with those. This file is the
- * only reader either key has left.
+ * A block's caption. The levels block reuses `game.level.nav.label` rather
+ * than carry a second "Levels" a translator would have to keep in step with
+ * it, and this file is that key's only reader left.
  *
- * The Skyscraper block does get a string of its own rather than borrowing one:
- * its levels are described in the catalog level by level, and no message
- * there names the block as a whole.
+ * The other three have strings of their own. The Skyscraper block's levels are
+ * described in the catalog level by level, and no message there names the
+ * block as a whole.
  *
  * The last has a string of its own too, and does not reuse the sandbox tile's:
  * captioning a block with the name of the single tile in it says the same
@@ -290,7 +289,7 @@ function tileTemplate(tile: LevelMenuTile): string {
 function blockCaption(id: LevelMenuBlock["id"]): string {
   switch (id) {
     case "tutorial": {
-      return t("tutorial.panel.label");
+      return t("game.levelSwitcher.tutorialBlockLabel");
     }
     case "levels": {
       return t("game.level.nav.label");

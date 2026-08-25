@@ -175,15 +175,20 @@ export const EN_MESSAGES = {
   // in their place, so it has to say what the number means on its own.
   "game.level.nav.label": "Levels",
   "game.level.nav.link": "Level {number}",
-  // The level switcher's own popover: `widgets/level-switcher`. Two of its
-  // four block captions reuse "game.level.nav.label" (levels) and
-  // "tutorial.panel.label" (the learning track), so only what is new to this
-  // widget is here — the other two blocks' captions and the tiles inside them,
-  // the step buttons either side of the popover trigger, and the tile labels
-  // the level list has no counterpart for, since it never names a
-  // learning-track level.
+  // The level switcher's own popover: `widgets/level-switcher`. One of its
+  // four block captions reuses "game.level.nav.label" (levels) rather than
+  // carry a second "Levels" a translator would have to keep in step with it,
+  // so only what is new to this widget is here — the other three blocks'
+  // captions and the tiles inside them, the step buttons either side of the
+  // popover trigger, and the tile labels the level list has no counterpart
+  // for, since it never names a learning-track level.
   "game.levelSwitcher.prevLabel": "Previous level",
   "game.levelSwitcher.nextLabel": "Next level",
+  // The caption over the block of lessons. The panel around a lesson says
+  // nothing about the track — it is named after the level it is teaching —
+  // so this and the tiles under it are where the player reads how far along
+  // the track they are.
+  "game.levelSwitcher.tutorialBlockLabel": "Learning track",
   // Caption and tile, and deliberately not the same word: the block is
   // whatever is neither a lesson nor a numbered level, which today is free
   // play alone. Naming the block after its only tile would say "Sandbox"
@@ -1306,16 +1311,13 @@ elevator.goingDownIndicator(false);`,
   // the game; the first is qualified so that the player cannot read one for the
   // other.
   //
-  // `tutorial.panel.label` is the caption over the level switcher's block of
-  // lessons, and nothing else — the name is what is left of a panel that used
-  // to open on it. The panel itself now says nothing about the track: it is
-  // named after the level it is teaching, because eight lessons that each begin
-  // by saying which of eight they are put the track between the player and the
-  // level in front of them. Where they are on it is the app bar's level
-  // switcher: its trigger reads `game.levelSwitcher.tutorialTriggerLabel`, and
-  // the tiles behind it say which lessons are done.
+  // Nothing here names the track as a whole. A panel is named after the level
+  // it is teaching, because eight lessons that each begin by saying which of
+  // eight they are put the track between the player and the level in front of
+  // them. Where they are on it is the app bar's level switcher: its trigger
+  // reads `game.levelSwitcher.tutorialTriggerLabel`, and the block behind it
+  // is captioned `game.levelSwitcher.tutorialBlockLabel`.
 
-  "tutorial.panel.label": "Learning track",
   "tutorial.panel.hintSummary": "Hint {number}",
   "tutorial.panel.explanationSummary": "Why this happens",
   "tutorial.solution.copy": "Copy this program",
