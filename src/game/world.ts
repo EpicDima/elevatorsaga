@@ -49,11 +49,11 @@
  *   buildings and were never meant to match; a `"mixed"` world matches itself
  *   across the change that introduced the option, and that is the promise that
  *   was kept.
- * - **Button repressing**, `World.handleButtonRepressing`: one draw per emitted
+ * - **Button repressing**, `World.#handleButtonRepressing`: one draw per emitted
  *   floor-button press. A passenger a full or wrongly signposted car turns away
  *   presses the button again, which is a moment the elevators decide. See
  *   `BUTTON_REPRESS_STREAM`. Its destination-dispatch counterpart,
- *   `World.handleAssignmentRepressing`, draws nothing at all: a booking names
+ *   `World.#handleAssignmentRepressing`, draws nothing at all: a booking names
  *   the car, so there is no car left to choose.
  * - **Walking off**, {@link "./user.ts"!User.handleExit}: one draw per delivered
  *   passenger. Delivery is a moment the elevators decide. See
@@ -251,7 +251,7 @@ const BUTTON_REPRESS_STREAM = "button-repress";
  * to have been sent to the right floor by the player's program and to have
  * braked onto it, neither of which lands on the same frame twice. The duration
  * decides only how long the sprite takes to leave the screen — the passenger's
- * wait was recorded when they stepped out, in `World.registerUser`.
+ * wait was recorded when they stepped out, in `World.#registerUser`.
  */
 const WALK_OFF_STREAM = "walk-off";
 
@@ -1058,7 +1058,7 @@ export class World extends Observable<WorldEvents> {
   /**
    * Re-offers a floor to the car that was just booked to serve it.
    *
-   * What {@link World.handleButtonRepressing} is for a hall call, and it exists
+   * What {@link World.#handleButtonRepressing} is for a hall call, and it exists
    * for the same reason: a car standing at the floor with its doors open has
    * already made its offer, and a passenger who arrives — or is booked onto
    * it — a moment later would otherwise wait for it to leave and come back.

@@ -1467,7 +1467,7 @@ describe("World", () => {
 
     it("routes the re-press through button repressing, as any other call is", () => {
       // The rest of the #110 claim: the re-press is a real call, so it reaches
-      // World.handleButtonRepressing and a suitable elevator standing at the
+      // World.#handleButtonRepressing and a suitable elevator standing at the
       // floor is re-arrived by it. Same setup as above, plus a second elevator
       // parked there that serves the direction the first one just stopped
       // serving.
@@ -1520,7 +1520,7 @@ describe("World", () => {
       // passenger fills the capacity-1 car; the second cannot fit and presses
       // the button again, from inside the outer down_button_pressed.
       //
-      // What a guard would cost is the nested World.handleButtonRepressing,
+      // What a guard would cost is the nested World.#handleButtonRepressing,
       // which is the whole mechanism by which a passenger who was turned away
       // gets a standing car re-offered to them. It re-offers nothing in this
       // particular case - the car is full - but the dispatch has to reach the

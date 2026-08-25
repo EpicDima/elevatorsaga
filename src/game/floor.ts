@@ -150,7 +150,7 @@ export class Floor extends Observable<FloorEvents> {
    * A plain {@link Observable}, deliberately, so this dispatch has no
    * re-entrancy guard. A floor really does raise the same event from inside
    * itself — a passenger refused by a full car presses the button again while
-   * `*_button_pressed` is still in flight — and `World.handleButtonRepressing`
+   * `*_button_pressed` is still in flight — and `World.#handleButtonRepressing`
    * has to run for the nested call as it does for any other, because the whole
    * point of the nested press is to have a standing car re-offered to the
    * passenger who was turned away. It also draws from a

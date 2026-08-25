@@ -69,7 +69,7 @@ export const EN_MESSAGES = {
     "Everyone delivered so far, over the time the run has taken, so it is the whole run's average rather than the rate at this moment",
   // Neither of these is a waiting time, whatever the two keys are called. Both
   // are measured from the moment a passenger appears to the moment they step
-  // out of a car at their floor -- `World.registerUser` records the span on
+  // out of a car at their floor -- `World.#registerUser` records the span on
   // `exited_elevator`, the same instant the row above counts them -- so the
   // ride is inside them and a passenger who never waited at all still adds to
   // both. What a delivery takes, in the sense a delivery time is normally read:

@@ -233,7 +233,7 @@ export class FloorInterface {
    * Delivers one request, and once more when it was raised again from inside.
    *
    * Nesting is not hypothetical here. A handler that rewrites an indicator
-   * reaches `World.handleElevAvailability`, a passenger the booked car has no
+   * reaches `World.#handleElevAvailability`, a passenger the booked car has no
    * room for, `Floor.destinationRefused` — which withdraws the booking — and a
    * fresh request while this dispatch is still running.
    *

@@ -137,7 +137,7 @@
  * queue.
  *
  * **Parking when idle.** An idle car returns to floor 0, exactly as
- * {@link "../ui/default-code.ts"!DEV_TEST_CODE} does. `World.spawnUserRandomly`
+ * {@link "../ui/default-code.ts"!DEV_TEST_CODE} does. `spawnUserRandomly`
  * sends roughly half of every level's passengers to the lobby, so a car
  * with nothing else to do is more useful waiting there than wherever its
  * last drop-off happened to leave it.
