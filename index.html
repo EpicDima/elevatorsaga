@@ -210,14 +210,21 @@
       <div class="controls"></div>
 
       <!--
-        The building is wider than the page on a narrow window and .world
-        scrolls horizontally to reach it. A scroll container is only
-        reachable by keyboard if it can take focus, so it is in the tab
-        order, and something in the tab order needs a role and a name.
+        The only landmark over the building, and the element that redeclares
+        --ds-focus so every control inside inherits a ring pale enough to read
+        against the shafts.
+
+        tabindex="-1", not "0": the box that scrolls is the .stage inside
+        widgets/building-stage, and that widget puts itself in the tab order,
+        and only while there is something left to scroll to, so a stop here
+        would be a second one that moves nothing. Focusable all the same,
+        because presentVerdictToast drops the keyboard here when it removes
+        the close button that had it -- this is the nearest box around the
+        card that can take focus at all.
       -->
       <div
         class="world"
-        tabindex="0"
+        tabindex="-1"
         role="region"
         aria-label="Building"
         data-i18n-attr="aria-label:page.world.label"

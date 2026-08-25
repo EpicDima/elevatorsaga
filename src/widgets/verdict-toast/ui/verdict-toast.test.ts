@@ -82,9 +82,11 @@ describe("presentVerdictToast", () => {
   it("hands the keyboard back to the region around the card", () => {
     // Removing the button that was just pressed drops focus to <body>, which
     // lands a keyboard player back at the top of the page. `.world` is the
-    // nearest box around the card that can take focus, so that is the refuge.
+    // nearest box around the card that can take focus, so that is the refuge
+    // -- at -1, the way `index.html` declares it, so this stands or falls with
+    // a refuge that is reachable programmatically and not by Tab.
     const world = document.createElement("div");
-    world.tabIndex = 0;
+    world.tabIndex = -1;
     const parent = container();
     world.append(parent);
     document.body.append(world);

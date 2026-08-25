@@ -302,14 +302,17 @@ describe("index.html", () => {
     },
   );
 
-  it("lets a keyboard reach the building, which scrolls sideways", () => {
-    // .world is a horizontal scroll container, and a scroll container that
-    // cannot take focus cannot be scrolled without a mouse. Being in the tab
-    // order in turn obliges it to have a role and an accessible name.
+  it("names the building a region, and keeps it focusable without a tab stop", () => {
+    // .world is the only landmark over the building, and the name every spec
+    // that reaches for the building reaches by. The negative tabindex is both
+    // halves of the point: Tab skips it, because the box that scrolls is the
+    // stage inside widgets/building-stage and that widget takes the stop
+    // itself, but presentVerdictToast can still put the keyboard here when it
+    // removes the close button that had the focus.
     const world = page.querySelector(".world");
-    expect(world?.getAttribute("tabindex")).toBe("0");
     expect(world?.getAttribute("role")).toBe("region");
     expect(world?.getAttribute("aria-label")).toBeTruthy();
+    expect(world?.getAttribute("tabindex")).toBe("-1");
   });
 
   it("ships the run controls' mount bare, for the app bar to adopt", () => {

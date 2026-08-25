@@ -108,9 +108,9 @@ export function presentVerdictToast(parent: HTMLElement, data: VerdictToastData)
     // which lands a keyboard player back at the top of the page -- the same
     // failure `App#startRun` guards against when it tears these regions down.
     // `.world` is the nearest box around the card that can take focus at all
-    // (`index.html` puts it in the tab order so its scroll container is
-    // reachable), so that is where the keyboard goes instead. Absent in a unit
-    // test's detached fragment, where there is no focus to rescue either.
+    // (`index.html` gives it `tabindex="-1"` for this, which keeps it out of
+    // the tab order), so that is where the keyboard goes instead. Absent in a
+    // unit test's detached fragment, where there is no focus to rescue either.
     const refuge = parent.closest("[tabindex]");
     if (refuge instanceof HTMLElement) {
       refuge.focus();

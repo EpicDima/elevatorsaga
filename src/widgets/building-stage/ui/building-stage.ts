@@ -11,14 +11,14 @@
  * here, inside the element the page hands this widget. The three wrappers
  * around it — `.world`, `.worldtrack`, `.innerworld` — are `index.html`'s, not
  * this widget's, and this widget cannot edit that file; `building-stage.css`
- * makes them layout-neutral instead (a flex chain that passes the pane's
- * height straight through), so a later cleanup can delete them without
- * anything here changing. Two things are still needed from them, and are the
- * reason they are neutralized rather than ignored: `.worldtrack` is what holds
- * the run verdict's oversized overlay and the statistics panel — both siblings
- * of this widget's mount point, both owned elsewhere — and `.world` carries
- * the region role, the name and the paler focus ring every control inside the
- * building inherits.
+ * makes them layout-neutral instead, a flex chain that passes the pane's
+ * height straight through. Two of the three earn their keep even so, which is
+ * why they are neutralized rather than ignored: `.worldtrack` holds the run
+ * verdict's oversized overlay and the statistics panel — both siblings of this
+ * widget's mount point, both owned elsewhere — and `.world` carries the region
+ * role, the name, and the paler focus ring every control inside the building
+ * inherits. `.innerworld` is the one that is only a box, and the one a later
+ * cleanup can delete without anything here changing.
  *
  * The floor numbers stand in a column of their own, `.levels`, whose measured
  * `offsetWidth` is the width fed to the geometry. The shafts live in `.tracks`
