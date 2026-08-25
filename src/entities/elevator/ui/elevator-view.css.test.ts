@@ -61,7 +61,9 @@ describe("the order marks along the shaft", () => {
       // so it is a control that has to be findable, not the unfilled half of a
       // progress track that 1.4.11 would let off. Hence --ds-text-muted rather
       // than the wall's own color, which would read as nothing at all.
-      expect(declaration(ruleBody(".mark"), "background", ".mark")).toBe(token("ds-text-muted"));
+      expect(declaration(ruleBody(".mark::before"), "background", ".mark::before")).toBe(
+        token("ds-text-muted"),
+      );
       expect(
         contrast(themed(palette, "ds-text-muted"), orderStrip(palette)),
       ).toBeGreaterThanOrEqual(3);
@@ -75,14 +77,28 @@ describe("the order marks along the shaft", () => {
       // the strip is two black washes darker than the --ds-shaft the accent
       // family is tuned against. --ds-accent-hi is the same color one step
       // along, and it is what the car's own arrows light up in.
-      expect(declaration(ruleBody(".mark.is-lit"), "background", ".mark.is-lit")).toBe(
-        token("ds-accent-hi"),
-      );
+      expect(
+        declaration(ruleBody(".mark.is-lit::before"), "background", ".mark.is-lit::before"),
+      ).toBe(token("ds-accent-hi"));
       expect(contrast(themed(palette, "ds-accent-hi"), orderStrip(palette))).toBeGreaterThanOrEqual(
         3,
       );
     },
   );
+
+  it("gives the button a target 24px tall, whatever size the tick is drawn", () => {
+    // WCAG 2.5.8. The tick keeps its 3px because its height on the shaft is
+    // which floor it asks for; the button around it is what a pointer aims at,
+    // and 24px of a floor that `layoutBuilding()` never lets fall below 48
+    // leaves the next floor's button its own half. Measured in a browser by
+    // `e2e/order-marks.spec.ts` -- the number that has to hold is the gap
+    // between two of them, and only a laid-out building has one.
+    expect(declaration(ruleBody(".mark"), "block-size", ".mark")).toBe("24px");
+    expect(declaration(ruleBody(".mark::before"), "block-size", ".mark::before")).toBe("3px");
+    // The button carries no color of its own: the tick draws it. A background
+    // here would be a 24px block down the strip.
+    expect(declaration(ruleBody(".mark"), "background", ".mark")).toBe("none");
+  });
 });
 
 describe("the car's top strip", () => {

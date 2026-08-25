@@ -60,29 +60,60 @@ html[data-theme="light"] .shaft {
 }
 
 /*
- * One floor's mark. The widget writes the middle of that floor's band into
- * `inset-block-end` and the translate centers the mark on it -- vertically, so
- * nothing outside this file has to know how tall a mark is drawn, and
- * horizontally, so the tick narrows to whatever the strip has left instead of
- * overflowing it at half scale.
+ * One floor's mark: the button, which is what a pointer and a focus ring get,
+ * and `::before`, which is the tick that is drawn. The widget writes the middle
+ * of that floor's band into `inset-block-end` and the translate centers the
+ * button on it, so nothing outside this file has to know how big either is.
+ *
+ * The two are different sizes on purpose. A tick has to be small -- its height
+ * on the shaft is which floor it stands for, and a mark as tall as a quarter of
+ * a floor would say the wrong one -- but the button is a real control that a
+ * player clicks to ask this car for that floor, and a 3px-tall control is
+ * target practice. So the button takes the whole width of the strip and 24px of
+ * its height, the size WCAG 2.5.8 asks of a target: floors are never shorter
+ * than `layoutBuilding()`'s 48px, so two of them never meet.
+ *
+ * The width is the strip's, which measures 3px at the game's narrowest window
+ * and 5px at a desk, and it cannot honestly be more: the car begins at the
+ * strip's inner edge and paints over it, and outside the shaft is the next
+ * shaft, 43px away at that same narrowest window. That leaves the width under
+ * the 24px 2.5.8 asks for, which the spacing exception allows at exactly these
+ * distances -- 24px circles centered on marks 43px apart across and 48px apart
+ * up the shaft do not meet either.
+ */
+.mark {
+  position: absolute;
+  box-sizing: border-box;
+  inset-inline-start: 50%;
+  inline-size: 100%;
+  block-size: 24px;
+  padding: 0;
+  transform: translate(-50%, 50%);
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+
+/*
+ * The tick. Centered in the button both ways -- vertically because the button's
+ * own center is the floor's, and horizontally so it narrows to whatever the
+ * strip has left instead of overflowing it at half scale.
  *
  * An unrequested mark is drawn in --ds-text-muted rather than in the wall's own
  * color. These are `<button>`s -- clickable, tabbable, and named -- so an unlit
  * one has to be findable, and that is the only pair clearing 3:1 against both
  * this strip's dark composite and its light one.
  */
-.mark {
+.mark::before {
+  content: "";
   position: absolute;
-  box-sizing: border-box;
+  inset-block-start: 50%;
   inset-inline-start: 50%;
   inline-size: min(4px, 100%);
   block-size: 3px;
-  padding: 0;
-  transform: translate(-50%, 50%);
-  border: 0;
+  transform: translate(-50%, -50%);
   border-radius: 1px;
   background: var(--ds-text-muted);
-  cursor: pointer;
 }
 
 /*
@@ -91,11 +122,11 @@ html[data-theme="light"] .shaft {
  * --ds-shaft the accent family is tuned against. The high step is the same
  * color at the contrast the tuning was for -- 3.43:1 light, 11.45:1 dark.
  */
-.mark.is-lit {
+.mark.is-lit::before {
   background: var(--ds-accent-hi);
 }
 
-html[data-theme="dark"] .mark.is-lit {
+html[data-theme="dark"] .mark.is-lit::before {
   box-shadow: 0 0 6px rgb(232 163 63 / 55%);
 }
 
