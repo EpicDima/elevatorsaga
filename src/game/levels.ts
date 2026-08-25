@@ -322,7 +322,8 @@ export interface SandboxOptions {
 }
 
 /**
- * Wraps a value in the emphasis markup the level bar paints numbers with.
+ * Wraps a value in the `emphasis-color` markup a level description paints
+ * numbers with.
  *
  * The one number in a description that no message of its own can carry: the
  * capacities are a list of unknown length, and a catalog entry holds a

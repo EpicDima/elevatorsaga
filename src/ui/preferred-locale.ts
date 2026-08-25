@@ -25,9 +25,9 @@
  *
  * "Draw now, re-localize later" is a real option, and it is the one the language
  * picker takes: {@link localizePage} re-reads the document, and
- * {@link "../pages/game/index.ts"!App.relocalize} rebuilds the level bar, redraws the
- * statistics, renames the building and redraws the overlay without touching the
- * world. So the choice here is not between waiting and a page that cannot be
+ * {@link "../pages/game/index.ts"!App.relocalize} rebuilds the widgets around
+ * the building, redraws the statistics, renames the building and redraws the
+ * overlay without touching the world. So the choice here is not between waiting and a page that cannot be
  * fixed. It is between waiting and drawing the game twice.
  *
  * Waiting, because at start-up the second draw buys nothing. There is no run to

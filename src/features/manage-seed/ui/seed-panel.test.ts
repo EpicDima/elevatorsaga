@@ -33,8 +33,7 @@ describe("seedPanelTemplate", () => {
     // `data` is `null` for a learning-track level and for the test-only worlds
     // built with a ready-made random stream -- see `src/pages/game/index.ts`'s
     // `#seedLink` -- and there is nothing this block could usefully say about
-    // either, the same reason `levelTemplate` leaves the level bar's
-    // own seed line out under the same condition.
+    // either.
     expect(seedPanelTemplate(null)).toBe("");
   });
 
@@ -132,7 +131,7 @@ describe("seedPanelTemplate", () => {
     }
   });
 
-  it("carries the same help disclosure the level bar's seed line does", () => {
+  it("explains what a seed does, behind a disclosure", () => {
     const help = renderElement(seedPanelTemplate(SEED)).querySelector(".seedhelp");
 
     expect(help?.tagName).toBe("DETAILS");
@@ -141,9 +140,8 @@ describe("seedPanelTemplate", () => {
     // the disclosure triangle off it there.
     expect(help?.querySelector("summary")?.className).toBe("sethint");
     expect(help?.querySelector(".seedcaveat")?.textContent).toContain("The same seed brings");
-    // Closed to begin with, the same reason the level bar's own copy is:
-    // a player who has read it once does not need it open for the rest of
-    // the evening.
+    // Closed to begin with: a player who has read it once does not need it open
+    // for the rest of the evening.
     expect(help?.hasAttribute("open")).toBe(false);
   });
 

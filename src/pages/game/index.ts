@@ -203,19 +203,9 @@ export function containsFocus(elements: readonly Element[]): boolean {
  * would be a control the player cannot reach from the layout they are most
  * likely to be in while writing the program it runs.
  *
- * It had spent one phase in a row of its own between the learning track's
- * panel and the building, and before that it was split three ways — Start in
- * the level bar, Pause under the building, the rest beside the editor.
- * Both of those arrangements had a cost this one does not: the row under the
- * building took a line of height from the building on every layout, and the
- * split one made "which of these restarts?" a question only experiment could
- * answer.
- *
- * What has not changed is that this is drawn once, for the life of the page,
- * and only relabeled. The level bar used to be rebuilt on every restart,
- * so every one of these buttons used to destroy itself when pressed — which is
- * what the level bar's own focus bookkeeping existed to paper over. A
- * keyboard player who presses Start over is still standing on Start over
+ * Drawn once, for the life of the page, and only relabeled: nothing here is
+ * rebuilt by a restart, so none of these buttons destroys itself when pressed.
+ * A keyboard player who presses Start over is still standing on Start over
  * afterwards, with nothing to restore.
  *
  * Two buttons and a speed. Reset/undo-reset moved to the editor pane's own
@@ -903,10 +893,9 @@ export class App {
       getInput: () => this.#levelMenuInput(),
     });
 
-    // Subscribed once, for the lifetime of the app. The legacy code subscribed
-    // inside startLevel, so every level start added another listener
-    // that was never removed: after N levels the time scale was written to
-    // storage N times and the level bar was rebuilt N times per click.
+    // Subscribed once, for the lifetime of the app, rather than per level start:
+    // a subscription made per level is never removed, so after N levels one
+    // click writes the time scale to storage N times.
     //
     // Pausing raises this too — `WorldController.setPaused` triggers it — so one
     // subscription relabels the start button as well as the speed.

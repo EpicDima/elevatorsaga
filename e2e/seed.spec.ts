@@ -19,14 +19,11 @@ import { expect, test } from "@playwright/test";
 import { openSettingsMenu, speedValue } from "./game-page.ts";
 
 /**
- * The seed block now lives in the app bar's settings popover
- * (`widgets/app-bar`'s `.setmenu`), behind `.setopen`, rather than in the
- * level bar's old `.levelseed`: `presentLevel`/`levelTemplate`
- * are unwired, so `.levelseed` never reaches the document any more, and
- * `seedPanelTemplate` reuses every one of these class names verbatim without
- * a second copy to disambiguate against — see that module's own comment.
- * Every test below opens the popover with {@link openSettingsMenu} before
- * reading or clicking any of them.
+ * The seed block lives in the app bar's settings popover (`widgets/app-bar`'s
+ * `.setmenu`), behind `.setopen`. `seedPanelTemplate` is the only thing that
+ * draws these class names, so the `.setmenu` prefix disambiguates against
+ * nothing and is here to say where to look. Every test below opens the popover
+ * with {@link openSettingsMenu} before reading or clicking any of them.
  */
 const SEED_LINK = ".setmenu .seedlink";
 
@@ -68,7 +65,7 @@ test("puts the run a player is looking at in the address bar, and replays it on 
   await seedLink.click();
   await expect(page).toHaveURL(new RegExp(`#level=4,timescale=8,seed=${seed}$`));
 
-  // `App.onSeedChange` fires from `#drawLevelBar`, which the router's own
+  // `App.onSeedChange` fires from `#redrawForLevel`, which the router's own
   // `hashchange` handling reaches on every navigation including this one, so
   // the panel is redrawn without a reload -- on the same seed, since the click
   // asked for the run already playing.
@@ -176,37 +173,14 @@ test("opens the caveat from the keyboard", async ({ page }) => {
 });
 
 /**
- * "Does not move the caveat's own control when it is opened" used to sweep
- * 1280px down to 320px looking for the widths where the level bar
- * rearranges itself -- 960 and 660 were each just inside a rearrangement, 320
- * was where the seed line itself wrapped -- and assert the disclosure's own
- * `<summary>` held still, or moved a known amount, at each one.
+ * Catches a `[open] { flex-basis: 100% }`-class rule dragging the disclosure's
+ * own `<summary>` out from under the player's pointer as the caveat opens.
  *
- * It was removed once already, not because decision #1's floor covers it --
- * 1280 (this suite's own default viewport) and 1040 (the floor's own edge)
- * are both still fully supported widths, and the bug this test caught (a
- * `[open] { flex-basis: 100% }` rule dragging the disclosure's `<summary>`
- * out from under the player's pointer) has nothing to do with the width being
- * narrow. It was removed because `widgets/workspace-layout`'s shell, mounted
- * live for the first time in that commit, had no pane-splitting stylesheet of
- * its own yet, so every region it wrapped stacked full height instead of side
- * by side, and opening the disclosure moved the summary by over 2000px, not
- * the hundred or so pixels the old bug moved it by.
- *
- * `widgets/workspace-layout`'s pane-splitting stylesheet landed a phase later
- * -- `.workspace`/`.pane`/`.splitter`, now in
- * `src/widgets/workspace-layout/ui/workspace-layout.css` -- but that
- * alone was not enough: the seed block itself had also moved, from the
- * level bar's `.levelseed` (styled) into the app bar's settings
- * popover, and `.setmenu`/`.setwrap` carried no rule of their own yet, so it
- * rendered in normal document flow and reshuffled the whole page around
- * itself opening the caveat did -- the same 2000px-class jump, for the same
- * missing-`position: absolute` reason, one level up.
- *
- * `.setwrap`/`.setmenu`'s own positioning is in
- * `src/widgets/app-bar/ui/settings-menu.css`, so the popover is a fixed-size
- * overlay the disclosure opens inside rather than a block that reshuffles the
- * page under itself. Both widths below pass.
+ * What holds it still is `.setwrap`/`.setmenu`'s positioning in
+ * `src/widgets/app-bar/ui/settings-menu.css`: the popover is a fixed-size
+ * overlay the disclosure opens inside, rather than a block that reshuffles the
+ * page under itself. The two widths below are this suite's own default
+ * viewport and the supported floor's edge.
  */
 test("does not move the caveat's own control when it is opened", async ({ page }) => {
   await page.goto("/#level=4");
@@ -239,26 +213,17 @@ test("does not move the caveat's own control when it is opened", async ({ page }
 });
 
 /**
- * `.cap` and `.seedhelp > summary` used to measure `rgb(255, 255, 255)` on
- * this page's `rgb(191, 189, 159)` body -- the exact 1.91:1-class failure
- * this test was written to catch, reappeared here because `.setblock`/
- * `.setmenu` carried none of `.levelseed`'s old `color: var(--color-text)`.
- * Verified live, not guessed: measured via `getComputedStyle` against the
- * real popover, forced open the same way every test above opens it.
+ * Every word in the block is painted by `color: var(--ds-text)` on `.setmenu`,
+ * in `src/widgets/app-bar/ui/settings-menu.css` -- not by `--color-text`,
+ * which is not theme-aware and, against `--ds-panel`'s dark-theme value, holds
+ * at roughly 1.75:1. `--ds-text` is `--ds-panel`'s own matched companion token,
+ * at roughly 14:1 in dark and higher still in light. See that CSS section's own
+ * comment for the full account.
  *
- * Fixed in `src/widgets/app-bar/ui/settings-menu.css` with
- * `color: var(--ds-text)` on `.setmenu` -- not `--color-text`, the token the
- * defect's own original fix used: `--color-text` is not theme-aware, and
- * paired with `--ds-panel`'s dark-theme value it holds at roughly 1.75:1,
- * worse than the bug. `--ds-text` is `--ds-panel`'s own matched companion
- * token, at roughly 14:1 in dark and higher still in light. See that CSS
- * section's own comment for the full account.
- *
- * `page_` (measured against `document.body`) is now `panel` (measured against
- * `.setmenu` itself): `.setmenu` gained its own opaque, positioned background
- * in the same change, so `document.body`'s background is no longer what a
- * reader actually sees behind this text -- `.setmenu` sits over it. Un-`fixme`d
- * and confirmed passing.
+ * Measured live with `getComputedStyle`, against the real popover forced open
+ * the way every test above opens it, and against `.setmenu` rather than
+ * `document.body`: the popover paints its own opaque, positioned background, so
+ * the body's is not what a reader sees behind this text.
  *
  * The seed itself is measured against the field's own `--ds-bg` fill rather
  * than against the panel, because the field paints one: it is the one thing in

@@ -807,7 +807,8 @@ function fitElevatorCount(requested: number, capacities: readonly number[]): num
  *
  * The world reads `capacities[i % capacities.length]` once per car, so entries
  * past the last car are never read and the building is the same with or without
- * them. The level bar is what makes them worth removing: it prints the list
+ * them. The sandbox's own description is what makes them worth removing: it
+ * prints the list
  * it is handed, so `elevators=1,capacities=6-9` would otherwise be described as
  * one elevator "of capacities 6, 9" when the only car built has a capacity of
  * six.

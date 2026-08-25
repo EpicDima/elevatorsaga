@@ -26,9 +26,8 @@ test("boots the first level with an editor and a building", async ({ page }) => 
 
   await expect(page).toHaveTitle(/Elevator Saga/);
   await expect(page.getByRole("heading", { level: 1 })).toContainText("Elevator Saga");
-  // The level bar's own prose sentence ("Transport 15 people in 60
-  // seconds or less") is gone: `widgets/goal-bar` states the same
-  // requirement as two meters instead, one per field the condition reads.
+  // `widgets/goal-bar` states the requirement as two meters, one per field the
+  // condition reads, rather than as a prose sentence.
   await expect(page.getByRole("button", { name: "Level 1" })).toBeVisible();
   await expect(page.locator('.meter[data-kind="transportedCounter"] .meter-val')).toHaveText(
     "0 / 15",

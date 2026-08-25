@@ -303,8 +303,8 @@ describe("resolveRoute sandbox selection", () => {
   });
 
   it("ignores sandbox parameters while a numbered level is being played", () => {
-    // They are carried across a jump by the level bar's navigation row,
-    // which rewrites `level` and keeps everything else. Inert here, and
+    // They are carried across a jump by the level switcher, which rewrites
+    // `level` and keeps everything else. Inert here, and
     // still there if the player goes back to the sandbox.
     const params = route("#level=4,floors=50,elevators=9,spawnrate=7");
     expect(params.sandbox).toBeNull();
@@ -453,9 +453,9 @@ describe("resolveRoute sandbox validation", () => {
 
   it("keeps only as many capacities as there are elevators", () => {
     // The world reads capacities[i % capacities.length] once per car, so entries
-    // past the last car never reach one — but the level bar prints the list
-    // it is given, so leaving them in would describe a building that does not
-    // exist.
+    // past the last car never reach one — but the sandbox's own description
+    // prints the list it is given, so leaving them in would describe a building
+    // that does not exist.
     expect(sandbox("elevators=1,capacities=6-9").elevatorCapacities).toEqual([6]);
     expect(sandbox("elevators=3,capacities=6-9-2-7-8").elevatorCapacities).toEqual([6, 9, 2]);
     expect(console.warn).toHaveBeenCalledWith(

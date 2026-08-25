@@ -2,16 +2,16 @@
  * Changing the language from inside the page, mid-run, in a real browser.
  *
  * `src/features/switch-language/ui/language-picker.test.ts` proves the sequence
- * a choice runs through and `src/app/app.test.ts` proves what `relocalize`
- * redraws, both against a jsdom document. Three things only exist in the built
- * site:
+ * a choice runs through and `src/pages/game/index.test.ts` proves what
+ * `relocalize` redraws, both against a jsdom document. Three things only exist
+ * in the built site:
  *
  * - The Russian catalog is fetched at the moment of the choice rather than
  *   before the first paint, so this is the only place the chunk is loaded into a
  *   page that is already running.
  * - The page is rewritten by four different pieces of code — `localizePage` for
- *   the shell, the level bar's presenter, the statistics, the building's
- *   labels — and a page half in each language is worse than either.
+ *   the shell, the per-level widgets' own `update()`, the statistics, the
+ *   building's labels — and a page half in each language is worse than either.
  * - "The run was not restarted" is a claim about a simulation that is running.
  *   Nothing in jsdom is running.
  *
@@ -71,9 +71,10 @@ test("puts the whole page into Russian without disturbing the run", async ({ pag
   );
   // The app bar's own toolbar, relabeled by the settings widget's `update`.
   await expect(page.getByRole("button", { name: "Справка" })).toBeVisible();
-  // The level bar, rebuilt by the app; and the run controls, which are not
-  // rebuilt at all -- they are drawn once for the life of the page, so every
-  // word on them is written by the relabeling this change triggers.
+  // The level switcher's trigger, rebuilt by the app; and the run controls,
+  // which are not rebuilt at all -- they are drawn once for the life of the
+  // page, so every word on them is written by the relabeling this change
+  // triggers.
   await expect(page.getByRole("button", { name: "Уровень 4" })).toBeVisible();
   await expect(startButton(page, "Пауза")).toBeVisible();
   // `exact`, because the settings popover's dice button offers to «взять новый

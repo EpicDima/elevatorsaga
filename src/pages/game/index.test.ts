@@ -200,9 +200,7 @@ function levelTiles(elements: AppElements): HTMLElement[] {
 }
 
 /**
- * The level block's own caption, e.g. "Levels" -- what
- * `.levelnav`'s `aria-label` used to carry, before the level switcher
- * replaced the level bar's own navigation row.
+ * The level block's own caption, e.g. "Levels".
  *
  * @param elements - The page shell the app was built over.
  * @returns The caption text, or "" if the switcher has not drawn a level block.
@@ -213,10 +211,9 @@ function levelBlockCaption(elements: AppElements): string {
 }
 
 /**
- * The level switcher's own trigger label — what replaced the level bar's
- * combined "Tutorial level N of M: <title>" title string. Unlike that title,
- * this carries only the level's own position, not the track's length or the
- * level's own sentence; see this file's specs for where the rest went.
+ * The level switcher's own trigger label. It carries the level's own position
+ * and nothing else — not the track's length, not the level's own sentence; see
+ * this file's specs for where each of those is drawn instead.
  *
  * @param elements - The page shell the app was built over.
  * @returns The trigger's own text.
@@ -294,7 +291,7 @@ beforeEach(() => {
 });
 
 describe("App.startLevel", () => {
-  it("draws the level bar, the world and the statistics", () => {
+  it("draws the goal bar, the world and the statistics", () => {
     const { app, elements } = setUp();
     app.startLevel(0);
 
@@ -2566,9 +2563,8 @@ describe("App time scale", () => {
   });
 
   it("subscribes to timescale_changed exactly once, however many levels are started", () => {
-    // The legacy app.startLevel subscribed on every start and never
-    // unsubscribed, so the Nth level wrote the time scale to storage N
-    // times and rebuilt the level bar N times for a single button press.
+    // A subscription made on every start is never unsubscribed, so after the
+    // Nth level one button press writes the time scale to storage N times.
     const { app, worldController, storage } = setUp();
     const setItem = vi.spyOn(storage, "setItem");
 

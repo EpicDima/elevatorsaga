@@ -101,8 +101,7 @@ const ORIGINAL_DOMAIN = "github.com/magwo/elevatorsaga";
  * already whole because {@link seedPanelTemplate} needs no presenting.
  *
  * @param seed - The run in progress' seed, passed straight through to
- * {@link seedPanelTemplate} — `null` renders no seed block at all, the same
- * condition that leaves it out of the level bar.
+ * {@link seedPanelTemplate} — `null` renders no seed block at all.
  * @returns The toolbar's markup, ready for {@link presentAppBarSettings}.
  */
 export function appBarSettingsTemplate(seed: SeedLinkData | null): string {

@@ -136,9 +136,8 @@ function seedNewDrawTemplate(name: string): string {
  * `data` is `null` under exactly the conditions `src/pages/game/index.ts`'s
  * `#seedLink` returns `null` for: a learning-track level, which has no
  * pass/fail run to name a seed for, or (test-only) a world built with a
- * ready-made random stream instead of a seed. Rendering nothing then, rather
- * than a block with nothing useful in it, is the same choice
- * `levelTemplate` already makes for the level bar's own seed line.
+ * ready-made random stream instead of a seed. Rendering nothing then is better
+ * than a block with nothing useful in it.
  *
  * @param data - The seed of the run in progress and where its address is, or
  * `null` to render nothing.

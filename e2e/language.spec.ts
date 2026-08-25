@@ -7,9 +7,10 @@
  * catalog is a chunk a browser can actually fetch — until the page asked for
  * one there was nothing in the game that reached it at all — and that what the
  * reader ends up looking at agrees with itself. The shell is rewritten from the
- * catalog and the level bar is drawn from it, by different code at
- * different moments; a Russian shell around an English level bar is worse
- * than either language on its own, and this is the only place it would show.
+ * catalog and the widgets around the building are drawn from it, by different
+ * code at different moments; a Russian shell around an English goal bar is
+ * worse than either language on its own, and this is the only place it would
+ * show.
  *
  * The Russian words below are asserted as a reader sees them, like every other
  * spec here, rather than imported from `src/i18n/ru.ts`. A test that reads the
