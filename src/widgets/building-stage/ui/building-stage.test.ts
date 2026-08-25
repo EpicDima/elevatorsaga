@@ -126,6 +126,7 @@ describe("presentBuildingStage", () => {
   afterEach(() => {
     document.body.replaceChildren();
     vi.unstubAllGlobals();
+    vi.restoreAllMocks();
   });
 
   it("builds the stage tree, one row and one band per floor", () => {
@@ -505,6 +506,43 @@ describe("presentBuildingStage", () => {
 
     expect(requireElement(".carcard", parent).hidden).toBe(true);
     expect(document.activeElement).toBe(carEl);
+  });
+
+  it("dismisses a card opened by hovering, from a keyboard that never left the body", () => {
+    // The other way a card opens, and the one the Escape has to travel furthest
+    // from: a pointer leaves focus wherever it already was, which on a page
+    // nobody has tabbed into is `<body>`, so a handler bound inside the stage
+    // would answer only the cards a player had tabbed to. Dismissing a hover
+    // card without moving the pointer is the whole of WCAG 1.4.13.
+    const world = createWorld({ floorCount: 3, elevatorCount: 1 });
+    const { parent } = mount(world, 800, 300);
+
+    const carEl = requireElement(".elevator", parent);
+    carEl.dispatchEvent(new Event("pointerenter"));
+    expect(requireElement(".carcard", parent).hidden).toBe(false);
+    expect(document.activeElement).toBe(document.body);
+
+    document.body.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+
+    expect(requireElement(".carcard", parent).hidden).toBe(true);
+    expect(carEl.hasAttribute("aria-describedby")).toBe(false);
+  });
+
+  it("stops listening for Escape once the card is down", () => {
+    // The listener is on the document, and this widget is built again from
+    // scratch on every redraw of the world, so one left behind per card shown
+    // is one left behind per card shown for ever. It is unbound with the card:
+    // an Escape arriving after that reaches a document nothing here is
+    // listening to.
+    const world = createWorld({ floorCount: 3, elevatorCount: 1 });
+    const { parent } = mount(world, 800, 300);
+    const listening = vi.spyOn(document, "removeEventListener");
+
+    const carEl = requireElement(".elevator", parent);
+    carEl.dispatchEvent(new Event("pointerenter"));
+    carEl.dispatchEvent(new Event("pointerleave"));
+
+    expect(listening).toHaveBeenCalledWith("keydown", expect.any(Function));
   });
 
   it("only one card is shown at a time: opening a floor's card while a car's is open replaces it", () => {

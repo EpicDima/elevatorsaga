@@ -71,11 +71,12 @@
  * One card element is shared between every floor and every car, shown and
  * repositioned on `pointerenter`/`focus` and hidden on `pointerleave`/`blur`
  * — `pointerenter`/`pointerleave` do not bubble, so each anchor carries its
- * own pair, but `Escape` is handled once, delegated on the stage, since
- * `keydown` does bubble from whichever element is focused. Dismissing on
- * `Escape` without moving focus is the WAI-ARIA tooltip pattern's own contract
- * (WCAG 1.4.13): the card closes, the floor or car underneath it stays exactly
- * as focused as it was.
+ * own pair, but `Escape` is handled once, on the document, for as long as a
+ * card is up: a card a player hovered into leaves focus wherever it already
+ * was, so a handler bound inside the stage would answer only the cards opened
+ * by tabbing to them. Dismissing on `Escape` without moving focus is the
+ * WAI-ARIA tooltip pattern's own contract (WCAG 1.4.13): the card closes, the
+ * floor or car underneath it stays exactly as focused as it was.
  *
  * The card hangs on `.stagewrap`, outside the scrolling `.stage` and outside
  * `.building`: the building clips its own overflow (otherwise cars would draw
@@ -214,10 +215,31 @@ export function presentBuildingStage(parent: HTMLElement, world: World): Buildin
   /** Which anchor the card is currently shown for, or `null` while hidden. */
   let shown: ShownCard | null = null;
 
+  /**
+   * Dismisses the card on Escape, from wherever in the document it was pressed.
+   *
+   * A card opened by hovering leaves focus where it was, which is `<body>` on a
+   * page nobody has tabbed into yet, so a `keydown` bound anywhere inside the
+   * stage never sees the Escape meant for it — and dismissing a hover card
+   * without moving the pointer is the whole of what WCAG 1.4.13 asks for.
+   *
+   * Bound while a card is up and unbound with it, rather than left on the
+   * document for the widget's lifetime the way `shared/ui/disclosure` leaves
+   * its own: this widget is built again from scratch on every redraw of the
+   * world — a restart, a change of level, a change of language — and a listener
+   * per redraw would be a listener per redraw for ever.
+   */
+  function dismissOnEscape(event: KeyboardEvent): void {
+    if (event.key === "Escape") {
+      hideCard();
+    }
+  }
+
   function hideCard(): void {
     if (shown === null) {
       return;
     }
+    card.ownerDocument.removeEventListener("keydown", dismissOnEscape);
     shown.describedBy.removeAttribute("aria-describedby");
     shown = null;
     card.hidden = true;
@@ -275,14 +297,11 @@ export function presentBuildingStage(parent: HTMLElement, world: World): Buildin
     card.hidden = false;
     target.setAttribute("aria-describedby", card.id);
     shown = { describedBy: target, anchor, placement };
+    // Adding a listener a second time with the same callback and phase does
+    // nothing, so moving from one anchor to the next needs no guard here.
+    card.ownerDocument.addEventListener("keydown", dismissOnEscape);
     placeCard();
   }
-
-  stage.addEventListener("keydown", (event) => {
-    if (event.key === "Escape") {
-      hideCard();
-    }
-  });
 
   /**
    * Lights the stage's own edge shadows, and makes the stage keyboard-scrollable
