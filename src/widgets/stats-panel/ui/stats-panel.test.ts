@@ -276,7 +276,7 @@ describe("presentStatsPanel", () => {
       "Avg delivery time",
     );
     expect(requireElement('.tile[data-stat="avgWaitTime"]', parent).getAttribute("title")).toBe(
-      "From the moment a passenger appears in the building to the moment they step out at the floor they asked for, so the ride counts in it as much as the wait does",
+      "The whole journey, from a passenger appearing in the building to stepping out at the floor they asked for, averaged over those already delivered, so the ride counts in it as much as the wait does",
     );
   });
 });

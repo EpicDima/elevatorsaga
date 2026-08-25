@@ -82,7 +82,7 @@ export const EN_MESSAGES = {
   // are the halves neither of them names: the wait, and then the ride.
   "page.stats.avgWaitTime": "Avg delivery time",
   "page.stats.avgWaitTimeTitle":
-    "From the moment a passenger appears in the building to the moment they step out at the floor they asked for, so the ride counts in it as much as the wait does",
+    "The whole journey, from a passenger appearing in the building to stepping out at the floor they asked for, averaged over those already delivered, so the ride counts in it as much as the wait does",
   // Sits under the average rather than beside its own maximum, which the panel
   // does not show, and above the ride it leaves out: the three rows read down
   // as a sum, the whole and then its two parts. "Wait for a car" rather than
@@ -101,7 +101,7 @@ export const EN_MESSAGES = {
     "The clock starts when a car takes a passenger and stops when they step out at their floor, so this and the wait above it add up to the delivery time",
   "page.stats.maxWaitTime": "Max delivery time",
   "page.stats.maxWaitTimeTitle":
-    "The largest such total any one passenger has reached, which keeps climbing while somebody is still on their way and never comes down again",
+    "The longest any one passenger's whole journey has run, which keeps climbing while somebody is still on their way and never comes down again",
   "page.stats.moves": "Moves",
   "page.stats.movesTitle":
     "One move is counted each time a car crosses the halfway mark between one floor and the next",

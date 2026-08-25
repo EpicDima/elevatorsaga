@@ -29,9 +29,10 @@
  * Every tile carries a `title` saying in one sentence what its figure counts,
  * written by `redrawCaptions` alongside the caption so that a language change
  * repaints both. A tooltip rather than a line of prose beside the number: the
- * panel is a strip under the building with 128px of width per caption, and the
- * long form of the same explanations is the reference page's statistics
- * paragraph, `docs.play.statistics.html`.
+ * panel is a strip under the building with 128px of width per caption. Eight of
+ * the thirteen say at tooltip length what `docs.play.statistics.html` says of
+ * the same figure at paragraph length; the other five are explained here and
+ * nowhere else, the reference page never having taken them up.
  *
  * ## Live text vs. sparkline history
  *

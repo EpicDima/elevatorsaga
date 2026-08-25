@@ -155,8 +155,9 @@ the longer one is, and a key named only in a comment counts as read too. The pre
 nothing today — the same grep with each key required to end where the key ends lists the same 93
 — and the comment case costs two. `page.noscript` is one: nothing renders it, and `index.html`
 names it in a comment saying so. `docs.play.statistics.html` is the other: it is a paragraph of
-the reference page like its neighbors, and `src/game/world.ts` names it twice in prose
-explaining what the statistics panel measures. So the true figure is 95, of which 92 are
+the reference page like its neighbors, and `src/game/world.ts` and
+`src/widgets/stats-panel/ui/stats-panel.ts` between them name it three times in prose explaining
+what the statistics panel measures. So the true figure is 95, of which 92 are
 `docs.*` — every one the pages hold, bar the skeleton the popup borrows. The grep also needs
 `src/widgets/tutorial-panel/ui/tutorial-panel.ts` and `src/game/tutorial.ts` to be in the tree, since between them that
 is what reads the 64 `tutorial.level*` messages: the panel each level's prose, the level table each
@@ -171,7 +172,7 @@ the build renders the shell per language.
 reached", pins that: it parses the page with `DOMParser`, which _does_ see the paragraph, and
 requires `localizePage` to leave it alone even in Russian.
 
-**The 86 `docs.*` keys have no call site because the reference page answers for itself.**
+**The 92 `docs.*` keys have no call site because the reference page answers for itself.**
 `documentation.html` and `documentation.ru.html` are two static files rather than one document
 translated at run time. That duplication is deliberate and no longer silent — see _Known
 overlap_ at the end, and `src/page.test.ts`, which holds the two pages and the two catalogs in
@@ -214,13 +215,13 @@ region the shell leaves empty, and kept here because they are one prefix and rea
 | `page.stats.transportedPerSec`      | Transported/s                                                                                                  |                                                                                                                                                                       |
 | `page.stats.transportedPerSecTitle` | Everyone delivered so far, over the time the run has taken, so it is the whole run's average rather…           | a `title` attribute on the same tile as `page.stats.transportedPerSec`; says the figure is the run's average, not the rate now                                        |
 | `page.stats.avgWaitTime`            | Avg delivery time                                                                                              | the key names the `World` field, which is `avgWaitTime`; the label names what it measures, which is not a wait                                                        |
-| `page.stats.avgWaitTimeTitle`       | From the moment a passenger appears in the building to the moment they step out at the floor they…             | a `title` attribute on the same tile as `page.stats.avgWaitTime`; what `docs.play.statistics.html` says of both delivery-time rows, said of one                       |
+| `page.stats.avgWaitTimeTitle`       | The whole journey, from a passenger appearing in the building to stepping out at the floor they asked…         | a `title` attribute on the same tile as `page.stats.avgWaitTime`; what `docs.play.statistics.html` says of both delivery-time rows, said of one                       |
 | `page.stats.avgPickupTime`          | Avg wait for a car                                                                                             | the first half of the row above it, and the only one of the four that is a wait: it stops when a car takes the passenger, so the ride is outside it                   |
 | `page.stats.avgPickupTimeTitle`     | The clock starts when a passenger appears and stops when a car takes them, and the row below it is the…        | a `title` attribute on the same tile as `page.stats.avgPickupTime`; text of `docs.play.statistics.html` word for word                                                 |
 | `page.stats.avgRideTime`            | Avg ride time                                                                                                  | the other half: boarding to stepping out, the span the two delivery times above it do not name                                                                        |
 | `page.stats.avgRideTimeTitle`       | The clock starts when a car takes a passenger and stops when they step out at their floor, so this and…        | a `title` attribute on the same tile as `page.stats.avgRideTime`; text of `docs.play.statistics.html` word for word                                                   |
 | `page.stats.maxWaitTime`            | Max delivery time                                                                                              | likewise, and this is the figure the eight wait-limited levels are judged on                                                                                          |
-| `page.stats.maxWaitTimeTitle`       | The largest such total any one passenger has reached, which keeps climbing while somebody is still…            | a `title` attribute on the same tile as `page.stats.maxWaitTime`; what that paragraph adds about the maximum alone                                                    |
+| `page.stats.maxWaitTimeTitle`       | The longest any one passenger's whole journey has run, which keeps climbing while somebody is still…           | a `title` attribute on the same tile as `page.stats.maxWaitTime`; what that paragraph adds about the maximum alone                                                    |
 | `page.stats.moves`                  | Moves                                                                                                          |                                                                                                                                                                       |
 | `page.stats.movesTitle`             | One move is counted each time a car crosses the halfway mark between one floor and the next                    | a `title` attribute on the same tile as `page.stats.moves`                                                                                                            |
 | `page.stats.stops`                  | Stops                                                                                                          | door openings rather than floors crossed, so a long trip is many of the row above and one of this one                                                                 |
@@ -242,7 +243,7 @@ One of these is read. The editor's skeleton completion inserts `docs.basics.exam
 the program the popup offers and the program the help page walks through are the same bytes in
 whichever language the reader is in; it is filed here rather than under `src/ui/completions.ts`
 because this is where its wording is decided, and the popup borrows it. It is also why that one
-key sits in `src/i18n/en.ts` while the other 86 sit in `src/i18n/docs-en.ts`. Those 86 have no
+key sits in `src/i18n/en.ts` while the other 92 sit in `src/i18n/docs-en.ts`. Those 92 have no
 call site: their English is on screen in `documentation.html` and their Russian in
 `documentation.ru.html`. `src/page.test.ts` holds every one of them to being the same text as
 the passage it was lifted from, in both languages, and its "leaves no docs.\* message unchecked"
