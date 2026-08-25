@@ -248,6 +248,21 @@ function statValue(elements: AppElements, stat: string): string {
 }
 
 /**
+ * The verdict card's headline, as it is read on the page.
+ *
+ * The `<h3>` carries the star badge after the title, and behind it the medal's
+ * name for a screen reader, so `textContent` would run all three together. The
+ * title is the element's own first text node; `widgets/verdict-toast` owns the
+ * two that follow and tests them itself.
+ *
+ * @param elements - The page shell the app was built over.
+ * @returns The headline, or `""` if the card is not showing one.
+ */
+function verdictTitle(elements: AppElements): string {
+  return requireElement(".verdict h3", elements.feedback).firstChild?.textContent ?? "";
+}
+
+/**
  * The code slot switcher's own buttons, drawn inside the editor pane's mount
  * rather than a dedicated `elements.codeSlots` region now.
  *
@@ -419,7 +434,7 @@ describe("App level outcome", () => {
     app.world?.trigger("stats_changed");
 
     expect(app.world?.levelEnded).toBe(true);
-    expect(requireElement(".verdict h3", elements.feedback).textContent).toBe("Success!");
+    expect(verdictTitle(elements)).toBe("Success!");
     expect(requireElement(".verdict a", elements.feedback).getAttribute("href")).toBe("#level=3");
   });
 
@@ -429,7 +444,7 @@ describe("App level outcome", () => {
 
     app.world?.trigger("stats_changed");
 
-    expect(requireElement(".verdict h3", elements.feedback).textContent).toBe("Level failed");
+    expect(verdictTitle(elements)).toBe("Level failed");
     expect(elements.feedback.querySelector("a")).toBeNull();
   });
 
@@ -446,11 +461,9 @@ describe("App level outcome", () => {
     lost.app.startLevel(2);
     lost.app.world?.trigger("stats_changed");
 
-    expect(requireElement(".verdict h3", won.elements.feedback).textContent).toBe("Получилось!");
+    expect(verdictTitle(won.elements)).toBe("Получилось!");
     expect(requireElement(".verdict p", won.elements.feedback).textContent).toBe("Уровень пройден");
-    expect(requireElement(".verdict h3", lost.elements.feedback).textContent).toBe(
-      "Уровень провален",
-    );
+    expect(verdictTitle(lost.elements)).toBe("Уровень провален");
     expect(requireElement(".verdict p", lost.elements.feedback).textContent).toBe(
       "Может быть, программу стоит доработать?",
     );
@@ -501,6 +514,11 @@ describe("App level outcome", () => {
 
     const stars = requireElement(".verdict h3 .stars", elements.feedback);
     expect(stars.getAttribute("data-tier")).toBe("bronze");
+    // And says so in words too, since the stars are icons and icons are
+    // `aria-hidden`.
+    expect(requireElement(".verdict h3 .visually-hidden", elements.feedback).textContent).toBe(
+      "Level stars: Bronze",
+    );
     expect(elements.feedback.querySelector(".verdict-more")).toBeNull();
   });
 
@@ -573,7 +591,7 @@ describe("App instant run", () => {
     expect(queryAll(".floor", elements.world)).toHaveLength(4);
     expect(queryAll(".elevator", elements.world)).toHaveLength(2);
     expect(app.world?.levelEnded).toBe(true);
-    expect(requireElement(".verdict h3", elements.feedback).textContent).toBe("Success!");
+    expect(verdictTitle(elements)).toBe("Success!");
     // The button is back to its ready state, not stuck reading "Crunching...":
     // clearing `#instantRunHandle` when `stats_changed` reaches a verdict is
     // what a crunch gets in place of the relabeling an animated run's
@@ -602,7 +620,7 @@ describe("App instant run", () => {
     }
 
     expect(app.world?.levelEnded).toBe(true);
-    expect(requireElement(".verdict h3", elements.feedback).textContent).toBe("Level failed");
+    expect(verdictTitle(elements)).toBe("Level failed");
   });
 
   it("surfaces a player-code error during a crunch through the same banner as any other run, and recovers the button", () => {
@@ -655,7 +673,7 @@ describe("App instant run", () => {
 
     expect(app.world).not.toBe(before);
     expect(app.world?.levelEnded).toBe(true);
-    expect(requireElement(".verdict h3", elements.feedback).textContent).toBe("Success!");
+    expect(verdictTitle(elements)).toBe("Success!");
   });
 
   it("is what Start over does on that stop too", () => {
@@ -688,7 +706,7 @@ describe("App instant run", () => {
     // And the same for a run that ends the other way: a verdict is a verdict.
     app.startLevel(2); // fails at once
     app.runInstantly();
-    expect(requireElement(".verdict h3", elements.feedback).textContent).toBe("Level failed");
+    expect(verdictTitle(elements)).toBe("Level failed");
     expect(queryAll(".floor", elements.world)).toHaveLength(5);
     expect(queryAll(".elevator", elements.world)).toHaveLength(1);
   });
@@ -1230,7 +1248,7 @@ describe("App learning track", () => {
 
     endRun(app, true);
 
-    expect(requireElement(".verdict h3", elements.feedback).textContent).toBe("Success!");
+    expect(verdictTitle(elements)).toBe("Success!");
     const link = requireElement(".verdict a", elements.feedback);
     expect(link.getAttribute("href")).toBe(`#level=${levelAt(1).id}`);
     // "Next level" is what the shared template writes into every such link,
@@ -1246,9 +1264,7 @@ describe("App learning track", () => {
 
     endRun(app, true);
 
-    expect(requireElement(".verdict h3", elements.feedback).textContent).toBe(
-      "The track is finished",
-    );
+    expect(verdictTitle(elements)).toBe("The track is finished");
     const link = requireElement(".verdict a", elements.feedback);
     expect(link.getAttribute("href")).toBe("#level=1");
     expect(link.textContent.trim()).toBe("Go to level 1");
@@ -1315,7 +1331,7 @@ describe("App learning track", () => {
 
     endRun(app, false);
 
-    expect(requireElement(".verdict h3", elements.feedback).textContent).toBe("Level failed");
+    expect(verdictTitle(elements)).toBe("Level failed");
     expect(elements.feedback.querySelector("a")).toBeNull();
   });
 
@@ -1351,7 +1367,7 @@ describe("App learning track", () => {
     setLocale("ru");
     app.relocalize();
 
-    expect(requireElement(".verdict h3", elements.feedback).textContent).toBe("Получилось!");
+    expect(verdictTitle(elements)).toBe("Получилось!");
     const link = requireElement(".verdict a", elements.feedback);
     expect(link.getAttribute("href")).toBe(`#level=${levelAt(1).id}`);
     expect(link.textContent.trim()).toBe("Следующий учебный уровень");
@@ -1758,7 +1774,7 @@ describe("App Skyscraper block", () => {
 
     endRun(app, false);
 
-    expect(requireElement(".verdict h3", elements.feedback).textContent).toBe("Level failed");
+    expect(verdictTitle(elements)).toBe("Level failed");
     expect(readBestSkyscraperTiers(storage)).toEqual(new Map());
   });
 
@@ -2773,13 +2789,13 @@ describe("App.relocalize", () => {
     const { app, elements } = setUp();
     app.startLevel(1);
     app.world?.trigger("stats_changed");
-    expect(requireElement(".verdict h3", elements.feedback).textContent).toBe("Success!");
+    expect(verdictTitle(elements)).toBe("Success!");
 
     setLocale("ru");
     app.relocalize();
 
     expect(queryAll(".verdict", elements.feedback)).toHaveLength(1);
-    expect(requireElement(".verdict h3", elements.feedback).textContent).toBe("Получилось!");
+    expect(verdictTitle(elements)).toBe("Получилось!");
     expect(requireElement(".verdict p", elements.feedback).textContent).toBe("Уровень пройден");
     // Redrawn from the remembered outcome, so the way on is offered again too,
     // and to the same level.

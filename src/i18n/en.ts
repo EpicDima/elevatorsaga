@@ -587,6 +587,12 @@ elevator.goingDownIndicator(false);`,
   "game.feedback.success.message": "Level completed",
   "game.feedback.failure.title": "Level failed",
   "game.feedback.failure.message": "Maybe your program needs an improvement?",
+  // The medal the run just won, read out where the card's star badge is only
+  // looked at: sprite icons are `aria-hidden`, and neither the title above nor
+  // the hint below — which is about the *next* star — ever says which one was
+  // earned. Same shape as `game.goalBar.trigger.titleEarned`, and for its
+  // reason: a colon takes a `game.goalBar.tier.*` name as it comes.
+  "game.feedback.tierEarned": "Level stars: {tier}",
   "game.feedback.next": "Next level",
   // The verdict card's close button. It puts the card away and does nothing
   // else — "Got it" rather than "Close" because that is what the player is

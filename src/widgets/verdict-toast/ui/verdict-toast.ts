@@ -18,7 +18,7 @@
  */
 
 import type { LevelTier } from "#entities/level-tier/index.ts";
-import { tierBadgeMarkup } from "#entities/level-tier/index.ts";
+import { TIER_NAME_KEY, tierBadgeMarkup } from "#entities/level-tier/index.ts";
 import { t } from "#i18n/index.ts";
 import { requireElement } from "#shared/lib/dom.ts";
 import { iconMarkup, spriteIconMarkup } from "#shared/ui/icon.ts";
@@ -47,8 +47,9 @@ export interface VerdictToastData {
   /** Link to the next level, or `""` for no link. */
   readonly url: string;
   /**
-   * The tier earned, for a badge beside the title — `undefined` to draw no
-   * badge at all (a loss, a tutorial level, or any run with no tier concept).
+   * The tier earned, for a badge beside the title and the medal's name behind
+   * it — `undefined` to draw neither (a loss, a tutorial level, or any run with
+   * no tier concept).
    */
   readonly tier: LevelTier | undefined;
 }
@@ -70,7 +71,18 @@ const CLOSE_SELECTOR = ".verdict-close";
  */
 export function verdictToastTemplate(data: VerdictToastData): string {
   const mark = spriteIconMarkup(data.won ? "check" : "x");
-  const stars = data.tier === undefined ? "" : tierBadgeMarkup(data.tier);
+  // The badge is icons, and every sprite icon is `aria-hidden`, so the medal a
+  // run just won would otherwise reach nobody who is not looking at the stars:
+  // the title says "Success!" and the hint says what the *next* star needs. The
+  // name beside them is the same one the goal bar's trigger reads, in the same
+  // colon shape, which is what keeps a tier's name nominative in Russian.
+  const stars =
+    data.tier === undefined
+      ? ""
+      : markup`${raw(tierBadgeMarkup(data.tier))}<span class="visually-hidden">${t(
+          "game.feedback.tierEarned",
+          { tier: t(TIER_NAME_KEY[data.tier]) },
+        )}</span>`;
   // Absent rather than hidden when there is nothing to say, the way the star
   // badge already is: the card is built fresh for every verdict, so there is
   // never an element left over to toggle `hidden` on.

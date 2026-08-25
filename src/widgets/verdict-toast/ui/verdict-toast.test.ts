@@ -154,9 +154,23 @@ describe("verdictToastTemplate", () => {
     expect(lit).toEqual([true, true, true]);
   });
 
+  it("names the medal beside the badge, for the readers icons do not reach", () => {
+    // The stars are sprite icons and every one of them is `aria-hidden`, so
+    // without this the whole card announces "Success! Level completed" however
+    // the run was rated. The name goes in the headline with the badge, and off
+    // the page: a sighted player is already reading the stars.
+    const element = parse(verdictToastTemplate(baseData({ tier: "silver" })));
+
+    const name = element.querySelector("h3 > .visually-hidden");
+    expect(name?.textContent).toBe("Level stars: Silver");
+  });
+
   it("draws no badge at all when there is no tier", () => {
     const html = verdictToastTemplate(baseData());
     expect(html).not.toContain("stars");
+    // And no name either: there is no medal to name, and "Level stars:" with
+    // nothing after it is worse than silence.
+    expect(html).not.toContain("visually-hidden");
   });
 
   it("writes the hint as the trusted markup it is", () => {
