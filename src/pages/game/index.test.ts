@@ -236,9 +236,8 @@ function goalDescription(elements: AppElements): string {
 }
 
 /**
- * A stat tile's live value, out of the panel `widgets/stats-panel` draws —
- * `[data-stat="${stat}"] .tile-val`, not the bare class name `presentStats`
- * used to write the same figure under.
+ * A stat tile's live value, out of the panel `widgets/stats-panel` draws:
+ * `[data-stat="${stat}"] .tile-val`.
  *
  * @param elements - The page shell the app was built over.
  * @param stat - The tile's `data-stat`, camelCased the same as `StatsSnapshot`.
@@ -568,8 +567,8 @@ describe("App instant run", () => {
 
     app.runInstantly();
 
-    // `presentWorld` is skipped while the crunch runs -- nothing is drawn for
-    // frames nobody watches -- and run once at the end, so the state the
+    // `presentBuildingStage` is skipped while the crunch runs -- nothing is
+    // drawn for frames nobody watches -- and run once at the end, so the state the
     // verdict is about is on screen behind it.
     expect(queryAll(".floor", elements.world)).toHaveLength(4);
     expect(queryAll(".elevator", elements.world)).toHaveLength(2);
@@ -2734,7 +2733,7 @@ describe("App.relocalize", () => {
     expect(car.ariaLabel).toBe("Лифт 0");
     expect(carButton?.ariaLabel).toBe("Ехать на этаж 1");
     // The same three floors and the same one car, and the very elements that
-    // were there before: `presentWorld` appends and subscribes, so a second call
+    // were there before: `presentBuildingStage` appends and subscribes, so a second call
     // would leave six floors, two cars and two listeners behind every click.
     expect(queryAll(".floor", elements.world)).toHaveLength(3);
     expect(queryAll(".elevator", elements.world)).toHaveLength(1);
@@ -3111,10 +3110,10 @@ describe("containsFocus", () => {
   });
 
   it("ignores focus on a container itself, which survives being emptied", () => {
-    // .world carries tabindex="0" so the building can be scrolled by keyboard;
-    // emptying its contents does not disturb the focus on it.
+    // .world is focusable so the verdict card has somewhere to put the
+    // keyboard; emptying its contents does not disturb the focus on it.
     const { container } = mountContainer();
-    container.setAttribute("tabindex", "0");
+    container.setAttribute("tabindex", "-1");
     container.focus();
     expect(containsFocus([container])).toBe(false);
   });
