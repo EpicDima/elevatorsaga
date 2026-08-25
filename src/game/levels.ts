@@ -539,7 +539,7 @@ export const levels: readonly Level[] = [
     // 40,000 measured seeds (20000-59999), not literally zero but far too
     // thin to read a threshold from. GOOD_CODE_BALANCED does win it more
     // often, though still rarely: 273 wins in that same 40,000, about seven
-    // in a thousand. As with levels 12 to 14 above, there is no second
+    // in a thousand. As with levels 12 to 14 below, there is no second
     // program's distribution to read silver from, so both tiers come from
     // GOOD_CODE_BALANCED's own wins: the median of their finishing times is
     // silver's bar (68.6s, cleared by 49% of those 273 wins), the fastest
