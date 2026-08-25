@@ -1146,13 +1146,13 @@ export class App {
 
   /**
    * The seed line for whatever is on screen, for a caller mounted once at
-   * startup rather than redrawn on every run the way {@link #drawLevelBar}
+   * startup rather than redrawn on every run the way {@link #redrawForLevel}
    * is.
    *
    * A snapshot, not a subscription: reading this again after a later run
    * returns that run's seed, but nothing here pushes the new value out on its
    * own. {@link AppOptions.onSeedChange} is the push side, called with this
-   * same getter's value every time {@link #drawLevelBar} runs — a caller
+   * same getter's value every time {@link #redrawForLevel} runs — a caller
    * built once, before the first run, wants both: this getter for the run the
    * router already resolved before {@link startRouter} returns, and the
    * callback for every run after it.
@@ -1788,7 +1788,7 @@ export class App {
     // about.
     //
     // The panel is the odd one of the three: it is not emptied here but at the
-    // end of `#drawLevelBar`. One question covers all three because it is
+    // end of `#redrawForLevel`. One question covers all three because it is
     // asked of all three up front, and answered at the very end of this method
     // -- by which time every region that could have held the focus is gone,
     // whichever of them did.
@@ -1805,7 +1805,7 @@ export class App {
       level,
       getVerdict: () => level.condition.evaluate(world),
     });
-    this.#drawLevelBar();
+    this.#redrawForLevel();
     // Skipped entirely for a crunch: this is the one line that draws the
     // building, and an instant run's whole point is that nothing does. The
     // statistics panel just above is not behind this condition -- it
@@ -1890,7 +1890,7 @@ export class App {
         if (tier !== null) {
           recordLevelTier(this.#storage, levelIndex, tier);
           // The one place the switcher has to be redrawn between two runs
-          // rather than by the next one's own `#drawLevelBar`: the tile
+          // rather than by the next one's own `#redrawForLevel`: the tile
           // just earned or improved a tier, and the player may open the
           // popover before starting anything else.
           this.#levelSwitcher.update();
@@ -1977,7 +1977,7 @@ export class App {
    * where {@link #goalBar}'s own `update()` is enough to re-translate it
    * without rebuilding it — see that field's own doc comment.
    */
-  #drawLevelBar(): void {
+  #redrawForLevel(): void {
     if (this.#run === undefined) {
       return;
     }
@@ -2007,14 +2007,15 @@ export class App {
    * `index.html` all know by that name is a bigger edit than this one, for a
    * word rather than a behavior.
    *
-   * Hung off the end of {@link #drawLevelBar} rather than given call sites
+   * Hung off the end of {@link #redrawForLevel} rather than given call sites
    * of its own, because that method's two callers are exactly the two moments
    * the panel has to be drawn again: the start of a run, which is the only
    * thing that can change which level is on screen, and a language change, which
    * has to reach every word on the page — and the panel is most of the words on
    * it. The alternative, calling this from both places, is two call sites to
    * keep in step and a third to forget when a third caller appears. It runs
-   * after the bar so that the page is written in the order it is read.
+   * after the widgets above it so that the page is written in the order it is
+   * read.
    *
    * Emptying is not an afterthought but the common case: nineteen levels, the
    * sandbox and most of the Skyscraper block all reach here, and every one of
@@ -2129,7 +2130,7 @@ export class App {
    * The five regions and why each is done the way it is:
    *
    * - The goal bar, the level switcher, the editor pane and the learning
-   *   track's panel are rebuilt from scratch by {@link #drawLevelBar},
+   *   track's panel are rebuilt from scratch by {@link #redrawForLevel},
    *   which is cheap and correct: none of the four subscribe to the world.
    * - The statistics panel's own `update()` relabels its captions the same
    *   way; its *figures* go through `Intl` and are left alone, since they are
@@ -2170,15 +2171,15 @@ export class App {
     // is the one being arrived at, so a pane updated first would compare the
     // two languages and hide the button.
     this.#editor.relocalize();
-    // Unconditional, unlike the bar: the run controls and the editor pane are
-    // on screen from the first paint, before any level has started, so
+    // Unconditional, unlike `#redrawForLevel`: the run controls and the editor
+    // pane are on screen from the first paint, before any level has started, so
     // they have words to rewrite even when there is no world to redraw around
     // them.
     this.#controls.update();
     this.#editorPane.update();
     const world = this.world;
     if (world !== undefined) {
-      this.#drawLevelBar();
+      this.#redrawForLevel();
       this.#statsPanel?.update();
       world.trigger("stats_display_changed");
       relabelWorld(this.#elements.world);

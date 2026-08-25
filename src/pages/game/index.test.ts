@@ -2288,7 +2288,7 @@ describe("App seed", () => {
   it("tells that caller again on a language change, even when the seed itself did not change", () => {
     // `seedPanelTemplate` calls `t(...)` fresh on every render, so a caller
     // holding stale markup is stale in the same way the rest of the level
-    // bar would be without `relocalize`'s own call to `#drawLevelBar`.
+    // bar would be without `relocalize`'s own call to `#redrawForLevel`.
     const seen: (SeedLinkData | null)[] = [];
     const { app } = setUp(INERT_CODE, new MemoryStorage(), (seed) => seen.push(seed));
     app.handleRoute(...routeFor("#level=1,seed=issue-61"));
