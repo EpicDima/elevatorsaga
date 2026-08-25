@@ -308,16 +308,37 @@ export function presentBuildingStage(parent: HTMLElement, world: World): Buildin
     }
   }
 
-  stage.addEventListener("scroll", () => {
-    updateStageEdges();
-    placeCard();
-  });
+  /** Whether the stage is scrolled to the bottom, within a pixel of rounding. */
+  function isAtGround(): boolean {
+    return stage.scrollTop >= stage.scrollHeight - stage.clientHeight - 1;
+  }
 
   /**
    * Whether the opening scroll to the lobby is finished with — either it landed,
    * or the window in which this widget is still allowed to move the view closed.
    */
   let groundShown = false;
+
+  /**
+   * Whether the view is parked at the lobby, as of the last geometry pass or the
+   * last scroll.
+   *
+   * A different question from {@link groundShown}, which is about the opening
+   * scroll alone. Every geometry pass re-lays the floors out under a scroll
+   * position that does not move with them, so a stage that was showing the
+   * ground comes out of a window one drag of the splitter shorter showing the
+   * middle of the building — and the lobby is where every car is parked, so what
+   * a resize takes away is the elevators. Re-pinned at the end of a pass while
+   * this holds, and a player who has scrolled up to watch the top floor turns it
+   * false and keeps their view.
+   */
+  let atGround = true;
+
+  stage.addEventListener("scroll", () => {
+    atGround = isAtGround();
+    updateStageEdges();
+    placeCard();
+  });
 
   /**
    * Scrolls the stage down to the lobby.
@@ -336,7 +357,9 @@ export function presentBuildingStage(parent: HTMLElement, world: World): Buildin
    *
    * Hence: try again on every geometry pass, and stop for good once a pass finds
    * the stage already scrolled to the bottom, because from that point the scroll
-   * position is the player's and a resize must not yank them back to the lobby.
+   * position is the player's. Which is not the same as saying the view is then
+   * left alone for good — see {@link atGround}, which puts a view that never
+   * left the lobby back there after a pass has moved the floors under it.
    */
   function showGround(): void {
     if (groundShown) {
@@ -607,6 +630,13 @@ export function presentBuildingStage(parent: HTMLElement, world: World): Buildin
     // pointing at last frame's position until the next hover.
     hideCard();
     showGround();
+    if (atGround) {
+      stage.scrollTop = stage.scrollHeight;
+    }
+    // Read back rather than assumed: a pass can put the view at the bottom
+    // without anyone scrolling — a building that has just shrunk to fit leaves
+    // whoever was at the roof standing on the ground as well.
+    atGround = isAtGround();
     updateStageEdges();
   }
 

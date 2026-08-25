@@ -598,10 +598,41 @@ describe("presentBuildingStage", () => {
     expect(stage.scrollTop).toBe(1000);
 
     presenter.recomputeGeometry();
+    // Up to the roof, through a scroll event: that event is how a browser tells
+    // the widget where the view has got to, and without it a stage this one had
+    // just parked at the lobby would still be believed to be there.
     stage.scrollTop = 0;
+    stage.dispatchEvent(new Event("scroll"));
     presenter.recomputeGeometry();
 
     expect(stage.scrollTop).toBe(0);
+  });
+
+  it("puts the lobby back in the window when a pass moves the floors under it", () => {
+    // The view is handed over, but the floors are not: every geometry pass
+    // re-lays them out under a scroll position that does not move with them, so
+    // a stage showing the ground comes out of a window one drag of the splitter
+    // shorter showing the middle of the building -- and the lobby is where
+    // every car is parked, so what a resize takes away is the elevators. The
+    // opening scroll cannot answer this one: it has finished by then.
+    const world = createWorld({ floorCount: 8, elevatorCount: 1 });
+    const { stage, presenter } = mount(world, 800, 218);
+    stubScroll(stage, { scrollHeight: 1000 });
+
+    presenter.recomputeGeometry();
+    presenter.recomputeGeometry();
+    // The stub does not clamp the way a scroll container does, so the view is
+    // put where a browser would have left it: at the foot of the 782px of room
+    // a 218px box has for a 1000px building.
+    stage.scrollTop = 782;
+    stage.dispatchEvent(new Event("scroll"));
+
+    // And now the box is 100px, so there is 900px of room and the view that was
+    // on the ground is 118px above it.
+    Object.defineProperty(stage, "clientHeight", { value: 100, configurable: true });
+    presenter.recomputeGeometry();
+
+    expect(stage.scrollTop).toBe(1000);
   });
 
   it("stops reaching for the lobby once its opening frames are spent", () => {
@@ -639,10 +670,18 @@ describe("presentBuildingStage", () => {
     const scrollsWhileSettling = scrolls;
 
     presenter.recomputeGeometry();
+    const afterOnePass = scrolls;
+    presenter.recomputeGeometry();
 
     expect(frames).toHaveLength(0);
     expect(scrollsWhileSettling).toBeGreaterThan(0);
-    expect(scrolls).toBe(scrollsWhileSettling);
+    // One write from the first pass, which finds the view where the pass before
+    // it left the view -- at the lobby, as far as anything here knows -- and
+    // puts it back there. On this stage that write moves nothing, the pass
+    // reads back that it moved nothing, and the pass after it writes nothing at
+    // all. What must not survive the opening window is the *loop*.
+    expect(afterOnePass).toBe(scrollsWhileSettling + 1);
+    expect(scrolls).toBe(afterOnePass);
   });
 
   it("gives the stage a tab stop exactly while there is somewhere to scroll to", () => {
