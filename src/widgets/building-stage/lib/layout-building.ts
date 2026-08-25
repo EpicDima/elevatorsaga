@@ -40,13 +40,13 @@ export const MIN_SHAFT = 46;
 const DENSE_FLOOR_THRESHOLD = 58;
 
 /** How wide the corridor between the floor numbers and the shafts is, in pixels. */
-export const CORRIDOR = 170;
+const CORRIDOR = 170;
 
 /** Whether a floor's call lamps and floor number have room to stack ("full"), or must pack tighter ("compact"). */
-export type BuildingDensity = "full" | "compact";
+type BuildingDensity = "full" | "compact";
 
 /** What the building is asked to fit into, and what it is built from. */
-export interface BuildingLayoutInput {
+interface BuildingLayoutInput {
   /** The stage's available height in pixels (`stage.clientHeight`). */
   readonly stageHeight: number;
   /** The stage's available width in pixels (`stage.clientWidth`). */
@@ -72,7 +72,7 @@ export interface BuildingLayoutInput {
 }
 
 /** The building's computed geometry: everything the DOM-wiring step needs to paint it. */
-export interface BuildingLayout {
+interface BuildingLayout {
   /** Each floor's height in pixels, bottom to top (index 0 = the bottom floor). */
   readonly floorHeights: readonly number[];
   /** Each floor's offset from the building's bottom in pixels, bottom to top. */
