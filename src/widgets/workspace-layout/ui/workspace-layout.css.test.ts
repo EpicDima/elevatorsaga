@@ -65,22 +65,23 @@ describe("the game pane's column", () => {
     }
   });
 
-  it("gives the building a whole screenful whatever the card above it is doing", () => {
-    // A stated height, and what it prevents is invisible in a screenshot:
-    // `.stage` re-lays the building out to the height it is given, through a
-    // `ResizeObserver`, so a box sized from whatever the card leaves would
-    // redraw the whole house every time a player opened a hint -- the floors
-    // changing height under the cursor at the moment the lesson is telling
-    // them to look at one.
+  it("lets the building give back the room the card above it takes", () => {
+    // A screenful is the basis and shrinking is what bends it. Rigid, this box
+    // stood a whole screenful tall underneath the card, which put the lobby
+    // exactly the card's height below the fold -- and the lobby is where every
+    // car parks, so a briefing route opened on a roof with no elevator in it.
     const world = ruleBody(".stagearea > .world");
     expect(declaration(world, "block-size", ".stagearea > .world")).toBe("100%");
-    // Rigid, both of them, because this column overflows on purpose. `.world`
-    // states `min-block-size: 0` in `widgets/building-stage`, so left
-    // shrinkable it has no content-based floor to be stopped at and would give
-    // a long lesson's overflow straight back out of the house; the card's own
-    // automatic minimum is the height of wrapping prose, which is very nearly
-    // nothing. What an over-full column here has to do is scroll.
-    expect(declaration(world, "flex", ".stagearea > .world")).toBe("0 0 auto");
+    expect(declaration(world, "flex", ".stagearea > .world")).toBe("0 1 auto");
+    // Two floors at `MIN_FLOOR`, and a floor against collapse rather than a
+    // size anything aims at: `.world` states `min-block-size: 0` in
+    // `widgets/building-stage`, so without this a lesson with its disclosures
+    // open -- 961px to 1616px against 253px to 280px closed -- would take the
+    // house down to nothing instead of scrolling the column.
+    expect(declaration(world, "min-block-size", ".stagearea > .world")).toBe("min(96px, 100%)");
+    // The card stays rigid, though. Its automatic minimum is the height of
+    // wrapping prose, which is very nearly nothing, so a shrinkable card would
+    // be squeezed instead of scrolled to.
     expect(declaration(ruleBody(".stagearea > .tutorial"), "flex", ".stagearea > .tutorial")).toBe(
       "0 0 auto",
     );

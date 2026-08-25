@@ -319,8 +319,8 @@ async function main(): Promise<void> {
   // The middle row is a box of its own, `.stagearea`, holding whichever card
   // the level has earned -- the learning track's lesson, a Skyscraper level's
   // briefing -- above the building and inside one scroll with it, so the card
-  // is as wide as the pane allows and the house below it keeps its whole
-  // screenful. It is built here rather than shipped in `index.html` for the
+  // is as wide as the pane allows and the house below it gives back the room
+  // the card takes. It is built here rather than shipped in `index.html` for the
   // reason `.workspace` itself is: it is not a region anything draws into, it
   // is the shell those regions are arranged in, and the shell is assembled at
   // this one point. Building it here also leaves `.controls` where the markup
