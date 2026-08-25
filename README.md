@@ -42,22 +42,22 @@ Everything here is additive: no level got easier or harder, and a program writte
 is scored by the same rules.
 
 - **A learning track.** Eight small buildings that teach the API before the levels ask for it,
-  behind the **Learning track** link in the header. Seven of them hand you a program that runs and
-  loses, and ask you to work out why: an elevator that only visits one floor, a destination queue
-  that is filled and never started, indicators that lie to the passengers. Three hints are there
-  when you want them — the third is the answer — beside a note on what the run was actually doing.
-  The track remembers what you have cleared, so the header link takes you to the first level you
-  have not, and the eighth of them is level 1's building and level 1's bar, so the program that
-  clears it is one you can take straight into level 1. See
-  [The learning track](#the-learning-track).
-- **A jump list for the levels.** Every level is a link in the bar above the building, so going
-  back to level 3 to try another program on it is one click rather than an edit to the address bar.
+  under **Learning track** in the level menu at the top of the page. Seven of them hand you a
+  program that runs and loses, and ask you to work out why: an elevator that only visits one floor,
+  a destination queue that is filled and never started, indicators that lie to the passengers.
+  Three hints are there when you want them — the third is the answer — beside a note on what the run
+  was actually doing. The track remembers what you have cleared and marks those tiles in the menu,
+  and the eighth of them is level 1's building and level 1's bar, so the program that clears it is
+  one you can take straight into level 1. See [The learning track](#the-learning-track).
+- **A jump list for the levels.** Every level is a tile in the level menu at the top of the page, so
+  going back to level 3 to try another program on it is one click rather than an edit to the address
+  bar.
   Nothing is locked: the list is a table of contents, not a gate, and any level in it opens from the
   first visit whether or not the ones below it have been cleared. What you have earned shows as
   stars on the tile instead. The one being played is marked, and free play sits in a block of its
   own under the numbered ones.
-- **Repeatable runs.** Every run draws its passengers from a seed, which is shown in the bar and
-  printed to the console as the run starts. Following the seed link, or writing `#seed=…` yourself,
+- **Repeatable runs.** Every run draws its passengers from a seed, which is shown in the settings
+  menu and printed to the console as the run starts. Following the seed link, or writing `#seed=…` yourself,
   brings the same people back in the same order to every restart — enough to compare two programs
   on one problem instead of on two different ones. A second link drops the seed again when you are
   done with it. It does not make a run frame-for-frame identical: the browser decides how long a
@@ -109,8 +109,8 @@ is scored by the same rules.
 
 Level 1 hands you a building, a starter program that sends one elevator between two floors and never
 explains itself, and a reference page that assumes you already know which of its methods you are
-looking for. The track is what comes before that: eight small buildings, behind the **Learning
-track** link in the header or at `#level=tutorial-1`, each one built around a single mistake.
+looking for. The track is what comes before that: eight small buildings, under **Learning track** in
+the level menu or at `#level=tutorial-1`, each one built around a single mistake.
 
 Every level of it starts with a program that runs and loses, and asks you to find out why. The
 elevator that only ever visits one of two floors; the handler nobody subscribed; the passengers
@@ -478,14 +478,14 @@ pasted link, so both are gone.
 
 ### Seeds
 
-Every run draws its passengers from a seeded generator, and shows its seed in the bar above the
-building as well as printing it to the console. Put that seed back in the URL and the same people
+Every run draws its passengers from a seeded generator, and shows its seed in the settings menu as
+well as printing it to the console. Put that seed back in the URL and the same people
 arriving in the same order come back — from the Restart button, from <kbd>Ctrl</kbd>+<kbd>Enter</kbd>
 and from a reload alike.
 
-You do not have to type it. When the URL pins no seed, the seed in the bar is a link that pins the
+You do not have to type it. When the URL pins no seed, the seed in the menu is a link that pins the
 one currently running, so a run worth keeping is one click away after you have seen it. When the URL
-does pin one, the bar shows the value with a **new draw** link beside it, which drops the seed and
+does pin one, the menu shows the value with a **new draw** link beside it, which drops the seed and
 starts again on fresh passengers. Both links name the level as well as the seed, so either one
 is a complete address you can paste at someone.
 
@@ -493,7 +493,7 @@ A URL with no `seed` draws a fresh one on every restart, which is deliberate: a 
 away from is not what you want when you are stuck on a level.
 
 None of this applies on the learning track, where the seed belongs to the level rather than to you:
-there is no seed line in the bar, nothing is printed, and every restart replays the same passengers.
+there is no seed line in the menu, nothing is printed, and every restart replays the same passengers.
 See [The learning track](#the-learning-track).
 
 **What a seed fixes is the passenger stream, and only that.** The building — how many floors, how
