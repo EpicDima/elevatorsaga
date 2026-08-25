@@ -214,7 +214,7 @@ const MAX_FRACTION_DIGITS = 20;
  *
  * `Intl.NumberFormat` defaults to three decimals, which is right for prose and
  * wrong for a number the player typed. The sandbox is configured from the
- * address bar and the level bar is the only place its parameters can be
+ * address bar and the goal bar is the only place its parameters can be
  * read back, so a rate of `0.0625` rounded to `0.063` on the way to the screen
  * is the bar reporting a building the player is not running. Worse,
  * `spawnrate=9.9999` would print `10`, which is also what `spawnrate=100000`
@@ -365,7 +365,7 @@ export function formatValue(locale: Locale, value: ParamValue): string {
  *
  * Items are strings rather than numbers because they arrive already rendered,
  * markup and all: the caller has had {@link formatNumber} over each of them and
- * wrapped the result in the span the level bar paints numbers with.
+ * wrapped the result in the span the goal bar paints numbers with.
  *
  * @param locale - The locale whose punctuation applies.
  * @param items - The items, already rendered.

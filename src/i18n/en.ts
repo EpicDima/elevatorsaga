@@ -598,7 +598,7 @@ elevator.goingDownIndicator(false);`,
   "game.feedback.more.need.html": "{req} (now {now})",
   "game.codeStatus": "There is an error in your program:",
 
-  // The level bar's own meters and tier popover: `widgets/goal-bar`. Main
+  // The goal bar's own meters and tier popover: `widgets/goal-bar`. Main
   // meter captions reuse "page.stats.*" directly in code rather than
   // duplicating them here — "maxPickupTime" is the one figure that panel
   // never shows, so it is the only caption that needs a key of its own.
