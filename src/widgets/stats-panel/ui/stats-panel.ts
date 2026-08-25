@@ -24,6 +24,15 @@
  * clicking anywhere on the page while reading the extra figures should not
  * have the section collapse under them.
  *
+ * ## Where a figure gets explained
+ *
+ * Every tile carries a `title` saying in one sentence what its figure counts,
+ * written by `redrawCaptions` alongside the caption so that a language change
+ * repaints both. A tooltip rather than a line of prose beside the number: the
+ * panel is a strip under the building with 128px of width per caption, and the
+ * long form of the same explanations is the reference page's statistics
+ * paragraph, `docs.play.statistics.html`.
+ *
  * ## Live text vs. sparkline history
  *
  * `draw` updates every tile's live text on every `stats_display_changed`
@@ -156,6 +165,8 @@ interface TileConfig {
   readonly stat: keyof StatsSnapshot;
   /** The tile's caption key. */
   readonly captionKey: NoParamMessageKey;
+  /** The tooltip key: one sentence saying what the figure counts. Required, so no tile can arrive unexplained. */
+  readonly titleKey: NoParamMessageKey;
   /** Whether the tile sits in the four-tile primary row or behind the disclosure. */
   readonly group: "primary" | "secondary";
   /** Renders the raw snapshot value as display text, digits and unit apart. */
@@ -172,6 +183,7 @@ const TILES: readonly TileConfig[] = [
   {
     stat: "avgWaitTime",
     captionKey: "page.stats.avgWaitTime",
+    titleKey: "page.stats.avgWaitTimeTitle",
     group: "primary",
     format: (value) => formatParts(seconds(value, 1)),
     sparkKey: "avgWaitTime",
@@ -179,6 +191,7 @@ const TILES: readonly TileConfig[] = [
   {
     stat: "maxWaitTime",
     captionKey: "page.stats.maxWaitTime",
+    titleKey: "page.stats.maxWaitTimeTitle",
     group: "primary",
     format: (value) => formatParts(seconds(value, 1)),
     sparkKey: "maxWaitTime",
@@ -186,6 +199,7 @@ const TILES: readonly TileConfig[] = [
   {
     stat: "avgLoadFactorOnMove",
     captionKey: "page.stats.avgLoad",
+    titleKey: "page.stats.avgLoadTitle",
     group: "primary",
     format: (value) => formatParts(percent(value)),
     sparkKey: "avgLoadFactorOnMove",
@@ -193,6 +207,7 @@ const TILES: readonly TileConfig[] = [
   {
     stat: "transportedPerSec",
     captionKey: "page.stats.transportedPerSec",
+    titleKey: "page.stats.transportedPerSecTitle",
     group: "primary",
     format: (value) => formatParts(quantity(value, PER_SECOND_DIGITS)),
     sparkKey: "transportedPerSec",
@@ -200,6 +215,7 @@ const TILES: readonly TileConfig[] = [
   {
     stat: "transportedCounter",
     captionKey: "page.stats.transported",
+    titleKey: "page.stats.transportedTitle",
     group: "secondary",
     format: (value) => formatParts(value),
     sparkKey: "transportedCounter",
@@ -207,6 +223,7 @@ const TILES: readonly TileConfig[] = [
   {
     stat: "avgPickupTime",
     captionKey: "page.stats.avgPickupTime",
+    titleKey: "page.stats.avgPickupTimeTitle",
     group: "secondary",
     format: (value) => formatParts(seconds(value, 1)),
     sparkKey: "avgPickupTime",
@@ -214,6 +231,7 @@ const TILES: readonly TileConfig[] = [
   {
     stat: "avgRideTime",
     captionKey: "page.stats.avgRideTime",
+    titleKey: "page.stats.avgRideTimeTitle",
     group: "secondary",
     format: (value) => formatParts(seconds(value, 1)),
     sparkKey: "avgRideTime",
@@ -221,6 +239,7 @@ const TILES: readonly TileConfig[] = [
   {
     stat: "avgPeoplePerStop",
     captionKey: "page.stats.peoplePerStop",
+    titleKey: "page.stats.peoplePerStopTitle",
     group: "secondary",
     format: (value) => formatParts(decimal(value, 2)),
     sparkKey: "avgPeoplePerStop",
@@ -228,6 +247,7 @@ const TILES: readonly TileConfig[] = [
   {
     stat: "waitingNow",
     captionKey: "game.statsPanel.waitingNow",
+    titleKey: "game.statsPanel.waitingNowTitle",
     group: "secondary",
     format: (value) => formatParts(value),
     sparkKey: "waitingNow",
@@ -235,6 +255,7 @@ const TILES: readonly TileConfig[] = [
   {
     stat: "aboardNow",
     captionKey: "game.statsPanel.aboardNow",
+    titleKey: "game.statsPanel.aboardNowTitle",
     group: "secondary",
     format: (value) => formatParts(value),
     sparkKey: "aboardNow",
@@ -242,18 +263,21 @@ const TILES: readonly TileConfig[] = [
   {
     stat: "elapsedTime",
     captionKey: "page.stats.elapsedTime",
+    titleKey: "page.stats.elapsedTimeTitle",
     group: "secondary",
     format: (value) => formatParts(seconds(value)),
   },
   {
     stat: "moveCount",
     captionKey: "page.stats.moves",
+    titleKey: "page.stats.movesTitle",
     group: "secondary",
     format: (value) => formatParts(value),
   },
   {
     stat: "stopCount",
     captionKey: "page.stats.stops",
+    titleKey: "page.stats.stopsTitle",
     group: "secondary",
     format: (value) => formatParts(value),
   },
@@ -261,7 +285,7 @@ const TILES: readonly TileConfig[] = [
 
 /** The stats panel, already built and drawn once. */
 export interface StatsPanelPresenter {
-  /** Redraws every tile's caption and the disclosure's summary, for a language change. */
+  /** Redraws every tile's caption and tooltip and the disclosure's summary, for a language change. */
   update(): void;
 }
 
@@ -349,10 +373,11 @@ export function presentStatsPanel(parent: HTMLElement, world: World): StatsPanel
 
   const history = createStatsHistory();
 
-  /** Redraws every tile's caption and the disclosure's summary; no live figures. */
+  /** Redraws every tile's caption and tooltip and the disclosure's summary; no live figures. */
   function redrawCaptions(): void {
     for (const ref of refs) {
       ref.capEl.textContent = t(ref.tile.captionKey);
+      ref.rootEl.title = t(ref.tile.titleKey);
     }
     moreSummaryCap.textContent = t("game.statsPanel.more");
   }

@@ -225,8 +225,9 @@ describe("localizePage", () => {
         "Статистика симуляции",
       );
       // The panel's own explanatory tooltips are not checked here, the same
-      // way its captions are not checked above: `widgets/stats-panel` carries
-      // no `title` attribute anywhere in its markup.
+      // way its captions are not checked above: `widgets/stats-panel` writes
+      // every one of its `title` attributes itself, at runtime, into a region
+      // this file leaves empty.
     });
 
     it("tells a crawler what the page is, in the language it is being read in", () => {

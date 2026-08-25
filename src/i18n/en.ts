@@ -59,8 +59,14 @@ export const EN_MESSAGES = {
   "page.world.label": "Building",
   "page.stats.label": "Simulation statistics",
   "page.stats.transported": "Transported",
+  "page.stats.transportedTitle":
+    "How many passengers have reached the floor they asked for, so somebody still riding is not counted yet",
   "page.stats.elapsedTime": "Elapsed time",
+  "page.stats.elapsedTimeTitle":
+    "The run's own clock, which the speed control makes pass faster or slower than real time, and which every other time in this panel is measured in",
   "page.stats.transportedPerSec": "Transported/s",
+  "page.stats.transportedPerSecTitle":
+    "Everyone delivered so far, over the time the run has taken, so it is the whole run's average rather than the rate at this moment",
   // Neither of these is a waiting time, whatever the two keys are called. Both
   // are measured from the moment a passenger appears to the moment they step
   // out of a car at their floor -- `World.registerUser` records the span on
@@ -75,6 +81,8 @@ export const EN_MESSAGES = {
   // upstream score ever posted was measured by them. The two rows between them
   // are the halves neither of them names: the wait, and then the ride.
   "page.stats.avgWaitTime": "Avg delivery time",
+  "page.stats.avgWaitTimeTitle":
+    "From the moment a passenger appears in the building to the moment they step out at the floor they asked for, so the ride counts in it as much as the wait does",
   // Sits under the average rather than beside its own maximum, which the panel
   // does not show, and above the ride it leaves out: the three rows read down
   // as a sum, the whole and then its two parts. "Wait for a car" rather than
@@ -92,6 +100,8 @@ export const EN_MESSAGES = {
   "page.stats.avgRideTimeTitle":
     "The clock starts when a car takes a passenger and stops when they step out at their floor, so this and the wait above it add up to the delivery time",
   "page.stats.maxWaitTime": "Max delivery time",
+  "page.stats.maxWaitTimeTitle":
+    "The largest such total any one passenger has reached, which keeps climbing while somebody is still on their way and never comes down again",
   "page.stats.moves": "Moves",
   "page.stats.movesTitle":
     "One move is counted each time a car crosses the halfway mark between one floor and the next",
@@ -149,9 +159,14 @@ export const EN_MESSAGES = {
   // `presentStats` and the goal bar's own meters already show; these two
   // counts have no production precedent to reuse, because `presentStats`
   // never tracked them. Paired present-tense captions on purpose, so the
-  // two read as opposites of each other at a glance.
+  // two read as opposites of each other at a glance, and a tooltip apiece,
+  // as every other tile in the panel has under "page.stats.*".
   "game.statsPanel.waitingNow": "Waiting now",
+  "game.statsPanel.waitingNowTitle":
+    "How many passengers are standing on a floor at this moment with no car yet carrying them",
   "game.statsPanel.aboardNow": "Riding now",
+  "game.statsPanel.aboardNowTitle":
+    "How many passengers are inside a car at this moment, on their way",
   // Summary text for the "<details>" holding the panel's nine secondary
   // tiles.
   "game.statsPanel.more": "All figures",

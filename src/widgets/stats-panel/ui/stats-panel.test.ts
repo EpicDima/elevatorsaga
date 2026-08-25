@@ -140,6 +140,27 @@ describe("presentStatsPanel", () => {
     expect(requireElement(".more summary .cap", parent).textContent).toBe("All figures");
   });
 
+  it("explains every tile in a tooltip of its own", () => {
+    const parent = setUp(fixtureWorld());
+
+    const tiles = [...parent.querySelectorAll(".tile")];
+    const titles = tiles.map((tile) => tile.getAttribute("title"));
+    // Not one tile left unexplained, and no explanation reused: a caption is
+    // short enough to be read backwards, and every one of them has its own way
+    // of being read backwards.
+    expect(titles.filter((title) => title !== null && title !== "")).toHaveLength(tiles.length);
+    expect(new Set(titles).size).toBe(tiles.length);
+
+    const title = (stat: string): string | null =>
+      requireElement(`.tile[data-stat="${stat}"]`, parent).getAttribute("title");
+    expect(title("moveCount")).toBe(
+      "One move is counted each time a car crosses the halfway mark between one floor and the next",
+    );
+    expect(title("transportedPerSec")).toBe(
+      "Everyone delivered so far, over the time the run has taken, so it is the whole run's average rather than the rate at this moment",
+    );
+  });
+
   it("draws every one of presentStats's eleven figures exactly as presentStats itself would", () => {
     const parent = setUp(worldWithStats());
 
@@ -239,7 +260,7 @@ describe("presentStatsPanel", () => {
     }
   });
 
-  it("update() repaints every caption in place, without rebuilding the tiles", () => {
+  it("update() repaints every caption and tooltip in place, without rebuilding the tiles", () => {
     const world = fixtureWorld();
     const parent = document.createElement("div");
     document.body.append(parent);
@@ -253,6 +274,9 @@ describe("presentStatsPanel", () => {
     expect(tilesAfter.every((tile, index) => tile === tilesBefore[index])).toBe(true);
     expect(requireElement('.tile[data-stat="avgWaitTime"] .cap', parent).textContent).toBe(
       "Avg delivery time",
+    );
+    expect(requireElement('.tile[data-stat="avgWaitTime"]', parent).getAttribute("title")).toBe(
+      "From the moment a passenger appears in the building to the moment they step out at the floor they asked for, so the ride counts in it as much as the wait does",
     );
   });
 });
