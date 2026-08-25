@@ -256,17 +256,17 @@ describe("translate", () => {
 
   it("fills parameters by name", () => {
     expect(
-      translate("en", EN_MESSAGES, "game.level.title.html", {
-        number: 3,
-        description: "Transport 15 people",
+      translate("en", EN_MESSAGES, "game.buildingStage.elevatorOccupancy", {
+        occupied: 3,
+        capacity: 15,
       }),
-    ).toBe("Level 3: Transport 15 people");
+    ).toBe("Occupied: 3/15");
     expect(
-      translate("ru", RU_MESSAGES, "game.level.title.html", {
-        number: 3,
-        description: "Перевезите 15 пассажиров",
+      translate("ru", RU_MESSAGES, "game.buildingStage.elevatorOccupancy", {
+        occupied: 3,
+        capacity: 15,
       }),
-    ).toBe("Уровень 3: Перевезите 15 пассажиров");
+    ).toBe("Занято: 3/15");
   });
 
   // The reason this module exists. All four Russian categories, from the same

@@ -170,7 +170,6 @@ export const EN_MESSAGES = {
   // Summary text for the "<details>" holding the panel's nine secondary
   // tiles.
   "game.statsPanel.more": "All figures",
-  "game.level.title.html": "Level {number}: {description}",
   // A level tile shows a bare number, because nineteen of them have to fit
   // across a phone; the name each one carries is what a screen reader announces
   // in their place, so it has to say what the number means on its own.
@@ -1299,9 +1298,9 @@ elevator.goingDownIndicator(false);`,
     }
 }`,
 
-  // The panel around the levels, the bar that used to stand above them and the
-  // screen after the last one. The seed line, the statistics and the editor are
-  // the game's own and say the same things here as everywhere else.
+  // The panel around the levels and the screen after the last one. The seed
+  // line, the statistics and the editor are the game's own and say the same
+  // things here as everywhere else.
   //
   // "Tutorial level" is a level of the track and "level {number}" is a level of
   // the game; the first is qualified so that the player cannot read one for the
@@ -1328,7 +1327,6 @@ elevator.goingDownIndicator(false);`,
   "tutorial.solution.copied": "Copied to your clipboard.",
   "tutorial.solution.copyFailed":
     "Your browser refused to copy it. Select the code above and copy it yourself.",
-  "tutorial.bar.title.html": "Tutorial level {number} of {count}: {description}",
   "tutorial.finish.title": "The track is finished",
   "tutorial.finish.message":
     "Eight tutorial levels, and the last of them was level 1 of the game itself: the same three floors, the same elevator, the same fifteen passengers in sixty seconds. The program in the editor solves it. Level 1 opens with a program of its own, so copy this one out of the editor before you go if you would rather start from it.",
