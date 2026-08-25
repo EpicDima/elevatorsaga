@@ -7,6 +7,7 @@ export {
 export { tierRequirementNow, tierRequirementText } from "./ui/requirement-text.ts";
 export { tierBadgeMarkup } from "./ui/tier-badge.ts";
 export { nextTierHint } from "./ui/tier-hint.ts";
+export { TIER_NAME_KEY } from "./ui/tier-name.ts";
 export {
   LEVEL_TIERS,
   evaluateLevelTier,

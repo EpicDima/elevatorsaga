@@ -25,15 +25,12 @@
 
 import {
   evaluateLevelTier,
+  TIER_NAME_KEY,
   tierBadgeMarkup,
   tierRequirementNow,
   tierRequirementText,
 } from "#entities/level-tier/index.ts";
-import type {
-  LevelTier,
-  LevelTierRequirements,
-  TierRequirementInfo,
-} from "#entities/level-tier/index.ts";
+import type { LevelTierRequirements, TierRequirementInfo } from "#entities/level-tier/index.ts";
 import type { Level, LevelWorldStats } from "#entities/level/index.ts";
 import type { World } from "#game/world.ts";
 import { decimal, format, t } from "#i18n/index.ts";
@@ -118,13 +115,6 @@ const METER_CAPTION_KEY = {
   avgLoadFactorOnMove: "page.stats.avgLoad",
   maxPickupTime: "game.goalBar.caption.maxPickupTime",
 } as const satisfies Readonly<Record<keyof LevelWorldStats, MessageKey>>;
-
-/** A tier's own display name. */
-const TIER_NAME_KEY = {
-  bronze: "game.goalBar.tier.bronze",
-  silver: "game.goalBar.tier.silver",
-  gold: "game.goalBar.tier.gold",
-} as const satisfies Readonly<Record<LevelTier, MessageKey>>;
 
 /** The icon a tier row's own state reads as. */
 const TIER_STATE_ICON: Readonly<Record<TierRowState, SpriteIconName>> = {

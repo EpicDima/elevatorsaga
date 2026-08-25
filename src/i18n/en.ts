@@ -202,6 +202,14 @@ export const EN_MESSAGES = {
   "game.levelSwitcher.skyscraperTileLabel": "Skyscraper level {number}",
   "game.levelSwitcher.tutorialTileLabel": "Tutorial level {number}",
   "game.levelSwitcher.tutorialTileClearedLabel": "Tutorial level {number}, completed",
+  // The same pair, for the two blocks that record a medal where the track
+  // records a flag. The stars drawn on the tile are icons and so are
+  // `aria-hidden`; these are what a screen reader reads in their place, and
+  // only once a medal has actually been earned — three empty stars are slots
+  // to fill, not something to announce. `{tier}` is a `game.goalBar.tier.*`
+  // name, the same one `game.goalBar.trigger.titleEarned` interpolates.
+  "game.levelSwitcher.levelTileEarnedLabel": "Level {number}, {tier}",
+  "game.levelSwitcher.skyscraperTileEarnedLabel": "Skyscraper level {number}, {tier}",
   // What the 118px trigger says while a lesson is the level being played. The
   // tile labels above are written for a grid, where the state on the end of
   // them is the point, and on the trigger they overflow. Shortening them to

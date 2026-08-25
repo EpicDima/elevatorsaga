@@ -23,7 +23,8 @@
  * bare `data-tier` attribute on the tile itself, for styling, and as
  * `entities/level-tier`'s own {@link tierBadgeMarkup} badge, for the stars a
  * player actually reads — every numbered tile gets one, dim stars included at
- * zero earned.
+ * zero earned. Those stars are `aria-hidden`, being icons, so a tile that
+ * holds a medal names it in {@link tileAccessibleName} instead.
  */
 
 import {
@@ -32,7 +33,7 @@ import {
   type LevelMenuInput,
   type LevelMenuTile,
 } from "../model/level-menu.ts";
-import { tierBadgeMarkup } from "#entities/level-tier/index.ts";
+import { TIER_NAME_KEY, tierBadgeMarkup } from "#entities/level-tier/index.ts";
 import { t } from "#i18n/index.ts";
 import { queryAll, requireElement } from "#shared/lib/dom.ts";
 import { createDisclosure } from "#shared/ui/disclosure.ts";
@@ -172,8 +173,14 @@ function tileText(tile: LevelMenuTile): string {
 
 /**
  * The name assistive technology reads for a tile — what {@link tileText}
- * shows plus whatever it left out: which level this is, and whether it is
- * cleared.
+ * shows plus whatever it left out: which level this is, and what the tile's
+ * own record of progress says.
+ *
+ * That record is a flag on the learning track and a medal in the two numbered
+ * blocks, so each has its own pair of messages, chosen on the tile's state.
+ * Only a medal actually earned is named: a tile with no tier keeps the plain
+ * name, because the badge's three empty stars are a set of slots rather than
+ * anything to read out.
  *
  * @param tile - Tile to name.
  * @returns Its accessible name.
@@ -186,10 +193,20 @@ function tileAccessibleName(tile: LevelMenuTile): string {
         : t("game.levelSwitcher.tutorialTileLabel", { number: tile.number });
     }
     case "level": {
-      return t("game.level.nav.link", { number: tile.number });
+      return tile.tier === undefined
+        ? t("game.level.nav.link", { number: tile.number })
+        : t("game.levelSwitcher.levelTileEarnedLabel", {
+            number: tile.number,
+            tier: t(TIER_NAME_KEY[tile.tier]),
+          });
     }
     case "skyscraper": {
-      return t("game.levelSwitcher.skyscraperTileLabel", { number: tile.number });
+      return tile.tier === undefined
+        ? t("game.levelSwitcher.skyscraperTileLabel", { number: tile.number })
+        : t("game.levelSwitcher.skyscraperTileEarnedLabel", {
+            number: tile.number,
+            tier: t(TIER_NAME_KEY[tile.tier]),
+          });
     }
     case "sandbox": {
       return t("game.levelSwitcher.sandboxLabel");

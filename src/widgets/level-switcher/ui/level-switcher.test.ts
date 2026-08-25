@@ -345,6 +345,52 @@ describe("presentLevelSwitcher", () => {
     expect(firstTile?.getAttribute("aria-label")).toBe("Tutorial level 1, completed");
   });
 
+  it("names the medal a level tile holds, and says nothing where none is held", () => {
+    const { parent, options } = setUp({
+      levels: fixtureLevels(4),
+      bestTiers: new Map<number, LevelTier>([
+        [0, "bronze"],
+        [1, "silver"],
+        [2, "gold"],
+      ]),
+      selection: { kind: "level", index: 0 },
+    });
+    presentLevelSwitcher(parent, options);
+    const [, levelBlock] = parent.querySelectorAll(".taskblock");
+    const tiles = [...(levelBlock?.querySelectorAll(".tasklink") ?? [])];
+
+    // The stars beside the number are `aria-hidden`, so without this the medal
+    // is invisible to a screen reader and the menu says nothing about progress
+    // at all. All three tiers are named, because the name is what the shared
+    // `TIER_NAME_KEY` is read for, and the last tile is the unearned case: no
+    // tier, no medal in the name -- three dim stars are slots to fill, not a
+    // fourth thing to announce.
+    expect(tiles.map((tile) => tile.getAttribute("aria-label"))).toEqual([
+      "Level 1, Bronze",
+      "Level 2, Silver",
+      "Level 3, Gold",
+      "Level 4",
+    ]);
+  });
+
+  it("names the medal a skyscraper tile holds, in the block's own wording", () => {
+    const { parent, options } = setUp({
+      skyscraperLevels: fixtureSkyscraperLevels(2),
+      bestSkyscraperTiers: new Map<string, LevelTier>([["sky-1", "gold"]]),
+    });
+    presentLevelSwitcher(parent, options);
+    const [, , skyscraperBlock] = parent.querySelectorAll(".taskblock");
+    const tiles = [...(skyscraperBlock?.querySelectorAll(".tasklink") ?? [])];
+
+    // The block keeps its own noun in front of the number either way: a tile
+    // that earns a medal must not fall back to a numbered level's wording,
+    // which names a different level entirely.
+    expect(tiles.map((tile) => tile.getAttribute("aria-label"))).toEqual([
+      "Skyscraper level 1, Gold",
+      "Skyscraper level 2",
+    ]);
+  });
+
   it("labels the sandbox tile and links it through buildHref", () => {
     const { parent, options } = setUp({ selection: { kind: "sandbox" } });
     presentLevelSwitcher(parent, options);
