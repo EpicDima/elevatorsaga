@@ -102,9 +102,8 @@
    */
   --ds-focus: var(--ds-accent);
 
-  /* Steel: figures, scales, car load. */
+  /* Steel: the goal bar's at-most meters and the statistics sparkline. */
   --ds-steel: #74a9d8;
-  --ds-steel-soft: rgb(116 169 216 / 16%);
 
   /*
    * Level stars, three metal tones -- the one place on the page where color
@@ -256,7 +255,6 @@ html[data-theme="light"] {
   --ds-focus: var(--ds-accent);
 
   --ds-steel: #2f6fa8;
-  --ds-steel-soft: rgb(47 111 168 / 12%);
 
   --ds-tier-bronze: #a4601f;
   --ds-tier-silver: #78828f;
