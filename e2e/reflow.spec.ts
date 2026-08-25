@@ -30,6 +30,8 @@
 
 import { expect, test } from "@playwright/test";
 
+import { openSettingsMenu } from "./game-page.ts";
+
 /**
  * The help pages the build emits, by the path they are served from.
  *
@@ -94,4 +96,80 @@ test("the game fits its own 1040x600 floor", async ({ page }) => {
     return root.scrollWidth - root.clientWidth;
   });
   expect(overflow).toBeLessThanOrEqual(0);
+});
+
+/*
+ * The two popovers the app bar opens are checked at that floor as well, because
+ * neither of them is part of the page's own column: both are `position:
+ * absolute` under the bar, so they overflow downward without widening anything
+ * the test above measures, and `body.app`'s `overflow: hidden` means a popover
+ * past the bottom of the window is simply gone -- no wheel, no key, no
+ * scrollbar reaches it. Uncapped, the level popover ended 179px below a 600px
+ * window and the settings popover 158px below it with the seed block open.
+ *
+ * Measured in a browser rather than in the stylesheet because the height that
+ * matters is the one the content comes to, which no rule states: the level
+ * popover's is however many tiles the game ships, and the settings popover's
+ * depends on how long the seed explanation runs in the language on screen.
+ * `level-switcher.css.test.ts` and `settings-menu.css.test.ts` pin the rules;
+ * this pins the result.
+ */
+test.describe("at that floor, the app bar's popovers", () => {
+  test.use({ viewport: { width: 1040, height: 600 } });
+
+  test("open the level list inside the window, last tile and all", async ({ page }) => {
+    // The sandbox route, so that every block is drawn and the popover is at its
+    // tallest -- the learning track, both blocks of numbered levels and the
+    // "Other" block that closes the list.
+    await page.goto("/#level=sandbox");
+    await page.locator(".task-open").click();
+
+    const menu = page.locator(".taskmenu");
+    await expect(menu).toBeVisible();
+    await expect(menu).toBeInViewport({ ratio: 1 });
+
+    // Inside the window is not enough on its own: a popover that fits by
+    // clipping its own tail has only moved the unreachable block somewhere
+    // smaller. The sandbox tile is the last thing in the list, so scrolling the
+    // popover to its end has to bring it fully into view.
+    await menu.evaluate((element) => {
+      element.scrollTop = element.scrollHeight;
+    });
+    await expect(page.locator(`.taskmenu a.tasklink[href="#level=sandbox"]`)).toBeInViewport({
+      ratio: 1,
+    });
+  });
+
+  // Russian, because this is the one popover where the longer language is the
+  // taller one: the seed disclosure is prose, and it runs 35px longer there.
+  for (const [language, hash] of [
+    ["English", "#level=sandbox"],
+    ["Russian", "#level=sandbox,lang=ru"],
+  ] as const) {
+    test(`open the settings in ${language} inside the window, seed block open`, async ({
+      page,
+    }) => {
+      await page.goto(`/${hash}`);
+      await openSettingsMenu(page);
+
+      const menu = page.locator(".setmenu");
+      await expect(menu).toBeVisible();
+      // Opened rather than clicked, the reason `openSettingsMenu` gives: this
+      // has to hold whatever a previous step left the disclosure in.
+      await menu
+        .locator("details")
+        .first()
+        .evaluate((element: HTMLDetailsElement) => {
+          element.open = true;
+        });
+
+      await expect(menu).toBeInViewport({ ratio: 1 });
+      // And the About block at the foot of it, which is what the overflow put
+      // out of reach: its license notice and both source links.
+      await menu.evaluate((element) => {
+        element.scrollTop = element.scrollHeight;
+      });
+      await expect(menu.locator(".setlink").last()).toBeInViewport({ ratio: 1 });
+    });
+  }
 });

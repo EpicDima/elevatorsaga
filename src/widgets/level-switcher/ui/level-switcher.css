@@ -90,13 +90,36 @@
   text-overflow: ellipsis;
 }
 
+/*
+ * The popover is as tall as its blocks of tiles make it -- 729px with every
+ * block drawn, and the same in both languages, since the tiles are a fixed grid
+ * and only the captions are words. Nothing scrolls the page to reach the rest of
+ * it: `body.app` is `overflow: hidden` (`app/styles/document.css`). So at the
+ * 1040x600 minimum that same file states, an uncapped popover ends 179px below
+ * the window, putting the last Skyscraper tile and the whole "Other" block out
+ * of reach of mouse, keyboard and wheel alike; at 900x700 it overhangs by 79px.
+ *
+ * The ceiling is measured from this popover's own top edge, not from the whole
+ * viewport. It opens `(--ds-bar-h + --ds-ctl-h) / 2 + 8px` down the page -- the
+ * 32px trigger centered in the 52px bar, plus the 8px gap `top` states above --
+ * which is 50px, and 16px is left under it for the shadow. That is 534px of
+ * tiles at a 600px window, and a ceiling written in plain `vh` would be those
+ * 50px too tall.
+ *
+ * `hidden auto` rather than `auto`: an `overflow` stated on one axis leaves the
+ * other computing to `auto` as well, and the grid inside is `1fr` columns that
+ * merely narrow around a scrollbar -- so a lone `overflow-y` would hang a
+ * horizontal scrollbar on a menu that never overflows sideways.
+ */
 .taskmenu {
   position: absolute;
   top: calc(100% + 8px);
   left: 28px;
   z-index: 40;
   width: 396px;
+  max-height: calc(100vh - (var(--ds-bar-h) + var(--ds-ctl-h)) / 2 - 8px - 16px);
   padding: 12px;
+  overflow: hidden auto;
   border: 1px solid var(--ds-line-strong);
   border-radius: var(--ds-r-lg);
   background: var(--ds-panel);

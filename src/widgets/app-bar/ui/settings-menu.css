@@ -24,6 +24,26 @@
   position: relative;
 }
 
+/*
+ * The ceiling is the one `.taskmenu` carries (`widgets/level-switcher`),
+ * measured the same way and for the same reason. Closed, this popover is 528px
+ * and clears the 1040x600 minimum `app/styles/document.css` states by 22px --
+ * but opening the seed block's disclosure grows it to 673px in English and 708px
+ * in Russian, ending 123px and 158px below the window, and `body.app` is
+ * `overflow: hidden`, so nothing scrolls to reach the About block underneath.
+ *
+ * It opens `(--ds-bar-h + --ds-ctl-h) / 2 + 8px` down the page -- the 32px
+ * control centered in the 52px bar, plus the 8px gap `top` states above -- so
+ * the room under it is the viewport less those 50px, less 16px for the shadow:
+ * 534px at a 600px window. `hidden auto` rather than `auto`, because an
+ * `overflow` on one axis leaves the other computing to `auto` too, and this
+ * column never overflows sideways.
+ *
+ * The blocks are left shrinkable. They are flex items in a column now shorter
+ * than they are, but each one's automatic minimum size is the height its own
+ * content wraps to, so none of them has anywhere to give and the overflow goes
+ * to the scrollbar rather than into a squeezed block.
+ */
 .setmenu {
   position: absolute;
   top: calc(100% + 8px);
@@ -32,8 +52,10 @@
   display: flex;
   flex-direction: column;
   width: 292px;
+  max-height: calc(100vh - (var(--ds-bar-h) + var(--ds-ctl-h)) / 2 - 8px - 16px);
   gap: 14px;
   padding: 12px;
+  overflow: hidden auto;
   border: 1px solid var(--ds-line-strong);
   border-radius: var(--ds-r-lg);
   background: var(--ds-panel);
