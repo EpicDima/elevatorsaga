@@ -93,8 +93,8 @@ declare global {
      * read-only counters, a write-blocking proxy -- only cost debuggability
      * while leaving `world.users` and `world.elevators` reachable. Closing it
      * for real means running the player's code in a worker or an iframe, which
-     * is worth doing on the day a scoreboard exists and not before. The
-     * options and their prices are laid out in `docs/fork-survey.md`.
+     * costs `console.log` and the debugger and is worth doing on the day a
+     * scoreboard exists, not before.
      */
     world: World | undefined;
   }

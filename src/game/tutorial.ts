@@ -18,8 +18,8 @@
  * limit can buy both. Ten seeds say whether a level works and cannot say how
  * often, so the three levels whose numbers turn on that are counted over four
  * hundred in `tutorial-sweep.test.ts`. Every number below was chosen against
- * those measurements, and where one of them moved away from what
- * `docs/tutorial-plan.md` first proposed, the entry says what forced it.
+ * those measurements, and where one is not the obvious choice, the entry says
+ * what forced it.
  *
  * The programs themselves are not written out here. They are messages, keyed
  * `tutorial.levelN.startingCode.code` and `tutorial.levelN.solutionCode.code`,
@@ -224,14 +224,13 @@ export const tutorialLevels: readonly TutorialLevel[] = [
    */
   {
     id: "tutorial-4",
-    // Spawn rate 0.8, raised from the 0.6 docs/tutorial-plan.md first proposed.
-    // At 0.6 the answer's slowest measured seed finished at 56.0 s of 60 — a
-    // level that survives by four seconds is a level that breaks the next time
-    // the physics is touched, which is precisely the event this whole exercise
-    // exists to catch. Raising the traffic costs the lesson nothing, because the
-    // starting code never moves the car and so delivers nobody at *any* rate:
-    // only the answer's side of the gap moves, and it moves to 45.3 s of 60 at
-    // worst.
+    // Spawn rate 0.8. At 0.6 the answer's slowest measured seed finished at
+    // 56.0 s of 60 — a level that survives by four seconds is a level that
+    // breaks the next time the physics is touched, which is precisely the event
+    // this whole exercise exists to catch. The heavier traffic costs the lesson
+    // nothing, because the starting code never moves the car and so delivers
+    // nobody at *any* rate: only the answer's side of the gap moves, and it
+    // moves to 45.3 s of 60 at worst.
     options: { floorCount: 4, elevatorCount: 1, spawnRate: 0.8 },
     condition: requireUserCountWithinTime(15, 60),
     seed: "tutorial-4",
@@ -255,15 +254,14 @@ export const tutorialLevels: readonly TutorialLevel[] = [
    */
   {
     id: "tutorial-5",
-    // Nine floors, where the plan says ten. On ten the answer's worst wait was
-    // 27.6 s against the planned limit of 28 — four tenths of a second of
-    // margin, i.e. none. The options were all measured: a limit of 32 on ten
-    // floors still left only 4.4 s; capacity changes did nothing at all, because
-    // at 0.2 passengers a second a four-person car is never the constraint; and
-    // dropping the rate to 0.15 worked but stretched the run past 110 simulated
-    // seconds, which is a long time to watch a car go to floors nobody is
-    // standing on. Nine floors is the fix that keeps the lesson, since a sweep
-    // is still eight wasted stops.
+    // Nine floors, not ten. On ten the answer's worst wait was 27.6 s against a
+    // limit of 28 — four tenths of a second of margin, i.e. none. The options
+    // were all measured: a limit of 32 on ten floors still left only 4.4 s;
+    // capacity changes did nothing at all, because at 0.2 passengers a second a
+    // four-person car is never the constraint; and dropping the rate to 0.15
+    // worked but stretched the run past 110 simulated seconds, which is a long
+    // time to watch a car go to floors nobody is standing on. Nine floors is the
+    // fix that keeps the lesson, since a sweep is still eight wasted stops.
     //
     // The limit is 37, and it was 26 until four hundred seeds no threshold had
     // been fitted to were run against it. 26 was a ten-seed number and it
@@ -312,7 +310,7 @@ export const tutorialLevels: readonly TutorialLevel[] = [
    */
   {
     id: "tutorial-6",
-    // Spawn rate 0.25, where the plan says 0.3. At 0.3 the answer did not merely
+    // Spawn rate 0.25, not 0.3. At 0.3 the answer did not merely
     // scrape past, it *lost*: on seed "xyz" the lying indicators are not the only
     // thing keeping people waiting, and a single car serving five floors at that
     // rate reached exactly 25.0 s of wait with 11 delivered — the correct program
@@ -323,7 +321,7 @@ export const tutorialLevels: readonly TutorialLevel[] = [
     // It did not thin them as far as ten seeds suggested. Those ten put the
     // window at (16.7, 45.7) and the limit at 25; four hundred seeds nobody had
     // fitted a threshold to show there is no window at all. The answer's worst
-    // wait is 25.07 s — seed u59, where the planned limit of 25 threw out the
+    // wait is 25.07 s — seed u59, where a limit of 25 throws out the
     // correct program with 14 of the 15 delivered — and the liar's best run
     // gets all fifteen out having made nobody wait longer than 21.92 s (seed
     // t199), so the liar's good runs are better than the answer's bad ones by
@@ -358,10 +356,9 @@ export const tutorialLevels: readonly TutorialLevel[] = [
    */
   {
     id: "tutorial-7",
-    // 1.2 passengers a second over six floors. The plan had already retuned
-    // this level once; the numbers still hold. Answer: 28 delivered by 48.3 s of
+    // 1.2 passengers a second over six floors. Answer: 28 delivered by 48.3 s of
     // 60 at worst. Starting code: 23 of the required 28 on its best seed, which
-    // is the number the threshold of 28 was placed above.
+    // is the number the threshold of 28 sits above.
     //
     // What 28 does not do is *force* the lesson. Delete the hall-call block
     // from the starting code and the one car left driving, wandering between
@@ -370,7 +367,7 @@ export const tutorialLevels: readonly TutorialLevel[] = [
     // one the player is handed, and one that never touches the second car.
     // Requiring 33 would exclude every one-car program measured while the
     // answer still wins on all ten seeds, its worst delivering 36. The bar is
-    // left at the plan's 28 anyway: what this table guarantees is that the
+    // left at 28 anyway: what this table guarantees is that the
     // given program loses and the shown answer wins, which holds either way,
     // and how hard a level leans on its lesson is the curriculum's decision, not
     // the harness's. Measured and reported rather than quietly retuned.

@@ -280,9 +280,9 @@ describe("Learning track table", () => {
   it("answers the last level with the one before it, in every language", () => {
     // Level 8 asks for nothing new, so its answer is level 7's, word for word.
     // The two are separate messages rather than one shared string, which is
-    // deliberate: every level owning the same eight keys is what lets
-    // `docs/i18n-inventory.md` cover the track by a shape and a translator meet
-    // no exception. What a copy costs is drift, and this is what pays for it —
+    // deliberate: every level owning the same eight keys is what lets a
+    // translator meet no exception. What a copy costs is drift, and this is
+    // what pays for it —
     // in both languages, since a comment added to one of them would part them
     // just as surely as a changed line.
     for (const locale of LOCALES) {

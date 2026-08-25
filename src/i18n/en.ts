@@ -741,9 +741,9 @@ elevator.goingDownIndicator(false);`,
     other: "capacities",
   },
   // English does not inflect this one today: a sandbox running at one passenger
-  // a second says "1 people per second". The wording is left exactly as it is —
-  // both forms are the same string — so that nothing on screen changes; see
-  // docs/i18n-inventory.md, which records it as the one thing here worth fixing.
+  // a second says "1 people per second". Both forms are deliberately the same
+  // string, so that wording the singular properly is a change to this entry
+  // alone and nothing on screen moves until somebody makes it.
   "level.sandbox.spawnRate.html": {
     one: "<span class='emphasis-color'>{count}</span> people per second",
     other: "<span class='emphasis-color'>{count}</span> people per second",
@@ -911,9 +911,7 @@ elevator.goingDownIndicator(false);`,
   // because the comments are prose addressed to the player — a Russian reader
   // was being told "TODO: this building has two floors" in the editor, in the
   // one program on the track they are asked to change, and again under the
-  // third hint. `editor.defaultCode.code` had been under this rule since the
-  // catalog was written; the track was an oversight rather than a decision,
-  // which is why `docs/i18n-inventory.md` never listed it as one.
+  // third hint. `editor.defaultCode.code` is here for the same reason.
   //
   // Still one copy of each program, not two. src/game/tutorial.ts reads these
   // keys and everything else reads that table, so the program the editor is

@@ -31,8 +31,7 @@ export const TUTORIAL_PROGRESS_STORAGE_KEY = "develevateTutorialProgress";
  * Reads the identifiers of the levels this browser has cleared.
  *
  * Identifiers and not a count, and not the number of the furthest level reached
- * either, which is what `docs/tutorial-plan.md` proposed and what this rejects.
- * Two failures make the difference. A position is the one thing about a level
+ * either. Two failures rule both out. A position is the one thing about a level
  * that is expected to change — `TutorialLevel.id` says so itself — so a ninth
  * level inserted at number two would silently hand every stored number to a
  * different lesson. And "furthest" is a lie about a track that locks nothing: a

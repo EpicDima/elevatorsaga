@@ -528,8 +528,8 @@ describe("resolveRoute tutorial selection", () => {
 
   it("opens the level its address names, zero-based", () => {
     // Spelled out rather than generated, because these eight strings are the
-    // promise: they are written down in docs/tutorial-plan.md and handed round
-    // in links, and a link somebody already shared has to keep working.
+    // promise: they are handed round in links, and a link somebody already
+    // shared has to keep working.
     for (let number = 1; number <= 8; number += 1) {
       const hash = `#level=tutorial-${String(number)}`;
       expect(route(hash).tutorialIndex, hash).toBe(number - 1);

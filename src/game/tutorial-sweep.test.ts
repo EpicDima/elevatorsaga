@@ -20,8 +20,8 @@
  * changes, which is the intended cost.
  *
  * **These four hundred are not evidence, they are a tripwire.** `t0`…`t199` and
- * `u0`…`u199` were unseen while `docs/tutorial-plan.md` fitted the thresholds on
- * `s0`…`s199` — but levels 5 and 6 were then re-tuned against these very seeds,
+ * `u0`…`u199` were unseen while the thresholds were fitted on `s0`…`s199` — but
+ * levels 5 and 6 were then re-tuned against these very seeds,
  * so their counts below are in-sample and prove nothing about a limit's
  * generality. The out-of-sample check for the two limits that moved is `v0`…
  * `v199` and `w0`…`w199`, quoted where they were spent, in the table in
@@ -69,11 +69,10 @@ const SET_SIZE = 200;
  * The four hundred seeds every count below is over, in order.
  *
  * Generated rather than listed because the generator *is* the definition — two
- * prefixes and a counter, which is what `docs/tutorial-plan.md` measured and
- * what anybody re-measuring has to reproduce exactly. Strings rather than
- * numbers so they take the string path into
+ * prefixes and a counter, which anybody re-measuring has to reproduce exactly.
+ * Strings rather than numbers so they take the string path into
  * {@link "./random.ts"!createRandomSource}, and two prefixes rather than one
- * because `t0`…`t399` would be one set where the plan spent two.
+ * because `t0`…`t399` would be one set where the counts below are over two.
  */
 const SWEEP_SEEDS: readonly RandomSeed[] = ["t", "u"].flatMap((prefix) =>
   Array.from({ length: SET_SIZE }, (_unused, index) => `${prefix}${String(index)}`),
