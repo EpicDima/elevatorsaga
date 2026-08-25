@@ -16,12 +16,23 @@
  * thirds of the pane away without the window changing at all. Nothing else on
  * this page opens a container named `panel`.
  *
+ * The `z-index` is the one thing here that is not about width. The card
+ * explaining a figure (`.statcard`, below) is drawn above the strip and across
+ * the building, and the building is drawn in absolutely positioned layers --
+ * shafts, cabins, passengers -- which a browser paints after every in-flow box
+ * on the page, this strip included. So the strip has to be lifted into the same
+ * tier as the building's own hover card, 30, where being the later of the two
+ * in the markup settles it. Nothing else in the pane overlaps the strip at all:
+ * it is a row of a column, and only the card ever leaves it.
+ *
  * No `padding`, `font`, `line-height` or `color` on the mount:
  * `widgets/stats-panel` draws its own box (`.statspanel`, below), and a parent
  * padding or color here would either double up against that box's own or bleed
  * into content the mount does not own.
  */
 .statscontainer {
+  position: relative;
+  z-index: 30;
   container: panel / inline-size;
 }
 
@@ -34,8 +45,13 @@
  * `p` and the headings are repaired document-wide, so `.tile-val`'s own
  * `<span>` would fall back to that -- invisible against the light theme's
  * near-white `--ds-panel`.
+ *
+ * `position: relative` is what `.statcard` at the foot of this file is placed
+ * against. Nothing here clips, which is the other half of that: the card is
+ * drawn above the strip, outside it.
  */
 .statspanel {
+  position: relative;
   border-block-start: 1px solid var(--ds-line);
   background: var(--ds-panel);
   color: var(--ds-text);
@@ -96,6 +112,17 @@
 .statspanel .tile {
   padding: 9px 16px;
   background: var(--ds-panel);
+}
+
+/*
+ * Every tile is a tab stop, because the card explaining its figure opens on
+ * focus as well as on hover (`widgets/stats-panel`). The ring is drawn inside
+ * the tile rather than around it: the grids above are flush, one hairline of
+ * `gap` apart, so the document's own `outline-offset: 2px` would put a tile's
+ * ring across the two beside it and the one below.
+ */
+.statspanel .tile:focus-visible {
+  outline-offset: -2px;
 }
 
 .tiles-secondary .tile {
@@ -258,4 +285,57 @@
 
 .more[open] > summary .chev {
   transform: rotate(90deg);
+}
+
+/*
+ * The card explaining one figure: one element, moved to whichever tile is being
+ * pointed at or focused (`widgets/stats-panel` places it). The same box as the
+ * building's own `.carcard` in `widgets/building-stage`, a caption in bold over
+ * a sentence in muted gray, because they are the same thing said about two
+ * halves of the same pane and a second style for the second one would read as a
+ * second kind of thing.
+ *
+ * `inline-size` and not `max-inline-size`: a card sized by its own longest line
+ * would be a different width on every figure, and the widths would swing --
+ * "Stops" is explained in nine words and "Avg delivery time" in thirty. 240px
+ * is inside the 1040px floor's narrowest useful pane and holds the longest of
+ * the thirteen in six lines.
+ *
+ * No `pointer-events: none`, unlike `.carcard`. That card is placed beside a
+ * shaft the pointer is standing in, so a card that could take the pointer would
+ * swallow its own closing `pointerleave`; this one stands on top of its tile
+ * with no gap, so a pointer moving up to read it moves onto it, and the widget
+ * keeps it open for exactly that (WCAG 1.4.13, "hoverable").
+ *
+ * Nothing states a `z-index` here and nothing can: `.statscontainer` opens a
+ * container query, which makes it a stacking context, so a number on this box
+ * would order it against the tiles beside it and against nothing else. The
+ * strip's own `z-index` at the top of this file is what puts the card over the
+ * building.
+ */
+.statcard {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-start: 0;
+  box-sizing: border-box;
+  inline-size: 240px;
+  padding: 8px 10px;
+  border: 1px solid var(--ds-line-strong);
+  border-radius: var(--ds-r-md);
+  background: var(--ds-panel);
+  box-shadow: var(--ds-shadow);
+  color: var(--ds-text);
+  font-family: var(--ds-font-ui);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.statcard-title {
+  display: block;
+  margin-block-end: 2px;
+  font-weight: 650;
+}
+
+.statcard-text {
+  color: var(--ds-text-muted);
 }

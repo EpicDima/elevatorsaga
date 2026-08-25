@@ -3,7 +3,7 @@
  *
  * The editor is what the page is for, and it is behind everything the building
  * contains: the scroll container, and a button for every call and every floor.
- * On the eighteenth level that is 255 tab stops past the link, 208 of them
+ * On the eighteenth level that is 259 tab stops past the link, 208 of them
  * buttons. The count is measured here rather than asserted from the markup
  * because most of those stops are drawn by the presenters at run time and do
  * not exist in `index.html` at all.
@@ -58,14 +58,17 @@ test("saves a walk through the whole building", async ({ page }) => {
   // claimed 208 while the walk was 240, and bounds of 100 and 400 had nothing
   // to say about it.
   //
-  // 208 of the 255 are buttons -- eight cars of 21 floors, plus a call each
+  // 208 of the 259 are buttons -- eight cars of 21 floors, plus a call each
   // way at every floor except the roof, which has no way up, and the lobby,
-  // which has no way down. The other 47 are the chrome above the building, the
+  // which has no way down. The other 51 are the chrome above the building, the
   // stage the building scrolls inside, each floor's own row and each car's own
-  // container, the statistics panel's summary, the splitter below the
-  // building, and the code slot switcher.
+  // container, the statistics panel's summary and the four figures on show
+  // beside it, the splitter below the building, and the code slot switcher.
+  //
+  // Four figures and not thirteen: the other nine are inside a closed
+  // `<details>`, which a browser skips whole.
   //
   // Adding a control anywhere between the link and the editor moves this by
   // one, and then the new number has to be measured rather than guessed at.
-  expect(stops).toBe(255);
+  expect(stops).toBe(259);
 });

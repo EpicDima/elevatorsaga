@@ -145,3 +145,79 @@ test("takes its own height out of the pane before the building takes any", async
   // a cut-off figure does not.
   expect(measured.worldHeight).toBeLessThan(measured.given);
 });
+
+test("explains a figure to a keyboard, above the strip and over the building", async ({ page }) => {
+  // The card that replaced the tiles' `title` attributes. Where it lands is a
+  // browser question for the reason `e2e/hover-card.spec.ts` gives about the
+  // building's own: jsdom lays nothing out, so the widget's tests can check the
+  // arithmetic against boxes they invented but not against a strip that has
+  // really been drawn -- and this card is placed to leave its container, which
+  // is exactly the case a made-up box cannot pose.
+  await page.goto("/#level=9");
+  const card = page.locator(".statcard");
+  await expect(card).toBeHidden();
+
+  const tile = page.locator('.tile[data-stat="avgWaitTime"]');
+  await tile.focus();
+  await expect(card).toBeVisible();
+  await expect(card).toContainText("Avg delivery time");
+
+  const boxes = await page.evaluate(() => {
+    const rectOf = (selector: string): DOMRect => {
+      const found = document.querySelector(selector);
+      if (found === null) {
+        throw new Error(`The page has no ${selector} to measure`);
+      }
+      return found.getBoundingClientRect();
+    };
+    const shown = rectOf(".statcard");
+    const middle = document.elementFromPoint(
+      shown.left + shown.width / 2,
+      shown.top + shown.height / 2,
+    );
+    return {
+      card: { top: shown.top, bottom: shown.bottom, left: shown.left },
+      strip: rectOf(".statspanel").top,
+      tile: rectOf('.tile[data-stat="avgWaitTime"]').top,
+      // Whether the card is what is really drawn at its own middle, rather
+      // than something the building paints over it. Its own text counts: the
+      // question is which of the two boxes is in front.
+      onTop: middle !== null && document.querySelector(".statcard")?.contains(middle) === true,
+    };
+  });
+
+  // Standing on the tile with no gap, which is what lets a pointer travel up
+  // onto it without the card closing on the way (WCAG 1.4.13).
+  expect(boxes.card.bottom).toBeCloseTo(boxes.tile, 0);
+  // And out of the strip through the top: the strip is two rows of figures and
+  // the card is taller than that.
+  expect(boxes.card.top).toBeLessThan(boxes.strip);
+  expect(boxes.card.left).toBeGreaterThanOrEqual(0);
+  expect(boxes.onTop).toBe(true);
+  await expect(card).toBeInViewport();
+
+  await page.keyboard.press("Escape");
+  await expect(card).toBeHidden();
+  // The card goes; the figure keeps the focus.
+  await expect(tile).toBeFocused();
+});
+
+test("keeps a figure's card up while the pointer travels onto it", async ({ page }) => {
+  await page.goto("/#level=9");
+
+  const tile = page.locator('.tile[data-stat="transportedPerSec"]');
+  await tile.hover();
+  const card = page.locator(".statcard");
+  await expect(card).toBeVisible();
+
+  // Straight up from the figure onto the card. The two boxes touch, so the
+  // pointer leaves one for the other and the card is still there to be read --
+  // which a card with a gap under it, or one the pointer fell through, would
+  // not be.
+  await card.hover();
+  await expect(card).toBeVisible();
+
+  // And away, to the building above: nothing holds it open any more.
+  await page.locator(".building").hover();
+  await expect(card).toBeHidden();
+});

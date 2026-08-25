@@ -26,13 +26,25 @@
  *
  * ## Where a figure gets explained
  *
- * Every tile carries a `title` saying in one sentence what its figure counts,
- * written by `redrawCaptions` alongside the caption so that a language change
- * repaints both. A tooltip rather than a line of prose beside the number: the
- * panel is a strip under the building with 128px of width per caption. Eight of
- * the thirteen say at tooltip length what `docs.play.statistics.html` says of
- * the same figure at paragraph length; the other five are explained here and
- * nowhere else, the reference page never having taken them up.
+ * Every tile has a sentence saying what its figure counts. A card rather than a
+ * line of prose beside the number: the panel is a strip under the building with
+ * 128px of width per caption. Eight of the thirteen say at a card's length what
+ * `docs.play.statistics.html` says of the same figure at paragraph length; the
+ * other five are explained here and nowhere else, the reference page never
+ * having taken them up.
+ *
+ * One card element is shared by all thirteen, shown on `pointerenter`/`focus`
+ * and hidden on `pointerleave`/`blur`/Escape — the same arrangement
+ * `widgets/building-stage` uses over the house, and for the same reason a
+ * `title` attribute is not it: a `title` is shown by the browser to a pointer
+ * and to nothing else, so the sentence was unreachable from a keyboard (WCAG
+ * 2.1.1) and undismissable once shown (1.4.13). The card is the whole caption
+ * as well as the sentence, since the caption itself is truncated on a narrow
+ * pane and the card is then where it can be read in full.
+ *
+ * A tile is a focusable `role="group"` named by its caption, so what a screen
+ * reader reaches is a named thing with the sentence as its description, rather
+ * than the bare `<div>` a `title` used to hang unannounced on.
  *
  * ## Live text vs. sparkline history
  *
@@ -43,6 +55,7 @@
  * to do unconditionally here.
  */
 
+import { positionCardOverTile } from "../lib/place-card.ts";
 import { createStatsHistory, sparklinePoints, SPARK_FLOOR } from "../model/history.ts";
 import type { StatsHistoryKey } from "../model/history.ts";
 import type { World } from "#game/world.ts";
@@ -169,7 +182,7 @@ interface TileConfig {
   readonly stat: keyof StatsSnapshot;
   /** The tile's caption key. */
   readonly captionKey: NoParamMessageKey;
-  /** The tooltip key: one sentence saying what the figure counts. Required, so no tile can arrive unexplained. */
+  /** The card's key: one sentence saying what the figure counts. Required, so no tile can arrive unexplained. */
   readonly titleKey: NoParamMessageKey;
   /** Whether the tile sits in the four-tile primary row or behind the disclosure. */
   readonly group: "primary" | "secondary";
@@ -289,9 +302,12 @@ const TILES: readonly TileConfig[] = [
 
 /** The stats panel, already built and drawn once. */
 export interface StatsPanelPresenter {
-  /** Redraws every tile's caption and tooltip and the disclosure's summary, for a language change. */
+  /** Redraws every tile's caption, name and card and the disclosure's summary, for a language change. */
   update(): void;
 }
+
+/** Counter for the panel's shared card id, unique per mounted panel. */
+let nextCardId = 0;
 
 /**
  * Builds the panel's static skeleton — no tiles, no translated text baked in.
@@ -301,20 +317,34 @@ export interface StatsPanelPresenter {
  * page ships no sprite sheet to point at. It is `aria-hidden` and unnamed: the
  * `<summary>` beside it is the control, and the open/closed state a chevron
  * draws is already on the `<details>` element for a screen reader to read.
+ *
+ * The card comes last and empty. It is one element for all thirteen tiles, its
+ * text written when it is shown, and it hangs on the panel rather than inside a
+ * tile because it is drawn above the strip: a card parented on a tile would be
+ * placed against a box a couple of dozen pixels tall.
  */
 export function statsPanelTemplate(): string {
   const chevron = spriteIconMarkup("right", "chev");
-  return markup`<div class="statspanel"><div class="tiles-primary"></div><details class="more"><summary>${raw(chevron)}<span class="cap"></span></summary><div class="tiles-secondary"></div></details></div>`;
+  return markup`<div class="statspanel"><div class="tiles-primary"></div><details class="more"><summary>${raw(chevron)}<span class="cap"></span></summary><div class="tiles-secondary"></div></details><div class="statcard" role="tooltip" hidden><b class="statcard-title"></b><div class="statcard-text"></div></div></div>`;
 }
 
-/** One tile's own markup: caption, value, and — for a sparked tile — its chart. */
+/**
+ * One tile's own markup: caption, value, and — for a sparked tile — its chart.
+ *
+ * `role="group"` and not a bare `<div>`, because {@link presentStatsPanel} makes
+ * every tile a tab stop so its card can be reached from a keyboard, and a
+ * focusable element with no role and no name is a stop a screen reader has
+ * nothing to announce at. The name is written with the caption in
+ * `redrawCaptions`, so a change of language repaints it along with everything
+ * else the tile says.
+ */
 function tileMarkup(tile: TileConfig): string {
   const spark =
     tile.sparkKey === undefined
       ? ""
       : `<svg class="spark" viewBox="0 0 100 16" preserveAspectRatio="none" aria-hidden="true"><polyline data-spark points=""></polyline></svg>`;
   const noSparkClass = tile.sparkKey === undefined ? " no-spark" : "";
-  return markup`<div class="tile${raw(noSparkClass)}" data-stat="${tile.stat}"><span class="cap"></span><span class="tile-val num"><small></small></span>${raw(spark)}</div>`;
+  return markup`<div class="tile${raw(noSparkClass)}" role="group" tabindex="0" data-stat="${tile.stat}"><span class="cap"></span><span class="tile-val num"><small></small></span>${raw(spark)}</div>`;
 }
 
 /** The elements one tile needs patched on every draw or caption redraw. */
@@ -368,22 +398,130 @@ export function presentStatsPanel(parent: HTMLElement, world: World): StatsPanel
   const primaryContainer = requireElement(".tiles-primary", root);
   const secondaryContainer = requireElement(".tiles-secondary", root);
   const moreSummaryCap = requireElement(".more summary .cap", root);
+  const card = requireElement(".statcard", root);
+  const cardTitle = requireElement(".statcard-title", card);
+  const cardText = requireElement(".statcard-text", card);
+
+  card.id = `stats-panel-card-${String(nextCardId)}`;
+  nextCardId += 1;
 
   const refs = TILES.map((tile) => buildTile(tile));
+
+  /** Which tile's card is up, or `null` while none is. */
+  let shown: TileRefs | null = null;
+
+  /**
+   * Dismisses the card on Escape, from wherever in the document it was pressed.
+   *
+   * On the document and not on the panel, because a card opened by pointing at
+   * a tile leaves focus where it already was — `<body>` on a page nobody has
+   * tabbed into — so a handler bound inside the strip would answer only the
+   * cards a player had tabbed to. Bound while a card is up and unbound with it:
+   * the panel is built again from scratch on every redraw of the world, and a
+   * listener left behind per redraw is a listener left behind for ever.
+   */
+  function dismissOnEscape(event: KeyboardEvent): void {
+    if (event.key === "Escape") {
+      hideCard();
+    }
+  }
+
+  function hideCard(): void {
+    if (shown === null) {
+      return;
+    }
+    card.ownerDocument.removeEventListener("keydown", dismissOnEscape);
+    shown.rootEl.removeAttribute("aria-describedby");
+    shown = null;
+    card.hidden = true;
+  }
+
+  /**
+   * Puts the card on its tile — on opening, and again after a language change
+   * has rewritten it into a taller or shorter sentence.
+   *
+   * @param ref - The tile the card is standing on.
+   */
+  function placeCard(ref: TileRefs): void {
+    const position = positionCardOverTile(
+      ref.rootEl.getBoundingClientRect(),
+      root.getBoundingClientRect(),
+      card.offsetWidth,
+      card.offsetHeight,
+    );
+    // Less the panel's own border, because the two are not measured from the
+    // same corner: `getBoundingClientRect` starts at the border box and an
+    // absolutely positioned child's `top` starts at the padding box inside it.
+    // The panel's hairline along the top is a pixel of exactly that difference,
+    // and it is the pixel that would sit between this card and its tile.
+    card.style.left = `${String(position.x - root.clientLeft)}px`;
+    card.style.top = `${String(position.y - root.clientTop)}px`;
+  }
+
+  /**
+   * Shows the card for one tile: its caption in full, and the sentence saying
+   * what the figure counts.
+   *
+   * @param ref - The tile being explained.
+   */
+  function showCard(ref: TileRefs): void {
+    if (shown !== null && shown !== ref) {
+      shown.rootEl.removeAttribute("aria-describedby");
+    }
+    cardTitle.textContent = t(ref.tile.captionKey);
+    cardText.textContent = t(ref.tile.titleKey);
+    card.hidden = false;
+    ref.rootEl.setAttribute("aria-describedby", card.id);
+    shown = ref;
+    // Adding a listener a second time with the same callback and phase does
+    // nothing, so moving from one tile to the next needs no guard here.
+    card.ownerDocument.addEventListener("keydown", dismissOnEscape);
+    placeCard(ref);
+  }
+
   for (const ref of refs) {
     const container = ref.tile.group === "primary" ? primaryContainer : secondaryContainer;
     container.append(ref.rootEl);
+    ref.rootEl.addEventListener("pointerenter", () => {
+      showCard(ref);
+    });
+    ref.rootEl.addEventListener("pointerleave", (event) => {
+      // Not when the pointer left for the card itself, which stands flush on
+      // the tile's top edge: reading a card by pointing at it is WCAG 1.4.13's
+      // "hoverable", and the card's own `pointerleave` below is what closes it
+      // when the pointer finally goes elsewhere.
+      if (event.relatedTarget instanceof Node && card.contains(event.relatedTarget)) {
+        return;
+      }
+      hideCard();
+    });
+    ref.rootEl.addEventListener("focus", () => {
+      showCard(ref);
+    });
+    ref.rootEl.addEventListener("blur", () => {
+      hideCard();
+    });
   }
+
+  card.addEventListener("pointerleave", () => {
+    hideCard();
+  });
 
   const history = createStatsHistory();
 
-  /** Redraws every tile's caption and tooltip and the disclosure's summary; no live figures. */
+  /** Redraws every tile's caption and name and the disclosure's summary; no live figures. */
   function redrawCaptions(): void {
     for (const ref of refs) {
       ref.capEl.textContent = t(ref.tile.captionKey);
-      ref.rootEl.title = t(ref.tile.titleKey);
+      ref.rootEl.setAttribute("aria-label", t(ref.tile.captionKey));
     }
     moreSummaryCap.textContent = t("game.statsPanel.more");
+    if (shown !== null) {
+      // A card standing open through a change of language is rewritten in the
+      // new one rather than dropped, and then placed again: the sentence it
+      // holds is what decides how tall it is.
+      showCard(shown);
+    }
   }
 
   /** Patches every tile's live value and, once per throttle window, its sparkline. */

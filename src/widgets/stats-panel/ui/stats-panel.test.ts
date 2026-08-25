@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { presentStatsPanel, statsPanelTemplate } from "./stats-panel.ts";
 import { at } from "#game/test-helpers.ts";
@@ -74,6 +74,15 @@ function sparkPointCount(tile: Element): number {
   return points === "" ? 0 : points.split(" ").length;
 }
 
+/** One mounted panel's tile for a figure, as the element the card's events are aimed at. */
+function tileOf(parent: HTMLElement, stat: string): HTMLElement {
+  return requireElement(`.tile[data-stat="${stat}"]`, parent);
+}
+
+afterEach(() => {
+  document.body.replaceChildren();
+});
+
 describe("statsPanelTemplate", () => {
   it("draws the inert shell: a closed disclosure and no tiles yet", () => {
     const parent = document.createElement("div");
@@ -140,25 +149,174 @@ describe("presentStatsPanel", () => {
     expect(requireElement(".more summary .cap", parent).textContent).toBe("All figures");
   });
 
-  it("explains every tile in a tooltip of its own", () => {
+  it("explains every tile in a card of its own", () => {
     const parent = setUp(fixtureWorld());
+    const cardText = requireElement(".statcard-text", parent);
 
-    const tiles = [...parent.querySelectorAll(".tile")];
-    const titles = tiles.map((tile) => tile.getAttribute("title"));
+    const tiles = [...parent.querySelectorAll<HTMLElement>(".tile")];
+    const sentences = tiles.map((tile) => {
+      tile.dispatchEvent(new Event("pointerenter"));
+      return cardText.textContent;
+    });
     // Not one tile left unexplained, and no explanation reused: a caption is
     // short enough to be read backwards, and every one of them has its own way
     // of being read backwards.
-    expect(titles.filter((title) => title !== null && title !== "")).toHaveLength(tiles.length);
-    expect(new Set(titles).size).toBe(tiles.length);
+    expect(sentences.filter((line) => line !== "")).toHaveLength(tiles.length);
+    expect(new Set(sentences).size).toBe(tiles.length);
 
-    const title = (stat: string): string | null =>
-      requireElement(`.tile[data-stat="${stat}"]`, parent).getAttribute("title");
-    expect(title("moveCount")).toBe(
+    const sentence = (stat: string): string | null => {
+      tileOf(parent, stat).dispatchEvent(new Event("pointerenter"));
+      return cardText.textContent;
+    };
+    expect(sentence("moveCount")).toBe(
       "One move is counted each time a car crosses the halfway mark between one floor and the next",
     );
-    expect(title("transportedPerSec")).toBe(
+    expect(sentence("transportedPerSec")).toBe(
       "Everyone delivered so far, over the time the run has taken, so it is the whole run's average rather than the rate at this moment",
     );
+    // And the caption over it in full, which is the other half of what the card
+    // is for: the grids truncate a caption to one line.
+    expect(requireElement(".statcard-title", parent).textContent).toBe("Transported/s");
+  });
+
+  it("makes every tile a tab stop a screen reader has a name for", () => {
+    const parent = setUp(fixtureWorld());
+
+    for (const tile of parent.querySelectorAll<HTMLElement>(".tile")) {
+      expect(tile.tabIndex).toBe(0);
+      expect(tile.getAttribute("role")).toBe("group");
+      expect(tile.getAttribute("aria-label")).toBe(tile.querySelector(".cap")?.textContent);
+    }
+    expect(requireElement('.tile[data-stat="moveCount"]', parent).getAttribute("aria-label")).toBe(
+      "Moves",
+    );
+  });
+
+  it("opens a figure's card from the keyboard and puts it away on Escape, without moving focus", () => {
+    const parent = setUp(fixtureWorld());
+    const card = requireElement(".statcard", parent);
+    const tile = tileOf(parent, "avgLoadFactorOnMove");
+
+    expect(card.hidden).toBe(true);
+    tile.focus();
+    tile.dispatchEvent(new Event("focus"));
+
+    expect(card.hidden).toBe(false);
+    expect(tile.getAttribute("aria-describedby")).toBe(card.id);
+    expect(card.id).not.toBe("");
+
+    document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
+
+    expect(card.hidden).toBe(true);
+    expect(tile.hasAttribute("aria-describedby")).toBe(false);
+    // The card goes, the figure keeps the focus: the WAI-ARIA tooltip pattern's
+    // own contract, and the reason Escape is not just another way to blur.
+    expect(document.activeElement).toBe(tile);
+  });
+
+  it("takes the card away when the focus moves on, and stays quiet the second time", () => {
+    const parent = setUp(fixtureWorld());
+    const card = requireElement(".statcard", parent);
+    const tile = tileOf(parent, "waitingNow");
+
+    tile.dispatchEvent(new Event("focus"));
+    expect(card.hidden).toBe(false);
+
+    tile.dispatchEvent(new Event("blur"));
+    expect(card.hidden).toBe(true);
+    expect(tile.hasAttribute("aria-describedby")).toBe(false);
+
+    // Both ways of putting a card down reach the same tile in one move -- a
+    // player who presses Escape and then tabs away sends an Escape and a blur
+    // at a card that is already down -- so the second one has to be a no-op
+    // rather than an attempt to unbind from a tile there no longer is.
+    tile.dispatchEvent(new Event("blur"));
+    expect(card.hidden).toBe(true);
+  });
+
+  it("dismisses a card opened by pointing, from a keyboard that never left the body", () => {
+    const parent = setUp(fixtureWorld());
+    const card = requireElement(".statcard", parent);
+    const tile = tileOf(parent, "stopCount");
+
+    tile.dispatchEvent(new Event("pointerenter"));
+    expect(card.hidden).toBe(false);
+    expect(document.activeElement).toBe(document.body);
+
+    // Every other key goes past it. The listener is on the document while a
+    // card is up, so it sees the whole page's typing -- including the editor's.
+    document.body.dispatchEvent(new KeyboardEvent("keydown", { key: "e", bubbles: true }));
+    expect(card.hidden).toBe(false);
+
+    document.body.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+
+    expect(card.hidden).toBe(true);
+  });
+
+  it("keeps the card up while the pointer travels onto it, and drops it on the way out", () => {
+    const parent = setUp(fixtureWorld());
+    const card = requireElement(".statcard", parent);
+    const tile = tileOf(parent, "avgWaitTime");
+
+    tile.dispatchEvent(new Event("pointerenter"));
+    // Up off the tile and onto the card, which stands flush on its top edge.
+    tile.dispatchEvent(new MouseEvent("pointerleave", { relatedTarget: card }));
+    expect(card.hidden).toBe(false);
+    expect(tile.getAttribute("aria-describedby")).toBe(card.id);
+
+    card.dispatchEvent(new Event("pointerleave"));
+    expect(card.hidden).toBe(true);
+  });
+
+  it("closes the card when the pointer leaves the tile for anywhere else", () => {
+    const parent = setUp(fixtureWorld());
+    const card = requireElement(".statcard", parent);
+    const tile = tileOf(parent, "avgWaitTime");
+
+    tile.dispatchEvent(new Event("pointerenter"));
+    tile.dispatchEvent(new MouseEvent("pointerleave", { relatedTarget: parent }));
+
+    expect(card.hidden).toBe(true);
+    expect(tile.hasAttribute("aria-describedby")).toBe(false);
+  });
+
+  it("hands the card to the next figure, leaving no describedby behind", () => {
+    const parent = setUp(fixtureWorld());
+    const card = requireElement(".statcard", parent);
+    const first = tileOf(parent, "avgWaitTime");
+    const second = tileOf(parent, "maxWaitTime");
+
+    first.dispatchEvent(new Event("pointerenter"));
+    second.dispatchEvent(new Event("pointerenter"));
+
+    expect(first.hasAttribute("aria-describedby")).toBe(false);
+    expect(second.getAttribute("aria-describedby")).toBe(card.id);
+    expect(requireElement(".statcard-title", parent).textContent).toBe("Max delivery time");
+  });
+
+  it("gives each mounted panel a card of its own to point at", () => {
+    // The id is what `aria-describedby` names, and two panels on one document
+    // -- a redraw of the world before the old one is gone -- would otherwise
+    // point every tile at whichever card was parsed first.
+    const first = setUp(fixtureWorld());
+    const second = setUp(fixtureWorld());
+
+    expect(requireElement(".statcard", first).id).not.toBe(requireElement(".statcard", second).id);
+  });
+
+  it("stops listening for Escape once the card is down", () => {
+    // The listener is on the document and this panel is built again from
+    // scratch on every redraw of the world, so one left behind per card shown
+    // is one left behind for good.
+    const parent = setUp(fixtureWorld());
+    const listening = vi.spyOn(document, "removeEventListener");
+    const tile = tileOf(parent, "avgWaitTime");
+
+    tile.dispatchEvent(new Event("pointerenter"));
+    tile.dispatchEvent(new Event("pointerleave"));
+
+    expect(listening).toHaveBeenCalledWith("keydown", expect.any(Function));
+    listening.mockRestore();
   });
 
   it("draws all eleven figures it reads off a world, each at its own precision and unit", () => {
@@ -260,7 +418,7 @@ describe("presentStatsPanel", () => {
     }
   });
 
-  it("update() repaints every caption and tooltip in place, without rebuilding the tiles", () => {
+  it("update() repaints every caption and name in place, without rebuilding the tiles", () => {
     const world = fixtureWorld();
     const parent = document.createElement("div");
     document.body.append(parent);
@@ -275,8 +433,24 @@ describe("presentStatsPanel", () => {
     expect(requireElement('.tile[data-stat="avgWaitTime"] .cap', parent).textContent).toBe(
       "Avg delivery time",
     );
-    expect(requireElement('.tile[data-stat="avgWaitTime"]', parent).getAttribute("title")).toBe(
-      "The whole journey, from a passenger appearing in the building to stepping out at the floor they asked for, averaged over those already delivered, so the ride counts in it as much as the wait does",
-    );
+    expect(tileOf(parent, "avgWaitTime").getAttribute("aria-label")).toBe("Avg delivery time");
+  });
+
+  it("update() rewrites a card left standing open rather than dropping it", () => {
+    const parent = document.createElement("div");
+    document.body.append(parent);
+    const presenter = presentStatsPanel(parent, fixtureWorld());
+    const card = requireElement(".statcard", parent);
+    const tile = tileOf(parent, "avgWaitTime");
+
+    tile.dispatchEvent(new Event("pointerenter"));
+    presenter.update();
+
+    // A language change is the only thing that calls this, and dropping the
+    // card would leave a pointer resting on a figure with nothing to read
+    // until it moved off and back.
+    expect(card.hidden).toBe(false);
+    expect(tile.getAttribute("aria-describedby")).toBe(card.id);
+    expect(requireElement(".statcard-title", parent).textContent).toBe("Avg delivery time");
   });
 });
