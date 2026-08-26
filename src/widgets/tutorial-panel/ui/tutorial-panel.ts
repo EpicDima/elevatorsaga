@@ -6,6 +6,7 @@
 import { tutorialLevels } from "#game/tutorial.ts";
 import { t, type MessageKey } from "#i18n/index.ts";
 import { query, queryAll, requireElement } from "#shared/lib/dom.ts";
+import { createSpriteIcon, spriteIconMarkup, type SpriteIconName } from "#shared/ui/icon.ts";
 import { markup, raw, renderElement } from "#shared/ui/markup.ts";
 
 import { highlightJavaScript } from "../../../ui/code-highlight.ts";
@@ -134,51 +135,94 @@ const DISCLOSURE_SELECTOR = ".tutorialhint, .tutorialexplanation";
 /** Every control a player might be focused on when the panel redraws. */
 const CONTROL_SELECTOR = ".tutorialpanel summary, .tutorialpanel button";
 
-/** The button that copies the level's answer to the clipboard. */
+/** The icon button that copies the level's answer, drawn on the code block itself. */
 const COPY_CODE_SELECTOR = ".tutorialcopycode";
 
-/** The line reporting whether that copy succeeded; drawn empty, filled in on click. */
+/** The answer as it is printed, which is exactly what the button copies. */
+const SOLUTION_CODE_SELECTOR = ".tutorialsolution code";
+
+/** Where the outcome is announced; visually hidden, since the button's own mark shows it. */
 const COPIED_SELECTOR = ".tutorialcopied";
 
-/**
- * Copy-result token stored on the markup rather than kept in a variable, so it
- * survives a redraw and can be re-translated rather than left in the old language.
- */
+/** Which mark the button is wearing, and the hook the tint and the pop hang off. */
 const COPIED_STATE_ATTRIBUTE = "data-copied";
 
-/** Sentences for each copy outcome. */
-const COPIED_MESSAGES = {
-  yes: "tutorial.solution.copied",
-  no: "tutorial.solution.copyFailed",
-} as const satisfies Readonly<Record<string, MessageKey>>;
+/** How long that mark stays before the button is a copy button again. */
+const COPIED_FLASH_MS = 2000;
 
-/** The answers {@link COPIED_MESSAGES} has a sentence for. */
-type CopiedState = keyof typeof COPIED_MESSAGES;
+/** Per outcome: the mark drawn on the button, and the sentence announced behind it. */
+const COPY_OUTCOMES = {
+  yes: { icon: "check", message: "tutorial.solution.copied" },
+  no: { icon: "x", message: "tutorial.solution.copyFailed" },
+} as const satisfies Readonly<Record<string, { icon: SpriteIconName; message: MessageKey }>>;
 
-/** Parses a drawn panel's copy-line state, if it recorded one. */
-function copiedStateOf(value: string | null): CopiedState | undefined {
-  return value === "yes" || value === "no" ? value : undefined;
-}
+/** The outcomes {@link COPY_OUTCOMES} has a mark for. */
+type CopiedState = keyof typeof COPY_OUTCOMES;
 
 /**
- * Copies the level's answer to the clipboard and reports whether it worked.
+ * Copies the answer, saying which way it went rather than throwing.
  *
  * `navigator.clipboard` can be missing (insecure context, jsdom) or reject the
  * write; both funnel through one catch.
  */
-async function copySolution(parent: HTMLElement): Promise<void> {
-  const code = requireElement(".tutorialsolution code", parent).textContent;
-  let copied: boolean;
+async function copyToClipboard(code: string): Promise<CopiedState> {
   try {
     await navigator.clipboard.writeText(code);
-    copied = true;
+    return "yes";
   } catch {
-    copied = false;
+    return "no";
   }
-  const state: CopiedState = copied ? "yes" : "no";
-  const line = requireElement(COPIED_SELECTOR, parent);
-  line.setAttribute(COPIED_STATE_ATTRIBUTE, state);
-  line.textContent = t(COPIED_MESSAGES[state]);
+}
+
+/** Puts the mark, the name and the announcement on the button together, since all three say the same thing. */
+function markCopyButton(button: HTMLElement, announcement: HTMLElement, state: CopiedState): void {
+  const { icon, message } = COPY_OUTCOMES[state];
+  button.setAttribute(COPIED_STATE_ATTRIBUTE, state);
+  button.firstElementChild?.replaceWith(createSpriteIcon(icon));
+  button.title = t(message);
+  button.setAttribute("aria-label", t(message));
+  announcement.textContent = t(message);
+}
+
+/** Takes all three back off, leaving a plain copy button. */
+function unmarkCopyButton(button: HTMLElement, announcement: HTMLElement): void {
+  const name = t("tutorial.solution.copy");
+  button.removeAttribute(COPIED_STATE_ATTRIBUTE);
+  button.firstElementChild?.replaceWith(createSpriteIcon("copy"));
+  button.title = name;
+  button.setAttribute("aria-label", name);
+  announcement.textContent = "";
+}
+
+/**
+ * Wires the copy button: it wears the outcome for {@link COPIED_FLASH_MS} and
+ * then goes back to being a copy button. The mark is the whole visible report,
+ * so nothing is left standing beside the answer once it has been read.
+ */
+function wireCopyButton(parent: HTMLElement): void {
+  const button = requireElement(COPY_CODE_SELECTOR, parent);
+  const announcement = requireElement(COPIED_SELECTOR, parent);
+  let flash: ReturnType<typeof setTimeout> | undefined;
+
+  /** Copies, marks the button with what happened, and unmarks it a moment later. */
+  async function copyAndReport(): Promise<void> {
+    clearTimeout(flash);
+    // Cleared before the write, not only restored after the mark: a live region
+    // announces a change, so the same sentence twice running would be silent.
+    unmarkCopyButton(button, announcement);
+    markCopyButton(
+      button,
+      announcement,
+      await copyToClipboard(requireElement(SOLUTION_CODE_SELECTOR, parent).textContent),
+    );
+    flash = setTimeout(() => {
+      unmarkCopyButton(button, announcement);
+    }, COPIED_FLASH_MS);
+  }
+
+  button.addEventListener("click", () => {
+    void copyAndReport();
+  });
 }
 
 /** What the panel needs in order to draw itself. */
@@ -226,15 +270,21 @@ interface TutorialAnswerData {
 
 /**
  * The answer block: the solution, highlighted with its changed lines marked,
- * plus a copy button. Uses `raw()` since `highlightJavaScript` already escapes
- * each token itself.
+ * with the copy button in the block's own corner. Uses `raw()` since
+ * `highlightJavaScript` already escapes each token itself, and
+ * `spriteIconMarkup` builds its `<svg>` from constants alone.
  */
 function tutorialAnswerTemplate(answer: TutorialAnswerData): string {
   const highlighted = highlightJavaScript(
     answer.solutionCode,
     changedLines(answer.startingCode, answer.solutionCode),
   );
-  return markup`<div class="tutorialanswer"><div class="tutorialanswertools"><button type="button" class="tutorialcopycode">${t("tutorial.solution.copy")}</button><p class="tutorialcopied" aria-live="polite"></p></div><pre class="tutorialsolution"><code>${raw(highlighted)}</code></pre></div>`;
+  const name = t("tutorial.solution.copy");
+  // The button sits inside the `<pre>` so it anchors to the code block's own
+  // corner, and before the `<code>` so `textContent` there is still the program.
+  // The announcement is a live region and must stay in the document even while
+  // empty, or a screen reader misses the sentence when it arrives.
+  return markup`<div class="tutorialanswer"><pre class="tutorialsolution"><button type="button" class="tutorialcopycode" title="${name}" aria-label="${name}">${raw(spriteIconMarkup("copy"))}</button><code>${raw(highlighted)}</code></pre><p class="tutorialcopied visually-hidden" aria-live="polite"></p></div>`;
 }
 
 /**
@@ -313,10 +363,6 @@ export function presentTutorial(parent: HTMLElement, data: TutorialPanelData): v
   const focusedControl = queryAll(CONTROL_SELECTOR, parent).findIndex(
     (control) => control === document.activeElement,
   );
-  // Dropped on a level change, since a different answer is on the button by then.
-  const copiedState = sameLevel
-    ? copiedStateOf(query(COPIED_SELECTOR, parent)?.getAttribute(COPIED_STATE_ATTRIBUTE) ?? null)
-    : undefined;
 
   const panel = renderElement(
     tutorialTemplate({
@@ -332,13 +378,6 @@ export function presentTutorial(parent: HTMLElement, data: TutorialPanelData): v
     }),
   );
 
-  if (copiedState !== undefined) {
-    // Set while still detached, so it's a restoration, not a fresh announcement
-    // from a live region that's already in the document.
-    const line = requireElement(COPIED_SELECTOR, panel);
-    line.setAttribute(COPIED_STATE_ATTRIBUTE, copiedState);
-    line.textContent = t(COPIED_MESSAGES[copiedState]);
-  }
   parent.replaceChildren(panel);
 
   queryAll(DISCLOSURE_SELECTOR, parent).forEach((disclosure, index) => {
@@ -347,9 +386,7 @@ export function presentTutorial(parent: HTMLElement, data: TutorialPanelData): v
     }
   });
 
-  requireElement(COPY_CODE_SELECTOR, parent).addEventListener("click", () => {
-    void copySolution(parent);
-  });
+  wireCopyButton(parent);
 
   // -1 (focus was elsewhere) indexes to undefined, so focus moves only if the
   // panel itself had it.

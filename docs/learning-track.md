@@ -26,7 +26,7 @@ was really doing. That card is the lesson and nothing else — no header naming 
 of what you have finished, no buttons under the prose: what is true of the whole track is the level
 menu's business, and this is the level. The editor belongs to the track too: what you write is kept
 per tutorial level and your own program in the game's editor is never written to, so what leaves the
-track is whatever you copy out with the **Copy this program** button beside the answer. Cleared ones
+track is whatever you copy out with the copy button in the answer's top-right corner. Cleared ones
 are remembered in `localStorage` and the menu gives each of them three stars — the track asks nothing
 beyond its own condition, so clearing one is gold outright — and nothing is ever locked: every one of
 them is playable by its address from the first visit.

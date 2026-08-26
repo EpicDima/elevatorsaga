@@ -147,15 +147,40 @@ test("highlights the answer, marks the line it adds, and copies it to the clipbo
   await expect(marked).toHaveCount(1);
   await expect(marked).toHaveText("elevator.goToFloor(1);");
 
-  const copyButton = panel(page).getByRole("button", { name: "Copy this program" });
+  // Located by class rather than by name: the name is what the click changes,
+  // and a locator that matched only the resting name would stop matching there.
+  const copyButton = panel(page).locator("button.tutorialcopycode");
   const status = panel(page).locator(".tutorialcopied");
+  await expect(copyButton).toHaveAccessibleName("Copy this program");
   await expect(status).toHaveText("");
+  // The button is drawn on the block it copies, in its top corner, and stays
+  // put there while a wide answer scrolls under it.
+  const block = (await code.boundingBox()) ?? { x: 0, y: 0, width: 0, height: 0 };
+  const control = (await copyButton.boundingBox()) ?? { x: 0, y: 0, width: 0, height: 0 };
+  expect(control.y).toBeGreaterThanOrEqual(block.y);
+  expect(control.y + control.height).toBeLessThan(block.y + block.height);
+  expect(control.x + control.width).toBeLessThanOrEqual(block.x + block.width);
+  expect(control.x).toBeGreaterThan(block.x + block.width / 2);
 
   await copyButton.click();
 
+  // The mark on the button is the whole visible report; the sentence behind it
+  // is announced, not shown, so a player is not left reading a status line.
+  await expect(copyButton).toHaveAttribute("data-copied", "yes");
+  await expect(copyButton).toHaveAccessibleName("Copied to your clipboard.");
   await expect(status).toHaveText("Copied to your clipboard.");
-  // Compared against what's actually rendered, not a second copy of the
-  // program kept by the test.
+  // Clipped to a pixel by `.visually-hidden`, which is the whole point of it:
+  // announced, and taking up no room on the card.
+  const announced = (await status.boundingBox()) ?? { width: 0, height: 0 };
+  expect(announced.height).toBeLessThanOrEqual(1);
+
+  // And it goes back to being a copy button, so the answer is left as it was found.
+  await expect(copyButton).not.toHaveAttribute("data-copied", /.*/);
+  await expect(copyButton).toHaveAccessibleName("Copy this program");
+  await expect(status).toHaveText("");
+
+  // Read once the mark is gone, since what was written outlives it. Compared
+  // against what's actually rendered, not a second copy kept by the test.
   const clipboard = await page.evaluate(() => navigator.clipboard.readText());
   expect(clipboard).toBe(await code.evaluate((element) => element.textContent));
   expect(clipboard).toContain("elevator.goToFloor(1);");

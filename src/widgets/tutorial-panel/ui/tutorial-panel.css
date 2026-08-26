@@ -77,14 +77,19 @@
   padding: 0 11px 10px;
 }
 
+/*
+ * 72ch comfortably fits the longest answer line (68 characters). The cap is on
+ * the block rather than the code inside it so that the copy button, positioned
+ * against this box, lands on the code's own corner however wide the panel is.
+ */
 .tutorialsolution {
+  position: relative;
   margin: 0 11px 11px;
+  max-inline-size: 72ch;
 }
 
-/* 72ch comfortably fits the longest answer line (68 characters). */
 .tutorialsolution code {
   padding: 9px 11px;
-  max-inline-size: 72ch;
   font-size: 12px;
 }
 
@@ -102,33 +107,82 @@
   background-color: rgb(51 53 31 / 10%);
 }
 
-.tutorialanswertools {
+/*
+ * A bare glyph in the code block's own corner, the way a code block is copied
+ * everywhere else. It paints the block's background so a long first line
+ * passes behind it rather than through it.
+ */
+.tutorialcopycode {
+  position: absolute;
+  inset-block-start: 4px;
+  inset-inline-end: 4px;
   display: flex;
-  align-items: baseline;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin: 8px 11px 4px;
+  align-items: center;
+  justify-content: center;
+  inline-size: 26px;
+  block-size: 26px;
+  border-radius: var(--ds-r-sm);
+  background-color: var(--ds-code-bg);
+  color: var(--ds-text-muted);
+  transition:
+    background-color 120ms ease,
+    color 120ms ease,
+    transform 120ms ease;
 }
 
-/* `--ds-n-3` rather than `.codeslot`'s `--ds-raised`: this button sits on a raised hint, so it needs a step up to stay visible as a shape. */
-.tutorialcopycode {
-  padding: 5px 10px;
-  border: 1px solid var(--ds-line-strong);
-  border-radius: var(--ds-r-sm);
-  background-color: var(--ds-n-3);
+.tutorialcopycode:hover {
+  background-color: var(--ds-raised);
   color: var(--ds-text);
-  font-size: 13px;
-  font-weight: bold;
+}
+
+/* The press itself, so a click reads as one before its mark arrives. */
+.tutorialcopycode:active {
+  transform: scale(0.86);
+  transition-duration: 0s;
 }
 
 /*
- * This is a live region and must stay in the DOM (not `display: none`) even
- * while empty, or screen readers miss the announcement when text arrives.
- * No block margin so the empty `<p>` costs no layout space meanwhile.
+ * What the click did, worn for the moment `COPIED_FLASH_MS` holds the mark on.
+ * These follow `:hover` deliberately: the pointer is still on the button when
+ * the mark appears, and both weigh the same, so the later rule has to be this one.
  */
-.tutorialcopied {
-  margin-block: 0;
-  color: var(--ds-text-muted);
-  font-size: 12px;
-  line-height: 16px;
+.tutorialcopycode[data-copied="yes"] {
+  color: var(--ds-ok);
+}
+
+.tutorialcopycode[data-copied="no"] {
+  color: var(--ds-bad-ink);
+}
+
+.tutorialcopycode[data-copied] {
+  animation: tutorialcopymark 260ms ease-out;
+}
+
+/* The mark lands rather than appears, which is what makes the click feel answered. */
+@keyframes tutorialcopymark {
+  from {
+    transform: scale(0.7);
+  }
+
+  60% {
+    transform: scale(1.15);
+  }
+
+  to {
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tutorialcopycode {
+    transition: none;
+  }
+
+  .tutorialcopycode:active {
+    transform: none;
+  }
+
+  .tutorialcopycode[data-copied] {
+    animation: none;
+  }
 }

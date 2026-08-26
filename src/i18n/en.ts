@@ -974,7 +974,7 @@ function update(dt, elevators, floors) {
   "tutorial.solution.copy": "Copy this program",
   "tutorial.solution.copied": "Copied to your clipboard.",
   "tutorial.solution.copyFailed":
-    "Your browser refused to copy it. Select the code above and copy it yourself.",
+    "Your browser refused to copy it. Select the code and copy it yourself.",
   "tutorial.finish.title": "The track is finished",
   "tutorial.finish.message":
     "Eight tutorial levels, and the last of them was level 1 of the game itself: the same three floors, the same elevator, the same fifteen passengers in sixty seconds. The program in the editor solves it. Level 1 opens with a program of its own, so copy this one out of the editor before you go if you would rather start from it.",

@@ -8,12 +8,24 @@ import { tutorialLevels } from "#game/tutorial.ts";
 import type { TutorialLevel } from "#game/tutorial.ts";
 import { DEFAULT_LOCALE, EN_MESSAGES, LOCALES, setLocale, translateIn } from "#i18n/index.ts";
 import { query, queryAll, requireElement } from "#shared/lib/dom.ts";
+import { spriteIconMarkup, type SpriteIconName } from "#shared/ui/icon.ts";
 import { renderElement } from "#shared/ui/markup.ts";
 
 import { createElement } from "../../../ui/test-helpers.ts";
 
 /** English catalog, indexable by a runtime-built key (unlike `t`, which needs a literal). */
 const ENGLISH: Readonly<Record<string, unknown>> = EN_MESSAGES;
+
+/**
+ * A sprite as the document serializes it: `spriteIconMarkup`'s self-closing
+ * tags get rewritten with a close tag by the HTML parser, so comparisons must
+ * go through the same round trip.
+ */
+function iconHtml(name: SpriteIconName): string {
+  const host = createElement("div");
+  host.innerHTML = spriteIconMarkup(name);
+  return host.innerHTML;
+}
 
 /** The `.tutorial` region of the page shell, attached so focus can move in it. */
 let parent: HTMLElement;
@@ -83,7 +95,9 @@ describe("presentTutorial", () => {
     expect(requireElement(".tutorialexplanation summary", parent).textContent).toBe(
       "Why this happens",
     );
-    expect(requireElement(".tutorialcopycode", parent).textContent).toBe("Copy this program");
+    expect(requireElement(".tutorialcopycode", parent).getAttribute("aria-label")).toBe(
+      "Copy this program",
+    );
   });
 
   it("highlights the answer and marks the line a player actually has to write", () => {
@@ -285,10 +299,11 @@ describe("presentTutorial", () => {
     });
   });
 
-  describe("what the panel says about copying the answer", () => {
+  describe("what the copy button does about copying the answer", () => {
     afterEach(() => {
       // jsdom has no Clipboard API, so a spec that stubbed it must clean up.
       Reflect.deleteProperty(navigator, "clipboard");
+      vi.useRealTimers();
     });
 
     /** Stands in for `navigator.clipboard.writeText`, since jsdom has no Clipboard API to spy on. */
@@ -303,85 +318,149 @@ describe("presentTutorial", () => {
       return writeText;
     }
 
-    it("is a live region that is already there, and empty, before there is news", () => {
+    /** The button itself, which is the whole visible report on the copy. */
+    function copyButton(): HTMLElement {
+      return requireElement(".tutorialcopycode", parent);
+    }
+
+    /** Waits out the mark, whatever `COPIED_FLASH_MS` is set to. */
+    async function waitOutTheMark(): Promise<void> {
+      await vi.advanceTimersByTimeAsync(60_000);
+    }
+
+    it("is a glyph on the code block, named for what it does rather than labeled", () => {
+      presentTutorial(parent, panelData());
+
+      const button = copyButton();
+      expect(button.closest("pre")).toBe(requireElement(".tutorialsolution", parent));
+      // Named, not labeled: a caption beside the answer is what this replaced.
+      expect(button.textContent).toBe("");
+      expect(button.getAttribute("aria-label")).toBe("Copy this program");
+      expect(button.title).toBe("Copy this program");
+      expect(button.innerHTML).toBe(iconHtml("copy"));
+      expect(button.hasAttribute("data-copied")).toBe(false);
+    });
+
+    it("announces into a live region that is already there, empty and unseen", () => {
       presentTutorial(parent, panelData());
 
       const line = requireElement(".tutorialcopied", parent);
       expect(line.getAttribute("aria-live")).toBe("polite");
       expect(line.textContent).toBe("");
+      // Screen readers only: what a sighted player gets is the mark on the button.
+      expect(line.classList.contains("visually-hidden")).toBe(true);
     });
 
-    it("copies the program exactly as it is shown, and says so", async () => {
+    it("copies the program exactly as it is shown, and wears a check for it", async () => {
       const writeText = stubClipboard(true);
       presentTutorial(parent, panelData());
       const code = requireElement(".tutorialsolution code", parent).textContent;
 
-      requireElement(".tutorialcopycode", parent).click();
+      copyButton().click();
 
       await vi.waitFor(() => {
-        expect(requireElement(".tutorialcopied", parent).textContent).not.toBe("");
+        expect(copyButton().getAttribute("data-copied")).toBe("yes");
       });
       expect(writeText).toHaveBeenCalledWith(code);
+      expect(copyButton().innerHTML).toBe(iconHtml("check"));
+      expect(copyButton().getAttribute("aria-label")).toBe("Copied to your clipboard.");
       expect(requireElement(".tutorialcopied", parent).textContent).toBe(
         "Copied to your clipboard.",
       );
     });
 
-    it("says the browser refused, and what to do instead", async () => {
+    it("wears a cross when the browser refuses, and says what to do instead", async () => {
       stubClipboard(false);
       presentTutorial(parent, panelData());
 
-      requireElement(".tutorialcopycode", parent).click();
+      copyButton().click();
 
       await vi.waitFor(() => {
-        expect(requireElement(".tutorialcopied", parent).textContent).not.toBe("");
+        expect(copyButton().getAttribute("data-copied")).toBe("no");
       });
+      expect(copyButton().innerHTML).toBe(iconHtml("x"));
+      // On the button as well as in the live region: the cross alone doesn't
+      // say that the program can still be selected by hand.
+      expect(copyButton().title).toBe(
+        "Your browser refused to copy it. Select the code and copy it yourself.",
+      );
       expect(requireElement(".tutorialcopied", parent).textContent).toBe(
-        "Your browser refused to copy it. Select the code above and copy it yourself.",
+        "Your browser refused to copy it. Select the code and copy it yourself.",
       );
     });
 
-    it("says the browser refused when there is no clipboard to write to at all", async () => {
+    it("wears the same cross when there is no clipboard to write to at all", async () => {
       // No stub: jsdom's own `navigator.clipboard` is undefined, so the write
       // throws before it becomes a promise.
       presentTutorial(parent, panelData());
 
-      requireElement(".tutorialcopycode", parent).click();
+      copyButton().click();
 
       await vi.waitFor(() => {
-        expect(requireElement(".tutorialcopied", parent).textContent).not.toBe("");
+        expect(copyButton().getAttribute("data-copied")).toBe("no");
       });
+      expect(copyButton().innerHTML).toBe(iconHtml("x"));
       expect(requireElement(".tutorialcopied", parent).textContent).toBe(
-        "Your browser refused to copy it. Select the code above and copy it yourself.",
+        "Your browser refused to copy it. Select the code and copy it yourself.",
       );
     });
 
-    it("keeps the news across a redraw of the same level", async () => {
+    it("wears the mark long enough to be read, then is a copy button again", async () => {
+      vi.useFakeTimers();
       stubClipboard(true);
       presentTutorial(parent, panelData());
-      requireElement(".tutorialcopycode", parent).click();
-      await vi.waitFor(() => {
-        expect(requireElement(".tutorialcopied", parent).textContent).not.toBe("");
-      });
 
+      copyButton().click();
+      await vi.advanceTimersByTimeAsync(0);
+
+      expect(copyButton().getAttribute("data-copied")).toBe("yes");
+      // Still there half a second on: a mark that blinks out is no report.
+      await vi.advanceTimersByTimeAsync(500);
+      expect(copyButton().getAttribute("data-copied")).toBe("yes");
+
+      await waitOutTheMark();
+
+      expect(copyButton().hasAttribute("data-copied")).toBe(false);
+      expect(copyButton().innerHTML).toBe(iconHtml("copy"));
+      expect(copyButton().getAttribute("aria-label")).toBe("Copy this program");
+      expect(requireElement(".tutorialcopied", parent).textContent).toBe("");
+    });
+
+    it("empties the live region before each copy, so the same sentence announces twice", async () => {
+      vi.useFakeTimers();
+      stubClipboard(true);
       presentTutorial(parent, panelData());
+      copyButton().click();
+      await vi.advanceTimersByTimeAsync(0);
 
+      copyButton().click();
+
+      // A live region announces a change, so the second copy has to arrive as one.
+      expect(requireElement(".tutorialcopied", parent).textContent).toBe("");
+      await vi.advanceTimersByTimeAsync(0);
       expect(requireElement(".tutorialcopied", parent).textContent).toBe(
         "Copied to your clipboard.",
       );
+      expect(copyButton().getAttribute("data-copied")).toBe("yes");
     });
 
-    it("drops the news when the panel moves to another level", async () => {
+    it("carries no mark into a redraw, the mark being a moment rather than a state", async () => {
+      vi.useFakeTimers();
       stubClipboard(true);
       presentTutorial(parent, panelData());
-      requireElement(".tutorialcopycode", parent).click();
-      await vi.waitFor(() => {
-        expect(requireElement(".tutorialcopied", parent).textContent).not.toBe("");
-      });
+      copyButton().click();
+      await vi.advanceTimersByTimeAsync(0);
 
-      presentTutorial(parent, panelData({ levelIndex: 1 }));
+      presentTutorial(parent, panelData());
 
+      expect(copyButton().hasAttribute("data-copied")).toBe(false);
+      expect(copyButton().innerHTML).toBe(iconHtml("copy"));
       expect(requireElement(".tutorialcopied", parent).textContent).toBe("");
+      // The redrawn button still copies: the panel wires the one it just drew.
+      await waitOutTheMark();
+      copyButton().click();
+      await vi.advanceTimersByTimeAsync(0);
+      expect(copyButton().getAttribute("data-copied")).toBe("yes");
     });
 
     it("says it in the language the player is reading, at the moment it says it", async () => {
@@ -389,11 +468,12 @@ describe("presentTutorial", () => {
       presentTutorial(parent, panelData());
       setLocale("ru");
 
-      requireElement(".tutorialcopycode", parent).click();
+      copyButton().click();
 
       await vi.waitFor(() => {
-        expect(requireElement(".tutorialcopied", parent).textContent).not.toBe("");
+        expect(copyButton().getAttribute("data-copied")).toBe("yes");
       });
+      expect(copyButton().getAttribute("aria-label")).toBe("Скопировано в буфер обмена.");
       expect(requireElement(".tutorialcopied", parent).textContent).toBe(
         "Скопировано в буфер обмена.",
       );
@@ -413,7 +493,9 @@ describe("presentTutorial", () => {
         "Лифт, который никуда не едет",
       );
       expect(requireElement(".tutorialhint summary", parent).textContent).toBe("Подсказка 1");
-      expect(requireElement(".tutorialcopycode", parent).textContent).toBe("Скопировать программу");
+      expect(requireElement(".tutorialcopycode", parent).getAttribute("aria-label")).toBe(
+        "Скопировать программу",
+      );
     });
 
     it("draws this level's own answer, out of the catalog of the language it draws in", () => {
@@ -556,9 +638,13 @@ describe("tutorialTemplate", () => {
     expect(lines[1]?.textContent).toBe("elevator.goToFloor(1);");
 
     const answer = drawn.querySelector(".tutorialanswer");
-    const button = answer?.querySelector("button.tutorialcopycode");
-    expect(button?.textContent).toBe("Copy this program");
+    // Inside the `<pre>` and ahead of the `<code>`, so it sits in the block's
+    // corner without the program it copies picking up its markup.
+    const button = answer?.querySelector("pre.tutorialsolution > button.tutorialcopycode");
+    expect(button).toBe(answer?.querySelector(".tutorialsolution")?.firstElementChild);
+    expect(button?.getAttribute("aria-label")).toBe("Copy this program");
     expect(button?.getAttribute("type")).toBe("button");
+    expect(button?.innerHTML).toBe(iconHtml("copy"));
     const status = answer?.querySelector("p.tutorialcopied");
     expect(status?.textContent).toBe("");
     expect(status?.getAttribute("aria-live")).toBe("polite");
@@ -590,7 +676,9 @@ describe("tutorialTemplate", () => {
 
     expect(buttons.map((button) => button.className)).toEqual(["tutorialcopycode"]);
     expect(buttons.map((button) => button.getAttribute("type"))).toEqual(["button"]);
-    expect(buttons.map((button) => button.textContent)).toEqual(["Copy this program"]);
+    expect(buttons.map((button) => button.getAttribute("aria-label"))).toEqual([
+      "Copy this program",
+    ]);
     // The panel's own "Start over" moved to the app bar's run controls, to avoid
     // two buttons on screen doing not quite the same thing (WCAG 3.2.4).
     expect(panel().textContent).not.toContain("Start over");
@@ -615,7 +703,9 @@ describe("tutorialTemplate", () => {
     expect(drawn.querySelector(".tutorialexplanation summary")?.textContent).toBe(
       "Почему так получается",
     );
-    expect(drawn.querySelector(".tutorialcopycode")?.textContent).toBe("Скопировать программу");
+    const button = drawn.querySelector(".tutorialcopycode");
+    expect(button?.getAttribute("aria-label")).toBe("Скопировать программу");
+    expect(button?.getAttribute("title")).toBe("Скопировать программу");
   });
 
   it("leaves the answer in the language it is written in", () => {
