@@ -1,5 +1,5 @@
 /**
- * Plays each Skyscraper level, at its own pinned seed, against several
+ * Plays each chapter two level, at its own pinned seed, against several
  * reference programs and asserts the exact tier each one reaches.
  */
 
@@ -8,7 +8,7 @@ import { describe, expect, it } from "vitest";
 import { evaluateLevelTier } from "./level-tiers.ts";
 import { GOOD_CODE_BALANCED } from "./level-reference-code.ts";
 import { createFrameRequester } from "./frame-requester.ts";
-import { skyscraperLevels, type SkyscraperLevel } from "./skyscraper.ts";
+import { chapter2Levels, type Chapter2Level } from "./chapter2.ts";
 import { getCodeObjFromCode } from "./user-code.ts";
 import { TICK_SECONDS, createWorldController } from "./world-controller.ts";
 import { createWorld } from "./world.ts";
@@ -24,29 +24,29 @@ const MAX_SIMULATED_SECONDS = 2000.0;
 type TierOutcome = "gold" | "silver" | "bronze" | "lost";
 
 /** Looks up one level of the block by id, not by array position; throws if none matches. */
-function levelById(id: string): SkyscraperLevel {
-  const level = skyscraperLevels.find((candidate) => candidate.id === id);
+function levelById(id: string): Chapter2Level {
+  const level = chapter2Levels.find((candidate) => candidate.id === id);
   if (level === undefined) {
-    throw new Error(`no Skyscraper level with id ${id}`);
+    throw new Error(`no chapter two level with id ${id}`);
   }
   return level;
 }
 
-/** The repair every demonstrating level points at: `sky-3`'s shipped starter. */
-const SWEEP_CODE = levelById("sky-3").startingCode;
+/** The repair every demonstrating level points at: `chapter2-3`'s shipped starter. */
+const SWEEP_CODE = levelById("chapter2-3").startingCode;
 
-/** The same sweep, taught to skip cars that don't serve the calling floor: `sky-9`'s shipped starter. */
-const ZONE_SWEEP_CODE = levelById("sky-9").startingCode;
+/** The same sweep, taught to skip cars that don't serve the calling floor: `chapter2-9`'s shipped starter. */
+const ZONE_SWEEP_CODE = levelById("chapter2-9").startingCode;
 
-/** Books and then sends the booked car: `sky-12`'s shipped starter, and the repair for `sky-11`. */
-const DISPATCH_CODE = levelById("sky-12").startingCode;
+/** Books and then sends the booked car: `chapter2-12`'s shipped starter, and the repair for `chapter2-11`. */
+const DISPATCH_CODE = levelById("chapter2-12").startingCode;
 
-/** The same booking dispatcher sending the nearest car with room instead of the next in turn: `sky-13`'s shipped starter. */
-const NEAREST_CODE = levelById("sky-13").startingCode;
+/** The same booking dispatcher sending the nearest car with room instead of the next in turn: `chapter2-13`'s shipped starter. */
+const NEAREST_CODE = levelById("chapter2-13").startingCode;
 
 /**
  * Books one car for every journey a floor is waiting on, weighing what a car
- * already owes against how far away it is. The answer `sky-12` asks for; no
+ * already owes against how far away it is. The answer `chapter2-12` asks for; no
  * level ships it, so it is written out here instead of read off a starter.
  */
 const GROUPING_CODE = `{
@@ -147,7 +147,7 @@ const GROUPING_CODE = `{
 
 /**
  * Fills one car at the lobby, then sends it up through everything aboard in
- * one sweep once it's full or `WINDOW_SECONDS` runs out. The answer `sky-13`
+ * one sweep once it's full or `WINDOW_SECONDS` runs out. The answer `chapter2-13`
  * asks for; written out here for {@link GROUPING_CODE}'s reason.
  */
 const BATCHING_CODE = `{
@@ -240,7 +240,7 @@ const BATCHING_CODE = `{
  * @returns The tier reached, or `"lost"` when the level was never cleared at all.
  * @throws When the run is still undecided after {@link MAX_SIMULATED_SECONDS}.
  */
-function playRun(level: SkyscraperLevel, code: string): TierOutcome {
+function playRun(level: Chapter2Level, code: string): TierOutcome {
   const codeObj = getCodeObjFromCode(code);
   const world = createWorld(level.options, level.seed);
   const worldController = createWorldController(TICK_SECONDS);
@@ -276,7 +276,7 @@ function playRun(level: SkyscraperLevel, code: string): TierOutcome {
 }
 
 /** One level's recorded outcome for each of the four programs. */
-interface SkyscraperCase {
+interface Chapter2Case {
   /** The level this row measures, by `id`. */
   readonly id: string;
   /** What the level's own `startingCode` reached. */
@@ -287,15 +287,15 @@ interface SkyscraperCase {
   readonly dev: TierOutcome;
   /** What {@link GOOD_CODE_BALANCED} reached. */
   readonly good: TierOutcome;
-  /** What {@link ZONE_SWEEP_CODE} reached, recorded only on `sky-8`. */
+  /** What {@link ZONE_SWEEP_CODE} reached, recorded only on `chapter2-8`. */
   readonly zone?: TierOutcome;
-  /** What {@link DISPATCH_CODE} reached, recorded only on `sky-11`. */
+  /** What {@link DISPATCH_CODE} reached, recorded only on `chapter2-11`. */
   readonly dispatch?: TierOutcome;
-  /** What {@link NEAREST_CODE} reached, recorded only on `sky-12`. */
+  /** What {@link NEAREST_CODE} reached, recorded only on `chapter2-12`. */
   readonly nearest?: TierOutcome;
-  /** What {@link GROUPING_CODE} reached, recorded on `sky-12` and `sky-13`. */
+  /** What {@link GROUPING_CODE} reached, recorded on `chapter2-12` and `chapter2-13`. */
   readonly group?: TierOutcome;
-  /** What {@link BATCHING_CODE} reached, recorded only on `sky-13`. */
+  /** What {@link BATCHING_CODE} reached, recorded only on `chapter2-13`. */
   readonly batch?: TierOutcome;
 }
 
@@ -303,20 +303,27 @@ interface SkyscraperCase {
 // pinned seed. Extra columns appear only where the four standard programs
 // can't tell two tiers apart, so every silver/gold rung has a run backing it.
 // The demo levels grade nothing, so their every win reads gold.
-const CASES: readonly SkyscraperCase[] = [
-  { id: "sky-1", starter: "lost", sweep: "gold", dev: "lost", good: "gold" },
-  { id: "sky-2", starter: "lost", sweep: "gold", dev: "lost", good: "gold" },
-  { id: "sky-3", starter: "silver", sweep: "silver", dev: "lost", good: "gold" },
-  { id: "sky-4", starter: "lost", sweep: "gold", dev: "lost", good: "gold" },
-  { id: "sky-5", starter: "bronze", sweep: "bronze", dev: "lost", good: "gold" },
-  { id: "sky-6", starter: "lost", sweep: "gold", dev: "lost", good: "gold" },
-  { id: "sky-7", starter: "lost", sweep: "gold", dev: "lost", good: "silver" },
-  { id: "sky-8", starter: "lost", sweep: "lost", dev: "lost", good: "gold", zone: "gold" },
-  { id: "sky-9", starter: "bronze", sweep: "lost", dev: "lost", good: "gold" },
-  { id: "sky-10", starter: "silver", sweep: "lost", dev: "lost", good: "gold" },
-  { id: "sky-11", starter: "lost", sweep: "lost", dev: "lost", good: "lost", dispatch: "gold" },
+const CASES: readonly Chapter2Case[] = [
+  { id: "chapter2-1", starter: "lost", sweep: "gold", dev: "lost", good: "gold" },
+  { id: "chapter2-2", starter: "lost", sweep: "gold", dev: "lost", good: "gold" },
+  { id: "chapter2-3", starter: "silver", sweep: "silver", dev: "lost", good: "gold" },
+  { id: "chapter2-4", starter: "lost", sweep: "gold", dev: "lost", good: "gold" },
+  { id: "chapter2-5", starter: "bronze", sweep: "bronze", dev: "lost", good: "gold" },
+  { id: "chapter2-6", starter: "lost", sweep: "gold", dev: "lost", good: "gold" },
+  { id: "chapter2-7", starter: "lost", sweep: "gold", dev: "lost", good: "silver" },
+  { id: "chapter2-8", starter: "lost", sweep: "lost", dev: "lost", good: "gold", zone: "gold" },
+  { id: "chapter2-9", starter: "bronze", sweep: "lost", dev: "lost", good: "gold" },
+  { id: "chapter2-10", starter: "silver", sweep: "lost", dev: "lost", good: "gold" },
   {
-    id: "sky-12",
+    id: "chapter2-11",
+    starter: "lost",
+    sweep: "lost",
+    dev: "lost",
+    good: "lost",
+    dispatch: "gold",
+  },
+  {
+    id: "chapter2-12",
     starter: "bronze",
     sweep: "lost",
     dev: "lost",
@@ -325,7 +332,7 @@ const CASES: readonly SkyscraperCase[] = [
     group: "gold",
   },
   {
-    id: "sky-13",
+    id: "chapter2-13",
     starter: "bronze",
     sweep: "lost",
     dev: "lost",
@@ -337,7 +344,7 @@ const CASES: readonly SkyscraperCase[] = [
 
 describe("the recorded table", () => {
   it("measures every level of the block, in the order they are played", () => {
-    expect(CASES.map((testCase) => testCase.id)).toEqual(skyscraperLevels.map((level) => level.id));
+    expect(CASES.map((testCase) => testCase.id)).toEqual(chapter2Levels.map((level) => level.id));
   });
 
   it("records a level that tells its programs apart", () => {

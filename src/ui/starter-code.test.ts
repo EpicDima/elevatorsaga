@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from "vitest";
 
-import { skyscraperLevels } from "../game/skyscraper.ts";
+import { chapter2Levels } from "../game/chapter2.ts";
 import { tutorialLevels } from "../game/tutorial.ts";
 import { DEFAULT_LOCALE, LOCALES, setLocale } from "../i18n/index.ts";
 import type { Locale } from "../i18n/index.ts";
@@ -13,7 +13,7 @@ function starterProgramsIn(locale: Locale): readonly string[] {
   return [
     defaultCode(),
     ...tutorialLevels.map((level) => level.startingCode),
-    ...skyscraperLevels.map((level) => level.startingCode),
+    ...chapter2Levels.map((level) => level.startingCode),
   ];
 }
 

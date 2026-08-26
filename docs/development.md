@@ -36,7 +36,7 @@ src/
   shared/     business-agnostic primitives: DOM helpers, markup templating, icons,
               modal/popover/disclosure widgets, geometry math
   entities/   UI-facing concepts: level, level tier, elevator, floor, passenger,
-              tutorial level, skyscraper level, API reference entry
+              tutorial level, chapter two level, API reference entry
   features/   one user action each: run the simulation, adjust speed, manage code
               slots/seed, switch language/theme/layout, docs search, hotkeys help
   widgets/    composed regions of the page: app bar, level switcher, goal bar,

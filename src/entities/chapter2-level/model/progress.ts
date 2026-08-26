@@ -1,9 +1,9 @@
-/** Tracks the best medal earned per Skyscraper level, keyed by level id in its own storage key. */
+/** Tracks the best medal earned per chapter two level, keyed by level id in its own storage key. */
 
 import { LEVEL_TIERS, type LevelTier } from "#game/level-tiers.ts";
 
-/** Storage key for Skyscraper medals; changing it discards players' saved progress. */
-export const SKYSCRAPER_TIER_STORAGE_KEY = "develevateSkyscraperTiers";
+/** Storage key for chapter two medals; changing it discards players' saved progress. */
+export const CHAPTER2_TIER_STORAGE_KEY = "develevateChapter2Tiers";
 
 /** Returns a tier's rank; higher is better. */
 function tierRank(tier: LevelTier): number {
@@ -11,13 +11,13 @@ function tierRank(tier: LevelTier): number {
 }
 
 /**
- * Reads the best medal recorded for each Skyscraper level.
+ * Reads the best medal recorded for each chapter two level.
  * Unknown ids are returned as-is; callers filter against their own level list.
  */
-export function readBestSkyscraperTiers(storage: Storage): ReadonlyMap<string, LevelTier> {
+export function readBestChapter2Tiers(storage: Storage): ReadonlyMap<string, LevelTier> {
   let stored: string | null;
   try {
-    stored = storage.getItem(SKYSCRAPER_TIER_STORAGE_KEY);
+    stored = storage.getItem(CHAPTER2_TIER_STORAGE_KEY);
   } catch {
     // A browser that refuses storage should still let the player play.
     return new Map();
@@ -50,11 +50,11 @@ export function readBestSkyscraperTiers(storage: Storage): ReadonlyMap<string, L
 }
 
 /**
- * Records a medal earned on a Skyscraper level, if it is better than what is
+ * Records a medal earned on a chapter two level, if it is better than what is
  * already stored. Ids unknown to this build are preserved rather than dropped.
  */
-export function recordSkyscraperTier(storage: Storage, levelId: string, tier: LevelTier): void {
-  const current = readBestSkyscraperTiers(storage);
+export function recordChapter2Tier(storage: Storage, levelId: string, tier: LevelTier): void {
+  const current = readBestChapter2Tiers(storage);
   const existing = current.get(levelId);
   if (existing !== undefined && tierRank(existing) >= tierRank(tier)) {
     // Already at least this good; skip the redundant write.
@@ -66,7 +66,7 @@ export function recordSkyscraperTier(storage: Storage, levelId: string, tier: Le
   }
   record[levelId] = tier;
   try {
-    storage.setItem(SKYSCRAPER_TIER_STORAGE_KEY, JSON.stringify(record));
+    storage.setItem(CHAPTER2_TIER_STORAGE_KEY, JSON.stringify(record));
   } catch {
     // A browser that refuses storage should not stop the game.
   }

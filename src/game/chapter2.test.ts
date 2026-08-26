@@ -1,10 +1,10 @@
-/** Checks the Skyscraper table's shape — ids, buildings, bars, cards, and localized messages — not whether a level is worth playing. */
+/** Checks the chapter two table's shape — ids, buildings, bars, cards, and localized messages — not whether a level is worth playing. */
 
 import { afterEach, describe, expect, it } from "vitest";
 
 import { DEFAULT_LOCALE, LOCALES, setLocale } from "../i18n/index.ts";
 import type { Level, LevelWorldStats } from "./levels.ts";
-import { skyscraperLevels, type SkyscraperCard, type SkyscraperLevel } from "./skyscraper.ts";
+import { chapter2Levels, type Chapter2Card, type Chapter2Level } from "./chapter2.ts";
 import { at } from "./test-helpers.ts";
 import { getCodeObjFromCode } from "./user-code.ts";
 import { createWorld } from "./world.ts";
@@ -18,7 +18,7 @@ afterEach(() => {
  * What an id of this block looks like.
  * Ids double as storage keys, for saved programs and medals, so one spelled differently would be a level whose progress belongs to nobody.
  */
-const SKYSCRAPER_ID = /^sky-\d+$/;
+const CHAPTER2_ID = /^chapter2-\d+$/;
 
 /** Deliveries the reachability probe will simulate before giving up. */
 const REACHABILITY_PROBE_LIMIT = 1000;
@@ -44,7 +44,7 @@ const NOTHING_HAPPENED: LevelWorldStats = {
  * Feeds the condition the fastest trajectory physically possible — one move per passenger, nobody kept waiting — so this catches a badly mistyped threshold without ever rejecting a valid one.
  * @param level - The level whose condition is probed.
  */
-function expectConditionIsReachable(level: SkyscraperLevel): void {
+function expectConditionIsReachable(level: Chapter2Level): void {
   const spawnRate = level.options.spawnRate ?? 0;
   expect(spawnRate).toBeGreaterThan(0);
   for (let delivered = 1; delivered <= REACHABILITY_PROBE_LIMIT; delivered++) {
@@ -72,7 +72,7 @@ function expectConditionIsReachable(level: SkyscraperLevel): void {
  * @returns Its card, read in whatever language is current.
  * @throws When the level has no card.
  */
-function cardOf(level: SkyscraperLevel): SkyscraperCard {
+function cardOf(level: Chapter2Level): Chapter2Card {
   const card = level.card;
   if (card === undefined) {
     throw new Error(`${level.id} has no briefing card`);
@@ -86,7 +86,7 @@ function cardOf(level: SkyscraperLevel): SkyscraperCard {
  * @param level - The level whose traffic is enumerated.
  * @returns Where a passenger can start and where they can be going.
  */
-function tripsOfTraffic(level: SkyscraperLevel): (readonly [number, number])[] {
+function tripsOfTraffic(level: Chapter2Level): (readonly [number, number])[] {
   const floorCount = level.options.floorCount ?? 0;
   const away = Array.from({ length: Math.max(floorCount - 1, 0) }, (_unused, index) => index + 1);
   switch (level.options.trafficProfile ?? "mixed") {
@@ -108,28 +108,28 @@ function tripsOfTraffic(level: SkyscraperLevel): (readonly [number, number])[] {
   }
 }
 
-describe("Skyscraper block table", () => {
+describe("chapter two table", () => {
   it("has levels to play at all", () => {
     // Guards every other spec here: a loop over an empty table would pass
     // green while checking nothing.
-    expect(skyscraperLevels.length).toBeGreaterThan(0);
+    expect(chapter2Levels.length).toBeGreaterThan(0);
   });
 
   it("identifies its levels by names no two of them share", () => {
     // An id is a storage key — for the address bar, saved programs, and
     // medals — so two levels sharing one would share a bookmark and a medal too.
-    const ids = skyscraperLevels.map((level) => level.id);
+    const ids = chapter2Levels.map((level) => level.id);
     expect(new Set(ids).size).toBe(ids.length);
   });
 });
 
-describe.each(skyscraperLevels)("Skyscraper level $id", (level) => {
+describe.each(chapter2Levels)("chapter two level $id", (level) => {
   it("is named the way the block's ids are spelled", () => {
-    expect(level.id).toMatch(SKYSCRAPER_ID);
+    expect(level.id).toMatch(CHAPTER2_ID);
   });
 
   it("is playable by the machinery that runs a level", () => {
-    // The real assertion is that this assigns at all: SkyscraperLevel is
+    // The real assertion is that this assigns at all: Chapter2Level is
     // deliberately its own type rather than an extension of Level.
     const asLevel: Level = level;
     expect(asLevel.condition.description).not.toBe("");
@@ -191,7 +191,7 @@ describe.each(skyscraperLevels)("Skyscraper level $id", (level) => {
 });
 
 describe("the levels that carry a briefing card", () => {
-  const carded = skyscraperLevels.filter((level) => level.card !== undefined);
+  const carded = chapter2Levels.filter((level) => level.card !== undefined);
 
   it("has cards to draw at all", () => {
     // Guards the specs below: most levels having no card is the design, but
@@ -230,9 +230,7 @@ describe("the levels that carry a briefing card", () => {
 });
 
 describe("the buildings whose cars do not all go everywhere", () => {
-  const zoned = skyscraperLevels.filter(
-    (level) => level.options.elevatorServedFloors !== undefined,
-  );
+  const zoned = chapter2Levels.filter((level) => level.options.elevatorServedFloors !== undefined);
 
   it("has zoned levels at all", () => {
     // Guards the invariant below: a block that lost all its zones would leave

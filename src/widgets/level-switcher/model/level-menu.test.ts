@@ -4,7 +4,7 @@ import { buildLevelMenu, type LevelLinkTarget, type LevelMenuInput } from "./lev
 import { TUTORIAL_CLEARED_TIER } from "#entities/tutorial-level/model/progress.ts";
 import { WINNING_IS_GOLD } from "#game/level-tiers.ts";
 import { requireUserCountWithinTime, type Level } from "#game/levels.ts";
-import type { SkyscraperLevel } from "#game/skyscraper.ts";
+import type { Chapter2Level } from "#game/chapter2.ts";
 import { tutorialLevels } from "#game/tutorial.ts";
 
 function fixtureLevels(count: number): readonly Level[] {
@@ -15,16 +15,16 @@ function fixtureLevels(count: number): readonly Level[] {
   }));
 }
 
-/** Stand-in Skyscraper levels, built directly rather than imported like `tutorialLevels`. */
-function fixtureSkyscraperLevels(count: number): readonly SkyscraperLevel[] {
+/** Stand-in chapter two levels, built directly rather than imported like `tutorialLevels`. */
+function fixtureChapter2Levels(count: number): readonly Chapter2Level[] {
   return Array.from({ length: count }, (_unused, index) => ({
-    id: `sky-${String(index + 1)}`,
+    id: `chapter2-${String(index + 1)}`,
     options: {},
     condition: requireUserCountWithinTime(5, 60),
     tiers: WINNING_IS_GOLD,
     seed: index + 1,
     startingCode: "",
-    title: `Sky ${String(index + 1)}`,
+    title: `Chapter 2 level ${String(index + 1)}`,
     briefing: "",
   }));
 }
@@ -38,7 +38,7 @@ function stubHref(target: LevelLinkTarget): string {
     case "tutorial": {
       return `#level=${target.levelId}`;
     }
-    case "skyscraper": {
+    case "chapter2": {
       return `#level=${target.levelId}`;
     }
     case "sandbox": {
@@ -51,10 +51,10 @@ function baseInput(overrides: Partial<LevelMenuInput> = {}): LevelMenuInput {
   return {
     levels: fixtureLevels(4),
     tutorialLevels,
-    skyscraperLevels: fixtureSkyscraperLevels(3),
+    chapter2Levels: fixtureChapter2Levels(3),
     bestTiers: new Map(),
     clearedTutorialLevels: new Set(),
-    bestSkyscraperTiers: new Map(),
+    bestChapter2Tiers: new Map(),
     selection: { kind: "sandbox" },
     buildHref: stubHref,
     ...overrides,
@@ -62,12 +62,12 @@ function baseInput(overrides: Partial<LevelMenuInput> = {}): LevelMenuInput {
 }
 
 describe("buildLevelMenu", () => {
-  it("returns the tutorial, levels, skyscraper and other blocks in that order", () => {
+  it("returns the tutorial, levels, chapter two and other blocks in that order", () => {
     const blocks = buildLevelMenu(baseInput());
 
     // Named `other`, not `sandbox`: the block and its one tile carry different
     // on-screen captions, so they need different ids here too.
-    expect(blocks.map((block) => block.id)).toEqual(["tutorial", "levels", "skyscraper", "other"]);
+    expect(blocks.map((block) => block.id)).toEqual(["tutorial", "levels", "chapter2", "other"]);
   });
 
   it("numbers tutorial tiles from one and links each to its level id", () => {
@@ -159,51 +159,49 @@ describe("buildLevelMenu", () => {
     expect(tiles.map((tile) => tile.current)).toEqual([false, true, false, false]);
   });
 
-  it("numbers skyscraper tiles on from the last numbered level and links each to its level id", () => {
+  it("numbers chapter two tiles on from the last numbered level and links each to its level id", () => {
     // Linked by id, not position, so inserting a level later doesn't hand
     // someone's bookmark to its neighbor.
-    const [, , skyscraperBlock] = buildLevelMenu(
-      baseInput({ levels: fixtureLevels(4), skyscraperLevels: fixtureSkyscraperLevels(3) }),
+    const [, , chapter2Block] = buildLevelMenu(
+      baseInput({ levels: fixtureLevels(4), chapter2Levels: fixtureChapter2Levels(3) }),
     );
-    const tiles = skyscraperBlock?.tiles ?? [];
+    const tiles = chapter2Block?.tiles ?? [];
 
     expect(tiles).toHaveLength(3);
     // Four numbered levels, so chapter two opens at five rather than at one.
-    expect(tiles.map((tile) => (tile.kind === "skyscraper" ? tile.number : null))).toEqual([
-      5, 6, 7,
-    ]);
+    expect(tiles.map((tile) => (tile.kind === "chapter2" ? tile.number : null))).toEqual([5, 6, 7]);
     expect(tiles.map((tile) => tile.href)).toEqual([
-      "#level=sky-1",
-      "#level=sky-2",
-      "#level=sky-3",
+      "#level=chapter2-1",
+      "#level=chapter2-2",
+      "#level=chapter2-3",
     ]);
   });
 
-  it("carries a skyscraper tile's best tier through, undefined when never cleared", () => {
+  it("carries a chapter two tile's best tier through, undefined when never cleared", () => {
     // Keyed by the level's id, not its position; the two tier records don't
     // share keys.
-    const [, , skyscraperBlock] = buildLevelMenu(
+    const [, , chapter2Block] = buildLevelMenu(
       baseInput({
-        skyscraperLevels: fixtureSkyscraperLevels(3),
-        bestSkyscraperTiers: new Map([["sky-2", "gold"]]),
+        chapter2Levels: fixtureChapter2Levels(3),
+        bestChapter2Tiers: new Map([["chapter2-2", "gold"]]),
       }),
     );
-    const tiles = skyscraperBlock?.tiles ?? [];
+    const tiles = chapter2Block?.tiles ?? [];
 
     expect(tiles[0]).toMatchObject({ tier: undefined });
     expect(tiles[1]).toMatchObject({ tier: "gold" });
     expect(tiles[2]).toMatchObject({ tier: undefined });
   });
 
-  it("reads the skyscraper tiers from their own record and not the numbered one", () => {
+  it("reads the chapter two tiers from their own record and not the numbered one", () => {
     // The maps are keyed differently on purpose, by position vs. by id, so
     // neither may reach into the other's block.
-    const [, levelBlock, skyscraperBlock] = buildLevelMenu(
+    const [, levelBlock, chapter2Block] = buildLevelMenu(
       baseInput({
         levels: fixtureLevels(2),
-        skyscraperLevels: fixtureSkyscraperLevels(2),
+        chapter2Levels: fixtureChapter2Levels(2),
         bestTiers: new Map([[0, "bronze"]]),
-        bestSkyscraperTiers: new Map([["sky-2", "silver"]]),
+        bestChapter2Tiers: new Map([["chapter2-2", "silver"]]),
       }),
     );
 
@@ -212,34 +210,34 @@ describe("buildLevelMenu", () => {
       undefined,
     ]);
     expect(
-      skyscraperBlock?.tiles.map((tile) => (tile.kind === "skyscraper" ? tile.tier : null)),
+      chapter2Block?.tiles.map((tile) => (tile.kind === "chapter2" ? tile.tier : null)),
     ).toEqual([undefined, "silver"]);
   });
 
-  it("marks the skyscraper tile at the selected index current, and no other", () => {
-    const [, , skyscraperBlock] = buildLevelMenu(
+  it("marks the chapter two tile at the selected index current, and no other", () => {
+    const [, , chapter2Block] = buildLevelMenu(
       baseInput({
-        skyscraperLevels: fixtureSkyscraperLevels(3),
-        selection: { kind: "skyscraper", index: 1 },
+        chapter2Levels: fixtureChapter2Levels(3),
+        selection: { kind: "chapter2", index: 1 },
       }),
     );
-    const tiles = skyscraperBlock?.tiles ?? [];
+    const tiles = chapter2Block?.tiles ?? [];
 
     expect(tiles.map((tile) => tile.current)).toEqual([false, true, false]);
   });
 
-  it("keeps a skyscraper selection out of the block that shares its numbering", () => {
+  it("keeps a chapter two selection out of the block that shares its numbering", () => {
     // Both blocks number tiles from one, so `kind`, not the index alone, says which block a selection belongs to.
-    const [, levelBlock, skyscraperBlock] = buildLevelMenu(
+    const [, levelBlock, chapter2Block] = buildLevelMenu(
       baseInput({
         levels: fixtureLevels(3),
-        skyscraperLevels: fixtureSkyscraperLevels(3),
-        selection: { kind: "skyscraper", index: 0 },
+        chapter2Levels: fixtureChapter2Levels(3),
+        selection: { kind: "chapter2", index: 0 },
       }),
     );
 
     expect(levelBlock?.tiles.every((tile) => !tile.current)).toBe(true);
-    expect(skyscraperBlock?.tiles[0]?.current).toBe(true);
+    expect(chapter2Block?.tiles[0]?.current).toBe(true);
   });
 
   it("offers exactly one always-open sandbox tile, linked through buildHref", () => {
@@ -259,13 +257,13 @@ describe("buildLevelMenu", () => {
   });
 
   it("marks no tile current when the selection names a level outside the list", () => {
-    const [tutorialBlock, levelBlock, skyscraperBlock, sandboxBlock] = buildLevelMenu(
+    const [tutorialBlock, levelBlock, chapter2Block, sandboxBlock] = buildLevelMenu(
       baseInput({ levels: fixtureLevels(3), selection: { kind: "level", index: 9 } }),
     );
 
     expect(levelBlock?.tiles.every((tile) => !tile.current)).toBe(true);
     expect(tutorialBlock?.tiles.every((tile) => !tile.current)).toBe(true);
-    expect(skyscraperBlock?.tiles.every((tile) => !tile.current)).toBe(true);
+    expect(chapter2Block?.tiles.every((tile) => !tile.current)).toBe(true);
     expect(sandboxBlock?.tiles[0]?.current).toBe(false);
   });
 });

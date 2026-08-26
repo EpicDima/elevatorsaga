@@ -11,7 +11,7 @@ import type { LevelLinkTarget, LevelMenuInput } from "../model/level-menu.ts";
 import type { LevelTier } from "#entities/level-tier/index.ts";
 import { WINNING_IS_GOLD } from "#game/level-tiers.ts";
 import { requireUserCountWithinTime, type Level } from "#game/levels.ts";
-import type { SkyscraperLevel } from "#game/skyscraper.ts";
+import type { Chapter2Level } from "#game/chapter2.ts";
 import { tutorialLevels } from "#game/tutorial.ts";
 import { queryAll, requireElement } from "#shared/lib/dom.ts";
 import { SPRITE_ICONS } from "#shared/ui/icon.ts";
@@ -24,16 +24,16 @@ function fixtureLevels(count: number): readonly Level[] {
   }));
 }
 
-/** Stand-in Skyscraper levels; only `id` is read, spelled as the shipped entries are. */
-function fixtureSkyscraperLevels(count: number): readonly SkyscraperLevel[] {
+/** Stand-in chapter two levels; only `id` is read, spelled as the shipped entries are. */
+function fixtureChapter2Levels(count: number): readonly Chapter2Level[] {
   return Array.from({ length: count }, (_unused, index) => ({
-    id: `sky-${String(index + 1)}`,
+    id: `chapter2-${String(index + 1)}`,
     options: {},
     condition: requireUserCountWithinTime(5, 60),
     tiers: WINNING_IS_GOLD,
     seed: index + 1,
     startingCode: "",
-    title: `Sky ${String(index + 1)}`,
+    title: `Chapter 2 level ${String(index + 1)}`,
     briefing: "",
   }));
 }
@@ -47,7 +47,7 @@ function stubHref(target: LevelLinkTarget): string {
     case "tutorial": {
       return `#level=${target.levelId}`;
     }
-    case "skyscraper": {
+    case "chapter2": {
       return `#level=${target.levelId}`;
     }
     case "sandbox": {
@@ -60,10 +60,10 @@ function baseInput(overrides: Partial<LevelMenuInput> = {}): LevelMenuInput {
   return {
     levels: fixtureLevels(4),
     tutorialLevels,
-    skyscraperLevels: fixtureSkyscraperLevels(2),
+    chapter2Levels: fixtureChapter2Levels(2),
     bestTiers: new Map<number, LevelTier>(),
     clearedTutorialLevels: new Set(),
-    bestSkyscraperTiers: new Map<string, LevelTier>(),
+    bestChapter2Tiers: new Map<string, LevelTier>(),
     selection: { kind: "level", index: 0 },
     buildHref: stubHref,
     ...overrides,
@@ -146,7 +146,7 @@ describe("presentLevelSwitcher", () => {
     expect(taskOpen.getAttribute("aria-expanded")).toBe("false");
   });
 
-  it("fills the four blocks in order: tutorial, levels, skyscraper, other", () => {
+  it("fills the four blocks in order: tutorial, levels, chapter2, other", () => {
     const { parent, options } = setUp();
     presentLevelSwitcher(parent, options);
 
@@ -194,12 +194,12 @@ describe("presentLevelSwitcher", () => {
     ]);
   });
 
-  it("draws a skyscraper tile as its number, carried on from chapter one", () => {
+  it("draws a chapter two tile as its number, carried on from chapter one", () => {
     // Four numbered levels stand ahead of it in `baseInput`, so this block opens at five.
-    const { parent, options } = setUp({ skyscraperLevels: fixtureSkyscraperLevels(3) });
+    const { parent, options } = setUp({ chapter2Levels: fixtureChapter2Levels(3) });
     presentLevelSwitcher(parent, options);
-    const [, , skyscraperBlock] = parent.querySelectorAll(".taskblock");
-    const tiles = [...(skyscraperBlock?.querySelectorAll(".tasklink") ?? [])];
+    const [, , chapter2Block] = parent.querySelectorAll(".taskblock");
+    const tiles = [...(chapter2Block?.querySelectorAll(".tasklink") ?? [])];
 
     expect(tiles.map((tile) => tile.textContent)).toEqual(["5", "6", "7"]);
     expect(tiles.map((tile) => tile.getAttribute("aria-label"))).toEqual([
@@ -208,21 +208,21 @@ describe("presentLevelSwitcher", () => {
       "Level 7",
     ]);
     expect(tiles.map((tile) => tile.getAttribute("href"))).toEqual([
-      "#level=sky-1",
-      "#level=sky-2",
-      "#level=sky-3",
+      "#level=chapter2-1",
+      "#level=chapter2-2",
+      "#level=chapter2-3",
     ]);
   });
 
-  it("medals a skyscraper tile from its own record, as a numbered level's is", () => {
+  it("medals a chapter two tile from its own record, as a numbered level's is", () => {
     const { parent, options } = setUp({
-      skyscraperLevels: fixtureSkyscraperLevels(2),
-      bestSkyscraperTiers: new Map<string, LevelTier>([["sky-1", "silver"]]),
+      chapter2Levels: fixtureChapter2Levels(2),
+      bestChapter2Tiers: new Map<string, LevelTier>([["chapter2-1", "silver"]]),
       selection: { kind: "level", index: 0 },
     });
     presentLevelSwitcher(parent, options);
-    const [, , skyscraperBlock] = parent.querySelectorAll(".taskblock");
-    const tiles = [...(skyscraperBlock?.querySelectorAll(".tasklink") ?? [])];
+    const [, , chapter2Block] = parent.querySelectorAll(".taskblock");
+    const tiles = [...(chapter2Block?.querySelectorAll(".tasklink") ?? [])];
 
     // `data-tier` is set only where a tier was earned; the badge itself is drawn
     // for every tile of a medalled block, dim stars and all.
@@ -268,13 +268,13 @@ describe("presentLevelSwitcher", () => {
     presentLevelSwitcher(level.parent, level.options);
     expect(requireElement(".task-name", level.parent).textContent).toBe("Level 4");
 
-    const skyscraper = setUp({
-      skyscraperLevels: fixtureSkyscraperLevels(3),
-      bestSkyscraperTiers: new Map<string, LevelTier>([["sky-2", "gold"]]),
-      selection: { kind: "skyscraper", index: 1 },
+    const chapter2 = setUp({
+      chapter2Levels: fixtureChapter2Levels(3),
+      bestChapter2Tiers: new Map<string, LevelTier>([["chapter2-2", "gold"]]),
+      selection: { kind: "chapter2", index: 1 },
     });
-    presentLevelSwitcher(skyscraper.parent, skyscraper.options);
-    expect(requireElement(".task-name", skyscraper.parent).textContent).toBe("Level 6");
+    presentLevelSwitcher(chapter2.parent, chapter2.options);
+    expect(requireElement(".task-name", chapter2.parent).textContent).toBe("Level 6");
   });
 
   it("names the gold a cleared tutorial tile holds, and badges it like any other tile", () => {
@@ -304,9 +304,9 @@ describe("presentLevelSwitcher", () => {
     const [firstLevel] = tutorialLevels;
     const { parent, options } = setUp({
       levels: fixtureLevels(3),
-      skyscraperLevels: fixtureSkyscraperLevels(2),
+      chapter2Levels: fixtureChapter2Levels(2),
       bestTiers: new Map<number, LevelTier>([[0, "bronze"]]),
-      bestSkyscraperTiers: new Map<string, LevelTier>([["sky-1", "silver"]]),
+      bestChapter2Tiers: new Map<string, LevelTier>([["chapter2-1", "silver"]]),
       clearedTutorialLevels: new Set(firstLevel === undefined ? [] : [firstLevel.id]),
       // Away from all three, so none of them is drawn current instead of done.
       selection: { kind: "sandbox" },
@@ -343,14 +343,14 @@ describe("presentLevelSwitcher", () => {
     ]);
   });
 
-  it("names the medal a skyscraper tile holds, as a numbered level's is named", () => {
+  it("names the medal a chapter two tile holds, as a numbered level's is named", () => {
     const { parent, options } = setUp({
-      skyscraperLevels: fixtureSkyscraperLevels(2),
-      bestSkyscraperTiers: new Map<string, LevelTier>([["sky-1", "gold"]]),
+      chapter2Levels: fixtureChapter2Levels(2),
+      bestChapter2Tiers: new Map<string, LevelTier>([["chapter2-1", "gold"]]),
     });
     presentLevelSwitcher(parent, options);
-    const [, , skyscraperBlock] = parent.querySelectorAll(".taskblock");
-    const tiles = [...(skyscraperBlock?.querySelectorAll(".tasklink") ?? [])];
+    const [, , chapter2Block] = parent.querySelectorAll(".taskblock");
+    const tiles = [...(chapter2Block?.querySelectorAll(".tasklink") ?? [])];
 
     expect(tiles.map((tile) => tile.getAttribute("aria-label"))).toEqual([
       "Level 5, Gold",

@@ -25,11 +25,11 @@ is scored by the same rules.
   Nothing is locked: the list is a table of contents, not a gate, and any level in it opens from the
   first visit whether or not the ones below it have been cleared. What you have earned shows as
   stars on the tile instead. The one being played is marked, and the menu runs learning track,
-  numbered levels, Skyscraper, free play.
-- **A Skyscraper block.** Thirteen levels on how real lift systems are actually run — morning and
+  numbered levels, chapter two, free play.
+- **A second chapter.** Thirteen levels on how real lift systems are actually run — morning and
   evening peaks and the lunch hour, cars that serve only part of the building, and buildings whose
-  passengers name the floor they want instead of pressing a call button. They are `#level=sky-1` to
-  `#level=sky-13` and sit in their own block in the menu, because the numbered levels are the
+  passengers name the floor they want instead of pressing a call button. They are `#level=chapter2-1` to
+  `#level=chapter2-13` and sit in their own block in the menu, because the numbered levels are the
   original's and a decade of published solutions is scored against them. Each pins its own seed, so
   a medal means the same thing to two players.
 - **Repeatable runs.** Every run draws its passengers from a seed, which is shown in the settings

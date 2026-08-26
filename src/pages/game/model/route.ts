@@ -2,7 +2,7 @@
 
 import type { SandboxOptions } from "#game/levels.ts";
 import { tutorialLevels } from "#game/tutorial.ts";
-import { skyscraperLevels } from "#game/skyscraper.ts";
+import { chapter2Levels } from "#game/chapter2.ts";
 import { clampTimeScale } from "#features/adjust-speed/model/time-scale.ts";
 import { createParamsUrl, parseQuery, type RouteQuery } from "#shared/lib/route-query.ts";
 import { isUsableSeed } from "#shared/lib/seed.ts";
@@ -12,7 +12,7 @@ export interface RouteParams {
   /**
    * Zero-based index into the level list.
    *
-   * Ignored when {@link sandbox}, {@link tutorialIndex} or {@link skyscraperIndex} is set.
+   * Ignored when {@link sandbox}, {@link tutorialIndex} or {@link chapter2Index} is set.
    */
   readonly levelIndex: number;
   /** The building the sandbox was asked for, or `null` for a numbered level. */
@@ -24,11 +24,11 @@ export interface RouteParams {
    */
   readonly tutorialIndex: number | null;
   /**
-   * The Skyscraper level asked for, or `null` for anything else.
+   * The chapter two level asked for, or `null` for anything else.
    *
-   * Zero-based index into {@link "#game/skyscraper.ts"!skyscraperLevels}.
+   * Zero-based index into {@link "#game/chapter2.ts"!chapter2Levels}.
    */
-  readonly skyscraperIndex: number | null;
+  readonly chapter2Index: number | null;
   /** Simulation speed multiplier. */
   readonly timeScale: number;
   /** Whether to hide everything except the world. */
@@ -36,7 +36,7 @@ export interface RouteParams {
   /**
    * The seed the world draws its passengers from, or `null` to let the world draw its own.
    *
-   * Always `null` while {@link tutorialIndex} or {@link skyscraperIndex} is set; those levels
+   * Always `null` while {@link tutorialIndex} or {@link chapter2Index} is set; those levels
    * play the seed pinned to their own entry.
    */
   readonly seed: string | null;
@@ -88,11 +88,11 @@ export const SANDBOX_LEVEL = "sandbox";
 export const TUTORIAL_LEVEL_PREFIX = "tutorial-";
 
 /**
- * Prefix of every {@link LEVEL_KEY} value that names a Skyscraper level.
+ * Prefix of every {@link LEVEL_KEY} value that names a chapter two level.
  *
- * Must stay in sync with the ids in {@link "#game/skyscraper.ts"!skyscraperLevels}.
+ * Must stay in sync with the ids in {@link "#game/chapter2.ts"!chapter2Levels}.
  */
-export const SKYSCRAPER_LEVEL_PREFIX = "sky-";
+export const CHAPTER2_LEVEL_PREFIX = "chapter2-";
 
 /**
  * Rewrites a hash written with {@link LEGACY_LEVEL_KEY} to use {@link LEVEL_KEY}.
@@ -165,12 +165,12 @@ export function resolveRoute(rawQuery: RouteQuery, context: RouteContext): Route
   const query = renameLegacyLevelKey(rawQuery);
   const level = query.get(LEVEL_KEY);
   // Must run before resolveLevelIndex, which reads the value with Number and would turn
-  // "sandbox", "tutorial-3" and "sky-1" alike into NaN.
+  // "sandbox", "tutorial-3" and "chapter2-1" alike into NaN.
   const tutorialIndex = isTutorialRoute(level) ? resolveTutorialIndex(level, refuse) : null;
-  const skyscraperIndex = isSkyscraperRoute(level) ? resolveSkyscraperIndex(level, refuse) : null;
+  const chapter2Index = isChapter2Route(level) ? resolveChapter2Index(level, refuse) : null;
   const sandbox = isSandboxRoute(level) ? resolveSandboxOptions(query, refuse) : null;
-  // Tutorial and Skyscraper levels both pin their own seed and never take one from the URL.
-  const pinnedSeedTrack = tutorialIndex !== null || skyscraperIndex !== null;
+  // Tutorial and chapter two levels both pin their own seed and never take one from the URL.
+  const pinnedSeedTrack = tutorialIndex !== null || chapter2Index !== null;
   return {
     // Only resolved when a numbered level is actually being played, to avoid warning that
     // "sandbox" or "tutorial-3" is not a level number.
@@ -178,10 +178,10 @@ export function resolveRoute(rawQuery: RouteQuery, context: RouteContext): Route
       sandbox === null && !pinnedSeedTrack ? resolveLevelIndex(level, context, refuse) : 0,
     sandbox,
     tutorialIndex,
-    skyscraperIndex,
+    chapter2Index,
     timeScale: resolveTimeScale(query.get("timescale"), context.defaultTimeScale, refuse),
     fullscreen: readFlag(query, "fullscreen"),
-    // Refused rather than honored: the track's lessons and the Skyscraper's medals both depend
+    // Refused rather than honored: the track's lessons and chapter two's medals both depend
     // on a specific pinned seed, not whatever the URL asks for.
     seed: pinnedSeedTrack
       ? refuseSeedOnTrack(query, refuse)
@@ -250,22 +250,22 @@ function resolveTutorialIndex(value: string, refuse: Refuse): number {
   return index;
 }
 
-/** Whether a `level` parameter names a Skyscraper level, case-insensitively; see {@link isTutorialRoute}. */
-function isSkyscraperRoute(value: string | undefined): value is string {
-  return value?.toLowerCase().startsWith(SKYSCRAPER_LEVEL_PREFIX) === true;
+/** Whether a `level` parameter names a chapter two level, case-insensitively; see {@link isTutorialRoute}. */
+function isChapter2Route(value: string | undefined): value is string {
+  return value?.toLowerCase().startsWith(CHAPTER2_LEVEL_PREFIX) === true;
 }
 
 /**
- * Turns a `level=sky-…` parameter into a level that exists.
+ * Turns a `level=chapter2-…` parameter into a level that exists.
  *
  * Matched against each level's `id`, as {@link resolveTutorialIndex} matches the track's,
- * since the Skyscraper block is still being filled in and ids can land between existing ones.
+ * since chapter two is still being filled in and ids can land between existing ones.
  */
-function resolveSkyscraperIndex(value: string, refuse: Refuse): number {
+function resolveChapter2Index(value: string, refuse: Refuse): number {
   const id = value.toLowerCase();
-  const index = skyscraperLevels.findIndex((level) => level.id === id);
+  const index = chapter2Levels.findIndex((level) => level.id === id);
   if (index === -1) {
-    console.warn(`Invalid skyscraper level "${value}", starting the first one instead`);
+    console.warn(`Invalid chapter two level "${value}", starting the first one instead`);
     refuse(LEVEL_KEY);
     return 0;
   }
@@ -485,12 +485,12 @@ function resolveTimeScale(
  * level, so writing `level=1` would add a choice the player never made.
  */
 function levelAddress(params: RouteParams): string | null {
-  const { levelIndex, tutorialIndex, skyscraperIndex } = params;
+  const { levelIndex, tutorialIndex, chapter2Index } = params;
   if (tutorialIndex !== null) {
     return tutorialLevels[tutorialIndex]?.id ?? null;
   }
-  if (skyscraperIndex !== null) {
-    return skyscraperLevels[skyscraperIndex]?.id ?? null;
+  if (chapter2Index !== null) {
+    return chapter2Levels[chapter2Index]?.id ?? null;
   }
   return levelIndex === 0 ? null : String(levelIndex + 1);
 }

@@ -1011,10 +1011,10 @@ function update(dt, elevators, floors) {
   "tutorial.finish.nextLevel": "Next tutorial level",
   "tutorial.finish.toLevels": "Go to level 1",
 
-  // Skyscraper levels: one key per level, no hints or explanation. Only sky2,
-  // sky8 and sky11 carry a title/briefing, where a new mechanic first
+  // Chapter two's levels: one key per level, no hints or explanation. Only
+  // levels 2, 8 and 11 carry a title/briefing, where a new mechanic first
   // appears; briefings never quote a scored number.
-  "skyscraper.sky1.startingCode.code": `function init(elevators, floors) {
+  "chapter2.level1.startingCode.code": `function init(elevators, floors) {
     let next = 0;
 
     function callNextElevator(floor) {
@@ -1046,11 +1046,11 @@ function update(dt, elevators, floors) {
 }
 `,
 
-  "skyscraper.sky2.title": "Everyone starts in the lobby",
-  "skyscraper.sky2.briefing.html":
+  "chapter2.level2.title": "Everyone starts in the lobby",
+  "chapter2.level2.briefing.html":
     'Ten floors, two cars, and a building that has just opened its doors. Every level from here on sets the crowd a rhythm of its own, and this one is the <em>morning up-peak</em>: for as long as the run lasts every passenger appears in the lobby and every one of them is going up. The buttons upstairs stay dark, so "which floor called?" is a question with one answer, and picking a car for the call decides almost nothing. What decides the run is the trip back. A car returns to the lobby empty whatever you do, so the only figure you can change is how many people it carried on the way out — and the program you start with sends a car off the moment the first passenger presses a button. The levels after this one turn the rhythm around: an <em>evening down-peak</em> with the whole building trying to reach the street, and <em>lunch traffic</em> running both ways at once.',
 
-  "skyscraper.sky2.startingCode.code": `function init(elevators, floors) {
+  "chapter2.level2.startingCode.code": `function init(elevators, floors) {
     let next = 0;
 
     function callNextElevator(floor) {
@@ -1082,7 +1082,7 @@ function update(dt, elevators, floors) {
 }
 `,
 
-  "skyscraper.sky3.startingCode.code": `function init(elevators, floors) {
+  "chapter2.level3.startingCode.code": `function init(elevators, floors) {
     let next = 0;
 
     function insertStop(elevator, floorNum) {
@@ -1133,7 +1133,7 @@ function update(dt, elevators, floors) {
 }
 `,
 
-  "skyscraper.sky4.startingCode.code": `function init(elevators, floors) {
+  "chapter2.level4.startingCode.code": `function init(elevators, floors) {
     let next = 0;
 
     function callNextElevator(floor) {
@@ -1165,7 +1165,7 @@ function update(dt, elevators, floors) {
 }
 `,
 
-  "skyscraper.sky5.startingCode.code": `function init(elevators, floors) {
+  "chapter2.level5.startingCode.code": `function init(elevators, floors) {
     let next = 0;
 
     function insertStop(elevator, floorNum) {
@@ -1216,7 +1216,7 @@ function update(dt, elevators, floors) {
 }
 `,
 
-  "skyscraper.sky6.startingCode.code": `function init(elevators, floors) {
+  "chapter2.level6.startingCode.code": `function init(elevators, floors) {
     let next = 0;
 
     function callNextElevator(floor) {
@@ -1248,7 +1248,7 @@ function update(dt, elevators, floors) {
 }
 `,
 
-  "skyscraper.sky7.startingCode.code": `function init(elevators, floors) {
+  "chapter2.level7.startingCode.code": `function init(elevators, floors) {
     let next = 0;
 
     function callNextElevator(floor) {
@@ -1280,11 +1280,11 @@ function update(dt, elevators, floors) {
 }
 `,
 
-  "skyscraper.sky8.title": "Not every car goes everywhere",
-  "skyscraper.sky8.briefing.html":
+  "chapter2.level8.title": "Not every car goes everywhere",
+  "chapter2.level8.briefing.html":
     "Ten floors, and the two cars no longer do the same job: one of them serves the lobby and floors 1 to 4, the other the lobby and floors 5 to 9. Real towers are built this way, and the reason is arithmetic — a car that stops at every floor of a tall building spends its whole day stopping, so the floors are split into <em>zones</em> and each bank of cars is given one. Ask a car for a floor outside its zone and the machine does not argue: it drives there, opens its doors, and nobody gets in. Worse, the call is still outstanding. The floor's lamp is already lit, so the button that would have called somebody else does nothing when it is pressed again, and that floor waits for the rest of the run. <code>elevator.servedFloors()</code> is the list of floors a car will actually serve, and from here on choosing a car starts with it.",
 
-  "skyscraper.sky8.startingCode.code": `function init(elevators, floors) {
+  "chapter2.level8.startingCode.code": `function init(elevators, floors) {
     let next = 0;
 
     function insertStop(elevator, floorNum) {
@@ -1336,7 +1336,7 @@ function update(dt, elevators, floors) {
 }
 `,
 
-  "skyscraper.sky9.startingCode.code": `function init(elevators, floors) {
+  "chapter2.level9.startingCode.code": `function init(elevators, floors) {
     let next = 0;
 
     function insertStop(elevator, floorNum) {
@@ -1395,7 +1395,7 @@ function update(dt, elevators, floors) {
 }
 `,
 
-  "skyscraper.sky10.startingCode.code": `function init(elevators, floors) {
+  "chapter2.level10.startingCode.code": `function init(elevators, floors) {
     let next = 0;
 
     function insertStop(elevator, floorNum) {
@@ -1454,11 +1454,11 @@ function update(dt, elevators, floors) {
 }
 `,
 
-  "skyscraper.sky11.title": "Nobody presses up or down",
-  "skyscraper.sky11.briefing.html":
+  "chapter2.level11.title": "Nobody presses up or down",
+  "chapter2.level11.briefing.html":
     "The hall buttons are gone. Instead of pressing up or down, a passenger keys the floor they want into a panel by the doors and waits for whichever car the system promises them — this is <em>destination dispatch</em>, and every tower built this century is run on it. Your program hears <code>destination_requested</code> with the floor somebody wants, and answers it with <code>elevator.takeRequest(from, to)</code>: that books the car for that trip, and those people will board that car and no other. Booking is a promise about which car, not an instruction to go anywhere: the car still has to be sent, by <code>goToFloor</code> or by filling its <code>destinationQueue</code> and calling <code>checkDestinationQueue()</code>. And a floor whose journey is booked stops asking — it has been answered, as far as it knows — so a promise nobody keeps is worse than no promise at all.",
 
-  "skyscraper.sky11.startingCode.code": `function init(elevators, floors) {
+  "chapter2.level11.startingCode.code": `function init(elevators, floors) {
     let next = 0;
 
     elevators.forEach(function(elevator) {
@@ -1481,7 +1481,7 @@ function update(dt, elevators, floors) {
 }
 `,
 
-  "skyscraper.sky12.startingCode.code": `function init(elevators, floors) {
+  "chapter2.level12.startingCode.code": `function init(elevators, floors) {
     let next = 0;
 
     elevators.forEach(function(elevator) {
@@ -1506,7 +1506,7 @@ function update(dt, elevators, floors) {
 }
 `,
 
-  "skyscraper.sky13.startingCode.code": `function init(elevators, floors) {
+  "chapter2.level13.startingCode.code": `function init(elevators, floors) {
     function insertStop(elevator, floorNum) {
         // A stopped car that is asked for the floor it is already on has
         // nothing to do -- whoever could board has boarded.

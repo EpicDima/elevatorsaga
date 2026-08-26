@@ -1,4 +1,4 @@
-/** Skyscraper block: levels modeled on real elevator dispatch strategies, each played on a pinned seed. */
+/** Chapter two: levels modeled on real elevator dispatch strategies, each played on a pinned seed. */
 
 import { t } from "../i18n/index.ts";
 import {
@@ -20,8 +20,8 @@ import {
 import type { RandomSeed } from "./random.ts";
 import type { WorldOptions } from "./world.ts";
 
-/** One level of the Skyscraper block. */
-export interface SkyscraperLevel {
+/** One level of chapter two. */
+export interface Chapter2Level {
   /** Stable identifier used for the address bar, saved programs, and medal records; not the array index. */
   readonly id: string;
   /** The building the level is played in. */
@@ -32,40 +32,40 @@ export interface SkyscraperLevel {
   readonly tiers: LevelTierRequirements;
   /** The seed this level is played on, pinned unlike levels 1-19. */
   readonly seed: RandomSeed;
-  /** The program the editor opens with; required here since every level tests a mechanic the numbered levels don't. */
+  /** The program the editor opens with; required here since every level tests a mechanic chapter one doesn't. */
   readonly startingCode: string;
   /** Intro card for a level that introduces a new mechanic; omitted otherwise. */
-  readonly card?: SkyscraperCard;
+  readonly card?: Chapter2Card;
 }
 
 /** The name and the paragraph of a level that introduces something new. */
-export interface SkyscraperCard {
+export interface Chapter2Card {
   readonly title: string;
   /** The level's briefing paragraph, as catalog markup. */
   readonly briefing: string;
 }
 
 /**
- * Every level of the Skyscraper block, in the order they are played.
+ * Every level of chapter two, in the order they are played.
  *
  * `startingCode` and `card` are getters so they render in the active locale
  * when read, not frozen in whichever locale was active at import time.
  */
-export const skyscraperLevels: readonly SkyscraperLevel[] = [
+export const chapter2Levels: readonly Chapter2Level[] = [
   /** Opening level: tall enough that a wasted trip costs far more than a wasted seat. */
   {
-    id: "sky-1",
+    id: "chapter2-1",
     options: { floorCount: 12, elevatorCount: 3, spawnRate: 1.2, elevatorCapacities: [8] },
     condition: requireUserCountWithinMoves(40, 170),
     tiers: WINNING_IS_GOLD,
     seed: 4,
     get startingCode(): string {
-      return t("skyscraper.sky1.startingCode.code");
+      return t("chapter2.level1.startingCode.code");
     },
   },
   /** Introduces the up-peak traffic profile: every passenger starts in the lobby going up. */
   {
-    id: "sky-2",
+    id: "chapter2-2",
     options: {
       floorCount: 10,
       elevatorCount: 2,
@@ -77,12 +77,12 @@ export const skyscraperLevels: readonly SkyscraperLevel[] = [
     tiers: WINNING_IS_GOLD,
     seed: 0,
     get startingCode(): string {
-      return t("skyscraper.sky2.startingCode.code");
+      return t("chapter2.level2.startingCode.code");
     },
-    get card(): SkyscraperCard {
+    get card(): Chapter2Card {
       return {
-        title: t("skyscraper.sky2.title"),
-        briefing: t("skyscraper.sky2.briefing.html"),
+        title: t("chapter2.level2.title"),
+        briefing: t("chapter2.level2.briefing.html"),
       };
     },
   },
@@ -92,7 +92,7 @@ export const skyscraperLevels: readonly SkyscraperLevel[] = [
    * the lobby until it fills.
    */
   {
-    id: "sky-3",
+    id: "chapter2-3",
     options: {
       floorCount: 16,
       elevatorCount: 4,
@@ -107,12 +107,12 @@ export const skyscraperLevels: readonly SkyscraperLevel[] = [
     },
     seed: 0,
     get startingCode(): string {
-      return t("skyscraper.sky3.startingCode.code");
+      return t("chapter2.level3.startingCode.code");
     },
   },
   /** Introduces the down-peak traffic profile: the lobby is everyone's destination, not their origin. */
   {
-    id: "sky-4",
+    id: "chapter2-4",
     options: {
       floorCount: 12,
       elevatorCount: 2,
@@ -124,7 +124,7 @@ export const skyscraperLevels: readonly SkyscraperLevel[] = [
     tiers: WINNING_IS_GOLD,
     seed: 2,
     get startingCode(): string {
-      return t("skyscraper.sky4.startingCode.code");
+      return t("chapter2.level4.startingCode.code");
     },
   },
   /**
@@ -133,7 +133,7 @@ export const skyscraperLevels: readonly SkyscraperLevel[] = [
    * that passenger.
    */
   {
-    id: "sky-5",
+    id: "chapter2-5",
     options: {
       floorCount: 14,
       elevatorCount: 3,
@@ -148,12 +148,12 @@ export const skyscraperLevels: readonly SkyscraperLevel[] = [
     },
     seed: 1,
     get startingCode(): string {
-      return t("skyscraper.sky5.startingCode.code");
+      return t("chapter2.level5.startingCode.code");
     },
   },
   /** Introduces the "lunch" traffic profile: demand runs both to and from the lobby in the same run. */
   {
-    id: "sky-6",
+    id: "chapter2-6",
     options: {
       floorCount: 9,
       elevatorCount: 2,
@@ -165,12 +165,12 @@ export const skyscraperLevels: readonly SkyscraperLevel[] = [
     tiers: WINNING_IS_GOLD,
     seed: 0,
     get startingCode(): string {
-      return t("skyscraper.sky6.startingCode.code");
+      return t("chapter2.level6.startingCode.code");
     },
   },
   /** Last traffic-profile level: "lunch" at scale, scored on moves with a wait cap on silver. */
   {
-    id: "sky-7",
+    id: "chapter2-7",
     options: {
       floorCount: 12,
       elevatorCount: 3,
@@ -185,7 +185,7 @@ export const skyscraperLevels: readonly SkyscraperLevel[] = [
     },
     seed: 0,
     get startingCode(): string {
-      return t("skyscraper.sky7.startingCode.code");
+      return t("chapter2.level7.startingCode.code");
     },
   },
   /**
@@ -195,7 +195,7 @@ export const skyscraperLevels: readonly SkyscraperLevel[] = [
    * moves, since a stranded run stops moving rather than losing outright.
    */
   {
-    id: "sky-8",
+    id: "chapter2-8",
     options: {
       floorCount: 10,
       elevatorCount: 2,
@@ -211,12 +211,12 @@ export const skyscraperLevels: readonly SkyscraperLevel[] = [
     tiers: WINNING_IS_GOLD,
     seed: 0,
     get startingCode(): string {
-      return t("skyscraper.sky8.startingCode.code");
+      return t("chapter2.level8.startingCode.code");
     },
-    get card(): SkyscraperCard {
+    get card(): Chapter2Card {
       return {
-        title: t("skyscraper.sky8.title"),
-        briefing: t("skyscraper.sky8.briefing.html"),
+        title: t("chapter2.level8.title"),
+        briefing: t("chapter2.level8.briefing.html"),
       };
     },
   },
@@ -226,7 +226,7 @@ export const skyscraperLevels: readonly SkyscraperLevel[] = [
    * both banks serve, and the mechanic would be invisible.
    */
   {
-    id: "sky-9",
+    id: "chapter2-9",
     options: {
       floorCount: 16,
       elevatorCount: 4,
@@ -245,7 +245,7 @@ export const skyscraperLevels: readonly SkyscraperLevel[] = [
     },
     seed: 2,
     get startingCode(): string {
-      return t("skyscraper.sky9.startingCode.code");
+      return t("chapter2.level9.startingCode.code");
     },
   },
   /**
@@ -253,7 +253,7 @@ export const skyscraperLevels: readonly SkyscraperLevel[] = [
    * always favoring one bank for them creates an avoidable queue.
    */
   {
-    id: "sky-10",
+    id: "chapter2-10",
     options: {
       floorCount: 15,
       elevatorCount: 4,
@@ -272,7 +272,7 @@ export const skyscraperLevels: readonly SkyscraperLevel[] = [
     },
     seed: 0,
     get startingCode(): string {
-      return t("skyscraper.sky10.startingCode.code");
+      return t("chapter2.level10.startingCode.code");
     },
   },
   /**
@@ -282,7 +282,7 @@ export const skyscraperLevels: readonly SkyscraperLevel[] = [
    * everyone waiting forever.
    */
   {
-    id: "sky-11",
+    id: "chapter2-11",
     options: {
       floorCount: 10,
       elevatorCount: 2,
@@ -295,18 +295,18 @@ export const skyscraperLevels: readonly SkyscraperLevel[] = [
     tiers: WINNING_IS_GOLD,
     seed: 0,
     get startingCode(): string {
-      return t("skyscraper.sky11.startingCode.code");
+      return t("chapter2.level11.startingCode.code");
     },
-    get card(): SkyscraperCard {
+    get card(): Chapter2Card {
       return {
-        title: t("skyscraper.sky11.title"),
-        briefing: t("skyscraper.sky11.briefing.html"),
+        title: t("chapter2.level11.title"),
+        briefing: t("chapter2.level11.briefing.html"),
       };
     },
   },
   /** Destination dispatch at scale: with delivery guaranteed, which car answers each call decides the score. */
   {
-    id: "sky-12",
+    id: "chapter2-12",
     options: {
       floorCount: 14,
       elevatorCount: 3,
@@ -322,16 +322,16 @@ export const skyscraperLevels: readonly SkyscraperLevel[] = [
     },
     seed: 1,
     get startingCode(): string {
-      return t("skyscraper.sky12.startingCode.code");
+      return t("chapter2.level12.startingCode.code");
     },
   },
   /**
-   * Last skyscraper level: up-peak destination dispatch, where every journey
+   * Last chapter two level: up-peak destination dispatch, where every journey
    * starts at the lobby, so one car can be booked for several passengers going
    * the same way instead of one at a time.
    */
   {
-    id: "sky-13",
+    id: "chapter2-13",
     options: {
       floorCount: 16,
       elevatorCount: 4,
@@ -347,7 +347,7 @@ export const skyscraperLevels: readonly SkyscraperLevel[] = [
     },
     seed: 0,
     get startingCode(): string {
-      return t("skyscraper.sky13.startingCode.code");
+      return t("chapter2.level13.startingCode.code");
     },
   },
 ];

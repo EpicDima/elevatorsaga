@@ -76,7 +76,7 @@ function tileText(tile: LevelMenuTile): string {
     case "level": {
       return String(tile.number);
     }
-    case "skyscraper": {
+    case "chapter2": {
       return String(tile.number);
     }
     case "sandbox": {
@@ -101,7 +101,7 @@ function tileAccessibleName(tile: LevelMenuTile): string {
     }
     // Both chapters share one run of numbers, so a tile of either is named the same way.
     case "level":
-    case "skyscraper": {
+    case "chapter2": {
       return tile.tier === undefined
         ? t("game.level.nav.link", { number: tile.number })
         : t("game.levelSwitcher.levelTileEarnedLabel", {
@@ -125,7 +125,7 @@ function tileTriggerName(tile: LevelMenuTile): string {
       return t("game.levelSwitcher.tutorialTriggerLabel", { number: tile.number });
     }
     case "level":
-    case "skyscraper": {
+    case "chapter2": {
       return t("game.level.nav.link", { number: tile.number });
     }
     case "sandbox": {
@@ -164,7 +164,7 @@ function blockCaption(id: LevelMenuBlock["id"]): string {
     case "levels": {
       return t("game.levelSwitcher.chapterBlockLabel", { number: 1 });
     }
-    case "skyscraper": {
+    case "chapter2": {
       return t("game.levelSwitcher.chapterBlockLabel", { number: 2 });
     }
     case "other": {

@@ -1,7 +1,7 @@
 /**
- * The Skyscraper block's briefing card: a level's name and one paragraph
+ * Chapter two's briefing card: a level's name and one paragraph
  * explaining the lift-dispatch idea it introduces. Drawn only on the level
- * where an idea first appears; `SkyscraperLevel.card` is `undefined` elsewhere.
+ * where an idea first appears; `Chapter2Level.card` is `undefined` elsewhere.
  * Shares `.tutorial`'s card surface with `widgets/tutorial-panel`, which
  * paints it, so the two widgets never draw at once.
  */
@@ -17,7 +17,7 @@ export interface LevelBriefingData {
 }
 
 /**
- * Draws the briefing card for one Skyscraper level.
+ * Draws the briefing card for one chapter two level.
  *
  * `title` is text, escaped by {@link markup}. `briefing` is trusted catalog
  * HTML inserted raw via {@link raw}, since it carries `<code>`/`<em>` markup

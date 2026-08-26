@@ -1051,10 +1051,10 @@ function update(dt, elevators, floors) {
   "tutorial.finish.nextLevel": "Следующий учебный уровень",
   "tutorial.finish.toLevels": "Перейти к уровню 1",
 
-  // Skyscraper levels (src/game/skyscraper.ts): one key per level, no hints.
-  // Only sky2, sky8 and sky11 carry a briefing, where a mechanic first
+  // Chapter two's levels (src/game/chapter2.ts): one key per level, no hints.
+  // Only levels 2, 8 and 11 carry a briefing, where a mechanic first
   // appears; "round-trip time" is «время кругового рейса» in Russian.
-  "skyscraper.sky1.startingCode.code": `function init(elevators, floors) {
+  "chapter2.level1.startingCode.code": `function init(elevators, floors) {
     let next = 0;
 
     function callNextElevator(floor) {
@@ -1086,11 +1086,11 @@ function update(dt, elevators, floors) {
 }
 `,
 
-  "skyscraper.sky2.title": "Все начинают в холле",
-  "skyscraper.sky2.briefing.html":
+  "chapter2.level2.title": "Все начинают в холле",
+  "chapter2.level2.briefing.html":
     "Десять этажей, две кабины и здание, которое только что открыло двери. Каждый следующий уровень задаёт толпе свой ритм, а этот — <em>утренний пик</em>: пока идёт рейс, каждый пассажир появляется в холле и каждый едет вверх. Кнопки на этажах не горят, поэтому у вопроса «кто вызвал?» один ответ, и выбор кабины под вызов не решает почти ничего. Решает обратный путь. Кабина возвращается в холл пустой, что бы вы ни делали, так что единственное число, которое вы можете изменить, — сколько человек она увезла наверх. А программа, с которой вы начинаете, отправляет кабину в путь, едва первый пассажир нажал кнопку. Дальше ритм разворачивается: <em>вечерний пик</em>, когда всё здание рвётся на улицу, и <em>обед</em>, который идёт в обе стороны сразу.",
 
-  "skyscraper.sky2.startingCode.code": `function init(elevators, floors) {
+  "chapter2.level2.startingCode.code": `function init(elevators, floors) {
     let next = 0;
 
     function callNextElevator(floor) {
@@ -1122,7 +1122,7 @@ function update(dt, elevators, floors) {
 }
 `,
 
-  "skyscraper.sky3.startingCode.code": `function init(elevators, floors) {
+  "chapter2.level3.startingCode.code": `function init(elevators, floors) {
     let next = 0;
 
     function insertStop(elevator, floorNum) {
@@ -1173,7 +1173,7 @@ function update(dt, elevators, floors) {
 }
 `,
 
-  "skyscraper.sky4.startingCode.code": `function init(elevators, floors) {
+  "chapter2.level4.startingCode.code": `function init(elevators, floors) {
     let next = 0;
 
     function callNextElevator(floor) {
@@ -1205,7 +1205,7 @@ function update(dt, elevators, floors) {
 }
 `,
 
-  "skyscraper.sky5.startingCode.code": `function init(elevators, floors) {
+  "chapter2.level5.startingCode.code": `function init(elevators, floors) {
     let next = 0;
 
     function insertStop(elevator, floorNum) {
@@ -1256,7 +1256,7 @@ function update(dt, elevators, floors) {
 }
 `,
 
-  "skyscraper.sky6.startingCode.code": `function init(elevators, floors) {
+  "chapter2.level6.startingCode.code": `function init(elevators, floors) {
     let next = 0;
 
     function callNextElevator(floor) {
@@ -1288,7 +1288,7 @@ function update(dt, elevators, floors) {
 }
 `,
 
-  "skyscraper.sky7.startingCode.code": `function init(elevators, floors) {
+  "chapter2.level7.startingCode.code": `function init(elevators, floors) {
     let next = 0;
 
     function callNextElevator(floor) {
@@ -1320,11 +1320,11 @@ function update(dt, elevators, floors) {
 }
 `,
 
-  "skyscraper.sky8.title": "Не всякая кабина едет всюду",
-  "skyscraper.sky8.briefing.html":
+  "chapter2.level8.title": "Не всякая кабина едет всюду",
+  "chapter2.level8.briefing.html":
     "Десять этажей, и две кабины больше не делают одну и ту же работу: одна обслуживает холл и этажи с 1-го по 4-й, другая — холл и этажи с 5-го по 9-й. Настоящие башни устроены именно так, и причина — арифметика: кабина, которая останавливается на каждом этаже высокого здания, весь день только и делает, что останавливается, поэтому этажи делят на <em>зоны</em> и каждому банку кабин отдают свою. Попросите кабину о чужом этаже — машина не станет спорить: доедет, откроет двери, и никто не сядет. Хуже того, вызов останется висеть. Лампа на этаже уже горит, поэтому кнопка, которая позвала бы другую кабину, при повторном нажатии не делает ничего, и этот этаж будет ждать до конца рейса. <code>elevator.servedFloors()</code> — список этажей, которые кабина действительно обслуживает, и с него теперь начинается всякий выбор кабины.",
 
-  "skyscraper.sky8.startingCode.code": `function init(elevators, floors) {
+  "chapter2.level8.startingCode.code": `function init(elevators, floors) {
     let next = 0;
 
     function insertStop(elevator, floorNum) {
@@ -1376,7 +1376,7 @@ function update(dt, elevators, floors) {
 }
 `,
 
-  "skyscraper.sky9.startingCode.code": `function init(elevators, floors) {
+  "chapter2.level9.startingCode.code": `function init(elevators, floors) {
     let next = 0;
 
     function insertStop(elevator, floorNum) {
@@ -1435,7 +1435,7 @@ function update(dt, elevators, floors) {
 }
 `,
 
-  "skyscraper.sky10.startingCode.code": `function init(elevators, floors) {
+  "chapter2.level10.startingCode.code": `function init(elevators, floors) {
     let next = 0;
 
     function insertStop(elevator, floorNum) {
@@ -1494,11 +1494,11 @@ function update(dt, elevators, floors) {
 }
 `,
 
-  "skyscraper.sky11.title": "Никто не жмёт «вверх» и «вниз»",
-  "skyscraper.sky11.briefing.html":
+  "chapter2.level11.title": "Никто не жмёт «вверх» и «вниз»",
+  "chapter2.level11.briefing.html":
     "Кнопок вызова на этажах больше нет. Вместо «вверх» и «вниз» пассажир набирает нужный этаж на панели у дверей и ждёт ту кабину, которую ему пообещала система, — это <em>назначение по этажу</em>, и на нём работает любая башня, построенная в этом веке. Программа слышит <code>destination_requested</code> с этажом, который кто-то назвал, и отвечает вызовом <code>elevator.takeRequest(from, to)</code>: он закрепляет кабину за этой поездкой, и эти люди сядут в неё и ни в какую другую. Закрепить — значит пообещать кабину, а не отправить её куда-нибудь: отправлять её по-прежнему нужно самому — через <code>goToFloor</code> или через <code>destinationQueue</code>, а следом <code>checkDestinationQueue()</code>. А этаж, чья поездка закреплена, больше не просит — ему, с его точки зрения, уже ответили, — так что невыполненное обещание хуже, чем никакого.",
 
-  "skyscraper.sky11.startingCode.code": `function init(elevators, floors) {
+  "chapter2.level11.startingCode.code": `function init(elevators, floors) {
     let next = 0;
 
     elevators.forEach(function(elevator) {
@@ -1521,7 +1521,7 @@ function update(dt, elevators, floors) {
 }
 `,
 
-  "skyscraper.sky12.startingCode.code": `function init(elevators, floors) {
+  "chapter2.level12.startingCode.code": `function init(elevators, floors) {
     let next = 0;
 
     elevators.forEach(function(elevator) {
@@ -1546,7 +1546,7 @@ function update(dt, elevators, floors) {
 }
 `,
 
-  "skyscraper.sky13.startingCode.code": `function init(elevators, floors) {
+  "chapter2.level13.startingCode.code": `function init(elevators, floors) {
     function insertStop(elevator, floorNum) {
         // Стоящей кабине, которую зовут на этаж, где она и так стоит,
         // делать нечего -- кто мог сесть, тот сел.

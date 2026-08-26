@@ -197,7 +197,7 @@ describe("presentBuildingStage", () => {
     }
   });
 
-  it("stands the first car the same distance from the wall on a small level and a skyscraper", () => {
+  it("stands the first car the same distance from the wall on a small level and a tall building", () => {
     // The whole point of holding the corridor out of the fit: these two used to differ by
     // well over a hundred pixels, since the second one's shafts scaled the walk down with them.
     // Measured to the car rather than to the queue strip, which stops a shaft pad short of it.

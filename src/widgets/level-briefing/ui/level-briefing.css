@@ -1,5 +1,5 @@
 /*
- * The Skyscraper block's briefing card. Deliberately no surface (padding,
+ * Chapter two's briefing card. Deliberately no surface (padding,
  * border, background) here: `.tutorial` in `tutorial-panel.css` already paints
  * that card, shared with `widgets/tutorial-panel`. `level-briefing.css.test.ts`
  * enforces that this file stays surface-free.

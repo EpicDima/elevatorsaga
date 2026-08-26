@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { SandboxOptions } from "#game/levels.ts";
-import { skyscraperLevels } from "#game/skyscraper.ts";
+import { chapter2Levels } from "#game/chapter2.ts";
 import { tutorialLevels } from "#game/tutorial.ts";
 import { createParamsUrl, parseQuery, type RouteQuery } from "#shared/lib/route-query.ts";
 import {
@@ -15,7 +15,7 @@ import {
   renameLegacyLevelKey,
   resolveRoute,
   SANDBOX_LEVEL,
-  SKYSCRAPER_LEVEL_PREFIX,
+  CHAPTER2_LEVEL_PREFIX,
   startRouter,
   TUTORIAL_LEVEL_PREFIX,
   type RouteParams,
@@ -129,7 +129,7 @@ describe("the legacy level key", () => {
   });
 
   it("opens exactly what the same url spelled the new way opens", () => {
-    for (const value of ["5", "sandbox", "tutorial-3", "sky-1", "abc", "19"]) {
+    for (const value of ["5", "sandbox", "tutorial-3", "chapter2-1", "abc", "19"]) {
       expect(route(`#challenge=${value}`), value).toEqual(route(`#level=${value}`));
     }
   });
@@ -151,7 +151,7 @@ describe("resolveRoute defaults", () => {
       levelIndex: 0,
       sandbox: null,
       tutorialIndex: null,
-      skyscraperIndex: null,
+      chapter2Index: null,
       timeScale: DEFAULT_TIME_SCALE,
       fullscreen: false,
       seed: null,
@@ -164,7 +164,7 @@ describe("resolveRoute defaults", () => {
       levelIndex: 3,
       sandbox: null,
       tutorialIndex: null,
-      skyscraperIndex: null,
+      chapter2Index: null,
       timeScale: 8,
       fullscreen: true,
       seed: "abc",
@@ -510,11 +510,11 @@ describe("resolveRoute tutorial selection", () => {
     const level = route("#level=tutorial-3");
     expect(level.tutorialIndex).toBe(2);
     expect(level.sandbox).toBeNull();
-    expect(level.skyscraperIndex).toBeNull();
+    expect(level.chapter2Index).toBeNull();
     const sandbox = route("#level=sandbox");
     expect(sandbox.sandbox).not.toBeNull();
     expect(sandbox.tutorialIndex).toBeNull();
-    expect(sandbox.skyscraperIndex).toBeNull();
+    expect(sandbox.chapter2Index).toBeNull();
   });
 
   it("ignores sandbox parameters while a level is being played", () => {
@@ -584,7 +584,7 @@ describe("resolveRoute tutorial validation", () => {
       levelIndex: 0,
       sandbox: null,
       tutorialIndex: 2,
-      skyscraperIndex: null,
+      chapter2Index: null,
       timeScale: 8,
       fullscreen: true,
       seed: null,
@@ -603,24 +603,24 @@ describe("resolveRoute tutorial validation", () => {
   });
 });
 
-describe("resolveRoute skyscraper selection", () => {
+describe("resolveRoute chapter two selection", () => {
   it("is off unless the url asks for it", () => {
-    expect(route("").skyscraperIndex).toBeNull();
-    expect(route("#level=4").skyscraperIndex).toBeNull();
-    expect(route("#level=sandbox").skyscraperIndex).toBeNull();
-    expect(route("#level=tutorial-3").skyscraperIndex).toBeNull();
+    expect(route("").chapter2Index).toBeNull();
+    expect(route("#level=4").chapter2Index).toBeNull();
+    expect(route("#level=sandbox").chapter2Index).toBeNull();
+    expect(route("#level=tutorial-3").chapter2Index).toBeNull();
   });
 
   it("opens the level its address names, zero-based", () => {
-    expect(route("#level=sky-1").skyscraperIndex).toBe(0);
+    expect(route("#level=chapter2-1").chapter2Index).toBe(0);
     expect(console.warn).not.toHaveBeenCalled();
   });
 
   it("reaches every level in the table by the id it carries", () => {
     // Iterated from the table rather than a fixed count, since the block's entries are
     // still being added.
-    skyscraperLevels.forEach((level, index) => {
-      expect(route(`#level=${level.id}`).skyscraperIndex, level.id).toBe(index);
+    chapter2Levels.forEach((level, index) => {
+      expect(route(`#level=${level.id}`).chapter2Index, level.id).toBe(index);
     });
     expect(console.warn).not.toHaveBeenCalled();
   });
@@ -628,29 +628,29 @@ describe("resolveRoute skyscraper selection", () => {
   it("spells every level id the way it recognizes one", () => {
     // As with the track's addresses, a level renamed out of this prefix would be
     // unreachable rather than oddly named.
-    for (const level of skyscraperLevels) {
-      expect(level.id.startsWith(SKYSCRAPER_LEVEL_PREFIX), level.id).toBe(true);
+    for (const level of chapter2Levels) {
+      expect(level.id.startsWith(CHAPTER2_LEVEL_PREFIX), level.id).toBe(true);
     }
   });
 
-  it("reads a skyscraper address however it is capitalized", () => {
-    expect(route("#level=SKY-1").skyscraperIndex).toBe(0);
-    expect(route("#LEVEL=Sky-1").skyscraperIndex).toBe(0);
+  it("reads a chapter two address however it is capitalized", () => {
+    expect(route("#level=CHAPTER2-1").chapter2Index).toBe(0);
+    expect(route("#LEVEL=Chapter2-1").chapter2Index).toBe(0);
     expect(console.warn).not.toHaveBeenCalled();
   });
 
-  it("does not complain that a skyscraper address is not a level number", () => {
-    // resolveLevelIndex would read `sky-1` as NaN and say so, which is noise
+  it("does not complain that a chapter two address is not a level number", () => {
+    // resolveLevelIndex would read `chapter2-1` as NaN and say so, which is noise
     // about a number the player never wrote.
-    const params = route("#level=sky-1");
+    const params = route("#level=chapter2-1");
     expect(params.refusedKeys).toEqual([]);
     expect(console.warn).not.toHaveBeenCalled();
   });
 
-  it("never resolves a skyscraper level beside another thing the key can name", () => {
+  it("never resolves a chapter two level beside another thing the key can name", () => {
     // No value spells two of the four things this key can name.
-    const params = route("#level=sky-1,floors=50,elevators=9");
-    expect(params.skyscraperIndex).toBe(0);
+    const params = route("#level=chapter2-1,floors=50,elevators=9");
+    expect(params.chapter2Index).toBe(0);
     expect(params.tutorialIndex).toBeNull();
     expect(params.sandbox).toBeNull();
     // Carried across by the switcher's links, inert here, exactly as on a level of the track.
@@ -658,11 +658,12 @@ describe("resolveRoute skyscraper selection", () => {
   });
 
   it("is not selected by something that merely looks like it", () => {
-    // `skyscraper-1` is the spelling the block deliberately does not use, so it is a level
-    // number here, and is refused as one.
-    for (const value of ["sky", "skyscraper-1", "asky-1"]) {
+    // The prefix has to start the value and end in its hyphen: a bare `chapter2`, a
+    // longer word around it and a value merely containing it are level numbers here,
+    // and are refused as ones.
+    for (const value of ["chapter2", "chapter2x-1", "achapter2-1"]) {
       const params = route(`#level=${value}`);
-      expect(params.skyscraperIndex, value).toBeNull();
+      expect(params.chapter2Index, value).toBeNull();
       expect(params.levelIndex, value).toBe(0);
       expect(console.warn).toHaveBeenCalledWith(
         `Invalid level "${value}", starting the first level instead`,
@@ -671,40 +672,40 @@ describe("resolveRoute skyscraper selection", () => {
   });
 });
 
-describe("resolveRoute skyscraper validation", () => {
-  it("lands a wrong skyscraper address on the block's first level", () => {
-    // `sky-01`, `sky-1e0` and `sky- 1` are ways of writing the number one, not the name
-    // `sky-1` — each lands where `sky-1` lands, so only the warning and the refusal tell a
+describe("resolveRoute chapter two validation", () => {
+  it("lands a wrong chapter two address on the block's first level", () => {
+    // `chapter2-01`, `chapter2-1e0` and `chapter2- 1` are ways of writing the number one, not the name
+    // `chapter2-1` — each lands where `chapter2-1` lands, so only the warning and the refusal tell a
     // wrong address from a right one.
     for (const value of [
-      "sky-0",
-      "sky-99",
-      "sky-abc",
-      "sky-",
-      "sky-1.5",
-      "sky--1",
-      "sky- 1",
-      "sky-<script>",
-      "sky-01",
-      "sky-1e0",
+      "chapter2-0",
+      "chapter2-99",
+      "chapter2-abc",
+      "chapter2-",
+      "chapter2-1.5",
+      "chapter2--1",
+      "chapter2- 1",
+      "chapter2-<script>",
+      "chapter2-01",
+      "chapter2-1e0",
     ]) {
       const params = route(`#level=${value}`);
-      expect(params.skyscraperIndex, value).toBe(0);
+      expect(params.chapter2Index, value).toBe(0);
       expect(params.refusedKeys, value).toEqual(["level"]);
       expect(console.warn).toHaveBeenCalledWith(
-        `Invalid skyscraper level "${value}", starting the first one instead`,
+        `Invalid chapter two level "${value}", starting the first one instead`,
       );
     }
   });
 
   it("keeps the rest of the url working in the block", () => {
-    // Every parameter but `seed` behaves on a skyscraper address exactly as it does on a
+    // Every parameter but `seed` behaves on a chapter two address exactly as it does on a
     // numbered level.
-    expect(route("#level=sky-1,timescale=8,fullscreen=true")).toEqual({
+    expect(route("#level=chapter2-1,timescale=8,fullscreen=true")).toEqual({
       levelIndex: 0,
       sandbox: null,
       tutorialIndex: null,
-      skyscraperIndex: 0,
+      chapter2Index: 0,
       timeScale: 8,
       fullscreen: true,
       seed: null,
@@ -833,7 +834,7 @@ describe("resolveRoute seed on the learning track", () => {
   });
 
   it("says where the seed went rather than that it was wrong", () => {
-    // Says "this level", not "a tutorial level": the message is shared with the skyscraper
+    // Says "this level", not "a tutorial level": the message is shared with the chapter2
     // block, so naming one of them here would be one more thing to keep in sync.
     route("#level=tutorial-5,seed=42a");
     expect(console.warn).toHaveBeenCalledWith(
@@ -874,12 +875,12 @@ describe("resolveRoute seed on the learning track", () => {
   });
 });
 
-describe("resolveRoute seed in the Skyscraper block", () => {
+describe("resolveRoute seed in chapter two", () => {
   it("refuses a seed on every level of the block, however good the seed is", () => {
     // Not a validation failure, and not the track's reason either: here the stake is the
     // medal. Thresholds are measured against one pinned crowd, so a silver earned on an
     // unmeasured stream wouldn't be the same silver.
-    for (const level of skyscraperLevels) {
+    for (const level of chapter2Levels) {
       const hash = `#level=${level.id},seed=42`;
       expect(route(hash).seed, hash).toBeNull();
       expect(route(hash).refusedKeys, hash).toContain("seed");
@@ -887,29 +888,29 @@ describe("resolveRoute seed in the Skyscraper block", () => {
   });
 
   it("says where the seed went in the one sentence both pinned blocks share", () => {
-    route("#level=sky-1,seed=42");
+    route("#level=chapter2-1,seed=42");
     expect(console.warn).toHaveBeenCalledWith(
       `Ignoring seed "42": this level plays its own pinned seed`,
     );
   });
 
   it("refuses the seed on an address the block could not read either", () => {
-    // Both refusals at once, in the order the url wrote them: `sky-99` is still the block, so
+    // Both refusals at once, in the order the url wrote them: `chapter2-99` is still the block, so
     // the seed is still not the player's to choose there.
-    const params = route("#level=sky-99,seed=42");
-    expect(params.skyscraperIndex).toBe(0);
+    const params = route("#level=chapter2-99,seed=42");
+    expect(params.chapter2Index).toBe(0);
     expect(params.seed).toBeNull();
     expect(params.refusedKeys).toEqual([LEVEL_KEY, "seed"]);
   });
 
-  it("keeps quiet on a skyscraper address that names no seed", () => {
-    route("#level=sky-1");
+  it("keeps quiet on a chapter two address that names no seed", () => {
+    route("#level=chapter2-1");
     expect(console.warn).not.toHaveBeenCalled();
   });
 
   it("refuses the seed to what its absence gives, so the url can drop it", () => {
-    const refused = route("#level=sky-1,seed=42");
-    const absent = route("#level=sky-1");
+    const refused = route("#level=chapter2-1,seed=42");
+    const absent = route("#level=chapter2-1");
     expect({ ...refused, refusedKeys: [] }).toEqual(absent);
   });
 });
@@ -1084,11 +1085,11 @@ describe("startRouter", () => {
     expect(route(target.location.hash)).toEqual({ ...params, refusedKeys: [] });
   });
 
-  it("corrects a wrong skyscraper address to the block's first level", () => {
+  it("corrects a wrong chapter two address to the block's first level", () => {
     // The same rewrite as the track's: deleting the key would leave `#`, the first numbered
     // level, and the player chose the block rather than that.
     const target = new FakeTarget();
-    target.location = { hash: "#level=sky-99,timescale=8" };
+    target.location = { hash: "#level=chapter2-99,timescale=8" };
     const onRoute = vi.fn();
 
     startRouter(onRoute, {
@@ -1097,12 +1098,12 @@ describe("startRouter", () => {
       target,
     });
 
-    expect(target.replaced).toEqual(["#level=sky-1,timescale=8"]);
+    expect(target.replaced).toEqual(["#level=chapter2-1,timescale=8"]);
     expect(onRoute).toHaveBeenCalledTimes(1);
     const params = onRoute.mock.calls[0]?.[0] as RouteParams | undefined;
     const query = onRoute.mock.calls[0]?.[1] as RouteQuery | undefined;
-    expect(params).toMatchObject({ skyscraperIndex: 0, refusedKeys: [LEVEL_KEY] });
-    expect(query?.get(LEVEL_KEY)).toBe("sky-1");
+    expect(params).toMatchObject({ chapter2Index: 0, refusedKeys: [LEVEL_KEY] });
+    expect(query?.get(LEVEL_KEY)).toBe("chapter2-1");
     // The address bar now resolves to the run that is on screen.
     expect(route(target.location.hash)).toEqual({ ...params, refusedKeys: [] });
   });
@@ -1177,7 +1178,7 @@ describe("startRouter", () => {
     // sixty — so there is nothing to correct.
     "#level=sandbox,floors=100000",
     "#level=tutorial-3,timescale=8",
-    "#level=sky-1,timescale=8",
+    "#level=chapter2-1,timescale=8",
   ])("leaves %s alone", (hash) => {
     const target = new FakeTarget();
     target.location = { hash };

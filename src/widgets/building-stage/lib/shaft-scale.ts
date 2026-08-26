@@ -27,7 +27,7 @@ export const TRAILING_ROOM = 44;
 
 /**
  * The corridor's drawn width in pixels: the walk between the floor numbers and the first
- * shaft. Held out of the fit so it reads the same on a three-floor level and a skyscraper,
+ * shaft. Held out of the fit so it reads the same on a three-floor level and a tall building,
  * where scaling it with the shafts swung it between roughly 160px and 290px. 200px draws the
  * engine's own 200-unit corridor 1:1, near the middle of that old swing.
  */

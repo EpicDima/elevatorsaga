@@ -6,8 +6,8 @@ import type { Level } from "../../game/levels.ts";
 import { WINNING_IS_GOLD, atLeastAvgLoadFactorOnMove } from "../../game/level-tiers.ts";
 import type { LevelTierRequirements } from "../../game/level-tiers.ts";
 import { INSTANT_RUN_MAX_SIMULATED_SECONDS } from "../../game/instant-run.ts";
-import { skyscraperLevels } from "../../game/skyscraper.ts";
-import type { SkyscraperCard, SkyscraperLevel } from "../../game/skyscraper.ts";
+import { chapter2Levels } from "../../game/chapter2.ts";
+import type { Chapter2Card, Chapter2Level } from "../../game/chapter2.ts";
 import { tutorialLevels } from "../../game/tutorial.ts";
 import type { TutorialLevel } from "../../game/tutorial.ts";
 import { TICK_SECONDS, createWorldController } from "../../game/world-controller.ts";
@@ -35,7 +35,7 @@ import {
 } from "./index.ts";
 import type { AppElements, ControlsPresenterOptions } from "./index.ts";
 import { readBestLevelTiers } from "#entities/level-tier/index.ts";
-import { readBestSkyscraperTiers } from "#entities/skyscraper-level/index.ts";
+import { readBestChapter2Tiers } from "#entities/chapter2-level/index.ts";
 import { readClearedTutorialLevels } from "#entities/tutorial-level/model/progress.ts";
 import { DEFAULT_TIME_SCALE } from "#features/adjust-speed/model/time-scale.ts";
 import { DEFAULT_CODE_SLOT } from "#features/manage-code-slots/model/code-slots.ts";
@@ -1276,31 +1276,31 @@ describe("App learning track", () => {
   });
 });
 
-describe("App Skyscraper block", () => {
+describe("App chapter two", () => {
   // So a failing assertion can't leave the suite in Russian.
   afterEach(() => {
     setLocale(DEFAULT_LOCALE);
   });
 
-  /** The level at a position in the Skyscraper block, read from the real `skyscraperLevels` table. */
-  function levelAt(index: number): SkyscraperLevel {
-    const level = skyscraperLevels[index];
+  /** The level at a position in chapter two, read from the real `chapter2Levels` table. */
+  function levelAt(index: number): Chapter2Level {
+    const level = chapter2Levels[index];
     if (level === undefined) {
-      throw new Error(`The Skyscraper block has no level at position ${String(index)}`);
+      throw new Error(`Chapter two has no level at position ${String(index)}`);
     }
     return level;
   }
 
   /** The briefing card of a level expected to carry one; throws instead of returning `undefined` so a missing card fails at the lookup. */
-  function cardAt(index: number): SkyscraperCard {
+  function cardAt(index: number): Chapter2Card {
     const card = levelAt(index).card;
     if (card === undefined) {
-      throw new Error(`The Skyscraper level at position ${String(index)} carries no card`);
+      throw new Error(`The chapter two level at position ${String(index)} carries no card`);
     }
     return card;
   }
 
-  /** Ends the run on screen; `sky-1` is judged in moves, so a win zeroes `moveCount` instead of adjusting elapsed time. */
+  /** Ends the run on screen; `chapter2-1` is judged in moves, so a win zeroes `moveCount` instead of adjusting elapsed time. */
   function endRun(app: App, won: boolean): void {
     const world = app.world;
     if (world === undefined) {
@@ -1315,10 +1315,10 @@ describe("App Skyscraper block", () => {
     const { app } = setUp();
     app.handleRoute(...routeFor("#level=3"));
 
-    app.handleRoute(...routeFor("#level=sky-1"));
+    app.handleRoute(...routeFor("#level=chapter2-1"));
 
-    expect(app.skyscraper?.level.id).toBe("sky-1");
-    expect(app.skyscraper?.index).toBe(0);
+    expect(app.chapter2?.level.id).toBe("chapter2-1");
+    expect(app.chapter2?.index).toBe(0);
     expect(app.isPlayingSandbox).toBe(false);
     expect(app.currentLevelIndex).toBe(2);
   });
@@ -1326,7 +1326,7 @@ describe("App Skyscraper block", () => {
   it("builds the level's own building", () => {
     const { app } = setUp();
 
-    app.startSkyscraperLevel(0);
+    app.startChapter2Level(0);
 
     expect(app.world?.floors.length).toBe(levelAt(0).options.floorCount);
     // The table's one capacity cycles over all three cars.
@@ -1343,7 +1343,7 @@ describe("App Skyscraper block", () => {
     storage.setItem(SEED_STORAGE_KEY, "issue-62");
     expect(readStoredSeed(storage)).toBe("issue-62");
 
-    app.startSkyscraperLevel(0);
+    app.startChapter2Level(0);
 
     expect(app.world?.seed).toBe(levelAt(0).seed);
   });
@@ -1353,7 +1353,7 @@ describe("App Skyscraper block", () => {
     storage.setItem(SEED_STORAGE_KEY, "issue-61");
     const { app } = setUp(INERT_CODE, storage);
 
-    app.startSkyscraperLevel(0);
+    app.startChapter2Level(0);
 
     expect(app.world?.seed).toBe(levelAt(0).seed);
     expect(app.currentSeedLink).toBeNull();
@@ -1364,7 +1364,7 @@ describe("App Skyscraper block", () => {
   it("refuses a position that does not name a level", () => {
     const { app } = setUp();
     expect(() => {
-      app.startSkyscraperLevel(99);
+      app.startChapter2Level(99);
     }).toThrow(RangeError);
   });
 
@@ -1373,15 +1373,15 @@ describe("App Skyscraper block", () => {
     const { app } = setUp();
     app.startTutorial(0);
 
-    app.startSkyscraperLevel(0);
+    app.startChapter2Level(0);
 
-    expect(app.skyscraper?.level.id).toBe(levelAt(0).id);
+    expect(app.chapter2?.level.id).toBe(levelAt(0).id);
     expect(app.tutorial).toBeUndefined();
 
     app.handleRoute(...routeFor("#level=sandbox,floors=20"));
-    app.startSkyscraperLevel(0);
+    app.startChapter2Level(0);
 
-    expect(app.skyscraper?.level.id).toBe(levelAt(0).id);
+    expect(app.chapter2?.level.id).toBe(levelAt(0).id);
     expect(app.isPlayingSandbox).toBe(false);
   });
 
@@ -1389,33 +1389,33 @@ describe("App Skyscraper block", () => {
     // Every start* clears this field through the same helper.
     const { app } = setUp();
 
-    app.startSkyscraperLevel(0);
+    app.startChapter2Level(0);
     app.startTutorial(0);
-    expect(app.skyscraper).toBeUndefined();
+    expect(app.chapter2).toBeUndefined();
     expect(app.tutorial?.index).toBe(0);
 
-    app.startSkyscraperLevel(0);
+    app.startChapter2Level(0);
     app.handleRoute(...routeFor("#level=2"));
-    expect(app.skyscraper).toBeUndefined();
+    expect(app.chapter2).toBeUndefined();
     expect(app.currentLevelIndex).toBe(1);
 
-    app.startSkyscraperLevel(0);
+    app.startChapter2Level(0);
     app.handleRoute(...routeFor("#level=sandbox,floors=20"));
-    expect(app.skyscraper).toBeUndefined();
+    expect(app.chapter2).toBeUndefined();
     expect(app.isPlayingSandbox).toBe(true);
   });
 
   it("repeats the level when the program is applied, not the last level played", () => {
     const { app, editor, view } = setUp();
     app.handleRoute(...routeFor("#level=3"));
-    app.startSkyscraperLevel(0);
+    app.startChapter2Level(0);
     view.type("// half an answer");
     const before = app.world;
 
     editor.trigger("apply_code");
 
     expect(app.world).not.toBe(before);
-    expect(app.skyscraper?.level.id).toBe(levelAt(0).id);
+    expect(app.chapter2?.level.id).toBe(levelAt(0).id);
     expect(app.world?.floors.length).toBe(levelAt(0).options.floorCount);
     expect(app.worldController.isPaused).toBe(false);
     expect(view.getValue()).toBe("// half an answer");
@@ -1426,7 +1426,7 @@ describe("App Skyscraper block", () => {
     // this level's program with a numbered level's slot.
     const { app, storage, view } = setUp();
     storage.setItem("develevateChallengeCode_0_2", "// slot two's program");
-    app.startSkyscraperLevel(0);
+    app.startChapter2Level(0);
 
     app.selectCodeSlot(2);
 
@@ -1441,14 +1441,16 @@ describe("App Skyscraper block", () => {
     // A demo level grading nothing, so its win is gold.
     expect(levelAt(0).tiers).toBe(WINNING_IS_GOLD);
 
-    app.startSkyscraperLevel(0);
+    app.startChapter2Level(0);
     endRun(app, true);
 
-    expect(readBestSkyscraperTiers(storage)).toEqual(new Map([[levelAt(0).id, "gold"]]));
+    expect(readBestChapter2Tiers(storage)).toEqual(new Map([[levelAt(0).id, "gold"]]));
     expect(readBestLevelTiers(storage)).toEqual(new Map());
     // The tile updates without waiting for the next run's redraw.
     expect(
-      requireElement('[href^="#level=sky-1"]', elements.levelSwitcher).getAttribute("data-tier"),
+      requireElement('[href^="#level=chapter2-1"]', elements.levelSwitcher).getAttribute(
+        "data-tier",
+      ),
     ).toBe("gold");
     // The card names the same medal, though the block's levels have no index to key one by.
     expect(requireElement(".verdict h3 .stars", elements.feedback).getAttribute("data-tier")).toBe(
@@ -1457,10 +1459,10 @@ describe("App Skyscraper block", () => {
   });
 
   it("puts a graded level's own star and its next-star hint on the card", () => {
-    // `sky-3` grades in moves, and the block has no level index to key a tier by; the
+    // `chapter2-3` grades in moves, and the block has no level index to key a tier by; the
     // card owes the same bronze and the same "for silver" line a numbered level's would.
     const { app, elements, storage } = setUp();
-    app.startSkyscraperLevel(2);
+    app.startChapter2Level(2);
 
     // Enough passengers to clear the level, in more moves than silver allows.
     const world = app.world;
@@ -1471,7 +1473,7 @@ describe("App Skyscraper block", () => {
     world.moveCount = 260;
     world.trigger("stats_changed");
 
-    expect(readBestSkyscraperTiers(storage)).toEqual(new Map([[levelAt(2).id, "bronze"]]));
+    expect(readBestChapter2Tiers(storage)).toEqual(new Map([[levelAt(2).id, "bronze"]]));
     expect(requireElement(".verdict h3 .stars", elements.feedback).getAttribute("data-tier")).toBe(
       "bronze",
     );
@@ -1482,12 +1484,12 @@ describe("App Skyscraper block", () => {
 
   it("records nothing for a level that was lost", () => {
     const { app, elements, storage } = setUp();
-    app.startSkyscraperLevel(0);
+    app.startChapter2Level(0);
 
     endRun(app, false);
 
     expect(verdictTitle(elements)).toBe("Level failed");
-    expect(readBestSkyscraperTiers(storage)).toEqual(new Map());
+    expect(readBestChapter2Tiers(storage)).toEqual(new Map());
   });
 
   it("links to the block's levels by id, dropping the seed of the run in progress", () => {
@@ -1496,16 +1498,18 @@ describe("App Skyscraper block", () => {
     app.handleRoute(...routeFor("#level=1,timescale=8,seed=issue-61"));
 
     expect(
-      requireElement('[href^="#level=sky-1"]', elements.levelSwitcher).getAttribute("href"),
-    ).toBe("#level=sky-1,timescale=8");
+      requireElement('[href^="#level=chapter2-1"]', elements.levelSwitcher).getAttribute("href"),
+    ).toBe("#level=chapter2-1,timescale=8");
   });
 
   it("marks the block's own tile as current, and no numbered level", () => {
     const { app, elements } = setUp();
-    app.handleRoute(...routeFor("#level=sky-1,timescale=8"));
+    app.handleRoute(...routeFor("#level=chapter2-1,timescale=8"));
 
     expect(
-      requireElement('[href^="#level=sky-1"]', elements.levelSwitcher).getAttribute("aria-current"),
+      requireElement('[href^="#level=chapter2-1"]', elements.levelSwitcher).getAttribute(
+        "aria-current",
+      ),
     ).toBe("page");
     expect(levelTiles(elements).map((entry) => entry.getAttribute("aria-current"))).toEqual([
       null,
@@ -1517,13 +1521,13 @@ describe("App Skyscraper block", () => {
   });
 
   describe("the briefing card beside the building", () => {
-    // sky-2 (index 1) is where traffic profiles are introduced and carries a card;
-    // sky-1 (index 0) is the level below that carries none.
+    // chapter2-2 (index 1) is where traffic profiles are introduced and carries a card;
+    // chapter2-1 (index 0) is the level below that carries none.
     const CARD_LEVEL = 1;
 
     it("draws the level's name and the paragraph it is about", () => {
       const { app, elements } = setUp();
-      app.startSkyscraperLevel(CARD_LEVEL);
+      app.startChapter2Level(CARD_LEVEL);
 
       expect(requireElement(".briefingtitle", elements.tutorial).textContent).toBe(
         "Everyone starts in the lobby",
@@ -1538,10 +1542,10 @@ describe("App Skyscraper block", () => {
 
     it("draws nothing at all on a level with nothing to introduce", () => {
       const { app, elements } = setUp();
-      app.startSkyscraperLevel(CARD_LEVEL);
+      app.startChapter2Level(CARD_LEVEL);
       expect(elements.tutorial.children).toHaveLength(1);
 
-      app.startSkyscraperLevel(0);
+      app.startChapter2Level(0);
 
       expect(levelAt(0).card).toBeUndefined();
       expect(elements.tutorial.children).toHaveLength(0);
@@ -1549,7 +1553,7 @@ describe("App Skyscraper block", () => {
 
     it("gives the region back to the lesson panel on the way to a lesson", () => {
       const { app, elements } = setUp();
-      app.startSkyscraperLevel(CARD_LEVEL);
+      app.startChapter2Level(CARD_LEVEL);
 
       app.startTutorial(2);
 
@@ -1561,7 +1565,7 @@ describe("App Skyscraper block", () => {
 
     it("empties the region on a numbered level, so the page has no gap in it", () => {
       const { app, elements } = setUp();
-      app.startSkyscraperLevel(CARD_LEVEL);
+      app.startChapter2Level(CARD_LEVEL);
       expect(elements.tutorial.children).toHaveLength(1);
 
       app.startLevel(0);
@@ -1571,7 +1575,7 @@ describe("App Skyscraper block", () => {
 
     it("redraws the card when the language changes under it", () => {
       const { app, elements } = setUp();
-      app.startSkyscraperLevel(CARD_LEVEL);
+      app.startChapter2Level(CARD_LEVEL);
 
       setLocale("ru");
       app.relocalize();

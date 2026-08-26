@@ -235,7 +235,7 @@ describe("the counts the inventory prints", () => {
       inventorySource.indexOf("\n## The strings\n"),
     );
     const printed = new Map(
-      [...section.matchAll(/^\| `([a-z]+)\.\*` +\| (\d+) +\|/gm)].map(
+      [...section.matchAll(/^\| `([a-z][a-z0-9]*)\.\*` +\| (\d+) +\|/gm)].map(
         ([, prefix = "", count = ""]) => [prefix, Number(count)],
       ),
     );

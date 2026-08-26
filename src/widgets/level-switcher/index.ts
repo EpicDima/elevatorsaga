@@ -7,7 +7,7 @@ export {
   type LevelSelection,
   type NumberedMenuTile,
   type SandboxMenuTile,
-  type SkyscraperMenuTile,
+  type Chapter2MenuTile,
   type TutorialMenuTile,
 } from "./model/level-menu.ts";
 export {

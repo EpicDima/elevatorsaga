@@ -10,9 +10,9 @@ rather than breaking the page.
 | `#level=N`          | Starts level `N`, counting from 1. Out of range, missing, or unreadable as a number and not one of the names below: level 1. Every level is open from the first visit, so no address is ever answered with a different one. |
 | `#level=sandbox`    | Starts a building of your own instead of a numbered level. See below.                                                                                                                                                       |
 | `#level=tutorial-N` | Starts level `N` of the learning track, from `tutorial-1` to `tutorial-8`. A `tutorial-` address the track has no level for starts the first one. See [the learning track](learning-track.md).                              |
-| `#level=sky-N`      | Starts level `N` of the Skyscraper block, from `sky-1` to `sky-13`. A `sky-` address the block has no level for starts the first one.                                                                                       |
+| `#level=chapter2-N` | Starts level `N` of chapter two, from `chapter2-1` to `chapter2-13`. A `chapter2-` address the block has no level for starts the first one.                                                                                 |
 | `#timescale=X`      | Simulation speed multiplier. Clamped to `0.1`–`64`. Fractions such as `1.5` work. Without it, the speed you last chose is used again — it is kept in `localStorage` under `elevatorTimeScale` — and `2` when there is none. |
-| `#seed=S`           | Pins the seed the passenger stream is drawn from. Not the building. Refused on the two blocks that pin their own seed, the learning track and Skyscraper. See below.                                                        |
+| `#seed=S`           | Pins the seed the passenger stream is drawn from. Not the building. Refused on the two blocks that pin their own seed, the learning track and chapter two. See below.                                                       |
 | `#fullscreen`       | Hides everything except the building.                                                                                                                                                                                       |
 
 `#level` was spelled `#challenge` until the game started calling its challenges levels, and every
@@ -42,7 +42,7 @@ is a complete address you can paste at someone.
 A URL with no `seed` draws a fresh one on every restart, which is deliberate: a run you cannot get
 away from is not what you want when you are stuck on a level.
 
-None of this applies on the learning track or in the Skyscraper block, where the seed belongs to the
+None of this applies on the learning track or in chapter two, where the seed belongs to the
 level rather than to you: there is no seed line in the menu, nothing is printed, and every restart
 replays the same passengers. The track pins one so a lesson shows what it means to show; the block
 pins one so that a medal means the same thing to two players. See
