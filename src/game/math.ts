@@ -40,7 +40,9 @@ export function linearInterpolate(value0: number, value1: number, x: number): nu
 
 /** Sigmoid-ish interpolation between `value0` and `value1`; `a` controls the steepness. */
 export function powInterpolate(value0: number, value1: number, x: number, a: number): number {
-  return value0 + ((value1 - value0) * Math.pow(x, a)) / (Math.pow(x, a) + Math.pow(1 - x, a));
+  // `x ** a` is raised once and reused; two of the three powers this needs were the same one.
+  const xPow = Math.pow(x, a);
+  return value0 + ((value1 - value0) * xPow) / (xPow + Math.pow(1 - x, a));
 }
 
 /** {@link powInterpolate} with exponent `1.3`; used for elevator and passenger animation. */
