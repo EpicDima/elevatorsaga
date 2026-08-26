@@ -10,7 +10,7 @@ import { ElevatorInterface } from "./elevator-interface.ts";
 import { Floor, type FloorElevator } from "./floor.ts";
 import { FloorInterface } from "./floor-interface.ts";
 import { randomInt } from "./math.ts";
-import { Observable } from "./observable.ts";
+import { type EventChannel, Observable } from "./observable.ts";
 import {
   createRandomSource,
   deriveRandomSource,
@@ -399,6 +399,8 @@ export class World extends Observable<WorldEvents> {
    * frame.
    */
   #longestWaitingUser: User | null = null;
+  /** Held rather than looked up: every tick ends by raising `stats_changed`. */
+  readonly #statsChannel: EventChannel = this.channelFor("stats_changed");
 
   /**
    * @param options - Level options; missing values take the defaults.
@@ -493,7 +495,7 @@ export class World extends Observable<WorldEvents> {
     // Same 0/0 guard, before any door has opened.
     this.avgPeoplePerStop =
       this.stopCount === 0 ? 0 : (this.#pickedUpCounter + this.transportedCounter) / this.stopCount;
-    this.triggerBare("stats_changed");
+    this.#statsChannel.emitBare("stats_changed");
   }
 
   /** Adds a spawned passenger to the world and starts their wait clock. */

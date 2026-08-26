@@ -1,6 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { Observable, PlayerObservable } from "./observable.ts";
+import {
+  type EventChannel,
+  type EventName,
+  Observable,
+  PlayerObservable,
+} from "./observable.ts";
 
 type TestEvents = {
   up_button_pressed: [floor: number];
@@ -468,6 +473,115 @@ describe("Observable.triggerOne / triggerBare", () => {
     const emitter = makeEmitter();
     expect(() => emitter.triggerOne("up_button_pressed", 1)).not.toThrow();
     expect(() => emitter.triggerBare("idle")).not.toThrow();
+  });
+});
+
+describe("Observable held channels", () => {
+  /** An emitter that hands out its channels, the way a hot subclass keeps one. */
+  class ChannelEmitter extends Observable<TestEvents> {
+    /** The channel `event`'s handlers live on. */
+    channel(event: EventName<TestEvents>): EventChannel {
+      return this.channelFor(event);
+    }
+  }
+
+  it("dispatches through a channel taken before anything was registered", () => {
+    const emitter = new ChannelEmitter();
+    const channel = emitter.channel("up_button_pressed");
+    const handler = vi.fn();
+    emitter.on("up_button_pressed", handler);
+
+    channel.emitOne("up_button_pressed", 5);
+
+    expect(handler).toHaveBeenCalledExactlyOnceWith(5);
+  });
+
+  it("is the same channel the emitter's own trigger dispatches on", () => {
+    const emitter = new ChannelEmitter();
+    const calls: string[] = [];
+    emitter.on("idle", () => calls.push("handler"));
+
+    emitter.channel("idle").emitBare("idle");
+    emitter.triggerBare("idle");
+
+    expect(calls).toEqual(["handler", "handler"]);
+  });
+
+  it("goes quiet when the handlers are taken off, and lives on for the next one", () => {
+    const emitter = new ChannelEmitter();
+    const channel = emitter.channel("idle");
+    const first = vi.fn();
+    emitter.on("idle", first);
+    emitter.off("idle");
+
+    channel.emitBare("idle");
+
+    expect(first).not.toHaveBeenCalled();
+
+    const second = vi.fn();
+    emitter.on("idle", second);
+    channel.emitBare("idle");
+
+    expect(second).toHaveBeenCalledTimes(1);
+  });
+
+  it("survives offAll the same way", () => {
+    const emitter = new ChannelEmitter();
+    const channel = emitter.channel("idle");
+    emitter.on("idle", vi.fn());
+    emitter.offAll();
+    const later = vi.fn();
+    emitter.on("idle", later);
+
+    channel.emitBare("idle");
+
+    expect(later).toHaveBeenCalledTimes(1);
+  });
+
+  it("retires a once handler and invokes handlers with the emitter as `this`", () => {
+    const emitter = new ChannelEmitter();
+    const channel = emitter.channel("up_button_pressed");
+    const seen: unknown[] = [];
+    emitter.once("up_button_pressed", function (this: unknown, floor) {
+      seen.push([this, floor]);
+    });
+
+    channel.emitOne("up_button_pressed", 2);
+    channel.emitOne("up_button_pressed", 3);
+
+    expect(seen).toEqual([[emitter, 2]]);
+  });
+
+  it("keeps the mutation-during-dispatch rules", () => {
+    const emitter = new ChannelEmitter();
+    const channel = emitter.channel("idle");
+    const later = vi.fn();
+    const added = vi.fn();
+    emitter.on("idle", () => {
+      emitter.off("idle", later);
+      emitter.on("idle", added);
+    });
+    emitter.on("idle", later);
+
+    channel.emitBare("idle");
+
+    expect(later).not.toHaveBeenCalled();
+    expect(added).not.toHaveBeenCalled();
+  });
+
+  it("carries the whole argument list through emit, and reports a thrower to onError", () => {
+    const emitter = new ChannelEmitter();
+    const onError = vi.fn();
+    const after = vi.fn();
+    emitter.on("passing_floor", () => {
+      throw new Error("boom");
+    });
+    emitter.on("passing_floor", after);
+
+    emitter.channel("passing_floor").emit("passing_floor", [6, "up"], onError);
+
+    expect(onError).toHaveBeenCalledTimes(1);
+    expect(after).toHaveBeenCalledExactlyOnceWith(6, "up");
   });
 });
 

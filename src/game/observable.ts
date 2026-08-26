@@ -71,9 +71,6 @@ interface HandlerEntry {
   removed: boolean;
 }
 
-/** What an emitter keeps: the registrations of each event name, in registration order. */
-type HandlerTable = Map<string, HandlerEntry[]>;
-
 /** Splits a space separated event string into its individual names. */
 function splitEventNames(events: string): string[] {
   return events.split(/\s+/).filter((name) => name.length > 0);
@@ -111,146 +108,206 @@ function report(onError: (e: unknown) => void, error: unknown): void {
 }
 
 /**
- * How many dispatches are in flight, across every emitter. While any is, a
+ * How many dispatches are in flight, across every channel. While any is, a
  * splice goes to a copy of the handler list rather than to the list itself,
  * which is what lets a dispatch iterate that list directly instead of copying
  * it every time — and a simulation step dispatches thousands of times.
  *
- * Module-wide rather than per emitter: unregistering during a dispatch is rare
- * enough that the odd extra copy costs nothing, while a field would be one more
- * lookup through `this` on the path {@link dispatch} exists to stay clear of.
+ * Module-wide rather than per channel: unregistering during a dispatch is rare
+ * enough that the odd extra copy costs nothing, and a module-level binding is
+ * the cheapest thing a dispatch can read.
  */
 let dispatchesInFlight = 0;
 
 /**
- * The handler list of `name` in a form safe to splice. A dispatch in flight is
- * iterating the stored list, so this leaves a copy in the table for it to
- * finish on and hands back the one nothing is reading.
+ * One event's registrations on one emitter, and the `this` they are invoked
+ * with. An emitter keeps a channel for as long as it lives — `on` and `off`
+ * write through it — so a caller that raises the same event for everything in
+ * the world on every simulation step can hold on to one and skip the table
+ * lookup a dispatch would otherwise start with.
+ *
+ * Every method here reads its state off `this`, unlike the rest of this module:
+ * a channel is only ever a channel, so those reads are the cheap monomorphic
+ * kind rather than the megamorphic kind every `Observable` subclass causes.
  */
-function listToMutate(
-  handlers: HandlerTable,
-  name: string,
-  entries: HandlerEntry[],
-): HandlerEntry[] {
-  if (dispatchesInFlight === 0) {
-    return entries;
-  }
-  const copy = entries.slice();
-  handlers.set(name, copy);
-  return copy;
-}
+export class EventChannel {
+  /** The registrations, in order. Swapped for a copy when a splice lands mid-dispatch. */
+  #entries: HandlerEntry[] = [];
 
-/** Unregisters one entry, and the event's list along with it once it holds nothing. */
-function removeEntry(handlers: HandlerTable, name: string, entry: HandlerEntry): void {
-  entry.removed = true;
-  const entries = handlers.get(name);
-  if (entries === undefined) {
-    return;
-  }
-  const index = entries.indexOf(entry);
-  // A copy holds the same entries in the same order, so the index still points at `entry`.
-  const list = index >= 0 ? listToMutate(handlers, name, entries) : entries;
-  if (index >= 0) {
-    list.splice(index, 1);
-  }
-  if (list.length === 0) {
-    handlers.delete(name);
-  }
-}
+  readonly #receiver: object;
 
-/**
- * The dispatch loop behind {@link Observable.trigger} and
- * {@link Observable.triggerSafe}. A free function taking what it needs, rather
- * than a method reading it off `this`: every simulation class extends
- * `Observable`, so this one call site sees a different shape nearly every time,
- * and each lookup through `this` is priced accordingly.
- */
-function dispatch(
-  handlers: HandlerTable,
-  receiver: object,
-  event: string,
-  args: readonly unknown[],
-  onError: ((e: unknown) => void) | null,
-): void {
-  const entries = handlers.get(event);
-  if (entries === undefined) {
-    return;
+  /** @param receiver - What this channel's handlers are invoked with as `this`. */
+  constructor(receiver: object) {
+    this.#receiver = receiver;
   }
-  // The list itself, not a copy: a splice during the dispatch goes elsewhere,
-  // and the length read here is what hides handlers added along the way.
-  const count = entries.length;
-  dispatchesInFlight++;
-  try {
-    for (let i = 0; i < count; i++) {
-      const entry = entries[i];
-      if (entry === undefined || entry.removed) {
-        continue;
-      }
-      if (entry.once) {
-        removeEntry(handlers, event, entry);
-      }
-      const handlerArgs = entry.typed ? [event, ...args] : args;
-      if (onError === null) {
-        invoke(receiver, entry.handler, handlerArgs);
-        continue;
-      }
-      try {
-        invoke(receiver, entry.handler, handlerArgs);
-      } catch (e) {
-        report(onError, e);
+
+  /** Registers one handler, behind everything registered before it. */
+  add(handler: ErasedHandler, once: boolean, typed: boolean): void {
+    this.#entries.push({ handler, once, typed, removed: false });
+  }
+
+  /** Unregisters everything registered here. */
+  removeAll(): void {
+    for (const entry of this.#entries) {
+      entry.removed = true;
+    }
+    // A fresh list rather than a truncated one: a dispatch in flight goes on reading the old one.
+    this.#entries = [];
+  }
+
+  /** Unregisters every entry registered with `handler`. */
+  remove(handler: ErasedHandler): void {
+    if (!this.#entries.some((entry) => entry.handler === handler)) {
+      return;
+    }
+    const list = this.#listToMutate();
+    for (let i = list.length - 1; i >= 0; i--) {
+      const entry = list[i];
+      if (entry?.handler === handler) {
+        entry.removed = true;
+        list.splice(i, 1);
       }
     }
-  } finally {
-    dispatchesInFlight--;
   }
-}
 
-/**
- * {@link dispatch} for the events a simulation step raises for every movable it
- * touches, which carry one argument or none and never reach player code. That
- * is what lets this loop be the tighter of the two: it hands the argument to
- * each handler directly instead of through the array a rest parameter would
- * build per call, and it has no error path to thread through. Folding the two
- * together was measured, and gave back most of what this saves.
- */
-function dispatchThin(
-  handlers: HandlerTable,
-  receiver: object,
-  event: string,
-  arg: unknown,
-  hasArg: boolean,
-): void {
-  const entries = handlers.get(event);
-  if (entries === undefined) {
-    return;
-  }
-  const count = entries.length;
-  dispatchesInFlight++;
-  try {
-    for (let i = 0; i < count; i++) {
-      const entry = entries[i];
-      if (entry === undefined || entry.removed) {
-        continue;
-      }
-      if (entry.once) {
-        removeEntry(handlers, event, entry);
-      }
-      if (entry.typed) {
-        invoke(receiver, entry.handler, hasArg ? [event, arg] : [event]);
-      } else if (hasArg) {
-        invokeOne(receiver, entry.handler, arg);
-      } else {
-        invokeNone(receiver, entry.handler);
-      }
+  /**
+   * Invokes every handler, in registration order, as the list stood when this
+   * began: handlers added along the way don't run, and handlers removed along
+   * the way are skipped if not yet reached.
+   *
+   * @param event - The name being raised, which a multi-name registration is handed.
+   * @param args - The event's own arguments.
+   * @param onError - Where a throwing handler's exception goes, or `null` to let it out.
+   */
+  emit(event: string, args: readonly unknown[], onError: ((e: unknown) => void) | null): void {
+    const entries = this.#entries;
+    // The list itself, not a copy: a splice during the dispatch goes elsewhere,
+    // and the length read here is what hides handlers added along the way.
+    const count = entries.length;
+    if (count === 0) {
+      return;
     }
-  } finally {
-    dispatchesInFlight--;
+    const receiver = this.#receiver;
+    dispatchesInFlight++;
+    try {
+      for (let i = 0; i < count; i++) {
+        const entry = entries[i];
+        if (entry === undefined || entry.removed) {
+          continue;
+        }
+        if (entry.once) {
+          this.#removeEntry(entry);
+        }
+        const handlerArgs = entry.typed ? [event, ...args] : args;
+        if (onError === null) {
+          invoke(receiver, entry.handler, handlerArgs);
+          continue;
+        }
+        try {
+          invoke(receiver, entry.handler, handlerArgs);
+        } catch (e) {
+          report(onError, e);
+        }
+      }
+    } finally {
+      dispatchesInFlight--;
+    }
+  }
+
+  /**
+   * {@link emit} for the events a simulation step raises for every movable it
+   * touches, which carry one argument and never reach player code. That is what
+   * lets this loop be the tighter of the two: it hands the argument to each
+   * handler directly instead of through the array a rest parameter would build
+   * per call, and it has no error path to thread through. Folding the two
+   * together was measured, and gave back most of what this saves.
+   */
+  emitOne(event: string, arg: unknown): void {
+    const entries = this.#entries;
+    const count = entries.length;
+    if (count === 0) {
+      return;
+    }
+    const receiver = this.#receiver;
+    dispatchesInFlight++;
+    try {
+      for (let i = 0; i < count; i++) {
+        const entry = entries[i];
+        if (entry === undefined || entry.removed) {
+          continue;
+        }
+        if (entry.once) {
+          this.#removeEntry(entry);
+        }
+        if (entry.typed) {
+          invoke(receiver, entry.handler, [event, arg]);
+        } else {
+          invokeOne(receiver, entry.handler, arg);
+        }
+      }
+    } finally {
+      dispatchesInFlight--;
+    }
+  }
+
+  /** {@link emitOne} for an event that carries nothing. */
+  emitBare(event: string): void {
+    const entries = this.#entries;
+    const count = entries.length;
+    if (count === 0) {
+      return;
+    }
+    const receiver = this.#receiver;
+    dispatchesInFlight++;
+    try {
+      for (let i = 0; i < count; i++) {
+        const entry = entries[i];
+        if (entry === undefined || entry.removed) {
+          continue;
+        }
+        if (entry.once) {
+          this.#removeEntry(entry);
+        }
+        if (entry.typed) {
+          invoke(receiver, entry.handler, [event]);
+        } else {
+          invokeNone(receiver, entry.handler);
+        }
+      }
+    } finally {
+      dispatchesInFlight--;
+    }
+  }
+
+  /**
+   * The entry list in a form safe to splice. A dispatch in flight is iterating
+   * the stored list, so this leaves a copy behind for it to finish on and hands
+   * back the one nothing is reading.
+   */
+  #listToMutate(): HandlerEntry[] {
+    if (dispatchesInFlight === 0) {
+      return this.#entries;
+    }
+    const copy = this.#entries.slice();
+    this.#entries = copy;
+    return copy;
+  }
+
+  /** Unregisters one entry, which is how a `once` handler retires. */
+  #removeEntry(entry: HandlerEntry): void {
+    entry.removed = true;
+    const index = this.#entries.indexOf(entry);
+    if (index < 0) {
+      return;
+    }
+    // A copy holds the same entries in the same order, so the index still points at `entry`.
+    this.#listToMutate().splice(index, 1);
   }
 }
 
 /** Minimal, fully typed event emitter. */
 export class Observable<E extends EventArgsMap> {
-  readonly #handlers: HandlerTable = new Map<string, HandlerEntry[]>();
+  readonly #channels = new Map<string, EventChannel>();
   readonly #receiver: object;
 
   /**
@@ -292,30 +349,14 @@ export class Observable<E extends EventArgsMap> {
       return this.offAll();
     }
     for (const name of splitEventNames(events)) {
-      const entries = this.#handlers.get(name);
-      if (entries === undefined) {
+      const channel = this.#channels.get(name);
+      if (channel === undefined) {
         continue;
       }
       if (handler === undefined) {
-        for (const entry of entries) {
-          entry.removed = true;
-        }
-        this.#handlers.delete(name);
-        continue;
-      }
-      if (!entries.some((entry) => entry.handler === (handler as ErasedHandler))) {
-        continue;
-      }
-      const list = listToMutate(this.#handlers, name, entries);
-      for (let i = list.length - 1; i >= 0; i--) {
-        const entry = list[i];
-        if (entry?.handler === (handler as ErasedHandler)) {
-          entry.removed = true;
-          list.splice(i, 1);
-        }
-      }
-      if (list.length === 0) {
-        this.#handlers.delete(name);
+        channel.removeAll();
+      } else {
+        channel.remove(handler as ErasedHandler);
       }
     }
     return this;
@@ -323,12 +364,9 @@ export class Observable<E extends EventArgsMap> {
 
   /** Removes every handler for every event; {@link Observable.off}'s `"*"` routes here. */
   offAll(): this {
-    for (const entries of this.#handlers.values()) {
-      for (const entry of entries) {
-        entry.removed = true;
-      }
+    for (const channel of this.#channels.values()) {
+      channel.removeAll();
     }
-    this.#handlers.clear();
     return this;
   }
 
@@ -338,7 +376,7 @@ export class Observable<E extends EventArgsMap> {
    * it, and handlers removed during it are skipped if not yet reached.
    */
   trigger<K extends EventName<E>>(event: K, ...args: E[K]): this {
-    dispatch(this.#handlers, this.#receiver, event, args, null);
+    this.#channels.get(event)?.emit(event, args, null);
     return this;
   }
 
@@ -348,13 +386,13 @@ export class Observable<E extends EventArgsMap> {
    * simulation step raises for each movable it touches cannot afford.
    */
   triggerOne<K extends EventName<E>>(event: K, arg: E[K][0]): this {
-    dispatchThin(this.#handlers, this.#receiver, event, arg, true);
+    this.#channels.get(event)?.emitOne(event, arg);
     return this;
   }
 
   /** {@link triggerOne} for an event that carries nothing. */
   triggerBare(event: EventName<E>): this {
-    dispatchThin(this.#handlers, this.#receiver, event, undefined, false);
+    this.#channels.get(event)?.emitBare(event);
     return this;
   }
 
@@ -368,20 +406,34 @@ export class Observable<E extends EventArgsMap> {
     onError: (e: unknown) => void,
     ...args: E[K]
   ): this {
-    dispatch(this.#handlers, this.#receiver, event, args, onError);
+    this.#channels.get(event)?.emit(event, args, onError);
     return this;
+  }
+
+  /**
+   * The channel `event`'s handlers live on, created if nothing has mentioned
+   * the event yet. For a subclass that raises one event on the simulation's hot
+   * path and wants to keep its channel; everything else should just
+   * {@link trigger} and let the table be looked up.
+   */
+  protected channelFor(event: EventName<E>): EventChannel {
+    return this.#channelFor(event);
+  }
+
+  #channelFor(name: string): EventChannel {
+    let channel = this.#channels.get(name);
+    if (channel === undefined) {
+      channel = new EventChannel(this.#receiver);
+      this.#channels.set(name, channel);
+    }
+    return channel;
   }
 
   #add(events: string, handler: ErasedHandler, once: boolean): void {
     const names = splitEventNames(events);
     const typed = names.length > 1;
     for (const name of names) {
-      let entries = this.#handlers.get(name);
-      if (entries === undefined) {
-        entries = [];
-        this.#handlers.set(name, entries);
-      }
-      entries.push({ handler, once, typed, removed: false });
+      this.#channelFor(name).add(handler, once, typed);
     }
   }
 }

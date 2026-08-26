@@ -86,7 +86,7 @@ export class User extends Movable<UserEvents> {
       return;
     }
     this.waitingLongest = waitingLongest;
-    this.emitMovable("new_display_state", this);
+    this.emitNewDisplayState();
   }
 
   /** Places the passenger on a floor and has them call an elevator. */
@@ -131,8 +131,8 @@ export class User extends Movable<UserEvents> {
       const destination = this.x + EXIT_WALK_DISTANCE;
       this.done = true;
       this.trigger("exited_elevator", elevator);
-      this.emitMovable("new_state", this);
-      this.emitMovable("new_display_state", this);
+      this.emitNewState();
+      this.emitNewDisplayState();
 
       // Walk-off takes 1 to 1.5 seconds.
       const walkOffDuration = 1 + this.#random() * 0.5;

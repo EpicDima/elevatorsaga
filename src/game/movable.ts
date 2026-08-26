@@ -2,7 +2,7 @@
 
 import { t } from "../i18n/index.ts";
 import { DEFAULT_INTERPOLATOR, type Interpolator } from "./math.ts";
-import { Observable, type EventArgsMap, type EventName } from "./observable.ts";
+import { type EventArgsMap, type EventChannel, Observable } from "./observable.ts";
 
 /** A world-space `[x, y]` pair, written into by {@link Movable.getWorldPosition}. */
 export type WorldPosition = [x: number, y: number];
@@ -55,19 +55,28 @@ export class Movable<E extends EventArgsMap = Record<never, never>> extends Obse
   /** The task currently occupying this movable, if any. */
   currentTask: MovableTask | null = null;
 
+  /**
+   * The channels of the two events this class owns, held rather than looked up:
+   * a simulation step raises them for every elevator and passenger it touches,
+   * which is most of what the whole engine dispatches.
+   */
+  readonly #stateChannel: EventChannel = this.channelFor("new_state");
+
+  readonly #displayChannel: EventChannel = this.channelFor("new_display_state");
+
   constructor() {
     super();
-    this.emitMovable("new_state", this);
+    this.emitNewState();
   }
 
-  /**
-   * Emits one of the events {@link Movable} itself owns, both of which carry the
-   * movable and nothing else.
-   * Needed because `(MovableEvents & E)["new_state"]` cannot be resolved at the declaration
-   * site while `Movable` is generic over `E`.
-   */
-  protected emitMovable(event: EventName<MovableEvents>, movable: Movable): void {
-    (this as unknown as Observable<MovableEvents>).triggerOne(event, movable);
+  /** Announces that the logical position changed. */
+  protected emitNewState(): void {
+    this.#stateChannel.emitOne("new_state", this);
+  }
+
+  /** Announces that the cached world position changed and the view should redraw. */
+  protected emitNewDisplayState(): void {
+    this.#displayChannel.emitOne("new_display_state", this);
   }
 
   /**
@@ -88,7 +97,7 @@ export class Movable<E extends EventArgsMap = Record<never, never>> extends Obse
     if (this.worldX !== worldX || this.worldY !== worldY || forceTrigger === true) {
       this.worldX = worldX;
       this.worldY = worldY;
-      this.emitMovable("new_display_state", this);
+      this.emitNewDisplayState();
     }
   }
 
@@ -100,14 +109,14 @@ export class Movable<E extends EventArgsMap = Record<never, never>> extends Obse
     if (newY !== null) {
       this.y = newY;
     }
-    this.emitMovable("new_state", this);
+    this.emitNewState();
   }
 
   /** Moves to a new position without the `null` checks of {@link moveTo}. */
   moveToFast(newX: number, newY: number): void {
     this.x = newX;
     this.y = newY;
-    this.emitMovable("new_state", this);
+    this.emitNewState();
   }
 
   /** Whether a task is currently running. */
