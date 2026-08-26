@@ -70,17 +70,7 @@ const LEVELS: readonly Level[] = [
   },
 ];
 
-/**
- * Hangs a silver and a gold bar on the winnable level.
- *
- * Shadows the app's own list, the way the "offers no next level after the
- * last one" spec below shadows its length, and has to be called before
- * `startLevel`: `App` reads the list when a run starts and keeps the entry
- * it found for as long as that run lasts.
- *
- * @param app - The app whose level list to shadow.
- * @param tiers - The bars to give level two.
- */
+/** Hangs a silver and a gold bar on the winnable level; call before `startLevel`, which reads the level list at run start. */
 function withTiers(app: App, tiers: LevelTierRequirements): void {
   Object.defineProperty(app, "levels", {
     value: LEVELS.map((level, index) => (index === 1 ? { ...level, tiers } : level)),
@@ -99,16 +89,7 @@ interface Harness {
   storage: Storage;
 }
 
-/**
- * Builds a page shell and an app over it.
- *
- * @param code - The program the editor starts with.
- * @param storage - The store the app and its editor share. A working one unless
- * a spec is about what happens when the browser's is not.
- * @param onSeedChange - The app's `onSeedChange` option; a no-op unless a
- * spec is about that callback itself.
- * @returns Everything the tests need to drive the app.
- */
+/** Builds a page shell and an app over it. */
 function setUp(
   code: string = INERT_CODE,
   storage: Storage = new MemoryStorage(),
@@ -148,9 +129,6 @@ function setUp(
   }
   view.value = code;
 
-  // Mirrors `src/main.ts`'s own `appRef`: the editor pane's callbacks need the
-  // app that owns the slot they open, and the app's own constructor needs the
-  // editor pane already built to hand it as an option.
   // eslint-disable-next-line prefer-const -- assigned once, below the closures that read it.
   let appRef: App | undefined;
   const editorPane = presentEditorPane(editorPaneMount, {
@@ -185,121 +163,57 @@ function setUp(
   return { app, elements, editor, editorPane, editorPaneMount, view, worldController, storage };
 }
 
-/**
- * The level switcher's level tiles, in playing order — the same three
- * entries `.levellink` used to be the whole of, before the switcher also
- * started drawing the learning track and the sandbox as `.tasklink`s in
- * blocks either side of them.
- *
- * @param elements - The page shell the app was built over.
- * @returns The level block's tiles, or none if the switcher has not drawn one.
- */
+/** The level switcher's level tiles, in playing order. */
 function levelTiles(elements: AppElements): HTMLElement[] {
   const levelBlock = queryAll(".taskblock", elements.levelSwitcher)[1];
   return levelBlock === undefined ? [] : queryAll(".tasklink", levelBlock);
 }
 
-/**
- * The level block's own caption, e.g. "Levels".
- *
- * @param elements - The page shell the app was built over.
- * @returns The caption text, or "" if the switcher has not drawn a level block.
- */
+/** The level block's own caption, e.g. "Levels". */
 function levelBlockCaption(elements: AppElements): string {
   const levelBlock = queryAll(".taskblock", elements.levelSwitcher)[1];
   return levelBlock === undefined ? "" : requireElement(".cap", levelBlock).textContent;
 }
 
-/**
- * The level switcher's own trigger label. It carries the level's own position
- * and nothing else — not the track's length, not the level's own sentence; see
- * this file's specs for where each of those is drawn instead.
- *
- * @param elements - The page shell the app was built over.
- * @returns The trigger's own text.
- */
+/** The level switcher's own trigger label. */
 function taskName(elements: AppElements): string {
   return requireElement(".task-name", elements.levelSwitcher).textContent;
 }
 
-/**
- * The goal bar's own description text for a level with no requirements —
- * every level and the sandbox in this file's fixtures. Unlike the
- * legacy `.leveltitle`, this carries no "Level #N:" or "Tutorial level
- * N of M:" prefix; see this file's own specs for where that numbering went.
- *
- * @param elements - The page shell the app was built over.
- * @returns The description text, as read out of the DOM.
- */
+/** The goal bar's description text for a level with no requirements. */
 function goalDescription(elements: AppElements): string {
   return requireElement(".goalfree span", elements.goalBar).textContent;
 }
 
-/**
- * A stat tile's live value, out of the panel `widgets/stats-panel` draws:
- * `[data-stat="${stat}"] .tile-val`.
- *
- * @param elements - The page shell the app was built over.
- * @param stat - The tile's `data-stat`, camelCased the same as `StatsSnapshot`.
- * @returns The tile's live text.
- */
+/** A stat tile's live text value. */
 function statValue(elements: AppElements, stat: string): string {
   return requireElement(`[data-stat="${stat}"] .tile-val`, elements.stats).textContent;
 }
 
-/**
- * The verdict card's headline, as it is read on the page.
- *
- * The `<h3>` carries the star badge after the title, and behind it the medal's
- * name for a screen reader, so `textContent` would run all three together. The
- * title is the element's own first text node; `widgets/verdict-toast` owns the
- * two that follow and tests them itself.
- *
- * @param elements - The page shell the app was built over.
- * @returns The headline, or `""` if the card is not showing one.
- */
+/** The verdict headline text; the `<h3>` also carries a star badge and a screen-reader medal name that `textContent` would blend in. */
 function verdictTitle(elements: AppElements): string {
   return requireElement(".verdict h3", elements.feedback).firstChild?.textContent ?? "";
 }
 
-/**
- * The code slot switcher's own buttons, drawn inside the editor pane's mount
- * rather than a dedicated `elements.codeSlots` region now.
- *
- * @param editorPaneMount - The element {@link setUp} built for the pane.
- * @returns The slot buttons, in slot order.
- */
+/** The code slot switcher's own buttons, in slot order. */
 function codeSlotButtons(editorPaneMount: HTMLElement): HTMLElement[] {
   return queryAll(".codeslot", editorPaneMount);
 }
 
-/**
- * The editor pane's error banner text, or "" if it is hidden — the pane's
- * own stand-in for the old `elements.codeStatus.innerHTML === ""` check,
- * since {@link EditorPanePresenter.clearError} hides the banner rather than
- * emptying it.
- *
- * @param editorPaneMount - The element {@link setUp} built for the pane.
- * @returns The banner's message, or "" if it is not showing one.
- */
+/** The editor pane's error banner text, or "" if it is hidden. */
 function codeErrorMessage(editorPaneMount: HTMLElement): string {
   const errorLine = requireElement(".errorline", editorPaneMount);
   return errorLine.hidden ? "" : requireElement(".errormessage", editorPaneMount).textContent;
 }
 
 beforeEach(() => {
-  // Cleared as well as silenced: a spy outlives the spec that installed it, so
-  // the specs that assert on what was printed would otherwise see the whole
-  // file's output.
+  // Cleared, not just silenced: a spy outlives its spec, so uncleared calls leak in.
   vi.spyOn(console, "warn")
     .mockImplementation(() => undefined)
     .mockClear();
   vi.spyOn(console, "log")
     .mockImplementation(() => undefined)
     .mockClear();
-  // For the folded-in presenter specs below: `setUp()` above replaces
-  // `document.body`'s children itself, so this only matters to the specs
-  // that build their own elements straight onto the document.
   document.body.replaceChildren();
   document.documentElement.classList.remove(FULLSCREEN_CLASS);
 });
@@ -421,8 +335,7 @@ describe("App code slots", () => {
 });
 
 describe("App level outcome", () => {
-  // Restored here rather than at the end of the test that switches, so that a
-  // failing assertion cannot leave the rest of the file running in Russian.
+  // In afterEach, not at the end of the switching test, so a failing assertion can't leave the suite in Russian.
   afterEach(() => {
     setLocale(DEFAULT_LOCALE);
   });
@@ -449,10 +362,6 @@ describe("App level outcome", () => {
   });
 
   it("says both outcomes in the language the card is drawn in", () => {
-    // The four words the app itself owns; everything else on the card comes
-    // from the widget. Read out of the catalog when the level ends, so
-    // a player who switched language mid-run is told in the language they are
-    // now reading.
     setLocale("ru");
     const won = setUp();
     won.app.startLevel(1);
@@ -472,7 +381,6 @@ describe("App level outcome", () => {
   it("offers no next level after the last one", () => {
     const { app, elements } = setUp();
     app.startLevel(1);
-    // Pretend the winnable level is the last one in the list.
     Object.defineProperty(app, "levels", { value: LEVELS.slice(0, 2) });
 
     app.world?.trigger("stats_changed");
@@ -492,8 +400,6 @@ describe("App level outcome", () => {
   });
 
   it("leaves the seed of the level just won out of the link to the next", () => {
-    // Everything else the player is carrying rides along; the seed does not,
-    // because it was drawn for the building they have finished with.
     const { app, elements } = setUp();
     app.handleRoute(...routeFor("#level=2,timescale=8,seed=issue-61"));
 
@@ -505,8 +411,7 @@ describe("App level outcome", () => {
   });
 
   it("puts the star the run earned beside the headline", () => {
-    // A level with no silver or gold of its own is still rated: winning it
-    // is bronze, and the badge says so.
+    // A level with no silver or gold of its own still rates a win as bronze.
     const { app, elements } = setUp();
     app.startLevel(1);
 
@@ -514,8 +419,7 @@ describe("App level outcome", () => {
 
     const stars = requireElement(".verdict h3 .stars", elements.feedback);
     expect(stars.getAttribute("data-tier")).toBe("bronze");
-    // And says so in words too, since the stars are icons and icons are
-    // `aria-hidden`.
+    // Icons are aria-hidden, so this text is the screen-reader equivalent.
     expect(requireElement(".verdict h3 .visually-hidden", elements.feedback).textContent).toBe(
       "Level stars: Bronze",
     );
@@ -542,17 +446,13 @@ describe("App level outcome", () => {
 
     app.world?.trigger("stats_changed");
 
-    // The building these tests run has no passengers in it, so every car
-    // travels empty and neither bar is anywhere near cleared.
+    // The fixture building has no passengers, so every car runs empty.
     expect(requireElement(".verdict-more", elements.feedback).textContent).toBe(
       "For silver: elevators run 50% full or more (now 0%)",
     );
   });
 
   it("says the hint again in the new language, figures and all", () => {
-    // The hint is recomputed from the final world for the same reason the tier
-    // is, rather than kept as a string: this is what would be left in English
-    // behind a language change if it were not.
     const { app, elements } = setUp();
     withTiers(app, {
       silver: atLeastAvgLoadFactorOnMove(0.5),
@@ -564,9 +464,7 @@ describe("App level outcome", () => {
     setLocale("ru");
     app.relocalize();
 
-    // The gaps before both per-cent signs are U+00A0, written as escapes so
-    // that a reader can tell: CLDR's Russian percent pattern is unbreakable
-    // where English's has no space at all.
+    // U+00A0 (escaped) precedes both percent signs: Russian's pattern is unbreakable there.
     expect(requireElement(".verdict-more", elements.feedback).textContent).toBe(
       "До серебра: лифты заполнены на 50\u00A0% и выше (сейчас 0\u00A0%)",
     );
@@ -585,18 +483,11 @@ describe("App instant run", () => {
 
     app.runInstantly();
 
-    // `presentBuildingStage` is skipped while the crunch runs -- nothing is
-    // drawn for frames nobody watches -- and run once at the end, so the state the
-    // verdict is about is on screen behind it.
+    // presentBuildingStage is skipped during the crunch and runs once at the end, behind the verdict.
     expect(queryAll(".floor", elements.world)).toHaveLength(4);
     expect(queryAll(".elevator", elements.world)).toHaveLength(2);
     expect(app.world?.levelEnded).toBe(true);
     expect(verdictTitle(elements)).toBe("Success!");
-    // The button is back to its ready state, not stuck reading "Crunching...":
-    // clearing `#instantRunHandle` when `stats_changed` reaches a verdict is
-    // what a crunch gets in place of the relabeling an animated run's
-    // `setPaused` raises for free. "Start" rather than "Resume", because the
-    // run it is reporting on has ended.
     const button = requireElement(".startstop", elements.controls);
     expect(button.textContent).toBe("Start");
     expect(button.hasAttribute("disabled")).toBe(false);
@@ -607,13 +498,6 @@ describe("App instant run", () => {
     app.startLevel(0); // `evaluate` always returns null: nothing but the ceiling ends this
 
     app.runInstantly();
-    // `driveInstantly` runs synchronously up to its first yield or verdict, so
-    // nothing it queues in the background can run before this point -- an
-    // empty, spawnless building is cheap enough that the real crunch may well
-    // have already reached the ceiling on its own by here. Forcing it and
-    // re-raising the event the ceiling is read from reproduces exactly what a
-    // slower machine's crunch would eventually do on its own, without a test
-    // that waits on real wall-clock time to find out which happened.
     if (app.world) {
       app.world.elapsedTime = INSTANT_RUN_MAX_SIMULATED_SECONDS;
       app.world.trigger("stats_changed");
@@ -631,10 +515,6 @@ describe("App instant run", () => {
     app.runInstantly();
 
     expect(codeErrorMessage(editorPaneMount)).toContain("boom");
-    // Not ended: a controller a thrown error has paused never ticks the world
-    // again, so nothing driven by `stats_changed` -- a verdict, the ceiling --
-    // can fire either. The level is left exactly as undecided as it was,
-    // the same as an animated run's error leaves it paused rather than lost.
     expect(app.world?.levelEnded).toBe(false);
     const button = requireElement(".startstop", elements.controls);
     expect(button.textContent).not.toBe("Crunching...");
@@ -648,11 +528,6 @@ describe("App instant run", () => {
 
     app.startLevel(1);
 
-    // Whether the abandoned crunch had already reached its own ceiling or was
-    // still running in the background, `#startRun` cancels whatever
-    // `#instantRunHandle` still points at unconditionally, before it does
-    // anything else -- so the button is never left stuck on "Crunching..."
-    // for a run that is no longer the one on screen.
     const button = requireElement(".startstop", elements.controls);
     expect(button.textContent).toBe("Start");
     expect(button.hasAttribute("disabled")).toBe(false);
@@ -660,10 +535,6 @@ describe("App instant run", () => {
   });
 
   it("is what the primary button does once the speed control is on its instant stop", () => {
-    // The crunch has no button of its own any more. Asking for one is
-    // selecting the last stop of the speed and pressing Start -- and Start
-    // then means what it says: this run, from the beginning, with nothing
-    // drawn.
     const { app, elements } = setUp();
     app.startLevel(1);
     const before = app.world;
@@ -677,9 +548,6 @@ describe("App instant run", () => {
   });
 
   it("is what Start over does on that stop too", () => {
-    // Both buttons mean the one thing there: a crunch always begins at the
-    // beginning, so there is no pause to resume and no half-played run for
-    // "Start over" to be different about.
     const { app, elements } = setUp();
     app.startLevel(1);
     reachInstantSpeed(elements);
@@ -690,12 +558,6 @@ describe("App instant run", () => {
   });
 
   it("draws the finished building whichever way the crunch ended", () => {
-    // The crunch drives a world nothing is mounted on, so every floor and car
-    // it made exists only in memory until this redraw. Before it, the verdict
-    // card announced a result over an empty pane -- which the card, a corner
-    // one since `widgets/verdict-toast`, no longer covers up. The people in
-    // that world are drawn by the same call; these fixtures spawn none, so
-    // that half is `widgets/building-stage`'s to pin down.
     const { app, elements } = setUp();
 
     app.startLevel(1); // resolves at once
@@ -703,7 +565,6 @@ describe("App instant run", () => {
     expect(queryAll(".floor", elements.world)).toHaveLength(4);
     expect(queryAll(".elevator", elements.world)).toHaveLength(2);
 
-    // And the same for a run that ends the other way: a verdict is a verdict.
     app.startLevel(2); // fails at once
     app.runInstantly();
     expect(verdictTitle(elements)).toBe("Level failed");
@@ -712,10 +573,6 @@ describe("App instant run", () => {
   });
 
   it("draws the building again when a crunch is stopped by an error in the program", () => {
-    // Not a verdict, so not the path above: the world is left mid-run and
-    // undecided, and the player is looking at a banner about their code. The
-    // building behind it is the state that code stopped in, and leaving the
-    // pane empty would make an error look like the run vanishing.
     const { app, elements, view } = setUp();
     app.startLevel(0); // never resolves on its own
     view.type("{ init: function() {}, update: function() { throw new Error('boom'); } }");
@@ -740,15 +597,7 @@ describe("App instant run", () => {
   });
 });
 
-/**
- * Walks the speed control up to its instant stop, however far up it starts.
- *
- * Pressed rather than set, because there is nothing to set: the stop is a
- * state of the control, deliberately not a value of `timeScale`, and the
- * presses are the only way in.
- *
- * @param elements - The page regions the app was built over.
- */
+/** Walks the speed control to its instant stop; pressed rather than set, since the stop is a state, not a `timeScale` value. */
 function reachInstantSpeed(elements: AppElements): void {
   const increase = requireElement(".speed-up", elements.controls);
   while (!increase.hasAttribute("disabled")) {
@@ -765,8 +614,6 @@ describe("App level navigation", () => {
     expect(entries.map((entry) => entry.getAttribute("aria-label"))).toEqual([
       "Level 1",
       "Level 2",
-      // Nothing on record for any of them, and the third tile still names its
-      // level plainly: a tile carries which level it is, and nothing else.
       "Level 3",
     ]);
     expect(entries.map((entry) => entry.getAttribute("aria-current"))).toEqual([
@@ -777,10 +624,6 @@ describe("App level navigation", () => {
   });
 
   it("keeps the rest of the url when jumping to another level", () => {
-    // The one implementation of this feature in the wild assigns the whole
-    // location hash, so taking a jump throws away the speed and everything else
-    // the player arrived with. Every entry is built from the current
-    // parameters instead.
     const { app, elements } = setUp();
     app.handleRoute(...routeFor("#level=1,timescale=8,fullscreen=true"));
 
@@ -792,8 +635,6 @@ describe("App level navigation", () => {
   });
 
   it("carries an unknown parameter across a jump as well", () => {
-    // parseQuery keeps keys it does not understand, and createParamsUrl round
-    // trips them, so a link someone hand-wrote survives being navigated from.
     const { app, elements } = setUp();
     app.handleRoute(...routeFor("#level=1,fullscreen,somethingelse=7"));
 
@@ -803,8 +644,6 @@ describe("App level navigation", () => {
   });
 
   it("starts the level a link names when it is clicked", async () => {
-    // The whole way round: the anchor navigates, the router hears the hash
-    // change and the app starts the level it names.
     const { app, elements } = setUp();
     window.location.hash = "#level=1,timescale=8";
     const stopRouter = startRouter(
@@ -844,9 +683,8 @@ describe("App sandbox", () => {
   });
 
   it("spawns passengers at the rate the url asked for", () => {
-    // The spawn rate is not readable off the world, so it is measured. The
-    // world starts one spawn interval behind (1.001 / spawnRate), so a first
-    // second at 2/s is three passengers and at 0.5/s is one.
+    // The world starts one spawn interval behind (1.001 / spawnRate), so the first
+    // second yields three passengers at 2/s and one at 0.5/s.
     const fast = setUp().app;
     fast.handleRoute(...routeFor("#level=sandbox,spawnrate=2"));
     fast.world?.update(1.0);
@@ -886,11 +724,6 @@ describe("App sandbox", () => {
     }
     world?.trigger("stats_changed");
 
-    // Fifty simulated seconds with no program running at all: nobody has been
-    // delivered and the first passenger has been waiting almost the whole time,
-    // which is a loss under every condition in the level list, and longer
-    // than the time limit of all but the last of them. This is the state a
-    // condition would have resolved in if the sandbox had one.
     expect(world?.elapsedTime).toBeGreaterThanOrEqual(50);
     expect(world?.transportedCounter).toBe(0);
     expect(world?.maxWaitTime).toBeGreaterThan(40);
@@ -908,9 +741,7 @@ describe("App sandbox", () => {
   });
 
   it("carries the sandbox parameters into a jump, and out of the sandbox", () => {
-    // Deliberate: `level` is the one key the row rewrites, so following an
-    // entry leaves the sandbox by construction, while the building the player
-    // configured stays in the hash, inert, and is still there on the way back.
+    // `level` is the only key a tile rewrites, so the sandbox's other parameters ride along.
     const { app, elements } = setUp();
     app.handleRoute(...routeFor("#level=sandbox,floors=20,timescale=8"));
 
@@ -930,9 +761,6 @@ describe("App sandbox", () => {
   });
 
   it("stays in the sandbox when the program is applied", () => {
-    // startLevel(currentLevelIndex) was what "run this again" used to
-    // mean, and it would drop a sandbox player back onto a numbered level
-    // -- losing the building they had just configured -- on every Ctrl-Enter.
     const { app, editor, elements } = setUp();
     app.handleRoute(...routeFor("#level=sandbox,floors=20"));
 
@@ -947,8 +775,7 @@ describe("App sandbox", () => {
   it("stays in the sandbox when the world is restarted from the bar", () => {
     const { app, elements } = setUp();
     app.handleRoute(...routeFor("#level=sandbox,floors=20"));
-    // Only reachable once the world has been torn down; the sandbox itself
-    // never ends.
+    // Reachable only after the world is torn down; the sandbox itself never ends.
     app.world?.unWind();
 
     requireElement(".startstop", elements.controls).click();
@@ -958,49 +785,32 @@ describe("App sandbox", () => {
   });
 
   it("does not offer the instant stop, because there is no end to crunch to", () => {
-    // Free play has no condition to resolve, so a crunch there could only run
-    // out the ceiling `driveInstantly` gives up at and print a failure over a
-    // building with no goal to fail. The honest answer is not to offer it: `+`
-    // ends the ladder at the fastest real speed instead.
     const { app, elements } = setUp();
     app.handleRoute(...routeFor("#level=sandbox,floors=20"));
 
     reachInstantSpeed(elements);
 
-    // The reading is the whole of the state: `∞x` is what being on that stop
-    // looks like, and it is not a `timeScale` there is a number to check.
     expect(requireElement(".speed-val", elements.controls).textContent).toBe("20x");
     expect(app.worldController.timeScale).toBe(20);
     expect(requireElement(".speed-up", elements.controls).hasAttribute("disabled")).toBe(true);
   });
 
   it("leaves the instant stop on the way in, and offers it again on the way out", () => {
-    // The stop is app state rather than a time scale, so it survives a change
-    // of run -- which is what a player crunching level after level wants, and
-    // wrong here: the control would sit on `∞x` promising an answer free play
-    // does not have.
     const { app, elements } = setUp();
     app.startLevel(0);
     reachInstantSpeed(elements);
     expect(requireElement(".speed-val", elements.controls).textContent).toBe("∞x");
 
-    // The speed in the address is carried in with everything else, and it is
-    // the top of the ladder here so that the control has somewhere to sit that
-    // would have stepped on to `∞x` a moment ago.
     app.handleRoute(...routeFor("#level=sandbox,floors=20,timescale=20"));
 
     expect(requireElement(".speed-val", elements.controls).textContent).toBe("20x");
     expect(requireElement(".speed-up", elements.controls).hasAttribute("disabled")).toBe(true);
 
-    // Nothing is lost by it: the stop is on offer again on the next real run.
     app.handleRoute(...routeFor("#level=1,timescale=20"));
     expect(requireElement(".speed-up", elements.controls).hasAttribute("disabled")).toBe(false);
   });
 
   it("ignores a crunch asked for by any other route", () => {
-    // The button that reaches `runInstantly` is already dimmed here; this is
-    // the state saying so rather than the click -- a hotkey, a stale handler or
-    // a later caller must not start a run that can only end in the ceiling.
     const { app, elements } = setUp();
     app.handleRoute(...routeFor("#level=sandbox,floors=20,spawnrate=2"));
     const world = app.world;
@@ -1014,25 +824,12 @@ describe("App sandbox", () => {
 });
 
 describe("App learning track", () => {
-  // Same reason as the outcome specs above: a failed assertion must not leave
-  // the rest of the file in Russian.
+  // So a failing assertion can't leave the suite in Russian.
   afterEach(() => {
     setLocale(DEFAULT_LOCALE);
   });
 
-  /**
-   * The level at a position in the track.
-   *
-   * Read out of the real table rather than a fixture, unlike the levels
-   * these specs play, because the table is what the app plays: `startTutorial`
-   * takes a position in `tutorialLevels`, the router resolves an address against
-   * the same array, and a stand-in track would prove the wiring against
-   * something no player can reach.
-   *
-   * @param index - Position in the track, counted from zero.
-   * @returns The level there.
-   * @throws Error When the track is shorter than that.
-   */
+  /** The level at a position in the track, read from the real `tutorialLevels` table. */
   function levelAt(index: number): TutorialLevel {
     const level = tutorialLevels[index];
     if (level === undefined) {
@@ -1041,20 +838,7 @@ describe("App learning track", () => {
     return level;
   }
 
-  /**
-   * Ends the run on screen, one way or the other.
-   *
-   * Every condition on the track asks for passengers within a time limit, so a
-   * run is won by having delivered more than any level asks for while the clock
-   * is still young, and lost by letting the clock run out with nobody delivered.
-   * Written into the counters rather than played out, because what these specs
-   * are about is what the app does with a verdict; that the levels can actually
-   * be lost by the program the player is handed and won by the answer they are
-   * shown is what `src/game/tutorial-solutions.test.ts` proves, by playing them.
-   *
-   * @param app - The app whose run to end.
-   * @param won - The verdict to produce.
-   */
+  /** Ends the run on screen by writing the verdict straight into the world's counters. */
   function endRun(app: App, won: boolean): void {
     const world = app.world;
     if (world === undefined) {
@@ -1065,21 +849,10 @@ describe("App learning track", () => {
     world.trigger("stats_changed");
   }
 
-  /**
-   * Where the editor keeps one level's program.
-   *
-   * Spelled out here as it is in `editor.test.ts`: the prefix is private to the
-   * editor, and a test that imported it could not tell a renamed key from a
-   * working one — the very thing the key exists to be stable about, since it
-   * holds a program the player typed.
-   */
+  /** Where the editor keeps one level's program, spelled out rather than imported so a prefix rename would break this test. */
   const LEVEL_2_CODE_KEY = "develevateTutorialCode_tutorial-2";
 
   it("plays the level the url names rather than level 1", () => {
-    // Until the route was dispatched on `tutorialIndex`, `#level=tutorial-5`
-    // fell through to the level branch, which resolves anything it does not
-    // understand to level 1 -- so the game played level 1 while the
-    // address bar went on saying `tutorial-5`, and a reload never escaped it.
     const { app } = setUp();
     app.handleRoute(...routeFor("#level=3"));
 
@@ -1089,26 +862,17 @@ describe("App learning track", () => {
     expect(app.tutorial?.index).toBe(4);
     expect(app.isPlayingSandbox).toBe(false);
     expect(app.world?.floors.length).toBe(levelAt(4).options.floorCount);
-    // Where a restart would send them back to, left where the level put it,
-    // exactly as the sandbox leaves it: the track is not a station on the ladder.
     expect(app.currentLevelIndex).toBe(2);
   });
 
   it("builds a level on its own pinned seed rather than a fresh draw", () => {
-    // The lesson is "this program loses and that one wins", which is a statement
-    // about a particular stream of passengers. On a random draw it would be a
-    // coin flip, and a player could be shown a mistake that happened to squeak
-    // past -- the opposite of what the level is for.
+    // A random draw would make the lesson a coin flip instead of a guaranteed contrast.
     const { app } = setUp();
     app.handleRoute(...routeFor("#level=tutorial-3"));
     expect(app.world?.seed).toBe(levelAt(2).seed);
   });
 
   it("keeps the level's seed when the url is still carrying a level's", () => {
-    // The router refuses `seed` on a level address, so the two can only disagree
-    // from inside the app -- Ctrl-Enter, "Start over", the Restart button --
-    // and then it is the leftover from the level just left that has to
-    // lose.
     const { app } = setUp();
     app.handleRoute(...routeFor("#level=2,seed=issue-61"));
     expect(app.world?.seed).toBe("issue-61");
@@ -1119,10 +883,6 @@ describe("App learning track", () => {
   });
 
   it("offers no seed line, and prints none, because both halves of it are refused", () => {
-    // "The same passengers again" would write `seed=` into an address the router
-    // refuses it on, and "a new draw" would offer to stop pinning the seed the
-    // level pins. A line that undoes itself is worse than no line, and the
-    // console print is built from the same data.
     const { app } = setUp();
     app.startTutorial(0);
 
@@ -1137,11 +897,7 @@ describe("App learning track", () => {
   });
 
   it("opens the level's buffer before the run compiles anything", () => {
-    // Ordering, tested by its consequence. `#startRun` compiles whatever is in
-    // the editor at the moment it starts, so a buffer opened afterwards would
-    // run the previous buffer's program in this level's building for one run.
-    // The stored attempt does not compile and the player's program does, so the
-    // banner is here only if the switch happened first.
+    // The buffer switch must happen before compiling, or the error banner would never appear.
     const { app, editorPaneMount, storage, view } = setUp();
     storage.setItem(LEVEL_2_CODE_KEY, "{ this is not javascript");
 
@@ -1152,9 +908,6 @@ describe("App learning track", () => {
   });
 
   it("puts the player's own program back on the way out", () => {
-    // The track plays out of its own buffer, one per level, so the program the
-    // player came in with has to be waiting again the moment they leave -- and
-    // leaving is a route now that the panel has no button of its own.
     const { app, storage, view } = setUp();
     storage.setItem(CODE_STORAGE_KEY, INERT_CODE);
     app.startTutorial(0);
@@ -1167,8 +920,6 @@ describe("App learning track", () => {
   });
 
   it("leaves the track for the sandbox as readily as for a level", () => {
-    // Every way out goes through one of the two other starts, which is why both
-    // of them close the buffer rather than the router doing it once.
     const { app, storage, view } = setUp();
     storage.setItem(CODE_STORAGE_KEY, INERT_CODE);
     app.startTutorial(2);
@@ -1181,9 +932,6 @@ describe("App learning track", () => {
   });
 
   it("repeats the level when the program is applied, not the last level played", () => {
-    // `startLevel(currentLevelIndex)` was what "run this again" used to
-    // mean. On the track it would apply the player's edit to a different
-    // building and take the attempt they were half-way through off the screen.
     const { app, editor, view } = setUp();
     app.handleRoute(...routeFor("#level=3"));
     app.startTutorial(2);
@@ -1196,15 +944,13 @@ describe("App learning track", () => {
     expect(app.tutorial?.level.id).toBe("tutorial-3");
     expect(app.world?.floors.length).toBe(levelAt(2).options.floorCount);
     expect(app.worldController.isPaused).toBe(false);
-    // Reopening the buffer already on screen is a no-op, so the attempt being
-    // applied is still there to edit.
     expect(view.getValue()).toBe("// half an answer");
   });
 
   it("repeats the level from the bar's restart button", () => {
     const { app, elements } = setUp();
     app.startTutorial(1);
-    // Only reachable once the run is over, which on a level is the ordinary case.
+    // Reachable only once the run is over.
     app.world?.unWind();
 
     requireElement(".startstop", elements.controls).click();
@@ -1217,9 +963,7 @@ describe("App learning track", () => {
     const { app, elements } = setUp();
     app.startTutorial(2);
 
-    // Three, because this is the track's third level -- the number is what this
-    // test is about. The wording is `tileTriggerName`'s: the trigger names the
-    // level and leaves "completed" to the tile in the menu.
+    // "completed" is the switcher tile's wording, not the trigger's.
     expect(taskName(elements)).toBe("Lesson 3");
   });
 
@@ -1251,8 +995,6 @@ describe("App learning track", () => {
     expect(verdictTitle(elements)).toBe("Success!");
     const link = requireElement(".verdict a", elements.feedback);
     expect(link.getAttribute("href")).toBe(`#level=${levelAt(1).id}`);
-    // "Next level" is what the shared template writes into every such link,
-    // and the numbered ladder is not where level 2 lives.
     expect(link.textContent.trim()).toBe("Next tutorial level");
     // The caret the template put beside the words survives being relabeled.
     expect(link.querySelector("svg")).not.toBeNull();
@@ -1271,13 +1013,8 @@ describe("App learning track", () => {
   });
 
   it("says how long the track was in the words each catalog counts it with", () => {
-    // `tutorial.finish.message` is the one sentence in the game that writes the
-    // length of the track out rather than counting `tutorialLevels.length`,
-    // because "Eight tutorial levels" is what the sentence needs and "8 levels" is
-    // not. A
-    // ninth level would leave both catalogs quietly wrong on the one screen a
-    // player reaches once, so the number is pinned here against the words --
-    // add the level, add its wording, and this passes again.
+    // tutorial.finish.message spells the track length out in words, so update
+    // SPELLED_OUT whenever the track's length changes.
     const SPELLED_OUT: Readonly<Record<number, Readonly<Record<Locale, string>>>> = {
       8: { en: "Eight tutorial levels", ru: "Восемь учебных уровней" },
     };
@@ -1301,12 +1038,6 @@ describe("App learning track", () => {
   });
 
   it("promises nothing on that link that following it does not do", () => {
-    // It read "Go to level 1 with this program", and the program stayed
-    // behind: the link is an ordinary route change, and leaving the track puts
-    // the player's own buffer back on screen. Their program is what is waiting
-    // there, which is right -- nothing may overwrite it without asking -- so it
-    // is the label that had to give. The winning program is not lost either; it
-    // is under the level's own key, and the panel's button is how it travels.
     const { app, elements, view, storage } = setUp();
     storage.setItem(CODE_STORAGE_KEY, "// the program I came in with");
     app.startTutorial(tutorialLevels.length - 1);
@@ -1324,8 +1055,6 @@ describe("App learning track", () => {
   });
 
   it("says a lost level is lost, and offers nothing", () => {
-    // The expected first outcome on the track: the player is meant to go back to
-    // the editor, where the hints are, rather than onwards.
     const { app, elements } = setUp();
     app.startTutorial(0);
 
@@ -1336,10 +1065,6 @@ describe("App learning track", () => {
   });
 
   it("records a cleared level, and records it once however often it is cleared", () => {
-    // Read back out of the store rather than off the app: nothing on the page
-    // asks `App` how far along the track a player is any more -- what the level
-    // switcher marks its tiles from is handed to it out of this same key -- so
-    // the store is where the record has to actually land.
     const { app, storage } = setUp();
     expect(readClearedTutorialLevels(storage)).toEqual(new Set());
 
@@ -1353,13 +1078,8 @@ describe("App learning track", () => {
   });
 
   it("redraws a level's verdict in the new language, link and all", () => {
-    // `relocalize` draws the remembered outcome again, and it has to arrive back
-    // at the same three decisions: the level's overlay rather than a level's,
-    // the address of the next level rather than the next level, and the words
-    // the template does not have. Drawing it from the outcome alone is what
-    // makes that possible, and a redraw that lost any of the three would put a
-    // link labeled "Следующий уровень" -- the numbered ladder -- in front of a
-    // player half-way through the track.
+    // relocalize redraws the remembered outcome from data, not markup, so it must not
+    // relabel the link with the numbered ladder's wording mid-track.
     const { app, elements } = setUp();
     app.startTutorial(0);
     endRun(app, true);
@@ -1383,9 +1103,6 @@ describe("App learning track", () => {
   });
 
   it("refuses a position that does not name a level", () => {
-    // Symmetric with `startLevel`: the router resolves a level address
-    // against the same table, so this is only reachable from a caller that made
-    // the position up, and a made-up position must not quietly play level 1.
     const { app } = setUp();
     expect(() => {
       app.startTutorial(99);
@@ -1393,16 +1110,7 @@ describe("App learning track", () => {
   });
 
   describe("the panel beside the building", () => {
-    /**
-     * The level the panel on screen was drawn for, if it is drawn at all.
-     *
-     * The attribute rather than anything the panel prints: the card says which
-     * lesson this is in the level's own words and nothing about where on the
-     * track it sits, so its position is only legible here.
-     *
-     * @param elements - The page shell the app was built over.
-     * @returns The zero-based index, or `null` when the region is empty.
-     */
+    /** The level index the panel on screen was drawn for, or `null` when it's empty. */
     function drawnLevelIndex(elements: AppElements): string | null {
       return (
         elements.tutorial.querySelector(".tutorialpanel")?.getAttribute("data-level-index") ?? null
@@ -1423,10 +1131,6 @@ describe("App learning track", () => {
     });
 
     it("leaves the region empty everywhere else, so the page has no gap in it", () => {
-      // Nineteen levels and the sandbox all go through the same
-      // draw, and the stylesheet hides the region only while it is empty. The
-      // last level's hints left above level 1 would be worse than a gap: they
-      // are the answer to a level nobody is playing.
       const { app, elements } = setUp();
       expect(elements.tutorial.children).toHaveLength(0);
 
@@ -1442,9 +1146,6 @@ describe("App learning track", () => {
     });
 
     it("redraws the panel when the language changes under it", () => {
-      // The panel is most of the words on the page while a level is on screen,
-      // so a language change that missed it would leave the game in English
-      // with a Russian bar over it.
       const { app, elements } = setUp();
       app.startTutorial(0);
 
@@ -1461,12 +1162,6 @@ describe("App learning track", () => {
     });
 
     it("marks the cleared lesson in the switcher without shutting the hints under it", () => {
-      // Two halves of one moment. Nothing the card prints depends on what has
-      // been cleared any more, so redrawing it on a win would rebuild every
-      // disclosure the player had opened -- including the hint they are still
-      // reading while the overlay tells them they have won. What did move is the
-      // tile: the switcher names a cleared lesson "completed", and the menu is
-      // one click from that overlay.
       const { app, elements } = setUp();
       app.startTutorial(0);
       const hint = requireElement(".tutorialhint", elements.tutorial);
@@ -1480,18 +1175,12 @@ describe("App learning track", () => {
 
       endRun(app, true);
 
-      // The same element, still open: not a fresh one that happens to match.
       expect(requireElement(".tutorialhint", elements.tutorial)).toBe(hint);
       expect(hint.open).toBe(true);
       expect(tile().getAttribute("aria-label")).toBe("Tutorial level 1, completed");
     });
 
     it("leaves the run controls to be the only way to start the level again", () => {
-      // The panel had a "Start over" of its own, and so does the row of run
-      // controls drawn directly under it, with the same accessible name and
-      // without the auto-start the row's has (WCAG 3.2.4). The one that went is
-      // the one only the track had; the one that stayed restarts the level from
-      // the track exactly as it restarts a level.
       const { app, elements } = setUp();
       app.startTutorial(1);
       const before = app.world;
@@ -1507,25 +1196,12 @@ describe("App learning track", () => {
 });
 
 describe("App Skyscraper block", () => {
-  // Same reason as the suites above: a failed assertion must not leave the rest
-  // of the file in Russian.
+  // So a failing assertion can't leave the suite in Russian.
   afterEach(() => {
     setLocale(DEFAULT_LOCALE);
   });
 
-  /**
-   * The level at a position in the block.
-   *
-   * Read out of the real table rather than a fixture, for the reason the track's
-   * own helper gives: `startSkyscraperLevel` takes a position in
-   * `skyscraperLevels`, the router resolves a `sky-` address against the same
-   * array, and a stand-in block would prove the wiring against something no
-   * player can reach.
-   *
-   * @param index - Position in the block, counted from zero.
-   * @returns The level there.
-   * @throws Error When the block is shorter than that.
-   */
+  /** The level at a position in the Skyscraper block, read from the real `skyscraperLevels` table. */
   function levelAt(index: number): SkyscraperLevel {
     const level = skyscraperLevels[index];
     if (level === undefined) {
@@ -1534,18 +1210,7 @@ describe("App Skyscraper block", () => {
     return level;
   }
 
-  /**
-   * The briefing card of a level expected to carry one.
-   *
-   * Most of the block's levels have none, so `card` is optional and the specs
-   * about the card would otherwise be written against `string | undefined` —
-   * which is a spec that passes when the card has silently gone away. Throwing
-   * here means the position, not the assertion, is what fails.
-   *
-   * @param index - The level's position in `skyscraperLevels`.
-   * @returns Its card, read in whatever language is current.
-   * @throws When the level at that position introduces nothing and has no card.
-   */
+  /** The briefing card of a level expected to carry one; throws instead of returning `undefined` so a missing card fails at the lookup. */
   function cardAt(index: number): SkyscraperCard {
     const card = levelAt(index).card;
     if (card === undefined) {
@@ -1554,21 +1219,7 @@ describe("App Skyscraper block", () => {
     return card;
   }
 
-  /**
-   * Ends the run on screen, one way or the other.
-   *
-   * `sky-1` is judged in moves rather than in seconds — `requireUserCountWithinMoves`
-   * — so a win is the delivered count reached while the move budget is still
-   * untouched, and a loss is the budget spent with nobody delivered. Written into
-   * the counters rather than played out, exactly as the track's own helper writes
-   * into its two: what these specs are about is what the app does with a verdict,
-   * and that the level can be lost by the program the player is handed and won by
-   * the repair its briefing points at is `src/game/skyscraper.test.ts`'s promise,
-   * proved by playing it.
-   *
-   * @param app - The app whose run to end.
-   * @param won - The verdict to produce.
-   */
+  /** Ends the run on screen; `sky-1` is judged in moves, so a win zeroes `moveCount` instead of adjusting elapsed time. */
   function endRun(app: App, won: boolean): void {
     const world = app.world;
     if (world === undefined) {
@@ -1580,10 +1231,6 @@ describe("App Skyscraper block", () => {
   }
 
   it("plays the level the url names rather than level 1", () => {
-    // The router resolves a level it does not understand to level 1, so until
-    // `handleRoute` dispatched on `skyscraperIndex`, `#level=sky-1` would have
-    // played level 1 while the address bar went on saying `sky-1` -- the same
-    // defect the learning track's own branch was added to fix.
     const { app } = setUp();
     app.handleRoute(...routeFor("#level=3"));
 
@@ -1592,35 +1239,22 @@ describe("App Skyscraper block", () => {
     expect(app.skyscraper?.level.id).toBe("sky-1");
     expect(app.skyscraper?.index).toBe(0);
     expect(app.isPlayingSandbox).toBe(false);
-    // Where a restart would send them back to, left where the numbered level put
-    // it, exactly as the track and the sandbox leave it: this block is not a
-    // station on the numbered ladder.
     expect(app.currentLevelIndex).toBe(2);
   });
 
   it("builds the level's own building", () => {
-    // The whole building comes off the entry in the table rather than from the
-    // URL or from a default: twelve floors is taller than anything this file's
-    // fixtures play, and the cars are twice the capacity a `WorldOptions` that
-    // named none would have given them.
     const { app } = setUp();
 
     app.startSkyscraperLevel(0);
 
     expect(app.world?.floors.length).toBe(levelAt(0).options.floorCount);
-    // The table's one capacity, cycled over all three cars, exactly as the
-    // sandbox's own list is.
+    // The table's one capacity cycles over all three cars.
     expect(app.world?.elevators.map((elevator) => elevator.maxUsers)).toEqual([8, 8, 8]);
   });
 
   it("builds a level on its own pinned seed, over the url's and the player's alike", () => {
-    // The block pins a seed for a different reason than the track does -- these
-    // levels have no decade of published solutions to calibrate a threshold
-    // against, so a threshold is set from one measured run, and a silver earned
-    // by two players has to have been earned on the same crowd. What it needs
-    // from this class is the same thing: the level's seed outranks everything.
-    // Both of the seeds it outranks are set here, and they are set to different
-    // values, so that neither can be the one that happens to win.
+    // A silver threshold here is calibrated against one specific run, so the level's
+    // seed must outrank the url's and the player's, set here to different values.
     const storage = new MemoryStorage();
     const { app } = setUp(INERT_CODE, storage);
     app.handleRoute(...routeFor("#level=2,seed=issue-61"));
@@ -1634,16 +1268,6 @@ describe("App Skyscraper block", () => {
   });
 
   it("offers no seed line, and leaves the player's remembered seed alone", () => {
-    // Both halves of the line are refused here for the same reason they are on
-    // the track: "the same passengers again" would write `seed=` into an address
-    // `refuseSeedOnTrack` refuses it on, and "a new draw" would offer to stop
-    // pinning the seed the medal was measured against.
-    //
-    // The second assertion is the one with teeth. `#startRun` writes back
-    // whatever the seed line reports, so a block that reported its pinned `4`
-    // would leave `4` behind as though the player had chosen it, and the next
-    // numbered level opened would silently play a crowd the block picked. The
-    // seed stored before the run is still there afterwards, untouched.
     const storage = new MemoryStorage();
     storage.setItem(SEED_STORAGE_KEY, "issue-61");
     const { app } = setUp(INERT_CODE, storage);
@@ -1657,10 +1281,6 @@ describe("App Skyscraper block", () => {
   });
 
   it("refuses a position that does not name a level", () => {
-    // Symmetric with `startLevel` and `startTutorial`: the router resolves a
-    // `sky-` address against this same table, so this is only reachable from a
-    // caller that made the position up, and a made-up position must not quietly
-    // play something else.
     const { app } = setUp();
     expect(() => {
       app.startSkyscraperLevel(99);
@@ -1668,10 +1288,7 @@ describe("App Skyscraper block", () => {
   });
 
   it("takes the screen over from a lesson and from the sandbox", () => {
-    // Half of what `#clearSpecialRuns` exists for. A field left set is silent --
-    // nothing throws and nothing fails a type check -- and what a player would
-    // meet instead is the switcher marking a level they have left and
-    // Ctrl-Enter restarting it.
+    // A field left set fails silently: the switcher would mark a level the player left, and Ctrl-Enter would restart it.
     const { app } = setUp();
     app.startTutorial(0);
 
@@ -1688,9 +1305,7 @@ describe("App Skyscraper block", () => {
   });
 
   it("is left behind by a lesson, a numbered level and the sandbox alike", () => {
-    // The other half, and the one that has three ways out to forget rather than
-    // one: every `start*` clears this field through the same helper, and the
-    // route that names no level of the block is how a player leaves it.
+    // Every start* clears this field through the same helper.
     const { app } = setUp();
 
     app.startSkyscraperLevel(0);
@@ -1710,10 +1325,6 @@ describe("App Skyscraper block", () => {
   });
 
   it("repeats the level when the program is applied, not the last level played", () => {
-    // `startLevel(currentLevelIndex)` was what "run this again" used to mean, and
-    // here it would apply the player's edit to a numbered level's building --
-    // taking the attempt they were half-way through off the screen and grading it
-    // against rules this block's levels do not play by.
     const { app, editor, view } = setUp();
     app.handleRoute(...routeFor("#level=3"));
     app.startSkyscraperLevel(0);
@@ -1726,16 +1337,12 @@ describe("App Skyscraper block", () => {
     expect(app.skyscraper?.level.id).toBe(levelAt(0).id);
     expect(app.world?.floors.length).toBe(levelAt(0).options.floorCount);
     expect(app.worldController.isPaused).toBe(false);
-    // Reopening the buffer already on screen is a no-op, so the attempt being
-    // applied is still there to edit.
     expect(view.getValue()).toBe("// half an answer");
   });
 
   it("leaves the code-slot switcher inert while one of its levels is on screen", () => {
-    // A level here plays out of a buffer keyed by its id, so there is no level
-    // index for a slot to hang off. The switcher is drawn and visible -- the
-    // editor pane has no way to hide it -- so the guard is what stops a press
-    // from replacing the block's program with a numbered level's slot 2.
+    // Buffers are keyed by level id, not slot index, so a stray press can't replace
+    // this level's program with a numbered level's slot.
     const { app, storage, view } = setUp();
     storage.setItem("develevateChallengeCode_0_2", "// slot two's program");
     app.startSkyscraperLevel(0);
@@ -1747,12 +1354,8 @@ describe("App Skyscraper block", () => {
   });
 
   it("records a medal for a win, under the level's own id", () => {
-    // `sky-1` declares no `tiers`, which `evaluateLevelTier` reads as "bronze is
-    // the only medal here" -- so bronze is this block's spelling of "cleared",
-    // and no second progress shape is needed to say it. It lands in the block's
-    // own store, keyed by the level's id: a run here has no level index at all,
-    // and the two stores are kept apart so that neither block can erase the
-    // other's medals.
+    // Recorded under the block's own store, keyed by id, so it can't collide with the
+    // numbered levels' tiers.
     const { app, elements, storage } = setUp();
     expect(levelAt(0).tiers).toBeUndefined();
 
@@ -1761,8 +1364,7 @@ describe("App Skyscraper block", () => {
 
     expect(readBestSkyscraperTiers(storage)).toEqual(new Map([[levelAt(0).id, "bronze"]]));
     expect(readBestLevelTiers(storage)).toEqual(new Map());
-    // And the tile says so without waiting for the next run to redraw it: the
-    // player may open the menu straight from the verdict card.
+    // The tile updates without waiting for the next run's redraw.
     expect(
       requireElement('[href^="#level=sky-1"]', elements.levelSwitcher).getAttribute("data-tier"),
     ).toBe("bronze");
@@ -1779,9 +1381,7 @@ describe("App Skyscraper block", () => {
   });
 
   it("links to the block's levels by id, dropping the seed of the run in progress", () => {
-    // A tile carries the speed and every other preference across, and drops
-    // `seed`: a seed names one particular run of one particular building, and a
-    // link to another building names a run nobody has played.
+    // A tile drops the seed: it names a run of a different building.
     const { app, elements } = setUp();
     app.handleRoute(...routeFor("#level=1,timescale=8,seed=issue-61"));
 
@@ -1802,15 +1402,12 @@ describe("App Skyscraper block", () => {
       null,
       null,
     ]);
-    // One, because this is the block's first level -- the number is what this
-    // assertion is about, and the trigger names the tower rather than the level.
     expect(taskName(elements)).toBe("Tower 1");
   });
 
   describe("the briefing card beside the building", () => {
-    // Position 1 rather than 0 throughout: `sky-2` is where traffic profiles are
-    // met and so is one of the levels that carries a card at all. `sky-1` is the
-    // spec below about a level that carries none.
+    // sky-2 (index 1) is where traffic profiles are introduced and carries a card;
+    // sky-1 (index 0) is the level below that carries none.
     const CARD_LEVEL = 1;
 
     it("draws the level's name and the paragraph it is about", () => {
@@ -1820,22 +1417,15 @@ describe("App Skyscraper block", () => {
       expect(requireElement(".briefingtitle", elements.tutorial).textContent).toBe(
         "Everyone starts in the lobby",
       );
-      // Compared as markup rather than as text: the briefing carries `<em>`
-      // around the terms it introduces, and a card that escaped them would
-      // print the tags at the player.
+      // Compared as markup, not text: the briefing carries `<em>` around key terms,
+      // and escaped tags would print literally.
       expect(requireElement(".briefingtext", elements.tutorial).innerHTML).toBe(
         cardAt(CARD_LEVEL).briefing,
       );
-      // The two cards share this one element, so the lesson panel must not be
-      // standing under the briefing.
       expect(elements.tutorial.querySelector(".tutorialpanel")).toBeNull();
     });
 
     it("draws nothing at all on a level with nothing to introduce", () => {
-      // Most of the block is like this, and the empty region is the point: the
-      // stylesheet hides it only while it is empty, so a level that explains
-      // nothing hands the width back to the building instead of spending it on
-      // a card restating the level before.
       const { app, elements } = setUp();
       app.startSkyscraperLevel(CARD_LEVEL);
       expect(elements.tutorial.children).toHaveLength(1);
@@ -1859,9 +1449,6 @@ describe("App Skyscraper block", () => {
     });
 
     it("empties the region on a numbered level, so the page has no gap in it", () => {
-      // The stylesheet hides the region only while it is empty, and a briefing
-      // left above level 1 would be a paragraph about a building the player is
-      // no longer in.
       const { app, elements } = setUp();
       app.startSkyscraperLevel(CARD_LEVEL);
       expect(elements.tutorial.children).toHaveLength(1);
@@ -1872,10 +1459,6 @@ describe("App Skyscraper block", () => {
     });
 
     it("redraws the card when the language changes under it", () => {
-      // The card is most of the prose on screen while one of these levels is
-      // being played, and both of its strings are getters over the catalog --
-      // so a language change that missed this redraw would leave the one column
-      // still in English.
       const { app, elements } = setUp();
       app.startSkyscraperLevel(CARD_LEVEL);
 
@@ -1893,29 +1476,12 @@ describe("App Skyscraper block", () => {
 });
 
 describe("App seed", () => {
-  // One spec below reads the console line in Russian; same reason as the blocks
-  // above, a failed assertion must not leave the rest of the file in Russian.
+  // So a failing assertion can't leave the suite in Russian.
   afterEach(() => {
     setLocale(DEFAULT_LOCALE);
   });
 
-  /**
-   * The passengers a run produces, in the order they appeared.
-   *
-   * The thing a seed actually promises: who turns up, from where, heading
-   * where. Read off a world that has been driven forward by hand, since the
-   * spawns are what the seed's own stream decides.
-   *
-   * The step is a parameter because the browser's is not fixed -- `dt` there
-   * comes from `requestAnimationFrame` -- and the promise in the bar has to
-   * survive that, not merely a clock this file drives itself.
-   *
-   * @param app - The app whose world to run and read.
-   * @param seconds - How many simulated seconds to run for.
-   * @param step - Simulated seconds per frame; a power of one half, so that the
-   * total is reached exactly whichever step is used.
-   * @returns One entry per passenger, as `from>to`.
-   */
+  /** The passengers a run produces, in order, as `from>to`; `step` must evenly divide `seconds`. */
   function passengerStream(app: App, seconds: number, step = 1.0): string[] {
     for (let elapsed = 0; elapsed < seconds; elapsed += step) {
       app.world?.update(step);
@@ -1935,27 +1501,12 @@ describe("App seed", () => {
     const { app, storage } = setUp();
     app.handleRoute(...routeFor("#level=1"));
     expect(typeof app.world?.seed).toBe("number");
-    // Recorded in two places, and this is the second: the console line names it
-    // for a player who wants it back, and storage keeps it for the next run
-    // without their having to ask.
     expect(storage.getItem(SEED_STORAGE_KEY)).toBe(String(app.world?.seed));
   });
 
   it("brings one seed's passengers back whatever the frame length", () => {
-    // The promise the bar makes, tested the way the browser breaks it: two runs
-    // of one URL, fed frames of different lengths, and the same people appear in
-    // the same order, from the same floors, wanting the same destinations.
-    //
-    // Stepping both by the same clock would prove only that a PRNG is a PRNG.
-    // Varying it is what has teeth: before `e2cc0b5` this failed, because the
-    // re-press offset in `src/game/world.ts` and the walk-off duration in
-    // `src/game/user.ts` drew from the stream the passengers came from, at
-    // moments the frame length decided. If either goes back into it, this test
-    // is what says so.
-    //
-    // How many have arrived by a given second is not part of the promise -- the
-    // spawn accumulator crosses its threshold at frame boundaries -- so the two
-    // are compared as far as they both go.
+    // Varying the frame length between runs is the point: anything drawing from frame
+    // timing instead of the seed's own stream would fail here.
     const first = setUp().app;
     first.handleRoute(...routeFor("#level=sandbox,floors=8,spawnrate=2,seed=issue-61"));
     const second = setUp().app;
@@ -1980,9 +1531,6 @@ describe("App seed", () => {
   });
 
   it("restarts a pinned run on the same seed, however it is restarted", () => {
-    // The reason somebody writes #seed= into the address bar at all: the
-    // Restart button and Ctrl-Enter both have to give back the run they were
-    // comparing programs on.
     const { app, editor, elements } = setUp();
     app.handleRoute(...routeFor("#level=3,seed=issue-61"));
 
@@ -1995,14 +1543,6 @@ describe("App seed", () => {
   });
 
   it("restarts an unpinned run on the seed it was already playing", () => {
-    // This used to draw a fresh seed, on the reasoning that reusing the last
-    // one would leave a player stuck on a level stuck on one passenger
-    // stream, with no way out short of editing the address bar. That reasoning
-    // had one premise, and the seed field took it away: there is a way out, it
-    // is the dice beside the field, and it is one press. What the old rule cost
-    // was the thing a player fixing a bug actually needs -- the same building
-    // full of the same people, twice in a row. See `handleRoute`'s own comment
-    // for the whole of the reversal.
     const { app, elements } = setUp();
     app.handleRoute(...routeFor("#level=3"));
     const first = String(app.world?.seed);
@@ -2010,16 +1550,12 @@ describe("App seed", () => {
     app.world?.trigger("stats_changed");
     requireElement(".startstop", elements.controls).click();
 
-    // Compared as text, because a seed nobody named is drawn as a number and
-    // comes back out of storage as the string of that number. `createRandomSource`
-    // hashes `String(seed)`, so the two are the same stream and the same run --
-    // the type is the only thing that differs, and nothing reads it.
+    // Compared as text: an unseeded run's seed is a number in memory but a string once
+    // round-tripped through storage; both hash to the same stream.
     expect(String(app.world?.seed)).toBe(first);
   });
 
   it("plays the seed this browser last played, on a visit that names none", () => {
-    // The whole of what "the seed is the player's own" comes to: a second
-    // evening opens on the run the first one ended on.
     const storage = new MemoryStorage();
     storage.setItem(SEED_STORAGE_KEY, "issue-61");
     const { app } = setUp(INERT_CODE, storage);
@@ -2030,10 +1566,6 @@ describe("App seed", () => {
   });
 
   it("carries the player's own seed into the building a tile opens", () => {
-    // A level link drops `seed=` deliberately -- a URL's seed is a claim about
-    // one particular run, and a link to another building names a run nobody has
-    // played. The player's *choice of stream* is not that claim, and it comes
-    // along.
     const { app } = setUp();
     app.handleRoute(...routeFor("#level=1,seed=issue-61"));
 
@@ -2043,9 +1575,6 @@ describe("App seed", () => {
   });
 
   it("ignores a remembered seed the address bar could never carry", () => {
-    // As editable as the address bar is -- a console reaches it, and so does an
-    // older build -- so it is validated on the way out rather than trusted. What
-    // fails is nothing stored at all.
     const storage = new MemoryStorage();
     storage.setItem(SEED_STORAGE_KEY, "rush hour");
     const { app } = setUp(INERT_CODE, storage);
@@ -2057,9 +1586,6 @@ describe("App seed", () => {
   });
 
   it("keeps playing when the browser refuses to remember anything", () => {
-    // Private browsing, a full quota, a locked-down profile: a `Storage` that
-    // throws on both sides of the conversation. The seed is still in the run,
-    // in the console line and on the panel, and only the *next* run loses it.
     const storage = new MemoryStorage();
     const { app } = setUp(INERT_CODE, storage);
     const refuse = (): never => {
@@ -2081,11 +1607,6 @@ describe("App seed", () => {
   });
 
   it("takes a seed the url stops naming as still the player's own", () => {
-    // A URL without `seed=` used to mean "draw one". It means "whatever I am
-    // playing" now, which is what lets a level tile drop the key without
-    // throwing the player's choice away with it. The way to a different stream
-    // is to ask for one -- the field or the dice -- rather than to arrive
-    // somewhere that asks for nothing.
     const { app } = setUp();
     app.handleRoute(...routeFor("#level=1,seed=issue-61"));
     app.handleRoute(...routeFor("#level=1"));
@@ -2105,20 +1626,12 @@ describe("App seed", () => {
     const { app } = setUp();
     app.handleRoute(...routeFor("#level=2,seed=issue-61"));
 
-    // The bar does not offer to pin a run the URL already pins, so what carries
-    // the address of a pinned run is the line printed as it starts -- and it has
-    // to name the seed once, not twice.
     const printed = String(vi.mocked(console.log).mock.calls[0]?.[0]);
     expect(printed).toContain("#level=2,seed=issue-61");
     expect(printed.match(/seed=/g)).toHaveLength(1);
   });
 
   it("leaves a pinned seed behind when the switcher jumps to another level", () => {
-    // A seed was drawn for one building and means nothing in another, so a tile
-    // carries the speed and everything else but not this. A tile is not the way
-    // out of a pinned run either: none names the sandbox, and pressing the
-    // level already being played is not a move anybody would find. That is
-    // the seed line's "new draw", below.
     const { app, elements } = setUp();
     app.handleRoute(...routeFor("#level=1,timescale=8,seed=issue-61"));
 
@@ -2139,10 +1652,6 @@ describe("App seed", () => {
   });
 
   it("gives the seed link an address even when the url is empty", () => {
-    // A first visit has no hash at all, so a link built as "everything you are
-    // carrying, plus this seed" would leave the run's own identity to a default
-    // -- and a default that later changes is a link that later means a
-    // different building. The level is named outright for that reason.
     const { app } = setUp();
     app.handleRoute(...routeFor(""));
     const seed = String(app.world?.seed);
@@ -2151,9 +1660,6 @@ describe("App seed", () => {
   });
 
   it("prints the seed and a whole url at every start", () => {
-    // The affordance that matters most: nobody knows a run is worth repeating
-    // until it has already gone wrong, and by then this line is the only record
-    // of what it was.
     const { app } = setUp();
     app.handleRoute(...routeFor("#level=1,seed=issue-61"));
 
@@ -2164,12 +1670,6 @@ describe("App seed", () => {
   });
 
   it("prints it in the language the player is reading", () => {
-    // The one console line in the game that goes through the catalog. Every
-    // other one reports something -- a bug, a URL that would not parse, a
-    // broken invariant -- and is addressed to whoever is reading a stack beside
-    // it; this one reports nothing and is addressed to the player, at every
-    // successful start, so a Russian player getting it in English is the same
-    // gap as an English sentence anywhere else on the page.
     setLocale("ru");
     const { app } = setUp();
     app.handleRoute(...routeFor("#level=1,seed=issue-61"));
@@ -2181,13 +1681,6 @@ describe("App seed", () => {
   });
 
   it("offers the exact same run back, because the controller no longer depends on frame timing", () => {
-    // The controller used to take its dt from requestAnimationFrame timestamps,
-    // so the cars stood somewhere else as each passenger appeared and the
-    // player's program was asked to decide at different moments. Now
-    // world-controller.ts advances codeObj.update and world.update in fixed
-    // TICK_SECONDS ticks instead, so the browser and the headless paths (the
-    // fitness suite, the tests) alike repeat a run step for step, played the
-    // same way.
     const { app } = setUp();
     app.handleRoute(...routeFor("#level=1,seed=issue-61"));
 
@@ -2210,11 +1703,6 @@ describe("App seed", () => {
   });
 
   it("offers the run's own address whether or not the url already names it", () => {
-    // One link now, not two. It used to be this URL *or* this URL with `seed=`
-    // taken out, depending on which of the two the run was in -- and the second
-    // of those was a new draw only while a seedless address meant a new draw.
-    // A fresh draw is a decision the panel makes for itself now, so what is
-    // left here is the one thing an address is for.
     const { app } = setUp();
     app.handleRoute(...routeFor("#level=2,timescale=8"));
     const drawn = String(app.world?.seed);
@@ -2226,9 +1714,6 @@ describe("App seed", () => {
   });
 
   it("keeps the sandbox building in the seed's own address", () => {
-    // The case a level tile cannot answer at all: no tile names the
-    // sandbox, so a link that dropped the building would land somewhere else
-    // entirely.
     const { app } = setUp();
     app.handleRoute(...routeFor("#level=sandbox,floors=20,seed=issue-61"));
 
@@ -2236,11 +1721,8 @@ describe("App seed", () => {
   });
 
   it("treats a seed the router refused as no seed at all", () => {
-    // A browser percent-encodes the space in "#seed=rush hour", so what reaches
-    // the router is "rush%20hour" -- which is the form written here, because a
-    // fixture the app cannot be handed proves nothing about the app. The `%`
-    // fails SEED_PATTERN, so the router draws a fresh seed, and the run offers
-    // that one instead.
+    // A browser percent-encodes the space in "#seed=rush hour" to "rush%20hour", the
+    // form written here; the `%` fails SEED_PATTERN, so the router draws a fresh seed.
     const { app } = setUp();
     app.handleRoute(...routeFor("#level=1,seed=rush%20hour"));
     const seed = String(app.world?.seed);
@@ -2250,16 +1732,12 @@ describe("App seed", () => {
   });
 
   describe("playSeed", () => {
-    // The one method here that writes to the address bar rather than returning a
-    // string, so the bar has to be put back for whatever runs next.
+    // The only method here that writes to the address bar, so it must be put back.
     afterEach(() => {
       window.location.hash = "";
     });
 
     it("puts the seed the player chose in the address bar", () => {
-      // Navigating rather than restarting in place, so that the run a player
-      // chose is the run the address bar says they are playing -- which is what
-      // makes a chosen run shareable at the moment it is chosen.
       const { app } = setUp();
       app.handleRoute(...routeFor("#level=2,timescale=8"));
 
@@ -2279,28 +1757,20 @@ describe("App seed", () => {
   });
 
   it("tells a caller built before the first run what each later run's seed is", () => {
-    // The whole reason AppOptions.onSeedChange exists: something mounted once,
-    // ahead of `startRouter` resolving the first route, still has to learn
-    // about every run after that one -- `currentSeedLink` alone only ever
-    // answers for whatever is on screen right now.
+    // Lets a caller mounted before the first route resolves learn every later run's
+    // seed; currentSeedLink alone only answers for what is on screen now.
     const seen: (SeedLinkData | null)[] = [];
     const { app } = setUp(INERT_CODE, new MemoryStorage(), (seed) => seen.push(seed));
 
     app.handleRoute(...routeFor("#level=1,seed=issue-61"));
     expect(seen.at(-1)?.seed).toBe("issue-61");
 
-    // A second run on a seed of its own, because a second run on the *same*
-    // seed -- which is what `#level=2` alone now plays -- would prove only
-    // that nothing had changed.
     app.handleRoute(...routeFor("#level=2,seed=issue-62"));
     expect(seen.at(-1)?.seed).toBe("issue-62");
     expect(seen.at(-1)?.url).toBe("#level=2,seed=issue-62");
   });
 
   it("tells that caller again on a language change, even when the seed itself did not change", () => {
-    // `seedPanelTemplate` calls `t(...)` fresh on every render, so a caller
-    // holding stale markup is stale in the same way the rest of the level
-    // bar would be without `relocalize`'s own call to `#redrawForLevel`.
     const seen: (SeedLinkData | null)[] = [];
     const { app } = setUp(INERT_CODE, new MemoryStorage(), (seed) => seen.push(seed));
     app.handleRoute(...routeFor("#level=1,seed=issue-61"));
@@ -2316,11 +1786,6 @@ describe("App seed", () => {
 
 describe("App focus", () => {
   it("hands focus to the start button when the next-level link is taken", () => {
-    // Activating the link navigates, which starts the next level, which
-    // empties the overlay the link is in. The anchor is deleted under the
-    // player's feet and focus falls back to <body>, so whoever just asked for
-    // the next level is dropped at the top of the page instead of arriving
-    // at it.
     const { app, elements } = setUp();
     app.handleRoute(...routeFor("#level=2"));
     app.world?.trigger("stats_changed");
@@ -2328,7 +1793,6 @@ describe("App focus", () => {
     link.focus();
     expect(document.activeElement).toBe(link);
 
-    // What the router does once the link's hash navigation arrives.
     app.handleRoute(...routeFor("#level=3"));
 
     const startStop = requireElement(".startstop", elements.controls);
@@ -2338,10 +1802,6 @@ describe("App focus", () => {
   });
 
   it("keeps focus in the navigation row when a level is taken from it", () => {
-    // Tabbing to "Level 2" and pressing it rebuilds the bar under the
-    // player's feet, exactly as the next-level link does. They stay where
-    // they were: on the entry that replaced the one they pressed, which is now
-    // the current level.
     const { app, elements } = setUp();
     app.handleRoute(...routeFor("#level=1"));
     requireElement('[aria-label="Level 2"]', elements.levelSwitcher).focus();
@@ -2364,22 +1824,11 @@ describe("App focus", () => {
   });
 
   it("gives the start button its final label before handing it the focus", () => {
-    // Focusing a button is what makes a screen reader read its name, so the
-    // name has to be the one it will keep. "Start over" auto-starts, and the
-    // label is decided twice on the way: once while the controller still holds
-    // the old run's paused state, and once after it has been told about the new
-    // one. Taking the focus between the two announces "Start" about a button
-    // that is already becoming "Pause".
-    //
-    // Read inside the `focus` call rather than after it, because afterwards the
-    // two orderings are indistinguishable: the second pass relabels the button
-    // either way, and what a screen reader said is not in the DOM to assert on.
-    // That focus lands there at all is pinned by the two tests above.
+    // "Start over" auto-starts, so the button's label is set twice in quick succession;
+    // captured inside the `focus` spy because both orderings look identical afterward.
     const { app, elements } = setUp();
     app.startLevel(0);
     const startStop = requireElement(".startstop", elements.controls);
-    // The state that makes the two passes disagree: nothing is running, so the
-    // first reads "paused" and the second reads the auto-started run.
     expect(startStop.textContent).toBe("Start");
     let labelWhenFocused: string | null = null;
     vi.spyOn(startStop, "focus").mockImplementation(() => {
@@ -2393,8 +1842,6 @@ describe("App focus", () => {
   });
 
   it("leaves focus alone when the level is restarted from the editor", () => {
-    // Ctrl-Enter applies the program, which restarts the level. Pulling
-    // focus out of the editor on every apply would be worse than the bug.
     const { app, editor } = setUp();
     app.startLevel(0);
     const elsewhere = createElement("textarea");
@@ -2436,12 +1883,6 @@ describe("App start/stop", () => {
   });
 
   it("starts a run that has not begun from the program on screen now", () => {
-    // The editor is compiled once, as the world is handed to the controller,
-    // and the controller holds that object for the whole run — so a program
-    // edited between the level appearing and this button being pressed used to
-    // be invisible to the building, which went on running the one the level
-    // was built with. The program that will not compile is how this asks which
-    // one was taken: only a run that reads the editor again can notice it.
     const { app, view, elements, editorPaneMount } = setUp();
     app.startLevel(0);
     expect(codeErrorMessage(editorPaneMount)).toBe("");
@@ -2456,12 +1897,6 @@ describe("App start/stop", () => {
   });
 
   it("runs the code slot the player has open, not the one the level was built with", () => {
-    // The alarming version of the same defect, and the one it was reported as:
-    // switching slots replaces the whole visible program, and the building went
-    // on running the slot it was built with. Told the other way round from the
-    // spec above — the level opens on a slot that will not compile, and the
-    // slot the player switches to is the one that does — so that what is
-    // asserted is the new program running rather than merely a different one.
     const { app, elements, editorPaneMount, storage } = setUp();
     storage.setItem("develevateChallengeCode_0_1", "{ update: function() {} }");
     storage.setItem("develevateChallengeCode_0_2", INERT_CODE);
@@ -2476,10 +1911,8 @@ describe("App start/stop", () => {
   });
 
   it("resumes a paused run rather than starting it over", () => {
-    // The other side of the rule: once the run has ticked, the program driving
-    // the building is the one whose `init` hung the handlers on it, and Pause
-    // then Resume may not quietly put another one underneath them. The world
-    // has to survive the round trip for the run to be the same run.
+    // Once the run has ticked, the program whose `init` wired the handlers is the one
+    // driving it; Pause then Resume may not quietly swap in another.
     const { app, view, elements, worldController } = setUp();
     app.startLevel(0);
     requireElement(".startstop", elements.controls).click();
@@ -2498,10 +1931,6 @@ describe("App start/stop", () => {
 
 describe("App run controls", () => {
   it("starts the same level over, running, from Start over", () => {
-    // Unlike the Restart the first button becomes at the end of a run, which
-    // leaves the new run paused: a finished run is a result to read and the
-    // player says when to go again, while this one is pressed by somebody who
-    // has already decided to.
     const { app, elements, worldController } = setUp();
     app.startLevel(1);
     const before = app.world;
@@ -2529,10 +1958,9 @@ describe("App time scale", () => {
   });
 
   it("turns the press past the top of the ladder into the instant stop, and `-` back out of it", () => {
-    // The stop is a state of the control rather than a value of `timeScale`,
-    // which multiplies the frame delta: an Infinity in it is a world that can
-    // never be ticked back to life. So `+` at the top leaves the speed exactly
-    // where it was and only changes what the next press of Start will do.
+    // The stop is a state of the control, not a `timeScale` value: `timeScale`
+    // multiplies the frame delta, and an Infinity there is a world that can never
+    // tick again. So `+` at the top only changes what the next Start press will do.
     const { app, worldController, elements } = setUp();
     app.startLevel(0);
     worldController.setTimeScale(20);
@@ -2543,7 +1971,6 @@ describe("App time scale", () => {
     expect(value.textContent).toBe("\u221ex");
     expect(worldController.timeScale).toBe(20);
     expect(Number.isFinite(worldController.timeScale)).toBe(true);
-    // Nothing past it, and the primary button stops offering to resume.
     expect(requireElement(".speed-up", elements.controls).hasAttribute("disabled")).toBe(true);
     expect(requireElement(".startstop", elements.controls).textContent).toBe("Start");
 
@@ -2554,10 +1981,8 @@ describe("App time scale", () => {
   });
 
   it("keeps the instant stop out of storage and out of the url", () => {
-    // `#timescale=` and the stored speed both come from `timescale_changed`,
-    // which entering the stop never raises: a reload comes back at the finite
-    // speed the player was on, which is what a stop meaning "answer me now"
-    // should do rather than reopening on a game with nothing drawn.
+    // The instant stop never raises `timescale_changed`, so it isn't stored or put in
+    // the url; a reload should reopen at a finite speed, not a game with nothing drawn.
     const { app, worldController, storage, elements } = setUp();
     app.startLevel(0);
     worldController.setTimeScale(20);
@@ -2578,8 +2003,7 @@ describe("App time scale", () => {
   });
 
   it("subscribes to timescale_changed exactly once, however many levels are started", () => {
-    // A subscription made on every start is never unsubscribed, so after the
-    // Nth level one button press writes the time scale to storage N times.
+    // A subscription made on every start must be replaced, not stacked, or one press would write to storage N times.
     const { app, worldController, storage } = setUp();
     const setItem = vi.spyOn(storage, "setItem");
 
@@ -2606,12 +2030,7 @@ describe("App time scale", () => {
   });
 });
 
-/**
- * Resolves a location hash into the arguments {@link App.handleRoute} takes.
- *
- * @param hash - The location hash.
- * @returns The validated parameters and the raw ones.
- */
+/** Resolves a location hash into the arguments `App.handleRoute` takes. */
 function routeFor(hash: string): Parameters<App["handleRoute"]> {
   const query = parseQuery(hash);
   return [
@@ -2631,7 +2050,6 @@ describe("App.handleRoute", () => {
   });
 
   it("does not blank the page when the level is not a number", () => {
-    // #level=abc used to reach levels[NaN].options and throw.
     const { app, elements } = setUp();
     expect(() => {
       app.handleRoute(...routeFor("#level=abc"));
@@ -2641,7 +2059,6 @@ describe("App.handleRoute", () => {
   });
 
   it("does not freeze the world when the timescale is not a number", () => {
-    // #timescale=abc used to make every simulated dt NaN.
     const { app, worldController } = setUp();
     app.handleRoute(...routeFor("#timescale=abc"));
     expect(worldController.timeScale).toBe(DEFAULT_TIME_SCALE);
@@ -2684,8 +2101,7 @@ describe("App code status", () => {
 });
 
 describe("App.relocalize", () => {
-  // Same reason as the outcome specs above: a failed assertion must not leave
-  // the rest of the file in Russian.
+  // So a failing assertion can't leave the rest of the file in Russian.
   afterEach(() => {
     setLocale(DEFAULT_LOCALE);
   });
@@ -2699,21 +2115,16 @@ describe("App.relocalize", () => {
     setLocale("ru");
     app.relocalize();
 
-    // The description is the fixture's own markup and stays English; every
-    // control around it does not. The level switcher redraws its tile grid
-    // from scratch on every update, so the block from before relocalize is
-    // gone -- looked up again rather than reused.
+    // The description is the fixture's own markup and stays English; the level switcher
+    // redraws its tile grid from scratch, so elements from before relocalize are gone.
     expect(goalDescription(elements)).toBe("Level one");
     expect(requireElement(".startstop", elements.controls).textContent).toBe("Запустить");
     expect(levelBlockCaption(elements)).toBe("Уровни");
   });
 
   it("writes the statistics the way a reader of the new language writes numbers", () => {
-    // The labels beside these figures are shell and `localizePage` has already
-    // dealt with them. The figures themselves go through `Intl`, and they are
-    // written only when the world says they changed -- so if the language change
-    // did not make the world say so, they would sit here in English until the
-    // next tick of a paused clock, which may never come.
+    // Figures go through `Intl` and are written only when the world reports a change,
+    // so relocalize alone would leave them in English until the next stats tick.
     const { app, elements } = setUp();
     app.startLevel(0);
     const world = app.world;
@@ -2728,7 +2139,7 @@ describe("App.relocalize", () => {
     setLocale("ru");
     app.relocalize();
 
-    // A non-breaking space between the thousands and before the unit, both of
+    // A non-breaking space precedes the thousands separator and the unit, both of
     // which `Intl` chooses and neither of which English has.
     expect(statValue(elements, "elapsedTime")).toBe("2 675 с");
     expect(statValue(elements, "transportedCounter")).toBe("1 234");
@@ -2748,23 +2159,18 @@ describe("App.relocalize", () => {
     expect(callUp.ariaLabel).toBe("Вызвать лифт вверх с этажа 0");
     expect(car.ariaLabel).toBe("Лифт 0");
     expect(carButton?.ariaLabel).toBe("Ехать на этаж 1");
-    // The same three floors and the same one car, and the very elements that
-    // were there before: `presentBuildingStage` appends and subscribes, so a second call
-    // would leave six floors, two cars and two listeners behind every click.
+    // The same three floors and one car survive: `presentBuildingStage` appends and
+    // subscribes, so a second call would double both and leave stale listeners.
     expect(queryAll(".floor", elements.world)).toHaveLength(3);
     expect(queryAll(".elevator", elements.world)).toHaveLength(1);
     expect(requireElement(".elevator", elements.world)).toBe(car);
   });
 
   it("leaves the run in progress exactly where the player had it", () => {
-    // The whole reason this method exists rather than a call to
-    // `startLevel`: the world, its clock, its score and its seed are the
-    // ones the player was playing, and the simulation is still paused or still
-    // running as they left it.
+    // relocalize preserves the run in progress rather than restarting it: the world,
+    // its clock, its score and its seed stay exactly as the player left them.
     const { app, worldController } = setUp();
     app.handleRoute(...routeFor("#level=1,seed=issue-53"));
-    // Going rather than waiting on the Start button, which is the half of "as
-    // they left it" that a paused world would not prove.
     worldController.setPaused(false);
     const world = app.world;
     if (world === undefined) {
@@ -2797,14 +2203,11 @@ describe("App.relocalize", () => {
     expect(queryAll(".verdict", elements.feedback)).toHaveLength(1);
     expect(verdictTitle(elements)).toBe("Получилось!");
     expect(requireElement(".verdict p", elements.feedback).textContent).toBe("Уровень пройден");
-    // Redrawn from the remembered outcome, so the way on is offered again too,
-    // and to the same level.
+    // Redrawn from the remembered outcome, so the way on is offered again too, to the same level.
     expect(requireElement(".verdict a", elements.feedback).getAttribute("href")).toBe("#level=3");
   });
 
   it("does not announce an outcome to a run that has not reached one", () => {
-    // The container is empty for the whole of a run, which is most of the time
-    // a language gets changed. No card may appear over the building.
     const { app, elements } = setUp();
     app.startLevel(0);
 
@@ -2825,16 +2228,10 @@ describe("App.relocalize", () => {
     expect(requireElement(".errorline", editorPaneMount).textContent).toContain(
       "Ошибка в вашей программе",
     );
-    // Whatever the player's program threw is their JavaScript and is shown back
-    // to them untouched.
     expect(codeErrorMessage(editorPaneMount)).toContain("boom");
   });
 
   it("says the program the game handed the player again, in the new language", () => {
-    // The one region whose text is usually the player's own, and so the only
-    // one that has to ask before redrawing itself. A lesson's starting program
-    // is the game's own writing -- its `//` comments are the lesson -- and the
-    // language picker used to change every word on the page except those.
     const [lesson] = tutorialLevels;
     if (lesson === undefined) {
       throw new Error("The learning track has no levels");
@@ -2863,8 +2260,6 @@ describe("App.relocalize", () => {
   });
 
   it("has nothing to redraw before a level has been started", () => {
-    // The language can be chosen on a page that has only just loaded, before
-    // any route has been handled.
     const { app, elements } = setUp();
 
     setLocale("ru");
@@ -2880,10 +2275,9 @@ describe("App.relocalize", () => {
 
 describe("TIME_SCALE_STORAGE_KEY", () => {
   it("is exactly the key the legacy game wrote", () => {
-    // An on-disk compatibility contract with the browser of every player who
-    // has ever played: renaming the constant compiles, and every test that
-    // goes through the constant keeps passing, while quietly forgetting the
-    // speed they had chosen. The literal is pinned here on purpose.
+    // An on-disk compatibility contract with every player's browser: renaming the
+    // constant compiles and keeps every test passing while quietly losing their
+    // chosen speed. The literal is pinned here on purpose.
     expect(TIME_SCALE_STORAGE_KEY).toBe("elevatorTimeScale");
   });
 });
@@ -2917,10 +2311,6 @@ describe("readStoredSeed", () => {
   it.each(["rush hour", "", "a".repeat(65), "%20"])(
     "refuses %o, because no link could ever express it",
     (stored) => {
-      // Validated on the way out rather than trusted, for the reason `#seed=`
-      // is: this value is as editable as the address bar, and a stored string
-      // the router would turn away would become a seed the game plays and can
-      // never name.
       const storage = new MemoryStorage();
       storage.setItem(SEED_STORAGE_KEY, stored);
       expect(readStoredSeed(storage)).toBeUndefined();
@@ -2936,12 +2326,6 @@ describe("readStoredSeed", () => {
   });
 });
 
-// The specs below were `src/ui/presenters.test.ts` and three describe blocks
-// of `src/ui/templates.test.ts`, before `presentControls`, `relabelWorld`,
-// `clearAll`, `containsFocus`, `setDemoFullscreen` and `controlsTemplate`
-// folded into this module — see its own doc comment for why. Moved wholesale,
-// with only their imports and cross-references adjusted.
-
 describe("clearAll", () => {
   it("empties every element it is given", () => {
     const a = createElement("div", { children: [createElement("span")] });
@@ -2953,12 +2337,7 @@ describe("clearAll", () => {
 });
 
 describe("presentControls", () => {
-  /**
-   * Assembles controls options over a mutable controller.
-   *
-   * @param overrides - Callbacks and data to replace the defaults with.
-   * @returns The parent element and the options, both mutable.
-   */
+  /** Assembles controls options over a mutable controller. */
   function setUpControls(overrides: Partial<ControlsPresenterOptions> = {}): {
     parent: HTMLElement;
     options: {
@@ -3029,8 +2408,7 @@ describe("presentControls", () => {
   });
 
   it("passes the instant stop through to both halves at once", () => {
-    // One flag, read by two features: the speed shows the stop, and the
-    // primary button stops offering to resume a run a crunch would restart.
+    // One flag, read by two features: the speed shows the stop, and the primary button stops offering to resume.
     const { parent, options } = setUpControls({
       runStarted: (): boolean => true,
       instantSpeed: (): boolean => true,
@@ -3071,9 +2449,6 @@ describe("presentControls", () => {
   });
 
   it("keeps the element a keyboard player is standing on across an update", () => {
-    // The whole point of the row being drawn once: pressing Start over restarts
-    // the run, which used to delete the button that was pressed and drop focus
-    // on <body>. Nothing here is rebuilt, so there is nothing to restore.
     const { parent, options } = setUpControls();
     document.body.append(parent);
     const presenter = presentControls(parent, options);
@@ -3086,8 +2461,6 @@ describe("presentControls", () => {
   });
 
   it("lands focus on the start button when the app asks it to", () => {
-    // For the redraw that empties the region focus was in -- the overlay's
-    // "Next level" link, or the building -- which leaves focus on <body>.
     const { parent, options } = setUpControls();
     document.body.append(parent);
     const presenter = presentControls(parent, options);
@@ -3099,11 +2472,7 @@ describe("presentControls", () => {
 });
 
 describe("containsFocus", () => {
-  /**
-   * Attaches a container holding one button to the document.
-   *
-   * @returns The container and the button inside it.
-   */
+  /** Attaches a container holding one button to the document. */
   function mountContainer(): { container: HTMLElement; button: HTMLElement } {
     const button = createElement("button");
     const container = createElement("div", { children: [button] });
@@ -3126,8 +2495,8 @@ describe("containsFocus", () => {
   });
 
   it("ignores focus on a container itself, which survives being emptied", () => {
-    // .world is focusable so the verdict card has somewhere to put the
-    // keyboard; emptying its contents does not disturb the focus on it.
+    // .world is focusable so the verdict card has somewhere to put the keyboard;
+    // emptying its contents does not disturb the focus on it.
     const { container } = mountContainer();
     container.setAttribute("tabindex", "-1");
     container.focus();
@@ -3147,18 +2516,7 @@ describe("relabelWorld", () => {
     setLocale(DEFAULT_LOCALE);
   });
 
-  /**
-   * Draws a world into a fresh `.innerworld`, the way `widgets/building-stage`
-   * draws it live.
-   *
-   * A container per call, and never a second `presentBuildingStage` into a
-   * container that already holds a building: the presenter appends and
-   * subscribes, so drawing twice into one parent is the very thing
-   * `relabelWorld` exists to avoid.
-   *
-   * @param world - The world to draw.
-   * @returns The container it was drawn into.
-   */
+  /** Draws a world into a fresh `.innerworld`; never draw twice into one container, since the presenter appends and subscribes each call. */
   function draw(world: World): HTMLElement {
     const parent = createElement("div", { className: "innerworld" });
     document.body.append(parent);
@@ -3166,29 +2524,15 @@ describe("relabelWorld", () => {
     return parent;
   }
 
-  /**
-   * Every name assistive technology can read off a drawn building.
-   *
-   * In document order, which for a building is every floor's call buttons --
-   * two of them, except at the ends, where the lamp that could never light is
-   * not drawn -- and then every car followed by its in-car buttons, so two of
-   * these lists compare position by position without either side saying which
-   * key produced which entry.
-   *
-   * @param parent - A container a building has been drawn into.
-   * @returns The `aria-label` of every element inside it that carries one.
-   */
+  /** Every `aria-label` in a drawn building, in document order, so two buildings' names compare position by position. */
   function names(parent: HTMLElement): string[] {
     return queryAll("[aria-label]", parent).map((element) => element.ariaLabel ?? "");
   }
 
   it("renames a drawn building into exactly the names a freshly drawn one is born with", () => {
-    // The test the two paths are held together by. `entities/floor` and
-    // `entities/elevator` write these names through the templates when the
-    // building is first drawn, and `relabelWorld` writes them again over a
-    // building that is already on screen; if either one ever grows a label the
-    // other does not know about, or spells one differently, these two lists stop
-    // matching.
+    // Held together by two label-writing paths: `entities/floor`/`entities/elevator`
+    // label a building as it's first drawn, and `relabelWorld` labels one already
+    // on screen. If either changes a label, these two lists diverge.
     const drawnInEnglish = draw(createWorld({ floorCount: 3, elevatorCount: 2 }));
     const english = names(drawnInEnglish);
 
@@ -3197,11 +2541,6 @@ describe("relabelWorld", () => {
     relabelWorld(drawnInEnglish);
 
     expect(names(drawnInEnglish)).toEqual(names(drawnInRussian));
-    // And not vacuously: a building with no labels at all, or a `setLocale` that
-    // did nothing, would satisfy the line above on its own.
-    // Twelve: three floors carrying four call buttons between them -- the
-    // lobby's "up", the middle floor's two, the roof's "down" -- plus two cars
-    // and their three in-car buttons each.
     expect(names(drawnInRussian)).toHaveLength(12);
     expect(names(drawnInEnglish)).not.toEqual(english);
     expect(english[0]).toBe("Call an elevator going up from floor 0");
@@ -3209,9 +2548,6 @@ describe("relabelWorld", () => {
   });
 
   it("leaves the run in progress standing: the same elements, still wired, still lit", () => {
-    // A language change must cost the player nothing. The building is not drawn
-    // again, so every element a passenger is riding in or a click has lit is the
-    // one that was there before.
     const world = createWorld({ floorCount: 3, elevatorCount: 1 });
     const parent = draw(world);
     const called = requireElement("button.up", queryAll(".floor", parent)[1] ?? parent);
@@ -3223,17 +2559,14 @@ describe("relabelWorld", () => {
     setLocale("ru");
     relabelWorld(parent);
 
-    // Identity, element by element: `toEqual` on nodes compares markup, and
-    // markup is exactly what a redraw would reproduce.
+    // Identity, element by element: `toEqual` on nodes compares markup, which is
+    // exactly what a redraw would reproduce.
     const elementsAfter = queryAll("*", parent);
     expect(elementsAfter).toHaveLength(elementsBefore.length);
     for (const [index, element] of elementsAfter.entries()) {
       expect(element).toBe(elementsBefore[index]);
     }
     expect(requireElement("button.up", queryAll(".floor", parent)[1] ?? parent)).toBe(called);
-    // Both halves of the building read `is-lit` now: the floor's own call lamp
-    // and the order mark along the shaft, which is what an in-car floor button
-    // is drawn as since the cabin's grid of digits went.
     expect(called.classList.contains("is-lit")).toBe(true);
     expect(called.getAttribute("aria-pressed")).toBe("true");
     expect(carButton?.classList.contains("is-lit")).toBe(true);
@@ -3243,8 +2576,6 @@ describe("relabelWorld", () => {
   });
 
   it("keeps the buttons answering the world they were drawn from", () => {
-    // Renaming an element by hand is the kind of change that can quietly replace
-    // it. A click has to still reach the floor it was wired to afterwards.
     const world = createWorld({ floorCount: 3, elevatorCount: 1 });
     const parent = draw(world);
 
@@ -3258,8 +2589,6 @@ describe("relabelWorld", () => {
   });
 
   it("has nothing to say to a container with no building in it", () => {
-    // The world container is empty between runs and while a level is being
-    // loaded, and a language can be chosen at either moment.
     const parent = createElement("div", { className: "innerworld" });
     document.body.append(parent);
 
@@ -3286,9 +2615,6 @@ describe("the language the interface comes out in", () => {
   });
 
   it("relabels every run control on the next update", () => {
-    // The row is drawn once for the life of the page, so a language change is
-    // an `update()` and nothing else: every word it shows is read from the
-    // catalog at the moment it is written.
     const parent = createElement("div", { className: "controls" });
     const worldController = { isPaused: true, timeScale: 20 };
     let levelEnded = false;
@@ -3335,20 +2661,12 @@ describe("the language the interface comes out in", () => {
 
 describe("controlsTemplate", () => {
   it("composes the two features in the order they are read in", () => {
-    // `.runbox` then `.speed`: what the player came for, then the setting on
-    // how to watch it. Two elements rather than one wrapper each, because the
-    // stylesheet gives `.controls` the app bar's own gap, which then spaces the
-    // pair like every other child of `.appbar`.
     const fragment = renderFragment(controlsTemplate());
 
     expect([...fragment.children].map((child) => child.className)).toEqual(["runbox", "speed"]);
   });
 
   it("draws both run buttons in one box, in the order they are read in", () => {
-    // One box, because these two are one thing -- the run -- where the speed
-    // beside them is a setting. Reset/undo-reset moved to the editor pane's
-    // own codetools (see `widgets/editor-pane`'s own tests), and "Run
-    // instantly" became the last stop of the speed control.
     const fragment = renderFragment(controlsTemplate());
     const buttons = [...(fragment.querySelector(".runbox")?.children ?? [])];
 
@@ -3360,9 +2678,6 @@ describe("controlsTemplate", () => {
   });
 
   it("ships every word of it empty, for the presenter to write", () => {
-    // The region is drawn once for the life of the page, so a label baked in
-    // here would still be in the language the page opened in after a change of
-    // language. `presentControls.update` writes all of them.
     const fragment = renderFragment(controlsTemplate());
 
     expect(
@@ -3373,12 +2688,9 @@ describe("controlsTemplate", () => {
   });
 
   it("announces the speed as it changes, without interrupting", () => {
-    // presentControls.update rewrites .speed-val's text on every click of
-    // the two speed buttons, which without aria-live would happen in perfect
-    // silence for a screen reader -- the number changes and nothing is said.
-    // Polite rather than assertive: a player holding a speed button down can
-    // change it several times a second, and an assertive region interrupts
-    // whatever is already being read to announce each one in turn.
+    // Without aria-live, a screen reader would say nothing as the number changes.
+    // Polite, not assertive: holding a speed button changes it several times a
+    // second, and assertive would interrupt whatever is already being read.
     const fragment = renderFragment(controlsTemplate());
     expect(fragment.querySelector(".speed-val")?.getAttribute("aria-live")).toBe("polite");
   });

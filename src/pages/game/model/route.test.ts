@@ -28,12 +28,7 @@ const CONTEXT = {
   defaultTimeScale: DEFAULT_TIME_SCALE,
 };
 
-/**
- * Resolves a location hash the way the running game does.
- *
- * @param hash - The location hash.
- * @returns The validated route parameters.
- */
+/** Resolves a location hash the way the running game does. */
 function route(hash: string): ReturnType<typeof resolveRoute> {
   return resolveRoute(parseQuery(hash), CONTEXT);
 }
@@ -44,13 +39,9 @@ class FakeTarget implements RouterTarget {
   /** Every url the router has rewritten the address bar to, in order. */
   readonly replaced: string[] = [];
   /**
-   * The two things the router uses a real `History` for.
-   *
-   * `replaceState` moves the location as a browser's does, because that is the
-   * half the router reads back: it takes the hash it compares later from
-   * `location`, not from the url it just wrote, and a browser and this stand-in
-   * disagree about `"#"` — which resolves to a URL whose fragment is empty, so
-   * `location.hash` afterwards is `""`.
+   * Mimics a real `History`: `replaceState` updates `location`, since the router reads the
+   * hash back from there, and a real browser resolves `"#"` to an empty fragment, so this
+   * stand-in must too.
    */
   readonly history = {
     state: null as unknown,
@@ -72,12 +63,7 @@ class FakeTarget implements RouterTarget {
     this.#listeners.get(type)?.delete(listener);
   }
 
-  /**
-   * Navigates, then raises the event a browser would raise.
-   *
-   * @param hash - The new location hash.
-   * @param type - The event to raise.
-   */
+  /** Navigates, then raises the event a browser would raise. */
   navigate(hash: string, type: "hashchange" | "popstate" = "hashchange"): void {
     this.location = { hash };
     for (const listener of this.#listeners.get(type) ?? []) {
@@ -92,9 +78,8 @@ class FakeTarget implements RouterTarget {
 }
 
 beforeEach(() => {
-  // Cleared as well as silenced: the spy outlives the spec that installed it,
-  // so the ones that assert on what was warned would otherwise see the whole
-  // file's warnings.
+  // Cleared as well as silenced: the spy outlives the spec, so uncleared warnings from
+  // earlier tests would leak into later assertions.
   vi.spyOn(console, "warn")
     .mockImplementation(() => undefined)
     .mockClear();
@@ -102,19 +87,11 @@ beforeEach(() => {
 
 describe("createParamsUrl composed with resolveRoute", () => {
   it("keeps a round-tripped level address opening the same level", () => {
-    // route-query.test.ts checks that createParamsUrl(parseQuery(hash)) is the
-    // hash unchanged; this checks that the address which survives the round
-    // trip still resolves to the same level, and not just the same string.
     const hash = "#level=tutorial-3,timescale=8,fullscreen=true";
     expect(route(createParamsUrl(parseQuery(hash))).tutorialIndex).toBe(2);
   });
 
   it("takes a player on a level off the track when the navigation row rewrites the key", () => {
-    // Every entry of the row is `createParamsUrl(query, { [LEVEL_KEY]: index +
-    // 1, seed: null })` (src/pages/game/index.ts), and `level` is the key a level
-    // address is written into -- so clicking level 5 from level 3 replaces
-    // the track rather than joining it. The row is the way out, and no separate
-    // "leave the track" link is needed to build one.
     const query = parseQuery("#level=tutorial-3,timescale=8");
     const url = createParamsUrl(query, { [LEVEL_KEY]: 5, seed: null });
     expect(url).toBe("#level=5,timescale=8");
@@ -132,10 +109,8 @@ describe("the legacy level key", () => {
   });
 
   it("hands back the very query it was given when there is nothing to rename", () => {
-    // Object identity, not equality: it is what `startRouter` compares to decide
-    // whether a hash needs correcting at all, so a fresh copy of an unchanged
-    // query would rewrite the address bar of every player who never used the old
-    // spelling.
+    // Object identity, not equality: startRouter compares by reference to decide whether a
+    // hash needs correcting, so a fresh copy here would rewrite the address bar on every visit.
     for (const hash of ["#level=5,timescale=8", "#timescale=8", ""]) {
       const query = parseQuery(hash);
       expect(renameLegacyLevelKey(query), hash).toBe(query);
@@ -143,9 +118,8 @@ describe("the legacy level key", () => {
   });
 
   it("keeps the modern key when a url names both", () => {
-    // `level` is what this game writes, so it is the one the player's last click
-    // chose. Dropping it in favor of the legacy spelling would let a link
-    // carrying both turn into two spellings of one parameter on every follow.
+    // `level` reflects the player's most recent click; keeping the legacy value instead
+    // would let a link carrying both spellings persist forever.
     const both = renameLegacyLevelKey(parseQuery("#challenge=5,level=9,timescale=8"));
     expect([...both]).toEqual([
       [LEVEL_KEY, "9"],
@@ -155,9 +129,6 @@ describe("the legacy level key", () => {
   });
 
   it("opens exactly what the same url spelled the new way opens", () => {
-    // Every branch the key has a value for: a number, the sandbox, the track,
-    // the Skyscraper block. The one property that matters for a bookmark is
-    // that no spelling is read more carefully than another.
     for (const value of ["5", "sandbox", "tutorial-3", "sky-1", "abc", "19"]) {
       expect(route(`#challenge=${value}`), value).toEqual(route(`#level=${value}`));
     }
@@ -226,9 +197,6 @@ describe("resolveRoute level validation", () => {
   });
 
   it("falls back to the first level for a number that is not one", () => {
-    // The legacy code computed _.parseInt("abc") - 1 === NaN, and both NaN < 0
-    // and NaN >= levels.length are false, so NaN reached
-    // levels[NaN].options and the page died before drawing anything.
     for (const hash of ["#level=abc", "#level=", "#level=NaN"]) {
       expect(route(hash).levelIndex, hash).toBe(0);
     }
@@ -241,9 +209,7 @@ describe("resolveRoute level validation", () => {
   });
 
   it("refuses a level number with anything else attached to it", () => {
-    // Number.parseInt reads as far as it understands and stops: "3abc" was
-    // level 3 and "3.5" was level 3, with nothing said about the rest of
-    // what the player had written. Number reads the whole string or nothing.
+    // Number reads the whole string or nothing, unlike parseInt, which would read "3abc" as 3.
     for (const value of ["3abc", "3.5", "3px", "0x"]) {
       expect(route(`#level=${value}`).levelIndex, value).toBe(0);
       expect(console.warn).toHaveBeenCalledWith(
@@ -253,10 +219,7 @@ describe("resolveRoute level validation", () => {
   });
 
   it("refuses an exponent instead of landing on the first level by accident", () => {
-    // #level=1e9 reached level 1 before this, and looked like a refusal
-    // because the first level is where a refusal lands too -- but parseInt
-    // had read "1" and stopped at the "e", so nothing was refused and nothing
-    // was said. What makes it a refusal is the warning.
+    // The warning is what proves this is a refusal, not an accidental landing on level one.
     expect(route("#level=1e9").levelIndex).toBe(0);
     expect(console.warn).toHaveBeenCalledWith(
       `Invalid level "1e9", starting the first level instead`,
@@ -266,12 +229,6 @@ describe("resolveRoute level validation", () => {
 
 describe("resolveRoute with no level locking", () => {
   it("opens any level in range, whatever this browser has cleared", () => {
-    // Levels used to shut until the one before them was cleared, here as
-    // much as in the switcher: `#level=18` from a browser that had finished
-    // nothing was answered with the furthest level it had earned, plus a
-    // warning, plus `level` in `refusedKeys` so the address bar stopped
-    // naming a level nobody was playing. Every level is open now, so an
-    // address is taken at its word and the record is not consulted at all.
     for (const number of [1, 5, 18]) {
       const params = route(`#level=${String(number)}`);
 
@@ -282,10 +239,6 @@ describe("resolveRoute with no level locking", () => {
   });
 
   it("still refuses a number that names no level", () => {
-    // Existing is the one test left. `#level=99` is refused for not being a
-    // level at all, which is a different answer from the one a shut level
-    // used to get: the first level and a warning, rather than the nearest
-    // level this browser had earned.
     const params = route("#level=99");
 
     expect(params.levelIndex).toBe(0);
@@ -303,9 +256,8 @@ describe("resolveRoute sandbox selection", () => {
   });
 
   it("ignores sandbox parameters while a numbered level is being played", () => {
-    // They are carried across a jump by the level switcher, which rewrites
-    // `level` and keeps everything else. Inert here, and
-    // still there if the player goes back to the sandbox.
+    // Carried across by the level switcher's link rewrite, so the values stay inert here but
+    // are still there if the player returns to the sandbox.
     const params = route("#level=4,floors=50,elevators=9,spawnrate=7");
     expect(params.sandbox).toBeNull();
     expect(params.levelIndex).toBe(3);
@@ -328,8 +280,7 @@ describe("resolveRoute sandbox selection", () => {
   });
 
   it("starts a building known to be playable when no parameters are given", () => {
-    // Level 4's shape, so that a bare #level=sandbox is something to
-    // watch rather than something degenerate.
+    // Mirrors level 4's shape, so a bare sandbox default is worth watching, not degenerate.
     expect(route("#level=sandbox").sandbox).toEqual({
       floorCount: 8,
       elevatorCount: 2,
@@ -361,8 +312,7 @@ describe("resolveRoute sandbox validation", () => {
   /**
    * Resolves a sandbox hash, which always names a building.
    *
-   * @param hash - The sandbox parameters, without the `level=sandbox`.
-   * @returns The building the route asks for.
+   * @param hash - The sandbox parameters, without `level=sandbox`.
    */
   function sandbox(hash: string): SandboxOptions {
     const params = route(`#level=${SANDBOX_LEVEL},${hash}`);
@@ -373,8 +323,7 @@ describe("resolveRoute sandbox validation", () => {
   }
 
   it("falls back for a floor count that is not a whole number", () => {
-    // 8.5 is refused rather than rounded: quietly playing a building the player
-    // did not ask for is how an afternoon disappears into a debugger.
+    // Refused rather than rounded, so a typo like 8.5 doesn't silently start a different building.
     for (const value of ["abc", "", "NaN", "Infinity", "8.5", "8px"]) {
       expect(sandbox(`floors=${value}`).floorCount, value).toBe(8);
     }
@@ -382,13 +331,12 @@ describe("resolveRoute sandbox validation", () => {
   });
 
   it("clamps a floor count the page cannot draw", () => {
-    // A single floor makes spawnUserRandomly draw randomInt(1, 0), which is 1 —
-    // a destination floor that does not exist, so nobody is ever delivered.
+    // A single floor makes spawnUserRandomly draw a destination floor that doesn't exist, so
+    // nobody is ever delivered.
     expect(sandbox("floors=1").floorCount).toBe(2);
     expect(sandbox("floors=0").floorCount).toBe(2);
     expect(sandbox("floors=-20").floorCount).toBe(2);
-    // 50px a floor and one in-car button per floor per elevator: 100000 floors
-    // is millions of elements and a tab that never draws a frame.
+    // 100000 floors means millions of DOM elements and a tab that never draws a frame.
     expect(sandbox("floors=100000").floorCount).toBe(60);
     expect(sandbox("floors=1e9").floorCount).toBe(60);
   });
@@ -408,15 +356,12 @@ describe("resolveRoute sandbox validation", () => {
   });
 
   it("keeps only the elevators that fit once the capacities widen them", () => {
-    // A car is drawn `capacity * 10` wide, on a 20px gap, from x=200 in a 938px
-    // building — so the ceiling of twelve only holds at the default capacity.
-    // Clamping the two numbers apart would accept elevators=12,capacities=30
-    // and draw ten of the twelve cars through the wall, where .worldtrack clips
-    // them: simulated, controllable from player code, and invisible.
+    // A car is capacity * 10 px wide; clamping elevator count and capacities separately
+    // could still overflow the building, drawing cars through the wall where .worldtrack
+    // clips them — simulated and controllable, but invisible.
     expect(sandbox("elevators=12,capacities=30").elevatorCount).toBe(2);
     expect(sandbox("elevators=12,capacities=5").elevatorCount).toBe(10);
-    // Mixed widths are measured car by car, not by the widest of them: four
-    // alternating 300px and 10px cars end at x=880, the fifth would end at 1200.
+    // Mixed widths are measured car by car, not by the widest one.
     expect(sandbox("elevators=5,capacities=30-1").elevatorCount).toBe(4);
     expect(console.warn).toHaveBeenCalledWith(
       "Sandbox elevators 12 do not fit the building at these capacities, using 2 instead",
@@ -432,15 +377,13 @@ describe("resolveRoute sandbox validation", () => {
   it("reads one capacity or a whole cycle of them", () => {
     expect(sandbox("capacities=6").elevatorCapacities).toEqual([6]);
     expect(sandbox("elevators=3,capacities=6-9-2").elevatorCapacities).toEqual([6, 9, 2]);
-    // Fewer capacities than cars is the cycling case the world supports, and is
-    // left exactly as written.
+    // Fewer capacities than cars is the cycling case the world supports, so it's left as
+    // written.
     expect(sandbox("elevators=5,capacities=6-9").elevatorCapacities).toEqual([6, 9]);
   });
 
   it("rejects the whole capacity list when one entry is unreadable", () => {
-    // Dropping the bad entry would slide every capacity after it onto a
-    // different elevator, and the bar would still report it as what was asked
-    // for.
+    // Dropping just the bad entry would slide every capacity after it onto a different elevator.
     for (const value of ["abc", "", "6-abc", "6-", "-6", "6--9"]) {
       expect(sandbox(`capacities=${value}`).elevatorCapacities, value).toEqual([4]);
     }
@@ -452,10 +395,8 @@ describe("resolveRoute sandbox validation", () => {
   });
 
   it("keeps only as many capacities as there are elevators", () => {
-    // The world reads capacities[i % capacities.length] once per car, so entries
-    // past the last car never reach one — but the sandbox's own description
-    // prints the list it is given, so leaving them in would describe a building
-    // that does not exist.
+    // The world reads capacities[i % capacities.length] per car, so entries past the last
+    // car never get used — but the sandbox's own description would still print them.
     expect(sandbox("elevators=1,capacities=6-9").elevatorCapacities).toEqual([6]);
     expect(sandbox("elevators=3,capacities=6-9-2-7-8").elevatorCapacities).toEqual([6, 9, 2]);
     expect(console.warn).toHaveBeenCalledWith(
@@ -464,15 +405,13 @@ describe("resolveRoute sandbox validation", () => {
   });
 
   it("stops parsing a capacity list long before it can slow the page down", () => {
-    // Cut to the twelve-elevator ceiling before clamping, so a hash listing
-    // thousands of cars costs thousands of Number calls and not thousands of
-    // console warnings; the real elevator count then cuts it again.
+    // Cut to the twelve-elevator ceiling before clamping, so a hash listing thousands of
+    // cars costs thousands of Number calls, not thousands of console warnings.
     const long = `capacities=${Array.from({ length: 40 }, () => "99").join("-")}`;
     expect(sandbox(`elevators=12,${long}`).elevatorCapacities).toHaveLength(2);
     expect(vi.mocked(console.warn).mock.calls).toHaveLength(
-      // One for the 40 entries, twelve clamping 99 to 30, one for the ten cars
-      // of capacity 30 that do not fit, one for the capacities they took with
-      // them.
+      // One for the 40 entries, twelve for clamping each to 30, one for the ten cars that
+      // don't fit, one for the capacities they took with them.
       1 + 12 + 1 + 1,
     );
   });
@@ -484,11 +423,9 @@ describe("resolveRoute sandbox validation", () => {
   });
 
   it("never lets the spawn rate freeze or empty the world", () => {
-    // World.update runs `while (elapsedSinceSpawn > 1 / spawnRate)` and
-    // subtracts `1 / spawnRate` each time round. A negative rate makes that
-    // subtraction an addition, so the loop never terminates and the tab hangs
-    // on the very first frame; zero divides to Infinity and nobody ever
-    // appears. Both are exactly the class of bug this module exists for.
+    // World.update loops `while (elapsedSinceSpawn > 1 / spawnRate)`, subtracting `1 /
+    // spawnRate` each time: a negative rate turns that into an infinite loop that hangs the
+    // tab, and zero divides to Infinity so nobody ever spawns.
     expect(sandbox("spawnrate=-1").spawnRate).toBe(0.01);
     expect(sandbox("spawnrate=0").spawnRate).toBe(0.01);
     expect(sandbox("spawnrate=100000").spawnRate).toBe(10);
@@ -527,9 +464,8 @@ describe("resolveRoute tutorial selection", () => {
   });
 
   it("opens the level its address names, zero-based", () => {
-    // Spelled out rather than generated, because these eight strings are the
-    // promise: they are handed round in links, and a link somebody already
-    // shared has to keep working.
+    // Spelled out rather than generated from the table: these are the exact addresses
+    // shared in links, and a link already out there has to keep working.
     for (let number = 1; number <= 8; number += 1) {
       const hash = `#level=tutorial-${String(number)}`;
       expect(route(hash).tutorialIndex, hash).toBe(number - 1);
@@ -538,8 +474,7 @@ describe("resolveRoute tutorial selection", () => {
   });
 
   it("reaches every level in the table by the id it carries", () => {
-    // The router's whole grammar for the track is the table's ids, so a level
-    // renamed or moved takes its address with it instead of handing somebody's
+    // A level renamed or moved takes its address with it, instead of handing somebody's
     // bookmark to a different level.
     tutorialLevels.forEach((level, index) => {
       expect(route(`#level=${level.id}`).tutorialIndex, level.id).toBe(index);
@@ -548,17 +483,15 @@ describe("resolveRoute tutorial selection", () => {
   });
 
   it("spells every level id the way it recognizes one", () => {
-    // The prefix is the one thing about a level address the router states for
-    // itself, and it is what tells a mistyped one from a level number. A
-    // level renamed out of this shape would not be oddly named, it would be
-    // unreachable -- so the two are checked against each other here.
+    // The prefix is what tells a mistyped address from a level number; a level renamed out
+    // of this shape wouldn't be oddly named, it would be unreachable.
     for (const level of tutorialLevels) {
       expect(level.id.startsWith(TUTORIAL_LEVEL_PREFIX), level.id).toBe(true);
     }
   });
 
   it("reads a level address however it is capitalized", () => {
-    // Folded where it is read, as `sandbox` is, and not for every value at once.
+    // Case-folded where it's read, as `sandbox` is, not normalized up front.
     expect(route("#level=TUTORIAL-3").tutorialIndex).toBe(2);
     expect(route("#LEVEL=Tutorial-3").tutorialIndex).toBe(2);
     expect(console.warn).not.toHaveBeenCalled();
@@ -573,7 +506,7 @@ describe("resolveRoute tutorial selection", () => {
   });
 
   it("never resolves a level and a sandbox at once", () => {
-    // One key, four things it can name. Nothing spells two of them.
+    // One key names one of four things; nothing spells two at once.
     const level = route("#level=tutorial-3");
     expect(level.tutorialIndex).toBe(2);
     expect(level.sandbox).toBeNull();
@@ -585,8 +518,8 @@ describe("resolveRoute tutorial selection", () => {
   });
 
   it("ignores sandbox parameters while a level is being played", () => {
-    // Carried across by the navigation row, inert here, and still there if the
-    // player goes back to the sandbox -- exactly as on a numbered level.
+    // Carried across by the navigation row, inert here, and still there if the player goes
+    // back to the sandbox, exactly as on a numbered level.
     const params = route("#level=tutorial-3,floors=50,elevators=9");
     expect(params.tutorialIndex).toBe(2);
     expect(params.sandbox).toBeNull();
@@ -594,8 +527,8 @@ describe("resolveRoute tutorial selection", () => {
   });
 
   it("is not selected by something that merely looks like it", () => {
-    // The prefix is exact, as `sandboxes` is not the sandbox: a value that is
-    // not a level address is a level number, and is refused as one.
+    // The prefix is exact, as `sandboxes` is not the sandbox: a value that isn't a level
+    // address is a level number, and is refused as one.
     for (const value of ["tutorial", "tutorials-1", "atutorial-1"]) {
       const params = route(`#level=${value}`);
       expect(params.tutorialIndex, value).toBeNull();
@@ -609,9 +542,8 @@ describe("resolveRoute tutorial selection", () => {
 
 describe("resolveRoute tutorial validation", () => {
   it("lands a wrong level address on the first level, not on the first level", () => {
-    // The player asked for the track, so the closest thing to what they asked
-    // for is where the track starts. Landing on level 1 would answer a
-    // question about the track with a level.
+    // The player asked for the track, so the closest thing to what they asked for is where
+    // the track starts. Landing on level 1 would answer a question about the track with a level.
     for (const value of [
       "tutorial-0",
       "tutorial-9",
@@ -632,15 +564,9 @@ describe("resolveRoute tutorial validation", () => {
   });
 
   it("refuses the numbers Number() would have read for a name", () => {
-    // Deliberate, and the reason the addresses are compared rather than parsed:
-    // `01`, `1e0` and `1.0` are ways of writing the number one, and none of them
-    // is a way of writing the name `tutorial-1`. `Number` accepts all three --
-    // and reads `tutorial-` as 0 and `tutorial- 1` as 1 besides, the two traps
-    // resolveLevelIndex and resolveSandboxInteger already document.
-    //
-    // Each still lands on the first level, which is where `tutorial-1` lands, so
-    // the warning and the refusal are the only things that tell the two apart:
-    // the same point #level=1e9 makes on the level side.
+    // `tutorial-01`, `tutorial-1e0` and `tutorial-1.0` are numeric spellings of one, not of
+    // the name `tutorial-1` — ids are matched as strings, not parsed as numbers, so none of
+    // these resolve to level one by accident.
     for (const value of ["tutorial-01", "tutorial-1e0", "tutorial-1.0", "tutorial-0x1"]) {
       const params = route(`#level=${value}`);
       expect(params.tutorialIndex, value).toBe(0);
@@ -652,9 +578,8 @@ describe("resolveRoute tutorial validation", () => {
   });
 
   it("keeps the rest of the url working on the track", () => {
-    // Every parameter but one behaves on a level address exactly as it does on a
-    // level. `seed` is the exception, and is refused rather than read: see
-    // "resolveRoute seed on the learning track" for what it would cost.
+    // Every parameter but `seed` behaves on a level address exactly as it does on a
+    // numbered level.
     expect(route("#level=tutorial-3,seed=issue-61,timescale=8,fullscreen=true")).toEqual({
       levelIndex: 0,
       sandbox: null,
@@ -668,13 +593,8 @@ describe("resolveRoute tutorial validation", () => {
   });
 
   it("refuses an unusable value on the track exactly as anywhere else", () => {
-    // Named for what it still checks. It said "the rest of the url" until `seed`
-    // stopped being refused here for the reason it is refused everywhere else --
-    // `rush hour` is unusable, but on the track even a good seed goes, so this
-    // case no longer says anything about `seed` that is particular to the track.
-    // What it does say is that adding the track's own refusal did not disturb
-    // the ordinary ones, and that the two kinds arrive in one list in the order
-    // the URL wrote them.
+    // Two different reasons to refuse a key — an unusable value and the track's own seed
+    // policy — arrive in one list, in the order the URL wrote them.
     const params = route("#level=tutorial-3,timescale=fast,seed=rush hour");
     expect(params.tutorialIndex).toBe(2);
     expect(params.timeScale).toBe(DEFAULT_TIME_SCALE);
@@ -697,9 +617,8 @@ describe("resolveRoute skyscraper selection", () => {
   });
 
   it("reaches every level in the table by the id it carries", () => {
-    // Spelled out of the table rather than counted, because the block is the
-    // one still being written: however many entries it has today, each is
-    // reachable by the id it carries and by nothing else.
+    // Iterated from the table rather than a fixed count, since the block's entries are
+    // still being added.
     skyscraperLevels.forEach((level, index) => {
       expect(route(`#level=${level.id}`).skyscraperIndex, level.id).toBe(index);
     });
@@ -707,9 +626,8 @@ describe("resolveRoute skyscraper selection", () => {
   });
 
   it("spells every level id the way it recognizes one", () => {
-    // The prefix is the one thing about the block's addresses the router states
-    // for itself, exactly as it does for the track, and a level renamed out of
-    // this shape would be unreachable rather than oddly named.
+    // As with the track's addresses, a level renamed out of this prefix would be
+    // unreachable rather than oddly named.
     for (const level of skyscraperLevels) {
       expect(level.id.startsWith(SKYSCRAPER_LEVEL_PREFIX), level.id).toBe(true);
     }
@@ -730,21 +648,18 @@ describe("resolveRoute skyscraper selection", () => {
   });
 
   it("never resolves a skyscraper level beside another thing the key can name", () => {
-    // The fourth of the four, and the same rule as the other three: no value
-    // spells two of them.
+    // No value spells two of the four things this key can name.
     const params = route("#level=sky-1,floors=50,elevators=9");
     expect(params.skyscraperIndex).toBe(0);
     expect(params.tutorialIndex).toBeNull();
     expect(params.sandbox).toBeNull();
-    // Carried across by the switcher's links, inert here, and still there if
-    // the player goes back to the sandbox -- exactly as on a level of the track.
+    // Carried across by the switcher's links, inert here, exactly as on a level of the track.
     expect(params.refusedKeys).toEqual([]);
   });
 
   it("is not selected by something that merely looks like it", () => {
-    // The prefix is exact, as `sandboxes` is not the sandbox. `skyscraper-1` is
-    // the spelling the block deliberately does not use, so it is not an address
-    // in the block at all -- it is a level number, and is refused as one.
+    // `skyscraper-1` is the spelling the block deliberately does not use, so it is a level
+    // number here, and is refused as one.
     for (const value of ["sky", "skyscraper-1", "asky-1"]) {
       const params = route(`#level=${value}`);
       expect(params.skyscraperIndex, value).toBeNull();
@@ -758,12 +673,9 @@ describe("resolveRoute skyscraper selection", () => {
 
 describe("resolveRoute skyscraper validation", () => {
   it("lands a wrong skyscraper address on the block's first level", () => {
-    // The player asked for the block, so where the block starts is the closest
-    // thing to what they asked for -- and `sky-01`, `sky-1e0` and `sky- 1` are
-    // in the list for the reason the track's own copy of it gives: each is a way
-    // of writing the number one, and none is a way of writing the *name*
-    // `sky-1`. Each lands where `sky-1` lands, so the warning and the refusal
-    // are the only things that tell a wrong address from a right one.
+    // `sky-01`, `sky-1e0` and `sky- 1` are ways of writing the number one, not the name
+    // `sky-1` — each lands where `sky-1` lands, so only the warning and the refusal tell a
+    // wrong address from a right one.
     for (const value of [
       "sky-0",
       "sky-99",
@@ -786,8 +698,8 @@ describe("resolveRoute skyscraper validation", () => {
   });
 
   it("keeps the rest of the url working in the block", () => {
-    // Every parameter but one behaves on a skyscraper address exactly as it does
-    // on a numbered level; `seed` is the exception, and has its own section.
+    // Every parameter but `seed` behaves on a skyscraper address exactly as it does on a
+    // numbered level.
     expect(route("#level=sky-1,timescale=8,fullscreen=true")).toEqual({
       levelIndex: 0,
       sandbox: null,
@@ -819,31 +731,22 @@ describe("resolveRoute refusals", () => {
   });
 
   it("names the sandbox parameters it refused, and not the ones it clamped", () => {
-    // The distinction the whole list rests on. `floors=100000` still describes
-    // the building on screen -- it reads as sixty every time and the bar prints
-    // sixty -- so the url may go on saying it. `elevators=many` describes
-    // nothing.
+    // The distinction the whole list rests on: `floors=100000` still describes the building
+    // on screen (it always reads as sixty), but `elevators=many` describes nothing.
     expect(route("#level=sandbox,floors=100000,elevators=many").refusedKeys).toEqual(["elevators"]);
   });
 
   it("does not name a key that was simply absent", () => {
-    // A refusal and an absence resolve to the same value, which is why the
-    // resolvers record this rather than a later pass working it out: from the
-    // outside, `#level=abc` and `#` are both level one.
+    // A refusal and an absence resolve to the same value, so the resolvers record refusals
+    // themselves rather than a later pass working it out.
     expect(route("#level=abc").levelIndex).toBe(route("").levelIndex);
     expect(route("").refusedKeys).toEqual([]);
   });
 
   it("refuses a key to exactly the value its absence would have given", () => {
-    // What makes dropping a refused key from the url a rewrite that changes no
-    // route. If this ever stops holding, correcting the address bar starts
-    // changing the run the player is watching.
-    //
-    // The one refusal that lands where absence does not spell -- a level
-    // address no level has -- is not exempt from that: the corrected url has
-    // to resolve to the run on screen either way, so it is rewritten rather
-    // than dropped, and `startRouter` is where it is checked against the run
-    // it left the player in.
+    // The invariant behind the whole refusedKeys list: dropping a refused key must resolve
+    // to the same route, or correcting the address bar would change the run the player is
+    // watching.
     const refused = route("#level=abc,timescale=fast,seed=rush hour,floors=none");
     const absent = route("");
     expect(refused.refusedKeys.length).toBeGreaterThan(0);
@@ -858,10 +761,8 @@ describe("resolveRoute seed validation", () => {
   });
 
   it("keeps a numeric seed as the string the url spells it with", () => {
-    // Never converted to a number, although RandomSeed accepts one:
-    // createRandomSource hashes String(seed), so the two are the same stream,
-    // while Number would read 0123 as 123 and 1e3 as 1000 -- three URLs
-    // collapsing onto two runs, none of which say what they replay.
+    // Kept as a string, not converted to a Number: Number would read `0123` as 123 and
+    // `1e3` as 1000, collapsing distinct URLs onto the same run.
     expect(route("#seed=1234567890").seed).toBe("1234567890");
     expect(route("#seed=0123").seed).toBe("0123");
     expect(route("#seed=1e3").seed).toBe("1e3");
@@ -873,29 +774,25 @@ describe("resolveRoute seed validation", () => {
   });
 
   it("reads a seed the same whichever side the space is on", () => {
-    // parseQuery drops whitespace around every value, so two hashes that look
-    // alike name one passenger stream. No browser can deliver either of these:
-    // it would send the space as %20, which is refused just below -- and that
-    // refusal, not this leniency, is what a player pasting a spaced URL meets.
+    // parseQuery trims whitespace around every value, so these look alike but neither is
+    // reachable from a browser: a real space becomes %20, which is refused instead.
     expect(route("#seed= 5").seed).toBe("5");
     expect(route("#seed=5 ").seed).toBe("5");
     expect(route("#seed=%205").seed).toBeNull();
   });
 
   it("refuses a seed that could not survive the address bar", () => {
-    // A browser percent-encodes anything outside the ASCII token set on its way
-    // into location.hash, so "#seed=rush hour" comes back as "rush%20hour",
-    // which hashes to a different stream and sends different people into the
-    // building than the ones the link was shared for. The building itself comes
-    // from the level number or the sandbox parameters, not from here.
+    // A browser percent-encodes anything outside the ASCII token set on its way into
+    // location.hash, so "rush hour" becomes "rush%20hour" and hashes to a different stream
+    // than the one a shared link was meant to replay.
     for (const hash of ["#seed=rush hour", "#seed=привет", "#seed=a/b", "#seed=100%"]) {
       expect(route(hash).seed, hash).toBeNull();
     }
   });
 
   it("refuses an empty seed and a seed too long to carry", () => {
-    // The seed rides in every tile of the level switcher, so it is written
-    // into the page a couple of dozen times over.
+    // The seed is written into every tile of the level switcher, so a long one bloats the
+    // page many times over.
     expect(route("#seed").seed).toBeNull();
     expect(route("#seed=").seed).toBeNull();
     expect(route(`#seed=${"9".repeat(64)}`).seed).toBe("9".repeat(64));
@@ -917,10 +814,9 @@ describe("resolveRoute seed validation", () => {
 
 describe("resolveRoute seed on the learning track", () => {
   it("refuses a seed on every level address, however good the seed is", () => {
-    // Not a validation failure: `issue-61` is accepted anywhere else in the
-    // game. On the track the seed is not the player's to choose, because which
-    // program fails is a property of the passenger stream and the levels are
-    // built on a program failing.
+    // Not a validation failure — `issue-61` is accepted everywhere else. On the track the
+    // seed isn't the player's to choose, since which program fails depends on the passenger
+    // stream and each level is built on a specific program failing.
     for (const level of tutorialLevels) {
       const hash = `#level=${level.id},seed=issue-61`;
       expect(route(hash).seed, hash).toBeNull();
@@ -929,21 +825,16 @@ describe("resolveRoute seed on the learning track", () => {
   });
 
   it("refuses the seed measured to make level 5's starting program win", () => {
-    // The concrete failure this exists to stop. STARTING_CODE_WINS in
-    // tutorial-solutions.test.ts records the nine-floor sweep delivering all
-    // fifteen inside the wait limit on `42a`, and calls that survivable because
-    // "the pinned seed, the only one anybody plays, is not" such a seed. This
-    // is what keeps that sentence true.
+    // The concrete failure this exists to stop: seed 42a lets level 5's starting program win
+    // outright, on a level built to require an actual fix.
     const params = route("#level=tutorial-5,seed=42a");
     expect(params.seed).toBeNull();
     expect(params.tutorialIndex).toBe(4);
   });
 
   it("says where the seed went rather than that it was wrong", () => {
-    // "this level" and not "a tutorial level": the sentence covers the two
-    // blocks that pin a seed, and naming one of them would be a second thing to
-    // keep true. What a player needs from it is where their seed went, which is
-    // the same wherever they wrote it.
+    // Says "this level", not "a tutorial level": the message is shared with the skyscraper
+    // block, so naming one of them here would be one more thing to keep in sync.
     route("#level=tutorial-5,seed=42a");
     expect(console.warn).toHaveBeenCalledWith(
       `Ignoring seed "42a": this level plays its own pinned seed`,
@@ -951,18 +842,8 @@ describe("resolveRoute seed on the learning track", () => {
   });
 
   it("refuses an empty seed on the track, which is written but says nothing", () => {
-    // `seed=` is present and unusable at once, and the two sides of the branch
-    // disagree about which of those matters: a level calls it invalid and
-    // draws a fresh one, the track says the level pins its own. Both refuse it,
-    // so the key leaves the URL either way and the outcomes are identical --
-    // only the sentence differs, and the track's is the more useful of the two,
-    // because "write a better seed" is advice a level cannot take.
-    //
-    // Pinned because the guard is `!== undefined` rather than a truthiness test,
-    // and truthiness is the spelling somebody reaches for first. It would let
-    // `seed=` through, leaving a key in the address bar that the run is not
-    // using, on the one route whose whole point is that the URL says what is
-    // being played.
+    // The guard is `!== undefined`, not a truthiness check: truthiness would let `seed=`
+    // (empty but defined) through unrefused, leaving a key in the bar that the run isn't using.
     const params = route("#level=tutorial-3,seed=");
     expect(params.seed).toBeNull();
     expect(params.refusedKeys).toEqual(["seed"]);
@@ -972,24 +853,21 @@ describe("resolveRoute seed on the learning track", () => {
   });
 
   it("keeps quiet on a level address that names no seed", () => {
-    // Every ordinary visit to a level. There is nothing to tell a player about a
-    // key they did not write.
     route("#level=tutorial-5");
     expect(console.warn).not.toHaveBeenCalled();
   });
 
   it("leaves the seed alone on the routes it is the player's to choose", () => {
-    // The refusal is scoped to the two blocks that pin a seed and nothing else:
-    // a misspelled level address is still the track, but a level and the
-    // sandbox are not.
+    // Scoped to the two blocks that pin a seed and nothing else: a misspelled level address
+    // is still the track, but a level and the sandbox are not.
     expect(route("#level=4,seed=42a").seed).toBe("42a");
     expect(route("#level=sandbox,seed=42a").seed).toBe("42a");
     expect(route("#level=tutorial-9,seed=42a").seed).toBeNull();
   });
 
   it("refuses the seed to what its absence gives, so the url can drop it", () => {
-    // The invariant the whole refusedKeys list rests on, checked here because
-    // this refusal is the one that does not come from an unusable value.
+    // The refusedKeys invariant, checked here because this refusal doesn't come from an
+    // unusable value.
     const refused = route("#level=tutorial-5,seed=42a");
     const absent = route("#level=tutorial-5");
     expect({ ...refused, refusedKeys: [] }).toEqual(absent);
@@ -998,10 +876,9 @@ describe("resolveRoute seed on the learning track", () => {
 
 describe("resolveRoute seed in the Skyscraper block", () => {
   it("refuses a seed on every level of the block, however good the seed is", () => {
-    // Not a validation failure, and not the track's reason either: here the
-    // stake is the medal. A threshold is measured on one pinned crowd rather
-    // than fitted to a distribution, so a silver earned on a stream nobody
-    // measured would not be the same silver.
+    // Not a validation failure, and not the track's reason either: here the stake is the
+    // medal. Thresholds are measured against one pinned crowd, so a silver earned on an
+    // unmeasured stream wouldn't be the same silver.
     for (const level of skyscraperLevels) {
       const hash = `#level=${level.id},seed=42`;
       expect(route(hash).seed, hash).toBeNull();
@@ -1017,9 +894,8 @@ describe("resolveRoute seed in the Skyscraper block", () => {
   });
 
   it("refuses the seed on an address the block could not read either", () => {
-    // Both refusals at once, in the order the url wrote them: `sky-99` is still
-    // the block, so it lands on the block's first level and the seed is still
-    // not the player's to choose there.
+    // Both refusals at once, in the order the url wrote them: `sky-99` is still the block, so
+    // the seed is still not the player's to choose there.
     const params = route("#level=sky-99,seed=42");
     expect(params.skyscraperIndex).toBe(0);
     expect(params.seed).toBeNull();
@@ -1045,8 +921,8 @@ describe("resolveRoute timescale validation", () => {
   });
 
   it("falls back to the default for a speed that is not a number", () => {
-    // parseFloat("abc") is NaN; a NaN time scale turned every simulated dt into
-    // NaN and froze the world with no way back short of editing the URL.
+    // A NaN time scale would turn every simulated dt into NaN, freezing the world with no
+    // way back short of editing the URL.
     for (const hash of ["#timescale=abc", "#timescale=", "#timescale=NaN"]) {
       expect(route(hash).timeScale, hash).toBe(DEFAULT_TIME_SCALE);
     }
@@ -1141,9 +1017,8 @@ describe("startRouter", () => {
   });
 
   it("takes a refused parameter out of the address bar", () => {
-    // The URL went on saying `level=abc` while level 1 was being
-    // played, which is the state a player bookmarks, pastes into a chat and
-    // reports as a bug in the game.
+    // Otherwise the URL would keep saying `level=abc` while level one plays — exactly the
+    // state a player bookmarks and reports as a bug.
     const target = new FakeTarget();
     target.location = { hash: "#level=abc,timescale=8" };
     const onRoute = vi.fn();
@@ -1156,15 +1031,14 @@ describe("startRouter", () => {
 
     expect(target.replaced).toEqual(["#timescale=8"]);
     expect(target.location.hash).toBe("#timescale=8");
-    // Rewritten, not navigated to: `replaceState` is the only way onto this
-    // stand-in's location, and the correction routed nothing a second time.
+    // Rewritten via replaceState, not navigated to, so the correction doesn't route a
+    // second time.
     expect(onRoute).toHaveBeenCalledTimes(1);
   });
 
   it("hands the handler what the address bar says now", () => {
-    // Not what it said. The level switcher builds a link per tile out of this
-    // query, so a refused key left in it would be written into every one of
-    // them and refused again on each.
+    // Not what it said: the level switcher builds a link per tile out of this query, so a
+    // refused key left in it would be written into every one of them.
     const target = new FakeTarget();
     target.location = { hash: "#level=2,seed=rush%20hour,mystery=x" };
     const onRoute = vi.fn();
@@ -1181,15 +1055,14 @@ describe("startRouter", () => {
       ["level", "2"],
       ["mystery", "x"],
     ]);
-    // The route the corrected URL resolves to is the route that was played.
+    // The corrected URL resolves to the route that was played.
     expect(onRoute.mock.calls[0]?.[0]).toMatchObject({ levelIndex: 1, seed: null });
   });
 
   it("corrects a wrong level address to the first level instead of dropping it", () => {
-    // Deleting the key would leave `#`, which is the first *level*: the bar
-    // would describe a run nobody is watching, and a reload would take the
-    // player to it. The first level has no spelling but its own id, and the
-    // player did choose the track, so the id is not a choice invented for them.
+    // Deleting the key would leave `#`, the first numbered level, so the bar would describe
+    // a run nobody is watching and a reload would land on it. The track's first level has no
+    // spelling but its own id, and the player did choose the track.
     const target = new FakeTarget();
     target.location = { hash: "#level=tutorial-9,timescale=8" };
     const onRoute = vi.fn();
@@ -1200,23 +1073,20 @@ describe("startRouter", () => {
       target,
     });
 
-    // Rewritten where it stood, so the corrected url still reads in the order
-    // it was written.
+    // Rewritten where it stood, so the corrected url still reads in the order it was written.
     expect(target.replaced).toEqual(["#level=tutorial-1,timescale=8"]);
     expect(onRoute).toHaveBeenCalledTimes(1);
     const params = onRoute.mock.calls[0]?.[0] as RouteParams | undefined;
     const query = onRoute.mock.calls[0]?.[1] as RouteQuery | undefined;
     expect(params).toMatchObject({ tutorialIndex: 0, refusedKeys: ["level"] });
     expect(query?.get("level")).toBe("tutorial-1");
-    // The whole point of correcting: what the address bar says now resolves to
-    // the run that is on screen, refusals and all.
+    // The whole point of correcting: the address bar now resolves to the run on screen.
     expect(route(target.location.hash)).toEqual({ ...params, refusedKeys: [] });
   });
 
   it("corrects a wrong skyscraper address to the block's first level", () => {
-    // The same rewrite as the track's, through the same rule and the branch
-    // beside it in `levelAddress`: deleting the key would leave `#`, which is
-    // the first numbered level, and the player chose the block rather than that.
+    // The same rewrite as the track's: deleting the key would leave `#`, the first numbered
+    // level, and the player chose the block rather than that.
     const target = new FakeTarget();
     target.location = { hash: "#level=sky-99,timescale=8" };
     const onRoute = vi.fn();
@@ -1233,14 +1103,13 @@ describe("startRouter", () => {
     const query = onRoute.mock.calls[0]?.[1] as RouteQuery | undefined;
     expect(params).toMatchObject({ skyscraperIndex: 0, refusedKeys: [LEVEL_KEY] });
     expect(query?.get(LEVEL_KEY)).toBe("sky-1");
-    // What the address bar says now resolves to the run that is on screen.
+    // The address bar now resolves to the run that is on screen.
     expect(route(target.location.hash)).toEqual({ ...params, refusedKeys: [] });
   });
 
   it("opens a level named in a hash it navigates to, without correcting it", () => {
-    // A second navigation resolves exactly as the first: nothing about a
-    // level address depends on state the router carries between routes, now
-    // that what a browser has cleared is not consulted.
+    // A second navigation resolves exactly as the first: nothing about a level address
+    // depends on state carried between routes.
     const target = new FakeTarget();
     const onRoute = vi.fn();
 
@@ -1279,10 +1148,9 @@ describe("startRouter", () => {
       target,
     });
 
-    // A browser resolves "#" against the current URL and leaves the fragment
-    // empty, so what a later event will compare against is "" -- which is what
-    // the router has to have recorded, or the next navigation to this same URL
-    // looks like a repeat and is ignored.
+    // A browser resolves "#" to an empty fragment, so a later event compares against "" —
+    // the router has to have recorded that too, or a real navigation back here looks like a
+    // repeat.
     expect(target.replaced).toEqual(["#"]);
     expect(target.location.hash).toBe("");
   });
@@ -1302,19 +1170,13 @@ describe("startRouter", () => {
   });
 
   it.each([
-    // Nothing wrong with it.
     "#level=3,timescale=8,seed=issue-61",
-    // An unknown key is kept on purpose: a later version's parameter, or the
-    // player's own. See parseQuery.
+    // An unknown key is kept on purpose: a later version's parameter, or the player's own.
     "#level=3,mystery=x",
-    // A clamped value still names the run on screen -- `floors=100000` resolves
-    // to sixty floors every time it is read, and the bar prints sixty -- so
-    // there is nothing to correct. Only a refusal is a URL describing something
-    // nobody is playing.
+    // A clamped value still names the run on screen — floors=100000 always resolves to
+    // sixty — so there is nothing to correct.
     "#level=sandbox,floors=100000",
-    // A level address that opens a level is a url that says what is running.
     "#level=tutorial-3,timescale=8",
-    // And so is a skyscraper address that opens one.
     "#level=sky-1,timescale=8",
   ])("leaves %s alone", (hash) => {
     const target = new FakeTarget();
@@ -1331,9 +1193,8 @@ describe("startRouter", () => {
   });
 
   it("rewrites a legacy hash to the new key, though it refused nothing", () => {
-    // The one correction that fires on a url the router was perfectly happy
-    // with. The run is played exactly as the old link asked; what changes is
-    // what the player copies out of the bar next.
+    // The run is played exactly as the old link asked; what changes is what the player
+    // copies out of the bar next.
     const target = new FakeTarget();
     target.location = { hash: "#challenge=3,timescale=8" };
     const onRoute = vi.fn();
@@ -1345,22 +1206,20 @@ describe("startRouter", () => {
     });
 
     expect(target.replaced).toEqual(["#level=3,timescale=8"]);
-    // Rewritten, not navigated to, exactly as a refusal is: one route for one
-    // arrival, whichever spelling it arrived under.
+    // Rewritten, not navigated to: one route for one arrival, whichever spelling it arrived under.
     expect(onRoute).toHaveBeenCalledTimes(1);
     const params = onRoute.mock.calls[0]?.[0] as RouteParams | undefined;
     const query = onRoute.mock.calls[0]?.[1] as RouteQuery | undefined;
     expect(params).toMatchObject({ levelIndex: 2, timeScale: 8, refusedKeys: [] });
-    // The handler is handed the corrected query, so every link the switcher
-    // builds out of it is written the way the game writes one.
+    // The handler is handed the corrected query, so links the switcher builds from it use
+    // the modern spelling.
     expect(query?.get(LEVEL_KEY)).toBe("3");
     expect(query?.has(LEGACY_LEVEL_KEY)).toBe(false);
   });
 
   it("corrects a legacy key and the refusals beside it in one rewrite", () => {
-    // Both corrections meet on the same key: the spelling is retired *and* the
-    // level it names does not exist. One `replaceState`, and what it leaves in
-    // the bar resolves to the run on screen.
+    // Both corrections meet on the same key: the spelling is retired *and* the level it
+    // names does not exist. One `replaceState` covers both.
     const target = new FakeTarget();
     target.location = { hash: "#challenge=tutorial-9,seed=rush%20hour" };
     const onRoute = vi.fn();
@@ -1409,9 +1268,8 @@ describe("startRouter", () => {
   });
 
   it("routes again when the player comes back to a url it once corrected", () => {
-    // The correction moves the location without raising an event, so the hash
-    // the router remembers has to be the corrected one. Remembering the refused
-    // one instead would make a real navigation back to it look like a repeat.
+    // The correction moves the location without raising an event, so the hash the router
+    // remembers has to be the corrected one, or a real navigation back here looks like a repeat.
     const target = new FakeTarget();
     const onRoute = vi.fn();
     startRouter(onRoute, {
