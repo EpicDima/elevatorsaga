@@ -349,27 +349,20 @@ export function presentBuildingStage(parent: HTMLElement, world: World): Buildin
   /** Re-lays-out the building for the stage's current size. */
   function recomputeGeometry(): void {
     const stageWidth = stage.clientWidth;
-    const stageHeight = stage.clientHeight;
     const levelsWidth = levels.offsetWidth;
 
-    const layout = layoutBuilding({
-      stageHeight,
-      floorWeights: world.floors.map(() => 1),
-    });
+    const layout = layoutBuilding({ floorCount: world.floors.length });
+    const heightPx = layout.floorHeight;
 
     // Read by CSS for floor-number size, rider figures and the cabin;
     // `data-density` covers what can't simply scale.
     building.dataset["density"] = layout.density;
-    building.style.setProperty("--ds-floor-h", `${String(layout.shortestFloor)}px`);
+    building.style.setProperty("--ds-floor-h", `${String(heightPx)}px`);
     building.style.setProperty("--ds-car-h", `${String(layout.carHeight)}px`);
 
     for (const [level, view] of floorViews.entries()) {
-      const heightPx = layout.floorHeights[level];
-      if (heightPx === undefined) {
-        continue;
-      }
       view.setGeometry(heightPx);
-      const topPx = layout.totalHeight - (layout.floorBottoms[level] ?? 0) - heightPx;
+      const topPx = layout.totalHeight - (level + 1) * heightPx;
       const line = floorlineEls[level];
       if (line !== undefined) {
         line.style.top = `${String(topPx)}px`;
@@ -407,9 +400,7 @@ export function presentBuildingStage(parent: HTMLElement, world: World): Buildin
     // pad back out so the car lands exactly on `round(worldX * scaleX)`.
     const padPx = shaftPadPx(scaleX);
     // Middle of each floor's band; the mark centers itself here with a half-height transform.
-    const markBottomsPx = layout.floorBottoms.map(
-      (bottom, level) => bottom + (layout.floorHeights[level] ?? 0) / 2,
-    );
+    const markBottomsPx = world.floors.map((_, level) => (level + 0.5) * heightPx);
     for (const [index, elevator] of world.elevators.entries()) {
       const view = elevatorViews[index];
       if (view === undefined) {

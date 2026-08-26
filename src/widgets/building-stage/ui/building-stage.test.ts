@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { presentBuildingStage, type BuildingStagePresenter } from "./building-stage.ts";
 import { elevatorCardText, floorCardText } from "../lib/hover-card-text.ts";
-import { layoutBuilding } from "../lib/layout-building.ts";
+import { layoutBuilding, ROOMY_FLOOR } from "../lib/layout-building.ts";
 import {
   computeShaftScale,
   shaftPadPx,
@@ -76,12 +76,9 @@ function stubScroll(
   });
 }
 
-/** The layout `presentBuildingStage` itself would have computed for a stage this size. */
-function expectedLayout(world: World, stage: HTMLElement) {
-  return layoutBuilding({
-    stageHeight: stage.clientHeight,
-    floorWeights: world.floors.map(() => 1),
-  });
+/** The layout `presentBuildingStage` itself would have computed for this world. */
+function expectedLayout(world: World) {
+  return layoutBuilding({ floorCount: world.floors.length });
 }
 
 /**
@@ -146,31 +143,42 @@ describe("presentBuildingStage", () => {
   });
 
   it("sizes every floor row, band and queue strip from layoutBuilding's own geometry", () => {
-    // room = max(160, 218-38) = 180; unit = 180/2 = 90, inside [54, 96].
+    // Two floors is under TALL_FLOOR_COUNT, so both are drawn at ROOMY_FLOOR (80px).
     const world = createWorld({ floorCount: 2, elevatorCount: 1 });
-    const { parent, stage } = mount(world, 800, 218);
+    const { parent } = mount(world, 800, 218);
 
-    const layout = expectedLayout(world, stage);
-    expect(layout.floorHeights).toEqual([90, 90]);
-    expect(layout.floorBottoms).toEqual([0, 90]);
-    expect(layout.totalHeight).toBe(180);
+    const layout = expectedLayout(world);
+    expect(layout.floorHeight).toBe(ROOMY_FLOOR);
+    expect(layout.totalHeight).toBe(160);
 
     // A row only states its height; the column is a flex stack, so position follows from that.
     for (const row of queryAll(".levels .floor", parent)) {
-      expect(row.style.height).toBe("90px");
+      expect(row.style.height).toBe("80px");
       expect(row.style.top).toBe("");
     }
 
     // Bands are positioned and drawn top-down, so the last one in the DOM is the ground floor.
     const lines = queryAll(".floorline", parent);
     expect(lines[0]?.style.top).toBe("0px");
-    expect(lines[1]?.style.top).toBe("90px");
-    expect(lines[1]?.style.height).toBe("90px");
+    expect(lines[1]?.style.top).toBe("80px");
+    expect(lines[1]?.style.height).toBe("80px");
 
     // Queue strips are in level order, so the ground floor's is first.
     const queues = queryAll(".queue", parent);
-    expect(queues[0]?.style.top).toBe("90px");
+    expect(queues[0]?.style.top).toBe("80px");
     expect(queues[1]?.style.top).toBe("0px");
+  });
+
+  it("draws a floor the same height whatever the stage it is given", () => {
+    // What the two fixed heights buy: a car and a passenger are the same size on a short
+    // pane and a tall one, and a building too tall for the pane scrolls rather than shrinks.
+    const world = createWorld({ floorCount: 4, elevatorCount: 1 });
+    const short = mount(world, 800, 200);
+    const tall = mount(createWorld({ floorCount: 4, elevatorCount: 1 }), 800, 1200);
+
+    for (const { parent } of [short, tall]) {
+      expect(queryAll(".levels .floor", parent)[0]?.style.height).toBe(`${String(ROOMY_FLOOR)}px`);
+    }
   });
 
   it("gives the corridor its fixed width, and the world one span plus room to leave", () => {
@@ -212,13 +220,13 @@ describe("presentBuildingStage", () => {
     // The queue walks to the first car, and the world is as wide as the last one; with
     // neither there, both fall back to nothing rather than measuring an absent car.
     const world = createWorld({ floorCount: 2, elevatorCount: 0 });
-    const { parent, stage } = mount(world, 800, 218);
+    const { parent } = mount(world, 800, 218);
 
     expect(queryAll(".shafts .elevator", parent)).toHaveLength(0);
     // The floors are laid out exactly as they would be for any other building.
-    expect(expectedLayout(world, stage).floorHeights).toEqual([90, 90]);
+    expect(expectedLayout(world).floorHeight).toBe(ROOMY_FLOOR);
     for (const row of queryAll(".levels .floor", parent)) {
-      expect(row.style.height).toBe("90px");
+      expect(row.style.height).toBe("80px");
     }
 
     expect(requireElement(".tracks", parent).style.width).toBe(`${String(TRAILING_ROOM)}px`);
@@ -231,12 +239,10 @@ describe("presentBuildingStage", () => {
     const world = createWorld({ floorCount: 2, elevatorCount: 1 });
     const { parent, stage } = mount(world, 800, 218);
 
-    const layout = expectedLayout(world, stage);
+    const layout = expectedLayout(world);
     const building = requireElement(".building", parent);
     expect(building.dataset["density"]).toBe(layout.density);
-    expect(building.style.getPropertyValue("--ds-floor-h")).toBe(
-      `${String(layout.shortestFloor)}px`,
-    );
+    expect(building.style.getPropertyValue("--ds-floor-h")).toBe(`${String(layout.floorHeight)}px`);
     expect(building.style.getPropertyValue("--ds-car-h")).toBe(`${String(layout.carHeight)}px`);
     expect(building.style.getPropertyValue("--ds-scale-x")).toBe(
       String(expectedScaleX(world, stage)),
@@ -275,20 +281,19 @@ describe("presentBuildingStage", () => {
 
   it("centers every order mark on its own floor's band", () => {
     const world = createWorld({ floorCount: 2, elevatorCount: 1 });
-    const { parent, stage } = mount(world, 800, 218);
+    const { parent } = mount(world, 800, 218);
 
-    const layout = expectedLayout(world, stage);
-    expect(layout.floorHeights).toEqual([90, 90]);
+    expect(expectedLayout(world).floorHeight).toBe(ROOMY_FLOOR);
 
     const bottoms = queryAll(".shafts .mark", parent).map((mark) => mark.style.bottom);
-    expect(bottoms).toEqual(["45px", "135px"]);
+    expect(bottoms).toEqual(["40px", "120px"]);
   });
 
   it("positions cars and passengers by the mapped worldX and the scaled worldY", () => {
     const world = createWorld({ floorCount: 3, elevatorCount: 1 });
     const { parent, stage } = mount(world, 800, 300);
 
-    const layout = expectedLayout(world, stage);
+    const layout = expectedLayout(world);
     const scale = expectedShaftScale(world, stage);
     const scaleY = computeVerticalScale({
       totalHeight: layout.totalHeight,
@@ -319,22 +324,29 @@ describe("presentBuildingStage", () => {
     );
   });
 
-  it("recomputeGeometry re-lays-out floors and cars, and force-redraws movables in place", () => {
-    const world = createWorld({ floorCount: 2, elevatorCount: 1 });
-    const { parent, stage, presenter } = mount(world, 800, 218);
-    const elevator = at(world.elevators, 0);
-    elevator.moveTo(200, 30);
-    elevator.updateDisplayPosition();
-    const carEl = requireElement(".shafts .elevator .car", parent);
-    const beforeResize = carEl.style.transform;
+  it("recomputeGeometry re-lays-out the shafts, and force-redraws movables in place", () => {
+    const world = createWorld({ floorCount: 2, elevatorCount: 6, elevatorCapacities: [10] });
+    const { parent, stage, presenter } = mount(world, 900, 400);
+    const user = new User(60);
+    // Pushed as well as announced: the announcement draws the figure, and the force-redraw
+    // this test is about walks `world.users`.
+    world.users.push(user);
+    world.trigger("new_user", user);
+    // Past the corridor, so the figure's own position rides on the shaft band's scale.
+    user.moveTo(400, 30);
+    user.updateDisplayPosition();
+    const userEl = requireElement(".people .person", parent);
+    const beforeResize = userEl.getAttribute("style");
+    const shaftEl = requireElement(".shafts .elevator", parent);
+    const beforeWidth = shaftEl.style.width;
 
-    // Shrink the stage: unit becomes 80px (was 90), which also changes scaleY and must show
-    // up on the very next paint even though the elevator itself never moved.
-    Object.defineProperty(stage, "clientHeight", { value: 100, configurable: true });
+    // Narrow the stage: the six wide cars are scaled down, which moves a passenger already
+    // standing between them even though they never took a step.
+    Object.defineProperty(stage, "clientWidth", { value: 500, configurable: true });
     presenter.recomputeGeometry();
 
-    expect(queryAll(".levels .floor", parent)[0]?.style.height).toBe("80px");
-    expect(carEl.style.transform).not.toBe(beforeResize);
+    expect(shaftEl.style.width).not.toBe(beforeWidth);
+    expect(userEl.getAttribute("style")).not.toBe(beforeResize);
   });
 
   it("re-lays-out the building on its own when the pane around it is resized", () => {
@@ -352,16 +364,17 @@ describe("presentBuildingStage", () => {
     }
     vi.stubGlobal("ResizeObserver", FakeResizeObserver);
 
-    const world = createWorld({ floorCount: 2, elevatorCount: 1 });
-    const { parent, stage } = mount(world, 800, 218);
+    const world = createWorld({ floorCount: 2, elevatorCount: 6, elevatorCapacities: [10] });
+    const { parent, stage } = mount(world, 900, 400);
     // The pane, not the stage inside it: the stage's own size is what the resize changes.
     expect(observed).toEqual([parent]);
-    expect(queryAll(".levels .floor", parent)[0]?.style.height).toBe("90px");
+    const shaftEl = requireElement(".shafts .elevator", parent);
+    const beforeWidth = shaftEl.style.width;
 
-    Object.defineProperty(stage, "clientHeight", { value: 100, configurable: true });
+    Object.defineProperty(stage, "clientWidth", { value: 500, configurable: true });
     resized?.();
 
-    expect(queryAll(".levels .floor", parent)[0]?.style.height).toBe("80px");
+    expect(shaftEl.style.width).not.toBe(beforeWidth);
   });
 
   it("shows a floor's hover card from the corridor its queue stands in, not from its number", () => {

@@ -18,7 +18,7 @@ import {
   token,
 } from "#shared/styles/test-helpers.ts";
 
-import { MIN_FLOOR } from "../lib/layout-building.ts";
+import { COMPACT_FLOOR } from "../lib/layout-building.ts";
 
 describe("the building's own focus ring", () => {
   it.each(THEMES)("keeps the focus ring readable inside .world, %s theme", (_, palette) => {
@@ -51,7 +51,7 @@ describe("the floor-number column", () => {
 
   it("leaves the shortest floor room for two rows of journey chips", () => {
     // A full panel is two rows of two chips, so two chip heights plus the row gap must fit
-    // the shortest floor a building is ever squeezed to (MIN_FLOOR).
+    // the shortest floor a building is ever drawn at (COMPACT_FLOOR).
     const chip = /^clamp\(([\d.]+)px,[^,]+,\s*([\d.]+)px\)$/.exec(
       declaration(ruleBody(".dest"), "block-size", ".dest"),
     );
@@ -60,7 +60,7 @@ describe("the floor-number column", () => {
     expect(gap, ".destinations no longer states its gap in px").not.toBeNull();
     // Whatever the clamp resolves to lies between its two ends, so both ends answer for it.
     for (const bound of [chip?.[1], chip?.[2]]) {
-      expect(2 * Number(bound) + Number(gap?.[1])).toBeLessThanOrEqual(MIN_FLOOR);
+      expect(2 * Number(bound) + Number(gap?.[1])).toBeLessThanOrEqual(COMPACT_FLOOR);
     }
   });
 });
