@@ -163,13 +163,19 @@ jobs:
 
       - name: Install Chromium
         if: steps.playwright-cache.outputs.cache-hit != 'true'
-        run: npx playwright install --with-deps chromium
+        run: npx playwright install chromium
 
       # The cache holds the browser but not the system libraries it links
-      # against, which apt installed outside the cached directory.
-      - name: Install Chromium's system dependencies
-        if: steps.playwright-cache.outputs.cache-hit == 'true'
-        run: npx playwright install-deps chromium
+      # against, which apt installed outside the cached directory -- except the
+      # runner image ships Chrome and Edge, so it already carries them, and
+      # `--with-deps` above plus an unconditional `install-deps` here spent
+      # 12-36 seconds on `apt-get` every run to find that out. Launching the
+      # browser asks the same question in a second or two, and still pays the
+      # apt bill on the day the image stops answering yes.
+      - name: Install Chromium's system dependencies, if the runner is missing any
+        run: |
+          node -e 'require("@playwright/test").chromium.launch().then((browser) => browser.close())' ||
+            npx playwright install-deps chromium
 
       # `playwright.config.ts` runs the build and serves `dist/` itself: the
       # tests deliberately exercise the production bundle, not the dev server.
