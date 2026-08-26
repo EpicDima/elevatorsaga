@@ -12,7 +12,7 @@ rather than breaking the page.
 | `#level=tutorial-N` | Starts level `N` of the learning track, from `tutorial-1` to `tutorial-8`. A `tutorial-` address the track has no level for starts the first one. See [the learning track](learning-track.md).                                             |
 | `#level=2-N`        | Starts level `N` of chapter two, from `2-1` to `2-13`, which is how the level switcher numbers them. A `2-` address the chapter has no level for starts the first one.                                                                     |
 | `#timescale=X`      | Simulation speed multiplier. Clamped to `0.1`–`64`. Fractions such as `1.5` work. Without it, the speed you last chose is used again — it is kept in `localStorage` under `elevatorTimeScale` — and `2` when there is none.                |
-| `#seed=S`           | Pins the seed the passenger stream is drawn from. Not the building. Refused on the two blocks that pin their own seed, the learning track and chapter two. See below.                                                                      |
+| `#seed=S`           | Pins the seed the passenger stream is drawn from. Not the building. Refused in chapter two, which pins its own seed. See below.                                                                                                            |
 | `#fullscreen`       | Hides everything except the building.                                                                                                                                                                                                      |
 
 `#level` was spelled `#challenge` until the game started calling its challenges levels, and every
@@ -47,11 +47,11 @@ is a complete address you can paste at someone.
 A URL with no `seed` draws a fresh one on every restart, which is deliberate: a run you cannot get
 away from is not what you want when you are stuck on a level.
 
-None of this applies on the learning track or in chapter two, where the seed belongs to the
-level rather than to you: there is no seed line in the menu, nothing is printed, and every restart
-replays the same passengers. The track pins one so a lesson shows what it means to show; the block
-pins one so that a medal means the same thing to two players. See
-[the learning track](learning-track.md).
+None of this applies in chapter two, where the seed belongs to the level rather than to you: there
+is no seed line in the menu, nothing is printed, and every restart replays the same passengers, so
+that a medal means the same thing to two players. The learning track pins a seed of its own too, but
+only as the fallback until you have one — the menu still shows it and `#seed=…` is still honored
+there. See [the learning track](learning-track.md).
 
 **What a seed fixes is the passenger stream, and only that.** The building — how many floors, how
 many elevators, how large they are — comes from the level number or from the sandbox parameters,

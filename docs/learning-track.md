@@ -12,9 +12,9 @@ sweeps nine floors because it never asked who was waiting; the indicators that t
 going up, so half the building refuses to board; the second elevator that stands still all run. The
 eighth is an empty `init` in level 1's building, against level 1's bar.
 
-The buildings are tuned so that the lesson is not a coin flip. Each level pins the seed it is played
-on, and on that seed the program you are handed loses and the level's own answer wins — both
-measured, not hoped for. `src/game/tutorial-solutions.test.ts` replays both programs of every one of
+The buildings are tuned so that the lesson is not a coin flip. Each level pins a seed of its own, the
+one it is played on when you have no seed yet, and on that seed the program you are handed loses and
+the level's own answer wins — both measured, not hoped for. `src/game/tutorial-solutions.test.ts` replays both programs of every one of
 them on ten seeds, and `src/game/tutorial-sweep.test.ts` replays three on four hundred: the two
 whose bar is a worst case rather than a total, where one unlucky passenger decides the run, and the
 one whose answer is measured losing a seed. A change to the physics that quietly turns a lesson
@@ -31,15 +31,13 @@ are remembered in `localStorage` and the menu gives each of them three stars —
 beyond its own condition, so clearing one is gold outright — and nothing is ever locked: every one of
 them is playable by its address from the first visit.
 
-The track refuses one thing you can write in the URL, with a console warning and taken back out of
-the address bar: `seed`, because whether the given program really loses is a fact about the
-passenger stream as much as about the program — the fifth level's sweep does win on some seeds — so
-`#level=tutorial-5,seed=42a` would sit a player in front of a broken program winning. Because the
-seed is the level's rather than yours, the bar above the building shows no seed line while a
-tutorial level is open — there is nothing there to pin and nothing to unpin — and Restart brings
-back the same passengers rather than a fresh draw. An address the track has no level for, such as
-`tutorial-9`, starts the first of them rather than level 1: whoever wrote it was asking for the
-track.
+The seed is yours here as everywhere else: the settings menu shows the one running, `#seed=…` in the
+URL is honored, and a seed you pick is remembered and carried to the next lesson. The level's own
+seed is only the fallback, used until you have one. That is worth knowing before you pick: whether
+the given program really loses is a fact about the passenger stream as much as about the program —
+the fifth level's sweep does win on some seeds — so `#level=tutorial-5,seed=42a` really does sit you
+in front of a broken program winning. An address the track has no level for, such as `tutorial-9`,
+starts the first of them rather than level 1: whoever wrote it was asking for the track.
 
 The whole track — titles, goals, hints and explanations — is translated, so it can be played in
 Russian as well as English.

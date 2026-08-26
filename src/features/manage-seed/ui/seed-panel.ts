@@ -29,7 +29,7 @@ function seedNewDrawTemplate(name: string): string {
 
 /**
  * The settings popover's seed block, or nothing when `data` is `null` (a
- * learning-track level, or a world built with a ready-made random stream).
+ * chapter two level, or a world built with a ready-made random stream).
  */
 export function seedPanelTemplate(data: SeedLinkData | null): string {
   if (data === null) {

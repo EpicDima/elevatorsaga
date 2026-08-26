@@ -36,8 +36,8 @@ export interface RouteParams {
   /**
    * The seed the world draws its passengers from, or `null` to let the world draw its own.
    *
-   * Always `null` while {@link tutorialIndex} or {@link chapter2Index} is set; those levels
-   * play the seed pinned to their own entry.
+   * Always `null` while {@link chapter2Index} is set; those levels play the seed pinned to
+   * their own entry.
    */
   readonly seed: string | null;
   /**
@@ -203,23 +203,24 @@ export function resolveRoute(rawQuery: RouteQuery, context: RouteContext): Route
   const tutorialIndex = isTutorialRoute(level) ? resolveTutorialIndex(level, refuse) : null;
   const chapter2Index = isChapter2Route(level) ? resolveChapter2Index(level, refuse) : null;
   const sandbox = isSandboxRoute(level) ? resolveSandboxOptions(query, refuse) : null;
-  // Tutorial and chapter two levels both pin their own seed and never take one from the URL.
-  const pinnedSeedTrack = tutorialIndex !== null || chapter2Index !== null;
+  // Neither block is addressed by a level number, whatever the level key says.
+  const namedBlock = tutorialIndex !== null || chapter2Index !== null;
   return {
     // Only resolved when a chapter one level is actually being played, to avoid warning that
     // "sandbox" or "tutorial-3" is not a level number.
     chapter1Index:
-      sandbox === null && !pinnedSeedTrack ? resolveChapter1Index(level, context, refuse) : 0,
+      sandbox === null && !namedBlock ? resolveChapter1Index(level, context, refuse) : 0,
     sandbox,
     tutorialIndex,
     chapter2Index,
     timeScale: resolveTimeScale(query.get("timescale"), context.defaultTimeScale, refuse),
     fullscreen: readFlag(query, "fullscreen"),
-    // Refused rather than honored: the track's lessons and chapter two's medals both depend
-    // on a specific pinned seed, not whatever the URL asks for.
-    seed: pinnedSeedTrack
-      ? refuseSeedOnTrack(query, refuse)
-      : resolveSeed(query.get("seed"), refuse),
+    // Refused rather than honored in chapter two alone: its medals are measured against one
+    // pinned crowd. The track takes a seed like any other level, and falls back to its own.
+    seed:
+      chapter2Index !== null
+        ? refuseSeedInChapter2(query, refuse)
+        : resolveSeed(query.get("seed"), refuse),
     refusedKeys,
   };
 }
@@ -242,8 +243,8 @@ function resolveSeed(value: string | undefined, refuse: Refuse): string | null {
   return value;
 }
 
-/** Drops a `seed` on a level that pins its own, and warns why. */
-function refuseSeedOnTrack(query: RouteQuery, refuse: Refuse): null {
+/** Drops a `seed` on a chapter two level, which plays its own, and warns why. */
+function refuseSeedInChapter2(query: RouteQuery, refuse: Refuse): null {
   const value = query.get("seed");
   if (value !== undefined) {
     console.warn(`Ignoring seed "${value}": this level plays its own pinned seed`);

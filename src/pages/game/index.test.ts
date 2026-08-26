@@ -991,29 +991,57 @@ describe("App learning track", () => {
     expect(app.currentChapter1Index).toBe(2);
   });
 
-  it("builds a level on its own pinned seed rather than a fresh draw", () => {
-    // A random draw would make the lesson a coin flip instead of a guaranteed contrast.
+  it("builds a level on its own pinned seed when the player has none", () => {
+    // A fresh draw would make a first lesson a coin flip instead of a guaranteed contrast.
     const { app } = setUp();
     app.handleRoute(...routeFor("#level=tutorial-3"));
     expect(app.world?.seed).toBe(levelAt(2).seed);
   });
 
-  it("keeps the level's seed when the url is still carrying a level's", () => {
+  it("plays the seed the url names over the level's own", () => {
     const { app } = setUp();
-    app.handleRoute(...routeFor("#level=2,seed=issue-61"));
+
+    app.handleRoute(...routeFor("#level=tutorial-1,seed=issue-61"));
+
     expect(app.world?.seed).toBe("issue-61");
-
-    app.startTutorial(0);
-
-    expect(app.world?.seed).toBe(levelAt(0).seed);
   });
 
-  it("offers no seed line, and prints none, because both halves of it are refused", () => {
-    const { app } = setUp();
+  it("plays the seed the player already had over the level's own", () => {
+    const storage = new MemoryStorage();
+    storage.setItem(SEED_STORAGE_KEY, "issue-61");
+    const { app } = setUp(INERT_CODE, storage);
+
     app.startTutorial(0);
 
-    expect(app.currentSeedLink).toBeNull();
-    expect(console.log).not.toHaveBeenCalled();
+    expect(app.world?.seed).toBe("issue-61");
+  });
+
+  it("offers the seed line and prints it, as a numbered level does", () => {
+    const { app } = setUp();
+
+    app.handleRoute(...routeFor("#level=tutorial-1"));
+
+    expect(app.currentSeedLink?.seed).toBe(String(levelAt(0).seed));
+    expect(app.currentSeedLink?.url).toBe(`#level=tutorial-1,seed=${String(levelAt(0).seed)}`);
+    expect(console.log).toHaveBeenCalledOnce();
+  });
+
+  it("leaves the player's remembered seed alone when the level supplied one", () => {
+    const storage = new MemoryStorage();
+    const { app } = setUp(INERT_CODE, storage);
+
+    app.startTutorial(0);
+
+    expect(readStoredSeed(storage)).toBeUndefined();
+  });
+
+  it("remembers a seed the player chose here, for the next lesson and the next visit", () => {
+    const storage = new MemoryStorage();
+    const { app } = setUp(INERT_CODE, storage);
+
+    app.handleRoute(...routeFor("#level=tutorial-1,seed=issue-61"));
+
+    expect(readStoredSeed(storage)).toBe("issue-61");
   });
 
   it("hands a level nobody has opened its starting program", () => {

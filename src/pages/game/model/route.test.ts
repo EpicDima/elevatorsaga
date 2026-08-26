@@ -579,8 +579,7 @@ describe("resolveRoute tutorial validation", () => {
   });
 
   it("keeps the rest of the url working on the track", () => {
-    // Every parameter but `seed` behaves on a level address exactly as it does on a
-    // numbered level.
+    // Every parameter behaves on a level address exactly as it does on a numbered level.
     expect(route("#level=tutorial-3,seed=issue-61,timescale=8,fullscreen=true")).toEqual({
       chapter1Index: 0,
       sandbox: null,
@@ -588,14 +587,13 @@ describe("resolveRoute tutorial validation", () => {
       chapter2Index: null,
       timeScale: 8,
       fullscreen: true,
-      seed: null,
-      refusedKeys: ["seed"],
+      seed: "issue-61",
+      refusedKeys: [],
     });
   });
 
   it("refuses an unusable value on the track exactly as anywhere else", () => {
-    // Two different reasons to refuse a key — an unusable value and the track's own seed
-    // policy — arrive in one list, in the order the URL wrote them.
+    // Two unusable values arrive in one list, in the order the URL wrote them.
     const params = route("#level=tutorial-3,timescale=fast,seed=rush hour");
     expect(params.tutorialIndex).toBe(2);
     expect(params.timeScale).toBe(DEFAULT_TIME_SCALE);
@@ -862,71 +860,47 @@ describe("resolveRoute seed validation", () => {
 });
 
 describe("resolveRoute seed on the learning track", () => {
-  it("refuses a seed on every level address, however good the seed is", () => {
-    // Not a validation failure — `issue-61` is accepted everywhere else. On the track the
-    // seed isn't the player's to choose, since which program fails depends on the passenger
-    // stream and each level is built on a specific program failing.
+  it("keeps a seed on every level address, as on a numbered level", () => {
+    // The seed is the player's here too: the level pins one of its own only when the player
+    // has none, which the app decides, not the router.
     for (const level of tutorialLevels) {
       const hash = `#level=${level.id},seed=issue-61`;
-      expect(route(hash).seed, hash).toBeNull();
-      expect(route(hash).refusedKeys, hash).toContain("seed");
+      expect(route(hash).seed, hash).toBe("issue-61");
+      expect(route(hash).refusedKeys, hash).toEqual([]);
     }
   });
 
-  it("refuses the seed measured to make level 5's starting program win", () => {
-    // The concrete failure this exists to stop: seed 42a lets level 5's starting program win
-    // outright, on a level built to require an actual fix.
+  it("keeps even the seed measured to make level 5's starting program win", () => {
+    // Seed 42a lets level 5's starting program win outright, so this address does sit a
+    // player in front of a broken program winning — the price of a seed they can choose.
     const params = route("#level=tutorial-5,seed=42a");
-    expect(params.seed).toBeNull();
+    expect(params.seed).toBe("42a");
     expect(params.tutorialIndex).toBe(4);
   });
 
-  it("says where the seed went rather than that it was wrong", () => {
-    // Says "this level", not "a tutorial level": the message is shared with the chapter2
-    // block, so naming one of them here would be one more thing to keep in sync.
+  it("keeps quiet about a seed it accepted here as anywhere else", () => {
     route("#level=tutorial-5,seed=42a");
-    expect(console.warn).toHaveBeenCalledWith(
-      `Ignoring seed "42a": this level plays its own pinned seed`,
-    );
-  });
-
-  it("refuses an empty seed on the track, which is written but says nothing", () => {
-    // The guard is `!== undefined`, not a truthiness check: truthiness would let `seed=`
-    // (empty but defined) through unrefused, leaving a key in the bar that the run isn't using.
-    const params = route("#level=tutorial-3,seed=");
-    expect(params.seed).toBeNull();
-    expect(params.refusedKeys).toEqual(["seed"]);
-    expect(console.warn).toHaveBeenCalledWith(
-      `Ignoring seed "": this level plays its own pinned seed`,
-    );
-  });
-
-  it("keeps quiet on a level address that names no seed", () => {
     route("#level=tutorial-5");
     expect(console.warn).not.toHaveBeenCalled();
   });
 
-  it("leaves the seed alone on the routes it is the player's to choose", () => {
-    // Scoped to the two blocks that pin a seed and nothing else: a misspelled level address
-    // is still the track, but a level and the sandbox are not.
-    expect(route("#level=4,seed=42a").seed).toBe("42a");
-    expect(route("#level=sandbox,seed=42a").seed).toBe("42a");
-    expect(route("#level=tutorial-9,seed=42a").seed).toBeNull();
+  it("refuses a seed the address bar could not carry, and says so in the usual words", () => {
+    const params = route("#level=tutorial-3,seed=");
+    expect(params.seed).toBeNull();
+    expect(params.refusedKeys).toEqual(["seed"]);
+    expect(console.warn).toHaveBeenCalledWith(`Invalid seed "", using a fresh one instead`);
   });
 
-  it("refuses the seed to what its absence gives, so the url can drop it", () => {
-    // The refusedKeys invariant, checked here because this refusal doesn't come from an
-    // unusable value.
-    const refused = route("#level=tutorial-5,seed=42a");
-    const absent = route("#level=tutorial-5");
-    expect({ ...refused, refusedKeys: [] }).toEqual(absent);
+  it("reads a seed on a misspelled track address too", () => {
+    // `tutorial-9` is still the track, and the seed is the player's on all of it.
+    expect(route("#level=tutorial-9,seed=42a").seed).toBe("42a");
   });
 });
 
 describe("resolveRoute seed in chapter two", () => {
   it("refuses a seed on every level of the chapter, however good the seed is", () => {
-    // Not a validation failure, and not the track's reason either: here the stake is the
-    // medal. Thresholds are measured against one pinned crowd, so a silver earned on an
+    // Not a validation failure — `42` is accepted everywhere else. Here the stake is the
+    // medal: thresholds are measured against one pinned crowd, so a silver earned on an
     // unmeasured stream wouldn't be the same silver.
     chapter2Levels.forEach((_level, index) => {
       const hash = `#level=2-${String(index + 1)},seed=42`;
@@ -935,11 +909,18 @@ describe("resolveRoute seed in chapter two", () => {
     });
   });
 
-  it("says where the seed went in the one sentence both pinned blocks share", () => {
+  it("says where the seed went rather than that it was wrong", () => {
     route("#level=2-1,seed=42");
     expect(console.warn).toHaveBeenCalledWith(
       `Ignoring seed "42": this level plays its own pinned seed`,
     );
+  });
+
+  it("leaves the seed alone on every route it is the player's to choose", () => {
+    // Scoped to this chapter and nothing else, the track included.
+    expect(route("#level=4,seed=42").seed).toBe("42");
+    expect(route("#level=sandbox,seed=42").seed).toBe("42");
+    expect(route("#level=tutorial-5,seed=42").seed).toBe("42");
   });
 
   it("refuses the seed on an address the block could not read either", () => {

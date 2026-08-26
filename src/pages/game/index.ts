@@ -8,6 +8,7 @@ import { chapter2Levels } from "../../game/chapter2.ts";
 import type { Chapter2Level } from "../../game/chapter2.ts";
 import { tutorialLevels } from "../../game/tutorial.ts";
 import type { TutorialLevel } from "../../game/tutorial.ts";
+import type { RandomSeed } from "../../game/random.ts";
 import { createWorld } from "../../game/world.ts";
 import type { World } from "../../game/world.ts";
 import type { AnimationFrameRequester, WorldController } from "../../game/world-controller.ts";
@@ -71,7 +72,7 @@ declare global {
 /** Where the chosen simulation speed is remembered between visits. */
 export const TIME_SCALE_STORAGE_KEY = "elevatorTimeScale";
 
-/** Where the player's last-used seed outside the learning track is remembered between runs and visits. */
+/** Where the player's last-used seed is remembered between runs and visits; never a seed a level supplied. */
 export const SEED_STORAGE_KEY = "elevatorSeed";
 
 /** Stands in for a program that failed to compile, so the world does nothing instead of throwing and masking the real error. */
@@ -499,9 +500,9 @@ export class App {
     }
   }
 
-  /** The seed of a run and its URL, read off the world (not {@link #seed}); `null` for the learning track and chapter two. */
+  /** The seed of a run and its URL, read off the world (not {@link #seed}); `null` in chapter two, whose seed is the level's. */
   #seedLink(world: World, chapter1Index: number | null): SeedLinkData | null {
-    if (this.#tutorial !== undefined || this.#chapter2 !== undefined) {
+    if (this.#chapter2 !== undefined) {
       return null;
     }
     if (world.seed === null) {
@@ -531,6 +532,25 @@ export class App {
       return null;
     }
     return this.#seedLink(world, run.chapter1Index);
+  }
+
+  /**
+   * The seed the next run is built from, and whether the level supplied it rather than the
+   * player. Chapter two always plays its own; everywhere else the player's seed comes first,
+   * and a track level falls back to its own so a first lesson isn't a coin flip.
+   */
+  #seedForRun(): { seed: RandomSeed | undefined; fromLevel: boolean } {
+    const chapter2Seed = this.#chapter2?.level.seed;
+    if (chapter2Seed !== undefined) {
+      return { seed: chapter2Seed, fromLevel: true };
+    }
+    const playerSeed = this.#seed ?? readStoredSeed(this.#storage);
+    if (playerSeed !== undefined) {
+      return { seed: playerSeed, fromLevel: false };
+    }
+    // `undefined` off the track as well as on it, where it means a fresh draw.
+    const trackSeed = this.#tutorial?.level.seed;
+    return { seed: trackSeed, fromLevel: trackSeed !== undefined };
   }
 
   /** Remembers a seed as this player's own, for the next run and the next visit. */
@@ -772,22 +792,16 @@ export class App {
       this.#instantSpeed = false;
     }
     this.world?.unWind();
-    // Seed precedence: a level's own pinned seed, then the URL's `#seed=`, then
-    // the seed remembered from last visit, then a fresh draw (`undefined`).
-    const world = createWorld(
-      level.options,
-      this.#tutorial?.level.seed ??
-        this.#chapter2?.level.seed ??
-        this.#seed ??
-        readStoredSeed(this.#storage) ??
-        undefined,
-    );
+    const { seed: chosenSeed, fromLevel } = this.#seedForRun();
+    const world = createWorld(level.options, chosenSeed);
     this.world = world;
     window.world = world;
     const seed = this.#seedLink(world, chapter1Index);
     if (seed !== null) {
-      // Remembered for next time; `#seedLink` is null for a track/chapter two level, whose seed must not overwrite the player's.
-      this.#storeSeed(seed.seed);
+      if (!fromLevel) {
+        // Remembered for next time; a seed the level supplied is not the player's own to keep.
+        this.#storeSeed(seed.seed);
+      }
       // Logged so a run worth repeating can be found after the fact.
       console.log(t("game.seed.console", { seed: seed.seed, url: absoluteUrl(seed.url) }));
     }
@@ -1007,7 +1021,7 @@ export class App {
           : t("game.feedback.failure.message"),
       // The track grades nothing, so a win is already gold and no star is left to name.
       hint: "",
-      // Seed dropped — the router refuses one on a level address anyway.
+      // Seed dropped since it belongs to the lesson just completed, as on a numbered level.
       url: finished
         ? createParamsUrl(this.#query, { [LEVEL_KEY]: 1, seed: null })
         : won && nextLevel !== undefined
