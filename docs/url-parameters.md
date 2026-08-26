@@ -5,14 +5,15 @@ Everything after the `#` is a comma-separated list of `key=value` pairs, for exa
 "next level" link. Anything malformed falls back to a sane default with a console warning
 rather than breaking the page.
 
-| Parameter           | Effect                                                                                                                                                                                                                          |
-| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `#level=N`          | Starts level `N`, counting from 1. Out of range, missing, or unreadable as a number and not one of the two names below: level 1. Every level is open from the first visit, so no address is ever answered with a different one. |
-| `#level=sandbox`    | Starts a building of your own instead of a numbered level. See below.                                                                                                                                                           |
-| `#level=tutorial-N` | Starts level `N` of the learning track, from `tutorial-1` to `tutorial-8`. A `tutorial-` address the track has no level for starts the first one. See [the learning track](learning-track.md).                                  |
-| `#timescale=X`      | Simulation speed multiplier. Clamped to `0.1`–`64`. Fractions such as `1.5` work. Without it, the speed you last chose is used again — it is kept in `localStorage` under `elevatorTimeScale` — and `2` when there is none.     |
-| `#seed=S`           | Pins the seed the passenger stream is drawn from. Not the building. Refused on a tutorial level. See below.                                                                                                                     |
-| `#fullscreen`       | Hides everything except the building.                                                                                                                                                                                           |
+| Parameter           | Effect                                                                                                                                                                                                                      |
+| ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `#level=N`          | Starts level `N`, counting from 1. Out of range, missing, or unreadable as a number and not one of the names below: level 1. Every level is open from the first visit, so no address is ever answered with a different one. |
+| `#level=sandbox`    | Starts a building of your own instead of a numbered level. See below.                                                                                                                                                       |
+| `#level=tutorial-N` | Starts level `N` of the learning track, from `tutorial-1` to `tutorial-8`. A `tutorial-` address the track has no level for starts the first one. See [the learning track](learning-track.md).                              |
+| `#level=sky-N`      | Starts level `N` of the Skyscraper block, from `sky-1` to `sky-13`. A `sky-` address the block has no level for starts the first one.                                                                                       |
+| `#timescale=X`      | Simulation speed multiplier. Clamped to `0.1`–`64`. Fractions such as `1.5` work. Without it, the speed you last chose is used again — it is kept in `localStorage` under `elevatorTimeScale` — and `2` when there is none. |
+| `#seed=S`           | Pins the seed the passenger stream is drawn from. Not the building. Refused on the two blocks that pin their own seed, the learning track and Skyscraper. See below.                                                        |
+| `#fullscreen`       | Hides everything except the building.                                                                                                                                                                                       |
 
 `#level` was spelled `#challenge` until the game started calling its challenges levels, and every
 link shared before then says so. Those addresses still work — the old spelling is read wherever the
@@ -21,11 +22,9 @@ once goes on being shared under the name the game uses now.
 
 `fullscreen` is a flag: on when present and off when explicitly set to `false`
 (`#fullscreen=false`). Bare flags now work: in the original, `#fullscreen` without a value was
-silently ignored because the parser's regexp demanded one. Two more flags used to sit beside it —
-`autostart`, which started the run without waiting for the Start button, and `devtest`, which
-replaced whatever was in the editor with a built-in reference solution. Both were service routes
-rather than anything to play with, and `devtest` in particular could throw away a program with one
-pasted link, so both are gone.
+silently ignored because the parser's regexp demanded one. It is the only flag — the original's
+`autostart` and `devtest` are gone, so a link carrying either is read as an unrecognized parameter
+and left alone.
 
 ## Seeds
 
@@ -43,17 +42,20 @@ is a complete address you can paste at someone.
 A URL with no `seed` draws a fresh one on every restart, which is deliberate: a run you cannot get
 away from is not what you want when you are stuck on a level.
 
-None of this applies on the learning track, where the seed belongs to the level rather than to you:
-there is no seed line in the menu, nothing is printed, and every restart replays the same passengers.
-See [the learning track](learning-track.md).
+None of this applies on the learning track or in the Skyscraper block, where the seed belongs to the
+level rather than to you: there is no seed line in the menu, nothing is printed, and every restart
+replays the same passengers. The track pins one so a lesson shows what it means to show; the block
+pins one so that a medal means the same thing to two players. See
+[the learning track](learning-track.md).
 
 **What a seed fixes is the passenger stream, and only that.** The building — how many floors, how
 many elevators, how large they are — comes from the level number or from the sandbox parameters,
 and the seed has no say in it. Two URLs with the same seed and different `level` values are two
-different buildings. Frame lengths come from the browser too, so your program is asked to decide at
-slightly different moments each time and two interactive runs of one seed still diverge in their
-timing. Only the headless paths — the fitness benchmark and the test suite, which drive the clock
-themselves — repeat a run step for step.
+different buildings. Everything else about a run does come back: your program and the physics are
+both advanced in fixed ticks rather than in whatever a frame happened to be worth, so car positions,
+arrival times and button-press counts repeat step for step whatever the display is doing.
+`src/game/determinism.test.ts` is where that is held, by running one seed twice at frame schedules
+that disagree.
 
 A seed is a string of at most 64 characters from `A-Z a-z 0-9 _ . -`, so `#seed=issue-61` is as
 valid as `#seed=1234567890`. It is never read as a number: `0123` and `123` are different seeds,
