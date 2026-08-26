@@ -65,8 +65,8 @@ interface HandlerEntry {
    */
   readonly typed: boolean;
   /**
-   * Set when the entry is unregistered, so a dispatch iterating a snapshot of
-   * the handler list can skip entries removed after the snapshot was taken.
+   * Set when the entry is unregistered, so a dispatch that began before it was
+   * can skip it rather than call a handler someone has since taken off.
    */
   removed: boolean;
 }
@@ -87,6 +87,19 @@ function report(onError: (e: unknown) => void, error: unknown): void {
     console.error("Event error handler threw while reporting", error, secondary);
   }
 }
+
+/**
+ * How many dispatches are in flight, across every emitter. While any is, a
+ * splice goes to a copy of the handler list rather than to the list itself,
+ * which is what lets a dispatch iterate that list directly instead of copying
+ * it every time — and a simulation step dispatches thousands of times.
+ *
+ * Module-wide rather than per emitter deliberately. Every simulation class
+ * extends this one, so the dispatch loop below sees a different shape on
+ * nearly every call, and a field read there costs more than the copies a
+ * per-emitter count would save: measured, it gave back the whole win.
+ */
+let dispatchesInFlight = 0;
 
 /** Minimal, fully typed event emitter. */
 export class Observable<E extends EventArgsMap> {
@@ -143,14 +156,18 @@ export class Observable<E extends EventArgsMap> {
         this.#handlers.delete(name);
         continue;
       }
-      for (let i = entries.length - 1; i >= 0; i--) {
-        const entry = entries[i];
+      if (!entries.some((entry) => entry.handler === (handler as ErasedHandler))) {
+        continue;
+      }
+      const list = this.#listToMutate(name, entries);
+      for (let i = list.length - 1; i >= 0; i--) {
+        const entry = list[i];
         if (entry?.handler === (handler as ErasedHandler)) {
           entry.removed = true;
-          entries.splice(i, 1);
+          list.splice(i, 1);
         }
       }
-      if (entries.length === 0) {
+      if (list.length === 0) {
         this.#handlers.delete(name);
       }
     }
@@ -169,8 +186,8 @@ export class Observable<E extends EventArgsMap> {
   }
 
   /**
-   * Invokes every handler of `event`, in registration order, over a snapshot
-   * taken at dispatch time: handlers added during the dispatch don't run for
+   * Invokes every handler of `event`, in registration order, as the list stood
+   * when the dispatch began: handlers added during the dispatch don't run for
    * it, and handlers removed during it are skipped if not yet reached.
    */
   trigger<K extends EventName<E>>(event: K, ...args: E[K]): this {
@@ -196,25 +213,48 @@ export class Observable<E extends EventArgsMap> {
     if (entries === undefined || entries.length === 0) {
       return this;
     }
-    for (const entry of entries.slice()) {
-      if (entry.removed) {
-        continue;
+    // The list itself, not a copy: a splice during the dispatch goes elsewhere,
+    // and the length read here is what hides handlers added along the way.
+    const count = entries.length;
+    dispatchesInFlight++;
+    try {
+      for (let i = 0; i < count; i++) {
+        const entry = entries[i];
+        if (entry === undefined || entry.removed) {
+          continue;
+        }
+        if (entry.once) {
+          this.#removeEntry(event, entry);
+        }
+        const handlerArgs = entry.typed ? [event, ...args] : args;
+        if (onError === null) {
+          this.#invoke(entry.handler, handlerArgs);
+          continue;
+        }
+        try {
+          this.#invoke(entry.handler, handlerArgs);
+        } catch (e) {
+          report(onError, e);
+        }
       }
-      if (entry.once) {
-        this.#removeEntry(event, entry);
-      }
-      const handlerArgs = entry.typed ? [event, ...args] : args;
-      if (onError === null) {
-        this.#invoke(entry.handler, handlerArgs);
-        continue;
-      }
-      try {
-        this.#invoke(entry.handler, handlerArgs);
-      } catch (e) {
-        report(onError, e);
-      }
+    } finally {
+      dispatchesInFlight--;
     }
     return this;
+  }
+
+  /**
+   * The handler list of `name` in a form safe to splice. A dispatch in flight
+   * is iterating the stored list, so this leaves a copy in the table for it to
+   * finish on and hands back the one nothing is reading.
+   */
+  #listToMutate(name: string, entries: HandlerEntry[]): HandlerEntry[] {
+    if (dispatchesInFlight === 0) {
+      return entries;
+    }
+    const copy = entries.slice();
+    this.#handlers.set(name, copy);
+    return copy;
   }
 
   /**
@@ -246,10 +286,12 @@ export class Observable<E extends EventArgsMap> {
       return;
     }
     const index = entries.indexOf(entry);
+    // A copy holds the same entries in the same order, so the index still points at `entry`.
+    const list = index >= 0 ? this.#listToMutate(name, entries) : entries;
     if (index >= 0) {
-      entries.splice(index, 1);
+      list.splice(index, 1);
     }
-    if (entries.length === 0) {
+    if (list.length === 0) {
       this.#handlers.delete(name);
     }
   }

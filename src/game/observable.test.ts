@@ -245,6 +245,17 @@ describe("Observable.off", () => {
     expect(() => emitter.off("idle")).not.toThrow();
   });
 
+  it("leaves an event's handlers alone when the one named was never registered", () => {
+    const emitter = makeEmitter();
+    const registered = vi.fn();
+    emitter.on("idle", registered);
+
+    emitter.off("idle", vi.fn());
+    emitter.trigger("idle");
+
+    expect(registered).toHaveBeenCalledTimes(1);
+  });
+
   it('off("*") removes handlers for every event', () => {
     // A literal lookup of "*" would find nothing and silently no-op, leaking every handler.
     const emitter = makeEmitter();
