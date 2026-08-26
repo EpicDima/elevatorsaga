@@ -1,5 +1,5 @@
 /**
- * Golden values: what {@link "./levels.ts"!levels}' `tiers` fields actually
+ * Golden values: what {@link "./chapter1.ts"!chapter1Levels}' `tiers` fields actually
  * award to two reference programs, recorded from real runs on ten fixed
  * seeds rather than asserted in the abstract. A change to physics or
  * thresholds should move exactly the rows it's supposed to; this file says which.
@@ -8,7 +8,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { Level } from "./levels.ts";
-import { levels } from "./levels.ts";
+import { chapter1Levels } from "./chapter1.ts";
 import { GOOD_CODE_BALANCED, GOOD_CODE_MOVE_CONSCIOUS } from "./level-reference-code.ts";
 import { evaluateLevelTier } from "./level-tiers.ts";
 import { createFrameRequester } from "./frame-requester.ts";
@@ -488,7 +488,7 @@ const CASES: readonly LevelTierCase[] = [
 for (const testCase of CASES) {
   describe(`Level ${String(testCase.levelNumber)} tiers`, () => {
     it("awards DEV_TEST_CODE and the reference dispatcher exactly the recorded tier on every measured seed", () => {
-      const level = levels[testCase.levelNumber - 1];
+      const level = chapter1Levels[testCase.levelNumber - 1];
       if (level === undefined) {
         throw new Error(`no level numbered ${String(testCase.levelNumber)}`);
       }

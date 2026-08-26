@@ -3,7 +3,7 @@
 import "./styles/index.css";
 
 import { describeFitnessResults, runFitnessSuite } from "./app/fitness.ts";
-import { levels } from "./game/levels.ts";
+import { chapter1Levels } from "./game/chapter1.ts";
 import type { FitnessSuiteResult } from "./game/fitness.ts";
 import { TICK_SECONDS, createWorldController } from "./game/world-controller.ts";
 import { t } from "./i18n/index.ts";
@@ -166,7 +166,7 @@ async function main(): Promise<void> {
     editor,
     editorPane,
     worldController: createWorldController(TICK_SECONDS),
-    levels,
+    chapter1Levels,
     onSeedChange: (seed) => {
       settingsControllerRef?.setSeed(seed);
     },
@@ -190,7 +190,7 @@ async function main(): Promise<void> {
       app.handleRoute(params, query);
     },
     {
-      levelCount: levels.length,
+      chapter1LevelCount: chapter1Levels.length,
       defaultTimeScale: () => readStoredTimeScale(localStorage) ?? DEFAULT_TIME_SCALE,
     },
   );

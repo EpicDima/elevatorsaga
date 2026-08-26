@@ -6,7 +6,7 @@ import {
   GOOD_CODE_MOVE_CONSCIOUS,
 } from "./level-reference-code.ts";
 import type { Level } from "./levels.ts";
-import { levels } from "./levels.ts";
+import { chapter1Levels } from "./chapter1.ts";
 import { createFrameRequester } from "./frame-requester.ts";
 import type { RandomSeed } from "./random.ts";
 import { getCodeObjFromCode } from "./user-code.ts";
@@ -117,9 +117,9 @@ function runRawUntil(
  */
 describe("regression: a full single car does not starve an already-queued stop", () => {
   it("keeps delivering past the point the un-fixed dispatcher froze, and clears the level's target within 400s", () => {
-    const level = levels[0];
+    const level = chapter1Levels[0];
     if (level === undefined) {
-      throw new Error("levels[0] does not exist");
+      throw new Error("chapter1Levels[0] does not exist");
     }
     const result = runRawUntil(level.options, GOOD_CODE_BALANCED, 1, 400);
     expect(result.elapsedTime).toBeGreaterThanOrEqual(400);
@@ -206,7 +206,7 @@ function playLevel(
 
 /**
  * Real levels the termination smoke check plays, by index into
- * {@link "./levels.ts"!levels} (levels 1, 6, 7 and 19). Levels 6, 7 and 19 are
+ * {@link "./chapter1.ts"!chapter1Levels} (levels 1, 6, 7 and 19). Levels 6, 7 and 19 are
  * judged wholly or partly on move count, so a livelock there would never
  * resolve on elapsed time alone.
  */
@@ -230,9 +230,9 @@ describe("termination smoke check across a spread of real levels", () => {
 
   for (const [presetName, code] of presets) {
     for (const levelIndex of SMOKE_LEVEL_INDICES) {
-      const level = levels[levelIndex];
+      const level = chapter1Levels[levelIndex];
       if (level === undefined) {
-        throw new Error(`levels[${String(levelIndex)}] does not exist`);
+        throw new Error(`chapter1Levels[${String(levelIndex)}] does not exist`);
       }
 
       describe(`${presetName} on level ${String(levelIndex + 1)}`, () => {

@@ -633,11 +633,11 @@ describe("CodeEditor level buffers", () => {
   it("gives every level's every slot a storage key of its own", () => {
     const { editor, view, storage } = setUp();
 
-    editor.openLevelBuffer(6, 2);
+    editor.openChapter1Buffer(6, 2);
     view.type("// level 7, slot 2");
-    editor.openLevelBuffer(6, 3);
+    editor.openChapter1Buffer(6, 3);
     view.type("// level 7, slot 3");
-    editor.openLevelBuffer(7, 2);
+    editor.openChapter1Buffer(7, 2);
 
     // Literals again, for the reason above.
     expect(storage.getItem("develevateChallengeCode_6_2")).toBe("// level 7, slot 2");
@@ -647,7 +647,7 @@ describe("CodeEditor level buffers", () => {
   it("opens a slot nobody has used with the default program, writing it at once", () => {
     const { editor, view, storage } = setUp();
 
-    editor.openLevelBuffer(4, 2);
+    editor.openChapter1Buffer(4, 2);
 
     expect(view.getValue()).toBe(defaultCode());
     // Stored at once, so leaving without typing loses nothing.
@@ -659,7 +659,7 @@ describe("CodeEditor level buffers", () => {
     storage.setItem("develevateChallengeCode_4_2", "// where I got to last time");
     const { editor, view } = setUp(storage);
 
-    editor.openLevelBuffer(4, 2);
+    editor.openChapter1Buffer(4, 2);
 
     expect(view.getValue()).toBe("// where I got to last time");
   });
@@ -670,7 +670,7 @@ describe("CodeEditor level buffers", () => {
     storage.setItem("develevateChallengeCode_5_2", "// slot 2 as of level 6");
     const { editor, view } = setUp(storage);
 
-    editor.openLevelBuffer(8, 2);
+    editor.openChapter1Buffer(8, 2);
 
     expect(view.getValue()).toBe("// slot 2 as of level 6");
   });
@@ -682,21 +682,21 @@ describe("CodeEditor level buffers", () => {
 
     // Nothing in levels 4-7's slot 2, so the search must not stop at the
     // immediately preceding level.
-    editor.openLevelBuffer(7, 2);
+    editor.openChapter1Buffer(7, 2);
 
     expect(view.getValue()).toBe("// slot 2 as of level 4");
   });
 
   it("does not let a later level's slot reach back into an earlier one already opened", () => {
     const { editor, view } = setUp();
-    editor.openLevelBuffer(0, 2);
+    editor.openChapter1Buffer(0, 2);
     const startedOn = view.getValue();
 
-    editor.openLevelBuffer(5, 2);
+    editor.openChapter1Buffer(5, 2);
     view.type("// a much later program");
     editor.save();
 
-    editor.openLevelBuffer(0, 2);
+    editor.openChapter1Buffer(0, 2);
 
     expect(view.getValue()).toBe(startedOn);
   });
@@ -706,17 +706,17 @@ describe("CodeEditor level buffers", () => {
     storage.setItem(CODE_STORAGE_KEY, "// the program every existing player has");
     const { editor, view } = setUp(storage);
 
-    editor.openLevelBuffer(3, 1);
+    editor.openChapter1Buffer(3, 1);
     expect(view.getValue()).toBe("// the program every existing player has");
 
-    editor.openLevelBuffer(3, 2);
+    editor.openChapter1Buffer(3, 2);
     expect(view.getValue()).toBe(defaultCode());
   });
 
   it("opens the first slot when none is named", () => {
     const { editor, storage } = setUp();
 
-    editor.openLevelBuffer(2);
+    editor.openChapter1Buffer(2);
 
     expect(storage.getItem("develevateChallengeCode_2_1")).toBe(defaultCode());
   });
@@ -728,7 +728,7 @@ describe("CodeEditor level buffers", () => {
     const { editor, view, storage } = setUp();
     view.type("// typed a moment ago, not yet autosaved");
 
-    editor.openLevelBuffer(0, 1);
+    editor.openChapter1Buffer(0, 1);
 
     expect(view.getValue()).toBe("// typed a moment ago, not yet autosaved");
     expect(storage.getItem("develevateChallengeCode_0_1")).toBe(
@@ -738,15 +738,15 @@ describe("CodeEditor level buffers", () => {
 
   it("keeps a separate reset backup per level slot", () => {
     const { editor, view, storage } = setUp();
-    editor.openLevelBuffer(3, 1);
+    editor.openChapter1Buffer(3, 1);
     view.type("// level 4, slot 1 attempt");
     editor.reset();
-    editor.openLevelBuffer(3, 2);
+    editor.openChapter1Buffer(3, 2);
     view.type("// level 4, slot 2 attempt");
     editor.reset();
     expect(view.getValue()).toBe(defaultCode());
 
-    editor.openLevelBuffer(3, 1);
+    editor.openChapter1Buffer(3, 1);
     editor.undoReset();
 
     // Slot 1's own attempt, not slot 2's, and slot 2's backup is untouched.
@@ -1861,11 +1861,11 @@ describe("the program on screen when the language changes", () => {
     // default, shown in the language on screen now, not the one it was stored in.
     setLocale("ru");
     const { editor, view } = setUp();
-    editor.openLevelBuffer(0, 1);
+    editor.openChapter1Buffer(0, 1);
     expect(view.getValue()).toBe(defaultCode());
 
     setLocale(DEFAULT_LOCALE);
-    editor.openLevelBuffer(1, 1);
+    editor.openChapter1Buffer(1, 1);
 
     expect(view.getValue()).toBe(defaultCode());
     expect(view.getValue()).toContain("// Let's use the first elevator");

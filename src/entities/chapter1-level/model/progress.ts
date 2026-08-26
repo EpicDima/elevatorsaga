@@ -1,9 +1,9 @@
-/** Tracks the best tier earned per numbered level; a write only ever raises the recorded tier, never lowers it. */
+/** Tracks the best medal earned per chapter one level, keyed by the level's index in its own storage key. */
 
 import { LEVEL_TIERS, type LevelTier } from "#game/level-tiers.ts";
 
-/** Storage key for level tiers; changing it discards players' saved progress. */
-export const LEVEL_TIER_STORAGE_KEY = "develevateChallengeTiers";
+/** Storage key for chapter one medals; the legacy spelling is kept, since renaming it discards players' saved progress. */
+export const CHAPTER1_TIER_STORAGE_KEY = "develevateChallengeTiers";
 
 /** Returns a tier's rank; higher is better. */
 function tierRank(tier: LevelTier): number {
@@ -11,13 +11,13 @@ function tierRank(tier: LevelTier): number {
 }
 
 /**
- * Reads the best tier recorded for each level.
+ * Reads the best medal recorded for each chapter one level.
  * Unknown indices are returned as-is; callers filter against their own level list.
  */
-export function readBestLevelTiers(storage: Storage): ReadonlyMap<number, LevelTier> {
+export function readBestChapter1Tiers(storage: Storage): ReadonlyMap<number, LevelTier> {
   let stored: string | null;
   try {
-    stored = storage.getItem(LEVEL_TIER_STORAGE_KEY);
+    stored = storage.getItem(CHAPTER1_TIER_STORAGE_KEY);
   } catch {
     // A browser that refuses storage should still let the player play.
     return new Map();
@@ -48,10 +48,10 @@ export function readBestLevelTiers(storage: Storage): ReadonlyMap<number, LevelT
   return result;
 }
 
-/** Records a tier earned on a level, if it is better than what is already stored. */
-export function recordLevelTier(storage: Storage, levelIndex: number, tier: LevelTier): void {
-  const current = readBestLevelTiers(storage);
-  const existing = current.get(levelIndex);
+/** Records a medal earned on a chapter one level, if it is better than what is already stored. */
+export function recordChapter1Tier(storage: Storage, chapter1Index: number, tier: LevelTier): void {
+  const current = readBestChapter1Tiers(storage);
+  const existing = current.get(chapter1Index);
   if (existing !== undefined && tierRank(existing) >= tierRank(tier)) {
     // Already at least this good; skip the redundant write.
     return;
@@ -60,9 +60,9 @@ export function recordLevelTier(storage: Storage, levelIndex: number, tier: Leve
   for (const [index, storedTier] of current) {
     record[index] = storedTier;
   }
-  record[levelIndex] = tier;
+  record[chapter1Index] = tier;
   try {
-    storage.setItem(LEVEL_TIER_STORAGE_KEY, JSON.stringify(record));
+    storage.setItem(CHAPTER1_TIER_STORAGE_KEY, JSON.stringify(record));
   } catch {
     // A browser that refuses storage should not stop the game.
   }

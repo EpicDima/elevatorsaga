@@ -11,7 +11,7 @@ import type { TutorialLevel } from "#game/tutorial.ts";
 
 /** What is being played right now, if any tile in this menu names it. */
 export type LevelSelection =
-  | { readonly kind: "level"; readonly index: number }
+  | { readonly kind: "chapter1"; readonly index: number }
   | { readonly kind: "tutorial"; readonly index: number }
   | { readonly kind: "chapter2"; readonly index: number }
   | { readonly kind: "sandbox" };
@@ -22,14 +22,14 @@ export type LevelSelection =
  * belongs to also decides which run a route starts and which record a win is written to.
  */
 export type LevelLinkTarget =
-  | { readonly kind: "level"; readonly number: number }
+  | { readonly kind: "chapter1"; readonly number: number }
   | { readonly kind: "tutorial"; readonly levelId: string }
   | { readonly kind: "chapter2"; readonly levelId: string }
   | { readonly kind: "sandbox" };
 
 /** One tile of chapter one. */
-export interface NumberedMenuTile {
-  readonly kind: "level";
+export interface Chapter1MenuTile {
+  readonly kind: "chapter1";
   readonly index: number;
   readonly number: number;
   readonly current: boolean;
@@ -53,7 +53,7 @@ export interface TutorialMenuTile {
 export interface Chapter2MenuTile {
   readonly kind: "chapter2";
   readonly index: number;
-  /** Continues chapter one's numbering: the first tile here is level `levels.length + 1`. */
+  /** Continues chapter one's numbering: the first tile here is level `chapter1Levels.length + 1`. */
   readonly number: number;
   readonly current: boolean;
   /** This browser's best-recorded tier, or `undefined` if never cleared. */
@@ -70,29 +70,29 @@ export interface SandboxMenuTile {
 
 /** One tile of the level-switcher menu, whichever block it belongs to. */
 export type LevelMenuTile =
-  NumberedMenuTile | TutorialMenuTile | Chapter2MenuTile | SandboxMenuTile;
+  Chapter1MenuTile | TutorialMenuTile | Chapter2MenuTile | SandboxMenuTile;
 
 /** Named group of tiles; the last block's id is `other`, not `sandbox`, since the block and its one tile have different captions. */
 export interface LevelMenuBlock {
-  readonly id: "tutorial" | "levels" | "chapter2" | "other";
+  readonly id: "tutorial" | "chapter1" | "chapter2" | "other";
   readonly tiles: readonly LevelMenuTile[];
 }
 
 /** Everything {@link buildLevelMenu} needs to assemble the menu. */
 export interface LevelMenuInput {
-  /** The numbered levels, in playing order — {@link "#game/levels.ts"!levels}. */
-  readonly levels: readonly Level[];
+  /** Chapter one's levels, in playing order — {@link "#game/chapter1.ts"!chapter1Levels}. */
+  readonly chapter1Levels: readonly Level[];
   /** The learning track, in playing order — {@link "#game/tutorial.ts"!tutorialLevels}. */
   readonly tutorialLevels: readonly TutorialLevel[];
   /** Chapter two's levels, in playing order — {@link "#game/chapter2.ts"!chapter2Levels}. */
   readonly chapter2Levels: readonly Chapter2Level[];
-  /** This browser's best-recorded tier per level index. */
-  readonly bestTiers: ReadonlyMap<number, LevelTier>;
+  /** This browser's best-recorded tier per chapter one level index. */
+  readonly bestChapter1Tiers: ReadonlyMap<number, LevelTier>;
   /** This browser's cleared learning-track level ids. */
   readonly clearedTutorialLevels: ReadonlySet<string>;
   /**
    * This browser's best-recorded tier per chapter two level id. A second map, not more rows
-   * in {@link LevelMenuInput.bestTiers}: the two are keyed differently and come from separate storage.
+   * in {@link LevelMenuInput.bestChapter1Tiers}: the two are keyed differently and come from separate storage.
    */
   readonly bestChapter2Tiers: ReadonlyMap<string, LevelTier>;
   /** What is being played right now, if anything this menu offers is. */
@@ -115,22 +115,22 @@ function buildTutorialBlock(input: LevelMenuInput): LevelMenuBlock {
   };
 }
 
-function buildLevelBlock(input: LevelMenuInput): LevelMenuBlock {
+function buildChapter1Block(input: LevelMenuInput): LevelMenuBlock {
   return {
-    id: "levels",
-    tiles: listLevels(input.levels).map((summary) => ({
-      kind: "level",
+    id: "chapter1",
+    tiles: listLevels(input.chapter1Levels).map((summary) => ({
+      kind: "chapter1",
       index: summary.index,
       number: summary.number,
-      current: input.selection.kind === "level" && input.selection.index === summary.index,
-      tier: input.bestTiers.get(summary.index),
-      href: input.buildHref({ kind: "level", number: summary.number }),
+      current: input.selection.kind === "chapter1" && input.selection.index === summary.index,
+      tier: input.bestChapter1Tiers.get(summary.index),
+      href: input.buildHref({ kind: "chapter1", number: summary.number }),
     })),
   };
 }
 
 function buildChapter2Block(input: LevelMenuInput): LevelMenuBlock {
-  const chapterOneLength = input.levels.length;
+  const chapterOneLength = input.chapter1Levels.length;
   return {
     id: "chapter2",
     tiles: input.chapter2Levels.map((level, index) => ({
@@ -163,7 +163,7 @@ function buildOtherBlock(input: LevelMenuInput): LevelMenuBlock {
 export function buildLevelMenu(input: LevelMenuInput): readonly LevelMenuBlock[] {
   return [
     buildTutorialBlock(input),
-    buildLevelBlock(input),
+    buildChapter1Block(input),
     buildChapter2Block(input),
     buildOtherBlock(input),
   ];

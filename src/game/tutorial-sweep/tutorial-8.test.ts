@@ -2,7 +2,7 @@
 
 import { describe, expect, it } from "vitest";
 
-import { levels } from "../levels.ts";
+import { chapter1Levels } from "../chapter1.ts";
 import { describeSweep, levelById, sweep, SWEEP_TIMEOUT_MS } from "./test-helpers.ts";
 
 /** A three-floor sweep: the dumbest program that could be called a solution. Not in the level table since no player is ever shown it. */
@@ -42,7 +42,7 @@ describe("Learning track level tutorial-8 over four hundred seeds", () => {
       // Confirms the claim above: replays the same answer against level 1's
       // own building and bar. A future "fix" to level 8 would just be moving
       // it away from the level it rehearses.
-      const levelOne = levels[0];
+      const levelOne = chapter1Levels[0];
       if (levelOne === undefined) {
         throw new Error("the game has no levels");
       }

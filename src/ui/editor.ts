@@ -72,20 +72,20 @@ const TUTORIAL_CODE_KEY_PREFIX = "develevateTutorialCode_";
 const TUTORIAL_BACKUP_KEY_PREFIX = "develevateTutorialBackupCode_";
 
 /**
- * Prefix for a level+slot's storage key, one key per `(levelIndex, slot)`
+ * Prefix for a chapter one level+slot's storage key, one key per `(chapter1Index, slot)`
  * pair. Keep the spelling — renaming loses every already-saved program.
  */
-const LEVEL_CODE_KEY_PREFIX = "develevateChallengeCode_";
+const CHAPTER1_CODE_KEY_PREFIX = "develevateChallengeCode_";
 
-/** Prefix of the per-`(levelIndex, slot)` "Undo reset" backups. */
-const LEVEL_BACKUP_KEY_PREFIX = "develevateChallengeBackupCode_";
+/** Prefix of the per-`(chapter1Index, slot)` "Undo reset" backups. */
+const CHAPTER1_BACKUP_KEY_PREFIX = "develevateChallengeBackupCode_";
 
-function levelCodeKey(levelIndex: number, slot: CodeSlot): string {
-  return `${LEVEL_CODE_KEY_PREFIX}${String(levelIndex)}_${String(slot)}`;
+function chapter1CodeKey(chapter1Index: number, slot: CodeSlot): string {
+  return `${CHAPTER1_CODE_KEY_PREFIX}${String(chapter1Index)}_${String(slot)}`;
 }
 
-function levelBackupKey(levelIndex: number, slot: CodeSlot): string {
-  return `${LEVEL_BACKUP_KEY_PREFIX}${String(levelIndex)}_${String(slot)}`;
+function chapter1BackupKey(chapter1Index: number, slot: CodeSlot): string {
+  return `${CHAPTER1_BACKUP_KEY_PREFIX}${String(chapter1Index)}_${String(slot)}`;
 }
 
 /** How long typing must pause before the program is saved, in milliseconds. */
@@ -251,11 +251,11 @@ function namedLevelBuffer(levelId: string, starterCode: string): EditorBuffer {
   };
 }
 
-/** Describes one level's one code slot's buffer. */
-function levelBuffer(levelIndex: number, slot: CodeSlot, starterCode: string): EditorBuffer {
+/** Describes one chapter one level's one code slot's buffer. */
+function chapter1Buffer(chapter1Index: number, slot: CodeSlot, starterCode: string): EditorBuffer {
   return {
-    codeKey: levelCodeKey(levelIndex, slot),
-    backupKey: levelBackupKey(levelIndex, slot),
+    codeKey: chapter1CodeKey(chapter1Index, slot),
+    backupKey: chapter1BackupKey(chapter1Index, slot),
     get starterCode(): string {
       return localizeStarterCode(starterCode);
     },
@@ -435,24 +435,24 @@ export class CodeEditor extends Observable<CodeEditorEvents> {
     this.#openBuffer(namedLevelBuffer(levelId, starterCode));
   }
 
-  /** Shows one level's one code slot, keeping whatever was on screen. */
-  openLevelBuffer(levelIndex: number, slot: CodeSlot = DEFAULT_CODE_SLOT): void {
+  /** Shows one chapter one level's one code slot, keeping whatever was on screen. */
+  openChapter1Buffer(chapter1Index: number, slot: CodeSlot = DEFAULT_CODE_SLOT): void {
     // Flushed before resolving the starter code: the legacy fallback key can
     // be the very key still on screen, and resolving first would read it
     // before this keystroke's text reaches it.
     this.#flush();
-    const starterCode = this.#resolveLevelStarterCode(levelIndex, slot);
-    this.#openBuffer(levelBuffer(levelIndex, slot, starterCode));
+    const starterCode = this.#resolveChapter1StarterCode(chapter1Index, slot);
+    this.#openBuffer(chapter1Buffer(chapter1Index, slot, starterCode));
   }
 
   /**
-   * The starter code for a level's slot when the slot itself is empty: the
+   * The starter code for a chapter one level's slot when the slot itself is empty: the
    * newest lower-numbered level's same slot that has one, or — for the
    * default slot only — the legacy single-buffer program, or else the bare default.
    */
-  #resolveLevelStarterCode(levelIndex: number, slot: CodeSlot): string {
-    for (let i = levelIndex - 1; i >= 0; i -= 1) {
-      const stored = this.#read(levelCodeKey(i, slot));
+  #resolveChapter1StarterCode(chapter1Index: number, slot: CodeSlot): string {
+    for (let i = chapter1Index - 1; i >= 0; i -= 1) {
+      const stored = this.#read(chapter1CodeKey(i, slot));
       if (stored.state === "text") {
         return stored.text;
       }

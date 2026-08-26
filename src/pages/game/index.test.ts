@@ -34,7 +34,7 @@ import {
   setDemoFullscreen,
 } from "./index.ts";
 import type { AppElements, ControlsPresenterOptions } from "./index.ts";
-import { readBestLevelTiers } from "#entities/level-tier/index.ts";
+import { readBestChapter1Tiers } from "#entities/chapter1-level/index.ts";
 import { readBestChapter2Tiers } from "#entities/chapter2-level/index.ts";
 import { readClearedTutorialLevels } from "#entities/tutorial-level/model/progress.ts";
 import { DEFAULT_TIME_SCALE } from "#features/adjust-speed/model/time-scale.ts";
@@ -73,9 +73,9 @@ const LEVELS: readonly Level[] = [
   },
 ];
 
-/** Hangs a silver and a gold bar on the winnable level; call before `startLevel`, which reads the level list at run start. */
+/** Hangs a silver and a gold bar on the winnable level; call before `startChapter1Level`, which reads the level list at run start. */
 function withTiers(app: App, tiers: LevelTierRequirements): void {
-  Object.defineProperty(app, "levels", {
+  Object.defineProperty(app, "chapter1Levels", {
     value: LEVELS.map((level, index) => (index === 1 ? { ...level, tiers } : level)),
   });
 }
@@ -157,7 +157,7 @@ function setUp(
     editor,
     editorPane,
     worldController,
-    levels: LEVELS,
+    chapter1Levels: LEVELS,
     storage,
     requestAnimationFrame: () => undefined,
     onSeedChange,
@@ -221,10 +221,10 @@ beforeEach(() => {
   document.documentElement.classList.remove(FULLSCREEN_CLASS);
 });
 
-describe("App.startLevel", () => {
+describe("App.startChapter1Level", () => {
   it("draws the goal bar, the world and the statistics", () => {
     const { app, elements } = setUp();
-    app.startLevel(0);
+    app.startChapter1Level(0);
 
     expect(goalDescription(elements)).toBe("Level one");
     expect(queryAll(".floor", elements.world)).toHaveLength(3);
@@ -234,17 +234,17 @@ describe("App.startLevel", () => {
 
   it("keeps the window.world debugging hook pointing at the live world", () => {
     const { app } = setUp();
-    app.startLevel(1);
+    app.startChapter1Level(1);
     expect(window.world).toBe(app.world);
     expect(window.world?.floors).toHaveLength(4);
   });
 
   it("tears the previous world down and starts from a clean page", () => {
     const { app, elements } = setUp();
-    app.startLevel(0);
+    app.startChapter1Level(0);
     const first = app.world;
 
-    app.startLevel(1);
+    app.startChapter1Level(1);
 
     expect(first?.levelEnded).toBe(true);
     expect(first?.floors).toHaveLength(0);
@@ -255,14 +255,14 @@ describe("App.startLevel", () => {
   it("refuses an index that does not name a level", () => {
     const { app } = setUp();
     expect(() => {
-      app.startLevel(99);
+      app.startChapter1Level(99);
     }).toThrow(RangeError);
   });
 
   it("starts even when the program does not compile", () => {
     const { app, editorPaneMount, storage } = setUp();
     storage.setItem("develevateChallengeCode_0_1", "{ this is not javascript");
-    app.startLevel(0);
+    app.startChapter1Level(0);
 
     expect(app.world).toBeDefined();
     expect(codeErrorMessage(editorPaneMount)).not.toBe("");
@@ -270,14 +270,14 @@ describe("App.startLevel", () => {
 
   it("opens the first code slot by default", () => {
     const { app } = setUp();
-    app.startLevel(0);
+    app.startChapter1Level(0);
     expect(app.currentCodeSlot).toBe(1);
   });
 
   it("opens the code slot it is asked for", () => {
     const { app, storage, view } = setUp();
     storage.setItem("develevateChallengeCode_0_2", "// slot two's program");
-    app.startLevel(0, false, 2);
+    app.startChapter1Level(0, false, 2);
 
     expect(app.currentCodeSlot).toBe(2);
     expect(view.getValue()).toBe("// slot two's program");
@@ -303,11 +303,11 @@ describe("App browser defaults", () => {
       editor,
       editorPane,
       worldController,
-      levels: LEVELS,
+      chapter1Levels: LEVELS,
       onSeedChange: () => undefined,
     });
 
-    app.startLevel(0, true);
+    app.startChapter1Level(0, true);
     // Two frames: the first only marks the clock, the second is the one that runs time.
     for (const timestamp of [0, 1000]) {
       for (const callback of pending.splice(0)) {
@@ -323,7 +323,7 @@ describe("App browser defaults", () => {
 describe("App code slots", () => {
   it("draws three slot buttons for a numbered level, marking the open one", () => {
     const { app, editorPaneMount } = setUp();
-    app.startLevel(0);
+    app.startChapter1Level(0);
 
     const buttons = codeSlotButtons(editorPaneMount);
     expect(buttons.map((button) => button.textContent)).toEqual(["Code 1", "Code 2", "Code 3"]);
@@ -336,7 +336,7 @@ describe("App code slots", () => {
 
   it("switches the editor to another slot from the panel, without touching the run", () => {
     const { app, editorPaneMount, view, storage } = setUp();
-    app.startLevel(0);
+    app.startChapter1Level(0);
     storage.setItem("develevateChallengeCode_0_2", "// slot two's program");
     const world = app.world;
 
@@ -352,7 +352,7 @@ describe("App code slots", () => {
 
   it("does nothing when the slot already open is asked for again", () => {
     const { app, view } = setUp();
-    app.startLevel(0);
+    app.startChapter1Level(0);
     view.type("// unsaved work");
 
     app.selectCodeSlot(1);
@@ -362,7 +362,7 @@ describe("App code slots", () => {
 
   it("keeps the slot a start-over reopens", () => {
     const { app, elements, view, storage } = setUp();
-    app.startLevel(0);
+    app.startChapter1Level(0);
     storage.setItem("develevateChallengeCode_0_2", "// slot two's program");
     app.selectCodeSlot(2);
 
@@ -381,7 +381,7 @@ describe("App level outcome", () => {
 
   it("stops the world and offers the next level on a win", () => {
     const { app, elements } = setUp();
-    app.startLevel(1);
+    app.startChapter1Level(1);
 
     app.world?.trigger("stats_changed");
 
@@ -392,7 +392,7 @@ describe("App level outcome", () => {
 
   it("says so, without a link, on a loss", () => {
     const { app, elements } = setUp();
-    app.startLevel(2);
+    app.startChapter1Level(2);
 
     app.world?.trigger("stats_changed");
 
@@ -403,10 +403,10 @@ describe("App level outcome", () => {
   it("says both outcomes in the language the card is drawn in", () => {
     setLocale("ru");
     const won = setUp();
-    won.app.startLevel(1);
+    won.app.startChapter1Level(1);
     won.app.world?.trigger("stats_changed");
     const lost = setUp();
-    lost.app.startLevel(2);
+    lost.app.startChapter1Level(2);
     lost.app.world?.trigger("stats_changed");
 
     expect(verdictTitle(won.elements)).toBe("Получилось!");
@@ -419,8 +419,8 @@ describe("App level outcome", () => {
 
   it("offers no next level after the last one", () => {
     const { app, elements } = setUp();
-    app.startLevel(1);
-    Object.defineProperty(app, "levels", { value: LEVELS.slice(0, 2) });
+    app.startChapter1Level(1);
+    Object.defineProperty(app, "chapter1Levels", { value: LEVELS.slice(0, 2) });
 
     app.world?.trigger("stats_changed");
 
@@ -452,7 +452,7 @@ describe("App level outcome", () => {
   it("puts the star the run earned beside the headline", () => {
     // A level with no silver or gold of its own rates a win as gold: clearing it is the whole achievement.
     const { app, elements } = setUp();
-    app.startLevel(1);
+    app.startChapter1Level(1);
 
     app.world?.trigger("stats_changed");
 
@@ -467,7 +467,7 @@ describe("App level outcome", () => {
 
   it("draws no star and no hint on a loss", () => {
     const { app, elements } = setUp();
-    app.startLevel(2);
+    app.startChapter1Level(2);
 
     app.world?.trigger("stats_changed");
 
@@ -481,7 +481,7 @@ describe("App level outcome", () => {
       silver: atLeastAvgLoadFactorOnMove(0.5),
       gold: atLeastAvgLoadFactorOnMove(0.9),
     });
-    app.startLevel(1);
+    app.startChapter1Level(1);
 
     app.world?.trigger("stats_changed");
 
@@ -497,7 +497,7 @@ describe("App level outcome", () => {
       silver: atLeastAvgLoadFactorOnMove(0.5),
       gold: atLeastAvgLoadFactorOnMove(0.9),
     });
-    app.startLevel(1);
+    app.startChapter1Level(1);
     app.world?.trigger("stats_changed");
 
     setLocale("ru");
@@ -517,7 +517,7 @@ describe("App instant run", () => {
 
   it("crunches the current level headlessly and shows the same outcome overlay an animated run would", () => {
     const { app, elements } = setUp();
-    app.startLevel(1);
+    app.startChapter1Level(1);
     expect(queryAll(".elevator", elements.world)).toHaveLength(2);
 
     app.runInstantly();
@@ -535,7 +535,7 @@ describe("App instant run", () => {
   it("crunches a program that did not compile as an empty one, rather than refusing to run", () => {
     const { app, elements, editorPaneMount, storage } = setUp();
     storage.setItem("develevateChallengeCode_1_1", "{ this is not javascript");
-    app.startLevel(1);
+    app.startChapter1Level(1);
 
     app.runInstantly();
 
@@ -546,7 +546,7 @@ describe("App instant run", () => {
 
   it("falls back to a loss once the ceiling is reached without the level's own condition ever deciding", () => {
     const { app, elements } = setUp();
-    app.startLevel(0); // `evaluate` always returns null: nothing but the ceiling ends this
+    app.startChapter1Level(0); // `evaluate` always returns null: nothing but the ceiling ends this
 
     app.runInstantly();
     if (app.world) {
@@ -560,7 +560,7 @@ describe("App instant run", () => {
 
   it("surfaces a player-code error during a crunch through the same banner as any other run, and recovers the button", () => {
     const { app, elements, editorPaneMount, view } = setUp();
-    app.startLevel(0); // never resolves on its own; only the error ends this run
+    app.startChapter1Level(0); // never resolves on its own; only the error ends this run
     view.type("{ init: function() {}, update: function() { throw new Error('boom'); } }");
 
     app.runInstantly();
@@ -574,10 +574,10 @@ describe("App instant run", () => {
 
   it("leaves the controls in their normal, ready state after starting a new run over an instant one", () => {
     const { app, elements } = setUp();
-    app.startLevel(0); // never resolves on its own
+    app.startChapter1Level(0); // never resolves on its own
     app.runInstantly();
 
-    app.startLevel(1);
+    app.startChapter1Level(1);
 
     const button = requireElement(".startstop", elements.controls);
     expect(button.textContent).toBe("Start");
@@ -587,7 +587,7 @@ describe("App instant run", () => {
 
   it("is what the primary button does once the speed control is on its instant stop", () => {
     const { app, elements } = setUp();
-    app.startLevel(1);
+    app.startChapter1Level(1);
     const before = app.world;
     reachInstantSpeed(elements);
 
@@ -600,7 +600,7 @@ describe("App instant run", () => {
 
   it("is what Start over does on that stop too", () => {
     const { app, elements } = setUp();
-    app.startLevel(1);
+    app.startChapter1Level(1);
     reachInstantSpeed(elements);
 
     requireElement(".startover", elements.controls).click();
@@ -612,7 +612,7 @@ describe("App instant run", () => {
     // The editor's binding used to start an animated run instead, so where the caret happened to
     // be decided which of two things one keystroke did.
     const { app, elements, editor } = setUp();
-    app.startLevel(1);
+    app.startChapter1Level(1);
     reachInstantSpeed(elements);
 
     editor.trigger("apply_code");
@@ -624,12 +624,12 @@ describe("App instant run", () => {
   it("draws the finished building whichever way the crunch ended", () => {
     const { app, elements } = setUp();
 
-    app.startLevel(1); // resolves at once
+    app.startChapter1Level(1); // resolves at once
     app.runInstantly();
     expect(queryAll(".floor", elements.world)).toHaveLength(4);
     expect(queryAll(".elevator", elements.world)).toHaveLength(2);
 
-    app.startLevel(2); // fails at once
+    app.startChapter1Level(2); // fails at once
     app.runInstantly();
     expect(verdictTitle(elements)).toBe("Level failed");
     expect(queryAll(".floor", elements.world)).toHaveLength(5);
@@ -638,7 +638,7 @@ describe("App instant run", () => {
 
   it("draws the building again when a crunch is stopped by an error in the program", () => {
     const { app, elements, view } = setUp();
-    app.startLevel(0); // never resolves on its own
+    app.startChapter1Level(0); // never resolves on its own
     view.type("{ init: function() {}, update: function() { throw new Error('boom'); } }");
 
     app.runInstantly();
@@ -650,7 +650,7 @@ describe("App instant run", () => {
 
   it("goes back to an animated run the moment the stop is left", () => {
     const { app, elements } = setUp();
-    app.startLevel(1);
+    app.startChapter1Level(1);
     reachInstantSpeed(elements);
     requireElement(".speed-down", elements.controls).click();
 
@@ -715,7 +715,7 @@ describe("App level navigation", () => {
         app.handleRoute(params, query);
       },
       {
-        levelCount: LEVELS.length,
+        chapter1LevelCount: LEVELS.length,
         defaultTimeScale: () => DEFAULT_TIME_SCALE,
       },
     );
@@ -724,7 +724,7 @@ describe("App level navigation", () => {
       requireElement('[aria-label="Level 2"]', elements.levelSwitcher).click();
 
       await vi.waitFor(() => {
-        expect(app.currentLevelIndex).toBe(1);
+        expect(app.currentChapter1Index).toBe(1);
       });
       expect(window.location.hash).toBe("#level=2,timescale=8");
       expect(app.worldController.timeScale).toBe(8);
@@ -861,7 +861,7 @@ describe("App sandbox", () => {
 
   it("leaves the instant stop on the way in, and offers it again on the way out", () => {
     const { app, elements } = setUp();
-    app.startLevel(0);
+    app.startChapter1Level(0);
     reachInstantSpeed(elements);
     expect(requireElement(".speed-val", elements.controls).textContent).toBe("∞x");
 
@@ -926,7 +926,7 @@ describe("App learning track", () => {
     expect(app.tutorial?.index).toBe(4);
     expect(app.isPlayingSandbox).toBe(false);
     expect(app.world?.floors.length).toBe(levelAt(4).options.floorCount);
-    expect(app.currentLevelIndex).toBe(2);
+    expect(app.currentChapter1Index).toBe(2);
   });
 
   it("builds a level on its own pinned seed rather than a fresh draw", () => {
@@ -1217,7 +1217,7 @@ describe("App learning track", () => {
       app.startTutorial(2);
       expect(elements.tutorial.children).toHaveLength(1);
 
-      app.startLevel(0);
+      app.startChapter1Level(0);
       expect(elements.tutorial.children).toHaveLength(0);
 
       app.startTutorial(2);
@@ -1320,7 +1320,7 @@ describe("App chapter two", () => {
     expect(app.chapter2?.level.id).toBe("chapter2-1");
     expect(app.chapter2?.index).toBe(0);
     expect(app.isPlayingSandbox).toBe(false);
-    expect(app.currentLevelIndex).toBe(2);
+    expect(app.currentChapter1Index).toBe(2);
   });
 
   it("builds the level's own building", () => {
@@ -1397,7 +1397,7 @@ describe("App chapter two", () => {
     app.startChapter2Level(0);
     app.handleRoute(...routeFor("#level=2"));
     expect(app.chapter2).toBeUndefined();
-    expect(app.currentLevelIndex).toBe(1);
+    expect(app.currentChapter1Index).toBe(1);
 
     app.startChapter2Level(0);
     app.handleRoute(...routeFor("#level=sandbox,floors=20"));
@@ -1445,7 +1445,7 @@ describe("App chapter two", () => {
     endRun(app, true);
 
     expect(readBestChapter2Tiers(storage)).toEqual(new Map([[levelAt(0).id, "gold"]]));
-    expect(readBestLevelTiers(storage)).toEqual(new Map());
+    expect(readBestChapter1Tiers(storage)).toEqual(new Map());
     // The tile updates without waiting for the next run's redraw.
     expect(
       requireElement('[href^="#level=chapter2-1"]', elements.levelSwitcher).getAttribute(
@@ -1568,7 +1568,7 @@ describe("App chapter two", () => {
       app.startChapter2Level(CARD_LEVEL);
       expect(elements.tutorial.children).toHaveLength(1);
 
-      app.startLevel(0);
+      app.startChapter1Level(0);
 
       expect(elements.tutorial.children).toHaveLength(0);
     });
@@ -1936,10 +1936,10 @@ describe("App focus", () => {
 
   it("hands focus to the start button when the building it was in is torn down", () => {
     const { app, elements } = setUp();
-    app.startLevel(0);
+    app.startChapter1Level(0);
     requireElement(".floor button.up", elements.world).focus();
 
-    app.startLevel(1);
+    app.startChapter1Level(1);
 
     expect(document.activeElement).toBe(requireElement(".startstop", elements.controls));
   });
@@ -1948,7 +1948,7 @@ describe("App focus", () => {
     // "Start over" auto-starts, so the button's label is set twice in quick succession;
     // captured inside the `focus` spy because both orderings look identical afterward.
     const { app, elements } = setUp();
-    app.startLevel(0);
+    app.startChapter1Level(0);
     const startStop = requireElement(".startstop", elements.controls);
     expect(startStop.textContent).toBe("Start");
     let labelWhenFocused: string | null = null;
@@ -1964,7 +1964,7 @@ describe("App focus", () => {
 
   it("leaves focus alone when the level is restarted from the editor", () => {
     const { app, editor } = setUp();
-    app.startLevel(0);
+    app.startChapter1Level(0);
     const elsewhere = createElement("textarea");
     document.body.append(elsewhere);
     elsewhere.focus();
@@ -1978,7 +1978,7 @@ describe("App focus", () => {
 describe("App start/stop", () => {
   it("pauses and resumes a running level", () => {
     const { app, worldController, elements } = setUp();
-    app.startLevel(0);
+    app.startChapter1Level(0);
     const startStop = requireElement(".startstop", elements.controls);
     expect(startStop.textContent).toBe("Start");
 
@@ -1993,19 +1993,19 @@ describe("App start/stop", () => {
 
   it("restarts the level once it has ended", () => {
     const { app, elements } = setUp();
-    app.startLevel(2);
+    app.startChapter1Level(2);
     app.world?.trigger("stats_changed");
     const ended = app.world;
 
     requireElement(".startstop", elements.controls).click();
 
     expect(app.world).not.toBe(ended);
-    expect(app.currentLevelIndex).toBe(2);
+    expect(app.currentChapter1Index).toBe(2);
   });
 
   it("starts a run that has not begun from the program on screen now", () => {
     const { app, view, elements, editorPaneMount } = setUp();
-    app.startLevel(0);
+    app.startChapter1Level(0);
     expect(codeErrorMessage(editorPaneMount)).toBe("");
     const built = app.world;
 
@@ -2021,7 +2021,7 @@ describe("App start/stop", () => {
     const { app, elements, editorPaneMount, storage } = setUp();
     storage.setItem("develevateChallengeCode_0_1", "{ update: function() {} }");
     storage.setItem("develevateChallengeCode_0_2", INERT_CODE);
-    app.startLevel(0);
+    app.startChapter1Level(0);
     expect(codeErrorMessage(editorPaneMount)).not.toBe("");
 
     codeSlotButtons(editorPaneMount)[1]?.click();
@@ -2035,7 +2035,7 @@ describe("App start/stop", () => {
     // Once the run has ticked, the program whose `init` wired the handlers is the one
     // driving it; Pause then Resume may not quietly swap in another.
     const { app, view, elements, worldController } = setUp();
-    app.startLevel(0);
+    app.startChapter1Level(0);
     requireElement(".startstop", elements.controls).click();
     const running = app.world;
     running?.update(1);
@@ -2053,13 +2053,13 @@ describe("App start/stop", () => {
 describe("App run controls", () => {
   it("starts the same level over, running, from Start over", () => {
     const { app, elements, worldController } = setUp();
-    app.startLevel(1);
+    app.startChapter1Level(1);
     const before = app.world;
 
     requireElement(".startover", elements.controls).click();
 
     expect(app.world).not.toBe(before);
-    expect(app.currentLevelIndex).toBe(1);
+    expect(app.currentChapter1Index).toBe(1);
     expect(worldController.isPaused).toBe(false);
   });
 });
@@ -2067,7 +2067,7 @@ describe("App run controls", () => {
 describe("App time scale", () => {
   it("steps the speed with the run controls' buttons", () => {
     const { app, worldController, elements } = setUp();
-    app.startLevel(0);
+    app.startChapter1Level(0);
     worldController.setTimeScale(2);
 
     requireElement(".speed-up", elements.controls).click();
@@ -2083,7 +2083,7 @@ describe("App time scale", () => {
     // multiplies the frame delta, and an Infinity there is a world that can never
     // tick again. So `+` at the top only changes what the next Start press will do.
     const { app, worldController, elements } = setUp();
-    app.startLevel(0);
+    app.startChapter1Level(0);
     worldController.setTimeScale(16);
     const value = requireElement(".speed-val", elements.controls);
 
@@ -2105,7 +2105,7 @@ describe("App time scale", () => {
     // The instant stop never raises `timescale_changed`, so it isn't stored or put in
     // the url; a reload should reopen at a finite speed, not a game with nothing drawn.
     const { app, worldController, storage, elements } = setUp();
-    app.startLevel(0);
+    app.startChapter1Level(0);
     worldController.setTimeScale(16);
     const setItem = vi.spyOn(storage, "setItem");
 
@@ -2117,7 +2117,7 @@ describe("App time scale", () => {
 
   it("remembers the chosen speed", () => {
     const { app, worldController, storage } = setUp();
-    app.startLevel(0);
+    app.startChapter1Level(0);
     worldController.setTimeScale(8);
     expect(storage.getItem(TIME_SCALE_STORAGE_KEY)).toBe("8");
     expect(readStoredTimeScale(storage)).toBe(8);
@@ -2128,9 +2128,9 @@ describe("App time scale", () => {
     const { app, worldController, storage } = setUp();
     const setItem = vi.spyOn(storage, "setItem");
 
-    app.startLevel(0);
-    app.startLevel(1);
-    app.startLevel(2);
+    app.startChapter1Level(0);
+    app.startChapter1Level(1);
+    app.startChapter1Level(2);
     setItem.mockClear();
 
     worldController.setTimeScale(8);
@@ -2156,7 +2156,7 @@ function routeFor(hash: string): Parameters<App["handleRoute"]> {
   const query = parseQuery(hash);
   return [
     resolveRoute(query, {
-      levelCount: 3,
+      chapter1LevelCount: 3,
       defaultTimeScale: DEFAULT_TIME_SCALE,
     }),
     query,
@@ -2167,7 +2167,7 @@ describe("App.handleRoute", () => {
   it("starts the level the url names", () => {
     const { app } = setUp();
     app.handleRoute(...routeFor("#level=3"));
-    expect(app.currentLevelIndex).toBe(2);
+    expect(app.currentChapter1Index).toBe(2);
   });
 
   it("does not blank the page when the level is not a number", () => {
@@ -2175,7 +2175,7 @@ describe("App.handleRoute", () => {
     expect(() => {
       app.handleRoute(...routeFor("#level=abc"));
     }).not.toThrow();
-    expect(app.currentLevelIndex).toBe(0);
+    expect(app.currentChapter1Index).toBe(0);
     expect(goalDescription(elements)).toBe("Level one");
   });
 
@@ -2199,7 +2199,7 @@ describe("App.handleRoute", () => {
 describe("App code status", () => {
   it("shows an error the simulation raises and clears it on the next success", () => {
     const { app, editor, editorPaneMount } = setUp();
-    app.startLevel(0);
+    app.startChapter1Level(0);
 
     app.worldController.trigger("usercode_error", new Error("boom"));
     expect(codeErrorMessage(editorPaneMount)).toContain("boom");
@@ -2210,13 +2210,13 @@ describe("App code status", () => {
 
   it("restarts the current level, running, when the program is applied", () => {
     const { app, editor } = setUp();
-    app.startLevel(2);
+    app.startChapter1Level(2);
     const before = app.world;
 
     editor.trigger("apply_code");
 
     expect(app.world).not.toBe(before);
-    expect(app.currentLevelIndex).toBe(2);
+    expect(app.currentChapter1Index).toBe(2);
     expect(app.worldController.isPaused).toBe(false);
   });
 });
@@ -2229,7 +2229,7 @@ describe("App.relocalize", () => {
 
   it("rewrites the goal bar's own chrome and the level switcher's captions in the language chosen part-way through a run", () => {
     const { app, elements } = setUp();
-    app.startLevel(0);
+    app.startChapter1Level(0);
     expect(goalDescription(elements)).toBe("Level one");
     expect(levelBlockCaption(elements)).toBe("Chapter 1");
 
@@ -2247,7 +2247,7 @@ describe("App.relocalize", () => {
     // Figures go through `Intl` and are written only when the world reports a change,
     // so relocalize alone would leave them in English until the next stats tick.
     const { app, elements } = setUp();
-    app.startLevel(0);
+    app.startChapter1Level(0);
     const world = app.world;
     if (world === undefined) {
       throw new Error("The level did not start");
@@ -2268,7 +2268,7 @@ describe("App.relocalize", () => {
 
   it("renames the building in place instead of drawing a second one", () => {
     const { app, elements } = setUp();
-    app.startLevel(0);
+    app.startChapter1Level(0);
     const floors = queryAll(".floor", elements.world);
     const callUp = requireElement("button.up", floors[0] ?? elements.world);
     const car = requireElement(".elevator", elements.world);
@@ -2307,14 +2307,14 @@ describe("App.relocalize", () => {
     expect(world.elapsedTime).toBe(42);
     expect(world.transportedCounter).toBe(7);
     expect(world.levelEnded).toBe(false);
-    expect(app.currentLevelIndex).toBe(0);
+    expect(app.currentChapter1Index).toBe(0);
     expect(worldController.isPaused).toBe(false);
     expect(app.currentSeedLink?.seed).toBe("issue-53");
   });
 
   it("says the verdict again, in the new language, on one card", () => {
     const { app, elements } = setUp();
-    app.startLevel(1);
+    app.startChapter1Level(1);
     app.world?.trigger("stats_changed");
     expect(verdictTitle(elements)).toBe("Success!");
 
@@ -2330,7 +2330,7 @@ describe("App.relocalize", () => {
 
   it("does not announce an outcome to a run that has not reached one", () => {
     const { app, elements } = setUp();
-    app.startLevel(0);
+    app.startChapter1Level(0);
 
     setLocale("ru");
     app.relocalize();
@@ -2340,7 +2340,7 @@ describe("App.relocalize", () => {
 
   it("keeps the banner about a broken program, and the program's own words in it", () => {
     const { app, editorPaneMount } = setUp();
-    app.startLevel(0);
+    app.startChapter1Level(0);
     app.worldController.trigger("usercode_error", new Error("boom"));
 
     setLocale("ru");
@@ -2371,7 +2371,7 @@ describe("App.relocalize", () => {
 
   it("leaves the program the player wrote exactly where it was", () => {
     const { app, view } = setUp();
-    app.startLevel(0);
+    app.startChapter1Level(0);
     view.type("// my own dispatcher");
 
     setLocale("ru");

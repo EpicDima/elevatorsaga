@@ -1,6 +1,6 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 
-import { levels } from "./levels.ts";
+import { chapter1Levels } from "./chapter1.ts";
 import { Elevator, type ElevatorDirection, type ElevatorPassenger } from "./elevator.ts";
 import { createFrameRequester } from "./frame-requester.ts";
 import { MovableBusyError, type MovableTask } from "./movable.ts";
@@ -1050,7 +1050,7 @@ describe("a busy elevator is always a stopped elevator", () => {
     () => {
       // Sweeps every shipped level, reaching both callers of the dwell: arrival and the re-offer.
       const totals: SweepTotals = { busySteps: 0, taskStarts: 0, violations: [] };
-      for (const level of levels) {
+      for (const level of chapter1Levels) {
         for (const seed of [1, 2, 3]) {
           const random = seededRandom(seed);
           const mock = vi.spyOn(Math, "random").mockImplementation(random);

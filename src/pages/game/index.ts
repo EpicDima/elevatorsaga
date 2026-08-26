@@ -22,12 +22,8 @@ import {
 import type { SeedLinkData } from "../../ui/templates.ts";
 import { LEVEL_KEY, SANDBOX_LEVEL } from "./model/route.ts";
 import type { RouteParams } from "./model/route.ts";
-import {
-  evaluateLevelTier,
-  nextTierHint,
-  readBestLevelTiers,
-  recordLevelTier,
-} from "#entities/level-tier/index.ts";
+import { evaluateLevelTier, nextTierHint } from "#entities/level-tier/index.ts";
+import { readBestChapter1Tiers, recordChapter1Tier } from "#entities/chapter1-level/index.ts";
 import { readBestChapter2Tiers, recordChapter2Tier } from "#entities/chapter2-level/index.ts";
 import {
   TUTORIAL_CLEARED_TIER,
@@ -264,8 +260,8 @@ export interface AppOptions {
   readonly editorPane: EditorPanePresenter;
   /** The controller driving the simulation. */
   readonly worldController: WorldController;
-  /** The levels, in order. */
-  readonly levels: readonly Level[];
+  /** Chapter one's levels, in order. */
+  readonly chapter1Levels: readonly Level[];
   /** Where the time scale and track progress are remembered; defaults to `localStorage`, not the player's program. */
   readonly storage?: Storage;
   /** Schedules simulation frames; defaults to `requestAnimationFrame`. */
@@ -321,14 +317,14 @@ export function readStoredSeed(storage: Storage): string | undefined {
 
 /** Runs the game. */
 export class App {
-  /** The levels being played, in order. */
-  readonly levels: readonly Level[];
+  /** Chapter one's levels, in the order they are played. */
+  readonly chapter1Levels: readonly Level[];
   /** The controller driving the simulation. */
   readonly worldController: WorldController;
   /** The world currently being played, once a level has started. */
   world: World | undefined = undefined;
   /** Index of the level currently played; left alone during a sandbox run, since it's the restart target, not what's on screen. */
-  currentLevelIndex = 0;
+  currentChapter1Index = 0;
 
   readonly #elements: AppElements;
   readonly #editor: CodeEditor;
@@ -346,7 +342,7 @@ export class App {
   #goalBar: GoalBarPresenter | undefined = undefined;
   /** The stats panel for the run on screen, or `undefined` before the first one; rebuilt by every {@link #startRun}. */
   #statsPanel: StatsPanelPresenter | undefined = undefined;
-  /** The code slot open in the editor for the current level, in-memory only; set by {@link startLevel}. */
+  /** The code slot open in the editor for the current level, in-memory only; set by {@link startChapter1Level}. */
   #currentSlot: CodeSlot = DEFAULT_CODE_SLOT;
   /** The parameters of the URL the current level was started from. */
   #query: RouteQuery = new Map<string, string>();
@@ -359,7 +355,7 @@ export class App {
   /** The seed every run is built from, or `null` to draw one; read from the URL only — see {@link #startRun} for its precedence. */
   #seed: string | null = null;
   /** What is on screen, or `undefined` before the first run — the level itself, not its description, so {@link relocalize} can re-ask it. */
-  #run: { readonly level: Level; readonly levelIndex: number | null } | undefined = undefined;
+  #run: { readonly level: Level; readonly chapter1Index: number | null } | undefined = undefined;
   /** Whether the run on screen was won, or `undefined` while still going; the outcome, not the overlay's words, so it can redraw. */
   #outcome: boolean | undefined = undefined;
   /** Whatever the player's program last threw; wrapped since `throw undefined` is legal and must stay distinguishable from no error. */
@@ -374,7 +370,7 @@ export class App {
     this.#editor = options.editor;
     this.#editorPane = options.editorPane;
     this.worldController = options.worldController;
-    this.levels = options.levels;
+    this.chapter1Levels = options.chapter1Levels;
     this.#storage = options.storage ?? localStorage;
     this.#requestAnimationFrame =
       options.requestAnimationFrame ??
@@ -455,10 +451,10 @@ export class App {
   /** Everything `widgets/level-switcher` needs to draw its popover; tile links deliberately drop `seed` since a link names a building, not a run. */
   #levelMenuInput(): LevelMenuInput {
     return {
-      levels: this.levels,
+      chapter1Levels: this.chapter1Levels,
       tutorialLevels,
       chapter2Levels,
-      bestTiers: readBestLevelTiers(this.#storage),
+      bestChapter1Tiers: readBestChapter1Tiers(this.#storage),
       bestChapter2Tiers: readBestChapter2Tiers(this.#storage),
       clearedTutorialLevels: readClearedTutorialLevels(this.#storage),
       selection: this.#levelSelection(),
@@ -466,7 +462,7 @@ export class App {
     };
   }
 
-  /** What is on screen, shaped for `widgets/level-switcher`; falls back to {@link currentLevelIndex} before the first run starts. */
+  /** What is on screen, shaped for `widgets/level-switcher`; falls back to {@link currentChapter1Index} before the first run starts. */
   #levelSelection(): LevelSelection {
     const tutorial = this.#tutorial;
     if (tutorial !== undefined) {
@@ -479,13 +475,13 @@ export class App {
     if (this.isPlayingSandbox) {
       return { kind: "sandbox" };
     }
-    return { kind: "level", index: this.#run?.levelIndex ?? this.currentLevelIndex };
+    return { kind: "chapter1", index: this.#run?.chapter1Index ?? this.currentChapter1Index };
   }
 
   /** Turns a tile's {@link LevelLinkTarget} into the URL it links to, carrying the speed and every other unknown key across. */
   #levelHref(target: LevelLinkTarget): string {
     switch (target.kind) {
-      case "level": {
+      case "chapter1": {
         return createParamsUrl(this.#query, { [LEVEL_KEY]: target.number, seed: null });
       }
       case "tutorial":
@@ -499,7 +495,7 @@ export class App {
   }
 
   /** The seed of a run and its URL, read off the world (not {@link #seed}); `null` for the learning track and chapter two. */
-  #seedLink(world: World, levelIndex: number | null): SeedLinkData | null {
+  #seedLink(world: World, chapter1Index: number | null): SeedLinkData | null {
     if (this.#tutorial !== undefined || this.#chapter2 !== undefined) {
       return null;
     }
@@ -508,18 +504,18 @@ export class App {
       return null;
     }
     const seed = String(world.seed);
-    return { seed, url: this.#seedHref(seed, levelIndex) };
+    return { seed, url: this.#seedHref(seed, chapter1Index) };
   }
 
   /** The address of this building played on `seed`; always names the level explicitly, even when the URL already does. */
-  #seedHref(seed: string, levelIndex: number | null): string {
-    const at = levelIndex === null ? {} : { [LEVEL_KEY]: levelIndex + 1 };
+  #seedHref(seed: string, chapter1Index: number | null): string {
+    const at = chapter1Index === null ? {} : { [LEVEL_KEY]: chapter1Index + 1 };
     return createParamsUrl(this.#query, { ...at, seed });
   }
 
   /** Plays `seed` on the building already on screen; navigates rather than restarts in place, so the address bar names the run. */
   playSeed(seed: string): void {
-    window.location.hash = this.#seedHref(seed, this.#run?.levelIndex ?? null);
+    window.location.hash = this.#seedHref(seed, this.#run?.chapter1Index ?? null);
   }
 
   /** The seed line for whatever is on screen; a snapshot, not a subscription — {@link AppOptions.onSeedChange} is the push side. */
@@ -529,7 +525,7 @@ export class App {
     if (world === undefined || run === undefined) {
       return null;
     }
-    return this.#seedLink(world, run.levelIndex);
+    return this.#seedLink(world, run.chapter1Index);
   }
 
   /** Remembers a seed as this player's own, for the next run and the next visit. */
@@ -560,7 +556,7 @@ export class App {
     return !this.isPlayingSandbox;
   }
 
-  /** Starts whatever is on screen again, from the beginning; dispatches on the special-run fields, not `currentLevelIndex` alone. */
+  /** Starts whatever is on screen again, from the beginning; dispatches on the special-run fields, not `currentChapter1Index` alone. */
   #restart(autoStart = false): void {
     const tutorial = this.#tutorial;
     const chapter2 = this.#chapter2;
@@ -570,7 +566,7 @@ export class App {
     } else if (chapter2 !== undefined) {
       this.startChapter2Level(chapter2.index, autoStart);
     } else if (sandbox === undefined) {
-      this.startLevel(this.currentLevelIndex, autoStart, this.#currentSlot);
+      this.startChapter1Level(this.currentChapter1Index, autoStart, this.#currentSlot);
     } else {
       this.startSandbox(sandbox, autoStart);
     }
@@ -614,7 +610,7 @@ export class App {
     if (run === undefined || !this.canRunInstantly) {
       return;
     }
-    this.#startRun(run.level, run.levelIndex, true, true);
+    this.#startRun(run.level, run.chapter1Index, true, true);
   }
 
   /** Closes a crunch out: marks it finished, draws the building in its final state, and relabels the row. */
@@ -641,23 +637,27 @@ export class App {
     } else if (params.chapter2Index !== null) {
       this.startChapter2Level(params.chapter2Index);
     } else if (params.sandbox === null) {
-      this.startLevel(params.levelIndex);
+      this.startChapter1Level(params.chapter1Index);
     } else {
       this.startSandbox(params.sandbox);
     }
   }
 
   /** Tears the current level down and starts another one. */
-  startLevel(levelIndex: number, autoStart = false, slot: CodeSlot = DEFAULT_CODE_SLOT): void {
-    const level = this.levels[levelIndex];
+  startChapter1Level(
+    chapter1Index: number,
+    autoStart = false,
+    slot: CodeSlot = DEFAULT_CODE_SLOT,
+  ): void {
+    const level = this.chapter1Levels[chapter1Index];
     if (level === undefined) {
-      throw new RangeError(`No level with index ${String(levelIndex)}`);
+      throw new RangeError(`No level with index ${String(chapter1Index)}`);
     }
     this.#clearSpecialRuns();
     this.#currentSlot = slot;
-    this.#editor.openLevelBuffer(levelIndex, slot);
-    this.currentLevelIndex = levelIndex;
-    this.#startRun(level, levelIndex, autoStart);
+    this.#editor.openChapter1Buffer(chapter1Index, slot);
+    this.currentChapter1Index = chapter1Index;
+    this.#startRun(level, chapter1Index, autoStart);
   }
 
   /** Switches the editor to another code slot without disturbing the run in progress; a no-op when that slot is already open. */
@@ -670,7 +670,7 @@ export class App {
       return;
     }
     this.#currentSlot = slot;
-    this.#editor.openLevelBuffer(this.currentLevelIndex, slot);
+    this.#editor.openChapter1Buffer(this.currentChapter1Index, slot);
     this.#editorPane.update();
   }
 
@@ -700,7 +700,7 @@ export class App {
     this.#startRun(level, null, autoStart);
   }
 
-  /** Starts a chapter two level like {@link startTutorial} does, except `startingCode` is never optional — its levels assume mechanics numbered levels don't. */
+  /** Starts a chapter two level like {@link startTutorial} does, except `startingCode` is never optional — its levels assume mechanics chapter one's don't. */
   startChapter2Level(chapter2Index: number, autoStart = false): void {
     const level = chapter2Levels[chapter2Index];
     if (level === undefined) {
@@ -729,8 +729,8 @@ export class App {
     return this.#chapter2;
   }
 
-  /** Builds a world for a level, draws it, and hands it to the controller; `levelIndex` is `null` for the sandbox. */
-  #startRun(level: Level, levelIndex: number | null, autoStart: boolean, instant = false): void {
+  /** Builds a world for a level, draws it, and hands it to the controller; `chapter1Index` is `null` for the sandbox. */
+  #startRun(level: Level, chapter1Index: number | null, autoStart: boolean, instant = false): void {
     // Cancel any earlier crunch so it can't go on ticking a world nothing on screen points at anymore.
     this.#instantRunHandle?.cancel();
     this.#instantRunHandle = undefined;
@@ -751,7 +751,7 @@ export class App {
     );
     this.world = world;
     window.world = world;
-    const seed = this.#seedLink(world, levelIndex);
+    const seed = this.#seedLink(world, chapter1Index);
     if (seed !== null) {
       // Remembered for next time; `#seedLink` is null for a track/chapter two level, whose seed must not overwrite the player's.
       this.#storeSeed(seed.seed);
@@ -766,7 +766,7 @@ export class App {
       this.#elements.tutorial,
     ]);
     clearAll([this.#elements.world, this.#elements.feedback]);
-    this.#run = { level, levelIndex };
+    this.#run = { level, chapter1Index };
     this.#outcome = undefined;
     this.#statsPanel = presentStatsPanel(this.#elements.stats, world);
     this.#goalBar = presentGoalBar(this.#elements.goalBar, world, {
@@ -803,16 +803,16 @@ export class App {
         recordClearedTutorialLevel(this.#storage, tutorial.level.id);
         this.#levelSwitcher.update();
       } else if (levelStatus && chapter2 !== undefined) {
-        // A medal, not a cleared flag: a demo level that grades nothing earns gold, keyed by id since `levelIndex` is null here.
+        // A medal, not a cleared flag: a demo level that grades nothing earns gold, keyed by id since `chapter1Index` is null here.
         const tier = evaluateLevelTier(true, world, chapter2.level.tiers);
         if (tier !== null) {
           recordChapter2Tier(this.#storage, chapter2.level.id, tier);
           this.#levelSwitcher.update();
         }
-      } else if (levelStatus && levelIndex !== null) {
+      } else if (levelStatus && chapter1Index !== null) {
         const tier = evaluateLevelTier(true, world, level.tiers);
         if (tier !== null) {
-          recordLevelTier(this.#storage, levelIndex, tier);
+          recordChapter1Tier(this.#storage, chapter1Index, tier);
           this.#levelSwitcher.update();
         }
       }
@@ -898,9 +898,9 @@ export class App {
     }
     const run = this.#run;
     const world = this.world;
-    const levelIndex = run?.levelIndex ?? null;
+    const chapter1Index = run?.chapter1Index ?? null;
     // Recomputed rather than cached, so a `relocalize` redraw stays in sync without a
-    // field of its own. Not gated on `levelIndex`: that is null for a chapter two level
+    // field of its own. Not gated on `chapter1Index`: that is null for a chapter two level
     // too, and its card owes the same medal its tile shows. The sandbox never gets here.
     const tier =
       won && run !== undefined && world !== undefined
@@ -918,8 +918,8 @@ export class App {
       // No link after a failure or on the last level; seed dropped since it
       // belongs to the run just completed.
       url:
-        won && levelIndex !== null && levelIndex + 1 < this.levels.length
-          ? createParamsUrl(this.#query, { [LEVEL_KEY]: levelIndex + 2, seed: null })
+        won && chapter1Index !== null && chapter1Index + 1 < this.chapter1Levels.length
+          ? createParamsUrl(this.#query, { [LEVEL_KEY]: chapter1Index + 2, seed: null })
           : "",
       tier,
     });

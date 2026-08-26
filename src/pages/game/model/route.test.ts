@@ -24,7 +24,7 @@ import {
 
 /** The context a route is resolved against in these tests. */
 const CONTEXT = {
-  levelCount: 18,
+  chapter1LevelCount: 18,
   defaultTimeScale: DEFAULT_TIME_SCALE,
 };
 
@@ -96,7 +96,7 @@ describe("createParamsUrl composed with resolveRoute", () => {
     const url = createParamsUrl(query, { [LEVEL_KEY]: 5, seed: null });
     expect(url).toBe("#level=5,timescale=8");
     expect(route(url).tutorialIndex).toBeNull();
-    expect(route(url).levelIndex).toBe(4);
+    expect(route(url).chapter1Index).toBe(4);
   });
 });
 
@@ -148,7 +148,7 @@ describe("the legacy level key", () => {
 describe("resolveRoute defaults", () => {
   it("starts the first level, paused, at the default speed", () => {
     expect(route("")).toEqual({
-      levelIndex: 0,
+      chapter1Index: 0,
       sandbox: null,
       tutorialIndex: null,
       chapter2Index: null,
@@ -161,7 +161,7 @@ describe("resolveRoute defaults", () => {
 
   it("reads every parameter the game supports", () => {
     expect(route("#level=4,timescale=8,fullscreen=true,seed=abc")).toEqual({
-      levelIndex: 3,
+      chapter1Index: 3,
       sandbox: null,
       tutorialIndex: null,
       chapter2Index: null,
@@ -175,7 +175,7 @@ describe("resolveRoute defaults", () => {
   it("reads a route written in capitals", () => {
     const params = route("#LEVEL=4,SEED=issue-61,TIMESCALE=8,FULLSCREEN");
     expect(params).toMatchObject({
-      levelIndex: 3,
+      chapter1Index: 3,
       seed: "issue-61",
       timeScale: 8,
       fullscreen: true,
@@ -192,26 +192,26 @@ describe("resolveRoute defaults", () => {
 
 describe("resolveRoute level validation", () => {
   it("accepts an in-range level number and makes it zero-based", () => {
-    expect(route("#level=1").levelIndex).toBe(0);
-    expect(route("#level=18").levelIndex).toBe(17);
+    expect(route("#level=1").chapter1Index).toBe(0);
+    expect(route("#level=18").chapter1Index).toBe(17);
   });
 
   it("falls back to the first level for a number that is not one", () => {
     for (const hash of ["#level=abc", "#level=", "#level=NaN"]) {
-      expect(route(hash).levelIndex, hash).toBe(0);
+      expect(route(hash).chapter1Index, hash).toBe(0);
     }
   });
 
   it("falls back to the first level for a number out of range", () => {
     for (const hash of ["#level=0", "#level=-3", "#level=19", "#level=1e9"]) {
-      expect(route(hash).levelIndex, hash).toBe(0);
+      expect(route(hash).chapter1Index, hash).toBe(0);
     }
   });
 
   it("refuses a level number with anything else attached to it", () => {
     // Number reads the whole string or nothing, unlike parseInt, which would read "3abc" as 3.
     for (const value of ["3abc", "3.5", "3px", "0x"]) {
-      expect(route(`#level=${value}`).levelIndex, value).toBe(0);
+      expect(route(`#level=${value}`).chapter1Index, value).toBe(0);
       expect(console.warn).toHaveBeenCalledWith(
         `Invalid level "${value}", starting the first level instead`,
       );
@@ -220,7 +220,7 @@ describe("resolveRoute level validation", () => {
 
   it("refuses an exponent instead of landing on the first level by accident", () => {
     // The warning is what proves this is a refusal, not an accidental landing on level one.
-    expect(route("#level=1e9").levelIndex).toBe(0);
+    expect(route("#level=1e9").chapter1Index).toBe(0);
     expect(console.warn).toHaveBeenCalledWith(
       `Invalid level "1e9", starting the first level instead`,
     );
@@ -232,7 +232,7 @@ describe("resolveRoute with no level locking", () => {
     for (const number of [1, 5, 18]) {
       const params = route(`#level=${String(number)}`);
 
-      expect(params.levelIndex, String(number)).toBe(number - 1);
+      expect(params.chapter1Index, String(number)).toBe(number - 1);
       expect(params.refusedKeys, String(number)).toEqual([]);
     }
     expect(console.warn).not.toHaveBeenCalled();
@@ -241,7 +241,7 @@ describe("resolveRoute with no level locking", () => {
   it("still refuses a number that names no level", () => {
     const params = route("#level=99");
 
-    expect(params.levelIndex).toBe(0);
+    expect(params.chapter1Index).toBe(0);
     expect(params.refusedKeys).toEqual(["level"]);
     expect(console.warn).toHaveBeenCalledWith(
       `Invalid level "99", starting the first level instead`,
@@ -260,7 +260,7 @@ describe("resolveRoute sandbox selection", () => {
     // are still there if the player returns to the sandbox.
     const params = route("#level=4,floors=50,elevators=9,spawnrate=7");
     expect(params.sandbox).toBeNull();
-    expect(params.levelIndex).toBe(3);
+    expect(params.chapter1Index).toBe(3);
   });
 
   it("plays the sandbox for level=sandbox, in any casing", () => {
@@ -276,7 +276,7 @@ describe("resolveRoute sandbox selection", () => {
 
   it("is not selected by something that merely looks like it", () => {
     expect(route("#level=sandboxes").sandbox).toBeNull();
-    expect(route("#level=sandboxes").levelIndex).toBe(0);
+    expect(route("#level=sandboxes").chapter1Index).toBe(0);
   });
 
   it("starts a building known to be playable when no parameters are given", () => {
@@ -532,7 +532,7 @@ describe("resolveRoute tutorial selection", () => {
     for (const value of ["tutorial", "tutorials-1", "atutorial-1"]) {
       const params = route(`#level=${value}`);
       expect(params.tutorialIndex, value).toBeNull();
-      expect(params.levelIndex, value).toBe(0);
+      expect(params.chapter1Index, value).toBe(0);
       expect(console.warn).toHaveBeenCalledWith(
         `Invalid level "${value}", starting the first level instead`,
       );
@@ -581,7 +581,7 @@ describe("resolveRoute tutorial validation", () => {
     // Every parameter but `seed` behaves on a level address exactly as it does on a
     // numbered level.
     expect(route("#level=tutorial-3,seed=issue-61,timescale=8,fullscreen=true")).toEqual({
-      levelIndex: 0,
+      chapter1Index: 0,
       sandbox: null,
       tutorialIndex: 2,
       chapter2Index: null,
@@ -664,7 +664,7 @@ describe("resolveRoute chapter two selection", () => {
     for (const value of ["chapter2", "chapter2x-1", "achapter2-1"]) {
       const params = route(`#level=${value}`);
       expect(params.chapter2Index, value).toBeNull();
-      expect(params.levelIndex, value).toBe(0);
+      expect(params.chapter1Index, value).toBe(0);
       expect(console.warn).toHaveBeenCalledWith(
         `Invalid level "${value}", starting the first level instead`,
       );
@@ -702,7 +702,7 @@ describe("resolveRoute chapter two validation", () => {
     // Every parameter but `seed` behaves on a chapter two address exactly as it does on a
     // numbered level.
     expect(route("#level=chapter2-1,timescale=8,fullscreen=true")).toEqual({
-      levelIndex: 0,
+      chapter1Index: 0,
       sandbox: null,
       tutorialIndex: null,
       chapter2Index: 0,
@@ -740,7 +740,7 @@ describe("resolveRoute refusals", () => {
   it("does not name a key that was simply absent", () => {
     // A refusal and an absence resolve to the same value, so the resolvers record refusals
     // themselves rather than a later pass working it out.
-    expect(route("#level=abc").levelIndex).toBe(route("").levelIndex);
+    expect(route("#level=abc").chapter1Index).toBe(route("").chapter1Index);
     expect(route("").refusedKeys).toEqual([]);
   });
 
@@ -947,20 +947,20 @@ describe("startRouter", () => {
     const onRoute = vi.fn();
 
     startRouter(onRoute, {
-      levelCount: 18,
+      chapter1LevelCount: 18,
       defaultTimeScale: () => DEFAULT_TIME_SCALE,
       target,
     });
 
     expect(onRoute).toHaveBeenCalledTimes(1);
-    expect(onRoute.mock.calls[0]?.[0]).toMatchObject({ levelIndex: 2 });
+    expect(onRoute.mock.calls[0]?.[0]).toMatchObject({ chapter1Index: 2 });
   });
 
   it("routes on hashchange and on popstate", () => {
     const target = new FakeTarget();
     const onRoute = vi.fn();
     startRouter(onRoute, {
-      levelCount: 18,
+      chapter1LevelCount: 18,
       defaultTimeScale: () => DEFAULT_TIME_SCALE,
       target,
     });
@@ -969,14 +969,14 @@ describe("startRouter", () => {
     target.navigate("#level=5", "popstate");
 
     expect(onRoute).toHaveBeenCalledTimes(3);
-    expect(onRoute.mock.calls[2]?.[0]).toMatchObject({ levelIndex: 4 });
+    expect(onRoute.mock.calls[2]?.[0]).toMatchObject({ chapter1Index: 4 });
   });
 
   it("ignores an event that did not change the url", () => {
     const target = new FakeTarget();
     const onRoute = vi.fn();
     startRouter(onRoute, {
-      levelCount: 18,
+      chapter1LevelCount: 18,
       defaultTimeScale: () => DEFAULT_TIME_SCALE,
       target,
     });
@@ -992,7 +992,7 @@ describe("startRouter", () => {
     const onRoute = vi.fn();
     let defaultTimeScale = 2;
     startRouter(onRoute, {
-      levelCount: 18,
+      chapter1LevelCount: 18,
       defaultTimeScale: () => defaultTimeScale,
       target,
     });
@@ -1008,7 +1008,7 @@ describe("startRouter", () => {
     target.location = { hash: "#level=2,mystery=x" };
     const onRoute = vi.fn();
     startRouter(onRoute, {
-      levelCount: 18,
+      chapter1LevelCount: 18,
       defaultTimeScale: () => DEFAULT_TIME_SCALE,
       target,
     });
@@ -1025,7 +1025,7 @@ describe("startRouter", () => {
     const onRoute = vi.fn();
 
     startRouter(onRoute, {
-      levelCount: 18,
+      chapter1LevelCount: 18,
       defaultTimeScale: () => DEFAULT_TIME_SCALE,
       target,
     });
@@ -1045,7 +1045,7 @@ describe("startRouter", () => {
     const onRoute = vi.fn();
 
     startRouter(onRoute, {
-      levelCount: 18,
+      chapter1LevelCount: 18,
       defaultTimeScale: () => DEFAULT_TIME_SCALE,
       target,
     });
@@ -1057,7 +1057,7 @@ describe("startRouter", () => {
       ["mystery", "x"],
     ]);
     // The corrected URL resolves to the route that was played.
-    expect(onRoute.mock.calls[0]?.[0]).toMatchObject({ levelIndex: 1, seed: null });
+    expect(onRoute.mock.calls[0]?.[0]).toMatchObject({ chapter1Index: 1, seed: null });
   });
 
   it("corrects a wrong level address to the first level instead of dropping it", () => {
@@ -1069,7 +1069,7 @@ describe("startRouter", () => {
     const onRoute = vi.fn();
 
     startRouter(onRoute, {
-      levelCount: 18,
+      chapter1LevelCount: 18,
       defaultTimeScale: () => DEFAULT_TIME_SCALE,
       target,
     });
@@ -1093,7 +1093,7 @@ describe("startRouter", () => {
     const onRoute = vi.fn();
 
     startRouter(onRoute, {
-      levelCount: 18,
+      chapter1LevelCount: 18,
       defaultTimeScale: () => DEFAULT_TIME_SCALE,
       target,
     });
@@ -1115,14 +1115,14 @@ describe("startRouter", () => {
     const onRoute = vi.fn();
 
     startRouter(onRoute, {
-      levelCount: 18,
+      chapter1LevelCount: 18,
       defaultTimeScale: () => DEFAULT_TIME_SCALE,
       target,
     });
 
     target.navigate("#level=2");
 
-    expect(onRoute.mock.calls[1]?.[0]).toMatchObject({ levelIndex: 1, refusedKeys: [] });
+    expect(onRoute.mock.calls[1]?.[0]).toMatchObject({ chapter1Index: 1, refusedKeys: [] });
     expect(target.replaced).toEqual([]);
   });
 
@@ -1131,7 +1131,7 @@ describe("startRouter", () => {
     target.location = { hash: "#level=tutorial-9,seed=rush%20hour" };
 
     startRouter(vi.fn(), {
-      levelCount: 18,
+      chapter1LevelCount: 18,
       defaultTimeScale: () => DEFAULT_TIME_SCALE,
       target,
     });
@@ -1144,7 +1144,7 @@ describe("startRouter", () => {
     target.location = { hash: "#level=abc" };
 
     startRouter(vi.fn(), {
-      levelCount: 18,
+      chapter1LevelCount: 18,
       defaultTimeScale: () => DEFAULT_TIME_SCALE,
       target,
     });
@@ -1162,7 +1162,7 @@ describe("startRouter", () => {
     target.history.state = { scroll: 12 };
 
     startRouter(vi.fn(), {
-      levelCount: 18,
+      chapter1LevelCount: 18,
       defaultTimeScale: () => DEFAULT_TIME_SCALE,
       target,
     });
@@ -1184,7 +1184,7 @@ describe("startRouter", () => {
     target.location = { hash };
 
     startRouter(vi.fn(), {
-      levelCount: 18,
+      chapter1LevelCount: 18,
       defaultTimeScale: () => DEFAULT_TIME_SCALE,
       target,
     });
@@ -1201,7 +1201,7 @@ describe("startRouter", () => {
     const onRoute = vi.fn();
 
     startRouter(onRoute, {
-      levelCount: 18,
+      chapter1LevelCount: 18,
       defaultTimeScale: () => DEFAULT_TIME_SCALE,
       target,
     });
@@ -1211,7 +1211,7 @@ describe("startRouter", () => {
     expect(onRoute).toHaveBeenCalledTimes(1);
     const params = onRoute.mock.calls[0]?.[0] as RouteParams | undefined;
     const query = onRoute.mock.calls[0]?.[1] as RouteQuery | undefined;
-    expect(params).toMatchObject({ levelIndex: 2, timeScale: 8, refusedKeys: [] });
+    expect(params).toMatchObject({ chapter1Index: 2, timeScale: 8, refusedKeys: [] });
     // The handler is handed the corrected query, so links the switcher builds from it use
     // the modern spelling.
     expect(query?.get(LEVEL_KEY)).toBe("3");
@@ -1226,7 +1226,7 @@ describe("startRouter", () => {
     const onRoute = vi.fn();
 
     startRouter(onRoute, {
-      levelCount: 18,
+      chapter1LevelCount: 18,
       defaultTimeScale: () => DEFAULT_TIME_SCALE,
       target,
     });
@@ -1243,20 +1243,20 @@ describe("startRouter", () => {
     const onRoute = vi.fn();
 
     startRouter(onRoute, {
-      levelCount: 18,
+      chapter1LevelCount: 18,
       defaultTimeScale: () => DEFAULT_TIME_SCALE,
       target,
     });
 
     expect(target.replaced).toEqual(["#level=9,timescale=8"]);
-    expect(onRoute.mock.calls[0]?.[0]).toMatchObject({ levelIndex: 8 });
+    expect(onRoute.mock.calls[0]?.[0]).toMatchObject({ chapter1Index: 8 });
   });
 
   it("corrects every navigation, not just the first", () => {
     const target = new FakeTarget();
     const onRoute = vi.fn();
     startRouter(onRoute, {
-      levelCount: 18,
+      chapter1LevelCount: 18,
       defaultTimeScale: () => DEFAULT_TIME_SCALE,
       target,
     });
@@ -1265,7 +1265,7 @@ describe("startRouter", () => {
 
     expect(target.replaced).toEqual(["#level=4"]);
     expect(onRoute).toHaveBeenCalledTimes(2);
-    expect(onRoute.mock.calls[1]?.[0]).toMatchObject({ levelIndex: 3 });
+    expect(onRoute.mock.calls[1]?.[0]).toMatchObject({ chapter1Index: 3 });
   });
 
   it("routes again when the player comes back to a url it once corrected", () => {
@@ -1274,7 +1274,7 @@ describe("startRouter", () => {
     const target = new FakeTarget();
     const onRoute = vi.fn();
     startRouter(onRoute, {
-      levelCount: 18,
+      chapter1LevelCount: 18,
       defaultTimeScale: () => DEFAULT_TIME_SCALE,
       target,
     });
@@ -1291,7 +1291,7 @@ describe("startRouter", () => {
   it("unsubscribes everything when stopped", () => {
     const target = new FakeTarget();
     const stop = startRouter(vi.fn(), {
-      levelCount: 18,
+      chapter1LevelCount: 18,
       defaultTimeScale: () => DEFAULT_TIME_SCALE,
       target,
     });

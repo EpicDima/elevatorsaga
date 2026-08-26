@@ -10,12 +10,12 @@ import { isUsableSeed } from "#shared/lib/seed.ts";
 /** The validated parameters a route resolves to. */
 export interface RouteParams {
   /**
-   * Zero-based index into the level list.
+   * Zero-based index into {@link "#game/chapter1.ts"!chapter1Levels}.
    *
    * Ignored when {@link sandbox}, {@link tutorialIndex} or {@link chapter2Index} is set.
    */
-  readonly levelIndex: number;
-  /** The building the sandbox was asked for, or `null` for a numbered level. */
+  readonly chapter1Index: number;
+  /** The building the sandbox was asked for, or `null` for a chapter one level. */
   readonly sandbox: SandboxOptions | null;
   /**
    * The learning-track level asked for, or `null` for anything else.
@@ -54,8 +54,8 @@ type Refuse = (key: string) => void;
 
 /** Everything {@link resolveRoute} needs besides the URL itself. */
 export interface RouteContext {
-  /** How many levels exist; bounds the `level` parameter. */
-  readonly levelCount: number;
+  /** How many chapter one levels exist; bounds a numeric `level` parameter. */
+  readonly chapter1LevelCount: number;
   /** Time scale to use when the URL does not ask for one. */
   readonly defaultTimeScale: number;
 }
@@ -70,13 +70,13 @@ function readFlag(query: RouteQuery, key: string): boolean {
   return value !== undefined && value !== "false";
 }
 
-/** The hash key that names what is being played: a level, the sandbox, or a track/block level. */
+/** The hash key that names what is being played: a chapter one level, the sandbox, or a level of the track or chapter two. */
 export const LEVEL_KEY = "level";
 
 /** Legacy spelling of {@link LEVEL_KEY}, read for backward compatibility and never written. */
 export const LEGACY_LEVEL_KEY = "challenge";
 
-/** The {@link LEVEL_KEY} value that asks for the sandbox instead of a numbered level. */
+/** The {@link LEVEL_KEY} value that asks for the sandbox instead of a chapter one level. */
 export const SANDBOX_LEVEL = "sandbox";
 
 /**
@@ -164,7 +164,7 @@ export function resolveRoute(rawQuery: RouteQuery, context: RouteContext): Route
   // Also renamed here, not just in startRouter, so a caller can hand this a legacy hash directly.
   const query = renameLegacyLevelKey(rawQuery);
   const level = query.get(LEVEL_KEY);
-  // Must run before resolveLevelIndex, which reads the value with Number and would turn
+  // Must run before resolveChapter1Index, which reads the value with Number and would turn
   // "sandbox", "tutorial-3" and "chapter2-1" alike into NaN.
   const tutorialIndex = isTutorialRoute(level) ? resolveTutorialIndex(level, refuse) : null;
   const chapter2Index = isChapter2Route(level) ? resolveChapter2Index(level, refuse) : null;
@@ -172,10 +172,10 @@ export function resolveRoute(rawQuery: RouteQuery, context: RouteContext): Route
   // Tutorial and chapter two levels both pin their own seed and never take one from the URL.
   const pinnedSeedTrack = tutorialIndex !== null || chapter2Index !== null;
   return {
-    // Only resolved when a numbered level is actually being played, to avoid warning that
+    // Only resolved when a chapter one level is actually being played, to avoid warning that
     // "sandbox" or "tutorial-3" is not a level number.
-    levelIndex:
-      sandbox === null && !pinnedSeedTrack ? resolveLevelIndex(level, context, refuse) : 0,
+    chapter1Index:
+      sandbox === null && !pinnedSeedTrack ? resolveChapter1Index(level, context, refuse) : 0,
     sandbox,
     tutorialIndex,
     chapter2Index,
@@ -227,7 +227,7 @@ function isSandboxRoute(value: string | undefined): boolean {
  * Whether a `level` parameter names a learning-track level, case-insensitively.
  *
  * True for any value with the prefix, not only ones that resolve to a real level, so a typo
- * lands on the track instead of falling through to a numbered level.
+ * lands on the track instead of falling through to a chapter one level.
  */
 function isTutorialRoute(value: string | undefined): value is string {
   return value?.toLowerCase().startsWith(TUTORIAL_LEVEL_PREFIX) === true;
@@ -442,7 +442,7 @@ function resolveElevatorCapacities(value: string | undefined, refuse: Refuse): n
  * Read with `Number`, not `parseInt`, so `level=3abc` is refused instead of silently starting
  * level 3. The empty string needs no separate guard: `Number("")` is `0`, out of range already.
  */
-function resolveLevelIndex(
+function resolveChapter1Index(
   value: string | undefined,
   context: RouteContext,
   refuse: Refuse,
@@ -451,7 +451,7 @@ function resolveLevelIndex(
     return 0;
   }
   const index = Number(value) - 1;
-  if (!Number.isInteger(index) || index < 0 || index >= context.levelCount) {
+  if (!Number.isInteger(index) || index < 0 || index >= context.chapter1LevelCount) {
     console.warn(`Invalid level "${value}", starting the first level instead`);
     refuse(LEVEL_KEY);
     return 0;
@@ -485,14 +485,14 @@ function resolveTimeScale(
  * level, so writing `level=1` would add a choice the player never made.
  */
 function levelAddress(params: RouteParams): string | null {
-  const { levelIndex, tutorialIndex, chapter2Index } = params;
+  const { chapter1Index, tutorialIndex, chapter2Index } = params;
   if (tutorialIndex !== null) {
     return tutorialLevels[tutorialIndex]?.id ?? null;
   }
   if (chapter2Index !== null) {
     return chapter2Levels[chapter2Index]?.id ?? null;
   }
-  return levelIndex === 0 ? null : String(levelIndex + 1);
+  return chapter1Index === 0 ? null : String(chapter1Index + 1);
 }
 
 /** Called with every route the player navigates to. */
@@ -522,8 +522,8 @@ export interface RouterTarget {
 
 /** Options accepted by {@link startRouter}. */
 export interface RouterOptions {
-  /** How many levels exist. */
-  readonly levelCount: number;
+  /** How many chapter one levels exist. */
+  readonly chapter1LevelCount: number;
   /** Time scale to use when the URL does not ask for one; re-read on every navigation. */
   readonly defaultTimeScale: () => number;
   /** The window whose location and events to follow; defaults to `window`. */
@@ -576,7 +576,7 @@ export function startRouter(onRoute: RouteHandler, options: RouterOptions): () =
     // Renamed again here so the address bar stops saying the retired key too.
     const query = renameLegacyLevelKey(written);
     const params = resolveRoute(query, {
-      levelCount: options.levelCount,
+      chapter1LevelCount: options.chapter1LevelCount,
       defaultTimeScale: options.defaultTimeScale(),
     });
     onRoute(params, correct(query, params, query !== written));

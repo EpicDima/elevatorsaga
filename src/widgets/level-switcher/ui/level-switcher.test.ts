@@ -41,7 +41,7 @@ function fixtureChapter2Levels(count: number): readonly Chapter2Level[] {
 /** Renders a {@link LevelLinkTarget} into a URL a test can assert on directly. */
 function stubHref(target: LevelLinkTarget): string {
   switch (target.kind) {
-    case "level": {
+    case "chapter1": {
       return `#level=${String(target.number)}`;
     }
     case "tutorial": {
@@ -58,13 +58,13 @@ function stubHref(target: LevelLinkTarget): string {
 
 function baseInput(overrides: Partial<LevelMenuInput> = {}): LevelMenuInput {
   return {
-    levels: fixtureLevels(4),
+    chapter1Levels: fixtureLevels(4),
     tutorialLevels,
     chapter2Levels: fixtureChapter2Levels(2),
-    bestTiers: new Map<number, LevelTier>(),
+    bestChapter1Tiers: new Map<number, LevelTier>(),
     clearedTutorialLevels: new Set(),
     bestChapter2Tiers: new Map<string, LevelTier>(),
-    selection: { kind: "level", index: 0 },
+    selection: { kind: "chapter1", index: 0 },
     buildHref: stubHref,
     ...overrides,
   };
@@ -158,8 +158,8 @@ describe("presentLevelSwitcher", () => {
 
   it("renders every level tile as a real link, whatever is on record", () => {
     const { parent, options } = setUp({
-      levels: fixtureLevels(5),
-      selection: { kind: "level", index: 0 },
+      chapter1Levels: fixtureLevels(5),
+      selection: { kind: "chapter1", index: 0 },
     });
     presentLevelSwitcher(parent, options);
     const [, levelBlock] = parent.querySelectorAll(".taskblock");
@@ -180,9 +180,9 @@ describe("presentLevelSwitcher", () => {
 
   it("badges every level tile with its tier stars", () => {
     const { parent, options } = setUp({
-      levels: fixtureLevels(5),
-      bestTiers: new Map<number, LevelTier>([[0, "silver"]]),
-      selection: { kind: "level", index: 0 },
+      chapter1Levels: fixtureLevels(5),
+      bestChapter1Tiers: new Map<number, LevelTier>([[0, "silver"]]),
+      selection: { kind: "chapter1", index: 0 },
     });
     presentLevelSwitcher(parent, options);
     const [, levelBlock] = parent.querySelectorAll(".taskblock");
@@ -218,7 +218,7 @@ describe("presentLevelSwitcher", () => {
     const { parent, options } = setUp({
       chapter2Levels: fixtureChapter2Levels(2),
       bestChapter2Tiers: new Map<string, LevelTier>([["chapter2-1", "silver"]]),
-      selection: { kind: "level", index: 0 },
+      selection: { kind: "chapter1", index: 0 },
     });
     presentLevelSwitcher(parent, options);
     const [, , chapter2Block] = parent.querySelectorAll(".taskblock");
@@ -234,8 +234,8 @@ describe("presentLevelSwitcher", () => {
 
   it("marks the current tile with aria-current and writes its name into the trigger", () => {
     const { parent, options } = setUp({
-      levels: fixtureLevels(4),
-      selection: { kind: "level", index: 1 },
+      chapter1Levels: fixtureLevels(4),
+      selection: { kind: "chapter1", index: 1 },
     });
     presentLevelSwitcher(parent, options);
     const [, levelBlock] = parent.querySelectorAll(".taskblock");
@@ -262,8 +262,8 @@ describe("presentLevelSwitcher", () => {
     expect(requireElement(".task-name", sandbox.parent).textContent).toBe("Sandbox");
 
     const level = setUp({
-      levels: fixtureLevels(4),
-      selection: { kind: "level", index: 3 },
+      chapter1Levels: fixtureLevels(4),
+      selection: { kind: "chapter1", index: 3 },
     });
     presentLevelSwitcher(level.parent, level.options);
     expect(requireElement(".task-name", level.parent).textContent).toBe("Level 4");
@@ -303,9 +303,9 @@ describe("presentLevelSwitcher", () => {
     // one without the other leaves the rule with nothing to mix.
     const [firstLevel] = tutorialLevels;
     const { parent, options } = setUp({
-      levels: fixtureLevels(3),
+      chapter1Levels: fixtureLevels(3),
       chapter2Levels: fixtureChapter2Levels(2),
-      bestTiers: new Map<number, LevelTier>([[0, "bronze"]]),
+      bestChapter1Tiers: new Map<number, LevelTier>([[0, "bronze"]]),
       bestChapter2Tiers: new Map<string, LevelTier>([["chapter2-1", "silver"]]),
       clearedTutorialLevels: new Set(firstLevel === undefined ? [] : [firstLevel.id]),
       // Away from all three, so none of them is drawn current instead of done.
@@ -321,13 +321,13 @@ describe("presentLevelSwitcher", () => {
 
   it("names the medal a level tile holds, and says nothing where none is held", () => {
     const { parent, options } = setUp({
-      levels: fixtureLevels(4),
-      bestTiers: new Map<number, LevelTier>([
+      chapter1Levels: fixtureLevels(4),
+      bestChapter1Tiers: new Map<number, LevelTier>([
         [0, "bronze"],
         [1, "silver"],
         [2, "gold"],
       ]),
-      selection: { kind: "level", index: 0 },
+      selection: { kind: "chapter1", index: 0 },
     });
     presentLevelSwitcher(parent, options);
     const [, levelBlock] = parent.querySelectorAll(".taskblock");
@@ -384,8 +384,8 @@ describe("presentLevelSwitcher", () => {
 
   it("disables the previous button on a block's first tile and the next button on its last", () => {
     const first = setUp({
-      levels: fixtureLevels(3),
-      selection: { kind: "level", index: 0 },
+      chapter1Levels: fixtureLevels(3),
+      selection: { kind: "chapter1", index: 0 },
     });
     presentLevelSwitcher(first.parent, first.options);
 
@@ -393,8 +393,8 @@ describe("presentLevelSwitcher", () => {
     expect(requireElement(".task-next", first.parent).hasAttribute("disabled")).toBe(false);
 
     const last = setUp({
-      levels: fixtureLevels(3),
-      selection: { kind: "level", index: 2 },
+      chapter1Levels: fixtureLevels(3),
+      selection: { kind: "chapter1", index: 2 },
     });
     presentLevelSwitcher(last.parent, last.options);
 
@@ -404,8 +404,8 @@ describe("presentLevelSwitcher", () => {
 
   it("steps next to the adjacent tile and navigates on click", () => {
     const { parent, options } = setUp({
-      levels: fixtureLevels(5),
-      selection: { kind: "level", index: 0 },
+      chapter1Levels: fixtureLevels(5),
+      selection: { kind: "chapter1", index: 0 },
     });
     presentLevelSwitcher(parent, options);
     const taskNext = requireElement(".task-next", parent);
@@ -431,8 +431,8 @@ describe("presentLevelSwitcher", () => {
     // Not a click a player can make (the button is disabled), but the handler
     // still has to survive a dispatched one.
     const { parent, options } = setUp({
-      levels: fixtureLevels(3),
-      selection: { kind: "level", index: 0 },
+      chapter1Levels: fixtureLevels(3),
+      selection: { kind: "chapter1", index: 0 },
     });
     presentLevelSwitcher(parent, options);
     const view = parent.ownerDocument.defaultView;
@@ -448,8 +448,8 @@ describe("presentLevelSwitcher", () => {
     // level tearing down and the next building; the widget must not fall back
     // to picking the first tile or throwing.
     const { parent, options } = setUp({
-      levels: fixtureLevels(4),
-      selection: { kind: "level", index: 99 },
+      chapter1Levels: fixtureLevels(4),
+      selection: { kind: "chapter1", index: 99 },
     });
     presentLevelSwitcher(parent, options);
 
@@ -474,7 +474,7 @@ describe("presentLevelSwitcher", () => {
     });
 
     it("has nowhere to put focus when the rebuild drops the tile that had it", () => {
-      let input = baseInput({ levels: fixtureLevels(6) });
+      let input = baseInput({ chapter1Levels: fixtureLevels(6) });
       const parent = document.createElement("div");
       parent.innerHTML = levelSwitcherTemplate();
       document.body.append(parent);
@@ -487,7 +487,7 @@ describe("presentLevelSwitcher", () => {
 
       // Shrinking the level block moves the sandbox tile earlier, so nothing
       // in the rebuilt grid stands where the focused tile did.
-      input = baseInput({ levels: fixtureLevels(1) });
+      input = baseInput({ chapter1Levels: fixtureLevels(1) });
       presenter.update();
 
       expect(document.activeElement).toBe(document.body);

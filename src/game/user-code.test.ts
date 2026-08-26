@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import { setLocale, DEFAULT_LOCALE } from "../i18n/index.ts";
 import { createFrameRequester } from "./frame-requester.ts";
-import { levels } from "./levels.ts";
+import { chapter1Levels } from "./chapter1.ts";
 import { firstLineColumnOffset, getCodeObjFromCode } from "./user-code.ts";
 import type { UserCodeObject } from "./user-code.ts";
 import { TICK_SECONDS, createWorldController } from "./world-controller.ts";
@@ -443,9 +443,9 @@ interface RunTotals {
  * @throws When the program throws.
  */
 function play(code: string): RunTotals {
-  const level = levels[0];
+  const level = chapter1Levels[0];
   if (level === undefined) {
-    throw new Error("levels[0] does not exist");
+    throw new Error("chapter1Levels[0] does not exist");
   }
   const codeObj = getCodeObjFromCode(code);
   const world = createWorld(level.options, "two-forms");
