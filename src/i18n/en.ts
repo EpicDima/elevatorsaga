@@ -911,7 +911,7 @@ function update(dt, elevators, floors) {
   "tutorial.level8.goal":
     "Write the program on an empty page and deliver 15 passengers within 60 seconds.",
   "tutorial.level8.hint1.html":
-    "The program falls into two halves: telling a car where to go, and finding out that somebody is waiting for one. You have written both. Which of the two functions is called once, and which one on every frame?",
+    'The program falls into two halves: telling a car where to go, and finding out that somebody is waiting for one. You have written both. The page is empty, so start with the editor\'s own two functions: which of <span class="emphasis-color">init</span> and <span class="emphasis-color">update</span> is called once, and which on every frame?',
   "tutorial.level8.hint2.html":
     "The game announces the people inside a car and the people waiting on a floor with different events, and the two are subscribed in different places: on the elevator, and on every floor.",
   "tutorial.level8.hint3.html":
