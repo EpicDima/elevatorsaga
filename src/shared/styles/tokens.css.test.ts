@@ -31,6 +31,18 @@ describe("the palette", () => {
     ).toBeGreaterThanOrEqual(4.5);
   });
 
+  it.each(THEMES)("keeps secondary prose comfortable on every surface, %s theme", (_, palette) => {
+    // --ds-text-muted carries hint, briefing, and caption text at 12-13px, so it
+    // answers to WCAG 1.4.6's 7:1 rather than 1.4.3's 4.5:1. These are the three
+    // surfaces it is set on: the page, a panel, and a raised card inside one.
+    for (const surface of ["ds-bg", "ds-panel", "ds-raised"]) {
+      expect(
+        contrast(themed(palette, "ds-text-muted"), themed(palette, surface)),
+        `--ds-text-muted on --${surface}`,
+      ).toBeGreaterThanOrEqual(7);
+    }
+  });
+
   it.each(THEMES)("keeps the sitewide focus ring readable on the page, %s theme", (_, palette) => {
     // A graphical indicator (WCAG 1.4.11's 3:1), not text (1.4.3's 4.5:1);
     // --ds-bg is the palest page surface it can be drawn against.

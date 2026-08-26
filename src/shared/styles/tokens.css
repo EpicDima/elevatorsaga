@@ -28,7 +28,8 @@
   --ds-line-strong: #333a45;
 
   --ds-text: #e7e9ec;
-  --ds-text-muted: #9aa3b0;
+  /* Secondary prose (tutorial hints, briefings, captions): held at WCAG 1.4.6's 7:1 on bg, panel, and raised, since most of it is set at 12-13px. */
+  --ds-text-muted: #b0b8c4;
   --ds-text-faint: #6b7482;
 
   /* Brass: the main action, the active state, a lit call lamp. */
@@ -120,7 +121,8 @@ html[data-theme="light"] {
   --ds-line-strong: #d2cdc2;
 
   --ds-text: #1e2227;
-  --ds-text-muted: #5d6570;
+  /* Sits the same share of the way from the surface to --ds-text as the dark theme's does; see `:root`'s own note. */
+  --ds-text-muted: #474e58;
   --ds-text-faint: #8b929c;
 
   /* Tuned to clear WCAG 1.4.3's 4.5:1; the obvious #a8690c falls just short at 4.4767:1. */
