@@ -4,22 +4,22 @@ Node 22 or newer, and `npm ci` first.
 
 ## Scripts
 
-| Script                  | What it does                                                  |
-| ----------------------- | ------------------------------------------------------------- |
-| `npm run dev`           | Vite dev server with hot module replacement                   |
-| `npm run build`         | Typechecks, then builds the three pages into `dist/`          |
-| `npm run preview`       | Serves the built `dist/` for a final look before deploying    |
-| `npm run typecheck`     | `tsc --noEmit` over the whole project                         |
-| `npm run bench`         | Scores a solution file headlessly; see above                  |
-| `npm test`              | Runs the Vitest suite once                                    |
-| `npm run test:watch`    | Runs the suite in watch mode                                  |
-| `npm run test:coverage` | Runs the suite and writes a V8 coverage report to `coverage/` |
-| `npm run test:e2e`      | Runs the Playwright smoke tests against the built site        |
-| `npm run screenshot`    | Recaptures `public/images/screenshot.png` from the game       |
-| `npm run lint`          | ESLint over the repository                                    |
-| `npm run lint:fix`      | ESLint with `--fix`                                           |
-| `npm run format`        | Rewrites files with Prettier                                  |
-| `npm run format:check`  | Fails if anything is not Prettier-formatted                   |
+| Script                  | What it does                                                                     |
+| ----------------------- | -------------------------------------------------------------------------------- |
+| `npm run dev`           | Vite dev server with hot module replacement                                      |
+| `npm run build`         | Typechecks, then builds the three pages into `dist/`                             |
+| `npm run preview`       | Serves the built `dist/` for a final look before deploying                       |
+| `npm run typecheck`     | `tsc --noEmit` over the whole project                                            |
+| `npm run bench`         | Scores a solution file headlessly; see [writing solutions](writing-solutions.md) |
+| `npm test`              | Runs the Vitest suite once                                                       |
+| `npm run test:watch`    | Runs the suite in watch mode                                                     |
+| `npm run test:coverage` | Runs the suite and writes a V8 coverage report to `coverage/`                    |
+| `npm run test:e2e`      | Runs the Playwright smoke tests against the built site                           |
+| `npm run screenshot`    | Recaptures `public/images/screenshot.png` from the game                          |
+| `npm run lint`          | ESLint over the repository                                                       |
+| `npm run lint:fix`      | ESLint with `--fix`                                                              |
+| `npm run format`        | Rewrites files with Prettier                                                     |
+| `npm run format:check`  | Fails if anything is not Prettier-formatted                                      |
 
 ## Project structure
 
@@ -35,22 +35,20 @@ src/
   i18n/       message catalog, locale detection, plural and number formatting
   shared/     business-agnostic primitives: DOM helpers, markup templating, icons,
               modal/popover/disclosure widgets, geometry math
-  entities/   UI-facing concepts: level, level tier, elevator, floor,
-              passenger, tutorial level, API reference entry
+  entities/   UI-facing concepts: level, level tier, elevator, floor, passenger,
+              tutorial level, skyscraper level, API reference entry
   features/   one user action each: run the simulation, adjust speed, manage code
-              slots/seed, switch level/language/theme/layout, docs search, hotkeys help
+              slots/seed, switch language/theme/layout, docs search, hotkeys help
   widgets/    composed regions of the page: app bar, level switcher, goal bar,
               building stage, stats panel, editor pane, tutorial panel,
-              workspace layout, verdict toast
+              level briefing, workspace layout, verdict toast
   pages/game/ the game page: wires most of the widgets above to a running
               level (the app bar, editor pane and workspace layout are
               mounted once from main.ts instead, since they don't change
               when the level does)
-  app/        fitness benchmark worker; the only thing left here once routing and
-              orchestration moved into pages/game
-  ui/         pre-FSD holdover: the CodeMirror integration (deliberately never
-              moved — its editor.js port is untouched by this migration) plus a
-              few utility modules not yet distributed into shared/
+  app/        the fitness benchmark and the worker it runs in
+  ui/         the CodeMirror integration, which sits outside the layers on
+              purpose, plus a few utility modules not yet moved into shared/
   cli/        the benchmark as a terminal command; the only part of src/ not
               meant for a browser
   styles/     the single stylesheet
@@ -67,10 +65,10 @@ cannot import from `features` and up, and so on through `pages`. Path aliases mi
 
 The one rule that predates FSD and still matters most: **`src/game` never touches the DOM.** Its
 production code imports nothing from any UI layer, holds no element references, and has no opinion
-about how a lift is drawn (one test file borrows a plain string constant from `src/ui/default-code.ts`
-as a reference program — not a DOM dependency, and not part of the shipped bundle). That is why the
-simulation runs under Vitest's plain `node` environment with no jsdom and no rendering setup at all,
-and why the fitness benchmark can run the whole thing inside a web worker.
+about how a lift is drawn (a couple of test files borrow a plain string constant from
+`src/ui/default-code.ts` as a reference program — not a DOM dependency, and not part of the shipped
+bundle). That is why the simulation runs under Vitest's plain `node` environment with no jsdom and
+no rendering setup at all, and why the fitness benchmark can run the whole thing inside a web worker.
 
 ## Tests
 
@@ -91,18 +89,18 @@ per file with a docblock on the very first line:
 // @vitest-environment jsdom
 ```
 
-That is how `src/app/app.test.ts`, `src/page.test.ts`, `src/i18n/detect.test.ts` and every `src/ui`
-test that touches an element runs. Two in `src/ui` do not and are left on `node`:
-`completions.test.ts` and `error-location.test.ts` both work on plain data — a completion table and
-a stack trace — and neither builds anything to put on a page.
+Every test that builds an element opts in that way: the `ui/` directory of each entity, feature and
+widget, the two page tests, and the DOM helpers under `shared/`. What stays on `node` is everything
+that works on plain data — the simulation, the message catalog, the fitness benchmark, and the
+modules in `src/ui` that compute a completion table or a stack trace rather than render one.
 
 ### End-to-end tests
 
 `e2e/` holds a handful of Playwright smoke tests. They exist to answer one question the unit tests
 cannot: does the thing that actually ships come up in a real browser? So they run against the
 **production build** — `npm run test:e2e` builds the site and serves `dist/` with `vite preview`
-before the first test — and they stay few on purpose: fourteen files. What they cover is everything
-whose proof is the browser itself. The game comes up and a level is played through to
+before the first test — and they stay few on purpose. What they cover is everything whose proof is
+the browser itself. The game comes up and a level is played through to
 "Success!"; a program survives a reload in `localStorage`, a pasted block keeps the indentation it
 arrived with, <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>S</kbd> writes it the moment it is pressed without
 the browser's own save dialog opening, and a program that will not compile or throws
@@ -147,8 +145,9 @@ CI no longer stands behind it.
 ## Why TypeScript is held at 6
 
 `package.json` pins `typescript` to `^6.0.3` even though npm's `latest` is 7.x. It is
-`typescript-eslint` that decides this: 8.66 declares `typescript: ">=4.8.4 <6.1.0"` as a peer
-dependency, and the lint configuration here is `strictTypeChecked` plus `stylisticTypeChecked` —
+`typescript-eslint` that decides this: every release so far declares `typescript: ">=4.8.4 <6.1.0"`
+as a peer dependency, and the lint configuration here is `strictTypeChecked` plus
+`stylisticTypeChecked` —
 rules that ask the compiler about types rather than reading the syntax tree, and so run against
 whatever compiler API that package was built for. Moving to 7 fails the install outright on npm's
 peer resolution, and forcing it past that would leave the type-aware half of `npm run lint`
