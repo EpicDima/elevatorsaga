@@ -71,9 +71,21 @@ interface HandlerEntry {
   removed: boolean;
 }
 
+/** What an emitter keeps: the registrations of each event name, in registration order. */
+type HandlerTable = Map<string, HandlerEntry[]>;
+
 /** Splits a space separated event string into its individual names. */
 function splitEventNames(events: string): string[] {
   return events.split(/\s+/).filter((name) => name.length > 0);
+}
+
+/**
+ * Invokes `handler` with `receiver` as its `this`. Uses `Reflect.apply`
+ * because `strictBindCallApply` rejects `handler.call(...)` for this erased,
+ * `readonly unknown[]`-rest signature.
+ */
+function invoke(receiver: object, handler: ErasedHandler, args: readonly unknown[]): void {
+  Reflect.apply(handler, receiver, args);
 }
 
 /**
@@ -94,16 +106,98 @@ function report(onError: (e: unknown) => void, error: unknown): void {
  * which is what lets a dispatch iterate that list directly instead of copying
  * it every time — and a simulation step dispatches thousands of times.
  *
- * Module-wide rather than per emitter deliberately. Every simulation class
- * extends this one, so the dispatch loop below sees a different shape on
- * nearly every call, and a field read there costs more than the copies a
- * per-emitter count would save: measured, it gave back the whole win.
+ * Module-wide rather than per emitter: unregistering during a dispatch is rare
+ * enough that the odd extra copy costs nothing, while a field would be one more
+ * lookup through `this` on the path {@link dispatch} exists to stay clear of.
  */
 let dispatchesInFlight = 0;
 
+/**
+ * The handler list of `name` in a form safe to splice. A dispatch in flight is
+ * iterating the stored list, so this leaves a copy in the table for it to
+ * finish on and hands back the one nothing is reading.
+ */
+function listToMutate(
+  handlers: HandlerTable,
+  name: string,
+  entries: HandlerEntry[],
+): HandlerEntry[] {
+  if (dispatchesInFlight === 0) {
+    return entries;
+  }
+  const copy = entries.slice();
+  handlers.set(name, copy);
+  return copy;
+}
+
+/** Unregisters one entry, and the event's list along with it once it holds nothing. */
+function removeEntry(handlers: HandlerTable, name: string, entry: HandlerEntry): void {
+  entry.removed = true;
+  const entries = handlers.get(name);
+  if (entries === undefined) {
+    return;
+  }
+  const index = entries.indexOf(entry);
+  // A copy holds the same entries in the same order, so the index still points at `entry`.
+  const list = index >= 0 ? listToMutate(handlers, name, entries) : entries;
+  if (index >= 0) {
+    list.splice(index, 1);
+  }
+  if (list.length === 0) {
+    handlers.delete(name);
+  }
+}
+
+/**
+ * The dispatch loop behind {@link Observable.trigger} and
+ * {@link Observable.triggerSafe}. A free function taking what it needs, rather
+ * than a method reading it off `this`: every simulation class extends
+ * `Observable`, so this one call site sees a different shape nearly every time,
+ * and each lookup through `this` is priced accordingly.
+ */
+function dispatch(
+  handlers: HandlerTable,
+  receiver: object,
+  event: string,
+  args: readonly unknown[],
+  onError: ((e: unknown) => void) | null,
+): void {
+  const entries = handlers.get(event);
+  if (entries === undefined) {
+    return;
+  }
+  // The list itself, not a copy: a splice during the dispatch goes elsewhere,
+  // and the length read here is what hides handlers added along the way.
+  const count = entries.length;
+  dispatchesInFlight++;
+  try {
+    for (let i = 0; i < count; i++) {
+      const entry = entries[i];
+      if (entry === undefined || entry.removed) {
+        continue;
+      }
+      if (entry.once) {
+        removeEntry(handlers, event, entry);
+      }
+      const handlerArgs = entry.typed ? [event, ...args] : args;
+      if (onError === null) {
+        invoke(receiver, entry.handler, handlerArgs);
+        continue;
+      }
+      try {
+        invoke(receiver, entry.handler, handlerArgs);
+      } catch (e) {
+        report(onError, e);
+      }
+    }
+  } finally {
+    dispatchesInFlight--;
+  }
+}
+
 /** Minimal, fully typed event emitter. */
 export class Observable<E extends EventArgsMap> {
-  readonly #handlers = new Map<string, HandlerEntry[]>();
+  readonly #handlers: HandlerTable = new Map<string, HandlerEntry[]>();
   readonly #receiver: object;
 
   /**
@@ -159,7 +253,7 @@ export class Observable<E extends EventArgsMap> {
       if (!entries.some((entry) => entry.handler === (handler as ErasedHandler))) {
         continue;
       }
-      const list = this.#listToMutate(name, entries);
+      const list = listToMutate(this.#handlers, name, entries);
       for (let i = list.length - 1; i >= 0; i--) {
         const entry = list[i];
         if (entry?.handler === (handler as ErasedHandler)) {
@@ -191,7 +285,8 @@ export class Observable<E extends EventArgsMap> {
    * it, and handlers removed during it are skipped if not yet reached.
    */
   trigger<K extends EventName<E>>(event: K, ...args: E[K]): this {
-    return this.#dispatch(event, args, null);
+    dispatch(this.#handlers, this.#receiver, event, args, null);
+    return this;
   }
 
   /**
@@ -204,66 +299,8 @@ export class Observable<E extends EventArgsMap> {
     onError: (e: unknown) => void,
     ...args: E[K]
   ): this {
-    return this.#dispatch(event, args, onError);
-  }
-
-  /** Shared dispatch loop behind {@link trigger} and {@link triggerSafe}. */
-  #dispatch(event: string, args: readonly unknown[], onError: ((e: unknown) => void) | null): this {
-    const entries = this.#handlers.get(event);
-    if (entries === undefined || entries.length === 0) {
-      return this;
-    }
-    // The list itself, not a copy: a splice during the dispatch goes elsewhere,
-    // and the length read here is what hides handlers added along the way.
-    const count = entries.length;
-    dispatchesInFlight++;
-    try {
-      for (let i = 0; i < count; i++) {
-        const entry = entries[i];
-        if (entry === undefined || entry.removed) {
-          continue;
-        }
-        if (entry.once) {
-          this.#removeEntry(event, entry);
-        }
-        const handlerArgs = entry.typed ? [event, ...args] : args;
-        if (onError === null) {
-          this.#invoke(entry.handler, handlerArgs);
-          continue;
-        }
-        try {
-          this.#invoke(entry.handler, handlerArgs);
-        } catch (e) {
-          report(onError, e);
-        }
-      }
-    } finally {
-      dispatchesInFlight--;
-    }
+    dispatch(this.#handlers, this.#receiver, event, args, onError);
     return this;
-  }
-
-  /**
-   * The handler list of `name` in a form safe to splice. A dispatch in flight
-   * is iterating the stored list, so this leaves a copy in the table for it to
-   * finish on and hands back the one nothing is reading.
-   */
-  #listToMutate(name: string, entries: HandlerEntry[]): HandlerEntry[] {
-    if (dispatchesInFlight === 0) {
-      return entries;
-    }
-    const copy = entries.slice();
-    this.#handlers.set(name, copy);
-    return copy;
-  }
-
-  /**
-   * Invokes `handler` with the receiver as its `this`. Uses `Reflect.apply`
-   * because `strictBindCallApply` rejects `handler.call(...)` for this erased,
-   * `readonly unknown[]`-rest signature.
-   */
-  #invoke(handler: ErasedHandler, args: readonly unknown[]): void {
-    Reflect.apply(handler, this.#receiver, args);
   }
 
   #add(events: string, handler: ErasedHandler, once: boolean): void {
@@ -276,23 +313,6 @@ export class Observable<E extends EventArgsMap> {
         this.#handlers.set(name, entries);
       }
       entries.push({ handler, once, typed, removed: false });
-    }
-  }
-
-  #removeEntry(name: string, entry: HandlerEntry): void {
-    entry.removed = true;
-    const entries = this.#handlers.get(name);
-    if (entries === undefined) {
-      return;
-    }
-    const index = entries.indexOf(entry);
-    // A copy holds the same entries in the same order, so the index still points at `entry`.
-    const list = index >= 0 ? this.#listToMutate(name, entries) : entries;
-    if (index >= 0) {
-      list.splice(index, 1);
-    }
-    if (list.length === 0) {
-      this.#handlers.delete(name);
     }
   }
 }
