@@ -780,8 +780,9 @@ otherwise consists of two real, hardcoded GitHub URLs — an address is not a tr
 so the URLs and the domain text under each link are plain constants rather than catalog keys.
 
 `aboutCopyright.html` is deliberately the same string in both locales: "Elevator Saga © 2015 Magnus
-Wolffelt, © 2026 EpicDima, MIT." names a license, and a license notice does not change with the
-reader's language.
+Wolffelt, © 2026 EpicDima, MIT" names a license, and a license notice does not change with the
+reader's language. It breaks onto three lines of its own rather than wrapping wherever the popover's
+width happens to run out, which is what the two `<br />`s are for.
 
 It is also the whole of the game's route to `licenses.txt`. The footer that used to link that file
 went when the app bar took the page over, and a row of its own in the About block would have changed
@@ -789,15 +790,15 @@ its shape — so the word "MIT", already in the notice and already naming the th
 is the link. That is why the key carries `.html`: the suffix is this catalog's mark for a value
 written with `innerHTML` rather than as text.
 
-| Key                               | English                                                                                    | Notes                                                                                  |
-| --------------------------------- | ------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------- |
-| `game.appBar.docsOpenLabel`       | Help                                                                                       | the `docsOpen` button's visible label and `title`                                      |
-| `game.appBar.settingsLabel`       | Settings                                                                                   | the popover trigger's visible label, `title` and `aria-label`                          |
-| `game.appBar.hotkeysOpenLabel`    | Hotkeys                                                                                    | the popover's `keysOpen` row; closes the popover before its own callback fires         |
-| `game.appBar.aboutCaption`        | About                                                                                      | the About block's `.cap` caption                                                       |
-| `game.appBar.aboutForkLabel`      | This game                                                                                  | the name over this repository's own URL                                                |
-| `game.appBar.aboutOriginalLabel`  | Original                                                                                   | the name over the game this is forked from                                             |
-| `game.appBar.aboutCopyright.html` | Elevator Saga © 2015 Magnus Wolffelt, © 2026 EpicDima, `<a href="licenses.txt">`MIT`</a>`. | markup; byte-identical in every locale, like a `.code` key, though not one — see above |
+| Key                               | English                                                                                                   | Notes                                                                                  |
+| --------------------------------- | --------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| `game.appBar.docsOpenLabel`       | Help                                                                                                      | the `docsOpen` button's visible label and `title`                                      |
+| `game.appBar.settingsLabel`       | Settings                                                                                                  | the popover trigger's visible label, `title` and `aria-label`                          |
+| `game.appBar.hotkeysOpenLabel`    | Hotkeys                                                                                                   | the popover's `keysOpen` row; closes the popover before its own callback fires         |
+| `game.appBar.aboutCaption`        | About                                                                                                     | the About block's `.cap` caption                                                       |
+| `game.appBar.aboutForkLabel`      | This game                                                                                                 | the name over this repository's own URL                                                |
+| `game.appBar.aboutOriginalLabel`  | Original                                                                                                  | the name over the game this is forked from                                             |
+| `game.appBar.aboutCopyright.html` | Elevator Saga © 2015 Magnus Wolffelt,`<br />` © 2026 EpicDima,`<br />` `<a href="licenses.txt">`MIT`</a>` | markup; byte-identical in every locale, like a `.code` key, though not one — see above |
 
 Mounted from `src/main.ts`, which hands it the app bar, the document root, storage, the system-theme
 check, the layout mode and seed the page starts in, and the callbacks that relabel the page and

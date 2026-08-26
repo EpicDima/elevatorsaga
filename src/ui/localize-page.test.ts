@@ -152,7 +152,8 @@ describe("localizePage", () => {
 
     const paragraph = scrap.querySelector("p");
     expect(paragraph?.querySelector("a")?.getAttribute("href")).toBe("licenses.txt");
-    expect(textOf(paragraph)).toBe("Elevator Saga © 2015 Magnus Wolffelt, © 2026 EpicDima, MIT.");
+    expect(paragraph?.querySelectorAll("br")).toHaveLength(2);
+    expect(textOf(paragraph)).toBe("Elevator Saga © 2015 Magnus Wolffelt, © 2026 EpicDima, MIT");
     expect(console.warn).not.toHaveBeenCalled();
   });
 

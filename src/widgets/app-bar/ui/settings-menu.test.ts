@@ -349,7 +349,7 @@ describe("presentAppBarSettings", () => {
         const links = [...aboutBlock.querySelectorAll("a.setlink b")];
         expect(links.map((link) => link.textContent)).toEqual(["Эта игра", "Оригинал"]);
         expect(aboutBlock.querySelector(".sethint")?.textContent).toBe(
-          "Elevator Saga © 2015 Magnus Wolffelt, © 2026 EpicDima, MIT.",
+          "Elevator Saga © 2015 Magnus Wolffelt, © 2026 EpicDima, MIT",
         );
 
         // The switches' own state is untouched by a relabel.
