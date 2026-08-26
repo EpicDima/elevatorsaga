@@ -5,7 +5,7 @@ import type { Locator, Page } from "@playwright/test";
 
 import { editor, languagePicker, startButton } from "./game-page.ts";
 
-/** Where level 1 lives, and the fallback `router.ts` sends bad levels to. */
+/** Where level 1 lives, and where every wrong level on the track falls back to. */
 const FIRST_LEVEL = "/#level=tutorial-1";
 
 /** A line only level 1's *starting* program has, and only in English. */

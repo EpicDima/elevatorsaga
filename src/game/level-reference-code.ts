@@ -88,15 +88,9 @@ export function buildGoodDispatcherCode(loadCutoff: number): string {
             }
             var ahead = queue.slice(0, splitIndex);
             var behind = queue.slice(splitIndex);
-            // A stopped car (movingDirection === null) has no real sweep to
-            // measure "ahead" against, only the guessed direction above -- and
-            // that guess cannot be trusted for the one floor the car is
-            // already standing on. A re-pressed call for that exact floor
-            // (User.elevatorAvailable re-presses whenever a full car turns a
-            // passenger away) would otherwise satisfy "ahead" under either
-            // direction, since comparing current to itself never fails a
-            // >=/<= test, and keep splicing itself in front of whatever this
-            // car already had genuinely queued -- see the module comment.
+            // A stopped car's direction is only the guess above, and comparing
+            // its current floor against itself passes both >= and <=, so a
+            // re-pressed call for that floor would splice ahead of the queue.
             var isAhead =
                 (movingDirection !== null || floorNum !== current) &&
                 (direction === "up" ? floorNum >= current : floorNum <= current);

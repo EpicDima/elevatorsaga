@@ -183,16 +183,12 @@ export class Floor extends Observable<FloorEvents> {
   }
 
   /**
-   * Clears the call buttons an arriving elevator can serve.
-   *
-   * Only the buttons matching the elevator's lit indicators are cleared, and a
-   * separate `buttonstate_change` is emitted for each, as in the original.
+   * Clears the call buttons an arriving elevator can serve, matching only its
+   * lit indicators, with one `buttonstate_change` per button.
    *
    * A car that does not serve this floor clears nothing, whatever its
-   * indicators say. It can still arrive here — player code may send a car
-   * anywhere, and `World.#handleButtonRepressing` sends a standing car to its
-   * own floor — and a lamp cleared by a car nobody on this floor may board is
-   * a passenger the building has forgotten about.
+   * indicators say: it can still arrive here, and a lamp cleared by a car
+   * nobody on this floor may board is a passenger the building has forgotten.
    *
    * @param elevator - The elevator that just became available.
    */

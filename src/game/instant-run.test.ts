@@ -37,10 +37,10 @@ function createFakeWorld(endAfterTicks: number | null = null): FakeWorld {
       }
     },
     init(): void {
-      // Nothing.
+      // Nothing: no fixture below registers an elevator or floor handler.
     },
     updateDisplayPositions(): void {
-      // Nothing.
+      // Nothing to redraw in a headless test.
     },
     on(event: "usercode_error", handler: (e: unknown) => void): unknown {
       // Only `WorldController` raises this, never the world itself, so this
@@ -73,7 +73,7 @@ function inertCodeObj(): UserCodeObject {
 function updateThrowingCodeObj(message: string): UserCodeObject {
   return {
     init(): void {
-      // Nothing.
+      // Nothing: this fixture only needs `update` to fail.
     },
     update(): void {
       throw new Error(message);

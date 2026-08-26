@@ -121,7 +121,7 @@ function paintedRuns(code: string): { text: string; token: string | undefined }[
       runs.push({ text, token: /var\(--ds-code-(\w+)\)/.exec(body ?? "")?.[1] });
     },
     () => {
-      // Nothing.
+      // Line breaks carry no color, and nothing here asks about them.
     },
   );
   return runs;

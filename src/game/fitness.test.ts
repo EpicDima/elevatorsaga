@@ -472,12 +472,10 @@ describe("doFitnessSuite", () => {
   );
 
   it("rejects an empty seed list instead of reporting an empty score", () => {
-    // There is nothing to average over no runs, and the honest answers are a
-    // throw or an empty result list; an empty list would reach
-    // describeFitnessResults and print "Fitness avg delivery times:" with nothing
-    // after it, which reads like a program that scored badly rather than like a
-    // caller that asked for no measurement. This costs no simulation, so it is
-    // also the cheapest test in the file.
+    // The alternative to throwing is an empty result list, which would reach
+    // describeFitnessResults and print "Fitness avg delivery times:" with
+    // nothing after it — a program that scored badly, not a caller that asked
+    // for no measurement.
     expect(() => doFitnessSuite(SWEEPING_PROGRAM, [])).toThrow(RangeError);
   });
 
