@@ -63,40 +63,39 @@ correction and reported nowhere.
 
 ### Annotating your program
 
-Either way, one line above your program tells the editor what the object you are writing is:
+Either way, one line above each function tells the editor what it is:
 
 ```js
-/** @type {ElevatorSaga.Solution} */
-({
-  init: function (elevators, floors) {
-    var elevator = elevators[0];
+/** @type {ElevatorSaga.Init} */
+function init(elevators, floors) {
+  var elevator = elevators[0];
 
-    elevator.on("idle", function () {
-      elevator.goToFloor(0);
+  elevator.on("idle", function () {
+    elevator.goToFloor(0);
+  });
+
+  floors.forEach(function (floor) {
+    floor.on("up_button_pressed", function () {
+      elevator.goToFloor(floor.floorNum());
     });
+  });
+}
 
-    floors.forEach(function (floor) {
-      floor.on("up_button_pressed", function () {
-        elevator.goToFloor(floor.floorNum());
-      });
-    });
-  },
-
-  update: function (dt, elevators, floors) {},
-});
+/** @type {ElevatorSaga.Update} */
+function update(dt, elevators, floors) {}
 ```
 
-Without that annotation `elevators` and `floors` are `any`, and it costs more than the completion
+Without those annotations `elevators` and `floors` are `any`, and it costs more than the completion
 list: under the `"strict": true` printed above, this very example is six errors, one per parameter
 that has lost its type — the two `init` takes, the `floor` its `forEach` callback takes, and the
-three on `update` — each reported as implicitly having an `any` type. With the annotation the same
-file compiles clean, `elevators` and `floors` are `readonly ElevatorSaga.Elevator[]` and
+three on `update` — each reported as implicitly having an `any` type. With them the same file
+compiles clean, `elevators` and `floors` are `readonly ElevatorSaga.Elevator[]` and
 `readonly ElevatorSaga.Floor[]`, and everything below follows.
 
-**Keep the parentheses around the object.** The game wraps your program in them for you, but only
-when it starts with `{` — a program that starts with a comment does not, so a bare `{ … }`
-underneath one is evaluated as a block and dies on **Start** with `SyntaxError: Function statements
-require a function name`. Written as above it pastes back into the game unchanged, comment and all.
+A solution written for the original game is an object with `init` and `update` as its members
+instead, and it still runs here unchanged; `/** @type {ElevatorSaga.Solution} */` above the
+parenthesized object annotates that shape the same way. `update` is optional in both forms — leave
+it out and the game supplies one that does nothing.
 
 The declaration describes _this fork_, including `isFull()`, `isEmpty()` and
 `isApproachingFloor(n)`, which the original game does not have. It is not maintained by hand alone:
@@ -113,24 +112,23 @@ is also a command:
 npm run bench -- sweep.js
 ```
 
-The file is a program in exactly the form the in-page editor takes: an object literal with `init`
-and `update`, parentheses optional. Nothing is drawn and no browser is involved — the simulation
-never needed one — so a full report takes under a second. Save this as `sweep.js` and the numbers
-below are what you get, on any machine:
+The file is a program in exactly the form the in-page editor takes, either of them: top-level `init`
+and `update`, or the original game's object literal. Nothing is drawn and no browser is involved —
+the simulation never needed one — so a full report takes under a second. Save this as `sweep.js` and
+the numbers below are what you get, on any machine:
 
 ```js
-{
-  init: function (elevators, floors) {
-    elevators.forEach(function (elevator) {
-      elevator.on("idle", function () {
-        floors.forEach(function (floor) {
-          elevator.goToFloor(floor.floorNum());
-        });
+function init(elevators, floors) {
+  elevators.forEach(function (elevator) {
+    elevator.on("idle", function () {
+      floors.forEach(function (floor) {
+        elevator.goToFloor(floor.floorNum());
       });
     });
-  },
-  update: function () {},
+  });
 }
+
+function update() {}
 ```
 
 ```

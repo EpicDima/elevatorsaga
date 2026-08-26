@@ -41,6 +41,14 @@ is scored by the same rules.
 - **A sandbox building.** `#level=sandbox` takes `floors`, `elevators`, `capacities` and
   `spawnrate`, so you can build the case your program is failing on rather than looking for a
   shipped level that resembles it. See [URL parameters](url-parameters.md).
+- **Plain functions instead of an object.** The program the game hands you declares `init` and
+  `update` at the top level, so there are no outer braces to balance and no comma between the two,
+  and a `const`, a `let` or a helper function beside them is shared by both — which is where a
+  program's state goes now. `update` is optional: leave it out and nothing happens on a tick.
+  Nothing was taken away, either. A solution written as the original's object literal still runs
+  exactly as it did, and the one thing that used to trip such a solution up here — a `//` comment
+  above its opening `{`, which made the game read the program as a block and die on **Start** with
+  `SyntaxError: Function statements require a function name` — no longer does.
 - **Five more methods on the elevator.** `isFull()`, `isEmpty()` and `isApproachingFloor(n)` —
   the three checks nearly every published solution had already written by hand out of `loadFactor`
   and `destinationQueue` — and `servedFloors()`, which answers the question a zoned building makes
@@ -317,10 +325,10 @@ granted here rather than having to work it out from a feature list.
   elevators there are?", and [PR #113](https://github.com/magwo/elevatorsaga/pull/113), which said
   the sentence describing `init` and `update` explains nothing. They are the same paragraph, and it
   now says what those two functions are handed: the same two arrays every call, so
-  `elevators.length` is the count; `this` is the object you declared, so a program can keep its
-  state there; and `init` runs on the first frame the game actually runs — code applied while it is
-  paused waits for Start — with `update` on that frame and every one after, which is why `dt` and
-  not a tally of calls measures game time.
+  `elevators.length` is the count; whatever the program declares at the top level beside them is
+  shared by both, which is where its state goes; and `init` runs on the first frame the game
+  actually runs — code applied while it is paused waits for Start — with `update` on that frame and
+  every one after, which is why `dt` and not a tally of calls measures game time.
 - [#33](https://github.com/magwo/elevatorsaga/issues/33) — "Add a `floor.hall_button_pressed` event
   to the API", because handling a call the same way whichever button rang it meant registering the
   same handler for both events and then working out which one had called it. The event is here, and

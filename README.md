@@ -15,11 +15,11 @@ program driving it all in the editor to the right](public/images/screenshot.png)
 
 ## How it works
 
-Your program is an object with an `init` function that runs once and an `update` function that runs
-repeatedly. Each of the 19 levels sets a target — transport 15 people in 60 seconds, or 100 people
-using no more than 63 elevator moves, or 50 people with none of them taking longer than 21 seconds
-to deliver — and you keep rewriting until it clears them. The sandbox sets none: it is a building of
-your own size you can leave running.
+Your program declares an `init` function that runs once and, if it wants one, an `update` function
+that runs repeatedly. Each of the 19 levels sets a target — transport 15 people in 60 seconds, or
+100 people using no more than 63 elevator moves, or 50 people with none of them taking longer than
+21 seconds to deliver — and you keep rewriting until it clears them. The sandbox sets none: it is a
+building of your own size you can leave running.
 
 Type in the editor beside the building and press **Start**. There is nothing to apply first: your
 code is saved to `localStorage` as you type, and every run reads whatever is in the editor at the

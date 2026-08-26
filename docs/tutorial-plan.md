@@ -132,18 +132,16 @@
 | Формат  | дописать одну строку                                                     |
 
 ```js
-{
-    init: function(elevators, floors) {
-        const elevator = elevators[0];
+function init(elevators, floors) {
+  const elevator = elevators[0];
 
-        elevator.on("idle", function () {
-            // TODO: дом двухэтажный, а лифт ездит только на один из них
-            elevator.goToFloor(0);
-        });
-    },
-    update: function(dt, elevators, floors) {
-    }
+  elevator.on("idle", function () {
+    // TODO: дом двухэтажный, а лифт ездит только на один из них
+    elevator.goToFloor(0);
+  });
 }
+
+function update(dt, elevators, floors) {}
 ```
 
 **Что видно в здании.** Лифт стоит на нулевом этаже и раз за разом открывает двери, никуда не уезжая.
@@ -202,15 +200,13 @@
 | Формат  | написать обработчик целиком          |
 
 ```js
-{
-    init: function(elevators, floors) {
-        const elevator = elevators[0];
+function init(elevators, floors) {
+  const elevator = elevators[0];
 
-        // TODO: пусть лифт объезжает все три этажа, и так без конца
-    },
-    update: function(dt, elevators, floors) {
-    }
+  // TODO: пусть лифт объезжает все три этажа, и так без конца
 }
+
+function update(dt, elevators, floors) {}
 ```
 
 **Что видно в здании.** Лифт не двигается вообще: **0 перемещений, 0 перевезённых**, очередь растёт
@@ -264,19 +260,17 @@
 | Формат  | дописать обработчик                  |
 
 ```js
-{
-    init: function(elevators, floors) {
-        const elevator = elevators[0];
+function init(elevators, floors) {
+  const elevator = elevators[0];
 
-        elevator.on("idle", function () {
-            elevator.goToFloor(0);
-        });
+  elevator.on("idle", function () {
+    elevator.goToFloor(0);
+  });
 
-        // TODO: люди уже в кабине и уже нажали свои этажи — увезите их
-    },
-    update: function(dt, elevators, floors) {
-    }
+  // TODO: люди уже в кабине и уже нажали свои этажи — увезите их
 }
+
+function update(dt, elevators, floors) {}
 ```
 
 **Что видно в здании.** Лифт стоит на нулевом этаже полный (`loadFactor` = 0,93 к 30-й секунде),
@@ -333,22 +327,20 @@
 | Формат  | найти и исправить одну строку        |
 
 ```js
-{
-    init: function(elevators, floors) {
-        const elevator = elevators[0];
+function init(elevators, floors) {
+  const elevator = elevators[0];
 
-        // Кто-то переписал объезд этажей через очередь целиком.
-        elevator.on("idle", function () {
-            elevator.destinationQueue = [0, 1, 2, 3];
-        });
+  // Кто-то переписал объезд этажей через очередь целиком.
+  elevator.on("idle", function () {
+    elevator.destinationQueue = [0, 1, 2, 3];
+  });
 
-        elevator.on("floor_button_pressed", function (floorNum) {
-            elevator.goToFloor(floorNum);
-        });
-    },
-    update: function(dt, elevators, floors) {
-    }
+  elevator.on("floor_button_pressed", function (floorNum) {
+    elevator.goToFloor(floorNum);
+  });
 }
+
+function update(dt, elevators, floors) {}
 ```
 
 **Что видно в здании.** Лифт стоит на нулевом этаже **пустой** (`loadFactor` = 0,00) — и это ключ.
@@ -414,24 +406,22 @@ true)`, и на уровнях 1–3 именно это набивало каб
 | Формат  | переписать стратегию                                                                     |
 
 ```js
-{
-    init: function(elevators, floors) {
-        const elevator = elevators[0];
+function init(elevators, floors) {
+  const elevator = elevators[0];
 
-        elevator.on("idle", function () {
-            elevator.destinationQueue = [0, 1, 2, 3, 4, 5, 6, 7, 8];
-            elevator.checkDestinationQueue();
-        });
+  elevator.on("idle", function () {
+    elevator.destinationQueue = [0, 1, 2, 3, 4, 5, 6, 7, 8];
+    elevator.checkDestinationQueue();
+  });
 
-        elevator.on("floor_button_pressed", function (floorNum) {
-            elevator.goToFloor(floorNum);
-        });
+  elevator.on("floor_button_pressed", function (floorNum) {
+    elevator.goToFloor(floorNum);
+  });
 
-        // TODO: спросите у этажей, кому нужен лифт, вместо того чтобы объезжать все подряд
-    },
-    update: function(dt, elevators, floors) {
-    }
+  // TODO: спросите у этажей, кому нужен лифт, вместо того чтобы объезжать все подряд
 }
+
+function update(dt, elevators, floors) {}
 ```
 
 **Что видно в здании.** Лифт честно ползёт по всем девяти этажам, останавливаясь на пустых, круг
@@ -542,30 +532,28 @@ down_button_pressed", …)` — можно, но тогда первым арг�
 | Формат  | найти и исправить                         |
 
 ```js
-{
-    init: function(elevators, floors) {
-        const elevator = elevators[0];
+function init(elevators, floors) {
+  const elevator = elevators[0];
 
-        // Кто-то решил показывать пассажирам, куда едет лифт.
-        elevator.goingUpIndicator(true);
-        elevator.goingDownIndicator(false);
+  // Кто-то решил показывать пассажирам, куда едет лифт.
+  elevator.goingUpIndicator(true);
+  elevator.goingDownIndicator(false);
 
-        elevator.on("floor_button_pressed", function (floorNum) {
-            elevator.goToFloor(floorNum);
-        });
+  elevator.on("floor_button_pressed", function (floorNum) {
+    elevator.goToFloor(floorNum);
+  });
 
-        floors.forEach(function (floor) {
-            floor.on("up_button_pressed", function () {
-                elevator.goToFloor(floor.floorNum());
-            });
-            floor.on("down_button_pressed", function () {
-                elevator.goToFloor(floor.floorNum());
-            });
-        });
-    },
-    update: function(dt, elevators, floors) {
-    }
+  floors.forEach(function (floor) {
+    floor.on("up_button_pressed", function () {
+      elevator.goToFloor(floor.floorNum());
+    });
+    floor.on("down_button_pressed", function () {
+      elevator.goToFloor(floor.floorNum());
+    });
+  });
 }
+
+function update(dt, elevators, floors) {}
 ```
 
 **Что видно в здании.** Лифт работает — и в этом трудность уровня. Кто едет вверх, уезжает
@@ -733,13 +721,11 @@ down_button_pressed", …)` — можно, но тогда первым арг�
 | Формат  | написать программу с нуля                                                                                 |
 
 ```js
-{
-    init: function(elevators, floors) {
-        // TODO: всё, что нужно, вы уже писали. Здесь нет ни одной новой строки.
-    },
-    update: function(dt, elevators, floors) {
-    }
+function init(elevators, floors) {
+  // TODO: всё, что нужно, вы уже писали. Здесь нет ни одной новой строки.
 }
+
+function update(dt, elevators, floors) {}
 ```
 
 **Учит:** ничему новому — и в этом весь смысл. Это тест на воспроизведение: обработчик кнопок кабины,

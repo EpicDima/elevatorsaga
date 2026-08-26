@@ -495,13 +495,13 @@ const ERROR_MARKER = "// error";
 function guideExample(): string {
   const guide = readFileSync(GUIDE_PATH, "utf8");
   for (const [, block = ""] of guide.matchAll(/```js\n([\s\S]*?)```/g)) {
-    if (block.includes("@type {ElevatorSaga.Solution}")) {
+    if (block.includes("@type {ElevatorSaga.Init}")) {
       return block;
     }
   }
   throw new Error(
     "No fenced js block in docs/writing-solutions.md is annotated with " +
-      "@type {ElevatorSaga.Solution}; the declaration file's instructions are " +
+      "@type {ElevatorSaga.Init}; the declaration file's instructions are " +
       "not being checked by anything.",
   );
 }
@@ -707,9 +707,8 @@ describe("the instructions docs/writing-solutions.md gives", () => {
   });
 
   it("prints an example the game will load", () => {
-    // The game's loader only parenthesizes a program starting with `{` and
-    // ending with `}`; an annotated example must keep its own parentheses or
-    // it's evaluated as a block and throws a SyntaxError.
+    // The annotations are JSDoc comments, so the example pastes into the
+    // editor as it stands; this is what says the comments cost it nothing.
     const solution = getCodeObjFromCode(guideExample());
     expect(typeof solution.init).toBe("function");
     expect(typeof solution.update).toBe("function");

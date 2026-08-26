@@ -454,8 +454,11 @@ declare namespace ElevatorSaga {
 
   /**
    * The object a solution is: what the game evaluates a program down to.
-   * Both functions are required. The elevator and floor arrays are the
-   * game's own and shared across frames — sort a copy, not the array itself.
+   * A program that declares `init` and `update` at the top level is read as
+   * one of these too, so annotating either function with
+   * `ElevatorSaga.Solution["init"]` types it the same way. The elevator and
+   * floor arrays are the game's own and shared across frames — sort a copy,
+   * not the array itself.
    */
   interface Solution {
     /** Runs once, when the level starts. */
@@ -463,9 +466,16 @@ declare namespace ElevatorSaga {
 
     /**
      * Runs at a fixed rate of 100 times per simulated second, after `init`.
+     * Optional: a solution with nothing to do per tick can leave it out.
      *
      * @param dt - Always one hundredth of a simulated second.
      */
-    update(dt: number, elevators: readonly Elevator[], floors: readonly Floor[]): void;
+    update?(dt: number, elevators: readonly Elevator[], floors: readonly Floor[]): void;
   }
+
+  /** {@link Solution.init}, for annotating one declared on its own. */
+  type Init = Solution["init"];
+
+  /** {@link Solution.update}, for annotating one declared on its own. */
+  type Update = NonNullable<Solution["update"]>;
 }
