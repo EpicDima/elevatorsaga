@@ -507,6 +507,26 @@ describe("presentTutorial", () => {
       expect(copyButton().getAttribute("data-copied")).toBe("yes");
     });
 
+    it("lets the later of two clicks own the report, and the timer with it", async () => {
+      vi.useFakeTimers();
+      const settle = pendingClipboard();
+      presentTutorial(parent, panelData());
+
+      copyButton().click();
+      copyButton().click();
+      // The first write comes back last, and by then it is nobody's report.
+      settle[1]?.(true);
+      await vi.advanceTimersByTimeAsync(0);
+      settle[0]?.(false);
+      await vi.advanceTimersByTimeAsync(0);
+
+      expect(copyButton().getAttribute("data-copied")).toBe("yes");
+      expect(announcement().textContent).toBe("Copied to your clipboard.");
+      // And its timer went with it: a stale one would cut this check short.
+      await vi.advanceTimersByTimeAsync(1900);
+      expect(copyButton().getAttribute("data-copied")).toBe("yes");
+    });
+
     it("carries no mark into a redraw, the mark being a moment rather than a state", async () => {
       vi.useFakeTimers();
       stubClipboard(true);
@@ -524,6 +544,46 @@ describe("presentTutorial", () => {
       copyButton().click();
       await vi.advanceTimersByTimeAsync(0);
       expect(copyButton().getAttribute("data-copied")).toBe("yes");
+    });
+
+    it("keeps the mark on the panel on screen when an older panel's timer fires", async () => {
+      vi.useFakeTimers();
+      stubClipboard(true);
+      presentTutorial(parent, panelData());
+      copyButton().click();
+      await vi.advanceTimersByTimeAsync(0);
+
+      // A second panel, marked a second later, so the first panel's timer is
+      // the one that comes due first.
+      presentTutorial(parent, panelData());
+      await vi.advanceTimersByTimeAsync(1000);
+      copyButton().click();
+      await vi.advanceTimersByTimeAsync(0);
+      expect(copyButton().getAttribute("data-copied")).toBe("yes");
+
+      await vi.advanceTimersByTimeAsync(1100);
+
+      // Past the older timer, short of this one's: each panel reverts its own.
+      expect(copyButton().getAttribute("data-copied")).toBe("yes");
+    });
+
+    it("reports nothing at all when the panel is redrawn while it is copying", async () => {
+      vi.useFakeTimers();
+      const settle = pendingClipboard();
+      presentTutorial(parent, panelData());
+      const discarded = copyButton();
+      copyButton().click();
+
+      presentTutorial(parent, panelData());
+      settle[0]?.(true);
+      await vi.advanceTimersByTimeAsync(0);
+
+      // Not onto the panel in its place, which was not the one copying, and not
+      // onto the discarded one either — a mark nobody can see is a timer held
+      // on a dead panel for as long as it would have been worn.
+      expect(copyButton().hasAttribute("data-copied")).toBe(false);
+      expect(announcement().textContent).toBe("");
+      expect(discarded.hasAttribute("data-copied")).toBe(false);
     });
 
     it("says it in the language the player is reading, at the moment it says it", async () => {

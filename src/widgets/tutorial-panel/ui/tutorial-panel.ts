@@ -216,14 +216,21 @@ function wireCopyButton(parent: HTMLElement): void {
   const button = requireElement(COPY_CODE_SELECTOR, parent);
   const announcement = requireElement(COPIED_SELECTOR, parent);
   let flash: ReturnType<typeof setTimeout> | undefined;
+  let attempts = 0;
 
   /** Copies, marks the button with what happened, and takes a check back off in a moment. */
   async function copyAndReport(): Promise<void> {
+    const attempt = ++attempts;
     clearTimeout(flash);
     // Cleared before the write, not only restored after the mark: a live region
     // announces a change, so the same sentence twice running would be silent.
     unmarkCopyButton(button, announcement);
     const state = await copyToClipboard(requireElement(SOLUTION_CODE_SELECTOR, parent).textContent);
+    // A click since, or a panel redrawn since: either way this write is no
+    // longer the one being reported, and its own timer must not outlive it.
+    if (attempt !== attempts || !button.isConnected) {
+      return;
+    }
     markCopyButton(button, announcement, state);
     if (state === "yes") {
       flash = setTimeout(() => {
