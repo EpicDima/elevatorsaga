@@ -6,23 +6,7 @@
 
 import { describe, expect, it } from "vitest";
 
-import { contrast, over, THEMES, themed } from "#shared/styles/test-helpers.ts";
-
-/**
- * Every color the editor draws text in. Listed once and measured against all
- * three surface states below; a color added to `editorSyntaxTheme` without
- * being added here goes untested.
- */
-const CODE_INK_TOKENS = [
-  "ds-code-text",
-  "ds-code-key",
-  "ds-code-fn",
-  "ds-code-str",
-  "ds-code-num",
-  "ds-code-com",
-  "ds-code-punc",
-  "ds-code-line",
-];
+import { CODE_INK_TOKENS, contrast, over, THEMES, themed } from "#shared/styles/test-helpers.ts";
 
 describe("ds code palette on the code background", () => {
   // pre code, .cm-editor, .tok-*, editorSyntaxTheme, and .cm-gutters all paint

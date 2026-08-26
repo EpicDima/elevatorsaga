@@ -4,7 +4,16 @@
 
 import { describe, expect, it } from "vitest";
 
-import { contrast, THEMES, themed } from "#shared/styles/test-helpers.ts";
+import {
+  CODE_INK_TOKENS,
+  contrast,
+  declaration,
+  over,
+  ruleBody,
+  THEMES,
+  themed,
+  withAlpha,
+} from "#shared/styles/test-helpers.ts";
 
 describe("ds palette on the lesson card", () => {
   // Each pair pins a token combination against a token change quietly taking
@@ -42,6 +51,31 @@ describe("ds palette on the lesson card", () => {
           `${glyph} on ${surface}`,
         ).toBeGreaterThanOrEqual(3);
       }
+    }
+  });
+
+  // The line a lesson asks for is washed to mark it, and the syntax colors on
+  // it are tuned against the bare code background — so how dense that wash may
+  // be is a contrast question, not a taste one. Read from the rule rather than
+  // duplicated here, since the density is the whole point.
+  it.each(THEMES)("keeps every code color readable on a marked line, %s theme", (_, palette) => {
+    const value = declaration(
+      ruleBody(".tutoriallinechanged"),
+      "background-color",
+      ".tutoriallinechanged",
+    );
+    const mix = /color-mix\(in srgb,\s*var\(--([\w-]+)\)\s*([\d.]+)%,\s*transparent\)/.exec(value);
+    expect(mix, ".tutoriallinechanged no longer washes a token over the code block").not.toBeNull();
+    const [, name = "", percent = "0"] = mix ?? [];
+    const marked = over(
+      withAlpha(themed(palette, name), Number(percent)),
+      themed(palette, "ds-code-bg"),
+    );
+    for (const ink of CODE_INK_TOKENS) {
+      expect(
+        contrast(themed(palette, ink), marked),
+        `--${ink} on a marked line`,
+      ).toBeGreaterThanOrEqual(4.5);
     }
   });
 

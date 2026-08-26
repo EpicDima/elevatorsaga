@@ -69,6 +69,23 @@ export const THEMES: readonly [name: string, palette: ReadonlyMap<string, string
   ["light", LIGHT_PALETTE],
 ];
 
+/**
+ * Every color the code surface draws text in — the live editor's syntax theme,
+ * `.tok-*`, and the gutter. Listed once so each surface washed over the code
+ * background (the active line, a marked lesson line) measures all of them; a
+ * color added to `editorSyntaxTheme` without being added here goes untested.
+ */
+export const CODE_INK_TOKENS: readonly string[] = [
+  "ds-code-text",
+  "ds-code-key",
+  "ds-code-fn",
+  "ds-code-str",
+  "ds-code-num",
+  "ds-code-com",
+  "ds-code-punc",
+  "ds-code-line",
+];
+
 /** Relative luminance, 0 to 1, of a `#rgb`/`#rrggbb` sRGB color, per WCAG 2. */
 function luminance(hex: string): number {
   const digits = hex.replace("#", "");
