@@ -217,7 +217,7 @@ jobs:
     needs: [check, e2e]
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 7
 
     # Overrides the workflow-wide `contents: read` for this job alone, so the
     # token that can write a deployment exists only where one is written.
@@ -255,13 +255,15 @@ jobs:
       - name: Configure Pages
         uses: actions/configure-pages@v6
 
-      # Built again rather than carried over from `check` as an artifact: that
-      # would upload and re-download ~2 MB of `dist/` on every pull request too,
-      # to save a step that takes seconds. `vite.config.ts` sets `base: "./"`,
-      # so the bundle already works from a project sub-path such as /<repo>/ and
-      # needs no base-path injection here.
+      # Built again rather than carried over from `check` as an artifact, so
+      # re-running this job on its own republishes from source. `vite build`,
+      # not `npm run build`, whose `tsc --noEmit` half asks what `check` has
+      # already answered about these exact bytes -- this job only runs once it
+      # went green. `vite.config.ts` sets `base: "./"`, so the bundle already
+      # works from a project sub-path such as /<repo>/ and needs no base-path
+      # injection here.
       - name: Build the site
-        run: npm run build
+        run: npx vite build
 
       - name: Upload the built site
         uses: actions/upload-pages-artifact@v5
@@ -271,3 +273,8 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v5
+        with:
+          # Pages reports back in seconds; this action waits ten minutes for it
+          # by default, which outlives the job timeout above and so ends at the
+          # runner's hands rather than releasing the `pages` group on its own.
+          timeout: 300000
