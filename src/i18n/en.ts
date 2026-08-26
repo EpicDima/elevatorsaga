@@ -1350,7 +1350,7 @@ elevator.goingDownIndicator(false);`,
   // ------------------------------------------------------ the Skyscraper block
   // src/game/skyscraper.ts, and the card `widgets/level-briefing` draws beside
   // the building. Levels built on how real lift systems are actually
-  // dispatched: `design/elevator-dispatch-research.md` is where each one comes
+  // dispatched: `docs/elevator-dispatch-research.md` is where each one comes
   // from.
   //
   // One key per level and no more, which is the whole difference from the

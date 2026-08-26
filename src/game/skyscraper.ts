@@ -1,7 +1,7 @@
 /**
  * The Skyscraper block: levels built on how real lift systems are actually run.
  *
- * `design/elevator-dispatch-research.md` is where these come from — round-trip
+ * `docs/elevator-dispatch-research.md` is where these come from — round-trip
  * time, traffic profiles, zoning, destination dispatch. The numbered levels in
  * {@link "./levels.ts"!levels} are the original game's and stay exactly as they
  * were, because a decade of published solutions is scored against them; this is
