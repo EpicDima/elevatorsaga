@@ -9,9 +9,9 @@ The editor on the page is fine for small changes, but a solution you are actuall
 to live in a real file somewhere. `public/elevatorsaga.d.ts` is a TypeScript declaration file that
 describes everything player code can reach — every method, property and event on the elevator and
 floor objects, each with a description of its own. Those descriptions are written for this file
-rather than lifted from elsewhere: of the twenty members the reference page, the in-page completion
-popup and the declaration all describe, not one is described here in the words either of the other
-two uses. Point your editor at it and you get completion, hover documentation and type checking for
+rather than lifted from elsewhere: where the reference page, the in-page completion popup and the
+declaration all describe one member, no two of them describe it in the same words. Point your editor
+at it and you get completion, hover documentation and type checking for
 a plain `.js` file: no build step, no TypeScript in your program, nothing to compile before pasting
 it back into the game.
 
@@ -139,9 +139,9 @@ seeds:   1, 2, 3, 4, 5, 6
 locale:  en
 
 scenario         transportedPerSec  avgWaitTime  avgPickupTime  transportedCount  avgLoadFactorOnMove
-Small scenario               0.578        8.339          3.128           115.500                0.279
-Medium scenario              1.398       13.158          5.464           279.500                0.553
-Large scenario               1.480       45.271         22.820           296.000                0.582
+Small scenario               0.580        8.266          3.051           116.000                0.280
+Medium scenario              1.411       13.004          5.277           282.167                0.556
+Large scenario               1.479       44.852         22.495           295.833                0.582
 ```
 
 `avgWaitTime` is the whole journey, spawn to delivery, ride included; `avgPickupTime` is the part
