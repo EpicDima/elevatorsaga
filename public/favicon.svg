@@ -1,16 +1,8 @@
 <!--
-  The app bar's own mark (buildAppBarSkeleton in src/widgets/app-bar/ui/app-bar.ts),
-  coordinates unchanged; src/page.test.ts compares the two shape for shape.
-
-  Both colors are written out because a file under public/ is copied by the build
-  without ever meeting src/shared/styles/tokens.css: the dark theme's ds-accent
-  over its ds-bg, so the mark reads the same on a light tab strip and a dark one.
-
-  The ground is the frame's own fill rather than a rect behind it, so it stops at
-  the stroke's center line and the brass edge stays the outermost thing drawn.
-
-  No double hyphen anywhere in this comment: XML forbids one inside a comment, and
-  a browser that meets one refuses the whole file and falls back to a blank glyph.
+  The app bar's mark (src/widgets/app-bar/ui/app-bar.ts), in the dark theme's
+  ds-accent over ds-bg: public/ is copied without ever meeting tokens.css. The
+  ground is the frame's own fill, so it stops at the stroke's center line.
+  No double hyphen in this comment: XML forbids one, and a browser drops the file.
 -->
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 22 22" role="img" aria-label="Elevator Saga">
   <title>Elevator Saga</title>
