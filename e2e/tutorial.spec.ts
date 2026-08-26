@@ -53,6 +53,22 @@ async function boxOf(
 }
 
 /**
+ * Makes every clipboard write fail the way a browser without the permission does.
+ *
+ * Defined on `navigator` itself, which shadows the `Navigator.prototype` getter
+ * the real API is served from, so nothing has to be put back afterwards.
+ */
+function refuseClipboardWrites(): void {
+  Object.defineProperty(navigator, "clipboard", {
+    configurable: true,
+    value: {
+      writeText: (): Promise<never> =>
+        Promise.reject(new DOMException("denied", "NotAllowedError")),
+    },
+  });
+}
+
+/**
  * Force-opens the level switcher's menu (not via click, which toggles) so it
  * can be called on both sides of a language change that redraws the switcher.
  */
@@ -183,6 +199,33 @@ test("highlights the answer, marks the line it adds, and copies it to the clipbo
   const clipboard = await page.evaluate(() => navigator.clipboard.readText());
   expect(clipboard).toBe(await code.evaluate((element) => element.textContent));
   expect(clipboard).toContain("elevator.goToFloor(1);");
+});
+
+test("says in words what to do instead when the browser refuses to copy", async ({ page }) => {
+  // The success path says everything on the button, but a refusal asks the
+  // player to select the code themselves - so that sentence has to be painted,
+  // not only announced. Only a browser can prove it takes room on the card.
+  await page.addInitScript(refuseClipboardWrites);
+  await page.goto(FIRST_LEVEL);
+
+  await panel(page).getByText("Hint 3", { exact: true }).click();
+  const copyButton = panel(page).locator("button.tutorialcopycode");
+  const status = panel(page).locator(".tutorialcopied");
+  await copyButton.click();
+
+  await expect(copyButton).toHaveAttribute("data-copied", "no");
+  await expect(status).toBeVisible();
+  await expect(status).toHaveText(
+    "Your browser refused to copy it. Select the code and copy it yourself.",
+  );
+  // A real line of prose under the answer, not the clipped pixel the success
+  // announcement is; how long it stands is pinned in jsdom, where the clock can be run.
+  const line = await boxOf(status, "the refusal");
+  const block = await boxOf(panel(page).locator(".tutorialsolution"), "the answer's code block");
+  expect(line.height).toBeGreaterThan(1);
+  expect(line.y).toBeGreaterThanOrEqual(block.y + block.height);
+  // Still a copy button by name, so the way to try again is the same control.
+  await expect(copyButton).toHaveAccessibleName("Copy this program");
 });
 
 test("hands the editor the program in the language the link asks for", async ({ page }) => {

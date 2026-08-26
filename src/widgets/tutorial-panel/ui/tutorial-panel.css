@@ -129,6 +129,18 @@
 }
 
 /*
+ * Drawn only when a copy was refused, and then it stays: a red cross says that
+ * something went wrong, not what to do instead. The `:not()` keeps this off the
+ * hidden state whatever order the two sheets land in.
+ */
+.tutorialcopied:not(.visually-hidden) {
+  margin: 0 11px 11px;
+  color: var(--ds-bad-ink);
+  font-size: 12px;
+  line-height: 16px;
+}
+
+/*
  * A bare glyph in the code block's own corner, the way a code block is copied
  * everywhere else. It paints the block's background so a long first line
  * passes behind it rather than through it.

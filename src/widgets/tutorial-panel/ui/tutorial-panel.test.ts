@@ -318,7 +318,32 @@ describe("presentTutorial", () => {
       return writeText;
     }
 
-    /** The live region the outcome is announced into, behind the button's own mark. */
+    /**
+     * The same, with each write left pending until the test settles it by hand:
+     * the order two clicks come back in is the point of the specs that use it.
+     */
+    function pendingClipboard(): ((copied: boolean) => void)[] {
+      const settle: ((copied: boolean) => void)[] = [];
+      const writeText = vi.fn(
+        () =>
+          new Promise<void>((resolve, reject) => {
+            settle.push((copied) => {
+              if (copied) {
+                resolve();
+              } else {
+                reject(new Error("denied"));
+              }
+            });
+          }),
+      );
+      Object.defineProperty(navigator, "clipboard", {
+        value: { writeText },
+        configurable: true,
+      });
+      return settle;
+    }
+
+    /** The sentence under the answer, which only a refusal leaves on screen. */
     function announcement(): HTMLElement {
       return requireElement(".tutorialcopied", parent);
     }
@@ -369,6 +394,8 @@ describe("presentTutorial", () => {
       expect(writeText).toHaveBeenCalledWith(code);
       expect(copyButton().innerHTML).toBe(iconHtml("check"));
       expect(announcement().textContent).toBe("Copied to your clipboard.");
+      // Announced, not shown: the check is the whole report on the card.
+      expect(announcement().classList.contains("visually-hidden")).toBe(true);
     });
 
     it("keeps its name through a copy, so a reader is told once and not told back", async () => {
@@ -387,7 +414,7 @@ describe("presentTutorial", () => {
       expect(copyButton().title).toBe("Copy this program");
     });
 
-    it("wears a cross when the browser refuses, and says what to do instead", async () => {
+    it("wears a cross when the browser refuses, and leaves what to do on screen", async () => {
       stubClipboard(false);
       presentTutorial(parent, panelData());
 
@@ -400,6 +427,9 @@ describe("presentTutorial", () => {
       expect(announcement().textContent).toBe(
         "Your browser refused to copy it. Select the code and copy it yourself.",
       );
+      // Shown, unlike the check's sentence: a cross says something went wrong,
+      // not that the program can still be selected by hand.
+      expect(announcement().classList.contains("visually-hidden")).toBe(false);
     });
 
     it("wears the same cross when there is no clipboard to write to at all", async () => {
@@ -418,7 +448,29 @@ describe("presentTutorial", () => {
       );
     });
 
-    it("wears the mark long enough to be read, then is a copy button again", async () => {
+    it("leaves a refusal standing until the next attempt, unlike a copy", async () => {
+      vi.useFakeTimers();
+      const settle = pendingClipboard();
+      presentTutorial(parent, panelData());
+
+      copyButton().click();
+      settle[0]?.(false);
+      await vi.advanceTimersByTimeAsync(0);
+      await waitOutTheMark();
+
+      // Nothing takes it off on its own: it is asking for something.
+      expect(copyButton().getAttribute("data-copied")).toBe("no");
+      expect(announcement().classList.contains("visually-hidden")).toBe(false);
+
+      copyButton().click();
+      settle[1]?.(true);
+      await vi.advanceTimersByTimeAsync(0);
+
+      expect(copyButton().getAttribute("data-copied")).toBe("yes");
+      expect(announcement().classList.contains("visually-hidden")).toBe(true);
+    });
+
+    it("wears the check for two seconds, then is a copy button again", async () => {
       vi.useFakeTimers();
       stubClipboard(true);
       presentTutorial(parent, panelData());
@@ -427,18 +479,18 @@ describe("presentTutorial", () => {
       await vi.advanceTimersByTimeAsync(0);
 
       expect(copyButton().getAttribute("data-copied")).toBe("yes");
-      // Still there half a second on: a mark that blinks out is no report.
-      await vi.advanceTimersByTimeAsync(500);
+      // Long enough to be read: a mark that blinks out is no report, and one
+      // that outstays the glance is a status line by another name.
+      await vi.advanceTimersByTimeAsync(1900);
       expect(copyButton().getAttribute("data-copied")).toBe("yes");
-
-      await waitOutTheMark();
+      await vi.advanceTimersByTimeAsync(200);
 
       expect(copyButton().hasAttribute("data-copied")).toBe(false);
       expect(copyButton().innerHTML).toBe(iconHtml("copy"));
       expect(announcement().textContent).toBe("");
     });
 
-    it("empties the live region before each copy, so the same sentence announces twice", async () => {
+    it("empties the live region before each copy, so a repeat arrives as a change", async () => {
       vi.useFakeTimers();
       stubClipboard(true);
       presentTutorial(parent, panelData());
@@ -447,7 +499,8 @@ describe("presentTutorial", () => {
 
       copyButton().click();
 
-      // A live region announces a change, so the second copy has to arrive as one.
+      // A live region announces a change, so the same sentence left standing
+      // through the second copy would be no announcement at all.
       expect(announcement().textContent).toBe("");
       await vi.advanceTimersByTimeAsync(0);
       expect(announcement().textContent).toBe("Copied to your clipboard.");

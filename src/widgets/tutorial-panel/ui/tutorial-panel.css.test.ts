@@ -26,6 +26,9 @@ describe("ds palette on the lesson card", () => {
     ["ds-text-muted", "ds-raised", 4.5],
     ["ds-text", "ds-n-3", 4.5],
     ["ds-accent", "ds-code-bg", 3],
+    // The refused-copy line is prose a player has to act on, so it is held to
+    // the text floor rather than the graphical one the cross beside it clears.
+    ["ds-bad-ink", "ds-raised", 4.5],
   ])("has --%s readable on --%s in both themes", (foreground, background, required) => {
     for (const [, palette] of THEMES) {
       expect(

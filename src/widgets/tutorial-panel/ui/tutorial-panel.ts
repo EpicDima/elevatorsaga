@@ -141,20 +141,29 @@ const COPY_CODE_SELECTOR = ".tutorialcopycode";
 /** The answer as it is printed, which is exactly what the button copies. */
 const SOLUTION_CODE_SELECTOR = ".tutorialsolution code";
 
-/** Where the outcome is announced; visually hidden, since the button's own mark shows it. */
+/** Where the outcome is put in words: announced always, shown when it is a refusal. */
 const COPIED_SELECTOR = ".tutorialcopied";
 
 /** Which mark the button is wearing, and the hook the tint and the pop hang off. */
 const COPIED_STATE_ATTRIBUTE = "data-copied";
 
-/** How long that mark stays before the button is a copy button again. */
+/** The utility that leaves the sentence to a screen reader and off the card. */
+const HIDDEN_CLASS = "visually-hidden";
+
+/** How long the check stays before the button is a copy button again. */
 const COPIED_FLASH_MS = 2000;
 
-/** Per outcome: the mark drawn on the button, and the sentence announced behind it. */
+/**
+ * Per outcome: the mark drawn on the button, the sentence that goes with it, and
+ * whether that sentence is only announced. A check is the whole report a copy
+ * needs; a refusal has something to ask of the player, so it is left on screen.
+ */
 const COPY_OUTCOMES = {
-  yes: { icon: "check", message: "tutorial.solution.copied" },
-  no: { icon: "x", message: "tutorial.solution.copyFailed" },
-} as const satisfies Readonly<Record<string, { icon: SpriteIconName; message: MessageKey }>>;
+  yes: { icon: "check", message: "tutorial.solution.copied", shown: false },
+  no: { icon: "x", message: "tutorial.solution.copyFailed", shown: true },
+} as const satisfies Readonly<
+  Record<string, { icon: SpriteIconName; message: MessageKey; shown: boolean }>
+>;
 
 /** The outcomes {@link COPY_OUTCOMES} has a mark for. */
 type CopiedState = keyof typeof COPY_OUTCOMES;
@@ -182,9 +191,10 @@ async function copyToClipboard(code: string): Promise<CopiedState> {
  * would say the outcome a second time, and say the way back a third.
  */
 function markCopyButton(button: HTMLElement, announcement: HTMLElement, state: CopiedState): void {
-  const { icon, message } = COPY_OUTCOMES[state];
+  const { icon, message, shown } = COPY_OUTCOMES[state];
   button.setAttribute(COPIED_STATE_ATTRIBUTE, state);
   button.firstElementChild?.replaceWith(createSpriteIcon(icon));
+  announcement.classList.toggle(HIDDEN_CLASS, !shown);
   announcement.textContent = t(message);
 }
 
@@ -192,33 +202,34 @@ function markCopyButton(button: HTMLElement, announcement: HTMLElement, state: C
 function unmarkCopyButton(button: HTMLElement, announcement: HTMLElement): void {
   button.removeAttribute(COPIED_STATE_ATTRIBUTE);
   button.firstElementChild?.replaceWith(createSpriteIcon("copy"));
+  announcement.classList.add(HIDDEN_CLASS);
   announcement.textContent = "";
 }
 
 /**
- * Wires the copy button: it wears the outcome for {@link COPIED_FLASH_MS} and
- * then goes back to being a copy button. The mark is the whole visible report,
- * so nothing is left standing beside the answer once it has been read.
+ * Wires the copy button. A copy is a moment: the check comes off after
+ * {@link COPIED_FLASH_MS} and nothing is left standing beside the answer. A
+ * refusal stands until the next attempt, since it asks the player to do
+ * something about it.
  */
 function wireCopyButton(parent: HTMLElement): void {
   const button = requireElement(COPY_CODE_SELECTOR, parent);
   const announcement = requireElement(COPIED_SELECTOR, parent);
   let flash: ReturnType<typeof setTimeout> | undefined;
 
-  /** Copies, marks the button with what happened, and unmarks it a moment later. */
+  /** Copies, marks the button with what happened, and takes a check back off in a moment. */
   async function copyAndReport(): Promise<void> {
     clearTimeout(flash);
     // Cleared before the write, not only restored after the mark: a live region
     // announces a change, so the same sentence twice running would be silent.
     unmarkCopyButton(button, announcement);
-    markCopyButton(
-      button,
-      announcement,
-      await copyToClipboard(requireElement(SOLUTION_CODE_SELECTOR, parent).textContent),
-    );
-    flash = setTimeout(() => {
-      unmarkCopyButton(button, announcement);
-    }, COPIED_FLASH_MS);
+    const state = await copyToClipboard(requireElement(SOLUTION_CODE_SELECTOR, parent).textContent);
+    markCopyButton(button, announcement, state);
+    if (state === "yes") {
+      flash = setTimeout(() => {
+        unmarkCopyButton(button, announcement);
+      }, COPIED_FLASH_MS);
+    }
   }
 
   button.addEventListener("click", () => {
@@ -284,8 +295,9 @@ function tutorialAnswerTemplate(answer: TutorialAnswerData): string {
   // The button sits inside the `<pre>` so it anchors to the code block's own
   // corner, and before the `<code>` so `textContent` there is still the program.
   // The announcement is a live region and must stay in the document even while
-  // empty, or a screen reader misses the sentence when it arrives.
-  return markup`<div class="tutorialanswer"><pre class="tutorialsolution"><button type="button" class="tutorialcopycode" title="${name}" aria-label="${name}">${raw(spriteIconMarkup("copy"))}</button><code>${raw(highlighted)}</code></pre><p class="tutorialcopied visually-hidden" aria-live="polite"></p></div>`;
+  // empty, or a screen reader misses the sentence when it arrives; it is drawn
+  // hidden, and only a refusal takes the class back off.
+  return markup`<div class="tutorialanswer"><pre class="tutorialsolution"><button type="button" class="tutorialcopycode" title="${name}" aria-label="${name}">${raw(spriteIconMarkup("copy"))}</button><code>${raw(highlighted)}</code></pre><p class="tutorialcopied ${HIDDEN_CLASS}" aria-live="polite"></p></div>`;
 }
 
 /**
