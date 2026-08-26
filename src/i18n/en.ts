@@ -86,23 +86,20 @@ export const EN_MESSAGES = {
   "game.statsPanel.aboardNowTitle":
     "How many passengers are inside a car at this moment, on their way",
   "game.statsPanel.more": "All figures",
-  // Level tiles show a bare number; screen readers get this name instead.
-  "game.level.nav.label": "Levels",
+  // Level tiles show a bare number; screen readers get this name instead. Both
+  // chapters are numbered in one run, so this names a tile of either.
   "game.level.nav.link": "Level {number}",
   "game.levelSwitcher.prevLabel": "Previous level",
   "game.levelSwitcher.nextLabel": "Next level",
   "game.levelSwitcher.tutorialBlockLabel": "Learning",
   "game.levelSwitcher.otherBlockLabel": "Other",
   "game.levelSwitcher.sandboxLabel": "Sandbox",
-  "game.levelSwitcher.skyscraperBlockLabel": "Skyscraper",
-  "game.levelSwitcher.skyscraperTileLabel": "Skyscraper level {number}",
+  "game.levelSwitcher.chapterBlockLabel": "Chapter {number}",
   "game.levelSwitcher.tutorialTileLabel": "Tutorial level {number}",
   // {tier} is a game.goalBar.tier.* name, only rendered once a medal is earned.
   "game.levelSwitcher.levelTileEarnedLabel": "Level {number}, {tier}",
-  "game.levelSwitcher.skyscraperTileEarnedLabel": "Skyscraper level {number}, {tier}",
   "game.levelSwitcher.tutorialTileEarnedLabel": "Tutorial level {number}, {tier}",
   "game.levelSwitcher.tutorialTriggerLabel": "Lesson {number}",
-  "game.levelSwitcher.skyscraperTriggerLabel": "Tower {number}",
   // Hidden when locateCodeError finds nothing for the player's exception.
   "game.editorPane.gotoLine": "Line {line} →",
   // {seed} is a token the player transcribes; it must render the same in every locale.

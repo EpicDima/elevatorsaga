@@ -99,18 +99,12 @@ function tileAccessibleName(tile: LevelMenuTile): string {
             tier: t(TIER_NAME_KEY[tile.tier]),
           });
     }
-    case "level": {
+    // Both chapters share one run of numbers, so a tile of either is named the same way.
+    case "level":
+    case "skyscraper": {
       return tile.tier === undefined
         ? t("game.level.nav.link", { number: tile.number })
         : t("game.levelSwitcher.levelTileEarnedLabel", {
-            number: tile.number,
-            tier: t(TIER_NAME_KEY[tile.tier]),
-          });
-    }
-    case "skyscraper": {
-      return tile.tier === undefined
-        ? t("game.levelSwitcher.skyscraperTileLabel", { number: tile.number })
-        : t("game.levelSwitcher.skyscraperTileEarnedLabel", {
             number: tile.number,
             tier: t(TIER_NAME_KEY[tile.tier]),
           });
@@ -130,11 +124,9 @@ function tileTriggerName(tile: LevelMenuTile): string {
     case "tutorial": {
       return t("game.levelSwitcher.tutorialTriggerLabel", { number: tile.number });
     }
-    case "level": {
-      return t("game.level.nav.link", { number: tile.number });
-    }
+    case "level":
     case "skyscraper": {
-      return t("game.levelSwitcher.skyscraperTriggerLabel", { number: tile.number });
+      return t("game.level.nav.link", { number: tile.number });
     }
     case "sandbox": {
       return t("game.levelSwitcher.sandboxLabel");
@@ -163,17 +155,17 @@ function tileTemplate(tile: LevelMenuTile): string {
   return markup`<a class="${classes}" href="${tile.href}" aria-label="${name}"${current}${tier}>${text}${badge}</a>`;
 }
 
-/** Caption for a block; the levels block reuses `game.level.nav.label` instead of its own key. */
+/** Caption for a block; the two blocks of levels are chapters one and two of the same count. */
 function blockCaption(id: LevelMenuBlock["id"]): string {
   switch (id) {
     case "tutorial": {
       return t("game.levelSwitcher.tutorialBlockLabel");
     }
     case "levels": {
-      return t("game.level.nav.label");
+      return t("game.levelSwitcher.chapterBlockLabel", { number: 1 });
     }
     case "skyscraper": {
-      return t("game.levelSwitcher.skyscraperBlockLabel");
+      return t("game.levelSwitcher.chapterBlockLabel", { number: 2 });
     }
     case "other": {
       return t("game.levelSwitcher.otherBlockLabel");

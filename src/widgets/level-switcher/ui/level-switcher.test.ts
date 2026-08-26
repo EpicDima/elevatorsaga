@@ -151,7 +151,7 @@ describe("presentLevelSwitcher", () => {
     presentLevelSwitcher(parent, options);
 
     const captions = [...parent.querySelectorAll(".taskblock .cap")].map((el) => el.textContent);
-    expect(captions).toEqual(["Learning", "Levels", "Skyscraper", "Other"]);
+    expect(captions).toEqual(["Learning", "Chapter 1", "Chapter 2", "Other"]);
     const [, , , otherBlock] = parent.querySelectorAll(".taskblock");
     expect(otherBlock?.querySelector(".tasklink")?.textContent).toBe("Sandbox");
   });
@@ -194,17 +194,18 @@ describe("presentLevelSwitcher", () => {
     ]);
   });
 
-  it("draws a skyscraper tile as its number, named in full for a screen reader", () => {
+  it("draws a skyscraper tile as its number, carried on from chapter one", () => {
+    // Four numbered levels stand ahead of it in `baseInput`, so this block opens at five.
     const { parent, options } = setUp({ skyscraperLevels: fixtureSkyscraperLevels(3) });
     presentLevelSwitcher(parent, options);
     const [, , skyscraperBlock] = parent.querySelectorAll(".taskblock");
     const tiles = [...(skyscraperBlock?.querySelectorAll(".tasklink") ?? [])];
 
-    expect(tiles.map((tile) => tile.textContent)).toEqual(["1", "2", "3"]);
+    expect(tiles.map((tile) => tile.textContent)).toEqual(["5", "6", "7"]);
     expect(tiles.map((tile) => tile.getAttribute("aria-label"))).toEqual([
-      "Skyscraper level 1",
-      "Skyscraper level 2",
-      "Skyscraper level 3",
+      "Level 5",
+      "Level 6",
+      "Level 7",
     ]);
     expect(tiles.map((tile) => tile.getAttribute("href"))).toEqual([
       "#level=sky-1",
@@ -273,7 +274,7 @@ describe("presentLevelSwitcher", () => {
       selection: { kind: "skyscraper", index: 1 },
     });
     presentLevelSwitcher(skyscraper.parent, skyscraper.options);
-    expect(requireElement(".task-name", skyscraper.parent).textContent).toBe("Tower 2");
+    expect(requireElement(".task-name", skyscraper.parent).textContent).toBe("Level 6");
   });
 
   it("names the gold a cleared tutorial tile holds, and badges it like any other tile", () => {
@@ -342,7 +343,7 @@ describe("presentLevelSwitcher", () => {
     ]);
   });
 
-  it("names the medal a skyscraper tile holds, in the block's own wording", () => {
+  it("names the medal a skyscraper tile holds, as a numbered level's is named", () => {
     const { parent, options } = setUp({
       skyscraperLevels: fixtureSkyscraperLevels(2),
       bestSkyscraperTiers: new Map<string, LevelTier>([["sky-1", "gold"]]),
@@ -352,8 +353,8 @@ describe("presentLevelSwitcher", () => {
     const tiles = [...(skyscraperBlock?.querySelectorAll(".tasklink") ?? [])];
 
     expect(tiles.map((tile) => tile.getAttribute("aria-label"))).toEqual([
-      "Skyscraper level 1, Gold",
-      "Skyscraper level 2",
+      "Level 5, Gold",
+      "Level 6",
     ]);
   });
 

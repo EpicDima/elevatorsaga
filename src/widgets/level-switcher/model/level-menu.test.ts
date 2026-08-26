@@ -159,17 +159,18 @@ describe("buildLevelMenu", () => {
     expect(tiles.map((tile) => tile.current)).toEqual([false, true, false, false]);
   });
 
-  it("numbers skyscraper tiles from one and links each to its level id", () => {
+  it("numbers skyscraper tiles on from the last numbered level and links each to its level id", () => {
     // Linked by id, not position, so inserting a level later doesn't hand
     // someone's bookmark to its neighbor.
     const [, , skyscraperBlock] = buildLevelMenu(
-      baseInput({ skyscraperLevels: fixtureSkyscraperLevels(3) }),
+      baseInput({ levels: fixtureLevels(4), skyscraperLevels: fixtureSkyscraperLevels(3) }),
     );
     const tiles = skyscraperBlock?.tiles ?? [];
 
     expect(tiles).toHaveLength(3);
+    // Four numbered levels, so chapter two opens at five rather than at one.
     expect(tiles.map((tile) => (tile.kind === "skyscraper" ? tile.number : null))).toEqual([
-      1, 2, 3,
+      5, 6, 7,
     ]);
     expect(tiles.map((tile) => tile.href)).toEqual([
       "#level=sky-1",

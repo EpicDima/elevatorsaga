@@ -1499,7 +1499,8 @@ describe("App Skyscraper block", () => {
       null,
       null,
     ]);
-    expect(taskName(elements)).toBe("Tower 1");
+    // Chapter two carries on the three fixture levels' numbering.
+    expect(taskName(elements)).toBe("Level 4");
   });
 
   describe("the briefing card beside the building", () => {
@@ -2213,7 +2214,7 @@ describe("App.relocalize", () => {
     const { app, elements } = setUp();
     app.startLevel(0);
     expect(goalDescription(elements)).toBe("Level one");
-    expect(levelBlockCaption(elements)).toBe("Levels");
+    expect(levelBlockCaption(elements)).toBe("Chapter 1");
 
     setLocale("ru");
     app.relocalize();
@@ -2222,7 +2223,7 @@ describe("App.relocalize", () => {
     // redraws its tile grid from scratch, so elements from before relocalize are gone.
     expect(goalDescription(elements)).toBe("Level one");
     expect(requireElement(".startstop", elements.controls).textContent).toBe("Запустить");
-    expect(levelBlockCaption(elements)).toBe("Уровни");
+    expect(levelBlockCaption(elements)).toBe("Глава 1");
   });
 
   it("writes the statistics the way a reader of the new language writes numbers", () => {

@@ -282,7 +282,7 @@ export interface TutorialRun {
   readonly index: number;
 }
 
-/** A Skyscraper-block level and its position in `skyscraperLevels` ("Tower N" for the player). */
+/** A Skyscraper-block level and its position in `skyscraperLevels`; the menu numbers it as chapter two. */
 export interface SkyscraperRun {
   /** The level being played. */
   readonly level: SkyscraperLevel;

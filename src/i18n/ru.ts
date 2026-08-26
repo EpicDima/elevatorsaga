@@ -83,24 +83,20 @@ export const RU_MESSAGES: MessageCatalog<"ru"> = {
   "game.statsPanel.aboardNow": "Едут сейчас",
   "game.statsPanel.aboardNowTitle": "Сколько пассажиров прямо сейчас находятся в кабинах и едут",
   "game.statsPanel.more": "Все показатели",
-  "game.level.nav.label": "Уровни",
   "game.level.nav.link": "Уровень {number}",
   "game.levelSwitcher.prevLabel": "Предыдущий уровень",
   "game.levelSwitcher.nextLabel": "Следующий уровень",
   "game.levelSwitcher.tutorialBlockLabel": "Обучение",
   "game.levelSwitcher.otherBlockLabel": "Остальное",
   "game.levelSwitcher.sandboxLabel": "Песочница",
-  "game.levelSwitcher.skyscraperBlockLabel": "Небоскрёб",
-  "game.levelSwitcher.skyscraperTileLabel": "Уровень небоскрёба {number}",
+  "game.levelSwitcher.chapterBlockLabel": "Глава {number}",
   "game.levelSwitcher.tutorialTileLabel": "Учебный уровень {number}",
   // {tier} names a game.goalBar.tier.* rank in the nominative, as an
   // appositive, so it needs no gender agreement (unlike a predicate, where
   // "bronze" and "gold" take different verb endings).
   "game.levelSwitcher.levelTileEarnedLabel": "Уровень {number}, {tier}",
-  "game.levelSwitcher.skyscraperTileEarnedLabel": "Уровень небоскрёба {number}, {tier}",
   "game.levelSwitcher.tutorialTileEarnedLabel": "Учебный уровень {number}, {tier}",
   "game.levelSwitcher.tutorialTriggerLabel": "Урок {number}",
-  "game.levelSwitcher.skyscraperTriggerLabel": "Башня {number}",
   // Hidden when locateCodeError finds nothing for the player's exception.
   "game.editorPane.gotoLine": "строка {line} →",
   // {seed} is a token the player transcribes; it must render the same in every locale.

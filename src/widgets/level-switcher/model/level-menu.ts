@@ -27,7 +27,7 @@ export type LevelLinkTarget =
   | { readonly kind: "skyscraper"; readonly levelId: string }
   | { readonly kind: "sandbox" };
 
-/** One tile of the "Уровни" block. */
+/** One tile of chapter one. */
 export interface NumberedMenuTile {
   readonly kind: "level";
   readonly index: number;
@@ -38,7 +38,7 @@ export interface NumberedMenuTile {
   readonly href: string;
 }
 
-/** One tile of the "Обучение" block. */
+/** One tile of the learning block. */
 export interface TutorialMenuTile {
   readonly kind: "tutorial";
   readonly index: number;
@@ -49,10 +49,11 @@ export interface TutorialMenuTile {
   readonly href: string;
 }
 
-/** One tile of the «Небоскрёб» block. */
+/** One tile of chapter two. */
 export interface SkyscraperMenuTile {
   readonly kind: "skyscraper";
   readonly index: number;
+  /** Continues chapter one's numbering: the first tile here is level `levels.length + 1`. */
   readonly number: number;
   readonly current: boolean;
   /** This browser's best-recorded tier, or `undefined` if never cleared. */
@@ -129,12 +130,15 @@ function buildLevelBlock(input: LevelMenuInput): LevelMenuBlock {
 }
 
 function buildSkyscraperBlock(input: LevelMenuInput): LevelMenuBlock {
+  const chapterOneLength = input.levels.length;
   return {
     id: "skyscraper",
     tiles: input.skyscraperLevels.map((level, index) => ({
       kind: "skyscraper",
       index,
-      number: index + 1,
+      // Chapter two carries on chapter one's count, so no two tiles in the menu
+      // are called level {number}; `index` still addresses `skyscraperLevels`.
+      number: chapterOneLength + index + 1,
       current: input.selection.kind === "skyscraper" && input.selection.index === index,
       tier: input.bestSkyscraperTiers.get(level.id),
       href: input.buildHref({ kind: "skyscraper", levelId: level.id }),
