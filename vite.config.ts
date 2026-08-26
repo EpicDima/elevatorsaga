@@ -9,29 +9,9 @@ import { docsPageFile, renderDocsPage } from "./src/docs-page/render.ts";
 import { LOCALES, type Locale } from "./src/i18n/locale.ts";
 
 /**
- * The notice file the build emits beside the pages, linked from every reference
- * page's footer.
- *
- * `dist/` is what players are actually served, and it carries MIT-licensed code
- * (CodeMirror and its Lezer parser, ~500 kB of the bundle) and OFL-licensed
- * artwork (the Font Awesome 4 outlines inlined by `src/shared/ui/icon.ts`).
- * MIT asks for its notice to travel with substantial portions of the software;
- * OFL asks for the copyright notice and license to be bundled with the font
- * software, and those outlines are font software whatever they are drawn as.
- * Neither obligation is met by a license file that only exists in the
- * repository, so the build has to put one in `dist/`.
- *
- * There is no webfont here any more: the interface is set in the platform's own
- * UI face, so the twenty Oswald binaries this used to copy into `dist/assets/`
- * are not built and the OFL entry for them is not printed.
- *
- * Generated rather than committed. A hand-written file under `public/` would be
- * simpler, but it would silently start lying the first time a dependency is
- * added, removed or relicensed, and nothing in the repository would catch it.
- * Reading the terms out of `node_modules` at build time cannot drift: the
- * notice describes the tree the bundle was built from, and a package that ships
- * no license text at all stops the build instead of quietly vanishing from the
- * list. The cost is the hundred-odd lines below, and no new dependency.
+ * Notice file emitted into `dist/` for the bundled MIT/OFL-licensed
+ * dependencies. Generated at build time so it cannot drift from the tree the
+ * bundle was actually built from.
  */
 const LICENSES_FILE = "licenses.txt";
 
@@ -46,15 +26,7 @@ interface DependencyManifest {
   readonly dependencies?: Record<string, string>;
 }
 
-/**
- * Reads an installed package's manifest.
- *
- * Paths are relative to the Vite root, which is this directory (see `root`
- * below); npm flattens `node_modules`, so every package sits directly under it.
- *
- * @param name - Package name, e.g. `@codemirror/view`.
- * @returns Its manifest.
- */
+/** Reads an installed package's manifest from `node_modules`. */
 function readManifest(name: string): DependencyManifest {
   return JSON.parse(
     readFileSync(join("node_modules", name, "package.json"), "utf8"),
@@ -62,15 +34,9 @@ function readManifest(name: string): DependencyManifest {
 }
 
 /**
- * Every package that reaches the browser: the runtime dependencies, and theirs.
- *
- * `devDependencies` are deliberately not walked. They build, check and test the
- * site; no part of them is copied into it, so nothing about them is distributed
- * and no notice is owed. (Worth re-checking if a dynamic `import()` ever
- * appears: that is what would make Vite inject its own preload helper into a
- * chunk. Today nothing in `dist/` comes from a devDependency.)
- *
- * @returns The manifests, by name.
+ * Every package that reaches the browser: runtime dependencies and their
+ * transitive dependencies. `devDependencies` are excluded since none of them
+ * end up in the bundle.
  */
 function runtimeDependencies(): DependencyManifest[] {
   const found = new Map<string, DependencyManifest>();
@@ -85,11 +51,8 @@ function runtimeDependencies(): DependencyManifest[] {
 }
 
 /**
- * The license text a package ships.
- *
- * @param name - Package name.
- * @returns The contents of its `LICENSE` file.
- * @throws If it ships none, leaving nothing to reproduce.
+ * Reads the license text a package ships.
+ * @throws If it ships no license file to reproduce.
  */
 function readLicenseText(name: string): string {
   const directory = join("node_modules", name);
@@ -103,27 +66,15 @@ function readLicenseText(name: string): string {
   return readFileSync(join(directory, file), "utf8").trim();
 }
 
-/**
- * One titled block of the notice file, underlined the way the rest of it is.
- *
- * @param title - The heading.
- * @param body - Whatever goes under it.
- * @returns The block.
- */
+/** Formats one titled, underlined block of the notice file. */
 function section(title: string, body: string): string {
   return `${title}\n${"=".repeat(title.length)}\n\n${body.trim()}\n`;
 }
 
-/**
- * Builds {@link LICENSES_FILE}.
- *
- * @returns The whole notice, ready to serve as `text/plain`.
- */
+/** Builds the full contents of {@link LICENSES_FILE}. */
 function renderLicenses(): string {
-  // Nearly all of the bundled packages are MIT, and most of those differ only in
-  // the copyright line, so packages whose license text is byte-identical share
-  // one copy of it. Reproducing each notice once, against the list of packages
-  // it covers, is what MIT asks for and is a third of the length.
+  // Packages with byte-identical license text share one copy of it, since most
+  // bundled packages are MIT and differ only in the copyright line.
   const byText = new Map<string, string[]>();
   for (const { name, version, license } of runtimeDependencies()) {
     const entry = `${name} ${version}${license === undefined ? "" : ` (${license})`}`;
@@ -165,12 +116,7 @@ ${packages.join("\n\n")}`,
   ].join("\n\n");
 }
 
-/**
- * Puts {@link LICENSES_FILE} in the build output, and serves the same bytes
- * from the dev server so the footer link is never dead.
- *
- * @returns The plugin.
- */
+/** Vite plugin that emits {@link LICENSES_FILE} in the build and serves it in dev. */
 function licenseNotices(): Plugin {
   return {
     name: "elevator-saga-license-notices",
@@ -236,11 +182,7 @@ function referencePages(): Plugin {
 export default defineConfig({
   plugins: [licenseNotices(), referencePages()],
   resolve: {
-    // Mirrors tsconfig.json's compilerOptions.paths: TypeScript resolves these
-    // for type-checking, but Vite/esbuild/Vitest never read that field, so the
-    // same mapping has to be repeated here for the build, dev server and tests.
-    // `#`-prefixed to match package.json's "imports" field (see tsconfig.json's
-    // comment for why: it is what lets `node src/cli/bench.ts` follow them too).
+    // Mirrors tsconfig.json's path aliases; Vite/esbuild/Vitest never read tsconfig.
     alias: [
       { find: "#shared", replacement: resolve(import.meta.dirname, "src/shared") },
       { find: "#entities", replacement: resolve(import.meta.dirname, "src/entities") },
@@ -252,16 +194,12 @@ export default defineConfig({
       { find: "#i18n", replacement: resolve(import.meta.dirname, "src/i18n") },
     ],
   },
-  // Repo root is the Vite root; relative base keeps the built site working from
-  // any sub-path (e.g. GitHub Pages project pages served from /<repo>/).
+  // Relative base so the built site works when served from a sub-path (e.g.
+  // a GitHub Pages project page).
   root: ".",
   base: "./",
-  // Off Vite's defaults (5173 / 4173), which every other Vite project on the
-  // machine also claims -- so `npm run dev` here no longer has to guess whether
-  // the tab already open on 5173 is this game or something else. Both are
-  // unregistered and outside the ephemeral range the OS hands out, and they are
-  // far enough apart that a dev server bumped forward by a busy port cannot
-  // land on the preview one.
+  // Off Vite's defaults (5173/4173) so this dev server doesn't collide with
+  // every other Vite project on the machine.
   server: { port: 7377 },
   preview: { port: 7477 },
   build: {
@@ -269,23 +207,15 @@ export default defineConfig({
     target: "es2022",
     sourcemap: true,
     emptyOutDir: true,
-    // Never inline a font, whatever its size. Nothing here ships one today --
-    // the interface is set in the platform's own UI face and the icons are
-    // inline SVG -- but the default 4 kB limit was small enough to base64 a
-    // font subset into the stylesheet, where every reader downloads it whether
-    // their language needs it or not, and that is worth refusing before it can
-    // happen again rather than after. Everything else keeps the default.
+    // Never inline a font regardless of size, so one can't sneak into the
+    // stylesheet as base64 and force every reader to download it.
     assetsInlineLimit: (filePath: string): boolean | undefined =>
       /\.(?:woff2?|ttf|otf|eot)$/i.test(filePath) ? false : undefined,
-    // `rollupOptions` is a deprecated alias Vite 8 folds into this one
-    // (`rolldownOptions ??= rollupOptions`), so only one of the two is ever read.
+    // `rollupOptions` is a deprecated alias Vite 8 folds into this one.
     rolldownOptions: {
-      // The game, and the help/API reference in each of its languages. Every
-      // page needs its own entry: Vite only processes the HTML files named
-      // here, so one left out is simply absent from `dist/` -- and the links
-      // between the reference pages would 404 in the built site. The reference
-      // entries are absolute paths because no file sits at any of them: they
-      // are what `referencePages` above answers `resolveId` with.
+      // Every HTML entry point must be listed here, or it's simply absent from
+      // `dist/`. The reference entries are absolute paths because no file sits
+      // at any of them: they are what `referencePages` answers `resolveId` with.
       input: {
         index: "index.html",
         ...Object.fromEntries(
@@ -296,30 +226,19 @@ export default defineConfig({
         ),
       },
       output: {
-        // The editor is ~92% of the bundle (CodeMirror and its Lezer parser,
-        // ~497 kB raw / ~167 kB gzip; the game, UI and app layers together are
-        // ~45 kB). All of it is needed on load -- the editor is primary UI --
-        // so none of it is deferred behind a dynamic import: that would only
-        // add a round trip in front of the widget the player types into. It is
-        // split out so that shipping a change to the game no longer
-        // invalidates the dependency bytes in returning players' caches, and
-        // so no single chunk sits near the 500 kB warning limit. Both chunks
-        // are statically imported, so Vite preloads them from the HTML and
-        // they download in parallel with the entry chunk.
+        // Splits the editor (~92% of the bundle) into its own chunk so a game
+        // change doesn't invalidate the dependency bytes in returning players'
+        // caches. Both chunks are statically imported and preload in parallel.
         codeSplitting: {
           groups: [
-            // The parser and highlighter layer. Listed first, and with the
-            // higher priority, because @lezer/* depends on nothing else here:
-            // taking it out leaves the two chunks acyclic, `editor-vendor` ->
-            // `editor-grammar` and no edge back.
+            // Listed first with higher priority since @lezer/* has no dependency
+            // on editor-vendor, keeping the two chunks acyclic.
             {
               name: "editor-grammar",
               priority: 2,
               test: /node_modules[\\/]@lezer[\\/]/,
             },
-            // CodeMirror itself and its small helpers. Stylesheets are left
-            // out: the fontsource CSS is imported by both pages and belongs in
-            // the one stylesheet Vite already emits, not in a JS chunk group.
+            // Stylesheets are excluded; CSS belongs in Vite's emitted stylesheet, not a JS chunk.
             {
               name: "editor-vendor",
               priority: 1,
@@ -330,41 +249,26 @@ export default defineConfig({
       },
     },
   },
-  // The fitness benchmark runs in a module worker (src/app/fitness-worker.ts),
-  // so worker chunks are emitted as ES modules rather than the default IIFE.
+  // The fitness benchmark runs in a module worker, so worker chunks build as ES modules.
   worker: {
     format: "es",
   },
   test: {
-    // Node is the default environment; simulation/domain code needs no DOM.
-    // Files that need a DOM opt in per-file with a `// @vitest-environment jsdom`
-    // docblock at the top of the test file.
+    // Simulation/domain code needs no DOM; files that do opt in per-file with
+    // a `// @vitest-environment jsdom` docblock.
     environment: "node",
     include: ["src/**/*.test.ts"],
-    // Loads every message catalog before a test file starts, because the
-    // catalogs are fetched at run time now and a fetch is asynchronous, while
-    // `setLocale("ru")` followed by an assertion about Russian text is how the
-    // tests across src/game, src/app and src/i18n are written. The file itself
-    // explains the trade and what covers the loading path instead; it is a
-    // Vitest-only file, so nothing it imports reaches a bundle.
+    // Loads every message catalog before tests run, since catalogs are fetched
+    // asynchronously and tests assert on translated text after setLocale().
     setupFiles: ["src/i18n/test-setup.ts"],
     coverage: {
       provider: "v8",
       reporter: ["text", "lcov"],
       include: ["src/**/*.ts"],
       exclude: ["src/**/*.test.ts", "src/**/test-helpers.ts", "src/i18n/test-setup.ts"],
-      // A ratchet, not a target. CI already runs the whole suite; without a
-      // floor it reports a number nobody reads, and code can arrive untested
-      // without anything going red. Each figure is a whole percent below what
-      // the suite measures today (96.25 statements, 94.6 branches, 95.74
-      // functions, 96.18 lines), so ordinary movement passes and a module
-      // landing with no tests at all does not.
-      //
-      // Global rather than per-file on purpose: `src/main.ts` and `src/docs.ts`
-      // are the two page entry points, they wire the pieces together and are
-      // covered by `e2e/` instead, which this run knows nothing about. A
-      // per-file floor would fail on them and be answered by excluding them,
-      // which is how a coverage gate stops meaning anything.
+      // A ratchet, not a target: each threshold sits a whole percent below
+      // current coverage, so ordinary drift passes but untested code doesn't
+      // land. Global rather than per-file since main.ts/docs.ts are covered by e2e/ instead.
       thresholds: {
         statements: 95,
         branches: 93,

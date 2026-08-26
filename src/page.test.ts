@@ -42,12 +42,7 @@ import { buildAppBarSkeleton } from "#widgets/app-bar/ui/app-bar.ts";
 /** The page shell, parsed as the browser would parse it. */
 const page = new DOMParser().parseFromString(pageSource, "text/html");
 
-/**
- * Everything about an inline icon that has to match, whitespace aside.
- *
- * @param icon - An `svg.icon` element, hand-written or built by `createIcon`.
- * @returns The attributes that decide what is drawn.
- */
+/** Everything about an inline icon that has to match, whitespace aside. */
 function iconShape(icon: Element): Record<string, string | null> {
   const path = icon.querySelector("path");
   return {
@@ -63,48 +58,26 @@ function iconShape(icon: Element): Record<string, string | null> {
   };
 }
 
-/**
- * The repository root.
- *
- * This file runs under jsdom, where `import.meta.url` is an `http:` URL for the
- * benefit of the DOM and no use at all to `node:fs`. Vitest runs from the
- * project root, so the working directory is the one thing that does point here.
- */
+/** The repository root; `import.meta.url` is an `http:` URL under jsdom, useless to `node:fs`. */
 const ROOT = process.cwd();
 
-/**
- * The tab icon, read from `public/`.
- *
- * Read from disk rather than imported: files under `public/` are copied by the
- * build rather than bundled, so importing one is the mistake this test exists
- * to catch, not the way to reach it.
- */
+/** The tab icon, read from `public/` since files there are copied by the build, not bundled. */
 const faviconSource = readFileSync(join(ROOT, "public/favicon.svg"), "utf8");
 
-/**
- * The content of a `<meta>` tag, whichever attribute names it.
- *
- * @param document - The parsed page.
- * @param name - The `property` or `name` the tag carries.
- * @returns Its `content`, or null if the page has no such tag.
- */
+/** The content of a `<meta>` tag, whichever attribute names it. */
 function metaContent(document: Document, name: string): string | null {
   const meta = document.querySelector(`meta[property="${name}"], meta[name="${name}"]`);
   return meta?.getAttribute("content") ?? null;
 }
 
-/** Anything loaded from another origin, which the rewrite got rid of. */
+/** Anything loaded from another origin. */
 function thirdPartyResources(document: Document): Element[] {
   return [...document.querySelectorAll("link[href], script[src], img[src]")].filter((node) =>
     /^(https?:)?\/\//.test(node.getAttribute("href") ?? node.getAttribute("src") ?? ""),
   );
 }
 
-/**
- * The rules a page's own `<head>` paints with before the stylesheet arrives, as
- * `it.each` rows: the `color-scheme` each declares, the selector it is written
- * under, and the palette its two colors have to match.
- */
+/** The head's pre-stylesheet paint rules, as it.each rows of scheme, selector and palette. */
 const FIRST_PAINT: readonly [
   scheme: string,
   selector: string,
@@ -114,13 +87,7 @@ const FIRST_PAINT: readonly [
   ["light", 'html[data-theme="light"]', LIGHT_PALETTE],
 ];
 
-/**
- * One rule out of a page's own `<head>` stylesheet.
- *
- * @param document - The parsed page.
- * @param selector - The rule's selector, exactly as the page spells it.
- * @returns The rule's body, braces excluded.
- */
+/** One rule out of a page's own `<head>` stylesheet. */
 function firstPaintRule(document: Document, selector: string): string {
   const source = document.querySelector("head style")?.textContent ?? "";
   const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -129,12 +96,7 @@ function firstPaintRule(document: Document, selector: string): string {
   return rules[0]?.[1] ?? "";
 }
 
-/**
- * A store holding one theme choice and nothing else.
- *
- * @param stored - What it answers under the theme key; null for a first visit.
- * @returns The store, for `readTheme` and for the head script alike.
- */
+/** A store holding one theme choice and nothing else. */
 function storageHolding(stored: string | null): Storage {
   return {
     length: stored === null ? 0 : 1,
@@ -146,14 +108,7 @@ function storageHolding(stored: string | null): Storage {
   };
 }
 
-/**
- * The theme index.html's head script settles on, run the way a browser runs
- * it: as a script, against globals of the caller's choosing.
- *
- * @param storage - What `localStorage` answers.
- * @param prefersDark - What the system's own color preference says.
- * @returns The `data-theme` it writes onto `<html>`.
- */
+/** The theme index.html's head script settles on, run as a script against given globals. */
 function firstPaintTheme(storage: Storage, prefersDark: boolean): string {
   const documentElement = { dataset: {} as Record<string, string> };
   runInNewContext(page.querySelector("head script:not([src])")?.textContent ?? "", {
@@ -171,9 +126,7 @@ describe("index.html", () => {
   it("is a module entry, ahead of it the one script that has to beat the paint", () => {
     const scripts = [...page.querySelectorAll("script")];
     expect(scripts.map((script) => [script.type, script.getAttribute("src")])).toEqual([
-      // The theme bootstrap in the head: no `src` and no `type`, because
-      // either one defers it past the first paint, which is the whole of what
-      // it is for.
+      // No src, no type: either would defer the bootstrap script past first paint.
       ["", null],
       ["module", "/src/main.ts"],
     ]);
@@ -182,10 +135,8 @@ describe("index.html", () => {
   it.each(FIRST_PAINT)(
     "paints the page in the %s palette before the stylesheet",
     (scheme, selector, palette) => {
-      // The colors are written out rather than read from a custom property:
-      // nothing declares one until src/styles/index.css arrives, which is after
-      // the paint this rule exists for. So they are checked against the palette
-      // here instead, and cannot quietly drift from it.
+      // Colors are written out, not read from a custom property, since src/styles/index.css
+      // hasn't loaded yet.
       const body = firstPaintRule(page, selector);
       expect(declaration(body, "background", selector)).toBe(themed(palette, "ds-bg"));
       expect(declaration(body, "color", selector)).toBe(themed(palette, "ds-text"));
@@ -194,10 +145,7 @@ describe("index.html", () => {
   );
 
   it("hides the shell until the stylesheet is there to dress it", () => {
-    // The two halves of one rule, in two files: the head hides the body and
-    // src/app/styles/document.css is the only thing that shows it again, so
-    // what the load looks like is an empty page in the page's own color
-    // rather than the shell drawn in the browser's own font and then reflowed.
+    // Two halves of one rule: the head hides the body, and src/app/styles/document.css shows it.
     expect(declaration(firstPaintRule(page, "body"), "visibility", "body")).toBe("hidden");
     expect(declaration(ruleBody("body"), "visibility", "body")).toBe("visible");
   });
@@ -209,11 +157,7 @@ describe("index.html", () => {
     ["dark pinned", "dark"],
     ["a choice this page never wrote", "sepia"],
   ])("opens on the theme the switch settles on, with %s", (_case, stored) => {
-    // The head script is a second implementation of readTheme + resolveTheme,
-    // in a place a module cannot reach: it runs before the first paint, and
-    // anything the bundle brings runs after it. What keeps the two from
-    // parting company is this -- the same answer for every stored value, in
-    // both system preferences.
+    // The head script duplicates readTheme + resolveTheme; this checks the two never disagree.
     for (const prefersDark of [true, false]) {
       const storage = storageHolding(stored);
       expect(firstPaintTheme(storage, prefersDark)).toBe(
@@ -223,10 +167,8 @@ describe("index.html", () => {
   });
 
   it("still opens on a theme when the store refuses to be read", () => {
-    // Safari in a private window throws on the merest look at localStorage. A
-    // script that dies here leaves `<html>` without a data-theme, which is the
-    // dark default -- wrong for half of those players, and wrong for the whole
-    // load rather than for a frame of it.
+    // Safari's private mode throws on any localStorage access, leaving <html> without a
+    // data-theme, which defaults to dark.
     const refuse = (): never => {
       throw new DOMException("The operation is insecure.", "SecurityError");
     };
@@ -262,38 +204,26 @@ describe("index.html", () => {
   });
 
   it("announces the end-of-level verdict from a container that is always present", () => {
-    // presentVerdictToast builds the card complete and then inserts it, so the
-    // live region has to be the container: a role="status" that appears in the
-    // document already populated is generally announced by nothing.
+    // presentVerdictToast inserts the card already built; a role="status" populated on arrival
+    // would go unannounced, so the container itself must be the live region.
     const container = page.querySelector(".feedbackcontainer");
     expect(container?.getAttribute("role")).toBe("status");
     expect(container?.textContent).toBe("");
   });
 
   it("announces a refused write without drawing anything", () => {
-    // There is no status line under the editor: a save confirmation would
-    // report the same success every second of every session. A refused write
-    // is the opposite kind of news -- nothing else on screen would ever say
-    // the program has stopped being saved -- so it is announced rather than
-    // drawn. `src/main.ts` fills it.
+    // No visible status line under the editor: a refused write is announced instead of drawn.
     const element = page.querySelector("#storage_status");
     expect(element?.getAttribute("role")).toBe("status");
     expect(element?.className).toBe("visually-hidden");
-    // A live region has to be in the document before the text appears inside
-    // it; one that arrives already populated is generally not announced.
     expect(element?.textContent).toBe("");
   });
 
   it.each([".world", ".innerworld", ".statscontainer", ".level", ".tutorial"])(
     "leaves %s out of the live regions",
     (selector) => {
-      // The building and the statistics change every frame, and the level
-      // bar changes under the player's own hands. Announcing any of them would
-      // bury the messages that do need announcing under continuous noise. The
-      // learning track's panel is redrawn whole every time the language changes
-      // or a level is cleared, so announcing it would read the entire lesson out
-      // again; it is a named region instead, which is how it is reached on
-      // purpose.
+      // These change continuously; announcing them would bury real messages in noise. The
+      // tutorial panel redraws whole on level or language change, so it's a named region instead.
       const element = page.querySelector(selector);
       expect(element).not.toBeNull();
       expect(element?.getAttribute("aria-live")).toBeNull();
@@ -303,12 +233,8 @@ describe("index.html", () => {
   );
 
   it("names the building a region, and keeps it focusable without a tab stop", () => {
-    // .world is the only landmark over the building, and the name every spec
-    // that reaches for the building reaches by. The negative tabindex is both
-    // halves of the point: Tab skips it, because the box that scrolls is the
-    // stage inside widgets/building-stage and that widget takes the stop
-    // itself, but presentVerdictToast can still put the keyboard here when it
-    // removes the close button that had the focus.
+    // tabindex="-1" skips it in Tab order (the scrolling stage takes that stop) but still lets
+    // presentVerdictToast move focus here when it removes the close button that had it.
     const world = page.querySelector(".world");
     expect(world?.getAttribute("role")).toBe("region");
     expect(world?.getAttribute("aria-label")).toBeTruthy();
@@ -316,13 +242,8 @@ describe("index.html", () => {
   });
 
   it("ships the run controls' mount bare, for the app bar to adopt", () => {
-    // Empty, because presentControls writes every word of it from the
-    // catalog at the moment it draws; and unnamed, because what it holds
-    // names itself -- the two run buttons by their own labels, the speed by
-    // its own role and label. A third name wrapped around those would be one
-    // more thing to read past on the way to them. It is in `<main>` here and
-    // in the app bar on screen: src/main.ts moves it the moment the bar
-    // exists, which is a long way after the App constructor drew into it.
+    // Empty because presentControls fills it from the catalog when it draws; unnamed because
+    // its own buttons already name themselves.
     const controls = page.querySelector(".controls");
     expect(controls).not.toBeNull();
     expect(controls?.innerHTML).toBe("");
@@ -331,25 +252,18 @@ describe("index.html", () => {
   });
 
   it("offers a way past the building, before anything else in the tab order", () => {
-    // WCAG 2.4.1. The building is between the top of the page and the editor,
-    // and nearly everything in it takes focus; the editor is what the page is
-    // for. The skip link has to come first in the document to be the first stop.
+    // WCAG 2.4.1: the building sits between the top of the page and the editor and takes focus.
     const skipLink = page.querySelector(".skip-link");
     expect(skipLink).not.toBeNull();
     expect(page.querySelector("a[href], button, [tabindex]")).toBe(skipLink);
 
-    // And it has to name something real: src/main.ts intercepts the click and
-    // focuses CodeMirror instead, but the href is the fallback and the reason
-    // the link is a link.
+    // Must name something real: src/main.ts intercepts the click, but the href is the fallback.
     const target = (skipLink?.getAttribute("href") ?? "").slice(1);
     expect(page.querySelector(`[id="${target}"]`)).toBe(page.querySelector(".code"));
   });
 
   it("names a favicon, drawn here rather than borrowed", () => {
-    // There was none at all, so every tab showed the browser's blank-page
-    // glyph. The mark is original artwork: the twelve Font Awesome outlines in
-    // src/shared/ui/icon.ts were the shorter route, but they are OFL-licensed, and a
-    // site's own identity is not a good thing to owe attribution for.
+    // Original artwork, not one of the OFL-licensed outlines in src/shared/ui/icon.ts.
     const icon = page.querySelector("link[rel='icon']");
     expect(icon?.getAttribute("type")).toBe("image/svg+xml");
     expect(icon?.getAttribute("href")).toBe("/favicon.svg");
@@ -357,15 +271,8 @@ describe("index.html", () => {
   });
 
   it("ships a favicon a browser will actually parse", () => {
-    // `toContain("<svg")` was the whole of the check above for as long as the
-    // file existed, and it passed throughout on a file no browser ever drew:
-    // the comment at the top of it used the repository's usual double hyphen
-    // for a dash, which XML does not allow inside a comment, so Chromium
-    // answered the request with "Double hyphen within comment" and every tab
-    // showed the blank-page glyph. Nothing here is HTML-forgiving -- an SVG
-    // served as image/svg+xml is parsed as XML, all or nothing -- so this
-    // parses it the strict way and insists on the drawing rather than on an
-    // error document.
+    // image/svg+xml is parsed strictly as XML: a bare `toContain("<svg")` would pass even on a
+    // file no browser can render, e.g. one with a double hyphen inside an XML comment.
     const favicon = new DOMParser().parseFromString(faviconSource, "image/svg+xml");
 
     expect(favicon.querySelector("parsererror")).toBeNull();
@@ -373,17 +280,8 @@ describe("index.html", () => {
   });
 
   it("puts the app bar's own mark in the tab", () => {
-    // One drawing, two places: the tab and the bar are the same site, and a
-    // favicon that is merely in the same spirit as the brand is a thing that
-    // drifts. So this compares the shapes themselves rather than trusting the
-    // comment in either file to stay true.
-    //
-    // The cars are the rects drawn at a depth and the frame is the one drawn
-    // as an outline, in both files -- the favicon's plate is neither, which is
-    // what makes those the selectors rather than a count or a position among
-    // siblings. Color stays out of the comparison: the bar inherits
-    // `currentcolor` and a file under public/ has to write the brass out.
-    // public/favicon.svg says why.
+    // Compares the actual shapes rather than trusting two files to stay in sync; color is
+    // excluded since the bar inherits currentcolor while the favicon hardcodes it.
     const geometry = (rect: Element): Record<string, string | null> => ({
       x: rect.getAttribute("x"),
       y: rect.getAttribute("y"),
@@ -416,27 +314,22 @@ describe("index.html", () => {
   });
 
   it("describes itself well enough to paste into a chat", () => {
-    // Open Graph, so a pasted link becomes a card with the game in it instead
-    // of a bare URL. The title and description are not restated here -- a
-    // preview that disagrees with the page is its own kind of wrong.
+    // Open Graph tags, so a pasted link becomes a card; title/description aren't restated here.
     expect(metaContent(page, "og:type")).toBe("website");
     expect(metaContent(page, "og:title")).toBe(page.title);
     expect(metaContent(page, "og:description")).toBe(metaContent(page, "description"));
     expect(metaContent(page, "og:image:alt")).toBeTruthy();
     expect(metaContent(page, "twitter:card")).toBe("summary_large_image");
 
-    // The image is the screenshot the README uses, kept in `public/` so that
-    // one file serves both. Site-relative, because Vite rewrites a leading
-    // slash to `base` and this build has to run from any directory; a card
-    // with a broken image in it is worse than no card, so check it is there.
+    // Site-relative, since Vite rewrites a leading slash to base and the build runs from any
+    // directory.
     const image = metaContent(page, "og:image") ?? "";
     expect(image).toMatch(/^\/[^/]/);
     expect(existsSync(join(ROOT, "public", image))).toBe(true);
   });
 
   it("has one landmark of each kind, and a single top-level heading", () => {
-    // No footer: the credits, the source link and the license notice are on
-    // the two help pages and in the settings popover's About block instead.
+    // No footer: credits and license notices live on the help pages and the About popover instead.
     expect(page.querySelectorAll("header, main, footer")).toHaveLength(2);
     expect(page.querySelectorAll("h1")).toHaveLength(1);
   });
@@ -448,14 +341,10 @@ describe("index.html", () => {
 });
 
 /**
- * The reference page, in every language it is published in.
- *
- * The versions are one page and not several: same headings, same tables in the
- * same order, same anchors, same examples, with only the prose and the comments
- * inside the examples translated. `src/docs-page/render.ts` builds them all from
- * one structure, so that is now true by construction; the checks below run over
- * every version anyway, because what they hold the page to is the code it
- * documents, which the structure knows nothing about.
+ * The reference page, in every language it is published in. The versions are one
+ * page and not several, since `src/docs-page/render.ts` builds them from one
+ * structure; the checks below still run over each, because they hold the page to
+ * the code it documents rather than to that structure.
  */
 const TRANSLATIONS = {
   en: docsPageFile("en"),
@@ -465,16 +354,7 @@ const TRANSLATIONS = {
 /** A language {@link TRANSLATIONS} publishes the reference page in. */
 type Language = keyof typeof TRANSLATIONS;
 
-/**
- * One reference page, and the few things about reading it that its language
- * decides.
- *
- * Only prose is translated, so only prose has to be described here: the `<h3>`
- * a table sits under, and the first cell of its header row, which is what tells
- * a property table apart from an event table. Everything the guard actually
- * holds against the code — member names, event names, the calls inside the
- * examples — is an identifier, and identifiers read the same on both pages.
- */
+/** One reference page, and the few things about reading it that its language decides. */
 interface ReferencePage {
   /** The file it is published as, which is also what names it in the test output. */
   readonly file: string;
@@ -514,13 +394,7 @@ const DOCUMENTATION_PAGES: readonly ReferencePage[] = [
   },
 ];
 
-/**
- * The reference page written in one language.
- *
- * @param language - Which one.
- * @returns Its entry in {@link DOCUMENTATION_PAGES}.
- * @throws If there is no such page, which {@link TRANSLATIONS} rules out.
- */
+/** The reference page written in one language; throws if {@link TRANSLATIONS} has none. */
 function pageIn(language: Language): ReferencePage {
   const found = DOCUMENTATION_PAGES.find((candidate) => candidate.language === language);
   if (found === undefined) {
@@ -530,11 +404,9 @@ function pageIn(language: Language): ReferencePage {
 }
 
 /**
- * The HTML files the build starts from; see "is an entry point of the build".
- *
- * `input` accepts a name, a list of them or a map of them, and the config uses
- * the map form, so the other two are narrowed away here rather than in each
- * assertion.
+ * The HTML files the build starts from. `input` accepts a name, a list of them
+ * or a map of them, and the config uses the map form, so the other two are
+ * narrowed away here rather than in each assertion.
  */
 const BUILD_INPUTS: readonly string[] = (() => {
   const input = viteConfig.build?.rolldownOptions?.input;
@@ -555,10 +427,7 @@ describe.each(DOCUMENTATION_PAGES)("$file", (reference) => {
   });
 
   it("paints itself dark before the stylesheet arrives, having no other theme", () => {
-    // Nothing here writes `<html data-theme>` -- the theme switch is the
-    // game's, and this page carries none -- so the one rule it needs is the
-    // dark default's, and it is checked against the palette because a custom
-    // property is unreadable this early. Without it the load is a white flash.
+    // This page has no theme switch, so its only first-paint rule is the dark default.
     const body = firstPaintRule(docs, "html");
     expect(declaration(body, "background", "html")).toBe(themed(DARK_PALETTE, "ds-bg"));
     expect(declaration(body, "color", "html")).toBe(themed(DARK_PALETTE, "ds-text"));
@@ -567,9 +436,7 @@ describe.each(DOCUMENTATION_PAGES)("$file", (reference) => {
   });
 
   it("hides its text until the stylesheet is there to dress it", () => {
-    // src/docs.ts imports the same src/styles/index.css the game does, so the
-    // rule that shows the body again is the same one -- index.html's own test
-    // above is where that half is checked.
+    // src/docs.ts imports the same src/styles/index.css, so the reveal rule is shared.
     expect(declaration(firstPaintRule(docs, "body"), "visibility", "body")).toBe("hidden");
   });
 
@@ -582,31 +449,23 @@ describe.each(DOCUMENTATION_PAGES)("$file", (reference) => {
   });
 
   it("names every language it exists in, its own included", () => {
-    // Both pages list both versions, each including itself: that is what lets
-    // a crawler arriving at either one see the pair, and it means neither page
-    // has a different set of alternates to keep up to date.
+    // Both pages list both versions including themselves, so a crawler sees the pair either way.
     const alternates = [...docs.querySelectorAll("link[rel='alternate']")].map((link) => [
       link.getAttribute("hreflang"),
       link.getAttribute("href"),
     ]);
     expect(alternates).toEqual(Object.entries(TRANSLATIONS));
 
-    // Each of them marked `vite-ignore`, which is what stops the build from
-    // resolving it. Vite reads the `href` of every `<link>` as an asset
-    // reference without looking at `rel`, so an unmarked alternate has a
-    // second, hashed copy of the page emitted into `dist/assets/` and is
-    // rewritten to point at that: in the built site the two versions would
-    // advertise each other at URLs nothing else links to.
+    // vite-ignore stops the build from resolving the href as an asset: Vite treats every <link
+    // href> as one regardless of rel, and would rewrite an unmarked one to a hashed dist path.
     for (const link of docs.querySelectorAll("link[rel='alternate']")) {
       expect(link.hasAttribute("vite-ignore"), link.outerHTML).toBe(true);
     }
   });
 
   it("offers a reader a visible way to the other language", () => {
-    // The `<link>`s above are for machines. Someone who cannot read the page
-    // in front of them needs something to click, and it is named in the
-    // language it leads to -- "Русский", not "Russian" -- because that is the
-    // word they can be relied on to recognize.
+    // The <link>s above are for machines; a human needs something to click, named in the
+    // language it leads to.
     for (const [language, file] of Object.entries(TRANSLATIONS)) {
       if (file === reference.file) {
         continue;
@@ -621,19 +480,13 @@ describe.each(DOCUMENTATION_PAGES)("$file", (reference) => {
   });
 
   it("is an entry point of the build", () => {
-    // Vite only processes the HTML files named in `rolldownOptions.input`, so
-    // a page left out of it is simply absent from `dist/`, and the link
-    // between the versions is a 404 in the built site while working perfectly
-    // in the dev server. Read out of the config itself rather than matched as
-    // text, because no filename is written there any more: the entries are
-    // generated from `LOCALES`, and what has to hold is that this page is
-    // among them.
+    // Pages missing from rolldownOptions.input build fine in dev but 404 in dist/. Read out of
+    // the config rather than matched as text, since the entries are generated from `LOCALES`
+    // and no filename is written there.
     expect(BUILD_INPUTS.map((input) => basename(input))).toContain(reference.file);
   });
 
   it("shows the same favicon as the game", () => {
-    // Two entry points, one site: a tab that changes its icon when you follow
-    // the Help link reads as a different site.
     const icon = docs.querySelector("link[rel='icon']");
     expect(icon?.getAttribute("href")).toBe(
       page.querySelector("link[rel='icon']")?.getAttribute("href"),
@@ -662,12 +515,10 @@ describe.each(DOCUMENTATION_PAGES)("$file", (reference) => {
       const headerCells = [...table.querySelectorAll("thead tr th")];
       expect(headerCells.length).toBeGreaterThan(0);
       expect(headerCells.every((cell) => cell.getAttribute("scope") === "col")).toBe(true);
-      // Column widths moved from `width` attributes to `<col>` classes.
       expect(table.querySelector("colgroup")).not.toBeNull();
       expect(table.querySelector("[width]")).toBeNull();
-      // Every other check here reads the first cell of a row and stops, so a
-      // row that lost one -- the easiest thing to drop while translating a
-      // wall of `<td>`s -- would go unnoticed while rendering misaligned.
+      // Other checks here only read the first cell of a row, so a row missing a <td> would
+      // otherwise go unnoticed.
       for (const row of table.querySelectorAll("tbody tr")) {
         expect(row.querySelectorAll("td"), row.textContent.trim()).toHaveLength(headerCells.length);
       }
@@ -681,10 +532,7 @@ describe.each(DOCUMENTATION_PAGES)("$file", (reference) => {
   });
 
   it("draws the same plus and minus icons src/shared/ui/icon.ts defines", () => {
-    // The page is static, so the two icons in "How to play" are written out by
-    // hand instead of built by createIcon. Nothing else would notice them
-    // drifting from src/shared/ui/icon.ts -- or from each other, the plus and the
-    // minus being one character apart in the path data.
+    // The page is static, so these icons are hand-written rather than built by createIcon.
     expect([...docs.querySelectorAll(".icon")].map(iconShape)).toEqual([
       iconShape(createIcon("plus", "emphasis-color")),
       iconShape(createIcon("minus", "emphasis-color")),
@@ -707,16 +555,7 @@ describe.each(DOCUMENTATION_PAGES)("$file", (reference) => {
   });
 });
 
-/**
- * The `doctable`s that belong to one `<h3>`, in document order.
- *
- * The API reference is a flat run of headings and tables rather than nested
- * sections, so a table belongs to the last heading before it.
- *
- * @param document - The page to read.
- * @param heading - The exact text of the `<h3>`, in that page's language.
- * @returns The tables under it; empty when there is no such heading.
- */
+/** The `doctable`s under one `<h3>`, in document order; the reference is a flat run of headings and tables, not nested sections. */
 function tablesUnder(document: Document, heading: string): Element[] {
   const start = [...document.querySelectorAll("h3")].find((node) => node.textContent === heading);
   const tables: Element[] = [];
@@ -732,15 +571,7 @@ function tablesUnder(document: Document, heading: string): Element[] {
   return tables;
 }
 
-/**
- * The names in the first column of one of a heading's tables.
- *
- * @param reference - The page to read.
- * @param heading - The `<h3>` the table sits under.
- * @param column - What its first header cell says, which is what tells the
- * property table of a section apart from the event table.
- * @returns The first-column text of every body row, in the order documented.
- */
+/** The names in the first column of one of a heading's tables. */
 function documentedNames(reference: ReferencePage, heading: string, column: string): string[] {
   const table = tablesUnder(reference.document, heading).find(
     (candidate) => candidate.querySelector("thead th")?.textContent.trim() === column,
@@ -768,12 +599,7 @@ interface DocumentedApi {
   readonly floorEvents: readonly string[];
 }
 
-/**
- * Reads the API tables of one page.
- *
- * @param reference - The page.
- * @returns Everything it promises player code, in the order it promises it.
- */
+/** Reads the API tables of one page. */
 function documentedApi(reference: ReferencePage): DocumentedApi {
   const { headings, columns } = reference;
   const eventMethods = documentedNames(reference, headings.eventMethods, columns.method);
@@ -791,28 +617,10 @@ function documentedApi(reference: ReferencePage): DocumentedApi {
   };
 }
 
-/**
- * The page's shape, as text.
- *
- * The reasons the undocumented facade members are undocumented are written in
- * its JSDoc and nowhere else; see "says beside the table it is missing from why
- * each member is left out".
- */
+/** The page's shape, as text; its JSDoc records why undocumented members are left out. */
 const structureSource = readFileSync(join(ROOT, "src/docs-page/structure.ts"), "utf8");
 
-/**
- * Every name player code can reach on a facade.
- *
- * The same walk `completions.test.ts`, `elevator-interface.test.ts` and
- * `floor-interface.test.ts` use to pin their surface: own properties first,
- * then up the prototype chain, so instance fields like `destinationQueue` are
- * counted alongside the methods. `getOwnPropertyNames` reads the descriptors,
- * so a getter such as the floor's `buttonStates` is found without being
- * invoked.
- *
- * @param facade - An instance of the facade.
- * @returns Its property names.
- */
+/** Every name player code can reach on a facade, walking own properties then the prototype chain; uses `getOwnPropertyNames`, so a getter is found without being invoked. */
 function exposedNames(facade: object): Set<string> {
   const exposed = new Set<string>();
   for (
@@ -831,13 +639,8 @@ function exposedNames(facade: object): Set<string> {
 /**
  * Elevator members the reference pages leave out on purpose, and why.
  *
- * Anything reachable on the facade and neither documented nor listed here fails
- * the tests below, so a member added to `ElevatorInterface` cannot quietly stay
- * unwritten-down: whoever adds it has to either give it a table row or say here
- * why players are not told about it. The same reasons are repeated as an HTML
- * comment in the table the member is missing from — in each translation of it,
- * since the pages are checked against this list one by one — for the benefit of
- * anyone reading a page's source rather than this file.
+ * Anything reachable and neither documented nor listed here fails the tests below, so a new
+ * `ElevatorInterface` member must get a table row or an entry here.
  */
 const UNDOCUMENTED_ELEVATOR_MEMBERS: Readonly<Record<string, string>> = {
   trigger:
@@ -854,13 +657,10 @@ const UNDOCUMENTED_FLOOR_MEMBERS: Readonly<Record<string, string>> = {
 };
 
 /**
- * Every event an elevator raises, and why the page leaves it out; `null` for
- * the ones it documents.
+ * Every event an elevator raises, and why the page leaves it out; `null` for documented ones.
  *
- * Keyed by the facade's own event map, so an event added to
- * `ElevatorInterface` does not compile here until somebody has decided whether
- * players are told about it. That is the compile-time half of the guard; the
- * runtime half is {@link checkDocumentedEvents}.
+ * Keyed by the facade's own event map, so a new event fails to compile here until it's been
+ * decided whether players are told about it; see {@link checkDocumentedEvents} for the runtime half.
  */
 const ELEVATOR_EVENT_DECISIONS: Readonly<Record<keyof ElevatorInterfaceEvents, string | null>> = {
   idle: null,
@@ -878,21 +678,14 @@ const FLOOR_EVENT_DECISIONS: Readonly<Record<keyof FloorInterfaceEvents, string 
   destination_requested: null,
 };
 
-/**
- * Checks one facade's event names against the page, in both directions.
- *
- * @param documented - The event names scraped out of the page.
- * @param decisions - Every event the facade really raises, and why the page
- * leaves it out.
- */
+/** Checks one facade's event names against the page, in both directions. */
 function checkDocumentedEvents(
   documented: readonly string[],
   decisions: Readonly<Record<string, string | null>>,
 ): void {
   const names = new Set(documented);
   const decided = Object.entries(decisions);
-  // Documented but not raised: a typo in the table, or an event since renamed.
-  // Players would be subscribing handlers that can never run.
+  // Documented but not raised: players would subscribe handlers that can never run.
   expect(documented.filter((name) => !Object.hasOwn(decisions, name))).toEqual([]);
   // Raised and meant to be documented, but missing from the table.
   expect(
@@ -904,11 +697,7 @@ function checkDocumentedEvents(
   ).toEqual([]);
 }
 
-/**
- * A live elevator facade, built the way `elevator-interface.test.ts` does.
- *
- * @returns The facade.
- */
+/** A live elevator facade, built the way `elevator-interface.test.ts` does. */
 function elevatorFacade(): ElevatorInterface {
   return new ElevatorInterface(
     new Elevator(1.5, 4, 40),
@@ -917,11 +706,7 @@ function elevatorFacade(): ElevatorInterface {
   );
 }
 
-/**
- * A live floor facade, built the way `floor-interface.test.ts` does.
- *
- * @returns The facade.
- */
+/** A live floor facade, built the way `floor-interface.test.ts` does. */
 function floorFacade(): FloorInterface {
   return new FloorInterface(new Floor(2, 100, () => undefined), () => undefined);
 }
@@ -933,11 +718,8 @@ describe.each(DOCUMENTATION_PAGES)(
     const documented = documentedApi(reference);
 
     it("reads the tables it means to check", () => {
-      // Every check below is a set difference, and a set difference against an
-      // empty set passes quietly. A page restructured out from under the scraper
-      // has to fail here rather than silently stop testing anything -- and a
-      // translation that translated a heading without saying so here would
-      // otherwise read as a page with no API in it at all.
+      // A set difference against an empty set passes quietly, so an unreadable page must fail
+      // here instead of silently testing nothing.
       expect(documented.eventMethods).toEqual(["on", "once", "one", "off", "offAll"]);
       expect(documented.floorProperties).toEqual(["floorNum", "pendingDestinations"]);
       expect(documented.elevatorProperties.length).toBeGreaterThan(10);
@@ -950,10 +732,7 @@ describe.each(DOCUMENTATION_PAGES)(
       const undocumented = [...exposedNames(elevatorFacade())].filter(
         (name) => !named.has(name) && !Object.hasOwn(UNDOCUMENTED_ELEVATOR_MEMBERS, name),
       );
-      // Failing here means ElevatorInterface grew a member this page does not
-      // mention. Give it a row in the elevator table, taking the wording from its
-      // JSDoc, or list it in UNDOCUMENTED_ELEVATOR_MEMBERS with the reason and
-      // repeat that reason in the table's HTML comment.
+      // Failing means ElevatorInterface grew a member the page doesn't mention or excuse.
       expect(undocumented).toEqual([]);
     });
 
@@ -966,10 +745,8 @@ describe.each(DOCUMENTATION_PAGES)(
     });
 
     it("documents nothing the facades do not have", () => {
-      // The other direction: a member that was renamed or removed would otherwise
-      // stay on the page, and a player following it writes code that throws. It
-      // also catches a translator who translated an identifier: a Russian word in
-      // the first column is a member no facade has.
+      // The other direction: a renamed or removed member left on the page would make a
+      // player's code throw.
       const elevator = exposedNames(elevatorFacade());
       expect(documented.elevatorMembers.filter((name) => !elevator.has(name))).toEqual([]);
       const floor = exposedNames(floorFacade());
@@ -977,13 +754,9 @@ describe.each(DOCUMENTATION_PAGES)(
     });
 
     it("says beside the table it is missing from why each member is left out", () => {
-      // The lists above are the machine-readable half of the omissions; the
-      // JSDoc on the table each member is missing from is the half a maintainer
-      // actually meets, and the only place the reasoning is written down for
-      // someone reading the page's structure rather than this file.
-      // Only the prose of that file counts: a name that reached it as a row --
-      // that is, as a documented member -- would satisfy a plain search while
-      // saying nothing about why it is absent.
+      // The lists above are the machine-readable half; this checks the JSDoc a maintainer
+      // actually meets is still there. Only the prose counts: a name that reached the file
+      // as a documented row would satisfy a plain search while saying nothing about why.
       const notes = [...structureSource.matchAll(/\/\*\*[\s\S]*?\*\//gu)]
         .map((comment) => comment[0])
         .join("\n");
@@ -996,8 +769,7 @@ describe.each(DOCUMENTATION_PAGES)(
     });
 
     it("keeps the omissions honest", () => {
-      // A member that stops existing should take its excuse with it, and one that
-      // gets documented after all should lose it.
+      // A member that stops existing should drop its excuse; one that gets documented should too.
       const elevator = exposedNames(elevatorFacade());
       const elevatorOmissions = Object.keys(UNDOCUMENTED_ELEVATOR_MEMBERS);
       expect(elevatorOmissions.filter((name) => !elevator.has(name))).toEqual([]);
@@ -1020,9 +792,8 @@ describe.each(DOCUMENTATION_PAGES)(
     });
 
     it("subscribes to real events in every example it prints", () => {
-      // The tables are not the only place event names appear: "Listening for
-      // events" and the "Event methods" examples spell them out too, and a name
-      // that is wrong there is wrong in the code a player copies.
+      // Event names also appear in the example code; a wrong name there is wrong in the code
+      // a player copies.
       const real = new Set([
         ...Object.keys(ELEVATOR_EVENT_DECISIONS),
         ...Object.keys(FLOOR_EVENT_DECISIONS),
@@ -1040,17 +811,7 @@ describe.each(DOCUMENTATION_PAGES)(
   },
 );
 
-/**
- * The example code of one page, comments removed.
- *
- * Only the comments in an example are translated; the code around them is what
- * a player copies into the editor and has to be the same in every language. The
- * examples on this page have no `//` inside a string literal, so taking the
- * rest of the line off at the first one is enough to leave exactly the code.
- *
- * @param example - The text of one `<pre><code>` block.
- * @returns The same block with every comment and the space before it gone.
- */
+/** The example code of one page, comments removed; assumes no `//` inside a string literal. */
 function codeOnly(example: string): string {
   return example
     .split("\n")
@@ -1058,33 +819,17 @@ function codeOnly(example: string): string {
     .join("\n");
 }
 
-/**
- * Every example a page prints, in document order.
- *
- * @param document - The page.
- * @returns The text of each `<pre><code>` block.
- */
+/** Every example a page prints, in document order. */
 function examples(document: Document): string[] {
   return [...document.querySelectorAll("pre code")].map((code) => code.textContent);
 }
 
-/**
- * The `id`s a page defines, in document order.
- *
- * @param document - The page.
- * @returns Every `id`, which is every place a link can point at.
- */
+/** The `id`s a page defines, in document order. */
 function anchors(document: Document): string[] {
   return [...document.querySelectorAll("[id]")].map((element) => element.id);
 }
 
-/**
- * How a page is built, ignoring every word in it.
- *
- * @param document - The page.
- * @returns The heading levels of the reference, in order, and the size of each
- * table under them as `columns x rows`.
- */
+/** How a page is built, ignoring every word in it: heading tags, then each table as `columns x rows`. */
 function outline(document: Document): string[] {
   return [
     ...[...document.querySelectorAll("main h2, main h3")].map((heading) => heading.tagName),
@@ -1100,10 +845,8 @@ describe("documentation.html and documentation.ru.html, as one document in two l
   const russian = pageIn("ru");
 
   it("documents the same members, in the same order", () => {
-    // One structure renders both, so this holds by construction today. It is
-    // kept because it is the assertion that would catch the day it stops: a
-    // renderer that ever branches on locale has to fail here rather than ship
-    // a page that quietly documents a subset.
+    // One structure renders both, so this holds by construction; it is kept as the assertion
+    // that would catch a renderer branching on locale and shipping a page documenting a subset.
     const left = documentedApi(english);
     const right = documentedApi(russian);
     expect(right.eventMethods).toEqual(left.eventMethods);
@@ -1119,8 +862,7 @@ describe("documentation.html and documentation.ru.html, as one document in two l
   });
 
   it("offers the same anchors, and the same links to them", () => {
-    // A reader following a link from one language has to land in the same place
-    // in the other, and `index.html` links straight into #docs.
+    // A reader switching languages has to land in the same place.
     expect(anchors(russian.document)).toEqual(anchors(english.document));
     const internalLinks = (document: Document): (string | null)[] =>
       [...document.querySelectorAll("a[href^='#']")].map((link) => link.getAttribute("href"));
@@ -1132,10 +874,8 @@ describe("documentation.html and documentation.ru.html, as one document in two l
     const right = examples(russian.document);
     expect(right).toHaveLength(left.length);
     expect(right.map(codeOnly)).toEqual(left.map(codeOnly));
-    // And the comments really are translated, block by block: a block with a
-    // comment in it that came through byte for byte is one nobody has read.
-    // Checked one at a time, because comparing the two lists as a whole is
-    // satisfied by a single translated block out of thirty-two.
+    // Checked block by block, not as whole lists, so one untranslated comment is caught rather
+    // than hidden by an otherwise-passing list.
     expect(left.filter((block) => block.includes("//")).length).toBeGreaterThan(0);
     right.forEach((block, index) => {
       const original = left[index] ?? "";
@@ -1150,43 +890,24 @@ describe("documentation.html and documentation.ru.html, as one document in two l
   });
 
   it("offers the learning track to a beginner, in both languages", () => {
-    // This page is where the game's header sends somebody who does not know the
-    // API yet, so it is the one place a player can arrive at already knowing
-    // they are out of their depth. The track's own way in is a link in the
-    // header of the *game*, which is the page they have just left.
+    // This is where the game's header sends a player who doesn't know the API yet.
     const [firstLevel] = tutorialLevels;
     if (firstLevel === undefined) {
       throw new Error("The learning track has no levels to offer");
     }
-    // Built from the level's id rather than written out, so renaming level one
-    // fails here instead of leaving both pages pointing at an address that
-    // resolves to the track's start with a console warning -- which is what a
-    // dead level address does, and it would look like the link still worked.
+    // Built from the level's id rather than hardcoded, so renaming level one fails here instead
+    // of leaving a dead address.
     const href = `index.html#level=${firstLevel.id}`;
     for (const { file, document } of DOCUMENTATION_PAGES) {
       const links = [...document.querySelectorAll(`a[href="${href}"]`)];
       expect(links, file).toHaveLength(1);
-      // Directly under a heading, which is "How to play" in both pages: an
-      // offer a beginner has to scroll past the whole API to reach is one that
-      // only ever finds the reader who needed it least.
+      // Must sit directly under "How to play"; buried past the whole API it'd reach no beginner.
       expect(links[0]?.closest("p")?.previousElementSibling?.tagName, file).toBe("H2");
     }
   });
 });
 
-/**
- * Everything either catalog of a language holds, as one object per language.
- *
- * The game's messages and the reference pages' text are separate modules --
- * only the first is shipped, see the docblock in `docs-en.ts` -- and this file
- * is the one that reads both, since the pages it checks are made of both.
- *
- * Typed loosely on purpose: `MessageCatalog<"en">` and `MessageCatalog<"ru">`
- * are different types -- their plural messages have different sets of forms --
- * so indexing the union of the two by a key yields a union of values that every
- * read below would have to narrow again. Nothing here cares which language it
- * is holding, only what a key says in it.
- */
+/** Everything either catalog of a language holds; typed loosely since `MessageCatalog<"en">` and `MessageCatalog<"ru">` differ in their plural forms. */
 const CATALOGS: Readonly<Record<Language, Readonly<Record<string, unknown>>>> = {
   en: { ...EN_MESSAGES, ...EN_DOCS_MESSAGES },
   ru: { ...RU_MESSAGES, ...RU_DOCS_MESSAGES },
@@ -1211,12 +932,8 @@ const PLACEHOLDER = /\{\w+\}/g;
 /**
  * What one message says.
  *
- * @param language - The catalog to read it from.
- * @param key - The message.
- * @returns Its value.
- * @throws If it has plural forms. Nothing checked here counts anything, and a
- * key that started to would otherwise be compared as "[object Object]" and
- * quietly match nothing on the page.
+ * @throws If it has plural forms: nothing here counts anything, and such a key would otherwise
+ * compare as "[object Object]" and quietly match nothing on the page.
  */
 function message(language: Language, key: PageKey): string {
   const value = CATALOGS[language][key];
@@ -1234,25 +951,15 @@ function collapse(text: string): string {
 /**
  * Markup in the single form the browser agrees to.
  *
- * Parsed and serialized again, so that `<br />` against `<br>`, an attribute in
- * single quotes against one in double, and a sentence wrapped across four
- * source lines are not differences. What is left is the tags, their attributes
- * and the words.
- *
- * @param html - Markup, from either side.
- * @returns The same markup, comparable.
+ * Parsed and reserialized, so `<br />` vs `<br>`, quote style, and source line wrapping stop
+ * counting as differences.
  */
 function normalizeMarkup(html: string): string {
   const holder = new DOMParser().parseFromString(`<body>${html}</body>`, "text/html");
   return collapse(holder.body.innerHTML);
 }
 
-/**
- * The words of a message, markup and placeholders gone.
- *
- * @param value - The message.
- * @returns What is left to read.
- */
+/** The words of a message, markup and placeholders gone. */
 function textOf(value: string): string {
   const holder = new DOMParser().parseFromString(
     `<body>${value.replaceAll(PLACEHOLDER, "")}</body>`,
@@ -1264,18 +971,9 @@ function textOf(value: string): string {
 /**
  * Checks that a message and the place on the page it was lifted from agree.
  *
- * Compared as markup rather than as text: these values are what the page will
- * be built from once the interface is wired through `src/i18n`, so an emphasis
- * or a link that did not survive the copy is a real difference and not a matter
- * of presentation.
- *
- * A message with a `{placeholder}` in it is the exception. The page has the
- * thing itself where the message has only its name -- the two inline icons of
- * "How to play" -- so there only the words around it can be compared.
- *
- * @param element - Where the page says it, or null if the page has nowhere.
- * @param reference - The page.
- * @param key - The message.
+ * Compared as markup, not text, so a lost emphasis or link is a real failure. A message with a
+ * `{placeholder}` is the exception: the page has the thing itself (an icon), so only the
+ * surrounding words are compared.
  */
 function expectSays(element: Element | null, reference: ReferencePage, key: PageKey): void {
   expect(element, key).not.toBeNull();
@@ -1288,18 +986,10 @@ function expectSays(element: Element | null, reference: ReferencePage, key: Page
 }
 
 /**
- * Checks a run of elements against the messages that fill it.
+ * Checks a run of elements against the messages that fill it, position by position.
  *
- * The page puts no ids on its paragraphs and no attribute ties one to a key --
- * it is a static document, and marking it up for the convenience of a test
- * would be the tail wagging the dog -- so a run of elements is matched against
- * the run of keys that describes it. Count and order come with that: a
- * paragraph added, dropped or moved fails here, where checking that each key
- * turns up somewhere on the page would not.
- *
- * @param reference - The page.
- * @param selector - What matches the run.
- * @param keys - What it says, in order.
+ * The page has no ids tying an element to a key, so elements are matched to keys by order; a
+ * paragraph added, dropped or moved fails here rather than passing silently.
  */
 function expectRun(reference: ReferencePage, selector: string, keys: readonly PageKey[]): void {
   const elements = [...reference.document.querySelectorAll(selector)];
@@ -1396,24 +1086,14 @@ const REFERENCE_SECTIONS: readonly {
 /**
  * A name with the punctuation taken out of it.
  *
- * The tables and the catalog spell the same name differently and neither
- * spelling can be derived from the other: the page writes `buttonstate_change`
- * where the key writes `buttonStateChange`, and camel-casing the first gives
- * `buttonstateChange`. The letters are what the two of them agree on.
- *
- * @param name - Either spelling.
- * @returns The letters of it.
+ * The page (`buttonstate_change`) and the catalog key (`buttonStateChange`) spell the same
+ * name differently in ways neither can derive from the other; the letters are what they agree on.
  */
 function flatten(name: string): string {
   return name.replaceAll("_", "").toLowerCase();
 }
 
-/**
- * The comment lines of an example, whatever they are indented by.
- *
- * @param code - The text of an example.
- * @returns One entry per comment line, in order.
- */
+/** The comment lines of an example, whatever they are indented by. */
 function commentsIn(code: string): string[] {
   return code
     .split("\n")
@@ -1424,12 +1104,8 @@ function commentsIn(code: string): string[] {
 /**
  * The message that explains one documented member.
  *
- * @param prefix - The key prefix of the section it is documented in.
- * @param name - What the first cell of its row says.
- * @returns The key, with or without the `.html` that admits to markup.
- * @throws If the catalog has no message for that row, or more than one.
- * Either way there is nothing to check the row against, which is not a thing to
- * pass over quietly.
+ * @throws If the catalog has zero or more than one message for the row; either way there's
+ * nothing to check it against.
  */
 function explanationKey(prefix: string, name: string): PageKey {
   const found = DOCS_KEYS.filter(
@@ -1461,14 +1137,9 @@ interface DocumentedRow {
 /**
  * Every row of the reference tables, tied to the messages that fill it.
  *
- * Tied by name rather than by position, so that a member documented in a
- * different place in the table is still checked against its own message. The
- * explanation is the last cell but one and the example the last: the property
- * tables have a type column the event tables do not, and counting from the
- * right sidesteps that without having to know which table this is.
- *
- * @param reference - The page to read.
- * @returns One entry per body row of every reference table.
+ * Tied by name, not position, so a reordered row still matches its own message. Explanation and
+ * example are read from the last two cells, counting from the right, since property tables have
+ * an extra type column that event tables don't.
  */
 function documentedRows(reference: ReferencePage): DocumentedRow[] {
   const rows: DocumentedRow[] = [];
@@ -1493,19 +1164,10 @@ function documentedRows(reference: ReferencePage): DocumentedRow[] {
 }
 
 /**
- * `src/i18n` is the reference page's text; the page is what that text becomes.
- *
- * The catalog cannot drift from the page any more -- the page is rendered from
- * it -- so what is left to check is the rendering: that every message reaches
- * the reader, in the place the page means it to appear, as the text the catalog
- * has rather than merely similar text. A message the renderer stops printing,
- * or prints somewhere a reader will not look, is invisible in exactly the way
- * a stale copy used to be.
- *
- * Holding each one to being the same text is only a fair rule because the keys
- * are cut along the page's own seams -- a paragraph, a table cell, an example --
- * so no key holds half a sentence and nothing here has to settle for a weaker
- * assertion.
+ * `src/i18n` is the reference page's text and the page is rendered from it, so what is left to
+ * check is the rendering: that every message reaches the reader, where the page means it to
+ * appear. Held to exact text, since each key is cut along the page's own seams and never holds
+ * half a sentence.
  */
 describe.each(DOCUMENTATION_PAGES)("src/i18n, against $file", (reference) => {
   const docs = reference.document;
@@ -1569,10 +1231,8 @@ describe.each(DOCUMENTATION_PAGES)("src/i18n, against $file", (reference) => {
 
   it("explains every member in the words the catalog has", () => {
     const rows = documentedRows(reference);
-    // A page whose tables the scraper cannot read would otherwise check nothing
-    // at all and say so by passing. The second count is the same rows reached
-    // the other way, so a table that drifted out from under its heading is a
-    // failure rather than a silent omission.
+    // The second count reaches the same rows a different way, catching a table that drifted out
+    // from under its heading.
     expect(rows.length).toBeGreaterThan(20);
     expect(rows).toHaveLength(docs.querySelectorAll("table.doctable tbody tr").length);
     for (const row of rows) {
@@ -1590,10 +1250,7 @@ describe.each(DOCUMENTATION_PAGES)("src/i18n, against $file", (reference) => {
       }
     }
 
-    // An example is in the catalog exactly when it has a comment in it, since
-    // the comment is the only part of an example that gets translated. Held
-    // both ways round: a comment added to an example that has no key is a line
-    // of English that would stay English on the Russian page.
+    // An example is in the catalog exactly when it has a comment, the only translated part.
     const commented = examples(docs).filter((block) => block.includes("//"));
     const kept = DOCS_KEYS.filter((key) => key.endsWith(".code")).map((key) =>
       message(reference.language, key),
@@ -1602,10 +1259,7 @@ describe.each(DOCUMENTATION_PAGES)("src/i18n, against $file", (reference) => {
   });
 
   it("leaves no docs.* message unchecked", () => {
-    // Every check above is a comparison the page has to satisfy; this is what
-    // makes sure the page has to satisfy one for each message. Without it a key
-    // could be corrected into nonsense as long as nothing on the page happened
-    // to be laid out to look for it.
+    // Ensures every message above is actually checked against something on the page.
     const checked = new Set<string>([
       ...SHELL_KEYS,
       ...FOOTER_LINES,
@@ -1625,20 +1279,13 @@ describe.each(DOCUMENTATION_PAGES)("src/i18n, against $file", (reference) => {
 });
 
 /**
- * The popup's tables as it would draw them right now, by the part of a
- * `completion.*` key that names one.
- *
- * A function, because the tables are: they render from the catalog for the
- * language that is active when they are asked for, which is what lets the
- * checks below read the same popup twice in two languages.
- *
- * @returns Each table under the key prefix that translates it.
+ * The popup's tables as it would draw them right now, keyed by the `completion.*` prefix that
+ * names each one. A function, since the tables render from whichever language is active.
  */
 function completionTables(): Readonly<Record<string, readonly ApiCompletion[]>> {
   const elevator = elevatorMembers();
   return {
-    // The event methods are in both member lists, being what both facades have;
-    // either copy answers for `completion.events.*`.
+    // Event methods are in both member lists, so either copy answers for completion.events.*.
     events: elevator,
     elevator,
     "elevator.event": elevatorEvents(),
@@ -1651,15 +1298,10 @@ function completionTables(): Readonly<Record<string, readonly ApiCompletion[]>> 
 /**
  * The popup entry a `completion.*` message is the text of.
  *
- * `completion.<owner>.<member>`, and `completion.<owner>.event.<member>` for an
- * event name. The last segment is the entry's label, up to the spelling
- * {@link flatten} irons out.
+ * Keyed as `completion.<owner>.<member>` or `completion.<owner>.event.<member>`; the last
+ * segment is the label, up to the spelling {@link flatten} irons out.
  *
- * @param key - The message.
- * @returns The entry it belongs to, as the popup would show it in the language
- * that is active now.
- * @throws If no entry has that label, which means the key outlived the popup
- * entry it was written for.
+ * @throws If no entry has that label, meaning the key outlived the popup entry it was for.
  */
 function completionEntry(key: MessageKey): ApiCompletion {
   const path = key.slice("completion.".length);
@@ -1675,27 +1317,19 @@ function completionEntry(key: MessageKey): ApiCompletion {
 /**
  * The words of a message, a closing full stop dropped.
  *
- * The popup prints the opening sentences of a table cell and stops before the
- * detail a hovering box has no room for, so the two texts run together
- * identically until the shorter one ends in a full stop where the longer one
- * carries on with a comma or a dash. That one character is the only difference
- * worth forgiving, and taking it off both is enough to forgive it.
- *
- * @param value - The message.
- * @returns Its words, ready to be looked for inside another message's.
+ * The popup prints a table cell's opening sentences and stops there, so the two texts run
+ * identically until the shorter one ends in a full stop where the longer one continues;
+ * dropping it from both is enough to forgive that one difference.
  */
 function shortenable(value: string): string {
   return textOf(value).replace(/\.$/u, "");
 }
 
 /**
- * The popup lines that say it in the popup's own words.
+ * The popup lines that say it in the popup's own words, rather than borrowing a page's.
  *
- * Everything else the popup shows is a stretch of a reference page, and is held
- * to the page's translation of it. These say the same thing more briefly than
- * any cell does, so nothing outside the catalog holds them to anything. The
- * list is here so that a line joining it is a decision somebody made rather
- * than a check that quietly stopped applying.
+ * Nothing outside the catalog holds these to anything, so a line joining this list is a
+ * decision someone made, not a check that quietly stopped applying.
  */
 const POPUP_ONLY_WORDING: readonly MessageKey[] = [
   "completion.events.on",
@@ -1708,20 +1342,14 @@ const POPUP_ONLY_WORDING: readonly MessageKey[] = [
 ];
 
 describe("src/i18n, against the editor it also speaks for", () => {
-  // Two of these read the popup in a named language, and the rest of the file
-  // reads catalogs directly and does not care; leaving the interface in the
-  // language it starts in is what keeps that true.
+  // Reset the locale after the tests here that set one; the rest of the file doesn't care.
   afterEach(() => {
     setLocale(DEFAULT_LOCALE);
   });
 
   it("gives the popup exactly what it says, in every language", () => {
-    // The completion popup has no page for a reviewer to read, so this is what
-    // holds its text: every `completion.*` key belongs to an entry of the table
-    // its name points at, and that entry says what the catalog says for the
-    // language on screen. In English it is also the record that routing the
-    // popup through the catalog changed nothing a player can see -- these are
-    // the strings `src/ui/completions.ts` used to carry as literals.
+    // The popup has no page for a reviewer to read, so this holds its text against the
+    // catalog directly, in every language.
     const spoken = COMPLETION_KEYS.filter((key) => !key.endsWith(".code"));
     expect(spoken.length).toBeGreaterThan(20);
     for (const { language } of DOCUMENTATION_PAGES) {
@@ -1733,9 +1361,7 @@ describe("src/i18n, against the editor it also speaks for", () => {
   });
 
   it("hands the popup the skeleton the page prints", () => {
-    // The whole-program skeleton the popup inserts is the example under
-    // "Basics", which is why it has no key of its own; the two halves it can
-    // insert instead exist nowhere else and do.
+    // The whole-skeleton insert is the "Basics" example and has no key of its own.
     const inserted = (label: string): string =>
       globalCompletions().find((candidate) => candidate.label === label)?.apply ?? "";
     for (const { language } of DOCUMENTATION_PAGES) {
@@ -1747,10 +1373,8 @@ describe("src/i18n, against the editor it also speaks for", () => {
       );
     }
 
-    // The halves are the whole one taken apart and re-indented, so in every
-    // language their comments are its comments. Nothing else ties the popup's
-    // translated skeleton to the page's, and a comment corrected in one of the
-    // two is exactly how they came apart.
+    // The halves are the whole skeleton taken apart and reindented, so their comments should be
+    // a subset of the whole's.
     for (const { language } of DOCUMENTATION_PAGES) {
       const whole = commentsIn(message(language, "docs.basics.example.code"));
       for (const half of [
@@ -1765,11 +1389,8 @@ describe("src/i18n, against the editor it also speaks for", () => {
   });
 
   it("says the same thing in every language wherever it says it twice in English", () => {
-    // The popup's lines are the page's lines: `completion.elevator.event.passingFloor`
-    // and `docs.api.elevator.passingFloor` are one sentence with two keys. A
-    // correction that lands on the page therefore has to land on the popup too,
-    // and this is what stops it from landing on only one of them -- which is
-    // the shape the Russian drift actually had.
+    // Some popup lines and page lines are the same sentence under two keys; a correction to one
+    // must land on both.
     const byEnglish = new Map<string, PageKey[]>();
     for (const key of [...DOCS_KEYS, ...COMPLETION_KEYS]) {
       const english = message("en", key);
@@ -1790,11 +1411,8 @@ describe("src/i18n, against the editor it also speaks for", () => {
   });
 
   it("translates a sentence the popup borrows the way the page translates it", () => {
-    // The rule above only reaches a popup line whose English is a whole cell,
-    // word for word. Most of them are a cell cut short instead, and those had
-    // nothing holding their Russian: `src/ui/completions.ts` is English, and
-    // the pages do not print the popup. So take the English cut as given -- one
-    // text inside the other -- and require the Russian to be cut the same way.
+    // The rule above only catches a popup line that's a whole cell, word for word; most are a
+    // cell cut short instead.
     const printed = DOCS_KEYS.filter((key) => !key.endsWith(".code"));
     const ownWords: PageKey[] = [];
     for (const spoken of COMPLETION_KEYS.filter((key) => !key.endsWith(".code"))) {
@@ -1802,8 +1420,7 @@ describe("src/i18n, against the editor it also speaks for", () => {
       let borrowed = false;
       for (const source of printed) {
         const page = shortenable(message("en", source));
-        // Anything shorter than a sentence turns up in too many places to mean
-        // a borrowing: a heading would pair with half the table.
+        // Anything shorter than a sentence turns up in too many places to mean a real borrowing.
         if (Math.min(popup.length, page.length) < 30) {
           continue;
         }
@@ -1828,9 +1445,7 @@ describe("src/i18n, against the editor it also speaks for", () => {
   });
 
   it("has a placeholder only where the page prints a picture instead of a word", () => {
-    // {@link expectSays} compares the words around a placeholder rather than
-    // the markup, which is a weaker check; this is what keeps it to the one
-    // message that needs it.
+    // expectSays falls back to a weaker check for a placeholder message; this limits that reach.
     expect(DOCS_KEYS.filter((key) => message("en", key).match(PLACEHOLDER) !== null)).toEqual([
       "docs.play.start.html",
     ]);
