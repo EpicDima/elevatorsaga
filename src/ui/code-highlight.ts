@@ -18,6 +18,9 @@ function escapeHtml(value: string): string {
   return value.replace(/[&<>"']/g, (char) => ESCAPES[char] ?? char);
 }
 
+/** The class every line carries, block-displayed by `shared/styles/code.css`. */
+export const LINE_CLASS = "codeline";
+
 /** The class a changed line's `<mark>` carries; see {@link highlightJavaScript}. */
 export const CHANGED_LINE_CLASS = "tutoriallinechanged";
 
@@ -49,10 +52,14 @@ export function highlightJavaScript(
   return lines
     .map((line, index) => {
       const tag = changed.has(index) ? "mark" : "span";
-      const cls = changed.has(index) ? ` class="${CHANGED_LINE_CLASS}"` : "";
-      return `<${tag}${cls}>${line}</${tag}>`;
+      const cls = changed.has(index) ? `${LINE_CLASS} ${CHANGED_LINE_CLASS}` : LINE_CLASS;
+      // Each line ends with its own break, rather than the lines being joined
+      // by one: a newline *between* two line boxes is a text node of its own,
+      // and a block-displayed line would then leave it a blank row.
+      const brk = index === lines.length - 1 ? "" : "\n";
+      return `<${tag} class="${cls}">${line}${brk}</${tag}>`;
     })
-    .join("\n");
+    .join("");
 }
 
 /**

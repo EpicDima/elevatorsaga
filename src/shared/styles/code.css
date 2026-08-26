@@ -19,6 +19,15 @@ pre code {
 }
 
 /*
+ * A line of a highlighted program is a box of its own, so a marked one can
+ * draw a band across the whole row. The line's newline sits inside the box —
+ * see `highlightJavaScript`, which must not put one between two of them.
+ */
+.codeline {
+  display: block;
+}
+
+/*
  * Token colors mirror the live editor's theme, tuned to clear 4.5:1 against
  * both `--ds-code-bg` and the editor's active-line highlight. `tok-definition`
  * has no rule of its own: it always rides alongside an already-styled class.

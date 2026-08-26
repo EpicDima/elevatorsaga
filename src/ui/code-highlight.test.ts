@@ -4,7 +4,19 @@ import { parser } from "@lezer/javascript";
 import { highlightCode } from "@lezer/highlight";
 import { describe, expect, it } from "vitest";
 
-import { CHANGED_LINE_CLASS, editorSyntaxTheme, highlightJavaScript } from "./code-highlight.ts";
+import {
+  CHANGED_LINE_CLASS,
+  editorSyntaxTheme,
+  highlightJavaScript,
+  LINE_CLASS,
+} from "./code-highlight.ts";
+
+/** The line elements of a highlighted program, as a browser builds them. */
+function lineElements(html: string): Element[] {
+  const container = document.createElement("code");
+  container.innerHTML = html;
+  return [...container.children];
+}
 
 describe("highlightJavaScript", () => {
   it("wraps a keyword, a property, a number and a comment in their own token classes", () => {
@@ -32,20 +44,37 @@ describe("highlightJavaScript", () => {
     expect(html).toContain('<span class="tok-punctuation">;</span>');
   });
 
-  it("puts every line in its own element, joined by real newlines", () => {
+  it("puts every line in its own element, each carrying its own break", () => {
     const html = highlightJavaScript("const a = 1;\nconst b = 2;");
+    const lines = lineElements(html);
 
-    expect(html.split("\n")).toHaveLength(2);
+    expect(lines.map((line) => line.textContent)).toEqual(["const a = 1;\n", "const b = 2;"]);
+    expect(lines.map((line) => line.className)).toEqual([LINE_CLASS, LINE_CLASS]);
+  });
+
+  it("puts nothing between two lines, where a newline would render as a blank row", () => {
+    // The lines are blocks, so a break inside each is all it takes to separate them.
+    const container = document.createElement("code");
+    container.innerHTML = highlightJavaScript("a();\n\nb();", new Set([2]));
+
+    expect([...container.childNodes].map((node) => node.nodeName)).toEqual([
+      "SPAN",
+      "SPAN",
+      "MARK",
+    ]);
   });
 
   it("draws an unchanged line as a plain span and a changed one as a marked <mark>", () => {
-    const html = highlightJavaScript("const a = 1;\nconst b = 2;\nconst c = 3;", new Set([1]));
-    const lines = html.split("\n");
+    const lines = lineElements(
+      highlightJavaScript("const a = 1;\nconst b = 2;\nconst c = 3;", new Set([1])),
+    );
 
-    expect(lines[0]?.startsWith("<span>")).toBe(true);
-    expect(lines[1]?.startsWith(`<mark class="${CHANGED_LINE_CLASS}">`)).toBe(true);
-    expect(lines[1]?.endsWith("</mark>")).toBe(true);
-    expect(lines[2]?.startsWith("<span>")).toBe(true);
+    expect(lines.map((line) => line.tagName)).toEqual(["SPAN", "MARK", "SPAN"]);
+    expect(lines.map((line) => line.classList.contains(CHANGED_LINE_CLASS))).toEqual([
+      false,
+      true,
+      false,
+    ]);
   });
 
   it("marks nothing when no line is reported changed, which is the default", () => {
@@ -56,14 +85,13 @@ describe("highlightJavaScript", () => {
   });
 
   it("marks every line that changedLines names, in one call", () => {
-    const html = highlightJavaScript("one();\ntwo();\nthree();", new Set([0, 2]));
-    const lines = html.split("\n");
+    const lines = lineElements(highlightJavaScript("one();\ntwo();\nthree();", new Set([0, 2])));
 
-    expect(lines.map((line) => line.startsWith("<mark"))).toEqual([true, false, true]);
+    expect(lines.map((line) => line.tagName === "MARK")).toEqual([true, false, true]);
   });
 
   it("answers one empty span for an empty program", () => {
-    expect(highlightJavaScript("")).toBe("<span></span>");
+    expect(highlightJavaScript("")).toBe(`<span class="${LINE_CLASS}"></span>`);
   });
 
   it("reads back the exact source through textContent, marked lines included", () => {

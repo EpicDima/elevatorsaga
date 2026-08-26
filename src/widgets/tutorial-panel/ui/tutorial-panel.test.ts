@@ -99,7 +99,8 @@ describe("presentTutorial", () => {
     expect(marked.length).toBeGreaterThan(0);
     const startingLines = new Set(level.startingCode.split("\n"));
     for (const line of marked) {
-      expect(startingLines.has(line.textContent)).toBe(false);
+      // A line carries its own break; the program split above has none.
+      expect(startingLines.has(line.textContent.replace(/\n$/, ""))).toBe(false);
     }
   });
 
@@ -551,7 +552,7 @@ describe("tutorialTemplate", () => {
     ).toEqual(["0", "1"]);
     const lines = [...(code?.children ?? [])];
     expect(lines.map((line) => line.tagName)).toEqual(["SPAN", "MARK"]);
-    expect(lines[1]?.className).toBe("tutoriallinechanged");
+    expect(lines[1]?.className).toBe("codeline tutoriallinechanged");
     expect(lines[1]?.textContent).toBe("elevator.goToFloor(1);");
 
     const answer = drawn.querySelector(".tutorialanswer");
