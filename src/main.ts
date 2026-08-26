@@ -76,6 +76,9 @@ async function main(): Promise<void> {
   // `onSeedChange`. Same cell, same reason.
   // eslint-disable-next-line prefer-const -- see editorRef, above.
   let settingsControllerRef: AppBarSettingsController | undefined;
+  // The router runs its first route before the column that scrolls exists. Same cell, same reason.
+  // eslint-disable-next-line prefer-const -- see editorRef, above.
+  let stageAreaRef: HTMLElement | undefined;
 
   const editorPane = presentEditorPane(requireElement(".code"), {
     currentSlot: () => appRef?.currentCodeSlot ?? DEFAULT_CODE_SLOT,
@@ -188,6 +191,11 @@ async function main(): Promise<void> {
   startRouter(
     (params, query) => {
       app.handleRoute(params, query);
+      // A card and a screenful of house don't fit at once, so the column may still be
+      // scrolled down to the building from the level before; a lesson opens at its title.
+      if (stageAreaRef !== undefined) {
+        stageAreaRef.scrollTop = 0;
+      }
     },
     {
       chapter1LevelCount: chapter1Levels.length,
@@ -227,6 +235,20 @@ async function main(): Promise<void> {
   const stageArea = document.createElement("div");
   stageArea.className = "stagearea";
   stageArea.append(requireElement(".tutorial"), requireElement(".world"));
+  stageAreaRef = stageArea;
+
+  // The house is a whole screenful under a card that can be taller than the pane, so a run
+  // started from the lesson would move elevators nobody can see; `.world` is the last thing
+  // in the column, so its foot is the house. Only on the pause-to-running edge, so changing
+  // speed mid-run doesn't drag the column away from whatever is being read.
+  let running = false;
+  app.worldController.on("timescale_changed", () => {
+    const nowRunning = !app.worldController.isPaused;
+    if (nowRunning && !running) {
+      stageArea.scrollTop = stageArea.scrollHeight;
+    }
+    running = nowRunning;
+  });
   workspaceElements.gamePane.append(
     requireElement(".level"),
     stageArea,

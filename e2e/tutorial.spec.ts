@@ -298,8 +298,13 @@ test("stands the lesson across the pane with the whole house under it, at every 
   // Guards several layout regressions at once (card beside the building again,
   // double scrollbars, house or stats pushed off-screen). Language is switched
   // via the picker, not `goto`, since a same-hash navigation wouldn't redraw.
-  const check = async (where: string, height: number, roomForBoth = true): Promise<void> => {
+  const check = async (where: string, height: number): Promise<void> => {
     const card = page.locator(".tutorial");
+    // Back to the top first: the column really scrolls now, and the call
+    // before this one left it at the foot.
+    await page.locator(".stagearea").evaluate((area) => {
+      area.scrollTop = 0;
+    });
     const lesson = await boxOf(card, `the lesson card on ${where}`);
     const world = await boxOf(page.locator(".world"), `the building on ${where}`);
 
@@ -318,24 +323,23 @@ test("stands the lesson across the pane with the whole house under it, at every 
       .evaluate((area) => (area as HTMLElement).clientWidth);
     expect(lesson.width, `the lesson card on ${where}`).toBeCloseTo(Math.min(640, room - 32), 0);
 
-    // One box holds both and doesn't scroll while there's room for both.
-    // Sideways it never scrolls at all: `.stage` owns the inline axis for an oversized building.
+    // One box holds both, and the house keeps a whole screenful of it: what a
+    // card costs is scroll length, not the building's height. Sideways it
+    // never scrolls at all: `.stage` owns the inline axis for an oversized building.
     const shared = await page.locator(".stagearea").evaluate((area) => ({
       down: area.scrollHeight - area.clientHeight,
       across: area.scrollWidth - area.clientWidth,
+      port: area.clientHeight,
     }));
     expect(shared.across, `the stage area on ${where}`).toBe(0);
-    if (roomForBoth) {
-      expect(shared.down, `the stage area on ${where}`).toBe(0);
-    }
+    expect(shared.down, `the stage area on ${where}`).toBeGreaterThan(0);
+    expect(world.height, `the building on ${where}`).toBeCloseTo(shared.port, 0);
 
-    // The elevators must be in view: the house draws bottom-up, so a too-tall
-    // building loses its cars off-screen first. At the narrow end the column
-    // scrolls to its foot first, since that's where the fallback promises them.
-    const parked = await page.locator(".stagearea").evaluate((area, scroll: boolean) => {
-      if (scroll) {
-        area.scrollTop = area.scrollHeight;
-      }
+    // The elevators must be in view at the foot of the scroll, which is where
+    // the house is: it draws bottom-up, so a too-tall building loses its cars
+    // off-screen first.
+    const parked = await page.locator(".stagearea").evaluate((area) => {
+      area.scrollTop = area.scrollHeight;
       const view = area.getBoundingClientRect();
       const cars = [...area.querySelectorAll(".car")].map((car) => car.getBoundingClientRect());
       return {
@@ -343,7 +347,7 @@ test("stands the lesson across the pane with the whole house under it, at every 
         shown: cars.filter((car) => car.top >= view.top - 1 && car.bottom <= view.bottom + 1)
           .length,
       };
-    }, !roomForBoth);
+    });
     expect(parked.cars, `the building on ${where}`).toBeGreaterThan(0);
     expect(parked.shown, `the elevators on ${where}`).toBe(parked.cars);
 
@@ -379,7 +383,7 @@ test("stands the lesson across the pane with the whole house under it, at every 
     // Reading the value back confirms the presses landed and the pane really
     // is at its narrowest, not still at the wide default.
     await expect(splitter).toHaveAttribute("aria-valuenow", "37");
-    await check(`${language} at 1040x600 with the game pane dragged to 380px`, 600, false);
+    await check(`${language} at 1040x600 with the game pane dragged to 380px`, 600);
 
     await splitter.dblclick();
     await expect(splitter).toHaveAttribute("aria-valuenow", "62");
@@ -514,6 +518,7 @@ test("scrolls down to the building and back up to the lesson in one box", async 
       taller: card.getBoundingClientRect().height - area.clientHeight,
       start,
       back: card.getBoundingClientRect().top - view.top,
+      port: area.clientHeight,
       worldHeight: foot.height,
       worldBottom: foot.bottom - view.bottom,
     };
@@ -527,12 +532,61 @@ test("scrolls down to the building and back up to the lesson in one box", async 
     Math.abs(scrolled.worldBottom),
     "the building at the foot of the scroll",
   ).toBeLessThanOrEqual(1);
-  // A fully expanded card is the one case where the building sits at its minimum-floor height.
-  expect(scrolled.worldHeight, "the building under a fully opened lesson").toBeCloseTo(96, 0);
+  // Even under the tallest card the track has, the house keeps the whole box:
+  // it is the card that lengthens the scroll, not the building that gives way.
+  expect(scrolled.worldHeight, "the building under a fully opened lesson").toBeCloseTo(
+    scrolled.port,
+    0,
+  );
   // Scrolling back returns to the same reading position - the whole point of
   // sharing one box between the lesson and the building.
   expect(scrolled.start, "the lesson card before the scroll").toBeCloseTo(18, 0);
   expect(scrolled.back, "the lesson card after scrolling back").toBeCloseTo(scrolled.start, 0);
+});
+
+test("drops the column to the house when a run starts, and opens the next lesson at its title", async ({
+  page,
+}) => {
+  // The house keeps a whole screenful now, so a card and the building never
+  // share the screen. This is what pays for that: the column is at the lesson
+  // while it's being read, and at the house the moment the cars move.
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto(FIRST_LEVEL);
+  await expect(page.locator(".tutorialpanel")).toBeVisible();
+
+  const column = page.locator(".stagearea");
+  const where = async (): Promise<{ top: number; foot: number; carsShown: boolean }> =>
+    column.evaluate((area) => {
+      const view = area.getBoundingClientRect();
+      const cars = [...area.querySelectorAll(".car")].map((car) => car.getBoundingClientRect());
+      return {
+        top: Math.round(area.scrollTop),
+        foot: Math.round(area.scrollHeight - area.clientHeight),
+        carsShown:
+          cars.length > 0 &&
+          cars.every((car) => car.top >= view.top - 1 && car.bottom <= view.bottom + 1),
+      };
+    });
+
+  const arrived = await where();
+  expect(arrived.foot, "the lesson and the house fit on one screen after all").toBeGreaterThan(0);
+  expect(arrived.top, "the level opened somewhere other than its lesson").toBe(0);
+
+  await startButton(page).click();
+  // Polled, not read once: the run redraws the building, and the scroll is
+  // set on the same edge that starts it.
+  await expect
+    .poll(async () => (await where()).top, { message: "the column after Start" })
+    .toBe(arrived.foot);
+  expect((await where()).carsShown, "the elevators of a run that just started").toBe(true);
+
+  // A hash change, not a reload: the router redraws the card in place, and the
+  // column would otherwise still be parked at the house of the level before.
+  await page.goto("/#level=tutorial-2");
+  await expect(page.getByRole("heading", { name: "The same loop, written by hand" })).toBeVisible();
+  await expect
+    .poll(async () => (await where()).top, { message: "the column on the next lesson" })
+    .toBe(0);
 });
 
 test("costs the levels nothing: the widest building in the game still fits its pane", async ({

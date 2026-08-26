@@ -35,14 +35,16 @@ describe("the game pane's column", () => {
     }
   });
 
-  it("lets the building give back the room the card above it takes", () => {
+  it("keeps the building a screenful whatever the card above it takes", () => {
     const world = ruleBody(".stagearea > .world");
     expect(declaration(world, "block-size", ".stagearea > .world")).toBe("100%");
-    expect(declaration(world, "flex", ".stagearea > .world")).toBe("0 1 auto");
-    // A floor against collapse, not a target size: without it, a lesson with
-    // its disclosures open would take the house down to nothing instead of
-    // scrolling the column.
-    expect(declaration(world, "min-block-size", ".stagearea > .world")).toBe("min(96px, 100%)");
+    // Neither grows nor shrinks: a lesson with every disclosure open would
+    // otherwise take the house down to nothing instead of lengthening the
+    // column's scroll, which is what leaves the house no room.
+    expect(declaration(world, "flex", ".stagearea > .world")).toBe("0 0 auto");
+    expect(world, "the house can collapse under a tall card again").not.toMatch(
+      /^\s*min-block-size/m,
+    );
     expect(declaration(ruleBody(".stagearea > .tutorial"), "flex", ".stagearea > .tutorial")).toBe(
       "0 0 auto",
     );

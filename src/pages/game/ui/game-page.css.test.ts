@@ -20,4 +20,13 @@ describe("the fullscreen demo", () => {
     // suggest the demo still covers a wrapper the game page no longer has.
     expect(styleSource).not.toMatch(/\.fullscreen-demo[^,{]*\.container/);
   });
+
+  it("takes the lesson card out of the flow rather than merely hiding it", () => {
+    // Everything else keeps its box so the building lands where it does in
+    // play. The card can't: `.world` is a screenful, so the card's own height
+    // would push the building's foot below the demo's bottom edge.
+    expect(styleSource).toMatch(
+      /\.fullscreen-demo \.stagearea > \.tutorial \{\n {2}display: none;\n\}/,
+    );
+  });
 });

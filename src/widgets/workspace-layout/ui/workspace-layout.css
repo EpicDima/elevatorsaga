@@ -83,14 +83,14 @@ html[data-layout="game"] .splitter {
 }
 
 /*
- * `block-size: 100%` (basis) plus `flex-shrink: 1` gives a card above exactly the room it
- * needs, leaving the house full height with no card at all; `min-block-size` is a collapse
- * floor (two floors' worth), not a target.
+ * A screenful of the pane on every route, card or no card: `flex-shrink: 0` is what stops
+ * the card above taking the house's height, so a hint opened lengthens the column's scroll
+ * instead of collapsing the building. `src/main.ts` scrolls the column back to the house
+ * when a run starts, since a card taller than the pane would otherwise hide it.
  */
 .stagearea > .world {
-  flex: 0 1 auto;
+  flex: 0 0 auto;
   block-size: 100%;
-  min-block-size: min(96px, 100%);
 }
 
 .splitter {

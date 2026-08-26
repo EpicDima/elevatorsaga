@@ -15,3 +15,9 @@
 .fullscreen-demo .stagearea > *:not(.world) {
   visibility: hidden;
 }
+
+/* The one box taken out of the flow instead: `.world` is a whole screenful of the pane, so a
+   lesson card left standing above it would push the building's foot past the demo's bottom. */
+.fullscreen-demo .stagearea > .tutorial {
+  display: none;
+}
