@@ -28,6 +28,11 @@ describe("the game pane's column", () => {
     // `visible`/other pair is not honored, so leaving it unwritten computes
     // to a second scrollbar under the building.
     expect(declaration(stageArea, "overflow", ".stagearea")).toBe("hidden auto");
+    // `stage-column.ts` makes the column a tab stop while it scrolls, and a
+    // ring drawn outside it would be clipped by the pane's own edge.
+    expect(declaration(ruleBody(".stagearea:focus-visible"), "outline-offset", "the column")).toBe(
+      "-3px",
+    );
     for (const selector of [".stagearea > .tutorial", ".tutorial"]) {
       const card = ruleBody(selector);
       expect(card, `${selector} scrolls inside itself again`).not.toMatch(/^\s*overflow/m);
@@ -35,23 +40,23 @@ describe("the game pane's column", () => {
     }
   });
 
-  it("keeps the building a screenful whatever the card above it takes", () => {
+  it("stands the building at its full height, however tall that is", () => {
     const world = ruleBody(".stagearea > .world");
-    expect(declaration(world, "block-size", ".stagearea > .world")).toBe("100%");
-    // Neither grows nor shrinks: a lesson with every disclosure open would
-    // otherwise take the house down to nothing instead of lengthening the
-    // column's scroll, which is what leaves the house no room.
+    // A minimum, not a height: a house too tall for the pane must grow the
+    // column and be scrolled to, not scroll inside itself. Neither does it
+    // shrink, or a lesson with every disclosure open would take it down to
+    // nothing instead of lengthening the column.
+    expect(declaration(world, "min-block-size", ".stagearea > .world")).toBe("100%");
     expect(declaration(world, "flex", ".stagearea > .world")).toBe("0 0 auto");
-    expect(world, "the house can collapse under a tall card again").not.toMatch(
-      /^\s*min-block-size/m,
-    );
+    expect(world, "a tall house is boxed into the pane again").not.toMatch(/^\s*block-size/m);
     expect(declaration(ruleBody(".stagearea > .tutorial"), "flex", ".stagearea > .tutorial")).toBe(
       "0 0 auto",
     );
     // `.world` clips so a house wider than the pane doesn't draw over the
-    // editor; `.stage` scrolls, absorbing that width instead.
+    // editor; `.stage` scrolls, absorbing that width instead. Only that width:
+    // `auto` in the block axis is the second scrollbar all of this is against.
     expect(ruleBody(".world")).toMatch(/^\s*overflow:\s*hidden;/m);
-    expect(declaration(ruleBody(".stage"), "overflow", ".stage")).toBe("auto");
+    expect(declaration(ruleBody(".stage"), "overflow", ".stage")).toBe("auto hidden");
   });
 
   it("states the card's width once, with no threshold anywhere", () => {

@@ -26,3 +26,8 @@ export {
   splitRange,
   type LayoutMode,
 } from "./model/layout-mode.ts";
+export {
+  presentStageColumn,
+  type StageColumnController,
+  type StageColumnOptions,
+} from "./ui/stage-column.ts";

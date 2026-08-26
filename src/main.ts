@@ -28,9 +28,11 @@ import {
 import { presentEditorPane } from "#widgets/editor-pane/index.ts";
 import {
   buildWorkspaceLayoutSkeleton,
+  presentStageColumn,
   presentWorkspaceLayout,
   readLayoutMode,
   type LayoutMode,
+  type StageColumnController,
 } from "#widgets/workspace-layout/index.ts";
 
 /**
@@ -78,7 +80,7 @@ async function main(): Promise<void> {
   let settingsControllerRef: AppBarSettingsController | undefined;
   // The router runs its first route before the column that scrolls exists. Same cell, same reason.
   // eslint-disable-next-line prefer-const -- see editorRef, above.
-  let stageAreaRef: HTMLElement | undefined;
+  let stageColumnRef: StageColumnController | undefined;
 
   const editorPane = presentEditorPane(requireElement(".code"), {
     currentSlot: () => appRef?.currentCodeSlot ?? DEFAULT_CODE_SLOT,
@@ -191,11 +193,9 @@ async function main(): Promise<void> {
   startRouter(
     (params, query) => {
       app.handleRoute(params, query);
-      // A card and a screenful of house don't fit at once, so the column may still be
-      // scrolled down to the building from the level before; a lesson opens at its title.
-      if (stageAreaRef !== undefined) {
-        stageAreaRef.scrollTop = 0;
-      }
+      // The column is still parked where the level before left it, which on a taller
+      // building is nowhere near the same place.
+      stageColumnRef?.park();
     },
     {
       chapter1LevelCount: chapter1Levels.length,
@@ -232,20 +232,23 @@ async function main(): Promise<void> {
     codePane: t("game.workspace.codePane"),
     splitter: t("game.workspace.splitter"),
   });
+  // Held rather than looked up twice: appending to the detached column takes the card out of
+  // the document, so a second `requireElement` would find nothing.
+  const lessonCard = requireElement(".tutorial");
   const stageArea = document.createElement("div");
   stageArea.className = "stagearea";
-  stageArea.append(requireElement(".tutorial"), requireElement(".world"));
-  stageAreaRef = stageArea;
+  stageArea.append(lessonCard, requireElement(".world"));
+  const stageColumn = presentStageColumn({ column: stageArea, lesson: lessonCard });
+  stageColumnRef = stageColumn;
 
-  // The house is a whole screenful under a card that can be taller than the pane, so a run
-  // started from the lesson would move elevators nobody can see; `.world` is the last thing
-  // in the column, so its foot is the house. Only on the pause-to-running edge, so changing
-  // speed mid-run doesn't drag the column away from whatever is being read.
+  // A lesson, or a building taller than the pane, puts the lobby below the fold, so a run
+  // started from up the column would move elevators nobody can see. Only on the pause-to-
+  // running edge, so changing speed mid-run doesn't drag the column away from what is being read.
   let running = false;
   app.worldController.on("timescale_changed", () => {
     const nowRunning = !app.worldController.isPaused;
     if (nowRunning && !running) {
-      stageArea.scrollTop = stageArea.scrollHeight;
+      stageColumn.showGround();
     }
     running = nowRunning;
   });
@@ -261,6 +264,9 @@ async function main(): Promise<void> {
     root: document.documentElement,
     storage: localStorage,
   });
+  // The first route ran before any of this existed, and the panes it measures are only now
+  // laid out — so the opening park is done here rather than from the router's callback.
+  stageColumn.park();
 
   // `.barspace` is the seam: everything appended before it is pushed left, everything after
   // it right. `.controls` is reparented, not rebuilt — it was already drawn and wired in the

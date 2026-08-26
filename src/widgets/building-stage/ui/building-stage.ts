@@ -48,12 +48,6 @@ export interface BuildingStagePresenter {
 /** Counter for {@link BuildingStagePresenter}'s shared hover card id, unique per mounted stage. */
 let nextCardId = 0;
 
-/**
- * Frames after mount the stage may still auto-scroll to the lobby, to outlast
- * `src/main.ts`'s synchronous reparenting of `.world`, which resets the scroll.
- */
-const GROUND_SETTLE_FRAMES = 3;
-
 /** A floor's live waiting-passenger snapshot, read fresh when its card is shown. */
 function floorSnapshot(world: World, floor: Floor): FloorCardSnapshot {
   const waiting = world.users.filter(
@@ -191,63 +185,22 @@ export function presentBuildingStage(parent: HTMLElement, world: World): Buildin
   }
 
   /**
-   * Lights the stage's edge shadows and makes it keyboard-scrollable (WCAG
-   * 2.1.1) exactly while there's something to scroll to — a tab stop that
-   * goes nowhere is also a violation.
+   * Makes the stage keyboard-scrollable (WCAG 2.1.1) exactly while there's
+   * somewhere to scroll to — a tab stop that goes nowhere is also a violation.
+   * The inline axis only: a building taller than the pane grows `.stagearea`,
+   * which scrolls the lesson card and the house together.
    */
-  function updateStageEdges(): void {
-    const room = stage.scrollHeight - stage.clientHeight;
-    setClass(stageWrap, "is-cut-top", stage.scrollTop > 4);
-    setClass(stageWrap, "is-cut-bottom", room > 4 && stage.scrollTop < room - 4);
-    // Horizontal overflow also needs a tab stop; the shadows above shade vertical only.
-    const roomX = stage.scrollWidth - stage.clientWidth;
-    if (room > 4 || roomX > 4) {
+  function updateStageTabStop(): void {
+    if (stage.scrollWidth - stage.clientWidth > 4) {
       stage.tabIndex = 0;
     } else {
       stage.removeAttribute("tabindex");
     }
   }
 
-  /** Whether the stage is scrolled to the bottom, within a pixel of rounding. */
-  function isAtGround(): boolean {
-    return stage.scrollTop >= stage.scrollHeight - stage.clientHeight - 1;
-  }
-
-  /** Whether the opening auto-scroll to the lobby has landed, or its window has closed. */
-  let groundShown = false;
-
-  /**
-   * Whether the view is parked at the lobby as of the last geometry pass or
-   * scroll. Re-pinned to the ground at the end of each pass while this holds,
-   * so a resize doesn't leave the view stranded mid-building.
-   */
-  let atGround = true;
-
   stage.addEventListener("scroll", () => {
-    atGround = isAtGround();
-    updateStageEdges();
     placeCard();
   });
-
-  /**
-   * Scrolls the stage down to the lobby, retried on every geometry pass until
-   * one lands: `src/main.ts` reparents `.world` into the workspace shell after
-   * mount, which resets the scroll a frame after this first runs.
-   */
-  function showGround(): void {
-    if (groundShown) {
-      return;
-    }
-    const room = stage.scrollHeight - stage.clientHeight;
-    if (room <= 0) {
-      return;
-    }
-    if (stage.scrollTop >= room) {
-      groundShown = true;
-      return;
-    }
-    stage.scrollTop = stage.scrollHeight;
-  }
 
   // Appended top-down for the stylesheet's `:nth-child(odd)` zebra; the array
   // itself stays in level order.
@@ -434,36 +387,10 @@ export function presentBuildingStage(parent: HTMLElement, world: World): Buildin
     // A card open on a floor or car this pass just moved would otherwise be
     // pointing at last frame's position until the next hover.
     hideCard();
-    showGround();
-    if (atGround) {
-      stage.scrollTop = stage.scrollHeight;
-    }
-    // Read back rather than assumed: shrinking to fit can land the view at the
-    // bottom without anyone scrolling.
-    atGround = isAtGround();
-    updateStageEdges();
+    updateStageTabStop();
   }
 
   recomputeGeometry();
-
-  // Retries showGround for a few frames regardless of resizes, to outlast the
-  // shell's post-mount reparenting of `.world`.
-  if (typeof requestAnimationFrame === "function") {
-    let framesLeft = GROUND_SETTLE_FRAMES;
-    const settleGround = (): void => {
-      showGround();
-      framesLeft -= 1;
-      if (framesLeft <= 0) {
-        groundShown = true;
-        return;
-      }
-      requestAnimationFrame(settleGround);
-    };
-    requestAnimationFrame(settleGround);
-  } else {
-    // No frames to wait for — jsdom, and any other caller without a compositor.
-    groundShown = true;
-  }
 
   if (typeof ResizeObserver !== "undefined") {
     const observer = new ResizeObserver(() => {

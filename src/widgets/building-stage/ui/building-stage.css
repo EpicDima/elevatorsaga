@@ -37,35 +37,11 @@
   min-block-size: 0;
 }
 
-/* A fade hints that a tall building continues past the edge, rather than reading as simply cut off. */
-.stagewrap::before,
-.stagewrap::after {
-  content: "";
-  position: absolute;
-  inset-inline: 0;
-  z-index: 5;
-  block-size: 22px;
-  opacity: 0;
-  transition: opacity 0.15s linear;
-  pointer-events: none;
-}
-
-.stagewrap::before {
-  inset-block-start: 0;
-  background: linear-gradient(var(--ds-bg), transparent);
-}
-
-.stagewrap::after {
-  inset-block-end: 0;
-  background: linear-gradient(transparent, var(--ds-bg));
-}
-
-.stagewrap.is-cut-top::before,
-.stagewrap.is-cut-bottom::after {
-  opacity: 1;
-}
-
-/* safe center: plain center would push an oversized building's far edge out of scroll range. */
+/*
+ * safe center: plain center would push an oversized building's far edge out of scroll range.
+ * `auto hidden`: the block axis belongs to `.stagearea`, which grows this box to the whole
+ * building rather than clipping it, and a second scrollbar here is exactly what that is for.
+ */
 .stage {
   display: grid;
   align-content: safe center;
@@ -75,7 +51,7 @@
   padding: 18px 16px;
   background:
     radial-gradient(120% 90% at 50% 0%, rgb(255 255 255 / 2.5%), transparent 70%), var(--ds-bg);
-  overflow: auto;
+  overflow: auto hidden;
 }
 
 html[data-theme="light"] .stage {

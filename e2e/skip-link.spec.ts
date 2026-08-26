@@ -47,5 +47,5 @@ test("saves a walk through the whole building", async ({ page }) => {
   // Exact, not a range: a range wouldn't have caught this drifting before. Any
   // new control between the link and the editor moves it, and the new number
   // has to be measured rather than guessed at.
-  expect(stops).toBe(259);
+  expect(stops).toBe(260);
 });

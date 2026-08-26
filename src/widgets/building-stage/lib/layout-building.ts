@@ -3,7 +3,7 @@
  * and whether a floor has room to lay its parts out generously. A building is drawn at one of
  * two floor heights, picked from how many floors it has rather than from the window, so a car
  * and a passenger are the same size on every level and at every window size; a building too
- * tall for the stage scrolls instead of shrinking.
+ * tall for the pane is scrolled down to instead of shrinking.
  */
 
 /**

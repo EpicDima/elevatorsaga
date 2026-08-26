@@ -70,6 +70,12 @@ html[data-layout="game"] .splitter {
   overflow: hidden auto;
 }
 
+/* `stage-column.ts` gives this a tab stop while it scrolls; an outward ring would be clipped
+   by the pane's own edge. */
+.stagearea:focus-visible {
+  outline-offset: -3px;
+}
+
 /*
  * 640px fits the widest code block with margin to spare; `inline-size`, not `max-inline-size`,
  * keeps the card a constant width rather than resizing to whatever prose is on screen.
@@ -83,14 +89,15 @@ html[data-layout="game"] .splitter {
 }
 
 /*
- * A screenful of the pane on every route, card or no card: `flex-shrink: 0` is what stops
- * the card above taking the house's height, so a hint opened lengthens the column's scroll
- * instead of collapsing the building. `src/main.ts` scrolls the column back to the house
- * when a run starts, since a card taller than the pane would otherwise hide it.
+ * At least a screenful, and as much more as the building needs: `min-block-size` (not
+ * `block-size`) is what lets a house too tall for the pane stand at its full height, so this
+ * column is the only thing that scrolls. `flex-shrink: 0` stops the card above taking the
+ * house's height instead. `stage-column.ts` parks the column, since the foot of a tall
+ * building — the lobby, where the game happens — is below the fold.
  */
 .stagearea > .world {
   flex: 0 0 auto;
-  block-size: 100%;
+  min-block-size: 100%;
 }
 
 .splitter {

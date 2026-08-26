@@ -49,11 +49,7 @@ function mount(world: World, width: number, height: number): Mounted {
   return { parent, stage, presenter };
 }
 
-/**
- * Stubs the scroll extents jsdom does not compute.
- * `scrollTop` is a real accessor, not a value: jsdom's own getter always answers 0, which
- * would make a scroll the widget performed indistinguishable from one it declined to.
- */
+/** Stubs the scroll extents jsdom does not compute. */
 function stubScroll(
   stage: HTMLElement,
   extents: { scrollHeight?: number; scrollWidth?: number },
@@ -65,14 +61,6 @@ function stubScroll(
   Object.defineProperty(stage, "scrollWidth", {
     value: extents.scrollWidth ?? 0,
     configurable: true,
-  });
-  let scrollTop = 0;
-  Object.defineProperty(stage, "scrollTop", {
-    configurable: true,
-    get: () => scrollTop,
-    set: (value: number) => {
-      scrollTop = value;
-    },
   });
 }
 
@@ -684,119 +672,19 @@ describe("presentBuildingStage", () => {
     expect(floorEl?.getAttribute("aria-describedby")).toBe(card.id);
   });
 
-  it("opens looking at the lobby, and hands the view over once it is there", () => {
-    // The building draws ground-floor-last, so a tall stage opens looking at the roof; each
-    // geometry pass retries until the view is at the bottom, then stops overriding the player's scroll.
+  it("leaves the block axis to the column the stage stands in", () => {
+    // A building taller than the pane is scrolled to by `.stagearea`, which grows to hold
+    // the whole house; a tab stop here as well would be a second stop for the same scroll.
     const world = createWorld({ floorCount: 8, elevatorCount: 1 });
     const { stage, presenter } = mount(world, 800, 218);
     stubScroll(stage, { scrollHeight: 1000 });
 
     presenter.recomputeGeometry();
-    expect(stage.scrollTop).toBe(1000);
 
-    presenter.recomputeGeometry();
-    // A scroll event is how the widget learns the view moved; without one, it would still
-    // believe the stage is parked at the lobby.
-    stage.scrollTop = 0;
-    stage.dispatchEvent(new Event("scroll"));
-    presenter.recomputeGeometry();
-
-    expect(stage.scrollTop).toBe(0);
-  });
-
-  it("puts the lobby back in the window when a pass moves the floors under it", () => {
-    // The view is handed over, but the floors are re-laid-out under a scroll position that
-    // doesn't move with them, so a resize can push the ground (and its parked cars) out of view
-    // after the opening scroll has already finished.
-    const world = createWorld({ floorCount: 8, elevatorCount: 1 });
-    const { stage, presenter } = mount(world, 800, 218);
-    stubScroll(stage, { scrollHeight: 1000 });
-
-    presenter.recomputeGeometry();
-    presenter.recomputeGeometry();
-    // The stub doesn't clamp like a real scroll container: 782px is the room a 218px box
-    // has for a 1000px building.
-    stage.scrollTop = 782;
-    stage.dispatchEvent(new Event("scroll"));
-
-    // Now the box is 100px, so there's 900px of room, and the ground view is 118px above it.
-    Object.defineProperty(stage, "clientHeight", { value: 100, configurable: true });
-    presenter.recomputeGeometry();
-
-    expect(stage.scrollTop).toBe(1000);
-  });
-
-  it("stops reaching for the lobby once its opening frames are spent", () => {
-    // For a stage that never settles: the retry loop gives up after a fixed number of animation
-    // frames, run by hand here so the count is exact rather than a race with the machine's speed.
-    const frames: (() => void)[] = [];
-    vi.stubGlobal("requestAnimationFrame", (callback: () => void): number => frames.push(callback));
-
-    const world = createWorld({ floorCount: 8, elevatorCount: 1 });
-    const { stage, presenter } = mount(world, 800, 218);
-    // Deliberately not stubScroll: a scrollTop that reads back 0 regardless is exactly the
-    // stage this loop exists for, so every retry writes and none of them lands.
-    let scrolls = 0;
-    Object.defineProperty(stage, "scrollHeight", { value: 1000, configurable: true });
-    Object.defineProperty(stage, "scrollTop", {
-      configurable: true,
-      get: () => 0,
-      set: () => {
-        scrolls += 1;
-      },
-    });
-
-    // Bounded, so a loop that never shuts itself off fails this test rather than hanging it.
-    let runs = 0;
-    for (let frame = frames.shift(); frame !== undefined && runs < 10; frame = frames.shift()) {
-      frame();
-      runs += 1;
-    }
-    const scrollsWhileSettling = scrolls;
-
-    presenter.recomputeGeometry();
-    const afterOnePass = scrolls;
-    presenter.recomputeGeometry();
-
-    expect(frames).toHaveLength(0);
-    expect(scrollsWhileSettling).toBeGreaterThan(0);
-    // One write from the first pass (it still believes the view is at the lobby), then none:
-    // the loop itself must not survive past the opening window, even though it never scrolled anything.
-    expect(afterOnePass).toBe(scrollsWhileSettling + 1);
-    expect(scrolls).toBe(afterOnePass);
-  });
-
-  it("hands the view over straight away where there are no frames to retry in", () => {
-    // Without a compositor the opening scroll gets only the passes it has already had, so
-    // a later one must leave the view where the player put it rather than reaching again.
-    vi.stubGlobal("requestAnimationFrame", undefined);
-
-    const world = createWorld({ floorCount: 8, elevatorCount: 1 });
-    const { stage, presenter } = mount(world, 800, 218);
-    stubScroll(stage, { scrollHeight: 1000 });
-
-    stage.scrollTop = 300;
-    stage.dispatchEvent(new Event("scroll"));
-    presenter.recomputeGeometry();
-
-    expect(stage.scrollTop).toBe(300);
-  });
-
-  it("gives the stage a tab stop exactly while there is somewhere to scroll to", () => {
-    // A scrollable region a keyboard cannot reach is WCAG 2.1.1, and so is a tab stop that goes nowhere.
-    const world = createWorld({ floorCount: 8, elevatorCount: 1 });
-    const { stage, presenter } = mount(world, 800, 218);
-
-    // jsdom reports nothing overflowing until told otherwise.
     expect(stage.hasAttribute("tabindex")).toBe(false);
-
-    stubScroll(stage, { scrollHeight: 1000 });
-    presenter.recomputeGeometry();
-
-    expect(stage.tabIndex).toBe(0);
   });
 
-  it("gives a wide building a tab stop too, though every floor of it fits on screen", () => {
+  it("gives a wide building a tab stop, since the inline axis is its own", () => {
     // A building whose floors all fit vertically can still have a shaft off the right-hand edge.
     const world = createWorld({ floorCount: 3, elevatorCount: 6 });
     const { stage, presenter } = mount(world, 400, 400);
@@ -805,24 +693,6 @@ describe("presentBuildingStage", () => {
     presenter.recomputeGeometry();
 
     expect(stage.tabIndex).toBe(0);
-  });
-
-  it("shades the edge the building carries on past, at whichever end that is", () => {
-    const world = createWorld({ floorCount: 8, elevatorCount: 1 });
-    const { parent, stage, presenter } = mount(world, 800, 218);
-    const wrap = requireElement(".stagewrap", parent);
-    stubScroll(stage, { scrollHeight: 1000 });
-
-    // At the lobby the widget opened on: floors above, none below.
-    presenter.recomputeGeometry();
-    expect(wrap.classList.contains("is-cut-top")).toBe(true);
-    expect(wrap.classList.contains("is-cut-bottom")).toBe(false);
-
-    // A scroll event is what redraws the shadows while a player scrolls.
-    stage.scrollTop = 0;
-    stage.dispatchEvent(new Event("scroll"));
-    expect(wrap.classList.contains("is-cut-top")).toBe(false);
-    expect(wrap.classList.contains("is-cut-bottom")).toBe(true);
   });
 
   it("creates a passenger view for every new_user and removes it when the passenger is removed", () => {

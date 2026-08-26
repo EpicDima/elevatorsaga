@@ -323,17 +323,23 @@ test("stands the lesson across the pane with the whole house under it, at every 
       .evaluate((area) => (area as HTMLElement).clientWidth);
     expect(lesson.width, `the lesson card on ${where}`).toBeCloseTo(Math.min(640, room - 32), 0);
 
-    // One box holds both, and the house keeps a whole screenful of it: what a
-    // card costs is scroll length, not the building's height. Sideways it
-    // never scrolls at all: `.stage` owns the inline axis for an oversized building.
+    // One box holds both, and the house keeps a whole screenful of it at the
+    // least: what a card costs is scroll length, not the building's height.
+    // Sideways it never scrolls at all: `.stage` owns the inline axis for an
+    // oversized building.
     const shared = await page.locator(".stagearea").evaluate((area) => ({
       down: area.scrollHeight - area.clientHeight,
       across: area.scrollWidth - area.clientWidth,
       port: area.clientHeight,
+      nested: [...area.querySelectorAll("*")]
+        .filter((box) => box.scrollHeight - box.clientHeight > 1)
+        .map((box) => box.className),
     }));
     expect(shared.across, `the stage area on ${where}`).toBe(0);
     expect(shared.down, `the stage area on ${where}`).toBeGreaterThan(0);
-    expect(world.height, `the building on ${where}`).toBeCloseTo(shared.port, 0);
+    expect(world.height, `the building on ${where}`).toBeGreaterThanOrEqual(shared.port - 1);
+    // The whole point of the shared box: one scrollbar in the pane, not two.
+    expect(shared.nested, `a second scroll inside the stage area on ${where}`).toEqual([]);
 
     // The elevators must be in view at the foot of the scroll, which is where
     // the house is: it draws bottom-up, so a too-tall building loses its cars
@@ -532,11 +538,10 @@ test("scrolls down to the building and back up to the lesson in one box", async 
     Math.abs(scrolled.worldBottom),
     "the building at the foot of the scroll",
   ).toBeLessThanOrEqual(1);
-  // Even under the tallest card the track has, the house keeps the whole box:
-  // it is the card that lengthens the scroll, not the building that gives way.
-  expect(scrolled.worldHeight, "the building under a fully opened lesson").toBeCloseTo(
-    scrolled.port,
-    0,
+  // Even under the tallest card the track has, the house keeps a whole box to
+  // itself: it is the card that lengthens the scroll, not the building that gives way.
+  expect(scrolled.worldHeight, "the building under a fully opened lesson").toBeGreaterThanOrEqual(
+    scrolled.port - 1,
   );
   // Scrolling back returns to the same reading position - the whole point of
   // sharing one box between the lesson and the building.
@@ -589,6 +594,50 @@ test("drops the column to the house when a run starts, and opens the next lesson
     .toBe(0);
 });
 
+test("scrolls a house too tall for the pane in the same box as the lesson", async ({ page }) => {
+  // Level 5's nine floors don't fit the pane at any usual window size. The building used to
+  // scroll inside itself while the lesson scrolled around it: two scrollbars in one pane, with
+  // the wheel answering whichever the pointer happened to be over.
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto("/#level=tutorial-5");
+  await expect(page.locator(".tutorialpanel")).toBeVisible();
+
+  const measured = await page.locator(".stagearea").evaluate((area) => {
+    const world = area.querySelector(".world");
+    const building = area.querySelector(".building");
+    const lobby = area.querySelector(".levels .floor");
+    if (world === null || building === null || lobby === null) {
+      throw new Error("the stage area is missing the building");
+    }
+    const nested = [...area.querySelectorAll("*")]
+      .filter((box) => box.scrollHeight - box.clientHeight > 1)
+      .map((box) => box.className);
+    area.scrollTop = area.scrollHeight;
+    const view = area.getBoundingClientRect();
+    const foot = building.getBoundingClientRect();
+    const ground = lobby.getBoundingClientRect();
+    return {
+      nested,
+      port: area.clientHeight,
+      worldHeight: world.getBoundingClientRect().height,
+      buildingHeight: foot.height,
+      overhang: foot.bottom - view.bottom,
+      groundShown: ground.top >= view.top - 1 && ground.bottom <= view.bottom + 1,
+    };
+  });
+
+  expect(measured.buildingHeight, "level 5's building fits the pane after all").toBeGreaterThan(
+    measured.port,
+  );
+  expect(measured.nested, "a second scroll inside the stage area").toEqual([]);
+  // Standing at its full height in the column, not boxed into the pane and scrolled within it.
+  expect(measured.worldHeight, "the building's own box").toBeGreaterThanOrEqual(
+    measured.buildingHeight,
+  );
+  expect(measured.overhang, "the building at the foot of the scroll").toBeLessThanOrEqual(1);
+  expect(measured.groundShown, "the ground floor at the foot of the scroll").toBe(true);
+});
+
 test("costs the levels nothing: the widest building in the game still fits its pane", async ({
   page,
 }) => {
@@ -619,6 +668,35 @@ test("costs the levels nothing: the widest building in the game still fits its p
     });
     expect(fit).toEqual({ paneOverflow: 0, buildingEscapes: false });
   }
+});
+
+test("opens a level with no lesson at the lobby, which is where the game happens", async ({
+  page,
+}) => {
+  // A house is drawn ground-floor-last, so one taller than the pane opens looking at the roof
+  // unless the column is parked at its foot. Level 17 stands 21 floors of 54px in a pane under
+  // 700px tall at this window size.
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto("/#level=17");
+  await expect(page.locator(".building")).toBeVisible();
+
+  const parked = await page.locator(".stagearea").evaluate((area) => {
+    const lobby = area.querySelector(".levels .floor");
+    if (lobby === null) {
+      throw new Error("the stage area is missing the building");
+    }
+    const view = area.getBoundingClientRect();
+    const ground = lobby.getBoundingClientRect();
+    return {
+      room: Math.round(area.scrollHeight - area.clientHeight),
+      top: Math.round(area.scrollTop),
+      groundShown: ground.top >= view.top - 1 && ground.bottom <= view.bottom + 1,
+    };
+  });
+
+  expect(parked.room, "level 17's building fits the pane after all").toBeGreaterThan(0);
+  expect(Math.abs(parked.top - parked.room), "the column on arrival").toBeLessThanOrEqual(1);
+  expect(parked.groundShown, "the ground floor on arrival").toBe(true);
 });
 
 /**

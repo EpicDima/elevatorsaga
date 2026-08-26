@@ -26,12 +26,14 @@ describe("the run verdict card", () => {
     expect(declaration(ruleBody(".verdict"), "pointer-events", ".verdict")).toBe("auto");
   });
 
-  it("stands the card over the stage's own bottom fade rather than under it", () => {
-    // The card and the stage's bottom fade overlap exactly; a fade drawn over the verdict would gray out its lower edge.
-    const fade = ruleBody(".stagewrap::before,\n.stagewrap::after");
-    expect(Number(declaration(ruleBody(".verdict"), "z-index", ".verdict"))).toBeGreaterThan(
-      Number(declaration(fade, "z-index", ".stagewrap::after")),
-    );
+  it("stands the card over the building the page draws after it", () => {
+    // `.feedbackcontainer` is a sibling ahead of `.innerworld` in `index.html`, so a verdict
+    // without a lift of its own would be painted over by every floor of the house.
+    const lift = Number(declaration(ruleBody(".verdict"), "z-index", ".verdict"));
+    expect(lift).toBeGreaterThan(0);
+    // Under the car card, though: that one is opened by pointing at a cabin, and one
+    // drawn behind the verdict would be a tooltip nobody can read.
+    expect(lift).toBeLessThan(Number(declaration(ruleBody(".carcard"), "z-index", ".carcard")));
   });
 
   it.each(THEMES)("keeps the verdict's message and its hint readable, %s theme", (_, palette) => {
