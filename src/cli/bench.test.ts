@@ -410,6 +410,8 @@ describe("the report", () => {
     // The guide hands a player a program and the report it scores, and promises the same numbers
     // on any machine. Nothing else reads that table, so without this every figure in it goes
     // stale the first time the simulation is touched -- which is how all fifteen once did.
+    // Given the deadline the worker cases get: six scored worlds under coverage outlast the
+    // default one on CI, and a slow pass would fail as if the figures had drifted.
     const { program, report } = guideBenchmark();
     setLocale("en");
 
@@ -418,7 +420,7 @@ describe("the report", () => {
     expect(formatReport(scored, options({ programPath: "sweep.js", seeds: fitnessSeeds }))).toBe(
       report,
     );
-  });
+  }, 30_000);
 });
 
 describe("running the command", () => {
