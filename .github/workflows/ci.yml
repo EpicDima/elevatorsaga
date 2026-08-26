@@ -58,6 +58,20 @@ jobs:
       - name: Check formatting
         run: npm run format:check
 
+      # Vitest hands each worker the file it expects to be slowest first, so a
+      # run doesn't finish with three workers idle and one still simulating.
+      # What it expects comes from how long each file took last time, and that
+      # record lives under node_modules, which `npm ci` above has just emptied
+      # -- so on a fresh runner every file looks equally fast and the slowest
+      # ones start last. Carrying the 12 KB of timings between runs is worth
+      # several seconds of the step below; a miss just costs the ordering.
+      - name: Restore the record of how long each test file takes
+        uses: actions/cache@v6
+        with:
+          path: node_modules/.vite/vitest
+          key: vitest-timings-${{ runner.os }}-${{ github.run_id }}
+          restore-keys: vitest-timings-${{ runner.os }}-
+
       - name: Test
         run: npm run test:coverage
 
