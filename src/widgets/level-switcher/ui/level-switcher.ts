@@ -5,6 +5,8 @@
 
 import {
   buildLevelMenu,
+  type Chapter1MenuTile,
+  type Chapter2MenuTile,
   type LevelMenuBlock,
   type LevelMenuInput,
   type LevelMenuTile,
@@ -86,6 +88,14 @@ function tileText(tile: LevelMenuTile): string {
 }
 
 /**
+ * Which chapter a tile belongs to, as the number its name is written with. Each chapter counts
+ * its levels from one, so the name has to carry this too or the two would read alike.
+ */
+function chapterOf(tile: Chapter1MenuTile | Chapter2MenuTile): number {
+  return tile.kind === "chapter1" ? 1 : 2;
+}
+
+/**
  * Accessible name for a tile: level identity plus progress state.
  * Only an earned tier is named — an unearned badge is empty slots, not a fact to announce.
  */
@@ -99,12 +109,13 @@ function tileAccessibleName(tile: LevelMenuTile): string {
             tier: t(TIER_NAME_KEY[tile.tier]),
           });
     }
-    // Both chapters share one run of numbers, so a tile of either is named the same way.
+    // Both chapters number their levels the same way, so a tile of either is named the same way.
     case "chapter1":
     case "chapter2": {
       return tile.tier === undefined
-        ? t("game.level.nav.link", { number: tile.number })
+        ? t("game.levelSwitcher.levelTileLabel", { chapter: chapterOf(tile), number: tile.number })
         : t("game.levelSwitcher.levelTileEarnedLabel", {
+            chapter: chapterOf(tile),
             number: tile.number,
             tier: t(TIER_NAME_KEY[tile.tier]),
           });
@@ -126,7 +137,10 @@ function tileTriggerName(tile: LevelMenuTile): string {
     }
     case "chapter1":
     case "chapter2": {
-      return t("game.level.nav.link", { number: tile.number });
+      return t("game.levelSwitcher.levelTileLabel", {
+        chapter: chapterOf(tile),
+        number: tile.number,
+      });
     }
     case "sandbox": {
       return t("game.levelSwitcher.sandboxLabel");

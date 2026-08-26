@@ -82,8 +82,8 @@ test("opens the track from the level switcher, in the language on screen", async
   await page.goto("/");
 
   // The switcher's tutorial block is the only entrance to the track now that
-  // the shell's own link is gone. `exact` avoids matching "Level 10" and the rest.
-  const opener = page.getByRole("button", { name: "Level 1", exact: true });
+  // the shell's own link is gone. `exact` avoids matching "Level 1-10" and the rest.
+  const opener = page.getByRole("button", { name: "Level 1-1", exact: true });
   await expect(opener).toHaveAttribute("aria-expanded", "false");
   await opener.click();
   await expect(opener).toHaveAttribute("aria-expanded", "true");
@@ -121,7 +121,7 @@ test("shows the panel on a level and nothing at all off it", async ({ page }) =>
   // The stylesheet has to take the region out of flow on other routes: an
   // empty block with margins would still leave a gap above the building.
   await page.goto("/#level=1");
-  await expect(page.getByRole("button", { name: "Level 1" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Level 1-1" })).toBeVisible();
   await expect(panel(page)).toHaveCount(0);
   await expect(page.locator(".tutorial")).toHaveCSS("display", "none");
   expect(await page.locator(".tutorial").boundingBox()).toBeNull();

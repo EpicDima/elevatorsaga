@@ -676,9 +676,9 @@ describe("App level navigation", () => {
 
     const entries = levelTiles(elements);
     expect(entries.map((entry) => entry.getAttribute("aria-label"))).toEqual([
-      "Level 1",
-      "Level 2",
-      "Level 3",
+      "Level 1-1",
+      "Level 1-2",
+      "Level 1-3",
     ]);
     expect(entries.map((entry) => entry.getAttribute("aria-current"))).toEqual([
       null,
@@ -703,7 +703,7 @@ describe("App level navigation", () => {
     app.handleRoute(...routeFor("#level=1,fullscreen,somethingelse=7"));
 
     expect(
-      requireElement('[aria-label="Level 2"]', elements.levelSwitcher).getAttribute("href"),
+      requireElement('[aria-label="Level 1-2"]', elements.levelSwitcher).getAttribute("href"),
     ).toBe("#level=2,fullscreen=,somethingelse=7");
   });
 
@@ -721,7 +721,7 @@ describe("App level navigation", () => {
     );
 
     try {
-      requireElement('[aria-label="Level 2"]', elements.levelSwitcher).click();
+      requireElement('[aria-label="Level 1-2"]', elements.levelSwitcher).click();
 
       await vi.waitFor(() => {
         expect(app.currentChapter1Index).toBe(1);
@@ -810,7 +810,7 @@ describe("App sandbox", () => {
     app.handleRoute(...routeFor("#level=sandbox,floors=20,timescale=8"));
 
     expect(
-      requireElement('[aria-label="Level 2"]', elements.levelSwitcher).getAttribute("href"),
+      requireElement('[aria-label="Level 1-2"]', elements.levelSwitcher).getAttribute("href"),
     ).toBe("#level=2,floors=20,timescale=8");
   });
 
@@ -1300,7 +1300,7 @@ describe("App chapter two", () => {
     return card;
   }
 
-  /** Ends the run on screen; `chapter2-1` is judged in moves, so a win zeroes `moveCount` instead of adjusting elapsed time. */
+  /** Ends the run on screen; chapter two's first level is judged in moves, so a win zeroes `moveCount` instead of adjusting elapsed time. */
   function endRun(app: App, won: boolean): void {
     const world = app.world;
     if (world === undefined) {
@@ -1315,7 +1315,7 @@ describe("App chapter two", () => {
     const { app } = setUp();
     app.handleRoute(...routeFor("#level=3"));
 
-    app.handleRoute(...routeFor("#level=chapter2-1"));
+    app.handleRoute(...routeFor("#level=2-1"));
 
     expect(app.chapter2?.level.id).toBe("chapter2-1");
     expect(app.chapter2?.index).toBe(0);
@@ -1448,9 +1448,7 @@ describe("App chapter two", () => {
     expect(readBestChapter1Tiers(storage)).toEqual(new Map());
     // The tile updates without waiting for the next run's redraw.
     expect(
-      requireElement('[href^="#level=chapter2-1"]', elements.levelSwitcher).getAttribute(
-        "data-tier",
-      ),
+      requireElement('[href^="#level=2-1"]', elements.levelSwitcher).getAttribute("data-tier"),
     ).toBe("gold");
     // The card names the same medal, though the block's levels have no index to key one by.
     expect(requireElement(".verdict h3 .stars", elements.feedback).getAttribute("data-tier")).toBe(
@@ -1492,32 +1490,30 @@ describe("App chapter two", () => {
     expect(readBestChapter2Tiers(storage)).toEqual(new Map());
   });
 
-  it("links to the block's levels by id, dropping the seed of the run in progress", () => {
+  it("links to the chapter's levels by number, dropping the seed of the run in progress", () => {
     // A tile drops the seed: it names a run of a different building.
     const { app, elements } = setUp();
     app.handleRoute(...routeFor("#level=1,timescale=8,seed=issue-61"));
 
     expect(
-      requireElement('[href^="#level=chapter2-1"]', elements.levelSwitcher).getAttribute("href"),
-    ).toBe("#level=chapter2-1,timescale=8");
+      requireElement('[href^="#level=2-1"]', elements.levelSwitcher).getAttribute("href"),
+    ).toBe("#level=2-1,timescale=8");
   });
 
-  it("marks the block's own tile as current, and no numbered level", () => {
+  it("marks the chapter's own tile as current, and no chapter one level", () => {
     const { app, elements } = setUp();
-    app.handleRoute(...routeFor("#level=chapter2-1,timescale=8"));
+    app.handleRoute(...routeFor("#level=2-1,timescale=8"));
 
     expect(
-      requireElement('[href^="#level=chapter2-1"]', elements.levelSwitcher).getAttribute(
-        "aria-current",
-      ),
+      requireElement('[href^="#level=2-1"]', elements.levelSwitcher).getAttribute("aria-current"),
     ).toBe("page");
     expect(levelTiles(elements).map((entry) => entry.getAttribute("aria-current"))).toEqual([
       null,
       null,
       null,
     ]);
-    // Chapter two carries on the three fixture levels' numbering.
-    expect(taskName(elements)).toBe("Level 4");
+    // Chapter two numbers from one, so only the chapter tells this from level one.
+    expect(taskName(elements)).toBe("Level 2-1");
   });
 
   describe("the briefing card beside the building", () => {
@@ -1751,10 +1747,10 @@ describe("App seed", () => {
     app.handleRoute(...routeFor("#level=1,timescale=8,seed=issue-61"));
 
     expect(
-      requireElement('[aria-label="Level 2"]', elements.levelSwitcher).getAttribute("href"),
+      requireElement('[aria-label="Level 1-2"]', elements.levelSwitcher).getAttribute("href"),
     ).toBe("#level=2,timescale=8");
     expect(
-      requireElement('[aria-label="Level 1"]', elements.levelSwitcher).getAttribute("href"),
+      requireElement('[aria-label="Level 1-1"]', elements.levelSwitcher).getAttribute("href"),
     ).toBe("#level=1,timescale=8");
   });
 
@@ -1925,11 +1921,11 @@ describe("App focus", () => {
   it("keeps focus in the navigation row when a level is taken from it", () => {
     const { app, elements } = setUp();
     app.handleRoute(...routeFor("#level=1"));
-    requireElement('[aria-label="Level 2"]', elements.levelSwitcher).focus();
+    requireElement('[aria-label="Level 1-2"]', elements.levelSwitcher).focus();
 
     app.handleRoute(...routeFor("#level=2"));
 
-    const entry = requireElement('[aria-label="Level 2"]', elements.levelSwitcher);
+    const entry = requireElement('[aria-label="Level 1-2"]', elements.levelSwitcher);
     expect(document.activeElement).toBe(entry);
     expect(entry.getAttribute("aria-current")).toBe("page");
   });

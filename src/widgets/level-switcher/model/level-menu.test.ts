@@ -39,7 +39,7 @@ function stubHref(target: LevelLinkTarget): string {
       return `#level=${target.levelId}`;
     }
     case "chapter2": {
-      return `#level=${target.levelId}`;
+      return `#level=2-${String(target.number)}`;
     }
     case "sandbox": {
       return "#level=sandbox";
@@ -161,22 +161,17 @@ describe("buildLevelMenu", () => {
     expect(tiles.map((tile) => tile.current)).toEqual([false, true, false, false]);
   });
 
-  it("numbers chapter two tiles on from the last numbered level and links each to its level id", () => {
-    // Linked by id, not position, so inserting a level later doesn't hand
-    // someone's bookmark to its neighbor.
+  it("numbers chapter two tiles from one and links each to that number", () => {
+    // Chapter one is four levels long and chapter two still opens at one:
+    // nothing here may depend on how long the chapter before it is.
     const [, , chapter2Block] = buildLevelMenu(
       baseInput({ chapter1Levels: fixtureLevels(4), chapter2Levels: fixtureChapter2Levels(3) }),
     );
     const tiles = chapter2Block?.tiles ?? [];
 
     expect(tiles).toHaveLength(3);
-    // Four numbered levels, so chapter two opens at five rather than at one.
-    expect(tiles.map((tile) => (tile.kind === "chapter2" ? tile.number : null))).toEqual([5, 6, 7]);
-    expect(tiles.map((tile) => tile.href)).toEqual([
-      "#level=chapter2-1",
-      "#level=chapter2-2",
-      "#level=chapter2-3",
-    ]);
+    expect(tiles.map((tile) => (tile.kind === "chapter2" ? tile.number : null))).toEqual([1, 2, 3]);
+    expect(tiles.map((tile) => tile.href)).toEqual(["#level=2-1", "#level=2-2", "#level=2-3"]);
   });
 
   it("carries a chapter two tile's best tier through, undefined when never cleared", () => {

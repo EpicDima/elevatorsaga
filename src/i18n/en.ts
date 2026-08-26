@@ -87,9 +87,6 @@ export const EN_MESSAGES = {
   "game.statsPanel.aboardNowTitle":
     "How many passengers are inside a car at this moment, on their way",
   "game.statsPanel.more": "All figures",
-  // Level tiles show a bare number; screen readers get this name instead. Both
-  // chapters are numbered in one run, so this names a tile of either.
-  "game.level.nav.link": "Level {number}",
   "game.levelSwitcher.prevLabel": "Previous level",
   "game.levelSwitcher.nextLabel": "Next level",
   "game.levelSwitcher.tutorialBlockLabel": "Learning",
@@ -97,8 +94,12 @@ export const EN_MESSAGES = {
   "game.levelSwitcher.sandboxLabel": "Sandbox",
   "game.levelSwitcher.chapterBlockLabel": "Chapter {number}",
   "game.levelSwitcher.tutorialTileLabel": "Tutorial level {number}",
+  // A level tile shows a bare number and a chapter counts its levels from one, so the
+  // chapter belongs in the name a screen reader is handed, and in the trigger, which
+  // stands alone under no caption. {chapter} is the chapter's own number, not a level's.
+  "game.levelSwitcher.levelTileLabel": "Level {chapter}-{number}",
   // {tier} is a game.goalBar.tier.* name, only rendered once a medal is earned.
-  "game.levelSwitcher.levelTileEarnedLabel": "Level {number}, {tier}",
+  "game.levelSwitcher.levelTileEarnedLabel": "Level {chapter}-{number}, {tier}",
   "game.levelSwitcher.tutorialTileEarnedLabel": "Tutorial level {number}, {tier}",
   "game.levelSwitcher.tutorialTriggerLabel": "Lesson {number}",
   // Hidden when locateCodeError finds nothing for the player's exception.

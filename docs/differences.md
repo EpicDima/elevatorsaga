@@ -28,8 +28,8 @@ is scored by the same rules.
   chapter one, chapter two, free play.
 - **A second chapter.** Thirteen levels on how real lift systems are actually run — morning and
   evening peaks and the lunch hour, cars that serve only part of the building, and buildings whose
-  passengers name the floor they want instead of pressing a call button. They are `#level=chapter2-1` to
-  `#level=chapter2-13` and sit in their own block in the menu, because chapter one is the
+  passengers name the floor they want instead of pressing a call button. They are `#level=2-1` to
+  `#level=2-13`, counted from one like chapter one's, and sit in their own block in the menu, because chapter one is the
   original's and a decade of published solutions is scored against them. Each pins its own seed, so
   a medal means the same thing to two players.
 - **Repeatable runs.** Every run draws its passengers from a seed, which is shown in the settings

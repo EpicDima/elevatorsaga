@@ -22,7 +22,7 @@ test("puts the whole page into Russian without disturbing the run", async ({ pag
   page.on("pageerror", (error) => pageErrors.push(error.message));
 
   await page.goto(RUNNING_GAME);
-  await expect(page.getByRole("button", { name: "Level 4" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Level 1-4" })).toBeVisible();
   await startButton(page).click();
 
   // Elapsed time must advance before the language change, so a later "not restarted" claim is meaningful.
@@ -44,7 +44,7 @@ test("puts the whole page into Russian without disturbing the run", async ({ pag
     "Перевезено",
   );
   await expect(page.getByRole("button", { name: "Справка" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Уровень 4" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Уровень 1-4" })).toBeVisible();
   await expect(startButton(page, "Пауза")).toBeVisible();
   // exact: true, because the dice button's own label also contains "заново" and accessible-name
   // matching is substring-based.
@@ -104,7 +104,7 @@ test("remembers the language for the next visit, and only when it was chosen", a
   // A plain visit, with no language in the URL, to confirm the stored choice applies.
   await page.goto("/");
   await expect(page.locator("html")).toHaveAttribute("lang", "ru");
-  await expect(page.getByRole("button", { name: "Уровень 1" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Уровень 1-1" })).toBeVisible();
   await expect(await languagePicker(page)).toHaveValue("ru");
 });
 

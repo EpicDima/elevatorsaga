@@ -35,9 +35,9 @@ test("claims the space bar only while nothing is focused, as its own heading say
 
   // Focused: the space bar is the button's, and activating it happens to start the run anyway,
   // so the level switcher is the honest witness - Space there opens the menu, it does not start.
-  await page.getByRole("button", { name: "Level 4" }).focus();
+  await page.getByRole("button", { name: "Level 1-4" }).focus();
   await page.keyboard.press("Space");
-  await expect(page.getByRole("link", { name: "Level 5", exact: true })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Level 1-5", exact: true })).toBeVisible();
   await expect(start).toBeVisible();
 
   await page.keyboard.press("Escape");

@@ -12,10 +12,11 @@ import {
 import {
   LEGACY_LEVEL_KEY,
   LEVEL_KEY,
+  renameLegacyChapter2Level,
   renameLegacyLevelKey,
   resolveRoute,
   SANDBOX_LEVEL,
-  CHAPTER2_LEVEL_PREFIX,
+  CHAPTER2_ID_PREFIX,
   startRouter,
   TUTORIAL_LEVEL_PREFIX,
   type RouteParams,
@@ -611,45 +612,44 @@ describe("resolveRoute chapter two selection", () => {
     expect(route("#level=tutorial-3").chapter2Index).toBeNull();
   });
 
-  it("opens the level its address names, zero-based", () => {
-    expect(route("#level=chapter2-1").chapter2Index).toBe(0);
+  it("leaves a bare number to chapter one, whatever the number is", () => {
+    // The chapter is the part before the hyphen, so `2` is chapter one's second
+    // level and nothing about chapter two.
+    expect(route("#level=2").chapter2Index).toBeNull();
+    expect(route("#level=2").chapter1Index).toBe(1);
     expect(console.warn).not.toHaveBeenCalled();
   });
 
-  it("reaches every level in the table by the id it carries", () => {
-    // Iterated from the table rather than a fixed count, since the block's entries are
+  it("opens the level its address names, zero-based", () => {
+    expect(route("#level=2-1").chapter2Index).toBe(0);
+    expect(console.warn).not.toHaveBeenCalled();
+  });
+
+  it("reaches every level in the table by the number it is played as", () => {
+    // Iterated from the table rather than a fixed count, since the chapter's entries are
     // still being added.
     chapter2Levels.forEach((level, index) => {
-      expect(route(`#level=${level.id}`).chapter2Index, level.id).toBe(index);
+      expect(route(`#level=2-${String(index + 1)}`).chapter2Index, level.id).toBe(index);
     });
     expect(console.warn).not.toHaveBeenCalled();
   });
 
-  it("spells every level id the way it recognizes one", () => {
-    // As with the track's addresses, a level renamed out of this prefix would be
-    // unreachable rather than oddly named.
-    for (const level of chapter2Levels) {
-      expect(level.id.startsWith(CHAPTER2_LEVEL_PREFIX), level.id).toBe(true);
-    }
-  });
-
-  it("reads a chapter two address however it is capitalized", () => {
-    expect(route("#level=CHAPTER2-1").chapter2Index).toBe(0);
-    expect(route("#LEVEL=Chapter2-1").chapter2Index).toBe(0);
+  it("reads a chapter two address however the key is capitalized", () => {
+    expect(route("#LEVEL=2-1").chapter2Index).toBe(0);
     expect(console.warn).not.toHaveBeenCalled();
   });
 
   it("does not complain that a chapter two address is not a level number", () => {
-    // resolveLevelIndex would read `chapter2-1` as NaN and say so, which is noise
-    // about a number the player never wrote.
-    const params = route("#level=chapter2-1");
+    // resolveLevelIndex would read `2-1` as NaN and say so, which is noise about a
+    // number the player never wrote.
+    const params = route("#level=2-1");
     expect(params.refusedKeys).toEqual([]);
     expect(console.warn).not.toHaveBeenCalled();
   });
 
   it("never resolves a chapter two level beside another thing the key can name", () => {
     // No value spells two of the four things this key can name.
-    const params = route("#level=chapter2-1,floors=50,elevators=9");
+    const params = route("#level=2-1,floors=50,elevators=9");
     expect(params.chapter2Index).toBe(0);
     expect(params.tutorialIndex).toBeNull();
     expect(params.sandbox).toBeNull();
@@ -658,10 +658,10 @@ describe("resolveRoute chapter two selection", () => {
   });
 
   it("is not selected by something that merely looks like it", () => {
-    // The prefix has to start the value and end in its hyphen: a bare `chapter2`, a
-    // longer word around it and a value merely containing it are level numbers here,
-    // and are refused as ones.
-    for (const value of ["chapter2", "chapter2x-1", "achapter2-1"]) {
+    // The prefix has to start the value and end in its hyphen: a longer number around
+    // it, and a value merely containing it, are read as chapter one levels here — and
+    // refused as ones, since chapter one has no level of any of these names.
+    for (const value of ["21", "12-1", "a2-1"]) {
       const params = route(`#level=${value}`);
       expect(params.chapter2Index, value).toBeNull();
       expect(params.chapter1Index, value).toBe(0);
@@ -672,22 +672,59 @@ describe("resolveRoute chapter two selection", () => {
   });
 });
 
+describe("resolveRoute legacy chapter two addresses", () => {
+  it("opens the level a `chapter2-` id names, as the address it replaced did", () => {
+    chapter2Levels.forEach((level, index) => {
+      expect(route(`#level=${level.id}`).chapter2Index, level.id).toBe(index);
+    });
+    expect(console.warn).not.toHaveBeenCalled();
+  });
+
+  it("spells every level id the way it recognizes one", () => {
+    // A level renamed out of this prefix would make every link shared before the
+    // rename unreachable rather than oddly named.
+    for (const level of chapter2Levels) {
+      expect(level.id.startsWith(CHAPTER2_ID_PREFIX), level.id).toBe(true);
+    }
+  });
+
+  it("reads a legacy address however it is capitalized", () => {
+    expect(route("#level=CHAPTER2-1").chapter2Index).toBe(0);
+    expect(route("#LEVEL=Chapter2-1").chapter2Index).toBe(0);
+    expect(console.warn).not.toHaveBeenCalled();
+  });
+
+  it("rewrites a legacy address to the number the level is played as", () => {
+    expect([...renameLegacyChapter2Level(parseQuery("#level=chapter2-3,timescale=8"))]).toEqual([
+      [LEVEL_KEY, "2-3"],
+      ["timescale", "8"],
+    ]);
+  });
+
+  it("hands back the very query it was given when there is nothing to rewrite", () => {
+    // Object identity, not equality, for the reason the legacy key's own rename gives.
+    // `chapter2-99` is here too: only resolveRoute can say which level a wrong address
+    // falls back to, so this leaves it alone rather than inventing one.
+    for (const hash of ["#level=2-3", "#level=5", "#level=tutorial-3", "#level=chapter2-99", ""]) {
+      const query = parseQuery(hash);
+      expect(renameLegacyChapter2Level(query), hash).toBe(query);
+    }
+  });
+});
+
 describe("resolveRoute chapter two validation", () => {
-  it("lands a wrong chapter two address on the block's first level", () => {
-    // `chapter2-01`, `chapter2-1e0` and `chapter2- 1` are ways of writing the number one, not the name
-    // `chapter2-1` — each lands where `chapter2-1` lands, so only the warning and the refusal tell a
-    // wrong address from a right one.
+  it("lands a wrong chapter two address on the chapter's first level", () => {
+    // A wrong address inside the chapter opens level one of it, rather than falling
+    // through to chapter one: the player asked for chapter two either way.
     for (const value of [
-      "chapter2-0",
+      "2-0",
+      "2-99",
+      "2-abc",
+      "2-",
+      "2-1.5",
+      "2--1",
+      "2-<script>",
       "chapter2-99",
-      "chapter2-abc",
-      "chapter2-",
-      "chapter2-1.5",
-      "chapter2--1",
-      "chapter2- 1",
-      "chapter2-<script>",
-      "chapter2-01",
-      "chapter2-1e0",
     ]) {
       const params = route(`#level=${value}`);
       expect(params.chapter2Index, value).toBe(0);
@@ -698,10 +735,21 @@ describe("resolveRoute chapter two validation", () => {
     }
   });
 
-  it("keeps the rest of the url working in the block", () => {
+  it("reads a number written the long way round, as chapter one's own address is read", () => {
+    // `2-01`, `2-1e0` and `2- 1` are all ways of writing one. Accepted rather than
+    // refused, because `#level=01` is accepted in chapter one for the same reason.
+    for (const value of ["2-01", "2-1e0", "2- 1"]) {
+      const params = route(`#level=${value}`);
+      expect(params.chapter2Index, value).toBe(0);
+      expect(params.refusedKeys, value).toEqual([]);
+    }
+    expect(console.warn).not.toHaveBeenCalled();
+  });
+
+  it("keeps the rest of the url working in the chapter", () => {
     // Every parameter but `seed` behaves on a chapter two address exactly as it does on a
-    // numbered level.
-    expect(route("#level=chapter2-1,timescale=8,fullscreen=true")).toEqual({
+    // chapter one level.
+    expect(route("#level=2-1,timescale=8,fullscreen=true")).toEqual({
       chapter1Index: 0,
       sandbox: null,
       tutorialIndex: null,
@@ -876,41 +924,41 @@ describe("resolveRoute seed on the learning track", () => {
 });
 
 describe("resolveRoute seed in chapter two", () => {
-  it("refuses a seed on every level of the block, however good the seed is", () => {
+  it("refuses a seed on every level of the chapter, however good the seed is", () => {
     // Not a validation failure, and not the track's reason either: here the stake is the
     // medal. Thresholds are measured against one pinned crowd, so a silver earned on an
     // unmeasured stream wouldn't be the same silver.
-    for (const level of chapter2Levels) {
-      const hash = `#level=${level.id},seed=42`;
+    chapter2Levels.forEach((_level, index) => {
+      const hash = `#level=2-${String(index + 1)},seed=42`;
       expect(route(hash).seed, hash).toBeNull();
       expect(route(hash).refusedKeys, hash).toContain("seed");
-    }
+    });
   });
 
   it("says where the seed went in the one sentence both pinned blocks share", () => {
-    route("#level=chapter2-1,seed=42");
+    route("#level=2-1,seed=42");
     expect(console.warn).toHaveBeenCalledWith(
       `Ignoring seed "42": this level plays its own pinned seed`,
     );
   });
 
   it("refuses the seed on an address the block could not read either", () => {
-    // Both refusals at once, in the order the url wrote them: `chapter2-99` is still the block, so
+    // Both refusals at once, in the order the url wrote them: `2-99` is still chapter two, so
     // the seed is still not the player's to choose there.
-    const params = route("#level=chapter2-99,seed=42");
+    const params = route("#level=2-99,seed=42");
     expect(params.chapter2Index).toBe(0);
     expect(params.seed).toBeNull();
     expect(params.refusedKeys).toEqual([LEVEL_KEY, "seed"]);
   });
 
   it("keeps quiet on a chapter two address that names no seed", () => {
-    route("#level=chapter2-1");
+    route("#level=2-1");
     expect(console.warn).not.toHaveBeenCalled();
   });
 
   it("refuses the seed to what its absence gives, so the url can drop it", () => {
-    const refused = route("#level=chapter2-1,seed=42");
-    const absent = route("#level=chapter2-1");
+    const refused = route("#level=2-1,seed=42");
+    const absent = route("#level=2-1");
     expect({ ...refused, refusedKeys: [] }).toEqual(absent);
   });
 });
@@ -1085,11 +1133,11 @@ describe("startRouter", () => {
     expect(route(target.location.hash)).toEqual({ ...params, refusedKeys: [] });
   });
 
-  it("corrects a wrong chapter two address to the block's first level", () => {
-    // The same rewrite as the track's: deleting the key would leave `#`, the first numbered
-    // level, and the player chose the block rather than that.
+  it("corrects a wrong chapter two address to the chapter's first level", () => {
+    // The same rewrite as the track's: deleting the key would leave `#`, the first level of
+    // chapter one, and the player chose chapter two rather than that.
     const target = new FakeTarget();
-    target.location = { hash: "#level=chapter2-99,timescale=8" };
+    target.location = { hash: "#level=2-99,timescale=8" };
     const onRoute = vi.fn();
 
     startRouter(onRoute, {
@@ -1098,14 +1146,36 @@ describe("startRouter", () => {
       target,
     });
 
-    expect(target.replaced).toEqual(["#level=chapter2-1,timescale=8"]);
+    expect(target.replaced).toEqual(["#level=2-1,timescale=8"]);
     expect(onRoute).toHaveBeenCalledTimes(1);
     const params = onRoute.mock.calls[0]?.[0] as RouteParams | undefined;
     const query = onRoute.mock.calls[0]?.[1] as RouteQuery | undefined;
     expect(params).toMatchObject({ chapter2Index: 0, refusedKeys: [LEVEL_KEY] });
-    expect(query?.get(LEVEL_KEY)).toBe("chapter2-1");
+    expect(query?.get(LEVEL_KEY)).toBe("2-1");
     // The address bar now resolves to the run that is on screen.
     expect(route(target.location.hash)).toEqual({ ...params, refusedKeys: [] });
+  });
+
+  it("rewrites a legacy chapter two address on arrival, without routing twice", () => {
+    // The rewrite the retired level key already gets: a link shared before chapter two was
+    // renumbered opens the same level, and goes on being shared under the name used now.
+    const target = new FakeTarget();
+    target.location = { hash: "#level=chapter2-3,timescale=8" };
+    const onRoute = vi.fn();
+
+    startRouter(onRoute, {
+      chapter1LevelCount: 18,
+      defaultTimeScale: () => DEFAULT_TIME_SCALE,
+      target,
+    });
+
+    expect(target.replaced).toEqual(["#level=2-3,timescale=8"]);
+    expect(onRoute).toHaveBeenCalledTimes(1);
+    const params = onRoute.mock.calls[0]?.[0] as RouteParams | undefined;
+    const query = onRoute.mock.calls[0]?.[1] as RouteQuery | undefined;
+    // Nothing was refused: the address was right, only spelled the way it used to be.
+    expect(params).toMatchObject({ chapter2Index: 2, refusedKeys: [] });
+    expect(query?.get(LEVEL_KEY)).toBe("2-3");
   });
 
   it("opens a level named in a hash it navigates to, without correcting it", () => {
@@ -1178,7 +1248,7 @@ describe("startRouter", () => {
     // sixty — so there is nothing to correct.
     "#level=sandbox,floors=100000",
     "#level=tutorial-3,timescale=8",
-    "#level=chapter2-1,timescale=8",
+    "#level=2-1,timescale=8",
   ])("leaves %s alone", (hash) => {
     const target = new FakeTarget();
     target.location = { hash };

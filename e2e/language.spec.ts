@@ -22,7 +22,7 @@ test("shows the whole game in the language a link asks for", async ({ page }) =>
   await expect(page.locator('.meter[data-kind="transportedCounter"] .cap')).toHaveText(
     "Перевезено",
   );
-  await expect(page.getByRole("button", { name: "Уровень 1" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Уровень 1-1" })).toBeVisible();
   await expect(startButton(page, "Запустить")).toBeVisible();
   // A caption pasted together from two catalog keys could still leak one's English into the other's.
   await expect(page.locator(".task-name")).not.toContainText("Level");
@@ -35,11 +35,11 @@ test("carries the language into the links the game builds", async ({ page }) => 
 
   // `exact`, since the open popover also holds tiles like "Учебный уровень 2"
   // that contain the numbered one's whole name.
-  await page.getByRole("button", { name: "Уровень 1" }).click();
-  await page.getByRole("link", { name: "Уровень 2", exact: true }).click();
+  await page.getByRole("button", { name: "Уровень 1-1" }).click();
+  await page.getByRole("link", { name: "Уровень 1-2", exact: true }).click();
 
   await expect(page).toHaveURL(/lang=ru/);
-  await expect(page.getByRole("button", { name: "Уровень 2" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Уровень 1-2" })).toBeVisible();
 });
 
 test.describe("a browser that says it reads Russian", () => {
@@ -50,7 +50,7 @@ test.describe("a browser that says it reads Russian", () => {
     await page.goto("/");
 
     await expect(page.locator("html")).toHaveAttribute("lang", "ru");
-    await expect(page.getByRole("button", { name: "Уровень 1" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Уровень 1-1" })).toBeVisible();
     await expect(page.locator('.meter[data-kind="transportedCounter"] .cap')).toHaveText(
       "Перевезено",
     );
@@ -60,7 +60,7 @@ test.describe("a browser that says it reads Russian", () => {
     await page.goto("/#lang=en");
 
     await expect(page.locator("html")).toHaveAttribute("lang", "en");
-    await expect(page.getByRole("button", { name: "Level 1" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Level 1-1" })).toBeVisible();
     await expect(page.locator('.meter[data-kind="transportedCounter"] .cap')).toHaveText(
       "Transported",
     );

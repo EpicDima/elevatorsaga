@@ -82,7 +82,7 @@ test("opens the level a tile names when the tile is clicked", async ({ page }) =
   await expect(levelOne).toBeInViewport({ ratio: 1 });
   await levelOne.click();
 
-  await expect(page.locator(TRIGGER)).toHaveText("Level 1");
+  await expect(page.locator(TRIGGER)).toHaveText("Level 1-1");
   await expect(page.locator(MENU)).toBeHidden();
   await expect(building(page).locator(".floor")).toHaveCount(3);
 });

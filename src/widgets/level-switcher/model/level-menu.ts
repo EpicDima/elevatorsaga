@@ -18,13 +18,13 @@ export type LevelSelection =
 
 /**
  * What a tile links to, for the caller's own `buildHref` to turn into a URL.
- * Track and chapter two stay separate variants, though both link by id: which block a tile
- * belongs to also decides which run a route starts and which record a win is written to.
+ * Both chapters link by the number they show, the track by id; which block a tile belongs to
+ * also decides which run a route starts and which record a win is written to.
  */
 export type LevelLinkTarget =
   | { readonly kind: "chapter1"; readonly number: number }
   | { readonly kind: "tutorial"; readonly levelId: string }
-  | { readonly kind: "chapter2"; readonly levelId: string }
+  | { readonly kind: "chapter2"; readonly number: number }
   | { readonly kind: "sandbox" };
 
 /** One tile of chapter one. */
@@ -53,7 +53,7 @@ export interface TutorialMenuTile {
 export interface Chapter2MenuTile {
   readonly kind: "chapter2";
   readonly index: number;
-  /** Continues chapter one's numbering: the first tile here is level `chapter1Levels.length + 1`. */
+  /** Counts from one within the chapter, as chapter one's does; what tells the two apart is the block. */
   readonly number: number;
   readonly current: boolean;
   /** This browser's best-recorded tier, or `undefined` if never cleared. */
@@ -130,18 +130,17 @@ function buildChapter1Block(input: LevelMenuInput): LevelMenuBlock {
 }
 
 function buildChapter2Block(input: LevelMenuInput): LevelMenuBlock {
-  const chapterOneLength = input.chapter1Levels.length;
   return {
     id: "chapter2",
     tiles: input.chapter2Levels.map((level, index) => ({
       kind: "chapter2",
       index,
-      // Chapter two carries on chapter one's count, so no two tiles in the menu
-      // are called level {number}; `index` still addresses `chapter2Levels`.
-      number: chapterOneLength + index + 1,
+      number: index + 1,
       current: input.selection.kind === "chapter2" && input.selection.index === index,
+      // The tier is still keyed by id: what a win is recorded against outlives where the
+      // level sits, which is all `number` says.
       tier: input.bestChapter2Tiers.get(level.id),
-      href: input.buildHref({ kind: "chapter2", levelId: level.id }),
+      href: input.buildHref({ kind: "chapter2", number: index + 1 }),
     })),
   };
 }

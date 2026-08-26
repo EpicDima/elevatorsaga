@@ -48,7 +48,7 @@ function stubHref(target: LevelLinkTarget): string {
       return `#level=${target.levelId}`;
     }
     case "chapter2": {
-      return `#level=${target.levelId}`;
+      return `#level=2-${String(target.number)}`;
     }
     case "sandbox": {
       return "#level=sandbox";
@@ -194,23 +194,24 @@ describe("presentLevelSwitcher", () => {
     ]);
   });
 
-  it("draws a chapter two tile as its number, carried on from chapter one", () => {
-    // Four numbered levels stand ahead of it in `baseInput`, so this block opens at five.
+  it("draws a chapter two tile as its own number, and names the chapter it belongs to", () => {
+    // Four levels stand ahead of it in `baseInput` and this block still opens at one; the
+    // visible text is bare, so only the name says which chapter a tile is in.
     const { parent, options } = setUp({ chapter2Levels: fixtureChapter2Levels(3) });
     presentLevelSwitcher(parent, options);
     const [, , chapter2Block] = parent.querySelectorAll(".taskblock");
     const tiles = [...(chapter2Block?.querySelectorAll(".tasklink") ?? [])];
 
-    expect(tiles.map((tile) => tile.textContent)).toEqual(["5", "6", "7"]);
+    expect(tiles.map((tile) => tile.textContent)).toEqual(["1", "2", "3"]);
     expect(tiles.map((tile) => tile.getAttribute("aria-label"))).toEqual([
-      "Level 5",
-      "Level 6",
-      "Level 7",
+      "Level 2-1",
+      "Level 2-2",
+      "Level 2-3",
     ]);
     expect(tiles.map((tile) => tile.getAttribute("href"))).toEqual([
-      "#level=chapter2-1",
-      "#level=chapter2-2",
-      "#level=chapter2-3",
+      "#level=2-1",
+      "#level=2-2",
+      "#level=2-3",
     ]);
   });
 
@@ -243,7 +244,7 @@ describe("presentLevelSwitcher", () => {
 
     expect(tiles[1]?.getAttribute("aria-current")).toBe("page");
     expect(tiles[1]?.classList.contains("is-current")).toBe(true);
-    expect(requireElement(".task-name", parent).textContent).toBe("Level 2");
+    expect(requireElement(".task-name", parent).textContent).toBe("Level 1-2");
   });
 
   it("keeps the trigger to the level's plain name, whatever the tile calls it", () => {
@@ -266,7 +267,7 @@ describe("presentLevelSwitcher", () => {
       selection: { kind: "chapter1", index: 3 },
     });
     presentLevelSwitcher(level.parent, level.options);
-    expect(requireElement(".task-name", level.parent).textContent).toBe("Level 4");
+    expect(requireElement(".task-name", level.parent).textContent).toBe("Level 1-4");
 
     const chapter2 = setUp({
       chapter2Levels: fixtureChapter2Levels(3),
@@ -274,7 +275,9 @@ describe("presentLevelSwitcher", () => {
       selection: { kind: "chapter2", index: 1 },
     });
     presentLevelSwitcher(chapter2.parent, chapter2.options);
-    expect(requireElement(".task-name", chapter2.parent).textContent).toBe("Level 6");
+    // Level two of chapter two, not of chapter one: the trigger stands under no block
+    // caption, so its own text is the only thing that can tell the two apart.
+    expect(requireElement(".task-name", chapter2.parent).textContent).toBe("Level 2-2");
   });
 
   it("names the gold a cleared tutorial tile holds, and badges it like any other tile", () => {
@@ -336,10 +339,10 @@ describe("presentLevelSwitcher", () => {
     // The stars are `aria-hidden`, so the tier name in the label is the only
     // way a screen reader learns about progress.
     expect(tiles.map((tile) => tile.getAttribute("aria-label"))).toEqual([
-      "Level 1, Bronze",
-      "Level 2, Silver",
-      "Level 3, Gold",
-      "Level 4",
+      "Level 1-1, Bronze",
+      "Level 1-2, Silver",
+      "Level 1-3, Gold",
+      "Level 1-4",
     ]);
   });
 
@@ -353,8 +356,8 @@ describe("presentLevelSwitcher", () => {
     const tiles = [...(chapter2Block?.querySelectorAll(".tasklink") ?? [])];
 
     expect(tiles.map((tile) => tile.getAttribute("aria-label"))).toEqual([
-      "Level 5, Gold",
-      "Level 6",
+      "Level 2-1, Gold",
+      "Level 2-2",
     ]);
   });
 

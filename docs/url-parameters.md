@@ -5,20 +5,25 @@ Everything after the `#` is a comma-separated list of `key=value` pairs, for exa
 "next level" link. Anything malformed falls back to a sane default with a console warning
 rather than breaking the page.
 
-| Parameter           | Effect                                                                                                                                                                                                                      |
-| ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `#level=N`          | Starts level `N`, counting from 1. Out of range, missing, or unreadable as a number and not one of the names below: level 1. Every level is open from the first visit, so no address is ever answered with a different one. |
-| `#level=sandbox`    | Starts a building of your own instead of a numbered level. See below.                                                                                                                                                       |
-| `#level=tutorial-N` | Starts level `N` of the learning track, from `tutorial-1` to `tutorial-8`. A `tutorial-` address the track has no level for starts the first one. See [the learning track](learning-track.md).                              |
-| `#level=chapter2-N` | Starts level `N` of chapter two, from `chapter2-1` to `chapter2-13`. A `chapter2-` address the block has no level for starts the first one.                                                                                 |
-| `#timescale=X`      | Simulation speed multiplier. Clamped to `0.1`–`64`. Fractions such as `1.5` work. Without it, the speed you last chose is used again — it is kept in `localStorage` under `elevatorTimeScale` — and `2` when there is none. |
-| `#seed=S`           | Pins the seed the passenger stream is drawn from. Not the building. Refused on the two blocks that pin their own seed, the learning track and chapter two. See below.                                                       |
-| `#fullscreen`       | Hides everything except the building.                                                                                                                                                                                       |
+| Parameter           | Effect                                                                                                                                                                                                                                     |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `#level=N`          | Starts level `N` of chapter one, counting from 1. Out of range, missing, or unreadable as a number and not one of the names below: level 1. Every level is open from the first visit, so no address is ever answered with a different one. |
+| `#level=sandbox`    | Starts a building of your own instead of a numbered level. See below.                                                                                                                                                                      |
+| `#level=tutorial-N` | Starts level `N` of the learning track, from `tutorial-1` to `tutorial-8`. A `tutorial-` address the track has no level for starts the first one. See [the learning track](learning-track.md).                                             |
+| `#level=2-N`        | Starts level `N` of chapter two, from `2-1` to `2-13`, which is how the level switcher numbers them. A `2-` address the chapter has no level for starts the first one.                                                                     |
+| `#timescale=X`      | Simulation speed multiplier. Clamped to `0.1`–`64`. Fractions such as `1.5` work. Without it, the speed you last chose is used again — it is kept in `localStorage` under `elevatorTimeScale` — and `2` when there is none.                |
+| `#seed=S`           | Pins the seed the passenger stream is drawn from. Not the building. Refused on the two blocks that pin their own seed, the learning track and chapter two. See below.                                                                      |
+| `#fullscreen`       | Hides everything except the building.                                                                                                                                                                                                      |
 
 `#level` was spelled `#challenge` until the game started calling its challenges levels, and every
 link shared before then says so. Those addresses still work — the old spelling is read wherever the
 new one would be — and the address bar is rewritten to the new one on arrival, so a link followed
 once goes on being shared under the name the game uses now.
+
+Chapter two was addressed `#level=chapter2-N` until each chapter started counting its own levels
+from one, and `chapter2-N` is still the level's id underneath — where a medal is filed and a
+program is saved. Old addresses are matched against those ids, so each one opens the level it
+always did, and are rewritten to `#level=2-N` on arrival like `#challenge` is.
 
 `fullscreen` is a flag: on when present and off when explicitly set to `false`
 (`#fullscreen=false`). Bare flags now work: in the original, `#fullscreen` without a value was

@@ -88,11 +88,21 @@ export const SANDBOX_LEVEL = "sandbox";
 export const TUTORIAL_LEVEL_PREFIX = "tutorial-";
 
 /**
- * Prefix of every {@link LEVEL_KEY} value that names a chapter two level.
- *
- * Must stay in sync with the ids in {@link "#game/chapter2.ts"!chapter2Levels}.
+ * Prefix of every {@link LEVEL_KEY} value that names a chapter two level: `2-1` is the first
+ * level of chapter two, numbered as the level switcher numbers it.
  */
-export const CHAPTER2_LEVEL_PREFIX = "chapter2-";
+export const CHAPTER2_ADDRESS_PREFIX = "2-";
+
+/**
+ * Prefix of every id in {@link "#game/chapter2.ts"!chapter2Levels}, and the legacy spelling of
+ * a chapter two address: read for backward compatibility, rewritten on arrival, never written.
+ */
+export const CHAPTER2_ID_PREFIX = "chapter2-";
+
+/** How chapter two's level `number`, counted from one, is written in the address. */
+export function chapter2Address(number: number): string {
+  return `${CHAPTER2_ADDRESS_PREFIX}${String(number)}`;
+}
 
 /**
  * Rewrites a hash written with {@link LEGACY_LEVEL_KEY} to use {@link LEVEL_KEY}.
@@ -112,6 +122,30 @@ export function renameLegacyLevelKey(query: RouteQuery): RouteQuery {
       renamed.set(LEVEL_KEY, value);
     }
   }
+  return renamed;
+}
+
+/**
+ * Rewrites a `level` written with a chapter two id (`chapter2-3`) to the address chapter two is
+ * written with now (`2-3`).
+ *
+ * Resolved through the ids rather than by cutting the prefix off, so an old link lands on the
+ * level it always did even if an id and its position ever part ways. Returns the same query
+ * unchanged when there is nothing to rewrite, including when the id names no level: refusing it
+ * is {@link resolveChapter2Index}'s job, and only it can say which level to fall back to.
+ */
+export function renameLegacyChapter2Level(query: RouteQuery): RouteQuery {
+  const level = query.get(LEVEL_KEY)?.toLowerCase();
+  if (level?.startsWith(CHAPTER2_ID_PREFIX) !== true) {
+    return query;
+  }
+  const index = chapter2Levels.findIndex((candidate) => candidate.id === level);
+  if (index === -1) {
+    return query;
+  }
+  const renamed = new Map(query);
+  // Set, not deleted and re-added, so the rewritten URL keeps the order it was written in.
+  renamed.set(LEVEL_KEY, chapter2Address(index + 1));
   return renamed;
 }
 
@@ -165,7 +199,7 @@ export function resolveRoute(rawQuery: RouteQuery, context: RouteContext): Route
   const query = renameLegacyLevelKey(rawQuery);
   const level = query.get(LEVEL_KEY);
   // Must run before resolveChapter1Index, which reads the value with Number and would turn
-  // "sandbox", "tutorial-3" and "chapter2-1" alike into NaN.
+  // "sandbox", "tutorial-3" and "2-1" alike into NaN.
   const tutorialIndex = isTutorialRoute(level) ? resolveTutorialIndex(level, refuse) : null;
   const chapter2Index = isChapter2Route(level) ? resolveChapter2Index(level, refuse) : null;
   const sandbox = isSandboxRoute(level) ? resolveSandboxOptions(query, refuse) : null;
@@ -250,26 +284,47 @@ function resolveTutorialIndex(value: string, refuse: Refuse): number {
   return index;
 }
 
-/** Whether a `level` parameter names a chapter two level, case-insensitively; see {@link isTutorialRoute}. */
+/**
+ * Whether a `level` parameter names a chapter two level, case-insensitively; see
+ * {@link isTutorialRoute}. Both the address written now and the id it was written with before
+ * count, and neither can be mistaken for a chapter one level, which is digits alone.
+ */
 function isChapter2Route(value: string | undefined): value is string {
-  return value?.toLowerCase().startsWith(CHAPTER2_LEVEL_PREFIX) === true;
+  const level = value?.toLowerCase();
+  return (
+    level !== undefined &&
+    (level.startsWith(CHAPTER2_ADDRESS_PREFIX) || level.startsWith(CHAPTER2_ID_PREFIX))
+  );
 }
 
 /**
- * Turns a `level=chapter2-…` parameter into a level that exists.
- *
- * Matched against each level's `id`, as {@link resolveTutorialIndex} matches the track's,
- * since chapter two is still being filled in and ids can land between existing ones.
+ * Turns a `level=2-…` parameter into a level that exists, counting from one within the chapter
+ * as the level switcher's tiles do. A legacy `chapter2-…` is matched against each level's `id`
+ * instead, so an address shared before the rename still names the same level.
  */
 function resolveChapter2Index(value: string, refuse: Refuse): number {
-  const id = value.toLowerCase();
-  const index = chapter2Levels.findIndex((level) => level.id === id);
+  const level = value.toLowerCase();
+  const index = level.startsWith(CHAPTER2_ID_PREFIX)
+    ? chapter2Levels.findIndex((candidate) => candidate.id === level)
+    : chapter2LevelIndex(level.slice(CHAPTER2_ADDRESS_PREFIX.length));
   if (index === -1) {
     console.warn(`Invalid chapter two level "${value}", starting the first one instead`);
     refuse(LEVEL_KEY);
     return 0;
   }
   return index;
+}
+
+/**
+ * The index a `2-…` address names, or `-1` if it names no level of chapter two.
+ *
+ * Read with `Number` and bounded exactly as {@link resolveChapter1Index} reads a chapter one
+ * level, so the same address is right or wrong in both chapters. The empty string needs no
+ * guard of its own: `Number("")` is `0`, which is out of range already.
+ */
+function chapter2LevelIndex(digits: string): number {
+  const index = Number(digits) - 1;
+  return Number.isInteger(index) && index >= 0 && index < chapter2Levels.length ? index : -1;
 }
 
 /** Reads the building a sandbox URL asks for. */
@@ -490,7 +545,7 @@ function levelAddress(params: RouteParams): string | null {
     return tutorialLevels[tutorialIndex]?.id ?? null;
   }
   if (chapter2Index !== null) {
-    return chapter2Levels[chapter2Index]?.id ?? null;
+    return chapter2Address(chapter2Index + 1);
   }
   return chapter1Index === 0 ? null : String(chapter1Index + 1);
 }
@@ -573,8 +628,9 @@ export function startRouter(onRoute: RouteHandler, options: RouterOptions): () =
     }
     lastHash = hash;
     const written = parseQuery(hash);
-    // Renamed again here so the address bar stops saying the retired key too.
-    const query = renameLegacyLevelKey(written);
+    // Renamed again here so the address bar stops saying the retired key, or the retired
+    // spelling of a chapter two level, too.
+    const query = renameLegacyChapter2Level(renameLegacyLevelKey(written));
     const params = resolveRoute(query, {
       chapter1LevelCount: options.chapter1LevelCount,
       defaultTimeScale: options.defaultTimeScale(),

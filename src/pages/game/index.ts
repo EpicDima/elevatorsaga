@@ -20,7 +20,7 @@ import {
   floorCallUpLabel,
 } from "../../ui/templates.ts";
 import type { SeedLinkData } from "../../ui/templates.ts";
-import { LEVEL_KEY, SANDBOX_LEVEL } from "./model/route.ts";
+import { chapter2Address, LEVEL_KEY, SANDBOX_LEVEL } from "./model/route.ts";
 import type { RouteParams } from "./model/route.ts";
 import { evaluateLevelTier, nextTierHint } from "#entities/level-tier/index.ts";
 import { readBestChapter1Tiers, recordChapter1Tier } from "#entities/chapter1-level/index.ts";
@@ -484,8 +484,13 @@ export class App {
       case "chapter1": {
         return createParamsUrl(this.#query, { [LEVEL_KEY]: target.number, seed: null });
       }
-      case "tutorial":
       case "chapter2": {
+        return createParamsUrl(this.#query, {
+          [LEVEL_KEY]: chapter2Address(target.number),
+          seed: null,
+        });
+      }
+      case "tutorial": {
         return createParamsUrl(this.#query, { [LEVEL_KEY]: target.levelId, seed: null });
       }
       case "sandbox": {
