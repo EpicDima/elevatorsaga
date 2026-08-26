@@ -594,7 +594,7 @@ function update(dt, elevators, floors) {
   "tutorial.level1.hint3.html":
     'The answer: add <span class="emphasis-color">elevator.goToFloor(1);</span> after the line that is already there, so that every time the elevator falls idle it queues both floors.',
   "tutorial.level1.explanation.html":
-    "goToFloor does not drive anywhere. It appends the floor to the end of destinationQueue and calls checkDestinationQueue, and the elevator works through that queue on its own. So goToFloor(0) while the car is already on floor 0 is a legal trip of zero length: the car arrives where it stands, opens its doors, people get in, the queue is empty again, idle fires again, and the same thing happens again. That is why the car fills up while the moves counter stays at zero. A passenger boards on arrival and gets out on the floor they asked for, and this elevator never reaches it. One more thing worth saying out loud: a floor number outside the building is not an error, it is quietly clamped to the nearest real floor. Somebody who counts floors from one writes goToFloor(2) here and wins as well, because 2 becomes 1.",
+    '<span class="emphasis-color">goToFloor</span> does not drive anywhere. It appends the floor to the end of <span class="emphasis-color">destinationQueue</span> and calls <span class="emphasis-color">checkDestinationQueue</span>, and the elevator works through that queue on its own. So <span class="emphasis-color">goToFloor(0)</span> while the car is already on floor 0 is a legal trip of zero length: the car arrives where it stands, opens its doors, people get in, the queue is empty again, <span class="emphasis-color">idle</span> fires again, and the same thing happens again. That is why the car fills up while the moves counter stays at zero. A passenger boards on arrival and gets out on the floor they asked for, and this elevator never reaches it. One more thing worth saying out loud: a floor number outside the building is not an error, it is quietly clamped to the nearest real floor. Somebody who counts floors from one writes <span class="emphasis-color">goToFloor(2)</span> here and wins as well, because 2 becomes 1.',
 
   "tutorial.level1.startingCode.code": `function init(elevators, floors) {
     const elevator = elevators[0];
@@ -624,13 +624,13 @@ function update(dt, elevators, floors) {
   "tutorial.level2.goal":
     "Write the handler that sends the elevator round all three floors, and deliver 15 passengers within 60 seconds.",
   "tutorial.level2.hint1.html":
-    "Everything you need was on the first tutorial level: you saw it there, you just did not write it. The event that fires when the elevator has run out of destinations is called idle.",
+    'Everything you need was on the first tutorial level: you saw it there, you just did not write it. The event that fires when the elevator has run out of destinations is called <span class="emphasis-color">idle</span>.',
   "tutorial.level2.hint2.html":
-    'A subscription looks like <span class="emphasis-color">elevator.on("idle", …)</span> — the name of the event as a string, the handler as a function. Inside the handler goes one goToFloor call per floor of the building.',
+    'A subscription looks like <span class="emphasis-color">elevator.on("idle", …)</span> — the name of the event as a string, the handler as a function. Inside the handler goes one <span class="emphasis-color">goToFloor</span> call per floor of the building.',
   "tutorial.level2.hint3.html":
     'The answer: subscribe to <span class="emphasis-color">idle</span> and queue floors 0, 1 and 2 inside the handler, the way tutorial level 1 did it for two floors.',
   "tutorial.level2.explanation.html":
-    "init is called once, on the first frame of the run and before the world has taken a single step, and all it normally does is subscribe to events. The first idle is sent by the game itself, on the line right after your init returns, so subscribing is enough to set the whole thing going. The other function, update(dt, elevators, floors), is called on every simulated tick instead — 100 times a game second. The track never uses it, and that is deliberate: asking the building about its state on every tick gives worse programs than answering the events it sends you. Worse, not forbidden — polling will get you through any level on this track.",
+    '<span class="emphasis-color">init</span> is called once, on the first frame of the run and before the world has taken a single step, and all it normally does is subscribe to events. The first <span class="emphasis-color">idle</span> is sent by the game itself, on the line right after your <span class="emphasis-color">init</span> returns, so subscribing is enough to set the whole thing going. The other function, <span class="emphasis-color">update(dt, elevators, floors)</span>, is called on every simulated tick instead — 100 times a game second. The track never uses it, and that is deliberate: asking the building about its state on every tick gives worse programs than answering the events it sends you. Worse, not forbidden — polling will get you through any level on this track.',
 
   "tutorial.level2.startingCode.code": `function init(elevators, floors) {
     const elevator = elevators[0];
@@ -662,9 +662,9 @@ function update(dt, elevators, floors) {
   "tutorial.level3.hint2.html":
     'The event is <span class="emphasis-color">floor_button_pressed</span>, and the floor that was pressed arrives as the argument of the handler.',
   "tutorial.level3.hint3.html":
-    'The answer: subscribe to <span class="emphasis-color">floor_button_pressed</span> on the elevator and send it to the floor the handler was given. Leave the idle handler where it is.',
+    'The answer: subscribe to <span class="emphasis-color">floor_button_pressed</span> on the elevator and send it to the floor the handler was given. Leave the <span class="emphasis-color">idle</span> handler where it is.',
   "tutorial.level3.explanation.html":
-    "A passenger who has got in presses their own floor, and the game reports it with floor_button_pressed, carrying the floor number as the argument. The lit buttons can also be read by polling them yourself, with getPressedFloors(), but reacting to the event is the habit worth building. Notice that the goToFloor(0) in the idle handler is no longer in anybody's way: now that the cabin buttons are answered, it simply means the car goes back to the ground floor when it has nothing else to do.",
+    'A passenger who has got in presses their own floor, and the game reports it with <span class="emphasis-color">floor_button_pressed</span>, carrying the floor number as the argument. The lit buttons can also be read by polling them yourself, with <span class="emphasis-color">getPressedFloors()</span>, but reacting to the event is the habit worth building. Notice that the <span class="emphasis-color">goToFloor(0)</span> in the <span class="emphasis-color">idle</span> handler is no longer in anybody\'s way: now that the cabin buttons are answered, it simply means the car goes back to the ground floor when it has nothing else to do.',
 
   "tutorial.level3.startingCode.code": `function init(elevators, floors) {
     const elevator = elevators[0];
@@ -702,9 +702,9 @@ function update(dt, elevators, floors) {
   "tutorial.level4.hint2.html":
     'The queue is not empty, but the elevator knows nothing about it. Once <span class="emphasis-color">destinationQueue</span> has been changed by hand, the game has to be told, and the method that tells it is in the list of the elevator methods.',
   "tutorial.level4.hint3.html":
-    'The answer is one line: call <span class="emphasis-color">elevator.checkDestinationQueue();</span> straight after the assignment, inside the same idle handler.',
+    'The answer is one line: call <span class="emphasis-color">elevator.checkDestinationQueue();</span> straight after the assignment, inside the same <span class="emphasis-color">idle</span> handler.',
   "tutorial.level4.explanation.html":
-    "A full car standing still and an empty car standing still differ the way an elevator that arrived and opened its doors differs from an elevator that never arrived at all. Boarding happens on arrival, and nowhere else. Someone who presses a button beside a standing car usually nudges it: the game re-offers the floor to the car with goToFloor(floor, true), and on tutorial levels 1 to 3 that is what kept filling the cabin. Here the nudge does nothing. The queue is not empty, it holds 0, 1, 2, 3, and goToFloor drops a request that equals the adjacent end of a non-empty queue before it ever gets as far as checking the queue: floor 0 is asked for, floor 0 is already at the head, and the call returns. The car stands there for the rest of the run. goToFloor calls checkDestinationQueue for you; assigning the queue does not.",
+    'A full car standing still and an empty car standing still differ the way an elevator that arrived and opened its doors differs from an elevator that never arrived at all. Boarding happens on arrival, and nowhere else. Someone who presses a button beside a standing car usually nudges it: the game re-offers the floor to the car with <span class="emphasis-color">goToFloor(floor, true)</span>, and on tutorial levels 1 to 3 that is what kept filling the cabin. Here the nudge does nothing. The queue is not empty, it holds 0, 1, 2, 3, and <span class="emphasis-color">goToFloor</span> drops a request that equals the adjacent end of a non-empty queue before it ever gets as far as checking the queue: floor 0 is asked for, floor 0 is already at the head, and the call returns. The car stands there for the rest of the run. <span class="emphasis-color">goToFloor</span> calls <span class="emphasis-color">checkDestinationQueue</span> for you; assigning the queue does not.',
 
   "tutorial.level4.startingCode.code": `function init(elevators, floors) {
     const elevator = elevators[0];
@@ -742,13 +742,13 @@ function update(dt, elevators, floors) {
   "tutorial.level5.goal":
     "Send the elevator where it is actually called: deliver 15 passengers, and let nobody's delivery take longer than 37 seconds.",
   "tutorial.level5.hint1.html":
-    "The trouble is not how fast the elevator goes, it is that it goes to floors where nobody is standing. Who in this game knows that somebody is waiting? The second argument of init has not been used once so far.",
+    'The trouble is not how fast the elevator goes, it is that it goes to floors where nobody is standing. Who in this game knows that somebody is waiting? The second argument of <span class="emphasis-color">init</span> has not been used once so far.',
   "tutorial.level5.hint2.html":
     'Walk the floors with <span class="emphasis-color">floors.forEach</span> and subscribe each one to <span class="emphasis-color">up_button_pressed</span> and <span class="emphasis-color">down_button_pressed</span>. A floor knows its own number: <span class="emphasis-color">floor.floorNum()</span>. Once the calls are answered the sweep is no longer needed — delete it.',
   "tutorial.level5.hint3.html":
     'The answer: keep the <span class="emphasis-color">floor_button_pressed</span> handler, throw the sweep out entirely, and inside <span class="emphasis-color">floors.forEach</span> subscribe to both call buttons, each of them sending the elevator to <span class="emphasis-color">floor.floorNum()</span>.',
   "tutorial.level5.explanation.html":
-    'A blind sweep does not scale: its worst waiting time is the length of one lap, and the lap grows with the building. Floors can call an elevator themselves. Both events hand the floor over as the argument, so floor.floorNum() can come from the argument or from the closure, whichever reads better. Subscribing to both events in one line is possible — floor.on("up_button_pressed down_button_pressed", …) — but then the first argument is the name of the event that fired and the floor moves along into second place; that is why there are two separate handlers here. And to be honest about the result: the new program makes more moves than the sweep did, not fewer. It wins by no longer carrying air.',
+    'A blind sweep does not scale: its worst waiting time is the length of one lap, and the lap grows with the building. Floors can call an elevator themselves. Both events hand the floor over as the argument, so <span class="emphasis-color">floor.floorNum()</span> can come from the argument or from the closure, whichever reads better. Subscribing to both events in one line is possible — <span class="emphasis-color">floor.on("up_button_pressed down_button_pressed", …)</span> — but then the first argument is the name of the event that fired and the floor moves along into second place; that is why there are two separate handlers here. And to be honest about the result: the new program makes more moves than the sweep did, not fewer. It wins by no longer carrying air.',
 
   "tutorial.level5.startingCode.code": `function init(elevators, floors) {
     const elevator = elevators[0];
@@ -798,7 +798,7 @@ function update(dt, elevators, floors) {
   "tutorial.level6.hint3.html":
     'The answer: <span class="emphasis-color">elevator.goingDownIndicator(true);</span> instead of <span class="emphasis-color">false</span>. Deleting both indicator lines gives exactly the same run, because a car is built with both of them lit. Switching both of them off is a different program altogether, and one that nobody boards at all.',
   "tutorial.level6.explanation.html":
-    "A passenger only gets into a car that suits the trip they are making: the game asks isSuitableForTravelBetween, and that looks at the indicators. A passenger turned away presses the call button again. The arrow stays lit for a separate reason, and it is the same reason the symptom is visible at all: an arriving elevator clears only the call buttons that correspond to the indicators it has lit, so a car with the down arrow dark physically cannot clear a call to go down. Worse, a standing car is not re-offered either — the game nudges a standing car only when its indicator matches the direction of the call. Both indicators are on to begin with, so those two lines fix nothing. They only break.",
+    'A passenger only gets into a car that suits the trip they are making: the game asks <span class="emphasis-color">isSuitableForTravelBetween</span>, and that looks at the indicators. A passenger turned away presses the call button again. The arrow stays lit for a separate reason, and it is the same reason the symptom is visible at all: an arriving elevator clears only the call buttons that correspond to the indicators it has lit, so a car with the down arrow dark physically cannot clear a call to go down. Worse, a standing car is not re-offered either — the game nudges a standing car only when its indicator matches the direction of the call. Both indicators are on to begin with, so those two lines fix nothing. They only break.',
 
   "tutorial.level6.startingCode.code": `function init(elevators, floors) {
     const elevator = elevators[0];
@@ -850,13 +850,13 @@ function update(dt, elevators, floors) {
   "tutorial.level7.title": "The second elevator",
   "tutorial.level7.goal": "Put both elevators to work and deliver 28 passengers within 60 seconds.",
   "tutorial.level7.hint1.html":
-    "There are people sitting in the second elevator and it is going nowhere: nobody has told it anything. How many times does this program say elevators[0]?",
+    'There are people sitting in the second elevator and it is going nowhere: nobody has told it anything. How many times does this program say <span class="emphasis-color">elevators[0]</span>?',
   "tutorial.level7.hint2.html":
     'Register the cabin button handler inside <span class="emphasis-color">elevators.forEach</span>, so that every car listens to its own buttons. A call from a floor has to pick a car: the least loaded one, by <span class="emphasis-color">loadFactor()</span>, for instance.',
   "tutorial.level7.hint3.html":
     'The answer: a small function that walks <span class="emphasis-color">elevators</span> and returns the car with the lowest <span class="emphasis-color">loadFactor()</span>; the cabin button handler registered on every car through <span class="emphasis-color">elevators.forEach</span>; and both call buttons of every floor sending the chosen car to <span class="emphasis-color">floor.floorNum()</span>. Any rule that keeps both cars working clears this building.',
   "tutorial.level7.explanation.html":
-    "elevators[0] is not the elevator, it is the first elevator. This building has two of them, and the last levels of the game have eight. A program written with elevators.forEach works with one car and with eight alike, and it is the program you will carry into the real levels. Choosing by loadFactor() is the cheapest sensible rule: 0 is empty, 1 is full. It is not the only rule that clears this building, anything that keeps both cars busy will do, but a rule you can check against the picture on screen is easier to debug.",
+    '<span class="emphasis-color">elevators[0]</span> is not the elevator, it is the first elevator. This building has two of them, and the last levels of the game have eight. A program written with <span class="emphasis-color">elevators.forEach</span> works with one car and with eight alike, and it is the program you will carry into the real levels. Choosing by <span class="emphasis-color">loadFactor()</span> is the cheapest sensible rule: 0 is empty, 1 is full. It is not the only rule that clears this building, anything that keeps both cars busy will do, but a rule you can check against the picture on screen is easier to debug.',
 
   "tutorial.level7.startingCode.code": `function init(elevators, floors) {
     const elevator = elevators[0];
