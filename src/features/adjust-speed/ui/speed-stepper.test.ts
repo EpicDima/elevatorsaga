@@ -7,12 +7,7 @@ import type { SpeedStepperOptions } from "./speed-stepper.ts";
 import { DEFAULT_LOCALE, setLocale } from "#i18n/index.ts";
 import { requireElement } from "#shared/lib/dom.ts";
 
-/**
- * Builds a `.speed`-holding parent and mutable speed-control options.
- *
- * @param overrides - Callbacks and data to replace the defaults with.
- * @returns The parent element and the options, both mutable.
- */
+/** Builds a `.speed`-holding parent and mutable speed-control options. */
 function setUp(overrides: Partial<SpeedStepperOptions> = {}): {
   parent: HTMLElement;
   options: {
@@ -40,9 +35,7 @@ describe("speedStepperTemplate", () => {
     const parent = document.createElement("div");
     parent.innerHTML = speedStepperTemplate();
 
-    // Names are `presentSpeedStepper`'s to write, not the template's -- the
-    // group is drawn once and relabeled on every language change, so a name
-    // baked in here would be a name stuck in the language the page opened in.
+    // Names are `presentSpeedStepper`'s to write, not the template's.
     for (const selector of ["button.speed-down", "button.speed-up"]) {
       const button = parent.querySelector(selector);
       expect(button?.getAttribute("type")).toBe("button");
@@ -121,8 +114,6 @@ describe("presentSpeedStepper", () => {
   });
 
   it("dims `-` at the bottom of the ladder and `+` at the top of the control", () => {
-    // At the ends an arrow grays rather than vanishing: the group must not
-    // change width because the speed reached a limit.
     const { parent, options } = setUp();
     const presenter = presentSpeedStepper(parent, options);
     const decrease = requireElement(".speed-down", parent);
@@ -135,8 +126,7 @@ describe("presentSpeedStepper", () => {
     presenter.update();
     expect(decrease.hasAttribute("disabled")).toBe(true);
 
-    // 20x is the top of the *ladder*, not of the control: the instant stop is
-    // one press further on, so `+` is still live here.
+    // 20x is the ladder's top, not the control's: the instant stop is one press further on.
     options.worldController.timeScale = 20;
     presenter.update();
     expect(decrease.hasAttribute("disabled")).toBe(false);
@@ -144,9 +134,6 @@ describe("presentSpeedStepper", () => {
   });
 
   it("ends the ladder at the fastest speed where the instant stop is not on offer", () => {
-    // The sandbox: a crunch there has no goal to resolve, so the stop past 20x
-    // is withheld and 20x becomes the top of the control rather than the top of
-    // the ladder. `+` dims there the way `-` dims at the slowest speed.
     const { parent, options } = setUp({ instantAvailable: () => false });
     const presenter = presentSpeedStepper(parent, options);
     const increase = requireElement(".speed-up", parent);
@@ -161,8 +148,7 @@ describe("presentSpeedStepper", () => {
   });
 
   it("reads the instant stop off the app rather than off the time scale", () => {
-    // The whole design of that stop: `timeScale` multiplies the frame delta,
-    // so the value the reading stands for could never be in it.
+    // `timeScale` multiplies the frame delta, so the reading it stands for could never be in it.
     let instant = false;
     const { parent, options } = setUp({ instantSpeed: () => instant });
     const presenter = presentSpeedStepper(parent, options);
@@ -174,15 +160,12 @@ describe("presentSpeedStepper", () => {
     const value = requireElement(".speed-val", parent);
     expect(value.textContent).toBe("∞x");
     expect(value.title).toBe("Instantly: the run is counted straight through to its result");
-    // Nothing past it, and the way back is `-` -- which lands on the finite
-    // speed the control was left at.
+    // Nothing past it, and the way back is `-`, which lands on the finite speed the control was left at.
     expect(requireElement(".speed-up", parent).hasAttribute("disabled")).toBe(true);
     expect(requireElement(".speed-down", parent).hasAttribute("disabled")).toBe(false);
   });
 
   it("leaves `-` live on the instant stop even from the bottom of the ladder", () => {
-    // `#timescale=0.5` plus one press of `+` is a legal way to arrive here,
-    // and being on the slowest speed must not trap the player on `∞x`.
     const { parent, options } = setUp({ instantSpeed: () => true });
     options.worldController.timeScale = 1;
     presentSpeedStepper(parent, options);
@@ -191,8 +174,6 @@ describe("presentSpeedStepper", () => {
   });
 
   it("dims both arrows while a crunch is under way", () => {
-    // A crunch drives a controller of its own, so there is no speed to change
-    // and nothing a press could act on until it is over.
     const { parent, options } = setUp({ instantRunInProgress: () => true });
     presentSpeedStepper(parent, options);
 
@@ -219,7 +200,7 @@ describe("presentSpeedStepper", () => {
 
 describe("formatTimeScale", () => {
   it.each([
-    // The speeds the +/- buttons produce, which must not gain a decimal point.
+    // Whole speeds the +/- buttons produce, which must not gain a decimal point.
     [1, "1x"],
     [2, "2x"],
     [3, "3x"],
@@ -228,8 +209,7 @@ describe("formatTimeScale", () => {
     [20, "20x"],
     [40, "40x"],
     [64, "64x"],
-    // The slow half of the runnable range, which toFixed(0) misreported: 0.5
-    // showed as "1x" and 0.1 as "0x", i.e. as a stopped simulation.
+    // The slow half of the runnable range.
     [0.5, "0.5x"],
     [0.25, "0.25x"],
     [0.1, "0.1x"],

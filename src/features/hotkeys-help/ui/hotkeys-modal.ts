@@ -2,17 +2,10 @@
  * The hotkeys dialog: a title, a close button and a row per hotkey, pairing it
  * with what it does.
  *
- * A Mod- binding is spelled as two `<kbd>`s joined by "+" rather than as one
- * compressed glyph (`⌘⏎`), so `src/ui/shortcuts.ts`'s `labelModifierKeys` can
- * resolve the modifier per visitor — `⌘` on a Mac, `Ctrl` elsewhere — and the
- * dialog needs no standing note about what Windows and Linux read instead. This
- * module only draws the `data-mod-key` marker; whoever mounts the dialog live
- * still has to call `labelModifierKeys` against it, the way
- * `src/ui/localize-page.ts` already does for the rest of the page shell.
- *
- * Built and unit-tested against a jsdom `<dialog>` —
- * `polyfillDialogElement` (`#shared/ui/test-helpers.ts`). `src/main.ts` mounts
- * it and wires `settings-menu.ts`'s `keysopen` opener to it.
+ * A Mod- binding is spelled as two `<kbd>`s joined by "+", marked
+ * `data-mod-key`, rather than one compressed glyph: this module only draws
+ * the marker, and whoever mounts the dialog live still has to resolve it per
+ * platform.
  */
 
 import { t } from "#i18n/index.ts";
@@ -20,14 +13,10 @@ import { queryAll, requireElement } from "#shared/lib/dom.ts";
 import { markup } from "#shared/ui/markup.ts";
 import { createModal, type Modal } from "#shared/ui/modal.ts";
 
-/** Counter for {@link hotkeysModalTemplate}'s own title id, unique per call. */
+/** Counter for a unique title id per modal instance. */
 let nextTitleId = 0;
 
-/**
- * Every `t()`-sourced row label {@link hotkeysModalTemplate} draws, in the
- * same order as its five `.keyrow`s — the order {@link presentHotkeysModal}'s
- * `update` re-applies them in.
- */
+/** Every `t()`-sourced row label, in the same order as the five `.keyrow`s. */
 function rowLabels(): readonly string[] {
   return [
     t("game.hotkeys.startPause"),
@@ -38,11 +27,7 @@ function rowLabels(): readonly string[] {
   ];
 }
 
-/**
- * The dialog's inert markup, ready for {@link presentHotkeysModal}.
- *
- * @returns The dialog's markup, describing exactly one `<dialog class="keys">`.
- */
+/** The dialog's inert markup, ready for {@link presentHotkeysModal}. */
 export function hotkeysModalTemplate(): string {
   const titleId = `hotkeys-modal-title-${String(nextTitleId)}`;
   nextTitleId += 1;
@@ -57,27 +42,11 @@ export function hotkeysModalTemplate(): string {
 
 /** What a mounted hotkeys modal hands back — a {@link Modal}, plus a way to keep its labels current. */
 export interface HotkeysModalController extends Modal {
-  /**
-   * Re-derives every `t()`-sourced label this dialog drew — the title, the
-   * close button and the five row descriptions — for a caller redrawing
-   * after a language change. {@link hotkeysModalTemplate} bakes them in
-   * once, at construction; this is what keeps them current instead, the
-   * same role `RunControlsPresenter.update` plays for the run controls. The
-   * `kbd`s are untouched: their glyphs are per-platform, not per-language —
-   * see the module comment.
-   */
+  /** Re-derives every `t()`-sourced label after a language change; the `kbd`s are untouched, since their glyphs are per-platform, not per-language. */
   update(): void;
 }
 
-/**
- * Wires the dialog's close button and its own backdrop click into an
- * open/close pair — the same wiring `presentAppBarSettings` gives
- * `settings-menu.ts`'s own `keysopen` row, one level up.
- *
- * @param dialog - The `<dialog class="keys">` built from
- * {@link hotkeysModalTemplate}'s markup.
- * @returns The modal, closed to start.
- */
+/** Wires the dialog's close button and backdrop click into an open/close pair. */
 export function presentHotkeysModal(dialog: HTMLDialogElement): HotkeysModalController {
   const closeButton = requireElement(".keysclose", dialog);
   const titleEl = requireElement("h2", dialog);

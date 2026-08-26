@@ -1,11 +1,4 @@
-/*
- * The API reference window: the dialog, its search field, the body, and each
- * entry's disclosure.
- *
- * The code samples inside it are painted by `shared/styles/code.css`, which the
- * two help pages read too -- this file only states what is different about a
- * sample inside a dialog.
- */
+/* The API reference window: the dialog, its search field, the body, and each entry's disclosure. */
 
 .docs {
   width: min(760px, 92vw);
@@ -63,19 +56,12 @@
   font-size: 13px;
 }
 
-/* A crest of its own instead of the browser's: that one shows up on its own
-   rules and looks different in every engine. */
+/* The browser's own cancel button is hidden: it looks different in every engine. */
 .docs-find::-webkit-search-cancel-button {
   appearance: none;
 }
 
-/*
- * `--ds-text-muted` rather than `--ds-text-faint`: faint measures 3.87:1 dark
- * and 2.78:1 light against `--ds-bg` -- the search field's own background, not
- * the dialog's `--ds-panel` -- short of even WCAG 1.4.11's 3:1 floor for a
- * graphical control, in the light theme. Muted clears both comfortably, 7.17:1
- * dark and 5.22:1 light.
- */
+/* `--ds-text-muted`, not `--ds-text-faint`: faint falls short of WCAG 1.4.11's 3:1 in the light theme against this field's background. */
 .docsclear {
   position: absolute;
   right: 5px;
@@ -108,14 +94,7 @@
   overflow: auto;
 }
 
-/*
- * `--ds-text-muted` for this heading and for `.docs-empty` below:
- * `--ds-text-faint` measures 3.62:1 dark and 3.14:1 light against `--ds-panel`,
- * short of WCAG 1.4.3's 4.5:1 for real text, where muted clears it in both at
- * 6.70:1 dark and 5.90:1 light. `--ds-text-faint` stays below for
- * `.api > summary .chev`, a graphical chevron 1.4.11 holds to 3:1 rather than
- * 4.5:1, which the same 3.62:1/3.14:1 pair clears.
- */
+/* `--ds-text-muted`, not `--ds-text-faint`: faint falls short of WCAG 1.4.3's 4.5:1 for real text. */
 .docs-body h3 {
   position: sticky;
   top: 0;
@@ -130,16 +109,7 @@
   color: var(--ds-text-muted);
 }
 
-/*
- * The intro code skeleton and every API row's own example (`.api-more pre`,
- * below) are both a bare `<pre><code>`, `highlightJavaScript`'s own markup.
- * That makes them the same element the learning track's own answer is
- * (`.tutorialsolution code`), so the box itself -- background, padding,
- * radius, font -- is left to the shared `pre code` rule and its `.tok-*`
- * neighbors (`shared/styles/code.css`), already on `--ds-code-bg`/
- * `--ds-code-text` for exactly this reason; only this one's own margin is
- * stated here.
- */
+/* The box itself is the shared `pre code` rule's; only this one's own margin is stated here. */
 .docs-intro {
   margin: 12px 0 0;
 }
@@ -152,8 +122,7 @@
 
 .api > summary {
   display: grid;
-  /* Column width follows the longest signature: checkDestinationQueue()
-     must not wrap at its own parenthesis. */
+  /* Column width follows the longest signature, so it doesn't wrap at its own parenthesis. */
   grid-template-columns: 18px 254px 1fr;
   gap: 4px 10px;
   align-items: baseline;
@@ -192,14 +161,7 @@
   padding: 0 0 12px 28px;
 }
 
-/*
- * The global `p` rule (`app/styles/document.css`) paints every `<p>` in
- * `--ds-text`, which would otherwise win over the `--ds-text-muted` this row
- * inherits from
- * `.api`: a rule naming the element itself always beats one inherited from an
- * ancestor, whatever either one's specificity is. Restated here so this
- * paragraph reads as muted body text.
- */
+/* Restates `--ds-text-muted`: the global `p` rule targets the element directly and would otherwise win over the inherited color. */
 .api-more p {
   max-width: 74ch;
   margin: 0 0 8px;

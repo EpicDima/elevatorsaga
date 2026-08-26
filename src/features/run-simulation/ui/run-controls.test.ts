@@ -8,12 +8,7 @@ import { DEFAULT_LOCALE, setLocale } from "#i18n/index.ts";
 import { requireElement } from "#shared/lib/dom.ts";
 import { SPRITE_ICONS, type SpriteIconName } from "#shared/ui/icon.ts";
 
-/**
- * Builds a `.runbox`-holding parent and mutable run-control options.
- *
- * @param overrides - Callbacks and data to replace the defaults with.
- * @returns The parent element and the options, both mutable.
- */
+/** Builds a `.runbox`-holding parent and mutable run-control options. */
 function setUp(overrides: Partial<RunControlsOptions> = {}): {
   parent: HTMLElement;
   options: {
@@ -38,14 +33,8 @@ function setUp(overrides: Partial<RunControlsOptions> = {}): {
 }
 
 /**
- * The glyph the primary button is currently showing, by its sprite name.
- *
- * Read back off the drawn path rather than off a class or a `data-` attribute,
- * because the sprite writes neither: a rendered icon is its own shape and
- * nothing else, so its `d` is the only thing that identifies it.
- *
- * @param parent - The element the markup was written into.
- * @returns The sprite's name, or `undefined` if it is neither of the two.
+ * The glyph the primary button is showing, read off the drawn `<path>`
+ * since the icon carries no class or `data-` attribute naming it.
  */
 function startStopGlyph(parent: HTMLElement): SpriteIconName | undefined {
   const drawn = requireElement(".startstop", parent).querySelector("path")?.getAttribute("d");
@@ -91,9 +80,7 @@ describe("presentRunControls", () => {
   });
 
   it("says Start, Pause, Resume and Start again in the four states they mean", () => {
-    // The word on the button is always what will happen, never what the run is
-    // doing: "Pause" while it plays, "Resume" when it is standing still
-    // part-way through, "Start" at either end of it.
+    // The label is always what will happen next, never what the run is doing.
     const { parent, options } = setUp();
     const presenter = presentRunControls(parent, options);
     const startStop = requireElement(".startstop", parent);
@@ -113,8 +100,7 @@ describe("presentRunControls", () => {
     expect(startStop.textContent).toBe("Resume");
     expect(startStopGlyph(parent)).toBe("play");
 
-    // The one state where "Start" needs saying twice: what it offers is to
-    // throw away a result the player is still reading.
+    // This "Start" means something different: it discards a result still on screen.
     options.levelEnded = (): boolean => true;
     presenter.update();
     expect(startStop.textContent).toBe("Start");
@@ -122,9 +108,7 @@ describe("presentRunControls", () => {
   });
 
   it("never offers to resume while the speed control is on its instant stop", () => {
-    // A crunch begins at the beginning -- `WorldController.start` runs the
-    // player's `init` on its first unpaused frame -- so "Resume" would be a
-    // promise the button cannot keep.
+    // A crunch always restarts from the beginning, so "Resume" would be a false promise.
     const { parent, options } = setUp({ runStarted: (): boolean => true });
     const presenter = presentRunControls(parent, options);
     expect(requireElement(".startstop", parent).textContent).toBe("Resume");
@@ -155,8 +139,7 @@ describe("presentRunControls", () => {
   });
 
   it("does not read Pause over a run nothing is drawing", () => {
-    // A crunch drives a private controller, so the shared one is paused
-    // throughout one -- `!isPaused` alone would say the opposite.
+    // The shared controller stays paused during a crunch, which drives a private one.
     const { parent, options } = setUp({
       instantRunInProgress: (): boolean => true,
     });
@@ -167,9 +150,7 @@ describe("presentRunControls", () => {
   });
 
   it("leaves the glyph element alone when a redraw does not change it", () => {
-    // A language change and a step of the speed both redraw this row, and
-    // replacing the icon on each would throw away the element under a
-    // pointer or a screen reader's cursor for no reason.
+    // Replacing the icon on every redraw would lose focus or pointer tracking on it.
     const { parent, options } = setUp();
     const presenter = presentRunControls(parent, options);
     const icon = requireElement(".startstop", parent).querySelector("svg");
@@ -222,10 +203,7 @@ describe("presentRunControls", () => {
   });
 
   it("keeps the element a keyboard player is standing on across an update", () => {
-    // The whole point of the row being drawn once: pressing Start over
-    // restarts the run, which used to delete the button that was pressed and
-    // drop focus on <body>. Nothing here is rebuilt, so there is nothing to
-    // restore.
+    // The row is drawn once and never rebuilt, so focus survives an update.
     const { parent, options } = setUp();
     document.body.append(parent);
     const presenter = presentRunControls(parent, options);

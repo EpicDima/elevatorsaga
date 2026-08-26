@@ -1,14 +1,6 @@
-/*
- * The hotkeys window: the dialog, its head row and the list of key rows.
- *
- * `.keyrow kbd` is a scoped override of the shared key cap in
- * `shared/ui/button.css`, not a replacement for it.
- */
+/* `.keyrow kbd` scopes its own override of the shared key cap; it doesn't replace it. */
 
-/*
- * The backdrop is the literal `rgb(8 10 14 / 55%)` rather than a token: it is
- * the same wash in both themes, so no token names it.
- */
+/* Literal color, not a token: the same wash applies in both themes, so nothing names it. */
 .keys {
   width: min(320px, 92vw);
   padding: 0;
@@ -44,15 +36,9 @@
 }
 
 /*
- * A row is not always two items: a `Mod-` binding is spelled
- * `<kbd>⌘</kbd>+<kbd>Enter</kbd>`, which is what lets `src/ui/shortcuts.ts`
- * relabel the glyph `Ctrl` off a Mac, and that makes four. `space-between`
- * would scatter such a chord across the row -- the modifier at the middle, the
- * plus somewhere right of it, the key at the edge.
- *
- * So the description takes the free space itself and the keys pack against the
- * right edge, one chord at one small gap. The description is the row's only
- * `<span>`, which is also how `presentHotkeysModal` finds it.
+ * A `Mod-` binding chords two `<kbd>`s plus a `+`, so `justify-content:
+ * space-between` would scatter it; the description instead takes the free
+ * space via `margin-inline-end: auto`, on the row's only `<span>`.
  */
 .keyrow {
   display: flex;
@@ -67,13 +53,7 @@
   margin-inline-end: auto;
 }
 
-/*
- * A scoped override, not a change to the page's own `kbd` rule
- * (`shared/ui/button.css`): that one is the key cap the whole app wears, and it
- * is sized to the body text it runs in, since every other `<kbd>` stands in a
- * sentence. These stand alone in a right-aligned column, at 11px and against
- * the dialog's own `--ds-bg` rather than `--ds-raised`.
- */
+/* Sized and colored for a standalone column, not for the body-text kbd elsewhere. */
 .keyrow kbd {
   padding: 1px 6px;
   border: 1px solid var(--ds-line-strong);

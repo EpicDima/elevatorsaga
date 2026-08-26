@@ -2,22 +2,10 @@
  * The three-way theme switch: a group of `system`/`light`/`dark` buttons,
  * composed into `widgets/app-bar`'s settings menu.
  *
- * Split into a skeleton builder and a presenter, the same shape
- * `buildWorkspaceLayoutSkeleton`/`presentWorkspaceLayout` use: the builder
- * bakes in the labels once, and the presenter only wires behavior, so a
- * caller that already has its own markup (a widget's own template literal,
- * say) can skip the builder and hand `presentThemeSwitch` elements it built
- * itself.
- *
- * The system preference and the element the scheme is written to are both
- * caller-supplied — {@link ThemeSwitchOptions.prefersDark} rather than calling
- * `matchMedia` in here, and {@link ThemeSwitchOptions.root} rather than
- * reaching for `document.documentElement` — the same reason
- * `presentWorkspaceLayout` takes a `root` option instead of assuming one.
- * `prefersDark` is a function, not a single boolean snapshot, because the
- * choice can be "system" for the whole time this switch is mounted:
- * {@link ThemeSwitchController.notifySystemChange} re-reads it whenever the
- * caller's own `matchMedia(...).addEventListener("change", ...)` fires.
+ * Split into a skeleton builder and a presenter, so a caller with its own
+ * markup can skip the builder. The system preference and the root element to
+ * write the scheme onto are both caller-supplied rather than read from
+ * `matchMedia`/`document.documentElement` directly.
  */
 
 import { readTheme, resolveTheme, saveTheme, THEMES, type Theme } from "../model/theme.ts";
@@ -42,15 +30,7 @@ export interface ThemeSwitchElements {
   readonly dark: HTMLElement;
 }
 
-/**
- * Builds the theme switch's DOM skeleton, detached from any document.
- *
- * @param document - The document to create the elements in, so a caller can
- * build into a document other than the global one — see
- * `buildWorkspaceLayoutSkeleton` for why.
- * @param labels - The localized text for the group and its three buttons.
- * @returns The group and its three buttons, ready for {@link presentThemeSwitch}.
- */
+/** Builds the theme switch's DOM skeleton, detached from any document. */
 export function buildThemeSwitchSkeleton(
   document: Document,
   labels: ThemeSwitchLabels,
@@ -88,43 +68,19 @@ export interface ThemeSwitchOptions {
   readonly root: HTMLElement;
   /** Where the chosen theme is remembered between visits. */
   readonly storage: Storage;
-  /**
-   * Whether the system's own color scheme is dark right now. Read once at
-   * construction and again on every {@link ThemeSwitchController.notifySystemChange}
-   * call — never read spontaneously in here, so this module never touches
-   * `window.matchMedia` itself.
-   */
+  /** Whether the system's own color scheme is dark right now; read at construction and on every {@link ThemeSwitchController.notifySystemChange}. */
   readonly prefersDark: () => boolean;
 }
 
 /** What a mounted theme switch hands back. */
 export interface ThemeSwitchController {
-  /**
-   * Re-resolves and re-applies the theme, but only while the player's own
-   * choice is "system"; a pinned light or dark choice ignores the system.
-   *
-   * Call this from the caller's own `matchMedia("(prefers-color-scheme: dark)")`
-   * `"change"` listener; this module does not register one itself, for the
-   * same reason it does not call `matchMedia` itself — see the module comment.
-   */
+  /** Re-resolves and re-applies the theme, but only while the player's own choice is "system". */
   notifySystemChange(): void;
-  /**
-   * Re-applies {@link ThemeSwitchLabels} to the group and its three buttons,
-   * for a caller redrawing after a language change — `buildThemeSwitchSkeleton`
-   * only writes them once, at construction, so nothing else keeps them current.
-   * Touches only text; which theme is chosen and applied is untouched.
-   */
+  /** Re-applies {@link ThemeSwitchLabels} after a language change; touches only text, not the chosen theme. */
   relabel(labels: ThemeSwitchLabels): void;
 }
 
-/**
- * Wires the three theme buttons up, restoring the choice a player left
- * behind and applying it immediately.
- *
- * @param options - The buttons to wire, the element to write the resolved
- * scheme onto, the store, and the system preference reader.
- * @returns A controller for reacting to a system theme change.
- */
+/** Wires the three theme buttons up, restoring the choice a player left behind and applying it immediately. */
 export function presentThemeSwitch(options: ThemeSwitchOptions): ThemeSwitchController {
   const { elements, root, storage, prefersDark } = options;
   const buttons: Readonly<Record<Theme, HTMLElement>> = {
@@ -147,9 +103,7 @@ export function presentThemeSwitch(options: ThemeSwitchOptions): ThemeSwitchCont
 
   for (const candidate of THEMES) {
     buttons[candidate].addEventListener("click", () => {
-      // Re-applies and re-persists unconditionally rather than bailing out
-      // when the same button is pressed again: applying is cheap and
-      // idempotent, so there is nothing worth skipping.
+      // Re-applies unconditionally, even for the already-selected button: applying is cheap and idempotent.
       theme = candidate;
       apply();
       saveTheme(storage, theme);

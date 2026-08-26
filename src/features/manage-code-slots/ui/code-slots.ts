@@ -1,14 +1,4 @@
-/**
- * The code slot switcher: three buttons choosing which of a level's three
- * saved programs the editor shows.
- *
- * Peeled out of what was `src/ui/presenters.ts`'s `presentCodeSlots` and
- * `src/ui/templates.ts`'s `codeSlotsTemplate`/`codeSlotTemplate`, which now
- * re-export this module's own symbols — see that module's history for why
- * the name was kept reachable there. Nothing about the switcher's behavior
- * changes in the move; this is the same function, in a feature slice of its
- * own.
- */
+/** The code slot switcher: three buttons choosing which of a level's three saved programs the editor shows. */
 
 import { CODE_SLOTS, type CodeSlot } from "../model/code-slots.ts";
 import { t } from "#i18n/index.ts";
@@ -27,50 +17,15 @@ export interface CodeSlotsData {
 /**
  * One button of the code slot switcher.
  *
- * The visible label is the whole phrase — "Code 1", not a bare "1" carrying a
- * longer `aria-label`. The switcher sits in the bar above the editor, where
- * there is room for the noun, and the noun earns its width twice:
- *
- * - A sighted player reads what the buttons are instead of guessing. Numbered
- *   chips above a code editor could as easily be a font size or an indent
- *   width.
- * - The accessible name is the visible label rather than a longer sentence
- *   standing in its place, which is what WCAG 2.5.3 (Label in Name) asks for: a
- *   player who says "click code one", or types it into a voice-control matcher,
- *   is matching against what they are looking at.
- *
- * `title` carries what the label still has no room for: a slot is a draft
- * rather than a version or an attempt, so nobody expects a history behind the
- * number. It is a description, not the name — a `title` on an element that
- * already has text content is announced after that text, not instead of it.
- *
- * `aria-pressed` rather than `aria-current`: a slot is not a place with an
- * address of its own the way a level is, it is a toggle a player presses to
- * change what the editor is showing, the same kind of control the floor call and
- * in-car buttons are. The stylesheet marks the same button off the same
- * attribute, following `.levellink[aria-current]`, so the two cannot drift
- * apart.
- *
- * @param slot - The slot this button switches to.
- * @param current - Whether this is the slot open in the editor right now.
- * @returns The button markup.
+ * The visible label is the full phrase ("Code 1"), matching the accessible
+ * name per WCAG 2.5.3. `aria-pressed`, not `aria-current`: a slot is a toggle
+ * a player presses, not an address like a level.
  */
 function codeSlotTemplate(slot: CodeSlot, current: boolean): string {
   return markup`<button type="button" class="codeslot" aria-pressed="${current}" title="${t("editor.slot.tab.title", { number: slot })}">${t("editor.slot.tab.label", { number: slot })}</button>`;
 }
 
-/**
- * The code slot switcher, as one row of buttons.
- *
- * Rebuilt from scratch on every call rather than updated in place, unlike
- * `controlsTemplate`'s buttons: there are only three of these, switching one
- * off and another on is the entire update, and nothing about them — no timer,
- * no focus held mid-edit — needs to survive being replaced the way the run
- * controls do.
- *
- * @param data - Which slot is open in the editor right now.
- * @returns The switcher's markup.
- */
+/** The code slot switcher, as one row of buttons, rebuilt from scratch on every call. */
 export function codeSlotsTemplate(data: CodeSlotsData): string {
   return CODE_SLOTS.map((slot) => codeSlotTemplate(slot, slot === data.currentSlot)).join("");
 }
@@ -85,15 +40,7 @@ export interface CodeSlotsPresenterOptions {
 
 /** The rendered code slot switcher. */
 export interface CodeSlotsPresenter {
-  /**
-   * Redraws the row, marking whichever slot `currentSlot` now answers as
-   * pressed.
-   *
-   * Rebuilds the row's markup rather than relabeling what is there, unlike
-   * `ControlsPresenter.update`: three buttons are cheap enough to throw away
-   * and redraw, and nothing about them — no timer, no text mid-edit — has to
-   * survive being replaced the way the run controls' own do.
-   */
+  /** Redraws the row, marking whichever slot `currentSlot` now answers as pressed. */
   update(): void;
 }
 
@@ -101,12 +48,7 @@ export interface CodeSlotsPresenter {
  * Draws the code slot switcher and wires it up.
  *
  * The click listener is bound once, on `parent`, rather than on the buttons
- * `update` throws away and redraws: a listener on a button `update` has just
- * removed from the document hears nothing.
- *
- * @param parent - The `.slots` element.
- * @param options - Which slot is current, and the callback for picking another.
- * @returns The presenter, already drawn.
+ * `update` throws away and redraws — a listener on a removed button hears nothing.
  */
 export function presentCodeSlots(
   parent: HTMLElement,

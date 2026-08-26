@@ -26,9 +26,8 @@ describe("clampTimeScale", () => {
   });
 
   it("falls back to the default for values that would freeze the world", () => {
-    // `#timescale=abc` used to reach the world controller as NaN, and every
-    // simulated `dt` became NaN with it. Infinity is the same hazard, and the
-    // reason the speed control's own instant stop is not a time scale at all.
+    // NaN and Infinity both produce a `dt` multiplier that would freeze the world;
+    // that hazard is also why the instant stop isn't modeled as a time scale.
     expect(clampTimeScale(Number.NaN)).toBe(DEFAULT_TIME_SCALE);
     expect(clampTimeScale(Number.POSITIVE_INFINITY)).toBe(DEFAULT_TIME_SCALE);
     expect(clampTimeScale(Number.NEGATIVE_INFINITY)).toBe(DEFAULT_TIME_SCALE);
@@ -47,8 +46,7 @@ describe("TIME_SCALES", () => {
   });
 
   it("holds only finite, positive speeds inside the runnable range", () => {
-    // The whole point of a list of stops: no press can produce a `dt`
-    // multiplier that stops or freezes the world.
+    // The point of a list of stops: no press can produce a stopping or freezing `dt`.
     for (const stop of TIME_SCALES) {
       expect(Number.isFinite(stop)).toBe(true);
       expect(stop).toBeGreaterThan(0);
@@ -71,8 +69,7 @@ describe("increasedTimeScale", () => {
   });
 
   it("has nothing faster to offer at the top of the ladder", () => {
-    // The press that would go faster than 20x is the one the speed control
-    // spends on its instant stop instead; see isFastestTimeScale.
+    // That press is the one the speed control spends on its instant stop instead.
     expect(increasedTimeScale(20)).toBe(20);
   });
 
@@ -83,8 +80,7 @@ describe("increasedTimeScale", () => {
   });
 
   it("leaves a speed above the ladder where the URL put it", () => {
-    // #timescale=40 is a legal request and stays exactly 40x: rounding it onto
-    // the ladder would silently disobey the URL.
+    // #timescale=40 stays exactly 40x; rounding it onto the ladder would silently disobey the URL.
     expect(increasedTimeScale(40)).toBe(40);
     expect(increasedTimeScale(TIME_SCALE_MAX)).toBe(TIME_SCALE_MAX);
   });
@@ -105,9 +101,8 @@ describe("decreasedTimeScale", () => {
   });
 
   it("never reaches the frozen zero the legacy button could reach", () => {
-    // Legacy: Math.round(0.5 / 1.618) === 0, and 0 * 1.618 rounds to 0, so one
-    // press of `-` at a URL-supplied 0.5 stopped the world for good. A list of
-    // stops cannot get there at all -- below the ladder there is nowhere to go.
+    // Math.round(0.5 / 1.618) === 0, and 0 × 1.618 rounds to 0 too: a list of
+    // stops can't reach that frozen zero, since below the ladder there's nowhere to go.
     expect(decreasedTimeScale(1)).toBe(1);
     expect(decreasedTimeScale(0.5)).toBe(0.5);
     expect(decreasedTimeScale(TIME_SCALE_MIN)).toBe(TIME_SCALE_MIN);

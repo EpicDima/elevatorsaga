@@ -1,13 +1,6 @@
-/*
- * The speed control in the app bar: two arrows and the reading between them.
- * Mounted into `.controls`, which `run-controls.css` states.
- */
+/* Mounted into .controls, which run-controls.css defines. */
 
-/*
- * 28px buttons rather than the row's own 32: the group's 1px border and 1px of
- * padding add two to each side, so the whole control comes to `--ds-ctl-h` and
- * stands level with the buttons beside it.
- */
+/* 28px + 1px border + 1px padding on each side equals --ds-ctl-h, matching the row's other buttons. */
 .speed {
   display: flex;
   flex: 0 0 auto;
@@ -34,22 +27,13 @@
   color: var(--ds-text);
 }
 
-/*
- * At the ends of the list an arrow dims rather than disappearing, so the bar's
- * row does not twitch when the speed reaches a limit. Below 3:1 against
- * the group behind it, and deliberately -- WCAG 1.4.11 exempts a disabled
- * control, and dimming is the whole message.
- */
+/* Dims rather than disappears, so the row doesn't shift; falls below 3:1 deliberately, since WCAG 1.4.11 exempts a disabled control. */
 .speed button:disabled {
   color: var(--ds-text-faint);
   opacity: 0.35;
 }
 
-/*
- * Wide enough for "20x" and for the instant stop's "∞x" both, so that neither
- * arrow moves when the reading changes under it. Monospace for the same reason
- * the seed line is: a proportional "11x" and "20x" are different widths.
- */
+/* Wide enough for "20x" and "∞x" alike so neither arrow shifts; monospace keeps digit widths equal. */
 .speed-val {
   min-width: 36px;
   color: var(--ds-text);

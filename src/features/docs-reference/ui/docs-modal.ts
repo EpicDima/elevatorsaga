@@ -1,36 +1,8 @@
 /**
- * The docs dialog: the chrome around a guide, a code skeleton, a lead paragraph
- * and the API reference table (`#entities/api-reference`), plus the search box
- * that filters all three.
- *
- * `.docs-body`'s contents are drawn up front, inside
- * {@link docsModalTemplate}'s own `markup` tagged template — the same "build
- * inert first" every widget here follows, so there is no runtime assembly step
- * left for {@link presentDocsModal} to redo.
- *
- * Everything the dialog is addressed by is a class rather than an id, because a
- * caller can build this widget more than once and ids would collide.
- *
- * ## Search
- *
- * A query hides every `.api` row whose own text (summary and expanded detail
- * alike) does not contain it, opens a row that matched only in its own hidden
- * detail — marking it `data-by-search` so a search that moves on can fold it
- * back up — and hides a group's own `<h3>` once none of its rows survive. The
- * guide, the intro code and the lead paragraph are not filtered; they are
- * hidden outright while a query is live. The scroll position is saved and
- * restored around a search: a query jumps the body to its top, and clearing it
- * returns the body to wherever the player had scrolled to, tracked by a
- * `scroll` listener.
- *
- * Every code example — the intro skeleton and each API row's own — goes through
- * `highlightJavaScript` and is wrapped in `<pre><code>`, the same shape
- * `tutorialAnswerTemplate` produces, so `shared/styles/code.css` paints all of
- * them.
- *
- * Built and unit-tested against a jsdom `<dialog>` — `polyfillDialogElement`
- * (`#shared/ui/test-helpers.ts`). `src/main.ts` mounts it and wires
- * `settings-menu.ts`'s `docsopen` opener to it.
+ * The docs dialog: chrome around a guide, a code skeleton, a lead paragraph, an
+ * API reference table, and the search box that filters all three. Everything
+ * is addressed by class rather than id, since a caller can build this widget
+ * more than once.
  */
 
 import { API_REFERENCE, type ApiReferenceEntry } from "#entities/api-reference/index.ts";
@@ -41,15 +13,10 @@ import { spriteIconMarkup } from "#shared/ui/icon.ts";
 import { markup, raw } from "#shared/ui/markup.ts";
 import { highlightJavaScript } from "../../../ui/code-highlight.ts";
 
-/** Counter for {@link docsModalTemplate}'s own title id, unique per call. */
+/** Counter for a unique title id per modal instance. */
 let nextTitleId = 0;
 
-/**
- * Markup for one `<details class="api">` row.
- *
- * @param entry - The row's own signature and catalog keys.
- * @returns The row's markup.
- */
+/** Markup for one `<details class="api">` row. */
 function apiEntryMarkup(entry: ApiReferenceEntry): string {
   const short = t(entry.shortKey);
   const more = t(entry.moreKey);
@@ -57,35 +24,22 @@ function apiEntryMarkup(entry: ApiReferenceEntry): string {
   return markup`<details class="api"><summary>${raw(spriteIconMarkup("right", "chev"))}<code>${entry.sig}</code><span>${short}</span></summary><div class="api-more"><p>${more}</p><pre><code>${raw(code)}</code></pre></div></details>`;
 }
 
-/**
- * Markup for {@link API_REFERENCE}'s own groups, one heading per group
- * followed by its rows, in the table's own order.
- *
- * @returns The reference table's markup.
- */
+/** Markup for {@link API_REFERENCE}'s groups, one heading per group followed by its rows. */
 function apiReferenceMarkup(): string {
   return API_REFERENCE.map(
     (group) => markup`<h3>${t(group.labelKey)}</h3>` + group.entries.map(apiEntryMarkup).join(""),
   ).join("");
 }
 
-/**
- * Markup for the guide: one heading-and-body section per topic.
- *
- * @returns The guide's markup, one `<section class="docs-guide">`.
- */
+/** Markup for the guide: one heading-and-body section per topic. */
 function guideMarkup(): string {
   return markup`<section class="docs-guide"><h3>${t("game.docs.guide.whatGame.heading")}</h3><p>${t("game.docs.guide.whatGame.body")}</p><h3>${t("game.docs.guide.whatToDo.heading")}</h3><ol class="docs-steps"><li>${t("game.docs.guide.whatToDo.step1")}</li><li>${t("game.docs.guide.whatToDo.step2")}</li><li>${raw(t("game.docs.guide.whatToDo.step3.html"))}</li><li>${t("game.docs.guide.whatToDo.step4")}</li></ol><h3>${t("game.docs.guide.carArrows.heading")}</h3><p>${raw(t("game.docs.guide.carArrows.html"))}</p><h3>${t("game.docs.guide.readingResults.heading")}</h3><p>${t("game.docs.guide.readingResults.body")}</p><h3>${t("game.docs.guide.threeStars.heading")}</h3><p>${raw(t("game.docs.guide.threeStars.html"))}</p><h3>${t("game.docs.guide.tutorialLevels.heading")}</h3><p>${t("game.docs.guide.tutorialLevels.body")}</p></section>`;
 }
 
 /**
- * Markup for `.docs-body`'s own contents: the guide, the intro skeleton, the
- * lead paragraph, the API reference table and the "nothing found" panel —
- * everything a language change has to redraw, since every word in it is
- * `t()`-sourced. Shared between {@link docsModalTemplate}'s initial build and
- * {@link presentDocsModal}'s `update`, so the two can never drift apart.
- *
- * @returns `.docs-body`'s inner markup.
+ * Markup for `.docs-body`: guide, intro skeleton, lead paragraph, API
+ * reference table, and the "nothing found" panel. Shared between the initial
+ * build and {@link presentDocsModal}'s `update` so the two never drift apart.
  */
 function docsBodyMarkup(): string {
   const introHeading = t("game.docs.intro.heading");
@@ -96,11 +50,7 @@ function docsBodyMarkup(): string {
   return markup`${raw(guideMarkup())}<h3>${introHeading}</h3><pre class="docs-intro"><code>${raw(introCode)}</code></pre><p class="docs-lead">${raw(lead)}</p>${raw(apiReferenceMarkup())}<div class="docs-empty" hidden>${empty}</div>`;
 }
 
-/**
- * The dialog's inert markup, ready for {@link presentDocsModal}.
- *
- * @returns The dialog's markup, describing exactly one `<dialog class="docs">`.
- */
+/** The dialog's inert markup, ready for {@link presentDocsModal}. */
 export function docsModalTemplate(): string {
   const titleId = `docs-modal-title-${String(nextTitleId)}`;
   nextTitleId += 1;
@@ -117,26 +67,14 @@ export function docsModalTemplate(): string {
 /** What a mounted docs modal hands back — a {@link Modal}, plus a way to keep its labels current. */
 export interface DocsModalController extends Modal {
   /**
-   * Re-derives every `t()`-sourced label this dialog drew — the title, the
-   * search box, the close button and the whole of `.docs-body`, rebuilt from
-   * {@link docsBodyMarkup} — for a caller redrawing after a language change.
-   * {@link docsModalTemplate} bakes them in once, at construction; this is
-   * what keeps them current instead, the same role `RunControlsPresenter.update`
-   * plays for the run controls. An in-progress search does not survive: a
-   * query typed in one language is not a query in the next, so it is cleared
-   * and `.docs-body` reopens on the guide, the same state a fresh {@link presentDocsModal} starts in.
+   * Re-derives every `t()`-sourced label after a language change, including a
+   * full `.docs-body` rebuild. Clears an in-progress search, since a query
+   * typed in one language is not a query in the next.
    */
   update(): void;
 }
 
-/**
- * Reads `.api` rows out of a root, insisting every one is a `<details>` —
- * shared between {@link presentDocsModal}'s initial wiring and its own
- * `update`, which re-collects them after `.docs-body` is rebuilt.
- *
- * @param root - Where to look for `.api` rows.
- * @returns The rows, in document order.
- */
+/** Reads `.api` rows out of a root, insisting every one is a `<details>`. */
 function collectApiRows(root: ParentNode): HTMLDetailsElement[] {
   return queryAll(".api", root).map((row) => {
     if (!(row instanceof HTMLDetailsElement)) {
@@ -146,16 +84,7 @@ function collectApiRows(root: ParentNode): HTMLDetailsElement[] {
   });
 }
 
-/**
- * Wires the dialog's search box, its close button and its own backdrop click
- * into an open/close pair — {@link createModal}'s pair for the close button
- * and the backdrop, plus the search-clearing and scroll-restoring behavior
- * this module's own doc comment describes.
- *
- * @param dialog - The `<dialog class="docs">` built from
- * {@link docsModalTemplate}'s markup.
- * @returns The modal, closed to start.
- */
+/** Wires the dialog's search box, close button, and backdrop click; returns the modal, closed to start. */
 export function presentDocsModal(dialog: HTMLDialogElement): DocsModalController {
   const closeButton = requireElement(".docsclose", dialog);
   const modal = createModal(dialog, closeButton);
@@ -176,10 +105,8 @@ export function presentDocsModal(dialog: HTMLDialogElement): DocsModalController
 
   let apiRows = collectApiRows(dialog);
 
-  // Distinguishes a row a search opened -- which folds back up once the
-  // search that opened it moves on -- from one a player opened by hand,
-  // which does not: a `toggle` fired while this is true is the filter's own
-  // doing, not a click.
+  // True while the filter itself is opening/closing rows, so a `toggle`
+  // fired then isn't mistaken for the player opening a row by hand.
   let applyingSearch = false;
   function wireApiRows(): void {
     for (const row of apiRows) {
@@ -198,15 +125,12 @@ export function presentDocsModal(dialog: HTMLDialogElement): DocsModalController
     let found = 0;
     applyingSearch = true;
     for (const row of apiRows) {
-      // The previous search's own finds fold shut wholesale: otherwise a
-      // dozen rows opened on the way to one word stay open forever.
+      // Fold shut the previous search's own finds first, or they'd stay open forever.
       if (row.dataset["bySearch"] !== undefined) {
         row.open = false;
         delete row.dataset["bySearch"];
       }
-      // The row's detail is searched too -- textContent sees it even
-      // closed -- but a match found only inside means the row has to open,
-      // or nothing on screen explains why it's in the results.
+      // textContent sees the closed detail too; a match found only there still has to open.
       const match = row.textContent.toLowerCase().includes(query);
       row.hidden = !match;
       if (!match) {
@@ -221,9 +145,7 @@ export function presentDocsModal(dialog: HTMLDialogElement): DocsModalController
     }
     applyingSearch = false;
 
-    // A group's own heading hides with its last surviving row; the intro
-    // heading, which has no `.api` rows of its own, hides outright once a
-    // query is live, the same as the guide and the lead below.
+    // A heading hides with its last surviving row; the intro heading, with no rows, hides outright once a query is live.
     for (const head of queryAll(":scope > h3", docsBody)) {
       let node: Element | null = head.nextElementSibling;
       let siblingRowCount = 0;
@@ -236,20 +158,14 @@ export function presentDocsModal(dialog: HTMLDialogElement): DocsModalController
       head.hidden = siblingRowCount === 0 ? query !== "" : !alive;
     }
 
-    // The "how to play" guide never takes part in a search: what's looked
-    // for there is always a specific call, never a paragraph about the
-    // game's own point.
+    // The guide never takes part in a search.
     guide.hidden = query !== "";
     intro.hidden = query !== "";
     lead.hidden = query !== "";
     docsEmpty.hidden = found > 0;
   }
 
-  // Where the dialog was scrolled to when it was closed, remembered across
-  // the page's own session: read to onIdle, closed to look at the building,
-  // reopened, and still on onIdle. Search doesn't count toward it: a
-  // search's own results start at the top, and clearing one returns the body
-  // to wherever it was scrolled before.
+  // Scroll position outside of search, restored on reopen; a search itself always starts at the top.
   let docsScroll = 0;
   let docsSearching = false;
 
@@ -275,9 +191,7 @@ export function presentDocsModal(dialog: HTMLDialogElement): DocsModalController
     docsFind.focus();
   });
 
-  // The dialog's own close, however it happens -- the close button, the
-  // backdrop, Escape -- clears the search: the dialog reopens on the guide,
-  // not partway through whatever was typed last time.
+  // Clear the search on any close, so the dialog reopens on the guide.
   dialog.addEventListener("close", () => {
     if (docsFind.value === "") {
       return;

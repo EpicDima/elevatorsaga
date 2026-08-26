@@ -2,35 +2,15 @@
  * The four-way layout switch: a group of `left`/`right`/`code`/`game` buttons,
  * composed into `widgets/app-bar`'s settings menu.
  *
- * `widgets/workspace-layout`'s own `LayoutMode` is the type this switch would
- * naturally choose from, but `features/**` may not import from `widgets/**`
- * (see `eslint.config.js`'s FSD boundary rules), so this module declares its
- * own {@link LayoutModeId} instead — the same four string literals, typed
- * independently. That is not a design choice this module gets to make about
- * what a layout mode *is*; it is a consequence of which layer is allowed to
- * depend on which. The two types are structurally identical, so a caller at
- * cutover time — `widgets/app-bar`'s settings menu, composing both this and
- * `workspace-layout`'s `setLayoutMode` — can pass one where the other is
- * expected without a cast: TypeScript's structural typing makes the
- * dependency inversion free at the call site, even though the two names never
- * import from each other.
- *
- * `features/**` may import from `#shared/**` freely (the FSD hierarchy runs
- * shared < entities < features < widgets < pages < app, and each layer may
- * import from itself and everything below), so unlike the boundary above,
- * there is no layering reason to keep `#shared/ui/icon.ts` out of this file —
- * `features/adjust-speed` and `features/run-simulation` already import it
- * directly, and this module follows that precedent.
+ * {@link LayoutModeId} duplicates `widgets/workspace-layout`'s `LayoutMode`
+ * rather than importing it, since `features/**` may not depend on
+ * `widgets/**`; the two types are structurally identical, so callers can pass
+ * one where the other is expected without a cast.
  */
 
 import { createSpriteIcon } from "#shared/ui/icon.ts";
 
-/**
- * Which pane arrangement a button chooses. Structurally identical to
- * `widgets/workspace-layout/model/layout-mode.ts`'s own `LayoutMode` — see
- * the module comment for why this is a second, independent type rather than
- * an import of that one.
- */
+/** Which pane arrangement a button chooses. */
 export type LayoutModeId = "left" | "right" | "code" | "game";
 
 /** Every {@link LayoutModeId}, in the order the buttons are drawn. */
@@ -68,18 +48,7 @@ const BUTTON_ICON: Readonly<
   game: "only-game",
 };
 
-/**
- * Builds the layout switch's DOM skeleton, detached from any document.
- *
- * Unlike {@link import("../../switch-theme/ui/theme-switch.ts").buildThemeSwitchSkeleton},
- * each button carries an icon rather than text, drawn with
- * `#shared/ui/icon.ts`'s `createSpriteIcon`.
- *
- * @param document - The document to create the elements in, so a caller can
- * build into a document other than the global one.
- * @param labels - The localized text for the group and its four buttons.
- * @returns The group and its four buttons, ready for {@link presentLayoutSwitch}.
- */
+/** Builds the layout switch's DOM skeleton, detached from any document; each button carries an icon rather than text. */
 export function buildLayoutSwitchSkeleton(
   document: Document,
   labels: LayoutSwitchLabels,
@@ -121,40 +90,17 @@ export interface LayoutSwitchOptions {
 
 /** What a mounted layout switch hands back. */
 export interface LayoutSwitchController {
-  /**
-   * Marks a mode as the pressed one, without calling {@link LayoutSwitchOptions.onSelect}.
-   *
-   * For a caller whose own layout mode changed some other way — a later
-   * phase's `widgets/app-bar` keeping this switch in step with
-   * `workspace-layout`'s own state after, say, a keyboard shortcut moved it.
-   *
-   * @param mode - The mode to mark pressed.
-   */
+  /** Marks a mode as the pressed one, without calling {@link LayoutSwitchOptions.onSelect}. */
   setActiveMode(mode: LayoutModeId): void;
-  /**
-   * Re-applies {@link LayoutSwitchLabels} to the group and its four buttons,
-   * for a caller redrawing after a language change — `buildLayoutSwitchSkeleton`
-   * only writes them once, at construction, so nothing else keeps them
-   * current. Touches only text; which mode is marked pressed is untouched.
-   */
+  /** Re-applies {@link LayoutSwitchLabels} after a language change; touches only text, not which mode is pressed. */
   relabel(labels: LayoutSwitchLabels): void;
 }
 
 /**
- * Wires the four layout buttons up, marking the caller's current mode
- * pressed.
+ * Wires the four layout buttons up, marking the caller's current mode pressed.
  *
- * This module holds no state of its own beyond which button is marked
- * pressed: unlike `presentThemeSwitch`, there is no storage key here and no
- * "resolve against a system preference" step, because a layout mode is
- * always exactly the mode it says — the caller (eventually
- * `workspace-layout`, through `widgets/app-bar`) is the one that reads and
- * writes storage and decides what applying a mode does.
- *
- * @param options - The buttons to wire, the mode to open showing as pressed,
- * and the callback for a press.
- * @returns A controller for keeping the pressed button in step with state
- * that changed elsewhere.
+ * Holds no state beyond which button is pressed; the caller owns storage and
+ * decides what applying a mode does.
  */
 export function presentLayoutSwitch(options: LayoutSwitchOptions): LayoutSwitchController {
   const { elements, onSelect } = options;

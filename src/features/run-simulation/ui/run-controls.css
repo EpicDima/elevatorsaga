@@ -1,22 +1,9 @@
-/*
- * Everything that drives the run, in the app bar: the two run buttons and the
- * mount they share with the speed stepper.
- *
- * The bar rather than a row of its own under the building, because the run has
- * to be reachable in every layout -- including the one with nothing but code on
- * screen -- and a row of its own would cost the building a line of height in
- * all of them.
- *
- * The width query at the end is this feature's alone: every selector in it is
- * one of these buttons.
- */
+/* The run controls in the app bar: the two run buttons and their mount with the speed stepper. */
 
 /*
- * The mount for both groups. `index.html` ships it because one presenter
- * composes the two features into it. It takes `.appbar`'s own 14px `gap`, so
- * the pair sits the same distance apart as any two of the bar's own children,
- * and `.appbar > :not(.levelswitcher)` gives it the row's height, so nothing
- * else about the bar has to know it is there.
+ * The mount for both groups. Uses `.appbar`'s own 14px gap and the row
+ * height from `.appbar > :not(.levelswitcher)`, so nothing else about the
+ * bar needs to know it's here.
  */
 .controls {
   display: flex;
@@ -24,12 +11,7 @@
   align-items: center;
 }
 
-/*
- * The two run buttons. One box rather than two of the bar's own children,
- * because the bar's 14px reads as "different things" and these two are one: the
- * first drives the run (start, pause, resume), the second begins it again from
- * nothing.
- */
+/* The two run buttons as one box, since the bar's 14px gap would read them as unrelated. */
 .runbox {
   display: flex;
   gap: 6px;
@@ -37,14 +19,9 @@
 }
 
 /*
- * Both run buttons one width, and a width that does not depend on what is
- * written on them: the primary one says "Start", "Pause", "Resume" and
- * "Crunching..." in turn, and without a floor under it the whole bar would be
- * recut on every press -- with "Start over" beside it looking clipped.
- *
- * Specificity puts this over `.btn-primary`'s own `min-width`
- * (`shared/ui/button.css`): 106px is what a primary button gets outside this
- * box, and inside it both buttons match at 152px.
+ * A fixed width so the row doesn't reflow as the primary label changes
+ * (Start/Pause/Resume/Crunching...). Overrides `.btn-primary`'s own
+ * `min-width` via specificity.
  */
 .runbox .btn {
   min-width: 152px;
@@ -52,13 +29,8 @@
 }
 
 /*
- * The bar shrinking, step one: "Start over" drops its label and its glyph
- * carries the button, with the `title` left to say the rest.
- *
- * The primary button keeps a floor under it: its label is the one that changes
- * on every press -- Start, Pause, Resume, Crunching... -- so the row would move
- * under the pointer without one. 150px is what the longest of them measures at
- * this size in either language.
+ * Below this width, "Start over" drops to icon-only. The primary button
+ * keeps a 150px floor since its label still changes on every press.
  */
 @media (max-width: 1240px) {
   .startover .lbl {

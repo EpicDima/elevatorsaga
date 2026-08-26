@@ -13,12 +13,7 @@ interface Harness {
   redraw: ReturnType<typeof vi.fn>;
 }
 
-/**
- * A language picker, filled and wired, over an empty `<select>`.
- *
- * @param storage - Where the choice is remembered; a fresh map by default.
- * @returns The control and what it was given.
- */
+/** A language picker, filled and wired, over an empty `<select>`. */
 function setUp(storage: MemoryStorage = new MemoryStorage()): Harness {
   const select = createElement("select", { className: "langpick" });
   document.body.replaceChildren(select);
@@ -27,51 +22,30 @@ function setUp(storage: MemoryStorage = new MemoryStorage()): Harness {
   return { select, storage, redraw };
 }
 
-/**
- * Chooses a language the way a reader does.
- *
- * The browser sets `value` and raises `change`; nothing else about a real
- * choice reaches this module.
- *
- * @param select - The control.
- * @param locale - What was chosen.
- */
+/** Chooses a language the way a reader does: the browser sets `value` and raises `change`. */
 function choose(select: HTMLSelectElement, locale: string): void {
   select.value = locale;
   select.dispatchEvent(new Event("change"));
 }
 
-/**
- * Lets everything the choice started finish.
- *
- * A task rather than a microtask or two: the handler awaits `loadLocale`, and
- * how many ticks that takes is the loader's business rather than this test's.
- *
- * @returns A promise that settles once the queue has drained.
- */
+/** Lets everything the choice started finish; a task rather than a microtask, since `loadLocale`'s own tick count isn't this test's business. */
 async function settle(): Promise<void> {
   await new Promise((resolve) => setTimeout(resolve, 0));
 }
 
 afterEach(() => {
-  // On the hook rather than in the tests, so a failing assertion cannot leave
-  // the rest of the file running in Russian.
+  // On the hook rather than in the tests, so a failing assertion cannot leave the rest of the file running in Russian.
   setLocale(DEFAULT_LOCALE);
 });
 
 describe("presentLanguagePicker", () => {
   it("fills an empty control with every language the game speaks", () => {
-    // The shell ships the `<select>` with nothing in it, so this list and the
-    // one `src/i18n/locale.ts` keeps cannot disagree.
     const { select } = setUp();
 
     expect([...select.options].map((option) => option.value)).toEqual(["en", "ru"]);
   });
 
   it("names each language in that language, not in the reader's current one", () => {
-    // A picker shows every option at once, and the reader who most needs this
-    // control is the one who cannot read the language the page is in. "Русский"
-    // is the word they will recognize; "Russian" is not.
     setLocale("ru");
     const { select } = setUp();
 
@@ -86,8 +60,7 @@ describe("presentLanguagePicker", () => {
   });
 
   it("writes nothing to storage until a reader chooses something", () => {
-    // Start-up deliberately remembers nothing -- see the header of
-    // `preferred-locale.ts` -- and drawing the control is still start-up.
+    // Drawing the control is still start-up, which deliberately remembers nothing.
     const { storage } = setUp();
 
     expect(storage.length).toBe(0);
@@ -105,9 +78,7 @@ describe("presentLanguagePicker", () => {
   });
 
   it("waits for the catalog, so the page is redrawn once and in the new language", async () => {
-    // Redrawing before the catalog is in memory would rewrite everything in
-    // English -- `t` falls back until it lands -- and nothing would redraw it
-    // afterwards, because nobody is watching the fetch.
+    // Redrawing before the catalog lands would rewrite everything in English, with nothing watching the fetch to redraw it again.
     const { select, redraw } = setUp();
     let languageAtRedraw = "";
     redraw.mockImplementation(() => {
@@ -122,10 +93,7 @@ describe("presentLanguagePicker", () => {
   });
 
   it("changes the language even when the browser refuses to remember it", async () => {
-    // Safari in private mode is the one everybody meets. A refused write is a
-    // reason for the choice not to survive the tab, not a reason for the game to
-    // stay in a language the reader has just said they cannot read -- the same
-    // trade the time scale makes in `app.ts`.
+    // A refused write shouldn't keep the game in a language the reader just said they can't read.
     const storage = new MemoryStorage();
     vi.spyOn(storage, "setItem").mockImplementation(() => {
       throw new DOMException("The quota has been exceeded.", "QuotaExceededError");
@@ -140,9 +108,7 @@ describe("presentLanguagePicker", () => {
   });
 
   it("lets the reader change their mind while a catalog is still in flight", async () => {
-    // Two choices in a row leave two of these running at once, and the fetch
-    // that started first can settle last. Only the newest choice may be written
-    // down or drawn: the other one is a language nobody is looking at.
+    // The first fetch can settle after the second; only the newest choice may be written down or drawn.
     const { select, storage, redraw } = setUp();
     const written = vi.spyOn(storage, "setItem");
 
