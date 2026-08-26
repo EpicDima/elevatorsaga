@@ -15,6 +15,13 @@ import { requireElement } from "#shared/lib/dom.ts";
 import { spriteIconMarkup } from "#shared/ui/icon.ts";
 import { markup, raw, renderElement } from "#shared/ui/markup.ts";
 
+/**
+ * How long the pointer must rest on a tile before its card opens, in milliseconds. A sweep
+ * across the strip stays quiet, so the cards don't cover the building for a player who already
+ * knows what the figures mean. Keyboard focus still opens a card at once.
+ */
+export const CARD_HOVER_DELAY_MS = 700;
+
 /** Significant digits, not decimal places, since the rate spans orders of magnitude across a run. */
 const PER_SECOND_DIGITS: Intl.NumberFormatOptions = {
   minimumSignificantDigits: 3,
@@ -298,6 +305,15 @@ export function presentStatsPanel(parent: HTMLElement, world: World): StatsPanel
   /** Which tile's card is up, or `null` while none is. */
   let shown: TileRefs | null = null;
 
+  /** The hover waiting out {@link CARD_HOVER_DELAY_MS}, or `undefined` while none is. */
+  let pendingOpen: ReturnType<typeof setTimeout> | undefined = undefined;
+
+  /** Drops a hover that moved on before it rested long enough to earn a card. */
+  function cancelPendingOpen(): void {
+    clearTimeout(pendingOpen);
+    pendingOpen = undefined;
+  }
+
   /**
    * Dismisses the card on Escape from anywhere in the document, since a card opened by
    * pointing leaves focus wherever it already was, not necessarily inside the panel.
@@ -310,6 +326,7 @@ export function presentStatsPanel(parent: HTMLElement, world: World): StatsPanel
   }
 
   function hideCard(): void {
+    cancelPendingOpen();
     if (shown === null) {
       return;
     }
@@ -335,6 +352,7 @@ export function presentStatsPanel(parent: HTMLElement, world: World): StatsPanel
 
   /** Shows the card for one tile: its full caption and the sentence explaining its figure. */
   function showCard(ref: TileRefs): void {
+    cancelPendingOpen();
     if (shown !== null && shown !== ref) {
       shown.rootEl.removeAttribute("aria-describedby");
     }
@@ -351,8 +369,13 @@ export function presentStatsPanel(parent: HTMLElement, world: World): StatsPanel
   for (const ref of refs) {
     const container = ref.tile.group === "primary" ? primaryContainer : secondaryContainer;
     container.append(ref.rootEl);
+    // Delayed, unlike focus below: a pointer crossing the strip is passing through, not asking.
     ref.rootEl.addEventListener("pointerenter", () => {
-      showCard(ref);
+      // Restarted, not stacked: two touch points on two tiles must not leave a countdown behind.
+      cancelPendingOpen();
+      pendingOpen = setTimeout(() => {
+        showCard(ref);
+      }, CARD_HOVER_DELAY_MS);
     });
     ref.rootEl.addEventListener("pointerleave", (event) => {
       // Ignore leaving toward the card itself, flush on the tile's edge, so a pointer can
@@ -370,7 +393,15 @@ export function presentStatsPanel(parent: HTMLElement, world: World): StatsPanel
     });
   }
 
-  card.addEventListener("pointerleave", () => {
+  card.addEventListener("pointerleave", (event) => {
+    // Ignore dropping back onto the tile the card belongs to, since it stands flush on the
+    // tile's edge: closing there would blank the card for a whole delay on a 1px move.
+    if (
+      event.relatedTarget instanceof Node &&
+      shown?.rootEl.contains(event.relatedTarget) === true
+    ) {
+      return;
+    }
     hideCard();
   });
 

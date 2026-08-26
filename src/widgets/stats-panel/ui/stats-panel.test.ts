@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
 
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { presentStatsPanel, statsPanelTemplate } from "./stats-panel.ts";
+import { CARD_HOVER_DELAY_MS, presentStatsPanel, statsPanelTemplate } from "./stats-panel.ts";
 import { at } from "#game/test-helpers.ts";
 import { User } from "#game/user.ts";
 import { createWorld } from "#game/world.ts";
@@ -73,7 +73,18 @@ function tileOf(parent: HTMLElement, stat: string): HTMLElement {
   return requireElement(`.tile[data-stat="${stat}"]`, parent);
 }
 
+/** Rests the pointer on a tile long enough for its card to open, as a reader does. */
+function hover(tile: HTMLElement): void {
+  tile.dispatchEvent(new Event("pointerenter"));
+  vi.advanceTimersByTime(CARD_HOVER_DELAY_MS);
+}
+
+beforeEach(() => {
+  vi.useFakeTimers();
+});
+
 afterEach(() => {
+  vi.useRealTimers();
   document.body.replaceChildren();
 });
 
@@ -149,7 +160,7 @@ describe("presentStatsPanel", () => {
 
     const tiles = [...parent.querySelectorAll<HTMLElement>(".tile")];
     const sentences = tiles.map((tile) => {
-      tile.dispatchEvent(new Event("pointerenter"));
+      hover(tile);
       return cardText.textContent;
     });
     // Not one tile left unexplained, and no explanation reused across tiles.
@@ -157,7 +168,7 @@ describe("presentStatsPanel", () => {
     expect(new Set(sentences).size).toBe(tiles.length);
 
     const sentence = (stat: string): string | null => {
-      tileOf(parent, stat).dispatchEvent(new Event("pointerenter"));
+      hover(tileOf(parent, stat));
       return cardText.textContent;
     };
     expect(sentence("moveCount")).toBe(
@@ -183,6 +194,40 @@ describe("presentStatsPanel", () => {
     );
   });
 
+  it("holds a figure's card back until the pointer has rested on it", () => {
+    const parent = setUp(fixtureWorld());
+    const card = requireElement(".statcard", parent);
+    const tile = tileOf(parent, "avgWaitTime");
+
+    tile.dispatchEvent(new Event("pointerenter"));
+    vi.advanceTimersByTime(CARD_HOVER_DELAY_MS - 1);
+    expect(card.hidden).toBe(true);
+    expect(tile.hasAttribute("aria-describedby")).toBe(false);
+
+    vi.advanceTimersByTime(1);
+    expect(card.hidden).toBe(false);
+    expect(tile.getAttribute("aria-describedby")).toBe(card.id);
+  });
+
+  it("stays quiet for a pointer that only crossed the strip on its way past", () => {
+    const parent = setUp(fixtureWorld());
+    const card = requireElement(".statcard", parent);
+    const first = tileOf(parent, "avgWaitTime");
+    const second = tileOf(parent, "maxWaitTime");
+
+    first.dispatchEvent(new Event("pointerenter"));
+    vi.advanceTimersByTime(CARD_HOVER_DELAY_MS - 1);
+    first.dispatchEvent(new MouseEvent("pointerleave", { relatedTarget: second }));
+    second.dispatchEvent(new Event("pointerenter"));
+    vi.advanceTimersByTime(CARD_HOVER_DELAY_MS - 1);
+    second.dispatchEvent(new MouseEvent("pointerleave", { relatedTarget: parent }));
+
+    // Both hovers dropped: a card firing after the pointer has gone would be worse than an
+    // instant one, since it lands over a figure nobody is pointing at any more.
+    vi.advanceTimersByTime(CARD_HOVER_DELAY_MS * 2);
+    expect(card.hidden).toBe(true);
+  });
+
   it("opens a figure's card from the keyboard and puts it away on Escape, without moving focus", () => {
     const parent = setUp(fixtureWorld());
     const card = requireElement(".statcard", parent);
@@ -192,6 +237,7 @@ describe("presentStatsPanel", () => {
     tile.focus();
     tile.dispatchEvent(new Event("focus"));
 
+    // No timer advanced: tabbing to a figure is a deliberate arrival, so it earns its card at once.
     expect(card.hidden).toBe(false);
     expect(tile.getAttribute("aria-describedby")).toBe(card.id);
     expect(card.id).not.toBe("");
@@ -227,7 +273,7 @@ describe("presentStatsPanel", () => {
     const card = requireElement(".statcard", parent);
     const tile = tileOf(parent, "stopCount");
 
-    tile.dispatchEvent(new Event("pointerenter"));
+    hover(tile);
     expect(card.hidden).toBe(false);
     expect(document.activeElement).toBe(document.body);
 
@@ -245,7 +291,7 @@ describe("presentStatsPanel", () => {
     const card = requireElement(".statcard", parent);
     const tile = tileOf(parent, "avgWaitTime");
 
-    tile.dispatchEvent(new Event("pointerenter"));
+    hover(tile);
     // Up off the tile and onto the card, which stands flush on its top edge.
     tile.dispatchEvent(new MouseEvent("pointerleave", { relatedTarget: card }));
     expect(card.hidden).toBe(false);
@@ -255,12 +301,27 @@ describe("presentStatsPanel", () => {
     expect(card.hidden).toBe(true);
   });
 
+  it("keeps the card up when the pointer drops back onto the tile it belongs to", () => {
+    const parent = setUp(fixtureWorld());
+    const card = requireElement(".statcard", parent);
+    const tile = tileOf(parent, "avgWaitTime");
+
+    hover(tile);
+    tile.dispatchEvent(new MouseEvent("pointerleave", { relatedTarget: card }));
+    // Back down the way it came: the card and its tile touch, so a 1px move crosses between
+    // them. Closing here would leave the reader staring at nothing for a whole delay.
+    card.dispatchEvent(new MouseEvent("pointerleave", { relatedTarget: tile }));
+
+    expect(card.hidden).toBe(false);
+    expect(tile.getAttribute("aria-describedby")).toBe(card.id);
+  });
+
   it("closes the card when the pointer leaves the tile for anywhere else", () => {
     const parent = setUp(fixtureWorld());
     const card = requireElement(".statcard", parent);
     const tile = tileOf(parent, "avgWaitTime");
 
-    tile.dispatchEvent(new Event("pointerenter"));
+    hover(tile);
     tile.dispatchEvent(new MouseEvent("pointerleave", { relatedTarget: parent }));
 
     expect(card.hidden).toBe(true);
@@ -273,8 +334,8 @@ describe("presentStatsPanel", () => {
     const first = tileOf(parent, "avgWaitTime");
     const second = tileOf(parent, "maxWaitTime");
 
-    first.dispatchEvent(new Event("pointerenter"));
-    second.dispatchEvent(new Event("pointerenter"));
+    hover(first);
+    hover(second);
 
     expect(first.hasAttribute("aria-describedby")).toBe(false);
     expect(second.getAttribute("aria-describedby")).toBe(card.id);
@@ -297,7 +358,7 @@ describe("presentStatsPanel", () => {
     const listening = vi.spyOn(document, "removeEventListener");
     const tile = tileOf(parent, "avgWaitTime");
 
-    tile.dispatchEvent(new Event("pointerenter"));
+    hover(tile);
     tile.dispatchEvent(new Event("pointerleave"));
 
     expect(listening).toHaveBeenCalledWith("keydown", expect.any(Function));
@@ -425,7 +486,7 @@ describe("presentStatsPanel", () => {
     const card = requireElement(".statcard", parent);
     const tile = tileOf(parent, "avgWaitTime");
 
-    tile.dispatchEvent(new Event("pointerenter"));
+    hover(tile);
     presenter.update();
 
     // Called on a language change; dropping the card would leave a pointer resting on a
