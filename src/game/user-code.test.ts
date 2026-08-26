@@ -1,8 +1,12 @@
 import { afterEach, describe, expect, it } from "vitest";
 
 import { setLocale, DEFAULT_LOCALE } from "../i18n/index.ts";
+import { createFrameRequester } from "./frame-requester.ts";
+import { levels } from "./levels.ts";
 import { firstLineColumnOffset, getCodeObjFromCode } from "./user-code.ts";
 import type { UserCodeObject } from "./user-code.ts";
+import { TICK_SECONDS, createWorldController } from "./world-controller.ts";
+import { createWorld } from "./world.ts";
 
 afterEach(() => {
   setLocale(DEFAULT_LOCALE);
@@ -114,6 +118,35 @@ describe("getCodeObjFromCode, on a program declaring init and update", () => {
     }
   });
 
+  it("takes update bound to a name rather than declared", () => {
+    for (const tail of [
+      "const update = function (dt) {};",
+      "const update = (dt) => {};",
+      "var update = function (dt) {};",
+      "let update = function (dt) {};",
+      "const update = function tick(dt) {};",
+    ]) {
+      const source = `function init() {}\n${tail}`;
+      expect(typeof getCodeObjFromCode(source).update, tail).toBe("function");
+    }
+  });
+
+  it("does not hand an arrow init the code object as its this", () => {
+    // The wrapper is called, not constructed, and the player's source runs
+    // sloppy, so an arrow's `this` is the page. Nothing to fix: a program keeps
+    // its state in a top-level variable, which an arrow closes over anyway.
+    const codeObj = getCodeObjFromCode(
+      [
+        "let seen = undefined;",
+        "const init = () => { seen = this; };",
+        "function update(dt) { this.seen = seen; }",
+      ].join("\n"),
+    );
+    run(codeObj);
+
+    expect(readBack(codeObj, "seen")).toBe(globalThis);
+  });
+
   it("takes a program opening with a comment, a directive, or blank lines", () => {
     for (const opening of ['"use strict";', "// my solution", "/* my solution */", "", "\n\n"]) {
       const codeObj = getCodeObjFromCode(`${opening}\n${PROGRAM}`);
@@ -173,6 +206,19 @@ describe("getCodeObjFromCode, on a program declaring init and update", () => {
     expect(() => getCodeObjFromCode("null.crash;\nfunction init() {}")).toThrow(TypeError);
   });
 
+  it("takes source carrying the marks of the editor it was written in", () => {
+    // A byte-order mark, Windows line endings, tabs, and a trailing blank line:
+    // whatever a file dragged in from somewhere else brings with it.
+    for (const source of [
+      `\uFEFF${PROGRAM}`,
+      PROGRAM.replace(/\n/g, "\r\n") + "\r\n",
+      "function init(elevators, floors) {\n\tconst car = elevators[0];\n}",
+      `${PROGRAM}\n   \n`,
+    ]) {
+      expect(typeof getCodeObjFromCode(source).init, JSON.stringify(source)).toBe("function");
+    }
+  });
+
   it("no longer needs the parentheses the object form does", () => {
     // The trap this replaces: a solution starting with a comment used to be read as a block.
     expect(() => getCodeObjFromCode(`// a comment first\n${PROGRAM}`)).not.toThrow();
@@ -213,9 +259,35 @@ describe("getCodeObjFromCode, on the object form the original game took", () => 
       "(function() { var o = {}; o.init = function() {}; o.update = function() {}; return o; })()",
       "Object.assign({}, {init: function() {}, update: function() {}})",
       "[{init: function() {}, update: function() {}}][0]",
+      "{ get init() { return function () {}; }, update: function () {} }",
+      "Object.create({init: function() {}, update: function() {}})",
     ]) {
       expect(typeof getCodeObjFromCode(source).init, source).toBe("function");
     }
+  });
+
+  it("accepts an object saved as a statement, semicolon and all", () => {
+    // What an editor that formats on save leaves behind, and what the original
+    // game answered with `SyntaxError: Function statements require a function name`.
+    for (const source of [`${OBJECT};`, `${OBJECT};\n`, `${OBJECT} ;  `, `${OBJECT};;`]) {
+      expect(typeof getCodeObjFromCode(source).init, JSON.stringify(source)).toBe("function");
+    }
+  });
+
+  it("accepts a solution that is an instance rather than a literal", () => {
+    // `init` and `update` on a prototype, not on the object itself, and state
+    // on `this` across both: the class rewrite of an object-form solution.
+    const codeObj = getCodeObjFromCode(
+      [
+        "new (class Solution {",
+        "  init(elevators, floors) { this.count = 0; }",
+        "  update(dt, elevators, floors) { this.count++; }",
+        "})()",
+      ].join("\n"),
+    );
+    run(codeObj);
+
+    expect(readBack(codeObj, "count")).toBe(1);
   });
 
   it("accepts shorthand methods and arrow members", () => {
@@ -349,6 +421,111 @@ describe("getCodeObjFromCode, on what it refuses", () => {
     expect(() => getCodeObjFromCode("function init() {}\nconst update = 42;")).toThrow(
       "В коде объявлен update, но это не функция",
     );
+  });
+});
+
+/** Simulated milliseconds one driven frame advances by: the controller's own cap of 100 ticks. */
+const FRAME_MILLISECONDS = 1000.0;
+
+/** How far each of the two runs below is played. */
+const RUN_SECONDS = 120.0;
+
+/** The counters two runs have to agree on before they are the same run. */
+interface RunTotals {
+  readonly elapsedTime: number;
+  readonly transportedCounter: number;
+  readonly moveCount: number;
+  readonly stopCount: number;
+}
+
+/**
+ * Plays one program in the first level's building, on one seed, ignoring the level's own condition.
+ * @throws When the program throws.
+ */
+function play(code: string): RunTotals {
+  const level = levels[0];
+  if (level === undefined) {
+    throw new Error("levels[0] does not exist");
+  }
+  const codeObj = getCodeObjFromCode(code);
+  const world = createWorld(level.options, "two-forms");
+  const worldController = createWorldController(TICK_SECONDS);
+  // Nothing draws these runs; only the counters are read.
+  worldController.updatesDisplay = false;
+  const frameRequester = createFrameRequester(FRAME_MILLISECONDS);
+  let userCodeError: unknown = null;
+  worldController.on("usercode_error", (error) => {
+    userCodeError ??= error;
+  });
+
+  worldController.start(world, codeObj, frameRequester.register, true);
+  while (world.elapsedTime < RUN_SECONDS && userCodeError === null) {
+    frameRequester.trigger();
+  }
+
+  if (userCodeError !== null) {
+    throw new Error("the program threw", { cause: userCodeError });
+  }
+  return {
+    elapsedTime: world.elapsedTime,
+    transportedCounter: world.transportedCounter,
+    moveCount: world.moveCount,
+    stopCount: world.stopCount,
+  };
+}
+
+/** One dispatcher, written as a program: what it remembers between ticks lives in top-level bindings. */
+const PROGRAM_DISPATCHER = [
+  "const STEP = 1.5;",
+  "let clock = 0;",
+  "let next = 0;",
+  "",
+  "function init(elevators, floors) {",
+  "    elevators[0].goToFloor(0);",
+  "}",
+  "",
+  "function update(dt, elevators, floors) {",
+  "    clock += dt;",
+  "    if (clock < STEP) { return; }",
+  "    clock = 0;",
+  "    const elevator = elevators[0];",
+  "    if (elevator.destinationQueue.length === 0) {",
+  "        elevator.goToFloor(next);",
+  "        next = (next + 1) % floors.length;",
+  "    }",
+  "}",
+].join("\n");
+
+/** The same dispatcher, written as the original game took it: what it remembers lives on `this`. */
+const OBJECT_DISPATCHER = [
+  "{",
+  "    init: function (elevators, floors) {",
+  "        this.step = 1.5;",
+  "        this.clock = 0;",
+  "        this.next = 0;",
+  "        elevators[0].goToFloor(0);",
+  "    },",
+  "    update: function (dt, elevators, floors) {",
+  "        this.clock += dt;",
+  "        if (this.clock < this.step) { return; }",
+  "        this.clock = 0;",
+  "        var elevator = elevators[0];",
+  "        if (elevator.destinationQueue.length === 0) {",
+  "            elevator.goToFloor(this.next);",
+  "            this.next = (this.next + 1) % floors.length;",
+  "        }",
+  "    }",
+  "}",
+].join("\n");
+
+describe("the two forms, driving the same building", () => {
+  it("runs one solution to the same simulation whichever form it is written in", () => {
+    const asProgram = play(PROGRAM_DISPATCHER);
+    const asObject = play(OBJECT_DISPATCHER);
+
+    // Non-trivially: a dispatcher that never moved would match itself too.
+    expect(asProgram.transportedCounter).toBeGreaterThan(0);
+    expect(asProgram).toEqual(asObject);
   });
 });
 

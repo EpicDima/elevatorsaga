@@ -65,6 +65,9 @@ function needsParentheses(code: string): boolean {
   return significantStart(code).startsWith("{");
 }
 
+/** A statement's terminator, which the same text cannot keep once it is parenthesized. */
+const TRAILING_SEMICOLONS = /[\s;]+$/;
+
 /**
  * Columns the wrapper adds to the player's first line. Exported so a stack-trace column can be
  * translated back to what the player wrote without duplicating the wrapping rules. No line offset
@@ -82,7 +85,9 @@ function wrapped(code: string, shape: CodeShape): string {
   if (shape === "program") {
     return PROGRAM_PREFIX + code + PROGRAM_SUFFIX;
   }
-  return needsParentheses(code) ? `(${code}\n)` : code;
+  // Semicolons come off with the whitespace: an object literal saved as a statement ends in one,
+  // and inside the parentheses that would be a syntax error rather than a solution.
+  return needsParentheses(code) ? `(${code.replace(TRAILING_SEMICOLONS, "")}\n)` : code;
 }
 
 /** What one wrapper made of the source. */
