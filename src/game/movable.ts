@@ -34,9 +34,6 @@ export class MovableBusyError extends Error {
   }
 }
 
-/** Scratch buffer reused by {@link Movable.updateDisplayPosition} to avoid allocating every frame. */
-const tmpPosStorage: WorldPosition = [0, 0];
-
 /**
  * An object with a position, an optional parent, and an optional running task.
  *
@@ -64,15 +61,13 @@ export class Movable<E extends EventArgsMap = Record<never, never>> extends Obse
   }
 
   /**
-   * Emits one of the events {@link Movable} itself owns.
+   * Emits one of the events {@link Movable} itself owns, both of which carry the
+   * movable and nothing else.
    * Needed because `(MovableEvents & E)["new_state"]` cannot be resolved at the declaration
    * site while `Movable` is generic over `E`.
    */
-  protected emitMovable<K extends EventName<MovableEvents>>(
-    event: K,
-    ...args: MovableEvents[K]
-  ): void {
-    (this as unknown as Observable<MovableEvents>).trigger(event, ...args);
+  protected emitMovable(event: EventName<MovableEvents>, movable: Movable): void {
+    (this as unknown as Observable<MovableEvents>).trigger(event, movable);
   }
 
   /**
@@ -81,12 +76,18 @@ export class Movable<E extends EventArgsMap = Record<never, never>> extends Obse
    * @param forceTrigger - Emit `new_display_state` even if nothing moved.
    */
   updateDisplayPosition(forceTrigger?: boolean): void {
-    this.getWorldPosition(tmpPosStorage);
-    const oldX = this.worldX;
-    const oldY = this.worldY;
-    this.worldX = tmpPosStorage[0];
-    this.worldY = tmpPosStorage[1];
-    if (oldX !== this.worldX || oldY !== this.worldY || forceTrigger === true) {
+    // The parent walk of getWorldPosition, without its scratch buffer: every
+    // frame asks every elevator and passenger this, and most of them have not
+    // moved, so the answer usually only has to be compared.
+    let worldX = this.x;
+    let worldY = this.y;
+    for (let parent = this.parent; parent !== null; parent = parent.parent) {
+      worldX += parent.x;
+      worldY += parent.y;
+    }
+    if (this.worldX !== worldX || this.worldY !== worldY || forceTrigger === true) {
+      this.worldX = worldX;
+      this.worldY = worldY;
       this.emitMovable("new_display_state", this);
     }
   }
