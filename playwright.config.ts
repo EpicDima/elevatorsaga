@@ -35,7 +35,11 @@ export default defineConfig({
   expect: { timeout: 15_000 },
   use: {
     baseURL: BASE_URL,
-    trace: "retain-on-failure",
+    // Recorded for every test and thrown away on a pass, since with no
+    // retries a failure gets one chance to explain itself. `screenshots` off
+    // costs only the viewer's filmstrip - it still replays the DOM snapshots,
+    // and the frame that failed is kept below - and saves a fifth of the run.
+    trace: { mode: "retain-on-failure", screenshots: false },
     screenshot: "only-on-failure",
   },
   projects: [
