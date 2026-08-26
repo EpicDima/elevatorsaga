@@ -1,57 +1,42 @@
 {
   $schema: "https://docs.renovatebot.com/renovate-schema.json",
 
-  // `config:js-app` is `config:recommended` plus exact pinning for everything
-  // except peer dependencies, which is the shape package.json already has. The
-  // recommended half is what groups packages shipping from one repository:
-  // eslint with @eslint/js, vitest with @vitest/coverage-v8, typescript-eslint
-  // with its internals.
+  // `config:js-app` is the recommended set plus exact pinning, which is the
+  // shape package.json already has.
   extends: ["config:js-app", ":configMigration"],
 
   timezone: "Europe/Moscow",
-
-  // One batch on Monday rather than a trickle all week. Security fixes ignore
-  // this: their built-in config sets `schedule: []` and `prCreation:
-  // "immediate"`.
   schedule: ["before 9am on monday"],
 
-  // Let a release age before adopting it, so a compromised or yanked publish is
-  // gone before a pull request can carry it in. Exempt for security fixes,
-  // whose built-in config sets `minimumReleaseAge: null`.
+  // A soak against a compromised or yanked publish. Security fixes bypass this
+  // and the schedule above; their own config clears both.
   minimumReleaseAge: "10 days",
 
-  // Exact specs freeze the direct dependencies only; this is what still moves
-  // the transitive half of the lockfile.
+  // Pinning freezes the direct dependencies only; this moves the rest.
   lockFileMaintenance: {
     enabled: true,
   },
 
-  // A second advisory source, for the npm packages GitHub has not flagged yet.
   osvVulnerabilityAlerts: true,
 
   packageRules: [
-    // The CodeMirror packages share one `@codemirror/state` at runtime and
-    // break when a second copy loads, so they move as one pull request or not
-    // at all. `group:monorepos` misses them: they publish from separate
-    // repositories.
+    // Two copies of `@codemirror/state` break the editor, so these move as one.
+    // `group:monorepos` misses them: they publish from separate repositories.
     {
       matchPackageNames: ["@codemirror/**", "@lezer/**"],
       groupName: "CodeMirror",
     },
 
-    // The toolchain fails loudly: a bad lint, build or test dependency turns a
-    // gate red. Runtime packages stay on manual review, since a CodeMirror
-    // regression is visual and that is what the gates see least well.
+    // The toolchain fails loudly, turning a gate red. Runtime packages stay on
+    // manual review, since a CodeMirror regression is visual.
     {
       matchDepTypes: ["devDependencies"],
       matchUpdateTypes: ["patch", "minor"],
       automerge: true,
     },
 
-    // typescript-eslint's `peerDependencies.typescript` still stops short of 7,
-    // so taking the major would trade a working `npm run lint` for a version
-    // bump. Parked as a Dependency Dashboard checkbox rather than a pull
-    // request that can only ever be red; tick it once that peer range moves.
+    // typescript-eslint's peer range still stops short of 7, so the major would
+    // cost the lint gate. A dashboard checkbox beats a pull request that is only ever red.
     {
       matchPackageNames: ["typescript"],
       matchUpdateTypes: ["major"],
