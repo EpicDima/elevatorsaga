@@ -165,7 +165,9 @@ one — write `--seeds=-1` for a seed that starts with a dash.
 
 Two things make it usable as a check rather than as a curiosity. The numbers are reproducible: the
 seeds fix the buildings, so the same program scores the same to the last decimal, and two programs
-can be compared without wondering which drew the easier traffic. And the report owns standard
+can be compared without wondering which drew the easier traffic. `src/cli/bench.test.ts` scores the
+program above and holds the report to the table printed under it, so a change to the simulation
+fails the suite rather than quietly outdating this page. And the report owns standard
 output — everything the run itself prints, including the stack of a program that threw and any
 `console.log` you are debugging with, goes to standard error instead, so `--json` is safe to pipe.
 One thing is out of its reach: descriptors belong to a process rather than to the thread the run

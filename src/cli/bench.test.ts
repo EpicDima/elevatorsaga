@@ -1,4 +1,6 @@
+import { readFileSync } from "node:fs";
 import process from "node:process";
+import { fileURLToPath } from "node:url";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { WORKER_TIMEOUT_MS } from "../app/fitness.ts";
@@ -95,6 +97,29 @@ function options(overrides: Partial<BenchOptions> = {}): BenchOptions {
     timeoutMs: DEFAULT_TIMEOUT_MS,
     ...overrides,
   };
+}
+
+/** The guide that shows a player a benchmark run and the numbers it produces. */
+const GUIDE_PATH = fileURLToPath(new URL("../../docs/writing-solutions.md", import.meta.url));
+
+/**
+ * The worked example from the guide, paired the way a reader pairs it: the report is found by the
+ * program it names, and the program is the fenced js block directly above it.
+ *
+ * @throws If the guide no longer shows both, since then nothing is being checked.
+ */
+function guideBenchmark(): { program: string; report: string } {
+  const guide = readFileSync(GUIDE_PATH, "utf8");
+  const reported = /```\n(program: sweep\.js\n[\s\S]*?)```/.exec(guide);
+  const report = reported?.[1];
+  if (reported === null || report === undefined) {
+    throw new Error("docs/writing-solutions.md prints no benchmark report for sweep.js");
+  }
+  const program = [...guide.slice(0, reported.index).matchAll(/```js\n([\s\S]*?)```/g)].at(-1)?.[1];
+  if (program === undefined) {
+    throw new Error("docs/writing-solutions.md shows no program above sweep.js's report");
+  }
+  return { program, report };
 }
 
 /** Builds a scored scenario. */
@@ -379,6 +404,20 @@ describe("the report", () => {
     };
 
     expect(parsed.seeds).toEqual(["1", "2", "3", "4", "5", "6"]);
+  });
+
+  it("prints what the guide says it prints, figure for figure", () => {
+    // The guide hands a player a program and the report it scores, and promises the same numbers
+    // on any machine. Nothing else reads that table, so without this every figure in it goes
+    // stale the first time the simulation is touched -- which is how all fifteen once did.
+    const { program, report } = guideBenchmark();
+    setLocale("en");
+
+    const scored = doFitnessSuite(program, fitnessSeeds);
+
+    expect(formatReport(scored, options({ programPath: "sweep.js", seeds: fitnessSeeds }))).toBe(
+      report,
+    );
   });
 });
 
