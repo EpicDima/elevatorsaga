@@ -18,10 +18,6 @@ const SEED_VALUE = ".setmenu .seedvalue";
 /** The dice: a `<button>` that draws a seed, not a link to an address. */
 const NEW_DRAW = ".setmenu .seednewdraw";
 
-/** The disclosure that explains what a seed does, and the sentence inside it. */
-const HELP_SUMMARY = ".setmenu .seedhelp > summary";
-const CAVEAT = ".setmenu .seedcaveat";
-
 test("puts the run a player is looking at in the address bar, and replays it on reload", async ({
   page,
 }) => {
@@ -112,57 +108,13 @@ test("draws a new seed from the dice and pins it in the address bar", async ({ p
   await expect(page.locator(SEED_VALUE)).toHaveValue("issue-61");
 });
 
-test("opens the caveat from the keyboard", async ({ page }) => {
-  // Was a `title` attribute (mouse-only); this covers the no-pointer path.
-  // Run at the page's own 1040px floor, not WCAG's 320px, since the game page
-  // doesn't promise to fit a phone width.
+test("explains what a seed does on the field the player hovers", async ({ page }) => {
+  // The tooltip itself is drawn outside the DOM, so the attribute a browser
+  // builds it from is all there is to assert here.
   await page.goto("/#level=4");
   await openSettingsMenu(page);
 
-  await expect(page.locator(CAVEAT)).toBeHidden();
-
-  // Reached by tabbing, not focused directly: "can be focused" and "is in the
-  // tab order" are different questions.
-  await page.locator(SEED_LINK).focus();
-  await page.keyboard.press("Tab");
-  await expect(page.locator(HELP_SUMMARY)).toBeFocused();
-  await page.keyboard.press("Enter");
-  await expect(page.locator(CAVEAT)).toBeVisible();
-  await expect(page.locator(CAVEAT)).toContainText("played the same way");
-});
-
-/**
- * Catches a rule that would drag the disclosure's own `<summary>` out from
- * under the player's pointer as the caveat opens - the popover is a
- * fixed-size overlay, not a block that reshuffles the page under itself.
- */
-test("does not move the caveat's own control when it is opened", async ({ page }) => {
-  await page.goto("/#level=4");
-
-  for (const width of [1280, 1040]) {
-    await page.setViewportSize({ width, height: 900 });
-    await openSettingsMenu(page);
-    const summary = page.locator(HELP_SUMMARY);
-    const before = await summary.boundingBox();
-    if (before === null) {
-      throw new Error(`The caveat's control has no box at ${String(width)}px`);
-    }
-
-    await summary.click();
-    await expect(page.locator(CAVEAT)).toBeVisible();
-    const after = await summary.boundingBox();
-    if (after === null) {
-      throw new Error(
-        `The caveat's control lost its box at ${String(width)}px, after being opened`,
-      );
-    }
-
-    expect(Math.abs(after.x - before.x), `x at ${String(width)}px`).toBeLessThanOrEqual(2);
-    expect(Math.abs(after.y - before.y), `y at ${String(width)}px`).toBeLessThanOrEqual(2);
-
-    // Back to collapsed, so the next width starts from the same state.
-    await summary.click();
-  }
+  await expect(page.locator(SEED_VALUE)).toHaveAttribute("title", /played the same way/);
 });
 
 /**
@@ -172,12 +124,9 @@ test("does not move the caveat's own control when it is opened", async ({ page }
  * instead, since it paints one.
  */
 test("keeps every word of the seed line readable", async ({ page }) => {
-  // Was a <p>, painted by the non-theme-aware `--color-text`; becoming a
-  // <div> to hold the disclosure dropped that rule and left the text pale.
   // Checked here since the palette's own CSS tests don't know which elements use it.
   await page.goto("/#level=4,seed=issue-61");
   await openSettingsMenu(page);
-  await page.locator(HELP_SUMMARY).click();
 
   const measured = await page.evaluate(() => {
     const channel = (value: number): number =>
@@ -203,14 +152,7 @@ test("keeps every word of the seed line readable", async ({ page }) => {
     // the one child no other `.setblock` has, since position isn't guaranteed.
     const line = document.querySelector(".setmenu .seedvalue")?.closest(".setblock") ?? null;
     const found: Record<string, number> = {};
-    for (const selector of [
-      ".cap",
-      ".seedvalue",
-      ".seedlink",
-      ".seednewdraw",
-      ".seedhelp > summary",
-      ".seedcaveat",
-    ]) {
+    for (const selector of [".cap", ".seedvalue", ".seedlink", ".seednewdraw"]) {
       const element = line?.querySelector(selector) ?? null;
       if (element === null) {
         continue;
@@ -226,14 +168,7 @@ test("keeps every word of the seed line readable", async ({ page }) => {
 
   // Icons only need WCAG's 3:1, but they inherit `.ghost`'s text color, so
   // there's no reason to hold them to a lower bar than the words beside them.
-  expect(Object.keys(measured)).toEqual([
-    ".cap",
-    ".seedvalue",
-    ".seedlink",
-    ".seednewdraw",
-    ".seedhelp > summary",
-    ".seedcaveat",
-  ]);
+  expect(Object.keys(measured)).toEqual([".cap", ".seedvalue", ".seedlink", ".seednewdraw"]);
   for (const [selector, found] of Object.entries(measured)) {
     expect(found, selector).toBeGreaterThanOrEqual(4.5);
   }

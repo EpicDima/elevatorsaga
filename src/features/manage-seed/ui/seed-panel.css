@@ -1,5 +1,3 @@
-/* `.seedhelp > summary` and `.seedcaveat` below are less specific than the `.setblock` rules above them. */
-
 .seedrow {
   display: flex;
   gap: 4px;
@@ -46,52 +44,4 @@
   justify-content: center;
   padding-inline: 0;
   border: 1px solid var(--ds-line);
-}
-
-/* Both list-marker spellings are turned off; the chevron below replaces it. */
-.setblock .seedhelp > summary {
-  display: flex;
-  gap: 6px;
-  align-items: center;
-  list-style: none;
-}
-
-.setblock .seedhelp > summary::-webkit-details-marker {
-  display: none;
-}
-
-.setblock .seedhelp > summary:hover {
-  color: var(--ds-text);
-}
-
-/* 12px, not `.more`'s 13: the chevron is sized to this line's 12px text, not to a fixed constant. */
-.setblock .seedhelp > summary .chev {
-  flex: none;
-  width: 12px;
-  height: 12px;
-  transition: transform 0.15s ease;
-}
-
-.setblock .seedhelp[open] > summary .chev {
-  transform: rotate(90deg);
-}
-
-/* `margin-block-start`, not the summary's `margin-block-end`: a closed disclosure is only its summary. */
-.setblock .seedcaveat {
-  margin-block-start: 6px;
-  font-size: 12px;
-  line-height: 1.45;
-  color: var(--ds-text-muted);
-}
-
-/* `fit-content` keeps the summary the size of its words; unset, a block-level `<summary>` stretches to the panel's full width. */
-.seedhelp > summary {
-  inline-size: fit-content;
-  cursor: pointer;
-}
-
-/* 62ch caps the line length so prose stays readable; the margin is dropped since the stack around it already spaces it. */
-.seedcaveat {
-  max-inline-size: 62ch;
-  margin: 0;
 }

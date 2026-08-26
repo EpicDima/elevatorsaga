@@ -195,7 +195,7 @@ export function presentAppBarSettings(
       const focused = seedBlock.ownerDocument.activeElement;
       const owned =
         focused instanceof HTMLElement && seedBlock.contains(focused)
-          ? [".seedvalue", ".seednewdraw", ".seedlink", ".seedhelp > summary"].find((selector) =>
+          ? [".seedvalue", ".seednewdraw", ".seedlink"].find((selector) =>
               focused.matches(selector),
             )
           : undefined;

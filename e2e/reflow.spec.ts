@@ -88,26 +88,17 @@ test.describe("at that floor, the app bar's popovers", () => {
     });
   });
 
-  // Russian, since the seed disclosure's prose runs longer there.
+  // Both languages, since the popover's captions and labels run longer in Russian.
   for (const [language, hash] of [
     ["English", "#level=sandbox"],
     ["Russian", "#level=sandbox,lang=ru"],
   ] as const) {
-    test(`open the settings in ${language} inside the window, seed block open`, async ({
-      page,
-    }) => {
+    test(`open the settings in ${language} inside the window`, async ({ page }) => {
       await page.goto(`/${hash}`);
       await openSettingsMenu(page);
 
       const menu = page.locator(".setmenu");
       await expect(menu).toBeVisible();
-      await menu
-        .locator("details")
-        .first()
-        .evaluate((element: HTMLDetailsElement) => {
-          element.open = true;
-        });
-
       await expect(menu).toBeInViewport({ ratio: 1 });
       // The About block at the foot is what the overflow put out of reach.
       await menu.evaluate((element) => {

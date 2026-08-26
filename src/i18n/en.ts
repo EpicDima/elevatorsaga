@@ -111,9 +111,8 @@ export const EN_MESSAGES = {
   "game.seed.link": "Seed {seed}: put this run in the address bar",
   "game.seed.newDrawLink": "Seed {seed}: draw a new one and start again",
   "game.seed.invalid": "A seed can be up to 64 letters, digits, dots, hyphens or underscores.",
-  "game.seed.helpSummary": "what a seed does",
   "game.seed.explanation":
-    "The same seed brings the same passengers, in the same order — and, played the same way, the exact same run: every elevator movement, arrival and button press repeats exactly, whatever the browser's frame rate. The seed stays yours across restarts, reloads and levels until you type another one or draw one with the dice.",
+    "The same seed brings the same passengers, in the same order — played the same way, the run repeats exactly.",
   "game.seed.console": "Seed {seed} — the exact same run again, whatever the frame rate: {url}",
   "game.switchTheme.caption": "Theme",
   "game.switchTheme.system": "System",

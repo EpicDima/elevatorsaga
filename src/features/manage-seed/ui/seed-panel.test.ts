@@ -107,25 +107,14 @@ describe("seedPanelTemplate", () => {
     }
   });
 
-  it("explains what a seed does, behind a disclosure", () => {
-    const help = renderElement(seedPanelTemplate(SEED)).querySelector(".seedhelp");
+  it("explains what a seed does on the field itself, hovered or read out", () => {
+    const block = renderElement(seedPanelTemplate(SEED));
 
-    expect(help?.tagName).toBe("DETAILS");
-    expect(help?.querySelector("summary")?.textContent).toBe("what a seed does");
-    expect(help?.querySelector("summary")?.className).toBe("sethint");
-    expect(help?.querySelector(".seedcaveat")?.textContent).toContain("The same seed brings");
-    expect(help?.hasAttribute("open")).toBe(false);
-  });
-
-  it("says it opens with the chevron the rest of the app says it with", () => {
-    const summary = renderElement(seedPanelTemplate(SEED)).querySelector(".seedhelp > summary");
-    const chevron = summary?.firstElementChild;
-
-    expect(chevron?.tagName).toBe("svg");
-    expect(chevron?.getAttribute("class")).toBe("ds-icon chev");
-    expect(chevron?.getAttribute("aria-hidden")).toBe("true");
-    expect(summary?.querySelector("span")?.textContent).toBe("what a seed does");
-    expect(summary?.textContent).toBe("what a seed does");
+    expect(block.querySelector(".seedvalue")?.getAttribute("title")).toBe(
+      "The same seed brings the same passengers, in the same order — played the same way, the run repeats exactly.",
+    );
+    // The block is the caption and the row: the explanation takes no space of its own.
+    expect([...block.children].map((child) => child.className)).toEqual(["cap", "seedrow"]);
   });
 });
 

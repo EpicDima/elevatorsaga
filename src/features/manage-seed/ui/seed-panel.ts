@@ -1,4 +1,4 @@
-/** The settings popover's seed block: a field, a redraw button, a copy-link button, and a help disclosure. */
+/** The settings popover's seed block: a field, a redraw button and a copy-link button. */
 
 import { generateRandomSeed } from "#game/random.ts";
 import { t } from "#i18n/index.ts";
@@ -7,17 +7,14 @@ import type { SeedLinkData } from "../../../ui/templates.ts";
 import { spriteIconMarkup } from "#shared/ui/icon.ts";
 import { markup, raw } from "#shared/ui/markup.ts";
 
-/** The seed block's help disclosure: what a seed promises. */
-function seedHelpTemplate(): string {
-  return markup`<details class="seedhelp"><summary class="sethint">${raw(spriteIconMarkup("right", "chev"))}<span>${t("game.seed.helpSummary")}</span></summary><p class="seedcaveat">${t("game.seed.explanation")}</p></details>`;
-}
-
 /**
  * The row's field for the seed. `maxlength`/`pattern` mirror
  * `#shared/lib/seed.ts` so it can't accept a seed the router would refuse.
+ * `title` says what a seed promises: a tooltip under the pointer, and — since
+ * the field is in the tab order — a description a screen reader reads out too.
  */
 function seedFieldTemplate(seed: string): string {
-  return markup`<input type="text" class="val seedvalue" value="${seed}" maxlength="${SEED_MAX_LENGTH}" pattern="${SEED_INPUT_PATTERN}" required spellcheck="false" autocomplete="off" autocapitalize="off" autocorrect="off" aria-label="${t("game.seed.inputLabel")}">`;
+  return markup`<input type="text" class="val seedvalue" value="${seed}" maxlength="${SEED_MAX_LENGTH}" pattern="${SEED_INPUT_PATTERN}" required spellcheck="false" autocomplete="off" autocapitalize="off" autocorrect="off" aria-label="${t("game.seed.inputLabel")}" title="${t("game.seed.explanation")}">`;
 }
 
 /** The row's link button: the address of this exact run. */
@@ -41,7 +38,7 @@ export function seedPanelTemplate(data: SeedLinkData | null): string {
   const field = seedFieldTemplate(data.seed);
   const newDraw = seedNewDrawTemplate(t("game.seed.newDrawLink", { seed: data.seed }));
   const link = seedLinkTemplate(data.url, t("game.seed.link", { seed: data.seed }));
-  return markup`<div class="setblock"><span class="cap">${t("game.seed.label")}</span><div class="seedrow">${raw(field)}${raw(newDraw)}${raw(link)}</div>${raw(seedHelpTemplate())}</div>`;
+  return markup`<div class="setblock"><span class="cap">${t("game.seed.label")}</span><div class="seedrow">${raw(field)}${raw(newDraw)}${raw(link)}</div></div>`;
 }
 
 /** What {@link presentSeedPanel} needs in order to act on the row's two decisions. */
