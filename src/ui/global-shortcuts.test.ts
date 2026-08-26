@@ -137,6 +137,22 @@ describe("presentGlobalShortcuts", () => {
     expect(onCycleLayout).toHaveBeenCalledOnce();
   });
 
+  it("switches the layout on Ctrl-B from a Cyrillic keyboard layout", () => {
+    const { onCycleLayout } = setUp();
+
+    keydown(document.body, { key: "и", code: "KeyB", ctrlKey: true });
+
+    expect(onCycleLayout).toHaveBeenCalledOnce();
+  });
+
+  it("leaves a Latin letter on the B key alone, so Dvorak keeps its own Ctrl-X", () => {
+    const { onCycleLayout } = setUp();
+
+    keydown(document.body, { key: "x", code: "KeyB", ctrlKey: true });
+
+    expect(onCycleLayout).not.toHaveBeenCalled();
+  });
+
   it("leaves Ctrl-B alone while typing", () => {
     const { onCycleLayout, input } = setUp();
 

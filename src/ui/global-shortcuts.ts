@@ -18,6 +18,17 @@ function isTypingTarget(target: EventTarget | null): boolean {
   return TYPING_TAGS.has(target.tagName) || target.closest(".cm-editor") !== null;
 }
 
+/**
+ * Whether a keydown is the Latin `letter`, whatever character the active keyboard layout puts
+ * there. A Cyrillic layout reports `"и"` for the B key; falling back to the physical position only
+ * when the character isn't Latin leaves a Dvorak user's own Ctrl-X alone.
+ */
+function isLetterKey(event: KeyboardEvent, letter: string): boolean {
+  return event.key.toLowerCase() === letter
+    ? true
+    : !/^[a-z]$/i.test(event.key) && event.code === `Key${letter.toUpperCase()}`;
+}
+
 /** What {@link presentGlobalShortcuts} needs in order to wire every shortcut. */
 export interface GlobalShortcutsOptions {
   /** Where the keydown listener is attached — `document` in the page. */
@@ -63,7 +74,7 @@ export function presentGlobalShortcuts(options: GlobalShortcutsOptions): void {
       startOverButton.click();
       return;
     }
-    if (mod && (event.key === "b" || event.key === "B")) {
+    if (mod && isLetterKey(event, "b")) {
       event.preventDefault();
       onCycleLayout();
       return;
