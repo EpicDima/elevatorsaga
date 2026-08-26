@@ -201,10 +201,12 @@ describe("presentBuildingStage", () => {
     // The whole point of holding the corridor out of the fit: these two used to differ by
     // well over a hundred pixels, since the second one's shafts scaled the walk down with them.
     // Measured to the car rather than to the queue strip, which stops a shaft pad short of it.
+    // 1000px wide because the eight-car level asks for its whole band at MIN_CAR: any narrower
+    // and the walk, not the cars, is what gives way.
     const small = createWorld({ floorCount: 2, elevatorCount: 1 });
     const tall = createWorld({ floorCount: 21, elevatorCount: 8, elevatorCapacities: [6, 8] });
-    const smallMount = mount(small, 900, 600);
-    const tallMount = mount(tall, 900, 600);
+    const smallMount = mount(small, 1000, 600);
+    const tallMount = mount(tall, 1000, 600);
 
     expect(expectedScaleX(tall, tallMount.stage)).toBeLessThan(
       expectedScaleX(small, smallMount.stage),

@@ -19,7 +19,7 @@ describe("computeShaftScale", () => {
 
   it("never shrinks a car that is already narrower than MIN_CAR, however little room there is", () => {
     // free (140) is under the corridor's own 200, leaving the band nothing at all, but a
-    // capacity-2 car is already 20 world units wide, below MIN_CAR (30); min(1, 30/20)
+    // capacity-2 car is already 20 world units wide, below MIN_CAR (60); min(1, 60/20)
     // clamps the floor to 1 so it isn't shrunk further.
     const scale = computeShaftScale({
       stageWidth: 300,
@@ -63,9 +63,9 @@ describe("computeShaftScale", () => {
     expect(scale.scaleX).toBeCloseTo(1.2, 4);
   });
 
-  it("still shrinks the capacity-4 cars most levels use", () => {
-    // min(1, 30/40) = 0.75 leaves room for the ratio to bind: (free - CORRIDOR_PX)/bandWidth
-    // = 176/220 = 0.8, below 1 rather than pinned there by too-high a floor.
+  it("stops shrinking the capacity-4 cars most levels use at their own full size", () => {
+    // min(1, 60/40) = 1 floors the scale, so the 176/220 = 0.8 the leftover room would
+    // otherwise allow doesn't bind, and the stage scrolls sideways instead.
     const scale = computeShaftScale({
       stageWidth: 536,
       levelsWidth: 84,
@@ -76,27 +76,27 @@ describe("computeShaftScale", () => {
         { worldX: 380, width: 40, capacity: 4 },
       ],
     });
-    expect(scale.scaleX).toBeCloseTo(0.8, 4);
+    expect(scale.scaleX).toBe(1);
   });
 
   it("shrinks by the room-left-over ratio when that ratio is the binding constraint", () => {
-    // free = max(120, 500-32-84-44) = 340, less the corridor's 200 = 140 for the band.
-    // bandWidth = 300+80-200 = 180 (from the first car, the corridor held out).
-    // value = 140/180 = 0.7778; minShaftScale = 30/80 = 0.375 doesn't bind.
+    // free = max(120, 536-32-84-44) = 376, less the corridor's 200 = 176 for the band.
+    // bandWidth = 320+100-200 = 220 (from the first car, the corridor held out).
+    // value = 176/220 = 0.8; minShaftScale = 60/100 = 0.6 doesn't bind.
     const scale = computeShaftScale({
-      stageWidth: 500,
+      stageWidth: 536,
       levelsWidth: 84,
       elevators: [
-        { worldX: 200, width: 80, capacity: 8 },
-        { worldX: 300, width: 80, capacity: 8 },
+        { worldX: 200, width: 100, capacity: 10 },
+        { worldX: 320, width: 100, capacity: 10 },
       ],
     });
-    expect(scale.scaleX).toBeCloseTo(0.7778, 4);
+    expect(scale.scaleX).toBeCloseTo(0.8, 4);
   });
 
   it("floors scaleX at minShaftScale when the room left over would shrink cars past MIN_CAR", () => {
     // free (140) is under the corridor's own 200, so the band's share is negative, but
-    // minShaftScale = 30/80 = 0.375 binds instead: below it a car would be narrower than
+    // minShaftScale = 60/80 = 0.75 binds instead: below it a car would be narrower than
     // MIN_CAR allows.
     const scale = computeShaftScale({
       stageWidth: 300,
@@ -108,7 +108,7 @@ describe("computeShaftScale", () => {
         { worldX: 500, width: 80, capacity: 8 },
       ],
     });
-    expect(scale.scaleX).toBeCloseTo(0.375, 4);
+    expect(scale.scaleX).toBeCloseTo(0.75, 4);
   });
 
   it("holds the corridor out of the fit, so how far the cars stand from the wall never moves the scale", () => {
@@ -140,12 +140,12 @@ describe("computeShaftScale", () => {
   });
 
   it("gives corridor pixels back once the cars have hit MIN_CAR and the building still spills", () => {
-    // The busiest level at the smallest window it promises to fit: eight cars of capacity
-    // 6 and 8, in 485px of free room. minShaftScale (30/60 = 0.5) floors the scale, so the
-    // 700-unit band cannot shrink below 350px; holding the full 200px corridor anyway would
-    // push the building 65px past the pane. The walk gives that up instead of the cars.
+    // The busiest level of chapter one: eight cars of capacity 6 and 8, in 835px of free
+    // room. minShaftScale (60/60 = 1) floors the scale, so the 700-unit band cannot shrink
+    // at all; holding the full 200px corridor anyway would push the building 65px past the
+    // pane. The walk gives that up instead of the cars.
     const scale = computeShaftScale({
-      stageWidth: 645,
+      stageWidth: 995,
       levelsWidth: 84,
       elevators: [
         { worldX: 200, width: 60, capacity: 6 },
@@ -158,13 +158,13 @@ describe("computeShaftScale", () => {
         { worldX: 820, width: 80, capacity: 8 },
       ],
     });
-    expect(scale.scaleX).toBe(0.5);
+    expect(scale.scaleX).toBe(1);
     expect(scale.corridorPx).toBe(135);
     expect(scale.corridorPx).toBeGreaterThan(MIN_CORRIDOR_PX);
   });
 
   it("never squeezes the corridor past MIN_CORRIDOR_PX, however little room is left", () => {
-    // A pane far too narrow for this building: the band alone takes 350px of the 120px
+    // A pane far too narrow for this building: the band alone takes 660px of the 120px
     // floor `free` never goes below, so the leftover is deeply negative. The corridor stops
     // at its own floor and the stage scrolls sideways from there.
     const scale = computeShaftScale({
@@ -177,7 +177,7 @@ describe("computeShaftScale", () => {
         { worldX: 800, width: 60, capacity: 6 },
       ],
     });
-    expect(scale.scaleX).toBe(0.5);
+    expect(scale.scaleX).toBe(1);
     expect(scale.corridorPx).toBe(MIN_CORRIDOR_PX);
   });
 });
@@ -201,7 +201,7 @@ describe("shaftPadPx", () => {
   it("leaves a visible seam between two neighboring shafts at every scale in range", () => {
     // Two capacity-10 cars, 20 world units apart, drawn exactly as the widget draws them:
     // each edge rounded to a whole pixel, each shaft grown by one pad per side. Swept in
-    // hundredths from MIN_CAR's floor for the widest car (30/100) to MAX_ZOOM, since it is
+    // hundredths from 0.30 - under anything the fit now produces - to MAX_ZOOM, since it is
     // the rounding, not the arithmetic, that closed this seam at scaleX 0.32.
     for (let step = 30; step <= MAX_ZOOM * 100; step++) {
       const scaleX = step / 100;

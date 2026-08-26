@@ -7,9 +7,10 @@
 
 /**
  * The narrowest a car may be drawn, in pixels, unless it is already narrower than this at
- * full size.
+ * full size. Wide enough that a car on a crowded level still reads as a cabin: once it binds,
+ * the stage scrolls sideways, which costs less than squeezing every car to a sliver.
  */
-export const MIN_CAR = 30;
+export const MIN_CAR = 60;
 
 /**
  * The most a building may be scaled up, as a multiplier on the engine's own world units.
