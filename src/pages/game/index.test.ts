@@ -281,6 +281,42 @@ describe("App.startLevel", () => {
   });
 });
 
+describe("App browser defaults", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("remembers the seed in the page's own store and runs on the page's own frames when it is given neither", () => {
+    // What the running game relies on: it names neither, so both defaults have to be the page's own.
+    const storage = new MemoryStorage();
+    const pending: ((t: number) => void)[] = [];
+    vi.stubGlobal("localStorage", storage);
+    vi.stubGlobal("requestAnimationFrame", (callback: (t: number) => void) => {
+      pending.push(callback);
+    });
+    const { elements, editor, editorPane, worldController } = setUp();
+    const app = new App({
+      elements,
+      editor,
+      editorPane,
+      worldController,
+      levels: LEVELS,
+      onSeedChange: () => undefined,
+    });
+
+    app.startLevel(0, true);
+    // Two frames: the first only marks the clock, the second is the one that runs time.
+    for (const timestamp of [0, 1000]) {
+      for (const callback of pending.splice(0)) {
+        callback(timestamp);
+      }
+    }
+
+    expect(storage.getItem(SEED_STORAGE_KEY)).toBe(String(app.world?.seed));
+    expect(app.world?.elapsedTime).toBeGreaterThan(0);
+  });
+});
+
 describe("App code slots", () => {
   it("draws three slot buttons for a numbered level, marking the open one", () => {
     const { app, editorPaneMount } = setUp();
@@ -491,6 +527,18 @@ describe("App instant run", () => {
     const button = requireElement(".startstop", elements.controls);
     expect(button.textContent).toBe("Start");
     expect(button.hasAttribute("disabled")).toBe(false);
+  });
+
+  it("crunches a program that did not compile as an empty one, rather than refusing to run", () => {
+    const { app, elements, editorPaneMount, storage } = setUp();
+    storage.setItem("develevateChallengeCode_1_1", "{ this is not javascript");
+    app.startLevel(1);
+
+    app.runInstantly();
+
+    expect(codeErrorMessage(editorPaneMount)).not.toBe("");
+    expect(app.world?.levelEnded).toBe(true);
+    expect(verdictTitle(elements)).toBe("Success!");
   });
 
   it("falls back to a loss once the ceiling is reached without the level's own condition ever deciding", () => {
@@ -1729,6 +1777,12 @@ describe("App seed", () => {
 
     expect(seed).not.toContain("rush");
     expect(app.currentSeedLink?.url).toBe(`#level=1,seed=${seed}`);
+  });
+
+  it("has no seed line to offer before the first run has started", () => {
+    // The page reads this while drawing its chrome, which happens before any route resolves.
+    const { app } = setUp();
+    expect(app.currentSeedLink).toBeNull();
   });
 
   describe("playSeed", () => {

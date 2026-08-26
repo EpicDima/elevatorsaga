@@ -451,6 +451,48 @@ describe("Observable.triggerOne / triggerBare", () => {
     expect(seen).toEqual([[emitter, 1]]);
   });
 
+  it("retires a once handler of a bare event too", () => {
+    const emitter = makeEmitter();
+    const seen: unknown[] = [];
+    emitter.once("idle", function (this: unknown) {
+      seen.push(this);
+    });
+
+    emitter.triggerBare("idle");
+    emitter.triggerBare("idle");
+
+    expect(seen).toEqual([emitter]);
+  });
+
+  it("retires a once handler and prepends a multi-name one's event with both registered", () => {
+    // A lone handler takes a dispatch path of its own, so both rules need proving in company too.
+    const emitter = makeEmitter();
+    const named = vi.fn();
+    const retired = vi.fn();
+    emitter.on("up_button_pressed down_button_pressed", named);
+    emitter.once("up_button_pressed", retired);
+
+    emitter.triggerOne("up_button_pressed", 2);
+    emitter.triggerOne("up_button_pressed", 3);
+
+    expect(named).toHaveBeenNthCalledWith(2, "up_button_pressed", 3);
+    expect(retired).toHaveBeenCalledExactlyOnceWith(2);
+  });
+
+  it("retires a once handler of a bare event and prepends a multi-name one's event with both registered", () => {
+    const emitter = makeEmitter();
+    const named = vi.fn();
+    const retired = vi.fn();
+    emitter.on("idle up_button_pressed", named);
+    emitter.once("idle", retired);
+
+    emitter.triggerBare("idle");
+    emitter.triggerBare("idle");
+
+    expect(named).toHaveBeenNthCalledWith(2, "idle");
+    expect(retired).toHaveBeenCalledExactlyOnceWith();
+  });
+
   it("keeps the mutation-during-dispatch rules of trigger", () => {
     const emitter = makeEmitter();
     const later = vi.fn();

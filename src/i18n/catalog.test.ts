@@ -279,6 +279,34 @@ describe("translate", () => {
     expect(translate("ru", withoutMany, "level.people.html", { count: 1 })).toBe("одна форма");
   });
 
+  it("renders a plural entry with no forms left in it as its own key", () => {
+    // Neither the category the count asks for nor `other`: the key is all that is left to show.
+    const emptied = {
+      ...RU_MESSAGES,
+      "level.people.html": {},
+    } as unknown as typeof RU_MESSAGES;
+    expect(translate("ru", emptied, "level.people.html", { count: 5 })).toBe("level.people.html");
+  });
+
+  it("renders a key the catalog does not carry as the key itself", () => {
+    // Catalogs are fetched, so a half-loaded one has to degrade to something readable
+    // rather than putting "undefined" on the page.
+    const withoutStart = {
+      ...RU_MESSAGES,
+      "game.button.start": undefined,
+    } as unknown as typeof RU_MESSAGES;
+    expect(translate("ru", withoutStart, "game.button.start")).toBe("game.button.start");
+  });
+
+  it("counts a message given no count at all as a count of zero", () => {
+    // Russian gives zero its own form, so which one was chosen shows in the word itself.
+    const counted = {
+      ...RU_MESSAGES,
+      "game.button.start": { one: "один", few: "два", many: "ноль", other: "иначе" },
+    } as unknown as typeof RU_MESSAGES;
+    expect(translate("ru", counted, "game.button.start")).toBe("ноль");
+  });
+
   it("builds a level description exactly as the game builds it today", () => {
     // Byte for byte what src/game/levels.ts renders, markup included.
     const description = translate("en", EN_MESSAGES, "level.transportWithinTime.html", {

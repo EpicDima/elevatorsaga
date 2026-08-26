@@ -308,6 +308,16 @@ describe("spawnUserRandomly", () => {
     expect(at(floors, 0).buttonStates.down).toBe("");
   });
 
+  it("refuses to place a passenger on a floor the building has not got", () => {
+    // The trip is drawn from `floorCount`, not from the list: a list shorter than that
+    // count would otherwise put a passenger on a floor nobody built.
+    const floors = createFloors(3, 50, () => undefined);
+
+    expect(() => {
+      spawnUserRandomly(5, 50, floors, () => 0.99, WALK_OFF_UNUSED, "down-peak");
+    }).toThrow(new RangeError("No floor at index 4"));
+  });
+
   it("sends users above the lobby down to it by default", () => {
     const random = scriptedRandom([
       0, // weight
