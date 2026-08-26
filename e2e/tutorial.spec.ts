@@ -453,14 +453,35 @@ test("shows the longest answer on the track without panning it sideways", async 
     });
   await expect(page.locator(".tutorialsolution code")).toBeVisible();
 
-  const measured = await page.locator(".tutorialsolution code").evaluate((block) => ({
-    spill: block.scrollWidth - block.clientWidth,
-    longest: Math.max(...block.textContent.split("\n").map((line) => line.length)),
-  }));
+  const measured = await page.locator(".tutorialsolution code").evaluate((block) => {
+    // `1ch` of the code's own font: the cap is written in it, and it is stated
+    // on the `<pre>`, where a bare `ch` would be the browser's monospace at 14px.
+    const probe = document.createElement("span");
+    probe.style.cssText = "position:absolute;visibility:hidden;inline-size:1ch";
+    block.append(probe);
+    const ch = probe.getBoundingClientRect().width;
+    probe.remove();
+    return {
+      spill: block.scrollWidth - block.clientWidth,
+      longest: Math.max(...block.textContent.split("\n").map((line) => line.length)),
+      width: block.getBoundingClientRect().width,
+      capped: 72 * ch,
+      // What the block would take if nothing capped it: the card's width, less
+      // the 11px the block is inset by on each side.
+      available: (block.parentElement?.parentElement?.getBoundingClientRect().width ?? 0) - 22,
+    };
+  });
   // A tripwire: if the answer is ever rewritten shorter, the assertion below
   // would keep passing while testing nothing.
   expect(measured.longest, "the longest line of level 7's answer").toBeGreaterThanOrEqual(60);
   expect(measured.spill, "level 7's answer pans sideways").toBe(0);
+  // And the block is held to its 72 characters rather than to whatever is
+  // going spare: a cap measured in another font would let it out to the card's
+  // full width without anything else changing on screen.
+  expect(measured.width, "the answer's block is wider than its 72ch cap").toBeLessThanOrEqual(
+    measured.capped + 1,
+  );
+  expect(measured.capped, "the cap is not binding on a wide card").toBeLessThan(measured.available);
 });
 
 test("scrolls down to the building and back up to the lesson in one box", async ({ page }) => {

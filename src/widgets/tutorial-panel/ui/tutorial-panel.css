@@ -80,12 +80,16 @@
 /*
  * 72ch comfortably fits the longest answer line (68 characters). The cap is on
  * the block rather than the code inside it so that the copy button, positioned
- * against this box, lands on the code's own corner however wide the panel is.
+ * against this box, lands on the code's own corner however wide the panel is —
+ * which is why the code's own font is restated here: `ch` is measured in the
+ * element's own font, and a bare `<pre>` is the browser's monospace at 14px.
  */
 .tutorialsolution {
   position: relative;
   margin: 0 11px 11px;
   max-inline-size: 72ch;
+  font-family: var(--ds-font-mono);
+  font-size: 12px;
 }
 
 .tutorialsolution code {
