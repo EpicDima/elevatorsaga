@@ -532,6 +532,17 @@ describe("running the command", () => {
     expect(recorded.err).toBe(`Unknown locale: kl. Known: en, ru\n\n${USAGE}`);
   });
 
+  it("lets a failure that is not about the arguments through rather than blaming them", async () => {
+    // Exit code 2 and the usage under it say the command line was wrong; a bug in this tool wearing them sends a reader hunting for a typo that is not there.
+    const { streams: recorded, io } = streams();
+
+    // What a caller with no types can hand this: an argument that is not a string.
+    await expect(runBench([7] as unknown as readonly string[], io)).rejects.toThrow(TypeError);
+
+    expect(recorded.out).toBe("");
+    expect(recorded.err).toBe("");
+  });
+
   it("prints the usage on request, as a result rather than as a complaint", async () => {
     const { streams: recorded, io } = streams();
 
@@ -540,6 +551,102 @@ describe("running the command", () => {
     expect(code).toBe(EXIT_OK);
     expect(recorded.out).toBe(USAGE);
     expect(recorded.err).toBe("");
+  });
+});
+
+describe("being what node was pointed at", () => {
+  /** This file, as a path node can be given. */
+  const COMMAND = fileURLToPath(new URL("./bench.ts", import.meta.url));
+
+  /** What loading the module with an argv in front of it left behind. */
+  interface CommandRun {
+    /** The report, which goes to the real standard output. */
+    readonly out: string;
+    /** Everything else. */
+    readonly err: string;
+    /** What it exited with, or `undefined` if it never ran. */
+    readonly status: number | undefined;
+    /** How many writes were still unanswered when it exited. */
+    readonly unflushed: number;
+  }
+
+  /** Silences a real stream and answers its writes a turn late, so a flush that is not waited for shows up as one still outstanding. */
+  function recordSlowStream(stream: NodeJS.WriteStream, waiting: { count: number }): () => string {
+    const written = vi.spyOn(stream, "write").mockImplementation((...args: unknown[]) => {
+      const callback = args.find((argument) => typeof argument === "function");
+      if (callback !== undefined) {
+        waiting.count += 1;
+        setTimeout(() => {
+          waiting.count -= 1;
+          (callback as () => void)();
+        });
+      }
+      return true;
+    });
+    return () => written.mock.calls.map(([chunk]) => String(chunk)).join("");
+  }
+
+  /** Loads the module behind the argv node itself would have, which is the whole of what tells it to run. */
+  async function load(argv: readonly string[]): Promise<CommandRun> {
+    const argvBefore = process.argv;
+    const waiting = { count: 0 };
+    const exited: { status: number | undefined; unflushed: number } = {
+      status: undefined,
+      unflushed: 0,
+    };
+    const out = recordSlowStream(process.stdout, waiting);
+    const err = recordSlowStream(process.stderr, waiting);
+    vi.spyOn(process, "exit").mockImplementation(((status?: number) => {
+      exited.status = status;
+      exited.unflushed = waiting.count;
+    }) as unknown as (status?: string | number | null) => never);
+    process.argv = [...argv];
+    try {
+      vi.resetModules();
+      await import("./bench.ts");
+    } finally {
+      process.argv = argvBefore;
+      // The copy of every module the command just loaded, which no later case should be handed.
+      vi.resetModules();
+    }
+    return { out: out(), err: err(), status: exited.status, unflushed: exited.unflushed };
+  }
+
+  it("runs the command when node is pointed at this file", async () => {
+    const ran = await load([process.execPath, COMMAND, "--help"]);
+
+    expect(ran.status).toBe(EXIT_OK);
+    expect(ran.out).toBe(USAGE);
+    expect(ran.err).toBe("");
+  });
+
+  it("reads the program with the real file system, and says which file it could not read", async () => {
+    const ran = await load([process.execPath, COMMAND, "no-such-program.js"]);
+
+    expect(ran.status).toBe(EXIT_USAGE);
+    expect(ran.out).toBe("");
+    expect(ran.err).toContain("Could not read no-such-program.js:");
+    expect(ran.err).toContain("ENOENT");
+  });
+
+  it("does not exit until both streams have taken what it wrote", async () => {
+    // `process.exit` drops whatever a stream has not written yet, and a report larger than a pipe's buffer leaves the last of it queued.
+    const ran = await load([process.execPath, COMMAND, "--help"]);
+
+    expect(ran.unflushed).toBe(0);
+    expect(ran.status).toBe(EXIT_OK);
+  });
+
+  it("stays a module when node was pointed at something else", async () => {
+    // Loaded rather than run -- by the thread it starts, or from a `--eval` with no file of its own -- it must run nothing at all.
+    const evaluated = await load([process.execPath]);
+    const elsewhere = await load([process.execPath, `${COMMAND}.gone`, "--help"]);
+
+    for (const ran of [evaluated, elsewhere]) {
+      expect(ran.status).toBeUndefined();
+      expect(ran.out).toBe("");
+      expect(ran.err).toBe("");
+    }
   });
 });
 

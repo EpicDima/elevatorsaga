@@ -194,6 +194,19 @@ describe("running the suite in a thread", () => {
     await expect(running).rejects.toThrow(/the loader gave up/);
   });
 
+  it("gives up once, however many times the thread fails", async () => {
+    // Stopping a thread that has already failed can produce a second error, and a
+    // promise that has been rejected cannot carry it anywhere.
+    const running = runSuiteInWorker(CODE, OPTIONS);
+    const thread = startedThread();
+
+    thread.emit("error", new SyntaxError("Expression expected"));
+    thread.emit("error", new SyntaxError("and again on the way out"));
+
+    await expect(running).rejects.toThrow(/Expression expected/);
+    expect(thread.terminations).toBe(1);
+  });
+
   it("reports a program that exhausted the thread's memory as a failed program", async () => {
     // Out-of-memory is the one thread failure that is the program's own doing, so it is reported as a result rather than as this tool being broken.
     const outOfMemory = Object.assign(

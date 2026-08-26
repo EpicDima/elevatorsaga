@@ -45,6 +45,7 @@ afterEach(() => {
   // The stub must outlive any pending reply.
   vi.unstubAllGlobals();
   vi.doUnmock("../i18n/ru.ts");
+  vi.doUnmock("../game/fitness.ts");
   // Drops the module graph now speaking another language.
   vi.resetModules();
   vi.restoreAllMocks();
@@ -72,6 +73,25 @@ describe("the fitness worker and the catalog it reports in", () => {
     });
     // The player's own error, which has no identifier to translate on the main thread.
     expect(worker.posted).toEqual([{ error: REFUSAL.ru }]);
+  });
+
+  it("still answers when the suite itself breaks while the catalog is on its way", async () => {
+    // `loadLocale` never rejects, so the only failure left here is the suite's
+    // own; unanswered, it would leave the host waiting out its whole deadline.
+    vi.doMock("../game/fitness.ts", async (importOriginal) => ({
+      ...(await importOriginal<typeof import("../game/fitness.ts")>()),
+      doFitnessSuite: (): never => {
+        throw new Error("the suite broke");
+      },
+    }));
+    const worker = await startWorker();
+
+    worker.send({ code: REFUSED_PROGRAM, locale: "ru" });
+
+    await vi.waitFor(() => {
+      expect(worker.posted).toHaveLength(1);
+    });
+    expect(worker.posted).toEqual([{ error: "Error: the suite broke" }]);
   });
 
   it("still answers when the catalog cannot be fetched", async () => {

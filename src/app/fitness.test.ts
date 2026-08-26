@@ -130,6 +130,38 @@ describe("runFitnessSuite in a worker", () => {
     await expect(suite).resolves.toEqual({ error: "The fitness worker failed" });
   });
 
+  it("spawns a module worker at the bundled entry when it is given no factory", async () => {
+    // The `new URL(..., import.meta.url)` form is what lets the bundler find the
+    // entry and emit it as a chunk of its own, and a classic worker could not
+    // import the suite at all.
+    const spawned: { url: URL; options: unknown; worker: FakeWorker }[] = [];
+    class PageWorker extends FakeWorker {
+      constructor(url: URL, options: unknown) {
+        super();
+        spawned.push({ url, options, worker: this });
+      }
+    }
+    const results = [run("Small scenario", 8)];
+    vi.stubGlobal("Worker", PageWorker);
+
+    try {
+      const suite = runFitnessSuite("var x = 1;");
+
+      expect(spawned).toHaveLength(1);
+      const [entry] = spawned;
+      if (entry === undefined) {
+        throw new Error("The suite spawned no worker.");
+      }
+      expect(entry.url.href).toMatch(/\/fitness-worker\.ts$/);
+      expect(entry.options).toEqual({ type: "module" });
+      entry.worker.reply(results);
+      await expect(suite).resolves.toEqual(results);
+    } finally {
+      // Globals outlive the test; `vi.restoreAllMocks` does not undo a stub.
+      vi.unstubAllGlobals();
+    }
+  });
+
   it("ignores a second reply from the worker", async () => {
     const worker = new FakeWorker();
     const first = [run("Small scenario", 1)];

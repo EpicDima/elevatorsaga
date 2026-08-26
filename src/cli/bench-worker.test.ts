@@ -48,6 +48,9 @@ const DRIVING_PROGRAM = `{
   update: function () {}
 }`;
 
+/** A program the suite refuses before it simulates anything, for cases about the answer rather than the numbers. */
+const REFUSED_PROGRAM = "var x = 1;";
+
 /** One seed, because none of this is about how many buildings there are. */
 const ONE_SEED = ["1"];
 
@@ -71,6 +74,21 @@ let listenersBefore: { uncaughtException: unknown[]; unhandledRejection: unknown
   uncaughtException: [],
   unhandledRejection: [],
 };
+
+/** The failure listener the module under test installed, which is the only one this case added. */
+function moduleListener(
+  event: "uncaughtException" | "unhandledRejection",
+): (thrown: unknown) => void {
+  const added = process
+    .listeners(event)
+    .filter((listener) => !listenersBefore[event].includes(listener));
+  expect(added).toHaveLength(1);
+  const [listener] = added;
+  if (listener === undefined) {
+    throw new Error(`The worker is not listening for ${event}.`);
+  }
+  return listener as unknown as (thrown: unknown) => void;
+}
 
 /** Removes the listeners the module under test installed on `process`, so they do not go on swallowing every later failure in this test run. */
 function takeOffModuleListeners(): void {
@@ -104,6 +122,7 @@ beforeEach(() => {
 
 afterEach(() => {
   takeOffModuleListeners();
+  vi.doUnmock("../game/fitness.ts");
   // The module sets the active locale, and this process shares one with it.
   setLocale(DEFAULT_LOCALE);
   thread.workerData = undefined;
@@ -153,6 +172,49 @@ describe("the benchmark worker", () => {
       listenersBefore.unhandledRejection.length + 1,
     );
   }, 30_000);
+
+  it("answers no more than once, whatever fails after the answer is posted", async () => {
+    // `init` runs once per scenario, so a program that fails on a later turn of the event loop usually fails several times; a second message would reach the command after it had read the report.
+    const posted = await runWorker({ code: REFUSED_PROGRAM, seeds: ONE_SEED, locale: "en" });
+    expect(posted).toHaveLength(1);
+
+    moduleListener("uncaughtException")(new Error("thrown after the answer"));
+    moduleListener("unhandledRejection")(new Error("rejected after the answer"));
+
+    expect(posted).toHaveLength(1);
+  });
+
+  it("hands a failure back to Node when the run left nothing to answer with", async () => {
+    // A run that threw has no report to post, so the failure is the thread's to die of -- which the command reports as this tool being broken, rather than as a program that scored badly.
+    vi.doMock("../game/fitness.ts", async (importOriginal) => ({
+      ...(await importOriginal<typeof import("../game/fitness.ts")>()),
+      doFitnessSuite: (): never => {
+        throw new Error("the suite broke");
+      },
+    }));
+    const posted: FitnessSuiteResult[] = [];
+    thread.workerData = { code: REFUSED_PROGRAM, seeds: ONE_SEED, locale: "en" };
+    thread.parentPort = {
+      postMessage: (message: unknown) => {
+        posted.push(message as FitnessSuiteResult);
+      },
+    };
+    vi.resetModules();
+
+    await expect(import("./bench-worker.ts")).rejects.toThrow("the suite broke");
+
+    expect(() => {
+      moduleListener("uncaughtException")(new Error("and then this"));
+    }).toThrow("and then this");
+    expect(posted).toEqual([]);
+    // Both come off together, so the second failure is Node's to end the thread with.
+    expect(process.listeners("uncaughtException")).toHaveLength(
+      listenersBefore.uncaughtException.length,
+    );
+    expect(process.listeners("unhandledRejection")).toHaveLength(
+      listenersBefore.unhandledRejection.length,
+    );
+  });
 
   it("says what it is when it is run as a command instead of as a thread", async () => {
     // Run directly, the module gets no port, and every path below this check ends in posting through one; without it, a null read throws.
