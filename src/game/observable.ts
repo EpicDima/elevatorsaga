@@ -229,6 +229,25 @@ export class EventChannel {
       return;
     }
     const receiver = this.#receiver;
+    // One handler, which is what a simulation step almost always finds. Nothing
+    // reads the entry list once that handler is called, so a mutation from
+    // inside it has nothing left to disturb and needs no copy — which is what
+    // lets this path skip the in-flight bookkeeping the loop below has to do.
+    if (count === 1) {
+      const entry = entries[0];
+      if (entry === undefined || entry.removed) {
+        return;
+      }
+      if (entry.once) {
+        this.#removeEntry(entry);
+      }
+      if (entry.typed) {
+        invoke(receiver, entry.handler, [event, arg]);
+      } else {
+        invokeOne(receiver, entry.handler, arg);
+      }
+      return;
+    }
     dispatchesInFlight++;
     try {
       for (let i = 0; i < count; i++) {
@@ -258,6 +277,22 @@ export class EventChannel {
       return;
     }
     const receiver = this.#receiver;
+    // {@link emitOne}'s single-handler path, for the same reason.
+    if (count === 1) {
+      const entry = entries[0];
+      if (entry === undefined || entry.removed) {
+        return;
+      }
+      if (entry.once) {
+        this.#removeEntry(entry);
+      }
+      if (entry.typed) {
+        invoke(receiver, entry.handler, [event]);
+      } else {
+        invokeNone(receiver, entry.handler);
+      }
+      return;
+    }
     dispatchesInFlight++;
     try {
       for (let i = 0; i < count; i++) {

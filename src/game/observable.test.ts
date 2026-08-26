@@ -469,6 +469,62 @@ describe("Observable.triggerOne / triggerBare", () => {
     expect(() => emitter.triggerOne("up_button_pressed", 1)).not.toThrow();
     expect(() => emitter.triggerBare("idle")).not.toThrow();
   });
+
+  // A lone handler is dispatched by a path of its own, so it needs the rules proved again.
+  it("keeps the mutation-during-dispatch rules for a lone handler", () => {
+    const emitter = makeEmitter();
+    const later = vi.fn();
+    const only = vi.fn(() => {
+      emitter.off("up_button_pressed", only);
+      emitter.on("up_button_pressed", later);
+    });
+    emitter.on("up_button_pressed", only);
+
+    emitter.triggerOne("up_button_pressed", 3);
+
+    expect(only).toHaveBeenCalledExactlyOnceWith(3);
+    expect(later).not.toHaveBeenCalled();
+
+    emitter.triggerOne("up_button_pressed", 4);
+
+    expect(only).toHaveBeenCalledTimes(1);
+    expect(later).toHaveBeenCalledExactlyOnceWith(4);
+  });
+
+  it("keeps the mutation-during-dispatch rules for a lone handler of a bare event", () => {
+    const emitter = makeEmitter();
+    const later = vi.fn();
+    const only = vi.fn(() => {
+      emitter.off("idle", only);
+      emitter.on("idle", later);
+    });
+    emitter.on("idle", only);
+
+    emitter.triggerBare("idle");
+
+    expect(only).toHaveBeenCalledOnce();
+    expect(later).not.toHaveBeenCalled();
+
+    emitter.triggerBare("idle");
+
+    expect(only).toHaveBeenCalledTimes(1);
+    expect(later).toHaveBeenCalledOnce();
+  });
+
+  it("survives a lone handler raising the same event again", () => {
+    const emitter = makeEmitter();
+    const seen: number[] = [];
+    emitter.on("up_button_pressed", (floor) => {
+      seen.push(floor);
+      if (floor < 3) {
+        emitter.triggerOne("up_button_pressed", floor + 1);
+      }
+    });
+
+    emitter.triggerOne("up_button_pressed", 1);
+
+    expect(seen).toEqual([1, 2, 3]);
+  });
 });
 
 describe("Observable held channels", () => {
