@@ -161,6 +161,21 @@ describe("powInterpolate", () => {
     expect(powInterpolate(0, 1, 0.25, 1.3)).toBeLessThan(0.25);
     expect(powInterpolate(0, 1, 0.75, 1.3)).toBeGreaterThan(0.75);
   });
+
+  it("blends other endpoints by a repeated progress exactly as by a fresh one", () => {
+    // The remembered powers must not outlive the progress or the exponent they were raised for.
+    const fresh = powInterpolate(40, 90, 0.31, 1.3);
+    powInterpolate(0, 1, 0.31, 1.3);
+    expect(powInterpolate(40, 90, 0.31, 1.3)).toBe(fresh);
+    powInterpolate(0, 1, 0.31, 2);
+    expect(powInterpolate(40, 90, 0.31, 1.3)).toBe(fresh);
+    expect(powInterpolate(40, 90, 0.31, 2)).toBe(powInterpolate(40, 90, 0.31, 2));
+  });
+
+  it("gives NaN for a NaN progress, and still answers the next call", () => {
+    expect(powInterpolate(2, 10, NaN, 1.3)).toBeNaN();
+    expect(powInterpolate(2, 10, 0, 1.3)).toBe(2);
+  });
 });
 
 describe("coolInterpolate", () => {

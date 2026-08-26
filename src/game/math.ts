@@ -38,11 +38,28 @@ export function linearInterpolate(value0: number, value1: number, x: number): nu
   return value0 + (value1 - value0) * x;
 }
 
+/**
+ * The last progress this was asked to raise, and what it raised it to. A move
+ * interpolates its two coordinates by the same progress one after the other,
+ * so every second call asks for powers just taken; `x ** 1.3` is a logarithm
+ * and an exponential, which makes it worth remembering one answer.
+ * `NaN !== NaN` keeps a `NaN` progress from ever reading a stale pair.
+ */
+let lastX = NaN;
+let lastA = NaN;
+let lastXPow = 0;
+let lastRestPow = 0;
+
 /** Sigmoid-ish interpolation between `value0` and `value1`; `a` controls the steepness. */
 export function powInterpolate(value0: number, value1: number, x: number, a: number): number {
-  // `x ** a` is raised once and reused; two of the three powers this needs were the same one.
-  const xPow = Math.pow(x, a);
-  return value0 + ((value1 - value0) * xPow) / (xPow + Math.pow(1 - x, a));
+  if (x !== lastX || a !== lastA) {
+    lastX = x;
+    lastA = a;
+    // `x ** a` is raised once and reused; two of the three powers this needs were the same one.
+    lastXPow = Math.pow(x, a);
+    lastRestPow = Math.pow(1 - x, a);
+  }
+  return value0 + ((value1 - value0) * lastXPow) / (lastXPow + lastRestPow);
 }
 
 /** {@link powInterpolate} with exponent `1.3`; used for elevator and passenger animation. */
