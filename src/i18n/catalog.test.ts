@@ -40,6 +40,11 @@ function placeholders(strings: readonly string[]): readonly string[] {
   return [...names].sort();
 }
 
+/** How many paragraphs a message is written in — a blank line separates two. */
+function paragraphs(text: string): number {
+  return text.split("\n\n").length;
+}
+
 /** The tag names an HTML string opens and closes, in order. */
 function tags(text: string): readonly string[] {
   return [...text.matchAll(/<(\/?)([a-z]+)/g)].map((match) => `${match[1] ?? ""}${match[2] ?? ""}`);
@@ -144,6 +149,21 @@ describe("catalog markup", () => {
         ...forms(entry("ru", key)).map((text) => ["ru", text] as const),
       ]) {
         expect(tags(text), `${locale} ${key}: the markup changed`).toEqual(expected);
+      }
+    }
+  });
+
+  it("breaks every message into the same paragraphs in every locale", () => {
+    // The lesson panel turns a blank line into a paragraph of its own, and the
+    // comparison above cannot see one: it reads tags. A translation that runs
+    // two paragraphs together leaves that language the wall of text the other
+    // was spared.
+    for (const key of KEYS.filter((candidate) => !candidate.endsWith(".code"))) {
+      const expected = paragraphs(forms(entry("en", key))[0] ?? "");
+      for (const locale of LOCALES) {
+        for (const text of forms(entry(locale, key))) {
+          expect(paragraphs(text), `${locale} ${key}`).toBe(expected);
+        }
       }
     }
   });

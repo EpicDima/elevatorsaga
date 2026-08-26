@@ -53,6 +53,12 @@ function englishTitle(id: string): unknown {
   return ENGLISH[`tutorial.level${id.slice("tutorial-".length)}.title`];
 }
 
+/** How many paragraphs the English explanation of a level is written in. */
+function englishExplanationParagraphs(id: string): number {
+  const message = ENGLISH[`tutorial.level${id.slice("tutorial-".length)}.explanation.html`];
+  return typeof message === "string" ? message.split("\n\n").length : 0;
+}
+
 /** Strips `//` comments — the untranslated half of a program. */
 function uncommented(code: string): string {
   return code
@@ -116,6 +122,17 @@ describe("presentTutorial", () => {
     expect(hints[1]?.textContent).toContain("the top floor here is 1.");
   });
 
+  it("splits a hint at its blank line", () => {
+    // Level 7's last hint says two separate things before it hands over the answer.
+    presentTutorial(parent, panelData({ levelIndex: 6 }));
+
+    const prose = queryAll(".tutorialprose", disclosure(2));
+    expect(prose).toHaveLength(2);
+    for (const paragraph of prose) {
+      expect(paragraph.textContent).not.toContain("\n");
+    }
+  });
+
   it.each(tutorialLevels.map((level, index) => [index, level] as const))(
     "draws the prose of the level at position %i",
     (index, level) => {
@@ -123,14 +140,17 @@ describe("presentTutorial", () => {
 
       expect(requireElement(".tutorialtitle", parent).textContent).toBe(englishTitle(level.id));
       expect(requireElement(".tutorialgoal", parent).textContent).not.toBe("");
-      const hints = queryAll(".tutorialhint .tutorialprose", parent);
+      const hints = queryAll(".tutorialhint", parent);
       expect(hints).toHaveLength(3);
       for (const hint of hints) {
-        expect(hint.textContent).not.toBe("");
+        const prose = queryAll(".tutorialprose", hint).map((paragraph) => paragraph.textContent);
+        expect(prose.length).toBeGreaterThan(0);
+        expect(prose).not.toContain("");
       }
-      expect(requireElement(".tutorialexplanation .tutorialprose", parent).textContent).not.toBe(
-        "",
-      );
+      const explanation = queryAll(".tutorialexplanation .tutorialprose", parent);
+      // One paragraph per blank line in the message, so a long one is never a wall of text.
+      expect(explanation).toHaveLength(englishExplanationParagraphs(level.id));
+      expect(explanation.map((paragraph) => paragraph.textContent)).not.toContain("");
       expect(requireElement(".tutorialpanel", parent).getAttribute("data-level-index")).toBe(
         String(index),
       );

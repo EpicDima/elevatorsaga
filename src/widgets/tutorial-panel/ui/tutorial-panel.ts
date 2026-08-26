@@ -238,6 +238,17 @@ function tutorialAnswerTemplate(answer: TutorialAnswerData): string {
 }
 
 /**
+ * A prose message as the paragraphs it is written in, split on the blank
+ * lines it separates them with. A message with none is one paragraph.
+ */
+function tutorialProseTemplate(prose: string): string {
+  return prose
+    .split("\n\n")
+    .map((paragraph) => markup`<p class="tutorialprose">${raw(paragraph)}</p>`)
+    .join("");
+}
+
+/**
  * One hint as a native `<details>` disclosure, closed by default so the
  * answer under the last hint isn't shown before the player reads the goal.
  */
@@ -247,7 +258,7 @@ function tutorialHintTemplate(
   answer: TutorialAnswerData | null,
 ): string {
   const drawnAnswer = answer === null ? "" : tutorialAnswerTemplate(answer);
-  return markup`<details class="tutorialhint"><summary>${t("tutorial.panel.hintSummary", { number })}</summary><p class="tutorialprose">${raw(hint)}</p>${raw(drawnAnswer)}</details>`;
+  return markup`<details class="tutorialhint"><summary>${t("tutorial.panel.hintSummary", { number })}</summary>${raw(tutorialProseTemplate(hint))}${raw(drawnAnswer)}</details>`;
 }
 
 /**
@@ -268,7 +279,7 @@ export function tutorialTemplate(data: TutorialTemplateData): string {
     .join("");
   // Level index is the one piece of state the panel remembers about itself,
   // read back by presentTutorial from the old markup before it is replaced.
-  return markup`<section class="tutorialpanel" data-level-index="${data.levelNumber - 1}" aria-label="${data.title}"><h2 class="tutorialtitle">${data.title}</h2><p class="tutorialgoal">${data.goal}</p>${raw(hints)}<details class="tutorialexplanation"><summary>${t("tutorial.panel.explanationSummary")}</summary><p class="tutorialprose">${raw(data.explanation)}</p></details></section>`;
+  return markup`<section class="tutorialpanel" data-level-index="${data.levelNumber - 1}" aria-label="${data.title}"><h2 class="tutorialtitle">${data.title}</h2><p class="tutorialgoal">${data.goal}</p>${raw(hints)}<details class="tutorialexplanation"><summary>${t("tutorial.panel.explanationSummary")}</summary>${raw(tutorialProseTemplate(data.explanation))}</details></section>`;
 }
 
 /**
