@@ -608,6 +608,19 @@ describe("App instant run", () => {
     expect(app.world?.levelEnded).toBe(true);
   });
 
+  it("is what applying the code does as well, since it is the same Mod-Enter", () => {
+    // The editor's binding used to start an animated run instead, so where the caret happened to
+    // be decided which of two things one keystroke did.
+    const { app, elements, editor } = setUp();
+    app.startLevel(1);
+    reachInstantSpeed(elements);
+
+    editor.trigger("apply_code");
+
+    expect(app.world?.levelEnded).toBe(true);
+    expect(requireElement(".speed-val", elements.controls).textContent).toBe("∞x");
+  });
+
   it("draws the finished building whichever way the crunch ended", () => {
     const { app, elements } = setUp();
 

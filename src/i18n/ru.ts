@@ -135,6 +135,7 @@ export const RU_MESSAGES: MessageCatalog<"ru"> = {
   "game.hotkeys.title": "Горячие клавиши",
   "game.hotkeys.closeTitle": "Закрыть окно",
   "game.hotkeys.close": "Закрыть",
+  "game.hotkeys.nothingFocused": "Когда ничего не в фокусе",
   "game.hotkeys.outsideEditor": "Вне редактора кода",
   "game.hotkeys.startPause": "Пуск и пауза",
   "game.hotkeys.startOver": "Начать заново",

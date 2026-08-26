@@ -1,7 +1,7 @@
 /**
- * The hotkeys dialog: a title, a close button, and two groups of rows pairing a hotkey with what
- * it does. A `Mod-` binding is only marked `data-mod-key` here; whoever mounts the dialog live
- * resolves the marker per platform.
+ * The hotkeys dialog: a title, a close button, and groups of rows pairing a hotkey with what it
+ * does, under a heading saying where it applies. A `Mod-` binding is only marked `data-mod-key`
+ * here; whoever mounts the dialog live resolves the marker per platform.
  */
 
 import { t, type MessageKey } from "#i18n/index.ts";
@@ -26,34 +26,51 @@ interface Shortcut {
   readonly keys: readonly string[];
 }
 
-/** The shortcuts the page listens for, every one of which the editor swallows. */
-const OUTSIDE_EDITOR: readonly Shortcut[] = [
-  { label: "game.hotkeys.startPause", keys: ["Space"] },
-  { label: "game.hotkeys.startOver", keys: [MOD, "Enter"] },
-  { label: "game.hotkeys.switchLayout", keys: [MOD, "B"] },
-  { label: "game.hotkeys.openDocs", keys: ["F1"] },
-  { label: "game.hotkeys.openSettings", keys: ["?"] },
-];
+/** A run of rows under one heading, which is where those rows apply. */
+interface ShortcutGroup {
+  /** The message heading the group. */
+  readonly heading: HotkeyMessageKey;
+  /** Its rows, in the order they are drawn. */
+  readonly shortcuts: readonly Shortcut[];
+}
 
-/** What CodeMirror binds with the cursor in the editor; completion alone takes a literal `Ctrl` on every platform. */
-const IN_EDITOR: readonly Shortcut[] = [
-  { label: "game.hotkeys.applyCode", keys: [MOD, "Enter"] },
-  { label: "game.hotkeys.saveNow", keys: [MOD, "S"] },
-  { label: "game.hotkeys.completions", keys: ["Ctrl", "Space"] },
-  { label: "game.hotkeys.find", keys: [MOD, "F"] },
-  { label: "game.hotkeys.findNext", keys: [MOD, "G"] },
-  { label: "game.hotkeys.findPrevious", keys: [MOD, "Shift", "G"] },
-  { label: "game.hotkeys.selectNextMatch", keys: [MOD, "D"] },
-  { label: "game.hotkeys.indent", keys: ["Tab"] },
-  { label: "game.hotkeys.leaveEditor", keys: ["Esc"] },
+/** Every group, in the order the dialog draws them. */
+const GROUPS: readonly ShortcutGroup[] = [
+  {
+    // The space bar belongs to whatever is focused, so the page claims it only when nothing is.
+    heading: "game.hotkeys.nothingFocused",
+    shortcuts: [{ label: "game.hotkeys.startPause", keys: ["Space"] }],
+  },
+  {
+    // The page listens for these, and the editor swallows every one of them.
+    heading: "game.hotkeys.outsideEditor",
+    shortcuts: [
+      { label: "game.hotkeys.startOver", keys: [MOD, "Enter"] },
+      { label: "game.hotkeys.switchLayout", keys: [MOD, "B"] },
+      { label: "game.hotkeys.openDocs", keys: ["F1"] },
+      { label: "game.hotkeys.openSettings", keys: ["?"] },
+    ],
+  },
+  {
+    // CodeMirror's own; completion alone takes a literal `Ctrl` on every platform.
+    heading: "game.hotkeys.editorOnly",
+    shortcuts: [
+      { label: "game.hotkeys.applyCode", keys: [MOD, "Enter"] },
+      { label: "game.hotkeys.saveNow", keys: [MOD, "S"] },
+      { label: "game.hotkeys.completions", keys: ["Ctrl", "Space"] },
+      { label: "game.hotkeys.find", keys: [MOD, "F"] },
+      { label: "game.hotkeys.findNext", keys: [MOD, "G"] },
+      { label: "game.hotkeys.findPrevious", keys: [MOD, "Shift", "G"] },
+      { label: "game.hotkeys.selectNextMatch", keys: [MOD, "D"] },
+      { label: "game.hotkeys.indent", keys: ["Tab"] },
+      { label: "game.hotkeys.leaveEditor", keys: ["Esc"] },
+    ],
+  },
 ];
-
-/** Every row, in the order the dialog draws them. */
-const SHORTCUTS: readonly Shortcut[] = [...OUTSIDE_EDITOR, ...IN_EDITOR];
 
 /** Every `t()`-sourced row label, in the same order as the `.keyrow`s. */
 function rowLabels(): readonly string[] {
-  return SHORTCUTS.map((shortcut) => t(shortcut.label));
+  return GROUPS.flatMap((group) => group.shortcuts.map((shortcut) => t(shortcut.label)));
 }
 
 /** One row's caps, joined by `+`. */
@@ -64,14 +81,14 @@ function keysMarkup(keys: readonly string[]): string {
 }
 
 /** One group: its heading and its rows. */
-function groupMarkup(heading: HotkeyMessageKey, shortcuts: readonly Shortcut[]): string {
-  const rows = shortcuts
+function groupMarkup(group: ShortcutGroup): string {
+  const rows = group.shortcuts
     .map(
       (shortcut) =>
         markup`<div class="keyrow"><span>${t(shortcut.label)}</span>${raw(keysMarkup(shortcut.keys))}</div>`,
     )
     .join("");
-  return markup`<h3 class="keys-group">${t(heading)}</h3>${raw(rows)}`;
+  return markup`<h3 class="keys-group">${t(group.heading)}</h3>${raw(rows)}`;
 }
 
 /** The dialog's inert markup, ready for {@link presentHotkeysModal}. */
@@ -79,7 +96,7 @@ export function hotkeysModalTemplate(): string {
   const titleId = `hotkeys-modal-title-${String(nextTitleId)}`;
   nextTitleId += 1;
 
-  return markup`<dialog class="keys" aria-labelledby="${titleId}"><div class="keys-head"><h2 id="${titleId}">${t("game.hotkeys.title")}</h2><button type="button" class="btn keysclose" title="${t("game.hotkeys.closeTitle")}">${t("game.hotkeys.close")}</button></div><div class="keys-body">${raw(groupMarkup("game.hotkeys.outsideEditor", OUTSIDE_EDITOR))}${raw(groupMarkup("game.hotkeys.editorOnly", IN_EDITOR))}</div></dialog>`;
+  return markup`<dialog class="keys" aria-labelledby="${titleId}"><div class="keys-head"><h2 id="${titleId}">${t("game.hotkeys.title")}</h2><button type="button" class="btn keysclose" title="${t("game.hotkeys.closeTitle")}">${t("game.hotkeys.close")}</button></div><div class="keys-body">${raw(GROUPS.map(groupMarkup).join(""))}</div></dialog>`;
 }
 
 /** What a mounted hotkeys modal hands back — a {@link Modal}, plus a way to keep its labels current. */
@@ -101,7 +118,7 @@ export function presentHotkeysModal(dialog: HTMLDialogElement): HotkeysModalCont
       titleEl.textContent = t("game.hotkeys.title");
       closeButton.title = t("game.hotkeys.closeTitle");
       closeButton.textContent = t("game.hotkeys.close");
-      const headings = [t("game.hotkeys.outsideEditor"), t("game.hotkeys.editorOnly")];
+      const headings = GROUPS.map((group) => t(group.heading));
       groupEls.forEach((el, index) => {
         el.textContent = headings[index] ?? "";
       });

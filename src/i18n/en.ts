@@ -136,6 +136,7 @@ export const EN_MESSAGES = {
   "game.hotkeys.title": "Keyboard shortcuts",
   "game.hotkeys.closeTitle": "Close window",
   "game.hotkeys.close": "Close",
+  "game.hotkeys.nothingFocused": "When nothing is focused",
   "game.hotkeys.outsideEditor": "Outside the code editor",
   "game.hotkeys.startPause": "Start and pause",
   "game.hotkeys.startOver": "Start over",

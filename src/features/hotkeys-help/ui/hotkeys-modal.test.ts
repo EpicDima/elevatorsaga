@@ -83,7 +83,27 @@ describe("hotkeysModalTemplate", () => {
 
     expect(
       [...dialog.querySelectorAll(".keys-group")].map((heading) => heading.textContent),
-    ).toEqual(["Outside the code editor", "In the code editor"]);
+    ).toEqual(["When nothing is focused", "Outside the code editor", "In the code editor"]);
+  });
+
+  it("gives the space bar a scope of its own, since it is not the others'", () => {
+    // The page claims Space only while `document.body` is the keydown's target; the other four
+    // fire wherever the focus is, as long as it is not somewhere text is being typed.
+    const { dialog } = setUp();
+
+    const groups = [...dialog.querySelectorAll(".keys-group")];
+    const rowsUnder = (heading: Element | undefined): string[] => {
+      const rows: string[] = [];
+      for (let node = heading?.nextElementSibling; node != null; node = node.nextElementSibling) {
+        if (node.classList.contains("keys-group")) {
+          break;
+        }
+        rows.push(node.querySelector("span")?.textContent ?? "");
+      }
+      return rows;
+    };
+    expect(rowsUnder(groups[0])).toEqual(["Start and pause"]);
+    expect(rowsUnder(groups[1])).toEqual(["Start over", "Switch layout", "Help", "Settings"]);
   });
 
   it("joins each chord's caps with a +", () => {
@@ -165,7 +185,7 @@ describe("presentHotkeysModal", () => {
       expect(closeButton?.getAttribute("title")).toBe("Закрыть окно");
       expect(
         [...dialog.querySelectorAll(".keys-group")].map((heading) => heading.textContent),
-      ).toEqual(["Вне редактора кода", "В редакторе кода"]);
+      ).toEqual(["Когда ничего не в фокусе", "Вне редактора кода", "В редакторе кода"]);
       const rows = [...dialog.querySelectorAll(".keyrow")];
       expect(rows.map((row) => row.querySelector("span")?.textContent)).toEqual([
         "Пуск и пауза",

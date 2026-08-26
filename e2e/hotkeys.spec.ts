@@ -6,7 +6,8 @@
 
 import { expect, test, type Page } from "@playwright/test";
 
-import { editor, openSettingsMenu } from "./game-page.ts";
+import { DEV_TEST_CODE } from "../src/ui/default-code.ts";
+import { editor, openSettingsMenu, seedCode, selectInstantSpeed, speedValue } from "./game-page.ts";
 
 /** Opens the dialog the settings popover's own row opens. */
 async function openHotkeys(page: Page): Promise<void> {
@@ -15,14 +16,37 @@ async function openHotkeys(page: Page): Promise<void> {
   await expect(page.locator(".keys")).toBeVisible();
 }
 
-test("heads its two groups with the scope each one has", async ({ page }) => {
+test("heads its three groups with the scope each one has", async ({ page }) => {
   await page.goto("/");
   await openHotkeys(page);
 
   await expect(page.locator(".keys .keys-group")).toHaveText([
+    "When nothing is focused",
     "Outside the code editor",
     "In the code editor",
   ]);
+});
+
+test("claims the space bar only while nothing is focused, as its own heading says", async ({
+  page,
+}) => {
+  await page.goto("/#level=4");
+  const start = page.getByRole("button", { name: "Start", exact: true });
+
+  // Focused: the space bar is the button's, and activating it happens to start the run anyway,
+  // so the level switcher is the honest witness - Space there opens the menu, it does not start.
+  await page.getByRole("button", { name: "Level 4" }).focus();
+  await page.keyboard.press("Space");
+  await expect(page.getByRole("link", { name: "Level 5", exact: true })).toBeVisible();
+  await expect(start).toBeVisible();
+
+  await page.keyboard.press("Escape");
+  await page.evaluate(() => {
+    (document.activeElement as HTMLElement | null)?.blur();
+  });
+  await page.keyboard.press("Space");
+
+  await expect(page.getByRole("button", { name: "Pause", exact: true })).toBeVisible();
 });
 
 test("leaves the settings popover open under it, however the dialog is dismissed", async ({
@@ -70,6 +94,24 @@ test("F1 opens the help it names, and in the editor does nothing, as its heading
   });
   await page.keyboard.press("F1");
   await expect(page.locator(".docs")).toBeVisible();
+});
+
+test("Mod-Enter starts the run over from either side of the editor's edge", async ({ page }) => {
+  // The two rows the dialog gives Mod-Enter differ in what they read, not in what they run. Proved
+  // on the crunch stop, where the editor's binding used to start an animated run instead.
+  await seedCode(page, DEV_TEST_CODE);
+  await page.goto("/#level=1");
+  await selectInstantSpeed(page);
+  await expect(speedValue(page)).toHaveText("∞x");
+
+  await editor(page).click();
+  await page.keyboard.press("ControlOrMeta+Enter");
+
+  // The budget is the assertion: a crunch of this level lands in tens of milliseconds, while the
+  // animated run this used to start is paced by real time and takes upwards of three seconds.
+  await expect(page.getByRole("heading", { name: "Success!" })).toBeVisible({ timeout: 2000 });
+  // Still on the stop it was on: a crunch is a speed, and applying code does not step off it.
+  await expect(speedValue(page)).toHaveText("∞x");
 });
 
 test("every editor chord it lists is really bound", async ({ page }) => {

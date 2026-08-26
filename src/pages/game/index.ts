@@ -399,13 +399,8 @@ export class App {
           this.startStopOrRestart();
         }
       },
-      // Restarts immediately (`autoStart`), unlike the first button's own offer after a run ends.
       onStartOver: () => {
-        if (this.#instantSpeed) {
-          this.runInstantly();
-        } else {
-          this.#restart(true);
-        }
+        this.#runFromStart();
       },
       // The `+`/`-` arrows enter and leave the `∞x` stop; neither touches `timeScale` — see {@link #instantSpeed}.
       onTimeScaleIncrease: () => {
@@ -443,8 +438,9 @@ export class App {
       this.#editor.trigger("usercode_error", e);
     });
 
+    // The same Mod-Enter as the "Start over" button, reaching the editor instead of the page.
     this.#editor.on("apply_code", () => {
-      this.#restart(true);
+      this.#runFromStart();
     });
     this.#editor.on("code_success", () => {
       this.#codeError = undefined;
@@ -577,6 +573,19 @@ export class App {
       this.startLevel(this.currentLevelIndex, autoStart, this.#currentSlot);
     } else {
       this.startSandbox(sandbox, autoStart);
+    }
+  }
+
+  /**
+   * Runs what is on screen from the beginning, reading the editor fresh: a crunch on the `∞x`
+   * stop, where a real-time run means nothing, and otherwise a restart that starts itself
+   * (`autoStart`), unlike the start button's own offer after a run ends.
+   */
+  #runFromStart(): void {
+    if (this.#instantSpeed) {
+      this.runInstantly();
+    } else {
+      this.#restart(true);
     }
   }
 
