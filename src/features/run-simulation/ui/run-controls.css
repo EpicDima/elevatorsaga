@@ -20,28 +20,21 @@
 
 /*
  * A fixed width so the row doesn't reflow as the primary label changes
- * (Start/Pause/Resume/Crunching...). Overrides `.btn-primary`'s own
- * `min-width` via specificity.
+ * (Start/Pause/Resume/Crunching...). The floor is the widest of those in any
+ * locale; overrides `.btn-primary`'s own `min-width` via specificity.
  */
 .runbox .btn {
-  min-width: 152px;
+  min-width: 140px;
   justify-content: center;
 }
 
-/*
- * Below this width, "Start over" drops to icon-only. The primary button
- * keeps a 150px floor since its label still changes on every press.
- */
+/* Below this width, "Start over" drops to icon-only; the primary button keeps its width, since its label still changes on every press. */
 @media (max-width: 1240px) {
   .startover .lbl {
     display: none;
   }
 
-  .runbox .btn {
+  .runbox .startover {
     min-width: 0;
-  }
-
-  .startstop {
-    min-width: 150px;
   }
 }
