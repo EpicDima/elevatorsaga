@@ -13,7 +13,7 @@
   white-space: nowrap;
 }
 
-.btn:hover {
+.btn:hover:not(:disabled) {
   border-color: var(--ds-n-5);
 }
 
@@ -22,17 +22,22 @@
   display: none;
 }
 
-/* `min-width` is overridden by `.runbox .btn`'s higher specificity wherever this actually renders; stated here for any future `.btn-primary` outside that box. */
+/* Outlined at rest rather than filled, so a fixture as permanent as Start doesn't shout across the whole session. */
 .btn-primary {
+  /* Overridden by `.runbox .btn`'s higher specificity wherever this actually renders; stated for any future `.btn-primary` outside that box. */
   min-width: 106px;
-  border-color: transparent;
-  background: var(--ds-accent);
-  color: var(--ds-accent-ink);
+  border-color: var(--ds-accent);
+
+  /* `--ds-accent-hi`, not `--ds-accent`: the plain accent reads 4.30:1 on `.btn`'s own `--ds-raised` in the light theme. */
+  color: var(--ds-accent-hi);
   font-weight: 600;
 }
 
-.btn-primary:hover {
-  background: var(--ds-accent-hi);
+/* The fill lives on hover, on the accent-ink pairing the tokens are tuned for; a crunching Start must not light up with it. */
+.btn-primary:hover:not(:disabled) {
+  border-color: transparent;
+  background: var(--ds-accent);
+  color: var(--ds-accent-ink);
 }
 
 /* Reset to nothing: most replace former non-interactive `<i>` glyphs and must not inherit button chrome. */

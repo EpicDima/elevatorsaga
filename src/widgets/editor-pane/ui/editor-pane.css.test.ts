@@ -73,7 +73,7 @@ describe("the completion popup", () => {
   );
 
   it.each(THEMES)("keeps that entry's own label readable on the mark, %s theme", (_, palette) => {
-    // Matches `.btn-primary`'s own accent-ink-on-accent pairing.
+    // Matches the accent-ink-on-accent pairing `.btn-primary` fills with on hover.
     expect(
       contrast(themed(palette, "ds-accent-ink"), themed(palette, "ds-accent")),
     ).toBeGreaterThanOrEqual(4.5);
