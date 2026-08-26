@@ -1,70 +1,16 @@
 /**
- * Elevator Saga: type declarations for the API a solution is handed.
+ * Type declarations for the Elevator Saga player API, dropped beside a
+ * solution so an editor can complete and typecheck `elevator.` and `floor.`
+ * calls; it declares only types, with no runtime part.
  *
- * Drop this file next to the program you are writing and your editor can
- * complete `elevator.` and `floor.`, describe every method as you type it, and
- * refuse `goToFloor("3")` before you paste anything into the game. It declares
- * nothing but types: there is no runtime part, and importing it is neither
- * possible nor necessary.
- *
- * Two ways to point an editor at it, both of which keep the file you type in
- * loadable by the game:
- *
- * 1. A `tsconfig.json` beside your solution, with `"allowJs"` and `"checkJs"`
- *    on. It needs no `include`: a config with none takes every file in its own
- *    directory, this one among them. Nothing is added to your program.
- * 2. `/// <reference path="./elevatorsaga.d.ts" />` at the top of your program,
- *    under a `// @ts-check` line. The reference alone is what finds this file,
- *    and it buys completion and hover text; `// @ts-check` is what turns the
- *    diagnostics on, and a lone `.js` file with no `tsconfig.json` has no other
- *    way to ask for them — without it a mistake this file describes precisely
- *    is still reported nowhere.
- *
- *    Either comment is only safe if the rest of the program is wrapped in
- *    parentheses, as `({ init: ..., update: ... })`. The game's loader
- *    (`getCodeObjFromCode` in `src/game/user-code.ts`) only adds those
- *    parentheses for itself when the source starts with `{` and ends with `}`;
- *    a comment above a bare object literal makes it fail that test, and the
- *    literal is then evaluated as a block, which is `SyntaxError: Function
- *    statements require a function name`.
- *
- * Everything here is derived from the two facades player code is actually
- * handed — `ElevatorInterface` and `FloorInterface` in `src/game`.
- * `src/api-declarations.test.ts` compares the two: a member that exists on one
- * side and not the other, a member whose type has moved under it, an event that
- * has appeared or gone, or a handler given a different number of arguments,
- * each fails the test suite. That file's own header says exactly how far the
- * comparison reaches and where it stops.
- *
- * The prose is in English in both languages' builds: the names it describes are
- * English identifiers either way, and a declaration whose two translations could
- * disagree is a second thing to keep in step. It is this file's own prose rather
- * than `documentation.html`'s moved over — of the twenty members that page, the
- * in-game completion popup and this file all describe, not one is described here
- * in the words either of the other two uses.
- *
- * @see https://github.com/EpicDima/elevatorsaga
+ * Point an editor at it with a `tsconfig.json` beside the solution
+ * (`"allowJs"` and `"checkJs"` on), or with
+ * `/// <reference path="./elevatorsaga.d.ts" />` under a `// @ts-check` line.
  */
 
-/* eslint-disable @typescript-eslint/unified-signatures --
- * One overload per event name is the whole point of this file: it is what puts
- * that event's own sentence, and its own handler parameters, under the cursor.
- * Merging the pairs the rule finds -- `floor_button_pressed` with
- * `stopped_at_floor`, `up_button_pressed` with `down_button_pressed`, which
- * happen to hand a handler the same arguments -- would leave two unrelated
- * events sharing one description, which is the drift this whole file exists to
- * prevent, in miniature.
- */
+/* eslint-disable @typescript-eslint/unified-signatures -- one overload per event keeps that event's own doc and handler signature under the cursor. */
 
-/**
- * The whole player-facing API, under one name.
- *
- * A namespace rather than plain global interfaces, because this file is meant
- * to be dropped into a project that is not ours: `Elevator`, `Floor` and
- * `Solution` are names somebody else's code may already be using, and an
- * ambient declaration that silently wins that collision is worse than a
- * slightly longer one. Only `ElevatorSaga` is added to the global scope.
- */
+/** The whole player-facing API, namespaced so `Elevator`, `Floor` and `Solution` don't collide with names already used in the project it's dropped into. */
 declare namespace ElevatorSaga {
   /** Which way an elevator is traveling. */
   type Direction = "up" | "down";
@@ -103,14 +49,9 @@ declare namespace ElevatorSaga {
     | "destination_requested";
 
   /**
-   * Two to five event names separated by single spaces, which subscribe a
-   * handler to all of them.
-   *
-   * The game's own `EventNameSpec` stops at five for the same reason, and at
-   * five rather than fewer because the floor has five events: a bound too small
-   * to name every event of a facade would refuse in the type checker what the
-   * runtime accepts. A handler registered this way is called with the name of
-   * the event that fired ahead of that event's own arguments.
+   * Two to five event names separated by single spaces, subscribing one
+   * handler to all of them. The handler is called with the name of the event
+   * that fired, followed by that event's own arguments.
    */
   type MultipleEvents<Name extends string> =
     | `${Name} ${Name}`
@@ -122,11 +63,9 @@ declare namespace ElevatorSaga {
   type AllEvents = "*";
 
   /**
-   * A handler subscribed to several events at once.
-   *
-   * The rest parameter is `never[]` rather than `unknown[]` on purpose: it
-   * accepts a handler that declares whatever arguments it likes after the event
-   * name, without forcing one that declares nothing to spell them out.
+   * A handler subscribed to several events at once. Its parameter list is
+   * left to the handler to declare — the type doesn't force one to spell out
+   * arguments it ignores.
    */
   type MultiEventHandler<Receiver, Name extends string> = (
     this: Receiver,
@@ -135,812 +74,365 @@ declare namespace ElevatorSaga {
   ) => void;
 
   /**
-   * One elevator, as a program sees it.
-   *
-   * The `init` and `update` functions are handed an array of these, one per
-   * elevator in the building, in the order they are drawn.
+   * One elevator, as a program sees it. `init` and `update` are handed an
+   * array of these, one per elevator, in the order they are drawn.
    */
   interface Elevator {
     /**
-     * The floors this elevator is going to visit, in order.
-     *
-     * Writable, including whole-array assignment — that is how in-transit
-     * rescheduling is written. Call {@link Elevator.checkDestinationQueue}
-     * after changing it by hand, or the elevator will not act on the change
-     * until it next arrives somewhere.
+     * The floors this elevator is going to visit, in order. Writable; call
+     * {@link Elevator.checkDestinationQueue} after changing it directly, or
+     * the elevator won't act on the change until it next arrives somewhere.
      */
     destinationQueue: number[];
 
     /**
-     * Queues a floor to travel to.
+     * Queues a floor to travel to. Repeating the queue's current last floor
+     * is a no-op rather than a duplicate; an out-of-range floor is clamped to
+     * the nearest real one.
      *
-     * A floor equal to the end of the queue it would join is dropped, so asking
-     * for the same floor twice in a row does not pile up. A floor outside the
-     * building is clamped to the nearest real one; a value that is not a number
-     * at all is refused and reported as an error in your code.
-     *
-     * @param floorNum - Floor to travel to.
-     * @param forceNow - Put it at the front of the queue rather than the back.
+     * @param forceNow - Put it at the front of the queue instead of the back.
      */
     goToFloor(floorNum: number, forceNow?: boolean): void;
 
     /**
-     * Clears the queue and brings the elevator to a halt.
-     *
-     * For in-transit rescheduling, not for everyday use: the car stops wherever
-     * it can brake to, which is usually between floors, so nobody gets out.
+     * Clears the queue and halts the elevator immediately, usually between
+     * floors, so nobody gets out. For in-transit rescheduling, not everyday
+     * use.
      */
     stop(): void;
 
     /**
-     * Books this elevator for a journey somebody asked for.
+     * Books this elevator for a journey requested via `destination_requested`;
+     * the waiting people board only this car. Booking doesn't move it — send
+     * with {@link Elevator.goToFloor} to fetch and then deliver them.
      *
-     * The answer to `destination_requested`, in a building where people name
-     * the floor they want instead of pressing a call button: the people on
-     * `fromFloorNum` bound for `toFloorNum` wait for this car and board no
-     * other, whichever way its indicators point.
-     *
-     * Booking does not move the car. Send it with {@link Elevator.goToFloor},
-     * first to fetch them and then to where they are going; a car booked for a
-     * journey it is never sent to fetch leaves them waiting where they are.
-     *
-     * @param fromFloorNum - The floor they are waiting on.
-     * @param toFloorNum - The floor they asked to be taken to.
-     * @returns True when the booking was taken, and false when there is no such
-     * journey to take: nobody on that floor is waiting for that destination, or
-     * this car does not serve both ends of the trip.
+     * @returns True when the booking was taken; false when nobody on
+     * `fromFloorNum` is waiting for `toFloorNum`, or this car serves neither.
      */
     takeRequest(fromFloorNum: number, toFloorNum: number): boolean;
 
-    /**
-     * The floor the elevator is on.
-     *
-     * @returns The floor number it is at, or was last at.
-     */
+    /** The floor the elevator is on, or was last at while moving. */
     currentFloor(): number;
 
-    /**
-     * Reads the going-up indicator.
-     *
-     * @returns Whether the elevator is advertising that it is going up.
-     */
+    /** Whether the elevator is advertising that it's going up. */
     goingUpIndicator(): boolean;
 
-    /**
-     * Sets the going-up indicator, which passengers use to decide whether to
-     * board.
-     *
-     * @param value - What to advertise.
-     * @returns This elevator, so calls can be chained.
-     */
+    /** Sets the going-up indicator, which passengers use to decide whether to board. */
     goingUpIndicator(value: boolean): this;
 
-    /**
-     * Reads the going-down indicator.
-     *
-     * @returns Whether the elevator is advertising that it is going down.
-     */
+    /** Whether the elevator is advertising that it's going down. */
     goingDownIndicator(): boolean;
 
-    /**
-     * Sets the going-down indicator, which passengers use to decide whether to
-     * board.
-     *
-     * @param value - What to advertise.
-     * @returns This elevator, so calls can be chained.
-     */
+    /** Sets the going-down indicator, which passengers use to decide whether to board. */
     goingDownIndicator(value: boolean): this;
 
-    /**
-     * How many passengers fit.
-     *
-     * @returns The capacity of this elevator.
-     */
+    /** How many passengers fit. */
     maxPassengerCount(): number;
 
     /**
-     * How full the elevator is.
-     *
-     * Passengers weigh a random 55 to 100 against the nominal 100 per slot, so
-     * a car with every slot taken reads about 0.775 and essentially never
-     * reaches 1. Use {@link Elevator.isFull} for "nobody else fits".
-     *
-     * @returns 0 when empty, 1 when full.
+     * How full the elevator is, from 0 (empty) to 1 (full capacity by
+     * weight). A full car of passengers reads below 1; use
+     * {@link Elevator.isFull} to ask "nobody else fits".
      */
     loadFactor(): number;
 
     /**
-     * Whether every passenger slot is taken.
-     *
-     * A passenger counts from the moment they start walking in.
-     *
-     * @returns `true` when no slot is free.
+     * Whether every passenger slot is taken. A passenger counts from the
+     * moment they start walking in.
      */
     isFull(): boolean;
 
     /**
-     * Whether the elevator is carrying nobody.
-     *
-     * Not the negation of {@link Elevator.isFull}: one passenger of four is
-     * neither.
-     *
-     * @returns `true` when every slot is free.
+     * Whether the elevator is carrying nobody. Not the negation of
+     * {@link Elevator.isFull} — one passenger of four is neither.
      */
     isEmpty(): boolean;
 
-    /**
-     * Which way the elevator is about to move.
-     *
-     * @returns `"up"`, `"down"`, or `"stopped"` when it is going nowhere.
-     */
+    /** Which way the elevator is about to move: `"up"`, `"down"`, or `"stopped"`. */
     destinationDirection(): DestinationDirection;
 
     /**
-     * Whether the elevator is moving toward a floor it has not passed yet.
-     *
-     * One of the two tests the game puts in front of every `passing_floor`
-     * event; the other one excludes the destination floor. So a floor this says
-     * no to cannot raise that event, while a floor it says yes to still will
-     * not raise it if that floor is where the car is going.
-     *
-     * Only the direction of travel counts, not the destination: a floor further
-     * along the way the car is going is being approached even if the car will
-     * stop before it. A car standing still approaches nothing, and neither is
-     * one that has arrived at the floor you ask about.
-     *
-     * @param floorNum - Floor to ask about. A number outside the building is
-     * clamped to the nearest real floor; a value that is not a number at all,
-     * including a forgotten argument, is reported as an error in your code.
-     * @returns `true` when the car is moving and that floor is still ahead.
+     * Whether the elevator is moving toward a floor it hasn't passed yet.
+     * Only the direction of travel counts, not the destination, so this can
+     * say yes for a floor the car will stop before reaching.
      */
     isApproachingFloor(floorNum: number): boolean;
 
     /**
-     * Starts on the next queued destination, or raises `idle`.
-     *
-     * Only needed after changing {@link Elevator.destinationQueue} by hand.
+     * Starts on the next queued destination, or raises `idle`. Only needed
+     * after changing {@link Elevator.destinationQueue} directly.
      */
     checkDestinationQueue(): void;
 
-    /**
-     * The floor buttons pressed inside the elevator.
-     *
-     * @returns The pressed floor numbers, in ascending order.
-     */
+    /** The floor buttons pressed inside the elevator, as numbers in ascending order. */
     getPressedFloors(): number[];
 
     /**
-     * The floors this elevator serves.
-     *
-     * In a zoned building a car only carries passengers between the floors of
-     * its own zone: a trip with either end outside them is refused, and the
-     * car's arrival clears no call button on a floor it does not serve. It can
-     * still be sent anywhere with {@link Elevator.goToFloor} — a zone is a rule
-     * about service, not about the shaft — but such a trip carries nobody and
-     * still costs moves.
-     *
-     * An elevator with no zone of its own reports every floor in the building,
-     * so there is no special case to write for the levels without zoning.
-     *
-     * @returns The served floor numbers, in ascending order.
+     * The floors this elevator serves, in ascending order — every floor when
+     * it has no zone. In a zoned building, a trip with either end outside
+     * this car's zone carries nobody even if sent there with
+     * {@link Elevator.goToFloor}.
      */
     servedFloors(): number[];
 
     /**
-     * The lowest pressed floor button.
+     * The lowest pressed floor button, or 0 when nothing is pressed.
      *
-     * @deprecated Undocumented legacy API, scheduled for removal. It is
-     * declared so that a solution brought over from the original game still
-     * type-checks; use {@link Elevator.getPressedFloors} in new code.
-     * @returns The lowest pressed floor, or 0 when nothing is pressed.
+     * @deprecated Use {@link Elevator.getPressedFloors} in new code.
      */
     getFirstPressedFloor(): number;
 
-    /**
-     * Runs `handler` whenever the elevator has nothing left to do.
-     *
-     * @param event - `"idle"`.
-     * @param handler - Called with the elevator as its `this`.
-     * @returns This elevator, so calls can be chained.
-     */
+    /** Runs `handler` whenever the elevator has nothing left to do. */
     on(event: "idle", handler: (this: Elevator) => void): this;
 
-    /**
-     * Runs `handler` whenever a passenger presses a floor button inside the
-     * elevator.
-     *
-     * @param event - `"floor_button_pressed"`.
-     * @param handler - Called with the floor number that was pressed.
-     * @returns This elevator, so calls can be chained.
-     */
+    /** Runs `handler` with the pressed floor number whenever a passenger presses a floor button inside the elevator. */
     on(event: "floor_button_pressed", handler: (this: Elevator, floorNum: number) => void): this;
 
     /**
-     * Runs `handler` whenever the elevator passes a floor without stopping.
-     *
-     * Not raised for the destination floor, the one the car is heading to. That
-     * one it stops at, so it is an arrival rather than a pass, and the game
-     * excludes it explicitly.
-     * Every other floor along the way raises this slightly before the car
-     * reaches it, which is what makes it the moment to decide whether to stop
-     * there after all.
-     *
-     * @param event - `"passing_floor"`.
-     * @param handler - Called with the floor being passed and the direction.
-     * @returns This elevator, so calls can be chained.
+     * Runs `handler`, with the floor and direction, shortly before the
+     * elevator passes a floor without stopping — never for the destination
+     * floor, which it stops at instead.
      */
     on(
       event: "passing_floor",
       handler: (this: Elevator, floorNum: number, direction: Direction) => void,
     ): this;
 
-    /**
-     * Runs `handler` whenever the elevator stops at a floor.
-     *
-     * @param event - `"stopped_at_floor"`.
-     * @param handler - Called with the floor it stopped at.
-     * @returns This elevator, so calls can be chained.
-     */
+    /** Runs `handler`, with the floor it stopped at, whenever the elevator stops at a floor. */
     on(event: "stopped_at_floor", handler: (this: Elevator, floorNum: number) => void): this;
 
-    /**
-     * Runs `handler` for each of several events named in one string.
-     *
-     * @param events - Two to five event names separated by single spaces.
-     * @param handler - Called with the name of the event that fired, followed
-     * by that event's own arguments.
-     * @returns This elevator, so calls can be chained.
-     */
+    /** Runs `handler` for each of several events named in one space-separated string. */
     on(
       events: MultipleEvents<ElevatorEventName>,
       handler: MultiEventHandler<Elevator, ElevatorEventName>,
     ): this;
 
-    /**
-     * Runs `handler` the next time the elevator goes idle, and then forgets it.
-     *
-     * @param event - `"idle"`.
-     * @param handler - Called with the elevator as its `this`.
-     * @returns This elevator, so calls can be chained.
-     */
+    /** Runs `handler` the next time the elevator goes idle, then forgets it. */
     once(event: "idle", handler: (this: Elevator) => void): this;
 
-    /**
-     * Runs `handler` the next time a floor button is pressed inside the
-     * elevator, and then forgets it.
-     *
-     * @param event - `"floor_button_pressed"`.
-     * @param handler - Called with the floor number that was pressed.
-     * @returns This elevator, so calls can be chained.
-     */
+    /** Runs `handler`, with the pressed floor number, the next time a floor button is pressed inside the elevator, then forgets it. */
     once(event: "floor_button_pressed", handler: (this: Elevator, floorNum: number) => void): this;
 
-    /**
-     * Runs `handler` the next time the elevator passes a floor, and then
-     * forgets it.
-     *
-     * @param event - `"passing_floor"`.
-     * @param handler - Called with the floor being passed and the direction.
-     * @returns This elevator, so calls can be chained.
-     */
+    /** Runs `handler`, with the floor and direction, the next time the elevator passes a floor, then forgets it. */
     once(
       event: "passing_floor",
       handler: (this: Elevator, floorNum: number, direction: Direction) => void,
     ): this;
 
-    /**
-     * Runs `handler` the next time the elevator stops at a floor, and then
-     * forgets it.
-     *
-     * @param event - `"stopped_at_floor"`.
-     * @param handler - Called with the floor it stopped at.
-     * @returns This elevator, so calls can be chained.
-     */
+    /** Runs `handler`, with the floor it stopped at, the next time the elevator stops, then forgets it. */
     once(event: "stopped_at_floor", handler: (this: Elevator, floorNum: number) => void): this;
 
-    /**
-     * The spelling of {@link Elevator.once} that solutions written for the
-     * original game use, because riot.js published `one` and not `once`.
-     *
-     * @param event - `"idle"`.
-     * @param handler - Called with the elevator as its `this`.
-     * @returns This elevator, so calls can be chained.
-     */
+    /** Legacy spelling of {@link Elevator.once}, kept for solutions written against the original game's `one`. */
     one(event: "idle", handler: (this: Elevator) => void): this;
 
-    /**
-     * The legacy spelling of {@link Elevator.once}; see the `"idle"` overload.
-     *
-     * @param event - `"floor_button_pressed"`.
-     * @param handler - Called with the floor number that was pressed.
-     * @returns This elevator, so calls can be chained.
-     */
+    /** Legacy spelling of {@link Elevator.once}; see the `"idle"` overload. */
     one(event: "floor_button_pressed", handler: (this: Elevator, floorNum: number) => void): this;
 
-    /**
-     * The legacy spelling of {@link Elevator.once}; see the `"idle"` overload.
-     *
-     * @param event - `"passing_floor"`.
-     * @param handler - Called with the floor being passed and the direction.
-     * @returns This elevator, so calls can be chained.
-     */
+    /** Legacy spelling of {@link Elevator.once}; see the `"idle"` overload. */
     one(
       event: "passing_floor",
       handler: (this: Elevator, floorNum: number, direction: Direction) => void,
     ): this;
 
-    /**
-     * The legacy spelling of {@link Elevator.once}; see the `"idle"` overload.
-     *
-     * @param event - `"stopped_at_floor"`.
-     * @param handler - Called with the floor it stopped at.
-     * @returns This elevator, so calls can be chained.
-     */
+    /** Legacy spelling of {@link Elevator.once}; see the `"idle"` overload. */
     one(event: "stopped_at_floor", handler: (this: Elevator, floorNum: number) => void): this;
 
     /**
-     * Unregisters `idle` handlers.
-     *
-     * One overload per event, as for {@link Elevator.on}, and for a sharper
-     * reason: the handler has to be the one that was registered, so it is that
-     * event's handler that belongs here. A single signature typed for the
-     * multi-event form instead — one taking an event name first — rejects
-     * `elevator.off("floor_button_pressed", remember)` outright, because a
-     * function declaring `floorNum: number` is not one declaring an event name.
-     * The reference page does not print that call: what it prints under `off` is
-     * `off("idle", goHome)`, `off("idle")` and `off("*")`, and all three survive
-     * a single signature, `goHome` being declared with no parameters at all.
-     * What it does print is the other half —
-     * `elevator.on("floor_button_pressed", function (floorNum) { ... })` — beside
-     * the note that removing a handler needs a reference to the function that was
-     * registered. Keep that reference, as the page says to, and the
-     * one-signature form is what refuses to let you use it.
-     *
-     * The handler is compared by identity, so only a function you kept a
-     * reference to can be removed on its own; an inline anonymous function
-     * cannot be removed at all.
-     *
-     * @param event - `"idle"`.
-     * @param handler - The exact function to remove; omit it to remove every
-     * handler of this event.
-     * @returns This elevator, so calls can be chained.
+     * Unregisters `idle` handlers. Removal is by identity, so only a handler
+     * you kept a reference to can be removed on its own; omit `handler` to
+     * remove every handler of this event instead.
      */
     off(event: "idle", handler?: (this: Elevator) => void): this;
 
-    /**
-     * Unregisters `floor_button_pressed` handlers; see the `"idle"` overload.
-     *
-     * @param event - `"floor_button_pressed"`.
-     * @param handler - The exact function to remove; omit it to remove every
-     * handler of this event.
-     * @returns This elevator, so calls can be chained.
-     */
+    /** Unregisters `floor_button_pressed` handlers; see the `"idle"` overload. */
     off(event: "floor_button_pressed", handler?: (this: Elevator, floorNum: number) => void): this;
 
-    /**
-     * Unregisters `passing_floor` handlers; see the `"idle"` overload.
-     *
-     * @param event - `"passing_floor"`.
-     * @param handler - The exact function to remove; omit it to remove every
-     * handler of this event.
-     * @returns This elevator, so calls can be chained.
-     */
+    /** Unregisters `passing_floor` handlers; see the `"idle"` overload. */
     off(
       event: "passing_floor",
       handler?: (this: Elevator, floorNum: number, direction: Direction) => void,
     ): this;
 
-    /**
-     * Unregisters `stopped_at_floor` handlers; see the `"idle"` overload.
-     *
-     * @param event - `"stopped_at_floor"`.
-     * @param handler - The exact function to remove; omit it to remove every
-     * handler of this event.
-     * @returns This elevator, so calls can be chained.
-     */
+    /** Unregisters `stopped_at_floor` handlers; see the `"idle"` overload. */
     off(event: "stopped_at_floor", handler?: (this: Elevator, floorNum: number) => void): this;
 
-    /**
-     * Unregisters handlers of several events named in one string.
-     *
-     * @param events - Two to five event names separated by single spaces.
-     * @param handler - The exact function to remove; omit it to remove every
-     * handler of each of the named events.
-     * @returns This elevator, so calls can be chained.
-     */
+    /** Unregisters handlers of several events named in one space-separated string. */
     off(
       events: MultipleEvents<ElevatorEventName>,
       handler?: MultiEventHandler<Elevator, ElevatorEventName>,
     ): this;
 
     /**
-     * Removes every handler of every event, the same as {@link Elevator.offAll}.
-     *
-     * No handler is accepted, deliberately, although the game ignores one
-     * passed here rather than refusing it: `off("*", remember)` does not remove
-     * `remember` and leave the rest, it removes *everything*, and a program
-     * that reads as though it removes one subscription while silently going
-     * deaf is exactly the failure this file exists to catch. Name the event to
-     * remove one handler.
-     *
-     * @param events - `"*"`.
-     * @returns This elevator, so calls can be chained.
+     * Removes every handler of every event, the same as
+     * {@link Elevator.offAll}. Passing a handler here doesn't limit it to
+     * that one — name the specific event instead to remove just one handler.
      */
     off(events: AllEvents): this;
 
-    /**
-     * Removes every handler this program registered on this elevator.
-     *
-     * @returns This elevator, so calls can be chained.
-     */
+    /** Removes every handler this program registered on this elevator. */
     offAll(): this;
 
     /**
-     * Raises one of the elevator's own events on this elevator.
-     *
-     * Declared because the original game's elevator object was a riot
-     * observable and published this, so solutions brought over may call it. It
-     * does not make the elevator do anything: it only runs the handlers you
-     * registered, and it will not re-enter an event already being dispatched.
-     *
-     * @param event - `"idle"`.
-     * @returns This elevator, so calls can be chained.
+     * Raises `idle` on this elevator, running its registered handlers. Legacy
+     * API from the original game; does not make the elevator do anything
+     * beyond that.
      */
     trigger(event: "idle"): this;
 
-    /**
-     * Raises `floor_button_pressed`; see the `"idle"` overload.
-     *
-     * @param event - `"floor_button_pressed"`.
-     * @param floorNum - The floor number to report as pressed.
-     * @returns This elevator, so calls can be chained.
-     */
+    /** Raises `floor_button_pressed`; see the `"idle"` overload. */
     trigger(event: "floor_button_pressed", floorNum: number): this;
 
-    /**
-     * Raises `passing_floor`; see the `"idle"` overload.
-     *
-     * @param event - `"passing_floor"`.
-     * @param floorNum - The floor number to report as passed.
-     * @param direction - The direction to report.
-     * @returns This elevator, so calls can be chained.
-     */
+    /** Raises `passing_floor`; see the `"idle"` overload. */
     trigger(event: "passing_floor", floorNum: number, direction: Direction): this;
 
-    /**
-     * Raises `stopped_at_floor`; see the `"idle"` overload.
-     *
-     * @param event - `"stopped_at_floor"`.
-     * @param floorNum - The floor number to report as stopped at.
-     * @returns This elevator, so calls can be chained.
-     */
+    /** Raises `stopped_at_floor`; see the `"idle"` overload. */
     trigger(event: "stopped_at_floor", floorNum: number): this;
   }
 
   /**
-   * One floor, as a program sees it.
-   *
-   * A floor is where people wait; it has no controls of its own, so everything
-   * below either answers a question about who is waiting or subscribes to hear
-   * about it. The elevators are what a program gives orders to.
+   * One floor, as a program sees it: where people wait, with no controls of
+   * its own. Everything below answers who's waiting or subscribes to hear
+   * about it.
    */
   interface Floor {
-    /**
-     * This floor's number, counting up from 0 at the bottom.
-     *
-     * @returns The floor number.
-     */
+    /** This floor's number, counting up from 0 at the bottom. */
     floorNum(): number;
 
     /**
-     * The same number as a property.
-     *
-     * Undocumented, and kept only because the original game handed player code
-     * the real floor object and published solutions read this off it.
-     * {@link Floor.floorNum} is the supported spelling.
+     * The same number as a property, kept for solutions that read it off the
+     * original game's floor object. {@link Floor.floorNum} is the supported
+     * spelling.
      */
     readonly level: number;
 
     /**
-     * The lit state of this floor's two call buttons.
-     *
-     * A fresh copy on every read, so assigning to it changes nothing. Watching
-     * `buttonstate_change` is cheaper than polling this every frame.
+     * The lit state of this floor's two call buttons. A fresh copy on every
+     * read, so assigning to it changes nothing.
      */
     readonly buttonStates: FloorButtonStates;
 
     /**
-     * The journeys people here have asked for and are still waiting on.
-     *
-     * What {@link Floor.buttonStates} is to a building with call buttons, for
-     * one where people name the floor they want instead: everything this floor
-     * is asking for right now, rather than only what was announced the moment
-     * `destination_requested` was raised. A request stays here until somebody
-     * boards a car for it, so this is where a program finds the request it
-     * booked a car for and then never sent the car to fetch.
-     *
-     * A fresh array on every read, so changing it changes nothing.
-     *
-     * @returns One entry per destination somebody is waiting for, in ascending
-     * floor order, and nothing at all in a building with call buttons.
+     * The journeys people here have asked for and are still waiting on, in
+     * ascending floor order (empty in a building with call buttons). A fresh
+     * array on every read, so changing it changes nothing.
      */
     pendingDestinations(): PendingDestination[];
 
-    /**
-     * Runs `handler` whenever somebody presses this floor's up call button.
-     *
-     * @param event - `"up_button_pressed"`.
-     * @param handler - Called with this floor.
-     * @returns This floor, so calls can be chained.
-     */
+    /** Runs `handler` whenever somebody presses this floor's up call button. */
     on(event: "up_button_pressed", handler: (this: Floor, floor: Floor) => void): this;
 
-    /**
-     * Runs `handler` whenever somebody presses this floor's down call button.
-     *
-     * @param event - `"down_button_pressed"`.
-     * @param handler - Called with this floor.
-     * @returns This floor, so calls can be chained.
-     */
+    /** Runs `handler` whenever somebody presses this floor's down call button. */
     on(event: "down_button_pressed", handler: (this: Floor, floor: Floor) => void): this;
 
     /**
-     * Runs `handler` whenever either call button here is pressed.
-     *
-     * Always raised after the button's own event and never before it, so
-     * subscribing to this as well as to `up_button_pressed` means being told
-     * about one press twice.
-     *
-     * @param event - `"hall_button_pressed"`.
-     * @param handler - Called with the direction that was asked for and this
-     * floor.
-     * @returns This floor, so calls can be chained.
+     * Runs `handler` whenever either call button here is pressed. Always
+     * raised after that button's own event, so subscribing to both means
+     * hearing about one press twice.
      */
     on(
       event: "hall_button_pressed",
       handler: (this: Floor, direction: Direction, floor: Floor) => void,
     ): this;
 
-    /**
-     * Runs `handler` whenever either call button is lit or cleared.
-     *
-     * @param event - `"buttonstate_change"`.
-     * @param handler - Called with the new state of both buttons.
-     * @returns This floor, so calls can be chained.
-     */
+    /** Runs `handler`, with the new state of both buttons, whenever either call button is lit or cleared. */
     on(
       event: "buttonstate_change",
       handler: (this: Floor, buttonStates: FloorButtonStates) => void,
     ): this;
 
     /**
-     * Runs `handler` whenever somebody here asks to be taken to a floor.
-     *
-     * Only raised in a building whose passengers announce a destination instead
-     * of pressing a call button; there, no call button is ever pressed. Not
-     * raised for somebody joining a journey an elevator is already assigned to,
-     * and raised again if that elevator arrives full.
-     *
-     * @param event - `"destination_requested"`.
-     * @param handler - Called with the floor that was asked for and this floor.
-     * @returns This floor, so calls can be chained.
+     * Runs `handler`, with the requested floor, whenever somebody here asks
+     * to be taken to a floor instead of pressing a call button. Not raised
+     * for joining an already-assigned journey, but raised again if that car
+     * arrives full.
      */
     on(
       event: "destination_requested",
       handler: (this: Floor, destinationFloor: number, floor: Floor) => void,
     ): this;
 
-    /**
-     * Runs `handler` for each of several events named in one string.
-     *
-     * The form the game's own example uses:
-     * `floor.on("up_button_pressed down_button_pressed", ...)`.
-     *
-     * @param events - Two to five event names separated by single spaces.
-     * @param handler - Called with the name of the event that fired, followed
-     * by that event's own arguments.
-     * @returns This floor, so calls can be chained.
-     */
+    /** Runs `handler` for each of several events named in one space-separated string, e.g. `floor.on("up_button_pressed down_button_pressed", ...)`. */
     on(
       events: MultipleEvents<FloorEventName>,
       handler: MultiEventHandler<Floor, FloorEventName>,
     ): this;
 
-    /**
-     * Runs `handler` the next time the up button is pressed here, and then
-     * forgets it.
-     *
-     * @param event - `"up_button_pressed"`.
-     * @param handler - Called with this floor.
-     * @returns This floor, so calls can be chained.
-     */
+    /** Runs `handler` the next time the up button is pressed here, then forgets it. */
     once(event: "up_button_pressed", handler: (this: Floor, floor: Floor) => void): this;
 
-    /**
-     * Runs `handler` the next time the down button is pressed here, and then
-     * forgets it.
-     *
-     * @param event - `"down_button_pressed"`.
-     * @param handler - Called with this floor.
-     * @returns This floor, so calls can be chained.
-     */
+    /** Runs `handler` the next time the down button is pressed here, then forgets it. */
     once(event: "down_button_pressed", handler: (this: Floor, floor: Floor) => void): this;
 
-    /**
-     * Runs `handler` the next time either call button here is pressed, and then
-     * forgets it.
-     *
-     * @param event - `"hall_button_pressed"`.
-     * @param handler - Called with the direction that was asked for and this
-     * floor.
-     * @returns This floor, so calls can be chained.
-     */
+    /** Runs `handler` the next time either call button here is pressed, then forgets it. */
     once(
       event: "hall_button_pressed",
       handler: (this: Floor, direction: Direction, floor: Floor) => void,
     ): this;
 
-    /**
-     * Runs `handler` the next time either button changes here, and then forgets
-     * it.
-     *
-     * @param event - `"buttonstate_change"`.
-     * @param handler - Called with the new state of both buttons.
-     * @returns This floor, so calls can be chained.
-     */
+    /** Runs `handler` the next time either button changes here, then forgets it. */
     once(
       event: "buttonstate_change",
       handler: (this: Floor, buttonStates: FloorButtonStates) => void,
     ): this;
 
-    /**
-     * Runs `handler` the next time somebody here asks to be taken to a floor,
-     * and then forgets it.
-     *
-     * @param event - `"destination_requested"`.
-     * @param handler - Called with the floor that was asked for and this floor.
-     * @returns This floor, so calls can be chained.
-     */
+    /** Runs `handler` the next time somebody here asks to be taken to a floor, then forgets it. */
     once(
       event: "destination_requested",
       handler: (this: Floor, destinationFloor: number, floor: Floor) => void,
     ): this;
 
-    /**
-     * The spelling of {@link Floor.once} that solutions written for the
-     * original game use, because riot.js published `one` and not `once`.
-     *
-     * @param event - `"up_button_pressed"`.
-     * @param handler - Called with this floor.
-     * @returns This floor, so calls can be chained.
-     */
+    /** Legacy spelling of {@link Floor.once}, kept for solutions written against the original game's `one`. */
     one(event: "up_button_pressed", handler: (this: Floor, floor: Floor) => void): this;
 
-    /**
-     * The legacy spelling of {@link Floor.once}; see the `"up_button_pressed"`
-     * overload.
-     *
-     * @param event - `"down_button_pressed"`.
-     * @param handler - Called with this floor.
-     * @returns This floor, so calls can be chained.
-     */
+    /** Legacy spelling of {@link Floor.once}; see the `"up_button_pressed"` overload. */
     one(event: "down_button_pressed", handler: (this: Floor, floor: Floor) => void): this;
 
-    /**
-     * The legacy spelling of {@link Floor.once}; see the `"up_button_pressed"`
-     * overload.
-     *
-     * @param event - `"hall_button_pressed"`.
-     * @param handler - Called with the direction that was asked for and this
-     * floor.
-     * @returns This floor, so calls can be chained.
-     */
+    /** Legacy spelling of {@link Floor.once}; see the `"up_button_pressed"` overload. */
     one(
       event: "hall_button_pressed",
       handler: (this: Floor, direction: Direction, floor: Floor) => void,
     ): this;
 
-    /**
-     * The legacy spelling of {@link Floor.once}; see the `"up_button_pressed"`
-     * overload.
-     *
-     * @param event - `"buttonstate_change"`.
-     * @param handler - Called with the new state of both buttons.
-     * @returns This floor, so calls can be chained.
-     */
+    /** Legacy spelling of {@link Floor.once}; see the `"up_button_pressed"` overload. */
     one(
       event: "buttonstate_change",
       handler: (this: Floor, buttonStates: FloorButtonStates) => void,
     ): this;
 
-    /**
-     * The legacy spelling of {@link Floor.once}; see the `"up_button_pressed"`
-     * overload.
-     *
-     * @param event - `"destination_requested"`.
-     * @param handler - Called with the floor that was asked for and this floor.
-     * @returns This floor, so calls can be chained.
-     */
+    /** Legacy spelling of {@link Floor.once}; see the `"up_button_pressed"` overload. */
     one(
       event: "destination_requested",
       handler: (this: Floor, destinationFloor: number, floor: Floor) => void,
     ): this;
 
     /**
-     * Unregisters `up_button_pressed` handlers.
-     *
-     * One overload per event, for the reason given on
-     * {@link Elevator.off}: the handler to remove is the one that was
-     * registered, so it is that event's handler that belongs here.
-     *
-     * @param event - `"up_button_pressed"`.
-     * @param handler - The exact function to remove; omit it to remove every
-     * handler of this event.
-     * @returns This floor, so calls can be chained.
+     * Unregisters `up_button_pressed` handlers. Removal is by identity; see
+     * {@link Elevator.off}.
      */
     off(event: "up_button_pressed", handler?: (this: Floor, floor: Floor) => void): this;
 
-    /**
-     * Unregisters `down_button_pressed` handlers; see the
-     * `"up_button_pressed"` overload.
-     *
-     * @param event - `"down_button_pressed"`.
-     * @param handler - The exact function to remove; omit it to remove every
-     * handler of this event.
-     * @returns This floor, so calls can be chained.
-     */
+    /** Unregisters `down_button_pressed` handlers; see the `"up_button_pressed"` overload. */
     off(event: "down_button_pressed", handler?: (this: Floor, floor: Floor) => void): this;
 
-    /**
-     * Unregisters `hall_button_pressed` handlers; see the `"up_button_pressed"`
-     * overload.
-     *
-     * @param event - `"hall_button_pressed"`.
-     * @param handler - The exact function to remove; omit it to remove every
-     * handler of this event.
-     * @returns This floor, so calls can be chained.
-     */
+    /** Unregisters `hall_button_pressed` handlers; see the `"up_button_pressed"` overload. */
     off(
       event: "hall_button_pressed",
       handler?: (this: Floor, direction: Direction, floor: Floor) => void,
     ): this;
 
-    /**
-     * Unregisters `buttonstate_change` handlers; see the `"up_button_pressed"`
-     * overload.
-     *
-     * @param event - `"buttonstate_change"`.
-     * @param handler - The exact function to remove; omit it to remove every
-     * handler of this event.
-     * @returns This floor, so calls can be chained.
-     */
+    /** Unregisters `buttonstate_change` handlers; see the `"up_button_pressed"` overload. */
     off(
       event: "buttonstate_change",
       handler?: (this: Floor, buttonStates: FloorButtonStates) => void,
     ): this;
 
-    /**
-     * Unregisters `destination_requested` handlers; see the
-     * `"up_button_pressed"` overload.
-     *
-     * @param event - `"destination_requested"`.
-     * @param handler - The exact function to remove; omit it to remove every
-     * handler of this event.
-     * @returns This floor, so calls can be chained.
-     */
+    /** Unregisters `destination_requested` handlers; see the `"up_button_pressed"` overload. */
     off(
       event: "destination_requested",
       handler?: (this: Floor, destinationFloor: number, floor: Floor) => void,
     ): this;
 
-    /**
-     * Unregisters handlers of several events named in one string.
-     *
-     * @param events - Two to five event names separated by single spaces.
-     * @param handler - The exact function to remove; omit it to remove every
-     * handler of each of the named events.
-     * @returns This floor, so calls can be chained.
-     */
+    /** Unregisters handlers of several events named in one space-separated string. */
     off(
       events: MultipleEvents<FloorEventName>,
       handler?: MultiEventHandler<Floor, FloorEventName>,
@@ -948,56 +440,31 @@ declare namespace ElevatorSaga {
 
     /**
      * Removes every handler of every event, the same as {@link Floor.offAll}.
-     *
-     * Takes no handler, for the reason given on {@link Elevator.off}.
-     *
-     * @param events - `"*"`.
-     * @returns This floor, so calls can be chained.
+     * Name a specific event instead to remove just one handler.
      */
     off(events: AllEvents): this;
 
     /**
-     * Removes every handler this program registered on this floor.
-     *
-     * The game's own subscriptions are registered elsewhere, so this does not
-     * stop the floor working.
-     *
-     * @returns This floor, so calls can be chained.
+     * Removes every handler this program registered on this floor. The
+     * game's own subscriptions live elsewhere, so this doesn't stop the
+     * floor working.
      */
     offAll(): this;
   }
 
   /**
-   * The object a solution is: what the game evaluates your program down to.
-   *
-   * Both functions are required — the game refuses a program that is missing
-   * either. Annotating the object with this type is what gets both sets of
-   * parameters typed for you; see `docs/writing-solutions.md` in this
-   * repository for the two lines that do it.
-   *
-   * The arrays are the game's own, handed back unchanged on every frame, so
-   * they are declared read-only: sorting one in place would reorder it for the
-   * rest of the run. Copy first — `elevators.slice().sort(...)`.
+   * The object a solution is: what the game evaluates a program down to.
+   * Both functions are required. The elevator and floor arrays are the
+   * game's own and shared across frames — sort a copy, not the array itself.
    */
   interface Solution {
-    /**
-     * Runs once, when the level starts.
-     *
-     * @param elevators - Every elevator in the building.
-     * @param floors - Every floor, from 0 at the bottom.
-     */
+    /** Runs once, when the level starts. */
     init(elevators: readonly Elevator[], floors: readonly Floor[]): void;
 
     /**
      * Runs at a fixed rate of 100 times per simulated second, after `init`.
      *
-     * The rate is tied to game time, not to how often the browser draws, so
-     * `dt` is always the same value and the same seed played the same way
-     * takes the exact same sequence of steps regardless of frame rate.
-     *
      * @param dt - Always one hundredth of a simulated second.
-     * @param elevators - Every elevator in the building.
-     * @param floors - Every floor, from 0 at the bottom.
      */
     update(dt: number, elevators: readonly Elevator[], floors: readonly Floor[]): void;
   }

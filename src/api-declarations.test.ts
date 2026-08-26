@@ -1,65 +1,7 @@
 /**
- * The shipped type declarations, against the facades they describe.
- *
- * `public/elevatorsaga.d.ts` is handed to players to point their own editor at,
- * and a declaration that has fallen behind the game is worse than none: it
- * teaches a wrong API confidently, in an editor, with no way for the reader to
- * tell. Nothing else in the build looks at that file — it is copied into
- * `dist/` verbatim, never imported, never compiled — so this is the only place
- * that can notice.
- *
- * Both directions are checked, and neither expectation is written down here:
- *
- * - what the facades publish is read off `ElevatorInterface` and
- *   `FloorInterface` *instances* at run time, by walking their prototype
- *   chains, so a method added to either shows up here the moment it exists;
- * - what the declaration publishes is read out of its syntax tree with the
- *   TypeScript compiler, so a member renamed or dropped there shows up too.
- *
- * A guard whose expectation is a second hand-written list guards nothing: it
- * drifts in lockstep with whatever it was copied from, or it goes stale on its
- * own. The event names are handled the same way, parsed out of the event maps
- * on the facades rather than restated.
- *
- * Names are only half of it. The declaration is also compiled — with exactly
- * the four compiler options `docs/writing-solutions.md` tells a player to put
- * in their `tsconfig.json`, so what passes here is what passes for them —
- * against three programs: the one that guide prints, one that touches every
- * member it declares, and one made of mistakes, each of which has to be
- * reported. That is what pins the *types*: a member is required to appear in
- * the exercising program, so a return type nobody uses cannot exist.
- *
- * What that adds up to, exactly, because an over-claimed guard is worse than
- * none. Compared against the game, and so caught here:
- *
- * - a member on either facade that the declaration lacks, or declares and the
- *   facade lacks, in either direction;
- * - the type of any such member, as text: a parameter added, removed, renamed,
- *   made optional, or retyped, and any return or property type — for everything
- *   except the five event methods, whose declaration is deliberately a different
- *   shape from the facade's one generic signature (see {@link EVENT_METHODS});
- * - which events each facade raises, and how many arguments each hands a
- *   handler, for `on`, `once`, `one`, `off` and `trigger`;
- * - the functions the game requires of a solution and how many arguments it
- *   passes each, read off `UserCodeObject`;
- * - that the player guide's instructions still name this file, still print
- *   these compiler options, and still print an example that compiles and that
- *   the game's own loader will accept.
- *
- * Not compared against the game, and so not caught here:
- *
- * - the *types* of the event methods' parameters beyond their count — that an
- *   `on("passing_floor", …)` handler is handed `(number, Direction)` rather than
- *   `(number, number)` is pinned only by the fixtures below, against what the
- *   declaration itself says;
- * - prose. Every sentence of JSDoc in the declaration was written by hand from
- *   the facade's, and nothing notices when one of them stops being true;
- * - behavior. This file compares two descriptions of the game and never runs
- *   it, so a declaration that matches a facade which has itself changed meaning
- *   passes;
- * - anything a player's own editor does differently: a different TypeScript
- *   version, other compiler options, or a project that does not pick the file
- *   up at all.
+ * Compares the shipped `public/elevatorsaga.d.ts` against the real facades in
+ * `src/game`, so a member, type, or event that drifts between them fails here
+ * instead of reaching a player's editor silently.
  */
 
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
@@ -84,13 +26,8 @@ const DECLARATION_PATH = fileURLToPath(new URL("../public/elevatorsaga.d.ts", im
 const GUIDE_PATH = fileURLToPath(new URL("../docs/writing-solutions.md", import.meta.url));
 
 /**
- * The compiler options the guide hands a player, and nothing besides.
- *
- * Kept in step with the `tsconfig.json` printed there by the test at the bottom
- * of this file, so the fixtures below are compiled the way a player's editor
- * compiles their solution — including `skipLibCheck` left at its default, which
- * is what makes the declaration file itself type-checked here rather than
- * waved through.
+ * The compiler options a player's guide tells them to use. `skipLibCheck` is
+ * left at its default so the declaration file itself gets type-checked here.
  */
 const PLAYER_COMPILER_OPTIONS = {
   allowJs: true,
@@ -99,14 +36,7 @@ const PLAYER_COMPILER_OPTIONS = {
   strict: true,
 } as const satisfies ts.CompilerOptions;
 
-/**
- * Parses a TypeScript file into a syntax tree.
- *
- * `setParentNodes` is on because the walks below ask nodes about their parents.
- *
- * @param path - Absolute path to the file.
- * @returns Its syntax tree.
- */
+/** Parses a TypeScript file into a syntax tree, with parent pointers set. */
 function parse(path: string): ts.SourceFile {
   return ts.createSourceFile(
     path,
@@ -120,13 +50,7 @@ function parse(path: string): ts.SourceFile {
 /** The declaration file, parsed once. */
 const declaration = parse(DECLARATION_PATH);
 
-/**
- * The statements inside `declare namespace ElevatorSaga`.
- *
- * @returns The namespace body's statements.
- * @throws If the namespace is not there at all, which is a failure worth
- * reporting as itself rather than as thirty confusing empty comparisons.
- */
+/** The statements inside `declare namespace ElevatorSaga`. */
 function namespaceStatements(): readonly ts.Statement[] {
   for (const statement of declaration.statements) {
     if (
@@ -141,13 +65,7 @@ function namespaceStatements(): readonly ts.Statement[] {
   throw new Error(`${DECLARATION_PATH} declares no namespace ElevatorSaga`);
 }
 
-/**
- * One declared interface, by name.
- *
- * @param name - The interface name, e.g. `Elevator`.
- * @returns Its declaration.
- * @throws If the declaration file has no such interface.
- */
+/** One declared interface, by name. */
 function declaredInterface(name: string): ts.InterfaceDeclaration {
   for (const statement of namespaceStatements()) {
     if (ts.isInterfaceDeclaration(statement) && statement.name.text === name) {
@@ -158,18 +76,8 @@ function declaredInterface(name: string): ts.InterfaceDeclaration {
 }
 
 /**
- * The name of a member, whatever kind of member it is.
- *
- * Takes class members as well as interface ones so that the facades and the
- * declaration can be read by the same helpers. A `#private` field's name is a
- * `PrivateIdentifier` rather than an `Identifier`, so it comes back `null` and
- * drops out of every comparison below — which is the line between what player
- * code can reach and what it cannot, drawn in the syntax tree the same way
- * {@link exposedNames} draws it at run time.
- *
- * @param member - A member of an interface or of a class.
- * @returns Its name, or `null` for a member that has none — an index signature,
- * which this file declares none of and which would name nothing anyway.
+ * The name of a member, whatever kind of member it is. Returns `null` for a
+ * `#private` field, so private members drop out of every comparison below.
  */
 function memberName(member: ts.TypeElement | ts.ClassElement): string | null {
   const name = member.name;
@@ -179,15 +87,7 @@ function memberName(member: ts.TypeElement | ts.ClassElement): string | null {
   return ts.isIdentifier(name) || ts.isStringLiteral(name) ? name.text : null;
 }
 
-/**
- * Every name a declared interface publishes.
- *
- * Overloads collapse into one name, which is what makes this comparable with a
- * prototype's property names.
- *
- * @param name - The interface name.
- * @returns Its member names, deduplicated.
- */
+/** Every name a declared interface publishes, with overloads collapsed into one name. */
 function declaredMembers(name: string): Set<string> {
   const names = new Set<string>();
   for (const member of declaredInterface(name).members) {
@@ -200,35 +100,16 @@ function declaredMembers(name: string): Set<string> {
 }
 
 /**
- * The methods whose declaration deliberately does not look like the facade's.
- *
- * Each of these is one generic signature on the facade —
- * `on<S extends EventNameSpec<ElevatorInterfaceEvents>>(events: S, handler:
- * HandlerFor<S, ElevatorInterfaceEvents>)` — and a list of per-event overloads
- * in the declaration, which is most of the reason the declaration is worth
- * shipping: `on("passing_floor", …)` then puts that event's own two parameters
- * and that event's own sentence under the cursor. Comparing the two as text
- * would be comparing two spellings of one promise, so the dimension that can
- * really drift — which events exist, and how many arguments each hands a
- * handler — is compared instead, by the event tests further down.
+ * The methods whose declaration deliberately doesn't match the facade's: one
+ * generic signature there, a set of per-event overloads here. Compared by
+ * event name and handler arity instead, further down.
  */
 const EVENT_METHODS = new Set(["on", "once", "one", "off", "trigger"]);
 
 /**
- * One type, as text, with its line breaks collapsed.
- *
- * An outermost `Readonly<…>` is dropped, which is the one place the comparison
- * below is not literal. `FloorInterface.buttonStates` returns
- * `Readonly<FloorButtonStates>` and the declaration publishes a
- * `FloorButtonStates` whose two fields are already `readonly`; those are the
- * same type written twice, and demanding one spelling would only push a wrapper
- * into the declaration to satisfy a test. What the wrapper is really saying —
- * that the snapshot's fields cannot be assigned — is pinned directly instead, by
- * a line in {@link MISTAKEN_PROGRAM}, so this normalization cannot hide the loss
- * of it. Anything new that leans on it needs a line there too.
- *
- * @param type - The type node, or `undefined` where there is no annotation.
- * @returns Its source text on one line.
+ * One type, as text, with line breaks collapsed. An outermost `Readonly<…>`
+ * is stripped, so that normalization can't hide a lost `readonly`; that's
+ * pinned separately by a line in {@link MISTAKEN_PROGRAM}.
  */
 function typeText(type: ts.TypeNode | undefined): string {
   if (type === undefined) {
@@ -241,14 +122,8 @@ function typeText(type: ts.TypeNode | undefined): string {
 }
 
 /**
- * One signature, as the text of its parameter list and return type.
- *
- * Parameter names are part of it on purpose. They are what an editor prints in
- * the hint above the cursor, so a declaration whose `goToFloor` calls its first
- * argument something the game does not is drift the player is shown directly.
- *
- * @param signature - A method on a facade, or one in the declaration.
- * @returns Its parameters and return type, on one line.
+ * One signature, as text: its parameter list and return type. Parameter
+ * names are included on purpose — they're what a player's editor shows.
  */
 function signatureText(signature: ts.MethodDeclaration | ts.MethodSignature): string {
   const parameters = signature.parameters.map((parameter) => {
@@ -258,12 +133,7 @@ function signatureText(signature: ts.MethodDeclaration | ts.MethodSignature): st
   return `(${parameters.join(", ")}): ${typeText(signature.type)}`;
 }
 
-/**
- * Whether a member is declared `readonly`.
- *
- * @param member - A member of a class or of an interface.
- * @returns Whether player code is forbidden to assign to it.
- */
+/** Whether a member is declared `readonly`. */
 function isReadonly(member: ts.ClassElement | ts.TypeElement): boolean {
   return (
     ts.canHaveModifiers(member) &&
@@ -274,27 +144,11 @@ function isReadonly(member: ts.ClassElement | ts.TypeElement): boolean {
 }
 
 /**
- * Every member of a class or an interface, as text, by name.
+ * Every member of a class or interface, as text by name. A getter becomes a
+ * `readonly` property; where a method has overloads and an implementation,
+ * the overloads win.
  *
- * The two sides of the comparison — a facade class and a declared interface —
- * go through this same function, so what it renders is what gets compared, and
- * anything it renders the same way is a difference it cannot see.
- *
- * Methods become their parameter list and return type; properties become their
- * type, with `readonly` in front where they carry it; a getter becomes a
- * `readonly` property, because that is what a getter with no setter is to the
- * code reading it. Where a method has both overloads and an implementation, the
- * overloads are what it publishes and the implementation signature is
- * discarded: `goingUpIndicator`'s is `(value?: boolean): boolean | this`, which
- * is neither of the two ways it can be called and which no declaration should
- * copy.
- *
- * @param members - The members to read.
- * @param where - What is being read, for the message if a setter turns up.
- * @returns Member text by name, overloads in declaration order.
- * @throws If a setter appears. A getter is rendered `readonly` here, which a
- * getter/setter pair is not, and a guard that quietly reported the wrong
- * modifier would be worse than one that says it needs updating.
+ * @throws If a setter appears — a getter/setter pair can't be rendered this way.
  */
 function memberSignatures(
   members: readonly (ts.ClassElement | ts.TypeElement)[],
@@ -330,15 +184,7 @@ function memberSignatures(
   return new Map([...implementations, ...published]);
 }
 
-/**
- * The members a facade class publishes.
- *
- * @param file - The facade's file name under `src/game`.
- * @param className - The class to read, e.g. `ElevatorInterface`.
- * @returns Member text by name.
- * @throws If the class is not there, which means this test is reading nothing
- * and should say so rather than compare two empty maps.
- */
+/** The members a facade class publishes. */
 function facadeMemberSignatures(file: string, className: string): Map<string, string[]> {
   const source = parse(fileURLToPath(new URL(`./game/${file}`, import.meta.url)));
   for (const statement of source.statements) {
@@ -349,23 +195,12 @@ function facadeMemberSignatures(file: string, className: string): Map<string, st
   throw new Error(`${file} declares no class ${className}`);
 }
 
-/**
- * The same, read out of the declaration.
- *
- * @param interfaceName - The interface to read, e.g. `Elevator`.
- * @returns Member text by name.
- */
+/** The same, read out of the declaration. */
 function declaredMemberSignatures(interfaceName: string): Map<string, string[]> {
   return memberSignatures(declaredInterface(interfaceName).members, `interface ${interfaceName}`);
 }
 
-/**
- * Every signature of one declared method, in declaration order.
- *
- * @param interfaceName - The interface to look in.
- * @param method - The method name, e.g. `on`.
- * @returns Its overloads.
- */
+/** Every signature of one declared method, in declaration order. */
 function declaredSignatures(interfaceName: string, method: string): ts.MethodSignature[] {
   return declaredInterface(interfaceName).members.filter(
     (member): member is ts.MethodSignature =>
@@ -374,13 +209,8 @@ function declaredSignatures(interfaceName: string, method: string): ts.MethodSig
 }
 
 /**
- * Every string literal inside a type.
- *
- * Used on the first parameter of an overload, so that an event name written as
- * a bare literal and one written inside a union are both found.
- *
- * @param type - The type to search, or `undefined` for an untyped parameter.
- * @returns The literal strings it contains.
+ * Every string literal inside a type, found however deep it's nested — a bare
+ * literal or one inside a union.
  */
 function stringLiteralsIn(type: ts.TypeNode | undefined): string[] {
   if (type === undefined) {
@@ -398,17 +228,9 @@ function stringLiteralsIn(type: ts.TypeNode | undefined): string[] {
 }
 
 /**
- * The event names one declared method accepts, with the number of arguments its
- * handler is declared to receive for each.
- *
- * The `this` parameter is not an argument and is left out, which is what makes
- * the count comparable with the payload tuple on the facade's event map.
- *
- * @param interfaceName - The interface to look in.
- * @param method - The subscription method: `on`, `once` or `one`.
- * @returns Handler arity by event name. An overload that names several events
- * at once — the space separated form — contributes nothing, having no single
- * event's payload to describe.
+ * The event names one declared method accepts, with each handler's declared
+ * argument count (the `this` parameter excluded). An overload naming several
+ * events at once contributes nothing, having no single event to describe.
  */
 function declaredEventArity(interfaceName: string, method: string): Map<string, number> {
   const arity = new Map<string, number>();
@@ -429,13 +251,7 @@ function declaredEventArity(interfaceName: string, method: string): Map<string, 
   return arity;
 }
 
-/**
- * The members of a type alias that is a union of string literals.
- *
- * @param name - The alias name, e.g. `ElevatorEventName`.
- * @returns The strings it is a union of.
- * @throws If the declaration file has no such alias.
- */
+/** The string-literal members of a union type alias, by name. */
 function declaredUnion(name: string): Set<string> {
   for (const statement of namespaceStatements()) {
     if (ts.isTypeAliasDeclaration(statement) && statement.name.text === name) {
@@ -446,16 +262,8 @@ function declaredUnion(name: string): Set<string> {
 }
 
 /**
- * The event map a facade declares, read out of its source.
- *
- * The map is a type, so it is gone by run time; the source is where it can
- * still be asked what the events are and how many arguments each carries.
- *
- * @param file - The facade's file name under `src/game`.
- * @param alias - The event map's type alias, e.g. `ElevatorInterfaceEvents`.
- * @returns Payload length by event name.
- * @throws If the alias is missing or is no longer a plain object type, either
- * of which means this test is reading the wrong thing and should say so.
+ * The event map a facade declares, read from its source since the map is a
+ * type and gone by run time. Payload length by event name.
  */
 function facadeEvents(file: string, alias: string): Map<string, number> {
   const source = parse(fileURLToPath(new URL(`./game/${file}`, import.meta.url)));
@@ -480,18 +288,9 @@ function facadeEvents(file: string, alias: string): Map<string, number> {
 }
 
 /**
- * Every name player code can reach on a facade.
- *
- * The walk `elevator-interface.test.ts`, `floor-interface.test.ts` and
- * `completions.test.ts` all use: own properties first, then up the prototype
- * chain, so an instance field like `destinationQueue` is counted alongside the
- * methods. `getOwnPropertyNames` reads descriptors, so the floor's
- * `buttonStates` getter is found without being invoked, and `#private` members
- * are invisible to it — which is precisely the line between what player code
- * can reach and what it cannot.
- *
- * @param facade - An instance of the facade.
- * @returns Its property names.
+ * Every name player code can reach on a facade: own properties, then up the
+ * prototype chain. `#private` members are invisible to this walk, matching
+ * how {@link memberName} treats them in the declaration.
  */
 function exposedNames(facade: object): Set<string> {
   const exposed = new Set<string>();
@@ -508,11 +307,7 @@ function exposedNames(facade: object): Set<string> {
   return exposed;
 }
 
-/**
- * A live elevator facade, built the way `elevator-interface.test.ts` does.
- *
- * @returns The facade.
- */
+/** A live elevator facade to compare against the declaration. */
 function elevatorFacade(): ElevatorInterface {
   return new ElevatorInterface(
     new Elevator(1.5, 4, 40),
@@ -521,11 +316,7 @@ function elevatorFacade(): ElevatorInterface {
   );
 }
 
-/**
- * A live floor facade, built the way `floor-interface.test.ts` does.
- *
- * @returns The facade.
- */
+/** A live floor facade to compare against the declaration. */
 function floorFacade(): FloorInterface {
   return new FloorInterface(new Floor(2, 100, () => undefined), () => undefined);
 }
@@ -536,15 +327,9 @@ function sorted(names: Iterable<string>): string[] {
 }
 
 /**
- * A program that uses every member the declaration publishes.
- *
- * Its job is to pin the *types*: names are compared above, but a return type
- * only exists once something depends on it, so every call here lands in a
- * position that constrains what it may return — a `@type` annotation, an
- * arithmetic operator, a string method that only one of the possible return
- * types has. The test below refuses to pass unless every declared member
- * appears in this text, so a member added to the declaration has to be
- * exercised here before the suite goes green again.
+ * A program that uses every member the declaration publishes, each call
+ * positioned to constrain its return type. A member added to the declaration
+ * must be exercised here before the suite passes again.
  */
 const EXERCISING_PROGRAM = `
 /** @type {ElevatorSaga.Solution} */
@@ -675,12 +460,8 @@ const EXERCISING_PROGRAM = `
 
 /**
  * A program made of mistakes, each of which the declaration has to catch.
- *
- * Every line marked `// error` is expected to be reported, and every line that
- * is not marked is expected to be clean — so a declaration that has quietly
- * become `any`, or one that started rejecting something legitimate, fails here
- * either way. The lines are one statement each because a diagnostic is compared
- * by line number.
+ * Every `// error` line must be reported, and every other line must stay
+ * clean; one statement per line, since diagnostics are matched by line.
  */
 const MISTAKEN_PROGRAM = `
 /** @type {ElevatorSaga.Solution} */
@@ -706,18 +487,10 @@ const MISTAKEN_PROGRAM = `
 const ERROR_MARKER = "// error";
 
 /**
- * The one program in the guide that a player is told to start from.
+ * The one program in the guide that a player is told to start from, found by
+ * content — the `@type` annotation — rather than by position in the file.
  *
- * Found by content rather than by position: the guide is prose that gets
- * rearranged, and a heading or a section order is a weaker anchor than the
- * annotation that makes the example work. Extracting it, rather than keeping a
- * copy here, is what makes the two tests below statements about the guide
- * itself — that what it prints compiles, and that the game will load it.
- *
- * @returns The example, exactly as the guide prints it.
- * @throws If no fenced JavaScript block in the guide carries the annotation,
- * which means the instructions have changed shape and this test is now
- * measuring nothing.
+ * @throws If no fenced JS block in the guide carries that annotation.
  */
 function guideExample(): string {
   const guide = readFileSync(GUIDE_PATH, "utf8");
@@ -741,14 +514,8 @@ afterAll(() => {
 });
 
 /**
- * Compiles the declaration file together with some player programs.
- *
- * One program per file, all in one compilation, because building a TypeScript
- * program is the expensive part and the declaration is the only thing they
- * share.
- *
- * @param programs - Player programs, by the file name to give each.
- * @returns Every diagnostic, grouped by the file name it was reported against.
+ * Compiles the declaration together with player programs, one program per
+ * file, all in a single compilation to share the expensive part.
  */
 function compile(programs: Readonly<Record<string, string>>): Map<string, ts.Diagnostic[]> {
   const paths = Object.entries(programs).map(([name, source]) => {
@@ -770,12 +537,7 @@ function compile(programs: Readonly<Record<string, string>>): Map<string, ts.Dia
   return byFile;
 }
 
-/**
- * One diagnostic, as a line the failure output can be read from.
- *
- * @param diagnostic - What the compiler reported.
- * @returns Its line number, if it has one, and its message.
- */
+/** One diagnostic, as a line number and message for failure output. */
 function describeDiagnostic(diagnostic: ts.Diagnostic): string {
   const message = ts.flattenDiagnosticMessageText(diagnostic.messageText, " ");
   if (diagnostic.file === undefined || diagnostic.start === undefined) {
@@ -785,12 +547,7 @@ function describeDiagnostic(diagnostic: ts.Diagnostic): string {
   return `line ${String(line + 1)}: ${message}`;
 }
 
-/**
- * The lines of a file that a set of diagnostics were reported against.
- *
- * @param diagnostics - What the compiler reported for one file.
- * @returns The 1-based line numbers, sorted, without repeats.
- */
+/** The 1-based, deduplicated line numbers a set of diagnostics were reported against. */
 function reportedLines(diagnostics: readonly ts.Diagnostic[]): number[] {
   const lines = new Set<number>();
   for (const diagnostic of diagnostics) {
@@ -801,12 +558,7 @@ function reportedLines(diagnostics: readonly ts.Diagnostic[]): number[] {
   return [...lines].sort((left, right) => left - right);
 }
 
-/**
- * The lines of a fixture that say they expect to be reported.
- *
- * @param source - The fixture.
- * @returns The 1-based line numbers carrying {@link ERROR_MARKER}.
- */
+/** The 1-based line numbers of a fixture carrying {@link ERROR_MARKER}. */
 function markedLines(source: string): number[] {
   return source
     .split("\n")
@@ -821,22 +573,15 @@ const compiled = compile({
   "guide.js": guideExample(),
 });
 
-/**
- * What the compiler said about one fixture.
- *
- * @param name - The fixture's file name.
- * @returns Its diagnostics.
- */
+/** What the compiler said about one fixture. */
 function diagnosticsFor(name: string): ts.Diagnostic[] {
   return compiled.get(join(workingDirectory, name)) ?? [];
 }
 
 describe("the members the declaration file publishes", () => {
   it("declares every member the elevator facade hands player code", () => {
-    // Failing here means ElevatorInterface grew a member that players will not
-    // see in their editor, and whose misuse their editor will report as a
-    // mistake. Declare it in public/elevatorsaga.d.ts, with the sentence from
-    // its JSDoc, and exercise it in EXERCISING_PROGRAM above.
+    // A new ElevatorInterface member needs a matching declaration in
+    // public/elevatorsaga.d.ts, exercised in EXERCISING_PROGRAM above.
     expect(sorted(exposedNames(elevatorFacade()))).toEqual(sorted(declaredMembers("Elevator")));
   });
 
@@ -845,18 +590,9 @@ describe("the members the declaration file publishes", () => {
   });
 
   it("gives every member the type the facade gives it", () => {
-    // The two tests above compare names, and the fixtures below pin the types
-    // the declaration states — but only against themselves. Neither notices a
-    // facade member whose *type* moves under the declaration: a facade
-    // `goToFloor` that grows a third argument, or an `isApproachingFloor` whose
-    // answer widens, leaves a shipped declaration that is wrong about the game
-    // and internally consistent, which is the worst shape a lie can take.
-    //
-    // The comparison is textual, and that is the point: these two files are
-    // written independently, so agreeing on `(floorNum: number, forceNow?:
-    // boolean): void` down to the spelling is a real statement about them.
-    // Renaming a type on either side therefore fails here, and the fix is to
-    // rename it on both — which is the outcome wanted anyway.
+    // Catches a facade member whose *type* changed without the declaration
+    // following — e.g. goToFloor growing a third argument. The comparison is
+    // textual, so a rename on one side fails here until it's made on both.
     for (const [file, className, interfaceName] of [
       ["elevator-interface.ts", "ElevatorInterface", "Elevator"],
       ["floor-interface.ts", "FloorInterface", "Floor"],
@@ -868,9 +604,8 @@ describe("the members the declaration file publishes", () => {
   });
 
   it("uses every member it declares, so nothing is declared untested", () => {
-    // The names above are compared without regard to type. This is what makes
-    // the types matter: a member has to appear in the program that gets
-    // compiled, in a position that depends on what it returns.
+    // Forces every declared member to appear in EXERCISING_PROGRAM, in a
+    // position that constrains its return type.
     const unexercised = [...declaredMembers("Elevator"), ...declaredMembers("Floor")].filter(
       (name) => !EXERCISING_PROGRAM.includes(`.${name}`),
     );
@@ -891,27 +626,8 @@ describe("the events the declaration file publishes", () => {
   });
 
   it("gives every elevator event the arguments the facade raises it with", () => {
-    // An overload per subscription method per event, each handing the handler
-    // as many arguments as the facade's event map declares. A handler told to
-    // expect one argument for an event that carries two is a wrong API stated
-    // precisely, which is the worst kind.
-    //
-    // `off` is in this list because unregistering takes the handler that was
-    // registered, so its overloads carry the same parameters as `on`'s and can
-    // drift apart from them. They did: before this file grew that check, `off`
-    // was one signature typed for the multi-event form, and
-    // `elevator.off("floor_button_pressed", remember)` was reported as a type
-    // error in the player's editor. `documentation.html` does not print that
-    // call: it prints the `on` half, and says that removing a handler needs a
-    // reference to it. The three calls it does print under `off` would not have
-    // caught this — they pass no handler, or one declaring no parameters, and
-    // either survives a single signature — so EXERCISING_PROGRAM carries the
-    // call that does. Measured by putting the drift back, as one signature
-    // taking `ElevatorEventName | MultipleEvents<ElevatorEventName>`: this test
-    // fails, and so does "accepts a program that uses the whole API". Not
-    // "rejects each mistake, and only those" — its one `off` case is
-    // `off("*", function () {})`, which the wildcard overload refuses either
-    // way, so the mistakes fixture is no guard against this at all.
+    // `off` is included because unregistering takes the handler that was
+    // registered, so its overloads must carry the same parameters as `on`'s.
     for (const method of ["on", "once", "one", "off"]) {
       expect(Object.fromEntries(declaredEventArity("Elevator", method)), method).toEqual(
         Object.fromEntries(elevatorFacadeEvents),
@@ -928,9 +644,8 @@ describe("the events the declaration file publishes", () => {
   });
 
   it("lets player code raise exactly the elevator events the facade can", () => {
-    // `trigger` is published surface, because the legacy facade was a riot
-    // observable, so its argument lists are part of the contract too. The
-    // event name is the first argument here, hence the extra one.
+    // `trigger` is legacy surface but still part of the contract; the event
+    // name is its first argument, hence the extra one in the count below.
     const declared = new Map(
       declaredSignatures("Elevator", "trigger").map((signature) => [
         stringLiteralsIn(signature.parameters[0]?.type).join(),
@@ -943,10 +658,8 @@ describe("the events the declaration file publishes", () => {
 
 describe("the program shape the declaration file publishes", () => {
   it("asks for exactly the functions the game requires, with the arguments it passes", () => {
-    // Read off `UserCodeObject`, which is what `WorldController.start` calls:
-    // `init(elevators, floors)` and `update(dt, elevators, floors)`. A player
-    // whose editor accepted a two-argument `update` would find out from the
-    // game.
+    // Read off `UserCodeObject`; a player whose editor accepted a
+    // two-argument `update` would otherwise only find out from the game.
     const engine = parse(fileURLToPath(new URL("./game/world-controller.ts", import.meta.url)));
     const required = new Map<string, number>();
     for (const statement of engine.statements) {
@@ -971,8 +684,7 @@ describe("the program shape the declaration file publishes", () => {
 
 describe("the declaration file as a compiler sees it", () => {
   it("compiles clean on its own", () => {
-    // `skipLibCheck` is off, so this is the declaration's own contents rather
-    // than anything that uses them.
+    // `skipLibCheck` is off, so this checks the declaration's own contents.
     expect((compiled.get(DECLARATION_PATH) ?? []).map(describeDiagnostic)).toEqual([]);
   });
 
@@ -995,21 +707,16 @@ describe("the instructions docs/writing-solutions.md gives", () => {
   });
 
   it("prints an example the game will load", () => {
-    // The trap this closes: the game's loader only wraps a program in
-    // parentheses when it starts with `{` and ends with `}`, so an example with
-    // a `/** @type ... */` or `/// <reference ... />` line above a bare object
-    // literal is evaluated as a block, and dies with `SyntaxError: Function
-    // statements require a function name`. An annotated example has to keep its
-    // own parentheses, and this is what notices when it stops doing so.
+    // The game's loader only parenthesizes a program starting with `{` and
+    // ending with `}`; an annotated example must keep its own parentheses or
+    // it's evaluated as a block and throws a SyntaxError.
     const solution = getCodeObjFromCode(guideExample());
     expect(typeof solution.init).toBe("function");
     expect(typeof solution.update).toBe("function");
   });
 
   it("prints the compiler options these fixtures were compiled with", () => {
-    // The guide tells a player four options and this file compiles with four
-    // options; if they were allowed to differ, this whole file would be
-    // measuring a configuration nobody has.
+    // Keeps the guide's options in sync with PLAYER_COMPILER_OPTIONS.
     const guide = readFileSync(GUIDE_PATH, "utf8");
     for (const [option, value] of Object.entries(PLAYER_COMPILER_OPTIONS)) {
       expect(guide, option).toContain(`"${option}": ${String(value)}`);
