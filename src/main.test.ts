@@ -374,8 +374,8 @@ describe("the dialogs", () => {
     requireElement(".keysopen").click();
 
     expect(keys.hasAttribute("open")).toBe(true);
-    // The popover gets out of the way first, since the dialog covers it anyway.
-    expect(requireElement(".setmenu").hidden).toBe(true);
+    // The popover stays open underneath, so closing the dialog lands back in settings.
+    expect(requireElement(".setmenu").hidden).toBe(false);
     expect(requireElement("h2", keys).textContent).toBe(translateIn("en", "game.hotkeys.title"));
     const modKeys = queryAll("kbd[data-mod-key]", keys).map((key) => key.textContent);
     expect(modKeys.length).toBeGreaterThan(0);

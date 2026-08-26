@@ -78,6 +78,32 @@ describe("createDisclosure", () => {
     expect(trigger.getAttribute("aria-expanded")).toBe("true");
   });
 
+  it("stays open through a click on a dialog's backdrop, which targets the dialog itself", () => {
+    const { panel, trigger } = setUp();
+    const dialog = document.createElement("dialog");
+    document.body.append(dialog);
+
+    click(trigger);
+    click(dialog);
+
+    expect(panel.hidden).toBe(false);
+    expect(trigger.getAttribute("aria-expanded")).toBe("true");
+  });
+
+  it("stays open through the Escape that dismisses a dialog over it", () => {
+    const { panel, trigger } = setUp();
+    const dialog = document.createElement("dialog");
+    const closeButton = document.createElement("button");
+    dialog.append(closeButton);
+    document.body.append(dialog);
+
+    click(trigger);
+    closeButton.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+
+    expect(panel.hidden).toBe(false);
+    expect(trigger.getAttribute("aria-expanded")).toBe("true");
+  });
+
   it("closes on Escape", () => {
     const { panel, trigger } = setUp();
 

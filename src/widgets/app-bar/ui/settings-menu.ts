@@ -172,13 +172,13 @@ export function presentAppBarSettings(
 
   presentSeedPanel(seedBlock, { onSeed: options.onSeed });
 
-  const disclosure = createDisclosure(setOpen, setMenu);
+  createDisclosure(setOpen, setMenu);
 
   docsOpen.addEventListener("click", () => {
     options.onOpenDocs();
   });
+  // The popover stays open under the dialog, so closing the dialog lands back in settings.
   keysOpen.addEventListener("click", () => {
-    disclosure.close();
     options.onOpenHotkeys();
   });
 

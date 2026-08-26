@@ -190,12 +190,8 @@ describe("presentAppBarSettings", () => {
     expect(onOpenDocs).toHaveBeenCalledTimes(1);
   });
 
-  it("closes the popover before invoking onOpenHotkeys when keysOpen is clicked", () => {
-    let menuHiddenAtCall: boolean | undefined;
-    const onOpenHotkeys = vi.fn(() => {
-      // `!!`, not a pass-through: DOM typings widen `hidden` to `boolean | "hidden" | "until-found"`.
-      menuHiddenAtCall = !!setMenu.hidden;
-    });
+  it("leaves the popover open when keysOpen is clicked, so its dialog is a step deeper in", () => {
+    const onOpenHotkeys = vi.fn();
     const { parent } = setUp(null, { onOpenHotkeys });
     const setOpen = requireElement(".setopen", parent);
     const setMenu = requireElement(".setmenu", parent);
@@ -205,8 +201,8 @@ describe("presentAppBarSettings", () => {
     requireElement(".keysopen", parent).click();
 
     expect(onOpenHotkeys).toHaveBeenCalledTimes(1);
-    expect(menuHiddenAtCall).toBe(true);
-    expect(setMenu.hidden).toBe(true);
+    expect(setMenu.hidden).toBe(false);
+    expect(setOpen.getAttribute("aria-expanded")).toBe("true");
   });
 
   describe("notifySystemThemeChange", () => {

@@ -25,6 +25,37 @@ test("heads its two groups with the scope each one has", async ({ page }) => {
   ]);
 });
 
+test("leaves the settings popover open under it, however the dialog is dismissed", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const keys = page.locator(".keys");
+  const setMenu = page.locator(".setmenu");
+  await page.locator(".setopen").click();
+  await expect(setMenu).toBeVisible();
+
+  for (const dismiss of [
+    async (): Promise<void> => {
+      await page.keyboard.press("Escape");
+    },
+    async (): Promise<void> => {
+      await page.locator(".keysclose").click();
+    },
+    // The backdrop, whose click targets the dialog element rather than anything under it.
+    async (): Promise<void> => {
+      await page.mouse.click(5, 5);
+    },
+  ]) {
+    await page.locator(".keysopen").click();
+    await expect(keys).toBeVisible();
+
+    await dismiss();
+
+    await expect(keys).toBeHidden();
+    await expect(setMenu).toBeVisible();
+  }
+});
+
 test("F1 opens the help it names, and in the editor does nothing, as its heading says", async ({
   page,
 }) => {

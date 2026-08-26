@@ -13,9 +13,18 @@ export interface Disclosure {
 }
 
 /**
+ * Whether the event belongs to a dialog rather than to the page under it. A modal dialog makes
+ * everything below it inert, so its Escape and its backdrop click are never a disclosure's to act on.
+ */
+function insideDialog(target: EventTarget | null): boolean {
+  return target instanceof Element && target.closest("dialog") !== null;
+}
+
+/**
  * Wires a trigger and a panel into one disclosure, closed to start. Listens
  * on `trigger`'s own `ownerDocument`, not the global `document`, so a pair
  * built inside another `Document` isn't wired to a page it was never part of.
+ * A panel left open behind a dialog is still open once the dialog closes.
  *
  * @param trigger - Must carry `aria-haspopup`; this only ever writes its `aria-expanded`.
  */
@@ -44,10 +53,12 @@ export function createDisclosure(trigger: HTMLElement, panel: HTMLElement): Disc
     if (target instanceof Node && (trigger.contains(target) || panel.contains(target))) {
       return;
     }
-    close();
+    if (!insideDialog(target)) {
+      close();
+    }
   });
   ownerDocument.addEventListener("keydown", (event) => {
-    if (event.key === "Escape") {
+    if (event.key === "Escape" && !insideDialog(event.target)) {
       close();
     }
   });
