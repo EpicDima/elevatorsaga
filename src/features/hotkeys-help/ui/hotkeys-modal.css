@@ -2,7 +2,7 @@
 
 /* Literal color, not a token: the same wash applies in both themes, so nothing names it. */
 .keys {
-  width: min(320px, 92vw);
+  width: min(380px, 92vw);
   padding: 0;
   border: 1px solid var(--ds-line-strong);
   border-radius: var(--ds-r-lg);
@@ -31,8 +31,26 @@
   white-space: nowrap;
 }
 
+/* The body scrolls rather than the dialog, so the heading and close button stay put. */
 .keys-body {
   padding: 6px 14px 14px;
+  max-height: min(520px, 70vh);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+/* The heading carries the scope, so a row never has to repeat where it applies. */
+.keys-group {
+  margin: 14px 0 2px;
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ds-text-muted);
+}
+
+.keys-group:first-child {
+  margin-top: 2px;
 }
 
 /*
@@ -55,6 +73,7 @@
 
 /* Sized and colored for a standalone column, not for the body-text kbd elsewhere. */
 .keyrow kbd {
+  flex-shrink: 0;
   padding: 1px 6px;
   border: 1px solid var(--ds-line-strong);
   border-radius: 4px;

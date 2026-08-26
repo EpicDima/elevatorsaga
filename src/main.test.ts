@@ -377,7 +377,9 @@ describe("the dialogs", () => {
     // The popover gets out of the way first, since the dialog covers it anyway.
     expect(requireElement(".setmenu").hidden).toBe(true);
     expect(requireElement("h2", keys).textContent).toBe(translateIn("en", "game.hotkeys.title"));
-    expect(queryAll("kbd[data-mod-key]", keys).map((key) => key.textContent)).toEqual(["⌘", "⌘"]);
+    const modKeys = queryAll("kbd[data-mod-key]", keys).map((key) => key.textContent);
+    expect(modKeys.length).toBeGreaterThan(0);
+    expect([...new Set(modKeys)]).toEqual(["⌘"]);
   });
 });
 
@@ -439,7 +441,9 @@ describe("the language", () => {
     expect(requireElement(".docs h2").textContent).toBe(translateIn("ru", "game.docs.title"));
     expect(requireElement(".keys h2").textContent).toBe(translateIn("ru", "game.hotkeys.title"));
     // Per platform, not per language: the relabel has to survive the redraw.
-    expect(queryAll("kbd[data-mod-key]").map((key) => key.textContent)).toEqual(["⌘", "⌘"]);
+    const modKeys = queryAll("kbd[data-mod-key]").map((key) => key.textContent);
+    expect(modKeys.length).toBeGreaterThan(0);
+    expect([...new Set(modKeys)]).toEqual(["⌘"]);
   });
 });
 

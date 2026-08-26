@@ -51,27 +51,71 @@ describe("hotkeysModalTemplate", () => {
     expect(first.querySelector("h2")?.id).not.toBe(second.querySelector("h2")?.id);
   });
 
-  it("draws five rows pairing a label with its own key", () => {
+  it("draws a row per shortcut, pairing a label with the keys that chord it", () => {
     const { dialog } = setUp();
 
     const rows = [...dialog.querySelectorAll(".keyrow")];
-    expect(rows.map((row) => row.querySelector("span")?.textContent)).toEqual([
-      "Start and pause",
-      "Start over",
-      "Switch layout",
-      "Help",
-      "Settings",
-    ]);
     expect(
-      rows.map((row) => [...row.querySelectorAll("kbd")].map((kbd) => kbd.textContent)),
-    ).toEqual([["Space"], ["Ctrl", "Enter"], ["Ctrl", "B"], ["F1"], ["?"]]);
+      rows.map((row) => [
+        row.querySelector("span")?.textContent,
+        [...row.querySelectorAll("kbd")].map((kbd) => kbd.textContent).join("+"),
+      ]),
+    ).toEqual([
+      ["Start and pause", "Space"],
+      ["Start over", "Ctrl+Enter"],
+      ["Switch layout", "Ctrl+B"],
+      ["Help", "F1"],
+      ["Settings", "?"],
+      ["Apply the code and start over", "Ctrl+Enter"],
+      ["Save right away", "Ctrl+S"],
+      ["Suggest a call", "Ctrl+Space"],
+      ["Find and replace", "Ctrl+F"],
+      ["Next match", "Ctrl+G"],
+      ["Previous match", "Ctrl+Shift+G"],
+      ["Add the next occurrence to the selection", "Ctrl+D"],
+      ["Indent", "Tab"],
+      ["Move the focus out", "Esc"],
+    ]);
   });
 
-  it("marks only the two Mod- bindings for relabeling", () => {
+  it("heads each group with the scope its rows actually have", () => {
     const { dialog } = setUp();
 
-    const modKeys = [...dialog.querySelectorAll("kbd[data-mod-key]")];
-    expect(modKeys.map((key) => key.textContent)).toEqual(["Ctrl", "Ctrl"]);
+    expect(
+      [...dialog.querySelectorAll(".keys-group")].map((heading) => heading.textContent),
+    ).toEqual(["Outside the code editor", "In the code editor"]);
+  });
+
+  it("joins each chord's caps with a +", () => {
+    const { dialog } = setUp();
+
+    const row = [...dialog.querySelectorAll(".keyrow")].find(
+      (candidate) => candidate.querySelector("span")?.textContent === "Previous match",
+    );
+    expect(row?.textContent).toBe("Previous matchCtrl+Shift+G");
+  });
+
+  it("marks every Mod- binding for relabeling, and leaves completion's literal Ctrl alone", () => {
+    const { dialog } = setUp();
+
+    // CodeMirror's completionKeymap gives Ctrl-Space no Mac spelling of its own, so
+    // relabeling that one to ⌘ would advertise a chord that does nothing.
+    const marked = [...dialog.querySelectorAll(".keyrow")]
+      .filter((row) => row.querySelector("kbd[data-mod-key]") !== null)
+      .map((row) => row.querySelector("span")?.textContent);
+    expect(marked).toEqual([
+      "Start over",
+      "Switch layout",
+      "Apply the code and start over",
+      "Save right away",
+      "Find and replace",
+      "Next match",
+      "Previous match",
+      "Add the next occurrence to the selection",
+    ]);
+    expect([...dialog.querySelectorAll("kbd[data-mod-key]")].map((key) => key.textContent)).toEqual(
+      Array.from({ length: marked.length }, () => "Ctrl"),
+    );
   });
 });
 
@@ -119,6 +163,9 @@ describe("presentHotkeysModal", () => {
       const closeButton = dialog.querySelector(".keysclose");
       expect(closeButton?.textContent).toBe("Закрыть");
       expect(closeButton?.getAttribute("title")).toBe("Закрыть окно");
+      expect(
+        [...dialog.querySelectorAll(".keys-group")].map((heading) => heading.textContent),
+      ).toEqual(["Вне редактора кода", "В редакторе кода"]);
       const rows = [...dialog.querySelectorAll(".keyrow")];
       expect(rows.map((row) => row.querySelector("span")?.textContent)).toEqual([
         "Пуск и пауза",
@@ -126,10 +173,34 @@ describe("presentHotkeysModal", () => {
         "Сменить раскладку",
         "Справка",
         "Настройки",
+        "Применить код и начать заново",
+        "Сохранить сразу",
+        "Подсказать вызов",
+        "Найти и заменить",
+        "Следующее совпадение",
+        "Предыдущее совпадение",
+        "Добавить к выделению следующее вхождение",
+        "Отступ",
+        "Убрать фокус из редактора",
       ]);
       expect(
-        rows.map((row) => [...row.querySelectorAll("kbd")].map((kbd) => kbd.textContent)),
-      ).toEqual([["Space"], ["Ctrl", "Enter"], ["Ctrl", "B"], ["F1"], ["?"]]);
+        rows.map((row) => [...row.querySelectorAll("kbd")].map((kbd) => kbd.textContent).join("+")),
+      ).toEqual([
+        "Space",
+        "Ctrl+Enter",
+        "Ctrl+B",
+        "F1",
+        "?",
+        "Ctrl+Enter",
+        "Ctrl+S",
+        "Ctrl+Space",
+        "Ctrl+F",
+        "Ctrl+G",
+        "Ctrl+Shift+G",
+        "Ctrl+D",
+        "Tab",
+        "Esc",
+      ]);
     } finally {
       setLocale(DEFAULT_LOCALE);
     }
