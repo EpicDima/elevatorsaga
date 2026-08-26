@@ -594,7 +594,7 @@ elevator.goingDownIndicator(false);`,
   // Errors.
 
   "error.code.noInit": "В коде должна быть функция init",
-  "error.code.noUpdate": "В коде должна быть функция update",
+  "error.code.updateNotFunction": "В коде объявлен update, но это не функция",
   // {value} can be a quoted string, NaN, undefined, or one of the two nouns
   // below; the verb agrees with the subject and never with {value}, so the
   // sentence stays grammatical for every shape it takes.

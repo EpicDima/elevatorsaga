@@ -556,7 +556,8 @@ elevator.goingDownIndicator(false);`,
   // Error banner text; API names and player-passed values stay in English.
 
   "error.code.noInit": "Code must contain an init function",
-  "error.code.noUpdate": "Code must contain an update function",
+  // update is optional, so this is only ever about one that was declared as something else.
+  "error.code.updateNotFunction": "Code declares update as something other than a function",
   "error.elevator.notAFloor":
     "elevator.{method} was called with {value}, which is not a floor number. It takes a finite number, and this building has floors 0 to {topFloor}.",
   "error.elevator.queueNotAFloor":

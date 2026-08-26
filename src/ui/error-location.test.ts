@@ -62,6 +62,63 @@ function jscError(fields: {
   return { message: "missingHelper is not defined", ...fields };
 }
 
+describe("locateCodeError, on the program form", () => {
+  const PROGRAM = [
+    "const PARK = 0;",
+    "",
+    "function init(elevators, floors) {}",
+    "",
+    "function update(dt, elevators, floors) {",
+    "  missingHelper();",
+    "}",
+  ].join("\n");
+
+  it("points at the line of the program that threw", () => {
+    expect(locateCodeError(thrownBy(PROGRAM), PROGRAM)).toEqual({ line: 6, column: 3 });
+  });
+
+  it("points inside a top-level helper, not at the line that called it", () => {
+    const withHelper = [
+      "function helper() {",
+      "  missingHelper();",
+      "}",
+      "",
+      "function init(elevators, floors) {}",
+      "function update(dt, elevators, floors) { helper(); }",
+    ].join("\n");
+
+    expect(locateCodeError(thrownBy(withHelper), withHelper)).toEqual({ line: 2, column: 3 });
+  });
+
+  it("takes the wrapper it was compiled in back off the first line", () => {
+    const oneLine = "function init() {} function update() { missingHelper(); }";
+
+    expect(locateCodeError(thrownBy(oneLine), oneLine)).toEqual({
+      line: 1,
+      column: oneLine.indexOf("missingHelper(") + 1,
+    });
+  });
+
+  it("points at the player's line when the throw happened inside the game", () => {
+    const callsTheEngine = [
+      "function init(elevators, floors) {}",
+      "function update(dt, elevators, floors) {",
+      "  elevators[0].goToFloor(7);",
+      "}",
+    ].join("\n");
+    const elevator = {
+      goToFloor(floor: number): never {
+        throw new Error(`Cannot go to floor ${String(floor)}`);
+      },
+    };
+
+    expect(locateCodeError(thrownBy(callsTheEngine, [elevator]), callsTheEngine)).toEqual({
+      line: 3,
+      column: 16,
+    });
+  });
+});
+
 describe("locateCodeError", () => {
   it("points at the line of the program that threw", () => {
     expect(locateCodeError(thrownBy(MULTI_LINE), MULTI_LINE)).toEqual({ line: 4, column: 5 });
