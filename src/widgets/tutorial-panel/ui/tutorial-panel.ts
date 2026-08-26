@@ -174,23 +174,24 @@ async function copyToClipboard(code: string): Promise<CopiedState> {
   }
 }
 
-/** Puts the mark, the name and the announcement on the button together, since all three say the same thing. */
+/**
+ * Marks the button with what happened and puts it in words behind it.
+ *
+ * The button's name is left alone on purpose: a screen reader announces the
+ * name of the control the reader is on when it changes, so a changing name
+ * would say the outcome a second time, and say the way back a third.
+ */
 function markCopyButton(button: HTMLElement, announcement: HTMLElement, state: CopiedState): void {
   const { icon, message } = COPY_OUTCOMES[state];
   button.setAttribute(COPIED_STATE_ATTRIBUTE, state);
   button.firstElementChild?.replaceWith(createSpriteIcon(icon));
-  button.title = t(message);
-  button.setAttribute("aria-label", t(message));
   announcement.textContent = t(message);
 }
 
-/** Takes all three back off, leaving a plain copy button. */
+/** Takes both back off, leaving a plain copy button and nothing under the answer. */
 function unmarkCopyButton(button: HTMLElement, announcement: HTMLElement): void {
-  const name = t("tutorial.solution.copy");
   button.removeAttribute(COPIED_STATE_ATTRIBUTE);
   button.firstElementChild?.replaceWith(createSpriteIcon("copy"));
-  button.title = name;
-  button.setAttribute("aria-label", name);
   announcement.textContent = "";
 }
 

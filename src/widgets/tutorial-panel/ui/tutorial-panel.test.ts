@@ -318,6 +318,11 @@ describe("presentTutorial", () => {
       return writeText;
     }
 
+    /** The live region the outcome is announced into, behind the button's own mark. */
+    function announcement(): HTMLElement {
+      return requireElement(".tutorialcopied", parent);
+    }
+
     /** The button itself, which is the whole visible report on the copy. */
     function copyButton(): HTMLElement {
       return requireElement(".tutorialcopycode", parent);
@@ -363,10 +368,23 @@ describe("presentTutorial", () => {
       });
       expect(writeText).toHaveBeenCalledWith(code);
       expect(copyButton().innerHTML).toBe(iconHtml("check"));
-      expect(copyButton().getAttribute("aria-label")).toBe("Copied to your clipboard.");
-      expect(requireElement(".tutorialcopied", parent).textContent).toBe(
-        "Copied to your clipboard.",
-      );
+      expect(announcement().textContent).toBe("Copied to your clipboard.");
+    });
+
+    it("keeps its name through a copy, so a reader is told once and not told back", async () => {
+      stubClipboard(true);
+      presentTutorial(parent, panelData());
+
+      copyButton().click();
+
+      await vi.waitFor(() => {
+        expect(copyButton().getAttribute("data-copied")).toBe("yes");
+      });
+      // A screen reader announces the name of the control it is on when that
+      // name changes: a name carrying the outcome would say it a second time,
+      // and say the way back a third, with nobody having asked.
+      expect(copyButton().getAttribute("aria-label")).toBe("Copy this program");
+      expect(copyButton().title).toBe("Copy this program");
     });
 
     it("wears a cross when the browser refuses, and says what to do instead", async () => {
@@ -379,12 +397,7 @@ describe("presentTutorial", () => {
         expect(copyButton().getAttribute("data-copied")).toBe("no");
       });
       expect(copyButton().innerHTML).toBe(iconHtml("x"));
-      // On the button as well as in the live region: the cross alone doesn't
-      // say that the program can still be selected by hand.
-      expect(copyButton().title).toBe(
-        "Your browser refused to copy it. Select the code and copy it yourself.",
-      );
-      expect(requireElement(".tutorialcopied", parent).textContent).toBe(
+      expect(announcement().textContent).toBe(
         "Your browser refused to copy it. Select the code and copy it yourself.",
       );
     });
@@ -400,7 +413,7 @@ describe("presentTutorial", () => {
         expect(copyButton().getAttribute("data-copied")).toBe("no");
       });
       expect(copyButton().innerHTML).toBe(iconHtml("x"));
-      expect(requireElement(".tutorialcopied", parent).textContent).toBe(
+      expect(announcement().textContent).toBe(
         "Your browser refused to copy it. Select the code and copy it yourself.",
       );
     });
@@ -422,8 +435,7 @@ describe("presentTutorial", () => {
 
       expect(copyButton().hasAttribute("data-copied")).toBe(false);
       expect(copyButton().innerHTML).toBe(iconHtml("copy"));
-      expect(copyButton().getAttribute("aria-label")).toBe("Copy this program");
-      expect(requireElement(".tutorialcopied", parent).textContent).toBe("");
+      expect(announcement().textContent).toBe("");
     });
 
     it("empties the live region before each copy, so the same sentence announces twice", async () => {
@@ -436,11 +448,9 @@ describe("presentTutorial", () => {
       copyButton().click();
 
       // A live region announces a change, so the second copy has to arrive as one.
-      expect(requireElement(".tutorialcopied", parent).textContent).toBe("");
+      expect(announcement().textContent).toBe("");
       await vi.advanceTimersByTimeAsync(0);
-      expect(requireElement(".tutorialcopied", parent).textContent).toBe(
-        "Copied to your clipboard.",
-      );
+      expect(announcement().textContent).toBe("Copied to your clipboard.");
       expect(copyButton().getAttribute("data-copied")).toBe("yes");
     });
 
@@ -455,7 +465,7 @@ describe("presentTutorial", () => {
 
       expect(copyButton().hasAttribute("data-copied")).toBe(false);
       expect(copyButton().innerHTML).toBe(iconHtml("copy"));
-      expect(requireElement(".tutorialcopied", parent).textContent).toBe("");
+      expect(announcement().textContent).toBe("");
       // The redrawn button still copies: the panel wires the one it just drew.
       await waitOutTheMark();
       copyButton().click();
@@ -473,10 +483,7 @@ describe("presentTutorial", () => {
       await vi.waitFor(() => {
         expect(copyButton().getAttribute("data-copied")).toBe("yes");
       });
-      expect(copyButton().getAttribute("aria-label")).toBe("Скопировано в буфер обмена.");
-      expect(requireElement(".tutorialcopied", parent).textContent).toBe(
-        "Скопировано в буфер обмена.",
-      );
+      expect(announcement().textContent).toBe("Скопировано в буфер обмена.");
     });
   });
 
